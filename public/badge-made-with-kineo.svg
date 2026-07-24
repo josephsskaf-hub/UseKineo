@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="36" viewBox="0 0 180 36" role="img" aria-label="Made with Kineo">
+  <rect x="0.5" y="0.5" width="179" height="35" rx="9.5" fill="#161618" stroke="#2a2a2d"/>
+  <path d="M16 11l12 7-12 7z" fill="#2997ff"/>
+  <text x="36" y="23" font-family="Inter, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#f5f5f7">Made with <tspan fill="#2997ff">Kineo</tspan></text>
+</svg>

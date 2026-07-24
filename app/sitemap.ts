@@ -35,6 +35,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/examples', priority: 0.8, freq: 'weekly' },
     // AEO/GEO — citable fact sheet for AI answer engines (linked in public/llms.txt).
     { path: '/facts', priority: 0.7, freq: 'weekly' },
+    // KINEO-ACQ5-2026-07-24 (PUSH #87) — 5 new acquisition surfaces:
+    // interactive tool, data study, Spanish cluster, PT-BR high-intent, widget.
+    { path: '/niche-picker', priority: 0.9, freq: 'weekly' },
+    { path: '/state-of-ai-shorts-2026', priority: 0.8, freq: 'weekly' },
+    { path: '/es', priority: 0.9, freq: 'weekly' },
+    { path: '/es/videos-sin-rostro', priority: 0.8, freq: 'weekly' },
+    { path: '/es/canal-dark', priority: 0.8, freq: 'weekly' },
+    { path: '/pt/canal-dark', priority: 0.8, freq: 'weekly' },
+    { path: '/pt/gerador-video-faceless', priority: 0.8, freq: 'weekly' },
+    { path: '/widget', priority: 0.7, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]

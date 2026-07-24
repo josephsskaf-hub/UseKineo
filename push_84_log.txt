@@ -1,0 +1,22 @@
+===== KINEO PUSH 84 (fix hub build) ===== 
+warning: in the working copy of 'app/free-ai-shorts/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_84_fix_hub.bat', LF will be replaced by CRLF the next time Git touches it
+[staged] 
+app/free-ai-shorts/page.tsx
+push_84_fix_hub.bat
+[commit] 
+[main 5069baf] PUSH #84 fix free-ai-shorts hub build: add 8 niche cards + guard against missing slug
+ 2 files changed, 28 insertions(+), 2 deletions(-)
+ create mode 100644 push_84_fix_hub.bat
+[push] 
+To https://github.com/josephsskaf-hub/UseKineo.git
+   d89a934..5069baf  main -> main
+## main...origin/main
+ M CLAUDE.md
+?? push_79_hover_preselect_blue.bat
+?? push_80_nologin_blue_preselect.bat
+?? push_81_log.txt
+?? push_82_log.txt
+?? push_83_log.txt
+?? push_84_log.txt
+===== FIM ===== 

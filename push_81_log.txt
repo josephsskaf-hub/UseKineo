@@ -1,0 +1,53 @@
+===== KINEO PUSH 81 ===== 
+[branch] 
+main
+[status antes] 
+## main...origin/main
+ M CLAUDE.md
+M  app/(auth)/signup/page.tsx
+A  app/api/admin/send-free-upsell/route.ts
+M  app/api/cron/send-reminders/route.ts
+M  app/globals.css
+A  push_81_growth_email_machine.bat
+?? push_79_hover_preselect_blue.bat
+?? push_80_nologin_blue_preselect.bat
+?? push_81_log.txt
+?? push_81b_deploy_log.bat
+[git add] 
+warning: in the working copy of 'push_81b_deploy_log.bat', LF will be replaced by CRLF the next time Git touches it
+[staged] 
+app/(auth)/signup/page.tsx
+app/api/admin/send-free-upsell/route.ts
+app/api/cron/send-reminders/route.ts
+app/globals.css
+push_81_growth_email_machine.bat
+push_81b_deploy_log.bat
+[commit] 
+Author identity unknown
+
+*** Please tell me who you are.
+
+Run
+
+  git config --global user.email "you@example.com"
+  git config --global user.name "Your Name"
+
+to set your account's default identity.
+Omit --global to set the identity only in this repository.
+
+fatal: unable to auto-detect email address (got 'josep@joseph.(none)')
+[push] 
+Everything up-to-date
+[status depois] 
+## main...origin/main
+ M CLAUDE.md
+M  app/(auth)/signup/page.tsx
+A  app/api/admin/send-free-upsell/route.ts
+M  app/api/cron/send-reminders/route.ts
+M  app/globals.css
+A  push_81_growth_email_machine.bat
+A  push_81b_deploy_log.bat
+?? push_79_hover_preselect_blue.bat
+?? push_80_nologin_blue_preselect.bat
+?? push_81_log.txt
+===== FIM ===== 

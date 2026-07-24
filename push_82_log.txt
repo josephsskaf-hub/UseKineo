@@ -1,0 +1,35 @@
+===== KINEO PUSH 82 ===== 
+[set identity - local ao repo] 
+[git add] 
+[staged] 
+[commit] 
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   CLAUDE.md
+	modified:   app/free-ai-shorts/[niche]/page.tsx
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	push_79_hover_preselect_blue.bat
+	push_80_nologin_blue_preselect.bat
+	push_81_log.txt
+	push_82_log.txt
+	push_83_seo_niches.bat
+
+no changes added to commit (use "git add" and/or "git commit -a")
+[push] 
+Everything up-to-date
+[status depois] 
+## main...origin/main
+ M CLAUDE.md
+ M app/free-ai-shorts/[niche]/page.tsx
+?? push_79_hover_preselect_blue.bat
+?? push_80_nologin_blue_preselect.bat
+?? push_81_log.txt
+?? push_82_log.txt
+?? push_83_seo_niches.bat
+===== FIM ===== 

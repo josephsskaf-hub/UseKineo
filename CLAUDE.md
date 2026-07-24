@@ -58,8 +58,19 @@
 5. Usuário baixa e sobe no YouTube
 
 ## Informações do projeto
+- **Marca (UI):** Kineo / Kineo AI — nome exibido no site
+- **Produto/domínio (produção):** shortsforgeai.com (NÃO mudou — env, CTA nos vídeos e Stripe ainda usam esse domínio)
 - Canal: Money Facts / Finanças em inglês
-- App: https://shortsforgeai.vercel.app
-- Repo GitHub: josephsskaf-hub/shortsforgeai (branch main)
+- App (deploy Vercel): https://shortsforgeai.vercel.app
+- **Repo GitHub:** josephsskaf-hub/UseKineo (branch main)
+- Pasta local: C:\Users\josep\OneDrive\Área de Trabalho\Usekineo
 - Email: josephsskaf@gmail.com
 - Push para GitHub: criar .bat e rodar via computer use
+
+## Rodar localmente (dev)
+1. `npm install` (só na primeira vez / quando o package.json mudar)
+2. `npm run dev` → http://localhost:3000
+3. Requer `.env.local` na raiz com chaves reais (Supabase, Stripe, OpenAI, Pexels,
+   Creatomate, Runway, Resend). O `.env.local` NÃO vem no repo — copiar de
+   `.env.local.example` e preencher. Sem as chaves a landing carrega, mas
+   login/checkout/geração de vídeo não funcionam.
