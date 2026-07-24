@@ -90,8 +90,9 @@ const KLP_CSS = `
 .klp .cmp tr:last-child td{border-bottom:none}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 .klp .plan{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px 28px;display:flex;flex-direction:column;transition:.2s}
-.klp .plan:hover{transform:translateY(-3px);border-color:var(--line2)}
+.klp .plan:hover{transform:translateY(-3px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan.pop{background:var(--card2);border-color:#48484a}
+.klp .plan.pop:hover{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan .pt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
 .klp .plan.pop .pt{color:var(--blue)}
 .klp .plan .nm{margin-top:10px;font-size:1.3rem;font-weight:600}
@@ -326,7 +327,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="pr">$9.90<span>/mo</span></div>
               {/* KINEO-SHOWCASE-2026-07-10 — V3C: 25 credits, Fast = 1 credit. */}
               <ul><li><span className="ck">✓</span> <b>First month $4.90</b> — renews at $9.90/mo in 30 days, cancel anytime</li><li><span className="ck">✓</span> 25 credits/month (Fast = 1 cr)</li><li><span className="ck">✓</span> AI script + neural voiceover + captions</li><li><span className="ck">✓</span> Watermark-free MP4</li></ul>
-              <a className="btn btn-o" href={starterCheckoutHref}>Start — $4.90 first month</a>
+              <a className="btn btn-w" href={starterCheckoutHref}>Start — $4.90 first month</a>
             </div>
             <div className="plan pop">
               <div className="pt">Most popular</div><div className="nm">Creator</div>
@@ -340,7 +341,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="pr">$37.90<span>/mo</span></div>
               {/* KINEO-REBASE-2026-07-10 — 400 → 200 credits (2:1 rebase, USD unchanged) */}
               <ul><li><span className="ck">✓</span> <b>~4 Cinematic AI</b> videos/mo (Kling)</li><li><span className="ck">✓</span> 200 credits/mo (33% more)</li><li><span className="ck">✓</span> Highest quality + priority queue</li><li><span className="ck">✓</span> Everything in Creator</li></ul>
-              <a className="btn btn-o" href={studioCheckoutHref}>Continue with Studio</a>
+              <a className="btn btn-w" href={studioCheckoutHref}>Go Studio — $37.90/mo</a>
             </div>
           </div>
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
