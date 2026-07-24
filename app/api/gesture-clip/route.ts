@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { AvatarSubmitError, submitAnimateJob } from '@/lib/avatar/veed'
 import { getCharacterImageUrl } from '@/lib/characters'
+import { refundRenderCredits } from '@/lib/credits/refund'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -115,11 +116,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Atomic-at-submit, FAIL-CLOSED debit. The refund key
+    // (/api/gesture-clip-status refunds `gesture-<requestId>`) is derived from
+    // the provider request id, which only exists AFTER submit — so the debit is
+    // keyed here, immediately at submit. The pre-submit balance gate above is
+    // the "do not run the paid job when credits are missing" guard. If the RPC
+    // cannot confirm the charge we must NOT report a phantom `credits_charged`:
+    // retry once (debit_video_credits is idempotent on p_render), then abort
+    // honestly. refundRenderCredits is an idempotent no-op when nothing landed.
     const renderId = `gesture-${requestId}`
-    const { data: newBalance, error: debitErr } = await supabase
-      .rpc('debit_video_credits', { p_render: renderId, p_cost: cost })
-    if (debitErr) {
-      console.error(`[gesture-clip] debit RPC error AFTER submit render=${renderId} user=${user.id.slice(0, 8)}:`, debitErr.message)
+    let newBalance: number | null = null
+    let debitErr: { message?: string } | null = null
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      const res = await supabase.rpc('debit_video_credits', { p_render: renderId, p_cost: cost })
+      debitErr = res.error
+      if (!res.error && typeof res.data === 'number') {
+        newBalance = res.data
+        break
+      }
+      if (attempt === 1) await new Promise((r) => setTimeout(r, 400))
+    }
+    if (typeof newBalance !== 'number') {
+      console.error(`[gesture-clip] FAIL-CLOSED: debit could not be confirmed render=${renderId} user=${user.id.slice(0, 8)}:`, debitErr?.message ?? 'no balance returned')
+      await refundRenderCredits(renderId)
+      return NextResponse.json(
+        { error: 'We could not confirm your credit charge, so this clip was not started on your account. You were not charged — please try again.' },
+        { status: 503 },
+      )
     }
 
     console.log(`[gesture-clip] submitted user=${user.id.slice(0, 8)} request=${requestId} gesture=${gestureKey || 'custom'} duration=${duration}s cost=${cost}`)
@@ -128,7 +151,7 @@ export async function POST(req: NextRequest) {
       stage: 'animate',
       duration,
       credits_charged: cost,
-      balance: typeof newBalance === 'number' ? newBalance : null,
+      balance: newBalance,
     })
   } catch (err) {
     console.error('[gesture-clip] unexpected error:', err instanceof Error ? err.message : String(err))

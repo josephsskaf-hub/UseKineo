@@ -28,6 +28,18 @@ export interface VoicePersona {
   hookSpeedMultiplier: number
   /** Speed multiplier for the payoff section (last ~20% of script) */
   payoffSpeedMultiplier: number
+  // ── Phase 2: optional ElevenLabs mapping (flag-gated, premium/cinematic) ──
+  // When ElevenLabs is enabled (see lib/narration/elevenlabs.ts) this persona
+  // narrates via the voice id below instead of OpenAI TTS. Voice ids are public
+  // (non-secret) library ids. All optional — absent → default env voice.
+  /** ElevenLabs voice id for this persona. */
+  elevenVoiceId?: string
+  /** 0–1 stability (lower = more expressive). */
+  elevenStability?: number
+  /** 0–1 similarity boost. */
+  elevenSimilarity?: number
+  /** 0–1 style exaggeration. */
+  elevenStyle?: number
 }
 
 export const VOICE_PERSONAS: VoicePersona[] = [
@@ -40,6 +52,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 1.03,
     hookSpeedMultiplier: 1.08,
     payoffSpeedMultiplier: 0.96,
+    elevenVoiceId: '21m00Tcm4TlvDq8ikWAM', // Rachel — warm narration
+    elevenStability: 0.5,
+    elevenSimilarity: 0.75,
+    elevenStyle: 0.15,
   },
   {
     id: 'dark-mystery',
@@ -50,6 +66,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 0.92,
     hookSpeedMultiplier: 1.00,
     payoffSpeedMultiplier: 0.87,
+    elevenVoiceId: 'pNInz6obpgDQGcFmaJgB', // Adam — deep, suspenseful
+    elevenStability: 0.4,
+    elevenSimilarity: 0.8,
+    elevenStyle: 0.35,
   },
   {
     id: 'finance-authority',
@@ -60,6 +80,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 1.00,
     hookSpeedMultiplier: 1.06,
     payoffSpeedMultiplier: 0.97,
+    elevenVoiceId: 'pNInz6obpgDQGcFmaJgB', // Adam — confident authority
+    elevenStability: 0.55,
+    elevenSimilarity: 0.8,
+    elevenStyle: 0.1,
   },
   {
     id: 'documentary',
@@ -70,6 +94,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 0.96,
     hookSpeedMultiplier: 1.03,
     payoffSpeedMultiplier: 0.92,
+    elevenVoiceId: 'VR6AewLTigWG4xSOukaG', // Arnold — documentary gravitas
+    elevenStability: 0.55,
+    elevenSimilarity: 0.75,
+    elevenStyle: 0.15,
   },
   {
     id: 'luxury-narrator',
@@ -80,6 +108,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 0.90,
     hookSpeedMultiplier: 0.95,
     payoffSpeedMultiplier: 0.86,
+    elevenVoiceId: 'ErXwobaYiN019PkySvjV', // Antoni — smooth, aspirational
+    elevenStability: 0.6,
+    elevenSimilarity: 0.8,
+    elevenStyle: 0.2,
   },
   {
     id: 'energetic-facts',
@@ -90,6 +122,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 1.10,
     hookSpeedMultiplier: 1.18,
     payoffSpeedMultiplier: 1.12,
+    elevenVoiceId: 'TxGEqnHWrfWFTfGW9XjX', // Josh — energetic
+    elevenStability: 0.4,
+    elevenSimilarity: 0.75,
+    elevenStyle: 0.4,
   },
   {
     id: 'conspiracy',
@@ -100,6 +136,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 0.96,
     hookSpeedMultiplier: 1.02,
     payoffSpeedMultiplier: 0.88,
+    elevenVoiceId: 'pNInz6obpgDQGcFmaJgB', // Adam — urgent, convincing
+    elevenStability: 0.35,
+    elevenSimilarity: 0.8,
+    elevenStyle: 0.3,
   },
   {
     id: 'futuristic-ai',
@@ -110,6 +150,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 1.04,
     hookSpeedMultiplier: 1.10,
     payoffSpeedMultiplier: 1.00,
+    elevenVoiceId: 'ErXwobaYiN019PkySvjV', // Antoni — clean, sharp
+    elevenStability: 0.6,
+    elevenSimilarity: 0.75,
+    elevenStyle: 0.1,
   },
   {
     id: 'emotional-storyteller',
@@ -120,6 +164,10 @@ export const VOICE_PERSONAS: VoicePersona[] = [
     defaultSpeed: 0.97,
     hookSpeedMultiplier: 1.04,
     payoffSpeedMultiplier: 0.90,
+    elevenVoiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella — soulful, emotional
+    elevenStability: 0.45,
+    elevenSimilarity: 0.8,
+    elevenStyle: 0.25,
   },
 ]
 

@@ -41,9 +41,27 @@ export async function GET(req: NextRequest) {
       })
     }
 
+    // A matte-stage failure means the raw PAID clip was ALREADY produced and
+    // handed to the client (raw_video_url below) — only the transparency
+    // post-process failed. The matte has no separate credit cost (the 15/25
+    // credits bill the whole clip), so DO NOT refund a delivered clip. Recover
+    // the raw clip so the user still gets what they paid for, minus transparency.
+    async function deliverRawWithoutMatte(msg: string) {
+      const raw = await checkAvatarJob(requestId, 'animate')
+      return NextResponse.json({
+        status: 'done',
+        stage: 'matte',
+        video_url: null,
+        raw_video_url: raw.videoUrl ?? null,
+        matte_failed: true,
+        creditsRefunded: 0,
+        error: `${msg} Your clip is ready to download without the transparent background — your credits were not refunded because the clip was delivered.`,
+      })
+    }
+
     if (stage === 'matte' && matteId) {
       const matte = await checkMatteJob(matteId)
-      if (matte.status === 'failed') return failWithRefund('Transparency processing failed.')
+      if (matte.status === 'failed') return deliverRawWithoutMatte('Transparency processing failed.')
       if (matte.status === 'done') {
         return NextResponse.json({ status: 'done', stage: 'matte', video_url: matte.videoUrl })
       }
@@ -52,11 +70,25 @@ export async function GET(req: NextRequest) {
 
     // stage 'animate'
     const anim = await checkAvatarJob(requestId, 'animate')
+    // The whole clip failed → nothing was delivered → full refund (preserved).
     if (anim.status === 'failed') return failWithRefund('Clip generation failed.')
     if (anim.status === 'done' && anim.videoUrl) {
       // Auto-advance: submit the matte job so the client just keeps polling.
       const newMatteId = await submitMatteJob(anim.videoUrl)
-      if (!newMatteId) return failWithRefund('Transparency processing could not start.')
+      if (!newMatteId) {
+        // Raw paid clip is ready; only transparency could not START. Deliver the
+        // raw clip WITHOUT refunding (no separate matte cost).
+        console.warn(`[gesture-clip-status] matte submit failed — delivering raw clip request=${requestId}`)
+        return NextResponse.json({
+          status: 'done',
+          stage: 'matte',
+          video_url: null,
+          raw_video_url: anim.videoUrl,
+          matte_failed: true,
+          creditsRefunded: 0,
+          error: 'Transparency processing could not start, but your clip is ready to download without the transparent background.',
+        })
+      }
       console.log(`[gesture-clip-status] animate done → matte submitted request=${requestId} matte=${newMatteId}`)
       return NextResponse.json({
         status: 'processing',

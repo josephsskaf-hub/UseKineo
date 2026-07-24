@@ -14,10 +14,20 @@ import {
   targetWordCount,
   transcribeTTSWithTimestamps,
   uploadVoiceoverToSupabase,
+  // Kineo-AudioCache-2026 — TTS + Whisper content-hash cache (fail-open).
+  computeVoiceoverCacheKey,
+  resolveTtsVoiceIdentity,
+  lookupCachedVoiceover,
+  storeCachedVoiceover,
+  predictTtsSecondsFromWords,
+  type CachedVoiceoverEntry,
   type HollywoodClipInput,
   type HollywoodNarrationBlock,
   type WhisperWord,
 } from '@/lib/compose'
+// Kineo-AudioCache-2026 — the model id that WILL be used for this tier keeps
+// the cache key correct across the OpenAI vs ElevenLabs providers.
+import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
 import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
@@ -1315,6 +1325,11 @@ export async function POST(req: NextRequest) {
     // voice (the corrective re-synthesis pass must not overwrite it with the
     // default TTS voice).
     let clonedVoiceUsed = false
+    // Kineo-AudioCache-2026 — populated ONLY for the standard default-TTS path
+    // (never avatar/user-voice/cloned). On a cache hit we skip TTS + Whisper +
+    // upload entirely and reuse the stored mp3, Whisper words and duration.
+    let voiceoverCacheKey: string | null = null
+    let cachedVoiceover: CachedVoiceoverEntry | null = null
     if (avatarMode || hasUserVoice) {
       try {
         const audioRes = await fetch(externalVoiceUrl)
@@ -1361,13 +1376,46 @@ export async function POST(req: NextRequest) {
           console.warn('[compose] cloned voice failed — falling back to default TTS:', cloneErr instanceof Error ? cloneErr.message : String(cloneErr))
         }
       }
+      // Kineo-AudioCache-2026 — before spending an OpenAI/ElevenLabs TTS call
+      // AND a Whisper transcription, check the content-hash cache. Only the
+      // default-TTS path is cacheable (cloned voice keys off a voiceId we don't
+      // model). FAIL-OPEN: any error → cachedVoiceover stays null → synthesize.
+      if (!clonedVoiceUsed && (!audioBuffer || audioBuffer.length === 0)) {
+        try {
+          const model = ttsModelForTier(narrationTier)
+          const identity = resolveTtsVoiceIdentity(
+            scaledScript,
+            explicitSpeed ?? 1.0,
+            vertical,
+            narrationTier,
+            language,
+            model,
+          )
+          voiceoverCacheKey = computeVoiceoverCacheKey({
+            script: scaledScript,
+            voice: identity.voice,
+            speed: identity.speed,
+            model,
+          })
+          cachedVoiceover = await lookupCachedVoiceover(voiceoverCacheKey)
+          if (cachedVoiceover) {
+            console.log('[compose] reusing cached voiceover — skipping TTS + Whisper')
+          }
+        } catch (cacheErr) {
+          console.warn('[compose] audio cache preflight failed — synthesizing fresh:', cacheErr instanceof Error ? cacheErr.message : String(cacheErr))
+          cachedVoiceover = null
+        }
+      }
+
       try {
-        if (!audioBuffer || audioBuffer.length === 0) {
+        if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
           audioBuffer = await generateTTS(scaledScript, explicitSpeed ?? 1.0, vertical, narrationTier, language)
         }
-        console.log(
-          `[compose] TTS response received: bytes=${audioBuffer.length} mime=audio/mpeg speed=${explicitSpeed ?? 1.0} cloned=${clonedVoiceUsed}`,
-        )
+        if (!cachedVoiceover) {
+          console.log(
+            `[compose] TTS response received: bytes=${audioBuffer?.length ?? 0} mime=audio/mpeg speed=${explicitSpeed ?? 1.0} cloned=${clonedVoiceUsed}`,
+          )
+        }
       } catch (err) {
         // Surface the FULL error object so OpenAI-side issues (rate limit,
         // quota, auth) are diagnosable without redeploying.
@@ -1382,7 +1430,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      if (!audioBuffer || audioBuffer.length === 0) {
+      if (!cachedVoiceover && (!audioBuffer || audioBuffer.length === 0)) {
         console.error('[compose] TTS produced an empty buffer — refusing to upload.')
         return rejectBeforeProviderSubmission(
           NextResponse.json(
@@ -1395,7 +1443,13 @@ export async function POST(req: NextRequest) {
 
     // Push #158 — measure the REAL narration length so captions key to the
     // actual audio, not the requested duration (which assumed 2.5 wps).
-    let realAudioDuration = audioBuffer ? estimateMp3DurationSeconds(audioBuffer) : 0
+    // Kineo-AudioCache-2026 — on a cache hit the duration was measured + stored
+    // at synthesis time, so reuse it (no buffer to re-measure).
+    let realAudioDuration = cachedVoiceover
+      ? cachedVoiceover.audioDuration
+      : audioBuffer
+        ? estimateMp3DurationSeconds(audioBuffer)
+        : 0
     // Avatar duration fix (02/07) — threshold dropped 4s → 0.5s: a legitimately
     // SHORT verbatim line (one sentence ≈ 3s of speech) was being treated as a
     // failed measurement and replaced with the requested duration, so the final
@@ -1418,10 +1472,21 @@ export async function POST(req: NextRequest) {
     // pulls the length toward the target (clamped to a natural band in
     // generateTTS). This is best-effort: any failure, or a result that isn't
     // actually closer, keeps the original audio so compose never regresses.
+    // Kineo-AudioCache-2026 — predict length from the word count FIRST. When the
+    // scaled script is already sized on-target (its predicted narration length is
+    // within tolerance of the requested duration), a measured drift is just pace
+    // variance and re-synthesizing at an adjusted speed isn't worth a 2nd full
+    // TTS — skip it. This avoids firing the corrective pass unnecessarily.
+    const scaledWordCount = scaledScript.split(/\s+/).filter(Boolean).length
+    const predictedDuration = predictTtsSecondsFromWords(scaledWordCount)
+    const scriptWellSized =
+      predictedDuration > 0 && Math.abs(predictedDuration - duration) <= DURATION_TOLERANCE_SECONDS
     if (
+      !cachedVoiceover && // never re-synthesize a cache hit (no buffer, already corrected)
       !avatarMode && // feature/ai-avatar — never re-synthesize the lip-synced mp3
       !hasUserVoice && // KINEO-OWN-VOICE — the user's file IS the narration
       !clonedVoiceUsed && // never replace the cloned voice with the default one
+      !scriptWellSized && // word count already predicts an on-target length → don't re-synth
       explicitSpeed == null &&
       realAudioDuration > 4 &&
       Math.abs(realAudioDuration - duration) > DURATION_TOLERANCE_SECONDS
@@ -1465,49 +1530,73 @@ export async function POST(req: NextRequest) {
     // Whisper (Push #258): word-level timestamps for DIRECT caption building
     // (no drift from number expansion). Non-fatal — proportional fallback.
     // Upload: avatar mode reuses the mp3 already in storage (zero work).
-    const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
-      ? transcribeTTSWithTimestamps(audioBuffer)
-          .then((words) => {
-            if (words.length > 0) {
-              console.log(`[compose] Whisper sync: ${words.length} words for direct caption build`)
-              return words
-            }
-            console.warn('[compose] Whisper returned 0 words — proportional fallback')
-            return undefined
-          })
-          .catch((whisperErr) => {
-            console.warn('[compose] Whisper step threw — proportional fallback:', whisperErr)
-            return undefined
-          })
-      : Promise.resolve(undefined)
+    // Kineo-AudioCache-2026 — on a cache HIT we already have the Whisper words +
+    // the stored mp3 URL, so skip both the transcription and the upload.
+    let whisperWords: WhisperWord[] | undefined
+    let voiceoverUrl: string
+    if (cachedVoiceover) {
+      whisperWords = cachedVoiceover.words.length > 0 ? cachedVoiceover.words : undefined
+      voiceoverUrl = cachedVoiceover.voiceoverUrl
+      console.log(`[compose] cache hit — voiceover reused from ${voiceoverUrl.slice(0, 80)}`)
+    } else {
+      const whisperPromise: Promise<WhisperWord[] | undefined> = audioBuffer
+        ? transcribeTTSWithTimestamps(audioBuffer)
+            .then((words) => {
+              if (words.length > 0) {
+                console.log(`[compose] Whisper sync: ${words.length} words for direct caption build`)
+                return words
+              }
+              console.warn('[compose] Whisper returned 0 words — proportional fallback')
+              return undefined
+            })
+            .catch((whisperErr) => {
+              console.warn('[compose] Whisper step threw — proportional fallback:', whisperErr)
+              return undefined
+            })
+        : Promise.resolve(undefined)
 
-    const uploadPromise: Promise<{ url: string } | { uploadError: unknown }> = (avatarMode || hasUserVoice)
-      ? Promise.resolve({ url: externalVoiceUrl })
-      : uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)
-          .then((url) => {
-            console.log(`[compose] voiceover stored at: ${url}`)
-            return { url }
-          })
-          .catch((err: unknown) => ({ uploadError: err }))
+      const uploadPromise: Promise<{ url: string } | { uploadError: unknown }> = (avatarMode || hasUserVoice)
+        ? Promise.resolve({ url: externalVoiceUrl })
+        : uploadVoiceoverToSupabase(user.id, audioBuffer as Buffer)
+            .then((url) => {
+              console.log(`[compose] voiceover stored at: ${url}`)
+              return { url }
+            })
+            .catch((err: unknown) => ({ uploadError: err }))
 
-    const [whisperWords, uploadResult] = await Promise.all([whisperPromise, uploadPromise])
+      const [words, uploadResult] = await Promise.all([whisperPromise, uploadPromise])
 
-    if ('uploadError' in uploadResult) {
-      const err = uploadResult.uploadError
-      // Surface FULL error object — name, message, stack head — so the
-      // root cause (bucket missing, RLS, network) is visible in Vercel
-      // logs. Never log the service key itself.
-      console.error('[compose] voiceover upload failed:', err instanceof Error
-        ? JSON.stringify({ name: err.name, message: err.message, stack: err.stack?.split('\n').slice(0, 3).join(' | ') })
-        : String(err))
-      return rejectBeforeProviderSubmission(
-        NextResponse.json(
-          { error: 'Could not store the voiceover. Please try again.' },
-          { status: 502 },
-        ),
-      )
+      if ('uploadError' in uploadResult) {
+        const err = uploadResult.uploadError
+        // Surface FULL error object — name, message, stack head — so the
+        // root cause (bucket missing, RLS, network) is visible in Vercel
+        // logs. Never log the service key itself.
+        console.error('[compose] voiceover upload failed:', err instanceof Error
+          ? JSON.stringify({ name: err.name, message: err.message, stack: err.stack?.split('\n').slice(0, 3).join(' | ') })
+          : String(err))
+        return rejectBeforeProviderSubmission(
+          NextResponse.json(
+            { error: 'Could not store the voiceover. Please try again.' },
+            { status: 502 },
+          ),
+        )
+      }
+      whisperWords = words
+      voiceoverUrl = uploadResult.url
+
+      // Kineo-AudioCache-2026 — best-effort: populate the cache for future
+      // identical renders (only the default-TTS path is cacheable). Awaited so
+      // the small mp3 upload completes before the function can be frozen, but
+      // wrapped so it can NEVER break a render that already succeeded.
+      const cacheable = !avatarMode && !hasUserVoice && !clonedVoiceUsed && !!voiceoverCacheKey
+      if (cacheable && voiceoverCacheKey && audioBuffer && realAudioDuration > 0) {
+        try {
+          await storeCachedVoiceover(voiceoverCacheKey, audioBuffer, whisperWords ?? [], realAudioDuration)
+        } catch (storeErr) {
+          console.warn('[compose] audio cache store failed (non-fatal):', storeErr instanceof Error ? storeErr.message : String(storeErr))
+        }
+      }
     }
-    const voiceoverUrl: string = uploadResult.url
 
     // Phase 5 — Detect persona for response metadata (observability + future UI).
     const detectedPersonaId: string | undefined = vertical

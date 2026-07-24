@@ -14,10 +14,18 @@
 //   - Only fires when FAL_KEY exists and the caller confirmed first-video.
 
 import { fal } from '@fal-ai/client'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import { vaultClipAsync } from './clipVault'
 
 const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 const POLL_INTERVAL_MS = 2500
+
+// Persistence target — the SAME public bucket the clip vault serves from
+// (lib/clipVault.ts VAULT_BUCKET). Clips served from here are always fetchable
+// by Creatomate and pass /api/compose's storage/fal guards.
+const HOOK_BUCKET = 'broll'
+const MAX_HOOK_BYTES = 40 * 1024 * 1024
+const FAL_URL_RE = /^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i
 
 export interface AiHookHandle {
   requestId: string
@@ -100,6 +108,67 @@ export async function awaitAiHook(
     return null
   } catch (err) {
     console.warn('[ai-hook] await failed (non-blocking):', err instanceof Error ? err.message : String(err))
+    return null
+  }
+}
+
+/**
+ * Copy the ready hook clip into OUR public Supabase storage and return the
+ * durable public URL. awaitAiHook resolves to a raw fal.media URL, which
+ * expires AND is stripped/rejected by /api/generate-video-fast + /api/compose;
+ * only a URL served from our own storage survives to the render. The vault's
+ * fire-and-forget copy can't be handed back synchronously, so this is a
+ * dedicated, bounded, returning persist step.
+ *
+ * Never throws. Returns null on any failure (caller keeps its stock hook).
+ * A non-fal input URL is passed through unchanged (already durable).
+ */
+export async function persistHookClip(
+  falUrl: string,
+  budgetMs = 15_000,
+): Promise<string | null> {
+  try {
+    if (!falUrl) return null
+    // Already durable (not a fal CDN URL) — nothing to persist.
+    if (!FAL_URL_RE.test(falUrl)) return falUrl
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) {
+      console.warn('[ai-hook] persist skipped — Supabase service creds missing')
+      return null
+    }
+    const admin = createSupabaseAdmin(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+
+    const res = await fetch(falUrl, { signal: AbortSignal.timeout(budgetMs) })
+    if (!res.ok) {
+      console.warn(`[ai-hook] persist download failed status=${res.status}`)
+      return null
+    }
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.byteLength > MAX_HOOK_BYTES) {
+      console.warn(`[ai-hook] persist skip oversize clip (${Math.round(buf.byteLength / 1e6)}MB)`)
+      return null
+    }
+
+    const path = `ai-hook/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`
+    const { error: upErr } = await admin.storage
+      .from(HOOK_BUCKET)
+      .upload(path, buf, { contentType: 'video/mp4', upsert: false })
+    if (upErr) {
+      console.warn('[ai-hook] persist upload failed:', upErr.message)
+      return null
+    }
+    const { data: pub } = admin.storage.from(HOOK_BUCKET).getPublicUrl(path)
+    const storageUrl = pub?.publicUrl ?? null
+    if (storageUrl) {
+      console.log(`[ai-hook] PERSISTED durable hook clip → ${storageUrl.slice(0, 70)}`)
+    }
+    return storageUrl
+  } catch (err) {
+    console.warn('[ai-hook] persist failed (non-blocking):', err instanceof Error ? err.message : String(err))
     return null
   }
 }

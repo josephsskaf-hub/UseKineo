@@ -4,19 +4,29 @@
 // module load) when it isn't needed. The TTS / script-scaling functions
 // dynamically import it below.
 
+import { createHash } from 'node:crypto'
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, type CaptionSegment } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
 import { splitIntoSections, hasViralSections } from '@/lib/narration/section-tts'
+import {
+  isElevenLabsEnabled,
+  synthesizeWithElevenLabs,
+  ELEVENLABS_DEFAULT_VOICE_ID,
+} from '@/lib/narration/elevenlabs'
 
 const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
 const CTA_TEXT = 'usekineo.com'
 const CTA_TAIL_SECONDS = 2.5
-// Push #293 — Background music volume. 18% keeps the phonk audible and
-// energetic without competing with the narrator. InVideo uses 15-20% range.
-const MUSIC_VOLUME = '18%'
+// Push #293 / Kineo-Audio-2026 — Background music volume + fades. Lowered
+// 18%→12% so the narrator always dominates (InVideo/OpusClip sit music ~10-14%
+// under a VO). Creatomate can't sidechain-duck, so a fixed low level plus a
+// brief fade-in and a fade-out over the CTA tail is the closest clean approx.
+const MUSIC_VOLUME = '12%'
+const MUSIC_FADE_IN_SECONDS = 0.8
+const MUSIC_FADE_OUT_SECONDS = 2.5
 // Push #064 — yellow used for the per-caption highlight word overlay.
 const HIGHLIGHT_COLOR = '#FFD700'
 
@@ -175,6 +185,59 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   const hi = Math.ceil(targetWords * 1.15)
   if (words.length >= lo && words.length <= hi) return cleanInput
 
+  // ── Protect the HOOK ──────────────────────────────────────────────────────
+  // The crafted first sentence is the single biggest retention driver, so we do
+  // NOT let the rescale rewrite it. Isolate the opening sentence and rescale
+  // ONLY the body, then re-attach the verbatim hook. If we can't cleanly split
+  // the first sentence, we still instruct the model to preserve the opening
+  // line word-for-word (fallback below).
+  const hookMatch = cleanInput.match(/^\s*([\s\S]+?[.!?]["'”’)\]]?)(\s+|$)/)
+  const hook = hookMatch ? hookMatch[1].trim() : ''
+  const body = hook ? cleanInput.slice(hookMatch![0].length).trim() : ''
+  const hookWords = hook ? hook.split(/\s+/).filter(Boolean).length : 0
+
+  // Only take the isolate-and-rescale-body path when there's a real hook AND a
+  // real body to rescale (a single-sentence script has nothing to pad/trim).
+  if (hook && body && hookWords < targetWords) {
+    const bodyTargetWords = Math.max(8, targetWords - hookWords)
+    try {
+      const { openai } = await import('@/lib/openai')
+      const completion = await openai.chat.completions.create(
+        {
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You are a viral short-form scriptwriter. You rewrite the BODY of a script to a precise word count while keeping the core idea and ending on a strong payoff line. The opening hook is fixed and provided only for context — do NOT repeat it or reference it. Reply with the rewritten body text only — no quotes, no markdown, no scene labels, no stage directions.',
+            },
+            {
+              role: 'user',
+              content: `The video opens with this fixed HOOK (already spoken, do not rewrite or repeat it):\n"${hook}"\n\nRewrite ONLY the BODY that follows the hook so the body reads as about ${bodyTargetWords} words (±10%). It must flow naturally straight after the hook and end on a strong payoff line. Plain prose only.\n\nBODY:\n${body}`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: Math.min(800, Math.max(120, bodyTargetWords * 4)),
+        },
+        { timeout: 20000 }
+      )
+      const scaledBody = completion.choices[0]?.message?.content?.trim() ?? ''
+      if (scaledBody) return `${hook} ${scaledBody}`.trim()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[compose] scaleVoiceoverScript (body-only) failed, falling back:', msg)
+    }
+
+    // Body-only fallback — naive truncate/pad of the BODY, hook kept verbatim.
+    const bodyWords = body.split(/\s+/).filter(Boolean)
+    if (hookWords + bodyWords.length > targetWords) {
+      return `${hook} ${bodyWords.slice(0, bodyTargetWords).join(' ')}`.trim()
+    }
+    return cleanInput
+  }
+
+  // ── Fallback path: can't isolate a hook → rewrite whole script but INSTRUCT
+  // the model to keep the opening line word-for-word. ───────────────────────
   try {
     const { openai } = await import('@/lib/openai')
     const completion = await openai.chat.completions.create(
@@ -184,11 +247,11 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
           {
             role: 'system',
             content:
-              'You are a viral short-form scriptwriter. You rewrite scripts to a precise word count while keeping the hook, the core idea, and a strong CTA. Reply with the script text only — no quotes, no markdown.',
+              'You are a viral short-form scriptwriter. You rewrite scripts to a precise word count while keeping the core idea and a strong CTA. You NEVER change the opening line — the first sentence must appear verbatim, word-for-word, exactly as given. Reply with the script text only — no quotes, no markdown.',
           },
           {
             role: 'user',
-            content: `Rewrite this voiceover script so it reads as ${targetWords} words (±5%). Keep the hook in the first sentence, the payoff in the middle, and end with a strong payoff line. Plain prose only — no scene labels, no stage directions.\n\nSCRIPT:\n${cleanInput}`,
+            content: `Rewrite this voiceover script so it reads as ${targetWords} words (±5%). CRITICAL: keep the FIRST SENTENCE exactly as written, word-for-word — it is the hook and must not change. Only adjust everything after it. Keep the payoff in the middle and end with a strong payoff line. Plain prose only — no scene labels, no stage directions.\n\nSCRIPT:\n${cleanInput}`,
           },
         ],
         temperature: 0.7,
@@ -206,6 +269,14 @@ export async function scaleVoiceoverScript(rawScript: string, targetWords: numbe
   // Fallback — naive truncate / pad.
   if (words.length > targetWords) return words.slice(0, targetWords).join(' ')
   return cleanInput
+}
+
+// Kineo-Audio-2026 — cheap length prediction from word count, used to skip the
+// corrective TTS re-synthesis when the script is already sized correctly (see
+// TTS_WORDS_PER_SECOND). Mirrors targetWordCount's calibration in reverse.
+export function predictTtsSecondsFromWords(words: number): number {
+  const n = Number.isFinite(words) && words > 0 ? words : 0
+  return n / TTS_WORDS_PER_SECOND
 }
 
 // Push #234 — `speed` lets the compose route nudge narration length to the
@@ -229,6 +300,43 @@ export async function generateTTS(
   // directives so the narrator can never speak "[Pexels: ...]" or a "speed:"
   // line, no matter what upstream produced `script`. Idempotent on clean text.
   const cleaned = stripScriptMarkers(script)
+
+  // ── Phase 2b: ElevenLabs premium provider (flag-gated, fail-open) ─────────
+  // When ELEVENLABS_API_KEY is set AND KINEO_ELEVENLABS_ENABLED is on AND the
+  // tier is premium/cinematic, narrate via ElevenLabs. ANY failure (missing key,
+  // disabled flag, wrong tier, API error) drops straight through to the exact
+  // OpenAI tts-1-hd path below — the OpenAI path is completely unchanged.
+  // Whisper caption timing later runs on the returned mp3 identically either way.
+  if (isElevenLabsEnabled(userTier)) {
+    try {
+      const persona = vertical
+        ? selectPersonaForScript(cleaned, vertical, userTier, language)
+        : undefined
+      const voiceId =
+        persona?.elevenVoiceId ||
+        (process.env.ELEVENLABS_VOICE_ID ?? '').trim() ||
+        ELEVENLABS_DEFAULT_VOICE_ID
+      const elBuffer = await synthesizeWithElevenLabs({
+        text: cleaned,
+        voiceId,
+        stability: persona?.elevenStability,
+        similarityBoost: persona?.elevenSimilarity,
+        style: persona?.elevenStyle,
+        speed: Math.max(0.7, Math.min(1.2, (persona?.defaultSpeed ?? 1.0) * speed)),
+      })
+      if (elBuffer && elBuffer.length > 0) {
+        console.log(
+          `[compose] ElevenLabs TTS used (tier=${userTier}, voice=${voiceId.slice(0, 8)}, ${elBuffer.length} bytes)`,
+        )
+        return elBuffer
+      }
+    } catch (err) {
+      console.warn(
+        '[compose] ElevenLabs TTS failed — falling back to OpenAI tts-1-hd:',
+        err instanceof Error ? err.message : String(err),
+      )
+    }
+  }
 
   // ── Phase 1: Narration Engine — persona-driven voice + speed ──────────────
   let resolvedVoice: 'alloy' | 'echo' | 'fable' | 'nova' | 'onyx' | 'shimmer' = 'onyx'
@@ -603,6 +711,26 @@ function wordCount(s: string): number {
   return t.split(/\s+/).length
 }
 
+/**
+ * Kineo-Beat-2026 — derive sentence-start timestamps (seconds) from the SAME
+ * Whisper words the captions use. A sentence start is the `start` time of any
+ * word whose PREVIOUS word ended a sentence (`.` `!` `?`, optionally followed by
+ * a closing quote/paren). Used to beat-align clip cuts to the narration (esp.
+ * the hook→body transition and the pre-payoff beat). Returns [] when there's no
+ * usable Whisper data so callers fall open to the fixed cadence.
+ */
+export function sentenceStartTimes(words: WhisperWord[]): number[] {
+  if (!Array.isArray(words) || words.length === 0) return []
+  const starts: number[] = []
+  for (let i = 1; i < words.length; i++) {
+    const prev = (words[i - 1]?.word ?? '').trim()
+    const t = words[i]?.start
+    if (typeof t !== 'number' || !Number.isFinite(t)) continue
+    if (/[.!?]["'”’)\]]?$/.test(prev)) starts.push(t)
+  }
+  return starts
+}
+
 // Push #049 — fix voiceover storage on staging.
 //
 // Root cause of the prior "Could not store the voiceover" failure:
@@ -734,6 +862,154 @@ export async function uploadVoiceoverToSupabase(userId: string, buffer: Buffer):
   return pub.publicUrl
 }
 
+// ---------------------------------------------------------------------------
+// Kineo-AudioCache-2026 — content-hash cache for TTS mp3 + Whisper timestamps.
+//
+// Every render used to re-synthesize OpenAI tts-1-hd AND re-run Whisper, even
+// for byte-identical narration (and the corrective pass could fire a SECOND
+// full TTS). This cache keys the produced mp3 + its Whisper word-timing JSON by
+// hash(finalScript + voice + speed + model) in the existing `voiceovers` bucket
+// (mirroring lib/videoCache.ts's HEAD-check idempotent pattern). On a hit we
+// skip TTS AND Whisper entirely. Everything here is FAIL-OPEN: any error is
+// swallowed and the caller behaves exactly as it does today (fresh synthesis).
+// ---------------------------------------------------------------------------
+
+const VOICEOVER_CACHE_PREFIX = 'cache'
+
+export interface CachedVoiceoverEntry {
+  /** Public URL of the cached mp3 (usable directly as the voiceover source). */
+  voiceoverUrl: string
+  /** Whisper word timestamps stored alongside the mp3 (may be empty). */
+  words: WhisperWord[]
+  /** Measured mp3 duration in seconds. */
+  audioDuration: number
+}
+
+/**
+ * Stable cache key = sha256(finalScript + voice + speed + model). Speed is
+ * rounded to 3dp so trivial float noise doesn't fragment the cache.
+ */
+export function computeVoiceoverCacheKey(parts: {
+  script: string
+  voice: string
+  speed: number
+  model: string
+}): string {
+  const speed = Number.isFinite(parts.speed) ? Math.round(parts.speed * 1000) / 1000 : 1
+  const raw = `${(parts.script ?? '').trim()} ${parts.voice} ${speed} ${parts.model}`
+  return createHash('sha256').update(raw).digest('hex')
+}
+
+/**
+ * Resolve the effective TTS voice + speed the way generateTTS would, so the
+ * cache key reflects the actual audio identity. Pure/deterministic given the
+ * same inputs; falls back to the legacy onyx/passed-speed identity on any error.
+ */
+export function resolveTtsVoiceIdentity(
+  script: string,
+  speed: number,
+  vertical: string | undefined,
+  userTier: 'free' | 'premium' | 'cinematic',
+  language: 'en' | 'pt' | 'es',
+  model: string,
+): { voice: string; speed: number; model: string } {
+  const cleaned = stripScriptMarkers(script)
+  if (vertical) {
+    try {
+      const persona = selectPersonaForScript(cleaned, vertical, userTier, language)
+      return { voice: persona.voice, speed: persona.defaultSpeed * speed, model }
+    } catch {
+      // fall through to legacy identity
+    }
+  }
+  return { voice: 'onyx', speed, model }
+}
+
+/**
+ * Look up a cached voiceover by key. Returns null on any miss/error (fail-open).
+ * HEAD-checks the mp3 (idempotent, like videoCache.ts), then reads the sidecar
+ * metadata (Whisper words + measured duration).
+ */
+export async function lookupCachedVoiceover(cacheKey: string): Promise<CachedVoiceoverEntry | null> {
+  try {
+    if (!cacheKey) return null
+    const admin = getAdminClient()
+    const mp3Path = `${VOICEOVER_CACHE_PREFIX}/${cacheKey}.mp3`
+    const metaPath = `${VOICEOVER_CACHE_PREFIX}/${cacheKey}.meta.mp3`
+    const { data: mp3Pub } = admin.storage.from(VOICEOVER_BUCKET).getPublicUrl(mp3Path)
+    const { data: metaPub } = admin.storage.from(VOICEOVER_BUCKET).getPublicUrl(metaPath)
+    if (!mp3Pub?.publicUrl || !metaPub?.publicUrl) return null
+
+    const head = await fetch(mp3Pub.publicUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+    if (!head.ok) return null
+
+    const metaRes = await fetch(metaPub.publicUrl, { signal: AbortSignal.timeout(5000) })
+    if (!metaRes.ok) return null
+    const meta = (await metaRes.json()) as { words?: WhisperWord[]; audioDuration?: number }
+    const audioDuration =
+      typeof meta.audioDuration === 'number' && meta.audioDuration > 0 ? meta.audioDuration : 0
+    if (audioDuration <= 0) return null
+    const words = Array.isArray(meta.words) ? meta.words : []
+    console.log(
+      `[compose] voiceover cache HIT key=${cacheKey.slice(0, 12)} words=${words.length} dur=${audioDuration.toFixed(1)}s`,
+    )
+    return { voiceoverUrl: mp3Pub.publicUrl, words, audioDuration }
+  } catch (err) {
+    console.warn('[compose] voiceover cache lookup failed (treating as miss):', err instanceof Error ? err.message : String(err))
+    return null
+  }
+}
+
+/**
+ * Store a synthesized voiceover (mp3 + Whisper word-timing metadata) under the
+ * cache key. Returns the mp3 public URL on success, null on any failure. The
+ * metadata sidecar is uploaded with an audio/mpeg content-type (parsed by body,
+ * not header) so it passes the `voiceovers` bucket's audio-only MIME allowlist.
+ * Fully best-effort — never throws.
+ */
+export async function storeCachedVoiceover(
+  cacheKey: string,
+  buffer: Buffer,
+  words: WhisperWord[],
+  audioDuration: number,
+): Promise<string | null> {
+  try {
+    if (!cacheKey || !buffer || buffer.length === 0 || !(audioDuration > 0)) return null
+    const admin = getAdminClient()
+    await ensureVoiceoverBucket(admin)
+    const mp3Path = `${VOICEOVER_CACHE_PREFIX}/${cacheKey}.mp3`
+    const metaPath = `${VOICEOVER_CACHE_PREFIX}/${cacheKey}.meta.mp3`
+
+    const audioBytes = new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+    const { error: mp3Err } = await admin.storage
+      .from(VOICEOVER_BUCKET)
+      .upload(mp3Path, audioBytes, { contentType: 'audio/mpeg', cacheControl: '86400', upsert: true })
+    if (mp3Err) {
+      console.warn('[compose] voiceover cache mp3 store failed:', mp3Err.message)
+      return null
+    }
+
+    const metaBytes = new TextEncoder().encode(
+      JSON.stringify({ words: words ?? [], audioDuration, createdAt: new Date().toISOString() }),
+    )
+    const { error: metaErr } = await admin.storage
+      .from(VOICEOVER_BUCKET)
+      .upload(metaPath, metaBytes, { contentType: 'audio/mpeg', cacheControl: '86400', upsert: true })
+    if (metaErr) {
+      // mp3 stored but metadata failed → future lookups will miss and re-synth.
+      console.warn('[compose] voiceover cache metadata store failed:', metaErr.message)
+      return null
+    }
+
+    const { data: pub } = admin.storage.from(VOICEOVER_BUCKET).getPublicUrl(mp3Path)
+    console.log(`[compose] voiceover cache STORE key=${cacheKey.slice(0, 12)}`)
+    return pub?.publicUrl ?? null
+  } catch (err) {
+    console.warn('[compose] voiceover cache store failed:', err instanceof Error ? err.message : String(err))
+    return null
+  }
+}
+
 interface CreatomateElement {
   type: 'video' | 'audio' | 'text' | 'shape'
   track: number
@@ -749,6 +1025,10 @@ interface CreatomateElement {
   loop?: boolean
   trim_start?: number
   volume?: string
+  // Kineo-Audio-2026 — background-music fades (seconds). Creatomate applies
+  // these to audio-carrying elements; safe to set only on the music track.
+  audio_fade_in?: number
+  audio_fade_out?: number
   fill_color?: string
   stroke_color?: string
   stroke_width?: number
@@ -1165,11 +1445,46 @@ export function buildCreatomateSource({
   const slotLen = isFastStock
     ? clamp(totalDuration / cleanClips.length, FAST_MIN_CUT_SECONDS, FAST_MAX_CUT_SECONDS)
     : Math.min(CLIP_LEN, totalDuration / cleanClips.length)
+  // Kineo-Beat-2026 — beat-align cut points to narration sentence starts (from
+  // the SAME Whisper words the captions use), so scene changes land on the
+  // hook→body and pre-payoff beats instead of a blind fixed clock. Each cut's
+  // end is snapped to the nearest sentence start within a sensible min/max band
+  // around the target slot. FAIL-OPEN: no Whisper data (or no beat in range) →
+  // the exact fixed cadence used before (segLen = min(slotLen, remaining)).
+  const beatTimes =
+    Array.isArray(whisperWords) && whisperWords.length > 0
+      ? sentenceStartTimes(whisperWords).filter((t) => t > 0 && t < totalDuration)
+      : []
+  const minCut = isFastStock ? FAST_MIN_CUT_SECONDS : Math.max(1.5, slotLen - 1.8)
+  const maxCut = isFastStock ? FAST_MAX_CUT_SECONDS : Math.min(CLIP_LEN, slotLen + 2.5)
   let cursor = 0
   let i = 0
   while (cursor < totalDuration) {
     const remaining = totalDuration - cursor
-    const segLen = round3(Math.min(slotLen, remaining))
+    let segLen = round3(Math.min(slotLen, remaining))
+    // Snap this cut's END to the nearest sentence start inside [min,max]. Only
+    // when there's still more than a full max-slot of timeline left, so the
+    // final clip keeps the plain fixed behavior and never leaves a stub.
+    if (beatTimes.length > 0 && remaining > maxCut) {
+      const idealEnd = cursor + slotLen
+      const lo = cursor + minCut
+      const hi = cursor + maxCut
+      let best: number | null = null
+      let bestDist = Infinity
+      for (const t of beatTimes) {
+        if (t <= lo || t >= hi) continue
+        const d = Math.abs(t - idealEnd)
+        if (d < bestDist) {
+          bestDist = d
+          best = t
+        }
+      }
+      if (best != null) {
+        const snapped = round3(best - cursor)
+        if (snapped >= minCut && snapped <= remaining) segLen = snapped
+      }
+    }
+    if (!(segLen > 0.4)) segLen = round3(Math.min(slotLen, remaining))
     const url = cleanClips[i % cleanClips.length]
     // Push #292 — Ken Burns slow zoom. Alternate zoom-in / zoom-out so
     // consecutive clips don't feel like the same motion. start_scale 100%→108%
@@ -1463,6 +1778,11 @@ export function buildCreatomateSource({
   // the voiceover. Starts at t=0, runs the full video duration. The loop
   // flag re-cycles the track if the video is longer than the audio file.
   if (musicUrl) {
+    // Kineo-Audio-2026 — brief fade-in + a fade-out over the CTA tail. Fades are
+    // clamped to half the timeline so ultra-short videos never fade the whole
+    // track. Single looping element (Creatomate can't sidechain-duck).
+    const fadeOut = round3(Math.min(MUSIC_FADE_OUT_SECONDS, totalDuration / 2))
+    const fadeIn = round3(Math.min(MUSIC_FADE_IN_SECONDS, totalDuration / 2))
     elements.push({
       type: 'audio',
       track: 8,
@@ -1471,8 +1791,12 @@ export function buildCreatomateSource({
       source: musicUrl,
       volume: MUSIC_VOLUME,
       loop: true,
+      audio_fade_in: fadeIn,
+      audio_fade_out: fadeOut,
     })
-    console.log(`[compose] background music added: ${musicUrl.slice(0, 80)}`)
+    console.log(
+      `[compose] background music added @ ${MUSIC_VOLUME} (fade in ${fadeIn}s / out ${fadeOut}s): ${musicUrl.slice(0, 80)}`,
+    )
   }
 
   // Track 9 — #384 free-trial watermark, burned into the final MP4 so it can't

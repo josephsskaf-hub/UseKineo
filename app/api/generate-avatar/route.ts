@@ -12,15 +12,14 @@
 //   4. B-roll cutaways: best-effort Pixabay/stock-library clips so the
 //      composition can cut away from the talking head (never blocks).
 //
-// CHECKPOINT 1 (current state): NO billing exists yet — no Stripe products, no
-// avatar-credit debit, no paywall. This route must NOT reach production until
-// checkpoint 2 wires the avatar_credits balance + paywall (Joseph's explicit
-// gate). The cost estimate is still computed and returned so the UI contract
-// is ready.
+// Billing is fully wired: the AVATAR_CREDIT_COST is held at admission and
+// atomically debited via debit_video_credits before the first paid provider
+// POST; terminal provider failure refunds the deterministic birth key.
 //
 // Protection rules live where they belong:
-//   • VEED failure → no debit (nothing is debited in checkpoint 1; the retry
-//     happens in submitAvatarJob, and a failed job simply errors the client).
+//   • Provider failure → the upfront debit is refunded (live via
+//     /api/avatar-status, or in-route when the paid submit/claim cannot finish;
+//     submitAvatarJob retries once before surfacing the error to the client).
 //   • Rate limit: max 3 avatar renders in flight per account (in-memory,
 //     best-effort on serverless — checkpoint 2 moves this to a DB counter
 //     alongside avatar_credits).
@@ -786,6 +785,22 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // fabric (VEED), presenter_pro (Kling Pro), and lipsync bill the provider
+    // PER SECOND up to ~90s against a FLAT credit charge, so a long narration
+    // can run the real provider cost past what we charged. Cap them at 60s
+    // (the same limit omnihuman already enforces) BEFORE the paid submit — the
+    // charge has not happened yet, so the user spends nothing. Presenter (Kling
+    // Standard, the cheap default-priced engine) is intentionally not capped.
+    if (!dryRun && (engine === 'fabric' || engine === 'presenter_pro' || engine === 'lipsync') && realAudioDuration > 60) {
+      await releaseAvatarSubmission()
+      return NextResponse.json(
+        {
+          error: `Narration too long for this engine, max 60s. Your narration is ${realAudioDuration.toFixed(1)} seconds — shorten the script and try again.`,
+        },
+        { status: 400 },
+      )
+    }
+
     let voiceoverUrl: string
     try {
       voiceoverUrl = await uploadVoiceoverToSupabase(user.id, audioBuffer)
@@ -972,10 +987,26 @@ export async function POST(req: NextRequest) {
     }
     // Publish the provider request id before optional b-roll work. A lost HTTP
     // response can now replay safely from another server instance.
+    //
+    // Refund-gap guard: completeAvatarClaim is what binds avatar_request_id into
+    // the SIGNED claim response — the ONLY place /api/avatar-status can later find
+    // this request to auto-refund a provider failure (avatar-% is excluded from
+    // the daily sweep, refund.ts:101). If the binding never lands, a later fal
+    // failure would strand the already-debited credits with no live refund path.
+    // So on binding failure we do NOT leave the debit dangling: refund + release
+    // the claim/reservation in-route. The client never received avatar_request_id
+    // and cannot poll/compose, so nothing paid is delivered — refunding is safe.
     if (!(await completeAvatarClaim(baseResponse))) {
+      const released = await releaseAvatarSubmission()
       return NextResponse.json(
-        { error: 'Your avatar was accepted and is being recovered safely.', pending: true, retry_after_ms: 5000 },
-        { status: 503 },
+        {
+          error: released
+            ? 'Your avatar could not be finalized safely, so your credits were refunded automatically. Please try again.'
+            : 'Your avatar is being recovered safely. Please retry this same generation.',
+          pending: !released,
+          retry_after_ms: released ? undefined : 5000,
+        },
+        { status: released ? 502 : 503 },
       )
     }
 

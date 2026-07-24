@@ -10,6 +10,8 @@ import type { Scene } from '@/lib/runway'
 import { getPixabayClipsForScene } from '@/lib/pixabay'
 // KINEO-FAST-V4 — self-building clip library: search it before any external API.
 import { searchVault } from '@/lib/clipVault'
+// KINEO-AI-HOOK — Seedance cinematic "wow" opener for a free user's FIRST video.
+import { buildHookPrompt, submitAiHook, awaitAiHook, persistHookClip, type AiHookHandle } from '@/lib/fastAiHook'
 import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
@@ -44,6 +46,20 @@ const FAST_MODE_CREDIT_COST = 0
 const FAST_CLIPS_PER_SCENE = 2
 // Sanity cap on total clip elements per video (12 verbatim scenes × 2 = 24 is too many).
 const FAST_MAX_TOTAL_CLIPS = 16
+
+// KINEO-AI-HOOK — bounded budget for awaiting the first-video Seedance opener.
+// The hook is submitted in PARALLEL with scene→clip resolution (which already
+// costs several seconds), so this is only the extra tail we're willing to wait
+// after the loop before falling open to the stock hook. Never blocks the
+// response beyond this (endpoint maxDuration is 120s).
+const AI_HOOK_AWAIT_BUDGET_MS = 15_000
+
+// Free-tier detection mirrors generate-video-cinematic's paid-user gate: a hook
+// is a first-touch conversion asset, so paying accounts never spend it.
+const AI_HOOK_PAID_PLANS = new Set([
+  'starter', 'starter_trial', 'basic', 'basic_trial',
+  'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+])
 
 function clipCountForDuration(d: Duration): number {
   // Stock clips are usually >10s, but we still ask for N distinct clips so
@@ -364,6 +380,59 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // KINEO-AI-HOOK — FIRST-VIDEO cinematic opener.
+    // A new user decides in the first seconds whether Kineo is "AI magic" or
+    // just stock clips. For a FREE account's very FIRST video we fire ONE
+    // Seedance 5s 9:16 opener and submit it HERE — so it renders in parallel
+    // with the Pixabay/vault resolution below — then await it with a bounded
+    // budget. Every step is fail-open: on any miss the normal stock hook stands
+    // and the Fast video proceeds exactly as it does today.
+    let aiHookHandle: AiHookHandle | null = null
+    try {
+      // Toggle + provider gate are also enforced inside submitAiHook; checking
+      // here first avoids two DB round-trips when the feature is off.
+      if (process.env.FAST_AI_HOOK !== 'false' && process.env.FAL_KEY) {
+        // FIRST-VIDEO signal — the SAME query the activation cron uses to decide
+        // "has this account ever generated a video?" (app/api/cron/
+        // send-activation-nudge). Zero rows in `videos` = this is video #1. On a
+        // query error we conservatively DON'T fire (protects the one-per-account
+        // cost guard). RLS scopes both reads to the current user.
+        const { count: priorVideos, error: priorErr } = await supabase
+          .from('videos')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+        const isFirstVideo = !priorErr && (priorVideos ?? 0) === 0
+
+        // FREE-TIER signal — mirror generate-video-cinematic's paid-user gate.
+        const { data: hookProfile } = await supabase
+          .from('profiles')
+          .select('plan, has_paid')
+          .eq('id', user.id)
+          .maybeSingle()
+        const isFreeTier =
+          hookProfile?.has_paid !== true &&
+          !AI_HOOK_PAID_PLANS.has(String(hookProfile?.plan ?? 'free').toLowerCase())
+
+        if (isFirstVideo && isFreeTier) {
+          // Build the cinematic prompt from scene 1's description (the visual
+          // hook), topic = the user's prompt. Faceless/era-safe by construction.
+          const hookPrompt = buildHookPrompt(scenes[0]?.description ?? prompt, prompt)
+          aiHookHandle = await submitAiHook(hookPrompt)
+          console.log(
+            `[ai-hook] eligible first-video free-tier — submit ${aiHookHandle ? 'OK request=' + aiHookHandle.requestId : 'skipped/failed'}`,
+          )
+        } else {
+          console.log(
+            `[ai-hook] not eligible (firstVideo=${isFirstVideo} freeTier=${isFreeTier}) — normal stock hook`,
+          )
+        }
+      }
+    } catch (err) {
+      // Any failure here must never affect the video — drop the hook silently.
+      console.warn('[ai-hook] eligibility/submit failed (non-blocking):', err instanceof Error ? err.message : String(err))
+      aiHookHandle = null
+    }
+
     // Step 2 — Resolve each scene to a clip URL.
     //
     // Push #215 — Removed STOCKLIB_PRIORITY mode (Push #213/214).
@@ -457,7 +526,7 @@ export async function POST(req: NextRequest) {
     const styleCtx = { tags: new Set<string>() }
     // Push #355 — track B-roll source per scene for quality metrics.
     // KINEO-USER-FOOTAGE-2026-07-10 — 'user' = the user's own uploaded clip.
-    type ClipSource = 'pixabay' | 'fallbackA' | 'stockLibrary' | 'none' | 'user'
+    type ClipSource = 'pixabay' | 'fallbackA' | 'stockLibrary' | 'none' | 'user' | 'aiHook'
     const clipSources: ClipSource[] = []
 
     for (let idx = 0; idx < scenes.length; idx++) {
@@ -714,6 +783,43 @@ export async function POST(req: NextRequest) {
         )
         clipUrls.push('')
         clipSources.push('none') // #355
+      }
+    }
+
+    // KINEO-AI-HOOK — await + PERSIST the opener, then prepend it as clip 0.
+    // awaitAiHook resolves to a raw fal.media URL (which expires, is stripped
+    // just below, AND is rejected by /api/compose). persistHookClip copies it
+    // into our own public `broll` bucket — the SAME storage the clip vault
+    // serves from — and returns a durable Supabase URL that survives the strip
+    // and passes Compose. Bounded + fully fail-open: any miss keeps the stock
+    // hook and the video proceeds unchanged. The hook is a VISUAL opener only —
+    // scenes / scene_captions / voiceover_script are untouched, so it plays
+    // under the existing scene-1 hook voiceover and adds no narration.
+    if (aiHookHandle) {
+      let hookClipUrl: string | null = null
+      try {
+        const falUrl = await awaitAiHook(aiHookHandle, AI_HOOK_AWAIT_BUDGET_MS, prompt)
+        if (falUrl) {
+          const durable = await persistHookClip(falUrl)
+          // Only accept a durable, non-fal URL (persistHookClip returns null on
+          // failure and never returns a fal URL for a fal input).
+          if (durable && !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(durable)) {
+            hookClipUrl = durable
+          }
+        }
+      } catch (err) {
+        console.warn('[ai-hook] await/persist failed (non-blocking):', err instanceof Error ? err.message : String(err))
+      }
+      if (hookClipUrl) {
+        // Stay within the total-clip cap: drop the last stock clip if adding the
+        // opener would overflow, so the length math downstream stays correct.
+        if (clipUrls.length >= FAST_MAX_TOTAL_CLIPS) {
+          clipUrls.pop()
+          clipSources.pop()
+        }
+        clipUrls.unshift(hookClipUrl)
+        clipSources.unshift('aiHook')
+        console.log(`[ai-hook] prepended durable hook as clip 0 → ${hookClipUrl.slice(0, 70)}`)
       }
     }
 

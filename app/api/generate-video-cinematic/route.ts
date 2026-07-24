@@ -177,6 +177,13 @@ function buildFalInput(
   hollywood: boolean = false,
   seconds?: number,
   imageUrl?: string,
+  // KINEO-SEED-2026-07-24 — one deterministic seed per generation, shared by
+  // every classic scene so the clips read as one coherent look/world instead of
+  // independent random draws. Confirmed param name is `seed` on all three
+  // classic fal models (Seedance v1.5 pro t2v, Kling 2.5 Turbo Pro t2v, Veo 3.1
+  // Fast). Only added when provided → every existing call stays byte-identical,
+  // and Hollywood (which never passes it) is untouched.
+  seed?: number,
 ): Record<string, unknown> {
   // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 anchored scenes. Kling O3
   // Pro image-to-video: `image_url` (confirmed — NOT `start_image_url`) is the
@@ -252,6 +259,8 @@ function buildFalInput(
       resolution: '720p',
       generate_audio: false,
       negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
+      // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
+      ...(typeof seed === 'number' ? { seed } : {}),
     }
   }
   if (model === KLING_MODEL) {
@@ -261,6 +270,8 @@ function buildFalInput(
       aspect_ratio: '9:16',
       negative_prompt: 'people, person, human, face, crowd, logo, caption, blur, distort, low quality, watermark, text',
       cfg_scale: 0.6,
+      // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
+      ...(typeof seed === 'number' ? { seed } : {}),
     }
   }
   // KINEO-HOLLYWOOD-2026-07-09 — Hollywood support scenes on Seedance: native
@@ -291,6 +302,8 @@ function buildFalInput(
     resolution: hd ? '1080p' : '720p',
     duration: '10',
     generate_audio: false,
+    // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
+    ...(typeof seed === 'number' ? { seed } : {}),
   }
 }
 
@@ -400,7 +413,10 @@ RULES:
       max_tokens: 1000,
       response_format: { type: 'json_object' },
     },
-    { timeout: 15000, maxRetries: 0 },
+    // KINEO-DESC-RETRY-2026-07-24 — one retry so a single transient failure
+    // (429/5xx/timeout) doesn't collapse the verbatim path to raw keyword-soup
+    // queries. The caller's try/catch keeps the keyword fallback as last resort.
+    { timeout: 15000, maxRetries: 1 },
   )
 
   const raw = completion.choices[0]?.message?.content?.trim() ?? ''
@@ -421,15 +437,32 @@ function clipCountForDuration(d: number): number {
   return Math.max(2, Math.min(9, Math.ceil(d / 9)))
 }
 
+// KINEO-SEED-2026-07-24 — deterministic per-generation seed. Derived from the
+// stable claim/billing reference (cinematic-<claimId>, itself a pure function of
+// user id + generationId) so a retried submit of the SAME generation always
+// produces the SAME seed — the paid job is never re-diced. FNV-1a 32-bit hash
+// (Math.imul, integer-safe) folded into a non-negative 31-bit int (mod 2^31);
+// NOT Math.random (non-deterministic → breaks retry stability + reproducibility).
+// A single shared seed across every classic scene is what makes the clips read
+// as one coherent look/world instead of independent random draws.
+function deterministicSeed(input: string): number {
+  let h = 2166136261 // FNV-1a offset basis
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i)
+    h = Math.imul(h, 16777619)
+  }
+  return (h >>> 0) % 2147483648 // 2^31 → [0, 2147483647]
+}
+
 // KINEO-HOLLYWOOD-2026-07-09 — `hollywood`/`seconds` forwarded to buildFalInput
 // (audio-on variants); defaults keep every existing call byte-identical.
 // KINEO-HOLLYWOOD-30-2026-07-10 — `imageUrl` forwarded to buildFalInput (Kling
 // O3 i2v anchor); default keeps every existing call byte-identical.
-async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string): Promise<string | null> {
+async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number): Promise<string | null> {
   try {
     return await submitFalQueueOnce(
       model,
-      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl),
+      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed),
     )
   } catch (err) {
     // #366 — surface the FULL fal error (status + body + message) so a model /
@@ -1171,12 +1204,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // #370 — Submit clips SEQUENTIALLY with a small stagger (was Promise.all,
-    // all at once). Firing 5-6 submits in the same instant tripped a fal burst/
-    // rate limit that 403'd exactly one clip every time ("submitted 4/5") even
-    // with healthy balance + concurrency 10 — which produced the repeated-clip
-    // videos. Staggering lets every clip enqueue. One retry per clip covers a
-    // transient reject.
+    // #370 — Submit strategy is per-engine (see submitAllScenes below):
+    // Seedance/Veo submit with BOUNDED CONCURRENCY (pool of 3) since they have
+    // no shared-alias throttle; Kling stays SERIAL with a 450ms stagger because
+    // its alias throttles per user (firing 5-6 kling submits at once tripped a
+    // burst/rate limit that 4xx'd exactly one clip — the old "submitted 4/5"
+    // repeated-clip bug). KINEO-RETRY-2026-07-24 — EVERY scene now gets ONE real
+    // retry (submitScene): an EXPLICIT non-ambiguous reject is re-POSTed once
+    // after an ~800ms backoff before the scene is dropped to null. Ambiguous
+    // rejects are NEVER retried (the job may already exist) — the scene stays
+    // null and its claim stays pending, preserving the no-double-charge contract.
     // Push #402 — engine is the user's explicit choice (Kling already gated to
     // Studio above). If Kling fails entirely, fall back to Seedance AND drop the
     // charge to the Seedance price so the user is never billed 50 cr for a
@@ -1188,6 +1225,13 @@ export async function POST(req: NextRequest) {
     // $43.40 cost > $37.90) so it's retired for Seedance — 1080p now lives only
     // in Kling, the premium engine. hd stays false; Kling sets its own params.
     const hd = false
+
+    // KINEO-SEED-2026-07-24 — ONE deterministic seed for this whole generation,
+    // shared by every classic scene (Seedance/Kling/Veo) so the clips are drawn
+    // from the same latent neighborhood and look connected instead of like
+    // unrelated shots. Derived from billingReference (stable per user+generation)
+    // so retrying the SAME generationId reuses the SAME seed — no re-dicing.
+    const generationSeed = deterministicSeed(billingReference)
 
     // KINEO-ERA-LOCK-2026-07-09 — era detected ONCE from the full narration +
     // topic, then appended to EVERY scene prompt below (code-enforced; survives
@@ -1549,32 +1593,116 @@ export async function POST(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
+    // Submit ONE scene with a REAL single retry on an EXPLICIT (non-ambiguous)
+    // reject. submitToFal returns null ONLY for an explicit FalQueueSubmitError
+    // (Fal definitively did NOT accept the job — safe to re-POST); it THROWS for
+    // an ambiguous error (transport/408/5xx or a missing id — the job MAY exist,
+    // so it must NEVER be re-POSTed) and for any unexpected error. So a null
+    // result is the exact, safe signal to retry once after a short backoff.
+    // Tagged result → never throws for the explicit/retry path; ambiguous/fatal
+    // are surfaced so the caller can preserve the claim/ambiguous semantics.
+    type SceneSubmitResult =
+      | { kind: 'id'; id: string | null }
+      | { kind: 'ambiguous'; error: FalQueueSubmitError }
+      | { kind: 'fatal'; error: unknown }
+    const submitScene = async (
+      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string },
+      model: string,
+    ): Promise<SceneSubmitResult> => {
+      // #440/#441 — feed the engine the cinematic SHOT description (aiPrompt),
+      // falling back to the stock query only if description generation failed.
+      // buildFacelessCinematicPrompt then strips any person nouns + forces
+      // environment-first b-roll, on-brand for this faceless channel.
+      const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
+      const cinematic = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
+      try {
+        // KINEO-SEED-2026-07-24 — every scene shares generationSeed for coherence.
+        let id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
+        if (id === null) {
+          // Explicit non-ambiguous reject: Fal did not accept the job. One real
+          // retry after a short backoff clears a transient burst/rate-limit 4xx
+          // (the historic "submitted 4/5" drop) before we give up on the scene.
+          await new Promise((r) => setTimeout(r, 800))
+          id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
+        }
+        return { kind: 'id', id }
+      } catch (e) {
+        // Ambiguous (incl. an ambiguous throw on the retry POST) is NOT re-tried
+        // and NOT re-POSTed — the job may already exist; surface it.
+        if (e instanceof FalQueueSubmitError && e.ambiguous) return { kind: 'ambiguous', error: e }
+        return { kind: 'fatal', error: e }
+      }
+    }
+
     async function submitAllScenes(model: string): Promise<(string | null)[]> {
+      // KINEO-PARALLEL-2026-07-24 — engines with NO shared-alias limit
+      // (Seedance, Veo) submit with bounded concurrency (pool of 3) to cut
+      // submit latency; Kling stays SERIAL with the 450ms stagger because the
+      // kling-video alias throttles per user (same shared-alias family as the
+      // Hollywood v3 path — kept serial when unsure to avoid burst 4xx drops).
+      const canParallelize = model === SEEDANCE_MODEL || model === VEO_MODEL
+      const PARALLEL_POOL = 3
+
+      if (canParallelize) {
+        // Index-aligned so fal_request_ids[i] always maps to scenes[i] even when
+        // some scenes drop out (ambiguous/failed stay null at their own index).
+        const ids: (string | null)[] = new Array(scenes.length).fill(null)
+        let ambiguousErr: FalQueueSubmitError | null = null
+        let stop = false
+        for (let start = 0; start < scenes.length && !stop; start += PARALLEL_POOL) {
+          const batch: number[] = []
+          for (let i = start; i < Math.min(start + PARALLEL_POOL, scenes.length); i++) batch.push(i)
+          const settled = await Promise.all(
+            batch.map(async (idx) => ({ idx, res: await submitScene(scenes[idx], model) })),
+          )
+          // An unexpected (non-ambiguous, non-explicit) failure propagates — the
+          // outer handler keeps the claim safe. Explicit rejects already became
+          // a null id inside submitScene (after the retry).
+          const fatal = settled.find(({ res }) => res.kind === 'fatal')
+          if (fatal && fatal.res.kind === 'fatal') throw fatal.res.error
+          // Record every accepted id FIRST (at its own index), then decide on
+          // ambiguity — so an ambiguous sibling never discards a paid job.
+          for (const { idx, res } of settled) {
+            if (res.kind === 'id') {
+              if (res.id) providerSubmissionMayExist = true
+              ids[idx] = res.id
+            } else if (res.kind === 'ambiguous') {
+              ambiguousErr = res.error
+            }
+          }
+          if (ambiguousErr) {
+            if (ids.some((requestId) => requestId !== null)) {
+              // A job MAY exist for the ambiguous scene(s); leave them null and
+              // stop submitting more — keep the claim pending, never re-POST.
+              providerSubmissionMayExist = true
+              console.warn('[cinematic] scene submit became ambiguous; preserving earlier accepted scenes')
+              stop = true
+            } else {
+              // Nothing accepted anywhere yet — propagate so the claim stays
+              // pending (the ambiguous job may still exist; do not release/refund).
+              throw ambiguousErr
+            }
+          }
+        }
+        return ids
+      }
+
+      // Serial path (Kling): 450ms stagger between submits + the same real retry.
       const ids: (string | null)[] = []
       for (const scene of scenes) {
-        // #440/#441 — feed Seedance the cinematic SHOT description (aiPrompt),
-        // falling back to the stock query only if description generation failed.
-        // buildFacelessCinematicPrompt then strips any person nouns + forces
-        // environment-first b-roll, on-brand for this faceless channel.
-        const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
-        const cinematic = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
-        let id: string | null
-        try {
-          id = await submitToFal(cinematic, model, hd)
-        } catch (e) {
-          if (
-            e instanceof FalQueueSubmitError && e.ambiguous &&
-            ids.some((requestId) => requestId !== null)
-          ) {
+        const res = await submitScene(scene, model)
+        if (res.kind === 'fatal') throw res.error
+        if (res.kind === 'ambiguous') {
+          if (ids.some((requestId) => requestId !== null)) {
             providerSubmissionMayExist = true
             console.warn('[cinematic] scene submit became ambiguous; preserving earlier accepted scenes')
             ids.push(null)
             break
           }
-          throw e
+          throw res.error
         }
-        if (id) providerSubmissionMayExist = true
-        ids.push(id)
+        if (res.id) providerSubmissionMayExist = true
+        ids.push(res.id)
         await new Promise((r) => setTimeout(r, 450))
       }
       while (ids.length < scenes.length) ids.push(null)

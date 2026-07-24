@@ -86,6 +86,16 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
   }
 }
 
+// KINEO-AVATAR-STUDIO-BILLING — fixed credit costs for the Avatar Studio helper
+// endpoints that call paid fal models but are NOT part of the compose quality
+// table above. Kept here (the single cost source-of-truth) so no route invents
+// its own price. Charged via the same debit_video_credits RPC + deterministic
+// billing reference as the avatar/gesture pipelines.
+//   Voice clone (fal MiniMax voice-clone, ~$1.50/clone, one-time per voice).
+export const CLONE_VOICE_CREDIT_COST = 10
+//   Scene generation (FLUX.1 Kontext edit + best-effort face-swap, ~cents).
+export const SCENE_GEN_CREDIT_COST = 2
+
 // KINEO-CREDIT-INTENT-2026-07-11 — normalize an arbitrary string (e.g. a value
 // read back from the render_jobs intent row, or a client query param) into the
 // Quality union. Anything unrecognized collapses to 'basic_ai' — the same

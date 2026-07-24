@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { uploadAvatarAudio } from '@/lib/avatar/storage'
 import { cloneVoice } from '@/lib/avatar/voice'
+import { CLONE_VOICE_CREDIT_COST } from '@/lib/credits/engineCost'
+import { refundRenderCredits } from '@/lib/credits/refund'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -63,13 +65,65 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Could not store the voice sample. Please try again.' }, { status: 502 })
     }
 
-    const cloneRes = await cloneVoice(audioUrl)
+    // Charge for the clone BEFORE the paid MiniMax call (~$1.50). Same
+    // balance-gate + debit_video_credits pattern as /api/gesture-clip, keyed on
+    // a deterministic billing reference so the refund below is idempotent. A
+    // login-only user with too few credits is blocked here (no free clones).
+    const billingReference = `voice-clone-${user.id}-${Date.now()}`
+    const { data: voiceProfile } = await supabase
+      .from('profiles')
+      .select('video_credits')
+      .eq('id', user.id)
+      .single()
+    const balance = voiceProfile?.video_credits ?? 0
+    if (balance < CLONE_VOICE_CREDIT_COST) {
+      return NextResponse.json(
+        {
+          error: `Voice cloning costs ${CLONE_VOICE_CREDIT_COST} credits. You have ${balance}.`,
+          balance,
+          upsell: 'credits',
+          upgrade: '/pricing',
+        },
+        { status: 402 },
+      )
+    }
+    const { data: debitedBalance, error: debitErr } = await supabase
+      .rpc('debit_video_credits', { p_render: billingReference, p_cost: CLONE_VOICE_CREDIT_COST })
+    if (debitErr || typeof debitedBalance !== 'number') {
+      const insufficient = /balance|credit|insufficient/i.test(debitErr?.message ?? '')
+      console.error('[avatar/voice] clone debit failed:', debitErr?.message ?? 'no balance returned')
+      return NextResponse.json(
+        {
+          error: insufficient
+            ? `Voice cloning needs ${CLONE_VOICE_CREDIT_COST} credits. Your balance changed before it could start.`
+            : 'Your credit charge could not be confirmed. Nothing was submitted.',
+          balance,
+          ...(insufficient ? { upsell: 'credits', upgrade: '/pricing' } : {}),
+        },
+        { status: insufficient ? 402 : 503 },
+      )
+    }
+
+    // Refund the fixed clone charge on ANY failure of the paid clone call so a
+    // failed clone is never billed (idempotent — repeated calls can't double-refund).
+    let cloneRes: { voiceId: string | null; error?: string }
+    try {
+      cloneRes = await cloneVoice(audioUrl)
+    } catch (err) {
+      await refundRenderCredits(billingReference)
+      console.error('[avatar/voice] clone threw (refunded):', err instanceof Error ? err.message : String(err))
+      return NextResponse.json(
+        { error: 'Voice clone failed. Your credits were refunded automatically — please try again.' },
+        { status: 502 },
+      )
+    }
     if (!cloneRes.voiceId) {
+      await refundRenderCredits(billingReference)
       // Surface the RAW MiniMax/fal error so we can diagnose precisely (the
       // Vercel log dashboard truncates messages). Safe — it's the user's own
       // debug context, no secrets.
       return NextResponse.json(
-        { error: `Voice clone failed — ${cloneRes.error ?? 'unknown error'}` },
+        { error: `Voice clone failed — ${cloneRes.error ?? 'unknown error'}. Your credits were refunded automatically.` },
         { status: 502 },
       )
     }

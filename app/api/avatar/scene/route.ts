@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateSceneImage, swapFaceOntoScene } from '@/lib/avatar/scene'
 import { uploadAvatarPhoto } from '@/lib/avatar/storage'
+import { SCENE_GEN_CREDIT_COST } from '@/lib/credits/engineCost'
+import { refundRenderCredits } from '@/lib/credits/refund'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -56,13 +58,54 @@ export async function POST(req: NextRequest) {
       `${prompt}. Keep the exact same person and the same face, unchanged facial features. ` +
       `Photorealistic, sharp, front-facing, head and upper body clearly visible, natural lighting.`
 
+    // Charge for the scene BEFORE the paid fal calls (FLUX.1 Kontext edit +
+    // best-effort face-swap). Same balance-gate + debit_video_credits pattern
+    // as /api/gesture-clip, keyed on a deterministic billing reference so the
+    // refunds below are idempotent. A login-only user with zero balance is
+    // blocked here (no free scene generations).
+    const billingReference = `scene-gen-${user.id}-${Date.now()}`
+    const { data: sceneProfile } = await supabase
+      .from('profiles')
+      .select('video_credits')
+      .eq('id', user.id)
+      .single()
+    const balance = sceneProfile?.video_credits ?? 0
+    if (balance < SCENE_GEN_CREDIT_COST) {
+      return NextResponse.json(
+        {
+          error: `Scene generation costs ${SCENE_GEN_CREDIT_COST} credits. You have ${balance}.`,
+          balance,
+          upsell: 'credits',
+          upgrade: '/pricing',
+        },
+        { status: 402 },
+      )
+    }
+    const { data: debitedBalance, error: debitErr } = await supabase
+      .rpc('debit_video_credits', { p_render: billingReference, p_cost: SCENE_GEN_CREDIT_COST })
+    if (debitErr || typeof debitedBalance !== 'number') {
+      const insufficient = /balance|credit|insufficient/i.test(debitErr?.message ?? '')
+      console.error('[avatar/scene] scene debit failed:', debitErr?.message ?? 'no balance returned')
+      return NextResponse.json(
+        {
+          error: insufficient
+            ? `Scene generation needs ${SCENE_GEN_CREDIT_COST} credits. Your balance changed before it could start.`
+            : 'Your credit charge could not be confirmed. Nothing was submitted.',
+          balance,
+          ...(insufficient ? { upsell: 'credits', upgrade: '/pricing' } : {}),
+        },
+        { status: insufficient ? 402 : 503 },
+      )
+    }
+
     let falUrl: string
     try {
       falUrl = await generateSceneImage({ imageUrl, prompt: fullPrompt })
     } catch (err) {
-      console.error('[avatar/scene] generation failed:', err instanceof Error ? err.message : String(err))
+      await refundRenderCredits(billingReference)
+      console.error('[avatar/scene] generation failed (refunded):', err instanceof Error ? err.message : String(err))
       return NextResponse.json(
-        { error: 'Could not build the scene. Try again or simplify the description.' },
+        { error: 'Could not build the scene. Try again or simplify the description. Your credits were refunded automatically.' },
         { status: 502 },
       )
     }
@@ -85,9 +128,12 @@ export async function POST(req: NextRequest) {
       const buf = Buffer.from(await res.arrayBuffer())
       storageUrl = await uploadAvatarPhoto(user.id, buf, 'image/jpeg')
     } catch (err) {
-      console.error('[avatar/scene] re-host failed:', err instanceof Error ? err.message : String(err))
+      // The paid scene was built but the user gets no usable URL — refund so we
+      // never bill for a scene we could not deliver.
+      await refundRenderCredits(billingReference)
+      console.error('[avatar/scene] re-host failed (refunded):', err instanceof Error ? err.message : String(err))
       return NextResponse.json(
-        { error: 'Scene was built but could not be saved. Please try again.' },
+        { error: 'Scene was built but could not be saved. Your credits were refunded automatically — please try again.' },
         { status: 502 },
       )
     }
