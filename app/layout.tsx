@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   title: 'Kineo AI YouTube Shorts Generator · $4.90 First Month',
   description:
     'Launch a repeatable AI Shorts show with the same face, voice and style. Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card. Paid plans unlock clean MP4s.',
+  alternates: {
+    canonical: 'https://www.usekineo.com',
+  },
   keywords: [
     'YouTube Shorts generator',
     'AI YouTube Shorts creator',
@@ -36,6 +39,11 @@ export const metadata: Metadata = {
     'viral shorts creator',
     'YouTube automation tool',
     'short form video AI',
+    'ai youtube shorts generator',
+    'faceless youtube',
+    'opus clip alternative',
+    'text to video shorts',
+    'make shorts without filming',
   ],
   openGraph: {
     title: 'AI YouTube Shorts Generator — Script, Footage & Voice in 2–4 Min',
@@ -48,6 +56,7 @@ export const metadata: Metadata = {
         url: 'https://www.usekineo.com/og-image.png',
         width: 1200,
         height: 630,
+        alt: 'Kineo AI YouTube Shorts Generator',
       },
     ],
     type: 'website',

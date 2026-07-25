@@ -143,6 +143,30 @@ const faqSchema = {
         text: 'Anytime, in one click. Plans are month to month and your credits refresh every month.',
       },
     },
+    {
+      '@type': 'Question',
+      name: 'Can I run a whole channel with the same host?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes — that is the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I monetize the videos?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How long does one video take?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Fast Mode usually finishes in 2–4 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.',
+      },
+    },
   ],
 }
 

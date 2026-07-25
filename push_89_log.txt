@@ -1,1 +1,26 @@
 ===== KINEO PUSH 89 (anchor + i2v Kling classico) ===== 
+warning: in the working copy of 'app/api/cinematic-clip-status/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/generate-video-cinematic/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/flags.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/hollywood/anchors.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_88_log.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_89_anchor.bat', LF will be replaced by CRLF the next time Git touches it
+[staged] 
+app/api/cinematic-clip-status/route.ts
+app/api/generate-video-cinematic/route.ts
+lib/flags.ts
+lib/hollywood/anchors.ts
+push_88_log.txt
+push_89_anchor.bat
+push_89_log.txt
+[commit] 
+[main 55a416e] PUSH #89 cinematic anchor: optional FLUX per-scene still + Kling v2.5 image-to-video for cross-scene consistency, flag-gated (KINEO_CINEMATIC_ANCHOR_ENABLED, off by default), fail-open per scene; whitelist i2v model in clip-status poller
+ 7 files changed, 294 insertions(+), 20 deletions(-)
+ create mode 100644 push_89_anchor.bat
+ create mode 100644 push_89_log.txt
+[push] 
+To https://github.com/josephsskaf-hub/UseKineo.git
+   164ade3..55a416e  main -> main
+## main...origin/main
+ M push_89_log.txt
+===== FIM ===== 

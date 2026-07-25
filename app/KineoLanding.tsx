@@ -5,6 +5,7 @@ import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import HeroGallery from './HeroGallery'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
+import ExitIntentOffer from '@/components/ExitIntentOffer'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
@@ -205,16 +206,33 @@ export default function KineoLanding({ initialUser }: Props) {
             <h1 className="gtxt">Launch your<br />AI Shorts show.</h1>
             <p className="sub">Same face, same voice, same style — every episode. Script, voice, captions and scenes in a few minutes.</p>
             <HomeTopicForm isSignedIn={isSignedIn} />
+            {/* KINEO-CRO-2026-07-25 — risk-reversal line directly under the primary CTA. */}
+            <p className="trust" style={{ textAlign: 'center', marginTop: 14 }}>
+              ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ 3 free videos every 24h&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime&nbsp;&nbsp;·&nbsp;&nbsp;
+              <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
+            </p>
             {/* PROVA-SOCIAL-REAL-2026-07-02 — real DB counts; renders nothing if numbers are low/unavailable */}
             <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
               <LiveStatsBadge />
             </div>
           </div>
           <HeroGallery />
-          <p className="gallery-cap">Real Kineo exports, not mockups. Each started with one topic — script, voice, footage and captions, automatically. <Link href="/free-ai-shorts-generator">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts">Text-to-video workflow →</Link></p>
+          <p className="gallery-cap">Real Kineo exports, not mockups. Each started with one topic — script, voice, footage and captions, automatically. <Link href="/free-ai-shorts-generator">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts">Text-to-video workflow →</Link> · <Link href="/niche-picker">Find your faceless niche →</Link></p>
           <div className="platforms">Built for <b>YouTube Shorts</b> · <b>TikTok</b> · <b>Reels</b></div>
         </div>
       </header>
+
+      {/* KINEO-CRO-2026-07-25 — explicit 3-step process (the page jumped from hero to comparison). Reuses .steps/.step CSS. */}
+      <section id="how">
+        <div className="wrap">
+          <div className="sec-h"><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
+          <div className="steps">
+            <div className="step"><div className="n">Step 1</div><h3>Type a topic</h3><p>One line — &ldquo;5 mysteries of the deep sea&rdquo; — or paste your own script. Pick a niche and go.</p></div>
+            <div className="step"><div className="n">Step 2</div><h3>Kineo builds it</h3><p>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</p></div>
+            <div className="step"><div className="n">Step 3</div><h3>Download &amp; post</h3><p>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</p></div>
+          </div>
+        </div>
+      </section>
 
       <section id="compare">
         <div className="wrap">
@@ -240,6 +258,8 @@ export default function KineoLanding({ initialUser }: Props) {
               <tr><td>AI voiceover included</td><td className="us">✓</td><td className="no">—</td><td>✓</td><td className="no">—</td></tr>
               <tr><td>Finds and matches footage</td><td className="us">✓</td><td className="no">your upload</td><td className="no">avatar only</td><td className="no">your upload</td></tr>
               <tr><td>No per-minute caps</td><td className="us">✓</td><td className="no">credits</td><td className="no">credits</td><td className="no">—</td></tr>
+              <tr><td>Reusable AI host — same voice &amp; style every episode</td><td className="us">✓</td><td className="no">—</td><td>✓</td><td className="no">—</td></tr>
+              <tr><td>Free videos, no credit card</td><td className="us">3 / day</td><td className="no">limited</td><td className="no">trial</td><td className="no">trial</td></tr>
               <tr><td>Starting price</td><td className="us">$4.90 first month</td><td>$15/mo</td><td>$29/mo</td><td>$19/mo</td></tr>
             </tbody>
           </table></div>
@@ -348,6 +368,10 @@ export default function KineoLanding({ initialUser }: Props) {
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
           <div className="snote">Try it first: <b>create, watch, download and share up to 3 Fast videos every 24h</b> — no card, watermark included.</div>
+          {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
+          <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
+            🔒 Secure checkout powered by Stripe&nbsp;&nbsp;·&nbsp;&nbsp;Cancel in one click&nbsp;&nbsp;·&nbsp;&nbsp;Credits refunded automatically if a render fails
+          </p>
           <div className="pricing-more" style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
             <Link className="link" href="/pricing">Full pricing, FAQ &amp; plan comparison →</Link>
             <CostCalculatorLink className="link" placement="home_pricing" >Calculate your cost per Short →</CostCalculatorLink>
@@ -368,6 +392,10 @@ export default function KineoLanding({ initialUser }: Props) {
                 old one-time-pack promise; plan credits refresh monthly (no
                 rollover), same as the /pricing FAQ says. Copy aligned. */}
             <div className="qa"><h3>Can I cancel anytime?</h3><p>Anytime, in one click. Plans are month to month and your credits refresh every month.</p></div>
+            {/* KINEO-CRO-2026-07-25 — objection-busting Q&As (also mirrored in components/StructuredData.tsx FAQPage schema). */}
+            <div className="qa"><h3>Can I run a whole channel with the same host?</h3><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></div>
+            <div className="qa"><h3>Can I monetize the videos?</h3><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></div>
+            <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 2–4 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
           </div>
         </div>
       </section>
@@ -394,6 +422,8 @@ export default function KineoLanding({ initialUser }: Props) {
         </div>
       </div>
       <StickyFreeShortCTA />
+      {/* KINEO-CRO-2026-07-25 — recover exiting logged-out visitors (was only on /pricing). */}
+      {!isSignedIn && <ExitIntentOffer />}
     </main>
     <Footer showStats={false} />
     </>
