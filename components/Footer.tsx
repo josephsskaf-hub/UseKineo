@@ -51,6 +51,17 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/free-script-generator', label: 'Free script generator' },
       { href: '/free-hook-generator', label: 'Free hook generator' },
       { href: '/viral-score', label: 'Free viral score' },
+      { href: '/shorts-money-calculator', label: 'Shorts money calculator' },
+    ],
+  },
+  {
+    title: 'Shorts money & growth',
+    links: [
+      { href: '/how-much-do-youtube-shorts-pay', label: 'How much do Shorts pay?' },
+      { href: '/youtube-shorts-rpm-by-niche', label: 'Shorts RPM by niche (2026)' },
+      { href: '/best-ai-shorts-generators', label: 'Best AI Shorts generators' },
+      { href: '/can-you-monetize-ai-videos', label: 'Can you monetize AI videos?' },
+      { href: '/tiktok-vs-youtube-shorts-monetization', label: 'TikTok vs Shorts: which pays more?' },
     ],
   },
   {

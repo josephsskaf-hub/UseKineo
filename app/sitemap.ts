@@ -9,7 +9,7 @@ import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 const BASE = 'https://www.usekineo.com'
 // Advance this only when the public acquisition cluster materially changes.
 // Using the request time for every URL makes lastModified meaningless.
-const LAST_MODIFIED = new Date('2026-07-23T00:00:00.000Z')
+const LAST_MODIFIED = new Date('2026-07-25T00:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -42,6 +42,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/niche-picker', priority: 0.9, freq: 'weekly' },
     { path: '/state-of-ai-shorts-2026', priority: 0.8, freq: 'weekly' },
     { path: '/widget', priority: 0.7, freq: 'weekly' },
+    // KINEO-SEO-SPRINT-2026-07-25 — high-demand money/monetization + roundup cluster.
+    { path: '/best-ai-shorts-generators', priority: 0.9, freq: 'weekly' },
+    { path: '/how-much-do-youtube-shorts-pay', priority: 0.9, freq: 'weekly' },
+    { path: '/youtube-shorts-rpm-by-niche', priority: 0.9, freq: 'weekly' },
+    { path: '/shorts-money-calculator', priority: 0.8, freq: 'weekly' },
+    { path: '/can-you-monetize-ai-videos', priority: 0.8, freq: 'weekly' },
+    { path: '/tiktok-vs-youtube-shorts-monetization', priority: 0.8, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]

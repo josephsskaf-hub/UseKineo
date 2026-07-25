@@ -375,6 +375,8 @@ export default function KineoLanding({ initialUser }: Props) {
           <div className="pricing-more" style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
             <Link className="link" href="/pricing">Full pricing, FAQ &amp; plan comparison →</Link>
             <CostCalculatorLink className="link" placement="home_pricing" >Calculate your cost per Short →</CostCalculatorLink>
+            <Link className="link" href="/how-much-do-youtube-shorts-pay">How much do Shorts pay? →</Link>
+            <Link className="link" href="/youtube-shorts-rpm-by-niche">Highest-RPM niches →</Link>
           </div>
         </div>
       </section>
