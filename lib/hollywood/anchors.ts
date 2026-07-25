@@ -43,13 +43,24 @@ export type HollywoodAnchors = {
 /** Generate ONE anchor image and return its fal-hosted URL (fal.media URLs
  * are directly usable as Kling `image_url`). Never retry the paid POST after
  * an ambiguous response; only status/result reads may be retried. */
-async function generateAnchorImage(prompt: string): Promise<string | null> {
+async function generateAnchorImage(
+  prompt: string,
+  // KINEO-CINEMATIC-ANCHOR-2026-07-24 — optional shared seed (flux/schnell
+  // accepts `seed`): passing the per-generation seed makes retries of the SAME
+  // generation reproduce the SAME still and keeps every scene's still in one
+  // palette neighbourhood. Omitted by the Hollywood callers → byte-identical.
+  seed?: number,
+  // Optional shorter poll window for the latency-bounded per-scene still path
+  // (the Hollywood anchors keep the original 35s window by default).
+  pollWindowMs: number = 35_000,
+): Promise<string | null> {
   const input: Record<string, unknown> = {
     prompt,
     image_size: 'portrait_16_9', // 9:16 vertical
     num_images: 1,
     num_inference_steps: 4,
     enable_safety_checker: true,
+    ...(typeof seed === 'number' ? { seed } : {}),
   }
   const model: string = ANCHOR_IMAGE_MODEL
   let requestId: string
@@ -64,7 +75,7 @@ async function generateAnchorImage(prompt: string): Promise<string | null> {
     return null
   }
 
-  const deadline = Date.now() + 35_000
+  const deadline = Date.now() + pollWindowMs
   while (Date.now() < deadline) {
     try {
       const statusResult = await fal.queue.status(model, { requestId })
@@ -143,6 +154,54 @@ export async function generateHollywoodAnchors(args: {
     if (err instanceof FalQueueSubmitError && err.ambiguous) throw err
     console.error(
       '[hollywood-anchors] failed (falling back to t2v):',
+      err instanceof Error ? err.message : String(err),
+    )
+    return null
+  }
+}
+
+// KINEO-CINEMATIC-ANCHOR-2026-07-24 — lightweight per-scene still for the
+// CLASSIC engines (Kling). UNLIKE the Hollywood anchors (two fixed images
+// reused across scenes), this generates ONE FLUX still that depicts THIS
+// scene's own content, sharing the run's style suffix + per-generation seed
+// with every other scene so the palette/look stays coherent WITHOUT making
+// every clip open on the same frame. The returned fal.media URL is directly
+// usable as a Kling image-to-video `image_url` (9:16 / portrait_16_9).
+//
+// Cost: one flux/schnell image (~$0.10, ANCHORS_USD) per scene. Reuses the same
+// submit/poll machinery as generateHollywoodAnchors.
+//
+// FAIL-OPEN: returns null on ANY failure (the caller then submits that scene as
+// t2v). We deliberately swallow even an ambiguous poll-timeout here: the still
+// is disposable and is NEVER re-POSTed (the scene falls back to a *different*
+// model, t2v), so the paid-once contract — which protects the scene's billable
+// CLIP submit in the route — is not at stake for this throwaway image.
+export async function generateCinematicSceneStill(args: {
+  /** This scene's own visual prompt (already faceless-sanitised + era-locked). */
+  scenePrompt: string
+  /** The run's shared style suffix (route styleSuffix / globalStyle) — glued to
+   *  every scene's still so all stills share one color grade. */
+  styleSuffix: string
+  /** The shared per-generation seed (retry-stable + palette-coherent). */
+  seed: number
+  /** Bounded poll window so the still phase never blows the route's 60s budget. */
+  pollWindowMs?: number
+}): Promise<string | null> {
+  const key = process.env.FAL_KEY
+  if (!key) return null
+  try {
+    fal.config({ credentials: key })
+    const scene = (args.scenePrompt ?? '').replace(/\s+/g, ' ').trim()
+    if (scene.length < 3) return null
+    const style = (args.styleSuffix ?? '').replace(/\s+/g, ' ').replace(/^[,\s]+/, '').trim()
+    const prompt =
+      `${scene}${style ? `. Consistent look across all scenes: ${style}` : ''}. ` +
+      `vertical 9:16 portrait, photorealistic, cinematic establishing frame, ` +
+      `sharp focus, no text, no watermark, no logo`
+    return await generateAnchorImage(prompt, args.seed, args.pollWindowMs ?? 12_000)
+  } catch (err) {
+    console.warn(
+      '[cinematic-anchor] scene still failed (falling back to t2v):',
       err instanceof Error ? err.message : String(err),
     )
     return null

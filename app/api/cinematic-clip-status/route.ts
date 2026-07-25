@@ -22,6 +22,11 @@ const SORA_MODEL = 'fal-ai/sora-2/text-to-video'
 const KLING3_MODEL = 'fal-ai/kling-video/v3/pro/text-to-video'
 const KLING3_I2V_MODEL = 'fal-ai/kling-video/o3/pro/image-to-video'
 const HOST_PRESENTER_MODEL = 'fal-ai/kling-video/ai-avatar/v2/standard'
+// KINEO-CINEMATIC-ANCHOR-2026-07-24 (PUSH #89) — classic Kling anchored i2v.
+// Gated by KINEO_CINEMATIC_ANCHOR_ENABLED in generate-video-cinematic; when a
+// kling scene is anchored its per-scene model is this i2v id, which the signed
+// claim records and this poller must accept or anchored generations 503 here.
+const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
 const ALLOWED_MODELS = new Set([
   SEEDANCE_MODEL,
   KLING_MODEL,
@@ -29,6 +34,7 @@ const ALLOWED_MODELS = new Set([
   SORA_MODEL,
   KLING3_MODEL,
   KLING3_I2V_MODEL,
+  KLING_I2V_MODEL,
   HOST_PRESENTER_MODEL,
 ])
 

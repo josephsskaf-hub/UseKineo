@@ -11,3 +11,14 @@
 // oferta única: só intro-month $4.90/$9.90 nas superfícies públicas; o $2.90
 // one-time conflitava e não gera MRR). Banner some, SKU volta 410.
 export const OFFER_290_ENABLED = false
+
+// KINEO-CINEMATIC-ANCHOR-2026-07-24 — gates the optional anchor + image-to-video
+// path for the CLASSIC Kling engine (cross-scene visual consistency: one FLUX
+// still per scene sharing the style sheet + per-generation seed, each scene then
+// animated via Kling i2v so the clips read as one world instead of independent
+// t2v draws). OFF by default: while false, every classic engine stays pure
+// text-to-video and behaves BYTE-IDENTICALLY to before this feature existed.
+// Flip via env KINEO_CINEMATIC_ANCHOR_ENABLED (truthy = '1' | 'true' | 'yes' | 'on').
+export const CINEMATIC_ANCHOR_ENABLED = ['1', 'true', 'yes', 'on'].includes(
+  (process.env.KINEO_CINEMATIC_ANCHOR_ENABLED ?? '').trim().toLowerCase(),
+)

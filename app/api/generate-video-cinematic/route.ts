@@ -24,7 +24,10 @@ import {
   logHollywoodCost,
   type HollywoodPlan,
 } from '@/lib/hollywood/router'
-import { generateHollywoodAnchors, ANCHORS_USD, type HollywoodAnchors } from '@/lib/hollywood/anchors'
+import { generateHollywoodAnchors, generateCinematicSceneStill, ANCHORS_USD, type HollywoodAnchors } from '@/lib/hollywood/anchors'
+// KINEO-CINEMATIC-ANCHOR-2026-07-24 — flag that gates the classic-Kling anchor
+// (FLUX still) + image-to-video path. OFF by default → pure t2v, byte-identical.
+import { CINEMATIC_ANCHOR_ENABLED } from '@/lib/flags'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: anchored
 // dialogue scenes get ONE voice. The scene's line is synthesized with OUR TTS
 // (same persona the compose narration resolves — see lib/hollywood/hostVoice)
@@ -108,6 +111,16 @@ const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 // output shape. Kling has no `resolution`/`generate_audio` params and is silent
 // by default, so our TTS narration (added in compose) stays the only audio.
 const KLING_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video'
+// KINEO-CINEMATIC-ANCHOR-2026-07-24 — the CLASSIC Kling image-to-video
+// counterpart of KLING_MODEL: same Kling 2.5 Turbo Pro family, confirmed in use
+// by Animate (ANIMATE_MODEL in lib/avatar/veed.ts). Silent by default (no
+// generate_audio), so compose's TTS narration stays the only audio — exactly
+// like the Kling t2v path. Used ONLY on the flag-gated anchored path: each scene
+// is seeded with its OWN FLUX still so the clips share one world/palette.
+// NOTE (cross-file): to poll these clips, this model string must ALSO be present
+// in ALLOWED_MODELS in app/api/cinematic-clip-status/route.ts (that file is
+// outside this change's edit scope — see the PR notes / report).
+const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
 // Push #489 — Veo 3.1 Fast: Google's cinematic text-to-video on fal. 9:16, 8s,
 // audio off; identical { video: { url } } output, same fal.queue submit/poll.
 const VEO_MODEL = 'fal-ai/veo3.1/fast'
@@ -260,6 +273,24 @@ function buildFalInput(
       generate_audio: false,
       negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
+      ...(typeof seed === 'number' ? { seed } : {}),
+    }
+  }
+  // KINEO-CINEMATIC-ANCHOR-2026-07-24 — CLASSIC Kling image-to-video (2.5 Turbo
+  // Pro i2v — the same endpoint Animate uses, lib/avatar/veed.ts). `image_url`
+  // is THIS scene's own FLUX still; the clip animates it, so all scenes share
+  // one palette/world without every scene opening on the same frame. Aspect
+  // follows the 9:16 still (no aspect_ratio param, exactly like the O3 i2v
+  // branch above). negative_prompt/cfg_scale mirror the Kling t2v branch so the
+  // faceless brand carries over; the shared seed keeps retries stable. Only sent
+  // for this model → every other (existing) call stays byte-identical.
+  if (model === KLING_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      duration: '10',
+      negative_prompt: 'people, person, human, face, crowd, logo, caption, blur, distort, low quality, watermark, text',
+      cfg_scale: 0.6,
       ...(typeof seed === 'number' ? { seed } : {}),
     }
   }
@@ -1593,6 +1624,74 @@ export async function POST(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
+    // ── KINEO-CINEMATIC-ANCHOR-2026-07-24 — cross-scene consistency (CLASSIC) ─
+    // Flag-gated (OFF by default → this whole block is skipped and the path
+    // below is BYTE-IDENTICAL pure t2v). When ON, this applies ONLY to
+    // engine==='kling': generate ONE FLUX still per scene (each depicting its
+    // OWN scene, all sharing styleSuffix + generationSeed for palette coherence)
+    // and then submit each scene as Kling image-to-video seeded with its OWN
+    // still. Seedance (default, highest volume, cheapest) and Veo stay pure t2v
+    // to protect margin — they are NEVER anchored. Veo has no confirmed i2v
+    // model/param in this codebase, so it is intentionally left as t2v.
+    //
+    // LATENCY/BUDGET: maxDuration=60. Stills run with bounded concurrency (pool
+    // of 3) under a hard time budget; scenes beyond MAX_ANCHORED_SCENES, or any
+    // scene reached after the budget is spent, get NO still and fall back to t2v
+    // per-scene in submitScene. Each still also has a short per-image poll window
+    // so a slow FLUX job can never stall the request.
+    //
+    // FAIL-OPEN: generateCinematicSceneStill returns null on any failure → that
+    // scene is submitted as t2v. A still is disposable and is never re-POSTed, so
+    // it cannot create a duplicate billable CLIP.
+    const anchorActive = wantsKling && CINEMATIC_ANCHOR_ENABLED
+    const sceneStills: (string | null)[] = new Array(scenes.length).fill(null)
+    if (anchorActive) {
+      // FLUX stills are paid Fal work: once we start them, an unexpected throw
+      // must keep the deterministic claim PENDING (never release + let a new
+      // generationId repeat provider spend) — same discipline as Hollywood 3.0.
+      providerSubmissionMayExist = true
+      const STILL_POOL = 3
+      const STILL_BUDGET_MS = 30_000 // leave the rest of the 60s budget for scene submits
+      const STILL_POLL_WINDOW_MS = 12_000 // per-image cap (schnell @4 steps is fast)
+      const MAX_ANCHORED_SCENES = 6
+      const anchorCount = Math.min(scenes.length, MAX_ANCHORED_SCENES)
+      const stillDeadline = Date.now() + STILL_BUDGET_MS
+      let stillsMade = 0
+      for (let start = 0; start < anchorCount && Date.now() < stillDeadline; start += STILL_POOL) {
+        const batch: number[] = []
+        for (let i = start; i < Math.min(start + STILL_POOL, anchorCount); i++) batch.push(i)
+        const results = await Promise.all(
+          batch.map(async (idx) => {
+            const scene = scenes[idx]
+            const visual = scene.aiPrompt || scene.stockSearchQuery || scene.description
+            // Same faceless subject + era lock as the video prompt below; the
+            // shared style suffix + seed are what tie the stills together.
+            const scenePrompt = buildFacelessCinematicPrompt(visual) + eraSuffix
+            const url = await generateCinematicSceneStill({
+              scenePrompt,
+              styleSuffix,
+              seed: generationSeed,
+              pollWindowMs: STILL_POLL_WINDOW_MS,
+            })
+            return { idx, url }
+          }),
+        )
+        for (const { idx, url } of results) {
+          sceneStills[idx] = url
+          if (url) stillsMade++
+        }
+      }
+      // Cost logging only — the USER credit price is unchanged (kling stays 50cr).
+      // Account the extra provider cost the same conservative way Hollywood does
+      // (ANCHORS_USD per generated still).
+      const extraFluxUsd = stillsMade * ANCHORS_USD
+      console.log(
+        `[cinematic-anchor] gen=${generationId} engine=kling stills_ready=${stillsMade}/${scenes.length} ` +
+          `anchored_scenes=${anchorCount} i2v_model=${KLING_I2V_MODEL} ` +
+          `extra_flux_usd=${extraFluxUsd.toFixed(2)} (user credits unchanged: kling=${KLING_CREDIT_COST}cr)`,
+      )
+    }
+
     // Submit ONE scene with a REAL single retry on an EXPLICIT (non-ambiguous)
     // reject. submitToFal returns null ONLY for an explicit FalQueueSubmitError
     // (Fal definitively did NOT accept the job — safe to re-POST); it THROWS for
@@ -1601,13 +1700,19 @@ export async function POST(req: NextRequest) {
     // result is the exact, safe signal to retry once after a short backoff.
     // Tagged result → never throws for the explicit/retry path; ambiguous/fatal
     // are surfaced so the caller can preserve the claim/ambiguous semantics.
+    // KINEO-CINEMATIC-ANCHOR-2026-07-24 — the 'id' variant now also carries the
+    // model that actually ran (i2v when anchored, t2v otherwise) so the signed
+    // claim records the RIGHT per-scene model for polling.
     type SceneSubmitResult =
-      | { kind: 'id'; id: string | null }
+      | { kind: 'id'; id: string | null; model: string }
       | { kind: 'ambiguous'; error: FalQueueSubmitError }
       | { kind: 'fatal'; error: unknown }
     const submitScene = async (
       scene: { aiPrompt?: string; stockSearchQuery?: string; description: string },
       model: string,
+      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — this scene's FLUX still (kling only,
+      // flag ON). Undefined → pure t2v (byte-identical to before).
+      imageUrl?: string,
     ): Promise<SceneSubmitResult> => {
       // #440/#441 — feed the engine the cinematic SHOT description (aiPrompt),
       // falling back to the stock query only if description generation failed.
@@ -1616,6 +1721,18 @@ export async function POST(req: NextRequest) {
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
       const cinematic = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
       try {
+        // KINEO-CINEMATIC-ANCHOR-2026-07-24 — when this scene has a ready still,
+        // submit it as image-to-video on the engine's i2v counterpart (SAME
+        // shared seed for retry stability). An EXPLICIT (non-ambiguous) i2v
+        // reject falls through to this scene's normal t2v below — the video is
+        // always produced. An AMBIGUOUS i2v throw is surfaced (the clip may
+        // exist) exactly like t2v and is NEVER re-POSTed as a second job.
+        if (imageUrl) {
+          const i2vModel = model === KLING_MODEL ? KLING_I2V_MODEL : model
+          const i2vId = await submitToFal(cinematic, i2vModel, hd, false, undefined, imageUrl, generationSeed)
+          if (i2vId !== null) return { kind: 'id', id: i2vId, model: i2vModel }
+          console.warn('[cinematic-anchor] i2v submit rejected — falling back to t2v for this scene')
+        }
         // KINEO-SEED-2026-07-24 — every scene shares generationSeed for coherence.
         let id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
         if (id === null) {
@@ -1625,16 +1742,21 @@ export async function POST(req: NextRequest) {
           await new Promise((r) => setTimeout(r, 800))
           id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
         }
-        return { kind: 'id', id }
+        return { kind: 'id', id, model }
       } catch (e) {
-        // Ambiguous (incl. an ambiguous throw on the retry POST) is NOT re-tried
-        // and NOT re-POSTed — the job may already exist; surface it.
+        // Ambiguous (incl. an ambiguous throw on the retry POST or the i2v POST)
+        // is NOT re-tried and NOT re-POSTed — the job may already exist; surface it.
         if (e instanceof FalQueueSubmitError && e.ambiguous) return { kind: 'ambiguous', error: e }
         return { kind: 'fatal', error: e }
       }
     }
 
-    async function submitAllScenes(model: string): Promise<(string | null)[]> {
+    // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
+    // each scene actually ran on (i2v for anchored scenes, t2v otherwise), both
+    // index-aligned to scenes[]. When anchoring is OFF the models array is
+    // uniformly `model`, so claim.falModels is identical to the pre-feature
+    // `falRequestIds.map(() => usedModel)`.
+    async function submitAllScenes(model: string): Promise<{ ids: (string | null)[]; models: string[] }> {
       // KINEO-PARALLEL-2026-07-24 — engines with NO shared-alias limit
       // (Seedance, Veo) submit with bounded concurrency (pool of 3) to cut
       // submit latency; Kling stays SERIAL with the 450ms stagger because the
@@ -1647,13 +1769,16 @@ export async function POST(req: NextRequest) {
         // Index-aligned so fal_request_ids[i] always maps to scenes[i] even when
         // some scenes drop out (ambiguous/failed stay null at their own index).
         const ids: (string | null)[] = new Array(scenes.length).fill(null)
+        const models: string[] = new Array(scenes.length).fill(model)
         let ambiguousErr: FalQueueSubmitError | null = null
         let stop = false
         for (let start = 0; start < scenes.length && !stop; start += PARALLEL_POOL) {
           const batch: number[] = []
           for (let i = start; i < Math.min(start + PARALLEL_POOL, scenes.length); i++) batch.push(i)
           const settled = await Promise.all(
-            batch.map(async (idx) => ({ idx, res: await submitScene(scenes[idx], model) })),
+            // Seedance/Veo are never anchored, so sceneStills[idx] is null here;
+            // passed for uniformity (undefined imageUrl → identical t2v submit).
+            batch.map(async (idx) => ({ idx, res: await submitScene(scenes[idx], model, sceneStills[idx] ?? undefined) })),
           )
           // An unexpected (non-ambiguous, non-explicit) failure propagates — the
           // outer handler keeps the claim safe. Explicit rejects already became
@@ -1666,6 +1791,7 @@ export async function POST(req: NextRequest) {
             if (res.kind === 'id') {
               if (res.id) providerSubmissionMayExist = true
               ids[idx] = res.id
+              models[idx] = res.model
             } else if (res.kind === 'ambiguous') {
               ambiguousErr = res.error
             }
@@ -1684,32 +1810,39 @@ export async function POST(req: NextRequest) {
             }
           }
         }
-        return ids
+        return { ids, models }
       }
 
       // Serial path (Kling): 450ms stagger between submits + the same real retry.
       const ids: (string | null)[] = []
-      for (const scene of scenes) {
-        const res = await submitScene(scene, model)
+      const models: string[] = []
+      for (let i = 0; i < scenes.length; i++) {
+        // KINEO-CINEMATIC-ANCHOR-2026-07-24 — anchored Kling scene → its own
+        // FLUX still (i2v); null still → per-scene t2v fallback inside submitScene.
+        const res = await submitScene(scenes[i], model, sceneStills[i] ?? undefined)
         if (res.kind === 'fatal') throw res.error
         if (res.kind === 'ambiguous') {
           if (ids.some((requestId) => requestId !== null)) {
             providerSubmissionMayExist = true
             console.warn('[cinematic] scene submit became ambiguous; preserving earlier accepted scenes')
             ids.push(null)
+            models.push(model)
             break
           }
           throw res.error
         }
         if (res.id) providerSubmissionMayExist = true
         ids.push(res.id)
+        models.push(res.model)
         await new Promise((r) => setTimeout(r, 450))
       }
-      while (ids.length < scenes.length) ids.push(null)
-      return ids
+      while (ids.length < scenes.length) { ids.push(null); models.push(model) }
+      return { ids, models }
     }
 
-    let falRequestIds = await submitAllScenes(usedModel)
+    const submittedScenes = await submitAllScenes(usedModel)
+    const falRequestIds = submittedScenes.ids
+    const usedModels = submittedScenes.models
     let validIds = falRequestIds.filter((id): id is string => id !== null)
 
     // Do not silently downgrade Kling to Seedance after the signed cost/engine
@@ -1762,15 +1895,18 @@ export async function POST(req: NextRequest) {
       voiceover_script: voiceoverScript,
       fal_request_ids: falRequestIds, // null for failed submissions
       fal_model: usedModel, // #401 — which engine ran (client passes it to clip-status)
+      // KINEO-CINEMATIC-ANCHOR-2026-07-24 — per-scene models ONLY when anchoring
+      // ran (some scenes i2v, some t2v-fallback), so the client polls each clip
+      // on its own endpoint. Omitted when OFF → response is byte-identical.
+      ...(anchorActive ? { fal_models: usedModels } : {}),
       quality: claimQuality,
       verbatim,
       speed: parsedScript.speed,
     }
-    return publishCinematicResponse(
-      response,
-      falRequestIds,
-      falRequestIds.map(() => usedModel),
-    )
+    // The signed claim records the ACTUAL per-scene model (usedModels). When
+    // anchoring is OFF these are all `usedModel`, identical to the previous
+    // `falRequestIds.map(() => usedModel)`.
+    return publishCinematicResponse(response, falRequestIds, usedModels)
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[cinematic] unexpected error:', msg)
