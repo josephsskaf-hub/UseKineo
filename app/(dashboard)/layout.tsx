@@ -10,6 +10,13 @@ import EnablePushBanner from '@/components/EnablePushBanner'
 import ReferralAutoTrigger from '@/components/ReferralAutoTrigger'
 // #479 — affiliate attribution: finalizes first-touch on any authenticated page
 import AffiliateAutoTrigger from '@/components/AffiliateAutoTrigger'
+// PUSH #100 — o loop de indicação (#443) está vivo ponta a ponta desde então,
+// mas o banner que o anuncia (components/ReferralPromoBanner.tsx, #452) nunca
+// foi importado em lugar nenhum: um grep no repo inteiro só encontrava o
+// próprio arquivo. Montado aqui ao lado do InstallAppBanner, que é o padrão de
+// banner de dashboard. Só para usuário logado — /referral exige sessão, e um
+// visitante deslogado clicando em "Get my link" cairia numa parede de login.
+import ReferralPromoBanner from '@/components/ReferralPromoBanner'
 
 export default async function DashboardLayout({
   children,
@@ -58,6 +65,7 @@ export default async function DashboardLayout({
     >
       {children}
       <InstallAppBanner />
+      {user && <ReferralPromoBanner />}
       <EnablePushBanner />
       {user && <ReferralAutoTrigger />}
       {user && <AffiliateAutoTrigger />}

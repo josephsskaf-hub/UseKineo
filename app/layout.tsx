@@ -4,6 +4,7 @@ import { Inter, Space_Grotesk } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
+import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 // Push #92 — Core Web Vitals: self-host both families with next/font/google
@@ -168,7 +169,13 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body><StructuredData /><SourceCapture /><CheckoutResumeBanner />{children}</body>
+      {/* PUSH #98 — Web Analytics estava LIGADO no painel da Vercel desde
+          sempre, mas o <Analytics/> nunca existiu no app e o pacote
+          @vercel/analytics nem estava no package.json. Por isso o painel
+          mostrava a tela "Get Started" e zero pageview: nao havia nada
+          enviando dado. Sem isso nao existe numero nenhum de trafego pra
+          medir se as mudancas de SEO funcionaram. */}
+      <body><StructuredData /><SourceCapture /><CheckoutResumeBanner />{children}<Analytics /></body>
     </html>
   )
 }

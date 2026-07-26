@@ -4,6 +4,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { refundRenderCredits } from '@/lib/credits/refund'
+import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 // KINEO-CREDIT-INTENT-2026-07-11 — the billing decision now reads the engine
 // (and price) from the server-side render_jobs intent row, NEVER from the
 // client's ?quality / ?deducted query params. creditCostFor is the single
@@ -65,6 +66,9 @@ async function persistCompletedVideo(args: {
   duration: number
   topic: string
   creditsUsed: number
+  // PUSH #100 — descrição já BRANDED (helper aplicado pelo caller). Vazio =
+  // não escreve a coluna, deixando o /api/video-summary preencher depois.
+  youtubeDescription?: string
 }): Promise<{ ok: boolean; id?: string; error?: string; duplicate?: boolean }> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -96,7 +100,11 @@ async function persistCompletedVideo(args: {
       .trim()
       .slice(0, 120) || null
 
-  const row = {
+  // PUSH #100 — a página pública /v/[id] mostra o bloco "Video description"
+  // lendo videos.youtube_description, mas o insert nunca gravava essa coluna:
+  // todo vídeo novo nascia com o bloco vazio e sem link do Kineo. A coluna
+  // existe em produção (public.videos.youtube_description, text, nullable).
+  const row: Record<string, unknown> = {
     user_id: args.userId,
     status: 'completed',
     video_url: args.videoUrl,
@@ -109,6 +117,8 @@ async function persistCompletedVideo(args: {
     quality_mode: args.quality,
     credits_used: args.creditsUsed,
   }
+  const brandedDescription = (args.youtubeDescription ?? '').trim()
+  if (brandedDescription) row.youtube_description = brandedDescription
 
   console.log('[history] insert (canonical schema #357):', JSON.stringify({
     user_id_prefix: args.userId.slice(0, 8),
@@ -332,6 +342,11 @@ export async function GET(
     const durationParam = Number(req.nextUrl.searchParams.get('duration') ?? '')
     const duration = Number.isFinite(durationParam) && durationParam > 0 ? Math.floor(durationParam) : 30
     const topic = (req.nextUrl.searchParams.get('topic') ?? '').toString().slice(0, 1000)
+    // PUSH #100 — ready-to-paste YouTube description from /api/analyze-idea,
+    // forwarded by the composer so the history row (and the public /v/[id]
+    // page) is born with the same branded text the user copies. Same 600-char
+    // cap analyze-idea applies to youtube_description.
+    const ytDescriptionParam = (req.nextUrl.searchParams.get('ytdesc') ?? '').toString().slice(0, 600)
 
     if (!process.env.CREATOMATE_API_KEY) {
       return NextResponse.json(
@@ -655,6 +670,33 @@ export async function GET(
           quality,
           has_topic: topic.length > 0,
         }))
+        // PUSH #100 — brand the stored description exactly like video-summary
+        // does (free plan only). Best-effort: a failed profile read just stores
+        // the clean description, never blocks the video.
+        let historyDescription = ''
+        try {
+          const { data: planRow } = await supabase
+            .from('profiles')
+            .select('has_paid, plan')
+            .eq('id', user.id)
+            .maybeSingle()
+          const PAID_PLANS = new Set([
+            'starter', 'starter_trial', 'basic', 'basic_trial',
+            'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
+          ])
+          const planName = ((planRow as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
+          const isPaid =
+            (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
+            PAID_PLANS.has(planName)
+          historyDescription = buildBrandedYouTubeDescription(ytDescriptionParam, {
+            isFreePlan: !isPaid,
+          })
+        } catch (e) {
+          console.warn('[history] description branding skipped:',
+            e instanceof Error ? e.message : String(e))
+          historyDescription = ytDescriptionParam.trim()
+        }
+
         try {
           const result = await persistCompletedVideo({
             userId: user.id,
@@ -665,6 +707,7 @@ export async function GET(
             duration,
             topic,
             creditsUsed: cost,
+            youtubeDescription: historyDescription,
           })
           if (result.id) persistedVideoId = result.id
           console.log('[history] persist result:', JSON.stringify(result))

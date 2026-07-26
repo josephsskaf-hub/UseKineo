@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 // send-recovery — Push #425
 //
@@ -54,7 +55,8 @@ function isAuthorized(req: NextRequest): boolean {
   return auth === `Bearer ${cronSecret}`
 }
 
-function buildEmail(plan: string) {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function buildEmail(plan: string, userId: string) {
   const text = `Hey,
 
 This is the Kineo team.
@@ -73,12 +75,13 @@ Kineo Team
 usekineo.com`
 
   // Deliberately plain HTML — it must read like a person, not a campaign.
-  const html = text
-    .split('\n')
-    .map((line) => (line.trim() === '' ? '<br/>' : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${line}</p>`))
-    .join('')
+  const html =
+    text
+      .split('\n')
+      .map((line) => (line.trim() === '' ? '<br/>' : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${line}</p>`))
+      .join('') + emailFooterHtml(userId)
 
-  return { text, html }
+  return { text: `${text}${emailFooterText(userId)}`, html }
 }
 
 export async function GET(req: NextRequest) {
@@ -134,7 +137,11 @@ export async function GET(req: NextRequest) {
   const userIds = [...byUser.keys()]
   const { data: profiles, error: profErr } = await admin
     .from('profiles')
-    .select('id, email, plan')
+    // KINEO-UNSUBSCRIBE-2026-07-26 — a coorte aqui nasce de checkout_abandoned,
+    // não de uma query em profiles, então o opt-out entra no SELECT e é
+    // filtrado no laço abaixo (junto com pagos/teste) para que a linha de
+    // checkout_abandoned também seja marcada e nunca mais reconsiderada.
+    .select('id, email, plan, email_opted_out')
     .in('id', userIds)
   if (profErr) {
     console.error('[send-recovery] profiles error:', profErr.message)
@@ -150,7 +157,9 @@ export async function GET(req: NextRequest) {
     const email = prof?.email?.trim()
     const plan = (prof?.plan ?? 'free').toLowerCase()
 
-    if (!email || isTestEmail(email) || PAID_PLANS.has(plan)) {
+    const optedOut = (prof as { email_opted_out?: boolean | null } | undefined)?.email_opted_out === true
+
+    if (!email || isTestEmail(email) || PAID_PLANS.has(plan) || optedOut) {
       skipped++
       // Mark so we never reconsider these rows (converted/test/unreachable).
       await admin
@@ -162,7 +171,7 @@ export async function GET(req: NextRequest) {
     }
 
     const tierLabel = TIER_LABEL[(cand.tier ?? '').toLowerCase()] ?? 'Pro'
-    const { text, html } = buildEmail(tierLabel)
+    const { text, html } = buildEmail(tierLabel, userId)
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -178,6 +187,7 @@ export async function GET(req: NextRequest) {
           subject: 'Quick question about your Kineo checkout',
           text,
           html,
+          headers: unsubscribeHeaders(userId),
         }),
       })
 

@@ -20,6 +20,7 @@ import {
   CURRENCY_DISPLAY,
   INTRO_PRICES,
   TIER_PRICES,
+  TOPUP_CREDITS,
   formatCheckoutMoney,
   type CheckoutCurrency,
 } from '@/lib/checkoutPricing'
@@ -29,6 +30,7 @@ import {
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
+import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NicheOnboarding from '@/components/NicheOnboarding'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
@@ -2793,6 +2795,12 @@ export default function GenerateClient({
         // in the videos history row when the render finishes.
         params.set('duration', String(duration))
         if (prompt.trim()) params.set('topic', prompt.trim().slice(0, 500))
+        // PUSH #100 — forward the ready-to-paste description so the history row
+        // (and the public /v/[id] watch page) is born with the branded caption
+        // instead of an empty "Video description" block. Read from the closure
+        // at fire-time, same convention as prompt/duration above.
+        const ytDesc = (analysis?.youtubeDescription ?? '').trim()
+        if (ytDesc) params.set('ytdesc', ytDesc.slice(0, 600))
         const res = await fetch(
           `/api/compose/status/${encodeURIComponent(renderId as string)}?${params.toString()}`,
           { cache: 'no-store' }
@@ -4965,8 +4973,15 @@ export default function GenerateClient({
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
 
   // Push #156 — ready-to-paste YouTube description for the next-steps guide.
-  const nextStepsDescription =
+  // PUSH #100 — o que o usuário COPIA agora é exatamente o que o servidor
+  // publica: mesma linha de crédito, mesma UTM (lib/videoDescription.ts).
+  // Aqui é só exibição — a garantia de verdade é o append server-side em
+  // /api/youtube/upload, que o client não consegue remover.
+  const nextStepsDescriptionBase =
     analysis?.youtubeDescription?.trim() || analysis?.title?.trim() || ''
+  const nextStepsDescription = nextStepsDescriptionBase
+    ? buildBrandedYouTubeDescription(nextStepsDescriptionBase, { isFreePlan: !isPaidAccount })
+    : ''
   const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
     !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
   const postVideoIntroPrice = postVideoCurrency
@@ -6930,6 +6945,15 @@ export default function GenerateClient({
                       >
                         {copiedSection === 'next-steps-desc' ? '✓ Copied' : '📋 Copy description'}
                       </button>
+                      {/* PUSH #100 — o pedido explícito no momento de vitória.
+                          Uma frase só, sem insistir, e apenas quando a linha de
+                          crédito realmente está na descrição (plano free). */}
+                      {nextStepsDescription && !isPaidAccount && (
+                        <p className="mt-2 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                          It ends with a small &quot;Made with Kineo&quot; credit link — please keep
+                          it, it&apos;s how other creators find us.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -9266,10 +9290,24 @@ function UpgradeModal({
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
-                // KINEO-REBASE-2026-07-10 — top-ups halved with the rebase (USD
-                // unchanged): ids stay topup40/topup120 (checkout SKU keys).
-                { id: 'topup40', label: '+20 credits', sub: '1 AI video', price: '$5.90' },
-                { id: 'topup120', label: '+60 credits', sub: '3 AI videos', price: '$12.90' },
+                // KINEO-AUTOPILOT-299-2026-07-26 — os números agora VÊM de
+                // TOPUP_CREDITS. Este bloco estava mentindo em produção desde o
+                // KINEO-REBASE: anunciava +20/+60 enquanto o webhook creditava
+                // 40/120. Copiar número de preço à mão é exatamente a causa-raiz
+                // dos três defeitos de precificação que acabamos de consertar.
+                // AI video = 20 créditos (o motor de IA mais barato).
+                {
+                  id: 'topup40',
+                  label: `+${TOPUP_CREDITS.topup40} credits`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup40 / 20)} AI video`,
+                  price: '$5.90',
+                },
+                {
+                  id: 'topup120',
+                  label: `+${TOPUP_CREDITS.topup120} credits`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup120 / 20)} AI videos`,
+                  price: '$12.90',
+                },
               ].map((t) => (
                 <button
                   key={t.id}

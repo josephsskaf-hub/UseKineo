@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 // send-activation-nudge — Push #426
 //
@@ -41,7 +42,8 @@ function isAuthorized(req: NextRequest): boolean {
   return auth === `Bearer ${cronSecret}`
 }
 
-function buildEmail() {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function buildEmail(userId: string) {
   // KINEO-ACTIVATION-COPY-2026-07-06 — free plan gives 2 free videos, NOT
   // "30 credits" (stale copy that misled every signup). Short, founder-to-user
   // tone, one CTA to the video creator.
@@ -67,9 +69,10 @@ usekineo.com`
   <p style="margin:0 0 14px;">Stuck on anything? Just reply to this email — a real person reads every message.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
-</div>`
+</div>
+${emailFooterHtml(userId)}`
 
-  return { text, html }
+  return { text: `${text}${emailFooterText(userId)}`, html }
 }
 
 export async function GET(req: NextRequest) {
@@ -107,6 +110,8 @@ export async function GET(req: NextRequest) {
     .gte('created_at', from)
     .lte('created_at', to)
     .is('activation_nudge_sent_at', null)
+    // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+    .eq('email_opted_out', false)
 
   if (error) {
     console.error('[send-activation-nudge] query error:', error.message)
@@ -143,7 +148,7 @@ export async function GET(req: NextRequest) {
       continue
     }
 
-    const { text, html } = buildEmail()
+    const { text, html } = buildEmail(u.id)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -158,6 +163,7 @@ export async function GET(req: NextRequest) {
           subject: 'Your first Fast video is a few minutes away',
           text,
           html,
+          headers: unsubscribeHeaders(u.id),
         }),
       })
 

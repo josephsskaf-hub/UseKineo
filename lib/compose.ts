@@ -19,7 +19,20 @@ import {
 
 const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
 const CTA_TEXT = 'usekineo.com'
+// PUSH #100 — WATERMARK_TEXT is deliberately SEPARATE from CTA_TEXT. The burned
+// watermark is the only brand element a viewer sees on a re-uploaded Short, so
+// it has to name a destination that is (a) typeable from memory and (b)
+// attributable. `/free` is both: it maps to app/free/route.ts, which stamps a
+// first-touch source cookie and forwards to `/` with utm_source=watermark.
+// CTA_TEXT is left alone on purpose — it also renders on PAID exports (see the
+// tail CTA below), and widening its blast radius is a separate decision.
+const WATERMARK_TEXT = 'usekineo.com/free'
 const CTA_TAIL_SECONDS = 2.5
+// PUSH #100 — the "Made with Kineo" lockup is now ALSO shown in the first
+// INTRO_LOCKUP_SECONDS of the video, not only in the CTA tail. The tail plays
+// at the lowest-retention moment of a Short; the first two seconds are the
+// highest. Same element, same styling, same gating flag (`endCard`).
+const INTRO_LOCKUP_SECONDS = 2
 // Push #293 / Kineo-Audio-2026 — Background music volume + fades. Lowered
 // 18%→12% so the narrator always dominates (InVideo/OpusClip sit music ~10-14%
 // under a VO). Creatomate can't sidechain-duck, so a fixed low level plus a
@@ -51,9 +64,14 @@ const HIGHLIGHT_COLOR = '#FFD700'
 //
 //   y   0.0% ─┬─ (top band 0–20%; PUSH #95 deleted the letterbox bar that used
 //             │   to be drawn here — it never rendered. Text below is unmoved.)
-//        5.0% │  WATERMARK "usekineo.com"   font 28  band ≈  76–116px   [free trial only]
-//       13.0% │  END CARD  "Made with Kineo" font 44 band ≈ 205–295px   [free/starter only]
-//       18.0% │  CTA       "usekineo.com"   font 36  band ≈ 320–372px   [always, last 2.5s]
+//        5.0% │  WATERMARK "usekineo.com/free" font 40 + plate
+//             │                                       band ≈  55–137px   [free trial only]
+//       13.0% │  END CARD  "Made with Kineo" font 44 band ≈ 205–295px   [free trial only,
+//             │                                       now BOTH first 2s AND last 2.5s]
+//       18.0% │  CTA       "usekineo.com"   font 36  band ≈ 320–372px   [free trial only,
+//             │                                       last 2.5s — PUSH #100 gated this on
+//             │                                       endCard; it used to burn into PAID
+//             │                                       exports sold as "watermark-free"]
 //       20.0% ─┴─ (end of top band)
 //       20.5%     … footage / color-grade overlays only …
 //   ~70.3%    ┬─ CAPTION top — PUSH #94, single word @ hook font 104 (1350px).
@@ -1989,25 +2007,38 @@ export function buildCreatomateSource({
   // track 3), where it is both visible AND clear of the caption band, so the
   // caption no longer has to be suppressed for it to exist. Font 30→36 —
   // legible at the top of the frame without competing with the caption.
+  //
+  // PUSH #100 (BILLING FIX) — this push used to be UNCONDITIONAL, so every paid
+  // export carried "usekineo.com" burned into the last 2.5s while
+  // app/pricing/PricingClient.tsx:99,120,145 sells "Download watermark-free
+  // MP4". app/api/compose/unlock/route.ts:512 passes endCard:false precisely
+  // because the user PAID to remove branding — and the domain stayed anyway.
+  // That is a refund/chargeback argument, not a growth loop. Now gated on the
+  // same `endCard` flag as the rest of the branding stack, so free renders are
+  // unchanged and paid renders are actually clean.
   const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
-  elements.push({
-    type: 'text',
-    track: 6,
-    time: round3(ctaTime),
-    duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-    text: CTA_TEXT,
-    x: '50%',
-    y: '18%',
-    width: '80%',
-    font_family: 'Montserrat',
-    font_size: 36,
-    font_weight: '700',
-    fill_color: '#ffffff',
-    stroke_color: 'rgba(99,102,241,0.9)',
-    stroke_width: 2,
-  })
+  if (endCard) {
+    elements.push({
+      type: 'text',
+      track: 6,
+      time: round3(ctaTime),
+      duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
+      text: CTA_TEXT,
+      x: '50%',
+      y: '18%',
+      width: '80%',
+      font_family: 'Montserrat',
+      font_size: 36,
+      font_weight: '700',
+      fill_color: '#ffffff',
+      stroke_color: 'rgba(99,102,241,0.9)',
+      stroke_width: 2,
+    })
+  }
 
-  // Track 7 — #482 "Made with Kineo" end card (free + Starter only).
+  // Track 7 — #482 "Made with Kineo" end card (free unpaid Fast only — withEndCard is
+  // set ONLY under isFreePlanFast at app/api/compose/route.ts:976-980, so
+  // Starter/Creator/Studio are all clean).
   // PUSH #93 (FIX 2) — was `y: '80%'`, the very first row of YouTube's chrome,
   // so the ad-for-the-product was cropped/covered for the users it targets.
   // Now stacked directly ABOVE the CTA in the top band, forming one lockup
@@ -2019,6 +2050,31 @@ export function buildCreatomateSource({
       track: 7,
       time: round3(ctaTime),
       duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
+      text: 'Made with Kineo',
+      x: '50%',
+      y: '13%',
+      width: '86%',
+      font_family: 'Montserrat',
+      font_size: 44,
+      font_weight: '800',
+      fill_color: '#ffffff',
+      stroke_color: 'rgba(99,102,241,0.95)',
+      stroke_width: 3,
+      background_color: 'rgba(13,13,20,0.55)',
+    })
+
+    // Track 10 — PUSH #100. SECOND instance of the exact same lockup, in the
+    // first ~2s. Rationale: on a Short, watch-time decays hardest in the first
+    // 3 seconds, so the tail instance is shown to the smallest audience the
+    // video will ever have. Gated on the SAME `endCard` flag, so paid renders
+    // (Creator/Studio) stay completely clean — this adds no new tier behaviour.
+    // Own track (10) so it can never share a track slot with the tail copy on a
+    // pathologically short timeline. Styling is byte-identical to the tail.
+    elements.push({
+      type: 'text',
+      track: 10,
+      time: 0,
+      duration: round3(Math.min(INTRO_LOCKUP_SECONDS, totalDuration)),
       text: 'Made with Kineo',
       x: '50%',
       y: '13%',
@@ -2077,22 +2133,53 @@ export function buildCreatomateSource({
   // TO SWAP FOR A LOGO PNG LATER: replace this text element with an image one:
   //   { type:'image', track:9, time:0, duration:totalDuration, source:<logoUrl>,
   //     x:'50%', y:'6%', width:'30%', opacity:'60%' }
+  //
+  // ── PUSH #100 — LEGIBILITY PASS + COLLISION ARITHMETIC (1080×1920) ──────────
+  // Problem: font 28 @ alpha 0.6 with a 1px 35%-black stroke and NO plate is
+  // 1.46% of frame height and effectively disappears over bright footage. The
+  // one element in this file that IS reliably legible is the end card, and the
+  // only thing it does differently is a background plate. So: 28→40, alpha
+  // 0.6→0.92, plus the end card's exact plate colour rgba(13,13,20,0.55).
+  //
+  // Vertical band, using THIS FILE'S OWN measured ratios (y_anchor defaults to
+  // 50%, i.e. `y` is the element's CENTRE):
+  //   • unplated text, from the old note above: font 28 → 76–116px about a
+  //     96px centre ⇒ half-height 20px ⇒ 0.714 × font (line box ≈ 1.43 × font).
+  //   • PLATED text, from the end card above:   font 44 → 205–295px about a
+  //     249.6px centre ⇒ half-height 45px ⇒ 1.023 × font (line box + the
+  //     plate's y-padding ≈ 2.05 × font).
+  // The watermark is now plated, so it takes the plated ratio:
+  //   centre    = 5% × 1920                     =  96.0px
+  //   half-band = 1.023 × 40                    ≈  41.0px
+  //   band      = 96 − 41 … 96 + 41             =  55 … 137px
+  // Collision checks:
+  //   top of frame     0px   vs band top    55px → 55px clear, never clipped.
+  //   end card top   205px   vs band bottom 137px → 68px clear.  NO COLLISION.
+  //   (that end card now also renders at t=0..2, concurrently with the
+  //    watermark — the 68px gap is what makes that safe.)
+  //   CTA top        320px   vs band bottom 137px → 183px clear.
+  //   caption top   1350px   vs band bottom 137px → 1213px clear.
+  // Horizontal: width 80% = 864px centred ⇒ x ∈ [108, 972], left of the 990px
+  // action-button column. 'usekineo.com/free' is 17 chars ≈ 0.58em avg advance
+  // at font 40 ⇒ ≈395px, so it stays one line and the plate spans ≈[342,738].
+  // Conclusion: y stays at 5%; no reposition needed. Duration stays full-video.
   if (watermark) {
     elements.push({
       type: 'text',
       track: 9,
       time: 0,
       duration: totalDuration,
-      text: 'usekineo.com',
+      text: WATERMARK_TEXT,
       x: '50%',
       y: '5%',
       width: '80%',
       font_family: 'Montserrat',
-      font_size: 28,
+      font_size: 40,
       font_weight: '700',
-      fill_color: 'rgba(255,255,255,0.6)',
+      fill_color: 'rgba(255,255,255,0.92)',
       stroke_color: 'rgba(0,0,0,0.35)',
       stroke_width: 1,
+      background_color: 'rgba(13,13,20,0.55)',
     })
   }
 
@@ -2483,18 +2570,31 @@ export function buildHollywoodCreatomateSource({
   // the feed. Same defect, same fix as the standard builder: both move into the
   // top letterbox bar (already darkened by track 3 above), which also keeps
   // them clear of the now-bottom-anchored caption band.
+  // PUSH #100 (BILLING FIX) — gated on `endCard`, same as the standard builder.
+  // Was unconditional, which burned "usekineo.com" into paid Studio exports.
   const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
-  elements.push({
-    type: 'text', track: 6, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-    text: CTA_TEXT, x: '50%', y: '18%', width: '80%',
-    font_family: 'Montserrat', font_size: 36, font_weight: '700',
-    fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.9)', stroke_width: 2,
-  })
+  if (endCard) {
+    elements.push({
+      type: 'text', track: 6, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
+      text: CTA_TEXT, x: '50%', y: '18%', width: '80%',
+      font_family: 'Montserrat', font_size: 36, font_weight: '700',
+      fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.9)', stroke_width: 2,
+    })
+  }
 
   // Track 7 — end card (same rule as the standard builder).
   if (endCard) {
     elements.push({
       type: 'text', track: 7, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
+      text: 'Made with Kineo', x: '50%', y: '13%', width: '86%',
+      font_family: 'Montserrat', font_size: 44, font_weight: '800',
+      fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.95)', stroke_width: 3,
+      background_color: 'rgba(13,13,20,0.55)',
+    })
+    // Track 10 — PUSH #100 intro lockup (identical to the standard builder).
+    elements.push({
+      type: 'text', track: 10, time: 0,
+      duration: round3(Math.min(INTRO_LOCKUP_SECONDS, totalDuration)),
       text: 'Made with Kineo', x: '50%', y: '13%', width: '86%',
       font_family: 'Montserrat', font_size: 44, font_weight: '800',
       fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.95)', stroke_width: 3,
@@ -2506,12 +2606,16 @@ export function buildHollywoodCreatomateSource({
   // audio (voice + ambience) IS the realism; music on top breaks it.
 
   // Track 9 — watermark (same rule as the standard builder).
+  // PUSH #100 — kept byte-identical to the standard builder: font 40, alpha
+  // 0.92, end-card plate. Band ≈55–137px, 68px clear of the 205px end card.
+  // Full arithmetic is in the standard builder's block above.
   if (watermark) {
     elements.push({
       type: 'text', track: 9, time: 0, duration: totalDuration,
-      text: 'usekineo.com', x: '50%', y: '5%', width: '80%',
-      font_family: 'Montserrat', font_size: 28, font_weight: '700',
-      fill_color: 'rgba(255,255,255,0.6)', stroke_color: 'rgba(0,0,0,0.35)', stroke_width: 1,
+      text: WATERMARK_TEXT, x: '50%', y: '5%', width: '80%',
+      font_family: 'Montserrat', font_size: 40, font_weight: '700',
+      fill_color: 'rgba(255,255,255,0.92)', stroke_color: 'rgba(0,0,0,0.35)', stroke_width: 1,
+      background_color: 'rgba(13,13,20,0.55)',
     })
   }
 

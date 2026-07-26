@@ -5,7 +5,10 @@
 // never blocks the caller — checkout must always proceed.
 // KINEO-SPRINT-OFFER-2026-07-14 — widened to include 'starter': the intro-month
 // CTAs track Starter clicks too (handleUpgradeNow already passed it, untyped).
-export function trackCheckoutClick(plan: 'starter' | 'basic' | 'pro'): void {
+// KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' incluído. Sem esta string o
+// clique no SKU de maior ARPU do produto (8x o segundo) fica INVISÍVEL em
+// /admin/click-stats, que é justamente onde a gente mede se a oferta pega.
+export function trackCheckoutClick(plan: 'starter' | 'basic' | 'pro' | 'autopilot'): void {
   try {
     void fetch('/api/track-click', {
       method: 'POST',

@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -74,7 +75,9 @@ function isValidExternalEmail(email: string): boolean {
 // them to the checkout route, and its handleBuy() appends &intro=1 for monthly
 // starter/basic — the same half-price first month promised above. NOTE:
 // /pricing does NOT currently read ?tier=, so that param is attribution only.
-function emailHtml(): string {
+//
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function emailHtml(userId: string): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 🎬</p>
@@ -86,7 +89,8 @@ function emailHtml(): string {
   <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want to post daily? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=free_upsell" style="color:#2997ff">first month $9.90</a>.</p>
   <p>Stuck on anything — a niche, a topic, an export? Just reply to this email. It comes straight to me.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
-</div>`
+</div>
+${emailFooterHtml(userId)}`
 }
 
 function adminClient() {
@@ -127,6 +131,8 @@ export async function GET(req: NextRequest) {
       .eq('free_ai_generate_used', true)
       .eq('has_paid', false)
       .eq('free_upsell_emailed', false)
+      // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+      .eq('email_opted_out', false)
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }
@@ -179,7 +185,8 @@ export async function GET(req: NextRequest) {
             to: [r.email],
             reply_to: REPLY_TO,
             subject: SUBJECT,
-            html: emailHtml(),
+            html: emailHtml(r.id),
+            headers: unsubscribeHeaders(r.id),
           }),
         })
         if (res.ok) {

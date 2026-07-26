@@ -28,21 +28,50 @@ const AI_CRAWLERS = [
 
 const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2', '/create']
 
+// KINEO-AEO-FACTS — duas rotas de aquisição por motor de resposta que PRECISAM
+// ficar rastreáveis:
+//   /llms.txt   — não cai em nenhum Disallow, mas o Allow explícito documenta
+//                 a intenção e protege contra alguém ampliar DISALLOW depois.
+//   /api/facts  — cai dentro de `Disallow: /api/`. O Allow abaixo o resgata:
+//                 pela especificação (Google, RFC 9309), quando um Allow e um
+//                 Disallow batem na mesma URL vence a REGRA MAIS ESPECÍFICA,
+//                 isto é, o path mais longo — '/api/facts' (10) > '/api/' (6).
+//                 O serializer do Next também emite todos os `Allow:` antes
+//                 dos `Disallow:`, então crawlers legados que resolvem por
+//                 ordem de aparição chegam ao mesmo resultado.
+const ALLOW = ['/', '/llms.txt', '/api/facts']
+
+// A convenção llms.txt não tem campo próprio em robots.txt, e o tipo
+// MetadataRoute.Robots do Next só sabe emitir User-Agent / Allow / Disallow /
+// Crawl-delay / Host / Sitemap — não há como declarar uma linha de comentário
+// pela API de metadata. O ponteiro é anexado ao valor de `host` porque
+// `Host:` é interpolado verbatim pelo serializer
+// (next/dist/build/webpack/loaders/metadata/resolve-route-data.js) e é a única
+// diretiva do arquivo que nenhum crawler relevante consome (é uma extensão
+// Yandex). As linhas `Sitemap:` ficam intactas. Se um dia o Next passar a
+// validar `host`, remova o sufixo — só o comentário se perde.
+const HOST_WITH_LLMS_POINTER = `${BASE}
+
+# LLM / answer-engine readers: a curated, dated, plain-text fact sheet about
+# this product lives at ${BASE}/llms.txt
+# The same facts as JSON (CORS open, safe to fetch at query time):
+# ${BASE}/api/facts`
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: '*',
-        allow: '/',
+        allow: ALLOW,
         disallow: DISALLOW,
       },
       {
         userAgent: AI_CRAWLERS,
-        allow: '/',
+        allow: ALLOW,
         disallow: DISALLOW,
       },
     ],
     sitemap: [`${BASE}/sitemap.xml`, `${BASE}/video-sitemap.xml`],
-    host: BASE,
+    host: HOST_WITH_LLMS_POINTER,
   }
 }

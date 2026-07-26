@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -30,7 +31,8 @@ const ADMIN_EMAILS = new Set([
 const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
 const SUBJECT = 'Your face. Your script. One click. 🎭'
 
-function emailHtml(): string {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function emailHtml(userId: string): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Big one today: <b>AI Avatar Video</b> is live on Kineo.</p>
@@ -47,7 +49,8 @@ function emailHtml(): string {
     <a href="https://usekineo.com/generate?avatar=1&utm_source=launch_email" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Try AI Avatar →</a>
   </p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
-</div>`
+</div>
+${emailFooterHtml(userId)}`
 }
 
 function adminClient() {
@@ -140,6 +143,8 @@ export async function GET(req: NextRequest) {
       .select('id, email')
       .not('email', 'is', null)
       .eq('avatar_launch_emailed', false)
+      // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+      .eq('email_opted_out', false)
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }
@@ -178,7 +183,8 @@ export async function GET(req: NextRequest) {
             to: [r.email],
             reply_to: 'hello@usekineo.com',
             subject: SUBJECT,
-            html: emailHtml(),
+            html: emailHtml(r.id),
+            headers: unsubscribeHeaders(r.id),
           }),
         })
         if (res.ok) {
@@ -200,6 +206,7 @@ export async function GET(req: NextRequest) {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('avatar_launch_emailed', false)
+      .eq('email_opted_out', false)
       .not('email', 'is', null)
 
     console.log(`[avatar-launch] batch done: sent=${sent} failed=${failed} remaining=${remainingAfter ?? '?'}`)

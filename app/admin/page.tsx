@@ -38,6 +38,11 @@ const PLAN_PRICE_USD: Record<string, number> = {
   basic_trial: PLANS.basic.price,
   pro: PLANS.pro.price,
   pro_trial: PLANS.pro.price,
+  // KINEO-AUTOPILOT-299-2026-07-26 — sem estas duas linhas o Autopilot cai em
+  // PLAN_PRICE_USD[plan] === undefined, sai de PAID_PLANS, e a primeira venda
+  // de $299 (8x o ARPU de qualquer outro SKU) apareceria como $0 no MRR.
+  autopilot: PLANS.autopilot.price,
+  autopilot_trial: PLANS.autopilot.price,
 }
 const PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD))
 

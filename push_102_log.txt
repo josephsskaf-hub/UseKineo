@@ -1,0 +1,38 @@
+===== KINEO PUSH 102 (AUTOPILOT + PRECO) - SUBSTITUI o 98, 99, 100 e 101. Rode SO este. ===== 
+ 
+[1/6] extraindo os 66 arquivos do push_102_files.zip por cima do repo 
+extraido ok 
+ 
+[2/6] pacote do PUSH 98 - idempotente, nao quebra se ja estiver instalado 
+
+added 1 package, and audited 428 packages in 48s
+
+151 packages are looking for funding
+  run `npm fund` for details
+
+12 vulnerabilities (1 moderate, 10 high, 1 critical)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn allow-scripts 1 package has install scripts not yet covered by allowScripts:
+npm warn allow-scripts   unrs-resolver@1.11.1 (install: (install scripts present))
+npm warn allow-scripts
+npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+npm notice
+npm notice New major version of npm available! 11.16.0 -> 12.0.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.1
+npm notice To update run: npm install -g npm@12.0.1
+npm notice
+ 
+[3/6] remove o public/llms.txt antigo - ele SOMBREIA a rota nova e a deixa morta 
+public\llms.txt removido ok 
+ 
+[4/6] remove components\ReferralMiniCard.tsx - zero imports, o zip nao consegue apagar arquivo 
+ReferralMiniCard.tsx removido ok 
+ 
+[5/6] staging 

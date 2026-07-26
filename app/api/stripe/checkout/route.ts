@@ -8,12 +8,18 @@ import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
 import {
   ANNUAL_PRICES,
+  AUTOPILOT_PRICES,
+  INTRO_CREDITS,
   INTRO_PRICES,
+  PACK_CREDITS,
+  TIER_CREDITS,
   TIER_PRICES,
+  TOPUP_CREDITS,
+  monthlyPriceMinor,
   resolveCheckoutCurrency,
   type CheckoutCurrency as Currency,
   type CheckoutIntroTier as IntroTier,
-  type CheckoutTier as Tier,
+  type CheckoutPlanTier as PlanTier,
 } from '@/lib/checkoutPricing'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
@@ -204,25 +210,59 @@ function checkoutFailureReason(msg: string): string {
 // comprador via uma promessa dobrada no momento mais sensível. O webhook
 // nunca leu esses valores (usa a própria tabela 25/150/200), então era só
 // copy/metadata — mas copy errada no checkout é trust-killer. Agora: 25/150/200.
-const TIERS: Record<Tier, { name: string; description: string; credits: number }> = {
+// KINEO-PRICING-V3D-2026-07-26 — credits now come from TIER_CREDITS in
+// lib/checkoutPricing.ts. They used to be typed out here AND in the webhook AND
+// in lib/pricing.ts; the three copies drifted at every reprice. One source now.
+const TIERS: Record<PlanTier, { name: string; description: string; credits: number }> = {
   starter: {
     name: 'Kineo — Starter',
-    description: '25 credits / month — Fast videos (smart stock footage + AI voiceover), watermark-free',
-    credits: 25,
+    description: `${TIER_CREDITS.starter} credits / month — Fast videos (smart stock footage + AI voiceover), watermark-free`,
+    credits: TIER_CREDITS.starter,
   },
   basic: {
     name: 'Kineo — Creator',
     // KINEO-PRICING-V3B-2026-07-10 — Creator = 150 credits: 1 Hollywood film
     // every month included (150 cr), or ~7 AI-generated videos. Metadata
     // plan_credits follows this value.
-    description: '150 credits / month — 1 Hollywood film included (or ~7 AI-generated videos)',
-    credits: 150,
+    description: `${TIER_CREDITS.basic} credits / month — 1 Hollywood film included (or ~7 AI-generated videos)`,
+    credits: TIER_CREDITS.basic,
   },
   pro: {
     name: 'Kineo — Studio',
-    description: '200 credits / month — cinematic Kling engine at 1080p, priority render queue',
-    credits: 200,
+    description: `${TIER_CREDITS.pro} credits / month — cinematic Kling engine at 1080p, priority render queue`,
+    credits: TIER_CREDITS.pro,
   },
+  // KINEO-AUTOPILOT-299-2026-07-26 — done-for-you. The daily Short is produced
+  // and published by the cron (app/api/cron/autopilot-generate), engine clamped
+  // server-side to fast/basic_ai. The credits are the customer's manual
+  // headroom on top of that; the scheduled posts spend from the same balance.
+  autopilot: {
+    name: 'Kineo — Autopilot',
+    description: `Done for you: one Short published to your YouTube channel every day. Includes ${TIER_CREDITS.autopilot} credits / month for videos you make yourself.`,
+    credits: TIER_CREDITS.autopilot,
+  },
+}
+
+// KINEO-AUTOPILOT-299-2026-07-26 — OPTIONAL Stripe Price override.
+// IMPORTANT, because the task brief assumed otherwise: this repo has NO
+// "existing env-var price pattern". Every line_item in this file — all four
+// builders — is built from inline `price_data`. There is not one Stripe Price
+// object id or price-id env var anywhere in the codebase. Autopilot therefore
+// ships the same way (inline price_data, zero dashboard setup, works the moment
+// this deploys), and STRIPE_PRICE_AUTOPILOT_USD exists only as an escape hatch
+// for when someone wants Stripe-side reporting/entitlements on this SKU.
+// USD only: a single Price object carries a single currency, and swapping in a
+// USD price for a BRL visitor would silently charge them the wrong money.
+const AUTOPILOT_PRICE_ID_RE = /^price_[A-Za-z0-9]+$/
+function autopilotPriceIdOverride(currency: Currency): string | null {
+  if (currency !== 'usd') return null
+  const raw = (process.env.STRIPE_PRICE_AUTOPILOT_USD || '').trim()
+  if (!raw) return null
+  if (!AUTOPILOT_PRICE_ID_RE.test(raw)) {
+    console.warn('[stripe/checkout] STRIPE_PRICE_AUTOPILOT_USD is not a price_… id — ignoring, using inline price_data')
+    return null
+  }
+  return raw
 }
 
 // Amounts in the smallest currency unit (cents / centavos / paise).
@@ -291,7 +331,7 @@ async function ensureIntroCoupon(
 
 // Map Vercel IP-country header → billing currency.
 // Everyone not explicitly mapped gets USD.
-// #473 — Starter Pack: a one-time, low-commitment entry point (10 videos).
+// #473 — Starter Pack: a one-time, low-commitment entry point.
 // Breaks first-purchase hesitation for users who won't commit to a monthly
 // subscription — they make the (hardest) first payment, then upsell to a plan
 // later. Credited by the webhook via metadata.pack_credits (currency-proof,
@@ -301,9 +341,14 @@ const STARTER_PACK = {
   // KINEO-PRICING-V3C-2026-07-10 — back to 10 credits. With Fast now costing
   // 1 credit for paying accounts, the pack reads as "10 videos for $4.90"
   // (25 was over-generous after the 2:1 rebase: 25 cr ≈ the $9.90 plan).
-  credits: 10,
+  // KINEO-PRICING-V3D-2026-07-26 — 10 → 30. 10 credits bought 10 Fast videos
+  // and ZERO generative-AI videos (cheapest AI engine, Seedance, costs 20), so
+  // the very first payment a customer ever made bought none of the thing the
+  // homepage sells. 30 = 1 Seedance + 10 Fast. Worst-case COGS $2.84 against
+  // $4.458 net → +$1.62 (36.3%). Grant lives in lib/checkoutPricing.ts.
+  credits: PACK_CREDITS.starter,
   name: 'Kineo — Starter Pack',
-  description: 'One-time: 10 videos (no subscription).',
+  description: 'One-time: 30 credits — 1 AI-generated video plus 10 Fast videos. No subscription.',
 }
 //   USD $4.90 | BRL R$24.90 | INR ₹399  (same ratios as the plans)
 const PACK_PRICES: Record<Currency, number> = { usd: 490, brl: 2490, inr: 39900 }
@@ -316,25 +361,50 @@ const PACK_PRICES: Record<Currency, number> = { usd: 490, brl: 2490, inr: 39900 
 // LIMITED to 1 per account (profiles.offer290_used + has_paid guards). Gated
 // entirely behind OFFER_290_ENABLED — while that flag is false this SKU returns
 // 410 and never creates a Stripe session.
+// KINEO-PRICING-V3D-2026-07-26 — 10 → 20 credits, same $2.90. 20 is the exact
+// cost of one Seedance render, so the cheapest thing we sell now buys one real
+// AI video instead of none. Worst-case COGS $2.34 against $2.516 net →
+// +$0.18 (7.0%). Thin, and deliberately so: this SKU exists to convert a first
+// payment, not to earn. Anything above 20 goes negative at $2.90.
 const STARTER290_PACK = {
-  credits: 10,
+  credits: PACK_CREDITS.starter290,
   name: 'Kineo — First Pack (24h offer)',
-  description: 'One-time launch offer: 10 Fast Shorts. Limited to 1 per account.',
+  description: 'One-time launch offer: 20 credits — enough for 1 AI-generated video. Limited to 1 per account.',
 }
 //   USD $2.90 | BRL R$14.90 | INR ₹249  (same ratios as the plans)
 const PACK290_PRICES: Record<Currency, number> = { usd: 290, brl: 1490, inr: 24900 }
 
 // KINEO-TOPUP-2026-07-06 — AI credit top-ups for EXISTING subscribers who burn
-// through their monthly AI credits before renewal. Priced ABOVE the plan
-// per-credit rate ($0.104/cr Creator) so they never cannibalize a subscription,
-// and sized SMALLER than a full plan so heavy users are nudged to upgrade
-// instead of stacking packs. Seedance costs 40 cr/video. Credited by the webhook
-// via metadata.pack_credits (same Path A as the Starter Pack). Gated to Creator+.
-// Expire automatically at renewal (webhook SETS balance to the plan amount).
+// through their monthly AI credits before renewal. Sized SMALLER than a full
+// plan so heavy users are nudged to upgrade instead of stacking packs. Credited
+// by the webhook via metadata.pack_credits (same Path A as the Starter Pack).
+// Gated to Creator+. Expire automatically at renewal (the webhook SETS the
+// balance to the plan amount rather than adding to it).
+//
+// KINEO-PRICING-V3D-2026-07-26 — THE COMMENT THAT USED TO BE HERE WAS WRONG.
+// It claimed these were "priced ABOVE the plan per-credit rate ($0.104/cr
+// Creator)" and that "Seedance costs 40 cr/video". Both statements were true
+// when written and both stopped being true at KINEO-PRICING-V3B (Creator went
+// 240cr → 150cr, so its rate moved $0.10375 → $0.1660/cr) and at
+// KINEO-REBASE-2026-07-10 (Seedance 40 → 20 cr). Nothing recomputed the
+// top-ups, so the invariant silently inverted:
+//     Creator  $24.90 / 150 = $0.1660 / cr
+//     Studio   $37.90 / 200 = $0.1895 / cr   ← cheapest plan rate
+//     topup40  $5.90  /  40 = $0.1475 / cr   ← 22% CHEAPER than Studio
+//     topup120 $12.90 / 120 = $0.1075 / cr   ← 43% CHEAPER than Studio
+// A Studio subscriber's cheapest source of credits was a top-up, which is the
+// exact opposite of what a top-up is for. Grants corrected (prices unchanged,
+// so no Stripe-side work and no existing subscription is touched):
+//     topup40  $5.90  / 30 = $0.1967 / cr  (+3.8% vs Studio, +18.5% vs Creator)
+//     topup120 $12.90 / 65 = $0.1985 / cr  (+4.8% vs Studio, +19.6% vs Creator)
+// The invariant is now MACHINE-CHECKED in lib/checkoutPricing.ts
+// (checkPricingInvariants) so the next reprice cannot silently break it again.
+// The SKU ids stay topup40/topup120 — they are the ?pack= URL keys and are
+// hard-coded in the Generate screen.
 type TopupId = 'topup40' | 'topup120'
 const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; description: string; prices: Record<Currency, number> }> = {
-  topup40:  { credits: 40,  name: 'Kineo — +40 credits',  description: 'One-time: 40 credits (1 AI-generated video). No subscription.',  prices: { usd: 590,  brl: 2990, inr: 49900  } },
-  topup120: { credits: 120, name: 'Kineo — +120 credits', description: 'One-time: 120 credits (3 AI-generated videos). No subscription.', prices: { usd: 1290, brl: 6490, inr: 109900 } },
+  topup40:  { credits: TOPUP_CREDITS.topup40,  name: 'Kineo — +30 credits', description: 'One-time: 30 credits (1 AI-generated video plus 10 Fast videos). No subscription.', prices: { usd: 590,  brl: 2990, inr: 49900  } },
+  topup120: { credits: TOPUP_CREDITS.topup120, name: 'Kineo — +65 credits', description: 'One-time: 65 credits (3 AI-generated videos plus 5 Fast videos). No subscription.',   prices: { usd: 1290, brl: 6490, inr: 109900 } },
 }
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time "AI Avatar packs"
@@ -350,7 +420,9 @@ const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; descriptio
 
 async function buildAndRedirect(
   req: NextRequest,
-  tier: Tier,
+  // KINEO-AUTOPILOT-299-2026-07-26 — PlanTier, not Tier: 'autopilot' is a
+  // subscription like any other here, it just has no annual SKU and no intro.
+  tier: PlanTier,
   isGet: boolean,
   billing: Billing = 'monthly',
   promo?: string,
@@ -358,6 +430,15 @@ async function buildAndRedirect(
   // (starter/basic, monthly only). Ignorado silenciosamente fora disso.
   intro = false,
 ): Promise<NextResponse> {
+  // KINEO-AUTOPILOT-299-2026-07-26 — normalize before ANY of the metadata,
+  // cancel_url or analytics strings are built, so a hand-edited
+  // ?tier=autopilot&billing=annual&intro=1 URL cannot produce a session whose
+  // metadata disagrees with what Stripe actually charges.
+  if (tier === 'autopilot') {
+    billing = 'monthly'
+    intro = false
+  }
+
   // Always return to the hostname the buyer actually used. The legacy env can
   // still point at shortsforgeai.vercel.app; trusting it adds an unnecessary
   // cross-domain hop and can drop auth/attribution cookies.
@@ -417,8 +498,13 @@ async function buildAndRedirect(
   const privatePackPromo = isPrivatePackPromotion(rawPromo)
   const plan = TIERS[tier]
   // #381 — annual vs monthly price + billing interval.
+  // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is monthly-only (see the note on
+  // ANNUAL_PRICES). ?billing=annual on autopilot silently degrades to monthly
+  // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
-  const unitAmount = isAnnual ? ANNUAL_PRICES[tier][currency] : TIER_PRICES[tier][currency]
+  const unitAmount = isAnnual && tier !== 'autopilot'
+    ? ANNUAL_PRICES[tier][currency]
+    : monthlyPriceMinor(tier, currency)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
@@ -625,7 +711,10 @@ async function buildAndRedirect(
     if (subscriptionCustomerId) repair.stripe_customer_id = subscriptionCustomerId
     if (stalePayPalSubscription) repair.paypal_subscription_id = null
     const activeTier = existingCustomerSubscription.metadata?.tier
-    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro')) {
+    // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added. Without it an
+    // Autopilot subscriber whose profile needed repair would be written back
+    // to plan='free' and instantly lose Autopilot entitlement.
+    if (grantsAccess && (activeTier === 'starter' || activeTier === 'basic' || activeTier === 'pro' || activeTier === 'autopilot')) {
       repair.plan = activeTier
     } else if (!grantsAccess) {
       repair.plan = 'free'
@@ -713,10 +802,14 @@ async function buildAndRedirect(
   // show every dashboard-enabled method that supports subscriptions for the
   // buyer's currency/country (worst case: identical card-only behavior).
   // Credits are granted immediately at checkout completion (no trial).
-  const sessionParams: Stripe.Checkout.SessionCreateParams = {
-    customer: customerId,
-    line_items: [
-      {
+  // KINEO-AUTOPILOT-299-2026-07-26 — the ONE place in this repo where a Stripe
+  // Price object id can be used, and only if the operator opts in by setting
+  // STRIPE_PRICE_AUTOPILOT_USD. Absent that env var (the default), Autopilot
+  // uses inline price_data exactly like every other SKU here.
+  const autopilotPriceId = tier === 'autopilot' ? autopilotPriceIdOverride(currency) : null
+  const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = autopilotPriceId
+    ? { price: autopilotPriceId, quantity: 1 }
+    : {
         price_data: {
           currency,
           product_data: {
@@ -727,8 +820,11 @@ async function buildAndRedirect(
           recurring: { interval },
         },
         quantity: 1,
-      },
-    ],
+      }
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    customer: customerId,
+    line_items: [lineItem],
     mode: 'subscription',
     after_expiration: {
       recovery: { enabled: true },
@@ -783,6 +879,19 @@ async function buildAndRedirect(
           // Espelha no Checkout Session para o webhook registrar corretamente
           // payment_success.metadata.intro sem uma chamada extra à API Stripe.
           sessionParams.metadata!.intro = '1'
+          // KINEO-PRICING-V3D-2026-07-26 — DEFECT (b). The intro month is a
+          // DISCOUNTED month, so it gets a DISCOUNTED grant. $9.90 for the
+          // first Creator month nets $9.3129; the full 150-credit grant is
+          // worth up to $16.88 of provider spend (7 Seedance + 10 Fast), so
+          // month one lost $7.57 and — worse — a 150-credit balance puts a
+          // single $8.90–10.20 Hollywood render in reach for $9.90. 50 credits
+          // caps the worst case at $5.18 (2 Seedance + 10 Fast) → +$4.13, and
+          // no premium engine (Hollywood 150, Avatar 110, Sora 100, Veo 90) is
+          // reachable at all. subscription_data.metadata.plan_credits stays at
+          // the FULL grant on purpose: that is the recurring entitlement, and
+          // every renewal from month two onward pays full price.
+          sessionParams.metadata!.plan_credits = String(INTRO_CREDITS[tier])
+          sessionParams.metadata!.intro_credits = String(INTRO_CREDITS[tier])
           // Success page mostra o valor realmente cobrado hoje.
           sessionParams.success_url = `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${INTRO_PRICES[tier][currency]}&intro=1&session_id={CHECKOUT_SESSION_ID}`
         }
@@ -1066,9 +1175,11 @@ async function buildAndRedirect(
 }
 
 // ─── One-time Starter Pack checkout (mode: 'payment') ────────────────────────
-// #473 — $4.90 (USD) one-time → 10 Fast Shorts. No recurring, no Stripe product:
-// inline price_data + metadata.pack_credits that the webhook reads to grant
-// credits (currency-proof). client_reference_id kept for the legacy webhook path.
+// #473 — $4.90 (USD) one-time. No recurring, no Stripe product: inline
+// price_data + metadata.pack_credits that the webhook reads to grant credits
+// (currency-proof). client_reference_id kept for the legacy webhook path.
+// KINEO-PRICING-V3D-2026-07-26 — grant is now 30 credits (1 AI-generated video
+// + 10 Fast), not 10. See PACK_CREDITS in lib/checkoutPricing.ts.
 async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the one-time SKUs emitted NO server-side
@@ -1218,10 +1329,12 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
 }
 
 // ─── KINEO-OFFER290-2026-07-07 — first-purchase $2.90 offer (mode: 'payment') ─
-// $2.90 (USD) one-time → 10 Fast Shorts. Gated behind OFFER_290_ENABLED and
-// hard-limited to 1 per account: rejects if the user already used the offer
+// $2.90 (USD) one-time. Gated behind OFFER_290_ENABLED and hard-limited to 1
+// per account: rejects if the user already used the offer
 // (profiles.offer290_used) OR already paid anything (has_paid). Credited by the
-// webhook via metadata.pack_credits (=10); the webhook also sets offer290_used.
+// webhook via metadata.pack_credits; the webhook also sets offer290_used.
+// KINEO-PRICING-V3D-2026-07-26 — grant is now 20 credits (exactly one Seedance
+// render), not 10. See PACK_CREDITS in lib/checkoutPricing.ts.
 async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
   const browserSessionId = browserSessionIdFrom(req)
@@ -1540,7 +1653,13 @@ export async function GET(req: NextRequest) {
       return await buildPackAndRedirect(req, true)
     }
     const tierParam = req.nextUrl.searchParams.get('tier') ?? 'basic'
-    const tier: Tier = tierParam === 'pro' ? 'pro' : tierParam === 'starter' ? 'starter' : 'basic'
+    // KINEO-AUTOPILOT-299-2026-07-26 — ?tier=autopilot added. Unknown values
+    // still fall through to 'basic', unchanged.
+    const tier: PlanTier =
+      tierParam === 'pro' ? 'pro'
+        : tierParam === 'starter' ? 'starter'
+          : tierParam === 'autopilot' ? 'autopilot'
+            : 'basic'
     const billing: Billing = req.nextUrl.searchParams.get('billing') === 'annual' ? 'annual' : 'monthly'
     const promo = req.nextUrl.searchParams.get('promo') ?? undefined
     // KINEO-INTRO-MONTH-2026-07-13 — ?intro=1 → 1º mês com desconto.

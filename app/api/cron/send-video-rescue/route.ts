@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 // send-video-rescue — #477
 //
@@ -48,7 +49,8 @@ function isAuthorized(req: NextRequest): boolean {
   return auth === `Bearer ${cronSecret}`
 }
 
-function buildEmail() {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function buildEmail(userId: string) {
   const upgradeUrl = `${APP_URL}/pricing?promo=FOUNDING50`
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — never put /api/stripe/checkout in an
   // email. Corporate mail scanners follow every link, which minted Checkout
@@ -74,19 +76,20 @@ If something got in the way — price, an idea that didn't land, anything — ju
 Kineo Team
 usekineo.com`
 
-  const html = text
-    .split('\n')
-    .map((line) =>
-      line.trim() === ''
-        ? '<br/>'
-        : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${line.replace(
-            /(https?:\/\/[^\s]+)/g,
-            (m) => `<a href="${m}" style="color:#2997ff;font-weight:bold;">${m}</a>`
-          )}</p>`
-    )
-    .join('')
+  const html =
+    text
+      .split('\n')
+      .map((line) =>
+        line.trim() === ''
+          ? '<br/>'
+          : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${line.replace(
+              /(https?:\/\/[^\s]+)/g,
+              (m) => `<a href="${m}" style="color:#2997ff;font-weight:bold;">${m}</a>`
+            )}</p>`
+      )
+      .join('') + emailFooterHtml(userId)
 
-  return { text, html }
+  return { text: `${text}${emailFooterText(userId)}`, html }
 }
 
 export async function GET(req: NextRequest) {
@@ -118,6 +121,8 @@ export async function GET(req: NextRequest) {
     .from('profiles')
     .select('id, email, plan, is_pro, video_rescue_sent_at')
     .is('video_rescue_sent_at', null)
+    // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+    .eq('email_opted_out', false)
     .limit(5000)
   if (error) {
     console.error('[send-video-rescue] profiles query error:', error.message)
@@ -170,7 +175,7 @@ export async function GET(req: NextRequest) {
     // In the abandoned-checkout flow → send-recovery owns them (do NOT mark).
     if (abandonedUsers.has(u.id)) { skipped++; continue }
 
-    const { text, html } = buildEmail()
+    const { text, html } = buildEmail(u.id)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -185,6 +190,7 @@ export async function GET(req: NextRequest) {
           subject: 'You made a Short 🎬 — here’s 50% off to make more',
           text,
           html,
+          headers: unsubscribeHeaders(u.id),
         }),
       })
       if (res.ok) {

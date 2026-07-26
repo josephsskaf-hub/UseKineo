@@ -33,6 +33,7 @@ const pageTitles: Record<string, string> = {
   '/account': 'Account',
   '/video': 'Video Studio',
   '/channel': 'Channel Builder',
+  '/autopilot': 'Autopilot',
   '/admin/metrics': 'Admin · Metrics',
   '/thumbnail-generator': 'AI Thumbnail Generator',
   '/referral': 'Invite & Earn',

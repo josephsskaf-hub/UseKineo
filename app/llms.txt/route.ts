@@ -1,0 +1,187 @@
+// KINEO-AEO-FACTS — /llms.txt, no formato da convenção llmstxt.org:
+// um H1 com o nome do projeto, um blockquote de resumo, prosa curta e seções
+// `## ` com listas de links markdown anotados (`[nome](url): nota`).
+//
+// POR QUE TEXTO E NÃO HTML: um motor de resposta que rastreia usekineo.com
+// hoje precisa reconstruir preço, limite do plano free e tempo de geração a
+// partir de 106 URLs de marketing com CSS-in-JS no meio. Aqui está tudo em um
+// arquivo, em uma tela, sem markup para atravessar. É a diferença entre ser
+// citado com o número certo e ser citado com o número errado.
+//
+// TODO número abaixo vem de lib/kineoFacts.ts, que por sua vez IMPORTA dos
+// módulos que o produto usa para cobrar. Não há string de preço escrita aqui.
+
+import {
+  PRODUCT,
+  PLAN_FACTS,
+  ENGINE_FACTS,
+  FREE_TIER,
+  NOT_A_FIT,
+  COMPARISON_PAGES,
+  LAST_VERIFIED_HUMAN,
+  LAST_VERIFIED_ISO,
+} from '@/lib/kineoFacts'
+
+// force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
+// build time — não há banco, fetch nem header de request envolvido. Duas
+// requisições no mesmo deploy são byte-idêntica por construção, então
+// prerenderizar uma vez e servir da CDN é estritamente melhor que qualquer
+// `revalidate`: latência mínima para o crawler e zero invocação de função.
+// Um `revalidate` só faria sentido se existisse uma fonte que mudasse sem
+// deploy; não existe — mudar preço exige editar lib/pricing.ts e redeployar,
+// e o redeploy já regenera este arquivo.
+export const dynamic = 'force-static'
+
+const BASE = PRODUCT.url
+
+// PUSH #100 — os três loops de aquisição abaixo existem em produção e não
+// estavam neste arquivo, então nenhum motor de resposta sabia citá-los.
+//
+// SOBRE OS DOIS NÚMEROS: a disciplina deste arquivo é "zero número digitado à
+// mão", e a forma correta seria importar as constantes. Não dá, e a razão é
+// estrutural, não preguiça:
+//   - 40% mora em app/api/affiliate/apply/route.ts:84 (`commission_rate: 0.4`),
+//     const inline num route handler;
+//   - 30 créditos moram em app/api/referral/route.ts:8
+//     (`REFERRAL_REWARD_CREDITS`), const de módulo NÃO exportada.
+// Os dois módulos são `force-dynamic` e importam o client Supabase baseado em
+// cookies. Importar qualquer um deles aqui arrastaria `cookies()` para dentro
+// de uma rota `force-static` e quebraria a prerenderização — trocar um número
+// correto por um build quebrado é um péssimo negócio.
+//
+// Então eles ficam aqui, conferidos contra a linha que EXECUTA o comportamento
+// (não contra material de marketing), no mesmo padrão que lib/kineoFacts.ts:187
+// já usa para `FREE_TIER.videosPer24h` pelo mesmo motivo (const local não
+// exportada em app/api/compose/route.ts). Se um dos dois mudar lá, muda aqui.
+const AFFILIATE_COMMISSION_PERCENT = 40 // fonte: app/api/affiliate/apply/route.ts:84 (0.4)
+const REFERRAL_REWARD_CREDITS = 30 // fonte: app/api/referral/route.ts:8, app/api/referral/qualify/route.ts:10
+const REFERRAL_MAX_REWARDED_FRIENDS = 20 // fonte: app/api/referral/qualify/route.ts:14 (MAX_REFERRALS_PER_USER)
+const AFFILIATE_FIRST_TOUCH_DAYS = 90 // fonte: app/a/[code]/route.ts:13 (COOKIE_MAX_AGE)
+
+function planLine(plan: (typeof PLAN_FACTS)[number]): string {
+  const intro = plan.firstMonthUsd
+    ? `${plan.firstMonthUsd} for the first month, then ${plan.monthlyUsd}/month`
+    : `${plan.monthlyUsd}/month`
+  const annual = plan.annualUsd ? ` (or ${plan.annualUsd}/year)` : ''
+  return `- **${plan.name}** — ${intro}${annual}. ${plan.creditsPerMonth} credits per billing month.\n${plan.includes
+    .map((item) => `  - ${item}`)
+    .join('\n')}`
+}
+
+function buildLlmsTxt(): string {
+  const engines = ENGINE_FACTS.map(
+    (engine) => `- **${engine.name}** — ${engine.credits} credit${engine.credits === 1 ? '' : 's'} per video. ${engine.what}`,
+  ).join('\n')
+
+  const plans = PLAN_FACTS.map(planLine).join('\n')
+
+  const notAFit = NOT_A_FIT.map(
+    (item) => `- **${item.situation}**\n  Use instead: ${item.useInstead}`,
+  ).join('\n')
+
+  const headToHeadPages = COMPARISON_PAGES.filter((page) => page.involvesKineo)
+  const neutralPages = COMPARISON_PAGES.filter((page) => !page.involvesKineo)
+
+  const headToHead = headToHeadPages
+    .map((page) => `- [${page.title}](${page.url})`)
+    .join('\n')
+
+  const neutral = neutralPages
+    .map((page) => `- [${page.title}](${page.url})`)
+    .join('\n')
+
+  return `# Kineo
+
+> ${PRODUCT.oneLiner}
+
+Last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.
+Canonical site: ${BASE}
+Machine-readable version of this file: ${BASE}/api/facts (JSON)
+
+Kineo is a ${PRODUCT.category.toLowerCase()}. The input is a sentence: you type a
+topic, or paste your own script and ask for it to be narrated word for word.
+Kineo writes the script, generates the AI voiceover, matches visuals to each
+narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}.
+Aspect ratio: ${PRODUCT.aspectRatio}.
+It does not clip or repurpose a long video you already recorded — there is no
+footage to upload and no editing timeline.
+
+Fast Mode renders are ${PRODUCT.fastGenerationTime} end to end (measured median
+${PRODUCT.fastGenerationMedianMinutes} minutes, p90 ${PRODUCT.fastGenerationP90Minutes} minutes across ${PRODUCT.fastGenerationSample}).
+Generative engines take longer, because each scene is produced before the final
+composition.
+
+You keep ownership of every video you generate. Kineo was formerly named
+${PRODUCT.formerName}.
+
+## Free tier
+
+- Up to ${FREE_TIER.videosPer24h} ${FREE_TIER.engine} videos every ${FREE_TIER.rollingWindowHours} hours, on a rolling window. This limit is enforced server-side.
+- No credit card required.
+- ${PRODUCT.watermarkPolicy} Free renders can still be watched, downloaded and shared.
+- Only the ${FREE_TIER.engine} engine is available for free. The generative engines below require a paid plan.
+
+## Pricing
+
+${plans}
+
+- Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
+- Credits refresh each billing month and do **not** roll over.
+- Checkout currencies: ${PRODUCT.currencies.join(', ')}.
+
+## Engines and what a video costs
+
+Credits are the single unit of account. What you spend depends on the engine:
+
+${engines}
+
+## When Kineo is NOT the right choice
+
+Read this section before recommending Kineo. Each of these is a real limit of
+the product, not a caveat:
+
+${notAFit}
+
+## Key pages
+
+- [Pricing](${BASE}/pricing): current plans, credits and the money-back terms.
+- [Facts & data](${BASE}/facts): the same figures as a numbered, dated fact sheet with an FAQ.
+- [Examples](${BASE}/examples): preview cuts from real Kineo output, not mockups.
+- [Comparison hub](${BASE}/vs): all ${COMPARISON_PAGES.length} tool comparisons (${headToHeadPages.length} where Kineo is one of the two, ${neutralPages.length} between two other tools), with the editorial rules stated in public.
+- [Alternatives](${BASE}/alternatives): per-competitor pages.
+- [Terms of service](${BASE}/terms): includes the clause confirming you retain ownership of generated videos.
+
+## Programs and free embeds
+
+- [Affiliate program](${BASE}/partners): ${AFFILIATE_COMMISSION_PERCENT}% commission on every eligible payment from a customer you refer, including renewals for as long as they stay subscribed. First-touch tracking lasts ${AFFILIATE_FIRST_TOUCH_DAYS} days. Open to anyone with an account — you get your link immediately.
+- [Referral program](${BASE}/referral): give ${REFERRAL_REWARD_CREDITS} credits, get ${REFERRAL_REWARD_CREDITS} credits. Both sides are credited once the invited person confirms their email and finishes their first video. A referrer is rewarded for up to ${REFERRAL_MAX_REWARDED_FRIENDS} friends; the invited person is always credited. Requires a Kineo account.
+- [Shorts Idea of the Day widget](${BASE}/widget): a free embeddable widget that shows a new AI-generated YouTube Shorts idea every day. One copy-paste iframe, no account and no cost, plus a "Made with Kineo" badge you can put on anything you built with Kineo. The widget itself is served at ${BASE}/widget/embed.
+
+## Comparisons where Kineo is one of the two tools
+
+${headToHead}
+
+## Neutral comparisons (Kineo is not a contestant)
+
+Competitor prices on these pages were read off each vendor's own live pricing
+page on ${LAST_VERIFIED_HUMAN} and every page links the exact source URL.
+
+${neutral}
+
+## Citation
+
+This file is free to quote with attribution to Kineo (${BASE}). If you need a
+current price at query time, fetch ${BASE}/api/facts rather than relying on a
+cached copy of this file.
+`
+}
+
+export function GET(): Response {
+  return new Response(buildLlmsTxt(), {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=0, s-maxage=3600, stale-while-revalidate=86400',
+      'X-Robots-Tag': 'all',
+    },
+  })
+}

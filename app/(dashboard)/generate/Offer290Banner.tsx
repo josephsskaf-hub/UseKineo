@@ -21,6 +21,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { PACK_CREDITS } from '@/lib/checkoutPricing'
 
 const SEEN_KEY = 'kineo_offer290_seen'
 // KINEO-REBASE-2026-07-10 — written by components/ExitIntentOffer.tsx on show.
@@ -133,10 +134,15 @@ export default function Offer290Banner() {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: '1 1 240px' }}>
+        {/* KINEO-PRICING-V3D-2026-07-26 — the offer used to read "10 Fast
+            videos", which is 10 credits and zero AI-generated videos. The
+            grant is now 20 credits, exactly one Seedance render, so the
+            cheapest thing we sell finally buys the thing we advertise. */}
         <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: 14 }}>
           🔥 First pack:{' '}
           <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>$4.90</span>{' '}
-          <span style={{ color: '#fff' }}>$2.90</span> — 10 Fast videos
+          <span style={{ color: '#fff' }}>$2.90</span> — {PACK_CREDITS.starter290} credits,
+          enough for 1 AI Generated video
         </span>
         <span style={{ color: '#fca5a5', fontSize: 13, fontWeight: 600 }}>
           Expires in{' '}

@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -66,7 +67,8 @@ function isValidExternalEmail(email: string): boolean {
   return true
 }
 
-function emailHtml(): string {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function emailHtml(userId: string): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hi — Joseph here, founder of <b>Kineo</b>.</p>
@@ -83,7 +85,8 @@ function emailHtml(): string {
   <p style="margin:26px 0"><b>Reply "YES" to this email</b> and I'll send the payment link + a 2-minute niche form.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
   <p style="color:#64748b;font-size:13px">P.S. Prefer doing it yourself? Your credits are waiting: <a href="https://usekineo.com/pricing?utm_source=dfy_email&utm_campaign=dfy97&promo=KINEO20">usekineo.com</a> — code KINEO20 for 20% off.</p>
-</div>`
+</div>
+${emailFooterHtml(userId)}`
 }
 
 function adminClient() {
@@ -117,6 +120,8 @@ export async function GET(req: NextRequest) {
       .gte('created_at', WINDOW_START)
       .lt('created_at', WINDOW_END)
       .eq('dfy_offer_emailed', false)
+      // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+      .eq('email_opted_out', false)
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }
@@ -172,7 +177,8 @@ export async function GET(req: NextRequest) {
             to: [r.email],
             reply_to: REPLY_TO,
             subject: SUBJECT,
-            html: emailHtml(),
+            html: emailHtml(r.id),
+            headers: unsubscribeHeaders(r.id),
           }),
         })
         if (res.ok) {
@@ -195,6 +201,7 @@ export async function GET(req: NextRequest) {
       .gte('created_at', WINDOW_START)
       .lt('created_at', WINDOW_END)
       .eq('dfy_offer_emailed', false)
+      .eq('email_opted_out', false)
 
     console.log(`[dfy-offer] batch done: sent=${sent} failed=${failed} remaining=${remainingAfter ?? '?'}`)
     return NextResponse.json({ mode: 'SENT', sent, failed, batch_size: batch.length, remaining_flag_false: remainingAfter ?? null })

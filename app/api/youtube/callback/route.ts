@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { exchangeCodeForTokens, saveYouTubeTokens } from '@/lib/youtube'
+import { upsertChannelFromTokens } from '@/lib/youtubeChannels'
 
 export async function GET(req: NextRequest) {
   const appUrl = req.nextUrl.origin
@@ -34,7 +35,14 @@ export async function GET(req: NextRequest) {
   try {
     const tokens = await exchangeCodeForTokens(code)
     await saveYouTubeTokens(userId, tokens)
-    console.log(`[youtube/callback] tokens saved for user ${userId.slice(0, 8)}`)
+
+    // KINEO-AUTOPILOT — além do canal único legado em profiles.youtube_tokens,
+    // registra o canal na tabela `channels` (multi-canal). É best-effort de
+    // propósito: upsertChannelFromTokens nunca lança, então uma falha aqui não
+    // pode quebrar um OAuth que JÁ foi bem-sucedido acima.
+    const channelId = await upsertChannelFromTokens({ userId, tokens })
+
+    console.log(`[youtube/callback] tokens saved for user ${userId.slice(0, 8)} channel=${channelId ?? 'legacy-only'}`)
     return NextResponse.redirect(`${appUrl}/dashboard?youtube=connected`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

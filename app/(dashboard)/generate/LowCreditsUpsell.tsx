@@ -18,6 +18,7 @@
 
 import { useEffect, useState } from 'react'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { TIER_CREDITS } from '@/lib/checkoutPricing'
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
@@ -87,8 +88,14 @@ export default function LowCreditsUpsell() {
           You&apos;re almost out of videos —{' '}
           <span style={{ color: '#fff' }}>{credits} left</span>.
         </span>
+        {/* KINEO-PRICING-V3D-2026-07-26 — this line said "Get 50 Fast videos
+            every month". Starter has granted 25 credits since the 2:1 rebase on
+            2026-07-10; the banner had been promising double the product for
+            over two weeks, at the exact moment of highest purchase intent.
+            Now derived from TIER_CREDITS so it cannot go stale again. */}
         <span style={{ color: '#a5b4fc', fontSize: 13, fontWeight: 600 }}>
-          Get 50 Fast videos every month, $9.90/mo. Cancel anytime.
+          Get {TIER_CREDITS.starter} credits every month — {TIER_CREDITS.starter} Fast
+          videos, or 1 AI Generated video. $9.90/mo. Cancel anytime.
         </span>
       </div>
       <button

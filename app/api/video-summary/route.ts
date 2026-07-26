@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
+import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 
 // video-summary — Push #421
 //
@@ -134,6 +135,10 @@ RULES:
     // posted video markets the product (mirrors the #434 watermark rule:
     // clean description = paid plan). Appended AFTER validation so the AI text
     // itself stays untouched; never blocks the response.
+    //
+    // PUSH #100 — o append inline virou lib/videoDescription.ts para que o
+    // fluxo primário (next steps + upload no YouTube) use EXATAMENTE a mesma
+    // linha e a mesma UTM. Comportamento aqui é idêntico ao anterior.
     let finalDescription = description
     try {
       const { data: planRow } = await supabase
@@ -146,9 +151,7 @@ RULES:
         'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
       ])
       const isFreePlan = !PAID_PLANS.has(((planRow?.plan ?? 'free') as string).toLowerCase())
-      if (isFreePlan) {
-        finalDescription = `${description}\n\n⚡ Made with Kineo — create Shorts like this, usually in 2–4 minutes: https://www.usekineo.com?utm_source=video_desc`
-      }
+      finalDescription = buildBrandedYouTubeDescription(description, { isFreePlan })
     } catch {
       // best-effort: on any failure ship the clean description
     }

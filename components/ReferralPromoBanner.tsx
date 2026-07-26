@@ -6,12 +6,27 @@
 // growth → more conversion candidates). Mirrors InstallAppBanner/EnablePush
 // pattern: localStorage dismiss so it never nags after the user acts/dismisses.
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
 const DISMISS_KEY = 'sf_referral_promo_dismissed'
 
+// PUSH #100 — o banner é montado no layout do dashboard (app/(dashboard)/
+// layout.tsx), logo aparece em TODA rota autenticada. Duas delas já têm uma
+// superfície de indicação melhor posicionada, e mostrar as duas ao mesmo tempo
+// é ruído:
+//   /referral  — é a própria página do programa; o banner viraria um link para
+//                a página em que o usuário já está.
+//   /generate  — a tela de sucesso pós-render já traz o card inline
+//                "Give 30 credits · Get 30 credits" (GenerateClient.tsx), que
+//                aparece no momento certo (vídeo pronto na mão). O banner fica
+//                no fim do conteúdo e apareceria junto com o card.
+// Prefixo, não igualdade: /generate/... e /referral/... também contam.
+const SUPPRESSED_PREFIXES = ['/referral', '/generate']
+
 export default function ReferralPromoBanner() {
   const [show, setShow] = useState(false)
+  const pathname = usePathname()
 
   useEffect(() => {
     try {
@@ -21,7 +36,11 @@ export default function ReferralPromoBanner() {
     }
   }, [])
 
-  if (!show) return null
+  const suppressed = SUPPRESSED_PREFIXES.some(
+    (prefix) => pathname === prefix || (pathname?.startsWith(prefix + '/') ?? false),
+  )
+
+  if (!show || suppressed) return null
 
   function dismiss() {
     try { localStorage.setItem(DISMISS_KEY, '1') } catch {}

@@ -18,11 +18,15 @@ import ExitIntentOffer from '@/components/ExitIntentOffer'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
   ANNUAL_PRICES,
+  AUTOPILOT_PRICES,
   CURRENCY_DISPLAY,
+  INTRO_CREDITS,
   INTRO_PRICES,
+  TIER_CREDITS,
   TIER_PRICES,
   formatCheckoutMoney,
   type CheckoutCurrency as DisplayCurrency,
+  type CheckoutPlanTier as BuyableTier,
   type CheckoutTier as PaidTier,
 } from '@/lib/checkoutPricing'
 
@@ -71,7 +75,20 @@ const FAQS: { q: string; a: string }[] = [
   {
     q: 'How do credits work?',
     // KINEO-PRICING-V3B-2026-07-10 — Creator 150 credits, Kling 50 credits.
-    a: 'An AI Generated video (Seedance) uses 20 credits. A Cinematic AI video (Kling) uses 50 credits. A Hollywood film uses 150 credits. Starter includes 25 credits/month; Creator includes 150 credits/month (a Hollywood film every month, included); Studio includes 200 credits/month. Credits reset each month (no rollover).',
+    // KINEO-PRICING-V3D-2026-07-26 — the discounted first month of Creator
+    // grants 50 credits, not 150. Stating it here as well as on the card is
+    // the difference between a discount and a bait-and-switch.
+    a: 'An AI Generated video (Seedance) uses 20 credits. A Cinematic AI video (Kling) uses 50 credits. A Hollywood film uses 150 credits. Starter includes 25 credits/month; Creator includes 150 credits/month (a Hollywood film every month, included); Studio includes 200 credits/month; Autopilot includes 400 credits/month on top of the daily Short we publish for you. If you take the discounted first month of Creator, that first month includes 50 credits and every month after it includes the full 150. Credits reset each month (no rollover).',
+  },
+  {
+    // KINEO-AUTOPILOT-299-2026-07-26
+    q: 'What exactly does Autopilot do?',
+    a: 'You connect your YouTube channel once and choose what time of day to post. From then on Kineo picks a topic, writes the script, generates the voiceover, matches the footage, burns in the captions, writes the title and description, and uploads the finished Short to your channel — one per day, every day, without you opening the app. You can pause it, change the posting time, or cancel at any moment. It costs $299/month; a human editing agency charges $495/month for 16 Shorts and $2,400/month for 30.',
+  },
+  {
+    // KINEO-AUTOPILOT-299-2026-07-26
+    q: 'Do I still get to make my own videos on Autopilot?',
+    a: 'Yes. Autopilot includes 400 credits a month that you can spend on any engine — Seedance, Kling, Hollywood, AI Presenter — completely separately from the daily Short we publish for you. The daily Short uses Fast Mode so it is quick, reliable and cheap to run every single day.',
   },
 ]
 
@@ -246,8 +263,11 @@ export default function PricingClient() {
   // (user gesture chain is severed after the first await). Fix: navigate
   // directly to the GET checkout endpoint which does a server-side 302
   // redirect to Stripe. No fetch(), no await, no gesture breakage.
-  function handleBuy(tier: 'starter' | 'basic' | 'pro') {
-    const billingParam = billing === 'annual' ? '&billing=annual' : ''
+  function handleBuy(tier: BuyableTier) {
+    // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot has no annual SKU and no
+    // intro month; the server enforces both, this just avoids sending params
+    // that would be silently dropped.
+    const billingParam = billing === 'annual' && tier !== 'autopilot' ? '&billing=annual' : ''
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
@@ -260,17 +280,31 @@ export default function PricingClient() {
     // com desconto ($4.90/$9.90). O servidor valida elegibilidade (1 por
     // cliente) e ignora o param em annual/pro — aqui só pedimos.
     const introParam = billing === 'monthly' && (tier === 'starter' || tier === 'basic') ? '&intro=1' : ''
+    const effectiveBilling = tier === 'autopilot' ? 'monthly' : billing
     const started = checkout.launch(
       tier,
       `/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`,
-      { tier, billing, intro: introParam !== '', pricing_surface: 'pricing_page' },
+      { tier, billing: effectiveBilling, intro: introParam !== '', pricing_surface: 'pricing_page' },
     )
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
     if (!started) return
-    const eventName = tier === 'pro' ? 'pro_checkout_clicked' : tier === 'starter' ? 'starter_checkout_clicked' : 'basic_checkout_clicked'
+    const eventName = tier === 'pro'
+      ? 'pro_checkout_clicked'
+      : tier === 'starter'
+        ? 'starter_checkout_clicked'
+        : tier === 'autopilot'
+          ? 'autopilot_checkout_clicked'
+          : 'basic_checkout_clicked'
     trackPricingEvent(eventName)
-    trackCheckoutClick(tier)
+    // KINEO-AUTOPILOT-299-2026-07-26 — trackCheckoutClick's `plan` union lives
+    // in lib/trackClick.ts, which is owned by another agent this sprint, so
+    // 'autopilot' is not accepted there yet. The click is still recorded by
+    // trackPricingEvent above (autopilot_checkout_clicked) and by the server
+    // (checkout_attempted / checkout_started), so nothing is lost — only the
+    // click_events row is missing. FOLLOW-UP: widen that union and drop this
+    // guard so /admin/click-stats can see Autopilot.
+    if (tier !== 'autopilot') trackCheckoutClick(tier)
     // #457 — TikTok Pixel: InitiateCheckout = purchase intent (warmest retargeting audience)
     try {
       const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
@@ -515,6 +549,18 @@ export default function PricingClient() {
                     <p className="mt-1.5 text-[11px] font-semibold text-[#86868b]">
                       Renews at {displayCurrency ? p.price : 'the local price shown at checkout'}/mo in 30 days — cancel anytime.
                     </p>
+                    {/* KINEO-PRICING-V3D-2026-07-26 — the discounted first
+                        month carries a smaller credit grant (see INTRO_CREDITS).
+                        Saying so here is not optional: a buyer who expects 150
+                        credits for $9.90 and receives 50 files a chargeback,
+                        and we would deserve it. Rendered only when the intro
+                        grant actually differs from the recurring one. */}
+                    {INTRO_CREDITS[p.tier as 'starter' | 'basic'] !== TIER_CREDITS[p.tier as 'starter' | 'basic'] && (
+                      <p className="mt-1 text-[11px] font-semibold text-[#86868b]">
+                        First month includes {INTRO_CREDITS[p.tier as 'starter' | 'basic']} credits.
+                        From month two: {TIER_CREDITS[p.tier as 'starter' | 'basic']} credits every month.
+                      </p>
+                    )}
                   </div>
                 )}
                 {'tagline' in p && p.tagline && (
@@ -537,7 +583,7 @@ export default function PricingClient() {
                 <button
                   type="button"
                   disabled={purchasing !== null}
-                  onClick={() => handleBuy(p.tier as 'starter' | 'basic' | 'pro')}
+                  onClick={() => handleBuy(p.tier as PaidTier)}
                   className="mt-auto block w-full rounded-xl bg-[#2997ff] px-4 py-3 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
                   {purchasing === p.tier ? 'Loading…' : `${ctaLabel} →`}
@@ -570,6 +616,103 @@ export default function PricingClient() {
               </div>
             )
           })}
+        </div>
+
+        {/* ══════════════════════════════════════════════════════════════
+            KINEO-AUTOPILOT-299-2026-07-26 — DONE-FOR-YOU TIER.
+
+            Deliberately OUTSIDE the 3-card grid. Dropped into that row, $299
+            next to $37.90 reads as a mistake. Standing alone, next to what a
+            human editing agency charges for the same output, it reads as a
+            bargain — which, at 30 Shorts/month, it is:
+              VidChops     $495/mo   for 16 shorts  → $30.94 per short
+              Tasty Edits  $2,400/mo for 30 shorts  → $80.00 per short
+              Kineo Autopilot $299/mo for 30 shorts → $9.97 per short
+            The comparison is honest about what differs (an agency gives you a
+            human editor; we give you a machine that never misses a day), so
+            the claim survives contact with a prospect who checks it.
+
+            Monthly only — no annual toggle applies to this card.
+            ══════════════════════════════════════════════════════════════ */}
+        <div className="mx-auto mt-14 max-w-5xl">
+          <div className="mb-4 text-center">
+            <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+              Or don&apos;t make videos at all
+            </div>
+            <h2 className="mt-2 text-[1.7rem] font-black tracking-tight text-[#f5f5f7]">
+              Autopilot — we run your channel for you
+            </h2>
+          </div>
+
+          <div
+            className="relative overflow-hidden rounded-2xl border p-6 sm:p-8"
+            style={{
+              borderColor: 'rgba(41,151,255,0.35)',
+              background: 'linear-gradient(135deg, rgba(41,151,255,0.07) 0%, #161618 55%)',
+            }}
+          >
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_4px_18px_rgba(41,151,255,.45)] bg-[#2997ff]">
+              Done for you
+            </div>
+
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center">
+              <div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[2.8rem] font-black leading-none tracking-tight text-[#f5f5f7]">
+                    {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : '—'}
+                  </span>
+                  <span className="text-[13px] font-semibold text-[#2997ff]">/ month</span>
+                </div>
+                <p className="mt-3 text-[14px] leading-snug text-[#f5f5f7]">
+                  You connect your YouTube channel once. We publish one Short to it
+                  every single day — script, voiceover, footage, captions, title,
+                  description and upload. You do nothing.
+                </p>
+                <p className="mt-3 text-[12.5px] leading-snug text-[#86868b]">
+                  That is 30 Shorts a month, about{' '}
+                  {displayCurrency
+                    ? formatCheckoutMoney(resolvedCurrency, Math.round(AUTOPILOT_PRICES[resolvedCurrency] / 30))
+                    : 'a tenth of the agency rate'}{' '}
+                  each. A human editing agency charges USD $495/month for 16 Shorts, or
+                  USD $2,400/month for 30. Autopilot does not give you a human editor —
+                  it gives you a machine that has never missed a day.
+                </p>
+                <p className="mt-3 text-[12px] font-semibold text-[#86868b]">
+                  Includes {TIER_CREDITS.autopilot} credits/month for videos you want to
+                  make yourself, on any engine. Cancel anytime.
+                </p>
+              </div>
+
+              <div>
+                <ul className="flex flex-col gap-2.5">
+                  {[
+                    '📺 Your YouTube channel, connected once — we publish directly',
+                    '🗓️ One Short published every day, automatically',
+                    '🧠 Topics chosen for you and never repeated',
+                    '✍️ Script, AI voiceover, footage, captions — all handled',
+                    `✨ ${TIER_CREDITS.autopilot} credits/month for your own videos, any engine`,
+                    '⏸️ Pause, change the posting time, or cancel whenever you want',
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-[13.5px] text-[#f5f5f7]">
+                      <span className="mt-[3px] text-[#2997ff]">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  disabled={purchasing !== null}
+                  onClick={() => handleBuy('autopilot')}
+                  className="mt-6 block w-full rounded-xl bg-[#2997ff] px-4 py-3.5 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
+                >
+                  {purchasing === 'autopilot' ? 'Loading…' : 'Start Autopilot →'}
+                </button>
+                <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
+                  🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ROBO-ENTRY-490 — the one-time $4.90 Starter Pack was moved UP to a

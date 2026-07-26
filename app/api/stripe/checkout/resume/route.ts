@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
+import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,9 +22,14 @@ const PAID_PLANS = new Set([
   'pro', 'pro_trial',
   'creator', 'creator_trial',
   'studio', 'studio_trial',
+  // KINEO-AUTOPILOT-299-2026-07-26 — without this an Autopilot subscriber
+  // would keep being shown the "finish your checkout" resume banner forever.
+  'autopilot', 'autopilot_trial',
 ])
 
-type Tier = 'starter' | 'basic' | 'pro'
+// KINEO-AUTOPILOT-299-2026-07-26 — includes 'autopilot'; imported so the tier
+// list cannot drift from the checkout route's.
+type Tier = CheckoutPlanTier
 type Billing = 'monthly' | 'annual'
 type DestinationKind = 'open_session' | 'stripe_recovery' | 'internal_retry'
 
@@ -94,7 +100,9 @@ function customerIdOf(session: Stripe.Checkout.Session): string | null {
 
 function tierOf(session: Stripe.Checkout.Session): Tier | null {
   const tier = session.metadata?.tier
-  return tier === 'starter' || tier === 'basic' || tier === 'pro' ? tier : null
+  return tier === 'starter' || tier === 'basic' || tier === 'pro' || tier === 'autopilot'
+    ? tier
+    : null
 }
 
 function billingOf(session: Stripe.Checkout.Session): Billing {
@@ -104,6 +112,7 @@ function billingOf(session: Stripe.Checkout.Session): Billing {
 function planName(tier: Tier): string {
   if (tier === 'starter') return 'Starter'
   if (tier === 'pro') return 'Studio'
+  if (tier === 'autopilot') return 'Autopilot'
   return 'Creator'
 }
 

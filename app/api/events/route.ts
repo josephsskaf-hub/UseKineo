@@ -31,6 +31,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'email_signup_completed',
   'generate_arrived_server',
   'generate_activation_auth_missing',
+  // KINEO-AUTOPILOT-299-2026-07-26 — escrito só pelo Server Component de
+  // /autopilot. Se o sink do browser pudesse cunhar, um burst forjado infla o
+  // TOPO do funil do SKU de $299 e a taxa de conversão passa a mentir pra baixo.
+  'autopilot_page_arrived',
 ])
 
 export async function POST(req: NextRequest) {

@@ -4,9 +4,46 @@
 // states: not-an-affiliate (apply CTA), pending, active (link + KPIs + recent
 // commissions), or suspended. Dark premium styling to match /referral and
 // /admin/funnel. Amounts arrive in CENTS and are divided by 100 for display.
+//
+// PUSH #101 — two changes:
+// 1. TELEMETRY. Applying was a completely blind funnel step on the client.
+//    app/api/affiliate/apply/route.ts:88-93,117-122 writes
+//    `affiliate_application_submitted` server-side, but ONLY when the request
+//    reaches the handler AND succeeds — a click that 401s, network-fails or
+//    500s left no trace anywhere, so "how many people press Apply and don't
+//    end up with a link" was unanswerable. The client events below close that.
+// 2. THE MOMENT AFTER APPLY. Since apply/route.ts:110 creates the row as
+//    'active', the click that used to buy a "we'll review it" wait now buys a
+//    working link. That is peak intent and it was being spent on a KPI grid of
+//    zeros. `justApplied` turns it into one concrete next action: send the
+//    link to one person, right now, with one tap.
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+
+// Same fire-and-forget /api/events pattern as components/TaaftReviewAsk.tsx:62-78
+// — both `event_name` and `name` keys for the route's dual schema
+// (app/api/events/route.ts:49-55), keepalive so an event survives navigation,
+// errors swallowed so analytics can never break the dashboard. None of these
+// names are in SERVER_ONLY_EVENTS (app/api/events/route.ts:16-33), so the
+// browser sink accepts them.
+function trackAffiliateEvent(name: string, metadata?: Record<string, unknown>): void {
+  try {
+    void fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event_name: name,
+        name,
+        metadata: { source: 'affiliate_dashboard', ...(metadata ?? {}) },
+        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
+      }),
+      keepalive: true,
+    }).catch(() => {})
+  } catch {
+    // ignore — tracking must never throw into the affiliate dashboard
+  }
+}
 
 interface Commission {
   created_at: string | null
@@ -92,6 +129,10 @@ export default function AffiliatePage() {
   const [authRequired, setAuthRequired] = useState(false)
   const [applying, setApplying] = useState(false)
   const [copied, setCopied] = useState(false)
+  // PUSH #101 — true only for the render right after a successful apply in
+  // THIS session, so the "your link is live, use it now" block is a moment and
+  // not permanent dashboard furniture.
+  const [justApplied, setJustApplied] = useState(false)
 
   async function load() {
     try {
@@ -117,6 +158,7 @@ export default function AffiliatePage() {
 
   async function apply() {
     setApplying(true)
+    trackAffiliateEvent('affiliate_apply_clicked')
     try {
       const response = await fetch('/api/affiliate/apply', {
         method: 'POST',
@@ -124,12 +166,20 @@ export default function AffiliatePage() {
         body: JSON.stringify({}),
       })
       if (response.status === 401) {
+        trackAffiliateEvent('affiliate_apply_failed', { reason: 'unauthenticated', http_status: 401 })
         setAuthRequired(true)
         return
       }
+      if (!response.ok) {
+        trackAffiliateEvent('affiliate_apply_failed', { reason: 'http_error', http_status: response.status })
+        return
+      }
+      const json = (await response.json().catch(() => null)) as { status?: string } | null
+      trackAffiliateEvent('affiliate_apply_succeeded', { status: json?.status ?? null })
+      setJustApplied(true)
       await load()
     } catch {
-      /* silent */
+      trackAffiliateEvent('affiliate_apply_failed', { reason: 'network_error' })
     } finally {
       setApplying(false)
     }
@@ -140,6 +190,7 @@ export default function AffiliatePage() {
     try {
       navigator.clipboard.writeText(data.link)
       setCopied(true)
+      trackAffiliateEvent('affiliate_link_copied', { just_applied: justApplied })
       setTimeout(() => setCopied(false), 2000)
     } catch {
       /* clipboard blocked — ignore */
@@ -210,7 +261,8 @@ export default function AffiliatePage() {
           </h1>
           <p className="text-sm mb-6 mx-auto" style={{ color: MUTED, maxWidth: 460, lineHeight: 1.6 }}>
             Share your link, send people to Kineo, and earn 40% of every payment they make — for
-            as long as they stay subscribed.
+            as long as they stay subscribed. No review queue: your link is active the second you
+            press the button, and starts tracking clicks immediately.
           </p>
           <button
             type="button"
@@ -236,6 +288,13 @@ export default function AffiliatePage() {
   const status = (a.status ?? '').toLowerCase()
 
   // ── Pending ──────────────────────────────────────────────────────────────
+  // PUSH #101 — LEGACY ONLY. New rows are created 'active'
+  // (app/api/affiliate/apply/route.ts:110), so this branch is now only
+  // reachable by affiliates who applied before that change and were never
+  // approved in /admin/affiliates. The copy stays accurate FOR THEM (their
+  // link genuinely is dead until an admin flips the status —
+  // app/a/[code]/route.ts:38), so it is deliberately left as-is rather than
+  // deleted. Delete this branch only after backfilling those rows to 'active'.
   if (status === 'pending') {
     return (
       <div className={wrap}>
@@ -280,6 +339,30 @@ export default function AffiliatePage() {
   const recent = data.recent ?? []
   const ratePct = `${Math.round((a.commission_rate ?? 0) * 100)}%`
 
+  // PUSH #101 — one-tap first share. Copy-to-clipboard alone still leaves the
+  // affiliate to go find somewhere to paste it; these hand them a pre-written
+  // message. Plain links, no SDKs, no keys. The pitch only claims things the
+  // product actually does (free Fast tier, no card — lib/comparisons.ts:305).
+  const link = data.link ?? ''
+  const sharePitch =
+    'I use Kineo to turn one topic into a finished, voiced and captioned 9:16 Short in minutes. Free to try, no card:'
+  const shareTargets = link
+    ? [
+        {
+          label: 'Share on X',
+          href: `https://twitter.com/intent/tweet?text=${encodeURIComponent(sharePitch)}&url=${encodeURIComponent(link)}`,
+        },
+        {
+          label: 'WhatsApp',
+          href: `https://wa.me/?text=${encodeURIComponent(`${sharePitch} ${link}`)}`,
+        },
+        {
+          label: 'Email',
+          href: `mailto:?subject=${encodeURIComponent('A faster way to make Shorts')}&body=${encodeURIComponent(`${sharePitch} ${link}`)}`,
+        },
+      ]
+    : []
+
   return (
     <div className={wrap}>
       <header className="mb-6">
@@ -294,6 +377,25 @@ export default function AffiliatePage() {
           refer.
         </p>
       </header>
+
+      {/* PUSH #101 — the moment right after applying. Peak intent, and the
+          only thing standing between them and their first tracked click is
+          sending the link to one person. */}
+      {justApplied ? (
+        <div
+          className="rounded-2xl p-5 mb-4"
+          style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)' }}
+        >
+          <div className="font-black mb-1" style={{ fontSize: '1.05rem', color: TEXT }}>
+            You&apos;re in — your link is already live.
+          </div>
+          <p className="text-sm" style={{ color: MUTED, lineHeight: 1.6, margin: 0 }}>
+            Nothing is pending and nobody has to approve you. The next click on the link below is
+            tracked, and it stays attributed to you for 90 days. Send it to one person now — the
+            first share is the one nobody gets around to.
+          </p>
+        </div>
+      ) : null}
 
       {/* Share link */}
       <div
@@ -332,6 +434,31 @@ export default function AffiliatePage() {
             {copied ? '✓ Copied!' : 'Copy link'}
           </button>
         </div>
+        {shareTargets.length ? (
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
+              Send it now
+            </span>
+            {shareTargets.map((t) => (
+              <a
+                key={t.label}
+                href={t.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackAffiliateEvent('affiliate_share_clicked', { channel: t.label, just_applied: justApplied })}
+                className="rounded-lg px-3 py-1.5 text-xs font-extrabold"
+                style={{
+                  background: 'rgba(41,151,255,.12)',
+                  border: '1px solid rgba(41,151,255,.28)',
+                  color: CYAN,
+                  textDecoration: 'none',
+                }}
+              >
+                {t.label}
+              </a>
+            ))}
+          </div>
+        ) : null}
         {a.coupon_code ? (
           <div className="text-xs mt-3" style={{ color: MUTED }}>
             Coupon code:{' '}

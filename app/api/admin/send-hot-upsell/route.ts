@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -52,7 +53,11 @@ const TARGETS: Target[] = [
 
 const ABHIJEET = 'abhijeetgoel77@gmail.com'
 
-function abandonHtml(videos?: number): { subject: string; html: string } {
+// KINEO-UNSUBSCRIBE-2026-07-26 — os 3 templates passam a receber o userId
+// (resolvido a partir do email na tabela profiles) para montar o rodapé com o
+// link de descadastro. Sem id resolvido o contato é PULADO, nunca enviado sem
+// unsubscribe.
+function abandonHtml(userId: string, videos?: number): { subject: string; html: string } {
   return {
     subject: "Your Kineo checkout didn't go through — here's 20% off",
     html: `
@@ -65,11 +70,12 @@ function abandonHtml(videos?: number): { subject: string; html: string } {
   <p>And since you last looked, Kineo got a big upgrade: <b>AI Presenter</b> (talking host with perfect lip-sync), <b>Character Lock</b> (same face in every video), and you can now use <b>your own footage and your own voice</b>.</p>
   <p>Card being rejected? We also take <b>Apple Pay and Link</b> at checkout. Or just reply — I'll sort it personally.</p>
   <p>— Joseph, founder · Kineo</p>
-</div>`,
+</div>
+${emailFooterHtml(userId)}`,
   }
 }
 
-function pqlHtml(videos?: number): { subject: string; html: string } {
+function pqlHtml(userId: string, videos?: number): { subject: string; html: string } {
   const n = typeof videos === 'number' && videos > 0 ? videos : 2
   return {
     subject: `You've made ${n} videos on Kineo — the cheapest way to keep going`,
@@ -84,11 +90,12 @@ function pqlHtml(videos?: number): { subject: string; html: string } {
   <p>Want a plan instead? Code <b>KINEO20</b> gives 20% off any tier. And everything new is included: <b>AI Presenter</b> (talking host), <b>Character Lock</b> (same face every video), <b>your own footage &amp; voice</b>.</p>
   <p>Reply anytime — I read every email.</p>
   <p>— Joseph, founder · Kineo</p>
-</div>`,
+</div>
+${emailFooterHtml(userId)}`,
   }
 }
 
-function abhijeetHtml(): { subject: string; html: string } {
+function abhijeetHtml(userId: string): { subject: string; html: string } {
   return {
     subject: 'You asked for own footage + own voice — I built both today',
     html: `
@@ -104,7 +111,8 @@ function abhijeetHtml(): { subject: string; html: string } {
   </p>
   <p>Anything else you need for Bahi Khata's videos, reply here — requests from you ship fast, as you can see. 🙂</p>
   <p>— Joseph, founder · Kineo</p>
-</div>`,
+</div>
+${emailFooterHtml(userId)}`,
   }
 }
 
@@ -142,26 +150,60 @@ export async function GET(req: NextRequest) {
       }),
     )
     const allEmails = [...TARGETS.map((t) => t.email), ABHIJEET]
-    const { data: paidRows } = await admin
+    // KINEO-UNSUBSCRIBE-2026-07-26 — esta rota é a única com lista HARDCODED de
+    // emails (não tem query de coorte), então o filtro de opt-out não pode ser
+    // um .eq() na query: o id do perfil é RESOLVIDO aqui pelo email, e é ele
+    // que assina o link de descadastro. Sem id → sem unsubscribe possível →
+    // o contato é pulado (skipped_no_profile), nunca enviado sem saída.
+    const { data: profileRows } = await admin
       .from('profiles')
-      .select('email, has_paid, plan')
+      .select('id, email, has_paid, plan, email_opted_out')
       .in('email', allEmails)
+    type ProfileRow = { id: string; email: string | null; has_paid: boolean | null; email_opted_out: boolean | null }
+    const profileByEmail = new Map<string, ProfileRow>()
+    for (const r of (profileRows ?? []) as ProfileRow[]) {
+      const e = (r.email ?? '').trim().toLowerCase()
+      if (e && !profileByEmail.has(e)) profileByEmail.set(e, r)
+    }
     const paidSet = new Set(
-      (paidRows ?? [])
-        .filter((r) => (r as { has_paid: boolean }).has_paid === true)
-        .map((r) => ((r as { email: string }).email ?? '').toLowerCase()),
+      (profileRows ?? [])
+        .filter((r) => (r as ProfileRow).has_paid === true)
+        .map((r) => ((r as ProfileRow).email ?? '').toLowerCase()),
     )
 
-    const queue: Array<{ email: string; subject: string; html: string; segment: string }> = []
+    const queue: Array<{ email: string; subject: string; html: string; segment: string; userId: string }> = []
+    const skippedNoProfile: string[] = []
+    const skippedOptedOut: string[] = []
+
+    // Resolve o perfil e devolve o id, ou null se o contato deve ser pulado.
+    const resolveId = (rawEmail: string): string | null => {
+      const e = rawEmail.toLowerCase()
+      const prof = profileByEmail.get(e)
+      if (!prof?.id) {
+        skippedNoProfile.push(rawEmail)
+        return null
+      }
+      if (prof.email_opted_out === true) {
+        skippedOptedOut.push(rawEmail)
+        return null
+      }
+      return prof.id
+    }
+
     for (const t of TARGETS) {
       const e = t.email.toLowerCase()
       if (alreadySent.has(e) || paidSet.has(e)) continue
-      const tpl = t.segment === 'abandon' ? abandonHtml(t.videos) : pqlHtml(t.videos)
-      queue.push({ email: t.email, subject: tpl.subject, html: tpl.html, segment: t.segment })
+      const userId = resolveId(t.email)
+      if (!userId) continue
+      const tpl = t.segment === 'abandon' ? abandonHtml(userId, t.videos) : pqlHtml(userId, t.videos)
+      queue.push({ email: t.email, subject: tpl.subject, html: tpl.html, segment: t.segment, userId })
     }
     if (!alreadySent.has(ABHIJEET) && !paidSet.has(ABHIJEET)) {
-      const tpl = abhijeetHtml()
-      queue.push({ email: ABHIJEET, subject: tpl.subject, html: tpl.html, segment: 'abhijeet' })
+      const userId = resolveId(ABHIJEET)
+      if (userId) {
+        const tpl = abhijeetHtml(userId)
+        queue.push({ email: ABHIJEET, subject: tpl.subject, html: tpl.html, segment: 'abhijeet', userId })
+      }
     }
 
     const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
@@ -175,7 +217,9 @@ export async function GET(req: NextRequest) {
           abhijeet: queue.filter((q) => q.segment === 'abhijeet').length,
         },
         recipients: queue.map((q) => `${q.segment}: ${q.email}`),
-        hint: 'Append ?confirm=SEND to fire.',
+        skipped_no_profile: skippedNoProfile,
+        skipped_opted_out: skippedOptedOut,
+        hint: 'Append ?confirm=SEND to fire. skipped_no_profile = no profiles row, so no unsubscribe link could be signed — never emailed.',
       })
     }
 
@@ -186,7 +230,14 @@ export async function GET(req: NextRequest) {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ from: FROM_EMAIL, to: [q.email], reply_to: REPLY_TO, subject: q.subject, html: q.html }),
+          body: JSON.stringify({
+            from: FROM_EMAIL,
+            to: [q.email],
+            reply_to: REPLY_TO,
+            subject: q.subject,
+            html: q.html,
+            headers: unsubscribeHeaders(q.userId),
+          }),
         })
         if (res.ok) {
           sent += 1
@@ -202,8 +253,14 @@ export async function GET(req: NextRequest) {
       await new Promise((r) => setTimeout(r, 700))
     }
 
-    console.log(`[hot-upsell] done: sent=${sent} failed=${failed}`)
-    return NextResponse.json({ mode: 'SENT', sent, failed })
+    console.log(`[hot-upsell] done: sent=${sent} failed=${failed} skipped_no_profile=${skippedNoProfile.length} skipped_opted_out=${skippedOptedOut.length}`)
+    return NextResponse.json({
+      mode: 'SENT',
+      sent,
+      failed,
+      skipped_no_profile: skippedNoProfile,
+      skipped_opted_out: skippedOptedOut,
+    })
   } catch (err) {
     console.error('[hot-upsell] unexpected:', err)
     return NextResponse.json({ error: 'Unexpected error' }, { status: 500 })

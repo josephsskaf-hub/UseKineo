@@ -3,6 +3,10 @@ import { stripe } from '@/lib/stripe'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
+// KINEO-PRICING-V3D-2026-07-26 — credit grants come from the single price
+// source. They used to be typed out as literals in three places (checkout
+// route, this webhook, lib/pricing.ts) and drifted at every reprice.
+import { PACK_CREDITS, TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing'
 
 // Use service role key for webhook — bypasses RLS
 function getAdminClient() {
@@ -337,10 +341,19 @@ export async function POST(req: NextRequest) {
           const amount = session.amount_total ?? 0
           let creditsToAdd = metaCredits > 0 ? metaCredits : 0
           if (creditsToAdd === 0) {
-            // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 10.
+            // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 30.
+            // These only fire for sessions with NO metadata.pack_credits, i.e.
+            // hosted Payment Links created before the inline-price_data route
+            // existed. Every session this app creates carries pack_credits.
             if (amount === 900) creditsToAdd = 10
             else if (amount === 1900) creditsToAdd = 25
-            else if (amount === 490) creditsToAdd = 10 // KINEO-PRICING-V3C-2026-07-10 — $4.90 pack back to 10 (mirrors STARTER_PACK.credits)
+            // KINEO-PRICING-V3D-2026-07-26 — mirrors PACK_CREDITS.starter (10 → 30).
+            else if (amount === 490) creditsToAdd = PACK_CREDITS.starter
+            // KINEO-PRICING-V3D-2026-07-26 — $2.90 had no legacy fallback at
+            // all: a starter290 session that somehow lost its metadata would
+            // have been logged as "unexpected amount_total" and the buyer would
+            // have paid and received nothing.
+            else if (amount === 290) creditsToAdd = PACK_CREDITS.starter290
           }
 
           if (creditsToAdd === 0) {
@@ -419,7 +432,13 @@ export async function POST(req: NextRequest) {
         const subscriptionId = typeof session.subscription === 'string'
           ? session.subscription
           : session.subscription?.id ?? null
-        const tier = session.metadata?.tier === 'pro' ? 'pro' : session.metadata?.tier === 'starter' ? 'starter' : 'basic'
+        // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added. Unknown values
+        // still collapse to 'basic', unchanged.
+        const tier: CheckoutPlanTier =
+          session.metadata?.tier === 'pro' ? 'pro'
+            : session.metadata?.tier === 'starter' ? 'starter'
+              : session.metadata?.tier === 'autopilot' ? 'autopilot'
+                : 'basic'
 
         entitlementPending = true
         if (!userId || !customerId || !subscriptionId) {
@@ -438,8 +457,26 @@ export async function POST(req: NextRequest) {
         // KINEO-PRICING-V3B-2026-07-10 — Creator $24.90 grants 150 credits
         // (1 Hollywood film/month included). pro/starter ALINHADOS ao rebase
         // 2:1 (200/25, iguais ao lib/pricing.ts) — fecha o leak de margem.
-        const planCredits = tier === 'pro' ? 200 : tier === 'starter' ? 25 : 150
-        const creditsToGrant = isTrial ? 5 : planCredits
+        // KINEO-PRICING-V3D-2026-07-26 — single source (lib/checkoutPricing).
+        const planCredits = TIER_CREDITS[tier]
+        // KINEO-PRICING-V3D-2026-07-26 — DEFECT (b). A discounted first month
+        // gets a discounted grant. The checkout route writes the reduced number
+        // into session.metadata.intro_credits (and plan_credits) whenever the
+        // intro coupon is actually applied; it is read HERE, at
+        // checkout.session.completed, and NOWHERE ELSE.
+        //
+        // This deliberately does NOT read subscription.metadata.intro. That
+        // flag is permanent — it is the anti-abuse marker meaning "this
+        // customer has used their one intro" — so keying the reduced grant off
+        // it would under-grant every renewal for the life of the subscription.
+        // invoice.payment_succeeded (the renewal path) grants TIER_CREDITS.
+        const introCreditsRaw = Number(session.metadata?.intro_credits ?? 0)
+        const introApplied = session.metadata?.intro === '1' &&
+          Number.isFinite(introCreditsRaw) &&
+          introCreditsRaw > 0 &&
+          introCreditsRaw <= planCredits
+        const firstMonthCredits = introApplied ? Math.floor(introCreditsRaw) : planCredits
+        const creditsToGrant = isTrial ? 5 : firstMonthCredits
         const subscriptionFulfillmentId = `checkout_fulfilled:${session.id}`
         const publishSubscriptionFulfillment = async (): Promise<void> => {
           const { error: fulfillmentCompleteError } = await supabase
@@ -507,14 +544,20 @@ export async function POST(req: NextRequest) {
           console.warn('[stripe webhook] stale Checkout replay ignored for non-access subscription:', session.id, subscriptionId, currentSubscription.status)
           break
         }
-        const currentSubscriptionTier =
+        // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added. Unlike the parse
+        // above this one keeps `null` as its fallback: null means "the live
+        // subscription carries no recognizable tier", which must NOT be treated
+        // as a tier change.
+        const currentSubscriptionTier: CheckoutPlanTier | null =
           currentSubscription.metadata?.tier === 'pro'
             ? 'pro'
             : currentSubscription.metadata?.tier === 'starter'
               ? 'starter'
               : currentSubscription.metadata?.tier === 'basic'
                 ? 'basic'
-                : null
+                : currentSubscription.metadata?.tier === 'autopilot'
+                  ? 'autopilot'
+                  : null
         if (currentSubscriptionTier && currentSubscriptionTier !== tier) {
           // The same Stripe subscription can be changed to another tier after
           // its original Checkout. A delayed replay of that old Checkout must
@@ -553,7 +596,10 @@ export async function POST(req: NextRequest) {
         const next = resumedGrant ? current : current + creditsToGrant
 
         // Push #088 — Pro plan also includes 1 cinematic token / month.
-        const cinematicTokensForTier = tier === 'pro' ? 1 : 0
+        // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot gets one too: at $299 it
+        // sits above Studio, and withholding a $0-marginal-cost token from the
+        // most expensive plan would be indefensible if anyone noticed.
+        const cinematicTokensForTier = (tier === 'pro' || tier === 'autopilot') ? 1 : 0
 
         if (!resumedGrant) {
           const { data: updatedProfile, error: subUpdErr } = await supabase
@@ -661,12 +707,21 @@ export async function POST(req: NextRequest) {
         }
 
         const renewalUserId = subscription.metadata?.supabase_user_id
-        const renewalTier = subscription.metadata?.tier === 'pro' ? 'pro' : subscription.metadata?.tier === 'starter' ? 'starter' : 'basic'
-        // KINEO-STUDIO-400-2026-07-06 — renewal credits: Studio 400, Creator 240,
-        // Starter 50. Set (not added) each cycle → no rollover between months.
-        // KINEO-PRICING-V3B-2026-07-10 — Creator renewal = 150 credits. pro/starter
-        // ALINHADOS ao rebase 2:1 (200/25) — fecha o leak de margem.
-        const renewalCredits = renewalTier === 'pro' ? 200 : renewalTier === 'starter' ? 25 : 150
+        // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' added.
+        const renewalTier: CheckoutPlanTier =
+          subscription.metadata?.tier === 'pro' ? 'pro'
+            : subscription.metadata?.tier === 'starter' ? 'starter'
+              : subscription.metadata?.tier === 'autopilot' ? 'autopilot'
+                : 'basic'
+        // KINEO-STUDIO-400-2026-07-06 — renewal credits are SET (not added)
+        // each cycle → no rollover between months.
+        // KINEO-PRICING-V3D-2026-07-26 — single source (lib/checkoutPricing).
+        // NOTE: this is the FULL grant even for a subscription that started on
+        // the discounted intro month. subscription.metadata.intro stays '1'
+        // forever (it is the one-intro-per-customer marker), so reading it here
+        // would permanently under-grant every renewal. The reduced intro grant
+        // is applied only once, at checkout.session.completed.
+        const renewalCredits = TIER_CREDITS[renewalTier]
         if (!renewalUserId) {
           entitlementPending = false
           break
@@ -728,7 +783,7 @@ export async function POST(req: NextRequest) {
         // Push #088 — also reset cinematic_tokens on renewal: Pro = 1,
         // Basic = 0. Resetting (not adding) keeps the monthly cap honest
         // even if the user never spent the prior month's token.
-        const renewalCinematicTokens = renewalTier === 'pro' ? 1 : 0
+        const renewalCinematicTokens = (renewalTier === 'pro' || renewalTier === 'autopilot') ? 1 : 0
         // Push #416 — never let a legacy subscription renewal overwrite a
         // manually-managed admin account.
         const { data: renewedProfile, error: renewErr } = await supabase

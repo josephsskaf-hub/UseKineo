@@ -84,6 +84,17 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
     </svg>
   ),
+  // KINEO-AUTOPILOT-UI-2026-07-26 — Autopilot: o loop que repete (setas) com o
+  // play no centro. Mesma grade 17px / stroke 1.7 / currentColor dos demais.
+  autopilot: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 11a8 8 0 0 0-13.7-5.3L3 9" />
+      <path d="M3 4.5V9h4.5" />
+      <path d="M4 13a8 8 0 0 0 13.7 5.3L21 15" />
+      <path d="M21 19.5V15h-4.5" />
+      <path d="m10.5 9.5 4 2.5-4 2.5v-5Z" />
+    </svg>
+  ),
 }
 
 function NavItem({
@@ -448,6 +459,10 @@ export default function Sidebar({
           <NavItem href="/thumbnail-generator" icon={NAV_ICONS.thumbnails} label="AI Thumbnails" exact={false} pathname={pathname} onClick={onClose} badge="HOT" />
 
           <NavSection label="Grow" />
+          {/* KINEO-AUTOPILOT-UI-2026-07-26 — o backend do Autopilot (migration
+              021 + cron horário) já existia sem NENHUM link em lugar nenhum:
+              sem esta entrada, /autopilot só é alcançável digitando a URL. */}
+          <NavItem href="/autopilot" icon={NAV_ICONS.autopilot} label="Autopilot" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/viral-now" icon={NAV_ICONS.viral} label="Viral Now" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/channel" icon={NAV_ICONS.channel} label="Channel Builder" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/history" icon={NAV_ICONS.videos} label="My Videos" exact={false} pathname={pathname} onClick={onClose} />

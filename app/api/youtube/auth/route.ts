@@ -16,5 +16,21 @@ export async function GET(req: NextRequest) {
   // state carries the user ID so the callback can look them up after redirect
   const state = Buffer.from(JSON.stringify({ userId: user.id })).toString('base64url')
   const authUrl = buildYouTubeAuthUrl(state)
+
+  // KINEO-AUTOPILOT — para conectar um SEGUNDO canal o Google precisa oferecer
+  // o seletor de conta; com `prompt=consent` sozinho ele reusa silenciosamente a
+  // conta já logada e o usuário reconecta o mesmo canal para sempre.
+  // `?add=1` acrescenta select_account. lib/youtube.ts não é tocado: só o
+  // parâmetro da URL já pronta é reescrito, então o fluxo padrão fica idêntico.
+  if (req.nextUrl.searchParams.get('add') === '1') {
+    try {
+      const url = new URL(authUrl)
+      url.searchParams.set('prompt', 'select_account consent')
+      return NextResponse.redirect(url.toString())
+    } catch {
+      // URL inválida (env mal configurada): segue com o fluxo original.
+    }
+  }
+
   return NextResponse.redirect(authUrl)
 }

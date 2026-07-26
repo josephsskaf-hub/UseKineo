@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -56,7 +57,8 @@ function isValidExternalEmail(email: string): boolean {
   return true
 }
 
-function emailHtml(): string {
+// KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
+function emailHtml(userId: string): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 👋</p>
@@ -76,7 +78,8 @@ function emailHtml(): string {
   <p style="font-size:13px;color:#64748b">Out of credits? The $4.90 pack (10 videos, never expires) covers your first presenter video and more.</p>
   <p>Just reply if you want me to walk you through any of it — I read every email.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
-</div>`
+</div>
+${emailFooterHtml(userId)}`
 }
 
 function adminClient() {
@@ -110,6 +113,8 @@ export async function GET(req: NextRequest) {
       .from('profiles')
       .select('id, email')
       .eq('feature_announce_emailed', false)
+      // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+      .eq('email_opted_out', false)
     if (error) {
       return NextResponse.json({ error: `profiles query failed: ${error.message}` }, { status: 500 })
     }
@@ -150,7 +155,8 @@ export async function GET(req: NextRequest) {
             to: [r.email],
             reply_to: REPLY_TO,
             subject: SUBJECT,
-            html: emailHtml(),
+            html: emailHtml(r.id),
+            headers: unsubscribeHeaders(r.id),
           }),
         })
         if (res.ok) {
@@ -171,6 +177,7 @@ export async function GET(req: NextRequest) {
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('feature_announce_emailed', false)
+      .eq('email_opted_out', false)
 
     console.log(`[feature-announce] batch done: sent=${sent} failed=${failed} remaining=${remainingAfter ?? '?'}`)
     return NextResponse.json({ mode: 'SENT', sent, failed, batch_size: batch.length, remaining_flag_false: remainingAfter ?? null })

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepStaleAnimateClaims } from '@/lib/animate/service'
+import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 // Cron route: fires daily via Vercel Cron (see vercel.json).
 // Finds users who signed up 20–28 hours ago and have no paid plan,
@@ -116,11 +117,18 @@ export async function GET(req: NextRequest) {
 
   const { data: users, error } = await supabase
     .from('profiles')
-    .select('id, email, full_name, plan, reminder_sent_at')
+    // KINEO-AUTOPILOT-299-2026-07-26 — era `full_name`, coluna que NÃO EXISTE
+    // em public.profiles (a coluna se chama `name`). O select inteiro estourava
+    // 42703 e a rota devolvia 500 em TODA execução desde 2026-06-16: nenhum
+    // email de ativação D+1 saiu em mais de um mês. Conferido em
+    // information_schema.columns, não deduzido.
+    .select('id, email, name, plan, reminder_sent_at')
     .gte('created_at', from)
     .lte('created_at', to)
     .is('reminder_sent_at', null)
     .in('plan', ['free', null])
+    // KINEO-UNSUBSCRIBE-2026-07-26 — quem pediu para sair NUNCA entra em coorte.
+    .eq('email_opted_out', false)
 
   if (error) {
     console.error('[send-reminders] DB query error:', error.message)
@@ -136,7 +144,7 @@ export async function GET(req: NextRequest) {
   for (const user of targets) {
     if (!user.email) continue
 
-    const name = user.full_name?.split(' ')[0] || null
+    const name = user.name?.split(' ')[0] || null
     const greeting = name ? `Hey ${name},` : 'Hey Creator,'
     const activationUrl = `${APP_URL}/generate?utm_source=lifecycle&utm_medium=email&utm_campaign=d1_activation`
 
@@ -195,6 +203,10 @@ export async function GET(req: NextRequest) {
       </td>
     </tr>
   </table>
+  <!-- KINEO-UNSUBSCRIBE-2026-07-26 — variante 'dark': este email é o único do
+       repo com documento completo e fundo preto, o rodapé claro ficaria
+       ilegível aqui. -->
+  ${emailFooterHtml(user.id, 'dark')}
 </body>
 </html>`
 
@@ -210,7 +222,8 @@ export async function GET(req: NextRequest) {
           to: [user.email],
           subject: 'Your free Fast previews are waiting',
           html,
-          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first Fast video yet.\n\nCreate, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.\n\nStart here: ${activationUrl}\n\n— The Kineo Team`,
+          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first Fast video yet.\n\nCreate, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.\n\nStart here: ${activationUrl}\n\n— The Kineo Team${emailFooterText(user.id)}`,
+          headers: unsubscribeHeaders(user.id),
         }),
       })
 

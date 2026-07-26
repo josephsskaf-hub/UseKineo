@@ -1,8 +1,32 @@
 // Affiliate self-serve — apply to become an affiliate.
 // POST, auth required. Idempotent: if the signed-in user already owns an
 // affiliate row we return it as-is. Otherwise we create one with a unique
-// 8-char code, status 'pending' and a 40% commission rate. RLS on the
+// 8-char code, status 'active' and a 40% commission rate. RLS on the
 // affiliate_* tables is deny-all, so all writes use the service-role client.
+//
+// PUSH #100 — POR QUE 'active' NA CRIAÇÃO (era 'pending'):
+// 'pending' não era uma fila de aprovação, era um cano entupido. O link do
+// afiliado morre silenciosamente enquanto o status não for 'active':
+//   app/a/[code]/route.ts:38-40      → status !== 'active' ⇒ redirect pra home,
+//                                      sem cookie e sem linha em affiliate_clicks;
+//   app/api/affiliate/attribute/route.ts:76 → rejeita com 'inactive_affiliate'.
+// A única forma de ativar era um humano clicar Approve em /admin/affiliates, e
+// ninguém está olhando. Resultado prático: o afiliado se inscreve, recebe um
+// link que não registra nada, conclui que o programa não funciona e some.
+//
+// POR QUE ISSO NÃO ABRE RISCO FINANCEIRO: dinheiro é aprovado num portão
+// separado, DEPOIS. app/api/stripe/webhook/route.ts:90-99 grava a comissão com
+// `status: 'pending'` fixo no insert — não existe caminho que grave 'approved'
+// ali — e o comentário da própria função (:56-59) declara que a linha "Stays
+// 'pending' until the admin approves it (so refunds inside the window simply
+// never get approved/paid)". Ou seja: ativar o afiliado libera TRACKING
+// (clique, cookie, atribuição), não payout. O admin continua revisando cada
+// comissão antes de pagar, que é onde a revisão tem valor.
+//
+// COMO REVERTER: troque `status: 'active'` por `status: 'pending'` no insert
+// abaixo. Nada mais depende dessa escolha — /admin/affiliates continua podendo
+// suspender ou aprovar afiliados manualmente, e afiliados já criados mantêm o
+// status que têm hoje (este arquivo só decide o status de linhas NOVAS).
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
@@ -80,7 +104,10 @@ export async function POST(req: Request) {
           email: user.email ?? null,
           name,
           code,
-          status: 'pending',
+          // PUSH #100 — era 'pending'. Ver o bloco no topo do arquivo: o link
+          // do afiliado só funciona com status 'active', e a comissão continua
+          // nascendo 'pending' no webhook do Stripe. Reverter = 'pending'.
+          status: 'active',
           commission_rate: 0.4,
         })
         .select('status, code')
