@@ -14,6 +14,8 @@
 
 import { useState } from 'react'
 import { PLANS } from '@/lib/pricing'
+import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 interface PostVideoPaywallProps {
   // Current credit balance after the most recent generation. The parent
@@ -24,18 +26,19 @@ interface PostVideoPaywallProps {
 
 // Push #063 — fire-and-forget checkout click tracking so the paywall feeds
 // into /admin/funnel. Silently no-ops when public.events isn't present.
+//
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — este helper usava fetch('/api/events')
+// CRU, sem session_id. Resultado em produção: basic_checkout_clicked (16
+// eventos), pro_checkout_clicked (23) e starter_pack_checkout_clicked (40) com
+// ZERO sessões distintas — impossível ligar um clique ao checkout_attempted que
+// o servidor grava. trackEvent() sempre anexa kineo_event_session_id, que é o
+// MESMO id que o route handler lê do cookie. Uma única fonte de verdade.
 function trackCheckoutClick(tier: 'basic' | 'pro'): void {
   try {
-    void fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name: tier === 'basic' ? 'basic_checkout_clicked' : 'pro_checkout_clicked',
-        name: tier === 'basic' ? 'checkout_basic_click' : 'checkout_pro_click',
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-      }),
-      keepalive: true,
-    }).catch(() => {})
+    void trackEvent(tier === 'basic' ? 'basic_checkout_clicked' : 'pro_checkout_clicked', {
+      source: 'post_video_paywall',
+      tier,
+    })
   } catch {
     // ignore
   }
@@ -48,17 +51,24 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
   // Push #114 — CTAs go through /api/stripe/checkout, so we need a busy
   // flag to disable the buttons + show a "Loading…" label while the
   // session is being created.
-  const [purchasing, setPurchasing] = useState<'basic' | 'pro' | null>(null)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — useState alone was not enough: React had
+  // not repainted the disabled button when the second click landed, and the
+  // Starter Pack button below had no busy state at all (7 Stripe sessions in
+  // 2.8 s from one account). useCheckoutLaunch adds a synchronous ref latch, a
+  // redirect watchdog and an inline error.
+  const checkout = useCheckoutLaunch('post_video_paywall')
+  const purchasing = checkout.pending
 
   // Push #175 — use direct GET navigation (same fix as PricingCards #173).
   // Avoids iOS Safari gesture-chain break from async fetch/await and
   // removes the broken /generate redirect on already-subscribed.
   function handleBuy(tier: 'basic' | 'pro') {
-    setPurchasing(tier)
-    trackCheckoutClick(tier)
     // #471 — carry the founding 50%-off promo (same as the wall modal) so the
     // inline post-video paywall converts at the same discount.
-    window.location.href = `/api/stripe/checkout?tier=${tier}&promo=FOUNDING50`
+    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}&promo=FOUNDING50`, {
+      promo: 'FOUNDING50',
+    })
+    if (started) trackCheckoutClick(tier)
   }
 
   if (dismissed) return null
@@ -115,6 +125,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           }
           onClick={() => handleBuy('basic')}
           loading={purchasing === 'basic'}
+          busy={purchasing !== null}
           selected={selectedPlan === 'basic'}
           onSelect={() => setSelectedPlan('basic')}
         />
@@ -137,6 +148,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           }
           onClick={() => handleBuy('pro')}
           loading={purchasing === 'pro'}
+          busy={purchasing !== null}
           highlight
           selected={selectedPlan === 'pro'}
           onSelect={() => setSelectedPlan('pro')}
@@ -149,16 +161,16 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           far easier first "yes". Same checkout as the 0-credit modal + /pricing. */}
       <button
         type="button"
+        disabled={purchasing !== null}
         onClick={() => {
-          try {
-            void fetch('/api/events', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: 'starter_pack_checkout_clicked', metadata: { source: 'post_video_paywall' } }),
-              keepalive: true,
-            })
-          } catch { /* non-blocking */ }
-          window.location.href = '/api/stripe/checkout?pack=starter'
+          const started = checkout.launch('starter_pack', '/api/stripe/checkout?pack=starter', {
+            sku: 'starter10',
+          })
+          if (started) {
+            try {
+              void trackEvent('starter_pack_checkout_clicked', { source: 'post_video_paywall' })
+            } catch { /* non-blocking */ }
+          }
         }}
         className="block w-full rounded-xl px-4 py-3 mb-3 text-center"
         style={{
@@ -168,15 +180,34 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           fontSize: '0.86rem',
           fontWeight: 800,
           lineHeight: 1.35,
-          cursor: 'pointer',
+          cursor: purchasing !== null ? 'wait' : 'pointer',
+          opacity: purchasing !== null ? 0.7 : 1,
         }}
       >
-        Not ready for a monthly plan?{' '}
-        <span style={{ color: '#2997ff' }}>Start with 10 videos for $4.90 →</span>
-        <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
-          One-time · no subscription · credits never expire
-        </span>
+        {purchasing === 'starter_pack' ? (
+          'Opening secure checkout…'
+        ) : (
+          <>
+            Not ready for a monthly plan?{' '}
+            <span style={{ color: '#2997ff' }}>Start with 10 videos for $4.90 →</span>
+            <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
+              One-time · no subscription · credits never expire
+            </span>
+          </>
+        )}
       </button>
+
+      {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — silent failure is what produced the
+          repeat-click bursts. Any checkout that does not open now says so. */}
+      {checkout.error && (
+        <p
+          role="alert"
+          className="text-xs text-center mb-3"
+          style={{ color: '#ff6b6b', fontWeight: 700 }}
+        >
+          {checkout.error}
+        </p>
+      )}
 
       <div className="text-center">
         <button
@@ -208,6 +239,7 @@ function PlanCard({
   highlight,
   onClick,
   loading,
+  busy,
   selected,
   onSelect,
 }: {
@@ -220,6 +252,8 @@ function PlanCard({
   highlight?: boolean
   onClick?: () => void
   loading?: boolean
+  // Some other checkout on this card is already navigating to Stripe.
+  busy?: boolean
   selected?: boolean
   onSelect?: () => void
 }) {
@@ -321,7 +355,7 @@ function PlanCard({
       </ul>
       <button
         type="button"
-        disabled={!!loading}
+        disabled={!!loading || !!busy}
         onClick={(e) => {
           e.stopPropagation()
           if (onSelect) onSelect()
@@ -333,8 +367,8 @@ function PlanCard({
           color: '#000',
           boxShadow: 'none',
           border: 'none',
-          cursor: loading ? 'wait' : 'pointer',
-          opacity: loading ? 0.7 : 1,
+          cursor: loading || busy ? 'wait' : 'pointer',
+          opacity: loading || busy ? 0.7 : 1,
         }}
       >
         {ctaLabel}

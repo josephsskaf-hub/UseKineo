@@ -40,6 +40,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
@@ -80,7 +81,13 @@ export default function ExitIntentOffer() {
   // KINEO-SPRINT-OFFER-2026-07-14 — 'pack' removed from the union with the
   // one-time escape-hatch link (single-offer cleanup: the modal now sells
   // exactly two things — intro Starter and intro Creator, both recurring).
-  const [buying, setBuying] = useState<'starter' | 'creator' | null>(null)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — `buying` was plain useState: React had
+  // not painted the disabled button when a second tap arrived, so a double tap
+  // minted two Stripe sessions, and a redirect that never happened showed
+  // nothing at all. The shared launcher owns the latch, the pending key and the
+  // inline error now.
+  const checkout = useCheckoutLaunch('exit_intent_offer')
+  const buying = checkout.pending
   const shownRef = useRef(false)
   const dialogRef = useRef<HTMLDivElement | null>(null)
 
@@ -226,19 +233,25 @@ export default function ExitIntentOffer() {
   // era a 3ª oferta no mesmo modal e reabria o beco sem saída one-time.
   // O endpoint ?pack=starter segue vivo só para o fluxo return=wm.
   function handleIntroStarter() {
-    if (buying) return
-    setBuying('starter')
+    const started = checkout.launch(
+      'starter',
+      `/api/stripe/checkout?tier=starter&intro=1${checkoutIntentParam()}`,
+      { tier: 'starter', intro: true, pricing_surface: 'exit_intent_offer' },
+    )
+    if (!started) return
     trackEvent('starter_checkout_clicked')
     trackEvent('exit_intent_intro_starter_clicked')
-    window.location.href = `/api/stripe/checkout?tier=starter&intro=1${checkoutIntentParam()}`
   }
 
   function handleIntroCreator() {
-    if (buying) return
-    setBuying('creator')
+    const started = checkout.launch(
+      'creator',
+      `/api/stripe/checkout?tier=basic&intro=1${checkoutIntentParam()}`,
+      { tier: 'basic', intro: true, pricing_surface: 'exit_intent_offer' },
+    )
+    if (!started) return
     trackEvent('basic_checkout_clicked')
     trackEvent('exit_intent_intro_creator_clicked')
-    window.location.href = `/api/stripe/checkout?tier=basic&intro=1${checkoutIntentParam()}`
   }
 
   if (!open) return null
@@ -359,6 +372,20 @@ export default function ExitIntentOffer() {
             </button>
           </div>
         </div>
+
+        {checkout.error && (
+          <div
+            role="alert"
+            className="rounded-xl px-4 py-3 text-[12.5px] mb-3 text-left"
+            style={{
+              background: 'rgba(255,107,107,.08)',
+              border: '1px solid rgba(255,107,107,.35)',
+              color: '#f5f5f7',
+            }}
+          >
+            {checkout.error}
+          </div>
+        )}
 
         <p className="text-[11px] text-[#6e6e73]">
           7-day money-back guarantee · cancel anytime · renews at the full monthly price after month 1

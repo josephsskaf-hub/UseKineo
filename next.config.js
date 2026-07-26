@@ -1,3 +1,54 @@
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — /vs/ reverse-order aliases.
+//
+// The canonical comparison slug puts the two tool slugs in alphabetical order,
+// so there is exactly one indexable URL per pair. The reverse order is a real
+// URL people type and link, and it used to resolve to a static pointer stub
+// (app/vs/[pair]/page.tsx) carrying a zero-delay meta refresh + rel=canonical +
+// noindex. That stub exists because redirect() is provably broken inside a
+// prerendered App Router page on Next 14.2.5 (the export writes status 307 with
+// no Location header). next.config.js has no such limitation: these are real
+// 308s emitted at the edge, before any page is served.
+//
+// Kept in sync by hand with CANONICAL_SLUGS in lib/comparisons.ts. This file is
+// CommonJS and cannot import that TypeScript module, so the list is duplicated
+// here deliberately; reverseSlug below is the same transform as the exported
+// one. If a pair is added to lib/comparisons.ts, add its slug here too — the
+// page stub still catches anything missed, so a stale list degrades to the old
+// behaviour rather than to a 404.
+const VS_CANONICAL_SLUGS = [
+  'heygen-vs-synthesia',
+  'opus-clip-vs-submagic',
+  'captions-vs-submagic',
+  'descript-vs-opus-clip',
+  'klap-vs-opus-clip',
+  'opus-clip-vs-quso',
+  'creatify-vs-heygen',
+  'pictory-vs-submagic',
+  'heygen-vs-kineo',
+  'kineo-vs-opus-clip',
+  'kineo-vs-pictory',
+  'kineo-vs-submagic',
+]
+
+function reverseSlug(slug) {
+  const i = slug.indexOf('-vs-')
+  if (i === -1) return slug
+  return slug.slice(i + 4) + '-vs-' + slug.slice(0, i)
+}
+
+// alias -> canonical, skipping any palindrome and any alias that is itself a
+// canonical slug (a redirect there would shadow a real article).
+const VS_ALIAS_REDIRECTS = VS_CANONICAL_SLUGS.map((canonical) => ({
+  alias: reverseSlug(canonical),
+  canonical,
+}))
+  .filter(({ alias, canonical }) => alias !== canonical && !VS_CANONICAL_SLUGS.includes(alias))
+  .map(({ alias, canonical }) => ({
+    source: `/vs/${alias}`,
+    destination: `/vs/${canonical}`,
+    permanent: true,
+  }))
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Push #92 — Core Web Vitals: remotePatterns was an empty array, which
@@ -69,6 +120,10 @@ const nextConfig = {
       // single canonical instead of creating duplicate legacy-name pages.
       { source: '/alternatives/vidyo', destination: '/alternatives/quso', permanent: true },
       { source: '/alternatives/vidyo-ai', destination: '/alternatives/quso', permanent: true },
+      // Reverse-order /vs/ aliases → the single canonical comparison URL, as
+      // real 308s. See VS_ALIAS_REDIRECTS at the top of this file. Appended
+      // last so nothing above changes behaviour.
+      ...VS_ALIAS_REDIRECTS,
     ]
   },
 }

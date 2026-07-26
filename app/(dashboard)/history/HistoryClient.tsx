@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
 
@@ -144,6 +145,10 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // from My Videos any time — not just once on the result page.
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the Starter upsell was a bare
+  // window.location.href: no latch (repeat taps = repeat Stripe sessions), no
+  // pending state and no error if the redirect never landed.
+  const checkout = useCheckoutLaunch('history_starter_upgrade')
   // #459 — share the public /v/[id] page (native share on mobile, copy on desktop)
   const [sharedId, setSharedId] = useState<string | null>(null)
   const [referralCode, setReferralCode] = useState<string | null>(null)
@@ -212,13 +217,18 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   }, [cleanExportLocked, completedVideos.length])
 
   function handleStarterCheckout(source: 'history_repeat_offer' | 'history_lightbox' = 'history_lightbox') {
+    const started = checkout.launch(source, '/api/stripe/checkout?tier=starter&intro=1', {
+      tier: 'starter',
+      intro: true,
+      pricing_surface: source,
+    })
+    if (!started) return
     void trackEvent('history_repeat_offer_clicked', {
       version: 'push28_repeat_creator',
       source,
       completed_video_count: completedVideos.length,
     })
     trackCheckoutClick('starter')
-    window.location.href = '/api/stripe/checkout?tier=starter&intro=1'
   }
 
   // Push #098 — blob download with a real filename (the video's title). The
@@ -539,16 +549,25 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               <button
                 type="button"
                 onClick={() => handleStarterCheckout('history_repeat_offer')}
+                disabled={checkout.pending !== null}
                 className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
                 style={{
                   background: 'linear-gradient(135deg, #16a34a, #22c55e)',
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: checkout.pending ? 'wait' : 'pointer',
+                  opacity: checkout.pending ? 0.7 : 1,
                   boxShadow: '0 6px 22px rgba(34,197,94,.30)',
                 }}
               >
-                Make new exports clean · $4.90 →
+                {checkout.pending === 'history_repeat_offer'
+                  ? 'Loading…'
+                  : 'Make new exports clean · $4.90 →'}
               </button>
+            )}
+            {showRepeatCreatorOffer && checkout.error && (
+              <p role="alert" className="text-xs font-semibold" style={{ color: '#ff6b6b' }}>
+                {checkout.error}
+              </p>
             )}
             <Link
               href={followUpHref}
@@ -1191,11 +1210,23 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               {isWatermarkedFastAsset(v) && cleanExportLocked === true && (
                 <button
                   onClick={() => handleStarterCheckout('history_lightbox')}
-                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: 'pointer', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', border: '1px solid transparent', color: '#fff', fontWeight: 800, fontSize: '0.9rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
+                  disabled={checkout.pending !== null}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, width: '100%', padding: '13px 10px', borderRadius: 14, cursor: checkout.pending ? 'wait' : 'pointer', opacity: checkout.pending ? 0.7 : 1, background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', border: '1px solid transparent', color: '#fff', fontWeight: 800, fontSize: '0.9rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
                 >
-                  <span>Unlock clean exports — Start Starter for $4.90</span>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · then $9.90/month · cancel anytime</span>
+                  {checkout.pending === 'history_lightbox' ? (
+                    <span>Loading…</span>
+                  ) : (
+                    <>
+                      <span>Unlock clean exports — Start Starter for $4.90</span>
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · then $9.90/month · cancel anytime</span>
+                    </>
+                  )}
                 </button>
+              )}
+              {isWatermarkedFastAsset(v) && cleanExportLocked === true && checkout.error && (
+                <p role="alert" style={{ color: '#ff6b6b', fontSize: '0.75rem', fontWeight: 600, textAlign: 'center', margin: 0 }}>
+                  {checkout.error}
+                </p>
               )}
               <button
                 onClick={() => setLightbox(null)}

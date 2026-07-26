@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { CANONICAL_SLUGS } from '@/lib/comparisons'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -92,5 +93,27 @@ export default function sitemap(): MetadataRoute.Sitemap {
     changeFrequency: 'monthly' as const,
     priority: 0.7,
   }))
-  return [...staticEntries, ...nicheEntries, ...altEntries, ...exampleEntries]
+  // KINEO-VS-2026-07-26 — the /vs comparison cluster. Appended after every
+  // existing block so nothing above is reordered. Only the CANONICAL slugs are
+  // listed: the reverse-order aliases (/vs/submagic-vs-opus-clip) resolve and
+  // forward to their canonical URL, but they are noindexed by design and must
+  // never appear here.
+  // Priority 0.8 matches /alternatives/[competitor], the closest existing
+  // commercial-intent cluster; the hub gets 0.7, matching /facts and the
+  // example pages rather than the 0.9 reserved for money-page heads.
+  const vsEntries = [
+    {
+      url: `${BASE}/vs`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    },
+    ...CANONICAL_SLUGS.map((slug) => ({
+      url: `${BASE}/vs/${slug}`,
+      lastModified: LAST_MODIFIED,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    })),
+  ]
+  return [...staticEntries, ...nicheEntries, ...altEntries, ...exampleEntries, ...vsEntries]
 }

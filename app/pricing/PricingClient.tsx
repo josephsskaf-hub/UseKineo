@@ -13,6 +13,7 @@ import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
@@ -161,30 +162,24 @@ export default function PricingClient() {
   // Push #114 — CTA state. `purchasing` is the tier whose button shows
   // "Loading…" while the API call is in flight; `checkoutError` surfaces
   // any server-returned error below the cards.
-  const [purchasing, setPurchasing] = useState<'starter' | 'basic' | 'pro' | null>(null)
   // KINEO-CHECKOUT-IDEMPOTENCY-2026-07-15 — state alone is not a synchronous
   // click lock: a fast double-click can run the handler twice before React
   // paints the disabled button. Keep an immediate ref guard as the client-side
   // half of the server idempotency protection.
-  const checkoutNavigationLockedRef = useRef(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — that ref latch + its pageshow release
+  // now live in useCheckoutLaunch, shared with every other checkout surface,
+  // and it adds the missing piece: a watchdog that turns a redirect that never
+  // happens into a visible English error instead of silence.
+  const checkout = useCheckoutLaunch('pricing_page')
+  const purchasing = checkout.pending
+  const checkoutError = checkout.error
+  const setCheckoutError = checkout.setError
   // Push #171 — show a friendly "already subscribed" info banner instead of
   // silently redirecting to /generate when the API blocks a duplicate purchase.
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency | null>(null)
   const currencyTrackedRef = useRef(false)
 
-  // Browsers may restore this page from the back-forward cache after the user
-  // leaves Stripe. React state and refs are restored too, so release the click
-  // lock on pageshow or every plan button can remain disabled forever.
-  useEffect(() => {
-    const releaseCheckoutLock = () => {
-      checkoutNavigationLockedRef.current = false
-      setPurchasing(null)
-    }
-    window.addEventListener('pageshow', releaseCheckoutLock)
-    return () => window.removeEventListener('pageshow', releaseCheckoutLock)
-  }, [])
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
   // (unverifiable "estimated views/month" promise — see note at the old block).
   // Push #117 — sticky mobile CTA bar shows after 300px scroll so phone
@@ -252,17 +247,6 @@ export default function PricingClient() {
   // directly to the GET checkout endpoint which does a server-side 302
   // redirect to Stripe. No fetch(), no await, no gesture breakage.
   function handleBuy(tier: 'starter' | 'basic' | 'pro') {
-    if (checkoutNavigationLockedRef.current) return
-    checkoutNavigationLockedRef.current = true
-    setPurchasing(tier)
-    const eventName = tier === 'pro' ? 'pro_checkout_clicked' : tier === 'starter' ? 'starter_checkout_clicked' : 'basic_checkout_clicked'
-    trackPricingEvent(eventName)
-    trackCheckoutClick(tier as 'basic' | 'pro')
-    // #457 — TikTok Pixel: InitiateCheckout = purchase intent (warmest retargeting audience)
-    try {
-      const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
-      if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: tier })
-    } catch { /* non-blocking */ }
     const billingParam = billing === 'annual' ? '&billing=annual' : ''
     // #453 — forward a ?promo= code (e.g. /pricing?promo=FOUNDING50 from the
     // win-back emails) into checkout so the discount auto-applies on plan click.
@@ -276,7 +260,22 @@ export default function PricingClient() {
     // com desconto ($4.90/$9.90). O servidor valida elegibilidade (1 por
     // cliente) e ignora o param em annual/pro — aqui só pedimos.
     const introParam = billing === 'monthly' && (tier === 'starter' || tier === 'basic') ? '&intro=1' : ''
-    window.location.href = `/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`
+    const started = checkout.launch(
+      tier,
+      `/api/stripe/checkout?tier=${tier}${billingParam}${promoParam}${introParam}${intentParam}`,
+      { tier, billing, intro: introParam !== '', pricing_surface: 'pricing_page' },
+    )
+    // A suppressed duplicate click must not double-count the funnel or fire a
+    // second TikTok InitiateCheckout.
+    if (!started) return
+    const eventName = tier === 'pro' ? 'pro_checkout_clicked' : tier === 'starter' ? 'starter_checkout_clicked' : 'basic_checkout_clicked'
+    trackPricingEvent(eventName)
+    trackCheckoutClick(tier)
+    // #457 — TikTok Pixel: InitiateCheckout = purchase intent (warmest retargeting audience)
+    try {
+      const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
+      if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: tier })
+    } catch { /* non-blocking */ }
   }
 
   // Push #173 — read checkout_error / already_subscribed from URL params

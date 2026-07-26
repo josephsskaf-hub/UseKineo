@@ -70,7 +70,12 @@ function isMissingStripeCustomer(error: unknown): boolean {
 // the immediate navigation to Stripe cannot cancel it. This also records the
 // anonymous auth wall, which client-only click tracking could never see.
 async function recordCheckoutEvent(
-  name: 'checkout_attempted' | 'checkout_auth_required' | 'checkout_started' | 'checkout_failed',
+  name:
+    | 'checkout_attempted'
+    | 'checkout_auth_required'
+    | 'checkout_started'
+    | 'checkout_failed'
+    | 'checkout_prefetch_blocked',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -103,6 +108,85 @@ async function recordCheckoutEvent(
   } catch (error) {
     console.error('[stripe/checkout] event insert threw:', name, error)
   }
+}
+
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — the browser session id minted by
+// lib/analytics.ts (kineo_event_session_id) is mirrored into a cookie so every
+// server-side checkout event lands on the SAME session as the client-side
+// checkout_click. Without this, checkout_* rows show 0 distinct sessions.
+function browserSessionIdFrom(req: NextRequest): string | undefined {
+  const raw = req.cookies.get('kineo_event_session_id')?.value ?? ''
+  return /^[A-Za-z0-9_-]{8,64}$/.test(raw) ? raw : undefined
+}
+
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — produção mostrou rajadas de
+// checkout_auth_required com 2-8 ms entre elas, uma por tier, sem user_id e sem
+// session_id: isso é um prefetcher/scanner abrindo TODOS os <a href> de uma
+// página (ou de um e-mail de recuperação) de uma vez.
+//
+// A prefetched request must never create a real Stripe Checkout Session:
+// it inflates telemetry, burns Stripe rate limit and produces "abandoned"
+// sessions for tiers nobody clicked. A genuine click is always a top-level
+// navigation (Sec-Fetch-Mode: navigate), so we only block requests that
+// explicitly announce themselves as speculative.
+function isSpeculativeRequest(req: NextRequest): boolean {
+  const h = req.headers
+  const secPurpose = (h.get('sec-purpose') ?? '').toLowerCase()
+  if (secPurpose.includes('prefetch') || secPurpose.includes('prerender')) return true
+  const purpose = (h.get('purpose') ?? h.get('x-purpose') ?? '').toLowerCase()
+  if (purpose === 'prefetch' || purpose === 'preview') return true
+  if ((h.get('x-moz') ?? '').toLowerCase() === 'prefetch') return true
+  if (h.get('next-router-prefetch') === '1') return true
+  return false
+}
+
+// A prefetch is not an error for the buyer — nobody is looking at it. Answer
+// with a body-less 204 so no Stripe call, no cookie and no redirect happen.
+async function speculativeNoop(req: NextRequest, selection: string): Promise<NextResponse> {
+  await recordCheckoutEvent(
+    'checkout_prefetch_blocked',
+    null,
+    {
+      selection,
+      // Header names only — never the visitor's IP, email or cookies.
+      signal: req.headers.get('sec-purpose')
+        ? 'sec-purpose'
+        : req.headers.get('purpose') || req.headers.get('x-purpose')
+          ? 'purpose'
+          : req.headers.get('x-moz')
+            ? 'x-moz'
+            : 'next-router-prefetch',
+    },
+    browserSessionIdFrom(req),
+  )
+  return new NextResponse(null, { status: 204 })
+}
+
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
+// Subscriptions already had checkoutIdempotencyKeyFor(); the one-time SKUs
+// (starter pack, $2.90 offer, credit top-ups) had NOTHING, and production shows
+// one user producing 7 pack sessions in 2.8 s. Same 5-minute window: an
+// identical purchase intent collapses onto one Session, a different SKU,
+// currency, price or destination stays distinct.
+function oneTimeIdempotencyKey(parts: Record<string, unknown>): string {
+  const signature = JSON.stringify({
+    version: 1,
+    ...parts,
+    window: Math.floor(Date.now() / (5 * 60 * 1000)),
+  })
+  return `kineo-onetime-v1:${createHash('sha256').update(signature).digest('hex')}`
+}
+
+// Turns one of OUR OWN English error strings into a stable snake_case reason
+// code. Everything after the first ':' is dropped because that is where the
+// raw Stripe message is interpolated — the reason code must never carry a
+// customer id, an email or any payment detail.
+function checkoutFailureReason(msg: string): string {
+  return (msg.split(':')[0] ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 48) || 'unknown'
 }
 
 // Push #273 — multi-currency support.
@@ -290,10 +374,32 @@ async function buildAndRedirect(
     ? `&intent_campaign=${encodeURIComponent(intentCampaign)}`
     : ''
 
-  function redirectError(msg: string) {
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every early return below used to be
+  // silent: the buyer landed on /pricing with a banner and we had no event at
+  // all. checkout_failed existed in the union since 2026-07-15 but was never
+  // emitted, so "checkout_attempted 63 / checkout_started 15" could not be
+  // explained. These two helpers now record the drop-off for EVERY exit path.
+  // Mutable because the helpers are declared before we know the user or the
+  // resolved price (TDZ), and are called from both sides.
+  let failureUserId: string | null = null
+  let failureContext: Record<string, unknown> = { tier, billing, intro_requested: intro }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...failureContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId ?? undefined,
+    )
     return NextResponse.redirect(`${appUrl}/pricing?checkout_error=${encodeURIComponent(msg)}${intentCampaignParam}`)
   }
-  function jsonError(msg: string, status: number) {
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...failureContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId ?? undefined,
+    )
     return NextResponse.json({ error: msg }, { status })
   }
 
@@ -327,9 +433,12 @@ async function buildAndRedirect(
     checkout_recovery: checkoutRecovery,
     intent_campaign: intentCampaign ?? null,
   }
+  // From here on, a failure event carries the full purchase intent.
+  failureContext = { ...checkoutMetadata }
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
   await recordCheckoutEvent('checkout_attempted', user?.id ?? null, checkoutMetadata, browserSessionId ?? undefined)
 
   if (authError || !user) {
@@ -962,10 +1071,29 @@ async function buildAndRedirect(
 // credits (currency-proof). client_reference_id kept for the legacy webhook path.
 async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
-  function redirectError(msg: string) {
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the one-time SKUs emitted NO server-side
+  // telemetry at all, which is why starter_pack_checkout_clicked (40 events)
+  // had no matching checkout_attempted/checkout_started to compare against.
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = { sku: 'starter10', mode: 'payment' }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.redirect(`${appUrl}/pricing?checkout_error=${encodeURIComponent(msg)}`)
   }
-  function jsonError(msg: string, status: number) {
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.json({ error: msg }, { status })
   }
 
@@ -979,10 +1107,15 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   const country = req.headers.get('x-vercel-ip-country') ?? 'US'
   const currency: Currency = resolveCheckoutCurrency(country)
   const unitAmount = PACK_PRICES[currency]
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
   if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
     // KINEO-CHECKOUT-RESUME-2026-07-07 — carry the full pack checkout URL through
     // login so the purchase resumes automatically after sign-in (see buildAndRedirect).
     // `resumed=1` = loop guard (visible error instead of login↔checkout forever).
@@ -1036,9 +1169,21 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
   else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
 
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
+  // Production: 7 pack sessions in 2.8 s from one account (button had no
+  // pending state, so the buyer kept clicking).
+  const packIdempotencyKey = oneTimeIdempotencyKey({
+    sku: 'starter10',
+    user_id: user.id,
+    currency,
+    unit_amount: unitAmount,
+    success_url: sessionParams.success_url,
+    customer: sessionParams.customer ?? null,
+  })
+
   let session: Stripe.Checkout.Session
   try {
-    session = await stripe.checkout.sessions.create(sessionParams)
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: packIdempotencyKey })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     // A prior subscription in another currency can trigger "cannot combine
@@ -1048,7 +1193,10 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
       delete sessionParams.customer
       sessionParams.customer_email = profile?.email ?? user.email ?? undefined
       try {
-        session = await stripe.checkout.sessions.create(sessionParams)
+        // Different params ⇒ different key, otherwise Stripe rejects the reuse.
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `${packIdempotencyKey}:email`,
+        })
       } catch (retryErr) {
         const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
         console.error('[stripe/checkout] pack retry failed:', rmsg)
@@ -1060,6 +1208,12 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
     }
   }
 
+  await recordCheckoutEvent(
+    'checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
@@ -1070,10 +1224,26 @@ async function buildPackAndRedirect(req: NextRequest, isGet: boolean): Promise<N
 // webhook via metadata.pack_credits (=10); the webhook also sets offer290_used.
 async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
-  function redirectError(msg: string) {
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = { sku: 'starter290', mode: 'payment' }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.redirect(`${appUrl}/generate?checkout_error=${encodeURIComponent(msg)}`)
   }
-  function jsonError(msg: string, status: number) {
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.json({ error: msg }, { status })
   }
 
@@ -1092,10 +1262,15 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   const country = req.headers.get('x-vercel-ip-country') ?? 'US'
   const currency: Currency = resolveCheckoutCurrency(country)
   const unitAmount = PACK290_PRICES[currency]
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
   if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
     // KINEO-CHECKOUT-RESUME-2026-07-07 — resume the offer checkout after sign-in.
     if (!isGet) return jsonError('You must be signed in to claim this offer.', 401)
     if (req.nextUrl.searchParams.get('resumed') === '1') {
@@ -1142,16 +1317,27 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
   else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
 
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
+  const offerIdempotencyKey = oneTimeIdempotencyKey({
+    sku: 'starter290',
+    user_id: user.id,
+    currency,
+    unit_amount: unitAmount,
+    customer: sessionParams.customer ?? null,
+  })
+
   let session: Stripe.Checkout.Session
   try {
-    session = await stripe.checkout.sessions.create(sessionParams)
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: offerIdempotencyKey })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.toLowerCase().includes('cannot combine currencies')) {
       delete sessionParams.customer
       sessionParams.customer_email = profile?.email ?? user.email ?? undefined
       try {
-        session = await stripe.checkout.sessions.create(sessionParams)
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `${offerIdempotencyKey}:email`,
+        })
       } catch (retryErr) {
         const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
         console.error('[stripe/checkout] starter290 retry failed:', rmsg)
@@ -1164,6 +1350,12 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
   }
 
   console.log(`[stripe/checkout] starter290 session: user=${user.id.slice(0, 8)} amount=${unitAmount}`)
+  await recordCheckoutEvent(
+    'checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
@@ -1173,10 +1365,26 @@ async function buildStarter290AndRedirect(req: NextRequest, isGet: boolean): Pro
 // the webhook via metadata.pack_credits.
 async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: boolean): Promise<NextResponse> {
   const appUrl = req.nextUrl.origin
-  function redirectError(msg: string) {
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = { sku: topupId, mode: 'payment' }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.redirect(`${appUrl}/generate?checkout_error=${encodeURIComponent(msg)}`)
   }
-  function jsonError(msg: string, status: number) {
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
     return NextResponse.json({ error: msg }, { status })
   }
 
@@ -1189,10 +1397,15 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   const currency: Currency = resolveCheckoutCurrency(country)
   const topup = CREDIT_TOPUPS[topupId]
   const unitAmount = topup.prices[currency]
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
 
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
   if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
     // KINEO-CHECKOUT-RESUME-2026-07-07 — resume the top-up checkout after sign-in.
     // `resumed=1` = loop guard (visible error instead of login↔checkout forever).
     if (!isGet) return jsonError('You must be signed in to buy credits.', 401)
@@ -1243,16 +1456,27 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
   else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
 
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
+  const topupIdempotencyKey = oneTimeIdempotencyKey({
+    sku: topupId,
+    user_id: user.id,
+    currency,
+    unit_amount: unitAmount,
+    customer: sessionParams.customer ?? null,
+  })
+
   let session: Stripe.Checkout.Session
   try {
-    session = await stripe.checkout.sessions.create(sessionParams)
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: topupIdempotencyKey })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     if (msg.toLowerCase().includes('cannot combine currencies')) {
       delete sessionParams.customer
       sessionParams.customer_email = profile?.email ?? user.email ?? undefined
       try {
-        session = await stripe.checkout.sessions.create(sessionParams)
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `${topupIdempotencyKey}:email`,
+        })
       } catch (retryErr) {
         const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
         console.error('[stripe/checkout] topup retry failed:', rmsg)
@@ -1265,6 +1489,12 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   }
 
   console.log(`[stripe/checkout] topup session: ${topupId} user=${user.id.slice(0, 8)} amount=${unitAmount}`)
+  await recordCheckoutEvent(
+    'checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
@@ -1278,6 +1508,15 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
 // the browser navigates synchronously (no await / no gesture-chain break).
 export async function GET(req: NextRequest) {
   try {
+    // KINEO-CHECKOUT-TRIAGE-2026-07-25 — a speculative fetch is not a purchase.
+    // Bounce it BEFORE any Supabase or Stripe work so link scanners and browser
+    // preloading can never mint a Checkout Session for a tier nobody clicked.
+    if (isSpeculativeRequest(req)) {
+      const selection =
+        req.nextUrl.searchParams.get('pack') ?? req.nextUrl.searchParams.get('tier') ?? 'basic'
+      return await speculativeNoop(req, selection)
+    }
+
     // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter
     const packParam = req.nextUrl.searchParams.get('pack')
     if (packParam) {

@@ -2,6 +2,14 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — this modal advertised a hardcoded
+// "$11.90/mo" that no plan has charged for two pricing generations. Derived
+// from lib/checkoutPricing (the same table the Stripe route bills from) so it
+// can never drift again. USD is the display default here; the checkout itself
+// still resolves the buyer's real currency server-side by IP.
+const STARTER_FROM_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
 interface UpgradeModalProps {
   onClose: () => void
@@ -82,7 +90,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
           <span className="grad-text">free renders</span>
         </h2>
         <p className="text-sm mb-7" style={{ color: '#86868b' }}>
-          Activate a plan to keep your pipeline running — from $11.90/mo.
+          Activate a plan to keep your pipeline running — from {STARTER_FROM_PRICE}/mo.
         </p>
 
         {/* Features */}

@@ -12,6 +12,7 @@ import PricingCards from '@/components/PricingCards'
 // AvatarPaywallModal below).
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent, trackSignupSource } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
 import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
@@ -930,6 +931,19 @@ export default function GenerateClient({
   // credits but picked a plan-gated engine (e.g. Cinematic/Kling on Starter).
   const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator'>('credits')
   const [upgradeLoading, setUpgradeLoading] = useState(false)
+
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every checkout CTA on this screen used
+  // to be a bare `window.location.href = '/api/stripe/checkout?...'`: no click
+  // latch, no pending state, no error when the redirect never landed. Production
+  // caught ONE user minting 7 Stripe Sessions in 2.8 s from the upgrade modal.
+  // One launcher per surface so `checkout_cta_clicked` /
+  // `checkout_cta_suppressed` tell us exactly which button fired.
+  const wmCheckout = useCheckoutLaunch('generate_watermark_unlock')
+  const upgradeModalCheckout = useCheckoutLaunch('generate_upgrade_modal')
+  const urgencyCheckout = useCheckoutLaunch('generate_urgency_modal')
+  const exitIntentCheckout = useCheckoutLaunch('generate_exit_intent_upgrade')
+  const postVideoCheckout = useCheckoutLaunch('generate_post_video_upsell')
+  const upsellSectionCheckout = useCheckoutLaunch('generate_upsell_section')
 
   // Push #109 — stronger urgency variant for free users who just used
   // their last credit. Countdown is persisted in localStorage so reloading
@@ -4612,6 +4626,12 @@ export default function GenerateClient({
       // Private-mode / storage blocked — the subscription still activates; the
       // exact-video re-render simply cannot resume in this browser.
     }
+    const started = wmCheckout.launch(
+      'starter',
+      withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1&return=wm'),
+      { tier: 'starter', intro: true, return_to: 'watermark_unlock' },
+    )
+    if (!started) return
     trackEvent('starter_checkout_clicked', {
       source: 'post_video_result',
       offer: 'intro_month',
@@ -4627,7 +4647,6 @@ export default function GenerateClient({
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     })
     trackCheckoutClick('starter')
-    window.location.href = withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1&return=wm')
   }
 
   // Push #317 — upload the finished video directly to YouTube.
@@ -5124,7 +5143,10 @@ export default function GenerateClient({
         <UpgradeModal
           reason={upgradeReason}
           isSubscriber={isStarter || isCreator || isStudio}
-          loading={upgradeLoading}
+          // Driven by the launcher, not `upgradeLoading`: the old flag was set
+          // once and never cleared, so a failed redirect left the modal stuck
+          // on "…" forever. The launcher's watchdog releases it after 15 s.
+          loading={upgradeModalCheckout.pending !== null}
           onUpgrade={(tier) => {
             // #380 — straight to Stripe via the working GET checkout route.
             // KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER: the intro month
@@ -5132,6 +5154,17 @@ export default function GenerateClient({
             // ?promo=FOUNDING50 here. Two different discounts on the same
             // modal contradicted each other; intro is deeper anyway and the
             // server validates eligibility (1 per customer, monthly only).
+            // KINEO-CHECKOUT-TRIAGE-2026-07-25 — this exact handler produced the
+            // 7-sessions-in-2.8s incident (source: "upgrade_modal"): the only
+            // guard was `upgradeLoading`, set AFTER trackCheckoutClick and never
+            // painted before the next tap. The launcher latch is synchronous.
+            const introParam = tier === 'starter' || tier === 'basic' ? '&intro=1' : ''
+            const started = upgradeModalCheckout.launch(
+              tier,
+              withIntentCampaign(`/api/stripe/checkout?tier=${tier}${introParam}`),
+              { tier, intro: tier === 'starter' || tier === 'basic', reason: upgradeReason },
+            )
+            if (!started) return
             trackCheckoutClick(tier)
             // #457 — TikTok Pixel: InitiateCheckout = purchase intent (retargeting)
             try {
@@ -5139,9 +5172,8 @@ export default function GenerateClient({
               if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: tier })
             } catch { /* non-blocking */ }
             setUpgradeLoading(true)
-            const introParam = tier === 'starter' || tier === 'basic' ? '&intro=1' : ''
-            window.location.href = withIntentCampaign(`/api/stripe/checkout?tier=${tier}${introParam}`)
           }}
+          checkoutError={upgradeModalCheckout.error}
           onClose={() => setShowUpgradeModal(false)}
         />
       )}
@@ -5155,12 +5187,18 @@ export default function GenerateClient({
       {showUrgencyModal && (
         <UrgencyModal
           remaining={urgencyRemaining}
-          loading={upgradeLoading}
+          loading={urgencyCheckout.pending !== null}
           onUpgrade={() => {
+            const started = urgencyCheckout.launch(
+              'basic',
+              withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
+              { tier: 'basic', intro: true },
+            )
+            if (!started) return
             trackCheckoutClick('basic')
             setUpgradeLoading(true)
-            window.location.href = withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1')
           }}
+          checkoutError={urgencyCheckout.error}
           onClose={() => setShowUrgencyModal(false)}
         />
       )}
@@ -5248,14 +5286,27 @@ export default function GenerateClient({
               Get <strong style={{ color: '#2997ff' }}>150 credits/month</strong> — full AI scenes,
               AI Presenter and 1 Hollywood film included, every month.
             </p>
-            <a
-              href={withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1')}
-              onClick={() => trackCheckoutClick('basic')}
+            {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — was an <a href> straight at
+                the payment API: prefetchable, and every repeat tap minted a
+                Stripe Session. Now a button behind the shared launcher. */}
+            <button
+              type="button"
+              onClick={() => {
+                const started = exitIntentCheckout.launch(
+                  'basic',
+                  withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
+                  { tier: 'basic', intro: true },
+                )
+                if (!started) return
+                trackCheckoutClick('basic')
+              }}
+              disabled={exitIntentCheckout.pending !== null}
               style={{
                 display: 'block',
                 width: '100%',
                 padding: '14px 20px',
                 borderRadius: 12,
+                border: 'none',
                 background: 'linear-gradient(90deg, #2997ff, #1d6fe0)',
                 color: '#fff',
                 fontWeight: 900,
@@ -5263,10 +5314,33 @@ export default function GenerateClient({
                 textDecoration: 'none',
                 boxShadow: '0 8px 24px rgba(41,151,255,.4)',
                 marginBottom: 10,
+                cursor: exitIntentCheckout.pending ? 'wait' : 'pointer',
+                opacity: exitIntentCheckout.pending ? 0.7 : 1,
               }}
             >
-              Go Creator — $9.90 first month →
-            </a>
+              {exitIntentCheckout.pending
+                ? 'Opening secure checkout…'
+                : 'Go Creator — $9.90 first month →'}
+            </button>
+            {exitIntentCheckout.error && (
+              <p
+                role="alert"
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  background: 'rgba(255,107,107,.08)',
+                  border: '1px solid rgba(255,107,107,.35)',
+                  color: '#f5f5f7',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  lineHeight: 1.45,
+                  textAlign: 'left',
+                  margin: '0 0 10px',
+                }}
+              >
+                {exitIntentCheckout.error}
+              </p>
+            )}
             <p style={{ fontSize: '0.72rem', color: '#86868b', fontWeight: 600, margin: '0 0 10px' }}>
               Renews at $24.90/mo in 30 days · cancel anytime
             </p>
@@ -6502,21 +6576,34 @@ export default function GenerateClient({
                   <button
                     type="button"
                     onClick={handleRemoveWatermark}
+                    disabled={wmCheckout.pending !== null}
                     className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center text-white"
                     style={{
                       background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                      opacity: wmCheckout.pending ? 0.7 : 1,
                       boxShadow: '0 8px 24px rgba(41,151,255,.34)',
                     }}
                   >
-                    <span>
-                      Download clean + Start Starter{postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} →
-                    </span>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
-                      This exact video clean · 25 credits included
-                    </span>
+                    {wmCheckout.pending ? (
+                      <span>Opening secure checkout…</span>
+                    ) : (
+                      <>
+                        <span>
+                          Download clean + Start Starter{postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} →
+                        </span>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
+                          This exact video clean · 25 credits included
+                        </span>
+                      </>
+                    )}
                   </button>
+                  {wmCheckout.error && (
+                    <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                      {wmCheckout.error}
+                    </p>
+                  )}
                   <div className="flex items-center gap-3 my-3" aria-hidden>
                     <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
                     <span style={{ color: 'var(--muted2)', fontSize: '0.68rem', fontWeight: 700 }}>OR</span>
@@ -6890,28 +6977,47 @@ export default function GenerateClient({
                   <button
                     type="button"
                     onClick={() => {
+                      const started = postVideoCheckout.launch(
+                        'basic',
+                        withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
+                        { tier: 'basic', intro: true },
+                      )
+                      if (!started) return
                       trackCheckoutClick('basic')
-                      window.location.href = withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1')
                     }}
+                    disabled={postVideoCheckout.pending !== null}
                     className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 text-sm font-black text-center text-white"
                     style={{
                       background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
                       border: 'none',
-                      cursor: 'pointer',
+                      cursor: postVideoCheckout.pending ? 'wait' : 'pointer',
+                      opacity: postVideoCheckout.pending ? 0.7 : 1,
                       boxShadow: '0 8px 24px rgba(41,151,255,.32)',
                     }}
                   >
-                    <span>Go Creator — $9.90 first month →</span>
-                    <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.92, marginTop: 2 }}>
-                      renews at $24.90/mo in 30 days · cancel anytime
-                    </span>
+                    {postVideoCheckout.pending === 'basic' ? (
+                      <span>Opening secure checkout…</span>
+                    ) : (
+                      <>
+                        <span>Go Creator — $9.90 first month →</span>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.92, marginTop: 2 }}>
+                          renews at $24.90/mo in 30 days · cancel anytime
+                        </span>
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={() => {
+                      const started = postVideoCheckout.launch(
+                        'starter',
+                        withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1'),
+                        { tier: 'starter', intro: true },
+                      )
+                      if (!started) return
                       trackCheckoutClick('starter')
-                      window.location.href = withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1')
                     }}
+                    disabled={postVideoCheckout.pending !== null}
                     className="block w-full rounded-xl mt-2.5 px-4 py-3 text-center"
                     style={{
                       background: 'rgba(41,151,255,0.06)',
@@ -6920,15 +7026,27 @@ export default function GenerateClient({
                       fontSize: '0.82rem',
                       fontWeight: 800,
                       lineHeight: 1.35,
-                      cursor: 'pointer',
+                      cursor: postVideoCheckout.pending ? 'wait' : 'pointer',
+                      opacity: postVideoCheckout.pending ? 0.7 : 1,
                     }}
                   >
-                    Just want Fast videos?{' '}
-                    <span style={{ color: '#2997ff' }}>Starter — $4.90 first month →</span>
-                    <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
-                      25 credits/month · renews at $9.90/mo in 30 days · cancel anytime
-                    </span>
+                    {postVideoCheckout.pending === 'starter' ? (
+                      'Opening secure checkout…'
+                    ) : (
+                      <>
+                        Just want Fast videos?{' '}
+                        <span style={{ color: '#2997ff' }}>Starter — $4.90 first month →</span>
+                        <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
+                          25 credits/month · renews at $9.90/mo in 30 days · cancel anytime
+                        </span>
+                      </>
+                    )}
                   </button>
+                  {postVideoCheckout.error && (
+                    <p role="alert" className="text-xs mt-2.5 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                      {postVideoCheckout.error}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -7089,10 +7207,16 @@ export default function GenerateClient({
               <UpsellSection
                 onAnother={handleReset}
                 onUpgrade={() => {
+                  const started = upsellSectionCheckout.launch(
+                    'basic',
+                    withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
+                    { tier: 'basic', intro: true },
+                  )
+                  if (!started) return
                   trackCheckoutClick('basic')
-                  window.location.href = withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1')
                 }}
-                upgradeLoading={upgradeLoading}
+                upgradeLoading={upsellSectionCheckout.pending !== null}
+                checkoutError={upsellSectionCheckout.error}
                 creditsLeft={credits ?? 0}
               />
             ) : planTier !== 'free' ? (
@@ -7954,11 +8078,14 @@ function UpsellSection({
   onUpgrade,
   upgradeLoading,
   creditsLeft,
+  checkoutError = null,
 }: {
   onAnother: () => void
   onUpgrade: () => void
   upgradeLoading: boolean
   creditsLeft: number
+  /** Inline English error from the parent's launcher. */
+  checkoutError?: string | null
 }) {
   return (
     <section
@@ -8063,6 +8190,24 @@ function UpsellSection({
         >
           {upgradeLoading ? 'Opening checkout…' : 'Go Creator — $9.90 first month →'}
         </button>
+        {checkoutError && (
+          <p
+            role="alert"
+            style={{
+              marginTop: 10,
+              padding: '10px 12px',
+              borderRadius: 10,
+              background: 'rgba(255,107,107,.08)',
+              border: '1px solid rgba(255,107,107,.35)',
+              color: '#f5f5f7',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              lineHeight: 1.45,
+            }}
+          >
+            {checkoutError}
+          </p>
+        )}
         <div
           style={{
             fontSize: '0.74rem',
@@ -8916,13 +9061,20 @@ function UpgradeModal({
   onClose,
   reason = 'credits',
   isSubscriber = false,
+  checkoutError = null,
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
   onClose: () => void
   reason?: 'credits' | 'studio' | 'creator'
   isSubscriber?: boolean
+  /** Inline English error from the parent's plan-row launcher. */
+  checkoutError?: string | null
 }) {
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
+  // window.location.href with only `loading` (a prop that is never true for
+  // them) as a guard. Their own launcher, separate from the plan rows above.
+  const topupCheckout = useCheckoutLaunch('generate_upgrade_modal_topup')
   // #466 fake 15-min "founding offer" countdown REMOVED
   // (KINEO-SPRINT-OFFER-2026-07-14): the timer reset per browser and nothing
   // actually expired — a fabricated counter sitting next to a real offer
@@ -9083,6 +9235,26 @@ function UpgradeModal({
           })}
         </div>
 
+        {checkoutError && (
+          <p
+            role="alert"
+            style={{
+              marginTop: 12,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(255,107,107,.08)',
+              border: '1px solid rgba(255,107,107,.35)',
+              color: '#f5f5f7',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              lineHeight: 1.45,
+              textAlign: 'left',
+            }}
+          >
+            {checkoutError}
+          </p>
+        )}
+
         {/* KINEO-TOPUP-2026-07-06 — subscribers who ran out of AI credits mid-cycle
             get one-click top-ups (buy more AI videos) instead of a dead-end.
             KINEO-SPRINT-OFFER-2026-07-14 — non-subscribers take the intro month
@@ -9102,25 +9274,42 @@ function UpgradeModal({
                 <button
                   key={t.id}
                   type="button"
-                  disabled={loading}
-                  onClick={() => { window.location.href = `/api/stripe/checkout?pack=${t.id}` }}
+                  disabled={loading || topupCheckout.pending !== null}
+                  onClick={() => {
+                    topupCheckout.launch(t.id, `/api/stripe/checkout?pack=${t.id}`, {
+                      pack: t.id,
+                      pricing_surface: 'generate_upgrade_modal_topup',
+                    })
+                  }}
                   style={{
                     flex: 1,
                     padding: '11px 10px',
                     borderRadius: 12,
-                    cursor: loading ? 'not-allowed' : 'pointer',
+                    cursor: loading || topupCheckout.pending ? 'not-allowed' : 'pointer',
+                    opacity: topupCheckout.pending ? 0.7 : 1,
                     background: 'rgba(41,151,255,0.08)',
                     border: '1px solid rgba(41,151,255,0.4)',
                     color: '#E2E8F0',
                     textAlign: 'center',
                   }}
                 >
-                  <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 900, color: '#5cb3ff' }}>{t.price}</span>
-                  <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700 }}>{t.label}</span>
-                  <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b' }}>{t.sub}</span>
+                  {topupCheckout.pending === t.id ? (
+                    <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800 }}>Loading…</span>
+                  ) : (
+                    <>
+                      <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 900, color: '#5cb3ff' }}>{t.price}</span>
+                      <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700 }}>{t.label}</span>
+                      <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b' }}>{t.sub}</span>
+                    </>
+                  )}
                 </button>
               ))}
             </div>
+            {topupCheckout.error && (
+              <p role="alert" style={{ fontSize: '0.72rem', fontWeight: 600, color: '#ff6b6b', textAlign: 'center', margin: 0 }}>
+                {topupCheckout.error}
+              </p>
+            )}
           </div>
         )}
 
@@ -9173,11 +9362,14 @@ function UrgencyModal({
   loading,
   onUpgrade,
   onClose,
+  checkoutError = null,
 }: {
   remaining: number
   loading: boolean
   onUpgrade: () => void
   onClose: () => void
+  /** Inline English error from the parent's launcher. */
+  checkoutError?: string | null
 }) {
   const expired = remaining <= 0
   const mm = String(Math.floor(remaining / 60)).padStart(2, '0')
@@ -9306,6 +9498,25 @@ function UrgencyModal({
         >
           {loading ? 'Opening checkout…' : 'Go Creator — $9.90 first month →'}
         </button>
+        {checkoutError && (
+          <p
+            role="alert"
+            style={{
+              marginTop: 12,
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(255,107,107,.08)',
+              border: '1px solid rgba(255,107,107,.35)',
+              color: '#f5f5f7',
+              fontSize: '0.76rem',
+              fontWeight: 600,
+              lineHeight: 1.45,
+              textAlign: 'left',
+            }}
+          >
+            {checkoutError}
+          </p>
+        )}
         <p
           style={{
             marginTop: 14,

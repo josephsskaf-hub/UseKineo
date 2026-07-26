@@ -21,6 +21,11 @@ const SERVER_ONLY_EVENTS = new Set([
   'checkout_auth_required',
   'checkout_started',
   'checkout_failed',
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — written ONLY by the speculativeNoop
+  // branch of app/api/stripe/checkout/route.ts when it refuses a prefetch /
+  // scanner hit. If the browser sink could mint it, a forged burst would make
+  // a real Session-minting incident look like harmless prefetch noise.
+  'checkout_prefetch_blocked',
   'auth_callback_completed',
   'auth_callback_failed',
   'email_signup_completed',

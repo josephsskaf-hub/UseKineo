@@ -25,6 +25,7 @@ import {
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 // Push #078 — feature copy now derives from lib/pricing.ts so credit
 // counts can't drift between the homepage, /pricing, and this in-flow
@@ -72,9 +73,14 @@ export default function PricingCards({
 }: {
   intentCampaign?: string | null
 }) {
-  const [purchasing, setPurchasing] = useState<'starter' | 'basic' | 'pro' | null>(null)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — antes: `purchasing` era só useState, sem
+  // trava síncrona, e `error` NUNCA era setado (UI morta). Um clique duplo
+  // antes do repaint criava duas sessões Stripe e uma falha de rede não
+  // mostrava absolutamente nada. useCheckoutLaunch resolve os dois.
+  const checkout = useCheckoutLaunch('generate_step_1')
+  const purchasing = checkout.pending
   const [displayCurrency, setDisplayCurrency] = useState<CheckoutCurrency | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const error = checkout.error
   // Push #171 — show a clear "already subscribed" banner instead of
   // silently redirecting to /generate on duplicate purchase attempts.
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
@@ -120,13 +126,17 @@ export default function PricingCards({
   // redirect, so no fetch/await is needed here and the user gesture is
   // preserved across all browsers including mobile Safari.
   function handleBuy(tier: CheckoutTier) {
-    setPurchasing(tier)
     // KINEO-INTRO-MONTH-2026-07-13 — Starter/Creator levam o 1º mês com
     // desconto ($4.90/$9.90); o servidor valida elegibilidade (1 por conta).
     const introParam = tier === 'starter' || tier === 'basic' ? '&intro=1' : ''
     const campaignParam = intentCampaign
       ? `&intent_campaign=${encodeURIComponent(intentCampaign)}`
       : ''
+    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}`, {
+      tier,
+      pricing_surface: 'generate_step_1',
+    })
+    if (!started) return
     void trackEvent('inline_pricing_checkout_clicked', {
       tier,
       display_currency: displayCurrency ?? 'resolving',
@@ -138,7 +148,6 @@ export default function PricingCards({
       intro: tier === 'starter' || tier === 'basic',
       pricing_surface: 'generate_step_1',
     })
-    window.location.href = `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}`
   }
 
   function priceFor(tier: CheckoutTier): string {
@@ -178,11 +187,12 @@ export default function PricingCards({
 
       {error && (
         <div
+          role="alert"
           className="rounded-xl px-4 py-3 text-sm mb-4 mx-auto"
           style={{
             maxWidth: 720,
-            background: 'rgba(245,245,247,.05)',
-            border: '1px solid #3a3a3d',
+            background: 'rgba(255,107,107,.08)',
+            border: '1px solid rgba(255,107,107,.35)',
             color: '#f5f5f7',
           }}
         >

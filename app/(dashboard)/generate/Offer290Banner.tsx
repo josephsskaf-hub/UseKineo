@@ -20,6 +20,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { OFFER_290_ENABLED } from '@/lib/flags'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 const SEEN_KEY = 'kineo_offer290_seen'
 // KINEO-REBASE-2026-07-10 — written by components/ExitIntentOffer.tsx on show.
@@ -46,6 +47,10 @@ export default function Offer290Banner() {
   // kineo_exit_seen_at, whichever path armed the banner.
   const [anchorStart, setAnchorStart] = useState<number | null>(null)
   const [now, setNow] = useState<number>(() => Date.now())
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — this CTA was a raw <a href> straight at
+  // /api/stripe/checkout: crawlable/prefetchable, and repeat taps each minted a
+  // Stripe session. Now a button behind the shared launcher latch.
+  const checkout = useCheckoutLaunch('generate_offer290_banner')
 
   // Load offer inputs from /api/credits (server-side, cookie auth).
   useEffect(() => {
@@ -141,8 +146,15 @@ export default function Offer290Banner() {
           · one per account
         </span>
       </div>
-      <a
-        href="/api/stripe/checkout?pack=starter290"
+      <button
+        type="button"
+        onClick={() => {
+          checkout.launch('starter290', '/api/stripe/checkout?pack=starter290', {
+            pack: 'starter290',
+            pricing_surface: 'generate_offer290_banner',
+          })
+        }}
+        disabled={checkout.pending !== null}
         style={{
           background: '#f59e0b',
           color: '#111',
@@ -150,12 +162,15 @@ export default function Offer290Banner() {
           fontSize: 14,
           padding: '10px 18px',
           borderRadius: 10,
+          border: 'none',
           textDecoration: 'none',
           whiteSpace: 'nowrap',
+          cursor: checkout.pending ? 'wait' : 'pointer',
+          opacity: checkout.pending ? 0.7 : 1,
         }}
       >
-        Claim $2.90 offer →
-      </a>
+        {checkout.pending ? 'Loading…' : 'Claim $2.90 offer →'}
+      </button>
       <button
         onClick={() => setDismissed(true)}
         aria-label="Dismiss offer"
@@ -171,6 +186,20 @@ export default function Offer290Banner() {
       >
         ×
       </button>
+      {checkout.error && (
+        <div
+          role="alert"
+          style={{
+            flexBasis: '100%',
+            color: '#fecaca',
+            fontSize: 13,
+            fontWeight: 600,
+            marginTop: 4,
+          }}
+        >
+          {checkout.error}
+        </div>
+      )}
     </div>
   )
 }

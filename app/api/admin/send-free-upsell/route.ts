@@ -64,6 +64,16 @@ function isValidExternalEmail(email: string): boolean {
   return true
 }
 
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — same fix as send-abandon-recovery: these
+// CTAs pointed straight at /api/stripe/checkout, and corporate mail scanners
+// (Outlook Safe Links, Proofpoint, Mimecast) GET every link in an email before
+// the human sees it, minting Stripe Sessions nobody clicked. Both now land on
+// /pricing, a plain page.
+//
+// Intent is preserved: /pricing reads ?promo= and ?intent_campaign= and passes
+// them to the checkout route, and its handleBuy() appends &intro=1 for monthly
+// starter/basic — the same half-price first month promised above. NOTE:
+// /pricing does NOT currently read ?tier=, so that param is attribution only.
 function emailHtml(): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
@@ -71,9 +81,9 @@ function emailHtml(): string {
   <p>You already made a video with Kineo — nice. The only thing between you and posting it clean is the watermark.</p>
   <p style="font-size:18px;margin:18px 0"><b>Unlock watermark-free MP4s for $4.90 your first month</b> — 25 credits, cancel anytime.</p>
   <p style="margin:26px 0">
-    <a href="https://usekineo.com/api/stripe/checkout?tier=starter&intro=1" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Unlock my clean video &rarr;</a>
+    <a href="https://usekineo.com/pricing?tier=starter&intent_campaign=free_upsell" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Unlock my clean video &rarr;</a>
   </p>
-  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want to post daily? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/api/stripe/checkout?tier=basic&intro=1" style="color:#2997ff">first month $9.90</a>.</p>
+  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want to post daily? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=free_upsell" style="color:#2997ff">first month $9.90</a>.</p>
   <p>Stuck on anything — a niche, a topic, an export? Just reply to this email. It comes straight to me.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>`

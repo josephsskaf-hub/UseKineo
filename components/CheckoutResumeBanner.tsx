@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 type ResumeOffer = {
   available: true
@@ -45,6 +46,7 @@ export default function CheckoutResumeBanner() {
   const pathname = usePathname()
   const [offer, setOffer] = useState<ResumeOffer | null>(null)
   const viewedKey = useRef<string | null>(null)
+  const checkout = useCheckoutLaunch('checkout_resume_banner')
 
   useEffect(() => {
     if (shouldHide(pathname)) {
@@ -153,10 +155,25 @@ export default function CheckoutResumeBanner() {
         <div style={{ marginTop: 3, color: '#aeb9cc', fontSize: '0.76rem', lineHeight: 1.35 }}>
           First charge {firstCharge} · renews at {renewal}/{renewalUnit}. Cancel anytime.
         </div>
+        {checkout.error && (
+          <div role="alert" style={{ marginTop: 6, color: '#ff8f8f', fontSize: '0.74rem', fontWeight: 700, lineHeight: 1.35 }}>
+            {checkout.error}
+          </div>
+        )}
       </div>
       <a
         href={offer.resumeUrl}
-        onClick={() => {
+        aria-disabled={checkout.pending !== null}
+        onClick={(e) => {
+          // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = one resume. This
+          // banner is shown to buyers who already abandoned once, so a second
+          // impatient tap here is exactly the behaviour that produced the
+          // duplicate-session bursts.
+          e.preventDefault()
+          const started = checkout.launch('resume', offer.resumeUrl, {
+            destination_kind: offer.destinationKind,
+          })
+          if (!started) return
           void trackEvent('checkout_resume_banner_clicked', eventMetadata)
         }}
         style={{
@@ -169,9 +186,11 @@ export default function CheckoutResumeBanner() {
           fontWeight: 850,
           textDecoration: 'none',
           whiteSpace: 'nowrap',
+          opacity: checkout.pending !== null ? 0.7 : 1,
+          cursor: checkout.pending !== null ? 'wait' : 'pointer',
         }}
       >
-        Resume checkout
+        {checkout.pending !== null ? 'Opening…' : 'Resume checkout'}
       </a>
       <button
         type="button"

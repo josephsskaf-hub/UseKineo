@@ -17,6 +17,7 @@
 // null when the gate isn't met OR the fetch fails — safe to mount unconditionally.
 
 import { useEffect, useState } from 'react'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
@@ -25,6 +26,10 @@ export default function LowCreditsUpsell() {
   const [eligible, setEligible] = useState(false)
   const [credits, setCredits] = useState<number>(0)
   const [dismissed, setDismissed] = useState(false)
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — was a bare window.location.href with no
+  // click latch, no pending state and no failure telemetry: a double tap minted
+  // two Stripe sessions. Shared launcher gives us all three.
+  const checkout = useCheckoutLaunch('generate_low_credits')
 
   useEffect(() => {
     // Session dismissal — if the user closed it, stay hidden this session.
@@ -87,7 +92,13 @@ export default function LowCreditsUpsell() {
         </span>
       </div>
       <button
-        onClick={() => { window.location.href = '/api/stripe/checkout?tier=starter' }}
+        onClick={() => {
+          checkout.launch('starter', '/api/stripe/checkout?tier=starter', {
+            tier: 'starter',
+            pricing_surface: 'generate_low_credits',
+          })
+        }}
+        disabled={checkout.pending !== null}
         style={{
           background: '#818cf8',
           color: '#111',
@@ -96,11 +107,12 @@ export default function LowCreditsUpsell() {
           padding: '10px 18px',
           borderRadius: 10,
           border: 'none',
-          cursor: 'pointer',
+          cursor: checkout.pending ? 'wait' : 'pointer',
+          opacity: checkout.pending ? 0.7 : 1,
           whiteSpace: 'nowrap',
         }}
       >
-        Go monthly — $9.90
+        {checkout.pending ? 'Loading…' : 'Go monthly — $9.90'}
       </button>
       <button
         onClick={dismiss}
@@ -117,6 +129,20 @@ export default function LowCreditsUpsell() {
       >
         ×
       </button>
+      {checkout.error && (
+        <div
+          role="alert"
+          style={{
+            flexBasis: '100%',
+            color: '#fecaca',
+            fontSize: 13,
+            fontWeight: 600,
+            marginTop: 4,
+          }}
+        >
+          {checkout.error}
+        </div>
+      )}
     </div>
   )
 }

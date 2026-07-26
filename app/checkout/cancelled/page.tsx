@@ -8,6 +8,7 @@ import { Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 // Push #175 — use checkout GET route instead of hardcoded Stripe links.
 // KINEO-SPRINT-FIX-2026-07-15 — plan/offer preservation: buyers who abandon an
@@ -27,6 +28,10 @@ export default function CheckoutCancelledPage() {
 }
 
 function CheckoutCancelledContent() {
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the retry link was a bare <a href>: a
+  // buyer who already abandoned once and taps it twice created two Stripe
+  // sessions and saw no feedback at all in between.
+  const checkout = useCheckoutLaunch('checkout_cancelled')
   const searchParams = useSearchParams()
   const rawTier = searchParams.get('tier')
   const tier: 'starter' | 'basic' | 'pro' =
@@ -119,9 +124,22 @@ function CheckoutCancelledContent() {
         <div style={{ marginTop: 22, background: 'linear-gradient(135deg, rgba(5,150,105,.10), rgba(5,150,105,.06))', border: '1px solid rgba(5,150,105,.30)', borderRadius: 16, padding: 18 }}>
           <p style={{ fontSize: '0.92rem', color: 'var(--text)', fontWeight: 700, margin: 0 }}>{planName} — {todayPrice}</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '4px 0 14px', lineHeight: 1.5 }}>{renewalCopy}</p>
+          {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — the visible href must NOT be the
+              checkout API: prefetch, middle-click and link scanners follow it and
+              bypass the latch entirely. The real destination stays in
+              checkout.launch(); the href is only the no-JS / new-tab fallback. */}
           <a
-            href={retryHref}
-            onClick={() => {
+            href="/pricing"
+            aria-disabled={checkout.pending !== null}
+            onClick={(e) => {
+              e.preventDefault()
+              const started = checkout.launch(tier, retryHref, {
+                tier,
+                billing,
+                intro,
+                private_offer: privatePackPromo,
+              })
+              if (!started) return
               trackEvent(`${tier}_checkout_retry_clicked`, {
                 tier,
                 billing,
@@ -132,10 +150,15 @@ function CheckoutCancelledContent() {
               })
               trackCheckoutClick(tier)
             }}
-            style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)' }}
+            style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)', opacity: checkout.pending !== null ? 0.7 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
           >
-            Try secure checkout again →
+            {checkout.pending !== null ? 'Opening secure checkout…' : 'Try secure checkout again →'}
           </a>
+          {checkout.error && (
+            <p role="alert" style={{ marginTop: 10, fontSize: '0.8rem', color: '#ff6b6b', fontWeight: 700, textAlign: 'center' }}>
+              {checkout.error}
+            </p>
+          )}
         </div>
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: '0.85rem' }}>
           <Link href={intentCampaign ? `/pricing?intent_campaign=${encodeURIComponent(intentCampaign)}` : '/pricing'} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>← Go back to pricing</Link>

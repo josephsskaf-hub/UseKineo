@@ -50,7 +50,11 @@ function isAuthorized(req: NextRequest): boolean {
 
 function buildEmail() {
   const upgradeUrl = `${APP_URL}/pricing?promo=FOUNDING50`
-  const packUrl = `${APP_URL}/api/stripe/checkout?pack=starter`
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — never put /api/stripe/checkout in an
+  // email. Corporate mail scanners follow every link, which minted Checkout
+  // Sessions nobody clicked and polluted the abandoned-checkout numbers. Same
+  // repoint already applied to send-abandon-recovery and send-free-upsell.
+  const packUrl = `${APP_URL}/pricing?promo=FOUNDING50&intent_campaign=video_rescue_pack`
   const makeUrl = `${APP_URL}/generate`
   const text = `Hey,
 

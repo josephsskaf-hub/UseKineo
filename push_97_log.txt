@@ -1,0 +1,2 @@
+===== KINEO PUSH 97 (FUNIL DE CHECKOUT + INDEXACAO DE 422 VIDEOS + MATRIZ /vs/) ===== 
+[remove modal orfao: AvatarPaywallModal tinha ZERO importadores e todos os botoes apontavam pra ?pack=avatar* que o servidor responde 410] 

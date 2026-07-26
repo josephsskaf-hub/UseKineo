@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
+import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 export interface VideoRow {
   id: string
@@ -156,9 +157,19 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
     }
   }, [])
 
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — bare window.location.href before: every
+  // watermarked card shows this CTA, so repeat taps across cards each minted a
+  // Stripe session. One shared launcher latch now covers all of them.
+  const checkout = useCheckoutLaunch('my_videos_unlock_clean_export')
+
   function handleStarterCheckout() {
+    const started = checkout.launch('starter', '/api/stripe/checkout?tier=starter&intro=1', {
+      tier: 'starter',
+      intro: true,
+      pricing_surface: 'my_videos_unlock_clean_export',
+    })
+    if (!started) return
     trackCheckoutClick('starter')
-    window.location.href = '/api/stripe/checkout?tier=starter&intro=1'
   }
 
   // Push #153 — auto-refresh while any video is still processing so the
@@ -312,6 +323,8 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
               isDownloading={downloadingId === v.id}
               cleanExportLocked={cleanExportLocked}
               onUnlock={handleStarterCheckout}
+              unlockPending={checkout.pending !== null}
+              unlockError={checkout.error}
               isPinned={playingId === v.id}
               onTogglePin={() =>
                 setPlayingId((curr) => (curr === v.id ? null : v.id))
@@ -351,6 +364,8 @@ function VideoCard({
   onTogglePin,
   cleanExportLocked,
   onUnlock,
+  unlockPending,
+  unlockError,
 }: {
   video: VideoRow
   isCopied: boolean
@@ -361,6 +376,8 @@ function VideoCard({
   onTogglePin: () => void
   cleanExportLocked: boolean | null
   onUnlock: () => void
+  unlockPending: boolean
+  unlockError: string | null
 }) {
   const chip = statusChip(v.status)
   const playable = v.status === 'completed' && !!v.video_url
@@ -703,19 +720,32 @@ function VideoCard({
               <button
                 type="button"
                 onClick={onUnlock}
+                disabled={unlockPending}
                 title="Starter: $4.90 first month, then $9.90/month"
                 className="rounded-lg px-3 py-2 text-xs font-black w-full flex flex-col items-center"
                 style={{
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
                   border: 'none',
                   color: '#fff',
-                  cursor: 'pointer',
+                  cursor: unlockPending ? 'wait' : 'pointer',
+                  opacity: unlockPending ? 0.7 : 1,
                   boxShadow: '0 4px 14px rgba(245,158,11,.35)',
                 }}
               >
-                <span>Unlock clean exports — Starter $4.90</span>
-                <span style={{ fontSize: '0.58rem', opacity: 0.9 }}>for new videos · then $9.90/mo · cancel anytime</span>
+                {unlockPending ? (
+                  <span>Loading…</span>
+                ) : (
+                  <>
+                    <span>Unlock clean exports — Starter $4.90</span>
+                    <span style={{ fontSize: '0.58rem', opacity: 0.9 }}>for new videos · then $9.90/mo · cancel anytime</span>
+                  </>
+                )}
               </button>
+            )}
+            {isWatermarkedFastAsset(v) && cleanExportLocked === true && unlockError && (
+              <p role="alert" style={{ color: '#ff6b6b', fontSize: '0.65rem', fontWeight: 600, margin: 0 }}>
+                {unlockError}
+              </p>
             )}
             <div className="flex items-center gap-2 flex-wrap">
               <button

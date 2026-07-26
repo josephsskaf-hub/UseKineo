@@ -80,6 +80,18 @@ function isValidExternalEmail(email: string): boolean {
   return true
 }
 
+// KINEO-CHECKOUT-TRIAGE-2026-07-25 — these two CTAs used to point straight at
+// https://usekineo.com/api/stripe/checkout?tier=...&intro=1. Corporate mail
+// scanners (Outlook Safe Links, Proofpoint, Mimecast) GET every link in an
+// email before the human ever sees it, so each send minted Stripe Sessions
+// nobody clicked. Both now land on /pricing, which is a plain page.
+//
+// Intent is preserved: /pricing reads ?promo= and ?intent_campaign= and
+// forwards them to the checkout route, and its handleBuy() already appends
+// &intro=1 automatically for monthly starter/basic — the exact half-price
+// first month this email promises. NOTE: /pricing does NOT currently read
+// ?tier=, so that param is carried for attribution only; the reader still
+// picks the plan card themselves.
 function emailHtml(): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
@@ -87,9 +99,9 @@ function emailHtml(): string {
   <p>I noticed you got as far as checkout but didn't finish. No pressure — but if price was the thing holding you back, let me help.</p>
   <p style="font-size:18px;margin:18px 0"><b>Your first month for $4.90</b> — half price. 25 credits, watermark-free videos, cancel anytime.</p>
   <p style="margin:26px 0">
-    <a href="https://usekineo.com/api/stripe/checkout?tier=starter&intro=1" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Start for $4.90 &rarr;</a>
+    <a href="https://usekineo.com/pricing?tier=starter&intent_campaign=abandon_recovery" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Start for $4.90 &rarr;</a>
   </p>
-  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want more power? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/api/stripe/checkout?tier=basic&intro=1" style="color:#2997ff">first month $9.90</a>.</p>
+  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want more power? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=abandon_recovery" style="color:#2997ff">first month $9.90</a>.</p>
   <p>If something else held you back — a feature or a question — just reply to this email. It comes straight to me.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>`
