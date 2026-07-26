@@ -1,0 +1,3 @@
+===== KINEO PUSH 96 (ATIVACAO: botao morto, funil, grade que nunca renderizou, 4 paginas SEO) ===== 
+[remove codigo morto: HomePageClient orfao desde 30/06] 
+[garante que PT/ES continuam fora - no-op se o 92 ja passou] 

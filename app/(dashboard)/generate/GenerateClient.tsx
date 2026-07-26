@@ -338,6 +338,14 @@ const VIRAL_STARTER_TOPICS = [
   'the Roman city of Pompeii, buried by a volcano in a single day',
 ]
 const PUSH27_ONBOARDING_RENDER_SESSION_KEY = 'kineo_push27_onboarding_render_dispatched'
+// PUSH #96 — the active-render restore gate used to retry a failing
+// supabase.auth.getUser() every 1500ms forever, leaving the Generate button
+// permanently dead. Bound the retries so the gate always resolves.
+const MAX_ACTIVE_RENDER_RESTORE_RETRIES = 4
+// PUSH #96 — `viral_onboarding_viewed` fired 389 times across 40 sessions.
+// Both emitters are already latched per mount, so the inflation is remount
+// driven and needs a once-per-tab marker instead of a useRef latch.
+const PUSH96_INLINE_FIRST_VIDEO_VIEW_MARKER = 'kineo_push96_inline_first_video_viewed'
 const ACTIVATION_AUTOSTART_VARIANT = 'activation_autostart_fast_v1'
 const ACTIVATION_AUTOSTART_SESSION_PREFIX = 'kineo_activation_autostart_fast_v1'
 
@@ -722,6 +730,11 @@ export default function GenerateClient({
   const lastFailedAttemptRef = useRef<string | null>(null)
   const generatingPollErrorsRef = useRef(0)
   const composingPollErrorsRef = useRef(0)
+  // PUSH #96 — the fal clip poll retried non-OK responses and thrown errors
+  // forever with no counter and no event, so a stuck clip queue was
+  // indistinguishable from a slow one. Count them so the failure is emitted once.
+  const falPollErrorsRef = useRef(0)
+  const avatarPollErrorsRef = useRef(0)
   const activeRenderRestoreCheckedRef = useRef(false)
   const activeRenderRestoreResolvedRef = useRef(false)
   // The server page has already authenticated this user. Seed the owner ref
@@ -731,6 +744,9 @@ export default function GenerateClient({
   const resumedRenderRef = useRef(false)
   const [activeRenderRestoreResolved, setActiveRenderRestoreResolved] = useState(false)
   const [activeRenderRestoreRetry, setActiveRenderRestoreRetry] = useState(0)
+  // PUSH #96 — counts restore retries across effect re-runs so the auth retry
+  // above can never loop forever.
+  const restoreRetryRef = useRef(0)
   // #360 — synchronous re-entry guard against double-submit. Catches the
   // sub-render race the disabled button can't: two clicks before React
   // re-renders both see phase==='options'. The ref flips synchronously.
@@ -1115,10 +1131,31 @@ export default function GenerateClient({
         // an already accepted paid render. The status request will handle a
         // confirmed 401 and route the user through login with the snapshot kept.
         if (authError) {
-          canResolve = false
-          retryTimer = setTimeout(() => {
-            if (!cancelled) setActiveRenderRestoreRetry((value) => value + 1)
-          }, 1500)
+          // PUSH #96 — this retry was uncapped: every 1500ms it bumped state,
+          // re-ran the effect and never resolved the gate, so
+          // waitForActiveRenderRestore() below timed out forever and both
+          // handleAnalyze and handleGenerate returned with only "Checking for
+          // an in-progress render." The Generate button was permanently dead
+          // while the tree re-rendered twice a second. 20 sessions since
+          // 2026-07-16 reached /generate and emitted zero interaction events.
+          // Retry a bounded number of times, then release the gate: the render
+          // status request already handles a confirmed 401 and the snapshot is
+          // still preserved, so the worst case is a duplicate render rather
+          // than an unusable page.
+          if (restoreRetryRef.current < MAX_ACTIVE_RENDER_RESTORE_RETRIES) {
+            restoreRetryRef.current += 1
+            canResolve = false
+            retryTimer = setTimeout(() => {
+              if (!cancelled) setActiveRenderRestoreRetry((value) => value + 1)
+            }, 1500)
+            return
+          }
+          void trackEvent('generation_stage_error', {
+            attempt_id: generationAttemptRef.current,
+            stage: 'idle',
+            reason: 'active_render_restore_auth_unavailable',
+            retries: restoreRetryRef.current,
+          })
           return
         }
         if (!user) {
@@ -1434,9 +1471,17 @@ export default function GenerateClient({
         /* non-blocking */
       } finally {
         try {
+          // PUSH #96 — router.replace() on a force-dynamic route triggers a
+          // full RSC navigation, which re-mounts GenerateClient and the
+          // onboarding dialog on exactly the brand-new-user path. That is the
+          // remount source behind `generate_arrived_server` reporting 138
+          // events for 51 sessions (~2.7 server renders per session) and
+          // `viral_onboarding_viewed` reporting 389 events for 40 sessions.
+          // history.replaceState strips the param without re-rendering, and is
+          // already the in-repo pattern (see removeCreateIntentFromCurrentUrl).
           const url = new URL(window.location.href)
           url.searchParams.delete('signup')
-          router.replace(url.pathname + url.search)
+          window.history.replaceState({}, '', url.pathname + url.search + url.hash)
         } catch {
           /* ignore */
         }
@@ -2066,6 +2111,14 @@ export default function GenerateClient({
             attempt_id: generationAttemptRef.current,
             stage: 'generating',
           })
+          // PUSH #96 — after the transient budget is spent this loop retries
+          // every 15s indefinitely and NEVER transitions to `failed`, so the
+          // phase effect can never emit generate_failed for it. These
+          // generations simply vanish between `generating` (29 all-time) and
+          // `composing` (21). Emit the failure explicitly, once per attempt.
+          trackGenerationFailure('generating', 'poll_retries_exhausted', {
+            detail: err instanceof Error ? err.name : 'unknown',
+          })
         }
         setError("Your clips are still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
         pollTimerRef.current = setTimeout(poll, 15000)
@@ -2111,9 +2164,17 @@ export default function GenerateClient({
             return
           }
           // Retry on other errors
+          // PUSH #96 — this retry is unbounded. Report once when the transient
+          // budget is spent so a permanently stuck clip queue is visible.
+          if (++falPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
+            trackGenerationFailure('fal_polling', 'fal_poll_retries_exhausted', {
+              httpStatus: res.status,
+            })
+          }
           pollTimerRef.current = setTimeout(pollFal, 6000)
           return
         }
+        falPollErrorsRef.current = 0
 
         const done = typeof data.done === 'number' ? data.done : 0
         const total = typeof data.total === 'number' ? data.total : falRequestIds.length
@@ -2128,6 +2189,10 @@ export default function GenerateClient({
 
           if (urls.length === 0) {
             setError('All AI clips failed to generate. Please try again.')
+            // PUSH #96 — name the cause. The phase effect only records
+            // "failed from fal_polling", which does not distinguish a dead
+            // clip queue from a user-visible clip rejection.
+            trackGenerationFailure('fal_polling', 'fal_all_clips_failed', { httpStatus: res.status })
             setPhase('failed')
             return
           }
@@ -2160,6 +2225,12 @@ export default function GenerateClient({
       } catch (err) {
         if (cancelled) return
         console.error('[generate] fal poll error:', err)
+        // PUSH #96 — same unbounded retry as the non-OK branch above.
+        if (++falPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
+          trackGenerationFailure('fal_polling', 'fal_poll_threw_retries_exhausted', {
+            detail: err instanceof Error ? err.name : 'unknown',
+          })
+        }
         pollTimerRef.current = setTimeout(pollFal, 8000)
       }
     }
@@ -2191,7 +2262,9 @@ export default function GenerateClient({
         )
         const data = await res.json().catch(() => ({}))
         if (cancelled) return
+        // PUSH #96 — the avatar poll has the same blind spots as the other two.
         if (res.status === 401) {
+          trackGenerationFailure('generating', 'avatar_status_unauthenticated', { httpStatus: 401 })
           redirectToLoginPreservingPrompt()
           return
         }
@@ -2200,6 +2273,7 @@ export default function GenerateClient({
             throw new Error('Avatar status temporarily unavailable')
           }
           setError(typeof data?.error === 'string' ? data.error : 'This avatar can no longer be resumed.')
+          trackGenerationFailure('generating', 'avatar_status_unresumable', { httpStatus: res.status })
           setPhase('failed')
           return
         }
@@ -2213,14 +2287,23 @@ export default function GenerateClient({
         if (data.status === 'failed') {
           // Protection rule surfaced to the user: a VEED failure charges nothing.
           setError(typeof data.error === 'string' ? data.error : 'Avatar generation failed. You were not charged — please try again.')
+          trackGenerationFailure('generating', 'avatar_provider_reported_failed', { httpStatus: res.status })
           setPhase('failed')
           return
         }
+        avatarPollErrorsRef.current = 0
         timer = setTimeout(poll, POLL_COMPOSING_MS)
       } catch (err) {
         if (cancelled) return
         console.error('[generate] avatar poll error:', err)
         setError('Your avatar is still rendering. Reconnecting automatically…')
+        // PUSH #96 — unbounded 7s retry with no event; report once when the
+        // transient budget is spent.
+        if (++avatarPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
+          trackGenerationFailure('generating', 'avatar_poll_retries_exhausted', {
+            detail: err instanceof Error ? err.name : 'unknown',
+          })
+        }
         timer = setTimeout(poll, 7000)
       }
     }
@@ -2595,7 +2678,12 @@ export default function GenerateClient({
         if (cancelled || !res) return
         if (reconnectAttempt > 0 && res.ok) setError(null)
 
+        // PUSH #96 — compose is where clips_ready (26 all-time) leaks to
+        // composing (21). None of these exits produced a named event: the 401
+        // navigates away without a phase change and the 402 deliberately lands
+        // on `options`, so the phase effect never saw a failure at all.
         if (res.status === 401) {
+          trackGenerationFailure('clips_ready', 'compose_unauthenticated', { httpStatus: 401 })
           redirectToLoginPreservingPrompt()
           return
         }
@@ -2609,6 +2697,7 @@ export default function GenerateClient({
           setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           openOutOfCreditsModal('credits')
+          trackGenerationFailure('clips_ready', 'compose_daily_free_limit', { httpStatus: 402 })
           setPhase('options')
           return
         }
@@ -2616,6 +2705,7 @@ export default function GenerateClient({
           console.error('[generate] compose error:', data?.error)
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          trackGenerationFailure('clips_ready', 'compose_not_ok', { httpStatus: res.status })
           setPhase('failed')
           return
         }
@@ -2624,6 +2714,7 @@ export default function GenerateClient({
         if (!id) {
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(GENERIC_ERROR)
+          trackGenerationFailure('clips_ready', 'compose_missing_render_id', { httpStatus: res.status })
           setPhase('failed')
           return
         }
@@ -2658,6 +2749,9 @@ export default function GenerateClient({
       } catch (err) {
         console.error('[generate] compose threw:', err)
         setError(GENERIC_ERROR)
+        trackGenerationFailure('clips_ready', 'compose_threw', {
+          detail: err instanceof Error ? err.name : 'unknown',
+        })
         setPhase('failed')
       }
     }
@@ -2695,6 +2789,9 @@ export default function GenerateClient({
           if (res.status === 401) {
             // Keep the user-bound snapshot intact across authentication so the
             // accepted job resumes instead of being submitted again.
+            // PUSH #96 — a session that expires mid-render exits the page with
+            // no phase change, so it never reached the funnel as a failure.
+            trackGenerationFailure('composing', 'compose_status_unauthenticated', { httpStatus: 401 })
             redirectToLoginPreservingPrompt()
             return
           }
@@ -2705,6 +2802,7 @@ export default function GenerateClient({
             resumedRenderRef.current = false
             try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
             setError(typeof data?.error === 'string' ? data.error : 'This render can no longer be resumed. Please generate again.')
+            trackGenerationFailure('composing', 'compose_status_unresumable', { httpStatus: res.status })
             setPhase('failed')
             return
           }
@@ -2717,6 +2815,10 @@ export default function GenerateClient({
           const url = typeof data.final_video_url === 'string' ? data.final_video_url : null
           if (!url) {
             setError(GENERIC_ERROR)
+            // PUSH #96 — a "done" render with no playable URL is the worst
+            // case for the download funnel (103 downloads / 279 completions)
+            // and was indistinguishable from any other failure.
+            trackGenerationFailure('done', 'compose_done_without_video_url', { httpStatus: res.status })
             setPhase('failed')
             return
           }
@@ -2762,6 +2864,9 @@ export default function GenerateClient({
           resumedRenderRef.current = false
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(typeof data.error === 'string' ? data.error : GENERIC_ERROR)
+          // PUSH #96 — the render provider itself reported failure. Name it so
+          // it is separable from client-side and network causes.
+          trackGenerationFailure('composing', 'compose_render_reported_failed', { httpStatus: res.status })
           setPhase('failed')
           return
         }
@@ -2787,6 +2892,13 @@ export default function GenerateClient({
             attempt_id: generationAttemptRef.current,
             stage: 'composing',
             render_id: renderId,
+          })
+          // PUSH #96 — like the generating poll, this then retries every 15s
+          // forever without ever reaching `failed`. `composing` records 21
+          // all-time against `done` 19, and neither of the two missing ones
+          // produced a generate_failed.
+          trackGenerationFailure('composing', 'poll_retries_exhausted', {
+            detail: err instanceof Error ? err.name : 'unknown',
           })
         }
         setError("Your video is still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
@@ -2857,6 +2969,43 @@ export default function GenerateClient({
     return false
   }
 
+  // PUSH #96 — 1428 `generate_started` produced only 2 `generate_failed`. The
+  // failure events above are emitted exclusively from the phase-transition
+  // effect, so they require BOTH an attempt id AND a transition into `failed`.
+  // Most real deaths never satisfy that: gate returns and validation returns
+  // never transition at all, analyze failures land on `idle`, and both polls
+  // retry forever after `generation_poll_degraded`. This helper emits the
+  // already-established `generation_stage_error` name directly from any exit
+  // path, using the same stage vocabulary as `generation_stage_reached`.
+  // It never throws and never carries the prompt, an email or a key.
+  function trackGenerationFailure(
+    stage: Phase,
+    reason: string,
+    extra?: { httpStatus?: number; detail?: string },
+  ) {
+    try {
+      void trackEvent('generation_stage_error', {
+        attempt_id: generationAttemptRef.current,
+        stage,
+        previous_stage: prevPhaseRef.current,
+        mode,
+        quality: falUsedRef.current
+          ? falQualityRef.current
+          : mode === 'fast' || mode === 'creator'
+            ? 'fast'
+            : quality,
+        duration,
+        generation_id: generationId,
+        render_id: renderId,
+        reason,
+        http_status: typeof extra?.httpStatus === 'number' ? extra.httpStatus : null,
+        error: extra?.detail ? extra.detail.slice(0, 180) : null,
+      })
+    } catch {
+      // Analytics must never break a generation attempt.
+    }
+  }
+
   async function handleAnalyze(
     overridePrompt?: string,
     opts?: { fromTopic?: boolean; skipPreview?: boolean; structureFirst?: boolean },
@@ -2866,12 +3015,18 @@ export default function GenerateClient({
     // orphan it when the later analysis response commits its own phase.
     if (!(await waitForActiveRenderRestore())) {
       if (!resumedRenderRef.current) setError('Checking for an in-progress render. Please try again in a moment.')
+      // PUSH #96 — this silent return is the dead-Generate-button path. It has
+      // to be visible in the funnel to be diagnosable at all.
+      trackGenerationFailure('idle', resumedRenderRef.current
+        ? 'analyze_blocked_by_resumed_render'
+        : 'analyze_blocked_active_render_gate')
       return
     }
     const override = typeof overridePrompt === 'string' ? overridePrompt : undefined
     const rawSource = (override ?? structuredScriptRef.current ?? prompt).trim()
     if (!rawSource) {
       setError('Please describe your video idea first.')
+      trackGenerationFailure('idle', 'analyze_empty_prompt')
       return
     }
     // Push #060 / #061 — fire-and-forget event tracking. Endpoint silently
@@ -2937,11 +3092,19 @@ export default function GenerateClient({
             structuredScriptRef.current = source
             setPrompt(cleanScriptPreview(source))
           }
+        } else {
+          // PUSH #96 — a degraded auto-structure pass is invisible today, so a
+          // spike in unstructured scripts (the #310 fast-path input) cannot be
+          // told apart from healthy traffic.
+          trackGenerationFailure('scripting', 'generate_script_not_ok', { httpStatus: sgRes.status })
         }
         // If generate-script fails for any reason, we fall through with the
         // original raw prompt — degraded but not broken.
-      } catch {
+      } catch (err) {
         // Non-blocking — proceed with rawSource if the extra step throws.
+        trackGenerationFailure('scripting', 'generate_script_threw', {
+          detail: err instanceof Error ? err.name : 'unknown',
+        })
       }
 
       // Push #311 — show script preview for manual flow unless caller requests
@@ -2975,6 +3138,9 @@ export default function GenerateClient({
         signal: controller.signal,
       })
       if (res.status === 401) {
+        // PUSH #96 — an expired session silently bounces the user to /login.
+        // It never reached the funnel, so it looked like abandonment.
+        trackGenerationFailure('analyzing', 'analyze_unauthenticated', { httpStatus: 401 })
         redirectToLoginPreservingPrompt()
         return
       }
@@ -2982,6 +3148,10 @@ export default function GenerateClient({
       if (!res.ok) {
         console.error('[generate] analyze failed:', data?.error)
         setError(opts?.fromTopic ? 'Could not analyze topic. Please try again.' : 'Could not analyze that idea. Please try again.')
+        // PUSH #96 — analyze failures fall back to `idle`, not `failed`, so the
+        // phase effect never emitted generate_failed for them. This is the
+        // largest single hole behind 1428 starts vs 2 recorded failures.
+        trackGenerationFailure('analyzing', 'analyze_not_ok', { httpStatus: res.status })
         setPhase('idle')
         return
       }
@@ -3077,8 +3247,17 @@ export default function GenerateClient({
               return // Wait for user to approve via VisualDirector
             }
           }
-        } catch {
+          // PUSH #96 — a Creator-mode user who silently loses the
+          // VisualDirector lands on a different screen than the one the CTA
+          // promised. Record it instead of degrading invisibly.
+          trackGenerationFailure('broll_planning', 'broll_plan_unavailable_creator', {
+            httpStatus: bpRes.status,
+          })
+        } catch (err) {
           // Fall through — show options phase without VisualDirector
+          trackGenerationFailure('broll_planning', 'broll_plan_threw_creator', {
+            detail: err instanceof Error ? err.name : 'unknown',
+          })
         }
         setBrollPlanLoading(false)
         setPhase('options')
@@ -3103,8 +3282,17 @@ export default function GenerateClient({
                 return bpData as BrollPlan
               }
             }
-          } catch {
+            // PUSH #96 — losing the plan here means #346 falls back to generic
+            // Pexels queries, which is the exact "random girl" regression the
+            // v3.0 B-roll work fixed. It must be measurable.
+            trackGenerationFailure('broll_planning', 'broll_plan_unavailable_autopilot', {
+              httpStatus: bpRes.status,
+            })
+          } catch (err) {
             // Non-blocking — Autopilot continues without the plan
+            trackGenerationFailure('broll_planning', 'broll_plan_threw_autopilot', {
+              detail: err instanceof Error ? err.name : 'unknown',
+            })
           } finally {
             setBrollPlanLoading(false)
           }
@@ -3114,6 +3302,13 @@ export default function GenerateClient({
     } catch (err) {
       console.error('[generate] analyze threw:', err)
       setError(opts?.fromTopic ? 'Could not analyze topic. Please try again.' : 'Could not analyze that idea. Please try again.')
+      // PUSH #96 — separate the 50s AbortController timeout from a genuine
+      // network/parse throw; both previously ended on `idle` with no event.
+      trackGenerationFailure(
+        'analyzing',
+        err instanceof Error && err.name === 'AbortError' ? 'analyze_timeout_50s' : 'analyze_threw',
+        { detail: err instanceof Error ? err.name : 'unknown' },
+      )
       setPhase('idle')
     } finally {
       clearTimeout(timeoutId)
@@ -3405,7 +3600,10 @@ export default function GenerateClient({
         await new Promise((resolve) => setTimeout(resolve, retryAfter))
         continue
       }
+      // PUSH #96 — avatar dispatch exits were unnamed too, and the 402 lands on
+      // `options` so the phase effect never treated it as a failure at all.
       if (res.status === 401) {
+        trackGenerationFailure('generating', 'avatar_unauthenticated', { httpStatus: 401 })
         redirectToLoginPreservingPrompt()
         return
       }
@@ -3415,6 +3613,7 @@ export default function GenerateClient({
         if (typeof data.balance === 'number') setCredits(data.balance)
         setError(typeof data.error === 'string' ? data.error : "You've used your credits.")
         openOutOfCreditsModal('credits')
+        trackGenerationFailure('generating', 'avatar_insufficient_credits', { httpStatus: 402 })
         setPhase('options')
         return
       }
@@ -3426,6 +3625,11 @@ export default function GenerateClient({
         try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
         resumedRenderRef.current = false
         setError(typeof data.error === 'string' ? data.error : GENERIC_ERROR)
+        trackGenerationFailure(
+          'generating',
+          res.ok ? 'avatar_response_incomplete' : 'avatar_dispatch_not_ok',
+          { httpStatus: res.status },
+        )
         setPhase('failed')
         return
       }
@@ -3463,6 +3667,10 @@ export default function GenerateClient({
   async function handleGenerate() {
     if (!activeRenderRestoreResolvedRef.current || resumedRenderRef.current) {
       if (!resumedRenderRef.current) setError('Checking for an in-progress render. Please try again in a moment.')
+      // PUSH #96 — the dead-button path again, on the Generate CTA this time.
+      trackGenerationFailure('idle', resumedRenderRef.current
+        ? 'generate_blocked_by_resumed_render'
+        : 'generate_blocked_active_render_gate')
       return
     }
     // #360 — double-submit guard. Block re-entry if a generation is already in
@@ -3483,6 +3691,8 @@ export default function GenerateClient({
     if (!trimmed) {
       setError('Please describe your video idea first.')
       generationInFlightRef.current = false
+      // PUSH #96 — a click that dies on validation never reached the funnel.
+      trackGenerationFailure('idle', 'generate_empty_prompt')
       return
     }
 
@@ -3496,6 +3706,7 @@ export default function GenerateClient({
       )
       setAvatarOpenSignal((n) => n + 1)
       generationInFlightRef.current = false
+      trackGenerationFailure('idle', 'generate_avatar_not_attached')
       return
     }
     const preserveExistingAttempt = preserveGenerationAttemptRef.current
@@ -3537,6 +3748,10 @@ export default function GenerateClient({
     resumedRenderRef.current = false
     generatingPollErrorsRef.current = 0
     composingPollErrorsRef.current = 0
+    // PUSH #96 — reset the new poll error counters with the existing ones so a
+    // retry after a failure reports its own exhaustion instead of staying silent.
+    falPollErrorsRef.current = 0
+    avatarPollErrorsRef.current = 0
     setAvatarRequestId(null)
     avatarComposeRef.current = null
     setPhase('generating')
@@ -3641,11 +3856,19 @@ export default function GenerateClient({
           break
         }
         if (reconnectAttempt > 0 && res.ok) setError(null)
-        if (res.status === 401) { redirectToLoginPreservingPrompt(); return }
+        // PUSH #96 — the phase effect only records that an attempt reached
+        // `failed`; it carries no HTTP status and no machine-readable reason,
+        // and the 401 branch below leaves the page entirely without ever
+        // transitioning. Name each dispatch outcome explicitly.
+        if (res.status === 401) {
+          trackGenerationFailure('generating', 'cinematic_unauthenticated', { httpStatus: 401 })
+          redirectToLoginPreservingPrompt(); return
+        }
         if (res.status === 503 && data?.queued) {
           // KINEO-FAL-ALARM-2026-07-06 — fal balance exhausted: show a calm
           // "high demand, queued" message (no credits used) instead of an error.
           setError(typeof data?.error === 'string' ? data.error : "We're experiencing high demand — your video is queued and will be ready shortly. No credits were used.")
+          trackGenerationFailure('generating', 'cinematic_provider_queued', { httpStatus: 503 })
           setPhase('failed'); return
         }
         if (res.status === 402) {
@@ -3659,14 +3882,17 @@ export default function GenerateClient({
             preserveGenerationAttemptRef.current = true
           }
           openOutOfCreditsModal(gateReason)
+          trackGenerationFailure('generating', `cinematic_gate_${gateReason}`, { httpStatus: 402 })
           setPhase('failed'); return
         }
         if (!res.ok) {
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          trackGenerationFailure('generating', 'cinematic_dispatch_not_ok', { httpStatus: res.status })
           setPhase('failed'); return
         }
         if (data.generationId !== cinematicGenerationId) {
           setError('We could not verify this AI generation. Nothing was composed. Please try again.')
+          trackGenerationFailure('generating', 'cinematic_generation_id_mismatch', { httpStatus: res.status })
           setPhase('failed'); return
         }
         setQuality('cinematic_ai')
@@ -3693,6 +3919,9 @@ export default function GenerateClient({
       } catch (err) {
         console.error('[generate] cinematic-ai threw:', err)
         setError(GENERIC_ERROR)
+        trackGenerationFailure('generating', 'cinematic_threw', {
+          detail: err instanceof Error ? err.name : 'unknown',
+        })
         setPhase('failed')
       }
       return
@@ -3753,7 +3982,12 @@ export default function GenerateClient({
           body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded }),
         })
         const data = await res.json()
+        // PUSH #96 — Fast is the default engine and the only free one, so this
+        // is the highest-volume dispatch in the funnel. Every non-success exit
+        // gets a named reason plus the HTTP status; the 401 branch never
+        // transitioned phase at all and so was completely invisible.
         if (res.status === 401) {
+          trackGenerationFailure('generating', 'fast_unauthenticated', { httpStatus: 401 })
           redirectToLoginPreservingPrompt()
           return
         }
@@ -3761,12 +3995,14 @@ export default function GenerateClient({
           // Push #434 — Fast is free now, so the server no longer returns 402
           // for Fast. Kept as a defensive fallback.
           setError('Something went wrong starting your Fast video. Please try again.')
+          trackGenerationFailure('generating', 'fast_payment_required', { httpStatus: 402 })
           setPhase('failed')
           return
         }
         if (!res.ok) {
           console.error('[generate] fast-mode error:', data?.error)
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          trackGenerationFailure('generating', 'fast_dispatch_not_ok', { httpStatus: res.status })
           setPhase('failed')
           return
         }
@@ -3779,6 +4015,13 @@ export default function GenerateClient({
           : []
         if (!/^[A-Za-z0-9_-]{8,100}$/.test(fastGenerationId) || fastClipUrls.length === 0) {
           setError('We could not safely resume this Fast video. Please try again.')
+          // PUSH #96 — a 200 that carries no usable clips looks like success in
+          // every server log. Distinguish the two causes.
+          trackGenerationFailure(
+            'generating',
+            fastClipUrls.length === 0 ? 'fast_response_no_clips' : 'fast_response_bad_generation_id',
+            { httpStatus: res.status },
+          )
           setPhase('failed')
           return
         }
@@ -3902,6 +4145,9 @@ export default function GenerateClient({
       } catch (err: unknown) {
         console.error('[generate] fast-mode threw:', err)
         setError(GENERIC_ERROR)
+        trackGenerationFailure('generating', 'fast_threw', {
+          detail: err instanceof Error ? err.name : 'unknown',
+        })
         setPhase('failed')
       }
       return
@@ -3920,13 +4166,17 @@ export default function GenerateClient({
       })
       const data = await res.json()
 
+      // PUSH #96 — legacy /api/generate-video path, same reasoning as the Fast
+      // and cinematic branches above: name every exit and carry the status.
       if (res.status === 401) {
+        trackGenerationFailure('generating', 'legacy_unauthenticated', { httpStatus: 401 })
         redirectToLoginPreservingPrompt()
         return
       }
 
       if (res.status === 402) {
         setError(`Not enough credits. This generation needs ${QUALITY_OPTIONS.find(q => q.key === quality)?.credits ?? 8} credit(s).`)
+        trackGenerationFailure('generating', 'legacy_insufficient_credits', { httpStatus: 402 })
         setPhase('failed')
         return
       }
@@ -3946,6 +4196,11 @@ export default function GenerateClient({
         } else {
           setError('Cinematic mode requires the Pro plan. Switched to Fast Mode — try again, or upgrade at /pricing.')
         }
+        trackGenerationFailure(
+          'generating',
+          isTokenExhausted ? 'legacy_cinematic_tokens_exhausted' : 'legacy_cinematic_plan_gate',
+          { httpStatus: 403 },
+        )
         setPhase('failed')
         return
       }
@@ -3953,6 +4208,7 @@ export default function GenerateClient({
       if (!res.ok) {
         console.error('[generate] generate-video error:', data?.error)
         setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+        trackGenerationFailure('generating', 'legacy_dispatch_not_ok', { httpStatus: res.status })
         setPhase('failed')
         return
       }
@@ -3969,6 +4225,9 @@ export default function GenerateClient({
     } catch (err: unknown) {
       console.error('[generate] generate threw:', err)
       setError(GENERIC_ERROR)
+      trackGenerationFailure('generating', 'legacy_threw', {
+        detail: err instanceof Error ? err.name : 'unknown',
+      })
       setPhase('failed')
     }
   }
@@ -4657,6 +4916,17 @@ export default function GenerateClient({
   useEffect(() => {
     if (!showInlineFirstVideo || !prompt.trim() || inlineFirstVideoViewedRef.current) return
     inlineFirstVideoViewedRef.current = true
+    // PUSH #96 — the useRef latch only survives one mount, and this page
+    // re-mounts several times per session, so the same impression was counted
+    // repeatedly (389 events / 40 sessions). Promote it to a once-per-tab
+    // sessionStorage marker, matching HOME_PROMPT_VIEW_MARKER. Analytics must
+    // never throw into render, so the storage access is wrapped.
+    try {
+      if (sessionStorage.getItem(PUSH96_INLINE_FIRST_VIDEO_VIEW_MARKER)) return
+      sessionStorage.setItem(PUSH96_INLINE_FIRST_VIDEO_VIEW_MARKER, '1')
+    } catch {
+      // Storage failures must never affect the composer.
+    }
     void trackEvent('viral_onboarding_viewed', {
       source: 'inline_first_video',
       surface: 'under_prompt',

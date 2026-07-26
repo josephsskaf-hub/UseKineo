@@ -1,2 +1,112 @@
 ===== KINEO PUSH 93 + 94 (MOTORES: legendas, Pixabay, B-roll, grade, cache de voz) ===== 
 [remove PT/ES + pricing layout duplicado - roda de novo sem problema se o 92 ja passou] 
+warning: in the working copy of 'app/(dashboard)/generate/GenerateClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/history/HistoryClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/history/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/HeroGallery.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/HomeTopicForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/KineoLanding.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/compose/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/generate-broll-plan/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/generate-video-fast/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/regenerate-scene/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/checkout/cancelled/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/globals.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/pricing/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/sitemap.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/v/[id]/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/CheckoutResumeBanner.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ExitIntentOffer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/StickyFreeShortCTA.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/TopBar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/video/VisualDirector.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/aesthetic-packs.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/broll-engine.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/hybrid-source.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/relevance-score.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/scene-splitter.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/broll/types.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/pixabay.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'next.config.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_91_log.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/checkout/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/coming-soon/layout.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/pricing/PricingClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_92_uiux.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_93_94_motores.bat', LF will be replaced by CRLF the next time Git touches it
+[staged] 
+M	app/(dashboard)/generate/GenerateClient.tsx
+M	app/(dashboard)/history/HistoryClient.tsx
+M	app/(dashboard)/history/page.tsx
+M	app/HeroGallery.tsx
+M	app/HomeTopicForm.tsx
+M	app/KineoLanding.tsx
+M	app/api/compose/route.ts
+M	app/api/generate-broll-plan/route.ts
+M	app/api/generate-video-fast/route.ts
+M	app/api/regenerate-scene/route.ts
+M	app/checkout/cancelled/page.tsx
+A	app/checkout/layout.tsx
+M	app/checkout/success/page.tsx
+A	app/coming-soon/layout.tsx
+M	app/coming-soon/page.tsx
+D	app/es/canal-dark/page.tsx
+D	app/es/page.tsx
+D	app/es/videos-sin-rostro/page.tsx
+M	app/globals.css
+M	app/layout.tsx
+M	app/not-found.tsx
+A	app/pricing/PricingClient.tsx
+D	app/pricing/layout.tsx
+M	app/pricing/page.tsx
+M	app/privacy/page.tsx
+D	app/pt/[slug]/page.tsx
+D	app/pt/canal-dark/page.tsx
+D	app/pt/gerador-video-faceless/page.tsx
+D	app/pt/page.tsx
+D	app/pt/perrengue/page.tsx
+M	app/sitemap.ts
+M	app/terms/page.tsx
+M	app/v/[id]/page.tsx
+M	components/CheckoutResumeBanner.tsx
+M	components/ExitIntentOffer.tsx
+M	components/StickyFreeShortCTA.tsx
+M	components/TopBar.tsx
+M	components/video/VisualDirector.tsx
+M	lib/broll/aesthetic-packs.ts
+M	lib/broll/broll-engine.ts
+M	lib/broll/hybrid-source.ts
+M	lib/broll/relevance-score.ts
+M	lib/broll/scene-splitter.ts
+M	lib/broll/types.ts
+M	lib/compose.ts
+M	lib/pixabay.ts
+M	next.config.js
+M	push_91_log.txt
+A	push_92_uiux.bat
+A	push_93_94_motores.bat
+A	push_93_log.txt
+[commit] 
+[main 151940a] PUSH #93+#94 MOTORES: legendas nunca mais cortadas antes do payoff (bug em 100% dos videos), legenda palavra-a-palavra estilo tier-1 (fonte 86/104, stroke 3, pill justa), safe zone real do Shorts (nada atras da UI do YouTube), enfase por palavra em todos os tiers, hook maior + pop mais forte, musica sustenta ate a CTA, TTS sem clique nas emendas + salt de cache pra invalidar audio velho, Pixabay: clipes genericos nunca lideram, preferencia vertical com min_height 1200 e peso +10, GPT director com 5s de timeout e cooldown, gate de relevancia consertado (aceitava qualquer clipe em query de estilo), B-roll: queries aterradas no texto real da cena, blacklist de gente/lifestyle limpa, score de relevancia nunca mais inventa 75, terceiro ato do splitter virou payoff, Ken Burns com ease-out, grade cinematografico real via blend_mode multiply/screen, regenerate-scene consertado (400 em todo clique), VisualDirector com prop-sync real (fim da perda de rascunho), hint de cena de 80 chars pra 240 + nomes proprios
+ 51 files changed, 3530 insertions(+), 2871 deletions(-)
+ create mode 100644 app/checkout/layout.tsx
+ create mode 100644 app/coming-soon/layout.tsx
+ delete mode 100644 app/es/canal-dark/page.tsx
+ delete mode 100644 app/es/page.tsx
+ delete mode 100644 app/es/videos-sin-rostro/page.tsx
+ create mode 100644 app/pricing/PricingClient.tsx
+ delete mode 100644 app/pricing/layout.tsx
+ delete mode 100644 app/pt/[slug]/page.tsx
+ delete mode 100644 app/pt/canal-dark/page.tsx
+ delete mode 100644 app/pt/gerador-video-faceless/page.tsx
+ delete mode 100644 app/pt/page.tsx
+ delete mode 100644 app/pt/perrengue/page.tsx
+ create mode 100644 push_92_uiux.bat
+ create mode 100644 push_93_94_motores.bat
+ create mode 100644 push_93_log.txt
+[push] 
+To https://github.com/josephsskaf-hub/UseKineo.git
+   962c21c..151940a  main -> main
+## main...origin/main
+ M push_93_log.txt
+===== FIM ===== 

@@ -11,6 +11,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import HomeTopicForm from './HomeTopicForm'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
+import LandingViewTracker from '@/components/LandingViewTracker'
 
 type Props = {
   initialUser?: { id: string } | null
@@ -189,6 +190,7 @@ export default function KineoLanding({ initialUser }: Props) {
     <>
     <main className="klp">
       <style dangerouslySetInnerHTML={{ __html: KLP_CSS }} />
+      <LandingViewTracker signedIn={Boolean(initialUser)} />
 
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">

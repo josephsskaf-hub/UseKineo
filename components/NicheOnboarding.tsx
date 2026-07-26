@@ -9,8 +9,19 @@
 // presents one concrete choice and one escape hatch. No timer, viral promise,
 // view claim or fabricated urgency.
 
-import { useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
+
+// PUSH #96 — `viral_onboarding_viewed` reported 389 events across only 40
+// distinct sessions (~9.7 impressions per session) while
+// `viral_onboarding_primary_clicked` reported 23 events across 18 sessions.
+// The mount-only effect below cannot fire twice per mount, so the inflation
+// comes from the dialog being re-mounted repeatedly inside one tab (the
+// /generate route is force-dynamic and the client strips ?signup=1 with a
+// router.replace, remounting the whole tree). A useRef latch would reset on
+// every remount, so this is a once-per-tab case and needs a sessionStorage
+// marker, matching app/HomeTopicForm.tsx's HOME_PROMPT_VIEW_MARKER pattern.
+const ONBOARDING_VIEW_MARKER = 'kineo_push96_viral_onboarding_viewed'
 
 const FIRST_VIDEO = {
   topic: 'The disappearance nobody solved in 70 years',
@@ -24,27 +35,59 @@ type Props = {
 }
 
 export default function NicheOnboarding({ onPick, onClose }: Props) {
+  // PUSH #96 — `onClose` is re-created on every parent render, so keeping it in
+  // the Escape effect's dependency array tore down and re-subscribed the
+  // listener on every render. The ref keeps the handler stable ([] deps) while
+  // always calling the latest callback.
+  const onCloseRef = useRef(onClose)
+  const onPickRef = useRef(onPick)
+  onCloseRef.current = onClose
+  onPickRef.current = onPick
+  // PUSH #96 — `first_video_started_from_viral_onboarding` reported 255 events
+  // across 19 sessions but only 16 `..._dispatched` events. Nothing stopped a
+  // second click (or a double-click) from re-firing the pair, so the CTA is
+  // latched for the life of the mount.
+  const primaryFiredRef = useRef(false)
+  const dismissedRef = useRef(false)
+
   useEffect(() => {
+    try {
+      if (sessionStorage.getItem(ONBOARDING_VIEW_MARKER)) return
+      sessionStorage.setItem(ONBOARDING_VIEW_MARKER, '1')
+    } catch {
+      // Storage failures must never affect the dialog rendering.
+    }
     void trackEvent('viral_onboarding_viewed', {
       version: 'push27_single_choice',
       is_first_video: true,
     })
   }, [])
 
+  // PUSH #96 — JOB 2(b): every dismissal path funnels through one latched
+  // helper so Escape, the backdrop and the skip link can never double-fire the
+  // skip event or call onClose twice.
+  const dismiss = useCallback((action: 'escape' | 'own_idea' | 'backdrop') => {
+    if (dismissedRef.current) return
+    dismissedRef.current = true
+    void trackEvent('viral_onboarding_skipped', {
+      version: 'push27_single_choice',
+      action,
+    })
+    onCloseRef.current()
+  }, [])
+
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
-      void trackEvent('viral_onboarding_skipped', {
-        version: 'push27_single_choice',
-        action: 'escape',
-      })
-      onClose()
+      dismiss('escape')
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [dismiss])
 
   function createFirstVideo() {
+    if (primaryFiredRef.current) return
+    primaryFiredRef.current = true
     const metadata = {
       source: 'viral_onboarding',
       version: 'push27_single_choice',
@@ -56,15 +99,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
     // Preserve the established event so the pre-PUSH #27 activation series
     // remains comparable in the admin funnel.
     void trackEvent('first_video_started_from_viral_onboarding', metadata)
-    onPick(FIRST_VIDEO.topic)
-  }
-
-  function useOwnIdea() {
-    void trackEvent('viral_onboarding_skipped', {
-      version: 'push27_single_choice',
-      action: 'own_idea',
-    })
-    onClose()
+    onPickRef.current(FIRST_VIDEO.topic)
   }
 
   return (
@@ -72,12 +107,24 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="first-video-title"
+      // PUSH #96 — JOB 2(b): the overlay had no backdrop dismissal at all, so a
+      // user who never noticed the underlined skip link was held on this screen.
+      // 20 sessions since 2026-07-16 reached /generate and produced zero
+      // interaction events of any kind.
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) dismiss('backdrop')
+      }}
       style={{
         position: 'fixed',
         inset: 0,
         zIndex: 1200,
         display: 'flex',
-        alignItems: 'center',
+        // PUSH #96 — JOB 2(e): `alignItems: 'center'` clips the top of an
+        // overflowing dialog in a scrollable flex container, which on a 375px
+        // viewport can put the primary CTA out of reach. `flex-start` plus
+        // `margin: auto` still centers when there is room and scrolls cleanly
+        // when there is not.
+        alignItems: 'flex-start',
         justifyContent: 'center',
         overflowY: 'auto',
         padding: '20px 16px',
@@ -90,6 +137,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
         style={{
           width: '100%',
           maxWidth: 520,
+          margin: 'auto',
           padding: 'clamp(22px, 5vw, 34px)',
           borderRadius: 24,
           border: '1px solid #2a2a2d',
@@ -135,18 +183,26 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
         >
           Create this free watermarked video →
         </button>
+        {/* PUSH #96 — JOB 2(a)/(e): the only escape hatch was a ~17px tall
+            underlined link in #86868b on #131316. It was both under the 44px
+            touch target minimum and low-contrast, which is consistent with 389
+            impressions producing only 3 `viral_onboarding_skipped` events. Same
+            copy and same secondary role, now an actually tappable control. */}
         <button
           type="button"
-          onClick={useOwnIdea}
+          onClick={() => dismiss('own_idea')}
           style={{
             display: 'block',
-            margin: '16px auto 0',
-            padding: 0,
+            width: '100%',
+            minHeight: 44,
+            margin: '12px auto 0',
+            padding: '12px 18px',
             border: 0,
+            borderRadius: 999,
             background: 'transparent',
-            color: '#86868b',
+            color: '#a1a1a6',
             cursor: 'pointer',
-            fontSize: '0.86rem',
+            fontSize: '0.9rem',
             fontWeight: 650,
             textDecoration: 'underline',
           }}

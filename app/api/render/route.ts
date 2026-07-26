@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
+// PUSH #95 — a Creatomate `shape` has NO geometry other than its `path`; with
+// no path it draws nothing and the API ignores it silently. Both shapes below
+// were inert until now. Single source of truth so the path is never retyped.
+import { RECT_PATH } from '@/lib/compose'
 
 export const maxDuration = 300
 
@@ -175,6 +179,8 @@ export async function POST(req: NextRequest) {
     const elements: any[] = []
 
     // Track 1: solid dark background
+    // PUSH #95 — draws for the first time (RECT_PATH). It is behind the track-2
+    // clip, so nothing visible changes; it just actually backs the frame now.
     elements.push({
       type: 'shape',
       track: 1,
@@ -184,6 +190,7 @@ export async function POST(req: NextRequest) {
       y: '50%',
       width: '100%',
       height: '100%',
+      path: RECT_PATH,
       fill_color: '#08080f',
     })
 
@@ -206,6 +213,11 @@ export async function POST(req: NextRequest) {
           height: '100%',
           volume: '0%',
         })
+        // PUSH #95 — per-scene readability scrim, now actually compositing.
+        // 0.55 → 0.14: at 0.55 this would have dimmed every clip to near-black,
+        // and it only exists so the narration text reads. Matches the 0.14 the
+        // two lib/compose.ts builders now use. Raise it only after watching a
+        // real render — see the shape-stack note in lib/compose.ts.
         elements.push({
           type: 'shape',
           track: 3,
@@ -215,7 +227,8 @@ export async function POST(req: NextRequest) {
           y: '50%',
           width: '100%',
           height: '100%',
-          fill_color: 'rgba(0,0,0,0.55)',
+          path: RECT_PATH,
+          fill_color: 'rgba(0,0,0,0.14)',
         })
       }
       cursor += dur

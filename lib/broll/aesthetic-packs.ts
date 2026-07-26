@@ -37,11 +37,28 @@ export const UNIVERSAL_BANNED = [
 // injecting the "random stock person walking" footage the system is built to
 // reject. Any new vocab term MUST pass both filters; use objects, places and
 // silhouettes instead of named human subjects.
-const PEOPLE_LIFESTYLE_WORDS = [
+// PUSH #96 — EXPORTED. This list is the single source of truth for the
+// people/lifestyle vocabulary, but because it was module-private it got
+// hand-copied into app/api/generate-video-fast/route.ts as `PEOPLE_LIFESTYLE_RE`
+// with a "keep in sync" comment — the exact duplication problem this repo keeps
+// hitting. Exporting the list AND the compiled regex below lets that route
+// import instead of re-declaring, so the two can never drift again.
+export const PEOPLE_LIFESTYLE_WORDS = [
   'people', 'person', 'lifestyle', 'portrait', 'fashion', 'influencer',
   'teenager', 'teen', 'walking', 'smiling', 'model', 'woman', 'man', 'girl',
   'boy', 'human',
 ]
+
+/**
+ * PUSH #96 — word-boundary matcher built FROM the list above, so it is
+ * impossible for the regex and the list to disagree. Byte-for-byte equivalent
+ * to the hand-written `PEOPLE_LIFESTYLE_RE` currently duplicated in
+ * app/api/generate-video-fast/route.ts.
+ */
+export const PEOPLE_LIFESTYLE_RE = new RegExp(
+  `\\b(${PEOPLE_LIFESTYLE_WORDS.join('|')})\\b`,
+  'i',
+)
 
 const PACKS: AestheticPack[] = [
   {
@@ -139,7 +156,10 @@ export function packForNiche(niche: string): AestheticPack {
   return DEFAULT_PACK
 }
 
-function isBanned(query: string, pack: AestheticPack): boolean {
+// PUSH #96 — EXPORTED. Callers outside this file kept needing "is this query
+// banned?" and had no way to ask, which is how near-copies of the ban lists end
+// up scattered around the repo. Export it once, here.
+export function isBanned(query: string, pack: AestheticPack): boolean {
   const q = query.toLowerCase()
   return [...UNIVERSAL_BANNED, ...pack.banned].some((b) => q.includes(b))
 }

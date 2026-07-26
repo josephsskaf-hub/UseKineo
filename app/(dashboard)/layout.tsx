@@ -24,20 +24,36 @@ export default async function DashboardLayout({
 
   // No redirect — dashboard is public. Auth is enforced at the generate action.
   let profile = null
+  let videosCount = 0
   if (user) {
     const { data } = await supabase
       .from('profiles')
-      .select('is_pro, generations_used, email')
+      .select('is_pro, email')
       .eq('id', user.id)
       .single()
     profile = data
+
+    // PUSH #96 — `generations_used` is a dead column: it's written only by the
+    // legacy app/api/generate/route.ts (old /create flow), never by the real
+    // video pipeline (generate-video-fast/compose), so it's stuck at 0 for
+    // every profile created since 2026-06-01. DashboardShell/Sidebar require a
+    // `generationsUsed` number prop but never actually render its value today
+    // (verified: Sidebar.tsx doesn't destructure it) — still, if it's ever
+    // wired up for display, it should reflect something real. Reusing the
+    // same "count rows in `videos`" approach as videos_count in
+    // app/api/admin/users/route.ts.
+    const { count } = await supabase
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+    videosCount = count ?? 0
   }
 
   return (
     <DashboardShell
       userEmail={profile?.email ?? user?.email ?? ''}
       isPro={profile?.is_pro ?? false}
-      generationsUsed={profile?.generations_used ?? 0}
+      generationsUsed={videosCount}
       isLoggedIn={!!user}
     >
       {children}

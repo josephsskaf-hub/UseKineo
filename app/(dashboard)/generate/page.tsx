@@ -69,11 +69,18 @@ export default async function GeneratePage({ searchParams }: GeneratePageProps) 
     redirect(`/login?redirect=${encodeURIComponent(path)}`)
   }
 
+  // PUSH #96 — this route is force-dynamic, so this Server Component re-runs
+  // on every RSC navigation back to /generate. Un-deduped, the event counted
+  // renders instead of arrivals (138 rows / 51 sessions) and inflated the top
+  // of the activation funnel by ~2.7x, which is exactly the step we are trying
+  // to measure. 30 minutes is longer than any single generation attempt, so a
+  // returning user on a genuinely new visit still registers.
   await writeServerEvent({
     name: 'generate_arrived_server',
     userId: user.id,
     path: '/generate',
     sessionId,
+    dedupeMinutes: 30,
     metadata: {
       activation_entry: activationEntry,
       has_prompt: Boolean(firstParam(searchParams, 'prompt')?.trim() || viralTopic?.prompt),

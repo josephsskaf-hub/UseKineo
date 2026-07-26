@@ -24,6 +24,14 @@ import {
   FIREWORKS_NEGATIVE_TERMS,
   type VisualCategory,
 } from './visualAssetCategories'
+// PUSH #96 — aesthetic re-ranker (see lib/broll/aesthetic-score.ts). Applied
+// AFTER the hard relevance gates, so it only ever chooses among clips that
+// already passed them.
+import {
+  scoreAesthetics,
+  formatAestheticBreakdown,
+  type AestheticResult,
+} from './broll/aesthetic-score'
 
 const PEXELS_API = 'https://api.pexels.com/videos'
 
@@ -51,6 +59,10 @@ interface PexelsVideoFile {
   width: number
   height: number
   file_type: string
+  // PUSH #96 — `fps` IS part of the documented Pexels VideoFile object; it was
+  // simply never declared here. Optional so a malformed file entry can never
+  // break parsing (the aesthetic scorer treats it as unknown when absent).
+  fps?: number
 }
 
 interface PexelsVideo {
@@ -60,6 +72,11 @@ interface PexelsVideo {
   duration: number
   url: string          // Pexels page URL — slug is used for filtering
   video_files: PexelsVideoFile[]
+  // PUSH #96 — documented on the Video object but frequently empty in practice,
+  // so it is only ever used as EXTRA vocabulary alongside the URL slug.
+  // NOTE: the Pexels VIDEO object has NO `avg_color` (that belongs to the Photo
+  // object), which is why no colour/luminance signal exists in the ranker.
+  tags?: string[]
 }
 
 /**
@@ -98,10 +115,13 @@ async function searchPexelsVideoObjects(query: string, perPage = 5): Promise<Pex
 }
 
 /**
- * Pick the best MP4 file from a PexelsVideo — HD portrait preferred.
+ * Pick the best MP4 file object from a PexelsVideo — HD portrait preferred.
  * Returns null if no valid MP4 found.
+ *
+ * PUSH #96 — split out of `pickBestFile` so the ranker can also read the chosen
+ * rendition's `fps`. Selection logic is byte-for-byte the one from #436.
  */
-function pickBestFile(video: PexelsVideo): string | null {
+function pickBestFileObject(video: PexelsVideo): PexelsVideoFile | null {
   const files = (video.video_files ?? [])
     .filter((f) => f.file_type === 'video/mp4' && f.quality !== 'hls')
     .slice()
@@ -113,8 +133,15 @@ function pickBestFile(video: PexelsVideo): string | null {
   // best at ~1080px wide; 4K just bloats the download + render with no visible
   // gain on a phone. So: take the largest file <= 1920px wide; if every file is
   // 4K, fall back to the smallest of those (still sharp, smaller download).
-  const ideal = files.find((f) => f.width <= 1920) ?? files[files.length - 1]
-  return ideal?.link ?? null
+  return files.find((f) => f.width <= 1920) ?? files[files.length - 1] ?? null
+}
+
+/**
+ * Pick the best MP4 file URL from a PexelsVideo — HD portrait preferred.
+ * Returns null if no valid MP4 found.
+ */
+function pickBestFile(video: PexelsVideo): string | null {
+  return pickBestFileObject(video)?.link ?? null
 }
 
 /**
@@ -143,7 +170,9 @@ async function searchAndFilter(
   // a quality score instead of returning the first acceptable one. Score favors
   // higher resolution and a healthy clip length (3–20s), so a sharp, well-shot
   // clip at search position 4 beats a soft, 2-second clip at position 1.
-  const candidates: { link: string; slug: string; score: number }[] = []
+  // PUSH #96 — `score` is now the 0..1 aesthetic score (see below), not the old
+  // pixel-count magnitude; `aesthetic` is kept for the accept log.
+  const candidates: { link: string; slug: string; score: number; aesthetic: AestheticResult }[] = []
 
   for (const video of videos) {
     const pageUrl = video.url ?? ''
@@ -174,21 +203,42 @@ async function searchAndFilter(
       }
     }
 
-    const link = pickBestFile(video)
-    if (!link) continue
+    const file = pickBestFileObject(video)
+    if (!file?.link) continue
+    const link = file.link
     const slug = pageUrl.match(/\/video\/([^/]+?)(?:-\d+)?\/?$/)?.[1] ?? ''
-    // Resolution score (capped so 8K doesn't dominate) + duration sweet spot.
-    const resScore = Math.min((video.width || 0) * (video.height || 0), 1920 * 1080)
-    const dur = video.duration || 0
-    const durBonus = dur >= 3 && dur <= 20 ? 1_000_000 : dur > 20 ? 300_000 : 0
-    candidates.push({ link, slug, score: resScore + durBonus })
+    // PUSH #96 — AESTHETIC RE-RANK replaces the old ad-hoc
+    // `min(w*h, 1920x1080) + duration bucket` score. That score was resolution
+    // + a coarse duration bucket only: it could not tell a flat, grey, 16:9
+    // green-screen plate from a cinematic native-vertical aerial of the same
+    // resolution, so the pick among survivors was effectively a coin flip.
+    //
+    // RELEVANCE STILL DOMINATES on this path — and absolutely, not by weighting.
+    // Everything that reaches here has already passed the HARD relevance gates
+    // above (negative-term slug rejection + the `requiredSlugTerms` positive
+    // guard). Relevance is pass/fail here, so every survivor is equally
+    // on-topic by construction and aesthetics can only choose between clips
+    // that already qualify. It can never promote a rejected clip.
+    const aesthetic = scoreAesthetics({
+      // Top-level width/height are the MASTER dimensions (the quality ceiling);
+      // `file` is only the rendition we download, so fps comes from it.
+      widthPx: video.width,
+      heightPx: video.height,
+      durationSec: video.duration,
+      fps: file.fps,
+      // Slug carries the clip's title words; `tags` is often empty but free.
+      text: `${slug} ${(video.tags ?? []).join(' ')}`,
+      // Pexels exposes no engagement counters — left unset, scored as unknown.
+    })
+    candidates.push({ link, slug, score: aesthetic.score, aesthetic })
   }
 
   if (candidates.length === 0) return null
+  // PUSH #96 — ties break toward Pexels' own relevance order (stable sort).
   candidates.sort((a, b) => b.score - a.score)
   const best = candidates[0]
   console.log(
-    `[visual] ${sceneLabel} ACCEPTED (best of ${candidates.length}) slug="${best.slug}" url="${best.link.slice(0, 80)}"`,
+    `[visual] ${sceneLabel} ACCEPTED (best of ${candidates.length}) slug="${best.slug}" aesthetic=${best.aesthetic.score.toFixed(2)} [${formatAestheticBreakdown(best.aesthetic)}] url="${best.link.slice(0, 80)}"`,
   )
   return best.link
 }

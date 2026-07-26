@@ -49,11 +49,12 @@ const HIGHLIGHT_COLOR = '#FFD700'
 //
 // The layout this file now emits (percentages of the 1920px height):
 //
-//   y   0.0% ─┬─ (top letterbox bar, track 3, 0–20%)
+//   y   0.0% ─┬─ (top band 0–20%; PUSH #95 deleted the letterbox bar that used
+//             │   to be drawn here — it never rendered. Text below is unmoved.)
 //        5.0% │  WATERMARK "usekineo.com"   font 28  band ≈  76–116px   [free trial only]
 //       13.0% │  END CARD  "Made with Kineo" font 44 band ≈ 205–295px   [free/starter only]
 //       18.0% │  CTA       "usekineo.com"   font 36  band ≈ 320–372px   [always, last 2.5s]
-//       20.0% ─┴─ (end of top letterbox bar)
+//       20.0% ─┴─ (end of top band)
 //       20.5%     … footage / color-grade overlays only …
 //   ~70.3%    ┬─ CAPTION top — PUSH #94, single word @ hook font 104 (1350px).
 //             │  Body font 86 tops out at 71.3% (1369px). Was ~61.3% when a
@@ -1161,6 +1162,12 @@ interface CreatomateElement {
   // PUSH #94 — Creatomate compositing mode for shape overlays ('multiply' /
   // 'screen'). Optional on purpose: only the colour-grade shapes set it.
   blend_mode?: string
+  // PUSH #95 — SHAPE GEOMETRY. A `type: 'shape'` element has NO geometry other
+  // than this SVG-style path (the API default is `"path": null`). x/y/width/
+  // height only position and scale the box the path is drawn into — with no
+  // `path` the element has nothing to fill, so it DRAWS NOTHING, and Creatomate
+  // silently ignores it rather than erroring. Every shape must set this.
+  path?: string
   // Push #256 — caption pill background + rounded corners
   background_color?: string
   background_x_padding?: string
@@ -1170,6 +1177,14 @@ interface CreatomateElement {
   // Push #292 — Ken Burns slow zoom animation
   animations?: unknown[]
 }
+
+// PUSH #95 — the ONE rectangle path every shape in this repo uses. Coordinates
+// are Creatomate's unitless 0..100 boxed space (NOT percentages): the path is
+// drawn into whatever box x/y/width/height define, so this single string is a
+// full-bleed rectangle at ANY size. It is byte-for-byte the path Creatomate's
+// own Node SDK injects for its `Rectangle` class (Shape + this path) and the
+// path their editor emits for a plain fill-only bar. Never hand-write it.
+export const RECT_PATH = 'M 0 0 L 100 0 L 100 100 L 0 100 L 0 0 Z'
 
 function clamp(v: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, v))
@@ -1364,7 +1379,33 @@ export function buildCreatomateSource({
 
   const elements: CreatomateElement[] = []
 
+  // ─── PUSH #95 — SHAPE OVERLAY STACK: READ BEFORE TOUCHING ANY ALPHA ─────────
+  // A Creatomate `shape` has no geometry except its `path` (see RECT_PATH and
+  // the CreatomateElement.path comment). NOT ONE shape in this file ever set
+  // it, which means the ENTIRE overlay stack — background, readability scrim,
+  // letterbox bars, niche colour grade, side vignette — has been INERT since
+  // the day it was written. Every render shipped so far is raw footage plus
+  // text. The alphas that accumulated here across #436 / V4 / #94 were tuned
+  // against renders where nothing drew, so they were never design decisions —
+  // they were untested guesses.
+  //
+  // Consequence for this push: the first render after this change is the FIRST
+  // TIME any of this has existed. Nobody can eyeball it before it reaches
+  // paying users, so every alpha below was deliberately dialled DOWN to a
+  // conservative first-light value. The intended failure mode is "so subtle you
+  // can barely see it", never "too dark / too tinted" — the videos look fine
+  // today, so the bar is "better or identical", never "different and hope".
+  // ONCE SOMEONE HAS ACTUALLY WATCHED A RENDERED VIDEO: dial these UP toward
+  // the old numbers, one step at a time. Do not restore them blind.
+  //
+  // Also removed here rather than enabled: the top/bottom letterbox bars and
+  // the side vignette bars — see the comments at their former call sites.
+  // ────────────────────────────────────────────────────────────────────────────
+
   // Track 1 — solid background so the video never shows a transparent gap.
+  // PUSH #95 — now actually draws (RECT_PATH). It sits BEHIND the track-2
+  // footage, so enabling it changes nothing visible; it just finally does what
+  // this comment always claimed and covers any sub-second gap.
   elements.push({
     type: 'shape',
     track: 1,
@@ -1374,6 +1415,7 @@ export function buildCreatomateSource({
     y: '50%',
     width: '100%',
     height: '100%',
+    path: RECT_PATH,
     fill_color: '#08080f',
   })
 
@@ -1715,6 +1757,10 @@ export function buildCreatomateSource({
   } // end avatar/standard track-2 branch
 
   // Track 3 — soft dark overlay so caption text always reads on any clip.
+  // PUSH #95 — first alpha that actually draws: 0.30 → 0.14. This scrim only
+  // has to help captions read, and captions already carry their own stroke AND
+  // pill background from PUSH #93/#256, so it does not need to be heavy. 0.30
+  // over the whole frame would visibly mute every clip.
   elements.push({
     type: 'shape',
     track: 3,
@@ -1724,37 +1770,19 @@ export function buildCreatomateSource({
     y: '50%',
     width: '100%',
     height: '100%',
-    fill_color: 'rgba(0,0,0,0.30)',
+    path: RECT_PATH,
+    fill_color: 'rgba(0,0,0,0.14)',
   })
 
-  // Push #292 — Cinematic top & bottom gradient bars (letterbox vignette).
-  // Darkens the top 20% and bottom 20% of the frame so captions and hook
-  // text always read cleanly, and gives the "cinematic documentary" feel
-  // that OpusClip/InVideo apply to all footage.
-  // Top bar gradient (dark→transparent downward)
-  elements.push({
-    type: 'shape',
-    track: 3,
-    time: 0,
-    duration: totalDuration,
-    x: '50%',
-    y: '10%',
-    width: '100%',
-    height: '20%',
-    fill_color: 'rgba(0,0,0,0.65)',
-  })
-  // Bottom bar gradient (transparent→dark upward)
-  elements.push({
-    type: 'shape',
-    track: 3,
-    time: 0,
-    duration: totalDuration,
-    x: '50%',
-    y: '90%',
-    width: '100%',
-    height: '20%',
-    fill_color: 'rgba(0,0,0,0.65)',
-  })
+  // PUSH #95 — REMOVED: Push #292's top & bottom "letterbox" bars (two
+  // rgba(0,0,0,0.65) rectangles, 100%×20%, at y 10% and y 90%). They never had
+  // a `path`, so they never drew a pixel and deleting them is a strict no-op
+  // today. DO NOT RE-ADD THEM: they are hard-edged (a rectangle path cannot
+  // express the dark→transparent gradient #292's comment described), they would
+  // black out 40% of a 9:16 frame, and the bottom one would sit directly over
+  // the caption safe zone that PUSH #93 exists to protect. If the cinematic
+  // band look is ever actually wanted, it needs a real gradient asset, not a
+  // shape.
 
   // Push #436 — CINEMATIC COLOR GRADE + VIGNETTE. Stock clips from Pexels each
   // arrive with their own color temperature and look, so a multi-clip Fast video
@@ -1781,20 +1809,26 @@ export function buildCreatomateSource({
   // path. Glow alphas are untouched — they are already tiny (0.05–0.07) and
   // 'screen' at that strength is a whisper, which is what we want.
   //
-  // FALLBACK IF `blend_mode` IS IGNORED: this property is NOT verified against
-  // the live Creatomate API. Creatomate ignores unknown element properties
-  // rather than erroring, so the failure mode is simply the previous flat-alpha
-  // behaviour at the new, lower alphas — i.e. a slightly WEAKER version of the
-  // #436/V4 grade, never a broken or black render. If the next render shows the
-  // grade has all but vanished, blend_mode was dropped: either restore the old
-  // alphas or remove these two lines.
+  // PUSH #94's note said blend_mode was unverified and the worst case was the
+  // old flat-alpha look. PUSH #95 found the real story: `blend_mode` IS a
+  // documented base-element property and was never the problem — the SHAPE
+  // carrying it had no `path`, so neither the wash nor the glow ever composited
+  // at all, in any mode. Both now draw for the first time.
+  //
+  // PUSH #95 ALPHAS — first-light values, deliberately conservative. Wash
+  // 0.10/0.11/0.09/0.09 → 0.07/0.08/0.06/0.06; multiply at a genuinely applied
+  // alpha bites much harder than the same number did on paper, and a grade that
+  // is too strong is far more damaging than one nobody notices. Glow alphas are
+  // unchanged (0.05–0.07): they were already a whisper and 'screen' can only
+  // lift. HUES ARE UNCHANGED — only alpha moved. Dial the wash back up toward
+  // 0.10 once someone has watched a real render.
   const grade = /\b(billionaire|millionaire|wealth|money|invest|luxur|rich|dollar|business)\b/.test(gradeText)
-    ? { wash: 'rgba(35,26,8,0.10)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
+    ? { wash: 'rgba(35,26,8,0.07)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
     : /\b(mystery|mysterious|unexplained|vanish|disappear|haunted|secret|creepy)\b/.test(gradeText)
-    ? { wash: 'rgba(8,14,40,0.11)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
+    ? { wash: 'rgba(8,14,40,0.08)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
     : /\b(volcano|desert|island|mountain|ocean|country|village|glacier|jungle|crater)\b/.test(gradeText)
-    ? { wash: 'rgba(10,32,40,0.09)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
-    : { wash: 'rgba(12,34,51,0.09)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 original)
+    ? { wash: 'rgba(10,32,40,0.06)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
+    : { wash: 'rgba(12,34,51,0.06)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 palette)
   // (a) Niche wash over the whole frame → cohesion + moody cinematic tone.
   elements.push({
     type: 'shape',
@@ -1805,6 +1839,7 @@ export function buildCreatomateSource({
     y: '50%',
     width: '100%',
     height: '100%',
+    path: RECT_PATH,
     fill_color: grade.wash,
     // PUSH #94 — tint the shadows instead of veiling the whole frame.
     blend_mode: 'multiply',
@@ -1820,35 +1855,20 @@ export function buildCreatomateSource({
     y: '48%',
     width: '70%',
     height: '55%',
+    path: RECT_PATH,
     fill_color: grade.glow,
     // PUSH #94 — lift only the highlights; 'screen' can never darken, so this
     // is the safe half of the split-tone. Alpha unchanged (already a whisper).
     blend_mode: 'screen',
   })
-  // (c) Side vignette bars (left + right) → completes the frame darkening with
-  //     the existing top/bottom letterbox, focusing the eye on the subject.
-  elements.push({
-    type: 'shape',
-    track: 3,
-    time: 0,
-    duration: totalDuration,
-    x: '4%',
-    y: '50%',
-    width: '8%',
-    height: '100%',
-    fill_color: 'rgba(0,0,0,0.40)',
-  })
-  elements.push({
-    type: 'shape',
-    track: 3,
-    time: 0,
-    duration: totalDuration,
-    x: '96%',
-    y: '50%',
-    width: '8%',
-    height: '100%',
-    fill_color: 'rgba(0,0,0,0.40)',
-  })
+  // (c) PUSH #95 — REMOVED: the left/right "vignette" bars (two
+  // rgba(0,0,0,0.40) rectangles, 8%×100%, at x 4% and x 96%). They never had a
+  // `path` so they never drew; deleting them is a no-op today. DO NOT RE-ADD
+  // THEM AS SHAPES: a vignette needs a radial falloff and a rectangle path has
+  // hard edges by definition, so enabling these would put two visible black
+  // bands down the sides of the frame — not a vignette, just bars. They also
+  // referenced the top/bottom letterbox, which this push deleted too. A real
+  // vignette here would need a PNG/gradient overlay asset.
 
   // Track 4 — voiceover. Duration = actual audio length so Creatomate
   // doesn't pad or truncate the audio file. totalDuration already equals
@@ -2236,9 +2256,13 @@ export function buildHollywoodCreatomateSource({
   const HOLLYWOOD_CROSSFADE_SECONDS = 0.25
 
   // Track 1 — solid background (never show a transparent gap).
+  // PUSH #95 — needs RECT_PATH to draw at all; see the shape-stack block in
+  // buildCreatomateSource. Behind the footage, so enabling it is invisible —
+  // it just finally covers the sub-second gaps the comments above rely on.
   elements.push({
     type: 'shape', track: 1, time: 0, duration: totalDuration,
-    x: '50%', y: '50%', width: '100%', height: '100%', fill_color: '#08080f',
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    path: RECT_PATH, fill_color: '#08080f',
   })
 
   // Track 2 — scenes tiled sequentially, NATIVE AUDIO ON (volume per engine).
@@ -2271,18 +2295,19 @@ export function buildHollywoodCreatomateSource({
   })
 
   // Track 3 — readability overlays (same as the standard builder).
+  // PUSH #95 — scrim 0.22 → 0.14, matching the standard builder now that it
+  // actually composites. Captions carry their own stroke + pill (#93/#256), so
+  // the scrim only needs to take the edge off a bright clip.
   elements.push({
     type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '50%', width: '100%', height: '100%', fill_color: 'rgba(0,0,0,0.22)',
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    path: RECT_PATH, fill_color: 'rgba(0,0,0,0.14)',
   })
-  elements.push({
-    type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '10%', width: '100%', height: '20%', fill_color: 'rgba(0,0,0,0.55)',
-  })
-  elements.push({
-    type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '90%', width: '100%', height: '20%', fill_color: 'rgba(0,0,0,0.55)',
-  })
+  // PUSH #95 — REMOVED: the top/bottom letterbox bars (rgba(0,0,0,0.55),
+  // 100%×20% at y 10% / y 90%). Same reasoning as the standard builder: they
+  // never drew (no `path`), so removing them is a no-op, and enabling them
+  // would hard-black 40% of the frame including the caption safe zone. Do not
+  // re-add as shapes.
 
   // KINEO-HOLLYWOOD-22-2026-07-10 — UNIFIED COLOR GRADE. The hollywood branch
   // used to SKIP the niche grade on purpose ("realism wants untinted footage").
@@ -2302,20 +2327,33 @@ export function buildHollywoodCreatomateSource({
   ]
     .join(' ')
     .toLowerCase()
+  // PUSH #95 — these were the most dangerous shapes in the repo: wash at
+  // 0.18–0.22 with NO blend_mode, i.e. a flat ~20% dark veil over the entire
+  // film, which is what "+0.05 vs AI Gen" bought when nothing was drawing. Now
+  // that shapes actually render, that would ship a visibly murky video. Two
+  // changes: (1) wash gets blend_mode 'multiply' and glow gets 'screen', so
+  // this builder finally split-tones like the standard one instead of veiling;
+  // (2) wash 0.20/0.22/0.19/0.18 → 0.07/0.08/0.06/0.06, the same first-light
+  // range as the standard builder. Glow alphas and ALL hues are unchanged.
+  // The "mask the per-engine look difference" goal above is NOT abandoned — it
+  // is deferred until someone has watched a render and can raise the wash on
+  // evidence. Raising it blind is how you ship a brown video.
   const grade = /\b(billionaire|millionaire|wealth|money|invest|luxur|rich|dollar|business)\b/.test(gradeText)
-    ? { wash: 'rgba(35,26,8,0.20)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
+    ? { wash: 'rgba(35,26,8,0.07)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
     : /\b(mystery|mysterious|unexplained|vanish|disappear|haunted|secret|creepy)\b/.test(gradeText)
-    ? { wash: 'rgba(8,14,40,0.22)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
+    ? { wash: 'rgba(8,14,40,0.08)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
     : /\b(volcano|desert|island|mountain|ocean|country|village|glacier|jungle|crater)\b/.test(gradeText)
-    ? { wash: 'rgba(10,32,40,0.19)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
-    : { wash: 'rgba(12,34,51,0.18)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 palette, +0.05)
+    ? { wash: 'rgba(10,32,40,0.06)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
+    : { wash: 'rgba(12,34,51,0.06)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 palette)
   elements.push({
     type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '50%', width: '100%', height: '100%', fill_color: grade.wash,
+    x: '50%', y: '50%', width: '100%', height: '100%',
+    path: RECT_PATH, fill_color: grade.wash, blend_mode: 'multiply',
   })
   elements.push({
     type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '48%', width: '70%', height: '55%', fill_color: grade.glow,
+    x: '50%', y: '48%', width: '70%', height: '55%',
+    path: RECT_PATH, fill_color: grade.glow, blend_mode: 'screen',
   })
 
   // PUSH #93 (FIX 1) — same defect as the standard builder: the caption window

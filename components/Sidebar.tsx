@@ -452,7 +452,16 @@ export default function Sidebar({
           <NavItem href="/channel" icon={NAV_ICONS.channel} label="Channel Builder" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/history" icon={NAV_ICONS.videos} label="My Videos" exact={false} pathname={pathname} onClick={onClose} />
           {isLoggedIn && (
-            <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
+            <>
+              <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
+              {/* PUSH #95 — the affiliate program (40% recurring, 90-day attribution,
+                  working /a/[code] tracking + dashboard) shipped with zero internal
+                  links anywhere in the app. Surfacing it here, next to "Invite & Earn"
+                  since it's the same job-to-be-done (grow the account by bringing in
+                  others). Reuses the "pricing" tag icon — closest existing NAV_ICONS
+                  match for a commission/money concept. */}
+              <NavItem href="/affiliate" icon={NAV_ICONS.pricing} label="Affiliate — 40%" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+            </>
           )}
 
           <NavSection label="Account" />

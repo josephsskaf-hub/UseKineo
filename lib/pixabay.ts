@@ -17,6 +17,15 @@
 
 // KINEO-FAST-V4 — picked clips are copied into our own library (fire-and-forget).
 import { vaultClipAsync } from './clipVault'
+// PUSH #96 — aesthetic re-ranker: scores how good a candidate is likely to LOOK
+// (resolution / framing / duration / style vocabulary / fps / crowd proxy) from
+// metadata Pixabay already returns. Strictly a secondary term — see the score
+// composition in collectCandidates.
+import {
+  scoreAesthetics,
+  formatAestheticBreakdown,
+  AESTHETIC_MAX_SWING,
+} from './broll/aesthetic-score'
 
 const PIXABAY_API = 'https://pixabay.com/api/videos/'
 
@@ -43,6 +52,14 @@ interface PixabayVideo {
     small: PixabayResolution
     tiny: PixabayResolution
   }
+  // PUSH #96 — engagement counters. These ARE part of the documented Pixabay
+  // video hit (views / downloads / likes / comments); they were simply never
+  // declared here. Optional so a malformed hit can never break parsing — the
+  // aesthetic scorer treats a missing counter as unknown, not as zero.
+  views?: number
+  downloads?: number
+  likes?: number
+  comments?: number
 }
 
 // ── Category inference ─────────────────────────────────────────────────────
@@ -258,18 +275,15 @@ function styleTagsOf(video: PixabayVideo): string[] {
   return CINEMATIC_STYLE_TAGS.filter((t) => blob.includes(t))
 }
 
-/** +1 per cinematic style tag, capped at +3 — style helps, never trumps topic (×4). */
-function cinematicScore(styleTags: string[]): number {
-  return Math.min(3, styleTags.length)
-}
-
-/** +2 true 1080p+ master; -2 when only small/tiny renditions exist (soft crop). */
-function resolutionScore(video: PixabayVideo): number {
-  const large = video.videos?.large
-  if (large?.url && Math.max(large.width || 0, large.height || 0) >= 1920) return 2
-  if (!large?.url && !video.videos?.medium?.url) return -2
-  return 0
-}
+// PUSH #96 — `cinematicScore` (+1 per cinematic style tag, cap +3) and
+// `resolutionScore` (+2 for a 1080p+ master, -2 for small/tiny only) were
+// REMOVED here and folded into lib/broll/aesthetic-score.ts. They were two
+// coarse, ad-hoc looks at exactly the two dimensions the new scorer measures
+// properly (style vocabulary; true resolution vs the 1080x1920 output), and
+// keeping both would have double-counted them. Net effect on the score scale:
+// the old pair could move a candidate by up to 5 points, the aesthetic term is
+// bounded at 3 — so the topic term (matches x 4) is now MORE dominant than
+// before, not less. `styleTagsOf` stays: the coherence context still needs it.
 
 /** Per-video style memory — created once per generation by the caller. */
 export type StyleContext = { tags: Set<string> }
@@ -506,9 +520,24 @@ async function collectCandidates(
     // Topic strength (×4) still dominates: style/res/coherence only decide
     // between clips that are EQUALLY on-topic.
     const sTags = styleTagsOf(video)
-    const cinema = cinematicScore(sTags)
-    const rez2 = resolutionScore(video)
     const cohere = coherenceScore(sTags, styleCtx)
+    // PUSH #96 — AESTHETIC RE-RANK. Until now nothing scored whether a clip
+    // actually LOOKS good, so two equally-relevant candidates were a coin flip.
+    // Everything fed in is metadata this search response already returned — no
+    // extra request, no dependency. `rez` is the first rendition that reports
+    // real dimensions (same accessor the portrait test uses), so the geometry
+    // signals are never read off a missing `large` master.
+    const aesthetic = scoreAesthetics({
+      widthPx: rez?.width,
+      heightPx: rez?.height,
+      durationSec: video.duration,
+      sceneDurationSec: neededSec,
+      text: video.tags,
+      mediaType: video.type,
+      downloads: video.downloads,
+      likes: video.likes,
+      // fps: Pixabay does not expose it — left unset so it scores as unknown.
+    })
     // PUSH #93 (FIX 4) — style/framing words asked for by the query are a
     // ranking bonus now that they no longer count as relevance evidence.
     const styleAlign = styleAlignScore(video, query)
@@ -519,15 +548,21 @@ async function collectCandidates(
     // stronger on-topic landscape (matches×4 + coverage + production signals)
     // can still beat a weakly-matching vertical — topic never gets trumped
     // outright, it just stops losing to nothing.
+    // PUSH #96 — RELEVANCE DOMINATES, BY CONSTRUCTION. `aesthetic.points` lands
+    // in [-1.5, +1.5], so the largest possible aesthetic gap between any two
+    // candidates is AESTHETIC_MAX_SWING (3) — strictly less than the 4 points a
+    // single extra topic-token match is worth. A clip that matches the query
+    // better therefore can NEVER be outranked because a rival looks prettier;
+    // aesthetics only separates clips that are already equally on-topic.
     const score =
       matches * 4 + (coversScene ? 3 : 0) + (portrait ? 10 : 0) - (tooShort ? 2 : 0) +
-      cinema + rez2 + cohere + styleAlign
+      cohere + styleAlign + aesthetic.points
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
     })
     console.log(
-      `[pixabay] ${label} candidate id=${video.id} score=${score} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} cinema=${cinema} rez=${rez2} cohere=${cohere} styleAlign=${styleAlign}) tags="${video.tags.slice(0, 60)}"`,
+      `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
     )
   }
 
@@ -549,7 +584,7 @@ async function searchAndFilter(
   candidates.sort((a, b) => b.score - a.score || a.order - b.order)
   const best = candidates[0]
   console.log(
-    `[pixabay] ${label} ACCEPTED id=${best.id} score=${best.score} of ${candidates.length} candidate(s) url="${best.url.slice(0, 60)}"`,
+    `[pixabay] ${label} ACCEPTED id=${best.id} score=${best.score.toFixed(2)} of ${candidates.length} candidate(s) url="${best.url.slice(0, 60)}"`,
   )
   return best.url
 }
@@ -1068,7 +1103,7 @@ export async function getPixabayClipsForScene(
   }
   const picked = pickedCands.map((c) => c.url)
   console.log(
-    `[pixabay-pool] ${pool.length} candidate(s) → ${picked.length} clip(s), top score=${pool[0].score}` +
+    `[pixabay-pool] ${pool.length} candidate(s) → ${picked.length} clip(s), top score=${pool[0].score.toFixed(2)}` +
       (opts?.styleCtx && opts.styleCtx.tags.size > 0 ? ` styleCtx=[${Array.from(opts.styleCtx.tags).slice(0, 6).join(',')}]` : '') +
       (hintLabel ? ` for="${hintLabel}"` : ''),
   )

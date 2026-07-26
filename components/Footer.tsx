@@ -39,6 +39,12 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/widget', label: 'Shorts idea widget' },
       { href: '/state-of-ai-shorts-2026', label: 'State of AI Shorts 2026' },
       { href: '/partners', label: 'Affiliate program - 40% recurring' },
+      // PUSH #95 — the affiliate dashboard itself (40% recurring commission,
+      // signup + stats + payout link) had zero internal links anywhere in the
+      // app; /partners above is the marketing page, this is the second,
+      // clearer link straight to the dashboard for affiliates who already
+      // know the program.
+      { href: '/affiliate', label: 'Affiliate Program — 40% recurring' },
       { href: '/pricing', label: 'Pricing' },
       { href: '/signup', label: 'Start free' },
     ],

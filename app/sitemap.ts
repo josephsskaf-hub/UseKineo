@@ -52,6 +52,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/shorts-money-calculator', priority: 0.8, freq: 'weekly' },
     { path: '/can-you-monetize-ai-videos', priority: 0.8, freq: 'weekly' },
     { path: '/tiktok-vs-youtube-shorts-monetization', priority: 0.8, freq: 'weekly' },
+    // PUSH #96 — keyword-gap cluster: two format pages, a broad pipeline hub and
+    // the top-of-funnel entry point that feeds them. Priorities mirror comparable
+    // existing entries: generator/hub pages at 0.9 (like /faceless-video-generator
+    // and /how-much-do-youtube-shorts-pay), the informational guides at 0.8 (like
+    // /faceless-channel-ideas and /can-you-monetize-ai-videos).
+    { path: '/reddit-story-video-generator', priority: 0.9, freq: 'weekly' },
+    { path: '/brainrot-video-generator', priority: 0.8, freq: 'weekly' },
+    { path: '/youtube-automation', priority: 0.9, freq: 'weekly' },
+    { path: '/how-to-start-a-faceless-youtube-channel', priority: 0.8, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]

@@ -16,6 +16,12 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // Push #351 — ensureAccessibleUrl removed (was only used for Pexels CDN proxying; Pexels now OFF).
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
+import { writeServerEvent } from '@/lib/serverEvents'
+// PUSH #96 — single source of truth for the people/lifestyle vocabulary.
+// This regex used to be re-declared literally below, with a comment on both
+// sides asking a human to keep them in sync. It is now derived from
+// PEOPLE_LIFESTYLE_WORDS in one place.
+import { PEOPLE_LIFESTYLE_RE } from '@/lib/broll/aesthetic-packs'
 
 // HOTFIX (02/07) — Fast Mode v2 blew the default 60s budget on 60s scripts
 // (6-9 scenes × multi-pool Pixabay sourcing → Vercel 504 "Task timed out").
@@ -72,7 +78,10 @@ function clipCountForDuration(d: Duration): number {
 // we strip any stock clips that carry those tags before using them as fallback.
 // This prevents a "beanie-guy in front of a mural" from appearing in an Amy
 // Bradley mystery video just because it was the top rotation clip.
-const PEOPLE_LIFESTYLE_RE = /\b(people|person|lifestyle|portrait|fashion|influencer|teenager|teen|walking|smiling|model|woman|man|girl|boy|human)\b/i
+// PUSH #96 — was a hand-copied literal with a "keep in sync" comment on the
+// other side. lib/broll/aesthetic-packs.ts now exports the compiled regex,
+// derived from PEOPLE_LIFESTYLE_WORDS, so the two can never drift again.
+// (import at the top of this file)
 
 function sceneHasPeopleVocabulary(voiceover: string, description: string, keywords: string): boolean {
   return (
@@ -196,10 +205,40 @@ function buildSceneHint(voiceover: string): string {
   return picked.length > 0 ? `${head} ${picked.join(' ')}` : head
 }
 
+// PUSH #96 — the client recorded 1428 `generate_started` against 2
+// `generate_failed`, so every server-side rejection of a Fast dispatch was
+// invisible in the funnel: a 401, a config gap or an empty stock-footage result
+// all looked identical to a user who simply walked away. This helper writes the
+// same `generation_stage_error` name the client uses, with the same stage
+// vocabulary as `generation_stage_reached`. It never throws (writeServerEvent
+// returns false on failure) and never records the prompt, the user's email or
+// any API key — only the reason, the HTTP status and non-identifying counts.
+function recordFastFailure(
+  stage: 'generating' | 'scripting' | 'clips_ready',
+  reason: string,
+  httpStatus: number,
+  userId?: string | null,
+  extra?: Record<string, unknown>,
+): void {
+  void writeServerEvent({
+    name: 'generation_stage_error',
+    userId: userId ?? null,
+    path: '/api/generate-video-fast',
+    metadata: {
+      stage,
+      reason,
+      http_status: httpStatus,
+      engine: 'fast',
+      ...(extra ?? {}),
+    },
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       console.error('[generate-fast] OPENAI_API_KEY is not configured')
+      recordFastFailure('generating', 'missing_openai_config', 500)
       return NextResponse.json(
         { error: 'AI service is not configured. Please contact support.' },
         { status: 500 }
@@ -210,6 +249,7 @@ export async function POST(req: NextRequest) {
     // saves an OpenAI scene-generation call for a job we can't finish.
     if (!process.env.CREATOMATE_API_KEY) {
       console.error('[generate-fast] CREATOMATE_API_KEY is not configured')
+      recordFastFailure('generating', 'missing_creatomate_config', 500)
       return NextResponse.json(
         { error: 'Video assembly is not configured — please contact support.' },
         { status: 500 }
@@ -221,6 +261,7 @@ export async function POST(req: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) {
+      recordFastFailure('generating', 'unauthenticated', 401)
       return NextResponse.json(
         { error: 'You must be signed in to generate a video.' },
         { status: 401 }
@@ -264,14 +305,18 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json()
     } catch {
+      recordFastFailure('generating', 'invalid_request_body', 400, user.id)
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
 
     const prompt = (body.prompt ?? '').trim()
     if (!prompt) {
+      recordFastFailure('generating', 'prompt_missing', 400, user.id)
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
     }
     if (prompt.length > 5000) {
+      // Only the length is recorded — never the prompt text itself.
+      recordFastFailure('generating', 'prompt_too_long', 400, user.id, { prompt_length: prompt.length })
       return NextResponse.json({ error: 'Prompt is too long (5000 chars max).' }, { status: 400 })
     }
 
@@ -428,6 +473,10 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[generate-fast] scene generation failed:', msg)
+        recordFastFailure('scripting', 'scene_generation_failed', 500, user.id, {
+          error_name: err instanceof Error ? err.name : 'unknown',
+          clip_count: clipCount,
+        })
         return NextResponse.json(
           { error: 'Failed to plan scenes. Please try a different prompt.' },
           { status: 500 }
@@ -893,6 +942,13 @@ export async function POST(req: NextRequest) {
         !/^https:\/\/([a-z0-9-]+\.)*fal\.(media|run|ai)\//i.test(u),
     )
     if (filtered.length === 0) {
+      // PUSH #96 — this is the dead end where a user gets a hard error after
+      // the full scripting + sourcing wait. Record the scene/clip counts so a
+      // provider outage is separable from a topic with no usable footage.
+      recordFastFailure('generating', 'no_stock_footage_sourced', 502, user.id, {
+        scene_count: scenes.length,
+        raw_clip_count: clipUrls.length,
+      })
       return NextResponse.json(
         { error: 'No stock footage could be sourced. Please try a different topic.' },
         { status: 502 }
@@ -1013,6 +1069,13 @@ export async function POST(req: NextRequest) {
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[generate-fast] unexpected error:', msg)
+    // PUSH #96 — the catch-all was completely silent in the funnel. The user id
+    // is not available here (the throw may predate auth), and the message is
+    // deliberately NOT recorded because it can echo request content; the error
+    // name alone is enough to group these.
+    recordFastFailure('generating', 'unhandled_exception', 500, null, {
+      error_name: error instanceof Error ? error.name : 'unknown',
+    })
     return NextResponse.json(
       { error: 'Something went wrong. Please try again.' },
       { status: 500 }
