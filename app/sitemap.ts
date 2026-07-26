@@ -9,14 +9,17 @@ import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 const BASE = 'https://www.usekineo.com'
 // Advance this only when the public acquisition cluster materially changes.
 // Using the request time for every URL makes lastModified meaningless.
-const LAST_MODIFIED = new Date('2026-07-25T00:00:00.000Z')
+const LAST_MODIFIED = new Date('2026-07-25T12:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
     { path: '', priority: 1.0, freq: 'daily' },
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/viral-now', priority: 0.9, freq: 'daily' },
-    { path: '/pt', priority: 0.9, freq: 'weekly' },
+    // PUSH #92 — removed leftover `{ path: '/pt', priority: 0.9, freq:
+    // 'weekly' }` entry: it contradicted the English-only decision recorded
+    // in the comments below (KINEO-2026-07-25) — every other PT/ES sitemap
+    // entry had already been pulled, this one was missed.
     { path: '/free-script-generator', priority: 0.8, freq: 'weekly' },
     { path: '/free-hook-generator', priority: 0.8, freq: 'weekly' },
     { path: '/viral-score', priority: 0.8, freq: 'weekly' },

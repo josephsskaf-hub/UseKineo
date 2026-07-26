@@ -349,10 +349,15 @@ Return a JSON object with a "scenes" array. No markdown, no code fences.`
     // Aesthetic pack enforcement (13/06) — hard guarantee on top of the
     // prompt steering: banned visuals are dropped; an emptied scene gets a
     // rotated vocab term instead of a doomed/cliché search.
+    // PUSH #93 — pass the scene's narration so a fully-banned scene gets a
+    // fallback query derived from what it actually says, instead of a vocab
+    // term picked by scene position (which produced footage about an unrelated
+    // topic).
     const pexelsQueries = enforcePackOnQueries(
       gptQueries.length > 0 ? gptQueries : [legacyQuery],
       pack,
       i,
+      s.narration,
     )
     const pexelsQuery = pexelsQueries[0]
 
@@ -381,7 +386,13 @@ Return a JSON object with a "scenes" array. No markdown, no code fences.`
       visualIntent: asStr(gpt.visualIntent, `Visual reinforcement for: ${s.narration.slice(0, 60)}`),
       visualMood,
       shotType,
-      source: 'pexels' as VisualSource,
+      // PUSH #93 — was hardcoded 'pexels'. Pexels is disabled repo-wide since
+      // Push #351 (clips come from the vault / Pixabay / Cloudinary stock
+      // library), and assignSources() overwrites this field afterwards anyway.
+      // Any consumer that reads a plan before assignSources runs was being told
+      // the footage came from a provider that is switched off — 'stock' is the
+      // honest default.
+      source: 'stock' as VisualSource,
       keywords,
       brollPrompt,
       negativePrompt: builtPrompt.negativePrompt,

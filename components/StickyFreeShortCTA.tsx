@@ -10,11 +10,21 @@
 // matching StickyUpgradeBar). pointer-events:none on the wrapper so it never blocks
 // clicks on page content behind the gutters.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
+// KINEO-DL-PAYWALL-2026-07-09 — sticky bar was DISABLED per Joseph ("bem
+// feio"). PUSH #92 — re-enabled: on mobile, once the hero scrolls away there
+// is otherwise zero CTA anywhere on 7 host pages. Now only appears after the
+// hero leaves the viewport (scroll-based heuristic below) instead of being
+// visible immediately, and the default href no longer takes a redirect hop.
+const DISMISS_KEY = 'kineo_sticky_free_short_cta_dismissed'
+// Below the exit-intent modal's z-[100] so it never competes visually when
+// both could be eligible at once.
+const Z_INDEX = 60
+
 export default function StickyFreeShortCTA({
-  href = '/start',
+  href = '/signup?utm_source=sticky_cta',
   label = 'Create up to 3 watermarked Fast videos every 24h — no card',
   cta = 'Start free',
 }: {
@@ -23,19 +33,59 @@ export default function StickyFreeShortCTA({
   cta?: string
 }) {
   const [dismissed, setDismissed] = useState(false)
-  // KINEO-DL-PAYWALL-2026-07-09 — sticky bar DISABLED per Joseph ("bem feio"),
-  // and its "free, no card" promise no longer matches the paid-download model.
-  // Killed at the source (rendered on 10 marketing pages) instead of editing
-  // every page. Flip DISABLED to false to bring it back.
-  const DISABLED = true
-  if (DISABLED) return null
-  if (dismissed) return null
+  const [visible, setVisible] = useState(false)
+
+  // Remembers dismissal for the session, and shows the bar only once the
+  // hero has actually scrolled out of view (never immediately on load).
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(DISMISS_KEY) === '1') {
+        setDismissed(true)
+        return
+      }
+    } catch {
+      // sessionStorage unavailable — fall through, bar can still show
+    }
+
+    let ticking = false
+    const evaluate = () => {
+      ticking = false
+      const threshold = window.innerHeight * 0.6
+      setVisible(window.scrollY > threshold)
+    }
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      window.requestAnimationFrame(evaluate)
+    }
+    evaluate()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('resize', onScroll)
+    }
+  }, [])
+
+  function dismiss() {
+    setDismissed(true)
+    try {
+      sessionStorage.setItem(DISMISS_KEY, '1')
+    } catch {
+      // ignore — bar just won't remember dismissal this session
+    }
+  }
+
+  if (dismissed || !visible) return null
 
   return (
     <>
       <style>{`
         @keyframes sfaCtaUp { from { opacity: 0; transform: translateY(120%); } to { opacity: 1; transform: translateY(0); } }
         .sfa-cta { animation: sfaCtaUp 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+        @media (prefers-reduced-motion: reduce) {
+          .sfa-cta { animation: none; }
+        }
       `}</style>
       <div
         className="sfa-cta"
@@ -44,7 +94,7 @@ export default function StickyFreeShortCTA({
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 60,
+          zIndex: Z_INDEX,
           display: 'flex',
           justifyContent: 'center',
           padding: '0 12px calc(12px + env(safe-area-inset-bottom))',
@@ -78,6 +128,9 @@ export default function StickyFreeShortCTA({
             href={href}
             style={{
               flexShrink: 0,
+              minHeight: 44,
+              display: 'inline-flex',
+              alignItems: 'center',
               padding: '9px 18px',
               borderRadius: 980,
               background: '#f5f5f7',
@@ -92,12 +145,12 @@ export default function StickyFreeShortCTA({
           </Link>
           <button
             type="button"
-            onClick={() => setDismissed(true)}
+            onClick={dismiss}
             aria-label="Dismiss"
             style={{
               flexShrink: 0,
-              width: 28,
-              height: 28,
+              width: 44,
+              height: 44,
               borderRadius: 8,
               background: 'rgba(255,255,255,0.08)',
               border: '1px solid rgba(255,255,255,0.16)',

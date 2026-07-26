@@ -170,11 +170,24 @@ export async function POST(req: NextRequest) {
     // scoring + response.
     const REGEN_TIME_BUDGET_MS = 75_000
 
+    // PUSH #93 — regeneration outcome, surfaced on the response below. Without
+    // this a scene that stayed below REGEN_THRESHOLD after every retry (or was
+    // never regenerated because the budget ran out) was returned looking
+    // exactly like a scene that passed.
+    let regenBudgetExhausted = false
+
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       if (Date.now() - routeStart > REGEN_TIME_BUDGET_MS) {
         console.warn('[generate-broll-plan] regen time budget exhausted — returning plan as-is')
+        regenBudgetExhausted = true
         break
       }
+      // PUSH #93 — `?? 100` now means "scene could not be scored" (relevance-score
+      // returns null on embedding failure instead of a fake 75). Unscored scenes
+      // are deliberately NOT regenerated: the re-score would fail too, so a total
+      // embedding outage would burn MAX_RETRIES x N GPT calls for nothing and
+      // risk the 504 this budget exists to prevent. They are reported instead,
+      // via scoringDegraded/unscoredScenes below.
       const lowSceneIndexes = plan.scenes
         .map((s, i) => ({ scene: s, i }))
         .filter(({ scene }) => (scene.relevanceScore ?? 100) < REGEN_THRESHOLD)
@@ -209,7 +222,40 @@ export async function POST(req: NextRequest) {
     // Step 4: Assign source (pexels vs ai) per scene
     plan.scenes = assignSources(plan.scenes)
 
-    return NextResponse.json(plan)
+    // PUSH #93 — report the quality outcome instead of silently returning
+    // low-scoring / unscored scenes as if the gate had passed.
+    // NOTE: `plan.degraded` is intentionally left untouched — GenerateClient
+    // discards the whole plan when degraded === true, and a partial relevance
+    // problem is not a reason to throw away a real GPT plan. These are new,
+    // additive fields; no field the client already reads changes shape.
+    const lowRelevanceScenes = plan.scenes
+      .filter((s) => typeof s.relevanceScore === 'number' && s.relevanceScore < REGEN_THRESHOLD)
+      .map((s) => s.sceneNumber)
+    const unscoredScenes = plan.scenes
+      .filter((s) => s.relevanceUnscored === true)
+      .map((s) => s.sceneNumber)
+    const regenFailed = lowRelevanceScenes.length > 0
+    const scoringDegraded = unscoredScenes.length > 0
+
+    if (regenFailed) {
+      console.warn(
+        `[generate-broll-plan] regeneration did not clear the threshold for scenes ${lowRelevanceScenes.join(', ')} (< ${REGEN_THRESHOLD} after ${MAX_RETRIES} retries${regenBudgetExhausted ? ', time budget exhausted' : ''})`,
+      )
+    }
+    if (scoringDegraded) {
+      console.warn(
+        `[generate-broll-plan] relevance scoring unavailable for scenes ${unscoredScenes.join(', ')} — quality gate did not run for them`,
+      )
+    }
+
+    return NextResponse.json({
+      ...plan,
+      regenFailed,
+      lowRelevanceScenes,
+      scoringDegraded,
+      unscoredScenes,
+      regenBudgetExhausted,
+    })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[generate-broll-plan] unexpected error:', msg)

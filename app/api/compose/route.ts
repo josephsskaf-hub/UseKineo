@@ -82,6 +82,29 @@ const SUPPORTED_DURATIONS = [10, 30, 45, 50, 60, 90] as const
 // duration before we re-synthesize the TTS at an adjusted speed to pull it
 // back in line. ±3s matches the product tolerance.
 const DURATION_TOLERANCE_SECONDS = 3
+
+// PUSH #94 — VOICEOVER CACHE ENGINE VERSION.
+//
+// computeVoiceoverCacheKey() (lib/compose.ts) hashes the script text as it
+// exists BEFORE the per-section TTS splicing runs. PUSH #93 changed that
+// splicing — every section except the last now gets a trailing ellipsis so
+// OpenAI renders natural tail silence inside the section's own mp3, killing the
+// audible click at each splice point. Because the hashed input never changed,
+// every previously-cached voiceover kept serving the old click-y audio forever
+// and the #93 fix never reached an existing user.
+//
+// Salting the key with this constant invalidates the pre-#93 entries EXACTLY
+// ONCE: old objects are simply never looked up again (they are not deleted, and
+// no other cache — clip vault, video cache, Pixabay memo — is touched). The
+// first render after deploy re-synthesizes and re-stores under the new key.
+//
+// ⚠️ BUMP THIS STRING whenever TTS text preprocessing changes in a way that
+// alters the audio for an unchanged script: section splicing/joining, ellipsis
+// or pause insertion, marker stripping, SSML, normalization, chunk boundaries.
+// Anything already part of the hash (script text, voice, speed, model) does NOT
+// need a bump — those invalidate themselves.
+const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
+
 const FREE_FAST_PREVIEW_LIMIT = 3
 const FREE_FAST_WINDOW_MS = 24 * 60 * 60 * 1000
 // feature/ai-avatar — 'avatar' = premium talking-head render (VEED Fabric).
@@ -1391,11 +1414,16 @@ export async function POST(req: NextRequest) {
             language,
             model,
           )
+          // PUSH #94 — mix VOICEOVER_ENGINE_VERSION into the hashed identity so
+          // the #93 splice fix invalidates pre-#93 entries. Only the value fed
+          // to the hash is salted — `model` itself is untouched, so the real TTS
+          // call and persona resolution are unaffected. Both the lookup and the
+          // store below use this same key variable, so they stay in sync.
           voiceoverCacheKey = computeVoiceoverCacheKey({
             script: scaledScript,
             voice: identity.voice,
             speed: identity.speed,
-            model,
+            model: `${model}|engine=${VOICEOVER_ENGINE_VERSION}`,
           })
           cachedVoiceover = await lookupCachedVoiceover(voiceoverCacheKey)
           if (cachedVoiceover) {

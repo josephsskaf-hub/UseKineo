@@ -1,0 +1,2 @@
+===== KINEO PUSH 93 + 94 (MOTORES: legendas, Pixabay, B-roll, grade, cache de voz) ===== 
+[remove PT/ES + pricing layout duplicado - roda de novo sem problema se o 92 ja passou] 

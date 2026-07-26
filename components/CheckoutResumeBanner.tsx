@@ -143,7 +143,7 @@ export default function CheckoutResumeBanner() {
         color: '#f8fafc',
         boxShadow: '0 18px 55px rgba(0,0,0,.48)',
         backdropFilter: 'blur(14px)',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
       }}
     >
       <div style={{ minWidth: 0, flex: 1 }}>

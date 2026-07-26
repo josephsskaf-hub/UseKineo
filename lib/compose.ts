@@ -23,12 +23,87 @@ const CTA_TAIL_SECONDS = 2.5
 // Push #293 / Kineo-Audio-2026 — Background music volume + fades. Lowered
 // 18%→12% so the narrator always dominates (InVideo/OpusClip sit music ~10-14%
 // under a VO). Creatomate can't sidechain-duck, so a fixed low level plus a
-// brief fade-in and a fade-out over the CTA tail is the closest clean approx.
+// brief fade-in and a short fade-out is the closest clean approx.
+// (PUSH #93 amended the fade-out: it no longer spans the whole CTA tail.)
 const MUSIC_VOLUME = '12%'
 const MUSIC_FADE_IN_SECONDS = 0.8
-const MUSIC_FADE_OUT_SECONDS = 2.5
+// PUSH #93 — MUSIC TAIL. Was 2.5s, i.e. exactly CTA_TAIL_SECONDS, so the music
+// bed hit silence precisely over the outro: the CTA (the one frame we want the
+// viewer to act on) played at the quietest moment of the whole video — the
+// inverse of the short-form pattern, where the bed carries the outro and only
+// ducks out on the very last beat. 1.2s keeps the bed clearly audible under the
+// first ~1.3s of the CTA window and still resolves to silence inside the
+// timeline (the fade window is [totalDuration-1.2, totalDuration] and is
+// additionally clamped to totalDuration/2, so it always starts AND completes
+// before the last frame).
+const MUSIC_FADE_OUT_SECONDS = 1.2
 // Push #064 — yellow used for the per-caption highlight word overlay.
 const HIGHLIGHT_COLOR = '#FFD700'
+
+// ─── PUSH #93 — SHORTS SAFE-ZONE LAYOUT (1080×1920) ──────────────────────────
+// YouTube's Shorts player draws its own UI over the frame. Measured bands:
+//   • bottom ~380px  → everything below y ≈ 80% (1536px) is covered by the
+//     title / channel row / progress bar / "Subscribe" strip.
+//   • right ~90px    → x > ~990px is covered by like / comment / share / remix.
+// Everything we want a human to READ must live above y=78% and inside x∈[90,990].
+//
+// The layout this file now emits (percentages of the 1920px height):
+//
+//   y   0.0% ─┬─ (top letterbox bar, track 3, 0–20%)
+//        5.0% │  WATERMARK "usekineo.com"   font 28  band ≈  76–116px   [free trial only]
+//       13.0% │  END CARD  "Made with Kineo" font 44 band ≈ 205–295px   [free/starter only]
+//       18.0% │  CTA       "usekineo.com"   font 36  band ≈ 320–372px   [always, last 2.5s]
+//       20.0% ─┴─ (end of top letterbox bar)
+//       20.5%     … footage / color-grade overlays only …
+//   ~70.3%    ┬─ CAPTION top — PUSH #94, single word @ hook font 104 (1350px).
+//             │  Body font 86 tops out at 71.3% (1369px). Was ~61.3% when a
+//             │  3-word chunk could wrap to 3 lines @ font 76; one word per
+//             │  chunk effectively never wraps, so the band SHRANK even though
+//             │  the font grew.
+//             │  CAPTIONS — bottom-anchored (y_anchor 100%), so extra wrapped
+//             │  lines grow UPWARD into empty footage, never downward.
+//   78.0%    ─┴─ CAPTION_BOTTOM_Y — text-box floor, 1497.6px
+//   80.0% ────── YouTube chrome starts (1536px; nothing readable below this).
+//               The pill's 2% background_y_padding (38.4px) puts its bottom
+//               edge at exactly 1536px — on the line, never below it.
+//
+// Horizontally: captions are 78% wide → x ∈ [119, 961]; with the pill's
+// background_x_padding the darkened box still stays left of the 990px
+// action-button column, so a caption can never sit under the like button.
+// PUSH #94 — padding 2.5%→3%: worst case (one word filling the 842.4px box)
+// spans [93.5, 986.5], still inside the 90px/990px guardrails. 4% would NOT be
+// (it computes to [85.1, 994.9]) — see the note at background_x_padding.
+// The CTA/end-card/watermark are centered short strings well inside that.
+const CAPTION_BOTTOM_Y = '78%'   // bottom edge of the caption box (hard floor)
+const CAPTION_WIDTH = '78%'      // keeps the pill left of the right-hand chrome
+// PUSH #94 — ONE-WORD CAPTIONS. Tier-1 Shorts tools (Submagic / OpusClip /
+// Revid) are recognisable above all else by active-word emphasis: exactly one
+// word on screen at a time, swapping on the beat. With a chunk size of 1 every
+// caption IS the active word, so we get that effect using the SAME single
+// plain-text element we already ship — no rich-text spans, no second floating
+// element. That distinction matters: Push #277 reverted a two-element per-word
+// attempt (it rendered as two stacked subtitle lines) and Creatomate's inline
+// colour markup is feature-gated across versions, so a malformed tag would
+// render as literal `[color]` text. See the buildCaptionElements docstring.
+// Revert = set this back to 3; it is the only knob.
+const CAPTION_WORDS_PER_CHUNK = 1
+// PUSH #94 — font sizes retuned for the one-word line. At 62 a lone word looked
+// small and lost the "punch" the effect depends on; a single word also has ~3x
+// the horizontal room a 3-word line had, so it can afford the size. Safe zone
+// re-verified (pill is bottom-anchored, so a bigger font grows UPWARD only):
+//   body 86 → line box 86*1.05 = 90.3px + 2*38.4px y-padding = 167.1px tall
+//             → pill spans 1368.9px … 1536.0px  (71.3% … 80.0%)
+//   hook 104 → line box 109.2px + 76.8px = 186.0px tall
+//             → pill spans 1350.0px … 1536.0px  (70.3% … 80.0%)
+// The pill FLOOR is unchanged at 1536px (y 78% + 2% y-padding) because neither
+// y, y_anchor nor background_y_padding moved — it still lands exactly on, and
+// never below, the 1536px line where YouTube's chrome starts. The worst-case
+// TOP is now ~70% versus the old documented 61.3% (3 wrapped lines @ 76), i.e.
+// the caption band got strictly SMALLER: one word almost never wraps.
+const CAPTION_FONT_SIZE = 86     // PUSH #94 — was 62 (3-word lines); one word needs the weight
+const CAPTION_HOOK_FONT_SIZE = 104 // PUSH #94 — was 76; keeps the ~1.21x hook/body ratio
+// PUSH #93 — chunks starting inside this window get the hook treatment.
+const CAPTION_HOOK_WINDOW_SECONDS = 2
 
 // ── Fast Mode v2 (02/07) — ALL constants below are GATED to quality==='fast'
 // (free stock pipeline). AI Gen / avatar / legacy modes keep their exact
@@ -46,8 +121,11 @@ const FAST_KEN_BURNS_PATTERN = [
   { from: '100%', to: '110%', xAnchor: '62%' }, // push-in anchored right → pan-left feel
 ] as const
 // (d) LEGENDAS — caption chunks carrying money/percent/big-number/power words
-// render the WHOLE 3-word line in HIGHLIGHT_COLOR (yellow pop); rest stay white.
-// Whole-line color (not per-word layering) on purpose — see #277 regression note.
+// render in HIGHLIGHT_COLOR (yellow pop); rest stay white. Whole-line color
+// (not per-word layering) on purpose — see #277 regression note.
+// PUSH #94 — with CAPTION_WORDS_PER_CHUNK = 1 the "whole line" IS the single
+// word, so this now yellows EXACTLY the money/power word and nothing else —
+// the per-word pop #277 had to abandon, reached without any layering.
 const FAST_EMPHASIS_RE =
   /(\$[\d.,]+|\d+(\.\d+)?%|\b\d{3,}\b|\b(million|billion|trillion|secret|never|banned|hidden|illegal|forbidden|richest|poorest|deadliest|shocking|insane|free)\b)/i
 // Push #049 — bucket name lives here so we never typo it across the
@@ -363,11 +441,34 @@ export async function generateTTS(
         )
         const { openai } = await import('@/lib/openai')
         const buffers: Buffer[] = []
-        for (const section of sections) {
+        for (const [si, section] of sections.entries()) {
           // section speed = persona.defaultSpeed × sectionMultiplier × corrective(speed)
           const sectionSpeed = persona.defaultSpeed * section.speedMultiplier * speed
           const safeSection = Math.max(0.7, Math.min(1.3, sectionSpeed))
-          const input = section.text.length > 3800 ? section.text.slice(0, 3800) : section.text
+          // PUSH #93 (FIX 6) — TTS SPLICE. Each section is synthesised
+          // independently and the MP3s are then byte-concatenated below. Every
+          // section's audio therefore starts and ends on the first/last spoken
+          // sample, so the joins land with a zero-length breath (and the abrupt
+          // waveform discontinuity that reads as a click). Real audio
+          // processing isn't available here, but the pause CAN be created at
+          // the TEXT level: a trailing ellipsis makes the model itself render a
+          // short falling-cadence pause and emit the corresponding tail silence
+          // INSIDE the section's own mp3, so the concat happens across quiet
+          // samples instead of mid-syllable. This is the same mechanism
+          // lib/narration/section-tts.ts already relies on (it prepends '... '
+          // to mystery/conspiracy PAYOFFs for a dramatic pause), so it is a
+          // proven-safe transform in this pipeline — OpenAI TTS renders an
+          // ellipsis prosodically and never vocalises it. The LAST section is
+          // left untouched: nothing is spliced after it, and we don't want to
+          // pad the end of the narration (totalDuration is derived from the
+          // measured audio length).
+          const sectionText = section.text.trim()
+          const isLastSection = si === sections.length - 1
+          const pausedText =
+            isLastSection || /\.{2,}$/.test(sectionText)
+              ? sectionText
+              : `${sectionText.replace(/\.+$/, '')}...`
+          const input = pausedText.length > 3800 ? pausedText.slice(0, 3800) : pausedText
           const speech = await openai.audio.speech.create({
             model: 'tts-1-hd',
             voice: resolvedVoice,
@@ -376,6 +477,11 @@ export async function generateTTS(
           })
           buffers.push(Buffer.from(await speech.arrayBuffer()))
         }
+        // PUSH #93 (FIX 6) — the bare byte-concat is kept: re-encoding or
+        // frame-level trimming is not possible in this file (no audio deps in
+        // the serverless bundle). What the ellipsis above buys us is that each
+        // join now falls in a stretch of near-silence rather than immediately
+        // after the last voiced sample, which is what made the seam audible.
         return Buffer.concat(buffers)
       }
     }
@@ -686,13 +792,22 @@ export function buildCaptionsFromWhisperWords(
     if (!text) continue
 
     // Caption starts when its first word is spoken (+ sync offset).
+    // PUSH #93 (FIX 4) — the FIRST chunk is exempt from CAPTION_SYNC_OFFSET.
+    // The offset exists to stop a caption appearing a hair BEFORE the word it
+    // transcribes; that risk doesn't exist at t=0 (there is no earlier caption
+    // to be confused with), and on a 1–2s hook +0.15s is 7–15% of the entire
+    // attention window burned on a blank frame. Every later chunk keeps it.
     const rawStart = chunk[0].start
-    const adjustedStart = Math.max(0, rawStart + CAPTION_SYNC_OFFSET)
+    const adjustedStart = i === 0 ? Math.max(0, rawStart) : Math.max(0, rawStart + CAPTION_SYNC_OFFSET)
 
     // Caption ends when next chunk's first word starts, or at window end.
     const nextChunk = windowWords[i + maxWords]
     const endTime = nextChunk ? nextChunk.start : captionWindowEnd
-    const duration = Math.max(0.1, endTime - rawStart)
+    // PUSH #93 (FIX 1) — captions may now run to the end of the narration, so
+    // clamp the LAST chunk's tail to the window end. Without this the +0.15s
+    // sync offset could push the final caption past the audio (and past the
+    // timeline) once ctaTailSeconds is 0.
+    const duration = Math.max(0.1, Math.min(endTime - rawStart, captionWindowEnd - adjustedStart))
 
     result.push({
       text,
@@ -1035,6 +1150,17 @@ interface CreatomateElement {
   font_family?: string
   font_size?: number
   font_weight?: string
+  // PUSH #93 — safe-zone layout. `y_anchor: '100%'` pins the element by its
+  // BOTTOM edge, so a caption that wraps to 2–3 lines grows upward into empty
+  // footage instead of downward into YouTube's bottom chrome. `line_height`
+  // makes the per-line height deterministic so the worst-case box height can
+  // actually be reasoned about (see the SHORTS SAFE-ZONE LAYOUT block).
+  x_anchor?: string
+  y_anchor?: string
+  line_height?: string
+  // PUSH #94 — Creatomate compositing mode for shape overlays ('multiply' /
+  // 'screen'). Optional on purpose: only the colour-grade shapes set it.
+  blend_mode?: string
   // Push #256 — caption pill background + rounded corners
   background_color?: string
   background_x_padding?: string
@@ -1093,14 +1219,19 @@ export function buildCaptionElements({
   duration,
   highlight,
   emphasize = false,
+  hook = false,
 }: {
   text: string
   time: number
   duration: number
   highlight?: string | null
   // Fast Mode v2 (d) — true → whole line renders in HIGHLIGHT_COLOR (yellow
-  // pop for money/number/power-word chunks). Only Fast Mode passes true.
+  // pop for money/number/power-word chunks).
+  // PUSH #93 — this is now passed on EVERY tier, not just Fast (see FIX 3).
   emphasize?: boolean
+  // PUSH #93 — true for caption chunks inside the opening hook window: larger
+  // font + a stronger enter transition so the first line reads as a hook.
+  hook?: boolean
 }): CreatomateElement[] {
   // Push #292 — OpusClip/InVideo quality upgrade:
   //   - UPPERCASE text: standard across all professional Shorts tools
@@ -1108,6 +1239,16 @@ export function buildCaptionElements({
   //   - y: 79%→72%: moved up so more footage is visible below captions
   //   - Pop transition (0.08s) instead of fade: snappier, more energetic
   //   - Slightly narrower pill (88%→84%) to look less like a subtitle bar
+  // PUSH #93 — SAFE ZONE. Was `y: '72%'` with `width: '84%'`, `font_size: 70`
+  // and the default (center) anchor, so the caption box was centered on 72% and
+  // grew SYMMETRICALLY: a 3-word chunk containing a long word wraps to 2–3 lines
+  // and each extra line pushed ~37px further DOWN, landing the last line at
+  // ~80–84% — squarely under YouTube's title/channel/progress chrome. The pill
+  // also reached x≈1024px, i.e. under the like/comment button column.
+  // Fix: pin the box by its BOTTOM edge at CAPTION_BOTTOM_Y (78%) so wrapping
+  // grows upward into empty footage, narrow it to 78% so it clears the right
+  // ~90px chrome, and drop the font 70→62 with an explicit line_height so the
+  // worst-case height is predictable (see the SHORTS SAFE-ZONE LAYOUT block).
   const baseCaption: CreatomateElement = {
     type: 'text',
     track: 5,
@@ -1115,21 +1256,46 @@ export function buildCaptionElements({
     duration,
     text: (text ?? '').toUpperCase(),
     x: '50%',
-    y: '72%',
-    width: '84%',
+    y: CAPTION_BOTTOM_Y,
+    y_anchor: '100%',
+    width: CAPTION_WIDTH,
     font_family: 'Montserrat',
-    font_size: 70,
+    // PUSH #93 (FIX 4) — the opening chunk is rendered larger so the hook lands
+    // with weight. Still bottom-anchored, so the extra height grows upward and
+    // the safe-zone floor is unchanged.
+    font_size: hook ? CAPTION_HOOK_FONT_SIZE : CAPTION_FONT_SIZE,
     font_weight: '800',
+    line_height: '105%',
     // Fast Mode v2 (d) — emphasized chunks go whole-line yellow (mobile-safe:
     // same size/stroke/pill, only the fill changes so contrast never drops).
     fill_color: emphasize ? HIGHLIGHT_COLOR : '#ffffff',
     stroke_color: 'rgba(0,0,0,0.98)',
-    stroke_width: 5,
+    // PUSH #94 — 5→3. The spec stacked BOTH a heavy black stroke AND a
+    // rgba(0,0,0,0.60) pill; tier-1 tools commit to one or the other, and
+    // doubling up just thickens the glyphs into mush at the new 86/104 sizes.
+    // We keep the PILL (more legible over busy stock footage than a stroke)
+    // and keep a THIN stroke, which still buys separation where a light glyph
+    // meets the pill edge. Colour deliberately unchanged.
+    stroke_width: 3,
     background_color: 'rgba(0,0,0,0.60)',
-    background_x_padding: '4%',
+    // PUSH #93 — 4%→2.5% so the darkened pill stays left of the 990px
+    // action-button column even on a line that fills the full box width.
+    // PUSH #94 — 2.5%→3%, and NOT the 4% first proposed. Arithmetic: this
+    // padding is a percentage of the ELEMENT WIDTH (CAPTION_WIDTH 78% of
+    // 1080px = 842.4px), not of the word, so switching to one word per chunk
+    // does NOT shrink it — the pill already hugs the word. Worst case is a
+    // single long word that fills the box:
+    //   3%  → 842.4 + 2*25.3 = 893.0px → centred span [93.5, 986.5]  ✅
+    //   4%  → 842.4 + 2*33.7 = 909.8px → centred span [85.1, 994.9]  ❌
+    // 4% breaches BOTH guardrails documented in the safe-zone block (the 90px
+    // left margin and the 990px like/comment/share column), so 3% is the
+    // largest value that still keeps the #93 guarantee. Slightly more generous
+    // than 2.5% (0.29em vs 0.24em at font 86), which is the "hug" we wanted.
+    background_x_padding: '3%',
     background_y_padding: '2%',
     border_radius: 10,
-    enter_transition: { type: 'pop', duration: 0.08 },
+    // PUSH #93 (FIX 4) — stronger, slightly longer pop on the hook chunk.
+    enter_transition: hook ? { type: 'pop', duration: 0.25 } : { type: 'pop', duration: 0.08 },
   }
 
   // Push #277 — remove yellow keyword pop (track 7). The two-layer approach
@@ -1519,14 +1685,26 @@ export function buildCreatomateSource({
               end_scale: kb.to,
               x_anchor: kb.xAnchor,
               y_anchor: '50%',
-              easing: 'linear',
+              // PUSH #94 — see the easing note on the sibling branch below.
+              easing: 'ease-out',
             }
           : {
               type: 'scale',
               fade: false,
               start_scale: zoomIn ? '100%' : '108%',
               end_scale: zoomIn ? '108%' : '100%',
-              easing: 'linear',
+              // PUSH #94 — 'linear' → 'ease-out'. A constant-velocity zoom is
+              // the giveaway that a machine made the move; real camera pushes
+              // decelerate, so the shot "settles" instead of being yanked for
+              // its whole duration. NOTE: 'linear' is the ONLY easing keyword
+              // anywhere in this repo, so there is no in-repo precedent to copy
+              // for the non-linear case — 'ease-out' is the CSS-style keyword
+              // Creatomate documents. If the API rejects or ignores an unknown
+              // keyword it falls back to its default easing, which is no worse
+              // than the linear we had; nothing else about the animation
+              // changes. Verify on the next render before copying this to the
+              // avatar-mode Ken Burns blocks above, which stay 'linear'.
+              easing: 'ease-out',
             },
       ],
     }
@@ -1589,13 +1767,34 @@ export function buildCreatomateSource({
   // deep blue, geography teal/orange. Detected from the narration itself —
   // zero new params, works for every caller. Unknown niche keeps #436's grade.
   const gradeText = (voiceoverScript ?? '').toLowerCase()
+  // PUSH #94 — REAL GRADE VIA BLEND MODES. A flat-alpha overlay is not a grade:
+  // compositing an opaque-ish colour over the frame at constant alpha LIFTS THE
+  // BLACKS (a 0% pixel becomes the wash colour) and compresses the range, so
+  // the footage ends up hazier and flatter — the opposite of "cinematic". Real
+  // split-toning multiplies into the shadows and screens into the highlights.
+  // So: wash → 'multiply' (darkens/tints shadows, leaves highlights alone) and
+  // glow → 'screen' (lifts highlights only, never touches blacks).
+  //
+  // Alphas: the wash values are REDUCED ~⅓ (0.15→0.10, 0.17→0.11, 0.14/0.13→
+  // 0.09). Multiply darkens far more aggressively than flat alpha at the same
+  // number, so keeping the old values would crush the shadows on the honoured
+  // path. Glow alphas are untouched — they are already tiny (0.05–0.07) and
+  // 'screen' at that strength is a whisper, which is what we want.
+  //
+  // FALLBACK IF `blend_mode` IS IGNORED: this property is NOT verified against
+  // the live Creatomate API. Creatomate ignores unknown element properties
+  // rather than erroring, so the failure mode is simply the previous flat-alpha
+  // behaviour at the new, lower alphas — i.e. a slightly WEAKER version of the
+  // #436/V4 grade, never a broken or black render. If the next render shows the
+  // grade has all but vanished, blend_mode was dropped: either restore the old
+  // alphas or remove these two lines.
   const grade = /\b(billionaire|millionaire|wealth|money|invest|luxur|rich|dollar|business)\b/.test(gradeText)
-    ? { wash: 'rgba(35,26,8,0.15)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
+    ? { wash: 'rgba(35,26,8,0.10)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
     : /\b(mystery|mysterious|unexplained|vanish|disappear|haunted|secret|creepy)\b/.test(gradeText)
-    ? { wash: 'rgba(8,14,40,0.17)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
+    ? { wash: 'rgba(8,14,40,0.11)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
     : /\b(volcano|desert|island|mountain|ocean|country|village|glacier|jungle|crater)\b/.test(gradeText)
-    ? { wash: 'rgba(10,32,40,0.14)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
-    : { wash: 'rgba(12,34,51,0.13)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 original)
+    ? { wash: 'rgba(10,32,40,0.09)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
+    : { wash: 'rgba(12,34,51,0.09)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 original)
   // (a) Niche wash over the whole frame → cohesion + moody cinematic tone.
   elements.push({
     type: 'shape',
@@ -1607,6 +1806,8 @@ export function buildCreatomateSource({
     width: '100%',
     height: '100%',
     fill_color: grade.wash,
+    // PUSH #94 — tint the shadows instead of veiling the whole frame.
+    blend_mode: 'multiply',
   })
   // (b) Complementary highlight lift in the center → reads as "color graded",
   //     not just tinted. Very subtle, center-weighted.
@@ -1620,6 +1821,9 @@ export function buildCreatomateSource({
     width: '70%',
     height: '55%',
     fill_color: grade.glow,
+    // PUSH #94 — lift only the highlights; 'screen' can never darken, so this
+    // is the safe half of the split-tone. Alpha unchanged (already a whisper).
+    blend_mode: 'screen',
   })
   // (c) Side vignette bars (left + right) → completes the frame darkening with
   //     the existing top/bottom letterbox, focusing the eye on the subject.
@@ -1681,11 +1885,23 @@ export function buildCreatomateSource({
     // Push #292 — 3 words/chunk (was 4). Shorter, punchier lines match
     // OpusClip/InVideo style — each caption appears and disappears quickly,
     // creating more visual energy and easier mobile readability.
+    // PUSH #93 (FIX 1) — was `CTA_TAIL_SECONDS`. Captions were hard-truncated
+    // 2.5s before the end of the timeline while the voiceover element ran the
+    // FULL audioDuration at 100%. Because totalDuration is DERIVED from the
+    // measured audio, the narrator is essentially always still speaking in that
+    // window — so the PAYOFF, the single most important line of the video, was
+    // spoken with no caption on screen, on every render. Tail is now 0: captions
+    // cover the narration to its end. They still cannot run past the audio —
+    // captionWindowEnd is the audio length and the last chunk is clamped to it
+    // inside buildCaptionsFromWhisperWords. The CTA no longer needs a caption
+    // blackout because it moved out of the caption band entirely (FIX 2).
     const directCaps = buildCaptionsFromWhisperWords(
       whisperWords,
-      masterDuration,
-      CTA_TAIL_SECONDS,
-      3,
+      Math.min(masterDuration, totalDuration),
+      0,
+      // PUSH #94 — one word per chunk (was the literal 3). Every caption is now
+      // the word being spoken, which IS the tier-1 active-word look.
+      CAPTION_WORDS_PER_CHUNK,
     )
     for (const cap of directCaps) {
       elements.push(...buildCaptionElements({
@@ -1693,14 +1909,21 @@ export function buildCreatomateSource({
         time: cap.time,
         duration: cap.duration,
         highlight: cap.highlight,
-        // Fast Mode v2 (d) — money/number/power-word chunks pop in yellow.
-        emphasize: isFastStock && FAST_EMPHASIS_RE.test(cap.text),
+        // PUSH #93 (FIX 3) — was `isFastStock && ...`, which gated the modern
+        // highlighted-keyword look to quality==='fast' (the FREE stock tier)
+        // and gave every PAYING tier (pro / cinematic / hollywood) flat white
+        // captions — exactly backwards. Emphasis now applies on all tiers.
+        emphasize: FAST_EMPHASIS_RE.test(cap.text),
+        // PUSH #93 (FIX 4) — opening chunks get the hook treatment.
+        hook: cap.time < CAPTION_HOOK_WINDOW_SECONDS,
       }))
     }
   } else {
     // Proportional fallback — script segments with word-count proportional slots.
     // Push #292 — 3 words/chunk (was 4). Matches directCaps limit above.
-    const scriptSegments = buildCaptionSegments(voiceoverScript, 3)
+    // PUSH #94 — both paths now read the same constant, so the Whisper and the
+    // proportional-fallback renders can never disagree on caption granularity.
+    const scriptSegments = buildCaptionSegments(voiceoverScript, CAPTION_WORDS_PER_CHUNK)
     const captionsClean: CaptionSegment[] = scriptSegments.length > 0
       ? scriptSegments
       : sceneCaptions
@@ -1709,7 +1932,11 @@ export function buildCreatomateSource({
           .map((text) => ({ text, highlight: pickHighlightWord(text) }))
     if (captionsClean.length > 0) {
       const measured = realAudioDuration && realAudioDuration > 0 ? realAudioDuration : totalDuration
-      const captionWindow = Math.max(2, Math.min(measured, totalDuration) - CTA_TAIL_SECONDS)
+      // PUSH #93 (FIX 1) — the `- CTA_TAIL_SECONDS` here was the same defect as
+      // on the Whisper path: it deleted the last 2.5s of captions while the
+      // narration kept playing. The window is now the full narration length
+      // (still capped at totalDuration, so captions never outlive the audio).
+      const captionWindow = Math.max(2, Math.min(measured, totalDuration))
       const totalWords = captionsClean.reduce((sum, c) => sum + wordCount(c.text), 0) || captionsClean.length
       let elapsed = 0
       captionsClean.forEach((segment, idx) => {
@@ -1723,14 +1950,25 @@ export function buildCreatomateSource({
           time: round3(time),
           duration: round3(slot),
           highlight: segment.highlight,
-          // Fast Mode v2 (d) — same yellow-pop rule as the Whisper path.
-          emphasize: isFastStock && FAST_EMPHASIS_RE.test(segment.text),
+          // PUSH #93 (FIX 3) — same tier-inversion fix as the Whisper path:
+          // emphasis is no longer gated on quality==='fast'.
+          emphasize: FAST_EMPHASIS_RE.test(segment.text),
+          // PUSH #93 (FIX 4) — opening chunks get the hook treatment.
+          hook: time < CAPTION_HOOK_WINDOW_SECONDS,
         }))
       })
     }
   }
 
   // Track 6 — CTA in the final 2.5s.
+  // PUSH #93 (FIX 1 + FIX 2) — was `y: '90%'` (1728px), i.e. ~190px INSIDE the
+  // ~380px band YouTube's Shorts player paints over with the title/channel row
+  // and progress bar: the domain we pay to promote was invisible to every
+  // viewer in the feed. It also sat in the same vertical band the captions were
+  // being deleted for. Moved into the top letterbox bar (already darkened by
+  // track 3), where it is both visible AND clear of the caption band, so the
+  // caption no longer has to be suppressed for it to exist. Font 30→36 —
+  // legible at the top of the frame without competing with the caption.
   const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
   elements.push({
     type: 'text',
@@ -1739,10 +1977,10 @@ export function buildCreatomateSource({
     duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
     text: CTA_TEXT,
     x: '50%',
-    y: '90%',
+    y: '18%',
     width: '80%',
     font_family: 'Montserrat',
-    font_size: 30,
+    font_size: 36,
     font_weight: '700',
     fill_color: '#ffffff',
     stroke_color: 'rgba(99,102,241,0.9)',
@@ -1750,9 +1988,11 @@ export function buildCreatomateSource({
   })
 
   // Track 7 — #482 "Made with Kineo" end card (free + Starter only).
-  // Sits just above the URL CTA in the final CTA window (no captions there —
-  // they stop before the CTA tail), so every video those users post becomes an
-  // ad for the product (the Loom/CapCut viral loop). Clean on Creator/Studio.
+  // PUSH #93 (FIX 2) — was `y: '80%'`, the very first row of YouTube's chrome,
+  // so the ad-for-the-product was cropped/covered for the users it targets.
+  // Now stacked directly ABOVE the CTA in the top band, forming one lockup
+  // ("Made with Kineo" / "usekineo.com") at y 13% + y 18%. Both sit inside the
+  // 0–20% letterbox bar and ~930px above the caption floor, so nothing collides.
   if (endCard) {
     elements.push({
       type: 'text',
@@ -1761,7 +2001,7 @@ export function buildCreatomateSource({
       duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
       text: 'Made with Kineo',
       x: '50%',
-      y: '80%',
+      y: '13%',
       width: '86%',
       font_family: 'Montserrat',
       font_size: 44,
@@ -1778,9 +2018,15 @@ export function buildCreatomateSource({
   // the voiceover. Starts at t=0, runs the full video duration. The loop
   // flag re-cycles the track if the video is longer than the audio file.
   if (musicUrl) {
-    // Kineo-Audio-2026 — brief fade-in + a fade-out over the CTA tail. Fades are
-    // clamped to half the timeline so ultra-short videos never fade the whole
-    // track. Single looping element (Creatomate can't sidechain-duck).
+    // Kineo-Audio-2026 — brief fade-in + a short fade-out. Fades are clamped to
+    // half the timeline so ultra-short videos never fade the whole track.
+    // Single looping element (Creatomate can't sidechain-duck).
+    // PUSH #93 (FIX 5) — MUSIC_FADE_OUT_SECONDS dropped 2.5→1.2. At 2.5 the
+    // fade window was byte-for-byte the CTA window, so the bed was already
+    // near-silent the moment the CTA appeared. At 1.2 the bed still carries the
+    // first ~1.3s of the outro and only resolves on the last beat; the fade
+    // window [totalDuration-1.2, totalDuration] starts and completes inside the
+    // timeline (and the /2 clamp keeps that true on very short videos).
     const fadeOut = round3(Math.min(MUSIC_FADE_OUT_SECONDS, totalDuration / 2))
     const fadeIn = round3(Math.min(MUSIC_FADE_IN_SECONDS, totalDuration / 2))
     elements.push({
@@ -1801,9 +2047,13 @@ export function buildCreatomateSource({
 
   // Track 9 — #384 free-trial watermark, burned into the final MP4 so it can't
   // be stripped. Text = "usekineo.com" (one consistent brand across the
-  // app; the same domain shown in the end CTA). Placed at the TOP so it never
-  // collides with the bottom CTA (track 6, last ~2.5s, y:90%). Full duration,
+  // app; the same domain shown in the end CTA). Placed at the TOP. Full duration,
   // semi-transparent. ONLY added when watermark:true (server free-AI-trial decision).
+  // PUSH #93 (FIX 2) — y:5% is already OUTSIDE YouTube's covered bands (bottom
+  // ~380px / right ~90px), so the position is kept as-is. It is re-verified here
+  // because the CTA and end card have MOVED INTO the top band: at font 28 the
+  // watermark occupies ≈76–116px, the end card starts at ≈205px and the CTA at
+  // ≈320px, so the watermark → end card → CTA stack never overlaps.
   // TO SWAP FOR A LOGO PNG LATER: replace this text element with an image one:
   //   { type:'image', track:9, time:0, duration:totalDuration, source:<logoUrl>,
   //     x:'50%', y:'6%', width:'30%', opacity:'60%' }
@@ -2068,7 +2318,12 @@ export function buildHollywoodCreatomateSource({
     x: '50%', y: '48%', width: '70%', height: '55%', fill_color: grade.glow,
   })
 
-  const captionWindowEnd = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
+  // PUSH #93 (FIX 1) — same defect as the standard builder: the caption window
+  // stopped 2.5s before the timeline end while the final scene's narration /
+  // dialogue audio kept playing, so the closing line ran uncaptioned. The CTA
+  // has moved out of the caption band (FIX 2 below), so captions can now run to
+  // the very end of the timeline and the CTA still has a clear frame of its own.
+  const captionWindowEnd = totalDuration
 
   // Track 4 — narration blocks. Each block's mp3 starts at its scene offset.
   // The audio is capped so it can never run over the NEXT dialogue scene
@@ -2106,7 +2361,14 @@ export function buildHollywoodCreatomateSource({
         const t = round3(block.time + cap.time)
         if (t >= captionWindowEnd) continue
         const d = round3(Math.max(0.1, Math.min(cap.duration, captionWindowEnd - t)))
-        elements.push(...buildCaptionElements({ text: cap.text, time: t, duration: d, highlight: cap.highlight }))
+        // PUSH #93 (FIX 3) — hollywood is the most expensive tier and was
+        // passing NO emphasis at all, so it rendered flat white captions while
+        // the free 'fast' tier got the highlighted-keyword look. Same
+        // tier-inversion defect; same rule now applies here.
+        elements.push(...buildCaptionElements({
+          text: cap.text, time: t, duration: d, highlight: cap.highlight,
+          emphasize: FAST_EMPHASIS_RE.test(cap.text),
+        }))
       }
     } else if (block.text && block.text.trim()) {
       // Proportional fallback within the block window.
@@ -2122,6 +2384,8 @@ export function buildHollywoodCreatomateSource({
           time: round3(elapsed),
           duration: round3(Math.min(slot, captionWindowEnd - elapsed)),
           highlight: seg.highlight,
+          // PUSH #93 (FIX 3) — emphasis applies on every tier, hollywood included.
+          emphasize: FAST_EMPHASIS_RE.test(seg.text),
         }))
         elapsed = round3(elapsed + slot)
       }
@@ -2155,7 +2419,11 @@ export function buildHollywoodCreatomateSource({
           const st = round3(winStart + k * slot)
           if (st >= captionWindowEnd) return
           const d = round3(Math.max(0.1, Math.min(slot, captionWindowEnd - st)))
-          elements.push(...buildCaptionElements({ text: seg.text, time: st, duration: d, highlight: seg.highlight }))
+          // PUSH #93 (FIX 3) — emphasis applies on every tier, hollywood included.
+          elements.push(...buildCaptionElements({
+            text: seg.text, time: st, duration: d, highlight: seg.highlight,
+            emphasize: FAST_EMPHASIS_RE.test(seg.text),
+          }))
         })
         return
       }
@@ -2164,15 +2432,24 @@ export function buildHollywoodCreatomateSource({
     const text = (clip.caption ?? '').trim()
     if (!text) return
     const d = round3(Math.max(0.5, Math.min(durations[i] - 0.2, captionWindowEnd - t)))
-    elements.push(...buildCaptionElements({ text, time: round3(t), duration: d, highlight: null }))
+    // PUSH #93 (FIX 3) — emphasis applies on every tier, hollywood included.
+    elements.push(...buildCaptionElements({
+      text, time: round3(t), duration: d, highlight: null,
+      emphasize: FAST_EMPHASIS_RE.test(text),
+    }))
   })
 
   // Track 6 — CTA in the final window (identical to the standard builder).
+  // PUSH #93 (FIX 2) — y:90% and the end card's y:80% are both inside the
+  // ~380px band YouTube's Shorts player covers, so neither was ever visible in
+  // the feed. Same defect, same fix as the standard builder: both move into the
+  // top letterbox bar (already darkened by track 3 above), which also keeps
+  // them clear of the now-bottom-anchored caption band.
   const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
   elements.push({
     type: 'text', track: 6, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-    text: CTA_TEXT, x: '50%', y: '90%', width: '80%',
-    font_family: 'Montserrat', font_size: 30, font_weight: '700',
+    text: CTA_TEXT, x: '50%', y: '18%', width: '80%',
+    font_family: 'Montserrat', font_size: 36, font_weight: '700',
     fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.9)', stroke_width: 2,
   })
 
@@ -2180,7 +2457,7 @@ export function buildHollywoodCreatomateSource({
   if (endCard) {
     elements.push({
       type: 'text', track: 7, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-      text: 'Made with Kineo', x: '50%', y: '80%', width: '86%',
+      text: 'Made with Kineo', x: '50%', y: '13%', width: '86%',
       font_family: 'Montserrat', font_size: 44, font_weight: '800',
       fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.95)', stroke_width: 3,
       background_color: 'rgba(13,13,20,0.55)',

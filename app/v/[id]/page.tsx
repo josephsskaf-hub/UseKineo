@@ -75,6 +75,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     metadataBase: new URL('https://www.usekineo.com'),
     title: `${title} · Kineo`,
     description: desc,
+    // PUSH #92 — P0 canonical bug: this route had no canonical of its own, so
+    // every shared video page shallow-merged the root layout's canonical
+    // (the homepage), telling Google every `/v/[id]` page duplicates `/`.
+    alternates: { canonical: `/v/${params.id}` },
     openGraph: {
       title,
       description: desc,

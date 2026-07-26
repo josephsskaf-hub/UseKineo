@@ -45,13 +45,26 @@ const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
 const EXIT_SEEN_KEY = 'kineo_exit_seen_at'
 const ARM_DELAY_MS = 5000 // engagement gate before any trigger is live
-const MOBILE_IDLE_MS = 25000 // mobile: show after 25s of inactivity
+// PUSH #92 — raised from 25s: 25s of stillness fired on first-time visitors
+// who were simply thinking about what topic to type into the hero form, and
+// threw a modal over the composer. 45s + a scroll-engagement gate (below)
+// give real "gone idle" behaviour instead of "just landed and paused".
+const MOBILE_IDLE_MS = 45000 // mobile: show after 45s of inactivity, once armed
+const MOBILE_IDLE_SCROLL_GATE = 0.5 // mobile: idle timer only arms after scrolling past this fraction of viewport height
 const MOBILE_MIN_DEPTH_PX = 400 // mobile: only consider scroll-up after real scroll depth
 const MOBILE_SCROLLUP_PX = 350 // mobile: accumulated fast upward scroll that counts as exit
 
 // Same fire-and-forget event beacon pattern the pricing page uses.
 function trackEvent(name: string): void {
   void trackAnalyticsEvent(name)
+}
+
+// PUSH #92 — the modal must never throw itself over an input the visitor is
+// actively using (e.g. typing a topic into the hero composer).
+function isFormFieldFocused(): boolean {
+  if (typeof document === 'undefined') return false
+  const tag = document.activeElement?.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA'
 }
 
 function checkoutIntentParam(): string {
@@ -73,6 +86,8 @@ export default function ExitIntentOffer() {
 
   const show = useCallback(() => {
     if (shownRef.current) return
+    // Never fire while the visitor is actively typing somewhere on the page.
+    if (isFormFieldFocused()) return
     shownRef.current = true
     try {
       sessionStorage.setItem(SESSION_KEY, '1')
@@ -125,11 +140,28 @@ export default function ExitIntentOffer() {
         document.addEventListener('mouseleave', onMouseLeave)
         cleanups.push(() => document.removeEventListener('mouseleave', onMouseLeave))
       } else {
-        // Mobile 1: inactivity timer (reset on any interaction).
-        let idleTimer = window.setTimeout(show, MOBILE_IDLE_MS)
+        // Mobile 1: inactivity timer — but PUSH #92 only arms it once the
+        // visitor has scrolled past ~50% of the viewport height, i.e. they
+        // have actually seen the page rather than just landed on it. Before
+        // that point the timer never starts, so "stillness while reading
+        // the hero / deciding what to type" can no longer fire the modal.
+        let idleTimer: number | null = null
+        let idleArmed = false
+        const scheduleIdle = () => {
+          if (idleTimer !== null) window.clearTimeout(idleTimer)
+          idleTimer = window.setTimeout(() => {
+            if (isFormFieldFocused()) {
+              // Still idle from a scroll/touch perspective, but the visitor
+              // is actively using a field — keep waiting instead of firing.
+              scheduleIdle()
+              return
+            }
+            show()
+          }, MOBILE_IDLE_MS)
+        }
         const resetIdle = () => {
-          window.clearTimeout(idleTimer)
-          idleTimer = window.setTimeout(show, MOBILE_IDLE_MS)
+          if (!idleArmed) return
+          scheduleIdle()
         }
         const idleEvents: Array<keyof WindowEventMap> = ['touchstart', 'touchmove', 'scroll', 'keydown']
         idleEvents.forEach((ev) => window.addEventListener(ev, resetIdle, { passive: true }))
@@ -143,6 +175,12 @@ export default function ExitIntentOffer() {
           const y = window.scrollY
           const now = Date.now()
           if (y > maxY) maxY = y
+
+          if (!idleArmed && y > window.innerHeight * MOBILE_IDLE_SCROLL_GATE) {
+            idleArmed = true
+            scheduleIdle()
+          }
+
           const dy = lastY - y // positive = scrolling up
           if (dy > 0) {
             if (now - lastT > 400) upAccum = 0 // stale burst — restart
@@ -157,7 +195,7 @@ export default function ExitIntentOffer() {
         window.addEventListener('scroll', onScroll, { passive: true })
 
         cleanups.push(() => {
-          window.clearTimeout(idleTimer)
+          if (idleTimer !== null) window.clearTimeout(idleTimer)
           idleEvents.forEach((ev) => window.removeEventListener(ev, resetIdle))
           window.removeEventListener('scroll', onScroll)
         })

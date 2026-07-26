@@ -123,37 +123,99 @@ function hasLifestylePollution(video: PixabayVideo, sceneNeedsPeople: boolean): 
 // at least one meaningful query word to appear in the clip's tags; otherwise the
 // clip is rejected and the pipeline tries the next query / repeats a relevant
 // prior clip instead of showing something off-topic.
+// PUSH #93 — the old single list conflated GENERIC filler ("the", "video",
+// "clip") with STYLE/framing words ("golden hour", "aerial", "macro"). Both
+// were stripped before the relevance test, so a query made only of style words
+// ("golden hour", "wide establishing low angle") ended up with ZERO judge-able
+// tokens and tagsRelevantToQuery returned true for EVERY clip — no gate at all,
+// which is how style-suffixed queries pulled in completely off-topic footage.
+// The two lists are now separate: STYLE_TOKENS are never relevance evidence
+// (they are not topic), but they ARE a small ranking bonus (styleAlignScore),
+// so a clip that genuinely matches the requested look still gets credit.
 const RELEVANCE_STOPWORDS = new Set([
   'the', 'and', 'for', 'with', 'from', 'into', 'that', 'this', 'over', 'under',
-  'video', 'footage', 'clip', 'shot', 'scene', 'cinematic', 'closeup', 'close',
-  'aerial', 'drone', 'background', 'vertical', 'style',
-  // 02/07 (validação com vídeo Fast real, logs de prod) — sufixos de ESTILO que o
-  // BrollPlan anexa às queries ("golden hour", "close-up macro", "wide establishing",
-  // "POV", "low angle") estavam contando como matches de RELEVÂNCIA: um clipe
-  // "ocean palm golden hour" (matches=2 em golden+hour) venceu o clipe real de
-  // cratera de enxofre (matches=1 em volcano) na cena do Danakil. Palavras de
-  // enquadramento/luz não são TÓPICO — fora do score; a busca do Pixabay ainda
-  // as usa na query normal.
+  'video', 'footage', 'clip', 'shot', 'scene', 'background',
+])
+
+// 02/07 (validação com vídeo Fast real, logs de prod) — sufixos de ESTILO que o
+// BrollPlan anexa às queries ("golden hour", "close-up macro", "wide establishing",
+// "POV", "low angle") estavam contando como matches de RELEVÂNCIA: um clipe
+// "ocean palm golden hour" (matches=2 em golden+hour) venceu o clipe real de
+// cratera de enxofre (matches=1 em volcano) na cena do Danakil. Palavras de
+// enquadramento/luz não são TÓPICO — fora do score de relevância; a busca do
+// Pixabay ainda as usa na query normal.
+const STYLE_TOKENS = new Set([
+  'cinematic', 'closeup', 'close', 'aerial', 'drone', 'vertical', 'style',
   'golden', 'hour', 'macro', 'establishing', 'pov', 'medium', 'wide', 'angle',
   'low', 'slow', 'motion', 'timelapse', '4k', 'uhd',
 ])
 
+/** CONTENT tokens only — style/framing words are excluded on purpose (#93).
+ *  PUSH #93 — de-duplicated: a query that repeats a word ("money money moves")
+ *  must not count as two matches, either for the gate's 2-hit threshold or for
+ *  the ranking's matches×4. */
 function meaningfulTokens(text: string): string[] {
-  return text
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter((t) => t.length > 2 && !RELEVANCE_STOPWORDS.has(t))
+  return Array.from(
+    new Set(
+      text
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter((t) => t.length > 2 && !RELEVANCE_STOPWORDS.has(t) && !STYLE_TOKENS.has(t)),
+    ),
+  )
+}
+
+/** PUSH #93 — clip tags as discrete words, so matching is word-level not blob-level. */
+function tagWordsOf(video: PixabayVideo): string[] {
+  return video.tags.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+}
+
+// PUSH #93 — the old test was a raw substring search over the whole tag blob,
+// so short tokens matched INSIDE unrelated words ("ice" → "office"/"price",
+// "art" → "particle", "sea" → "research") and one such accident was enough to
+// pass the relevance gate. Now: an exact tag-word match always counts, and the
+// useful loose cases ("ocean" → "oceanic", "plane" → "airplane") are still
+// allowed but only for tokens of 5+ chars, where an accidental hit is unlikely.
+function tokenHitsTags(token: string, tagWords: string[]): boolean {
+  for (const w of tagWords) if (w === token) return true
+  if (token.length < 5) return false
+  for (const w of tagWords) {
+    if (w.includes(token)) return true
+    if (w.length >= 5 && token.includes(w)) return true
+  }
+  return false
 }
 
 function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean {
   const qTokens = meaningfulTokens(query)
-  // If the query has no judge-able tokens, don't block (can't assess relevance).
+  // If the query has no judge-able CONTENT tokens, don't block (can't assess).
   if (qTokens.length === 0) return true
-  const tagBlob = video.tags.toLowerCase()
-  // Accept if any meaningful query token appears in the clip's tags. Substring
-  // match (not exact token) so "ocean" matches "ocean wave", "plane" matches
-  // "airplane", etc.
-  return qTokens.some((t) => tagBlob.includes(t))
+  const tagWords = tagWordsOf(video)
+  let hits = 0
+  for (const t of qTokens) if (tokenHitsTags(t, tagWords)) hits++
+  // PUSH #93 — long, specific queries carry enough signal that a single token
+  // hit shouldn't be enough (that's how one shared word let an unrelated clip
+  // through). Require 2 hits from 4+ content tokens; keep the ≥1 rule for short
+  // queries so the pool never empties — an empty pool means FALLBACK-A repeats
+  // a clip, which is a worse user-visible outcome than a slightly loose match.
+  // The broadening tiers (first-3 / first-2 tokens) shrink the query, so the
+  // threshold drops back to 1 automatically if 2 proved too strict.
+  const needed = qTokens.length >= 4 ? 2 : 1
+  return hits >= needed
+}
+
+// PUSH #93 — style/framing words are a RANKING bonus, never relevance evidence:
+// a clip that IS shot golden-hour/aerial when the query asked for it should win
+// a tie, but must never be the reason an off-topic clip is accepted.
+function styleAlignScore(video: PixabayVideo, query: string): number {
+  const qStyle = new Set(
+    query.toLowerCase().split(/[^a-z0-9]+/).filter((t) => STYLE_TOKENS.has(t)),
+  )
+  if (qStyle.size === 0) return 0
+  const tagWords = new Set(tagWordsOf(video))
+  let n = 0
+  for (const t of qStyle) if (tagWords.has(t)) n++
+  return Math.min(2, n)
 }
 
 // Push #483 (02/07) — count HOW MANY meaningful query tokens the clip's tags
@@ -163,8 +225,10 @@ function tagsRelevantToQuery(video: PixabayVideo, query: string): boolean {
 function tagMatchCount(video: PixabayVideo, query: string): number {
   const qTokens = meaningfulTokens(query)
   if (qTokens.length === 0) return 0
-  const tagBlob = video.tags.toLowerCase()
-  return qTokens.filter((t) => tagBlob.includes(t)).length
+  // PUSH #93 — same word-level matcher as the gate, so the ranking can't reward
+  // an accidental substring hit ("ice" inside "office") the gate now rejects.
+  const tagWords = tagWordsOf(video)
+  return qTokens.filter((t) => tokenHitsTags(t, tagWords)).length
 }
 
 // ── KINEO-FAST-CINEMA-2026-07-10 — "AI Gen look" ranking signals ────────────
@@ -233,15 +297,33 @@ function pickBestUrl(video: PixabayVideo): string | null {
 
 // ── Core search ───────────────────────────────────────────────────────────
 
+// PUSH #93 (FIX 2) — Pixabay's terms require API results to be CACHED (24h)
+// rather than re-requested, and the vertical-preferred pass below adds a second
+// request per search. This tiny in-process memo keeps both facts comfortable:
+// an identical query+category+orientation search inside one warm instance costs
+// ONE request, so the extra vertical pass does not push us toward the 100 req /
+// 60s limit (concept-map queries in particular repeat across scenes and videos).
+const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000
+const SEARCH_CACHE_MAX = 300
+const searchCache = new Map<string, { at: number; hits: PixabayVideo[] }>()
+
 async function searchPixabay(
   query: string,
   perPage = 5,
   category?: string,
+  /** PUSH #93 — vertical-preferred secondary pass (see below). */
+  verticalPreferred = false,
 ): Promise<PixabayVideo[]> {
   const apiKey = process.env.PIXABAY_API_KEY
   if (!apiKey) {
     console.warn('[pixabay] PIXABAY_API_KEY not set — skipping')
     return []
+  }
+
+  const cacheKey = `${query}|${perPage}|${category ?? ''}|${verticalPreferred ? 'v' : 'a'}`
+  const cachedEntry = searchCache.get(cacheKey)
+  if (cachedEntry && Date.now() - cachedEntry.at < SEARCH_CACHE_TTL_MS) {
+    return cachedEntry.hits
   }
 
   // Push #438 — DROP the hard orientation=vertical filter. It was starving the
@@ -259,6 +341,17 @@ async function searchPixabay(
     `&per_page=${perPage}`
 
   if (category) url += `&category=${encodeURIComponent(category)}`
+
+  // PUSH #93 (FIX 2) — #438 was right that a HARD vertical filter starves the
+  // pool, but wrong that fit:'cover' makes landscape safe: center-cropping a
+  // 16:9 master to 9:16 discards ~72% of the frame with NO subject tracking, so
+  // the subject is routinely cropped out of shot. So we keep the main search
+  // all-orientation and add this SECONDARY vertical-preferred pass, merged ahead
+  // of it. Pixabay's VIDEO endpoint has no `orientation` param (that one belongs
+  // to the image endpoint — #438 removed something the video API was likely
+  // ignoring), but min_height IS documented for videos: a 1080x1920 vertical
+  // master clears min_height=1200 while a 1920x1080 landscape does not.
+  if (verticalPreferred) url += `&min_height=1200`
 
   let res: Response
   try {
@@ -280,7 +373,12 @@ async function searchPixabay(
     return []
   }
 
-  return data.hits ?? []
+  const hits = data.hits ?? []
+  // PUSH #93 — cache successful responses only (a transient error must not be
+  // memoised for 24h). Bounded so a long-lived instance can't grow unbounded.
+  if (searchCache.size >= SEARCH_CACHE_MAX) searchCache.clear()
+  searchCache.set(cacheKey, { at: Date.now(), hits })
+  return hits
 }
 
 // ── searchAndFilter ────────────────────────────────────────────────────────
@@ -294,8 +392,11 @@ async function searchPixabay(
 // scored and the best wins:
 //   +4 per query token found in the clip's tags   (topic strength dominates)
 //   +3 if clip duration covers the scene           (no freeze/loop padding)
-//   +2 if portrait/vertical                        (native 9:16 — nice-to-have,
-//        NOT a trump card: compose center-crops landscape fine, see #438)
+//  +10 if portrait/vertical                        (PUSH #93 — was +2, which on
+//        a ~20-point scale never decided anything; a 16:9 master loses ~72% of
+//        its frame to compose's untracked 9:16 center-crop, so native vertical
+//        must reliably win when it exists. Still not an absolute trump card:
+//        a clearly stronger on-topic landscape (matches×4) can outscore it.)
 // Ties break toward Pixabay's own relevance order. Same inputs, same fallback
 // behavior (null on no clean candidate) — only the pick among survivors changed.
 
@@ -311,6 +412,10 @@ type PixabayCandidate = {
   /** KINEO-FAST-V4 — full provider tags + duration, for the clip vault index. */
   tags: string
   durationSec?: number
+  /** PUSH #93 (FIX 1) — true when this candidate came from a CONCEPT_VISUAL_MAP
+   *  generic query rather than the scene's own narration-derived query. Generic
+   *  candidates are ranked strictly below grounded ones (see the pool sort). */
+  generic?: boolean
 }
 
 // Fast Mode v2 (02/07) — collection extracted from searchAndFilter so the new
@@ -330,7 +435,23 @@ async function collectCandidates(
   // survivors after the lifestyle/relevance gates. Same single API call.
   // KINEO-FAST-CINEMA (10/07) — 20 → 30: the cinematic/resolution/coherence
   // signals need a deeper pool to find the premium pick. Still ONE API call.
-  const hits = await searchPixabay(query, 30, category)
+  // PUSH #93 (FIX 2) — TWO searches issued in PARALLEL (so zero added latency):
+  // a small vertical-preferred pass and the normal all-orientation pass. The
+  // vertical hits are merged FIRST, so they take the lowest `order` values and
+  // win every score tie; the all-orientation pool still backs them up, so the
+  // pool never starves the way a hard orientation filter did (#438). Two
+  // concurrent, memoised requests per query stays well inside 100 req / 60s.
+  const [verticalHits, anyHits] = await Promise.all([
+    searchPixabay(query, 8, category, true),
+    searchPixabay(query, 30, category),
+  ])
+  const seenHitIds = new Set<number>()
+  const hits: PixabayVideo[] = []
+  for (const v of [...verticalHits, ...anyHits]) {
+    if (!v || seenHitIds.has(v.id)) continue
+    seenHitIds.add(v.id)
+    hits.push(v)
+  }
 
   // Scene coverage target: planned scene duration when known (BrollPlan),
   // else 6s — a sane floor for Shorts pacing.
@@ -365,7 +486,14 @@ async function collectCandidates(
     }
     if (!url) continue
 
-    const rez = video.videos?.large
+    // PUSH #93 (FIX 2) — orientation was read from the `large` rendition only,
+    // so a clip that ships no large master was silently scored as landscape.
+    // Use the first rendition that actually reports dimensions.
+    const rez =
+      video.videos?.large?.width ? video.videos.large
+      : video.videos?.medium?.width ? video.videos.medium
+      : video.videos?.small?.width ? video.videos.small
+      : undefined
     const portrait = !!rez && rez.height >= rez.width
     const coversScene = typeof video.duration === 'number' && video.duration >= neededSec
     // Push #484 — clips under 3s force a visible freeze/loop on any Short scene;
@@ -381,15 +509,25 @@ async function collectCandidates(
     const cinema = cinematicScore(sTags)
     const rez2 = resolutionScore(video)
     const cohere = coherenceScore(sTags, styleCtx)
+    // PUSH #93 (FIX 4) — style/framing words asked for by the query are a
+    // ranking bonus now that they no longer count as relevance evidence.
+    const styleAlign = styleAlignScore(video, query)
+    // PUSH #93 (FIX 2) — portrait +2 → +10. On a ~20-point scale +2 never
+    // decided anything, so landscape clips won constantly and then lost ~72% of
+    // their frame to the 9:16 center-crop (subject frequently cropped out).
+    // +10 makes a native 9:16 clip win whenever one exists, while a clearly
+    // stronger on-topic landscape (matches×4 + coverage + production signals)
+    // can still beat a weakly-matching vertical — topic never gets trumped
+    // outright, it just stops losing to nothing.
     const score =
-      matches * 4 + (coversScene ? 3 : 0) + (portrait ? 2 : 0) - (tooShort ? 2 : 0) +
-      cinema + rez2 + cohere
+      matches * 4 + (coversScene ? 3 : 0) + (portrait ? 10 : 0) - (tooShort ? 2 : 0) +
+      cinema + rez2 + cohere + styleAlign
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
     })
     console.log(
-      `[pixabay] ${label} candidate id=${video.id} score=${score} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} cinema=${cinema} rez=${rez2} cohere=${cohere}) tags="${video.tags.slice(0, 60)}"`,
+      `[pixabay] ${label} candidate id=${video.id} score=${score} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} cinema=${cinema} rez=${rez2} cohere=${cohere} styleAlign=${styleAlign}) tags="${video.tags.slice(0, 60)}"`,
     )
   }
 
@@ -555,19 +693,41 @@ const CONCEPT_VISUAL_MAP: ReadonlyArray<{ test: RegExp; queries: string[] }> = [
     queries: ['snake close up', 'crocodile water', 'shark underwater'] },
 ]
 
-function concretizeQueries(originalQueries: string[], hint?: string): string[] {
+// PUSH #93 (FIX 1) — the concept map is the single biggest source of off-topic
+// footage: it appends hardcoded generics ('private jet', 'Dubai skyline aerial',
+// 'volcano lava eruption') to EVERY non-verbatim scene, and those generics then
+// score brilliantly against their own query ("Dubai skyline aerial" = 3 tokens
+// × 4) and beat the narration-grounded clip that matched only 1-2 words. The map
+// is kept (it genuinely rescues scenes Pixabay has no inventory for), but it is
+// now LAST RESORT: this function reports where the generic queries begin so the
+// callers can (a) only reach for them when the scene's own queries came back
+// thin and (b) never let one outrank a narration-grounded candidate.
+function concretizeQueries(
+  originalQueries: string[],
+  hint?: string,
+): { queries: string[]; genericStart: number } {
   const haystack = `${originalQueries.join(' ')} ${hint ?? ''}`.toLowerCase()
   const boosted: string[] = []
   for (const entry of CONCEPT_VISUAL_MAP) {
     if (entry.test.test(haystack)) for (const q of entry.queries) boosted.push(q)
   }
   const seen = new Set<string>()
-  const out: string[] = []
-  for (const q of [...originalQueries, ...boosted]) {
+  const grounded: string[] = []
+  const generic: string[] = []
+  for (const q of originalQueries) {
     const k = q.toLowerCase().trim()
-    if (k && !seen.has(k)) { seen.add(k); out.push(q) }
+    if (k && !seen.has(k)) { seen.add(k); grounded.push(q) }
   }
-  return out
+  for (const q of boosted) {
+    const k = q.toLowerCase().trim()
+    if (k && !seen.has(k)) { seen.add(k); generic.push(q) }
+  }
+  return { queries: [...grounded, ...generic], genericStart: grounded.length }
+}
+
+/** PUSH #93 — verbatim mode: the user's queries are sovereign, zero generics. */
+function verbatimQueries(rawCleaned: string[]): { queries: string[]; genericStart: number } {
+  return { queries: rawCleaned, genericStart: rawCleaned.length }
 }
 
 export async function getPixabayVideoForQueries(
@@ -590,10 +750,16 @@ export async function getPixabayVideoForQueries(
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     .map((q) => q.trim())
 
-  // Push #437 — prepend concrete cinematic queries for any abstract concept
-  // detected in the scene, so the search reaches a premium on-topic clip first.
+  // Push #437 — concrete cinematic queries for any abstract concept detected in
+  // the scene, so a scene with no literal stock inventory still finds something.
   // (12/06) Skipped entirely in exact mode — the user's query is sovereign.
-  const cleaned = opts?.exact ? rawCleaned : concretizeQueries(rawCleaned, hint)
+  // PUSH #93 (FIX 1) — generics are APPENDED after the scene's own queries and
+  // this loop returns on the FIRST hit, so a generic is only ever reached once
+  // every narration-grounded query has missed outright. genericStart is tracked
+  // purely so the logs say which kind of query produced the clip.
+  const { queries: cleaned, genericStart } = opts?.exact
+    ? verbatimQueries(rawCleaned)
+    : concretizeQueries(rawCleaned, hint)
 
   if (cleaned.length === 0) return null
 
@@ -606,6 +772,7 @@ export async function getPixabayVideoForQueries(
     if (url) {
       console.log(
         `[pixabay-multi] HIT query[${i + 1}/${cleaned.length}]="${q}"` +
+          (i >= genericStart ? ' kind=GENERIC_CONCEPT_MAP(last-resort)' : ' kind=grounded') +
           (failed.length ? ` (after misses: ${failed.slice(0, 3).map((f) => `"${f}"`).join(', ')})` : '') +
           (hintLabel ? ` for="${hintLabel}"` : ''),
       )
@@ -631,6 +798,36 @@ const SCENE_POOL_QUERY_CAP = 3
 // Earlier queries are more SPECIFIC (BrollPlan orders them that way) — a small
 // score bonus keeps a specific query's clip ahead of a generic query's on ties.
 const SCENE_POOL_PRIORITY_BONUS = 2
+
+// PUSH #93 (FIX 3) — the GPT SCENE DIRECTOR ran behind a 1.5s abort budget,
+// which a gpt-4o-mini round-trip clears only on a good day, and its failure was
+// swallowed by a completely empty `catch {}`. Net effect: it timed out routinely
+// and the pipeline silently degraded to raw heuristic order with NOTHING in the
+// logs to say so. 1.5s → 5s is a realistic budget for a 20-token completion.
+// Because the director runs PER SCENE, a bigger budget could otherwise cost
+// 9 × 5s on a bad OpenAI minute and blow the route's 60s Vercel budget — so
+// consecutive failures trip a short cooldown that skips the director entirely.
+// Everything here stays strictly non-blocking: every failure path leaves the
+// heuristic order in place and the render continues.
+const GPT_DIRECTOR_TIMEOUT_MS = 5000
+const GPT_DIRECTOR_MAX_CONSECUTIVE_FAILURES = 2
+const GPT_DIRECTOR_COOLDOWN_MS = 60_000
+let gptDirectorFailures = 0
+let gptDirectorCooldownUntil = 0
+
+/** PUSH #93 — structured, diagnosable failure logging + the cooldown breaker. */
+function noteGptDirectorFailure(reason: string, startedAt: number): void {
+  gptDirectorFailures++
+  let breaker = ''
+  if (gptDirectorFailures >= GPT_DIRECTOR_MAX_CONSECUTIVE_FAILURES) {
+    gptDirectorCooldownUntil = Date.now() + GPT_DIRECTOR_COOLDOWN_MS
+    gptDirectorFailures = 0
+    breaker = ` — ${GPT_DIRECTOR_MAX_CONSECUTIVE_FAILURES} consecutive failures, director paused for ${GPT_DIRECTOR_COOLDOWN_MS}ms to protect the render budget`
+  }
+  console.warn(
+    `[gpt-director] FAILED reason=${reason} elapsed=${Date.now() - startedAt}ms — heuristic order stands${breaker}`,
+  )
+}
 
 /**
  * Fast Mode v2 (02/07) — return up to `maxClips` RANKED clip URLs for one scene,
@@ -666,7 +863,9 @@ export async function getPixabayClipsForScene(
   const rawCleaned = (queries ?? [])
     .filter((q): q is string => typeof q === 'string' && q.trim().length > 0)
     .map((q) => q.trim())
-  const cleaned = opts?.exact ? rawCleaned : concretizeQueries(rawCleaned, hint)
+  const { queries: cleaned, genericStart } = opts?.exact
+    ? verbatimQueries(rawCleaned)
+    : concretizeQueries(rawCleaned, hint)
   if (cleaned.length === 0) return []
 
   const maxClips = Math.max(1, opts?.maxClips ?? 2)
@@ -678,6 +877,17 @@ export async function getPixabayClipsForScene(
 
   for (let i = 0; i < Math.min(cleaned.length, SCENE_POOL_QUERY_CAP); i++) {
     const q = cleaned[i]
+    // PUSH #93 (FIX 1) — a CONCEPT_VISUAL_MAP generic is only searched when the
+    // scene's OWN queries left the pool short of what the scene needs. (The
+    // short-circuit below already stops on a healthy pool; this makes the
+    // last-resort rule explicit and logged rather than incidental.)
+    const isGeneric = i >= genericStart
+    if (isGeneric && pool.length >= maxClips) break
+    if (isGeneric) {
+      console.log(
+        `[pixabay-pool] grounded queries yielded only ${pool.length}/${maxClips} clip(s) — falling back to concept-map generic "${q}"`,
+      )
+    }
     const cands = await collectCandidates(
       q,
       sceneNeedsPeople,
@@ -690,7 +900,15 @@ export async function getPixabayClipsForScene(
     for (const c of cands) {
       if (seenUrls.has(c.url)) continue
       seenUrls.add(c.url)
-      pool.push({ ...c, score: c.score + Math.max(0, SCENE_POOL_PRIORITY_BONUS - i) })
+      // PUSH #93 (FIX 1) — the specificity bonus rewards EARLIER (more specific)
+      // queries; a generic concept-map query is by definition not specific, so
+      // it gets none, and it is tagged so the sort below can keep it beneath
+      // every narration-grounded candidate.
+      pool.push({
+        ...c,
+        generic: isGeneric,
+        score: c.score + (isGeneric ? 0 : Math.max(0, SCENE_POOL_PRIORITY_BONUS - i)),
+      })
     }
     // HOTFIX (02/07) — SHORT-CIRCUIT: once the pool already holds enough
     // eligible candidates to fill the scene (>= maxClips, i.e. pool1 alone
@@ -717,28 +935,51 @@ export async function getPixabayClipsForScene(
     return single ? [single] : []
   }
 
-  pool.sort((a, b) => b.score - a.score || a.order - b.order)
+  // PUSH #93 (FIX 1) — GROUNDED FIRST, unconditionally. A generic concept-map
+  // clip scores brilliantly against its own generic query (its tags ARE that
+  // query), which is exactly how a scene about a Peruvian mining town ended up
+  // leading with a Dubai skyline aerial. A generic can now only ever fill the
+  // TAIL of a thin pool; it can never take the scene's lead clip away from a
+  // narration-grounded candidate.
+  pool.sort(
+    (a, b) =>
+      (a.generic ? 1 : 0) - (b.generic ? 1 : 0) || b.score - a.score || a.order - b.order,
+  )
 
   // KINEO-FAST-V4 — GPT SCENE DIRECTOR. Tag heuristics can't tell that a
   // "volcano, iceland, tourists" clip is worse than "volcano, lava, night" for
   // a Darvaza scene — a tiny LLM call can. When the pool has real choice
   // (4+ candidates), gpt-4o-mini picks the best clips for the NARRATION from
-  // the top 8 by score; on timeout (1.5s) or any error the heuristic order
-  // stands. ~$0.0002 per scene. Toggle: FAST_GPT_DIRECTOR=false.
+  // the top 8 by score; on timeout or any error the heuristic order stands.
+  // ~$0.0002 per scene. Toggle: FAST_GPT_DIRECTOR=false.
   let ranked = pool
-  if (
+  // PUSH #93 (FIX 3) — eligibility split out so the SKIP reasons (missing key,
+  // cooldown) are logged instead of vanishing into a silent falsy condition.
+  const directorEligible =
     pool.length >= 4 &&
     (hint ?? '').length > 8 &&
-    process.env.FAST_GPT_DIRECTOR !== 'false' &&
-    process.env.OPENAI_API_KEY
-  ) {
+    process.env.FAST_GPT_DIRECTOR !== 'false'
+  if (directorEligible && !process.env.OPENAI_API_KEY) {
+    console.warn(
+      '[gpt-director] SKIPPED reason=missing_key (OPENAI_API_KEY unset) — heuristic order stands',
+    )
+  } else if (directorEligible && Date.now() < gptDirectorCooldownUntil) {
+    console.warn(
+      `[gpt-director] SKIPPED reason=cooldown remaining=${gptDirectorCooldownUntil - Date.now()}ms — heuristic order stands`,
+    )
+  } else if (directorEligible) {
+    const startedAt = Date.now()
     try {
-      const finalists = pool.slice(0, 8)
+      // PUSH #93 (FIX 1) — keep the director inside the grounded set when there
+      // is one: it must not be the back door that promotes a concept-map
+      // generic over a narration-grounded clip.
+      const grounded = pool.filter((c) => !c.generic)
+      const finalists = (grounded.length >= 4 ? grounded : pool).slice(0, 8)
       const listing = finalists
         .map((c, i) => `${i + 1}. tags: ${c.tags.slice(0, 90)}`)
         .join('\n')
       const ctrl = new AbortController()
-      const timer = setTimeout(() => ctrl.abort(), 1500)
+      const timer = setTimeout(() => ctrl.abort(), GPT_DIRECTOR_TIMEOUT_MS)
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         signal: ctrl.signal,
@@ -757,11 +998,22 @@ export async function getPixabayClipsForScene(
             },
           ],
         }),
-      })
-      clearTimeout(timer)
-      if (res.ok) {
+        // PUSH #93 (FIX 3) — clear the abort timer on the REJECTED path too;
+        // the old trailing clearTimeout was skipped whenever fetch threw, so a
+        // pending abort timer outlived the call (worse now the budget is 5s).
+      }).finally(() => clearTimeout(timer))
+      if (!res.ok) {
+        // PUSH #93 (FIX 3) — a non-2xx (401 bad key, 429 rate limit, 5xx) used
+        // to be discarded without a single line of log. Now it is diagnosable.
+        const body = await res.text().catch(() => '')
+        noteGptDirectorFailure(
+          `api_error status=${res.status} body="${body.slice(0, 140).replace(/\s+/g, ' ')}"`,
+          startedAt,
+        )
+      } else {
         const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> }
-        const nums = (data.choices?.[0]?.message?.content ?? '')
+        const reply = data.choices?.[0]?.message?.content ?? ''
+        const nums = reply
           .match(/\d+/g)
           ?.map((n) => parseInt(n, 10) - 1)
           .filter((n) => n >= 0 && n < finalists.length) ?? []
@@ -769,11 +1021,29 @@ export async function getPixabayClipsForScene(
           const chosen = Array.from(new Set(nums)).map((n) => finalists[n])
           const rest = pool.filter((c) => !chosen.includes(c))
           ranked = [...chosen, ...rest]
-          console.log(`[gpt-director] reordered: picks=[${nums.map((n) => n + 1).join(',')}] of ${finalists.length}`)
+          gptDirectorFailures = 0 // PUSH #93 — a success clears the breaker.
+          console.log(
+            `[gpt-director] reordered: picks=[${nums.map((n) => n + 1).join(',')}] of ${finalists.length} elapsed=${Date.now() - startedAt}ms`,
+          )
+        } else {
+          // PUSH #93 (FIX 3) — 200 OK but nothing usable in the reply is still a
+          // silent degradation; name it so it can be told apart from a timeout.
+          noteGptDirectorFailure(
+            `unusable_reply reply="${reply.slice(0, 60).replace(/\s+/g, ' ')}"`,
+            startedAt,
+          )
         }
       }
-    } catch {
-      // timeout / API blip — heuristic order stands, zero impact.
+    } catch (err) {
+      // PUSH #93 (FIX 3) — was `catch {}`: the abort (by far the most common
+      // outcome at the old 1.5s budget) left zero trace. Non-blocking either
+      // way — `ranked` is still the heuristic order.
+      const name = err instanceof Error ? err.name : ''
+      const reason =
+        name === 'AbortError' || name === 'TimeoutError'
+          ? `timeout budget=${GPT_DIRECTOR_TIMEOUT_MS}ms`
+          : `fetch_error ${err instanceof Error ? `${err.name}: ${err.message}` : String(err)}`
+      noteGptDirectorFailure(reason, startedAt)
     }
   }
 

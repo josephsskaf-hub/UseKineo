@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 interface TopBarProps {
@@ -115,43 +115,65 @@ export default function TopBar({ title, subtitle, onMenuToggle, isPro }: TopBarP
 // ─── Push #098 — Credits badge ──────────────────────────────────────────────
 // Fetches /api/credits (same endpoint the Sidebar uses) and listens for the
 // `creditsChanged` event so it stays in sync after every generation. Three
-// visual states: empty (red, links to /pricing), low (amber, not-Pro), and
-// neutral (subtle slate chip).
+// visual states: empty (red-tinted, links to /pricing), low (amber, not-Pro),
+// and neutral (subtle slate chip).
+//
+// PUSH #92 — this badge used to `return null` while loading or on any 401 /
+// fetch failure, which makes the balance vanish exactly when a user is
+// deciding whether to spend credits. It now always renders something: a
+// fixed-size skeleton while loading, a `—` with a retry affordance on error,
+// and never a blank gap that shifts the layout.
+const CREDITS_BADGE_MIN_WIDTH = 84
+const CREDITS_BADGE_HEIGHT = 26
+// Push #098's original low-credit threshold — kept as-is, not reinvented.
+const LOW_CREDITS_THRESHOLD = 5
+
 function CreditsBadge({ isPro }: { isPro: boolean }) {
   const [credits, setCredits] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
+  const [errored, setErrored] = useState(false)
+  const mountedRef = useRef(true)
 
   useEffect(() => {
-    let cancelled = false
-    async function fetchCredits() {
-      try {
-        const res = await fetch('/api/credits', { cache: 'no-store' })
-        if (res.status === 401) {
-          if (!cancelled) setCredits(null)
-          return
-        }
-        const data = await res.json()
-        if (!cancelled) {
-          setCredits(typeof data.credits === 'number' ? data.credits : 0)
-        }
-      } catch {
-        if (!cancelled) setCredits(null)
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
     }
+  }, [])
+
+  const fetchCredits = useCallback(async () => {
+    try {
+      const res = await fetch('/api/credits', { cache: 'no-store' })
+      if (res.status === 401) {
+        if (mountedRef.current) setErrored(true)
+        return
+      }
+      const data = await res.json()
+      if (mountedRef.current) {
+        setCredits(typeof data.credits === 'number' ? data.credits : 0)
+        setErrored(false)
+      }
+    } catch {
+      if (mountedRef.current) setErrored(true)
+    } finally {
+      if (mountedRef.current) setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
     fetchCredits()
     window.addEventListener('creditsChanged', fetchCredits)
     return () => {
-      cancelled = true
       window.removeEventListener('creditsChanged', fetchCredits)
     }
-  }, [])
+  }, [fetchCredits])
 
   // Supabase Realtime — pushes the new balance to this client whenever the
   // user's profiles row changes in the DB, so the header badge updates on
   // every device/tab without a refresh (the `creditsChanged` event above only
-  // fires within the same window).
+  // fires within the same window). Subscription wiring unchanged from before;
+  // only clearing the error/loading flags on a fresh payload is new, since a
+  // live update means the balance is demonstrably reachable again.
   useEffect(() => {
     const supabase = createClient()
     let channel: ReturnType<typeof supabase.channel> | null = null
@@ -165,7 +187,11 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
           { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${user.id}` },
           (payload) => {
             const row = payload.new as { video_credits?: number }
-            if (typeof row.video_credits === 'number') setCredits(row.video_credits)
+            if (typeof row.video_credits === 'number') {
+              setCredits(row.video_credits)
+              setErrored(false)
+              setLoading(false)
+            }
           },
         )
         .subscribe()
@@ -176,21 +202,78 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     }
   }, [])
 
-  if (loading || credits === null) return null
+  // Loading — fixed-width skeleton, same footprint as the resolved badge, so
+  // nothing shifts when the real number lands.
+  if (loading) {
+    return (
+      <span
+        aria-hidden="true"
+        className="shimmer-overlay rounded-lg"
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'inline-block',
+          minWidth: CREDITS_BADGE_MIN_WIDTH,
+          height: CREDITS_BADGE_HEIGHT,
+          background: 'rgba(255,255,255,.04)',
+          border: '1px solid rgba(255,255,255,.08)',
+        }}
+      />
+    )
+  }
+
+  // Error (401 / network hiccup) — never hide the balance slot; show a
+  // retry affordance instead of vanishing at the exact moment the user is
+  // deciding whether to spend credits.
+  if (errored || credits === null) {
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          setLoading(true)
+          void fetchCredits()
+        }}
+        aria-label="Retry loading credits"
+        title="Couldn't load your credit balance — tap to retry"
+        className="flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold"
+        style={{
+          minWidth: 44,
+          minHeight: 44,
+          padding: '0 10px',
+          background: 'rgba(255,255,255,.04)',
+          border: '1px solid rgba(255,255,255,.08)',
+          color: 'var(--muted)',
+          cursor: 'pointer',
+        }}
+      >
+        <span aria-hidden="true">—</span>
+        <span aria-hidden="true" style={{ fontSize: '0.85em' }}>↻</span>
+      </button>
+    )
+  }
 
   const isZero = credits <= 0
-  const isLow = !isZero && credits <= 5 && !isPro
+  const isLow = !isZero && credits <= LOW_CREDITS_THRESHOLD && !isPro
 
+  // PUSH #92 — isZero and isLow used to resolve to the identical blue palette
+  // (dead code) per the KINEO-ZERO-SIGNUP note this replaces, which treated 0
+  // credits on free Fast as a normal, non-error state. The balance is exactly
+  // what a user reads at the moment they decide whether to spend it, so this
+  // sprint makes the three states visually distinct: zero is red-tinted, low
+  // is amber, everything else keeps the original neutral chip. If product
+  // wants zero back to "normal, not urgent," revert this block.
   const colors = isZero
-    // KINEO-ZERO-SIGNUP follow-up (Joseph 09/07): blue at 0, not red — with
-    // free Fast, 0 credits is the normal free-tier state, not an error.
-    ? { fg: '#2997ff', bg: 'rgba(41,151,255,.10)', border: 'rgba(41,151,255,.35)' }
+    ? { fg: '#ff6b6b', bg: 'rgba(255,107,107,.10)', border: 'rgba(255,107,107,.35)' }
     : isLow
-    ? { fg: '#2997ff', bg: 'rgba(41,151,255,.10)', border: 'rgba(41,151,255,.35)' }
+    ? { fg: '#ffb020', bg: 'rgba(255,176,32,.10)', border: 'rgba(255,176,32,.35)' }
     : { fg: '#f5f5f7', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.08)' }
+
+  const balanceDescription = `${credits} credit${credits === 1 ? '' : 's'} remaining${isZero ? ' — view pricing' : ''}`
 
   const label = (
     <span
+      title={balanceDescription}
+      aria-label={balanceDescription}
       className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold"
       style={{
         background: colors.bg,
@@ -200,15 +283,29 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     >
       {/* KINEO-NAV-REDESIGN-2026-07-10 — brand bolt instead of the emoji. */}
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill="#2997ff" />
+        <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" fill={colors.fg} />
       </svg>
       {credits} credit{credits === 1 ? '' : 's'}
     </span>
   )
 
   if (isZero) {
+    // Push #92 — ≥44px tap target on the interactive wrapper, independent of
+    // the compact visual chip it wraps.
     return (
-      <Link href="/pricing" style={{ textDecoration: 'none' }} aria-label="Out of credits — view pricing">
+      <Link
+        href="/pricing"
+        aria-label={balanceDescription}
+        title={balanceDescription}
+        style={{
+          textDecoration: 'none',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minWidth: 44,
+          minHeight: 44,
+        }}
+      >
         {label}
       </Link>
     )

@@ -60,19 +60,28 @@ async function embed(text: string): Promise<number[]> {
  * 4. Subtract 10 for each generic term found in the brollPrompt
  * 5. Clamp to [0, 100]
  *
- * Returns 75 (neutral) on any API failure so generation is never blocked.
+ * PUSH #93 — returns null (NOT a number) when the score could not be computed.
+ * The old code returned 75 on any embedding failure. Because the regeneration
+ * gate in app/api/generate-broll-plan/route.ts is `relevanceScore < 70`, a
+ * fabricated 75 silently marked EVERY unscorable scene as "good enough", so an
+ * embedding outage disabled the whole quality loop with zero visible signal.
+ * null means "not scored" and is never confused with a genuine good score.
  */
 export async function scoreRelevance(
   narration: string,
   brollPrompt: string,
-): Promise<number> {
+): Promise<number | null> {
   try {
     const [narrationEmbed, promptEmbed] = await Promise.all([
       embed(narration),
       embed(brollPrompt),
     ])
 
-    if (narrationEmbed.length === 0 || promptEmbed.length === 0) return 75
+    if (narrationEmbed.length === 0 || promptEmbed.length === 0) {
+      // PUSH #93 — empty embedding vector is a failure, not a neutral score.
+      console.error('[relevance-score] embeddings API returned an empty vector — scene left unscored')
+      return null
+    }
 
     const similarity = cosineSimilarity(narrationEmbed, promptEmbed)
 
@@ -91,17 +100,42 @@ export async function scoreRelevance(
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[relevance-score] embeddings API failed:', msg)
-    return 75 // neutral fallback — do not block generation
+    // PUSH #93 — was `return 75`, which is above the REGEN_THRESHOLD of 70 and
+    // therefore read downstream as "this scene is fine". null = unknown.
+    return null
   }
 }
 
 /**
  * Score all scenes in parallel and return them with relevanceScore populated.
  * Runs all embed calls concurrently via Promise.all for efficiency.
+ *
+ * PUSH #93 — chosen middle behaviour on scoring failure:
+ *   - relevanceScore is left UNDEFINED (never a made-up number), and
+ *     relevanceUnscored is set to true so the failure is visible to the route,
+ *     the telemetry and the UI;
+ *   - an unscored scene is NOT auto-regenerated. Regeneration is only
+ *     meaningful when we can measure whether it improved anything; during a
+ *     total embedding outage the re-score would fail too, so regenerating
+ *     everything would just burn MAX_RETRIES x N GPT calls and risk a 504
+ *     without any quality gain.
+ * Net effect: no silent "75", no regeneration storm, and the caller can report
+ * that the quality gate did not run.
  */
 export async function scoreAllScenes(scenes: BrollScene[]): Promise<BrollScene[]> {
   const scores = await Promise.all(
     scenes.map((scene) => scoreRelevance(scene.narration, scene.brollPrompt)),
   )
-  return scenes.map((scene, i) => ({ ...scene, relevanceScore: scores[i] }))
+  // PUSH #93 — log the aggregate failure once; individual failures already log.
+  const failed = scores.filter((s) => s === null).length
+  if (failed > 0) {
+    console.error(
+      `[relevance-score] ${failed}/${scenes.length} scenes could not be scored — relevance quality gate SKIPPED for those scenes`,
+    )
+  }
+  return scenes.map((scene, i) => ({
+    ...scene,
+    relevanceScore: scores[i] ?? undefined,
+    relevanceUnscored: scores[i] === null ? true : undefined,
+  }))
 }

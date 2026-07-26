@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import type { BrollPlan, BrollScene, GlobalVisualStyle, VisualSource } from '@/lib/broll/types'
 import { addToHistory, undoScene, initHistory, type SceneHistory } from '@/lib/broll/scene-history'
 import SceneCard from './SceneCard'
@@ -11,6 +11,40 @@ interface VisualDirectorProps {
   onRegenerateAll: () => void
   onApprove: (plan: BrollPlan) => void
   isLoading?: boolean
+  // PUSH #94 — bumped by the parent on every successful plan mutation. Used
+  // only as an EXTRA effect trigger; it can never decide what gets overwritten
+  // (the content diff below does that), so an extra fire is always harmless.
+  planRevision?: number
+}
+
+// PUSH #94 — the scene fields SceneCard actually renders. SceneCard copies
+// `scene.brollPrompt` into its own useState at mount, so when one of these
+// changes server-side we must remount THAT ONE card (via a per-scene key) for
+// the new value to be visible. Cards whose rendered fields did not change keep
+// their key, and therefore keep the user's in-progress draft state.
+const RENDERED_SCENE_FIELDS = [
+  'brollPrompt',
+  'pexelsQuery',
+  'caption',
+  'narration',
+  'visualIntent',
+  'visualMood',
+  'shotType',
+  'source',
+  'scenePurpose',
+  'durationSeconds',
+  'relevanceScore',
+] as const
+
+function renderedFieldsChanged(a: BrollScene, b: BrollScene): boolean {
+  return RENDERED_SCENE_FIELDS.some((f) => a[f] !== b[f])
+}
+
+// PUSH #94 — "did the SERVER change this scene at all?". Always called with two
+// PROP versions of the same scene (previous prop vs incoming prop), never with
+// local state, so a user keystroke can never make this return true.
+function sceneContentChanged(a: BrollScene, b: BrollScene): boolean {
+  return JSON.stringify(a) !== JSON.stringify(b)
 }
 
 const PACING_LABEL: Record<GlobalVisualStyle['pacing'], string> = {
@@ -96,6 +130,7 @@ export default function VisualDirector({
   onRegenerateAll,
   onApprove,
   isLoading = false,
+  planRevision,
 }: VisualDirectorProps) {
   const { globalStyle, scenes, niche, tone, totalDuration } = plan
 
@@ -104,6 +139,97 @@ export default function VisualDirector({
   // actual regeneration requests.
   const [localScenes, setLocalScenes] = useState<BrollScene[]>(scenes)
   const [history, setHistory] = useState<SceneHistory>(() => initHistory(scenes))
+
+  // PUSH #94 — per-scene card revision. Bumped ONLY when that scene's rendered
+  // content genuinely changed (server regeneration, or a local undo). Feeds
+  // SceneCard's `key`, so exactly the affected card re-seeds its internal draft
+  // state and every other card is left completely untouched.
+  const [sceneRevisions, setSceneRevisions] = useState<Record<number, number>>({})
+
+  // PUSH #94 — the last `scenes` prop we reconciled against. The diff is always
+  // prop-vs-prop, which is what makes this safe against prop identity churn: if
+  // the parent hands us a brand-new array with identical content we detect zero
+  // changes and bail out before touching any local state.
+  const lastSyncedScenesRef = useRef<BrollScene[]>(scenes)
+
+  // PUSH #94 — prop→state sync. Replaces the parent's
+  // `key={`visual-director-${brollPlanRevision}`}` full remount, which wiped
+  // the undo history map and every in-progress prompt edit on every mutation.
+  useEffect(() => {
+    const previous = lastSyncedScenesRef.current
+    lastSyncedScenesRef.current = scenes
+
+    const prevByNumber = new Map(previous.map((s) => [s.sceneNumber, s]))
+
+    // Which scenes did the server actually change? (prop vs prop only)
+    const serverChanged = new Set<number>()
+    for (const incoming of scenes) {
+      const prev = prevByNumber.get(incoming.sceneNumber)
+      if (!prev || sceneContentChanged(prev, incoming)) serverChanged.add(incoming.sceneNumber)
+    }
+    const rosterChanged =
+      previous.length !== scenes.length ||
+      previous.some((s, i) => s.sceneNumber !== scenes[i]?.sceneNumber)
+
+    // Nothing meaningful arrived (identity churn / re-render) — do not touch
+    // local state, or we would clobber the user's unsaved edits.
+    if (serverChanged.size === 0 && !rosterChanged) return
+
+    // 1. Merge by sceneNumber. Untouched scenes keep their LOCAL object.
+    setLocalScenes((current) => {
+      const localByNumber = new Map(current.map((s) => [s.sceneNumber, s]))
+      return scenes.map((incoming) => {
+        const local = localByNumber.get(incoming.sceneNumber)
+        const prev = prevByNumber.get(incoming.sceneNumber)
+        // New scene number, or no baseline to diff against → take the prop.
+        if (!local || !prev) return incoming
+        // Server said nothing new about this scene → local wins, so an unsaved
+        // prompt edit or a local undo on this card survives.
+        if (!serverChanged.has(incoming.sceneNumber)) return local
+        // Server touched this scene. Take it, but if the server did NOT change
+        // `brollPrompt` (the only field the user edits locally), keep the
+        // user's version rather than reverting their typing.
+        if (prev.brollPrompt === incoming.brollPrompt && local.brollPrompt !== prev.brollPrompt) {
+          return { ...incoming, brollPrompt: local.brollPrompt }
+        }
+        return incoming
+      })
+    })
+
+    // 2. Remount only the cards whose visible content changed.
+    setSceneRevisions((current) => {
+      let touched = false
+      const next = { ...current }
+      for (const incoming of scenes) {
+        const prev = prevByNumber.get(incoming.sceneNumber)
+        // No previous version → the card mounts fresh anyway, nothing to bump.
+        if (!prev) continue
+        if (!renderedFieldsChanged(prev, incoming)) continue
+        next[incoming.sceneNumber] = (next[incoming.sceneNumber] ?? 0) + 1
+        touched = true
+      }
+      return touched ? next : current
+    })
+
+    // 3. Preserve the undo history across the sync. Buckets for surviving
+    //    scenes are carried over verbatim; only scenes that left the plan are
+    //    dropped, and brand-new scene numbers get an empty bucket.
+    setHistory((current) => {
+      const incomingNumbers = new Set(scenes.map((s) => s.sceneNumber))
+      let touched = false
+      const next: SceneHistory = new Map()
+      for (const [sceneNumber, bucket] of current) {
+        if (incomingNumbers.has(sceneNumber)) next.set(sceneNumber, bucket)
+        else touched = true
+      }
+      for (const sceneNumber of incomingNumbers) {
+        if (next.has(sceneNumber)) continue
+        next.set(sceneNumber, [])
+        touched = true
+      }
+      return touched ? next : current
+    })
+  }, [scenes, planRevision])
 
   const moodBg = MOOD_COLORS[globalStyle.mood] ?? 'rgba(139,92,246,0.15)'
   const moodText = MOOD_TEXT_COLORS[globalStyle.mood] ?? 'rgb(110,231,183)'
@@ -130,6 +256,13 @@ export default function VisualDirector({
       current.map((s) => (s.sceneNumber === sceneNumber ? prev : s)),
     )
     setHistory(newHistory)
+    // PUSH #94 — an undo rewrites brollPrompt, but SceneCard seeds its textarea
+    // from the prop at mount only. Bump this one card so the restored prompt is
+    // actually visible. Every other card keeps its key (and its draft).
+    setSceneRevisions((current) => ({
+      ...current,
+      [sceneNumber]: (current[sceneNumber] ?? 0) + 1,
+    }))
   }, [history])
 
   const handleSceneRegenerate = useCallback((sceneNumber: number, instruction?: string) => {
@@ -307,7 +440,10 @@ export default function VisualDirector({
       >
         {localScenes.map((scene, i) => (
           <SceneCard
-            key={scene.sceneNumber}
+            // PUSH #94 — per-scene key. Changes only when THIS scene's rendered
+            // content changed (server regen or local undo), so a regeneration of
+            // scene 3 no longer resets the draft the user is typing in scene 5.
+            key={`${scene.sceneNumber}-${sceneRevisions[scene.sceneNumber] ?? 0}`}
             scene={scene}
             index={i}
             onRegenerate={handleSceneRegenerate}

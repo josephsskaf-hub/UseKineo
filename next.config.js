@@ -1,7 +1,26 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Push #92 — Core Web Vitals: remotePatterns was an empty array, which
+  // disables remote image optimization entirely (every remote <Image> falls
+  // back to unoptimized). Added the external hosts actually referenced by
+  // <img>/<Image> in the app: the TAAFT "Featured on" badge on the homepage
+  // (app/KineoLanding.tsx) and Supabase Storage public URLs used for avatar
+  // photos and render assets (lib/videoCache.ts, lib/renderAssets.ts,
+  // app/api/generate-avatar, app/api/gesture-clip, app/api/avatar/scene).
+  // formats adds AVIF/WebP negotiation for anything that does go through
+  // next/image.
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'media.theresanaiforthat.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
   },
   typescript: {
     ignoreBuildErrors: true,

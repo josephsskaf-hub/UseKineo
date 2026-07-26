@@ -56,6 +56,63 @@ function formatDate(dateStr: string) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// PUSH #92 — recovery surfaces. /history now receives every status (not just
+// 'completed'), so every row needs a distinct, honest card treatment instead
+// of silently vanishing. Statuses confirmed against the live `videos` table
+// (Supabase project cqqukkvjjrguayiyjvhh): 'completed' (564 rows), 'failed'
+// (3 rows), 'cancelled' (1 row). The app's own GenerationStatus type
+// (lib/generations.ts) also defines 'processing' as the in-flight state, and
+// generate-video/active + generate-video/cancel both read/write it live, so
+// it's treated as a real status here even though no row currently shows it.
+// 'pending' / 'rendering' aren't used by this pipeline today but are handled
+// defensively since other pipelines in this codebase (avatar/cinematic) use
+// them for analogous in-flight states. Any other/unrecognized status falls
+// back to the processing treatment (never crashes), and is promoted to the
+// timeout treatment once it's old enough that it almost certainly died
+// silently server-side.
+const PROCESSING_STATUSES = new Set(['processing', 'pending', 'rendering'])
+const FAILED_STATUSES = new Set(['failed', 'error', 'cancelled'])
+const STALE_PROCESSING_MS = 30 * 60 * 1000 // display-only guard; never mutates the row
+
+type VideoState = 'completed' | 'processing' | 'failed' | 'timeout'
+
+function classifyVideoState(video: Video): VideoState {
+  const status = (video.status ?? '').toLowerCase().trim()
+  if (status === 'completed') return 'completed'
+  if (FAILED_STATUSES.has(status)) return 'failed'
+  const ageMs = Date.now() - new Date(video.created_at).getTime()
+  if (ageMs > STALE_PROCESSING_MS) return 'timeout'
+  return 'processing'
+}
+
+function formatStarted(dateStr: string): string {
+  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
+  if (minutes < 1) return 'Started just now'
+  if (minutes < 60) return `Started ${minutes} minute${minutes === 1 ? '' : 's'} ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `Started ${hours} hour${hours === 1 ? '' : 's'} ago`
+  const days = Math.floor(hours / 24)
+  return `Started ${days} day${days === 1 ? '' : 's'} ago`
+}
+
+function failedCardCopy(video: Video, state: 'failed' | 'timeout'): string {
+  if (state === 'timeout') return 'This render timed out. Your credits were returned — try again.'
+  if ((video.status ?? '').toLowerCase().trim() === 'cancelled') {
+    return 'This render was cancelled. Your credits were returned.'
+  }
+  return "This one didn't finish. Your credits were returned."
+}
+
+// GenerateClient reads `?prompt=` (falling back to the legacy `?topic=`) to
+// prefill the composer — see app/(dashboard)/generate/GenerateClient.tsx,
+// which does `searchParams.get('prompt') ?? searchParams.get('topic')` and
+// caps the stored prompt at 1000 chars.
+function tryAgainHref(video: Video): string {
+  const topic = (video.topic ?? '').trim()
+  if (!topic) return '/generate'
+  return `/generate?prompt=${encodeURIComponent(topic.slice(0, 1000))}`
+}
+
 interface Props {
   videos: Video[]
 }
@@ -70,6 +127,11 @@ interface VideoSummary {
 
 export default function MyVideosClient({ videos: initialVideos }: Props) {
   const [videos] = useState(initialVideos)
+  // PUSH #92 — `videos` now holds every status. Anything that assumes a
+  // finished, playable asset (the share spotlight, the "N Shorts complete"
+  // milestone copy, the repeat-creator upsell gate) must key off completed
+  // rows only, or it'll try to share/caption a video that doesn't exist yet.
+  const completedVideos = videos.filter((v) => v.status === 'completed')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [errors, setErrors] = useState<Set<string>>(new Set())
   // Push #421 — summary panel state
@@ -92,7 +154,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // Fail open so a plan lookup problem never hides an owned file.
   const [cleanExportLocked, setCleanExportLocked] = useState<boolean | null>(null)
   const repeatOfferTracked = useRef(false)
-  const latestVideo = videos[0] ?? null
+  const latestVideo = completedVideos[0] ?? null
   useEffect(() => {
     let cancelled = false
     fetch('/api/credits', { cache: 'no-store' })
@@ -141,19 +203,19 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   }, [latestVideo?.id, referralCode])
 
   useEffect(() => {
-    if (repeatOfferTracked.current || cleanExportLocked !== true || videos.length < 2) return
+    if (repeatOfferTracked.current || cleanExportLocked !== true || completedVideos.length < 2) return
     repeatOfferTracked.current = true
     void trackEvent('history_repeat_offer_viewed', {
       version: 'push28_repeat_creator',
-      completed_video_count: videos.length,
+      completed_video_count: completedVideos.length,
     })
-  }, [cleanExportLocked, videos.length])
+  }, [cleanExportLocked, completedVideos.length])
 
   function handleStarterCheckout(source: 'history_repeat_offer' | 'history_lightbox' = 'history_lightbox') {
     void trackEvent('history_repeat_offer_clicked', {
       version: 'push28_repeat_creator',
       source,
-      completed_video_count: videos.length,
+      completed_video_count: completedVideos.length,
     })
     trackCheckoutClick('starter')
     window.location.href = '/api/stripe/checkout?tier=starter&intro=1'
@@ -379,11 +441,11 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // a concrete episode-two action while the user's original topic is available.
   // autoanalyze keeps the next step short but still lets the user review before
   // rendering; this never spends credits or starts a render by itself.
-  const firstVideoTitle = extractTitle(videos[0]?.topic ?? null)
+  const firstVideoTitle = extractTitle(completedVideos[0]?.topic ?? null)
   const followUpHref = firstVideoTitle === 'Untitled Short'
     ? '/generate'
     : buildSeriesContinuationHref(firstVideoTitle, 'history_milestone')
-  const showRepeatCreatorOffer = cleanExportLocked === true && videos.length >= 2
+  const showRepeatCreatorOffer = cleanExportLocked === true && completedVideos.length >= 2
 
   /* ── Main ── */
   return (
@@ -423,7 +485,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           recurring offer primary while preserving episode creation as a
           secondary path. Existing files are never presented as retroactively
           watermark-free. */}
-      {videos.length >= 1 && (
+      {completedVideos.length >= 1 && (
         <section
           aria-label={showRepeatCreatorOffer ? 'Make future exports watermark-free' : 'Create your second Short'}
           className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
@@ -445,15 +507,15 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               style={{ fontSize: '0.62rem', color: showRepeatCreatorOffer ? '#4ade80' : '#5cb3ff' }}
             >
               {showRepeatCreatorOffer
-                ? `${videos.length} Shorts complete · repeat creator`
-                : videos.length === 1
+                ? `${completedVideos.length} Shorts complete · repeat creator`
+                : completedVideos.length === 1
                   ? 'First Short complete'
                   : 'Keep your show moving'}
             </div>
             <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
               {showRepeatCreatorOffer
                 ? 'Publish your next Short without the Kineo watermark'
-                : videos.length === 1
+                : completedVideos.length === 1
                   ? 'Turn it into episode 2'
                   : 'Create the next episode'}
             </h2>
@@ -493,8 +555,8 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               onClick={() => {
                 void trackEvent('series_continue_clicked', {
                   source: 'history_milestone',
-                  video_id: videos[0]?.id ?? null,
-                  completed_video_count: videos.length,
+                  video_id: completedVideos[0]?.id ?? null,
+                  completed_video_count: completedVideos.length,
                 })
               }}
               className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
@@ -618,6 +680,113 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         {videos.map((video) => {
           const title = extractTitle(video.topic)
           const isExpanded = expanded === video.id
+          const state = classifyVideoState(video)
+
+          // PUSH #92 — processing / failed / timed-out renders get a small,
+          // honest card instead of being hidden. Only 'completed' renders the
+          // full card (preview, download, share, summary panel) below, since
+          // that's the only state guaranteed to have a playable video_url.
+          if (state !== 'completed') {
+            const isProcessing = state === 'processing'
+            return (
+              <div
+                key={video.id}
+                style={{
+                  background: 'rgba(11,17,32,0.9)',
+                  border: `1px solid ${isProcessing ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.25)'}`,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  boxShadow: '0 2px 12px rgba(0,0,0,.3)',
+                }}
+              >
+                <div
+                  className={isProcessing ? 'shimmer-overlay' : undefined}
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    paddingTop: '177.78%',
+                    overflow: 'hidden',
+                    background: isProcessing
+                      ? 'linear-gradient(135deg, rgba(41,151,255,.10), rgba(11,17,32,1))'
+                      : 'rgba(239,68,68,0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      padding: 16,
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: '1.6rem' }} aria-hidden="true">
+                      {isProcessing ? '⏳' : '⚠️'}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.68rem',
+                        fontWeight: 700,
+                        color: isProcessing ? '#5cb3ff' : '#f87171',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      {isProcessing
+                        ? "Still rendering — we'll email you when it's ready"
+                        : failedCardCopy(video, state)}
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ padding: '7px 8px 8px' }}>
+                  <p
+                    style={{
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      color: 'var(--text)',
+                      lineHeight: 1.3,
+                      marginBottom: 5,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {title}
+                  </p>
+
+                  {isProcessing ? (
+                    <span style={{ fontSize: '0.6rem', color: 'var(--muted)' }}>
+                      {formatStarted(video.created_at)}
+                    </span>
+                  ) : (
+                    <Link
+                      href={tryAgainHref(video)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '6px 8px',
+                        borderRadius: 7,
+                        background: 'rgba(239,68,68,0.12)',
+                        border: '1px solid rgba(239,68,68,0.32)',
+                        color: '#f87171',
+                        fontSize: '0.62rem',
+                        fontWeight: 800,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      Try again →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div

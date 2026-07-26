@@ -51,6 +51,14 @@ export interface BrollScene {
   brollPrompt: string
   negativePrompt: string
   relevanceScore?: number
+  /**
+   * PUSH #93 — true when the embeddings relevance score could NOT be computed
+   * (API failure / empty vector). Previously such scenes were handed a fake 75,
+   * which is above REGEN_THRESHOLD (70) and silently disabled the regeneration
+   * quality loop. An unscored scene has relevanceScore === undefined and must
+   * never be treated as a scene that passed the gate.
+   */
+  relevanceUnscored?: boolean
   pexelsQuery: string
   /** 3-5 Pexels search queries, most specific first. pexelsQuery === pexelsQueries[0]. */
   pexelsQueries?: string[]

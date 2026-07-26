@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 
 const HOME_PROMPT_CAMPAIGN = 'push69_home_one_click_starters'
@@ -24,11 +24,19 @@ const STARTER_TOPICS = [
   },
 ] as const
 
+const MIN_PROMPT_LENGTH = 8
+
 export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
   const [prompt, setPrompt] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const formRef = useRef<HTMLFormElement | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
-  function openTopic(topic: string, starterId: string) {
-    if (!isSignedIn) rememberSignupCampaign(HOME_PROMPT_CAMPAIGN)
+  // Prefills the composer with a starter topic instead of navigating away —
+  // the label promises a prefill, so a click must never redirect. Actual
+  // submission still goes through the form's own onSubmit below.
+  function selectStarter(topic: string, starterId: string) {
     const metadata = {
       source: HOME_PROMPT_CAMPAIGN,
       placement: 'home_hero_starter',
@@ -39,12 +47,15 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     }
     void trackEvent('home_topic_starter_clicked', metadata, '/')
     void trackEvent('organic_topic_submitted', metadata, '/')
-    const params = new URLSearchParams({
-      prompt: topic,
-      create_intent: 'fast',
-      intent_campaign: HOME_PROMPT_CAMPAIGN,
+    setPrompt(topic)
+    setError(null)
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      const end = el.value.length
+      el.setSelectionRange(end, end)
     })
-    window.location.assign(`${isSignedIn ? '/generate' : '/signup'}?${params.toString()}`)
   }
 
   useEffect(() => {
@@ -62,22 +73,53 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     }, '/')
   }, [isSignedIn])
 
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (pending) {
+      // Guard against double-submit (e.g. Enter + a click landing together).
+      event.preventDefault()
+      return
+    }
+    const trimmed = prompt.trim()
+    if (trimmed.length < MIN_PROMPT_LENGTH) {
+      event.preventDefault()
+      setError(
+        trimmed.length === 0
+          ? 'Type a topic for your Short first.'
+          : `Give us a bit more detail — at least ${MIN_PROMPT_LENGTH} characters.`,
+      )
+      textareaRef.current?.focus()
+      return
+    }
+    setError(null)
+    setPending(true)
+    if (!isSignedIn) rememberSignupCampaign(HOME_PROMPT_CAMPAIGN)
+    void trackEvent('organic_topic_submitted', {
+      source: HOME_PROMPT_CAMPAIGN,
+      placement: 'home_hero',
+      destination: isSignedIn ? '/generate' : '/signup',
+      signed_in: isSignedIn,
+      topic_length: trimmed.length,
+    }, '/')
+    // This is a real navigation (native form GET), so `pending` is
+    // intentionally never reset — the page is leaving.
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      formRef.current?.requestSubmit()
+    }
+  }
+
   return (
     <form
       id="try-kineo"
       className="composer"
+      ref={formRef}
       action={isSignedIn ? '/generate' : '/signup'}
       method="get"
-      onSubmit={() => {
-        if (!isSignedIn) rememberSignupCampaign(HOME_PROMPT_CAMPAIGN)
-        void trackEvent('organic_topic_submitted', {
-          source: HOME_PROMPT_CAMPAIGN,
-          placement: 'home_hero',
-          destination: isSignedIn ? '/generate' : '/signup',
-          signed_in: isSignedIn,
-          topic_length: prompt.trim().length,
-        }, '/')
-      }}
+      noValidate
+      onSubmit={handleSubmit}
     >
       <div className="composer-head">
         <label htmlFor="home-short-topic">What should your Short be about?</label>
@@ -89,12 +131,28 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
         name="prompt"
         rows={3}
         required
-        minLength={3}
+        minLength={MIN_PROMPT_LENGTH}
         maxLength={1000}
         value={prompt}
-        onChange={(event) => setPrompt(event.target.value)}
+        ref={textareaRef}
+        onChange={(event) => {
+          setPrompt(event.target.value)
+          if (error) setError(null)
+        }}
+        onKeyDown={handleKeyDown}
         placeholder="Type a topic — e.g. the island too dangerous to visit"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? 'home-short-topic-error' : undefined}
       />
+      {error && (
+        <p
+          id="home-short-topic-error"
+          role="alert"
+          style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '6px 0 0' }}
+        >
+          {error}
+        </p>
+      )}
       <div className="topic-starters" aria-label="One-click topic starters">
         <span>Not sure? Start with:</span>
         <div>
@@ -103,7 +161,7 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
               key={starter.id}
               type="button"
               title={starter.topic}
-              onClick={() => openTopic(starter.topic, starter.id)}
+              onClick={() => selectStarter(starter.topic, starter.id)}
             >
               {starter.label} →
             </button>
@@ -112,7 +170,10 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
       </div>
       <input type="hidden" name="create_intent" value="fast" />
       <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
-      <button className="btn btn-w cbtn" type="submit">Create my free Short →</button>
+      <input type="hidden" name="utm_source" value="homepage" />
+      <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
+        {pending ? 'Starting…' : 'Create my free Short →'}
+      </button>
       <p className="composer-proof">Full watermarked video: script, voice, footage and captions. It starts automatically after signup.</p>
     </form>
   )

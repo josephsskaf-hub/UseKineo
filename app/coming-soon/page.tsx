@@ -27,7 +27,7 @@ export default function ComingSoonPage() {
         minHeight: '100vh',
         background: 'var(--bg, #000)',
         color: 'var(--text, #f5f5f7)',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
         overflow: 'hidden',
         display: 'flex',
         alignItems: 'center',

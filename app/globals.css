@@ -3,7 +3,12 @@
    Every surface that reads the CSS vars below (landing AND dashboard) picks
    up the new look automatically. New utilities: .tech-grid, .aurora-orb,
    .neon-card, .btn-neon, .neon-text — used by the rebuilt hero. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* Push #92 — Core Web Vitals: the Google Fonts @import that used to live here
+   forced CSS download → parse → discover googleapis → discover gstatic →
+   font bytes before any text could paint. Fonts are now self-hosted via
+   next/font/google in app/layout.tsx, which injects --font-inter and
+   --font-space-grotesk on <html> at build time (no runtime request at all).
+   See the font-family declarations below that resolve through those vars. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,7 +37,10 @@ html {
   --muted2: #86868b;
   --border: #2a2a2d;
   --border2: #3a3a3d;
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  /* Push #92 — var(--font-space-grotesk)/var(--font-inter) are set by
+     next/font/google on <html> in app/layout.tsx; the literal names stay as
+     a fallback for the (unlikely) case those variables are unset. */
+  --font-display: var(--font-space-grotesk), 'Space Grotesk', var(--font-inter), 'Inter', system-ui, sans-serif;
 }
 
 * {
@@ -46,7 +54,9 @@ body {
   height: 100%;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Push #92 — resolves through next/font's self-hosted Inter (see
+     app/layout.tsx). Literal 'Inter' kept only as a fallback name. */
+  font-family: var(--font-inter), 'Inter', system-ui, -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -550,3 +560,32 @@ html {
   }
 }
 /* end KINEO-HOVER-PRESELECT-2026-07-23 */
+
+/* ── PUSH-92-HERO-GALLERY-PLAY-AFFORDANCE ──────────────────────────────────
+   Additive only (no rule above is edited). app/HeroGallery.tsx now leaves
+   cards 2-4 (and all cards under prefers-reduced-motion) on their poster
+   frame instead of autoplaying, so it renders a small play icon as the
+   resting-state affordance. Scoped to .vcard so it only ever paints inside
+   the hero gallery markup that puts a .hvid-play span there. */
+.vcard .hvid-play {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.vcard .hvid-play span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 14px;
+  padding-left: 2px;
+}
+/* end PUSH-92-HERO-GALLERY-PLAY-AFFORDANCE */

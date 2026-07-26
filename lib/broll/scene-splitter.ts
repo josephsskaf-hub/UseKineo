@@ -110,7 +110,13 @@ function splitBySentences(text: string): SceneSegment[] {
       } else if (progress < 0.75) {
         purpose = 'escalation'
       } else {
-        purpose = 'escalation'
+        // PUSH #93 — this arm returned 'escalation' too, making the < 0.75
+        // branch a no-op and leaving the whole back half of the script tagged
+        // as escalation. In this repo's HOOK / MICRO REWARD / ESCALATION /
+        // PAYOFF structure the final quarter is the payoff (same purpose the
+        // last sentence already gets), so the attention curve and the prompt
+        // builder now see a resolving beat instead of endless escalation.
+        purpose = 'payoff'
       }
     }
 

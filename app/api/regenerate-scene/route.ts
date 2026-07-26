@@ -225,12 +225,45 @@ Return JSON with:
       }
     }
 
-    // Score the new prompt's relevance to the narration
-    const relevanceScore = newBrollPrompt
-      ? await scoreRelevance(narration, newBrollPrompt)
-      : 75
+    // Score the new prompt's relevance to the narration.
+    //
+    // PUSH #94 — was `const relevanceScore = newBrollPrompt ? await scoreRelevance(...) : 75`.
+    // Two defects in one line:
+    //   1. the `: 75` branch invented a score for a scene that was never scored —
+    //      the same fabricated-75 defect PUSH #93 removed from relevance-score.ts;
+    //   2. scoreRelevance() now returns `number | null`, so a null could flow
+    //      straight into a field typed `number` on BrollScene.
+    // Fix matches #93: no invented number. An unscorable scene carries
+    // relevanceScore === undefined and relevanceUnscored === true, so downstream
+    // can see that the quality gate did not run instead of reading a pass.
+    let relevanceScore: number | undefined
+    let relevanceUnscored: boolean | undefined
 
-    return NextResponse.json({ sceneNumber, ...result, relevanceScore })
+    if (!newBrollPrompt) {
+      // PUSH #94 — nothing to score against; the response also has no brollPrompt,
+      // so the client rejects it, but we must not label it with a passing score.
+      console.error(
+        `[regenerate-scene] scene ${sceneNumber}: no brollPrompt was produced — relevance left UNSCORED (was fabricated as 75)`,
+      )
+      relevanceUnscored = true
+    } else {
+      const scored = await scoreRelevance(narration, newBrollPrompt)
+      if (scored === null) {
+        // PUSH #94 — embeddings unavailable. Report the absence, do not guess.
+        console.error(
+          `[regenerate-scene] scene ${sceneNumber}: scoreRelevance() returned null (embeddings API unavailable) — relevance left UNSCORED`,
+        )
+        relevanceUnscored = true
+      } else {
+        relevanceScore = scored
+      }
+    }
+
+    // PUSH #94 — response shape is unchanged: still a FLAT Partial<BrollScene>.
+    // `relevanceScore: undefined` is simply omitted by JSON.stringify, so the
+    // merge in GenerateClient (`typeof data.relevanceScore === 'number'`) skips
+    // it rather than writing a bogus value. `relevanceUnscored` is additive.
+    return NextResponse.json({ sceneNumber, ...result, relevanceScore, relevanceUnscored })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[regenerate-scene] unexpected error:', msg)

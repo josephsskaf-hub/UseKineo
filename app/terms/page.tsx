@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: 'Terms of Service — Kineo',
   description:
     'Terms governing your use of Kineo, including acceptable use, AI-generated content, payments, refunds, and limitation of liability.',
+  // PUSH #92 — P0 canonical bug: without its own canonical this page
+  // inherited the root layout's `https://www.usekineo.com`, telling Google
+  // it was a duplicate of the homepage.
+  alternates: { canonical: '/terms' },
 }
 
 export default function TermsPage() {
@@ -19,7 +23,7 @@ export default function TermsPage() {
           minHeight: '100vh',
           background: '#000',
           color: '#F5F7FF',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
           padding: '24px 20px 32px',
         }}
       >

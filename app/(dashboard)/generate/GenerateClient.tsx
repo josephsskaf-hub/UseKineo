@@ -152,7 +152,6 @@ const POLL_GENERATING_MS = 4000
 const POLL_COMPOSING_MS = 5000
 const MAX_TRANSIENT_POLL_ERRORS = 4
 const ACTIVE_RENDER_STORAGE_KEY = 'kineo_active_render_v1'
-const ACTIVE_RENDER_TAB_KEY = 'kineo_active_render_tab_v1'
 const ACTIVE_RENDER_TTL_MS = 2 * 60 * 60 * 1000
 
 interface FastRenderInputs {
@@ -192,20 +191,55 @@ function newGenerationAttemptId(): string {
   return `gen_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`
 }
 
-// sessionStorage survives reloads but is isolated per tab. Namespace the
-// durable render snapshot with that tab id so one active render cannot
-// overwrite or delete another tab's recovery state.
-function activeRenderStorageKey(): string {
-  if (typeof window === 'undefined') return ACTIVE_RENDER_STORAGE_KEY
+// Push #92 — localStorage survives a tab close (sessionStorage does not), but
+// keying the snapshot by a sessionStorage tab id defeated that: closing the
+// tab (which mobile Safari does under memory pressure) made an in-flight,
+// already-accepted render unrecoverable even though it was still alive on the
+// server. Namespace by user id instead so any tab this user opens can resume it.
+function activeRenderStorageKey(userId: string | null | undefined): string {
+  const safeId = typeof userId === 'string' && userId.trim() ? userId.trim() : 'anon'
+  return `${ACTIVE_RENDER_STORAGE_KEY}:${safeId}`
+}
+
+// Push #92 — one-time migration from the legacy tab-scoped key
+// (`kineo_active_render_v1:<tabId>`) to the new user-scoped key. Adopts the
+// newest still-fresh (within TTL) legacy snapshot, if any, then clears every
+// legacy entry so it cannot be picked up again. Never throws — a malformed
+// legacy value just gets dropped.
+function migrateLegacyActiveRenderSnapshot(userId: string | null | undefined): void {
+  if (typeof window === 'undefined' || !userId) return
   try {
-    let tabId = sessionStorage.getItem(ACTIVE_RENDER_TAB_KEY)
-    if (!tabId) {
-      tabId = newGenerationAttemptId()
-      sessionStorage.setItem(ACTIVE_RENDER_TAB_KEY, tabId)
+    const newKey = activeRenderStorageKey(userId)
+    if (localStorage.getItem(newKey)) return
+    const legacyKeys: string[] = []
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index)
+      if (key && key !== newKey && key.startsWith(`${ACTIVE_RENDER_STORAGE_KEY}:`)) legacyKeys.push(key)
     }
-    return `${ACTIVE_RENDER_STORAGE_KEY}:${tabId}`
+    if (legacyKeys.length === 0) return
+    let newestRaw: string | null = null
+    let newestAt = -Infinity
+    for (const key of legacyKeys) {
+      try {
+        const raw = localStorage.getItem(key)
+        if (!raw) continue
+        const parsed = JSON.parse(raw) as Partial<ActiveRenderSnapshot>
+        const startedAt = Number(parsed?.startedAt)
+        if (!Number.isFinite(startedAt)) continue
+        const age = Date.now() - startedAt
+        if (age < 0 || age > ACTIVE_RENDER_TTL_MS) continue
+        if (startedAt > newestAt) {
+          newestAt = startedAt
+          newestRaw = raw
+        }
+      } catch {
+        // Malformed legacy entry — skip it, it gets removed below regardless.
+      }
+    }
+    if (newestRaw) localStorage.setItem(newKey, newestRaw)
+    legacyKeys.forEach((key) => { try { localStorage.removeItem(key) } catch { /* ignore */ } })
   } catch {
-    return ACTIVE_RENDER_STORAGE_KEY
+    // Best-effort migration only; must never block the restore flow.
   }
 }
 
@@ -784,6 +818,18 @@ export default function GenerateClient({
   // Phase 3 — B-roll Intelligence / Creator Mode
   const [brollPlan, setBrollPlan] = useState<BrollPlan | null>(null)
   const [brollPlanLoading, setBrollPlanLoading] = useState(false)
+  // PUSH #93 — single-scene regeneration used to fail silently (the request
+  // 400'd on every click and the catch swallowed it). These two pieces of
+  // state make the failure and the success both visible:
+  //  - sceneRegenError: inline, scene-scoped error banner in the Visual Director
+  //  - brollPlanRevision: bumped on every successful plan mutation.
+  //    PUSH #94 — this used to drive VisualDirector's `key` (full remount).
+  //    VisualDirector now syncs the `scenes` prop into its local state by
+  //    sceneNumber, so this is passed as a plain `planRevision` prop: an extra
+  //    sync trigger only. The content diff inside VisualDirector decides what
+  //    is actually overwritten, so a redundant bump is a no-op.
+  const [sceneRegenError, setSceneRegenError] = useState<{ sceneNumber: number; message: string } | null>(null)
+  const [brollPlanRevision, setBrollPlanRevision] = useState(0)
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
@@ -853,6 +899,10 @@ export default function GenerateClient({
   // a single roundtrip; this drives a 4-step visual that auto-advances on
   // a timer so the wait feels intentional.
   const [fastStep, setFastStep] = useState<number>(0)
+  // Push #92 — wall-clock start of the current fast-pipeline loading run, so
+  // the UI can show a real elapsed-time counter once the staged progress
+  // above runs out instead of faking further percentage.
+  const [fastLoadingStartedAt, setFastLoadingStartedAt] = useState<number | null>(null)
 
   // Push #098 — out-of-credits upgrade modal. Opened when the user clicks
   // any Generate/Analyze/Generate-Similar CTA while credits <= 0. Routes
@@ -1007,7 +1057,7 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase !== 'done' && phase !== 'failed') return
     resumedRenderRef.current = false
-    try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+    try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
   }, [phase])
 
   useEffect(() => {
@@ -1033,6 +1083,11 @@ export default function GenerateClient({
       try {
         const supabase = createClient()
 
+        // Push #92 — adopt any pre-#92 tab-scoped snapshot into the new
+        // user-scoped key before we read it, so a render that survived a
+        // closed tab is still found here.
+        migrateLegacyActiveRenderSnapshot(currentUserIdRef.current)
+
         // A brand-new visitor normally has no render snapshot to restore. In
         // that case there is nothing that can race a first generation, so
         // release the UI gate immediately instead of making the first-video
@@ -1040,9 +1095,9 @@ export default function GenerateClient({
         // the background so any new render can persist a user-bound recovery
         // snapshot. When a snapshot does exist, the verified-user checks below
         // remain mandatory before it is resumed.
-        const raw = skipRestore ? null : localStorage.getItem(activeRenderStorageKey())
+        const raw = skipRestore ? null : localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
         if (skipRestore) {
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
         }
         if (!raw) {
           activeRenderRestoreCheckedRef.current = true
@@ -1076,7 +1131,7 @@ export default function GenerateClient({
         try {
           stored = JSON.parse(raw) as Partial<ActiveRenderSnapshot>
         } catch {
-          localStorage.removeItem(activeRenderStorageKey())
+          localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
           return
         }
         const startedAt = Number(stored.startedAt)
@@ -1104,7 +1159,7 @@ export default function GenerateClient({
           (storedStage === 'submitting' && (!composePayload || !/^[A-Za-z0-9_-]{8,100}$/.test(payloadGenerationId))) ||
           (storedStage === 'avatar_submitting' && (!avatarPayload || !/^[A-Za-z0-9_-]{8,100}$/.test(avatarGenerationId)))
         ) {
-          localStorage.removeItem(activeRenderStorageKey())
+          localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
           return
         }
 
@@ -1185,14 +1240,14 @@ export default function GenerateClient({
               continue
             }
             if (res.status === 402) {
-              localStorage.removeItem(activeRenderStorageKey())
+              localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
               resumedRenderRef.current = false
               setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
               setPhase('options')
               return
             }
             if (!res.ok) {
-              localStorage.removeItem(activeRenderStorageKey())
+              localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
               resumedRenderRef.current = false
               setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
               setPhase('failed')
@@ -1200,7 +1255,7 @@ export default function GenerateClient({
             }
             const recoveredRenderId = typeof data?.render_id === 'string' ? data.render_id.trim() : ''
             if (!recoveredRenderId || recoveredRenderId.length > 160) {
-              localStorage.removeItem(activeRenderStorageKey())
+              localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
               resumedRenderRef.current = false
               setError(GENERIC_ERROR)
               setPhase('failed')
@@ -1218,7 +1273,7 @@ export default function GenerateClient({
               startedAt,
               ...(lastFastRenderRef.current ? { unlockInputs: lastFastRenderRef.current } : {}),
             }
-            localStorage.setItem(activeRenderStorageKey(), JSON.stringify(renderingSnapshot))
+            localStorage.setItem(activeRenderStorageKey(currentUserIdRef.current), JSON.stringify(renderingSnapshot))
             setError(null)
             setRenderId(recoveredRenderId)
             setRenderProgress(5)
@@ -1836,8 +1891,10 @@ export default function GenerateClient({
       phase === 'generating' || phase === 'fal_polling' || phase === 'avatar_polling' || phase === 'clips_ready' || phase === 'composing'
     if (!inLoading) {
       setFastStep(0)
+      setFastLoadingStartedAt(null)
       return
     }
+    setFastLoadingStartedAt((prev) => prev ?? Date.now())
     const interval = setInterval(() => {
       setFastStep((s) => Math.min(3, s + 1))
     }, 8000)
@@ -2010,7 +2067,7 @@ export default function GenerateClient({
             stage: 'generating',
           })
         }
-        setError('Your clips are still rendering. We are reconnecting automatically — please keep this tab open.')
+        setError("Your clips are still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
         pollTimerRef.current = setTimeout(poll, 15000)
       }
     }
@@ -2498,7 +2555,7 @@ export default function GenerateClient({
               composePayload,
               ...(lastFastRenderRef.current ? { unlockInputs: lastFastRenderRef.current } : {}),
             }
-            localStorage.setItem(activeRenderStorageKey(), JSON.stringify(submittingSnapshot))
+            localStorage.setItem(activeRenderStorageKey(currentUserIdRef.current), JSON.stringify(submittingSnapshot))
           } catch {
             // In-tab reconnect still uses the same generation id without storage.
           }
@@ -2519,7 +2576,7 @@ export default function GenerateClient({
             // Only a server-correlated generation can be retried safely. The
             // distributed claim makes every retry converge on the same render.
             reconnectAttempt += 1
-            setError('Your render is still being submitted. We are reconnecting automatically — please keep this tab open.')
+            setError("Your render is still being submitted. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
             await new Promise((resolve) => setTimeout(resolve, reconnectAttempt <= 4 ? 3000 : 10000))
             continue
           }
@@ -2529,7 +2586,7 @@ export default function GenerateClient({
             const retryAfter = typeof data.retry_after_ms === 'number'
               ? Math.max(1000, Math.min(10000, data.retry_after_ms))
               : 3000
-            setError('Your render is already being submitted. We are reconnecting to the same job — please keep this tab open.')
+            setError("Your render is already being submitted. We are reconnecting to the same job — you can close this tab, we'll email you when it's ready.")
             await new Promise((resolve) => setTimeout(resolve, reconnectAttempt <= 8 ? retryAfter : 10000))
             continue
           }
@@ -2550,14 +2607,14 @@ export default function GenerateClient({
           // screen with the upgrade modal on top — nothing is lost, and closing
           // the modal leaves the user on their script, not on an error page.
           setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           openOutOfCreditsModal('credits')
           setPhase('options')
           return
         }
         if (!res.ok) {
           console.error('[generate] compose error:', data?.error)
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
           setPhase('failed')
           return
@@ -2565,7 +2622,7 @@ export default function GenerateClient({
 
         const id = typeof data?.render_id === 'string' ? data.render_id : null
         if (!id) {
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(GENERIC_ERROR)
           setPhase('failed')
           return
@@ -2589,7 +2646,7 @@ export default function GenerateClient({
               startedAt: composeStartedAt,
               ...(lastFastRenderRef.current ? { unlockInputs: lastFastRenderRef.current } : {}),
             }
-            localStorage.setItem(activeRenderStorageKey(), JSON.stringify(snapshot))
+            localStorage.setItem(activeRenderStorageKey(currentUserIdRef.current), JSON.stringify(snapshot))
           } catch {
             // Storage may be unavailable; the in-tab polling flow still works.
           }
@@ -2646,7 +2703,7 @@ export default function GenerateClient({
           }
           if (res.status === 400 || res.status === 403 || res.status === 404 || res.status === 410 || res.status === 422) {
             resumedRenderRef.current = false
-            try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+            try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
             setError(typeof data?.error === 'string' ? data.error : 'This render can no longer be resumed. Please generate again.')
             setPhase('failed')
             return
@@ -2670,7 +2727,7 @@ export default function GenerateClient({
           setRenderProgress(100)
           setFinalVideoUrl(url)
           if (typeof data.video_id === 'string' && data.video_id) setPublicVideoId(data.video_id)
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setPhase('done')
           // Push #060 / #061 — fire-and-forget event tracking.
           const completionMetadata = {
@@ -2703,7 +2760,7 @@ export default function GenerateClient({
 
         if (data.phase === 'failed') {
           resumedRenderRef.current = false
-          try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+          try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(typeof data.error === 'string' ? data.error : GENERIC_ERROR)
           setPhase('failed')
           return
@@ -2732,7 +2789,7 @@ export default function GenerateClient({
             render_id: renderId,
           })
         }
-        setError('Your video is still rendering. We are reconnecting automatically — please keep this tab open.')
+        setError("Your video is still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
         pollTimerRef.current = setTimeout(poll, 15000)
       }
     }
@@ -3114,8 +3171,25 @@ export default function GenerateClient({
   }
 
   // Phase 3 — Creator Mode: regenerate a single scene in the VisualDirector.
+  // PUSH #93 — this call had NEVER succeeded. Two contract breaks:
+  //  1) REQUEST: we sent { sceneNumber, instruction, currentPlan }. The route
+  //     ignores `currentPlan` entirely and hard-requires `narration` (400) and
+  //     `globalStyle` (400), plus it reads `niche` / `currentPrompt`. So every
+  //     click returned 400 before touching GPT.
+  //  2) RESPONSE: we read `data.scene`. The route returns a FLAT payload
+  //     ({ sceneNumber, brollPrompt, pexelsQuery, negativePrompt, visualMood,
+  //     shotType, visualIntent, relevanceScore }) with no `scene` key, so even a
+  //     200 was a no-op. That payload is a Partial<BrollScene> — it carries no
+  //     narration/caption/durationSeconds/source/keywords — so it must be MERGED
+  //     into the existing scene, never used to replace it.
+  // Both failures were swallowed by a bare `catch {}`, so the button appeared
+  // dead forever. Fixed on the client side (smaller + safer than reshaping the
+  // route, which would still return a partial scene).
   async function handleSceneUpdateInDirector(sceneNumber: number, instruction?: string) {
     if (!brollPlan) return
+    const current = brollPlan.scenes.find((s) => s.sceneNumber === sceneNumber)
+    if (!current) return
+    setSceneRegenError(null)
     try {
       const res = await fetch('/api/regenerate-scene', {
         method: 'POST',
@@ -3123,25 +3197,77 @@ export default function GenerateClient({
         body: JSON.stringify({
           sceneNumber,
           instruction,
-          currentPlan: brollPlan,
+          // PUSH #93 — the fields /api/regenerate-scene actually validates/reads.
+          narration: current.narration,
+          niche: brollPlan.niche,
+          currentPrompt: current.brollPrompt,
+          globalStyle: brollPlan.globalStyle,
         }),
       })
-      if (res.ok) {
-        const data = await res.json()
-        if (data.scene) {
-          setBrollPlan((prev) => {
-            if (!prev) return prev
-            return {
-              ...prev,
-              scenes: prev.scenes.map((s) =>
-                s.sceneNumber === sceneNumber ? data.scene : s,
-              ),
-            }
-          })
-        }
+      const data = await res.json().catch(() => null)
+      const newPrompt = typeof data?.brollPrompt === 'string' ? data.brollPrompt.trim() : ''
+      if (!res.ok || !newPrompt) {
+        // PUSH #93 — no longer swallowed: show the failure on the scene card.
+        setSceneRegenError({
+          sceneNumber,
+          message: typeof data?.error === 'string'
+            ? data.error
+            : 'Could not regenerate this scene. Please try again.',
+        })
+        return
       }
+
+      const newQuery = typeof data.pexelsQuery === 'string' ? data.pexelsQuery.trim() : ''
+      setBrollPlan((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          scenes: prev.scenes.map((s) => {
+            if (s.sceneNumber !== sceneNumber) return s
+            // PUSH #93 — merge the flat partial; keep narration/caption/timing.
+            return {
+              ...s,
+              brollPrompt: newPrompt,
+              ...(newQuery
+                ? {
+                    pexelsQuery: newQuery,
+                    // Keep the new query first (pexelsQuery === pexelsQueries[0]);
+                    // old queries stay on as fallbacks for multi-query search.
+                    pexelsQueries: [newQuery, ...(s.pexelsQueries ?? []).filter((q) => q !== newQuery)],
+                    // We now have a concrete query, so the "extend previous clip"
+                    // escape hatch no longer applies to this scene.
+                    requiresExtension: false,
+                  }
+                : {}),
+              ...(typeof data.negativePrompt === 'string' && data.negativePrompt
+                ? { negativePrompt: data.negativePrompt } : {}),
+              ...(typeof data.visualMood === 'string' ? { visualMood: data.visualMood } : {}),
+              ...(typeof data.shotType === 'string' ? { shotType: data.shotType } : {}),
+              ...(typeof data.visualIntent === 'string' && data.visualIntent
+                ? { visualIntent: data.visualIntent } : {}),
+              // PUSH #94 — three-way, not two-way. The route now distinguishes
+              // "scored" from "could not be scored" instead of fabricating a 75.
+              // Without the middle branch a scoring outage left the PREVIOUS
+              // score attached to a brand-new prompt it no longer describes —
+              // a stale number reading as fresh quality.
+              ...(typeof data.relevanceScore === 'number'
+                ? { relevanceScore: data.relevanceScore, relevanceUnscored: false }
+                : data.relevanceUnscored
+                  ? { relevanceScore: undefined, relevanceUnscored: true }
+                  : {}),
+            }
+          }),
+        }
+      })
+      // PUSH #94 — signal the plan moved. VisualDirector merges the changed
+      // scene by sceneNumber; other cards keep their local draft state.
+      setBrollPlanRevision((n) => n + 1)
     } catch {
-      // Non-blocking — scene stays as-is if regeneration fails
+      // PUSH #93 — previously "// Non-blocking", which hid every failure.
+      setSceneRegenError({
+        sceneNumber,
+        message: 'Could not reach the visual director. Check your connection and try again.',
+      })
     }
   }
 
@@ -3165,6 +3291,10 @@ export default function GenerateClient({
         const data = await res.json()
         if (data.globalStyle && Array.isArray(data.scenes)) {
           setBrollPlan(data as BrollPlan)
+          // PUSH #94 — a whole new plan: every scene's content differs, so
+          // VisualDirector's diff marks them all changed and re-seeds each card.
+          setSceneRegenError(null)
+          setBrollPlanRevision((n) => n + 1)
         }
       }
     } catch {
@@ -3280,7 +3410,7 @@ export default function GenerateClient({
         return
       }
       if (res.status === 402) {
-        try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+        try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
         resumedRenderRef.current = false
         if (typeof data.balance === 'number') setCredits(data.balance)
         setError(typeof data.error === 'string' ? data.error : "You've used your credits.")
@@ -3293,7 +3423,7 @@ export default function GenerateClient({
       const requestId = typeof data.avatar_request_id === 'string' ? data.avatar_request_id.trim() : ''
       const voiceoverUrl = typeof data.voiceover_url === 'string' ? data.voiceover_url : ''
       if (!res.ok || returnedGenerationId !== attemptId || !requestId || !voiceoverUrl) {
-        try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+        try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
         resumedRenderRef.current = false
         setError(typeof data.error === 'string' ? data.error : GENERIC_ERROR)
         setPhase('failed')
@@ -3444,7 +3574,7 @@ export default function GenerateClient({
             startedAt: avatarStartedAt,
             avatarPayload,
           }
-          localStorage.setItem(activeRenderStorageKey(), JSON.stringify(avatarSnapshot))
+          localStorage.setItem(activeRenderStorageKey(currentUserIdRef.current), JSON.stringify(avatarSnapshot))
         } catch {
           // The durable server claim still protects this in-tab submission.
         }
@@ -3716,7 +3846,7 @@ export default function GenerateClient({
               composePayload: checkpointComposePayload,
               unlockInputs: checkpointUnlockInputs,
             }
-            localStorage.setItem(activeRenderStorageKey(), JSON.stringify(checkpoint))
+            localStorage.setItem(activeRenderStorageKey(currentUserIdRef.current), JSON.stringify(checkpoint))
             checkpointPersisted = true
             void trackEvent('generation_checkpoint_saved', {
               attempt_id: checkpointAttemptId,
@@ -4104,7 +4234,7 @@ export default function GenerateClient({
     deductedRef.current = false
     resumedRenderRef.current = false
     generationAttemptRef.current = null
-    try { localStorage.removeItem(activeRenderStorageKey()) } catch { /* ignore */ }
+    try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
     setPhase('idle')
     setAnalysis(null)
     setScenes([])
@@ -4122,6 +4252,8 @@ export default function GenerateClient({
     setError(null)
     setBrollPlan(null)
     setBrollPlanLoading(false)
+    // PUSH #93 — don't leak a stale scene-regeneration error into the next run.
+    setSceneRegenError(null)
     // Push #047 — "Start over" clears the prompt + the homepage breadcrumb
     // so the next run feels like a fresh start. We do NOT clear credits
     // state — that's owned by the /api/credits effect.
@@ -4688,7 +4820,7 @@ export default function GenerateClient({
         </div>
       </div>
 
-      {error && (
+      {error && phase !== 'failed' && (
         <div
           className="gv-card rounded-xl px-4 py-3 text-sm mb-6"
           style={{
@@ -5537,7 +5669,30 @@ export default function GenerateClient({
       {/* ── Phase 3: Visual Director (Creator Mode) ── */}
       {showVisualDirector && brollPlan && (
         <section className="mb-6">
+          {/* PUSH #93 — scene regeneration used to fail silently (400 on every
+              request, swallowed by a bare catch). Failures now surface here,
+              scoped to the scene the user clicked. No alert()/modal. */}
+          {sceneRegenError && (
+            <div
+              role="alert"
+              className="gv-card rounded-xl px-4 py-3 text-sm mb-4"
+              style={{
+                background: 'rgba(239,68,68,.07)',
+                border: '1px solid rgba(239,68,68,.25)',
+                color: '#f87171',
+              }}
+            >
+              <strong>Scene {sceneRegenError.sceneNumber}:</strong> {sceneRegenError.message}
+            </div>
+          )}
           <VisualDirector
+            // PUSH #94 — was `key={`visual-director-${brollPlanRevision}`}`, which
+            // remounted the WHOLE director on every plan mutation and threw away
+            // the undo history plus any prompt the user was mid-edit on another
+            // card. VisualDirector now syncs the `scenes` prop into its local
+            // state by sceneNumber, so this is a normal prop: an extra hint that
+            // the plan moved, never the thing that decides what gets overwritten.
+            planRevision={brollPlanRevision}
             plan={brollPlan}
             onSceneUpdate={handleSceneUpdateInDirector}
             onRegenerateAll={handleRegenerateAllScenes}
@@ -5773,7 +5928,7 @@ export default function GenerateClient({
                   matches the actual Pexels + TTS + assemble pipeline.
                   Cinematic Mode keeps the 5-stage Runway indicator. */}
               {(mode === 'fast' || mode === 'creator') ? (
-                <FastPipelineStages step={fastStep} phase={phase} />
+                <FastPipelineStages step={fastStep} phase={phase} startedAt={fastLoadingStartedAt} />
               ) : (
                 <PipelineStages
                   phase={phase}
@@ -5805,7 +5960,7 @@ export default function GenerateClient({
                     ? 'Fast renders usually finish in 2–4 minutes; busy queues can take longer.'
                     : 'AI renders can take several minutes depending on the selected engine.'}
                 </div>
-                <div className="mt-1">Keep this tab open for the fastest delivery. If you leave, open Generate again to reconnect.</div>
+                <div className="mt-1">You can close this tab — we'll email you the moment it's ready. Or leave it open to watch it finish.</div>
               </div>
 
               {/* The per-clip tile grid was removed in push #031 — the final
@@ -5843,10 +5998,21 @@ export default function GenerateClient({
               style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)' }}
             >
               <div className="font-black text-base mb-2" style={{ color: '#fca5a5' }}>
-                Generation failed. If no paid AI work started, any reserved credits are refunded automatically. You can retry safely.
+                Generation failed
+              </div>
+              {error && (
+                <div role="alert" className="text-sm mb-2" style={{ color: '#fca5a5' }}>
+                  {error}
+                </div>
+              )}
+              <div className="text-sm mb-2" style={{ color: '#fca5a5' }}>
+                {selectedCost > 0
+                  ? `Your ${selectedCost} credit${selectedCost === 1 ? '' : 's'} ${selectedCost === 1 ? 'has' : 'have'} been returned to your balance.`
+                  : 'No credits were charged for this attempt.'}
+                {' '}You can retry safely.
               </div>
               <button
-                onClick={handleGenerate}
+                onClick={handleGenerateGuarded}
                 className="rounded-xl px-5 py-2.5 text-sm font-bold text-white mt-2"
                 style={{
                   background: 'linear-gradient(135deg, #2997ff, #2997ff)',
@@ -5856,6 +6022,9 @@ export default function GenerateClient({
               >
                 🔄 Retry
               </button>
+              <div className="mt-3 text-sm">
+                <a href="/history" style={{ color: '#2997ff', fontWeight: 700 }}>View all your videos →</a>
+              </div>
             </section>
           )}
 
@@ -8317,13 +8486,30 @@ function ModeSelector({
 // `step` index every ~8s while a Fast Mode generation is in flight so the
 // long single roundtrip feels intentional. Once the phase reaches `done`
 // every step is shown as completed regardless of timer.
-function FastPipelineStages({ step, phase }: { step: number; phase: Phase }) {
+function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: Phase; startedAt: number | null }) {
   const STEPS = [
     { label: 'Writing your viral script', sub: 'AI content model' },
     { label: 'Selecting visual scenes', sub: 'AI visual matching' },
     { label: 'Synthesizing narration', sub: 'AI voice generation' },
-    { label: 'Composing your Short', sub: 'Vertical 9:16 format' },
   ]
+  // Push #92 — the 3 stages above cover the pre-render work and finish in
+  // ~24s on an 8s timer. The actual render is 2-4 minutes; rather than fake
+  // a 4th "Composing" stage sitting at 100% the whole time (which reads as
+  // frozen), show a distinct indeterminate state with a real elapsed timer.
+  const isRendering = phase !== 'done' && step >= STEPS.length
+  const [nowTick, setNowTick] = useState<number>(() => Date.now())
+  useEffect(() => {
+    if (!isRendering) return
+    const tick = setInterval(() => setNowTick(Date.now()), 1000)
+    return () => clearInterval(tick)
+  }, [isRendering])
+  const elapsedLabel = (() => {
+    if (!startedAt) return null
+    const elapsedSec = Math.max(0, Math.floor((nowTick - startedAt) / 1000))
+    const mm = Math.floor(elapsedSec / 60)
+    const ss = elapsedSec % 60
+    return `${mm}:${ss.toString().padStart(2, '0')} elapsed`
+  })()
   return (
     <ol
       className="mt-5"
@@ -8402,6 +8588,43 @@ function FastPipelineStages({ step, phase }: { step: number; phase: Phase }) {
           </li>
         )
       })}
+      {isRendering && (
+        <li
+          className="rounded-lg px-3 py-2 flex items-center gap-3"
+          style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(92,179,255,.45)' }}
+        >
+          <span
+            aria-hidden="true"
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: 'transparent',
+              border: '2px solid rgba(92,179,255,.55)',
+              borderTopColor: '#5cb3ff',
+              animation: 'spin 0.9s linear infinite',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          />
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="text-sm font-bold" style={{ color: '#5cb3ff', lineHeight: 1.2 }}>
+              Rendering — this usually takes 2-4 minutes
+            </div>
+            <div className="text-[11px]" style={{ color: 'var(--muted)' }}>
+              {elapsedLabel ?? 'Composing your Short'}
+            </div>
+          </div>
+          <span
+            className="text-[10px] font-black uppercase tracking-widest"
+            style={{ color: '#5cb3ff' }}
+          >
+            Active
+          </span>
+        </li>
+      )}
     </ol>
   )
 }

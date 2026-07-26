@@ -19,30 +19,35 @@ type Props = {
 }
 
 const KLP_CSS = `
-.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#2a2a2d;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#86868b;--muted2:#6e6e73;--blue:#2997ff;background:#000;color:#f5f5f7;font-family:'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
+.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#2a2a2d;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#98989e;--muted2:#8a8a90;--blue:#2997ff;background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
 .klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
 .klp .btn{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:16px;padding:13px 28px;border-radius:980px;cursor:pointer;transition:.18s;border:1px solid transparent}
 .klp .btn-w{background:var(--txt);color:#000}
 .klp .btn-w:hover{background:#fff;transform:scale(1.02)}
-.klp .btn-o{border-color:#48484a;color:var(--txt)}
-.klp .btn-o:hover{background:#1c1c1e;border-color:#5a5a5d}
 .klp .link{color:var(--blue);font-weight:600;font-size:16px;display:inline-flex;align-items:center;gap:4px}
 .klp .link:hover{text-decoration:underline}
 .klp .gtxt{background:linear-gradient(180deg,#fff 35%,#a1a1a6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.klp .eyebrow{font-size:13px;font-weight:600;letter-spacing:.01em;color:var(--muted)}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
 .klp .logo .mk{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#17171a,#161618);border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
 .klp .nav-links{display:flex;gap:32px;font-size:14px;color:var(--muted);font-weight:500}
 .klp .nav-links a:hover{color:var(--txt)}
+.klp .nav-right{display:flex;align-items:center;gap:14px}
+.klp .nav-toggle-wrap{display:none}
+.klp .nav-toggle-input{position:absolute;inset:0;width:44px;height:44px;opacity:0;margin:0;cursor:pointer;z-index:2}
+.klp .nav-toggle-btn{display:flex;flex-direction:column;gap:5px;pointer-events:none}
+.klp .nav-toggle-btn .bar{display:block;width:20px;height:2px;background:var(--txt);border-radius:2px;transition:.2s}
+.klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(2){opacity:0}
+.klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.klp .nav-mobile-menu{display:none}
+.klp .nav-toggle-input:checked~.nav-mobile-menu{display:flex}
 .klp .hero{position:relative;padding:78px 0 84px;overflow:hidden}
 .klp .hero .glow{position:absolute;width:820px;height:520px;left:42%;top:-120px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(120,140,175,.2),transparent 70%);pointer-events:none}
-.klp .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.35fr .65fr;gap:48px;align-items:center}
-.klp .hl h1{font-size:clamp(2.4rem,5.2vw,4rem);font-weight:600;line-height:1.04;letter-spacing:-.035em;margin:16px 0 0;max-width:13ch}
-.klp .hl .sub,.klp .hero-center .sub{font-size:clamp(1.05rem,2.1vw,1.28rem);color:var(--muted);max-width:480px;margin:20px 0 0;line-height:1.45}
+.klp .hero-center .sub{font-size:clamp(1.05rem,2.1vw,1.28rem);color:var(--muted);max-width:480px;margin:20px 0 0;line-height:1.45}
 .klp .composer{display:flex;flex-direction:column;gap:14px;margin-top:30px;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:22px;width:100%;max-width:730px;min-height:300px;box-shadow:0 20px 50px -24px rgba(0,0,0,.9)}
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:17px;line-height:1.5;font-family:inherit;padding:6px 2px}
@@ -53,19 +58,12 @@ const KLP_CSS = `
 .klp .composer-head span{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap}
 .klp .topic-starters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted2);font-size:12px}
 .klp .topic-starters>div{display:flex;gap:8px;flex-wrap:wrap}
-.klp .topic-starters button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 11px;font:inherit;font-weight:650;cursor:pointer;transition:.18s}
+.klp .topic-starters button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 11px;min-height:44px;font:inherit;font-weight:650;cursor:pointer;transition:.18s}
 .klp .topic-starters button:hover,.klp .topic-starters button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
-.klp .hl .trust{margin-top:15px;font-size:13.5px;color:var(--muted2)}
-.klp .hl .trust b{color:var(--txt);font-weight:600}
-.klp .hr{display:flex;justify-content:center}
-.klp .phone{width:250px;aspect-ratio:9/16;border-radius:38px;padding:11px;background:#1c1c1e;border:1px solid #2a2a2d;box-shadow:0 60px 120px -30px rgba(0,0,0,.95),0 0 0 1px rgba(255,255,255,.03);position:relative}
-.klp .screen{height:100%;border-radius:28px;background:radial-gradient(120% 80% at 50% 0%,#2c2c30,#0a0a0c 70%);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:17px}
-.klp .b9{position:absolute;top:14px;left:14px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,.12);color:#d2d2d7}
-.klp .pl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.95);color:#000;display:grid;place-items:center;font-size:20px;padding-left:3px}
-.klp .cap{font-size:15px;font-weight:800;line-height:1.25;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.7)}
-.klp .cmeta{margin-top:8px;font-size:11px;color:var(--muted)}
 .klp section{padding:104px 0}
+/* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
+.klp section[id],.klp [id^="try-"]{scroll-margin-top:78px}
 .klp .sec-h{text-align:center;max-width:640px;margin:0 auto 56px}
 .klp .sec-h h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em;line-height:1.08}
 .klp .sec-h p{margin-top:16px;color:var(--muted);font-size:1.12rem}
@@ -75,30 +73,31 @@ const KLP_CSS = `
 .klp .step .n{font-size:14px;font-weight:700;color:var(--muted2)}
 .klp .step h3{margin-top:14px;font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
 .klp .step p{margin-top:10px;color:var(--muted);font-size:.98rem;line-height:1.6}
-.klp .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .klp .vcard{aspect-ratio:9/16;border-radius:18px;background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;transition:.2s}
-.klp .vcard:hover{border-color:var(--line2);transform:translateY(-4px)}
+.klp .vcard:hover,.klp .vcard:focus-visible,.klp .vcard:focus-within{border-color:var(--line2);transform:translateY(-4px)}
 .klp .vcard .vt{font-size:14px;font-weight:700;line-height:1.25;color:#fff}
-.klp .cmp{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow-x:auto}
+.klp .cmp{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow-x:auto;position:relative}
 .klp .cmp table{width:100%;min-width:560px;border-collapse:collapse;font-size:14.5px}
 .klp .cmp th,.klp .cmp td{padding:16px 18px;text-align:center;border-bottom:1px solid var(--line)}
-.klp .cmp th:first-child,.klp .cmp td:first-child{text-align:left;color:var(--muted);font-weight:400}
+.klp .cmp th:first-child,.klp .cmp td:first-child{text-align:left;color:var(--muted);font-weight:400;position:sticky;left:0;background:var(--card2);z-index:1}
 .klp .cmp thead th{font-weight:600;color:var(--muted)}
 .klp .cmp thead th.us,.klp .cmp td.us{background:rgba(255,255,255,.04)}
 .klp .cmp thead th.us{color:var(--txt)}
 .klp .cmp td.us{color:var(--txt);font-weight:700}
 .klp .cmp .no{color:var(--muted2)}
 .klp .cmp tr:last-child td{border-bottom:none}
+.klp .cmp-hint{display:none}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 .klp .plan{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px 28px;display:flex;flex-direction:column;transition:.2s}
-.klp .plan:hover{transform:translateY(-3px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
+.klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-3px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan.pop{background:var(--card2);border-color:#48484a}
-.klp .plan.pop:hover{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
+.klp .plan.pop:hover,.klp .plan.pop:focus-visible,.klp .plan.pop:focus-within{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan .pt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
 .klp .plan.pop .pt{color:var(--blue)}
 .klp .plan .nm{margin-top:10px;font-size:1.3rem;font-weight:600}
 .klp .plan .pr{margin-top:6px;font-size:2.6rem;font-weight:700;letter-spacing:-.02em}
 .klp .plan .pr span{font-size:1rem;font-weight:500;color:var(--muted)}
+.klp .plan .pr-then{margin-top:4px;font-size:.85rem;font-weight:500;color:var(--muted)}
 .klp .plan ul{list-style:none;margin:22px 0 26px;display:flex;flex-direction:column;gap:12px}
 .klp .plan li{display:flex;gap:10px;font-size:14.5px;color:var(--muted)}
 .klp .plan li b{color:var(--txt);font-weight:600}
@@ -111,14 +110,12 @@ const KLP_CSS = `
 .klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
 .klp .final .fcta{display:flex;justify-content:center;margin-top:30px}
-.klp footer{border-top:1px solid var(--line);padding:40px 0;color:var(--muted2);font-size:13.5px;text-align:center}
-.klp footer a:hover{color:var(--muted)}
 .klp .taaft-badge{margin:0 auto 18px;opacity:.8;line-height:0}
 .klp .taaft-badge img{max-width:190px;height:auto;display:inline-block}
 .klp .taaft-badge:hover{opacity:1}
 .klp .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .klp .tcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 22px;transition:.2s;display:flex;flex-direction:column;gap:6px}
-.klp .tcard:hover{border-color:var(--line2);transform:translateY(-3px)}
+.klp .tcard:hover,.klp .tcard:focus-visible,.klp .tcard:focus-within{border-color:var(--line2);transform:translateY(-3px)}
 .klp .tcard .ti{font-size:26px}
 .klp .tcard h3{font-size:1.05rem;font-weight:600;letter-spacing:-.01em;margin-top:6px;display:flex;align-items:center;gap:7px}
 .klp .tcard p{font-size:.92rem;color:var(--muted);line-height:1.55;margin-top:2px}
@@ -128,19 +125,33 @@ const KLP_CSS = `
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
 .klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .klp .vcard .hvid{border-radius:18px}
-.klp .vcard{justify-content:flex-end}
 @media(max-width:820px){.klp .tools{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.klp .tools{grid-template-columns:1fr}}
-@media(max-width:880px){.klp .hero-grid{grid-template-columns:1fr;gap:44px;text-align:center}.klp .hl h1{margin-left:auto;margin-right:auto}.klp .hl .sub{margin-left:auto;margin-right:auto}.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto}}
-@media(max-width:820px){.klp .grid4{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:780px){.klp .steps{grid-template-columns:1fr}.klp .nav-links{display:none}}
+@media(max-width:880px){.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto}}
+@media(max-width:780px){
+.klp .steps{grid-template-columns:1fr}
+.klp .nav-links{display:none}
+.klp section{padding:56px 0}
+.klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
+.klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:#0a0a0c;border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
+.klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
+.klp .nav-mobile-menu a:last-child{border-bottom:none}
+.klp .nav-mobile-menu a:hover,.klp .nav-mobile-menu a:focus-visible{color:var(--blue)}
+.klp .nav-mobile-menu a.btn{margin-top:12px;min-height:48px;justify-content:center;border-bottom:none;color:#000;font-weight:600}
+.klp .nav-mobile-menu a.btn:hover,.klp .nav-mobile-menu a.btn:focus-visible{color:#000}
+.klp .cmp-hint{display:block;margin-bottom:10px;font-size:12.5px;color:var(--muted2);text-align:right}
+.klp .cmp::after{content:'';position:absolute;top:0;right:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,var(--card));pointer-events:none}
+}
 @media(max-width:520px){.klp .composer{flex-direction:column;align-items:stretch;padding:14px;gap:12px}.klp .composer .cbtn{align-self:stretch;justify-content:center}.klp .composer-proof{text-align:center}.klp .topic-starters{align-items:flex-start;flex-direction:column}}
+@media(max-width:560px){.klp .composer .ci{min-height:64px}.klp .hero{padding-top:40px}.klp .composer{margin-top:28px}.klp .composer .cbtn{order:1}.klp .composer-proof{order:1}.klp .topic-starters{order:2}}
 .klp .hero-center{position:relative;z-index:1;text-align:center;max-width:760px;margin:0 auto}
 .klp .hero-center h1{margin:0 auto;font-size:clamp(3rem,7.4vw,5.8rem);font-weight:600;line-height:1.03;letter-spacing:-.04em}
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
+@media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.2rem,8vw,3.6rem)}.klp .hero-center .sub{font-size:1.05rem}}
 .klp .hero-center .composer{margin:48px auto 0;max-width:640px;min-height:auto;text-align:left}
 .klp .hero-center .composer .ci{min-height:104px}
 .klp .hero-center .trust{text-align:center}
+@media(max-width:560px){.klp .hero-center .composer{margin-top:28px}.klp .hero-center .composer .ci{min-height:64px}}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:820px;margin:52px auto 0}
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:13px}
 .klp .hero-gallery .vcard .vt{font-size:12.5px}
@@ -150,7 +161,8 @@ const KLP_CSS = `
 .klp .platforms{position:relative;z-index:1;margin:22px auto 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;color:var(--muted2);text-transform:uppercase}
 .klp .platforms b{color:var(--muted);font-weight:700}
 .klp .faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-.klp .qa{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px}
+.klp .qa{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;transition:.2s}
+.klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2)}
 .klp .qa h3{font-size:1.08rem;font-weight:600;letter-spacing:-.01em}
 .klp .qa p{margin-top:8px;color:var(--muted);font-size:.98rem;line-height:1.6}
 @media(max-width:560px){.klp .hero-center h1{font-size:clamp(2.4rem,11vw,3.3rem)}.klp .hero-gallery{gap:10px}}
@@ -178,7 +190,7 @@ export default function KineoLanding({ initialUser }: Props) {
     <main className="klp">
       <style dangerouslySetInnerHTML={{ __html: KLP_CSS }} />
 
-      <nav><div className="wrap nav-in">
+      <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
           <div className="mk">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -188,9 +200,24 @@ export default function KineoLanding({ initialUser }: Props) {
           Kineo
         </Link>
         <div className="nav-links"><Link href="/generate">Video Generation</Link><Link href="/avatar">AI Avatar</Link><Link href="/examples">Examples</Link><a href="#pricing">Pricing</a></div>
-        {initialUser
-          ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '9px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
-          : <Link className="btn btn-w" style={{ padding: '9px 20px', fontSize: '14px' }} href="#try-kineo">Start free</Link>}
+        <div className="nav-right">
+          {initialUser
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="#try-kineo">Start free</Link>}
+          <div className="nav-toggle-wrap">
+            <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
+            <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
+            <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
+              <Link href="/generate">Video Generation</Link>
+              <Link href="/avatar">AI Avatar</Link>
+              <Link href="/examples">Examples</Link>
+              <a href="#pricing">Pricing</a>
+              {initialUser
+                ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
+                : <Link className="btn btn-w" href="#try-kineo">Start free</Link>}
+            </label>
+          </div>
+        </div>
       </div></nav>
 
       <header className="hero">
@@ -212,12 +239,12 @@ export default function KineoLanding({ initialUser }: Props) {
               <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
             </p>
             {/* PROVA-SOCIAL-REAL-2026-07-02 — real DB counts; renders nothing if numbers are low/unavailable */}
-            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center' }}>
+            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', minHeight: 22 }}>
               <LiveStatsBadge />
             </div>
           </div>
           <HeroGallery />
-          <p className="gallery-cap">Real Kineo exports, not mockups. Each started with one topic — script, voice, footage and captions, automatically. <Link href="/free-ai-shorts-generator">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts">Text-to-video workflow →</Link> · <Link href="/niche-picker">Find your faceless niche →</Link></p>
+          <p className="gallery-cap">Real Kineo exports, not mockups. Each started with one topic — script, voice, footage and captions, automatically. <Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link> · <Link href="/niche-picker" className="link">Find your faceless niche →</Link></p>
           <div className="platforms">Built for <b>YouTube Shorts</b> · <b>TikTok</b> · <b>Reels</b></div>
         </div>
       </header>
@@ -250,6 +277,7 @@ export default function KineoLanding({ initialUser }: Props) {
               </OrganicCtaLink>
             </p>
           </div>
+          <p className="cmp-hint">Swipe to compare →</p>
           <div className="cmp"><table>
             <thead><tr><th></th><th className="us">Kineo</th><th>OpusClip</th><th>HeyGen</th><th>Submagic</th></tr></thead>
             <tbody>
@@ -343,21 +371,23 @@ export default function KineoLanding({ initialUser }: Props) {
                 preserves tier + intro and prevents crawlers from calling the
                 payment API just by following the public pricing links. */}
             <div className="plan">
-              <div className="pt">Starter</div><div className="nm">Starter</div>
-              <div className="pr">$9.90<span>/mo</span></div>
+              <div className="pt">Best for testing</div><div className="nm">Starter</div>
+              <div className="pr">$4.90<span>/mo</span></div>
+              <div className="pr-then">then $9.90/mo</div>
               {/* KINEO-SHOWCASE-2026-07-10 — V3C: 25 credits, Fast = 1 credit. */}
-              <ul><li><span className="ck">✓</span> <b>First month $4.90</b> — renews at $9.90/mo in 30 days, cancel anytime</li><li><span className="ck">✓</span> 25 credits/month (Fast = 1 cr)</li><li><span className="ck">✓</span> AI script + neural voiceover + captions</li><li><span className="ck">✓</span> Watermark-free MP4</li></ul>
+              <ul><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li><li><span className="ck">✓</span> 25 credits/month (Fast = 1 cr)</li><li><span className="ck">✓</span> AI script + neural voiceover + captions</li><li><span className="ck">✓</span> Watermark-free MP4</li></ul>
               <a className="btn btn-w" href={starterCheckoutHref}>Start — $4.90 first month</a>
             </div>
             <div className="plan pop">
               <div className="pt">Most popular</div><div className="nm">Creator</div>
-              <div className="pr">$24.90<span>/mo</span></div>
+              <div className="pr">$9.90<span>/mo</span></div>
+              <div className="pr-then">then $24.90/mo</div>
               {/* KINEO-PRICING-V3B-2026-07-10 — $24.90/150cr, 1 Hollywood film/mo included */}
-              <ul><li><span className="ck">✓</span> <b>First month $9.90</b> — renews at $24.90/mo in 30 days, cancel anytime</li><li><span className="ck">✓</span> 1 Hollywood film/mo included · 150 credits</li><li><span className="ck">✓</span> Every scene generated by AI</li><li><span className="ck">✓</span> Script + voiceover + captions</li></ul>
+              <ul><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li><li><span className="ck">✓</span> 1 Hollywood film/mo included · 150 credits</li><li><span className="ck">✓</span> Every scene generated by AI</li><li><span className="ck">✓</span> Script + voiceover + captions</li></ul>
               <a className="btn btn-w" href={creatorCheckoutHref}>Go Creator — $9.90 first month</a>
             </div>
             <div className="plan">
-              <div className="pt">Studio</div><div className="nm">Studio</div>
+              <div className="pt">Best value per video</div><div className="nm">Studio</div>
               <div className="pr">$37.90<span>/mo</span></div>
               {/* KINEO-REBASE-2026-07-10 — 400 → 200 credits (2:1 rebase, USD unchanged) */}
               <ul><li><span className="ck">✓</span> <b>~4 Cinematic AI</b> videos/mo (Kling)</li><li><span className="ck">✓</span> 200 credits/mo (33% more)</li><li><span className="ck">✓</span> Highest quality + priority queue</li><li><span className="ck">✓</span> Everything in Creator</li></ul>
@@ -419,7 +449,7 @@ export default function KineoLanding({ initialUser }: Props) {
       <div className="wrap" style={{ paddingTop: 28, paddingBottom: 28, textAlign: 'center', borderTop: '1px solid #2a2a2d' }}>
         <div className="taaft-badge">
           <a href={"https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"} target="_blank" rel="nofollow noreferrer">
-            <img width={200} src={"https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"} alt="Featured on There's An AI For That" />
+            <img width={200} height={42} loading="lazy" decoding="async" src={"https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"} alt="Featured on There's An AI For That" />
           </a>
         </div>
       </div>

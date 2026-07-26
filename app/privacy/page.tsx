@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   title: 'Privacy Policy — Kineo',
   description:
     'How Kineo collects, uses, and protects your data. LGPD- and GDPR-aware: full deletion rights and a clear contact for requests.',
+  // PUSH #92 — P0 canonical bug: without its own canonical this page
+  // inherited the root layout's `https://www.usekineo.com`, telling Google
+  // it was a duplicate of the homepage.
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {
@@ -19,7 +23,7 @@ export default function PrivacyPage() {
           minHeight: '100vh',
           background: '#000',
           color: '#F5F7FF',
-          fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+          fontFamily: 'var(--font-inter), Inter, system-ui, -apple-system, sans-serif',
           padding: '24px 20px 32px',
         }}
       >

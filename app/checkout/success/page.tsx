@@ -82,7 +82,7 @@ export default function CheckoutSuccessPage() {
         minHeight: '100vh',
         background: 'var(--bg)',
         color: 'var(--text)',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

@@ -141,6 +141,61 @@ function alignOverlap(a: Set<string>, b: Set<string>): number {
   return shared / Math.min(a.size, b.size)
 }
 
+// PUSH #94 — scene "hint" used for concept detection / stock-query derivation.
+//
+// Defect: the call site passed `scene.voiceover.slice(0, 80)` — roughly 12
+// words. When a scene's distinguishing proper noun or concrete noun lands late
+// in the sentence ("The thing most people never realise about ... Chernobyl"),
+// the hint was pure leading filler, CONCEPT_VISUAL_MAP had nothing to key off,
+// and the scene got a meaningless stock search.
+//
+// Downstream consumer: getPixabayClipsForScene(queries, needsPeople, hint) in
+// lib/pixabay.ts. It uses `hint` in exactly two places — as a lowercased regex
+// haystack for CONCEPT_VISUAL_MAP inside concretizeQueries(), and as a
+// `.slice(0, 50)` log label. It is never sent to an API, a prompt or a search
+// query, so there is no length assumption and no token budget to blow. It is
+// bounded here anyway (~SCENE_HINT_MAX_CHARS + a few tokens).
+//
+// This mirrors groundedFallbackQuery() in lib/broll/aesthetic-packs.ts (proper
+// nouns first, then >=4-char non-stopword / non-people / non-numeric tokens).
+// That helper is module-private (NOT exported) and additionally requires an
+// AestheticPack for its ban check, so this is a deliberate minimal local
+// equivalent — DUPLICATED LOGIC. If it is ever exported, delete this and import
+// it instead. Stopword/people lists are the ones already defined in this file.
+const SCENE_HINT_MAX_CHARS = 240
+const SCENE_HINT_MAX_TOKENS = 6
+
+function buildSceneHint(voiceover: string): string {
+  const text = (voiceover ?? '').trim()
+  if (!text) return ''
+  // Short scene: the whole narration IS the signal — no truncation at all.
+  if (text.length <= SCENE_HINT_MAX_CHARS) return text
+
+  // Long scene: cut on a word boundary so a proper noun is never split in half.
+  let head = text.slice(0, SCENE_HINT_MAX_CHARS)
+  const lastSpace = head.lastIndexOf(' ')
+  if (lastSpace > 0) head = head.slice(0, lastSpace)
+
+  // ...then append the content-bearing tokens taken from the WHOLE voiceover,
+  // proper nouns first, so a distinguishing noun that lands after the cut still
+  // reaches the concept matcher instead of being thrown away.
+  const proper = (text.match(/\b[A-Z][a-zA-Z]{3,}\b/g) ?? []).map((w) => w.toLowerCase())
+  const rest = text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean)
+  const headLower = head.toLowerCase()
+  const picked: string[] = []
+  for (const w of [...proper, ...rest]) {
+    if (w.length < 4) continue
+    if (/^\d+$/.test(w)) continue // bare years/numbers are useless stock terms
+    if (ALIGN_STOPWORDS.has(w)) continue
+    if (PEOPLE_LIFESTYLE_RE.test(w)) continue // never steer the concept map at stock people
+    if (picked.includes(w)) continue
+    if (headLower.includes(w)) continue // already carried by the kept head
+    picked.push(w)
+    if (picked.length === SCENE_HINT_MAX_TOKENS) break
+  }
+  return picked.length > 0 ? `${head} ${picked.join(' ')}` : head
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -731,7 +786,10 @@ export async function POST(req: NextRequest) {
           const pixUrls = await getPixabayClipsForScene(
             pixQueries,
             sceneNeedsPeople,
-            (scene.voiceover ?? '').slice(0, 80),
+            // PUSH #94 — was `.slice(0, 80)` (~12 words), which fed the concept
+            // matcher nothing but the scene's leading filler clause. See
+            // buildSceneHint() above.
+            buildSceneHint(scene.voiceover ?? ''),
             // (12/06) exact: user-authored [Pexels: ...] queries are sovereign —
             // no concept-map prepending. exclude: never reuse a clip another
             // scene already took (the same-Dubai-aerial-4x bug).
