@@ -35,6 +35,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
 import {
   AUTOPILOT_MAX_PUBLISHES_PER_RUN,
+  AUTOPILOT_ENTITLEMENT_COLUMNS,
   AUTOPILOT_MAX_STARTS_PER_RUN,
   AUTOPILOT_MAX_PAGES,
   AUTOPILOT_PAGE_SIZE,
@@ -421,7 +422,10 @@ async function generatePass(args: {
     // ── ENTITLEMENT + CRÉDITO, pelo ledger existente ───────────────────────
     const { data: profileData, error: profileError } = await db
       .from('profiles')
-      .select('has_paid, plan, is_pro, video_credits')
+      // KINEO-PILOT-99-2026-07-26 — constante única, porque isAutopilotEntitled
+      // falha FECHADO em plano com prazo: se plan_expires_at não vier no select,
+      // todo piloto de $99 vira 'not_entitled' e o cliente não recebe nada.
+      .select(AUTOPILOT_ENTITLEMENT_COLUMNS)
       .eq('id', schedule.user_id)
       .maybeSingle()
     if (profileError) {
@@ -431,6 +435,7 @@ async function generatePass(args: {
     const profile = profileData as {
       has_paid?: boolean | null; plan?: string | null
       is_pro?: boolean | null; video_credits?: number | null
+      plan_expires_at?: string | null
     } | null
 
     // Free NUNCA recebe auto-publicação. O gate vive aqui porque

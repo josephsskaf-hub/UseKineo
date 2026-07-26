@@ -23,7 +23,11 @@ function startOfTodayUtcIso(): string {
 }
 
 async function safeCount(
-  fn: () => Promise<{ count: number | null; error: unknown }>
+  // KINEO-TSC-2026-07-26 — PostgrestFilterBuilder é um *thenable*, não uma
+  // Promise: não tem .catch/.finally. Tipar o parâmetro como Promise fazia
+  // TODA chamada de safeCount virar erro de tsc (5 aqui, 5 em metrics).
+  // PromiseLike é o contrato que a função realmente usa — ela só faz await.
+  fn: () => PromiseLike<{ count: number | null; error: unknown }>
 ): Promise<number | null> {
   try {
     const { count, error } = await fn()

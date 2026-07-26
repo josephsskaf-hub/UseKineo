@@ -1,3 +1,12 @@
+// KINEO-PILOT-99-2026-07-26 — imported so the $99 pilot's credit grant is
+// checked against the REAL cost of the engines the Autopilot cron is allowed
+// to run, not against a number retyped here that stops being true the next
+// time someone reprices an engine. Neither module imports this one, so there
+// is no cycle: engineCost.ts imports nothing, autopilot/config.ts imports only
+// a type from engineCost.ts.
+import { creditCostFor } from '@/lib/credits/engineCost'
+import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'
+
 export type CheckoutTier = 'starter' | 'basic' | 'pro'
 // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot is a fourth PAID plan, but it is
 // deliberately NOT folded into CheckoutTier. CheckoutTier is consumed by
@@ -23,6 +32,44 @@ export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>>
 export const AUTOPILOT_PRICES: Record<CheckoutCurrency, number> = {
   usd: 29900, brl: 149900, inr: 2419900,
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PILOT-99-2026-07-26 — THE $99 AUTOPILOT PILOT (one-time, 7 days).
+// ═══════════════════════════════════════════════════════════════════════════
+// $299/month is the right price for Autopilot and the wrong ASK for a base of
+// 713 signups whose entire paid history is 3 customers. The pilot is the ask
+// that fits: "$99. One week. 7 Shorts published to your channel, one per day,
+// at the time you pick." It is a one-time PAYMENT, not a subscription — the
+// $299 upsell then becomes a decision to NOT interrupt something already
+// running on the customer's own channel.
+//
+// The pilot is NOT a cheaper Autopilot. It is the same machine with a hard
+// end date, which is why the plan it grants (autopilot_pilot) carries an
+// expiry that the CRON enforces — see lib/autopilot/config.ts.
+//
+// BRL/INR follow the same multipliers as the rest of the ladder (BRL ≈ 5.0x,
+// INR ≈ 80.8x). Do NOT let any two SKU amounts collide across currencies
+// without a currency check: the webhook's value-based fallback compares
+// amount_total, and topup40 is ₹49,900 while the pilot is R$499,00 — the same
+// integer. Every fallback added for this SKU is currency-qualified.
+export const AUTOPILOT_PILOT_PRICES: Record<CheckoutCurrency, number> = {
+  usd: 9900, brl: 49900, inr: 799900,
+}
+
+// Days of Autopilot the pilot buys — and therefore the number of Shorts
+// promised. Declared in lib/autopilot/config.ts (the cron reads it there) and
+// re-exported here so the pricing page and the invariants below cannot drift
+// from what the scheduler actually does.
+export { AUTOPILOT_PILOT_DAYS }
+
+// Credit grant. The pilot's 7 daily Shorts are produced by the cron on a
+// server-clamped engine (lib/autopilot/config.ts limits Autopilot to
+// 'fast' = 1 credit or 'basic_ai' = 8 credits), so the worst case the daily
+// job can cost is 7 x 8 = 56 credits. 60 clears that with a little room for
+// the customer to press Generate themselves without the pilot silently dying
+// on 'insufficient_credits' — which, mid-pilot, reads to the buyer as "the
+// product broke", not "I ran out". The invariant below machine-checks it.
+export const AUTOPILOT_PILOT_CREDITS = 60
 
 // Monthly price for ANY paid plan, including Autopilot. Prefer this over
 // indexing TIER_PRICES directly when the tier can be 'autopilot'.
@@ -235,6 +282,46 @@ export function checkPricingInvariants(): string[] {
     if (net - cogs < 0) {
       problems.push(`${sku.id} is below cost in the worst case (net $${net.toFixed(2)} vs COGS $${cogs.toFixed(2)}).`)
     }
+  }
+
+  // (4) KINEO-PILOT-99-2026-07-26 — the $99 / 7-day Autopilot pilot.
+  // Three separate ways this SKU can quietly become a loss, all checked:
+  //   (4a) the grant must survive the cron itself. The pilot PROMISES 7
+  //        published Shorts; if the credit grant cannot pay for 7 renders on
+  //        the most expensive engine the server allows Autopilot to use, the
+  //        pilot dies on 'insufficient_credits' somewhere around day 4 and we
+  //        have taken $99 for a broken promise. This is the invariant that a
+  //        future engine reprice is most likely to break, silently.
+  //   (4b) the whole grant, spent on the worst engine in the catalog, must
+  //        still net positive — same test every other SKU gets.
+  //   (4c) the pilot must not be a cheaper way to buy the $299 tier. Per day
+  //        it has to cost MORE than the monthly plan does per day, or the
+  //        rational move is to re-buy the pilot forever instead of upgrading.
+  const pilotWorstEngineCost = Math.max(
+    ...AUTOPILOT_ALLOWED_ENGINES.map((engine) => creditCostFor(engine, true)),
+  )
+  const pilotRunCredits = pilotWorstEngineCost * AUTOPILOT_PILOT_DAYS
+  if (pilotRunCredits > AUTOPILOT_PILOT_CREDITS) {
+    problems.push(
+      `pilot:autopilot grants ${AUTOPILOT_PILOT_CREDITS} credits but its own ${AUTOPILOT_PILOT_DAYS} ` +
+      `scheduled Shorts cost up to ${pilotRunCredits} (${pilotWorstEngineCost}/render on the most ` +
+      `expensive Autopilot-allowed engine). The pilot would run out before it delivers what it sold.`,
+    )
+  }
+  const pilotNet = netAfterStripeUsd(AUTOPILOT_PILOT_PRICES.usd / 100)
+  const pilotCogs = worstCaseCogsUsd(AUTOPILOT_PILOT_CREDITS)
+  if (pilotNet - pilotCogs < 0) {
+    problems.push(
+      `pilot:autopilot is below cost in the worst case (net $${pilotNet.toFixed(2)} vs COGS $${pilotCogs.toFixed(2)}).`,
+    )
+  }
+  const pilotUsdPerDay = AUTOPILOT_PILOT_PRICES.usd / 100 / AUTOPILOT_PILOT_DAYS
+  const autopilotUsdPerDay = AUTOPILOT_PRICES.usd / 100 / 30
+  if (pilotUsdPerDay <= autopilotUsdPerDay) {
+    problems.push(
+      `pilot:autopilot costs $${pilotUsdPerDay.toFixed(2)}/day, at or below the $299 plan's ` +
+      `$${autopilotUsdPerDay.toFixed(2)}/day. A trial must never be the cheap way to buy the product.`,
+    )
   }
 
   return problems

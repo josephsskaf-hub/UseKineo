@@ -18,6 +18,10 @@ import ExitIntentOffer from '@/components/ExitIntentOffer'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
   ANNUAL_PRICES,
+  // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
+  // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
+  AUTOPILOT_PILOT_DAYS,
+  AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
   CURRENCY_DISPLAY,
   INTRO_CREDITS,
@@ -297,18 +301,32 @@ export default function PricingClient() {
           ? 'autopilot_checkout_clicked'
           : 'basic_checkout_clicked'
     trackPricingEvent(eventName)
-    // KINEO-AUTOPILOT-299-2026-07-26 — trackCheckoutClick's `plan` union lives
-    // in lib/trackClick.ts, which is owned by another agent this sprint, so
-    // 'autopilot' is not accepted there yet. The click is still recorded by
-    // trackPricingEvent above (autopilot_checkout_clicked) and by the server
-    // (checkout_attempted / checkout_started), so nothing is lost — only the
-    // click_events row is missing. FOLLOW-UP: widen that union and drop this
-    // guard so /admin/click-stats can see Autopilot.
-    if (tier !== 'autopilot') trackCheckoutClick(tier)
+    // KINEO-PILOT-99-2026-07-26 — o guard `if (tier !== 'autopilot')` saiu: a
+    // união em lib/trackClick.ts já aceita 'autopilot', então o SKU de maior
+    // ARPU deixa de ser invisível em /admin/click-stats.
+    trackCheckoutClick(tier)
     // #457 — TikTok Pixel: InitiateCheckout = purchase intent (warmest retargeting audience)
     try {
       const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
       if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: tier })
+    } catch { /* non-blocking */ }
+  }
+
+  // KINEO-PILOT-99-2026-07-26 — o piloto é uma compra ÚNICA (?pack=…), não um
+  // tier de assinatura, então não passa por handleBuy: nada de billing, promo,
+  // intro ou annual se aplica a ele. Mesmo launcher, mesma trava anti-duplo-clique.
+  function handleBuyAutopilotPilot() {
+    const started = checkout.launch(
+      'autopilot_pilot',
+      '/api/stripe/checkout?pack=autopilot_pilot',
+      { sku: 'autopilot_pilot', pricing_surface: 'pricing_page' },
+    )
+    if (!started) return
+    trackPricingEvent('autopilot_pilot_checkout_clicked')
+    trackCheckoutClick('autopilot_pilot')
+    try {
+      const ttq = (window as unknown as { ttq?: { track: Function } }).ttq
+      if (ttq && typeof ttq.track === 'function') ttq.track('InitiateCheckout', { content_name: 'autopilot_pilot' })
     } catch { /* non-blocking */ }
   }
 
@@ -710,6 +728,68 @@ export default function PricingClient() {
                 <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
                   🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
                 </p>
+              </div>
+            </div>
+
+            {/* ══════════════════════════════════════════════════════════════
+                KINEO-PILOT-99-2026-07-26 — $99 / 7-DAY PILOT.
+
+                Attached to the Autopilot card, not a fourth tier in the grid.
+                A fourth column turns a choice into a comparison exercise; this
+                is the same product with a smaller first step, so it belongs
+                under the product it steps into.
+
+                Why it exists: 713 signups, 3 paying customers, and 82% of
+                activated users made exactly one video and left. The $299 buyer
+                is not in that base — so the ask is $99 once, and the $299
+                upgrade becomes a decision to NOT interrupt something already
+                running on the customer's own channel.
+
+                Copy discipline: it promises exactly what the cron delivers —
+                7 Shorts, one per day, at the hour the customer picks. No
+                "grow your channel", no view counts, no revenue claims.
+                ══════════════════════════════════════════════════════════════ */}
+            <div
+              className="mt-7 rounded-xl border border-dashed p-5 sm:p-6"
+              style={{ borderColor: 'rgba(41,151,255,0.42)', background: 'rgba(41,151,255,0.05)' }}
+            >
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-[1fr_auto] md:items-center">
+                <div>
+                  <div className="text-[11px] font-extrabold uppercase tracking-[.12em] text-[#2997ff]">
+                    Not ready for {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PRICES[resolvedCurrency]) : 'the monthly'}/month?
+                  </div>
+                  <h3 className="mt-1.5 text-[1.15rem] font-black tracking-tight text-[#f5f5f7]">
+                    Try it for one week —{' '}
+                    {displayCurrency ? formatCheckoutMoney(resolvedCurrency, AUTOPILOT_PILOT_PRICES[resolvedCurrency]) : '—'}, once
+                  </h3>
+                  <p className="mt-2 text-[13.5px] leading-snug text-[#f5f5f7]">
+                    {AUTOPILOT_PILOT_DAYS} Shorts published to your YouTube channel,
+                    one per day, at the time you pick. If you don&apos;t want to
+                    continue, the videos are yours and that&apos;s it.
+                  </p>
+                  <p className="mt-2 text-[12px] leading-snug text-[#86868b]">
+                    One-time payment — not a subscription, nothing to cancel. It ends
+                    on its own after {AUTOPILOT_PILOT_DAYS} days. A human editing agency
+                    would charge you roughly USD $217 for {AUTOPILOT_PILOT_DAYS} Shorts
+                    at their $30.94-per-Short rate.
+                  </p>
+                </div>
+
+                <div className="md:w-[230px]">
+                  <button
+                    type="button"
+                    disabled={purchasing !== null}
+                    onClick={handleBuyAutopilotPilot}
+                    className="block w-full rounded-xl border border-[#2997ff] px-4 py-3 text-center text-[13.5px] font-extrabold text-[#2997ff] transition hover:bg-[#2997ff] hover:text-white disabled:opacity-60"
+                  >
+                    {purchasing === 'autopilot_pilot'
+                      ? 'Loading…'
+                      : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
+                  </button>
+                  <p className="mt-2 text-center text-[11.5px] font-semibold text-[#86868b]">
+                    🔒 Stripe · one-time · no auto-renew
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -35,6 +35,20 @@ const SERVER_ONLY_EVENTS = new Set([
   // /autopilot. Se o sink do browser pudesse cunhar, um burst forjado infla o
   // TOPO do funil do SKU de $299 e a taxa de conversão passa a mentir pra baixo.
   'autopilot_page_arrived',
+  // KINEO-YT-CONNECT-2026-07-26 — os três são escritos SÓ pelo par
+  // /api/youtube/auth + /api/youtube/callback. Eles formam o funil inteiro da
+  // conexão de canal (denominador, sucesso, falha). Se o sink do browser
+  // pudesse cunhá-los, a única métrica que diz se o Autopilot é entregável
+  // viraria ficção — e ela é justamente a que estava em ZERO.
+  'youtube_connect_started',
+  'youtube_connected',
+  'youtube_connect_failed',
+  // KINEO-REVIVE-2026-07-26 — escritos pelo Server Component /revive/[handle]
+  // e pela rota de clique. São outbound frio: o volume de views é o
+  // denominador do canal de aquisição inteiro, e um burst forjado esconderia
+  // uma campanha morta atrás de números bonitos.
+  'revive_page_viewed',
+  'revive_cta_clicked',
 ])
 
 export async function POST(req: NextRequest) {

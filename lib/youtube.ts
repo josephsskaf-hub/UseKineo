@@ -25,12 +25,95 @@ export interface YouTubeTokens {
   scope: string
 }
 
+// ─── Redirect URI: UMA fonte de verdade ───────────────────────────────────────
+// KINEO-YTCONNECT-2026-07-26 — POR QUE ISTO EXISTE.
+//
+// `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback` era montado por
+// concatenação em DOIS lugares (buildYouTubeAuthUrl e exchangeCodeForTokens).
+// Com a env ausente isso não explode: emite a STRING LITERAL
+// "undefined/api/youtube/callback", que o Google recusa com
+// `redirect_uri_mismatch` — o erro genérico que custou horas de diagnóstico e
+// que, do lado do usuário, aparece como uma tela do Google sem nenhuma pista de
+// que a culpa é de uma variável de ambiente NOSSA.
+//
+// Regras: origem única, https obrigatório em produção, e falha ALTA e NOMEADA
+// (YouTubeOAuthConfigError + uma linha de log que diz exatamente qual env está
+// errada e qual valor chegou). Um olhar no log tem que bastar.
+
+/** Erro de CONFIGURAÇÃO (env), não de usuário. Nome próprio para grep no log. */
+export class YouTubeOAuthConfigError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'YouTubeOAuthConfigError'
+  }
+}
+
+/** Erro de usuário: a conta Google escolhida não tem canal no YouTube. */
+export class YouTubeNoChannelError extends Error {
+  constructor(message = 'No YouTube channel found for this Google account') {
+    super(message)
+    this.name = 'YouTubeNoChannelError'
+  }
+}
+
+// O domínio público atual. Só é usado quando NEXT_PUBLIC_APP_URL está VAZIA —
+// nunca sobrescreve uma env presente, para não mascarar preview deploys.
+const YOUTUBE_FALLBACK_ORIGIN = 'https://usekineo.com'
+
+export const YOUTUBE_CALLBACK_PATH = '/api/youtube/callback'
+
+/**
+ * Origem absoluta e válida do app, ou erro nomeado. Aceita http SOMENTE em
+ * localhost (dev): fora disso o Google exige https e um http:// aqui vira o
+ * mesmo redirect_uri_mismatch silencioso que estamos matando.
+ */
+export function resolveAppOrigin(): string {
+  const raw = (process.env.NEXT_PUBLIC_APP_URL ?? '').trim()
+  const candidate = raw || YOUTUBE_FALLBACK_ORIGIN
+
+  let parsed: URL
+  try {
+    parsed = new URL(candidate)
+  } catch {
+    const msg =
+      `NEXT_PUBLIC_APP_URL is not an absolute URL (got ${JSON.stringify(raw)}). ` +
+      `Expected something like "https://usekineo.com". Google OAuth cannot be built from this.`
+    console.error(`[youtube][CONFIG] ${msg}`)
+    throw new YouTubeOAuthConfigError(msg)
+  }
+
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+  if (parsed.protocol !== 'https:' && !isLocalhost) {
+    const msg =
+      `NEXT_PUBLIC_APP_URL must be https (got ${JSON.stringify(parsed.origin)}). ` +
+      `Google rejects non-https redirect URIs with redirect_uri_mismatch.`
+    console.error(`[youtube][CONFIG] ${msg}`)
+    throw new YouTubeOAuthConfigError(msg)
+  }
+
+  return parsed.origin
+}
+
+/**
+ * O redirect_uri EXATO. Tem que bater byte a byte com o que está registrado no
+ * console do Google (projeto shortsforgeai): usekineo.com, www.usekineo.com.
+ * Usado tanto ao MONTAR o consent quanto ao TROCAR o code — se os dois lados
+ * divergirem o Google recusa a troca, então os dois chamam esta função.
+ */
+export function youtubeRedirectUri(): string {
+  return `${resolveAppOrigin()}${YOUTUBE_CALLBACK_PATH}`
+}
+
 // ─── Build the Google OAuth URL ───────────────────────────────────────────────
 
 export function buildYouTubeAuthUrl(state: string): string {
   const clientId = process.env.YOUTUBE_CLIENT_ID
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`
-  if (!clientId) throw new Error('YOUTUBE_CLIENT_ID not configured')
+  const redirectUri = youtubeRedirectUri()
+  if (!clientId) {
+    const msg = 'YOUTUBE_CLIENT_ID not configured'
+    console.error(`[youtube][CONFIG] ${msg}`)
+    throw new YouTubeOAuthConfigError(msg)
+  }
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -48,8 +131,14 @@ export function buildYouTubeAuthUrl(state: string): string {
 export async function exchangeCodeForTokens(code: string): Promise<YouTubeTokens> {
   const clientId = process.env.YOUTUBE_CLIENT_ID
   const clientSecret = process.env.YOUTUBE_CLIENT_SECRET
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/youtube/callback`
-  if (!clientId || !clientSecret) throw new Error('YouTube OAuth credentials not configured')
+  // KINEO-YTCONNECT-2026-07-26 — mesma função que montou o consent. Duas
+  // concatenações independentes podiam divergir e o Google recusa a troca.
+  const redirectUri = youtubeRedirectUri()
+  if (!clientId || !clientSecret) {
+    const msg = 'YouTube OAuth credentials not configured (YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET)'
+    console.error(`[youtube][CONFIG] ${msg}`)
+    throw new YouTubeOAuthConfigError(msg)
+  }
 
   const res = await fetch(YOUTUBE_TOKEN_URL, {
     method: 'POST',
@@ -176,11 +265,42 @@ export async function uploadVideoToYouTube(
 ): Promise<UploadResult> {
   const { videoUrl, title, description, tags, privacyStatus = 'public', madeForKids = false } = opts
 
-  // Step 1 — Download the mp4 into memory
+  // Step 1 — Get the mp4.
+  //
+  // KINEO-YTCONNECT-2026-07-26 — `arrayBuffer()` puxava o MP4 INTEIRO para a
+  // memória da função antes de começar o upload. Para um Short de ~50s isso é
+  // irrelevante (~10 MB), e é por isso que o caminho bufferizado — o único
+  // exercitado em produção até hoje — continua sendo o default: trocá-lo por
+  // um streaming não testado no caminho quente seria arriscar a publicação de
+  // TODO cliente para resolver um problema que ele não tem.
+  //
+  // O risco real é a cauda: um vídeo longo o bastante derruba a função por OOM
+  // e o cliente é cobrado (o crédito é liquidado no passo 3 do pipeline, ANTES
+  // da publicação) sem nada ir ao ar. Acima do teto abaixo, o corpo é repassado
+  // como stream — o upload resumable do YouTube exige Content-Length exato, e
+  // só sabemos esse número sem bufferizar quando a origem manda content-length.
+  const STREAM_THRESHOLD_BYTES = 64 * 1024 * 1024
+
   const videoRes = await fetch(videoUrl)
   if (!videoRes.ok) throw new Error(`Failed to download video: ${videoRes.status}`)
-  const videoBuffer = await videoRes.arrayBuffer()
-  const contentLength = videoBuffer.byteLength
+
+  const declaredLength = Number(videoRes.headers.get('content-length') ?? '')
+  const canStream =
+    Number.isFinite(declaredLength) &&
+    declaredLength > STREAM_THRESHOLD_BYTES &&
+    videoRes.body !== null
+
+  let videoBody: ArrayBuffer | ReadableStream<Uint8Array>
+  let contentLength: number
+  if (canStream) {
+    videoBody = videoRes.body as ReadableStream<Uint8Array>
+    contentLength = declaredLength
+    console.log(`[youtube/upload] streaming ${contentLength} bytes (over ${STREAM_THRESHOLD_BYTES} threshold)`)
+  } else {
+    const buf = await videoRes.arrayBuffer()
+    videoBody = buf
+    contentLength = buf.byteLength
+  }
 
   // Step 2 — Initiate resumable upload session
   const metadata = {
@@ -218,15 +338,19 @@ export async function uploadVideoToYouTube(
   const uploadUrl = initRes.headers.get('Location')
   if (!uploadUrl) throw new Error('YouTube upload: no Location header in response')
 
-  // Step 3 — Upload the video bytes
+  // Step 3 — Upload the video bytes.
+  // `duplex: 'half'` é OBRIGATÓRIO no undici (Node 18+) quando o body é um
+  // ReadableStream; não existe no tipo RequestInit do TS, daí o cast. Com body
+  // bufferizado a opção é ignorada, então o caminho antigo não muda.
   const uploadRes = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
       'Content-Type': 'video/mp4',
       'Content-Length': String(contentLength),
     },
-    body: videoBuffer,
-  })
+    body: videoBody as BodyInit,
+    ...(canStream ? { duplex: 'half' } : {}),
+  } as RequestInit)
 
   if (!uploadRes.ok && uploadRes.status !== 308) {
     const err = await uploadRes.text()
@@ -274,7 +398,11 @@ export async function fetchChannelStats(accessToken: string): Promise<ChannelSta
   if (!res.ok) throw new Error(`Channel fetch failed: ${res.status}`)
   const data = await res.json()
   const ch = data.items?.[0]
-  if (!ch) throw new Error('No YouTube channel found for this account')
+  // KINEO-YTCONNECT-2026-07-26 — erro NOMEADO. Uma conta Google sem canal é um
+  // desfecho de USUÁRIO (escolheu a conta errada no seletor), não uma falha de
+  // rede: quem chama precisa distinguir os dois para dizer ao cliente o que
+  // fazer em vez de mostrar "algo deu errado".
+  if (!ch) throw new YouTubeNoChannelError()
   return {
     channelId: ch.id,
     channelTitle: ch.snippet?.title ?? 'My Channel',

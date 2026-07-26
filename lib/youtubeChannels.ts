@@ -19,6 +19,7 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 import {
   refreshAccessToken,
   fetchChannelStats,
+  YouTubeNoChannelError,
   YOUTUBE_SCOPES,
   type YouTubeTokens,
 } from '@/lib/youtube'
@@ -189,23 +190,40 @@ export async function getValidChannelAccessToken(channelId: string): Promise<str
   }
 }
 
+// KINEO-YTCONNECT-2026-07-26 — o desfecho REAL do registro do canal.
+//
+// A versão anterior devolvia `string | null` e engolia toda falha. Consequência
+// medida em produção: com `channels` = 0 linhas e `profiles.youtube_tokens` = 0,
+// um upsert que falhasse era INDISTINGUÍVEL de um sucesso — o callback já tinha
+// gravado o token legado, redirecionava com "connected" e o cliente do produto
+// de $299/mês era informado de que estava conectado enquanto a tabela que o
+// Autopilot lê continuava vazia PARA SEMPRE. Quem chama precisa do motivo.
+export type UpsertChannelResult =
+  | { ok: true; channelId: string; externalChannelId: string | null; title: string | null }
+  | { ok: false; reason: 'store_unavailable' | 'no_channel' | 'write_failed'; error: string }
+
 /**
  * Registra/atualiza o canal logo depois do OAuth. Busca o id REAL do canal na
  * YouTube Data API (fetchChannelStats) para que a unique
  * (user_id, provider, external_channel_id) separe canais de verdade — sem isso
  * um segundo canal do mesmo usuário sobrescreveria o primeiro.
  *
- * Best-effort: se a chamada de stats falhar, grava a linha assim mesmo com
- * external_channel_id NULL (o índice coalesced da migration 021 mantém uma
- * única linha legada por usuário). Nunca lança — o callback do OAuth não pode
- * quebrar por causa disso.
+ * Não lança: devolve um resultado tipado. Uma falha de stats TRANSITÓRIA ainda
+ * grava a linha com external_channel_id NULL (o índice coalesced da migration
+ * 021 mantém uma única linha legada por usuário) — o token é válido e o canal é
+ * recuperável na próxima chamada. Já `no_channel` é definitivo e NÃO grava
+ * nada: uma linha sem canal do outro lado nunca publicaria.
  */
 export async function upsertChannelFromTokens(args: {
   userId: string
   tokens: YouTubeTokens
-}): Promise<string | null> {
+}): Promise<UpsertChannelResult> {
   const db = channelsAdmin()
-  if (!db) return null
+  if (!db) {
+    const error = 'service-role env missing — channel store disabled'
+    console.error('[yt-channels] upsert aborted:', error)
+    return { ok: false, reason: 'store_unavailable', error }
+  }
 
   let externalId: string | null = null
   let title: string | null = null
@@ -216,6 +234,13 @@ export async function upsertChannelFromTokens(args: {
     title = stats.channelTitle ?? null
     thumbnailUrl = stats.thumbnailUrl ?? null
   } catch (e) {
+    // A conta Google existe mas não tem canal: gravar aqui produziria um
+    // "canal conectado" que nunca aceita upload. É um beco sem saída que só o
+    // usuário resolve (escolhendo outra conta), então ele TEM que saber.
+    if (e instanceof YouTubeNoChannelError || (e as { name?: string })?.name === 'YouTubeNoChannelError') {
+      console.error('[yt-channels] google account has no YouTube channel — refusing to store')
+      return { ok: false, reason: 'no_channel', error: 'Google account has no YouTube channel' }
+    }
     console.warn('[yt-channels] channel stats lookup failed, storing without external id:',
       e instanceof Error ? e.message : String(e))
   }
@@ -249,20 +274,29 @@ export async function upsertChannelFromTokens(args: {
       const { error } = await db.from('channels').update(payload).eq('id', existingId)
       if (error) {
         console.error('[yt-channels] channel update failed:', error.message)
-        return null
+        return { ok: false, reason: 'write_failed', error: error.message }
       }
-      return existingId
+      return { ok: true, channelId: existingId, externalChannelId: externalId, title }
     }
 
     const { data, error } = await db.from('channels').insert(payload).select('id').maybeSingle()
     if (error) {
       console.error('[yt-channels] channel insert failed:', error.message)
-      return null
+      return { ok: false, reason: 'write_failed', error: error.message }
     }
-    return (data as { id: string } | null)?.id ?? null
+    const insertedId = (data as { id: string } | null)?.id ?? null
+    if (!insertedId) {
+      // Insert sem erro e sem linha = RLS/PostgREST devolveu vazio. Isso é
+      // exatamente a falha que antes virava "conectado" com a tabela vazia.
+      const error2 = 'insert returned no row (check service-role key and RLS on public.channels)'
+      console.error('[yt-channels] channel insert returned no row')
+      return { ok: false, reason: 'write_failed', error: error2 }
+    }
+    return { ok: true, channelId: insertedId, externalChannelId: externalId, title }
   } catch (e) {
-    console.error('[yt-channels] upsert threw:', e instanceof Error ? e.message : String(e))
-    return null
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[yt-channels] upsert threw:', msg)
+    return { ok: false, reason: 'write_failed', error: msg }
   }
 }
 

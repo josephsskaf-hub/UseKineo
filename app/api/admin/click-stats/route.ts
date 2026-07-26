@@ -16,7 +16,11 @@ const ADMIN_EMAILS = new Set([
 ])
 
 async function safeCount(
-  fn: () => Promise<{ count: number | null; error: unknown }>
+  // KINEO-TSC-2026-07-26 — PostgrestFilterBuilder é um *thenable*, não uma
+  // Promise: não tem .catch/.finally. Tipar o parâmetro como Promise fazia
+  // TODA chamada de safeCount virar erro de tsc (5 aqui, 5 em metrics).
+  // PromiseLike é o contrato que a função realmente usa — ela só faz await.
+  fn: () => PromiseLike<{ count: number | null; error: unknown }>
 ): Promise<number | null> {
   try {
     const { count, error } = await fn()
@@ -62,16 +66,40 @@ export async function GET() {
       }
     }
 
-    const [basic, pro] = await Promise.all([
+    // KINEO-PILOT-99-2026-07-26 — a rota contava SÓ basic e pro. Mesmo depois
+    // do #102 fazer trackCheckoutClick aceitar 'autopilot', o número nunca
+    // aparecia: quem conta é este arquivo. Sem isto, a intenção de compra do
+    // SKU de $299 e do piloto de $99 — exatamente os dois que este sprint
+    // existe para vender — continuaria invisível no único painel que mede
+    // intenção. Contagens novas em campos NOVOS; `basic` e `pro` seguem no
+    // mesmo lugar para não quebrar nenhum leitor existente.
+    const [basic, pro, starter, autopilot, autopilotPilot] = await Promise.all([
       safeCount(() =>
         admin.from('click_events').select('id', { head: true, count: 'exact' }).eq('plan', 'basic')
       ),
       safeCount(() =>
         admin.from('click_events').select('id', { head: true, count: 'exact' }).eq('plan', 'pro')
       ),
+      safeCount(() =>
+        admin.from('click_events').select('id', { head: true, count: 'exact' }).eq('plan', 'starter')
+      ),
+      safeCount(() =>
+        admin.from('click_events').select('id', { head: true, count: 'exact' }).eq('plan', 'autopilot')
+      ),
+      safeCount(() =>
+        admin.from('click_events').select('id', { head: true, count: 'exact' }).eq('plan', 'autopilot_pilot')
+      ),
     ])
 
-    return NextResponse.json({ available: true, basic, pro, updatedAt: new Date().toISOString() })
+    return NextResponse.json({
+      available: true,
+      basic,
+      pro,
+      starter,
+      autopilot,
+      autopilot_pilot: autopilotPilot,
+      updatedAt: new Date().toISOString(),
+    })
   } catch (err) {
     console.error('[admin/click-stats] unexpected:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

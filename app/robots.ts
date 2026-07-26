@@ -26,7 +26,13 @@ const AI_CRAWLERS = [
   'CCBot',
 ]
 
-const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2', '/create']
+// KINEO-REVIVE-2026-07-26 — '/revive' são páginas 1:1 geradas para UM prospect
+// nomeado (handle do canal dele, 3 vídeos no estilo dele). Indexar isso é
+// (a) doorway page aos olhos do Google e (b) expor publicamente a lista de
+// quem estamos prospectando. A página também emite noindex no <head>; esta
+// linha é a segunda tranca, porque robots.txt sozinho NÃO desindexa e noindex
+// sozinho não impede o crawl aparecer em logs de terceiros.
+const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2', '/create', '/revive']
 
 // KINEO-AEO-FACTS — duas rotas de aquisição por motor de resposta que PRECISAM
 // ficar rastreáveis:

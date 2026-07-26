@@ -14,6 +14,9 @@
 
 import { useState } from 'react'
 import { PLANS } from '@/lib/pricing'
+// KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel
+// também é USD fixo). O checkout continua resolvendo a moeda no servidor.
+import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
@@ -192,6 +195,60 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
             <span style={{ color: '#2997ff' }}>Start with 10 videos for $4.90 →</span>
             <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
               One-time · no subscription · credits never expire
+            </span>
+          </>
+        )}
+      </button>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          KINEO-PILOT-99-2026-07-26 — AUTOPILOT PILOT.
+
+          This is the highest-intent surface in the product: the user has just
+          watched a Short they made and is looking at how few credits are left.
+          It had zero Autopilot presence — every option above sells them MORE
+          WORK. 82% of activated users make exactly one video and leave, so for
+          most people reading this the honest offer is "stop making them".
+
+          Placed BELOW the $4.90 pack on purpose: the pack is the cheap yes,
+          this is the different yes. Promise is exactly what the cron ships.
+          ══════════════════════════════════════════════════════════════════ */}
+      <button
+        type="button"
+        disabled={purchasing !== null}
+        onClick={() => {
+          const started = checkout.launch('autopilot_pilot', '/api/stripe/checkout?pack=autopilot_pilot', {
+            sku: 'autopilot_pilot',
+          })
+          if (started) {
+            try {
+              void trackEvent('autopilot_pilot_checkout_clicked', { source: 'post_video_paywall' })
+            } catch { /* non-blocking */ }
+          }
+        }}
+        className="block w-full rounded-xl px-4 py-3 mb-3 text-center"
+        style={{
+          background: 'rgba(41,151,255,0.06)',
+          border: '1px dashed rgba(41,151,255,0.4)',
+          color: '#f5f5f7',
+          fontSize: '0.86rem',
+          fontWeight: 800,
+          lineHeight: 1.35,
+          cursor: purchasing !== null ? 'wait' : 'pointer',
+          opacity: purchasing !== null ? 0.7 : 1,
+        }}
+      >
+        {purchasing === 'autopilot_pilot' ? (
+          'Opening secure checkout…'
+        ) : (
+          <>
+            Don&apos;t want to make the next one?{' '}
+            <span style={{ color: '#2997ff' }}>
+              We&apos;ll publish {AUTOPILOT_PILOT_DAYS} to your YouTube for{' '}
+              {formatCheckoutMoney('usd', AUTOPILOT_PILOT_PRICES.usd)} →
+            </span>
+            <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
+              One per day, at the time you pick · one-time, no auto-renew · an agency
+              charges ~$217 for {AUTOPILOT_PILOT_DAYS} Shorts
             </span>
           </>
         )}

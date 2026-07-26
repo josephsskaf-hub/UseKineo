@@ -1,0 +1,67 @@
+PUSH #103 - CONEXAO DO YOUTUBE, PILOTO DE $99 E O CANAL /revive
+
+Este push nao adiciona produto novo. Ele desbloqueia o produto do #102, que estava inteiro no ar e vendendo ZERO porque o primeiro passo do fluxo nao funcionava.
+
+(1) O AUTOPILOT NAO CONSEGUIA CONECTAR UM CANAL. NENHUM. ZERO.
+
+Numero cru antes deste push: public.channels = 0 linhas, profiles.youtube_tokens = 0, /api/youtube/status devolvendo {"connected":false} pra todo mundo, e zero eventos de youtube_* em dois dias inteiros de trafego. Um produto de $299/mes cujo passo 1 e "conecte seu canal" tinha taxa de sucesso de 0%.
+
+Causa raiz: redirect_uri_mismatch sobrando da migracao shortsforgeai.com -> usekineo.com. O cliente OAuth no Google Cloud so conhecia as URLs do dominio velho, entao o Google recusava o retorno antes de qualquer codigo nosso rodar. Corrigido no console (2 redirect URIs + 2 origens JS, 5/4 confirmadas persistidas) - fora do repo, mas e a metade que faltava.
+
+A outra metade esta aqui:
+ - middleware.ts: LEGACY_HOST_DIRECT_PREFIXES = ['/api/youtube/']. O host legado shortsforgeai.vercel.app AINDA e um redirect URI registrado e valido. Sem esta excecao, o middleware redirecionava o callback do Google pro host novo e o codigo de autorizacao morria no caminho.
+ - /api/youtube/status: parou de devolver 200 com {connected:false} quando a CHECAGEM falha. Falha agora e 503 + {error:'check_failed'}. Nao e detalhe: "nao conectado" e "nao consegui saber" sao estados diferentes, e o primeiro mandava o cliente refazer um OAuth que ja tinha dado certo.
+ - GenerateClient: terceiro estado no botao ('error'), com a copia "We couldn't check your YouTube connection. Refresh in a moment." Antes, um 503 caia no ramo de "nao conectado" e pedia reconexao a quem ja estava conectado.
+ - AutopilotClient: tabela YT_OUTCOMES com 9 desfechos nomeados. Todo erro de OAuth tinha a mesma frase generica; agora consentimento negado, escopo faltando, token expirado e canal ja conectado dizem cada um a sua coisa.
+ - /api/youtube/upload: maxDuration 60 -> 300. Upload de Short com video renderizado nao cabe em 60s; o timeout da Vercel matava a publicacao DEPOIS de gastar o credito.
+
+Medicao junto, senao a gente conserta as cegas de novo: youtube_connect_started / youtube_connected / youtube_connect_failed entraram em SERVER_ONLY_EVENTS (app/api/events/route.ts). Sao o funil inteiro da conexao - denominador, sucesso e falha - e sao escritos SO pelo par auth+callback. Se o sink do browser pudesse cunha-los, a unica metrica que diz se o Autopilot e entregavel viraria ficcao. E ela e justamente a que estava em zero.
+
+(2) PILOTO DE $299 -> $99 POR 7 DIAS. O SKU que existia mas nao vendia.
+
+$299/mes e um preco certo contra agencia ($9.97 por Short contra $30.94 da VidChops) e um preco impossivel de pagar a frio pra quem nunca viu a Kineo publicar nada. O piloto e a ponte: $99, pagamento UNICO (mode:'payment' de proposito - uma assinatura de 7 dias que renova sozinha transforma a proxima decisao do cliente em "cancelar antes que me cobrem" em vez de "manter isso rodando"), 7 dias de publicacao diaria de verdade no canal dele.
+
+Economia conferida executando o codigo real, nao estimada: $99 bruto -> netAfterStripeUsd(99) = $95.829 -> 7 renders em basic_ai (56 creditos x $0.05 = $2.80) -> margem +$93.03, 97.2%. Pior caso possivel, 60 creditos em Seedance: $7.02 de custo, +$88.81, 92.7%. E a invariante que impede o piloto de canibalizar o plano cheio: $99/7 = $14.14 por dia contra $299/30 = $9.97 por dia. O piloto e MAIS CARO por dia. Ninguem fica no piloto pra economizar.
+
+Tres decisoes que parecem detalhe e nao sao:
+ - O plano se chama 'autopilot_pilot', nao 'autopilot_trial'. app/admin/page.tsx ja precificava 'autopilot_trial' em $299; reusar o nome faria cada piloto de $99 entrar no MRR como $299 e inflar exatamente o numero que decide quanto gastar em aquisicao.
+ - A janela e 7 dias + 36 horas de folga (AUTOPILOT_PILOT_GRACE_HOURS). Nao existe contagem de runs em lugar nenhum do codigo; a data e o unico limite real, e um cron que atrasa nao pode roubar o ultimo post que o cliente pagou.
+ - Cadencia travada em 1/dia pelo servidor no POST **e no PATCH**. So o POST nao bastava: o comprador criava a agenda em 1/dia (clampada) e logo em seguida PATCHava pra 3/dia, anulando o clamp. O PATCH agora reclampa mesmo quando o corpo nao manda postsPerDay, persiste a mudanca vinda do clamp e recalcula next_run_at junto - senao o next_run_at seria calculado por 1/dia enquanto a coluna guardava 3/dia, e o cron (que le a coluna) discordaria da agenda.
+
+profiles.plan_expires_at ja esta APLICADA em producao (coluna + indice parcial + comment). Sem ela a rota de checkout abortava de proposito antes de cobrar, entao o SKU era inerte. Agora nao e.
+
+(3) /revive - AQUISICAO OUTBOUND QUE NAO PEDE PERMISSAO PRA COMECAR.
+
+O problema de aquisicao da Kineo nunca foi trafego, foi que o trafego chegava frio numa pagina que pede cadastro. /revive/[handle] inverte: a gente RENDERIZA a pagina antes do contato existir. O prospect abre um link que ja mostra o canal DELE, os videos DELE, e a proposta especifica - nao um pitch generico. Server Component, sem cadastro, sem formulario antes do valor.
+
+Tranca de dados, que aqui e o ponto sensivel porque a tabela e uma lista de prospects: revive_prospects com RLS ligada E forcada, policy revive_no_public_read using(false), revoke all de anon e authenticated (conferido: role_table_grants devolve vazio), e as tres funcoes de escrita como security definer com search_path fixo. A pagina le por RPC, nunca por PostgREST direto.
+
+/revive tambem entrou no DISALLOW do robots.ts. Duas razoes: e pagina-porta gerada em massa (risco classico de penalidade), e indexar significa publicar a lista de quem a gente esta prospectando. robots.txt sozinho nao desindexa, entao a pagina carrega noindex por conta propria - duas trancas.
+
+revive_page_viewed e revive_cta_clicked tambem foram pra SERVER_ONLY_EVENTS: volume de view e o denominador do canal inteiro, e um burst forjado esconde campanha morta atras de numero bonito.
+
+E o botao agora aponta pro checkout de verdade. Ate hoje REVIVE_PILOT_CHECKOUT_PATH caia em /pricing, de proposito: o SKU do piloto nao existia, e `?tier=<desconhecido>` NAO da erro no checkout - cai silenciosamente em 'basic' e cobra $24.90/mes. Chutar o nome do SKU nao seria "quebra depois", seria cobrar o preco errado em silencio. As duas pre-condicoes cairam (o branch ?pack=autopilot_pilot existe, plan_expires_at esta aplicada), entao o destino virou /api/stripe/checkout?pack=autopilot_pilot com UTM de revive. Prospect deslogado cai em /login?redirect=<checkout>&resumed=1 e retoma depois do sign-in - fluxo previsto, nao erro.
+
+(4) public.channels ESTAVA VAZANDO OS TOKENS DO YOUTUBE PRO BROWSER.
+
+Achado auditando a tabela antes de mexer nela. channels guarda access_token e refresh_token em TEXTO PURO e tinha tres policies permissivas (channels_select_own / update_own / delete_own, todas auth.uid() = user_id) mais os grants padrao do Supabase pra anon e authenticated. Ou seja: qualquer sessao logada podia fazer GET /rest/v1/channels?select=* direto do browser e ler o proprio refresh_token do YouTube - a credencial que publica video no canal, sem expiracao natural. Um XSS, uma extensao de browser ou um script de terceiro no dashboard exfiltrava o direito de publicar na conta do cliente. E channels_update_own era pior: deixava o cliente reescrever o proprio access_token, injetando um token arbitrario que o cron depois usaria pra publicar.
+
+Deu pra fechar sem quebrar nada porque as 10 ocorrencias de from('channels') no repo (lib/youtubeChannels.ts 107/123/145/267/269/274/282/321, autopilot/schedules 218, cron/autopilot-generate 459) passam TODAS por cliente service-role. Nenhum caminho de leitura ou escrita usa o cliente de cookie - as tres policies nao serviam a nenhuma funcionalidade, eram superficie de ataque pura. Aplicado em producao e conferido: grants de anon/authenticated vazios, sobra so channels_no_public_access using(false). migrations_pending/023_channels_lockdown.sql documenta o raciocinio inteiro.
+
+(5) DUAS TELAS DE DINHEIRO DISCORDAVAM UMA DA OUTRA.
+
+/api/admin/overview tinha PLAN_PRICE_USD digitado a mao com starter em 11.90 (o valor real e 9.90) e NENHUMA entrada pra autopilot. Como PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD)), um assinante de $299 nao contava nem como cliente pagante nem como MRR nessa rota - enquanto o /admin contava. Agora a rota deriva de PLANS de lib/pricing e ninguem digita preco a mao. autopilot_pilot entra como CHAVE (pra contar como pagante) com VALOR 0 (porque $99 e one-time e somar no MRR infla o numero que decide gasto de aquisicao).
+
+/api/admin/click-stats contava so basic e pro. Mesmo depois do #102 fazer trackCheckoutClick aceitar 'autopilot', o numero nunca aparecia - quem conta e esse arquivo. Foi pra 5 contagens (+starter, +autopilot, +autopilot_pilot), em campos NOVOS, com basic e pro no mesmo lugar pra nao quebrar leitor existente. E /api/track-click tinha a whitelist parada no mundo de tres planos: todo clique em Autopilot era gravado com plan:null e sumia. Medicao pela metade mente com mais confianca que medicao que nao existe.
+
+O consumidor real desses numeros e app/(dashboard)/admin/metrics/MetricsClient.tsx (nao existe pagina /admin/click-stats). Tres cards novos la: Starter Clicks, Autopilot Clicks ($299), Pilot Clicks ($99). Os campos novos sao opcionais no tipo de proposito - front-end na frente da rota recebe payload velho e renderiza "-" em vez de derrubar o painel.
+
+(6) tsc: 21 ERROS -> 0.
+
+A arvore carregava 21 erros de tsc ha varios pushes, e erro velho esconde erro novo. Zerou:
+ - safeCount tipava o parametro como Promise, mas PostgrestFilterBuilder e um thenable (nao tem .catch/.finally). Toda chamada virava erro. PromiseLike e o contrato que a funcao de fato usa - 3 arquivos, 15 erros.
+ - GenerateClient referenciava proHasToken e cinematicFeatures, que nunca foram declarados. Nao quebrava em runtime porque o bloco inteiro esta atras de {false && ...} desde o #372 - mas no dia em que alguem trocar o false por uma flag, e ReferenceError na pagina que gera video, ou seja no produto inteiro.
+ - onClick={openOutOfCreditsModal} fazia o React entregar o MouseEvent como `reason`. O parametro tem default 'credits', mas default so vale pra undefined: o evento passava e o modal escolhia a copia pelo objeto do clique. Na tela que decide se o usuario compra ou desiste.
+ - SaaSHubBridgeClient: useState(EXAMPLES[0]) inferia o tipo do literal, entao nem o textarea nem os chips compilavam.
+
+Build de producao conferido nesta arvore: EXIT=0, 200/200 paginas, /revive/[handle], /api/revive, /api/revive/click e /autopilot todos no manifest.

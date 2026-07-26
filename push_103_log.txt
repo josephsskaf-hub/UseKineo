@@ -1,0 +1,8 @@
+===== KINEO PUSH 103 (YOUTUBE CONNECT + PILOTO $99 + REVIVE) ===== 
+ 
+[1/4] extraindo os 37 arquivos do push_103_files.zip por cima do repo 
+extraido ok 
+ 
+[2/4] nenhuma dependencia nova neste push - package.json intacto 
+ 
+[3/4] staging 

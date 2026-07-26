@@ -8,7 +8,13 @@
 // KINEO-AUTOPILOT-299-2026-07-26 — 'autopilot' incluído. Sem esta string o
 // clique no SKU de maior ARPU do produto (8x o segundo) fica INVISÍVEL em
 // /admin/click-stats, que é justamente onde a gente mede se a oferta pega.
-export function trackCheckoutClick(plan: 'starter' | 'basic' | 'pro' | 'autopilot'): void {
+// KINEO-PILOT-99-2026-07-26 — 'autopilot_pilot' incluído. Widening this union is
+// NECESSÁRIO mas NÃO SUFICIENTE: app/api/track-click/route.ts descarta qualquer
+// plan fora de starter|basic|pro (grava null) e /api/admin/click-stats só conta
+// basic e pro. Sem aquelas duas edições o clique continua invisível.
+export function trackCheckoutClick(
+  plan: 'starter' | 'basic' | 'pro' | 'autopilot' | 'autopilot_pilot',
+): void {
   try {
     void fetch('/api/track-click', {
       method: 'POST',

@@ -75,21 +75,92 @@ export const AUTOPILOT_MAX_PAGES = 20
 //
 // Todo mundo continua ENXERGANDO a página /autopilot — ela é o argumento de
 // venda. Quem não tem direito vê a oferta, não um formulário quebrado.
+// KINEO-PILOT-99-2026-07-26 — 'autopilot_pilot' é o piloto pago de $99 / 7
+// dias. Ele NÃO reusa 'autopilot_trial' de propósito (ver PLANOS COM PRAZO
+// abaixo): 'autopilot_trial' é escrito pelo Path B do webhook quando o Stripe
+// devolve payment_status='no_payment_required', e app/admin/page.tsx já
+// precifica 'autopilot_trial' como $299 de MRR recorrente. Um comprador de
+// piloto de $99 marcado como 'autopilot_trial' apareceria como +$299/mês no
+// único painel que o fundador usa para decidir o que fazer a seguir.
+export const AUTOPILOT_PILOT_PLAN = 'autopilot_pilot'
+
 export const AUTOPILOT_PAID_PLANS = new Set([
-  'autopilot', 'autopilot_trial',
+  'autopilot', 'autopilot_trial', AUTOPILOT_PILOT_PLAN,
 ])
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PLANOS COM PRAZO — o piloto TEM que morrer sozinho.
+// ═══════════════════════════════════════════════════════════════════════════
+// Um plano com prazo que não expira é um produto de $299/mês vendido UMA vez
+// por $99 para sempre. Por isso:
+//   1. o prazo mora em profiles.plan_expires_at (timestamptz), criado pela
+//      migration migrations_pending/2026-07-26_autopilot_pilot_plan_expiry.sql;
+//   2. a checagem é FAIL-CLOSED: se o campo vier `undefined` (select que não
+//      pediu a coluna) ou NULL, o plano com prazo NÃO tem direito. Errar para
+//      o lado de parar de gerar custa 7 vídeos; errar para o outro lado custa
+//      o produto inteiro.
+//   3. a checagem vive AQUI, não na UI, porque quem gasta dinheiro é o CRON
+//      (app/api/cron/autopilot-generate) e ele chama isAutopilotEntitled().
+export const AUTOPILOT_TIME_BOXED_PLANS = new Set([AUTOPILOT_PILOT_PLAN])
+
+/** Quantos dias o piloto de $99 dura, e portanto quantos Shorts ele promete. */
+export const AUTOPILOT_PILOT_DAYS = 7
+export const AUTOPILOT_PILOT_POSTS_PER_DAY = 1
+
+/**
+ * Folga em cima dos 7 dias. NÃO é generosidade — é o que impede a promessa de
+ * quebrar por aritmética.
+ *
+ * Não existe contador de runs em lugar nenhum (nem em autopilot_schedules, nem
+ * em autopilot_runs, nem no cron): quem limita o piloto é SÓ a data. E o
+ * primeiro slot cai na próxima ocorrência de post_hour DEPOIS da compra, ou
+ * seja em (T, T+24h]. Os 7 slots então terminam em (T+6d, T+7d] — encostado
+ * exatamente no prazo de 7×24h. Somando o cron ser horário e a run levar
+ * minutos para render, o 7º Short cairia fora da janela e o cliente receberia
+ * 6 do que pagou 7.
+ *
+ * Com 36h de folga o 7º slot está sempre dentro, e o pior caso vira entregar
+ * um 8º Short (~$0.40 no engine mais caro que o Autopilot permite). Além
+ * disso os 60 créditos concedidos já limitam a 7 renders em basic_ai (8 cr
+ * cada), então a sobre-entrega é barata e limitada dos dois lados.
+ */
+export const AUTOPILOT_PILOT_GRACE_HOURS = 36
+
+/** Instante em que um piloto comprado em `from` deixa de ter direito. */
+export function autopilotPilotExpiresAt(from: Date = new Date()): Date {
+  const days = AUTOPILOT_PILOT_DAYS * 24 * 60 * 60 * 1000
+  const grace = AUTOPILOT_PILOT_GRACE_HOURS * 60 * 60 * 1000
+  return new Date(from.getTime() + days + grace)
+}
+
+/**
+ * Colunas mínimas que QUALQUER caminho que chama isAutopilotEntitled() precisa
+ * ler de profiles. Exportado como string única para que um `select` não possa
+ * esquecer plan_expires_at e derrubar silenciosamente todo piloto pago.
+ */
+export const AUTOPILOT_ENTITLEMENT_COLUMNS = 'has_paid, plan, is_pro, video_credits, plan_expires_at'
 
 export function isAutopilotEntitled(profile: {
   has_paid?: boolean | null
   plan?: string | null
   is_pro?: boolean | null
+  /** KINEO-PILOT-99-2026-07-26 — profiles.plan_expires_at. */
+  plan_expires_at?: string | Date | null
 } | null): boolean {
   if (!profile) return false
   // ⚠️ De propósito NÃO olhamos has_paid nem is_pro. Ambos são true para
   // qualquer pagante de qualquer valor, inclusive quem comprou um pack de
   // $2.90 uma vez. Só o plano corrente decide.
   const plan = (profile.plan ?? '').toString().toLowerCase().trim()
-  return AUTOPILOT_PAID_PLANS.has(plan)
+  if (!AUTOPILOT_PAID_PLANS.has(plan)) return false
+  if (!AUTOPILOT_TIME_BOXED_PLANS.has(plan)) return true
+
+  // A partir daqui: plano com prazo. Sem uma data futura e legível, não passa.
+  const raw = profile.plan_expires_at
+  if (raw === undefined || raw === null) return false
+  const expiresAt = raw instanceof Date ? raw : new Date(String(raw))
+  if (Number.isNaN(expiresAt.getTime())) return false
+  return expiresAt.getTime() > Date.now()
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -103,6 +174,20 @@ export function normalizePostsPerDay(raw: unknown): number {
   const n = Number(raw)
   if (!Number.isFinite(n)) return 1
   return Math.max(1, Math.min(3, Math.round(n)))
+}
+
+// KINEO-PILOT-99-2026-07-26 — o piloto vende "7 Shorts em 7 dias", uma frase
+// com um número dentro. Não existe contador de runs em lugar nenhum deste
+// código (nem em autopilot_schedules, nem em autopilot_runs, nem no cron):
+// quem limita o piloto é EXCLUSIVAMENTE plan_expires_at. Isso dá 7 runs
+// exatas em posts_per_day = 1 — e 21 em posts_per_day = 3, que o usuário pode
+// escolher no formulário. Daí este clamp: em plano com prazo, a cadência é 1.
+// Custo de 21 renders é irrelevante (~$1); quebrar a promessa impressa na
+// oferta não é.
+export function clampPostsPerDayForPlan(raw: unknown, plan: string | null | undefined): number {
+  const normalizedPlan = (plan ?? '').toString().toLowerCase().trim()
+  if (AUTOPILOT_TIME_BOXED_PLANS.has(normalizedPlan)) return AUTOPILOT_PILOT_POSTS_PER_DAY
+  return normalizePostsPerDay(raw)
 }
 
 export function normalizePostHour(raw: unknown): number {

@@ -43,6 +43,12 @@ const PLAN_PRICE_USD: Record<string, number> = {
   // de $299 (8x o ARPU de qualquer outro SKU) apareceria como $0 no MRR.
   autopilot: PLANS.autopilot.price,
   autopilot_trial: PLANS.autopilot.price,
+  // KINEO-PILOT-99-2026-07-26 — o piloto PRECISA ser uma CHAVE (PAID_PLANS =
+  // Object.keys, então sem a chave o comprador de $99 não conta como cliente
+  // pago em lugar nenhum do painel) com VALOR 0: é pagamento ÚNICO, não
+  // assinatura. Somar $99 ao MRR inflaria a métrica que decide se a empresa
+  // pode gastar em aquisição — o erro mais caro que este painel pode cometer.
+  autopilot_pilot: 0,
 }
 const PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD))
 

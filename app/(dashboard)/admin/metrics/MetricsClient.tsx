@@ -49,9 +49,16 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
   const clockRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // Push #233 — Basic/Pro checkout-button clicks from public.click_events,
   // fetched from /api/admin/click-stats and polled alongside the metrics.
+  // KINEO-PILOT-99-2026-07-26 — os dois SKUs de maior ARPU (Autopilot $299 e
+  // o piloto de $99) entram aqui. Opcionais no tipo de propósito: um deploy
+  // do front na frente do da rota devolve o payload antigo, e `?? null` já
+  // rende "—" no card em vez de quebrar a tela inteira do painel.
   const [clickStats, setClickStats] = useState<{
     basic: number | null
     pro: number | null
+    starter?: number | null
+    autopilot?: number | null
+    autopilot_pilot?: number | null
     available: boolean
   } | null>(null)
 
@@ -261,6 +268,27 @@ export default function MetricsClient({ metrics: initialMetrics, viewerEmail, de
               label: 'Pro Clicks',
               value: clickStats?.pro ?? null,
               hint: clickStats?.available === false ? 'Run migration 008' : 'plan = pro',
+            }}
+          />
+          <MetricCard
+            card={{
+              label: 'Starter Clicks',
+              value: clickStats?.starter ?? null,
+              hint: clickStats?.available === false ? 'Run migration 008' : 'plan = starter',
+            }}
+          />
+          <MetricCard
+            card={{
+              label: 'Autopilot Clicks ($299)',
+              value: clickStats?.autopilot ?? null,
+              hint: clickStats?.available === false ? 'Run migration 008' : 'plan = autopilot',
+            }}
+          />
+          <MetricCard
+            card={{
+              label: 'Pilot Clicks ($99)',
+              value: clickStats?.autopilot_pilot ?? null,
+              hint: clickStats?.available === false ? 'Run migration 008' : 'plan = autopilot_pilot',
             }}
           />
         </Grid>

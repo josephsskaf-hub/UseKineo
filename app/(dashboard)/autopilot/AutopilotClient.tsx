@@ -25,6 +25,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 const CYAN = '#2997ff'
 const TEXT = '#F1F5F9'
@@ -51,6 +52,110 @@ function track(name: string, metadata?: Record<string, unknown>): void {
   } catch {
     /* ignore */
   }
+}
+
+// KINEO-YTCONNECT-2026-07-26 — o clique que faltava medir.
+//
+// `autopilot_connect_clicked` já existia, mas só cobre ESTA página. O mesmo
+// botão existe em /generate, e nenhum nome comum ligava os dois: repo-wide,
+// `youtube_connect` tinha ZERO ocorrências, então não dava para responder a
+// pergunta mais barata do funil — "as pessoas clicam em Connect e falham, ou
+// nunca clicam?". `youtube_connect_clicked` é esse nome comum, e casa com
+// `youtube_connect_started` / `youtube_connected` / `youtube_connect_failed`
+// que o servidor grava em /api/youtube/auth e /api/youtube/callback.
+// O nome antigo continua sendo emitido: qualquer painel que já consulte por ele
+// não pode parar de funcionar por causa desta mudança.
+function trackConnectClick(kind: 'connect' | 'reconnect' | 'add', outcomeShown?: string | null): void {
+  if (kind === 'reconnect') track('autopilot_reconnect_clicked')
+  else track('autopilot_connect_clicked', { add: kind === 'add' })
+  track('youtube_connect_clicked', {
+    surface: 'autopilot',
+    kind,
+    // Quando o clique é uma RETENTATIVA, isto diz de qual falha ele veio — é o
+    // que transforma "12 falhas" em "12 falhas, 3 tentaram de novo".
+    retry_after: outcomeShown ?? null,
+  })
+}
+
+// ── Desfechos do OAuth do YouTube ───────────────────────────────────────────
+// KINEO-YTCONNECT-2026-07-26 — o callback calculava um motivo para cada falha e
+// mandava para /dashboard, que faz redirect('/generate') e DESCARTA a query.
+// Nenhuma tela lia nada disso; o usuário via a página normal e concluía que
+// tinha funcionado. Estes são os mesmos valores do type Outcome em
+// app/api/youtube/callback/route.ts — mantenha os dois lados em sincronia.
+//
+// Regra da cópia: cada texto diz o que aconteceu E o próximo movimento. "Algo
+// deu errado" manda o cliente para o suporte; "escolha a conta dona do canal"
+// resolve sozinho.
+interface OutcomeCopy {
+  tone: 'ok' | 'warn' | 'error'
+  title: string
+  body: string
+  /** Mostra o botão de tentar conectar de novo. */
+  retry: boolean
+}
+
+const YT_OUTCOMES: Record<string, OutcomeCopy> = {
+  connected: {
+    tone: 'ok',
+    title: 'Channel connected.',
+    body: 'Autopilot can publish to it now. Pick a topic and a time below and you are done.',
+    retry: false,
+  },
+  access_denied: {
+    tone: 'warn',
+    title: 'You cancelled the Google sign-in.',
+    body: 'Nothing was connected and Kineo was given no access to your account. Start again whenever you are ready.',
+    retry: true,
+  },
+  missing_code: {
+    tone: 'error',
+    title: 'Google sent you back without an authorization code.',
+    body: 'That usually means the sign-in window was closed early or the link was opened twice. Start the connection again from this page.',
+    retry: true,
+  },
+  invalid_state: {
+    tone: 'error',
+    title: 'We could not match that Google sign-in to your Kineo account.',
+    body: 'This happens when the sign-in finishes in a different browser or after your Kineo session expired. Make sure you are signed in here, then connect again.',
+    retry: true,
+  },
+  token_exchange_failed: {
+    tone: 'error',
+    title: 'Google accepted the sign-in but refused to hand us an access token.',
+    body: 'Nothing was connected and you were not charged. Try once more — if it fails again, email support@usekineo.com and we will look at the exact Google error on our side.',
+    retry: true,
+  },
+  no_channel: {
+    tone: 'warn',
+    title: 'Google returned no YouTube channel for that account.',
+    body: 'Autopilot needs an account that actually owns a channel. Connect again and pick the Google account that owns the channel you want to post to — if you use a Brand Account, choose it in the account list rather than your personal one.',
+    retry: true,
+  },
+  channel_save_failed: {
+    tone: 'error',
+    title: 'We signed in to Google but could not finish saving your channel.',
+    body: 'The connection is not usable yet, so nothing will be posted. Try connecting again — if it keeps failing, email support@usekineo.com and mention "channel save failed".',
+    retry: true,
+  },
+  config_error: {
+    tone: 'error',
+    title: 'YouTube connections are misconfigured on our side.',
+    body: 'This is our problem, not your account. The error is already in our logs. Try again shortly, or email support@usekineo.com if you need this working today.',
+    retry: true,
+  },
+  failed: {
+    tone: 'error',
+    title: 'We could not connect your YouTube channel.',
+    body: 'Google returned an error we did not expect. Nothing was connected. Try again, and email support@usekineo.com if it happens twice.',
+    retry: true,
+  },
+}
+
+const OUTCOME_STYLE: Record<OutcomeCopy['tone'], { bg: string; border: string; color: string }> = {
+  ok: { bg: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)', color: CYAN },
+  warn: { bg: 'rgba(251,191,36,.07)', border: '1px solid rgba(251,191,36,.32)', color: '#fbbf24' },
+  error: { bg: 'rgba(239,68,68,.07)', border: '1px solid rgba(239,68,68,.32)', color: '#ef4444' },
 }
 
 // ── Tipos do payload de /api/autopilot/schedules ────────────────────────────
@@ -281,7 +386,11 @@ export default function AutopilotClient() {
   const [formError, setFormError] = useState<string | null>(null)
   const [justCreated, setJustCreated] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // KINEO-YTCONNECT-2026-07-26 — desfecho do OAuth vindo de ?yt= (ver efeito abaixo).
+  const [ytOutcome, setYtOutcome] = useState<string | null>(null)
+  const [ytChannelTitle, setYtChannelTitle] = useState<string | null>(null)
 
+  const searchParams = useSearchParams()
   const hourOptions = useMemo(buildHourOptions, [])
 
   // Formulário de criação.
@@ -345,6 +454,30 @@ export default function AutopilotClient() {
     if (!stateName) return
     track('autopilot_page_viewed', { state: stateName })
   }, [stateName])
+
+  // ── Desfecho do OAuth do YouTube ──────────────────────────────────────────
+  // KINEO-YTCONNECT-2026-07-26 — lê o `?yt=` que /api/youtube/callback agora
+  // manda para cá (antes ia para /dashboard e evaporava). Lido UMA vez e
+  // apagado da URL com replaceState — a rota é force-dynamic, então um
+  // router.replace remontaria a árvore inteira no caminho do usuário (o mesmo
+  // problema documentado no PUSH #96) e um F5 com o param ainda na barra
+  // ressuscitaria um erro já resolvido.
+  useEffect(() => {
+    const raw = searchParams.get('yt')
+    if (!raw) return
+    const outcome = YT_OUTCOMES[raw] ? raw : 'failed'
+    setYtOutcome(outcome)
+    setYtChannelTitle(searchParams.get('ch'))
+    track('youtube_connect_outcome_viewed', { outcome, raw })
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('yt')
+      url.searchParams.delete('ch')
+      window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+    } catch {
+      /* URL/history indisponível — o banner já está em tela, que é o que importa */
+    }
+  }, [searchParams])
 
   // ── Ações ─────────────────────────────────────────────────────────────────
   async function createSchedule() {
@@ -440,6 +573,55 @@ export default function AutopilotClient() {
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  // KINEO-YTCONNECT-2026-07-26 — o banner do desfecho do OAuth. Aparece em
+  // TODOS os estados da página, porque o desfecho não é previsível a partir do
+  // estado: um `no_channel` cai no estado "sem canal", um `connected` cai no
+  // formulário, e um `config_error` pode cair em qualquer um deles.
+  const outcomeCopy = ytOutcome ? YT_OUTCOMES[ytOutcome] ?? YT_OUTCOMES.failed : null
+  const ytBanner = outcomeCopy ? (
+    <div
+      className="rounded-2xl p-5 mb-4"
+      style={{
+        background: OUTCOME_STYLE[outcomeCopy.tone].bg,
+        border: OUTCOME_STYLE[outcomeCopy.tone].border,
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="font-black text-sm" style={{ color: OUTCOME_STYLE[outcomeCopy.tone].color }}>
+          {ytOutcome === 'connected' && ytChannelTitle
+            ? `${ytChannelTitle} is connected.`
+            : outcomeCopy.title}
+        </div>
+        <button
+          type="button"
+          onClick={() => setYtOutcome(null)}
+          aria-label="Dismiss"
+          className="text-xs font-black"
+          style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer', padding: 0, lineHeight: 1 }}
+        >
+          ✕
+        </button>
+      </div>
+      <p className="text-xs mt-2 mb-0" style={{ color: MUTED, lineHeight: 1.65 }}>
+        {outcomeCopy.body}
+      </p>
+      {outcomeCopy.retry ? (
+        // `add=1` de propósito: acrescenta select_account. Sem isso o Google
+        // reusa em silêncio a conta já logada, e a retentativa de um
+        // `no_channel` repetiria EXATAMENTE a mesma conta sem canal para sempre.
+        <a
+          href="/api/youtube/auth?add=1"
+          onClick={() => trackConnectClick('connect', ytOutcome)}
+          className="inline-block text-xs font-black mt-3"
+          style={{ ...quietButton, textDecoration: 'none', display: 'inline-block' }}
+        >
+          Try connecting again →
+        </a>
+      ) : null}
+    </div>
+  ) : null
+
   if (loading) {
     return (
       <div className={WRAP}>
@@ -474,6 +656,7 @@ export default function AutopilotClient() {
   if (loadError || !data) {
     return (
       <div className={WRAP}>
+        {ytBanner}
         <div className="rounded-2xl p-8 text-center" style={{ background: CARD, border: BORDER }}>
           <p className="text-sm" style={{ color: MUTED }}>{loadError ?? 'Something went wrong.'}</p>
         </div>
@@ -501,6 +684,7 @@ export default function AutopilotClient() {
     return (
       <div className={WRAP}>
         {header}
+        {ytBanner}
         <div
           className="rounded-2xl p-7"
           style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 40px rgba(41,151,255,.08)' }}
@@ -536,6 +720,7 @@ export default function AutopilotClient() {
     return (
       <div className={WRAP}>
         {header}
+        {ytBanner}
         <div
           className="rounded-2xl p-7"
           style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 40px rgba(41,151,255,.08)' }}
@@ -549,7 +734,7 @@ export default function AutopilotClient() {
           </p>
           <a
             href="/api/youtube/auth"
-            onClick={() => track('autopilot_connect_clicked', { add: false })}
+            onClick={() => trackConnectClick('connect', ytOutcome)}
             className="inline-block text-sm"
             style={{ ...primaryButton, textDecoration: 'none', display: 'inline-block' }}
           >
@@ -567,6 +752,7 @@ export default function AutopilotClient() {
     return (
       <div className={WRAP}>
         {header}
+        {ytBanner}
 
         {channel.needsReconnect ? (
           <div
@@ -582,7 +768,7 @@ export default function AutopilotClient() {
             </p>
             <a
               href="/api/youtube/auth"
-              onClick={() => track('autopilot_reconnect_clicked')}
+              onClick={() => trackConnectClick('reconnect', ytOutcome)}
               className="inline-block text-xs font-black"
               style={{ ...quietButton, textDecoration: 'none', display: 'inline-block' }}
             >
@@ -684,6 +870,7 @@ export default function AutopilotClient() {
   return (
     <div className={WRAP}>
       {header}
+      {ytBanner}
 
       {justCreated ? (
         <div
@@ -714,7 +901,7 @@ export default function AutopilotClient() {
           </p>
           <a
             href="/api/youtube/auth"
-            onClick={() => track('autopilot_reconnect_clicked')}
+            onClick={() => trackConnectClick('reconnect', ytOutcome)}
             className="inline-block text-xs font-black"
             style={{ ...quietButton, textDecoration: 'none', display: 'inline-block' }}
           >
@@ -971,7 +1158,7 @@ export default function AutopilotClient() {
           Running more than one channel?{' '}
           <a
             href="/api/youtube/auth?add=1"
-            onClick={() => track('autopilot_connect_clicked', { add: true })}
+            onClick={() => trackConnectClick('add', ytOutcome)}
             style={{ color: CYAN, textDecoration: 'none', fontWeight: 800 }}
           >
             Connect another channel →

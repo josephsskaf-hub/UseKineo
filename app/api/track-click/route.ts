@@ -37,7 +37,14 @@ export async function POST(req: NextRequest) {
     const rawEvent = typeof body?.event === 'string' ? body.event.trim() : ''
     const event = rawEvent ? rawEvent.slice(0, 64) : 'checkout_click'
     const rawPlan = typeof body?.plan === 'string' ? body.plan.trim().toLowerCase() : ''
-    const plan = rawPlan === 'starter' || rawPlan === 'basic' || rawPlan === 'pro' ? rawPlan : null
+    // KINEO-PILOT-99-2026-07-26 — a whitelist parou no mundo de três planos.
+    // Todo clique em Autopilot (o SKU de MAIOR ARPU do produto, $299, e agora
+    // também o piloto de $99) era gravado com plan: null e sumia de
+    // /admin/click-stats. O #102 mandou trackCheckoutClick aceitar 'autopilot'
+    // e o valor morria AQUI, uma camada depois — medição que existe pela
+    // metade mente com mais confiança do que medição que não existe.
+    const ALLOWED_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot', 'autopilot_pilot'])
+    const plan = ALLOWED_PLANS.has(rawPlan) ? rawPlan : null
 
     // Resolve the user from the session cookie (don't trust a client-sent id).
     let userId: string | null = null

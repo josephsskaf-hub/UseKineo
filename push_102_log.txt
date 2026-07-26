@@ -36,3 +36,190 @@ public\llms.txt removido ok
 ReferralMiniCard.tsx removido ok 
  
 [5/6] staging 
+warning: in the working copy of 'app/(dashboard)/DashboardShell.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/affiliate/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/generate/GenerateClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/generate/LowCreditsUpsell.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/generate/Offer290Banner.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/HomeTopicForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/admin/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-abandon-recovery/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-avatar-launch/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-dfy-offer/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-feature-announce/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-free-upsell/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-hot-upsell/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-pack-offer/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/affiliate/apply/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/compose/status/[renderId]/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/cron/send-activation-nudge/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/cron/send-recovery/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/cron/send-reminders/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/cron/send-video-rescue/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/events/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/stripe/checkout/resume/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/stripe/checkout/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/stripe/webhook/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/video-summary/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/youtube/auth/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/youtube/callback/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/youtube/disconnect/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/youtube/status/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/youtube/upload/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/facts/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/partners/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/pricing/PricingClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/robots.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/ReferralPromoBanner.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/Sidebar.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/checkoutPricing.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/pricing.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/trackClick.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_97_log.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'vercel.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/autopilot/AutopilotClient.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/(dashboard)/autopilot/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/admin/send-stalled-rescue/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/autopilot/schedules/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/cron/autopilot-generate/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/facts/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/api/unsubscribe/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/free/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/llms.txt/route.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'app/unsubscribe/page.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/autopilot/config.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/autopilot/events.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/autopilot/pipeline.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/autopilot/session.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/autopilot/topics.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/emailSuppression.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/kineoFacts.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/videoDescription.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'lib/youtubeChannels.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_100_fluxo.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_101_fluxo.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_102_autopilot.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_102_log.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_102_msg.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'push_98_analytics.bat', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/020_email_opt_out.sql', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'supabase/migrations/021_autopilot.sql', LF will be replaced by CRLF the next time Git touches it
+M	app/(dashboard)/DashboardShell.tsx
+M	app/(dashboard)/affiliate/page.tsx
+A	app/(dashboard)/autopilot/AutopilotClient.tsx
+A	app/(dashboard)/autopilot/page.tsx
+M	app/(dashboard)/generate/GenerateClient.tsx
+M	app/(dashboard)/generate/LowCreditsUpsell.tsx
+M	app/(dashboard)/generate/Offer290Banner.tsx
+M	app/(dashboard)/layout.tsx
+M	app/HomeTopicForm.tsx
+M	app/admin/page.tsx
+M	app/api/admin/send-abandon-recovery/route.ts
+M	app/api/admin/send-avatar-launch/route.ts
+M	app/api/admin/send-dfy-offer/route.ts
+M	app/api/admin/send-feature-announce/route.ts
+M	app/api/admin/send-free-upsell/route.ts
+M	app/api/admin/send-hot-upsell/route.ts
+M	app/api/admin/send-pack-offer/route.ts
+A	app/api/admin/send-stalled-rescue/route.ts
+M	app/api/affiliate/apply/route.ts
+A	app/api/autopilot/schedules/route.ts
+M	app/api/compose/status/[renderId]/route.ts
+A	app/api/cron/autopilot-generate/route.ts
+M	app/api/cron/send-activation-nudge/route.ts
+M	app/api/cron/send-recovery/route.ts
+M	app/api/cron/send-reminders/route.ts
+M	app/api/cron/send-video-rescue/route.ts
+M	app/api/events/route.ts
+A	app/api/facts/route.ts
+M	app/api/stripe/checkout/resume/route.ts
+M	app/api/stripe/checkout/route.ts
+M	app/api/stripe/webhook/route.ts
+A	app/api/unsubscribe/route.ts
+M	app/api/video-summary/route.ts
+M	app/api/youtube/auth/route.ts
+M	app/api/youtube/callback/route.ts
+M	app/api/youtube/disconnect/route.ts
+M	app/api/youtube/status/route.ts
+M	app/api/youtube/upload/route.ts
+M	app/facts/page.tsx
+A	app/free/route.ts
+M	app/layout.tsx
+A	app/llms.txt/route.ts
+M	app/partners/page.tsx
+M	app/pricing/PricingClient.tsx
+M	app/robots.ts
+A	app/unsubscribe/page.tsx
+D	components/ReferralMiniCard.tsx
+M	components/ReferralPromoBanner.tsx
+M	components/Sidebar.tsx
+A	lib/autopilot/config.ts
+A	lib/autopilot/events.ts
+A	lib/autopilot/pipeline.ts
+A	lib/autopilot/session.ts
+A	lib/autopilot/topics.ts
+M	lib/checkoutPricing.ts
+M	lib/compose.ts
+A	lib/emailSuppression.ts
+A	lib/kineoFacts.ts
+M	lib/pricing.ts
+M	lib/trackClick.ts
+A	lib/videoDescription.ts
+A	lib/youtubeChannels.ts
+M	package-lock.json
+M	package.json
+D	public/llms.txt
+A	push_100_files.zip
+A	push_100_fluxo.bat
+A	push_101_files.zip
+A	push_101_fluxo.bat
+A	push_102_autopilot.bat
+A	push_102_files.zip
+A	push_102_log.txt
+A	push_102_msg.txt
+M	push_97_log.txt
+A	push_98_analytics.bat
+A	supabase/migrations/020_email_opt_out.sql
+A	supabase/migrations/021_autopilot.sql
+M	vercel.json
+ 
+[6/6] commit + push 
+[main 332d7b3] PUSH #102 AUTOPILOT + PRECO (carrega junto o #98, #99, #100 e #101 - o origin ainda estava no #97)
+ 78 files changed, 7926 insertions(+), 517 deletions(-)
+ create mode 100644 app/(dashboard)/autopilot/AutopilotClient.tsx
+ create mode 100644 app/(dashboard)/autopilot/page.tsx
+ create mode 100644 app/api/admin/send-stalled-rescue/route.ts
+ create mode 100644 app/api/autopilot/schedules/route.ts
+ create mode 100644 app/api/cron/autopilot-generate/route.ts
+ create mode 100644 app/api/facts/route.ts
+ create mode 100644 app/api/unsubscribe/route.ts
+ create mode 100644 app/free/route.ts
+ create mode 100644 app/llms.txt/route.ts
+ create mode 100644 app/unsubscribe/page.tsx
+ delete mode 100644 components/ReferralMiniCard.tsx
+ create mode 100644 lib/autopilot/config.ts
+ create mode 100644 lib/autopilot/events.ts
+ create mode 100644 lib/autopilot/pipeline.ts
+ create mode 100644 lib/autopilot/session.ts
+ create mode 100644 lib/autopilot/topics.ts
+ create mode 100644 lib/emailSuppression.ts
+ create mode 100644 lib/kineoFacts.ts
+ create mode 100644 lib/videoDescription.ts
+ create mode 100644 lib/youtubeChannels.ts
+ delete mode 100644 public/llms.txt
+ create mode 100644 push_100_files.zip
+ create mode 100644 push_100_fluxo.bat
+ create mode 100644 push_101_files.zip
+ create mode 100644 push_101_fluxo.bat
+ create mode 100644 push_102_autopilot.bat
+ create mode 100644 push_102_files.zip
+ create mode 100644 push_102_log.txt
+ create mode 100644 push_102_msg.txt
+ create mode 100644 push_98_analytics.bat
+ create mode 100644 supabase/migrations/020_email_opt_out.sql
+ create mode 100644 supabase/migrations/021_autopilot.sql
+To https://github.com/josephsskaf-hub/UseKineo.git
+   f06254d..332d7b3  main -> main
+## main...origin/main
+ M push_102_log.txt
+===== FIM ===== 

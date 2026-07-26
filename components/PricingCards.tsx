@@ -17,6 +17,12 @@
 import { useEffect, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 import {
+  // KINEO-PILOT-99-2026-07-26 — este grid não tinha NENHUMA presença de
+  // Autopilot: o SKU de maior ARPU do produto era invisível para quem está
+  // literalmente no meio do fluxo de criar um vídeo.
+  AUTOPILOT_PILOT_DAYS,
+  AUTOPILOT_PILOT_PRICES,
+  AUTOPILOT_PRICES,
   CURRENCY_DISPLAY,
   INTRO_PRICES,
   TIER_PRICES,
@@ -146,6 +152,28 @@ export default function PricingCards({
           ? INTRO_PRICES[tier][displayCurrency]
           : null,
       intro: tier === 'starter' || tier === 'basic',
+      pricing_surface: 'generate_step_1',
+    })
+  }
+
+  // KINEO-PILOT-99-2026-07-26 — Autopilot e o piloto de 7 dias não passam por
+  // handleBuy: o piloto é ?pack= (compra única) e o Autopilot não tem intro.
+  function handleBuyAutopilot(sku: 'autopilot' | 'autopilot_pilot') {
+    const url = sku === 'autopilot_pilot'
+      ? '/api/stripe/checkout?pack=autopilot_pilot'
+      : '/api/stripe/checkout?tier=autopilot'
+    const started = checkout.launch(sku, url, { sku, pricing_surface: 'generate_step_1' })
+    if (!started) return
+    void trackEvent('inline_pricing_checkout_clicked', {
+      tier: sku,
+      display_currency: displayCurrency ?? 'resolving',
+      displayed_price_minor: displayCurrency
+        ? (sku === 'autopilot_pilot'
+          ? AUTOPILOT_PILOT_PRICES[displayCurrency]
+          : AUTOPILOT_PRICES[displayCurrency])
+        : null,
+      displayed_intro_price_minor: null,
+      intro: false,
       pricing_surface: 'generate_step_1',
     })
   }
@@ -308,6 +336,82 @@ export default function PricingCards({
             loading: purchasing === 'pro',
           }}
         />
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════
+          KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.
+
+          Everything above sells credits: the user still has to show up and
+          make the video. 82% of activated users made exactly one and never
+          came back, so for most of the people reading this grid the credits
+          are not the bottleneck — the showing up is. This band is the only
+          place in the /generate flow that offers the other product.
+
+          Deliberately a band, not a 4th card: $299 dropped into a row that
+          tops out at $37.90 reads as a typo. The $99 pilot is the entry.
+          ══════════════════════════════════════════════════════════════════ */}
+      <div
+        className="mx-auto mt-5 rounded-2xl p-5 sm:p-6"
+        style={{
+          maxWidth: '62rem',
+          background: 'linear-gradient(135deg, rgba(41,151,255,0.07) 0%, #161618 60%)',
+          border: '1px solid rgba(41,151,255,0.32)',
+        }}
+      >
+        <div className="text-[0.62rem] font-black uppercase tracking-widest" style={{ color: 'var(--blue, #2997ff)' }}>
+          Or don&apos;t make the video yourself
+        </div>
+        <h3 className="mt-1.5 font-black tracking-tight" style={{ fontSize: '1.1rem', color: 'var(--text)' }}>
+          Autopilot — we publish to your YouTube channel for you
+        </h3>
+        <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--text2)' }}>
+          You connect your channel once. We write, render, caption and upload one
+          Short a day — script, voiceover, footage, title, description. You do
+          nothing. A human editing agency charges USD $495/month for 16 Shorts, or
+          USD $2,400/month for 30. Autopilot is{' '}
+          {displayCurrency ? formatCheckoutMoney(displayCurrency, AUTOPILOT_PRICES[displayCurrency]) : '—'}/month
+          for 30 — about $9.97 a Short.
+        </p>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => handleBuyAutopilot('autopilot_pilot')}
+            disabled={purchasing !== null}
+            className="w-full rounded-xl py-3.5 sm:py-3 text-sm font-black sm:flex-1"
+            style={{
+              background: '#2997ff',
+              color: '#fff',
+              border: 'none',
+              cursor: purchasing !== null ? 'wait' : 'pointer',
+              opacity: purchasing !== null ? 0.7 : 1,
+            }}
+          >
+            {purchasing === 'autopilot_pilot'
+              ? 'Loading…'
+              : `Try it ${AUTOPILOT_PILOT_DAYS} days — ${displayCurrency ? formatCheckoutMoney(displayCurrency, AUTOPILOT_PILOT_PRICES[displayCurrency]) : '—'} once`}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleBuyAutopilot('autopilot')}
+            disabled={purchasing !== null}
+            className="w-full rounded-xl py-3.5 sm:py-3 text-sm font-black sm:w-[220px]"
+            style={{
+              background: 'transparent',
+              color: 'var(--blue, #2997ff)',
+              border: '1px solid rgba(41,151,255,0.55)',
+              cursor: purchasing !== null ? 'wait' : 'pointer',
+              opacity: purchasing !== null ? 0.7 : 1,
+            }}
+          >
+            {purchasing === 'autopilot' ? 'Loading…' : 'Go monthly instead'}
+          </button>
+        </div>
+        <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
+          The pilot is {AUTOPILOT_PILOT_DAYS} Shorts published to your channel, one per
+          day, at the time you pick. One-time payment, no auto-renew — it ends on its
+          own after {AUTOPILOT_PILOT_DAYS} days and the videos are yours.
+        </p>
       </div>
     </section>
   )

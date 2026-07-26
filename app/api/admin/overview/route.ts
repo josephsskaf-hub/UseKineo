@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { PLANS } from '@/lib/pricing'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,17 +17,32 @@ const ADMIN_EMAILS = new Set([
   'joseph-test@shortsforgeai.com',
 ])
 
-// Monthly prices in USD for the MRR estimate (matches checkout TIER_PRICES).
+// Monthly prices in USD for the MRR estimate.
+//
+// KINEO-PILOT-99-2026-07-26 — este mapa estava digitado à mão e tinha DOIS
+// defeitos que faziam a rota subestimar a receita:
+//   1. starter valia 11.9 aqui e 9.90 em lib/pricing — número morto de uma
+//      tabela de preço anterior, nunca atualizado.
+//   2. NÃO existia nenhuma entrada de autopilot. Como PAID_PLANS era uma lista
+//      literal separada, um assinante de $299 JÁ EXISTENTE não contava nem
+//      como cliente pago nem como MRR nesta rota — enquanto /admin (que usa
+//      seu próprio mapa) contava. Duas telas de dinheiro discordando é pior
+//      que uma errada, porque nenhuma das duas parece suspeita sozinha.
+// Agora deriva de lib/pricing, igual /admin, e PAID_PLANS deriva das chaves.
 const PLAN_PRICE_USD: Record<string, number> = {
-  starter: 11.9,
-  starter_trial: 11.9,
-  basic: 24.9,
-  basic_trial: 24.9,
-  pro: 37.9,
-  pro_trial: 37.9,
+  starter: PLANS.starter.price,
+  starter_trial: PLANS.starter.price,
+  basic: PLANS.basic.price,
+  basic_trial: PLANS.basic.price,
+  pro: PLANS.pro.price,
+  pro_trial: PLANS.pro.price,
+  autopilot: PLANS.autopilot.price,
+  autopilot_trial: PLANS.autopilot.price,
+  // Pagamento único de $99: conta como cliente pago, vale 0 de MRR.
+  autopilot_pilot: 0,
 }
 
-const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
+const PAID_PLANS = new Set(Object.keys(PLAN_PRICE_USD))
 
 // Push #417 — keep founder/test/throwaway accounts out of every dashboard
 // number so Joseph sees only REAL customers.

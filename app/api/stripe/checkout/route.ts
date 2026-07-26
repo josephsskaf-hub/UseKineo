@@ -8,6 +8,9 @@ import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
 import {
   ANNUAL_PRICES,
+  AUTOPILOT_PILOT_CREDITS,
+  AUTOPILOT_PILOT_DAYS,
+  AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
   INTRO_CREDITS,
   INTRO_PRICES,
@@ -21,6 +24,8 @@ import {
   type CheckoutIntroTier as IntroTier,
   type CheckoutPlanTier as PlanTier,
 } from '@/lib/checkoutPricing'
+// KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
+import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -373,6 +378,34 @@ const STARTER290_PACK = {
 }
 //   USD $2.90 | BRL R$14.90 | INR ₹249  (same ratios as the plans)
 const PACK290_PRICES: Record<Currency, number> = { usd: 290, brl: 1490, inr: 24900 }
+
+// ─── KINEO-PILOT-99-2026-07-26 — $99 / 7-day Autopilot pilot (one-time) ──────
+// The paid filter in front of the $299 tier. One-time PAYMENT, not a
+// subscription: nothing renews, nothing to cancel, and the upsell to $299 is
+// therefore a decision to NOT interrupt a channel that is already posting.
+// Fulfilled by webhook Path A (metadata.pack = 'autopilot_pilot'), which sets
+// plan = 'autopilot_pilot' + profiles.plan_expires_at = now + 7 days.
+const AUTOPILOT_PILOT_PACK = {
+  credits: AUTOPILOT_PILOT_CREDITS,
+  name: 'Kineo — Autopilot Pilot (7 days)',
+  description:
+    `One-time: we publish ${AUTOPILOT_PILOT_DAYS} Shorts to your YouTube channel, one per day, at the time you pick. ` +
+    `Includes ${AUTOPILOT_PILOT_CREDITS} credits. No subscription — it ends after ${AUTOPILOT_PILOT_DAYS} days.`,
+}
+
+// Same escape hatch as STRIPE_PRICE_AUTOPILOT_USD, and the same USD-only
+// restriction for the same reason: a Stripe Price object carries exactly one
+// currency, so reusing a USD price for a BRL visitor charges the wrong money.
+function autopilotPilotPriceIdOverride(currency: Currency): string | null {
+  if (currency !== 'usd') return null
+  const raw = (process.env.STRIPE_PRICE_AUTOPILOT_PILOT_USD || '').trim()
+  if (!raw) return null
+  if (!AUTOPILOT_PRICE_ID_RE.test(raw)) {
+    console.warn('[stripe/checkout] STRIPE_PRICE_AUTOPILOT_PILOT_USD is not a price_… id — ignoring, using inline price_data')
+    return null
+  }
+  return raw
+}
 
 // KINEO-TOPUP-2026-07-06 — AI credit top-ups for EXISTING subscribers who burn
 // through their monthly AI credits before renewal. Sized SMALLER than a full
@@ -1611,6 +1644,183 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
+// ─── KINEO-PILOT-99-2026-07-26 — $99 / 7-day Autopilot pilot ─────────────────
+// Deliberately mode:'payment'. A 7-day subscription that auto-renews at $99
+// would be a different (worse) product: the buyer's next decision becomes
+// "cancel before I'm charged again" instead of "keep this running".
+async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean): Promise<NextResponse> {
+  const appUrl = req.nextUrl.origin
+  const browserSessionId = browserSessionIdFrom(req)
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = { sku: 'autopilot_pilot', mode: 'payment' }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
+    return NextResponse.redirect(`${appUrl}/pricing?checkout_error=${encodeURIComponent(msg)}`)
+  }
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
+    return NextResponse.json({ error: msg }, { status })
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('[stripe/checkout] STRIPE_SECRET_KEY is not set')
+    return isGet ? redirectError('Payment service is not configured. Please contact support.') : jsonError('Payment service is not configured. Please contact support.', 500)
+  }
+
+  const country = req.headers.get('x-vercel-ip-country') ?? 'US'
+  const currency: Currency = resolveCheckoutCurrency(country)
+  const unitAmount = AUTOPILOT_PILOT_PRICES[currency]
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
+
+  const supabase = createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
+  if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
+    if (!isGet) return jsonError('You must be signed in to start the Autopilot Pilot.', 401)
+    if (req.nextUrl.searchParams.get('resumed') === '1') {
+      return redirectError('We could not confirm your sign-in. Please sign in and try again.')
+    }
+    const resume = `${req.nextUrl.pathname}${req.nextUrl.search}${req.nextUrl.search ? '&' : '?'}resumed=1`
+    return NextResponse.redirect(`${appUrl}/login?reason=checkout&redirect=${encodeURIComponent(resume)}`)
+  }
+
+  // ⚠️ THE SKU IS INERT UNTIL THE MIGRATION IS APPLIED, BY DESIGN.
+  // profiles.plan_expires_at is created by
+  //   migrations_pending/2026-07-26_autopilot_pilot_plan_expiry.sql
+  // and is the ONLY thing that ends the pilot. Without it we would be selling
+  // a $299/month service once, for $99, forever. So the column is probed here,
+  // BEFORE a card is charged, and its absence blocks the sale instead of
+  // producing a permanent entitlement. 42703 = undefined_column.
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('email, stripe_customer_id, plan, plan_expires_at')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profileError) {
+    const code = (profileError as { code?: string }).code ?? ''
+    const missingExpiryColumn = code === '42703' || /plan_expires_at/.test(profileError.message ?? '')
+    if (missingExpiryColumn) {
+      console.error(
+        '[stripe/checkout] autopilot_pilot BLOCKED: profiles.plan_expires_at does not exist. ' +
+        'Apply migrations_pending/2026-07-26_autopilot_pilot_plan_expiry.sql before selling this SKU.',
+      )
+      return isGet
+        ? redirectError('The Autopilot Pilot is not available yet. Please contact support.')
+        : jsonError('Autopilot Pilot is not available yet.', 503)
+    }
+    console.error('[stripe/checkout] autopilot_pilot profile lookup failed:', profileError.message)
+    return isGet
+      ? redirectError('We could not load your account. Please try again.')
+      : jsonError('Profile lookup failed.', 500)
+  }
+
+  const planVal = (profile?.plan ?? 'free').toString().toLowerCase().trim()
+
+  // Already paying $299/month: selling them a $99 downgrade is a refund waiting
+  // to happen. Send them to the running Autopilot instead.
+  if (planVal === 'autopilot' || planVal === 'autopilot_trial') {
+    return isGet
+      ? NextResponse.redirect(`${appUrl}/autopilot?already_active=1`)
+      : jsonError('Your Autopilot subscription is already active.', 409)
+  }
+
+  // A pilot that has not expired yet is still running. Buying a second one
+  // would take $99 and change nothing the buyer can see.
+  if (planVal === AUTOPILOT_PILOT_PLAN && isAutopilotEntitled(profile)) {
+    return isGet
+      ? NextResponse.redirect(`${appUrl}/autopilot?already_active=1`)
+      : jsonError('Your Autopilot Pilot is already running.', 409)
+  }
+
+  const pilotPriceId = autopilotPilotPriceIdOverride(currency)
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'payment',
+    line_items: [
+      pilotPriceId
+        ? { price: pilotPriceId, quantity: 1 }
+        : {
+            price_data: {
+              currency,
+              product_data: { name: AUTOPILOT_PILOT_PACK.name, description: AUTOPILOT_PILOT_PACK.description },
+              unit_amount: unitAmount,
+            },
+            quantity: 1,
+          },
+    ],
+    client_reference_id: user.id,
+    success_url: `${appUrl}/autopilot?success=true&pack=autopilot_pilot&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/pricing`,
+    metadata: {
+      supabase_user_id: user.id,
+      // `pack` is what webhook Path A branches on. `pack_credits` is the
+      // currency-proof grant. `plan_grant` + `plan_days` are read by the same
+      // branch so the plan name and the expiry window are never retyped there.
+      pack: 'autopilot_pilot',
+      pack_credits: String(AUTOPILOT_PILOT_PACK.credits),
+      plan_grant: AUTOPILOT_PILOT_PLAN,
+      plan_days: String(AUTOPILOT_PILOT_DAYS),
+    },
+  }
+  if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
+  else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+
+  const pilotIdempotencyKey = oneTimeIdempotencyKey({
+    sku: 'autopilot_pilot',
+    user_id: user.id,
+    currency,
+    unit_amount: unitAmount,
+    price_id: pilotPriceId,
+    customer: sessionParams.customer ?? null,
+  })
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: pilotIdempotencyKey })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg.toLowerCase().includes('cannot combine currencies')) {
+      delete sessionParams.customer
+      sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `${pilotIdempotencyKey}:email`,
+        })
+      } catch (retryErr) {
+        const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        console.error('[stripe/checkout] autopilot_pilot retry failed:', rmsg)
+        return isGet ? redirectError(`Payment session failed: ${rmsg || 'Please try again'}`) : jsonError('Payment session failed.', 500)
+      }
+    } else {
+      console.error('[stripe/checkout] autopilot_pilot session error:', msg)
+      return isGet ? redirectError(`Payment session failed: ${msg || 'Please try again'}`) : jsonError('Payment session failed.', 500)
+    }
+  }
+
+  console.log(`[stripe/checkout] autopilot_pilot session: user=${user.id.slice(0, 8)} amount=${unitAmount} ${currency}`)
+  await recordCheckoutEvent(
+    'checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
+  return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
+}
+
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — buildAvatarPackAndRedirect() removed.
 // Avatar packs sold profiles.avatar_credits, now unspendable (avatar generation
 // costs 120 universal video_credits). ?pack=avatar* now returns a clean 410 in
@@ -1645,6 +1855,11 @@ export async function GET(req: NextRequest) {
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
       if (packParam === 'topup40' || packParam === 'topup120') {
         return await buildTopupAndRedirect(req, packParam, true)
+      }
+      // KINEO-PILOT-99-2026-07-26 — sem este branch o ?pack=autopilot_pilot cai
+      // no buildPackAndRedirect e vende um Starter Pack de $4.90 no lugar.
+      if (packParam === 'autopilot_pilot') {
+        return await buildAutopilotPilotAndRedirect(req, true)
       }
       // KINEO-OFFER290-2026-07-07 — first-purchase $2.90 offer (flag-gated).
       if (packParam === 'starter290') {

@@ -12,7 +12,15 @@ import {
 import { getChannel, getValidChannelAccessToken } from '@/lib/youtubeChannels'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 
-export const maxDuration = 60
+// KINEO-YTCONNECT-2026-07-26 — era 60, e lib/autopilot/pipeline.ts chama esta
+// rota com timeoutMs: 290_000. A Vercel matava a função aos 60s enquanto o cron
+// ainda esperava por mais 230s, e o crédito JÁ tinha sido liquidado no passo 3
+// do pipeline (/api/compose/status), ANTES da publicação: cliente cobrado,
+// vídeo renderizado, nada no canal. 300 é o teto do plano Pro e é o mesmo valor
+// já usado por /api/compose, /api/render e o próprio cron do Autopilot
+// (app/api/cron/autopilot-generate/route.ts:64), então a rota deixa de ser o
+// elo mais curto da cadeia.
+export const maxDuration = 300
 
 // PUSH #100 — mesma lista canônica usada em compose/status e video-summary.
 const PAID_PLANS = new Set([

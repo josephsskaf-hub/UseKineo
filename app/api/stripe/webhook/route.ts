@@ -6,7 +6,28 @@ import { createHash } from 'node:crypto'
 // KINEO-PRICING-V3D-2026-07-26 — credit grants come from the single price
 // source. They used to be typed out as literals in three places (checkout
 // route, this webhook, lib/pricing.ts) and drifted at every reprice.
-import { PACK_CREDITS, TIER_CREDITS, type CheckoutPlanTier } from '@/lib/checkoutPricing'
+import {
+  AUTOPILOT_PILOT_CREDITS,
+  AUTOPILOT_PILOT_DAYS,
+  AUTOPILOT_PILOT_PRICES,
+  PACK_CREDITS,
+  TIER_CREDITS,
+  type CheckoutCurrency,
+  type CheckoutPlanTier,
+} from '@/lib/checkoutPricing'
+// KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
+// que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
+import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
+
+// KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
+// POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
+// o piloto em BRL custa 49900 — o mesmo inteiro. Um top-up indiano cairia aqui e
+// receberia um plano Autopilot de 7 dias de graça.
+function isAutopilotPilotAmount(amount: number, currency: string | null | undefined): boolean {
+  const code = (currency ?? '').toLowerCase().trim() as CheckoutCurrency
+  const expected = AUTOPILOT_PILOT_PRICES[code]
+  return typeof expected === 'number' && amount === expected
+}
 
 // Use service role key for webhook — bypasses RLS
 function getAdminClient() {
@@ -339,6 +360,24 @@ export async function POST(req: NextRequest) {
 
           const metaCredits = Number(session.metadata?.pack_credits ?? 0)
           const amount = session.amount_total ?? 0
+
+          // KINEO-PILOT-99-2026-07-26 — o piloto de $99 é a ÚNICA compra one-time
+          // que também muda `plan`, então o reconhecimento aqui é o mais estrito
+          // dos três fallbacks deste bloco:
+          //   1. metadata.pack / metadata.plan_grant → caminho normal, exato;
+          //   2. valor + moeda → só quando NÃO há metadata.pack alguma, isto é,
+          //      numa sessão que perdeu a metadata.
+          // A condição (2) precisa da guarda `packMeta === ''` porque o preço do
+          // piloto COLIDE com o Starter anual em USD (9900) e em BRL (49900).
+          // Hoje o anual é mode:'subscription' e nem chega neste bloco, mas se um
+          // dia virar pagamento único, sem esta guarda um comprador de plano anual
+          // de $99 sairia daqui com plan='autopilot_pilot'.
+          const packMeta = (session.metadata?.pack ?? '').trim()
+          const isAutopilotPilot =
+            packMeta === 'autopilot_pilot' ||
+            session.metadata?.plan_grant === AUTOPILOT_PILOT_PLAN ||
+            (packMeta === '' && isAutopilotPilotAmount(amount, session.currency))
+
           let creditsToAdd = metaCredits > 0 ? metaCredits : 0
           if (creditsToAdd === 0) {
             // Legacy Payment-Link amounts (USD): $9 → 10, $19 → 25, $4.90 → 30.
@@ -354,6 +393,11 @@ export async function POST(req: NextRequest) {
             // have been logged as "unexpected amount_total" and the buyer would
             // have paid and received nothing.
             else if (amount === 290) creditsToAdd = PACK_CREDITS.starter290
+            // KINEO-PILOT-99-2026-07-26 — o bug de $2.90 (branch para 490, nenhum
+            // para 290 → cartão cobrado, zero creditado) não se repete aqui: todo
+            // valor que o checkout pode cobrar por este SKU tem branch, nas TRÊS
+            // moedas, e nenhum deles colide com outro SKU na mesma moeda.
+            else if (isAutopilotPilot) creditsToAdd = AUTOPILOT_PILOT_CREDITS
           }
 
           if (creditsToAdd === 0) {
@@ -404,6 +448,23 @@ export async function POST(req: NextRequest) {
           const profileUpdate: Record<string, unknown> = { video_credits: next, has_paid: true }
           if (isOffer290) profileUpdate.offer290_used = true
 
+          // KINEO-PILOT-99-2026-07-26 — este é o único ponto do Path A que escreve
+          // `plan`. Duas regras:
+          //  1) plan e plan_expires_at são escritos JUNTOS, no mesmo UPDATE. Se a
+          //     coluna plan_expires_at não existir, o UPDATE inteiro falha e o
+          //     plano NÃO é concedido — em vez de conceder um Autopilot eterno
+          //     por $99. É o fail-closed que a migration exige.
+          //  2) PROTECTED_EMAILS: o Path A nunca mexia em `plan`, então nunca
+          //     checou. Agora mexe, então checa — os créditos continuam.
+          if (isAutopilotPilot) {
+            if (await isProtectedProfile(supabase, { userId })) {
+              console.warn('[stripe webhook] autopilot_pilot: protected account, credits only, plan untouched:', userId)
+            } else {
+              profileUpdate.plan = AUTOPILOT_PILOT_PLAN
+              profileUpdate.plan_expires_at = autopilotPilotExpiresAt().toISOString()
+            }
+          }
+
           const { error: updateErr } = await supabase
             .from('profiles')
             // KINEO-PACK-NOWM-2026-07-06 — mark buyer as paid so their free-plan
@@ -412,6 +473,17 @@ export async function POST(req: NextRequest) {
             .eq('id', userId)
 
           if (updateErr) {
+            // KINEO-PILOT-99-2026-07-26 — 42703 = coluna inexistente. Se for isto,
+            // a migration não foi aplicada e o SKU está INERTE. Erro retentável
+            // (o guard de fulfillment é liberado no finally), então o Stripe
+            // reenvia e o pagamento se resolve sozinho assim que a migration rodar.
+            if (isAutopilotPilot && ((updateErr as { code?: string }).code === '42703' || /plan_expires_at/.test(updateErr.message ?? ''))) {
+              console.error(
+                '[stripe webhook] autopilot_pilot NOT GRANTED: profiles.plan_expires_at is missing. ' +
+                'Apply migrations_pending/2026-07-26_autopilot_pilot_plan_expiry.sql — the customer HAS BEEN CHARGED ' +
+                `and this event will keep retrying until the column exists (session ${session.id}).`
+              )
+            }
             throw new RetryableEntitlementError(
               `Failed to add credits (${userId}): ${updateErr.message}`
             )
@@ -419,6 +491,9 @@ export async function POST(req: NextRequest) {
             entitlementConfirmed = true
             entitlementPending = false
             console.log(`[stripe webhook] +${creditsToAdd} credits → user ${userId} (now ${next})`)
+            if (isAutopilotPilot) {
+              console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)
+            }
           }
           await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
           break

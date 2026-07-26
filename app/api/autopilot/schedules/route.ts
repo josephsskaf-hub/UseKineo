@@ -37,7 +37,9 @@ import { createClient as createSupabaseAdmin, type SupabaseClient } from '@supab
 import { creditCostFor } from '@/lib/credits/engineCost'
 import {
   AUTOPILOT_DEFAULT_ENGINE,
+  AUTOPILOT_ENTITLEMENT_COLUMNS,
   clampAutopilotEngine,
+  clampPostsPerDayForPlan,
   computeNextRunAt,
   isAutopilotEntitled,
   normalizePostHour,
@@ -59,6 +61,9 @@ interface ProfileRow {
   plan?: string | null
   is_pro?: boolean | null
   video_credits?: number | null
+  // KINEO-PILOT-99-2026-07-26 — sem esta coluna isAutopilotEntitled() falha
+  // FECHADO para todo plano com prazo, e o piloto de $99 nasce morto.
+  plan_expires_at?: string | null
 }
 
 interface ChannelRow {
@@ -179,7 +184,9 @@ async function resolveCaller(): Promise<CallerResult> {
 
   const { data } = await admin
     .from('profiles')
-    .select('has_paid, plan, is_pro, video_credits')
+    // KINEO-PILOT-99-2026-07-26 — constante única. Um select escrito à mão
+    // que esquecesse plan_expires_at derrubaria todo piloto pago em silêncio.
+    .select(AUTOPILOT_ENTITLEMENT_COLUMNS)
     .eq('id', user.id)
     .maybeSingle()
   const profile = (data as ProfileRow | null) ?? null
@@ -403,7 +410,10 @@ export async function POST(req: NextRequest) {
     }
 
     const postHourUtc = normalizePostHour(body.postHourUtc)
-    const postsPerDay = normalizePostsPerDay(body.postsPerDay ?? 1)
+    // KINEO-PILOT-99-2026-07-26 — o piloto promete "7 Shorts em 7 dias" e a
+    // única trava é a DATA. Com postsPerDay = 3 o comprador de $99 levaria 21+
+    // Shorts. O clamp vive no servidor porque o corpo do request é do cliente.
+    const postsPerDay = clampPostsPerDayForPlan(body.postsPerDay ?? 1, profile?.plan)
     // INVARIANTE 1 — a agenda nasce com o próximo horário já resolvido.
     const nextRunAt = computeNextRunAt({ from: new Date(), postHourUtc, postsPerDay })
 
@@ -524,12 +534,23 @@ export async function PATCH(req: NextRequest) {
       body.postHourUtc !== undefined
         ? normalizePostHour(body.postHourUtc)
         : normalizePostHour(current.post_hour_utc)
+    // KINEO-PILOT-99-2026-07-26 — o mesmo clamp do POST. Sem ele o comprador
+    // do piloto criava a agenda em 1/dia (clampada) e imediatamente dava PATCH
+    // para 3/dia, o que anula a trava inteira. E o ramo `current` também passa
+    // pelo clamp de propósito: uma agenda criada quando o plano era mensal e
+    // depois rebaixada para o piloto ficaria com posts_per_day = 3 gravado.
     const nextPerDay =
       body.postsPerDay !== undefined
-        ? normalizePostsPerDay(body.postsPerDay)
-        : normalizePostsPerDay(current.posts_per_day)
+        ? clampPostsPerDayForPlan(body.postsPerDay, profile?.plan)
+        : clampPostsPerDayForPlan(current.posts_per_day, profile?.plan)
     if (body.postHourUtc !== undefined) patch.post_hour_utc = nextHour
-    if (body.postsPerDay !== undefined) patch.posts_per_day = nextPerDay
+    // Escreve também quando o CLAMP mudou o valor sem o cliente ter pedido —
+    // caso contrário next_run_at passaria a ser calculado com 1/dia enquanto a
+    // coluna continuaria em 3/dia, e o cron (que lê a coluna) discordaria da
+    // agenda. Estado divergente é pior que qualquer um dos dois valores.
+    if (body.postsPerDay !== undefined || nextPerDay !== normalizePostsPerDay(current.posts_per_day)) {
+      patch.posts_per_day = nextPerDay
+    }
 
     if (wantsEnable !== null) patch.enabled = wantsEnable
 
@@ -540,7 +561,9 @@ export async function PATCH(req: NextRequest) {
     //   disparar na primeira invocação, numa hora que o cliente não escolheu.
     const cadenceChanged =
       (body.postHourUtc !== undefined && nextHour !== normalizePostHour(current.post_hour_utc)) ||
-      (body.postsPerDay !== undefined && nextPerDay !== normalizePostsPerDay(current.posts_per_day))
+      // Sem o guard de `body`: a cadência também muda quando é o CLAMP que a
+      // muda, e nesse caso next_run_at precisa ser recalculado igualmente.
+      nextPerDay !== normalizePostsPerDay(current.posts_per_day)
     const resuming = wantsEnable === true && current.enabled === false
     if (cadenceChanged || resuming) {
       patch.next_run_at = computeNextRunAt({

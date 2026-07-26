@@ -25,6 +25,9 @@ const PAID_PLANS = new Set([
   // KINEO-AUTOPILOT-299-2026-07-26 — without this an Autopilot subscriber
   // would keep being shown the "finish your checkout" resume banner forever.
   'autopilot', 'autopilot_trial',
+  // KINEO-PILOT-99-2026-07-26 — mid-pilot buyers are paying customers; sem isto
+  // eles veem o banner "finish your checkout" durante os 7 dias que compraram.
+  'autopilot_pilot',
 ])
 
 // KINEO-AUTOPILOT-299-2026-07-26 — includes 'autopilot'; imported so the tier

@@ -13,7 +13,12 @@ const EXAMPLES = [
 ] as const
 
 export default function SaaSHubBridgeClient({ isSignedIn }: { isSignedIn: boolean }) {
-  const [prompt, setPrompt] = useState(EXAMPLES[0])
+  // KINEO-TSC-2026-07-26 — sem o <string> explícito, o TS infere o tipo do
+  // literal do EXAMPLES[0] e QUALQUER outro valor vira erro: nem o textarea
+  // (setPrompt(event.target.value)) nem os chips de exemplo compilavam. O
+  // formulário funciona no browser, mas o tsc estava vermelho por 2 erros que
+  // escondem os de verdade.
+  const [prompt, setPrompt] = useState<string>(EXAMPLES[0])
 
   useEffect(() => {
     try {

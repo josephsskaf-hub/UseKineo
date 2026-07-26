@@ -26,7 +26,18 @@ export async function GET() {
       channels,
     })
   } catch (err) {
-    console.error('[youtube/status]', err)
-    return NextResponse.json({ connected: false, channels: [] })
+    // KINEO-YTCONNECT-2026-07-26 — antes isto devolvia 200 {connected:false},
+    // que é BYTE A BYTE a resposta de um usuário genuinamente desconectado.
+    // As duas situações levam o usuário a ações OPOSTAS ("conecte seu canal" vs
+    // "tente de novo daqui a pouco"), e a de erro ainda escondia uma falha de
+    // Supabase atrás de uma tela de onboarding perfeitamente normal. Agora o
+    // desfecho é distinguível: HTTP 503 + `error`. `connected:false` continua no
+    // corpo só para nenhum client antigo quebrar ao ler o campo.
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[youtube/status] check failed:', msg)
+    return NextResponse.json(
+      { connected: false, channels: [], error: 'check_failed' },
+      { status: 503 },
+    )
   }
 }
