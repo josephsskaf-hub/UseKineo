@@ -9,10 +9,33 @@ Ordenadas por **valor de decisão**, não por esforço.
 
 ## BLOCO A — Segurança e integridade (respondem primeiro porque mudam a ordem de tudo)
 
-### Q-A1 🔑 `CRON_SECRET` está setada na Vercel?
-**Por quê:** separa "4 endpoints de disparo de e-mail em massa abertos na internet" de "risco teórico". Ver `ARCHITECTURE_AND_INTEGRATIONS.md` §S1.
-**Como:** painel Vercel → Settings → Environment Variables. **Só a existência do nome. Nunca o valor.**
-**Se ausente:** setar **antes** de qualquer correção de código — senão `send-reminders` (que roda o refund) para no deploy seguinte.
+### ~~Q-A1 `CRON_SECRET` está setada na Vercel?~~ ✅ **RESPONDIDA 2026-07-27 — SIM**
+
+Confirmado pelo Joseph no painel da Vercel.
+
+**Consequência:** o fail-open `if (!cronSecret) return true` **nunca dispara em produção**. Os 4 endpoints de e-mail **não estão públicos**. Riscos S1 e S2 de `ARCHITECTURE_AND_INTEGRATIONS.md` estão **fechados na prática**.
+
+Continua valendo corrigir as 4 linhas — vira seguro barato contra a env ser removida ou renomeada um dia — mas **saiu da fila de urgência**.
+
+---
+
+### Q-A1b 🔑 A conta Vercel é Pro ou Hobby? **(nova, gerada pela resposta de Q-A1)**
+**Por quê:** duas decisões de arquitetura no código foram tomadas para contornar limites do plano Hobby, e a evidência diz que esses limites não se aplicam mais.
+
+| Evidência de Pro | Evidência de Hobby (comentários no código) |
+|---|---|
+| `vercel.json:17` tem cron **horário** (`0 * * * *`) — Hobby só permite diário | `send-reminders/route.ts:40` — *"Vercel Hobby silently rejects deploys when cron limits are exceeded"* |
+| `vercel.json` tem **4** crons — Hobby permite 2 | `send-activation-nudge/route.ts:101` — *"Window widened from 6h → 30h because Vercel Hobby only allows DAILY"* |
+| `send-reminders/route.ts:16` — *"30 → 300 (**Vercel Pro**)"*, e `maxDuration = 300` | |
+
+**Os dois comentários contraditórios estão no mesmo arquivo.**
+
+**Se for Pro (o que a evidência indica):**
+1. O refund sweep não precisa mais ficar de carona no `send-reminders` — pode ter cron próprio, o que remove o ponto único de falha do risco R2.
+2. `send-activation-nudge` pode voltar à janela de 6h em vez de 30h.
+3. Há espaço para agendar os 3 crons órfãos corretamente.
+
+**Como:** painel Vercel → Settings → General (o plano aparece no topo).
 
 ### Q-A2 🔑 As 3 migrations de `migrations_pending/` foram aplicadas?
 **Por quê:** decide se `/revive` está morto e se o SKU de $99 pode cobrar.
@@ -36,6 +59,12 @@ select to_regclass('public.revive_prospects'), to_regproc('public.revive_prospec
 
 ### Q-A3 🔑 `KINEO_LIFECYCLE_EMAILS_ENABLED` está `true`?
 Decide se o outbound de ciclo de vida está vivo. Combinado com R1 (4 crons não agendados), a recuperação de receita pode estar desligada por **dois motivos independentes**.
+
+⚠️ **Atualização 27/07 — a pausa é DELIBERADA, não acidente.** `send-reminders/route.ts:56-59` documenta: *"All outbound below is paused **by default** because it overlaps other recovery jobs. Explicit opt-in is required to resume it after the current Lote 1 measurement gate."*
+
+Então a pergunta real não é "está ligado?" — é: **o "Lote 1 measurement gate" já terminou?** Se sim, a pausa venceu e ninguém reativou. Se não, ela está correta e não deve ser mexida.
+
+Nota: mesmo ligando o flag, `send-recovery`, `send-activation-nudge` e `send-video-rescue` **continuariam mortos** — não estão em `vercel.json`. O flag sozinho não resolve.
 
 ### Q-A4 🔑 Quais crons a Vercel realmente executa?
 `vercel.json` lista 4; existem 8 rotas. Confirmar no painel se `send-activation-nudge`, `send-recovery`, `send-video-rescue` e `refresh-viral-now` estão de fato mortos.

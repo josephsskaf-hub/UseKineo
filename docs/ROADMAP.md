@@ -23,9 +23,10 @@ Nenhum destes escreve uma linha de código.
 
 | # | Ação | Custo | O que destrava |
 |---|---|---|---|
-| **1.1** | Confirmar `CRON_SECRET` na Vercel (Q-A1) | 1 min, sem credencial exposta | Se ausente, 4 endpoints de e-mail em massa estão públicos **agora** |
+| ~~1.1~~ | ~~Confirmar `CRON_SECRET`~~ ✅ **RESPONDIDA 27/07 — está setada.** Riscos S1 e S2 fechados; os 4 endpoints **não** estão públicos. Correção das 4 linhas vira hardening, não urgência. | — | — |
+| **1.1b** | Confirmar se a conta Vercel é **Pro ou Hobby** (Q-A1b) — *pergunta nova, gerada pela resposta de 1.1* | 1 min | Duas decisões de arquitetura foram tomadas para contornar limites do Hobby, e a evidência diz que não se aplicam mais. Se for Pro: o refund sweep sai da carona (mata o ponto único de falha R2), o `send-activation-nudge` volta de 30h para 6h, e há espaço para os 3 crons órfãos |
 | **1.2** | 3 queries de schema (Q-A2) | segundos | Se `/revive` está morto e se o SKU de $99 pode cobrar |
-| **1.3** | Confirmar `KINEO_LIFECYCLE_EMAILS_ENABLED` (Q-A3) | 1 min | Se a recuperação de receita está desligada por 1 ou por 2 motivos |
+| **1.3** | O **"Lote 1 measurement gate" já terminou?** (Q-A3) — a pausa do outbound é deliberada e documentada em código, não acidente. A pergunta é se ela venceu. | 1 pergunta | Se a recuperação de receita está pausada com razão ou por esquecimento |
 | **1.4** | Perguntar ao Joseph **qual tela de métrica ele usa** (Q5) | 1 pergunta | Se `/api/admin/ceo` é o conserto de maior valor por linha do repo |
 
 ---

@@ -82,6 +82,13 @@ Com **713 cadastros e 4 pagantes**, três máquinas de recuperação de receita 
 ### R2 — O auto-refund depende de um único cron diário
 `lib/credits/refund.ts:79` é chamado só de `send-reminders/route.ts:46`. Se `send-reminders` falhar, ninguém é reembolsado e ninguém fica sabendo. O sweep roda **antes** do portão `LIFECYCLE_EMAILS_ENABLED` — é a única razão de ainda funcionar com os e-mails pausados. **Não inverta essa ordem.**
 
+⚠️ **A justificativa desse acoplamento pode estar vencida.** O comentário em `send-reminders/route.ts:40` diz que o sweep pegou carona *"em vez de uma nova entrada no vercel.json (Vercel **Hobby** silently rejects deploys when cron limits are exceeded)"*. Mas o mesmo arquivo, na linha 16, diz *"(Vercel **Pro**)"*, e `vercel.json:17` tem um cron **horário** — que o plano Hobby não permite. Se a conta é Pro, o sweep pode ter cron próprio e este ponto único de falha some. Ver `OPEN_QUESTIONS.md` Q-A1b.
+
+### R5 — O outbound está pausado por decisão, não por acidente
+`send-reminders/route.ts:56-59`: *"All outbound below is paused **by default** because it overlaps other recovery jobs. Explicit opt-in is required to resume it after the current Lote 1 measurement gate."*
+
+A pausa é deliberada e bem justificada. **A pergunta aberta é se o "Lote 1 measurement gate" já terminou** — se sim, a pausa venceu e ninguém reativou. Ver `OPEN_QUESTIONS.md` Q-A3.
+
 ### R3 — Dois gateways de assinatura, um só painel, três listas de conta interna divergentes
 `lib/internalAccounts.ts` tem 5 e-mails + 9 padrões · os webhooks têm 4 · `ADMIN_EMAILS` tem 3. MRR e proteção de conta dependem de listas que ninguém sincroniza.
 
@@ -94,21 +101,23 @@ Os dois webhooks concedem `video_credits` com service-role. Fail-closed hoje. O 
 
 **Nenhum segredo real vazado em arquivo rastreado.** Varredura completa do índice do git com padrões `sk-`, `sk_live_`, `whsec_`, `re_`, JWT Supabase, `AIza`, `GOCSPX-`, `xoxb-`. Único achado: `.env.local.example:4` e `DEPLOY.md:91`, ambos placeholder. `.env.local` está no `.gitignore` e não rastreado. ✅
 
-### S1 — 4 crons de e-mail falham ABERTO sem `CRON_SECRET`
+### ~~S1 — 4 crons de e-mail falham ABERTO sem `CRON_SECRET`~~ ✅ FECHADO NA PRÁTICA (27/07)
+
+**`CRON_SECRET` está setada na Vercel** — confirmado pelo Joseph em 27/07/2026.
+
 ```
 send-reminders/route.ts:29         if (!cronSecret) return true
 send-recovery/route.ts:53          if (!cronSecret) return true
 send-activation-nudge/route.ts:40  if (!cronSecret) return true
 send-video-rescue/route.ts:47      if (!cronSecret) return true
 ```
-Se `CRON_SECRET` não estiver setada em produção, **qualquer pessoa com um `curl` dispara e-mail em massa para toda a base** — queima de domínio no Resend.
 
-Padrão correto já existe no repo: `autopilot-generate/route.ts:78` e `reset-cinematic-tokens/route.ts:21` fazem `return false`. **Correção de 4 linhas.**
+Com a env presente, esse ramo **nunca executa**. Os 4 endpoints **não estão públicos**. A comparação `auth === Bearer ${cronSecret}` funciona corretamente.
 
-⚠️ **Dependência:** se `CRON_SECRET` estiver ausente, setá-la **primeiro** — senão `send-reminders` (que roda o refund, ver R2) para de funcionar no deploy seguinte.
+Corrigir as 4 linhas (`return true` → `return false`) continua valendo como **seguro barato** contra a env ser removida ou renomeada. Padrão correto já no repo: `autopilot-generate/route.ts:78`. **Não é urgente.**
 
-### S2 — `Bearer undefined` passa
-`refresh-niche-trends/route.ts:95` e `refresh-viral-now/route.ts:13` comparam contra `` `Bearer ${process.env.CRON_SECRET}` `` sem checar existência. Sem a env, o header literal `Authorization: Bearer undefined` passa. Impacto: queima de tokens OpenAI.
+### ~~S2 — `Bearer undefined` passa~~ ✅ FECHADO NA PRÁTICA (27/07)
+`refresh-niche-trends/route.ts:95` e `refresh-viral-now/route.ts:13` comparam sem checar existência da env. Com `CRON_SECRET` setada, a comparação é válida. Mesmo raciocínio de S1: hardening, não urgência.
 
 ### S3 — `/api/admin/flag-video` só exige estar logado
 `admin/flag-video/route.ts:20-23`: qualquer usuário autenticado escreve em `broll_metrics` para **qualquer** `render_id`, via service-role. Órfão, impacto real baixo (polui analytics de B-roll), mas mora sob `/api/admin/` e sugere proteção que não existe.
