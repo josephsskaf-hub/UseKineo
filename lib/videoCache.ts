@@ -92,7 +92,7 @@ export async function ensureAccessibleUrl(
   let videoBuffer: ArrayBuffer
   try {
     const headers: HeadersInit = {
-      'User-Agent': 'Mozilla/5.0 (compatible; ShortsForge/1.0; +https://shortsforgeai.vercel.app)',
+      'User-Agent': 'Mozilla/5.0 (compatible; Kineo/1.0; +https://www.usekineo.com)',
     }
     if (apiKey) headers['Authorization'] = apiKey
 

@@ -17,8 +17,8 @@ const MP_API = 'https://api.mercadopago.com'
 //   R$50 (~$10) = 90 créditos  (3 AI Gen ou 90 Fast)
 //   R$90 (~$18) = 180 créditos (6 AI Gen ou 180 Fast)
 export const MP_PACKS: Record<string, { credits: number; brl: number; title: string }> = {
-  br50: { credits: 90, brl: 50, title: 'ShortsForgeAI — 90 créditos (Pix)' },
-  br90: { credits: 180, brl: 90, title: 'ShortsForgeAI — 180 créditos (Pix)' },
+  br50: { credits: 90, brl: 50, title: 'Kineo — 90 créditos (Pix)' },
+  br90: { credits: 180, brl: 90, title: 'Kineo — 180 créditos (Pix)' },
 }
 
 export function mpConfigured(): boolean {
@@ -59,7 +59,7 @@ export async function createMpPreference(args: {
         },
         auto_return: 'approved',
         notification_url: `${args.appUrl}/api/mercadopago/webhook`,
-        statement_descriptor: 'SHORTSFORGEAI',
+        statement_descriptor: 'KINEO',
       }),
     })
     const data = await res.json().catch(() => ({})) as { init_point?: string }
