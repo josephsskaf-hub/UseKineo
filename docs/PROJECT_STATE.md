@@ -113,7 +113,34 @@ Causa: no seletor do Google ele escolheu a conta `josephsskaf@gmail.com`, que re
 
 **Recomendação registrada:** provar os 7 dias no canal **sem audiência** primeiro (o pessoal, já conectado, é o canal controlado que o EXP-1 pedia), e só depois trocar para o Curiosityvaultlab. Uma opção de `privacyStatus: 'unlisted'` na UI do Autopilot tornaria o teste seguro em qualquer canal — **SUGESTÃO, não implementado.**
 
-**Estado em 27/07:** `schedules: []`. Nada agendado, nada publicado. Aguardando decisão do fundador sobre qual canal.
+#### ✅ RESOLVIDO E LIGADO — 27/07/2026
+
+**A causa da conexão errada: nome de conta de marca ≠ nome de canal.**
+
+O Google, no consentimento OAuth, lista **contas de marca**, não canais. A conta de marca chama-se **"Zona Invisível"**; o canal dentro dela chama-se **"Curiosityvaultlab"**. O YouTube mostra o nome do canal; o Google mostra o nome da marca. São a mesma coisa com dois nomes, e nada na tela liga um ao outro.
+
+Selecionando "Zona Invisível" no consentimento, o app gravou corretamente **Curiosityvaultlab**.
+
+⚠️ **Isto é uma armadilha para todo cliente, não só para o fundador.** Quem tem canal em conta de marca renomeada não tem como saber qual opção escolher — e o app conecta em silêncio o que vier.
+
+**Estado final:** Autopilot **LIGADO** em 27/07. Canal `Curiosityvaultlab`, nicho `Mysteries & unexplained`, 1 Short/dia às 18:00 local. Primeira publicação agendada para 27/07 18:00. **Primeiro `autopilot_schedule` da história do produto.**
+
+---
+
+#### 🔴 TERCEIRA CAUSA-RAIZ DE `channels = 0` — o app OAuth NÃO é verificado pelo Google
+
+Descoberto ao percorrer o fluxo em 27/07. Antes do consentimento, o Google exibe tela vermelha de alerta:
+
+> **"O Google não verificou este app."** — *"O app está solicitando acesso a informações confidenciais na sua Conta do Google. Não é recomendado usá-lo até que o desenvolvedor (`support@shortsforgeai.com`) faça a verificação com o Google."*
+
+Para prosseguir é preciso clicar em **"Avançado"** e depois em **"Acessar Kineo (não seguro)"**.
+
+**Consequências comerciais:**
+1. **Todo cliente** que tentar conectar um canal vê essa tela. Num produto de $299/mês cuja promessa central é conectar o YouTube, essa é uma barreira de conversão brutal — e é candidata forte a explicar por que `channels` ficou em 0 mesmo depois do #103.
+2. App não verificado com escopos sensíveis tem **limite de usuários** e o token pode expirar cedo. Escalar o Autopilot sem verificar é impossível.
+3. O e-mail do desenvolvedor exibido ao cliente é `support@shortsforgeai.com` — **a marca antiga**, o que reforça a incoerência de domínio da §2.1 do `AGENTS.md`.
+
+**Ação necessária (fora do escopo do CEO):** submeter o app à verificação OAuth do Google no Google Cloud Console. Exige tela de consentimento completa, domínio verificado, política de privacidade e demonstração em vídeo. **QUESTÃO PENDENTE — bloqueia a venda do Autopilot em escala.**
 
 ---
 
