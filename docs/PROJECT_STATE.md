@@ -58,6 +58,36 @@ EVIDÊNCIA DE PRODUÇÃO, `push_103_msg.txt` (26/07/2026):
 
 O PUSH #103 corrigiu o OAuth. **Não existe nenhuma conexão bem-sucedida comprovada depois do fix.**
 
+### 🔴 A CAUSA RAIZ REAL — descoberta em 27/07/2026, verificada no navegador
+
+O `redirect_uri_mismatch` **não era o único motivo** de `channels = 0`. Há um segundo bloqueio, anterior a ele:
+
+**A página `/autopilot` está atrás de paywall, e nem a conta do fundador passa.** Verificado ao vivo em `www.usekineo.com/autopilot` logado como `josephsskaf@gmail.com` (694 créditos): a tela mostra *"Autopilot is part of the paid plans"* e um botão "See plans and unlock Autopilot". **Não existe botão de conectar canal para clicar.**
+
+A regra exata, em `lib/autopilot/config.ts:143-163`:
+```
+AUTOPILOT_PAID_PLANS = { 'autopilot', 'autopilot_trial', 'autopilot_pilot' }
+```
+- `has_paid` e `is_pro` são **deliberadamente ignorados** — comprar um pack de $2,90 não destrava
+- só `profiles.plan` decide
+- plano com prazo (o piloto) exige `plan_expires_at` no futuro, **fail-closed**
+- **não existe bypass de admin.** O `admin` naquela rota é o client do Supabase, não um privilégio de usuário
+
+**O laço fechado que isso cria:**
+
+> Não se pode vender o Autopilot porque ele nunca foi provado.
+> Não se pode provar porque provar exige **já ser cliente do Autopilot**.
+
+Ninguém jamais poderia ter conectado um canal: quem não paga bate no paywall, e os únicos planos que passam são `autopilot` (0 assinantes na história), `autopilot_trial` (ninguém concede) e `autopilot_pilot` (SKU inerte — ver `OPEN_QUESTIONS.md` Q-A2).
+
+**Como sair do laço — três caminhos, um só é limpo:**
+
+| Caminho | Custo | Problema |
+|---|---|---|
+| `UPDATE profiles SET plan='autopilot_trial' WHERE id=<fundador>` | 1 query | **Escrita em banco — exige autorização do fundador.** É o caminho recomendado: `autopilot_trial` não é time-boxed, logo não depende da migration pendente |
+| Fundador compra o $299 ou o piloto de $99 | dinheiro real | O piloto está inerte; e pagar a si mesmo suja a métrica de receita |
+| Adicionar bypass de admin no código | 1 PR | Cria caminho privilegiado permanente em código de entitlement. Não recomendo |
+
 ### 3.3 ⚠️ CONTRADIÇÃO ABERTA — ativação difere por 2×
 
 | Fonte | Afirma | Data |
