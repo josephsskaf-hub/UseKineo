@@ -20,16 +20,26 @@ type Props = {
 }
 
 const KLP_CSS = `
-.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#2a2a2d;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#98989e;--muted2:#8a8a90;--blue:#2997ff;background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
+/* KINEO-HOME-POLISH-2026-07-27 — refino visual do hero. Nenhum preço, CTA,
+   promessa ou copy mudou; só tipografia, espaçamento, profundidade e cor.
+   Tokens novos (--r-*, --sh-*, --blue-soft) centralizam raio/sombra/glow para
+   que card, plano, FAQ e botao parem de cada um inventar o proprio acabamento. */
+.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-lg:22px;--r-md:18px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
 .klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
-.klp .btn{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:16px;padding:13px 28px;border-radius:980px;cursor:pointer;transition:.18s;border:1px solid transparent}
-.klp .btn-w{background:var(--txt);color:#000}
-.klp .btn-w:hover{background:#fff;transform:scale(1.02)}
+.klp .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:650;font-size:16px;letter-spacing:-.01em;padding:14px 30px;border-radius:980px;cursor:pointer;transition:transform .18s cubic-bezier(.2,.7,.3,1),background .18s ease,box-shadow .18s ease;border:1px solid transparent}
+.klp .btn-w{background:var(--txt);color:#000;box-shadow:var(--sh-cta)}
+.klp .btn-w:hover{background:#fff;transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 14px 34px -12px rgba(255,255,255,.42)}
+.klp .btn-w:active{transform:translateY(0) scale(.985);box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 6px 16px -10px rgba(255,255,255,.3)}
+.klp .btn:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+.klp .btn[disabled]{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
 .klp .link{color:var(--blue);font-weight:600;font-size:16px;display:inline-flex;align-items:center;gap:4px}
 .klp .link:hover{text-decoration:underline}
-.klp .gtxt{background:linear-gradient(180deg,#fff 35%,#a1a1a6);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+/* O gradiente antigo comecava a apagar em 35% e terminava em #a1a1a6, o que
+   deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
+   58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
+.klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,#c7c7cd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
@@ -46,10 +56,15 @@ const KLP_CSS = `
 .klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .klp .nav-mobile-menu{display:none}
 .klp .nav-toggle-input:checked~.nav-mobile-menu{display:flex}
-.klp .hero{position:relative;padding:78px 0 84px;overflow:hidden}
-.klp .hero .glow{position:absolute;width:820px;height:520px;left:42%;top:-120px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(120,140,175,.2),transparent 70%);pointer-events:none}
-.klp .hero-center .sub{font-size:clamp(1.05rem,2.1vw,1.28rem);color:var(--muted);max-width:480px;margin:20px 0 0;line-height:1.45}
-.klp .composer{display:flex;flex-direction:column;gap:14px;margin-top:30px;background:var(--card);border:1px solid var(--line2);border-radius:22px;padding:22px;width:100%;max-width:730px;min-height:300px;box-shadow:0 20px 50px -24px rgba(0,0,0,.9)}
+.klp .hero{position:relative;padding:96px 0 92px;overflow:hidden}
+/* rgba(120,140,175) era um azul-acinzentado que nao existe em lugar nenhum da
+   paleta — o unico tom solto do hero. Trocado pelo azul da marca, em duas
+   camadas (uma quente e larga, uma fria e concentrada) para dar profundidade
+   em vez de uma mancha chapada. */
+.klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.06),transparent 58%);pointer-events:none}
+.klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:22px 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
+.klp .composer{display:flex;flex-direction:column;gap:14px;margin-top:30px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:24px;width:100%;max-width:730px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
+.klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:17px;line-height:1.5;font-family:inherit;padding:6px 2px}
 .klp .composer .ci::placeholder{color:var(--muted2)}
@@ -62,77 +77,116 @@ const KLP_CSS = `
 .klp .topic-starters button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 11px;min-height:44px;font:inherit;font-weight:650;cursor:pointer;transition:.18s}
 .klp .topic-starters button:hover,.klp .topic-starters button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
-.klp section{padding:104px 0}
+.klp section{padding:112px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
 .klp section[id],.klp [id^="try-"]{scroll-margin-top:78px}
-.klp .sec-h{text-align:center;max-width:640px;margin:0 auto 56px}
-.klp .sec-h h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em;line-height:1.08}
-.klp .sec-h p{margin-top:16px;color:var(--muted);font-size:1.12rem}
+.klp .sec-h{text-align:center;max-width:660px;margin:0 auto 60px}
+.klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:620;letter-spacing:-.03em;line-height:1.06;text-wrap:balance}
+.klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
 .klp .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.klp .step{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:32px;transition:.2s}
-.klp .step:hover{border-color:var(--line2);transform:translateY(-3px)}
-.klp .step .n{font-size:14px;font-weight:700;color:var(--muted2)}
-.klp .step h3{margin-top:14px;font-size:1.25rem;font-weight:600;letter-spacing:-.01em}
-.klp .step p{margin-top:10px;color:var(--muted);font-size:.98rem;line-height:1.6}
-.klp .vcard{aspect-ratio:9/16;border-radius:18px;background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;transition:.2s}
-.klp .vcard:hover,.klp .vcard:focus-visible,.klp .vcard:focus-within{border-color:var(--line2);transform:translateY(-4px)}
+.klp .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px;box-shadow:var(--sh-card);transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s ease,box-shadow .2s ease}
+.klp .step:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
+/* "Step 1/2/3" era texto cinza solto de 14px, do mesmo peso do corpo — nao
+   marcava sequencia nenhuma. Virou um selo numerado, que e o que a palavra
+   "step" promete. Mesmo texto. */
+.klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
+.klp .step h3{margin-top:18px;font-size:1.32rem;font-weight:650;letter-spacing:-.022em;line-height:1.2}
+.klp .step p{margin-top:11px;color:var(--muted);font-size:.99rem;line-height:1.62}
+.klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform .22s cubic-bezier(.2,.7,.3,1),border-color .22s ease,box-shadow .22s ease}
+.klp .vcard:hover,.klp .vcard:focus-visible,.klp .vcard:focus-within{border-color:rgba(41,151,255,.4);transform:translateY(-5px);box-shadow:var(--sh-card-h),0 0 0 1px rgba(41,151,255,.18)}
+/* O texto do card fica sobre video em movimento — sem esta camada o titulo
+   some assim que passa um frame claro. */
+.klp .vcard::after{content:'';position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.72));pointer-events:none;z-index:1}
+.klp .vcard .vt{position:relative;z-index:2}
 .klp .vcard .vt{font-size:14px;font-weight:700;line-height:1.25;color:#fff}
-.klp .cmp{background:var(--card);border:1px solid var(--line);border-radius:22px;overflow-x:auto;position:relative}
+.klp .cmp{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow-x:auto;position:relative;box-shadow:var(--sh-card)}
 .klp .cmp table{width:100%;min-width:560px;border-collapse:collapse;font-size:14.5px}
-.klp .cmp th,.klp .cmp td{padding:16px 18px;text-align:center;border-bottom:1px solid var(--line)}
+.klp .cmp th,.klp .cmp td{padding:15px 18px;text-align:center;border-bottom:1px solid rgba(255,255,255,.055)}
 .klp .cmp th:first-child,.klp .cmp td:first-child{text-align:left;color:var(--muted);font-weight:400;position:sticky;left:0;background:var(--card2);z-index:1}
-.klp .cmp thead th{font-weight:600;color:var(--muted)}
-.klp .cmp thead th.us,.klp .cmp td.us{background:rgba(255,255,255,.04)}
-.klp .cmp thead th.us{color:var(--txt)}
+.klp .cmp thead th{font-weight:650;color:var(--muted);font-size:13px;letter-spacing:.02em;padding-top:18px;padding-bottom:18px}
+/* A coluna "Kineo" agora e uma coluna de verdade — faixa azul continua, com
+   as pontas arredondadas no topo e na base, em vez de um cinza quase invisivel
+   em rgba(255,255,255,.04) que nao dizia qual coluna importa. */
+.klp .cmp thead th.us,.klp .cmp td.us{background:linear-gradient(180deg,rgba(41,151,255,.13),rgba(41,151,255,.07));box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px 0 0 rgba(41,151,255,.22)}
+.klp .cmp thead th.us{color:var(--txt);border-top-left-radius:12px;border-top-right-radius:12px;box-shadow:inset 1px 1px 0 rgba(41,151,255,.3),inset -1px 0 0 rgba(41,151,255,.3)}
+.klp .cmp tbody tr:last-child td.us{border-bottom-left-radius:12px;border-bottom-right-radius:12px;box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px -1px 0 rgba(41,151,255,.22)}
 .klp .cmp td.us{color:var(--txt);font-weight:700}
+.klp .cmp tbody tr:hover td{background:rgba(255,255,255,.018)}
+.klp .cmp tbody tr:hover td:first-child{background:#212124}
 .klp .cmp .no{color:var(--muted2)}
 .klp .cmp tr:last-child td{border-bottom:none}
 .klp .cmp-hint{display:none}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
-.klp .plan{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:32px 28px;display:flex;flex-direction:column;transition:.2s}
-.klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-3px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
-.klp .plan.pop{background:var(--card2);border-color:#48484a}
+.klp .plan{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--sh-card);transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s ease,box-shadow .2s ease}
+.klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-4px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 18px 44px -18px rgba(41,151,255,.32)}
+.klp .plan.pop{background:linear-gradient(180deg,#212124 0%,#1a1a1d 100%);border-color:#4d4d50;box-shadow:var(--sh-card-h)}
 .klp .plan.pop:hover,.klp .plan.pop:focus-visible,.klp .plan.pop:focus-within{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
-.klp .plan .pt{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2)}
-.klp .plan.pop .pt{color:var(--blue)}
-.klp .plan .nm{margin-top:10px;font-size:1.3rem;font-weight:600}
-.klp .plan .pr{margin-top:6px;font-size:2.6rem;font-weight:700;letter-spacing:-.02em}
-.klp .plan .pr span{font-size:1rem;font-weight:500;color:var(--muted)}
-.klp .plan .pr-then{margin-top:4px;font-size:.85rem;font-weight:500;color:var(--muted)}
-.klp .plan ul{list-style:none;margin:22px 0 26px;display:flex;flex-direction:column;gap:12px}
-.klp .plan li{display:flex;gap:10px;font-size:14.5px;color:var(--muted)}
-.klp .plan li b{color:var(--txt);font-weight:600}
-.klp .plan li .ck{color:var(--blue)}
-.klp .plan .btn{justify-content:center;margin-top:auto}
-.klp .snote{margin:24px auto 0;max-width:540px;text-align:center;border:1px solid var(--line);border-radius:16px;padding:18px 22px;font-size:14.5px;color:var(--muted)}
-.klp .snote b{color:var(--txt)}
-.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:30px;padding:80px 24px;background:var(--card);border:1px solid var(--line)}
-.klp .final .glow{position:absolute;width:600px;height:340px;left:50%;top:-100px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(120,140,175,.22),transparent 70%)}
+.klp .plan{position:relative}
+.klp .plan .pt{font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
+/* O card "Most popular" so tinha um cinza levemente mais claro para se
+   distinguir — na pratica, nada. O proprio rotulo que ja estava la vira uma
+   fita flutuante na borda de cima, que e como um plano recomendado se anuncia.
+   Mesmo texto, so reposicionado. */
+.klp .plan.pop{padding-top:40px}
+.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:999px;padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
+.klp .plan .nm{margin-top:12px;font-size:1.34rem;font-weight:650;letter-spacing:-.018em}
+.klp .plan.pop .nm{margin-top:0}
+.klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:720;letter-spacing:-.035em;line-height:1}
+.klp .plan .pr span{font-size:1rem;font-weight:500;color:var(--muted);letter-spacing:0}
+.klp .plan .pr-then{margin-top:7px;font-size:.85rem;font-weight:550;color:var(--muted2)}
+/* Linha fina separando "quanto custa" de "o que vem" — antes as duas
+   informacoes eram um bloco unico e a lista comecava sem respiro. */
+.klp .plan ul{list-style:none;margin:24px 0 26px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
+.klp .plan li{display:flex;gap:11px;font-size:14.5px;line-height:1.5;color:var(--muted)}
+.klp .plan li b{color:var(--txt);font-weight:650}
+.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:50%;background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
+.klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
+.klp .snote{margin:30px auto 0;max-width:560px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:20px 24px;font-size:14.5px;line-height:1.6;color:var(--muted);box-shadow:var(--sh-card)}
+.klp .snote b{color:var(--txt);font-weight:650}
+.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:30px;padding:88px 24px;background:linear-gradient(180deg,#19191c 0%,#131315 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
+.klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
 .klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
 .klp .final .fcta{display:flex;justify-content:center;margin-top:30px}
 .klp .taaft-badge{margin:0 auto 18px;opacity:.8;line-height:0}
 .klp .taaft-badge img{max-width:190px;height:auto;display:inline-block}
 .klp .taaft-badge:hover{opacity:1}
+/* KINEO-HOME-POLISH-R2-2026-07-27 — ICONOGRAFIA PROPRIA.
+   Os 8 cards do toolkit usavam emoji de sistema (🎬 🎭 🫥 📦 🌀 🖼️ 🔥 ⚡).
+   Emoji renderiza com desenho, peso e altura-x diferentes em cada SO — no
+   Windows os oito ficavam coloridos e desalinhados entre si, o que le como
+   "clipart", nao como produto. Agora sao 8 SVGs inline no MESMO grid de
+   24x24, mesma espessura de traco (1.6), todos herdando currentColor, dentro
+   de uma placa de 46px identica. Sem biblioteca, sem fonte, sem dependencia. */
+.klp .tico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:var(--blue);background:linear-gradient(180deg,rgba(41,151,255,.14),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);flex:none;transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s ease,box-shadow .2s ease}
+.klp .tcard:hover .tico,.klp .tcard:focus-within .tico{transform:translateY(-1px) scale(1.04);border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px -8px rgba(41,151,255,.6)}
+.klp .tico svg{display:block}
 .klp .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.klp .tcard{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 22px;transition:.2s;display:flex;flex-direction:column;gap:6px}
-.klp .tcard:hover,.klp .tcard:focus-visible,.klp .tcard:focus-within{border-color:var(--line2);transform:translateY(-3px)}
-.klp .tcard .ti{font-size:26px}
-.klp .tcard h3{font-size:1.05rem;font-weight:600;letter-spacing:-.01em;margin-top:6px;display:flex;align-items:center;gap:7px}
-.klp .tcard p{font-size:.92rem;color:var(--muted);line-height:1.55;margin-top:2px}
-.klp .tcard .tlink{margin-top:14px;color:var(--blue);font-size:.86rem;font-weight:600}
-.klp .badge{display:inline-block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);padding:2px 7px;border-radius:6px}
-.klp .pricing-more{margin-top:18px;text-align:center;font-size:13.5px}
+.klp .tcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:26px 22px;box-shadow:var(--sh-card);transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s ease,box-shadow .2s ease;display:flex;flex-direction:column;gap:6px}
+.klp .tcard:hover,.klp .tcard:focus-visible,.klp .tcard:focus-within{border-color:rgba(41,151,255,.38);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
+.klp .tcard h3{font-size:1.06rem;font-weight:650;letter-spacing:-.015em;margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.klp .tcard p{font-size:.93rem;color:var(--muted);line-height:1.58;margin-top:6px}
+.klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap .2s ease}
+.klp .tcard:hover .tlink{gap:9px}
+.klp .badge{display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:999px}
+.klp .pricing-more{margin-top:24px;text-align:center;font-size:13.5px}
+.klp .final h2{letter-spacing:-.03em;text-wrap:balance}
+.klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
+.klp .gallery-cap{max-width:760px;margin-left:auto;margin-right:auto;line-height:1.65}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
 .klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
 .klp .vcard .hvid{border-radius:18px}
 @media(max-width:820px){.klp .tools{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.klp .tools{grid-template-columns:1fr}}
-@media(max-width:880px){.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto}}
+/* Empilhado, a fita "Most popular" (top:-12px) invadiria o card de cima com
+   o gap original de 18px. 30px deixa a fita respirar. */
+@media(max-width:880px){.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}}
 @media(max-width:780px){
 .klp .steps{grid-template-columns:1fr}
 .klp .nav-links{display:none}
-.klp section{padding:56px 0}
+.klp section{padding:72px 0}
+.klp .sec-h{margin-bottom:40px}
+.klp .final{padding:60px 20px;border-radius:24px}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
 .klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:#0a0a0c;border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
 .klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
@@ -140,16 +194,43 @@ const KLP_CSS = `
 .klp .nav-mobile-menu a:hover,.klp .nav-mobile-menu a:focus-visible{color:var(--blue)}
 .klp .nav-mobile-menu a.btn{margin-top:12px;min-height:48px;justify-content:center;border-bottom:none;color:#000;font-weight:600}
 .klp .nav-mobile-menu a.btn:hover,.klp .nav-mobile-menu a.btn:focus-visible{color:#000}
-.klp .cmp-hint{display:block;margin-bottom:10px;font-size:12.5px;color:var(--muted2);text-align:right}
-.klp .cmp::after{content:'';position:absolute;top:0;right:0;bottom:0;width:32px;background:linear-gradient(to right,transparent,var(--card));pointer-events:none}
+/* KINEO-HOME-POLISH-R2-2026-07-27 — TABELA DE COMPARACAO NO MOBILE.
+   Antes: scroll horizontal cru de uma tabela de 560px dentro de uma tela de
+   390px. O visitante via UMA coluna e meia, tinha que arrastar para descobrir
+   que a coluna dele era a primeira, e a dica "Swipe to compare" ficava
+   alinhada a direita, longe de onde o dedo estava.
+   Agora: cada LINHA vira um card. O nome da caracteristica e o titulo do card;
+   os 4 concorrentes viram linhas rotuladas (o rotulo sai do atributo
+   data-label no <td>, que espelha exatamente o <th> do cabecalho — nenhum
+   texto novo foi escrito). A linha do Kineo fica destacada em azul dentro de
+   cada card, entao a resposta "e o Kineo, faz?" aparece sem nenhum arraste.
+   Nenhuma palavra da tabela mudou; so a forma. */
+.klp .cmp-hint{display:none}
+.klp .cmp{background:transparent;border:none;border-radius:0;overflow:visible;box-shadow:none}
+.klp .cmp table,.klp .cmp tbody,.klp .cmp tr,.klp .cmp td{display:block;width:100%;min-width:0}
+.klp .cmp thead{display:none}
+.klp .cmp tr{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh-card);margin-bottom:12px;overflow:hidden}
+.klp .cmp tr:last-child{margin-bottom:0}
+.klp .cmp td{display:flex;align-items:center;justify-content:space-between;gap:18px;text-align:right;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px}
+.klp .cmp td::before{content:attr(data-label);color:var(--muted);font-weight:500;font-size:13px;text-align:left;flex:none}
+/* Primeira celula = titulo do card (a caracteristica). */
+.klp .cmp td:first-child{display:block;position:static;text-align:left;background:rgba(255,255,255,.028);color:var(--txt);font-weight:650;font-size:14.5px;line-height:1.35;padding:14px 16px}
+.klp .cmp td:first-child::before{content:none}
+.klp .cmp thead th.us,.klp .cmp td.us{border-radius:0;box-shadow:none}
+.klp .cmp td.us{background:rgba(41,151,255,.1);box-shadow:inset 2px 0 0 var(--blue)}
+.klp .cmp td.us::before{color:#8cc6ff;font-weight:700}
+.klp .cmp tbody tr:last-child td.us{border-radius:0}
+.klp .cmp tr td:last-child{border-bottom:none}
+.klp .cmp tbody tr:hover td,.klp .cmp tbody tr:hover td:first-child{background:inherit}
+.klp .cmp tbody tr:hover td.us{background:rgba(41,151,255,.1)}
 }
 @media(max-width:520px){.klp .composer{flex-direction:column;align-items:stretch;padding:14px;gap:12px}.klp .composer .cbtn{align-self:stretch;justify-content:center}.klp .composer-proof{text-align:center}.klp .topic-starters{align-items:flex-start;flex-direction:column}}
 @media(max-width:560px){.klp .composer .ci{min-height:64px}.klp .hero{padding-top:40px}.klp .composer{margin-top:28px}.klp .composer .cbtn{order:1}.klp .composer-proof{order:1}.klp .topic-starters{order:2}}
-.klp .hero-center{position:relative;z-index:1;text-align:center;max-width:760px;margin:0 auto}
-.klp .hero-center h1{margin:0 auto;font-size:clamp(3rem,7.4vw,5.8rem);font-weight:600;line-height:1.03;letter-spacing:-.04em}
+.klp .hero-center{position:relative;z-index:1;text-align:center;max-width:780px;margin:0 auto}
+.klp .hero-center h1{margin:0 auto;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance}
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
-@media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.2rem,8vw,3.6rem)}.klp .hero-center .sub{font-size:1.05rem}}
-.klp .hero-center .composer{margin:48px auto 0;max-width:640px;min-height:auto;text-align:left}
+@media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
+.klp .hero-center .composer{margin:44px auto 0;max-width:660px;min-height:auto;text-align:left}
 .klp .hero-center .composer .ci{min-height:104px}
 .klp .hero-center .trust{text-align:center}
 @media(max-width:560px){.klp .hero-center .composer{margin-top:28px}.klp .hero-center .composer .ci{min-height:64px}}
@@ -162,12 +243,143 @@ const KLP_CSS = `
 .klp .platforms{position:relative;z-index:1;margin:22px auto 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;color:var(--muted2);text-transform:uppercase}
 .klp .platforms b{color:var(--muted);font-weight:700}
 .klp .faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-.klp .qa{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 24px;transition:.2s}
-.klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2)}
-.klp .qa h3{font-size:1.08rem;font-weight:600;letter-spacing:-.01em}
-.klp .qa p{margin-top:8px;color:var(--muted);font-size:.98rem;line-height:1.6}
-@media(max-width:560px){.klp .hero-center h1{font-size:clamp(2.4rem,11vw,3.3rem)}.klp .hero-gallery{gap:10px}}
+.klp .qa{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:24px 26px;box-shadow:var(--sh-card);transition:border-color .2s ease,box-shadow .2s ease}
+.klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2);box-shadow:var(--sh-card-h)}
+.klp .qa h3{font-size:1.1rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
+.klp .qa p{margin-top:9px;color:var(--muted);font-size:.99rem;line-height:1.62}
+/* MOBILE DO HERO — o publico chega no celular e o produto e vertical.
+   O h1 ganha a maior parte do ganho: menos padding morto em cima, tracking
+   mais fechado no tamanho grande, e a .sub travada em medida de leitura. */
+@media(max-width:560px){
+.klp .hero{padding:44px 0 60px}
+.klp .hero .glow{width:640px;height:420px;top:-150px}
+.klp .wrap{padding:0 20px}
+.klp .hero-center h1{font-size:clamp(2.5rem,11.2vw,3.4rem);line-height:1.0;letter-spacing:-.042em}
+.klp .hero-center .sub{font-size:1.02rem;margin-top:16px;max-width:34ch}
+.klp .hero-gallery{gap:10px;margin-top:38px}
+.klp .composer{padding:18px;border-radius:20px}
+.klp .composer .cbtn{padding:15px 24px;font-size:16px;min-height:52px}
+.klp .step,.klp .plan{padding:26px 22px}
+.klp .plan.pop{padding-top:38px}
+.klp .tcard{padding:22px 20px}
+.klp .tico{width:42px;height:42px;border-radius:13px}
+.klp .plan .pr{font-size:2.5rem}
+.klp .snote{padding:18px 20px;font-size:14px}
+}
+/* Respeita quem desligou animacao no sistema — os lifts de hover viram
+   mudanca de cor apenas. */
+@media(prefers-reduced-motion:reduce){
+.klp *,.klp *::before,.klp *::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
+.klp .btn-w:hover,.klp .step:hover,.klp .tcard:hover,.klp .plan:hover,.klp .vcard:hover{transform:none}
+}
 `
+
+// KINEO-HOME-POLISH-R2-2026-07-27 — set de icones proprio do toolkit.
+// Regras que TODOS os oito obedecem, e que sao a razao de eles lerem como um
+// conjunto e nao como oito desenhos avulsos:
+//   · mesmo viewBox 24x24, mesma area optica (nada encostando na borda)
+//   · fill="none", stroke="currentColor", strokeWidth 1.6, cantos e pontas
+//     arredondados — a placa .tico define a cor, o SVG nunca a repete
+//   · aria-hidden: o significado ja esta no <h3> do card, entao para um leitor
+//     de tela estes sao puramente decorativos
+// O icone de Viral Now e deliberadamente o MESMO desenho ja usado em
+// components/Sidebar.tsx e components/MobileNav.tsx, para que o item nao mude
+// de cara entre o site publico e o app.
+const ICON_BASE = {
+  width: 23,
+  height: 23,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.6,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+} as const
+
+const TOOL_ICONS = {
+  // Apresentador: figura enquadrada — o rosto que fala na tela.
+  presenter: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5.2" />
+      <circle cx="12" cy="10" r="2.6" />
+      <path d="M7.6 17.8a4.6 4.6 0 0 1 8.8 0" />
+    </svg>
+  ),
+  // Character Lock: a mesma figura, agora com cadeado — "trancada".
+  lock: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <circle cx="9.6" cy="8.2" r="3.3" />
+      <path d="M3.4 19.4a6.3 6.3 0 0 1 9-5.7" />
+      <rect x="14.3" y="14.4" width="6.9" height="5.8" rx="1.6" />
+      <path d="M16.2 14.4v-1.3a1.6 1.6 0 0 1 3.1 0v1.3" />
+    </svg>
+  ),
+  // Transparente: o mesmo enquadramento do apresentador, mas com a moldura
+  // tracejada — a convencao universal de "sem fundo".
+  transparent: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5.2" strokeDasharray="3.4 3" />
+      <circle cx="12" cy="10" r="2.4" />
+      <path d="M8 17.6a4.1 4.1 0 0 1 8 0" />
+    </svg>
+  ),
+  // Anuncio de produto: caixa isometrica.
+  product: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <path d="m12 2.7 8.1 4.4v9.8L12 21.3 3.9 16.9V7.1z" />
+      <path d="M3.9 7.1 12 11.5l8.1-4.4M12 11.5v9.8" />
+    </svg>
+  ),
+  // Animar foto: foto parada + ondas de movimento saindo dela.
+  // O <g> so recentra (medido: o desenho caia em 12.7/11.0 em vez de 12/12,
+  // porque as ondas puxam massa para a direita e nao somam altura). Translate
+  // puro, sem escala — o traco continua identico ao dos outros sete.
+  animate: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <g transform="translate(-0.7 1)">
+        <rect x="2.8" y="4.4" width="13.2" height="13.2" rx="3.4" />
+        <circle cx="7.3" cy="9" r="1.4" />
+        <path d="m3.2 14.9 4-3.5 3.5 3" />
+        <path d="M18.9 9.5a6.4 6.4 0 0 1 0 5.2M21.5 7.6a9.8 9.8 0 0 1 0 9" />
+      </g>
+    </svg>
+  ),
+  // Thumbnail: imagem cheia + brilho, o "clique" da miniatura.
+  // Mesmo caso do anterior: o brilho no canto superior puxava o centro optico
+  // para cima (cy 10.8). Translate puro.
+  thumbnail: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <g transform="translate(0 1.2)">
+        <rect x="2.8" y="5" width="18.4" height="14.4" rx="3.4" />
+        <circle cx="8.4" cy="10.4" r="1.5" />
+        <path d="m3.4 17 4.9-4.3 4.1 3.5 2.9-2.5 4.5 3.9" />
+        <path d="m18.6 2.2.62 1.58 1.58.62-1.58.62-.62 1.58-.62-1.58-1.58-.62 1.58-.62z" />
+      </g>
+    </svg>
+  ),
+  // Viral: chama. O desenho e o MESMO path do Sidebar/MobileNav — nao vale
+  // redesenhar um simbolo que o usuario ja aprendeu a reconhecer dentro do app.
+  // Mas aquele path foi desenhado para uma caixa de 19px na nav e transborda a
+  // viewBox aqui: medido, ele ocupa y 3 -> 24.6 (a base da chama era CORTADA)
+  // e o centro optico caia em 13.4/13.8 em vez de 12/12, o que o deixava baixo
+  // e a direita ao lado dos outros sete. O <g> reenquadra sem tocar no desenho;
+  // strokeWidth 1.93 e 1.6 / 0.83, entao depois da escala o traco volta a ser
+  // exatamente 1.6 como o dos demais.
+  viral: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <g transform="translate(0.9 0.55) scale(0.83)" strokeWidth={1.93}>
+        <path d="M12 3c1 3-3 5-3 8.5a3.5 3.5 0 0 0 7 0c0-1-.4-2-1-2.8.2 2-1 2.6-1 1.3 0-2.5-1-5.5-2-7Z" />
+        <path d="M8 14.5A6.5 6.5 0 1 0 18.5 14" />
+      </g>
+    </svg>
+  ),
+  // Gratis / Fast: raio — o mesmo simbolo do logo no topo da pagina.
+  bolt: (
+    <svg {...ICON_BASE} aria-hidden="true">
+      <path d="M13.2 2.4 4.3 13.7h6.4l-1 7.9 8.9-11.2h-6.3z" />
+    </svg>
+  ),
+} as const
 
 function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string {
   if (isSignedIn) return checkoutPath
@@ -236,7 +448,22 @@ export default function KineoLanding({ initialUser }: Props) {
             <p className="sub">Same face, same voice, same style — every episode. Script, voice, captions and scenes in a few minutes.</p>
             <HomeTopicForm isSignedIn={isSignedIn} />
             {/* KINEO-CRO-2026-07-25 — risk-reversal line directly under the primary CTA. */}
-            <p className="trust" style={{ textAlign: 'center', marginTop: 14 }}>
+            {/* KINEO-HOME-POLISH-2026-07-27 — mesma copy, so respiro e leitura:
+                a linha colava no botao e herdava o corpo de 16px, competindo
+                com a .sub logo acima. */}
+            <p
+              className="trust"
+              style={{
+                textAlign: 'center',
+                marginTop: 20,
+                fontSize: 13.5,
+                lineHeight: 1.7,
+                color: 'var(--muted2)',
+                maxWidth: 620,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+              }}
+            >
               ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ 3 free videos every 24h&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime&nbsp;&nbsp;·&nbsp;&nbsp;
               <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
             </p>
@@ -282,15 +509,19 @@ export default function KineoLanding({ initialUser }: Props) {
           <p className="cmp-hint">Swipe to compare →</p>
           <div className="cmp"><table>
             <thead><tr><th></th><th className="us">Kineo</th><th>OpusClip</th><th>HeyGen</th><th>Submagic</th></tr></thead>
+            {/* KINEO-HOME-POLISH-R2-2026-07-27 — data-label espelha o <th> da
+                mesma coluna. No desktop e ignorado; no mobile o CSS o usa para
+                virar o rotulo de cada linha do card, o que substitui o scroll
+                horizontal. Nenhum valor da tabela mudou. */}
             <tbody>
-              <tr><td>Generates the Short from just an idea</td><td className="us">✓</td><td className="no">—</td><td className="no">~</td><td className="no">—</td></tr>
-              <tr><td>Writes the script for you</td><td className="us">✓</td><td className="no">—</td><td className="no">—</td><td className="no">—</td></tr>
-              <tr><td>AI voiceover included</td><td className="us">✓</td><td className="no">—</td><td>✓</td><td className="no">—</td></tr>
-              <tr><td>Finds and matches footage</td><td className="us">✓</td><td className="no">your upload</td><td className="no">avatar only</td><td className="no">your upload</td></tr>
-              <tr><td>No per-minute caps</td><td className="us">✓</td><td className="no">credits</td><td className="no">credits</td><td className="no">—</td></tr>
-              <tr><td>Reusable AI host — same voice &amp; style every episode</td><td className="us">✓</td><td className="no">—</td><td>✓</td><td className="no">—</td></tr>
-              <tr><td>Free videos, no credit card</td><td className="us">3 / day</td><td className="no">limited</td><td className="no">trial</td><td className="no">trial</td></tr>
-              <tr><td>Starting price</td><td className="us">$4.90 first month</td><td>$15/mo</td><td>$29/mo</td><td>$19/mo</td></tr>
+              <tr><td>Generates the Short from just an idea</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">~</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Writes the script for you</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>AI voiceover included</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Finds and matches footage</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">your upload</td><td className="no" data-label="HeyGen">avatar only</td><td className="no" data-label="Submagic">your upload</td></tr>
+              <tr><td>No per-minute caps</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">credits</td><td className="no" data-label="HeyGen">credits</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Reusable AI host — same voice &amp; style every episode</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">3 / day</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              <tr><td>Starting price</td><td className="us" data-label="Kineo">$4.90 first month</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
           <div style={{ marginTop: 20, textAlign: 'center' }}>
@@ -313,49 +544,49 @@ export default function KineoLanding({ initialUser }: Props) {
           <div className="sec-h"><h2>One idea — or a whole toolkit.</h2><p>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</p></div>
           <div className="tools">
             <Link href="/avatar" className="tcard">
-              <span className="ti">🎬</span>
+              <span className="tico">{TOOL_ICONS.presenter}</span>
               <h3>AI Presenter <span className="badge">New</span></h3>
               <p>One photo + your script — a talking video with studio-grade lip-sync, HeyGen-style.</p>
               <span className="tlink">Try AI Presenter →</span>
             </Link>
             <Link href="/avatar" className="tcard">
-              <span className="ti">🎭</span>
+              <span className="tico">{TOOL_ICONS.lock}</span>
               <h3>Character Lock <span className="badge">New</span></h3>
               <p>Save a character once — the exact same face in every video and thumbnail you make.</p>
               <span className="tlink">Lock a character →</span>
             </Link>
             <Link href="/avatar" className="tcard">
-              <span className="ti">🫥</span>
+              <span className="tico">{TOOL_ICONS.transparent}</span>
               <h3>Transparent Clips <span className="badge">New</span></h3>
               <p>Presenter gestures — wave, point, present — as WebM with a real transparent background.</p>
               <span className="tlink">Make a clip →</span>
             </Link>
             <Link href="/avatar" className="tcard">
-              <span className="ti">📦</span>
+              <span className="tico">{TOOL_ICONS.product}</span>
               <h3>UGC Product Ads <span className="badge">New</span></h3>
               <p>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</p>
               <span className="tlink">Make an ad →</span>
             </Link>
             <Link href="/animate" className="tcard">
-              <span className="ti">🌀</span>
+              <span className="tico">{TOOL_ICONS.animate}</span>
               <h3>Animate a Photo</h3>
               <p>Bring any still photo to life as a moving, postable video.</p>
               <span className="tlink">Animate a photo →</span>
             </Link>
             <Link href="/thumbnail-generator" className="tcard">
-              <span className="ti">🖼️</span>
+              <span className="tico">{TOOL_ICONS.thumbnail}</span>
               <h3>AI Thumbnails</h3>
               <p>Click-worthy thumbnails in the style of the biggest channels — from a prompt.</p>
               <span className="tlink">Make a thumbnail →</span>
             </Link>
             <Link href="/viral-now" className="tcard">
-              <span className="ti">🔥</span>
+              <span className="tico">{TOOL_ICONS.viral}</span>
               <h3>Viral Now</h3>
               <p>Today&apos;s trending topics, ready to turn into a Short with one click.</p>
               <span className="tlink">See what&apos;s trending →</span>
             </Link>
             <Link href="/free-ai-shorts-generator" className="tcard">
-              <span className="ti">⚡</span>
+              <span className="tico">{TOOL_ICONS.bolt}</span>
               <h3>Free AI Shorts</h3>
               <p>Type one idea and test the full Fast workflow with no card.</p>
               <span className="tlink">Generate free →</span>

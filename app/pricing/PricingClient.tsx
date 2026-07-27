@@ -491,20 +491,32 @@ export default function PricingClient() {
           </CostCalculatorLink>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3 max-w-5xl mx-auto">
+        {/* KINEO-HOME-POLISH-R2-2026-07-27 — so forma. gap 5 -> 7 e um respiro
+            de topo (pt-5) para as fitas "Most Popular"/"Best Value", que ficam
+            em -top-3 e antes encostavam no bloco de cima. Nenhum numero,
+            rotulo ou plano mudou. */}
+        <div className="grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
             // KINEO-2026-07-06 — cleaner pricing UI: same blue CTA on every card,
             // labeled with the plan name ("Choose Starter/Creator/Studio") so the
             // action is specific. The card displays; the button acts.
             const ctaLabel = `Choose ${p.name}`
+            // KINEO-HOME-POLISH-R2-2026-07-27 — SO FORMA, nenhum numero ou palavra.
+            // O plano recomendado usava exatamente o mesmo fundo (#161618) dos
+            // outros dois: o unico sinal era a borda azul, que some assim que o
+            // visitante rola. Agora ele usa as tres formas que um plano
+            // recomendado usa para vencer — fundo proprio em gradiente, um nivel
+            // a mais de elevacao, e um passo de escala no desktop. Os outros dois
+            // ganharam a mesma sombra de card do resto do sistema, para pararem
+            // de flutuar sem peso sobre o preto.
             return (
               <div
                 key={p.tier}
-                className={`group relative flex flex-col rounded-2xl border p-6 transition-all duration-200 ${
+                className={`group relative flex flex-col rounded-2xl border p-7 transition-all duration-200 ${
                   p.highlight
-                    ? 'border-[#2997ff] bg-[#161618] shadow-[0_0_30px_rgba(41,151,255,0.15)]'
-                    : 'border-white/[0.08] bg-[#161618] hover:border-[#2997ff]/60 hover:bg-[rgba(41,151,255,0.05)]'
+                    ? 'border-[#2997ff] bg-gradient-to-b from-[#1e1e22] to-[#151517] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_rgba(41,151,255,0.35),0_24px_60px_-24px_rgba(41,151,255,0.5)] md:-translate-y-2 md:scale-[1.025]'
+                    : 'border-white/[0.08] bg-[#161618] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_44px_-30px_rgba(0,0,0,0.95)] hover:-translate-y-1 hover:border-[#2997ff]/60 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_26px_60px_-28px_rgba(0,0,0,1)]'
                 }`}
               >
                 {/* Push #116 — Pro now carries the amber "MOST POPULAR"
