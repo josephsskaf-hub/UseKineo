@@ -70,10 +70,33 @@ Com **4 pagantes e ~10 pessoas em checkout**, o volume é baixo o bastante para 
 |---|---|---|---|---|
 | **4.1** | Fechar o fail-open de `CRON_SECRET` (4 linhas, `return true` → `return false`) | **1.1** — se a env estiver ausente, setá-la primeiro, senão o refund para | `curl` sem header nos 4 endpoints devolve 401; `send-reminders` continua logando o sweep | editar código + 1 deploy |
 | **4.2** | Corrigir `/api/admin/ceo` (preço errado, `starter`/`autopilot` invisíveis, ativação sem filtro de status, sem filtro de interno) | **1.4** | Painel e scripts batem no mesmo número | editar código |
-| **4.3** | Agendar **ou apagar** os 4 crons órfãos | **4.1** + decisão de cadência | Cada usuário recebe ≤ 1 e-mail de ciclo de vida por dia, comprovado por query; nenhuma rota de cron sem schedule | **decisão de negócio, não técnica** |
+| **4.3** | Agendar os 4 crons órfãos — **plano detalhado em §4.3-bis abaixo** | nada (é seguro com o flag desligado) | Os 4 aparecem no painel da Vercel executando e devolvendo `paused` | editar `vercel.json` + 1 deploy |
 | **4.4** | Estender a medição aos SKUs `mode:'payment'` e ao Autopilot | — | Uma venda de $99 aparece em relatório | editar código |
 | **4.5** | `tsc --noEmit` como bloqueio de deploy | árvore em 0 erros | PR com erro de tipo falha o deploy | ⚠️ **trava hotfix se a árvore não estiver limpa** |
 | **4.6** | Alerta de falha de render (reusar o padrão do `falAlert`) | 4.1 | Render forçado a falhar produz e-mail em 24h | editar código |
+
+---
+
+---
+
+## 4.3-bis — LIGAR A RECUPERAÇÃO DE RECEITA EM 4 PASSOS REVERSÍVEIS
+
+Contexto: 713 cadastros, 4 pagantes. Três máquinas de recuperação existem no código e nunca dispararam. Conta Vercel é **Pro**, então não há limite de cron atrapalhando.
+
+A sequência abaixo separa "colocar no ar" de "começar a enviar", para que nenhum passo mande e-mail antes de você decidir.
+
+**Passo 1 — Agendar os 4 órfãos com o flag DESLIGADO. Risco zero.**
+Os 3 crons de e-mail checam `KINEO_LIFECYCLE_EMAILS_ENABLED` e retornam cedo. Agendados com o flag off, eles rodam e devolvem `paused` — **nenhum e-mail sai**. Serve para provar que o agendamento funciona e aparecer no painel.
+Cadências que o próprio código pede: `send-recovery` a cada 2h (`:10`) · `send-activation-nudge` de hora em hora (`:9`) · `send-video-rescue` diário · `refresh-viral-now` diário.
+
+**Passo 2 — Desfazer os contornos de Hobby.** Cron próprio para o refund sweep (mata R2) e `send-activation-nudge` de 30h de volta para 6h.
+
+**Passo 3 — Adicionar a única guarda que falta: supressão cruzada.**
+Cada job já é "1 por usuário para sempre" com coluna própria, mas nenhum enxerga o do outro. Falta uma trava de "mínimo 24h entre qualquer dois e-mails de ciclo de vida por usuário". Sem isso, alguém que se encaixe em vários critérios recebe ~4 e-mails no mesmo dia.
+
+**Passo 4 — Virar o flag.** Uma variável de ambiente. Reversível em segundos. **Só depois de responder se o "Lote 1 measurement gate" terminou** (Q-A3).
+
+**Critério de conclusão:** nenhum usuário recebe mais de 1 e-mail de ciclo de vida por dia, comprovado por query em `events`; nenhuma rota de cron fica no repo sem schedule.
 
 ---
 

@@ -19,8 +19,14 @@ Continua valendo corrigir as 4 linhas — vira seguro barato contra a env ser re
 
 ---
 
-### Q-A1b 🔑 A conta Vercel é Pro ou Hobby? **(nova, gerada pela resposta de Q-A1)**
-**Por quê:** duas decisões de arquitetura no código foram tomadas para contornar limites do plano Hobby, e a evidência diz que esses limites não se aplicam mais.
+### ~~Q-A1b A conta Vercel é Pro ou Hobby?~~ ✅ **RESPONDIDA 2026-07-27 — PRO**
+
+Confirmado pelo Joseph. **Os três contornos de Hobby no código estão vencidos** e podem ser desfeitos:
+1. O refund sweep pode sair da carona do `send-reminders` e ter cron próprio → **mata o ponto único de falha R2**
+2. `send-activation-nudge` pode voltar de 30h para a janela de 6h que foi desenhada
+3. Há espaço para agendar os 3 crons órfãos
+
+Contexto original abaixo, mantido para rastreabilidade:
 
 | Evidência de Pro | Evidência de Hobby (comentários no código) |
 |---|---|

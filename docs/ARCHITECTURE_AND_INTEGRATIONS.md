@@ -77,7 +77,24 @@ OBSERV.   tabela events (sink /api/events + lib/serverEvents) e console.log da V
 
 Com **713 cadastros e 4 pagantes**, três máquinas de recuperação de receita construídas e não plugadas é o custo mais direto do repositório.
 
-⚠️ **Ligar as quatro sem desenhar a matriz de sobreposição = spam.** Elas se sobrepõem entre si e com `send-abandon-recovery`/`send-free-upsell`, que já rodam de dentro do `send-reminders`. É decisão de negócio, não técnica.
+#### Matriz de sobreposição — levantada em 27/07, e o risco é menor do que parecia
+
+**Cada job tem coluna de supressão própria, e cada um é "no máximo 1 por usuário, PARA SEMPRE":**
+
+| Job | Coluna | Regra declarada no código |
+|---|---|---|
+| `send-reminders` | `reminder_sent_at` | — |
+| `send-recovery` | `recovery_sent_at` | *"max 1 recovery email per user, ever"* (`:15`) |
+| `send-activation-nudge` | `activation_nudge_sent_at` | *"max 1 nudge per user ever"* (`:12`) |
+| `send-video-rescue` | `video_rescue_sent_at` | *"max 1 rescue email per user, ever"* (`:14`) |
+
+Todos checam também `email_opted_out = false`.
+
+**Existem 6 superfícies de e-mail, não 4** — `send-reminders` chama internamente `/api/admin/send-abandon-recovery?limit=60` (`:72`) e `/api/admin/send-free-upsell?limit=40` (`:92`).
+
+**O risco real, corrigido:** não é spam sem fim. É que **não existe supressão cruzada** — cada job só consulta a própria coluna. Um usuário que se encaixe em vários critérios pode receber até ~4 e-mails próximos no tempo. Exposição de vida inteira é limitada; a concentração num único dia é o que precisa de guarda.
+
+✅ **E existe um caminho de risco zero:** os 3 órfãos **também** checam `KINEO_LIFECYCLE_EMAILS_ENABLED` e retornam cedo se o flag estiver desligado (`send-recovery:94`, `send-activation-nudge:83`, `send-video-rescue:102`). Logo, **agendá-los com o flag desligado não envia nada** — eles rodam e devolvem "paused". O flag vira o único interruptor, e é reversível numa variável de ambiente.
 
 ### R2 — O auto-refund depende de um único cron diário
 `lib/credits/refund.ts:79` é chamado só de `send-reminders/route.ts:46`. Se `send-reminders` falhar, ninguém é reembolsado e ninguém fica sabendo. O sweep roda **antes** do portão `LIFECYCLE_EMAILS_ENABLED` — é a única razão de ainda funcionar com os e-mails pausados. **Não inverta essa ordem.**
