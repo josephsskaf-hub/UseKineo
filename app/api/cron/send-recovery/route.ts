@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 // send-recovery — Push #425
 //
@@ -48,9 +49,12 @@ function isTestEmail(email: string): boolean {
   )
 }
 
+// KINEO-CRON-FAILCLOSED-2026-07-27 — era `if (!cronSecret) return true`.
+// Endpoint que dispara e-mail não fica público porque uma env sumiu. Padrão de
+// referência: app/api/cron/autopilot-generate/route.ts:78.
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return true // dev environment — allow
+  if (!cronSecret) return false
   const auth = req.headers.get('authorization')
   return auth === `Bearer ${cronSecret}`
 }
@@ -149,10 +153,26 @@ export async function GET(req: NextRequest) {
   }
   const profById = new Map((profiles ?? []).map((p) => [p.id, p]))
 
+  // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada de 24h entre os 4
+  // jobs de ciclo de vida. Este é o job mais agressivo da casa (a cada 2h), e
+  // era o único cujo carimbo mora fora de `profiles` — logo, o mais provável de
+  // atropelar os outros. Falha FECHADA (ver lib/lifecycle/suppression.ts).
+  const suppression = await loadLifecycleSuppression(admin, userIds)
+
   let sent = 0
   let skipped = 0
+  let suppressed = 0
 
   for (const [userId, cand] of byUser) {
+    // Suprimido = recebeu outro e-mail de ciclo de vida nas últimas 24h.
+    // NÃO carimba `recovery_sent_at`: a linha continua elegível na próxima
+    // execução, depois que a janela passar. Carimbar aqui seria descartar o
+    // lead para sempre por causa de uma colisão de agenda.
+    if (suppression.isSuppressed(userId)) {
+      suppressed++
+      continue
+    }
+
     const prof = profById.get(userId)
     const email = prof?.email?.trim()
     const plan = (prof?.plan ?? 'free').toLowerCase()
@@ -208,5 +228,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, skipped, total: byUser.size })
+  return NextResponse.json({
+    sent,
+    skipped,
+    total: byUser.size,
+    suppressed_recent_lifecycle: suppressed,
+    suppression_degraded: suppression.degraded,
+  })
 }

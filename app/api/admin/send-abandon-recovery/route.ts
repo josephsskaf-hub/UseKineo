@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -195,6 +196,20 @@ export async function GET(req: NextRequest) {
       // de-dupe by email
       .filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)))
 
+    // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada de 24h. Esta rota é
+    // chamada de dentro do cron diário send-reminders, no MESMO minuto em que
+    // send-free-upsell é chamada e logo depois de o próprio send-reminders ter
+    // enviado a coorte dele. As coortes se cruzam de verdade — quem gerou um
+    // vídeo grátis E clicou no checkout está em duas delas.
+    //
+    // Direção de ENTRADA apenas: aqui respeitamos os 4 jobs datados. O carimbo
+    // desta rota (`profiles.abandon_emailed`) é BOOLEAN, sem data, então o envio
+    // daqui continua invisível para os outros por 24h. Fechar isso exige
+    // converter a coluna para timestamptz — migration, autorização separada.
+    const suppression = await loadLifecycleSuppression(admin, recipients.map((r) => r.id))
+    const suppressedCount = suppression.suppressedCount
+    const eligible = recipients.filter((r) => !suppression.isSuppressed(r.id))
+
     const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     const limitParam = Number(req.nextUrl.searchParams.get('limit'))
     const batchSize = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 1000) : 90
@@ -204,16 +219,18 @@ export async function GET(req: NextRequest) {
         mode: 'DRY_RUN',
         cohort: 'clicked checkout, unpaid, non-disposable, not yet recovery-emailed',
         clickers_total: clickerIds.length,
-        remaining_unemailed: recipients.length,
-        next_batch_size: Math.min(batchSize, recipients.length),
-        sample: recipients.slice(0, 8).map((r) => r.email),
+        remaining_unemailed: eligible.length,
+        suppressed_recent_lifecycle: suppressedCount,
+        suppression_degraded: suppression.degraded,
+        next_batch_size: Math.min(batchSize, eligible.length),
+        sample: eligible.slice(0, 8).map((r) => r.email),
         subject: SUBJECT,
         from: FROM_EMAIL,
         hint: 'Append &confirm=SEND (optionally &limit=N) to send the next batch.',
       })
     }
 
-    const batch = recipients.slice(0, batchSize)
+    const batch = eligible.slice(0, batchSize)
     let sent = 0
     let failed = 0
     for (const r of batch) {

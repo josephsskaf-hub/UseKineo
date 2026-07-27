@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -155,6 +156,24 @@ export async function GET(req: NextRequest) {
       .filter((r) => isValidExternalEmail(r.email))
       .filter((r) => (seen.has(r.email) ? false : (seen.add(r.email), true)))
 
+    // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada de 24h. Esta rota é
+    // chamada de dentro do cron diário send-reminders, no MESMO minuto em que
+    // send-abandon-recovery é chamada.
+    //
+    // O comentário do topo deste arquivo afirma que a coorte daqui "never
+    // clicked checkout (so abandon-recovery never reaches them)". A query acima
+    // NÃO tem esse filtro: ela seleciona por `free_ai_generate_used = true` e
+    // nada mais. Quem gerou um vídeo grátis E clicou no checkout estava nas duas
+    // coortes e recebia os dois e-mails com segundos de diferença. Esta trava é
+    // o que de fato garante o que aquele comentário prometia.
+    //
+    // Direção de ENTRADA apenas: o carimbo desta rota
+    // (`profiles.free_upsell_emailed`) é BOOLEAN, sem data, então o envio daqui
+    // continua invisível para os outros jobs por 24h. Fechar isso exige
+    // converter a coluna para timestamptz — migration, autorização separada.
+    const suppression = await loadLifecycleSuppression(admin, recipients.map((r) => r.id))
+    const eligible = recipients.filter((r) => !suppression.isSuppressed(r.id))
+
     const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     const limitParam = Number(req.nextUrl.searchParams.get('limit'))
     const batchSize = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 1000) : 40
@@ -163,16 +182,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         mode: 'DRY_RUN',
         cohort: 'used free generator, unpaid, non-disposable, not yet upsell-emailed',
-        remaining_unemailed: recipients.length,
-        next_batch_size: Math.min(batchSize, recipients.length),
-        sample: recipients.slice(0, 8).map((r) => r.email),
+        remaining_unemailed: eligible.length,
+        suppressed_recent_lifecycle: suppression.suppressedCount,
+        suppression_degraded: suppression.degraded,
+        next_batch_size: Math.min(batchSize, eligible.length),
+        sample: eligible.slice(0, 8).map((r) => r.email),
         subject: SUBJECT,
         from: FROM_EMAIL,
         hint: 'Append &confirm=SEND (optionally &limit=N) to send the next batch.',
       })
     }
 
-    const batch = recipients.slice(0, batchSize)
+    const batch = eligible.slice(0, batchSize)
     let sent = 0
     let failed = 0
     for (const r of batch) {

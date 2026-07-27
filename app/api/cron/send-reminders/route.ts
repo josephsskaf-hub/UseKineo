@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sweepStuckRenderDebits } from '@/lib/credits/refund'
-import { sweepStaleAnimateClaims } from '@/lib/animate/service'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 // Cron route: fires daily via Vercel Cron (see vercel.json).
 // Finds users who signed up 20–28 hours ago and have no paid plan,
@@ -18,15 +18,28 @@ export const dynamic = 'force-dynamic'
 // ~60s on top of the reminder loop.
 export const maxDuration = 300
 
+// KINEO-REFUND-CRON-2026-07-27 — o refund sweep NÃO mora mais aqui.
+// `sweepStuckRenderDebits()` + `sweepStaleAnimateClaims()` viajavam de carona
+// nesta rota só para economizar uma entrada de cron no plano Hobby. A conta é
+// Pro (confirmado pelo fundador em 27/07/2026), então eles ganharam rota e
+// agendamento próprios: app/api/cron/refund-sweep. Devolver crédito a quem
+// pagou por um render que falhou não pode depender de um cron de e-mail
+// continuar existindo. NÃO traga as duas chamadas de volta para cá.
+
 const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const LIFECYCLE_EMAILS_ENABLED = process.env.KINEO_LIFECYCLE_EMAILS_ENABLED === 'true'
 const FROM_EMAIL = process.env.FROM_EMAIL ?? 'Kineo <support@usekineo.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://usekineo.com'
 
 // Guard: only Vercel Cron or the internal secret can call this route.
+// KINEO-CRON-FAILCLOSED-2026-07-27 — era `if (!cronSecret) return true`. Um
+// endpoint que dispara e-mail para a base inteira não pode ficar público só
+// porque uma env sumiu. CRON_SECRET está setada em produção (confirmado pelo
+// fundador em 27/07/2026), então isto é blindagem, não conserto de incidente.
+// Padrão de referência: app/api/cron/autopilot-generate/route.ts:78.
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return true // dev environment — allow
+  if (!cronSecret) return false
   const auth = req.headers.get('authorization')
   return auth === `Bearer ${cronSecret}`
 }
@@ -36,26 +49,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // AUTO-REFUND daily sweep (TAAFT feedback) — piggybacked on this existing
-  // daily cron instead of a new vercel.json entry (Vercel Hobby silently
-  // rejects deploys when cron limits are exceeded). Refunds `video` debits
-  // older than 2h that never produced a `videos` row (i.e. charged but the
-  // render never completed). Idempotent per render via refund_render_credits.
-  // Runs BEFORE the RESEND early-return so a missing email key never skips it.
-  try {
-    const sweep = await sweepStuckRenderDebits()
-    console.log('[send-reminders] stuck-render refund sweep:', JSON.stringify(sweep))
-    const animateSweep = await sweepStaleAnimateClaims()
-    console.log('[send-reminders] stale-animate refund sweep:', JSON.stringify(animateSweep))
-  } catch (e) {
-    console.error('[send-reminders] refund sweep failed:', e instanceof Error ? e.message : String(e))
-  }
-
-  // The credit-refund sweep above remains live. All outbound below is paused
-  // by default because it overlaps other recovery jobs. Explicit opt-in is
-  // required to resume it after the current Lote 1 measurement gate.
+  // Todo o outbound abaixo está pausado por padrão porque se sobrepõe aos
+  // outros jobs de recuperação. Retomar exige opt-in explícito depois do
+  // "Lote 1 measurement gate".
+  //
+  // Este portão agora é a PRIMEIRA coisa depois da autenticação. Antes dele
+  // rodava o refund sweep, que mudou para app/api/cron/refund-sweep — nada
+  // mais nesta rota é independente de e-mail, então nada mais precisa rodar
+  // antes do return.
   if (!LIFECYCLE_EMAILS_ENABLED) {
-    return NextResponse.json({ paused: true, sent: 0, refunds_checked: true, reason: 'lifecycle_email_gate' })
+    return NextResponse.json({ paused: true, sent: 0, reason: 'lifecycle_email_gate' })
   }
 
   // KINEO-REBASE-2026-07-10 — ROBÔ DE ABANDONO NA ROTINA. Piggybacked on this
@@ -107,6 +110,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 })
   }
 
+  // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — a trava cruzada precisa de service
+  // role (esta rota lê a coorte pelo cliente de cookie, que não enxerga linha de
+  // outro usuário). Sem as duas envs a trava não roda, e enviar sem trava é
+  // exatamente o que este trabalho existe para impedir: aborta antes de qualquer
+  // envio, igual às outras três rotas de e-mail.
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) {
+    console.error('[send-reminders] Supabase service env missing — refusing to send without cross-suppression')
+    return NextResponse.json({ error: 'Supabase service env missing' }, { status: 500 })
+  }
+
   const supabase = createClient()
 
   // Find users who signed up 20–28 hours ago, have no paid plan, and
@@ -135,8 +150,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  const targets = users ?? []
-  console.log(`[send-reminders] ${targets.length} users to remind`)
+  const candidates = users ?? []
+
+  // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada: no máximo UM e-mail
+  // de ciclo de vida por usuário por 24h, somando os 4 jobs. Sem isto, quem se
+  // encaixa em vários critérios recebe até 4 e-mails no mesmo dia. Falha
+  // FECHADA (ver lib/lifecycle/suppression.ts).
+  const suppressionAdmin = createAdminClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+  const suppression = await loadLifecycleSuppression(
+    suppressionAdmin,
+    candidates.map((u) => u.id as string),
+  )
+  const targets = candidates.filter((u) => !suppression.isSuppressed(u.id as string))
+
+  console.log(
+    `[send-reminders] ${targets.length} users to remind (${suppression.suppressedCount} suprimido(s) por e-mail recente)`,
+  )
 
   let sent = 0
   let failed = 0
@@ -245,5 +276,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, failed, total: targets.length })
+  return NextResponse.json({
+    sent,
+    failed,
+    total: targets.length,
+    candidates: candidates.length,
+    suppressed_recent_lifecycle: suppression.suppressedCount,
+    suppression_degraded: suppression.degraded,
+  })
 }
