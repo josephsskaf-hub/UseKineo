@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kineo — /for-agencies: antes e depois (rodada 3)</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   PREVIEW ESTATICO — Kineo, rodada 3: a porta de entrada de atacado.
+   Autocontido: CSS inline, sem build, sem servidor, sem dependencia externa.
+
+   O "ANTES" desta rodada e a AUSENCIA. Nao existe hoje nenhuma superficie de
+   atacado: as ~106 URLs publicas apontam todas para o funil self-serve. Entao
+   cada par mostra, a esquerda, o que um comprador de volume encontra HOJE —
+   e a direita, o que ele passa a encontrar.
+
+   Os paineis replicam fielmente o CSS de app/for-agencies/page.tsx (bloco
+   .kag) e de app/KineoLanding.tsx (bloco .klp). Como cada palco tem largura
+   FIXA e e reduzido por transform, as media queries do arquivo real nao
+   disparam aqui: foram transcritas nas classes .m, com clamp() ja resolvido.
+
+   TODO preco vem da mesma tabela em centavos que a pagina usa, e o valor por
+   video e DIVISAO, nunca digitacao — igual ao arquivo real.
+   ══════════════════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#08080a;color:#e8e8ea;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,system-ui,sans-serif;line-height:1.5;padding:30px 20px 90px}
+.page{max-width:1440px;margin:0 auto}
+h1.doc{font-size:28px;font-weight:750;letter-spacing:-.025em}
+p.doc{color:#9a9aa2;font-size:14.5px;margin-top:10px;max-width:880px;line-height:1.62}
+p.doc b{color:#e8e8ea}
+.legend{margin-top:20px;display:flex;flex-wrap:wrap;gap:8px}
+.legend span{font-size:11.5px;font-weight:700;letter-spacing:.03em;padding:6px 11px;border-radius:999px;background:rgba(41,151,255,.1);border:1px solid rgba(41,151,255,.28);color:#78bcff}
+.toc{margin-top:26px;border:1px solid #212124;border-radius:14px;background:#101012;padding:16px 20px}
+.toc b{display:block;font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#6f6f79;margin-bottom:10px}
+.toc a{display:inline-block;margin:0 16px 7px 0;color:#b6b6be;font-size:13.5px;text-decoration:none;border-bottom:1px solid #2c2c31}
+.toc a:hover{color:#2997ff;border-color:#2997ff}
+.sec{margin-top:64px;scroll-margin-top:20px}
+.sec>h2{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#6f6f79;margin-bottom:6px}
+.sec>h3{font-size:21px;font-weight:720;letter-spacing:-.022em;color:#f2f2f4}
+.sec>p{color:#8f8f98;font-size:13.8px;margin-top:8px;max-width:920px;line-height:1.65}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;background:#1b1b1f;border:1px solid #2a2a2d;border-radius:5px;padding:1px 5px;color:#9fd0ff}
+.vlabel{font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#6f6f79;margin:26px 0 10px;display:flex;align-items:center;gap:10px}
+.vlabel::after{content:'';flex:1;height:1px;background:#1e1e21}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.cols.mob{max-width:940px}
+@media(max-width:1040px){.cols{grid-template-columns:1fr}}
+.pane{border-radius:16px;overflow:hidden;background:#000;border:1px solid #202023}
+.pane.old{border-color:#2b2b30}
+.pane.new{border-color:rgba(41,151,255,.35)}
+.pane .tag{display:flex;align-items:center;gap:10px;padding:13px 16px;font-size:15px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;border-bottom:1px solid #202023}
+.pane.old .tag{color:#a8a8b0;background:#151517}
+.pane.new .tag{color:#fff;background:linear-gradient(90deg,rgba(41,151,255,.9),rgba(41,151,255,.5))}
+.tag .dot{width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+.tag .who{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:none;opacity:.78;margin-left:auto}
+.viewport{position:relative;overflow:hidden}
+.stage{transform-origin:top left}
+/* Painel "nao existe" — o antes honesto de uma secao que hoje e ausencia. */
+.void{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:56px 30px;background:repeating-linear-gradient(45deg,#0c0c0e,#0c0c0e 10px,#0f0f11 10px,#0f0f11 20px);border:1px dashed #2f2f35;border-radius:14px;margin:20px;min-height:230px}
+.void .x{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-size:20px;font-weight:800;color:#ff7b72;background:rgba(255,123,114,.1);border:1px solid rgba(255,123,114,.3)}
+.void h4{margin-top:16px;font-size:17px;font-weight:720;color:#e8e8ea;letter-spacing:-.02em}
+.void p{margin-top:9px;font-size:13.5px;color:#8f8f98;line-height:1.6;max-width:400px}
+.notes{margin-top:64px;border:1px solid #212124;border-radius:16px;background:#111113;padding:26px 28px}
+.notes h3{font-size:12px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#6f6f79;margin-bottom:16px}
+.notes ol{margin-left:19px;display:flex;flex-direction:column;gap:12px}
+.notes li{font-size:14px;color:#c3c3c9;line-height:1.62}
+.notes li b{color:#f2f2f4;font-weight:700}
+.warn{margin-top:22px;border:1px solid rgba(255,180,60,.3);background:rgba(255,180,60,.06);border-radius:12px;padding:16px 18px;font-size:13.5px;color:#e3c58f;line-height:1.65}
+.warn b{color:#f5dcae}
+.ok{margin-top:14px;border:1px solid rgba(61,220,151,.3);background:rgba(61,220,151,.06);border-radius:12px;padding:16px 18px;font-size:13.5px;color:#a9e6c8;line-height:1.65}
+.ok b{color:#d6f5e6}
+
+/* ══ .klp — a home de hoje (o "antes" da secao de pacotes) ══════════════ */
+.klp{--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--r-lg:22px;--r-md:18px;
+ --sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);
+ --sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);
+ background:#000;color:var(--txt);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+.klp *{box-sizing:border-box;margin:0;padding:0}
+.klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.klp .sec-h{text-align:center;max-width:660px;margin:0 auto 60px}
+.klp .sec-h h2{font-size:48.8px;font-weight:620;letter-spacing:-.03em;line-height:1.06}
+.klp .sec-h p{margin-top:18px;color:var(--muted);font-size:17.9px;line-height:1.55}
+.klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
+.klp .plan{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;box-shadow:var(--sh-card)}
+.klp .plan.pop{background:linear-gradient(180deg,#212124,#1a1a1d);border-color:#4d4d50;box-shadow:var(--sh-card-h);padding-top:40px}
+.klp .plan .pt{font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
+.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:999px;padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
+.klp .plan .nm{margin-top:12px;font-size:21.4px;font-weight:650;letter-spacing:-.018em}
+.klp .plan.pop .nm{margin-top:0}
+.klp .plan .pr{margin-top:8px;font-size:44px;font-weight:720;letter-spacing:-.035em;line-height:1}
+.klp .plan .pr span{font-size:16px;font-weight:500;color:var(--muted);letter-spacing:0}
+.klp .plan .pr-then{margin-top:7px;font-size:13.6px;font-weight:550;color:var(--muted2)}
+.klp .plan ul{list-style:none;margin:24px 0 26px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
+.klp .plan li{display:flex;gap:11px;font-size:14.5px;line-height:1.5;color:var(--muted)}
+.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:50%;background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
+.klp .btn{display:inline-flex;align-items:center;justify-content:center;font-weight:650;font-size:16px;padding:14px 30px;border-radius:980px;background:var(--txt);color:#000;margin-top:auto;width:100%}
+.klp.m .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}
+.klp.m .sec-h h2{font-size:31.7px}
+.klp.m .sec-h{margin-bottom:40px}
+.klp.m .plan{padding:26px 22px}
+.klp.m .plan.pop{padding-top:38px}
+.klp.m .plan .pr{font-size:40px}
+.klp.m .wrap{padding:0 20px}
+
+/* ══ .kag — a pagina nova ═══════════════════════════════════════════════ */
+.kag{--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--ok:#3ddc97;--no:#ff7b72;--r-lg:22px;--r-md:18px;
+ --sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);
+ --sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);
+ --sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);
+ background:#000;color:var(--txt);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5}
+.kag *{box-sizing:border-box;margin:0;padding:0}
+.kag a{text-decoration:none;color:inherit}
+.kag .wrap{max-width:1000px;margin:0 auto;padding:0 24px}
+.kag .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:650;font-size:16px;letter-spacing:-.01em;padding:14px 30px;border-radius:980px;cursor:pointer;border:1px solid transparent;transition:transform .18s cubic-bezier(.2,.7,.3,1),background .18s,box-shadow .18s}
+.kag .btn-w{background:var(--txt);color:#000;box-shadow:var(--sh-cta)}
+.kag .btn-w:hover{background:#fff;transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,.6) inset,0 14px 34px -12px rgba(255,255,255,.42)}
+.kag .btn-g{background:transparent;color:var(--txt);border-color:var(--line2)}
+.kag .btn-g:hover{border-color:var(--blue);color:#fff}
+.kag .eyebrow{display:inline-flex;align-items:center;height:28px;padding:0 13px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3)}
+.kag .crumb{font-size:13px;color:var(--muted2);padding-top:26px}
+.kag .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,#c7c7cd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.kag .hero{position:relative;overflow:hidden;padding:52px 0 84px}
+.kag .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-200px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.05),transparent 58%);pointer-events:none}
+.kag .hero-in{position:relative;z-index:1;max-width:760px}
+.kag h1{margin-top:20px;font-size:70.4px;font-weight:640;line-height:1.02;letter-spacing:-.042em}
+.kag .lede{margin-top:20px;font-size:20.2px;color:var(--muted);line-height:1.55;max-width:600px}
+.kag .hero-cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.kag .hero-note{margin-top:18px;font-size:13px;line-height:1.7;color:var(--muted2)}
+.kag .anchor{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:44px;position:relative;z-index:1}
+.kag .anchor .a{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:22px;box-shadow:var(--sh-card)}
+.kag .anchor .a.us{background:linear-gradient(180deg,rgba(41,151,255,.13),rgba(41,151,255,.05));border-color:rgba(41,151,255,.4)}
+.kag .anchor .k{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2)}
+.kag .anchor .a.us .k{color:var(--blue)}
+.kag .anchor .v{margin-top:9px;font-size:36.8px;font-weight:720;letter-spacing:-.035em;line-height:1}
+.kag .anchor .s{margin-top:7px;font-size:12.5px;color:var(--muted2);line-height:1.5}
+.kag .sec-h{max-width:660px;margin-bottom:44px}
+.kag .sec-h h2{font-size:43.2px;font-weight:620;letter-spacing:-.03em;line-height:1.07}
+.kag .sec-h p{margin-top:16px;color:var(--muted);font-size:16.96px;line-height:1.6}
+.kag .cmp{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow-x:auto;position:relative;box-shadow:var(--sh-card)}
+.kag .cmp table{width:100%;min-width:600px;border-collapse:collapse;font-size:14.5px}
+.kag .cmp th,.kag .cmp td{padding:16px 18px;text-align:right;border-bottom:1px solid rgba(255,255,255,.055)}
+.kag .cmp th:first-child,.kag .cmp td:first-child{text-align:left}
+.kag .cmp thead th{font-weight:650;color:var(--muted);font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;padding-top:18px;padding-bottom:18px}
+.kag .cmp tbody td:first-child{font-weight:650;color:var(--txt)}
+.kag .cmp tbody td:first-child small{display:block;font-weight:450;color:var(--muted2);font-size:12.5px;margin-top:3px}
+.kag .cmp .big{font-size:19px;font-weight:720;letter-spacing:-.02em;white-space:nowrap}
+.kag .cmp tr.us td{background:linear-gradient(90deg,rgba(41,151,255,.14),rgba(41,151,255,.07));box-shadow:inset 0 1px 0 rgba(41,151,255,.28),inset 0 -1px 0 rgba(41,151,255,.28)}
+.kag .cmp tr.us td:first-child,.kag .cmp tr.us .big{color:#fff}
+.kag .cmp tr:last-child td{border-bottom:none}
+.kag .cmp .save{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:800;letter-spacing:.05em;color:var(--blue);background:rgba(41,151,255,.14);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:3px 9px;white-space:nowrap}
+.kag .fine{margin-top:16px;font-size:12.5px;line-height:1.65;color:var(--muted2);max-width:760px}
+.kag .packs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch}
+.kag .pack{position:relative;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:26px 22px;box-shadow:var(--sh-card);transition:transform .2s cubic-bezier(.2,.7,.3,1),border-color .2s,box-shadow .2s}
+.kag .pack:hover{transform:translateY(-4px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 18px 44px -18px rgba(41,151,255,.32)}
+.kag .pack.pop{background:linear-gradient(180deg,#212124,#1a1a1d);border-color:#4d4d50;box-shadow:var(--sh-card-h);padding-top:38px}
+.kag .pack .tag2{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:999px;padding:6px 15px;font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
+.kag .pack .qty{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted2)}
+.kag .pack .tot{margin-top:10px;font-size:40px;font-weight:720;letter-spacing:-.035em;line-height:1}
+.kag .pack .each{margin-top:12px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--muted)}
+.kag .pack .each b{display:block;font-size:21.1px;font-weight:700;letter-spacing:-.02em;color:var(--blue);margin-top:3px}
+.kag .pack .btn{margin-top:22px;width:100%;padding:12px 18px;font-size:14.5px}
+.kag .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.kag .box{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:28px 26px;box-shadow:var(--sh-card)}
+.kag .box.no{background:#141416}
+.kag .box h3{display:flex;align-items:center;gap:10px;font-size:17.9px;font-weight:680;letter-spacing:-.02em}
+.kag .box .mk{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;flex:none}
+.kag .box.yes .mk{color:var(--ok);background:rgba(61,220,151,.14);border:1px solid rgba(61,220,151,.34)}
+.kag .box.no .mk{color:var(--no);background:rgba(255,123,114,.12);border:1px solid rgba(255,123,114,.32)}
+.kag .box ul{list-style:none;margin-top:20px;display:flex;flex-direction:column;gap:14px}
+.kag .box li{display:flex;gap:11px;font-size:14.5px;line-height:1.55;color:var(--muted)}
+.kag .box li b{color:var(--txt);font-weight:650}
+.kag .box li i{font-style:normal;flex:none;margin-top:1px;font-weight:800}
+.kag .box.yes li i{color:var(--ok)}
+.kag .box.no li i{color:var(--no)}
+.kag .box .why{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.65;color:var(--muted2)}
+.kag .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.kag .shot{aspect-ratio:9/16;border-radius:var(--r-md);border:1px solid var(--line);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);box-shadow:var(--sh-card);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:16px}
+.kag .shot.slot{border-style:dashed;border-color:var(--line2);align-items:center;justify-content:center;text-align:center;color:var(--muted2)}
+.kag .shot.slot .n{font-size:26px;font-weight:750;color:var(--line2);letter-spacing:-.03em}
+.kag .shot.slot .t{margin-top:8px;font-size:12.5px;line-height:1.5;max-width:150px}
+.kag .wl{position:relative;overflow:hidden;border-radius:26px;padding:56px 40px;background:linear-gradient(180deg,#19191c,#131315);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
+.kag .wl .glow{position:absolute;width:680px;height:380px;left:50%;top:-160px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.16),transparent 66%);pointer-events:none}
+.kag .wl-in{position:relative;z-index:1;max-width:660px}
+.kag .wl h2{font-size:40px;font-weight:620;letter-spacing:-.03em;line-height:1.1}
+.kag .wl p{margin-top:16px;color:var(--muted);font-size:16.8px;line-height:1.62}
+.kag .wl ul{list-style:none;margin-top:22px;display:flex;flex-direction:column;gap:11px}
+.kag .wl li{display:flex;gap:10px;font-size:14.5px;color:var(--muted);line-height:1.55}
+.kag .wl li i{font-style:normal;color:var(--blue);flex:none;font-weight:800}
+/* ── .kag mobile 390px ── */
+.kag.m .wrap{padding:0 20px}
+.kag.m .hero{padding:40px 0 60px}
+.kag.m h1{font-size:41.6px}
+.kag.m .lede{font-size:16.96px}
+.kag.m .btn{width:100%}
+.kag.m .anchor{grid-template-columns:1fr;gap:12px}
+.kag.m .anchor .v{font-size:27.2px}
+.kag.m .sec-h{margin-bottom:34px}
+.kag.m .sec-h h2{font-size:30.4px}
+.kag.m .packs{grid-template-columns:1fr;gap:28px}
+.kag.m .two{grid-template-columns:1fr}
+.kag.m .gal{grid-template-columns:1fr;max-width:300px;margin:0 auto}
+.kag.m .wl{padding:36px 22px;border-radius:20px}
+.kag.m .wl h2{font-size:30.4px}
+.kag.m .cmp{background:transparent;border:none;border-radius:0;overflow:visible;box-shadow:none}
+.kag.m .cmp table,.kag.m .cmp tbody,.kag.m .cmp tr,.kag.m .cmp td{display:block;width:100%;min-width:0}
+.kag.m .cmp thead{display:none}
+.kag.m .cmp tr{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);box-shadow:var(--sh-card);margin-bottom:12px;overflow:hidden}
+.kag.m .cmp tr:last-child{margin-bottom:0}
+.kag.m .cmp tr.us{border-color:rgba(41,151,255,.45)}
+.kag.m .cmp td{display:flex;align-items:center;justify-content:space-between;gap:16px;text-align:right;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.05)}
+.kag.m .cmp td::before{content:attr(data-label);color:var(--muted);font-weight:500;font-size:12.5px;text-align:left;flex:none}
+.kag.m .cmp td:first-child{display:block;text-align:left;background:rgba(255,255,255,.03);padding:14px 16px}
+.kag.m .cmp tr.us td:first-child{background:rgba(41,151,255,.12)}
+.kag.m .cmp td:first-child::before{content:none}
+.kag.m .cmp tr td:last-child{border-bottom:none}
+.kag.m .cmp tr.us td{box-shadow:none}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1 class="doc">Kineo — rodada 3: a porta de entrada de atacado</h1>
+  <p class="doc">
+    <b>O “ANTES” desta rodada é a ausência.</b> Não existe hoje nenhuma superfície de atacado no site:
+    as ~106 URLs públicas apontam todas para o funil self-serve — o que converteu 713 cadastros em
+    4 compras avulsas e zero assinaturas. Cada par abaixo mostra, à esquerda, o que um comprador de
+    volume encontra <b>hoje</b>; à direita, o que passa a encontrar em <code>/for-agencies</code>.
+    <br><br>
+    <b>Todo preço vem da mesma tabela em centavos que a página usa</b>, e o valor por vídeo é divisão,
+    nunca digitação — igual ao arquivo real. As rodadas 1 e 2 já foram aprovadas, mergeadas e estão em
+    produção, então não se repetem aqui.
+  </p>
+  <div class="legend">
+    <span>Hero + âncora numérica</span><span>Tabela que vende sozinha</span><span>4 pacotes</span><span>Entra / não entra</span><span>Prova visual</span><span>White-label</span>
+  </div>
+  <div class="toc"><b>Seções neste arquivo</b><div id="toc"></div></div>
+
+  <div id="sections"></div>
+
+  <div class="notes">
+    <h3>O que foi construído</h3>
+    <ol>
+      <li><b>Hero com âncora numérica.</b> Três cartões lado a lado: o que 50 vídeos custam na Tasty Edits, na VidChops e na Kineo. O argumento inteiro cabe em três números, antes de qualquer rolagem.</li>
+      <li><b>A tabela que vende sozinha.</b> Preço por Short e total de 50 vídeos, com a linha da Kineo em faixa azul e o multiplicador calculado. No mobile ela vira cards empilhados — o mesmo padrão da rodada 2, sem scroll horizontal cru.</li>
+      <li><b>Os 4 pacotes com preço por vídeo em destaque</b>, que é o número que comprador de volume realmente lê. O valor por vídeo é <code>usdMinor / videos</code> — não pode divergir do total porque não é digitado.</li>
+      <li><b>Entra / não entra, lado a lado e com o mesmo peso visual.</b> A coluna vermelha nomeia as quatro exclusões: sem editor humano, sem footage do cliente, sem vídeo gerado por IA e <b>sem publicação no canal</b> — esta última porque <code>docs/PRODUCT_AND_OFFER.md</code> §3.1 registra que o Autopilot tem zero conexões comprovadas.</li>
+      <li><b>Slots de prova visual</b> prontos para 3 exemplos, renderizando o espaço reservado em vez de link inventado.</li>
+      <li><b>White-label</b> como bloco próprio, com o glow da marca: “você revende no seu preço, a gente fica invisível”.</li>
+    </ol>
+    <div class="ok">
+      <b>Typecheck:</b> <code>tsc --noEmit</code> rodou de dentro do worktree usando o <code>node_modules</code>
+      do repo principal. <b>Antes: 0 erros. Depois: 0 erros.</b> Confirmei com <code>--listFiles</code> que o
+      compilador enxerga mesmo os dois arquivos novos (2 correspondências), então o zero não é um falso
+      negativo por arquivo fora do escopo.
+    </div>
+    <div class="warn">
+      <b>Três coisas dependem de outra pessoa antes disto poder vender:</b><br>
+      1. <b>Development —</b> os 4 SKUs em <code>lib/checkoutPricing.ts</code>. A tabela na página está em
+      centavos e claramente marcada como temporária; quando o SKU existir, é trocar a constante pelo import
+      e apontar o <code>ctaHref</code>. <b>Não criei o SKU</b> de propósito.<br>
+      2. <b>Growth —</b> o destino do botão. Sem checkout de atacado, o CTA é <code>mailto:</code> inbound: o
+      comprador escreve, a Kineo não inicia mensagem nenhuma — respeita o gate de comunicação e a regra do
+      ROADMAP §5-bis. Se Growth preferir outro destino, é uma constante.<br>
+      3. <b>CEO —</b> os 3 ids de vídeo público para a galeria.
+      <br><br>
+      <b>Uma correção factual:</b> os números de agência não estavam em <code>lib/comparisons.ts</code> como a
+      ordem dizia. Estavam como <b>string literal em JSX</b> em <code>app/pricing/PricingClient.tsx:658-659</code>
+      e repetidos num comentário em <code>lib/pricing.ts:115</code> — exatamente o padrão que o AGENTS.md §2.3
+      proíbe. Criei <code>lib/agencyBenchmark.ts</code> declarando os primitivos (mensalidade e nº de Shorts) uma
+      vez, com o valor por Short derivado. <b>O PricingClient ainda tem as cópias antigas</b> — não as toquei
+      nesta rodada para não misturar escopo, e fica como item da rodada 4.
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══ preco: mesma tabela em centavos do arquivo real ══════════════════════ */
+var PACKS=[{id:'w10',videos:10,usdMinor:9900},{id:'w20',videos:20,usdMinor:17900},
+           {id:'w30',videos:30,usdMinor:24900,pop:1},{id:'w50',videos:50,usdMinor:37900}];
+var BENCH=[{id:'vidchops',name:'VidChops',monthlyUsdMinor:49500,shortsPerMonth:16,producedBy:'Human editor, assigned per account'},
+           {id:'tastyedits',name:'Tasty Edits',monthlyUsdMinor:240000,shortsPerMonth:30,producedBy:'Human editing team'}];
+var VERIFIED='July 26, 2026';
+function money(m){return '$'+(m/100).toFixed(2)}
+function perVideo(p){return p.usdMinor/p.videos}
+function perShort(b){return b.monthlyUsdMinor/b.shortsPerMonth}
+function costFor(b,n){return perShort(b)*n}
+var ANCHOR=PACKS[PACKS.length-1];
+
+/* ══ os planos de assinatura que a home mostra HOJE (o "antes") ══════════ */
+var PLANS=[
+ {pop:0,pt:'Best for testing',nm:'Starter',pr:'$4.90',then:'then $9.90/mo',f:['25 credits/month (Fast = 1 cr)','AI script + neural voiceover + captions','Watermark-free MP4'],cta:'Start — $4.90 first month'},
+ {pop:1,pt:'Most popular',nm:'Creator',pr:'$9.90',then:'then $24.90/mo',f:['1 Hollywood film/mo included · 150 credits','Every scene generated by AI','Script + voiceover + captions'],cta:'Go Creator — $9.90 first month'},
+ {pop:0,pt:'Best value per video',nm:'Studio',pr:'$37.90',then:'',f:['~4 Cinematic AI videos/mo (Kling)','200 credits/mo (33% more)','Highest quality + priority queue'],cta:'Go Studio — $37.90/mo'}];
+
+function homePlansHTML(){
+ return '<div class="wrap"><div class="sec-h"><h2>Simple pricing. Try Fast free first.</h2>'+
+  '<p>Create, download and share up to 3 watermarked Fast videos every 24h, no card. Paid plans unlock clean MP4s.</p></div>'+
+  '<div class="price">'+PLANS.map(function(p){
+   var li=p.f.map(function(f){return '<li><span class="ck">✓</span> '+f+'</li>'}).join('');
+   return '<div class="plan'+(p.pop?' pop':'')+'"><div class="pt">'+p.pt+'</div><div class="nm">'+p.nm+'</div>'+
+    '<div class="pr">'+p.pr+'<span>/mo</span></div>'+(p.then?'<div class="pr-then">'+p.then+'</div>':'')+
+    '<ul>'+li+'</ul><a class="btn">'+p.cta+'</a></div>';}).join('')+'</div></div>';
+}
+
+/* ══ blocos da pagina nova ══════════════════════════════════════════════ */
+function heroHTML(){
+ return '<header class="hero"><div class="glow"></div><div class="wrap">'+
+  '<nav class="crumb">Home <span>/</span> For agencies</nav>'+
+  '<div class="hero-in"><span class="eyebrow" style="margin-top:26px">Volume orders</span>'+
+  '<h1 class="gtxt">Buy Shorts by the batch, not by the seat.</h1>'+
+  '<p class="lede">Ten to fifty finished vertical videos in a single order — scripted, voiced, captioned and delivered as clean MP4s you resell under your own name.</p>'+
+  '<div class="hero-cta"><a class="btn btn-w">Start a volume order →</a><a class="btn btn-g">See the four packages</a></div>'+
+  '<p class="hero-note">No seats · No monthly minimum · No Kineo branding on anything you receive</p></div>'+
+  '<div class="anchor">'+BENCH.map(function(b){
+    return '<div class="a"><div class="k">'+b.name+' · '+ANCHOR.videos+' videos</div>'+
+     '<div class="v">'+money(costFor(b,ANCHOR.videos))+'</div>'+
+     '<div class="s">'+money(perShort(b))+' per short · '+b.producedBy+'</div></div>';}).join('')+
+  '<div class="a us"><div class="k">Kineo · '+ANCHOR.videos+' videos</div>'+
+  '<div class="v">'+money(ANCHOR.usdMinor)+'</div>'+
+  '<div class="s">'+money(perVideo(ANCHOR))+' per short · Generated, delivered as files</div></div>'+
+  '</div></div></header>';
+}
+function cmpHTML(){
+ var rows=BENCH.map(function(b){
+  return '<tr><td>'+b.name+'<small>'+b.producedBy+'</small></td>'+
+   '<td class="big" data-label="Per short">'+money(perShort(b))+'</td>'+
+   '<td class="big" data-label="'+ANCHOR.videos+' videos">'+money(costFor(b,ANCHOR.videos))+'</td></tr>';}).join('');
+ var mult=BENCH.map(function(b){return (costFor(b,ANCHOR.videos)/ANCHOR.usdMinor).toFixed(1)});
+ return '<div class="wrap"><div class="sec-h"><h2>The same fifty videos, three ways to buy them.</h2>'+
+  '<p>Agency rates below are the monthly price each vendor publishes, divided by the number of Shorts that price covers.</p></div>'+
+  '<div class="cmp"><table><thead><tr><th>Where you buy</th><th>Per short</th><th>'+ANCHOR.videos+' videos</th></tr></thead>'+
+  '<tbody>'+rows+'<tr class="us"><td>Kineo<small>AI-generated, delivered as files</small></td>'+
+  '<td class="big" data-label="Per short">'+money(perVideo(ANCHOR))+'</td>'+
+  '<td class="big" data-label="'+ANCHOR.videos+' videos">'+money(ANCHOR.usdMinor)+
+  '<span class="save">'+mult[0]+'×–'+mult[1]+'× less</span></td></tr></tbody></table></div>'+
+  '<p class="fine">Vendor prices read from each vendor’s own published page on '+VERIFIED+'. The '+ANCHOR.videos+
+  '-video column extrapolates each published per-short rate — it is arithmetic, not a quote those vendors gave. '+
+  'They staff human editors, which is a different product at a different price; the comparison is what the same output count costs you, not a claim that the work is identical.</p></div>';
+}
+function packsHTML(){
+ return '<div class="wrap"><div class="sec-h"><h2>Four sizes. The bigger the batch, the cheaper each video.</h2>'+
+  '<p>Pay once per batch. Nothing renews, nothing expires into a subscription.</p></div>'+
+  '<div class="packs">'+PACKS.map(function(p){
+   return '<div class="pack'+(p.pop?' pop':'')+'">'+(p.pop?'<div class="tag2">Most ordered</div>':'')+
+    '<div class="qty">'+p.videos+' videos</div><div class="tot">'+money(p.usdMinor)+'</div>'+
+    '<div class="each">Per video<b>'+money(perVideo(p))+'</b></div>'+
+    '<a class="btn btn-w">Order '+p.videos+' →</a></div>';}).join('')+'</div></div>';
+}
+var YES=['<b>You send one line of topic per video.</b> That is the entire input we need from you.',
+ '<b>A finished vertical 9:16 MP4</b>, around 45 seconds, ready to upload anywhere.',
+ '<b>Script, AI voiceover and burned-in captions</b>, written and produced automatically.',
+ '<b>Stock B-roll</b> matched to each scene, from commercially licensed libraries.',
+ '<b>No watermark</b> — no logo, no outro, no credit anywhere in the file.',
+ '<b>Commercial use and resale rights.</b> The files are yours to sell on.',
+ '<b>Minutes per video, not days.</b> Turnaround is machine time, not a queue behind other clients.',
+ '<b>A failed render refunds itself</b> automatically and re-runs inside your package.'];
+var NO=['<b>No human editor.</b> Nobody sits in a timeline. That is precisely why it costs what it costs.',
+ '<b>We cannot use your footage.</b> These packages run on stock B-roll only — your clips, logos and brand assets do not go in.',
+ '<b>No AI-generated video.</b> The visuals are stock footage, not generated scenes.',
+ '<b>We do not publish to your channel.</b> You get files; scheduling and uploading stay with you.',
+ '<b>The voice is synthetic</b>, not a human narrator — and you should label it as AI wherever you publish.',
+ '<b>No bespoke art direction.</b> Every video in a batch comes out of the same pipeline.'];
+function scopeHTML(){
+ return '<div class="wrap"><div class="sec-h"><h2>Exactly what you get — and what you don’t.</h2>'+
+  '<p>The second column matters more than the first. If any of it is a dealbreaker, we would rather you know now than after you have paid.</p></div>'+
+  '<div class="two"><div class="box yes"><h3><span class="mk">✓</span> Included</h3><ul>'+
+  YES.map(function(t){return '<li><i>✓</i><span>'+t+'</span></li>'}).join('')+'</ul>'+
+  '<p class="why">Render time measured on a sample of 12 videos in the week ending 23 July 2026: median 2.3 minutes, 90th percentile 3.5. Small sample — treat it as the order of magnitude, not a service level.</p></div>'+
+  '<div class="box no"><h3><span class="mk">✕</span> Not included</h3><ul>'+
+  NO.map(function(t){return '<li><i>✕</i><span>'+t+'</span></li>'}).join('')+'</ul>'+
+  '<p class="why">If you need a person editing to a brief, your client’s own footage on screen, or someone managing the upload calendar, this is the wrong product and one of the agencies in the table above is the right one.</p></div></div></div>';
+}
+function galleryHTML(){
+ return '<div class="wrap"><div class="sec-h"><h2>See three before you send a cent.</h2>'+
+  '<p>Real exports from the same pipeline your batch would run through.</p></div>'+
+  '<div class="gal">'+[1,2,3].map(function(i){
+   return '<div class="shot slot"><div class="n">'+i+'</div><div class="t">Sample slot — awaiting video id</div></div>';}).join('')+'</div></div>';
+}
+function wlHTML(){
+ return '<div class="wrap"><div class="wl"><div class="glow"></div><div class="wl-in">'+
+  '<span class="eyebrow">White-label</span>'+
+  '<h2 style="margin-top:18px">You resell at your price. We stay invisible.</h2>'+
+  '<p>Nothing you hand to a client points back here. There is no branding in the file, nothing in the metadata that names us, and we never contact anyone you deliver to.</p>'+
+  '<ul><li><i>✓</i><span>No Kineo logo, watermark, outro or on-screen credit</span></li>'+
+  '<li><i>✓</i><span>Your margin is yours — we have no view of, and no say in, what you charge</span></li>'+
+  '<li><i>✓</i><span>We never contact your clients, for any reason</span></li>'+
+  '<li><i>✓</i><span>Order under your agency name; one invoice per batch</span></li></ul>'+
+  '<div style="margin-top:28px"><a class="btn btn-w">Start a volume order →</a></div></div></div></div>';
+}
+function voidHTML(title,body){
+ return '<div class="void"><div class="x">✕</div><h4>'+title+'</h4><p>'+body+'</p></div>';
+}
+
+var SECTIONS=[
+ {id:'packs',kicker:'O coração da rodada',title:'Os 4 pacotes — o que um comprador de volume encontra',
+  desc:'Hoje ele chega na home e vê assinatura de <b>$9,90/mês</b> com créditos: um produto de assento, não de lote. Nada no site menciona comprar 10, 30 ou 50 vídeos de uma vez. À direita, os quatro pacotes com o preço por vídeo em destaque — que é o número que comprador de volume realmente lê.',
+  old:function(m){return '<div class="klp'+(m?' m':'')+'" style="padding:40px 0">'+homePlansHTML()+'</div>'},
+  neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:40px 0">'+packsHTML()+'</div>'}},
+ {id:'cmp',kicker:'O argumento que vende sozinho',title:'50 vídeos: $4.000, $1.547 ou $379',
+  desc:'Essa comparação não existia em nenhuma página pública — os dois números viviam soltos num bloco de texto dentro de <code>/pricing</code>, sem tabela e sem o total de um lote real. Agora é a peça central, com a linha da Kineo em faixa azul e o multiplicador calculado, não digitado.',
+  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','Nenhuma página pública compara o custo de um lote de 50 vídeos com o de uma agência de edição humana. O comprador de volume não tem como fazer essa conta sozinho.')+'</div>'},
+  neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:34px 0">'+cmpHTML()+'</div>'}},
+ {id:'hero',kicker:'Primeira dobra',title:'Hero — o argumento inteiro em três números',
+  desc:'Antes da primeira rolagem o comprador já viu quanto custam 50 vídeos nos três lugares. O cartão da Kineo usa o azul da marca; os dois de agência ficam neutros.',
+  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','O comprador de atacado cai na home, que vende “Launch your AI Shorts show” para criador individual. Nenhuma dobra do site fala com quem compra em lote.')+'</div>'},
+  neu:function(m){return '<div class="kag'+(m?' m':'')+'">'+heroHTML()+'</div>'}},
+ {id:'scope',kicker:'O que separa venda de chargeback',title:'Entra / não entra, com o mesmo peso visual',
+  desc:'As quatro exclusões estão nomeadas em vermelho e no mesmo tamanho do que entra — incluindo <b>“não publicamos no seu canal”</b>, porque <code>PRODUCT_AND_OFFER.md</code> §3.1 registra que o Autopilot tem zero conexões comprovadas. A última linha diz que a voz é sintética: não é humildade, é a exigência de divulgação que torna o uso comercial lícito (§1.3.1).',
+  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','Nenhuma superfície do site declara os limites do que é entregue. O comprador descobre depois de pagar — que é exatamente como nascem os chargebacks.')+'</div>'},
+  neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:34px 0">'+scopeHTML()+'</div>'}},
+ {id:'proof',kicker:'Prova e posicionamento',title:'Slots de prova visual + white-label',
+  desc:'Três slots prontos para os ids de vídeo público — renderizando o espaço reservado em vez de link inventado. E o bloco de white-label, que é o que agência precisa ouvir antes de comprar.',
+  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','Existem 422 vídeos públicos aprovados num portão de qualidade, mas nenhum deles é usado como prova numa página de venda. E a palavra “white-label” não aparece em lugar nenhum do site.')+'</div>'},
+  neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:34px 0">'+galleryHTML()+'<div style="height:34px"></div>'+wlHTML()+'</div>'}}];
+
+var host=document.getElementById('sections'), toc=document.getElementById('toc'), stages=[], uid=0;
+function pane(kind,label,who,inner,id){
+ return '<div class="pane '+kind+'"><div class="tag"><span class="dot"></span>'+label+
+  '<span class="who">'+who+'</span></div><div class="viewport" id="vp'+id+'">'+
+  '<div class="stage" id="st'+id+'">'+inner+'</div></div></div>';
+}
+function pair(s,isM){
+ var w=isM?390:1080, who=(isM?'mobile · ':'desktop · ')+w+'px';
+ var a='<div style="width:'+w+'px;background:#000">'+s.old(isM)+'</div>';
+ var b='<div style="width:'+w+'px;background:#000">'+s.neu(isM)+'</div>';
+ var ia=++uid, ib=++uid;
+ stages.push([ia,w],[ib,w]);
+ return '<div class="cols'+(isM?' mob':'')+'">'+pane('old','Antes',who,a,ia)+pane('new','Depois',who,b,ib)+'</div>';
+}
+host.innerHTML=SECTIONS.map(function(s){
+ return '<div class="sec" id="sec-'+s.id+'"><h2>'+s.kicker+'</h2><h3>'+s.title+'</h3><p>'+s.desc+'</p>'+
+  '<div class="vlabel">Desktop</div>'+pair(s,false)+
+  '<div class="vlabel">Mobile · 390px</div>'+pair(s,true)+'</div>';
+}).join('');
+toc.innerHTML=SECTIONS.map(function(s){return '<a href="#sec-'+s.id+'">'+s.title.split(' — ')[0]+'</a>'}).join('');
+
+/* Reduz cada palco de largura fixa para caber na coluna.
+   Duas armadilhas, as duas já encontradas na prática e tratadas aqui:
+   (a) na primeira passada o layout do grid pode ainda não ter largura, e
+       clientWidth volta 0 — o que produziria scale(0);
+   (b) uma vez aplicado scale(0), o painel fica com altura 0 e a medição
+       seguinte continua lendo 0: o erro se auto-perpetua. Por isso o
+       transform é ZERADO antes de medir, e uma largura 0 aborta a passada
+       em vez de virar escala. */
+function fitAll(){
+ var pending=0;
+ stages.forEach(function(s){
+  var vp=document.getElementById('vp'+s[0]), st=document.getElementById('st'+s[0]);
+  if(!vp||!st) return;
+  // A largura disponível é medida no .pane, NÃO no .viewport nem no .stage.
+  // O .pane é um bloco comum do grid: sua largura não depende do transform
+  // que estamos prestes a aplicar. Medir no próprio palco é o que produzia o
+  // ciclo scale(0) -> altura 0 -> mede 0 -> scale(0) da primeira versão.
+  var pane=vp.parentElement;
+  var avail=(pane && pane.clientWidth) || 0;
+  if(!avail){ pending++; return; }
+  var k=avail/s[1];
+  st.style.width=s[1]+'px';
+  st.style.transform='scale('+k+')';
+  vp.style.height=Math.max(1,Math.round(st.scrollHeight*k))+'px';
+ });
+ return pending;
+}
+// AGENDAMENTO DO PRIMEIRO AJUSTE — três mecanismos, de propósito.
+//
+// A primeira versão disto usava só requestAnimationFrame para repetir enquanto
+// a largura não existisse. Ao validar o arquivo isso falhou de forma silenciosa:
+// num renderizador que não está compondo quadros o rAF simplesmente não dispara,
+// e o resultado é o pior possível — nenhum palco escalado, cada um em tamanho
+// natural, com um palco de 1080px CORTADO pelo overflow:hidden de uma coluna de
+// 680px. A página parecia pronta e estava truncada.
+//
+// Timer dispara mesmo sem compositing; ResizeObserver cobre a janela que só
+// ganha largura depois; e a chamada síncrona resolve o caso normal na hora.
+// Qualquer um dos três sozinho já basta — os três juntos é o que torna difícil
+// este arquivo abrir errado na máquina de outra pessoa.
+var tries = 0
+function boot(){
+ if(fitAll() > 0 && ++tries < 40) setTimeout(boot, 50)
+}
+window.addEventListener('resize', fitAll)
+window.addEventListener('load', function(){ tries = 0; boot() })
+if(typeof ResizeObserver === 'function'){
+ new ResizeObserver(function(){ fitAll() }).observe(document.body)
+}
+setTimeout(boot, 0)
+boot()
+</script>
+</body>
+</html>

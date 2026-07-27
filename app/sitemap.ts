@@ -26,6 +26,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/viral-score', priority: 0.8, freq: 'weekly' },
     { path: '/ai-avatar', priority: 0.8, freq: 'weekly' },
     { path: '/partners', priority: 0.8, freq: 'weekly' },
+    // KINEO-FOR-AGENCIES-2026-07-27 — porta de entrada de atacado (ROADMAP
+    // §5.1). Prioridade 0.9, o mesmo patamar de /pricing: é a única superfície
+    // indexável do ICP que compra em volume, e uma página de aquisição fora do
+    // sitemap é invisível — foi exatamente assim que 564 vídeos públicos
+    // ficaram sem nunca serem descobertos até o PUSH #97.
+    { path: '/for-agencies', priority: 0.9, freq: 'weekly' },
     { path: '/youtube-shorts-from-topic', priority: 0.9, freq: 'weekly' },
     { path: '/text-to-video-shorts', priority: 0.9, freq: 'weekly' },
     { path: '/cheapest-ai-shorts-maker', priority: 0.8, freq: 'weekly' },
