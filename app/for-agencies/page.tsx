@@ -30,6 +30,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { PUBLIC_EXAMPLES, type PublicExample } from '@/lib/publicExamples'
 import {
   AGENCY_BENCHMARKS,
   AGENCY_VERIFIED_ON,
@@ -92,12 +93,31 @@ function ctaHref(pkg: WholesalePackage): string {
   return `mailto:${WHOLESALE_INBOX}?subject=${encodeURIComponent(subject)}`
 }
 
-// ⚠️ HANDOFF — SLOTS DE PROVA VISUAL
-// 422 vídeos públicos passaram no portão de qualidade e vivem em /v/[id]. Três
-// deles devem aparecer aqui. NÃO inventei id: enquanto a lista estiver vazia a
-// página renderiza os slots reservados, o que é honesto e deixa óbvio o que
-// falta. Basta colar os 3 ids e a galeria acende — nenhuma outra mudança.
-const GALLERY_VIDEO_IDS: readonly string[] = []
+// ═══════════════════════════════════════════════════════════════════════════
+// PROVA VISUAL — SÓ AMOSTRAS DA PRÓPRIA EMPRESA. NUNCA VÍDEO DE CLIENTE.
+// ═══════════════════════════════════════════════════════════════════════════
+// O video-sitemap de produção tem ~430 URLs, mas a esmagadora maioria é
+// /v/[id]: RENDER DE USUÁRIO. Ser publicamente acessível não torna o vídeo de
+// um cliente material de venda nosso — e olhando um id a página não tem como
+// saber de quem aquilo é.
+//
+// Por isso a galeria NÃO aceita id avulso. Ela seleciona por slug de dentro de
+// PUBLIC_EXAMPLES, que é a allow-list explícita das amostras do fundador — o
+// cabeçalho do próprio lib/publicExamples.ts diz: "These are founder-owned
+// samples, never customer uploads." Assim a regra para de depender de alguém
+// lembrar dela: não existe caminho no código por onde um /v/[id] entre aqui.
+//
+// Vantagem de vir da allow-list: título e pôster reais saem do mesmo registro
+// em vez de serem redigitados — a mesma disciplina que vale para preço.
+const GALLERY_SLUGS = [
+  'turkmenistan-door-to-hell',
+  'north-sentinel-island',
+  'japan-autonomous-ai',
+] as const
+
+const GALLERY = GALLERY_SLUGS
+  .map((slug) => PUBLIC_EXAMPLES.find((example) => example.slug === slug))
+  .filter((example): example is PublicExample => Boolean(example))
 
 const perVideoUsdMinor = (pkg: WholesalePackage) => pkg.usdMinor / pkg.videos
 const money = (minor: number) => formatCheckoutMoney('usd', minor)
@@ -218,10 +238,12 @@ const CSS = `
 .kag .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .kag .shot{aspect-ratio:9/16;border-radius:var(--r-md);border:1px solid var(--line);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);box-shadow:var(--sh-card);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;transition:transform .22s cubic-bezier(.2,.7,.3,1),border-color .22s ease,box-shadow .22s ease}
 .kag a.shot:hover{transform:translateY(-5px);border-color:rgba(41,151,255,.4);box-shadow:var(--sh-card-h),0 0 0 1px rgba(41,151,255,.18)}
-.kag .shot .lbl{font-size:13px;font-weight:700;color:#fff;position:relative;z-index:2}
-.kag .shot.slot{border-style:dashed;border-color:var(--line2);align-items:center;justify-content:center;text-align:center;color:var(--muted2)}
-.kag .shot.slot .n{font-size:26px;font-weight:750;color:var(--line2);letter-spacing:-.03em}
-.kag .shot.slot .t{margin-top:8px;font-size:12.5px;line-height:1.5;max-width:150px}
+.kag .shot .thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+/* O titulo fica sobre o poster — sem este scrim ele some num frame claro,
+   o mesmo defeito corrigido nos cards de video da home na rodada 1. */
+.kag .shot::after{content:'';position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.82));z-index:1;pointer-events:none}
+.kag .shot .lbl{font-size:14px;font-weight:700;color:#fff;position:relative;z-index:2;line-height:1.3;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.kag .shot .lbl em{display:block;margin-top:5px;font-style:normal;font-size:12px;font-weight:600;color:#bfe0ff}
 
 /* White-label */
 .kag .wl{position:relative;overflow:hidden;border-radius:26px;padding:56px 40px;background:linear-gradient(180deg,#19191c,#131315);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
@@ -558,23 +580,36 @@ export default function ForAgenciesPage() {
               <p>Real exports from the same pipeline your batch would run through.</p>
             </div>
             <div className="gal">
-              {GALLERY_VIDEO_IDS.length > 0
-                ? GALLERY_VIDEO_IDS.slice(0, 3).map((id, i) => (
-                    <Link className="shot" href={`/v/${id}`} key={id}>
-                      <span className="lbl">Sample {i + 1} — watch →</span>
-                    </Link>
-                  ))
-                : /* Slots reservados. Enquanto GALLERY_VIDEO_IDS estiver vazio a
-                     pagina mostra o espaco honestamente em vez de linkar para um
-                     id inventado. Colar 3 ids acende a galeria, sem mais nada. */
-                  [0, 1, 2].map((i) => (
-                    <div className="shot slot" key={i}>
-                      <div className="n">{i + 1}</div>
-                      <div className="t">Sample slot — awaiting video id</div>
-                    </div>
-                  ))}
+              {GALLERY.map((example) => (
+                <Link className="shot" href={`/examples/${example.slug}`} key={example.slug}>
+                  {/* Pôster real do próprio exemplo. <img> em vez de
+                      next/image: a rota é force-static e o arquivo é local e
+                      já dimensionado, então o otimizador não teria o que
+                      otimizar — e width/height explícitos evitam reflow. */}
+                  <img
+                    className="thumb"
+                    src={example.posterPath}
+                    alt=""
+                    width={360}
+                    height={640}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span className="lbl">
+                    {example.shortTitle}
+                    <em>{example.outputDurationSeconds}s · watch →</em>
+                  </span>
+                </Link>
+              ))}
             </div>
+            {/* Duas ressalvas que evitam uma reclamação legítima depois:
+                (1) o que abre é um preview curto, não o export inteiro, e
+                (2) estes exemplos foram exportados em 60s enquanto os vídeos
+                dos pacotes ficam em torno de 45s. Um comprador atento notaria
+                a diferença — melhor ele ler aqui do que descobrir na entrega. */}
             <p className="fine">
+              Each link opens a short preview cut from the full export. These three were exported at
+              60 seconds; videos produced inside a package run around 45.{' '}
               <Link href="/examples" style={{ color: '#2997ff', fontWeight: 600 }}>
                 Browse more finished examples →
               </Link>

@@ -174,9 +174,10 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;ba
 .kag .box .why{margin-top:20px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.65;color:var(--muted2)}
 .kag .gal{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .kag .shot{aspect-ratio:9/16;border-radius:var(--r-md);border:1px solid var(--line);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);box-shadow:var(--sh-card);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:16px}
-.kag .shot.slot{border-style:dashed;border-color:var(--line2);align-items:center;justify-content:center;text-align:center;color:var(--muted2)}
-.kag .shot.slot .n{font-size:26px;font-weight:750;color:var(--line2);letter-spacing:-.03em}
-.kag .shot.slot .t{margin-top:8px;font-size:12.5px;line-height:1.5;max-width:150px}
+.kag .shot .thumb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.kag .shot::after{content:'';position:absolute;left:0;right:0;bottom:0;height:62%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.82));z-index:1;pointer-events:none}
+.kag .shot .lbl{font-size:14px;font-weight:700;color:#fff;position:relative;z-index:2;line-height:1.3;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.kag .shot .lbl em{display:block;margin-top:5px;font-style:normal;font-size:12px;font-weight:600;color:#bfe0ff}
 .kag .wl{position:relative;overflow:hidden;border-radius:26px;padding:56px 40px;background:linear-gradient(180deg,#19191c,#131315);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
 .kag .wl .glow{position:absolute;width:680px;height:380px;left:50%;top:-160px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.16),transparent 66%);pointer-events:none}
 .kag .wl-in{position:relative;z-index:1;max-width:660px}
@@ -369,11 +370,21 @@ function scopeHTML(){
   NO.map(function(t){return '<li><i>✕</i><span>'+t+'</span></li>'}).join('')+'</ul>'+
   '<p class="why">If you need a person editing to a brief, your client’s own footage on screen, or someone managing the upload calendar, this is the wrong product and one of the agencies in the table above is the right one.</p></div></div></div>';
 }
+/* As 3 amostras vem da allow-list PUBLIC_EXAMPLES — amostras do proprio
+   fundador, nunca video de cliente. Os posters sao os arquivos reais do repo,
+   entao o que aparece aqui e o que a pagina vai mostrar. */
+var GALLERY=[
+ {slug:'turkmenistan-door-to-hell',shortTitle:'Turkmenistan: Door to Hell',secs:60,poster:'public/videos/example-turkmenistan.jpg'},
+ {slug:'north-sentinel-island',shortTitle:'North Sentinel Island',secs:60,poster:'public/videos/example-sentinel.jpg'},
+ {slug:'japan-autonomous-ai',shortTitle:'Japan and autonomous AI',secs:60,poster:'public/videos/example-japan-ai.jpg'}];
 function galleryHTML(){
  return '<div class="wrap"><div class="sec-h"><h2>See three before you send a cent.</h2>'+
   '<p>Real exports from the same pipeline your batch would run through.</p></div>'+
-  '<div class="gal">'+[1,2,3].map(function(i){
-   return '<div class="shot slot"><div class="n">'+i+'</div><div class="t">Sample slot — awaiting video id</div></div>';}).join('')+'</div></div>';
+  '<div class="gal">'+GALLERY.map(function(g){
+   return '<a class="shot"><img class="thumb" src="'+g.poster+'" alt="" loading="lazy">'+
+    '<span class="lbl">'+g.shortTitle+'<em>'+g.secs+'s · watch →</em></span></a>';}).join('')+'</div>'+
+  '<p class="fine">Each link opens a short preview cut from the full export. These three were '+
+  'exported at 60 seconds; videos produced inside a package run around 45.</p></div>';
 }
 function wlHTML(){
  return '<div class="wrap"><div class="wl"><div class="glow"></div><div class="wl-in">'+
@@ -408,8 +419,8 @@ var SECTIONS=[
   old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','Nenhuma superfície do site declara os limites do que é entregue. O comprador descobre depois de pagar — que é exatamente como nascem os chargebacks.')+'</div>'},
   neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:34px 0">'+scopeHTML()+'</div>'}},
  {id:'proof',kicker:'Prova e posicionamento',title:'Slots de prova visual + white-label',
-  desc:'Três slots prontos para os ids de vídeo público — renderizando o espaço reservado em vez de link inventado. E o bloco de white-label, que é o que agência precisa ouvir antes de comprar.',
-  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','Existem 422 vídeos públicos aprovados num portão de qualidade, mas nenhum deles é usado como prova numa página de venda. E a palavra “white-label” não aparece em lugar nenhum do site.')+'</div>'},
+  desc:'Três amostras reais, com pôster próprio, vindas da allow-list <code>PUBLIC_EXAMPLES</code> — as amostras do fundador. A galeria <b>não aceita id avulso</b>: seleciona por slug dentro dessa lista, então não existe caminho no código por onde um <code>/v/[id]</code> (vídeo de cliente) entre aqui. E o bloco de white-label, que é o que agência precisa ouvir antes de comprar.',
+  old:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:20px 0">'+voidHTML('Não existe hoje','As 4 amostras próprias da empresa existem em /examples desde sempre, mas nenhuma página de venda as usa como prova. E a palavra “white-label” não aparece em lugar nenhum do site.')+'</div>'},
   neu:function(m){return '<div class="kag'+(m?' m':'')+'" style="padding:34px 0">'+galleryHTML()+'<div style="height:34px"></div>'+wlHTML()+'</div>'}}];
 
 var host=document.getElementById('sections'), toc=document.getElementById('toc'), stages=[], uid=0;
