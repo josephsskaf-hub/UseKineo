@@ -10,8 +10,11 @@ import {
   AUTOPILOT_PILOT_CREDITS,
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
+  BULK_PACKS,
   PACK_CREDITS,
   TIER_CREDITS,
+  isAmbiguousOneTimeUsdAmount,
+  isBulkPackId,
   type CheckoutCurrency,
   type CheckoutPlanTier,
 } from '@/lib/checkoutPricing'
@@ -228,6 +231,73 @@ async function recordPaymentSuccess(
   console.error('[stripe webhook] payment_success insert error:', error.code, error.message)
 }
 
+// KINEO-BULK-2026-07-27 — evento de compra de atacado, com nome próprio.
+//
+// POR QUE UM EVENTO NOVO, se `payment_success` já grava esta sessão: porque
+// `payment_success` é o balde de TODA receita, e a única forma de tirar atacado
+// de lá é filtrar `metadata->>'pack'` linha a linha. O atacado é o primeiro canal
+// de receita desenhado desta empresa — ele precisa de um par contável
+// (`bulk_checkout_started` → `bulk_purchase_completed`) para que a taxa de
+// conversão exista sem ninguém reconstruir coorte na mão.
+//
+// Ambos são SERVER_ONLY (app/api/events/route.ts): um burst forjado no sink do
+// browser inflaria o topo do funil e faria a conversão mentir para baixo — o
+// mesmo estrago que já aconteceu com viral_onboarding_viewed (9,7x) e
+// generate_arrived_server (2,7x).
+//
+// Idempotente pelo mesmo desenho de recordPaymentSuccess: o id da linha é
+// derivado do id da sessão Stripe, então uma retentativa colide em 23505 em vez
+// de inflar a contagem de vendas.
+async function recordBulkPurchase(
+  supabase: AdminClient,
+  args: {
+    userId: string
+    session: Stripe.Checkout.Session
+    videos: number
+    credits: number
+    sku: string
+  },
+): Promise<void> {
+  try {
+    const { session } = args
+    const eventHex = createHash('sha256')
+      .update(`bulk_purchase_completed:${session.id}`)
+      .digest('hex')
+      .slice(0, 32)
+    const row = {
+      id: `${eventHex.slice(0, 8)}-${eventHex.slice(8, 12)}-${eventHex.slice(12, 16)}-${eventHex.slice(16, 20)}-${eventHex.slice(20)}`,
+      name: 'bulk_purchase_completed',
+      user_id: args.userId,
+      path: '/api/stripe/webhook',
+      metadata: {
+        source: 'stripe_webhook',
+        sku: args.sku,
+        bulk_videos: args.videos,
+        credits_granted: args.credits,
+        stripe_session_id: session.id,
+        amount_total: session.amount_total ?? 0,
+        currency: session.currency ?? 'usd',
+      },
+    }
+
+    const { error } = await supabase.from('events').insert(row)
+    if (!error || error.code === '23505') return
+
+    // Usuário apagado no auth não pode custar o evento de receita — mesma
+    // recuperação que payment_success faz.
+    if (error.code === '23503') {
+      const { error: anonymousError } = await supabase.from('events').insert({ ...row, user_id: null })
+      if (!anonymousError || anonymousError.code === '23505') return
+      console.error('[stripe webhook] bulk_purchase_completed fallback insert error:', anonymousError.code, anonymousError.message)
+      return
+    }
+    console.error('[stripe webhook] bulk_purchase_completed insert error:', error.code, error.message)
+  } catch (err) {
+    // Telemetria nunca derruba uma concessão de crédito já confirmada.
+    console.error('[stripe webhook] bulk_purchase_completed threw:', err)
+  }
+}
+
 // KINEO-SPRINT-EVENTS-2026-07-15 — payment_success server-side tracking is
 // ALREADY handled by recordPaymentSuccess() above (called at the top of the
 // shared Checkout fulfillment case, covering immediate and delayed payment,
@@ -373,10 +443,38 @@ export async function POST(req: NextRequest) {
           // dia virar pagamento único, sem esta guarda um comprador de plano anual
           // de $99 sairia daqui com plan='autopilot_pilot'.
           const packMeta = (session.metadata?.pack ?? '').trim()
+
+          // KINEO-BULK-2026-07-27 — os pacotes de atacado colidem em VALOR com o
+          // piloto: bulk10 e autopilot_pilot custam os dois 9900 em USD (e
+          // bulk50 empata com o Starter anual em 37900). O fallback por valor
+          // deste bloco não consegue desempatar, e errar aqui significa entregar
+          // um plano Autopilot de $299/mês para quem comprou 10 vídeos.
+          //
+          // Por isso o fallback do piloto agora exige, além de não haver
+          // metadata.pack, que o valor NÃO esteja na lista de valores ambíguos
+          // (lib/checkoutPricing.ts::AMBIGUOUS_ONE_TIME_USD_AMOUNTS, cuja
+          // completude é checada por checkPricingInvariants). Uma sessão de $99
+          // sem metadata deixa de ser adivinhada e passa a ser recusada com log
+          // — dá para consertar à mão em minutos, ao contrário de uma concessão
+          // errada, que ninguém descobre.
+          const amountIsAmbiguous = isAmbiguousOneTimeUsdAmount(amount, session.currency)
           const isAutopilotPilot =
             packMeta === 'autopilot_pilot' ||
             session.metadata?.plan_grant === AUTOPILOT_PILOT_PLAN ||
-            (packMeta === '' && isAutopilotPilotAmount(amount, session.currency))
+            (packMeta === '' && !amountIsAmbiguous && isAutopilotPilotAmount(amount, session.currency))
+
+          // Atacado: reconhecido SÓ por metadata.pack exata. Não há e não pode
+          // haver fallback por valor para estes quatro SKUs.
+          const bulkPack = isBulkPackId(packMeta) ? BULK_PACKS[packMeta] : null
+
+          if (packMeta === '' && amountIsAmbiguous) {
+            console.error(
+              '[stripe webhook] AMBIGUOUS one-time amount with no metadata.pack — refusing to guess:',
+              amount, session.currency, session.id,
+              '(bulk pack vs autopilot pilot vs annual plan share this amount; grant it by hand)',
+            )
+            break
+          }
 
           let creditsToAdd = metaCredits > 0 ? metaCredits : 0
           if (creditsToAdd === 0) {
@@ -398,6 +496,11 @@ export async function POST(req: NextRequest) {
             // valor que o checkout pode cobrar por este SKU tem branch, nas TRÊS
             // moedas, e nenhum deles colide com outro SKU na mesma moeda.
             else if (isAutopilotPilot) creditsToAdd = AUTOPILOT_PILOT_CREDITS
+            // KINEO-BULK-2026-07-27 — sessão de atacado que manteve
+            // metadata.pack mas perdeu metadata.pack_credits. Derivar do id do
+            // SKU é seguro (não depende do valor) e evita o bug do $2.90:
+            // cartão cobrado, zero creditado.
+            else if (bulkPack) creditsToAdd = bulkPack.credits
           }
 
           if (creditsToAdd === 0) {
@@ -493,6 +596,23 @@ export async function POST(req: NextRequest) {
             console.log(`[stripe webhook] +${creditsToAdd} credits → user ${userId} (now ${next})`)
             if (isAutopilotPilot) {
               console.log(`[stripe webhook] autopilot_pilot granted → user ${userId}, expires in ${AUTOPILOT_PILOT_DAYS}d`)
+            }
+            // KINEO-BULK-2026-07-27 — o momento do dinheiro, com nome próprio.
+            // `payment_success` já registra esta sessão (com pack e amount_total),
+            // mas contar atacado a partir dele exige filtrar metadata. Este evento
+            // fecha o funil bulk_checkout_started → bulk_purchase_completed sem
+            // ninguém precisar reconstruir a coorte na mão. Escrito DEPOIS do
+            // grant confirmado: um evento de compra que não corresponde a crédito
+            // concedido é pior que evento nenhum.
+            if (bulkPack) {
+              await recordBulkPurchase(supabase, {
+                userId,
+                session,
+                videos: bulkPack.videos,
+                credits: creditsToAdd,
+                sku: packMeta,
+              })
+              console.log(`[stripe webhook] bulk pack ${packMeta}: ${bulkPack.videos} videos → user ${userId}`)
             }
           }
           await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
