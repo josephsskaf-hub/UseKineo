@@ -66,6 +66,51 @@ Formato: data · decisão · motivo · consequência prática.
 
 ---
 
+## 2026-07-27 — REPOSICIONAMENTO: vender vídeo em atacado, não ferramenta no varejo
+
+**Decisão do fundador.** Parar de vender assinatura de ferramenta de um em um e passar a vender **pacotes de vídeo em atacado** para clientes maiores, que compram 10–50 de uma vez. *"Não ficar pingando de um em um."*
+
+**Motivo.** 713 cadastros produziram 4 compras avulsas e ZERO assinaturas recorrentes em ~3 meses. O ICP que paga quer serviço, não ferramenta — e é o único sem porta de entrada no site.
+
+**Escada de preço APROVADA (27/07):**
+
+| Pacote | Preço | Por vídeo | Custo real | Margem |
+|---|---:|---:|---:|---:|
+| 10 vídeos | **$99** | $9,90 | $0,50 | ~96% |
+| 20 vídeos | **$179** | $8,95 | $1,00 | ~96% |
+| 30 vídeos | **$249** | $8,30 | $1,50 | ~96% |
+| 50 vídeos | **$379** | $7,58 | $2,50 | ~96% |
+
+**Base do custo (FATO CONFIRMADO):** `lib/credits/engineCost.ts:32-35` declara que o Fast custa **~$0,02–0,05 para servir**. Margem já líquida de Stripe.
+
+**Ancoragem (de `lib/comparisons.ts`):** 50 vídeos custam $4.000 na Tasty Edits e $1.547 na VidChops. Kineo a $379 é **4× a 10× mais barato**.
+
+**Escopo dos pacotes:** vídeo **Fast** (B-roll Pexels + TTS) — o único engine VALIDADO EM PRODUÇÃO. `cinematic_ai` (20 créditos) e `avatar` (110 créditos, custo VEED ~$9,60/vídeo) **não** estão nesta escada; venderiam com economia ~60× pior e exigem tabela própria.
+
+**Não canibaliza o Autopilot de $299:** o pacote entrega os vídeos; o Autopilot entrega **e publica sozinho no canal**. Vende continuidade, não volume.
+
+**Consequência.** A restrição do negócio não é custo nem preço — é **achar quem compra**. Esforço de Growth vai para descoberta de canal, não para otimizar margem.
+
+---
+
+## 2026-07-27 — Outreach B2B liberado; e-mail de ciclo de vida segue pausado
+
+**Decisão.** São duas coisas diferentes e têm gates opostos:
+- **Ciclo de vida para a base de 713 cadastros:** PAUSADO. `KINEO_LIFECYCLE_EMAILS_ENABLED` fica desligado. *"Não quero mandar mais mensagem nenhuma por ora."*
+- **Prospecção B2B nova (agências, YouTubers, empresas):** LIBERADA. O fundador quer que Growth encontre e contate.
+
+**Limite real de capacidade, registrado.** Não existe ferramenta de envio nesta configuração — o conector de e-mail cria rascunho, não dispara. E e-mail frio em volume pelo `usekineo.com` queimaria a reputação do domínio que serve a recuperação de receita. Growth entrega tudo **até** o envio; o canal de disparo é decisão pendente.
+
+---
+
+## 2026-07-27 — Autorização permanente de commit, push e deploy
+
+**Decisão.** *"Aqui você aprova tudo, deploy, commits, push, tudo é por sua conta, você não manda mensagem pra mim pra essas coisas."*
+
+**Consequência.** O CEO commita, faz push e deploya sem consultar. Continua valendo: nada que envie comunicação externa, nada que mude preço sem aprovação, nada que escreva em banco sem autorização.
+
+---
+
 ## PENDENTE DE DECISÃO — não execute sem aprovação
 
 | # | Decisão necessária | Bloqueia |
