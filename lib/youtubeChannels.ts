@@ -10,7 +10,7 @@
 //   profiles.youtube_tokens exatamente como hoje, então todo caminho que já
 //   está em produção (upload manual, status, analytics) segue funcionando sem
 //   depender da tabela nova. Este módulo REUSA o OAuth de lá
-//   (refreshAccessToken / fetchChannelStats) — nada de reimplementar OAuth.
+//   (refreshAccessToken / fetchAllChannels) — nada de reimplementar OAuth.
 //
 // Escreve sempre via service_role: tokens são segredo e o cron não tem sessão
 // de usuário. Mesma decisão de lib/credits/renderIntent.ts.
@@ -18,9 +18,10 @@
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   refreshAccessToken,
-  fetchChannelStats,
+  fetchAllChannels,
   YouTubeNoChannelError,
   YOUTUBE_SCOPES,
+  type ChannelStats,
   type YouTubeTokens,
 } from '@/lib/youtube'
 
@@ -204,7 +205,7 @@ export type UpsertChannelResult =
 
 /**
  * Registra/atualiza o canal logo depois do OAuth. Busca o id REAL do canal na
- * YouTube Data API (fetchChannelStats) para que a unique
+ * YouTube Data API (fetchAllChannels) para que a unique
  * (user_id, provider, external_channel_id) separe canais de verdade — sem isso
  * um segundo canal do mesmo usuário sobrescreveria o primeiro.
  *
@@ -214,36 +215,22 @@ export type UpsertChannelResult =
  * recuperável na próxima chamada. Já `no_channel` é definitivo e NÃO grava
  * nada: uma linha sem canal do outro lado nunca publicaria.
  */
-export async function upsertChannelFromTokens(args: {
-  userId: string
-  tokens: YouTubeTokens
-}): Promise<UpsertChannelResult> {
-  const db = channelsAdmin()
-  if (!db) {
-    const error = 'service-role env missing — channel store disabled'
-    console.error('[yt-channels] upsert aborted:', error)
-    return { ok: false, reason: 'store_unavailable', error }
-  }
-
-  let externalId: string | null = null
-  let title: string | null = null
-  let thumbnailUrl: string | null = null
-  try {
-    const stats = await fetchChannelStats(args.tokens.access_token)
-    externalId = stats.channelId ?? null
-    title = stats.channelTitle ?? null
-    thumbnailUrl = stats.thumbnailUrl ?? null
-  } catch (e) {
-    // A conta Google existe mas não tem canal: gravar aqui produziria um
-    // "canal conectado" que nunca aceita upload. É um beco sem saída que só o
-    // usuário resolve (escolhendo outra conta), então ele TEM que saber.
-    if (e instanceof YouTubeNoChannelError || (e as { name?: string })?.name === 'YouTubeNoChannelError') {
-      console.error('[yt-channels] google account has no YouTube channel — refusing to store')
-      return { ok: false, reason: 'no_channel', error: 'Google account has no YouTube channel' }
-    }
-    console.warn('[yt-channels] channel stats lookup failed, storing without external id:',
-      e instanceof Error ? e.message : String(e))
-  }
+/**
+ * Grava UMA linha de canal. Extraído para que registrar 1 e registrar N usem
+ * exatamente o mesmo caminho de escrita — foi a divergência entre "o que o
+ * OAuth grava" e "o que o Autopilot lê" que manteve `channels` em 0 por meses.
+ *
+ * `stats` null = falha TRANSITÓRIA de lookup: grava com external_channel_id
+ * NULL (o índice coalesced da migration 021 mantém uma única linha legada por
+ * usuário) porque o token é válido e o canal é recuperável na próxima chamada.
+ */
+async function persistChannelRow(
+  db: SupabaseClient,
+  args: { userId: string; tokens: YouTubeTokens; stats: ChannelStats | null },
+): Promise<UpsertChannelResult> {
+  const externalId = args.stats?.channelId || null
+  const title = args.stats?.channelTitle ?? null
+  const thumbnailUrl = args.stats?.thumbnailUrl ?? null
 
   const payload = {
     user_id: args.userId,
@@ -297,6 +284,123 @@ export async function upsertChannelFromTokens(args: {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[yt-channels] upsert threw:', msg)
     return { ok: false, reason: 'write_failed', error: msg }
+  }
+}
+
+// KINEO-YTCHANNEL-PICK-2026-07-27 — resultado do registro de TODOS os canais.
+export interface StoredChannel {
+  channelId: string
+  externalChannelId: string | null
+  title: string | null
+  subscriberCount: number
+}
+
+export type UpsertAllChannelsResult =
+  | {
+      ok: true
+      /** Toda linha gravada, em ordem de inscritos (desc). */
+      channels: StoredChannel[]
+      /** Quantos canais o TOKEN alcançou (pode ser > channels.length se algum falhou). */
+      reachedCount: number
+    }
+  | { ok: false; reason: 'store_unavailable' | 'no_channel' | 'write_failed'; error: string }
+
+/**
+ * KINEO-YTCHANNEL-PICK-2026-07-27 — registra TODOS os canais que o token
+ * alcança, não só `items[0]`.
+ *
+ * O que isto conserta: `fetchChannelStats` lia o primeiro item e descartava o
+ * resto, então uma conta com dois canais tinha um deles escolhido em silêncio.
+ * Reproduzido em produção em 27/07/2026 com a conta do fundador.
+ *
+ * Uma falha de escrita em UM canal não derruba os outros: registrar 2 de 3 é
+ * melhor que 0 de 3, e o usuário ainda escolhe entre os que entraram. Só devolve
+ * `write_failed` quando NENHUM canal foi gravado — aí não há o que escolher e o
+ * callback precisa dizer isso em vez de anunciar "conectado".
+ */
+export async function upsertAllChannelsFromTokens(args: {
+  userId: string
+  tokens: YouTubeTokens
+}): Promise<UpsertAllChannelsResult> {
+  const db = channelsAdmin()
+  if (!db) {
+    const error = 'service-role env missing — channel store disabled'
+    console.error('[yt-channels] upsert aborted:', error)
+    return { ok: false, reason: 'store_unavailable', error }
+  }
+
+  let reached: ChannelStats[]
+  try {
+    reached = await fetchAllChannels(args.tokens.access_token)
+  } catch (e) {
+    // A conta Google existe mas não tem canal: gravar aqui produziria um
+    // "canal conectado" que nunca aceita upload. É um beco sem saída que só o
+    // usuário resolve (escolhendo outra conta), então ele TEM que saber.
+    if (e instanceof YouTubeNoChannelError || (e as { name?: string })?.name === 'YouTubeNoChannelError') {
+      console.error('[yt-channels] google account has no YouTube channel — refusing to store')
+      return { ok: false, reason: 'no_channel', error: 'Google account has no YouTube channel' }
+    }
+    // Falha TRANSITÓRIA de lookup (rede, cota). O token é bom: grava a linha
+    // legada sem external id para não perder a conexão, exatamente como antes.
+    const msg = e instanceof Error ? e.message : String(e)
+    console.warn('[yt-channels] channel list failed, storing without external id:', msg)
+    const single = await persistChannelRow(db, { userId: args.userId, tokens: args.tokens, stats: null })
+    if (!single.ok) return single
+    return {
+      ok: true,
+      reachedCount: 0,
+      channels: [{
+        channelId: single.channelId,
+        externalChannelId: single.externalChannelId,
+        title: single.title,
+        subscriberCount: 0,
+      }],
+    }
+  }
+
+  const written: StoredChannel[] = []
+  const failures: string[] = []
+  for (const stats of reached) {
+    const row = await persistChannelRow(db, { userId: args.userId, tokens: args.tokens, stats })
+    if (row.ok) {
+      written.push({
+        channelId: row.channelId,
+        externalChannelId: row.externalChannelId,
+        title: row.title,
+        subscriberCount: stats.subscriberCount,
+      })
+    } else {
+      failures.push(`${stats.channelTitle}: ${row.error}`)
+    }
+  }
+
+  if (written.length === 0) {
+    const error = failures.join(' | ') || 'no channel row written'
+    console.error('[yt-channels] no channel stored out of', reached.length, '—', error)
+    return { ok: false, reason: 'write_failed', error }
+  }
+  if (failures.length > 0) {
+    console.warn(`[yt-channels] stored ${written.length}/${reached.length} channels; failed: ${failures.join(' | ')}`)
+  }
+  return { ok: true, channels: written, reachedCount: reached.length }
+}
+
+/**
+ * Registra o canal primário. Contrato antigo preservado para qualquer chamador
+ * existente; o callback do OAuth usa upsertAllChannelsFromTokens.
+ */
+export async function upsertChannelFromTokens(args: {
+  userId: string
+  tokens: YouTubeTokens
+}): Promise<UpsertChannelResult> {
+  const all = await upsertAllChannelsFromTokens(args)
+  if (!all.ok) return all
+  const first = all.channels[0]
+  return {
+    ok: true,
+    channelId: first.channelId,
+    externalChannelId: first.externalChannelId,
+    title: first.title,
   }
 }
 

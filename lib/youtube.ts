@@ -390,27 +390,75 @@ export interface VideoAnalytic {
   thumbnailUrl: string | null
 }
 
-export async function fetchChannelStats(accessToken: string): Promise<ChannelStats> {
-  const res = await fetch(
-    `${YOUTUBE_API_BASE}/channels?part=snippet,statistics&mine=true`,
-    { headers: { Authorization: `Bearer ${accessToken}` } },
-  )
-  if (!res.ok) throw new Error(`Channel fetch failed: ${res.status}`)
-  const data = await res.json()
-  const ch = data.items?.[0]
-  // KINEO-YTCONNECT-2026-07-26 — erro NOMEADO. Uma conta Google sem canal é um
-  // desfecho de USUÁRIO (escolheu a conta errada no seletor), não uma falha de
-  // rede: quem chama precisa distinguir os dois para dizer ao cliente o que
-  // fazer em vez de mostrar "algo deu errado".
-  if (!ch) throw new YouTubeNoChannelError()
+interface RawChannelItem {
+  id?: string
+  snippet?: { title?: string; thumbnails?: { default?: { url?: string } } }
+  statistics?: { subscriberCount?: string; viewCount?: string; videoCount?: string }
+}
+
+function toChannelStats(ch: RawChannelItem): ChannelStats {
   return {
-    channelId: ch.id,
+    channelId: ch.id ?? '',
     channelTitle: ch.snippet?.title ?? 'My Channel',
     subscriberCount: Number(ch.statistics?.subscriberCount ?? 0),
     viewCount: Number(ch.statistics?.viewCount ?? 0),
     videoCount: Number(ch.statistics?.videoCount ?? 0),
     thumbnailUrl: ch.snippet?.thumbnails?.default?.url ?? null,
   }
+}
+
+/**
+ * KINEO-YTCHANNEL-PICK-2026-07-27 — TODOS os canais que este token alcança.
+ *
+ * POR QUE ISTO EXISTE (bug reproduzido em produção em 27/07/2026):
+ * `channels?mine=true` devolve `items` como ARRAY, e o código lia `items[0]` e
+ * jogava o resto fora. O fundador tem dois canais no mesmo Google — "Joseph
+ * Skaf" (0 inscritos) e "Curiosityvaultlab" (12.600). Ele quis conectar o
+ * segundo; o sistema conectou o primeiro e não disse qual tinha escolhido. Num
+ * produto que publica Short PÚBLICO diário no canal do cliente, isso é a pior
+ * falha possível, e atinge qualquer conta com mais de um canal.
+ *
+ * ⚠️ LIMITE REAL DA API, que o desenho de cima TEM de respeitar: um token de
+ * usuário comum quase sempre alcança UM canal só — quem escolhe é a tela de
+ * consentimento do Google, não a gente, e não existe parâmetro de "publicar no
+ * canal X" no videos.insert (onBehalfOfContentOwner é só para parceiro de CMS).
+ * Então enumerar resolve o caso de N canais, mas o caso comum continua sendo
+ * "o Google já decidiu". Por isso a UI precisa das DUAS coisas: escolher quando
+ * há escolha, e dizer com todas as letras qual canal foi conectado quando não há
+ * — com um caminho de "não é este" que reabre o seletor de contas do Google
+ * (/api/youtube/auth?add=1, que manda prompt=select_account).
+ *
+ * Ordena por inscritos (desc) só para a lista ficar legível; a escolha é sempre
+ * do usuário, nunca deste sort.
+ */
+export async function fetchAllChannels(accessToken: string): Promise<ChannelStats[]> {
+  const res = await fetch(
+    `${YOUTUBE_API_BASE}/channels?part=snippet,statistics&mine=true&maxResults=50`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  )
+  if (!res.ok) throw new Error(`Channel fetch failed: ${res.status}`)
+  const data = await res.json()
+  const items = (data.items ?? []) as RawChannelItem[]
+  // KINEO-YTCONNECT-2026-07-26 — erro NOMEADO. Uma conta Google sem canal é um
+  // desfecho de USUÁRIO (escolheu a conta errada no seletor), não uma falha de
+  // rede: quem chama precisa distinguir os dois para dizer ao cliente o que
+  // fazer em vez de mostrar "algo deu errado".
+  if (items.length === 0) throw new YouTubeNoChannelError()
+  return items
+    .filter((ch) => !!ch.id)
+    .map(toChannelStats)
+    .sort((a, b) => b.subscriberCount - a.subscriberCount)
+}
+
+/**
+ * O primeiro canal alcançado pelo token. Mantido byte a byte no contrato antigo
+ * (mesmo retorno, mesmo YouTubeNoChannelError) porque analytics e o status
+ * legado dependem dele. Quem REGISTRA canal deve usar fetchAllChannels.
+ */
+export async function fetchChannelStats(accessToken: string): Promise<ChannelStats> {
+  const all = await fetchAllChannels(accessToken)
+  if (all.length === 0) throw new YouTubeNoChannelError()
+  return all[0]
 }
 
 export async function fetchRecentVideoAnalytics(

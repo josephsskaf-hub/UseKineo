@@ -28,12 +28,29 @@ const PAID_PLANS = new Set([
   'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
 ])
 
+type YouTubePrivacy = 'public' | 'private' | 'unlisted'
+
+// KINEO-YTCHANNEL-PICK-2026-07-27 — a visibilidade vinha do corpo do request e
+// era usada CRUA: `body.privacyStatus ?? 'public'`. O tipo declarava três
+// valores, mas TypeScript não existe em runtime — qualquer string chegava
+// inteira à API do YouTube. Um valor inválido faz o Google recusar o upload
+// DEPOIS de o vídeo já ter sido renderizado e o crédito debitado.
+//
+// Normaliza para um dos três, e o default explícito continua 'public': esta
+// rota serve o botão manual de /generate, onde a pessoa acabou de assistir ao
+// vídeo. Quem publica sem ninguém olhar é o cron do Autopilot, e lá o padrão
+// escolhido na criação da agenda é 'unlisted'.
+function normalizePrivacy(raw: unknown): YouTubePrivacy {
+  const v = (raw ?? '').toString().trim().toLowerCase()
+  return v === 'private' || v === 'unlisted' ? v : 'public'
+}
+
 interface UploadBody {
   videoUrl: string
   title?: string
   description?: string
   tags?: string[]
-  privacyStatus?: 'public' | 'private' | 'unlisted'
+  privacyStatus?: YouTubePrivacy
   // KINEO-AUTOPILOT — opcional. Ausente = comportamento antigo (canal único em
   // profiles.youtube_tokens). Presente = publica no canal indicado.
   channelId?: string
@@ -114,14 +131,19 @@ export async function POST(req: NextRequest) {
     }
     const description = buildBrandedYouTubeDescription(body.description ?? '', { isFreePlan })
 
-    console.log(`[youtube/upload] starting upload for user ${user.id.slice(0, 8)} url=${body.videoUrl.slice(0, 60)} branded=${isFreePlan}`)
+    const privacyStatus = normalizePrivacy(body.privacyStatus)
+
+    // A visibilidade entra no log porque "publicou onde e como" é a pergunta
+    // que se faz DEPOIS de um vídeo aparecer no canal errado — e não dava para
+    // responder olhando log nenhum.
+    console.log(`[youtube/upload] starting upload for user ${user.id.slice(0, 8)} url=${body.videoUrl.slice(0, 60)} branded=${isFreePlan} privacy=${privacyStatus}`)
 
     const result = await uploadVideoToYouTube(accessToken, {
       videoUrl: body.videoUrl,
       title: body.title ?? 'My Short',
       description,
       tags: body.tags ?? [],
-      privacyStatus: body.privacyStatus ?? 'public',
+      privacyStatus,
       madeForKids: false,
     })
 

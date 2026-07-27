@@ -989,8 +989,16 @@ export default function GenerateClient({
   // OAuth, o segundo grant também falhava, e ele concluía que o produto não
   // funciona. null = ainda checando · false = de fato desconectado ·
   // 'error' = não deu para saber.
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — os mesmos três valores que
+  // app/api/youtube/upload/route.ts valida e que a coluna privacy_status aceita.
+  type YouTubePrivacy = 'public' | 'unlisted' | 'private'
   const [ytConnected, setYtConnected] = useState<boolean | null | 'error'>(null)
   const [ytUploading, setYtUploading] = useState(false)
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — visibilidade escolhida pelo usuario.
+  // Padrao 'public': este upload e um clique deliberado sobre um video que a
+  // pessoa acabou de assistir, entao mudar o padrao seria regressao. O bug era
+  // nao existir escolha nenhuma.
+  const [ytPrivacy, setYtPrivacy] = useState<YouTubePrivacy>('public')
   const [ytResult, setYtResult] = useState<{ videoId: string; youtubeUrl: string } | null>(null)
   const [ytError, setYtError] = useState<string | null>(null)
 
@@ -4685,7 +4693,7 @@ export default function GenerateClient({
           title: analysis?.title ?? 'My Short',
           description: analysis?.youtubeDescription ?? '',
           tags: analysis?.hashtags?.map((h) => h.replace(/^#/, '')) ?? [],
-          privacyStatus: 'public',
+          privacyStatus: ytPrivacy,
         }),
       })
       const data = await res.json()
@@ -6864,20 +6872,52 @@ export default function GenerateClient({
                   </a>
                 ) : (
                   // Connected (or still checking) — show upload button
-                  <button
-                    type="button"
-                    onClick={handleYouTubeUpload}
-                    disabled={ytUploading || ytConnected === null}
-                    className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-bold"
-                    style={{
-                      background: ytUploading ? 'rgba(255,0,0,.04)' : 'rgba(255,0,0,.08)',
-                      border: '1px solid rgba(255,0,0,.28)',
-                      color: ytUploading ? '#ff888888' : '#ff4444',
-                      cursor: ytUploading ? 'not-allowed' : 'pointer',
-                    }}
-                  >
-                    {ytUploading ? '⏳ Uploading to YouTube…' : <><span>▶</span> Post to YouTube</>}
-                  </button>
+                  <>
+                    {/* KINEO-YTCHANNEL-PICK-2026-07-27 — a visibilidade era
+                        'public' cravada no corpo do fetch, sem NENHUM caminho na
+                        UI para outra coisa, apesar de a rota já aceitar os três
+                        valores. Aqui o padrão CONTINUA public de propósito: ao
+                        contrário do Autopilot, este upload é um clique
+                        deliberado sobre um vídeo que a pessoa acabou de assistir
+                        — trocar o padrão seria uma regressão silenciosa. O que
+                        faltava era a escolha existir. */}
+                    <label htmlFor="yt-privacy" className="sr-only">
+                      YouTube visibility
+                    </label>
+                    <select
+                      id="yt-privacy"
+                      value={ytPrivacy}
+                      onChange={(e) => setYtPrivacy(e.target.value as YouTubePrivacy)}
+                      disabled={ytUploading}
+                      className="w-full rounded-xl py-2 px-3 text-xs font-bold mb-2"
+                      style={{
+                        background: 'rgba(255,255,255,.04)',
+                        border: '1px solid rgba(255,255,255,.12)',
+                        color: '#cbd5e1',
+                        cursor: ytUploading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <option value="public">Public — anyone can find it</option>
+                      <option value="unlisted">Unlisted — only people with the link</option>
+                      <option value="private">Private — only you</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleYouTubeUpload}
+                      disabled={ytUploading || ytConnected === null}
+                      className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-bold"
+                      style={{
+                        background: ytUploading ? 'rgba(255,0,0,.04)' : 'rgba(255,0,0,.08)',
+                        border: '1px solid rgba(255,0,0,.28)',
+                        color: ytUploading ? '#ff888888' : '#ff4444',
+                        cursor: ytUploading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {ytUploading
+                        ? '⏳ Uploading to YouTube…'
+                        : <><span>▶</span> Post to YouTube{ytPrivacy === 'public' ? '' : ` (${ytPrivacy})`}</>}
+                    </button>
+                  </>
                 )}
                 {ytError && (
                   <p className="text-xs text-center mt-1" style={{ color: '#f87171' }}>{ytError}</p>

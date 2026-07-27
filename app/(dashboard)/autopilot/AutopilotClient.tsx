@@ -65,7 +65,7 @@ function track(name: string, metadata?: Record<string, unknown>): void {
 // que o servidor grava em /api/youtube/auth e /api/youtube/callback.
 // O nome antigo continua sendo emitido: qualquer painel que já consulte por ele
 // não pode parar de funcionar por causa desta mudança.
-function trackConnectClick(kind: 'connect' | 'reconnect' | 'add', outcomeShown?: string | null): void {
+function trackConnectClick(kind: 'connect' | 'reconnect' | 'add' | 'switch_channel', outcomeShown?: string | null): void {
   if (kind === 'reconnect') track('autopilot_reconnect_clicked')
   else track('autopilot_connect_clicked', { add: kind === 'add' })
   track('youtube_connect_clicked', {
@@ -165,6 +165,11 @@ interface ApiChannel {
   thumbnailUrl: string | null
   connectedAt: string | null
   needsReconnect: boolean
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — o id UC… do YouTube. A rota já mandava
+  // (publicChannel em app/api/autopilot/schedules/route.ts); só o tipo do
+  // cliente ignorava. É o que permite linkar para o canal REAL: dois canais da
+  // mesma pessoa podem ter títulos parecidos, o id nunca colide.
+  externalChannelId: string | null
 }
 
 interface ApiRun {
@@ -327,6 +332,17 @@ function RunStatusBadge({ status }: { status: string }) {
   )
 }
 
+// KINEO-YTCHANNEL-PICK-2026-07-27 — visibilidade em português-de-usuário.
+// `privacy_status` é 'public' | 'unlisted' | 'private'; mostrar o valor cru numa
+// tela que decide se um vídeo aparece ou não para o mundo é pedir para o cliente
+// adivinhar.
+function privacyLabel(raw: string | null | undefined): string {
+  const v = (raw ?? 'public').toLowerCase()
+  if (v === 'unlisted') return 'unlisted'
+  if (v === 'private') return 'private'
+  return 'public'
+}
+
 // ── Estilos compartilhados dos campos ───────────────────────────────────────
 const labelStyle: React.CSSProperties = {
   display: 'block',
@@ -389,6 +405,8 @@ export default function AutopilotClient() {
   // KINEO-YTCONNECT-2026-07-26 — desfecho do OAuth vindo de ?yt= (ver efeito abaixo).
   const [ytOutcome, setYtOutcome] = useState<string | null>(null)
   const [ytChannelTitle, setYtChannelTitle] = useState<string | null>(null)
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — quantos canais o callback registrou (?n=).
+  const [ytChannelCount, setYtChannelCount] = useState(0)
 
   const searchParams = useSearchParams()
   const hourOptions = useMemo(buildHourOptions, [])
@@ -396,6 +414,15 @@ export default function AutopilotClient() {
   // Formulário de criação.
   const [niche, setNiche] = useState<string>(NICHES[0].value)
   const [postHourUtc, setPostHourUtc] = useState<number | null>(null)
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — o canal de DESTINO é escolha explícita, não
+  // `channels[0]`. Era exatamente esse índice zero, aqui e em lib/youtube.ts, que
+  // publicava no canal errado sem dizer nada.
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
+  // Estreia UNLISTED. O pipeline nunca completou de ponta a ponta em produção
+  // (0 canais conectados na história até 27/07/2026), e um primeiro Short
+  // automático que sai errado sai errado EM PÚBLICO, no canal do cliente. O
+  // usuário troca para Public no mesmo formulário, com um clique.
+  const [createPrivacy, setCreatePrivacy] = useState<string>('unlisted')
   // Ajustes da agenda ativa.
   const [editPostsPerDay, setEditPostsPerDay] = useState(1)
   const [editPrivacy, setEditPrivacy] = useState('public')
@@ -433,6 +460,27 @@ export default function AutopilotClient() {
 
   const schedule = data?.schedules?.[0] ?? null
 
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — sem escolha do usuário ainda, o padrão é o
+  // primeiro canal, mas ele fica VISÍVEL e trocável na tela. A diferença com o
+  // comportamento antigo não é o default: é que agora o default é mostrado.
+  // useMemo para a lista vazia ser a MESMA referência entre renders — sem isso
+  // `?? []` cria um array novo a cada render e o efeito abaixo dispara sempre.
+  const channels = useMemo(() => data?.channels ?? [], [data])
+  useEffect(() => {
+    if (channels.length === 0) {
+      if (selectedChannelId !== null) setSelectedChannelId(null)
+      return
+    }
+    // Mantém a escolha do usuário; só reposiciona se o canal escolhido sumiu
+    // (revogado em outra aba, reconexão que trocou a lista).
+    if (!selectedChannelId || !channels.some((c) => c.id === selectedChannelId)) {
+      setSelectedChannelId(channels[0].id)
+    }
+  }, [channels, selectedChannelId])
+
+  const selectedChannel =
+    channels.find((c) => c.id === selectedChannelId) ?? channels[0] ?? null
+
   // Espelha a agenda salva nos campos de ajuste sempre que ela chega/muda.
   useEffect(() => {
     if (!schedule) return
@@ -468,11 +516,18 @@ export default function AutopilotClient() {
     const outcome = YT_OUTCOMES[raw] ? raw : 'failed'
     setYtOutcome(outcome)
     setYtChannelTitle(searchParams.get('ch'))
-    track('youtube_connect_outcome_viewed', { outcome, raw })
+    const rawCount = Number(searchParams.get('n'))
+    const channelCount = Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0
+    setYtChannelCount(channelCount)
+    // `channel_count` no evento é o que responde, com dado e não com palpite,
+    // quão comum é a conta com mais de um canal — e portanto quanto o seletor
+    // realmente vale.
+    track('youtube_connect_outcome_viewed', { outcome, raw, channel_count: channelCount })
     try {
       const url = new URL(window.location.href)
       url.searchParams.delete('yt')
       url.searchParams.delete('ch')
+      url.searchParams.delete('n')
       window.history.replaceState({}, '', `${url.pathname}${url.search}`)
     } catch {
       /* URL/history indisponível — o banner já está em tela, que é o que importa */
@@ -482,19 +537,33 @@ export default function AutopilotClient() {
   // ── Ações ─────────────────────────────────────────────────────────────────
   async function createSchedule() {
     if (busy || postHourUtc === null) return
+    // KINEO-YTCHANNEL-PICK-2026-07-27 — sem canal resolvido não se agenda nada.
+    // Antes ia `data?.channels[0]?.id`, que podia ser undefined e deixava o
+    // servidor escolher — o mesmo "escolhe sozinho e não avisa" de novo.
+    if (!selectedChannel) {
+      setFormError('Pick the channel Autopilot should publish to.')
+      return
+    }
     setBusy(true)
     setFormError(null)
-    track('autopilot_create_submitted', { niche, post_hour_utc: postHourUtc })
+    track('autopilot_create_submitted', {
+      niche,
+      post_hour_utc: postHourUtc,
+      privacy: createPrivacy,
+      channel_count: channels.length,
+      // Descobre, com dado, se as pessoas de fato trocam o canal sugerido.
+      channel_switched: selectedChannel.id !== channels[0]?.id,
+    })
     try {
       const res = await fetch('/api/autopilot/schedules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          channelId: data?.channels[0]?.id,
+          channelId: selectedChannel.id,
           niche,
           postHourUtc,
           postsPerDay: 1,
-          privacyStatus: 'public',
+          privacyStatus: createPrivacy,
         }),
       })
       if (!res.ok) {
@@ -589,9 +658,18 @@ export default function AutopilotClient() {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="font-black text-sm" style={{ color: OUTCOME_STYLE[outcomeCopy.tone].color }}>
-          {ytOutcome === 'connected' && ytChannelTitle
-            ? `${ytChannelTitle} is connected.`
-            : outcomeCopy.title}
+          {/* KINEO-YTCHANNEL-PICK-2026-07-27 — três títulos, não dois.
+              Anunciar "X is connected" quando o token alcançou VÁRIOS canais
+              esconde a escolha que ainda falta fazer, que é o bug original com
+              outra roupa. Com N > 1 o banner pede a escolha em vez de afirmar
+              um resultado. */}
+          {ytOutcome !== 'connected'
+            ? outcomeCopy.title
+            : ytChannelCount > 1
+              ? `${ytChannelCount} channels connected — pick the one to post to.`
+              : ytChannelTitle
+                ? `${ytChannelTitle} is connected.`
+                : outcomeCopy.title}
         </div>
         <button
           type="button"
@@ -604,7 +682,9 @@ export default function AutopilotClient() {
         </button>
       </div>
       <p className="text-xs mt-2 mb-0" style={{ color: MUTED, lineHeight: 1.65 }}>
-        {outcomeCopy.body}
+        {ytOutcome === 'connected' && ytChannelCount > 1
+          ? 'Your Google account owns more than one YouTube channel, so Kineo connected all of them instead of guessing. Choose the destination below before turning Autopilot on.'
+          : outcomeCopy.body}
       </p>
       {outcomeCopy.retry ? (
         // `add=1` de propósito: acrescenta select_account. Sem isso o Google
@@ -745,7 +825,96 @@ export default function AutopilotClient() {
     )
   }
 
-  const channel = data.channels[0]
+  const channel = selectedChannel ?? data.channels[0]
+
+  // ── KINEO-YTCHANNEL-PICK-2026-07-27 — O DESTINO, SEM AMBIGUIDADE ──────────
+  // O rótulo antigo era "Posting to" + título do canal, e o fundador leu isso
+  // como o nome da CONTA Google, não como o canal de destino — enquanto o
+  // sistema tinha silenciosamente escolhido o canal pessoal (0 inscritos) em vez
+  // do canal de verdade (12.600). Três mudanças, todas para tirar a ambiguidade:
+  //   1. a frase diz o que vai ACONTECER ("publish a public Short every day to"),
+  //      não uma preposição solta;
+  //   2. o título vira LINK para o canal real no YouTube — clicar resolve
+  //      qualquer dúvida em um segundo, e o id UC… nunca colide entre dois
+  //      canais de títulos parecidos;
+  //   3. existe sempre uma saída "not this channel?", porque quem escolhe o
+  //      canal é a tela de consentimento do Google e a única forma de trocar é
+  //      voltar lá com prompt=select_account (/api/youtube/auth?add=1).
+  const channelDestination = (
+    <div className="rounded-2xl p-4 mb-4" style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)' }}>
+      {channels.length > 1 ? (
+        <>
+          <label htmlFor="ap-channel" style={labelStyle}>
+            Which channel should Autopilot publish to?
+          </label>
+          <select
+            id="ap-channel"
+            value={channel?.id ?? ''}
+            onChange={(e) => {
+              setSelectedChannelId(e.target.value)
+              track('autopilot_channel_selected', { channel_count: channels.length })
+            }}
+            style={fieldStyle}
+          >
+            {channels.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title ?? 'Untitled channel'}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] mt-2" style={{ color: MUTED, lineHeight: 1.6 }}>
+            You have {channels.length} channels connected. Autopilot posts to the one selected here.
+          </p>
+        </>
+      ) : null}
+
+      <div className="flex items-center gap-3" style={{ marginTop: channels.length > 1 ? 14 : 0 }}>
+        {channel?.thumbnailUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={channel.thumbnailUrl}
+            alt=""
+            width={44}
+            height={44}
+            style={{ borderRadius: 999, flexShrink: 0 }}
+          />
+        ) : null}
+        <div style={{ minWidth: 0 }}>
+          <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#2997ff' }}>
+            Autopilot will publish to this YouTube channel
+          </div>
+          {channel?.externalChannelId ? (
+            <a
+              href={`https://www.youtube.com/channel/${channel.externalChannelId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => track('autopilot_channel_verify_clicked', {})}
+              className="font-black text-sm"
+              style={{ color: TEXT, textDecoration: 'underline', textUnderlineOffset: 3 }}
+            >
+              {channel.title ?? 'Your YouTube channel'} ↗
+            </a>
+          ) : (
+            <div className="font-black text-sm" style={{ color: TEXT }}>
+              {channel?.title ?? 'Your YouTube channel'}
+            </div>
+          )}
+          <div className="text-[11px] mt-1" style={{ color: MUTED }}>
+            Open it to make sure it is the right one.
+          </div>
+        </div>
+      </div>
+
+      <a
+        href="/api/youtube/auth?add=1"
+        onClick={() => trackConnectClick('switch_channel', ytOutcome)}
+        className="inline-block text-[11px] font-black mt-3"
+        style={{ color: MUTED, textDecoration: 'underline' }}
+      >
+        Not this channel? Connect a different one →
+      </a>
+    </div>
+  )
 
   // ── ESTADO 3: canal conectado, sem agenda → o formulário (2 campos) ──────
   if (!schedule) {
@@ -777,28 +946,13 @@ export default function AutopilotClient() {
           </div>
         ) : null}
 
-        <div className="rounded-2xl p-6" style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)' }}>
-          <div className="flex items-center gap-3 mb-6">
-            {channel.thumbnailUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={channel.thumbnailUrl}
-                alt=""
-                width={40}
-                height={40}
-                style={{ borderRadius: 999, flexShrink: 0 }}
-              />
-            ) : null}
-            <div style={{ minWidth: 0 }}>
-              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: MUTED }}>
-                Posting to
-              </div>
-              <div className="font-black text-sm" style={{ color: TEXT }}>
-                {channel.title ?? 'Your YouTube channel'}
-              </div>
-            </div>
-          </div>
+        {/* KINEO-YTCHANNEL-PICK-2026-07-27 — o destino vem ANTES do formulário e
+            fora do card: quem está prestes a ligar publicação diária no canal de
+            outra pessoa precisa ver o canal primeiro, não depois de escolher o
+            nicho. Substitui o antigo "Posting to" (ver channelDestination). */}
+        {channelDestination}
 
+        <div className="rounded-2xl p-6" style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)' }}>
           <div className="grid sm:grid-cols-2 gap-4 mb-5">
             <div>
               <label htmlFor="ap-niche" style={labelStyle}>
@@ -839,6 +993,37 @@ export default function AutopilotClient() {
             </div>
           </div>
 
+          {/* KINEO-YTCHANNEL-PICK-2026-07-27 — a visibilidade era `'public'`
+              cravada no código deste formulário, sem NENHUM caminho na UI para
+              outra coisa, apesar de a coluna privacy_status e o seletor da tela
+              de ajustes já aceitarem os três valores. Um pipeline que nunca
+              completou de ponta a ponta em produção não deveria estrear em
+              público no canal de um cliente pagante, então o padrão aqui é
+              Unlisted — e trocar para Public é um clique, no mesmo campo. */}
+          <div className="mb-5">
+            <label htmlFor="ap-privacy" style={labelStyle}>
+              How should the first videos go up?
+            </label>
+            <select
+              id="ap-privacy"
+              value={createPrivacy}
+              onChange={(e) => {
+                setCreatePrivacy(e.target.value)
+                track('autopilot_privacy_selected', { privacy: e.target.value, stage: 'create' })
+              }}
+              style={fieldStyle}
+            >
+              <option value="unlisted">Unlisted — only people with the link (recommended to start)</option>
+              <option value="public">Public — visible on your channel and in search</option>
+              <option value="private">Private — only you</option>
+            </select>
+            <p className="text-xs mt-2" style={{ color: MUTED, lineHeight: 1.6 }}>
+              {createPrivacy === 'public'
+                ? 'Every Short goes straight to your public channel from day one.'
+                : 'Watch the first few, then switch to Public in settings — Autopilot keeps posting either way.'}
+            </p>
+          </div>
+
           {formError ? (
             <p className="text-xs mb-4" style={{ color: '#ef4444', lineHeight: 1.6 }}>
               {formError}
@@ -853,8 +1038,16 @@ export default function AutopilotClient() {
             {data.creditCostPerVideo === 0
               ? 'Included in your plan.'
               : `${data.creditCostPerVideo} credit per video · you have ${data.credits}.`}{' '}
-            Videos go up as public Shorts. Change the topic, the time or pause it whenever you
-            want.
+            {/* A frase antiga era "Videos go up as public Shorts", cravada.
+                Agora a visibilidade é escolha do usuário logo acima, então a
+                copy tem de refletir a escolha REAL — senão a tela promete uma
+                coisa e o cron faz outra. */}
+            {createPrivacy === 'public'
+              ? 'Videos go up as public Shorts.'
+              : createPrivacy === 'private'
+                ? 'Videos go up as private Shorts, visible only to you.'
+                : 'Videos go up as unlisted Shorts — reachable by link, not shown on your channel.'}{' '}
+            Change the topic, the time, the visibility or pause it whenever you want.
           </p>
         </div>
       </div>
@@ -862,6 +1055,9 @@ export default function AutopilotClient() {
   }
 
   // ── ESTADO 4: agenda existe ───────────────────────────────────────────────
+  // O canal DA AGENDA, que não é necessariamente o selecionado no seletor acima:
+  // a agenda guarda o próprio channel_id e é ele que o cron lê.
+  const scheduleChannel = channels.find((c) => c.id === schedule.channelId) ?? null
   const runs = schedule.runs ?? []
   const published = runs.filter((r) => r.status === 'succeeded').length
   const nextLabel = schedule.enabled ? fmtDateTime(schedule.nextRunAt) : 'Paused'
@@ -947,8 +1143,29 @@ export default function AutopilotClient() {
                   {schedule.enabled ? 'Autopilot is on' : 'Autopilot is paused'}
                 </span>
               </div>
+              {/* KINEO-YTCHANNEL-PICK-2026-07-27 — com o Autopilot LIGADO, saber
+                  em qual canal ele publica é a informação mais importante da
+                  tela, não um subtítulo. O título vira link para o canal real
+                  (o id UC… desambigua dois canais de nome parecido) e a frase
+                  diz "publishing to", não um ponto separando dois rótulos. */}
               <div className="text-xs mt-1" style={{ color: MUTED }}>
-                {schedule.channelTitle ?? 'Your channel'} · {nicheLabel(schedule.niche)}
+                Publishing to{' '}
+                {scheduleChannel?.externalChannelId ? (
+                  <a
+                    href={`https://www.youtube.com/channel/${scheduleChannel.externalChannelId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => track('autopilot_channel_verify_clicked', { state: 'schedule_active' })}
+                    style={{ color: TEXT, fontWeight: 800, textDecoration: 'underline', textUnderlineOffset: 3 }}
+                  >
+                    {schedule.channelTitle ?? 'your channel'} ↗
+                  </a>
+                ) : (
+                  <span style={{ color: TEXT, fontWeight: 800 }}>
+                    {schedule.channelTitle ?? 'your channel'}
+                  </span>
+                )}{' '}
+                · {nicheLabel(schedule.niche)} · {privacyLabel(schedule.privacyStatus)}
               </div>
             </div>
           </div>
