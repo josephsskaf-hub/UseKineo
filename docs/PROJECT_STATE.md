@@ -95,7 +95,29 @@ AUTOPILOT_PAID_PLANS = { 'autopilot', 'autopilot_trial', 'autopilot_pilot' }
 
 Ninguém jamais poderia ter conectado um canal: quem não paga bate no paywall, e os únicos planos que passam são `autopilot` (0 assinantes na história), `autopilot_trial` (ninguém concede) e `autopilot_pilot` (SKU inerte — ver `OPEN_QUESTIONS.md` Q-A2).
 
-**Como sair do laço — três caminhos, um só é limpo:**
+### ✅ LAÇO QUEBRADO EM 27/07/2026 — e o que apareceu depois
+
+O fundador rodou `update public.profiles set plan='autopilot_trial'` na sua própria linha. Verificado via `/api/autopilot/schedules`: **`entitled: true`, `plan: 'autopilot_trial'`, `plan_expires_at: NULL`**. Como `autopilot_trial` não está em `AUTOPILOT_TIME_BOXED_PLANS`, o NULL não bloqueia. A página `/autopilot` destravou e o botão de conectar canal apareceu — pela primeira vez na história do produto.
+
+**Primeira conexão de canal da história:** `channels` saiu de 0 para 1 linha em 27/07 15:10 UTC.
+
+#### 🔴 Dois achados imediatos, ambos ainda abertos
+
+**1. O canal conectado NÃO é o pretendido.** O fundador apontou o canal **Curiosityvaultlab** (`UCffjyZHeIPGjbwHTQQIF-dA`, **12.641 inscritos**, nicho de mistério/curiosidade). O que ficou gravado foi o canal pessoal, título **"Joseph Skaf"**.
+
+Causa: no seletor do Google ele escolheu a conta `josephsskaf@gmail.com`, que resolve para o canal pessoal. **Curiosityvaultlab é brand account** e precisa ser escolhido como entidade separada no consentimento.
+
+**2. O upload vai PÚBLICO por padrão.** `app/api/youtube/upload/route.ts:124` — `privacyStatus: body.privacyStatus ?? 'public'`. A UI confirma: *"Videos go up as public Shorts."* Não há caminho na UI para publicar como `private` ou `unlisted`, embora o tipo aceite ambos.
+
+**Consequência de risco:** ligar o Autopilot publica Short **público** diário, sem supervisão, com um pipeline que **nunca completou uma vez** de ponta a ponta. Num canal de 12,6 mil inscritos isso expõe audiência real a duplicata, lixo ou falha no meio.
+
+**Recomendação registrada:** provar os 7 dias no canal **sem audiência** primeiro (o pessoal, já conectado, é o canal controlado que o EXP-1 pedia), e só depois trocar para o Curiosityvaultlab. Uma opção de `privacyStatus: 'unlisted'` na UI do Autopilot tornaria o teste seguro em qualquer canal — **SUGESTÃO, não implementado.**
+
+**Estado em 27/07:** `schedules: []`. Nada agendado, nada publicado. Aguardando decisão do fundador sobre qual canal.
+
+---
+
+**Como sair do laço — três caminhos, um só é limpo (histórico, resolvido acima):**
 
 | Caminho | Custo | Problema |
 |---|---|---|
