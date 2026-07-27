@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 // send-video-rescue — #477
 //
@@ -42,9 +43,12 @@ function isTestEmail(email: string): boolean {
   )
 }
 
+// KINEO-CRON-FAILCLOSED-2026-07-27 — era `if (!cronSecret) return true`.
+// Endpoint que dispara e-mail não fica público porque uma env sumiu. Padrão de
+// referência: app/api/cron/autopilot-generate/route.ts:78.
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return true
+  if (!cronSecret) return false
   const auth = req.headers.get('authorization')
   return auth === `Bearer ${cronSecret}`
 }
@@ -151,8 +155,31 @@ export async function GET(req: NextRequest) {
   }
 
   const now = Date.now()
+
+  // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada de 24h entre os 4
+  // jobs de ciclo de vida. Falha FECHADA (ver lib/lifecycle/suppression.ts).
+  //
+  // A consulta de supressão é fatiada de 200 em 200, e a query acima carrega
+  // até 5000 perfis. Passar os 5000 seriam ~50 consultas para descartar quase
+  // todos logo depois. Este pré-passe aplica, SEM ESCREVER NADA, exatamente os
+  // mesmos filtros do laço abaixo, e só quem chegaria ao envio entra na
+  // consulta. Se um filtro mudar no laço, mude aqui também.
+  const sendableIds = (profiles ?? [])
+    .filter((u) => {
+      const email = u.email?.trim()
+      const plan = (u.plan ?? 'free').toLowerCase()
+      if (!email || isTestEmail(email) || PAID_PLANS.has(plan) || u.is_pro === true) return false
+      const latest = latestVideoByUser.get(u.id) ?? 0
+      if (latest === 0 || now - latest < DAY_MS) return false
+      return !abandonedUsers.has(u.id)
+    })
+    .map((u) => u.id as string)
+
+  const suppression = await loadLifecycleSuppression(admin, sendableIds)
+
   let sent = 0
   let skipped = 0
+  let suppressed = 0
 
   for (const u of profiles ?? []) {
     if (sent >= MAX_PER_RUN) break
@@ -174,6 +201,10 @@ export async function GET(req: NextRequest) {
     if (now - latest < DAY_MS) { skipped++; continue }
     // In the abandoned-checkout flow → send-recovery owns them (do NOT mark).
     if (abandonedUsers.has(u.id)) { skipped++; continue }
+    // Recebeu outro e-mail de ciclo de vida nas últimas 24h → espera a janela
+    // passar. NÃO marca: a coorte deste job não tem prazo de validade, então o
+    // usuário volta a ser elegível na próxima execução diária.
+    if (suppression.isSuppressed(u.id)) { suppressed++; continue }
 
     const { text, html } = buildEmail(u.id)
     try {
@@ -206,5 +237,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, skipped, total: (profiles ?? []).length })
+  return NextResponse.json({
+    sent,
+    skipped,
+    total: (profiles ?? []).length,
+    sendable: sendableIds.length,
+    suppressed_recent_lifecycle: suppressed,
+    suppression_degraded: suppression.degraded,
+  })
 }

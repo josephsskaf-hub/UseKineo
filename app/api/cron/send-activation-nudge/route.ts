@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
 // send-activation-nudge — Push #426
 //
@@ -35,9 +36,12 @@ function isTestEmail(email: string): boolean {
   )
 }
 
+// KINEO-CRON-FAILCLOSED-2026-07-27 — era `if (!cronSecret) return true`.
+// Endpoint que dispara e-mail não fica público porque uma env sumiu. Padrão de
+// referência: app/api/cron/autopilot-generate/route.ts:78.
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
-  if (!cronSecret) return true
+  if (!cronSecret) return false
   const auth = req.headers.get('authorization')
   return auth === `Bearer ${cronSecret}`
 }
@@ -97,11 +101,21 @@ export async function GET(req: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // Users created 1–30h ago, never nudged, still on free plan.
-  // Window widened from 6h → 30h because Vercel Hobby only allows DAILY
-  // crons (more frequent schedules block ALL deployments!). A daily run
-  // with a 30h window still reaches every signup exactly once.
-  const from = new Date(Date.now() - 30 * 60 * 60 * 1000).toISOString()
+  // Users created 1–6h ago, never nudged, still on free plan.
+  //
+  // KINEO-ACTIVATION-WINDOW-2026-07-27 — de volta para 6h, o desenho original.
+  // A janela tinha sido alargada para 30h por um motivo que venceu: "Vercel
+  // Hobby only allows DAILY crons". A conta é Pro (confirmado pelo fundador em
+  // 27/07/2026) e este cron passou a rodar de hora em hora, então a janela
+  // larga só servia para mandar um e-mail de "primeiro vídeo" até 30h depois
+  // do cadastro — bem longe do momento em que a intenção ainda existe.
+  //
+  // Com cron horário, cada cadastro tem ~5 execuções dentro da janela de 1–6h,
+  // então uma falha isolada do cron não faz ninguém perder o nudge. Uma
+  // interrupção maior que 5h consecutivas, sim: quem cadastrou naquele intervalo
+  // sai da janela e nunca é nudgeado. É o preço de um e-mail que chega na hora
+  // certa, e o mesmo risco que o desenho original já aceitava.
+  const from = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
   const to = new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString()
 
   const { data: candidates, error } = await admin
@@ -118,10 +132,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // KINEO-LIFECYCLE-SUPPRESSION-2026-07-27 — trava cruzada de 24h entre os 4
+  // jobs de ciclo de vida. Falha FECHADA (ver lib/lifecycle/suppression.ts).
+  const suppression = await loadLifecycleSuppression(
+    admin,
+    (candidates ?? []).map((u) => u.id as string),
+  )
+
   let sent = 0
   let skipped = 0
+  let suppressed = 0
 
   for (const u of candidates ?? []) {
+    // Suprimido = recebeu outro e-mail de ciclo de vida nas últimas 24h.
+    // NÃO carimba `activation_nudge_sent_at` — o usuário continua elegível na
+    // próxima execução horária enquanto estiver dentro da janela de 1–6h.
+    if (suppression.isSuppressed(u.id as string)) {
+      suppressed++
+      continue
+    }
+
     const email = u.email?.trim()
     const plan = (u.plan ?? 'free').toLowerCase()
 
@@ -183,5 +213,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ sent, skipped, total: (candidates ?? []).length })
+  return NextResponse.json({
+    sent,
+    skipped,
+    total: (candidates ?? []).length,
+    suppressed_recent_lifecycle: suppressed,
+    suppression_degraded: suppression.degraded,
+  })
 }
