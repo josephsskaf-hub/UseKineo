@@ -12,6 +12,7 @@ Tudo aqui é FATO CONFIRMADO no código ou EVIDÊNCIA DE PRODUÇÃO com data. O 
 |---|---|
 | Pasta local | `C:\Users\josep\OneDrive\Área de Trabalho\Usekineo` |
 | GitHub | `https://github.com/josephsskaf-hub/UseKineo` (remoto único, `origin`) |
+| **Supabase de PRODUÇÃO** | **`cqqukkvjjrguayiyjvhh`** — projeto "josephsskaf-hub's Project" |
 | Branch | `main` |
 | HEAD em 27/07/2026 | `a517879` — local e GitHub idênticos, 0 à frente / 0 atrás |
 | Marca na UI | **Kineo** |
@@ -32,6 +33,20 @@ Gerador de YouTube Shorts com IA. O usuário digita um tópico; o sistema produz
 ---
 
 ## 3. O NEGÓCIO — números reais
+
+### 3.0 Contagem direta em produção — 27/07/2026, a evidência mais fresca que existe
+
+Lida no SQL Editor do projeto `cqqukkvjjrguayiyjvhh` (rotulado PRODUCTION pelo Supabase):
+
+| Tabela | Linhas |
+|---|---:|
+| `profiles` | **716** |
+| `videos` | **572** |
+| **`channels`** | **0** |
+
+**`channels = 0` medido DEPOIS do PUSH #103**, que consertou o `redirect_uri_mismatch` em 26/07. Isso confirma o diagnóstico de §3.2: o OAuth não era o único bloqueio. O paywall da página `/autopilot` impede qualquer pessoa — inclusive o fundador — de chegar ao botão de conectar. Consertar o OAuth não podia produzir uma única conexão, e não produziu.
+
+Como identificar o banco de produção sem adivinhar: `NEXT_PUBLIC_SUPABASE_URL` é variável pública e aparece no bundle do site. Lida de `www.usekineo.com` em 27/07 = `https://cqqukkvjjrguayiyjvhh.supabase.co`. O projeto chamado `shortsforgeai-staging` (`quaurrzawdmjmzuzkhqo`) **não** é produção, apesar do nome parecer o do domínio antigo.
 
 ### 3.1 O placar (EVIDÊNCIA DE PRODUÇÃO, `push_102_msg.txt`, 26/07/2026)
 
