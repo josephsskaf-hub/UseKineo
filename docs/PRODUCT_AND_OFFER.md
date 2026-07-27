@@ -39,6 +39,35 @@
 
 ---
 
+## 1.3 PACOTES DE ATACADO — APROVADOS 27/07/2026
+
+Decisão do fundador registrada em `DECISIONS.md`. **Escopo: engine Fast apenas.**
+
+| Pacote | Preço | Por vídeo | Custo real | Margem |
+|---|---:|---:|---:|---:|
+| 10 vídeos | **$99** | $9,90 | $0,50 | ~96% |
+| 20 vídeos | **$179** | $8,95 | $1,00 | ~96% |
+| 30 vídeos | **$249** | $8,30 | $1,50 | ~96% |
+| 50 vídeos | **$379** | $7,58 | $2,50 | ~96% |
+
+Base do custo: `lib/credits/engineCost.ts:32-35` — Fast custa **~$0,02–0,05 para servir**.
+
+**Onde essa compra já acontece (pesquisa de 27/07/2026):** marketplace, não agência. Fiverr, Upwork e Kwork transacionam pacotes de 10–500 Shorts faceless hoje, com preço público de $5–35. A faixa praticada por editor humano é **$5–20/Short (iniciante)** e **$30–60 (premium)**, vendida em bundles de 20/35/60 por mês. **A escada da Kineo a $7,58–$9,90 cai dentro da faixa iniciante** — pela primeira vez o preço coincide com um mercado que já transaciona.
+
+Margem no marketplace, já com a comissão de 20% do Fiverr: pacote de 30 rende **$197,70 líquido, 99,2%**. A comissão custa $42 e entrega demanda pré-qualificada, tráfego e **escrow** — que resolve o problema de confiança de uma marca desconhecida cobrando $249.
+
+### 1.3.1 Licença dos insumos — verificado 27/07/2026
+
+| Insumo | Situação |
+|---|---|
+| **B-roll** | Pexels / Pixabay — licença comercial. ✅ |
+| **TTS dos pacotes Fast** | **OpenAI `tts-1` / `tts-1-hd`.** `.env.local.example` declara só `OPENAI_API_KEY`; nenhuma variável de ElevenLabs. Pelos termos da OpenAI, o cliente detém a saída e o uso comercial é permitido, com a exigência de divulgar que a voz é gerada por IA — coberta pela divulgação já escrita no anúncio. ✅ |
+| **ElevenLabs** | **Não alcança os pacotes.** `lib/narration/elevenlabs.ts:5-9` só ativa com `ELEVENLABS_API_KEY` **e** `KINEO_ELEVENLABS_ENABLED` **e** tier `premium` ou `cinematic`. Os pacotes são **Fast** — logo o caminho é sempre OpenAI, com fail-open para `tts-1-hd`. |
+
+⚠️ Não é parecer jurídico. Se um dia os pacotes passarem a usar tier premium/cinematic, a licença do ElevenLabs volta à mesa — o tier gratuito dele **não** permite uso comercial.
+
+---
+
 ## 2. PROMESSA PERMITIDA — o que o produto comprovadamente entrega
 
 ✅ Até **3 vídeos Fast com watermark a cada 24h, sem cartão**

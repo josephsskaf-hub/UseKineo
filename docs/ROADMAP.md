@@ -104,9 +104,35 @@ Cada job já é "1 por usuário para sempre" com coluna própria, mas nenhum enx
 
 | # | Oportunidade | Depende de |
 |---|---|---|
+| **5.0** | **EXP-G2 — listar o pacote no marketplace. Ver §5-bis. É a prioridade de aquisição.** | licença TTS ✅ resolvida · autorização do fundador |
 | 5.1 | Dar ao **ICP C** (quem quer serviço, não ferramenta) uma porta indexável. Hoje ele só existe em `/pricing` e numa página `noindex`. | EXP-1 |
 | 5.2 | Construir a metade que falta do `/revive`: scanner de prospects, renderizador, remetente, supressão. | EXP-1 + **autorização explícita para qualquer envio** |
 | 5.3 | Fechar o gap em motor de resposta. O ChatGPT já manda 4× mais tráfego que o Google inteiro e foi a única fonte com checkout. | — (esforço baixo) |
+
+---
+
+## 5-bis — EXP-G2: LISTAR NO MARKETPLACE ONDE A DEMANDA JÁ COMPRA
+
+**Achado que motiva:** a compra de 10–50 Shorts em lote já acontece em Fiverr / Upwork / Kwork, com preço público de $5–35 e bundles de 20/35/60 por mês. **Não precisa criar demanda — precisa aparecer onde ela já está.**
+
+**Hipótese.** Existe demanda real por 10–50 Shorts gerados por IA a $99–$379, encontrável **sem mandar nenhuma mensagem**. Nunca foi testado: nenhum cliente jamais pediu volume (confirmado pelo fundador, 27/07).
+
+**O que muda.** Um anúncio em 3 níveis ($99 / $179 / $249 — o de 50 fica fora da rodada 1 por capacidade), com divulgação de IA no corpo, 3 amostras já renderizadas, entrega em 24h. **A Kineo não inicia nenhuma mensagem: o comprador chega sozinho.**
+
+**Métrica primária.** **Pedidos pagos em 30 dias.** Não impressão, não clique, não mensagem — pedido pago. É a única métrica desta empresa que nunca foi inflada.
+
+**Sucesso.** ≥ 1 pedido pago e entregue com avaliação positiva. **Um único pedido pago é mais evidência comercial do que 713 cadastros produziram.**
+
+**Fracasso.** 0 pedidos em 30 dias com ≥ 500 impressões. ⇒ a $8,30/Short, com escrow e amostra visível, no lugar onde a demanda comprovadamente está, ninguém compra. A conclusão **não é** "mudar a copy" — é que **a tese de atacado está errada** e a empresa deve parar de investir nela. *Este é o valor do teste: ele mata a ideia por ~$0,15.*
+
+**Zona cinza.** Mensagem de comprador > 0 e 0 pedidos ⇒ há interesse, e a barreira é oferta, confiança ou clareza. **Não conta como sucesso** — o histórico é 39 de 39 checkouts expirados.
+
+**Pré-condições.** Licença de TTS ✅ (resolvida — ver `PRODUCT_AND_OFFER.md` §1.3.1) · 3 amostras de conta interna ou com consentimento · capacidade: 30 Shorts × 2,30 min ≈ 70 min de máquina, viável · entrega manual aceitável para 1–3 pedidos, acima disso o gargalo vira humano.
+
+**Por que marketplace antes de e-mail frio.** O escrow e as avaliações substituem a reputação que a Kineo não tem, e **nenhuma quantidade de cold e-mail compra isso**. Listar não é contatar — respeita o gate de comunicação integralmente.
+
+### 🔴 NUNCA usar `usekineo.com` para e-mail frio
+`hello@` e `support@usekineo.com` são as identidades de envio de **4 crons de ciclo de vida + 8 rotas admin** via Resend. Queimar esse domínio derruba a máquina de recuperação de receita inteira. Se o volume um dia justificar frio: domínio **separado** (não subdomínio — alinhamento DMARC é organizacional), provedor separado do Resend transacional, SPF+DKIM+DMARC, aquecimento de 2–4 semanas a 10–20/dia.
 
 ---
 
