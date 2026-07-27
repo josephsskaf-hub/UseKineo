@@ -1,6 +1,6 @@
 // Hotmart webhook — grants credits when a Hotmart purchase is approved.
 // Auth: X-HOTMART-HOTTOK header (static token, constant-time compared). Buyer is
-// matched to a ShortsForgeAI account by email; credits granted idempotently
+// matched to a Kineo account by email; credits granted idempotently
 // (keyed on the Hotmart transaction id). Always returns 200 so Hotmart stops
 // retrying once handled. Mirrors the Mercado Pago webhook's crediting.
 import { NextRequest, NextResponse } from 'next/server'

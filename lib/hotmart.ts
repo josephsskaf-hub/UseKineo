@@ -1,5 +1,5 @@
 // Hotmart integration (Brazil) — lets the huge Hotmart affiliate pool sell
-// ShortsForgeAI credits to "canal dark" creators. Hotmart hosts the checkout
+// Kineo credits to "canal dark" creators. Hotmart hosts the checkout
 // (BRL, Pix, boleto, card); on an approved purchase it POSTs our webhook and we
 // grant credits to the buyer's account (matched by email).
 //

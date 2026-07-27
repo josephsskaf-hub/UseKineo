@@ -1,4 +1,4 @@
-/* Push #427 — ShortsForgeAI service worker.
+/* Push #427 — Kineo service worker.
  * Purpose: receive Web Push and show the "video ready" notification.
  * Pushes are sent WITHOUT payload (no encryption needed server-side),
  * so the notification text lives here. Click opens My Videos.

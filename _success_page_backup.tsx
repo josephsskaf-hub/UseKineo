@@ -93,7 +93,7 @@ export default function CheckoutSuccessPage() {
             margin: 0,
           }}
         >
-          Welcome to ShortsForgeAI.
+          Welcome to Kineo.
         </h1>
         <p
           style={{

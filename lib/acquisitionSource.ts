@@ -2,6 +2,15 @@
 // and reporting. OAuth/payment returns are navigation infrastructure, not the
 // page that acquired the user, so they must never become first-touch sources.
 
+// ⚠️ KINEO-RENAME-2026-07-27 — NÃO REMOVA OS HOSTS shortsforgeai DAQUI.
+// Esta lista responde "o referrer é a gente mesmo?". Os três hosts legados
+// continuam servindo tráfego (middleware.ts faz 308 deles para www.usekineo.com),
+// então um clique interno que passe por um deles ainda chega com esse referrer.
+// Tirá-los daqui não renomeia nada: faz a própria Kineo virar "fonte externa" e
+// sobrescrever o first-touch real de quem veio do ChatGPT, do TAAFT ou de busca
+// orgânica — ou seja, envenena silenciosamente a atribuição de aquisição, que é
+// justamente o número usado para decidir onde gastar. Some daqui quando os
+// domínios legados forem desligados de verdade, não antes.
 const OWN_HOSTS = new Set([
   'usekineo.com',
   'www.usekineo.com',

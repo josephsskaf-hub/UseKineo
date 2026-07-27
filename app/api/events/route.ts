@@ -49,6 +49,17 @@ const SERVER_ONLY_EVENTS = new Set([
   // uma campanha morta atrás de números bonitos.
   'revive_page_viewed',
   'revive_cta_clicked',
+  // KINEO-BULK-2026-07-27 — o funil dos pacotes de atacado ($99–$379). O par
+  // started→completed é a taxa de conversão do PRIMEIRO canal de receita
+  // desenhado desta empresa, num histórico de 4 compras avulsas e zero
+  // assinaturas. `bulk_checkout_started` é escrito só por
+  // app/api/stripe/checkout (depois de a Session existir de verdade) e
+  // `bulk_purchase_completed` só pelo webhook, depois de o crédito ser
+  // concedido. Se o sink do browser pudesse cunhá-los, um burst forjado inflaria
+  // o topo e faria a conversão mentir para baixo — exatamente o estrago de
+  // viral_onboarding_viewed (9,7x) e generate_arrived_server (2,7x).
+  'bulk_checkout_started',
+  'bulk_purchase_completed',
 ])
 
 export async function POST(req: NextRequest) {

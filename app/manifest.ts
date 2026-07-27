@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next'
 
-// Push #422 — PWA manifest. Makes shortsforgeai.com installable on
+// Push #422 — PWA manifest. Makes usekineo.com installable on
 // iPhone/Android ("Add to Home Screen"): full-screen standalone window,
 // branded icon and splash colors. Next.js serves this at
 // /manifest.webmanifest and auto-injects the <link> tag site-wide.

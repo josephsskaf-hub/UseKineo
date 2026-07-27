@@ -187,6 +187,103 @@ export const TOPUP_CREDITS = {
 
 export type TopupId = keyof typeof TOPUP_CREDITS
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-BULK-2026-07-27 — PACOTES DE ATACADO. Escada APROVADA pelo fundador em
+// 27/07/2026 (docs/DECISIONS.md). Preços NÃO negociáveis aqui.
+// ═══════════════════════════════════════════════════════════════════════════
+// Por que existem: 713 cadastros produziram 4 compras avulsas e ZERO assinaturas
+// recorrentes em ~3 meses. O ICP que paga quer vídeo pronto, não ferramenta.
+// A escada $7,58–$9,90 por vídeo cai dentro da faixa de editor humano iniciante
+// ($5–20/Short) praticada hoje em Fiverr/Upwork/Kwork — a primeira vez que o
+// preço da Kineo coincide com um mercado que já transaciona.
+//
+// ── SÓ USD, DE PROPÓSITO ───────────────────────────────────────────────────
+// Os outros SKUs têm preço em BRL e INR. Estes não. O fundador aprovou QUATRO
+// números, em dólar. Inventar multiplicadores de BRL/INR para um SKU de atacado
+// seria eu definindo preço, o que não é decisão de Development (AGENTS.md §7).
+// Um comprador fora dos EUA paga em USD — o Stripe cobra normalmente. Se um dia
+// houver demanda medida por moeda local, é o fundador quem escreve os números.
+//
+// ── FOLGA DE CRÉDITO: +20%, MÍNIMO +2 ──────────────────────────────────────
+// Fast custa 1 crédito para conta paga (creditCostFor('fast', true)), e o
+// webhook marca has_paid=true nesta mesma compra. Então "10 vídeos" seriam 10
+// créditos exatos — e é aí que mora o problema.
+//
+// Um render que trava NÃO devolve o crédito na hora. O reembolso ao vivo cobre
+// as falhas terminais, mas o caso "travado" só é varrido por
+// sweepStuckRenderDebits(), que roda uma vez por dia (app/api/cron/refund-sweep).
+// Com crédito exato, UM render travado deixa o comprador de "10 vídeos" parado
+// no nono por até 24h. Ele não lê isso como "o sistema vai me reembolsar", lê
+// como "paguei 10 e recebi 9".
+//
+// É o mesmo raciocínio, e a mesma justificativa, de AUTOPILOT_PILOT_CREDITS = 60
+// para um pior caso de 56: a folga não é generosidade, é o que impede a promessa
+// de quebrar por aritmética. Aqui ela é barata — cada crédito extra vale $0,05
+// em Fast, e a checagem de margem no fim deste arquivo cobre o caso em que o
+// comprador gasta a folga inteira no motor MAIS CARO do catálogo.
+//
+// ⚠️ Crédito é UNIVERSAL: nada impede o comprador de gastar em Seedance (20 cr)
+// em vez de Fast (1 cr). A partir de bulk20 a folga sozinha já compra 1 vídeo de
+// IA. Isso é escolha do cliente e a margem aguenta (ver invariante 5), mas é uma
+// decisão de produto que vale revisitar se o atacado virar o carro-chefe.
+export type BulkPackId = 'bulk10' | 'bulk20' | 'bulk30' | 'bulk50'
+
+/** Folga sobre o número de vídeos vendido. Ver o bloco acima. */
+export const BULK_HEADROOM_RATIO = 0.2
+
+/** Créditos concedidos por um pacote de N vídeos Fast, já com a folga. */
+export function bulkCreditsFor(videos: number): number {
+  return videos + Math.max(2, Math.ceil(videos * BULK_HEADROOM_RATIO))
+}
+
+export const BULK_PACKS: Record<BulkPackId, {
+  /** Número de vídeos Fast vendido — é o que a copy promete. */
+  videos: number
+  /** Preço em centavos de dólar. APROVADO pelo fundador; não altere. */
+  usdMinor: number
+  /** Créditos concedidos = videos + folga. */
+  credits: number
+}> = {
+  bulk10: { videos: 10, usdMinor: 9900, credits: bulkCreditsFor(10) },
+  bulk20: { videos: 20, usdMinor: 17900, credits: bulkCreditsFor(20) },
+  bulk30: { videos: 30, usdMinor: 24900, credits: bulkCreditsFor(30) },
+  bulk50: { videos: 50, usdMinor: 37900, credits: bulkCreditsFor(50) },
+}
+
+export const BULK_PACK_IDS = Object.keys(BULK_PACKS) as BulkPackId[]
+
+export function isBulkPackId(raw: string | null | undefined): raw is BulkPackId {
+  return typeof raw === 'string' && Object.prototype.hasOwnProperty.call(BULK_PACKS, raw)
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-BULK-2026-07-27 — COLISÃO DE VALOR ENTRE SKUs ONE-TIME.
+// ═══════════════════════════════════════════════════════════════════════════
+// O webhook tem um fallback POR VALOR para sessões que perderam a metadata
+// (app/api/stripe/webhook/route.ts, Path A). Esse fallback só é seguro enquanto
+// o valor identificar UM único SKU dentro da moeda.
+//
+// O atacado quebra isso: bulk10 custa $99, e AUTOPILOT_PILOT_PRICES.usd também
+// é 9900. Os dois são mode:'payment' e os dois chegam ao mesmo bloco. Sem uma
+// trava, uma sessão de bulk10 que perdesse a metadata cairia no fallback do
+// piloto e sairia com plan='autopilot_pilot' — um plano de $299/mês entregue
+// por um pacote de 10 vídeos.
+//
+// (ANNUAL_PRICES.starter.usd também é 9900 e ANNUAL_PRICES.pro.usd é 37900,
+// iguais a bulk10 e bulk50. Hoje o anual é mode:'subscription' e nunca alcança
+// o Path A — mas o comentário do webhook já avisava que isso é uma bomba-relógio
+// se o anual virar pagamento único. Por isso os anuais entram na conta abaixo.)
+//
+// Esta lista é o contrato entre o preço e o webhook: para QUALQUER valor aqui,
+// o webhook resolve SÓ por metadata.pack exata e NUNCA por valor.
+export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set([9900, 37900])
+
+/** true = este valor em USD não identifica um SKU sozinho. */
+export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: string | null | undefined): boolean {
+  if ((currency ?? 'usd').toLowerCase().trim() !== 'usd') return false
+  return AMBIGUOUS_ONE_TIME_USD_AMOUNTS.has(amountMinor)
+}
+
 /** USD price per credit of a recurring plan. Lower = better value for the user. */
 export function planUsdPerCredit(tier: CheckoutPlanTier): number {
   return monthlyPriceMinor(tier, 'usd') / 100 / TIER_CREDITS[tier]
@@ -322,6 +419,86 @@ export function checkPricingInvariants(): string[] {
       `pilot:autopilot costs $${pilotUsdPerDay.toFixed(2)}/day, at or below the $299 plan's ` +
       `$${autopilotUsdPerDay.toFixed(2)}/day. A trial must never be the cheap way to buy the product.`,
     )
+  }
+
+  // (5) KINEO-BULK-2026-07-27 — os quatro pacotes de atacado.
+  //   (5a) a folga precisa existir de verdade: o pacote tem de conceder MAIS
+  //        crédito do que os vídeos que promete, senão um único render travado
+  //        (reembolsado só na varredura diária) deixa o comprador sem o último
+  //        vídeo que pagou;
+  //   (5b) preço por vídeo estritamente DECRESCENTE conforme o pacote cresce —
+  //        é a única coisa que faz "atacado" significar alguma coisa. Um reprice
+  //        que inverta isso torna o pacote maior um mau negócio, em silêncio;
+  //   (5c) o teste de margem que todo SKU leva: o grant inteiro gasto no pior
+  //        motor do catálogo ainda tem de sobrar dinheiro. Crédito é universal,
+  //        então "é só Fast" NÃO é uma proteção — é uma expectativa.
+  let previousUsdPerVideo = Number.POSITIVE_INFINITY
+  for (const id of BULK_PACK_IDS) {
+    const pack = BULK_PACKS[id]
+
+    if (pack.credits <= pack.videos) {
+      problems.push(
+        `bulk:${id} grants ${pack.credits} credits for ${pack.videos} videos — no headroom. ` +
+        `One stuck render (refunded only by the daily sweep) leaves the buyer short of what they paid for.`,
+      )
+    }
+
+    const usdPerVideo = pack.usdMinor / 100 / pack.videos
+    if (usdPerVideo >= previousUsdPerVideo) {
+      problems.push(
+        `bulk:${id} costs $${usdPerVideo.toFixed(2)}/video, at or above the smaller pack's ` +
+        `$${previousUsdPerVideo.toFixed(2)}/video. A wholesale ladder must get cheaper per unit as it grows.`,
+      )
+    }
+    previousUsdPerVideo = usdPerVideo
+
+    const net = netAfterStripeUsd(pack.usdMinor / 100)
+    const cogs = worstCaseCogsUsd(pack.credits)
+    if (net - cogs < 0) {
+      problems.push(`bulk:${id} is below cost in the worst case (net $${net.toFixed(2)} vs COGS $${cogs.toFixed(2)}).`)
+    }
+  }
+
+  // (6) KINEO-BULK-2026-07-27 — colisão de valor entre SKUs one-time.
+  // O webhook resolve sessões sem metadata POR VALOR. Isso só é seguro enquanto
+  // o valor identificar um SKU único. Esta checagem calcula as colisões reais e
+  // exige que cada uma esteja declarada em AMBIGUOUS_ONE_TIME_USD_AMOUNTS — a
+  // lista que o webhook consulta para se recusar a adivinhar. Uma colisão NOVA
+  // (o próximo reprice) aparece aqui em vez de virar uma concessão errada.
+  const usdAmountOwners = new Map<number, string[]>()
+  const claim = (amount: number, sku: string) => {
+    const owners = usdAmountOwners.get(amount) ?? []
+    owners.push(sku)
+    usdAmountOwners.set(amount, owners)
+  }
+  claim(490, 'pack:starter')
+  claim(290, 'pack:starter290')
+  claim(TOPUP_USD_PRICES.topup40, 'topup40')
+  claim(TOPUP_USD_PRICES.topup120, 'topup120')
+  claim(AUTOPILOT_PILOT_PRICES.usd, 'pilot:autopilot')
+  for (const id of BULK_PACK_IDS) claim(BULK_PACKS[id].usdMinor, `bulk:${id}`)
+  // Os anuais são mode:'subscription' HOJE e não alcançam o Path A do webhook.
+  // Entram assim mesmo: o dia em que alguém os transformar em pagamento único,
+  // esta checagem é o que avisa antes de o dinheiro entrar errado.
+  for (const tier of Object.keys(ANNUAL_PRICES) as CheckoutTier[]) {
+    claim(ANNUAL_PRICES[tier].usd, `annual:${tier}`)
+  }
+
+  for (const [amount, owners] of usdAmountOwners) {
+    if (owners.length > 1 && !AMBIGUOUS_ONE_TIME_USD_AMOUNTS.has(amount)) {
+      problems.push(
+        `USD amount ${amount} is claimed by ${owners.length} SKUs (${owners.join(', ')}) but is NOT in ` +
+        `AMBIGUOUS_ONE_TIME_USD_AMOUNTS. The webhook's amount fallback would grant one of them at random.`,
+      )
+    }
+  }
+  for (const amount of AMBIGUOUS_ONE_TIME_USD_AMOUNTS) {
+    if ((usdAmountOwners.get(amount) ?? []).length <= 1) {
+      problems.push(
+        `USD amount ${amount} is listed in AMBIGUOUS_ONE_TIME_USD_AMOUNTS but only one SKU claims it. ` +
+        `Stale entries block a legitimate amount fallback — remove it.`,
+      )
+    }
   }
 
   return problems

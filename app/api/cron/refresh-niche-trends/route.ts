@@ -55,7 +55,7 @@ async function topicsForVertical(
 ): Promise<string[]> {
   // 1) Pull real, current headlines.
   const res = await fetch(googleNewsRssUrl(query), {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ShortsForgeAI/1.0)' },
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Kineo/1.0)' },
   })
   if (!res.ok) throw new Error(`RSS ${res.status}`)
   const xml = await res.text()

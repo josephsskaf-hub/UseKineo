@@ -12,14 +12,17 @@ import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
+  BULK_PACKS,
   INTRO_CREDITS,
   INTRO_PRICES,
   PACK_CREDITS,
   TIER_CREDITS,
   TIER_PRICES,
   TOPUP_CREDITS,
+  isBulkPackId,
   monthlyPriceMinor,
   resolveCheckoutCurrency,
+  type BulkPackId,
   type CheckoutCurrency as Currency,
   type CheckoutIntroTier as IntroTier,
   type CheckoutPlanTier as PlanTier,
@@ -86,7 +89,11 @@ async function recordCheckoutEvent(
     | 'checkout_auth_required'
     | 'checkout_started'
     | 'checkout_failed'
-    | 'checkout_prefetch_blocked',
+    | 'checkout_prefetch_blocked'
+    // KINEO-BULK-2026-07-27 — funil de atacado, nomeado. Server-only (declarado
+    // em app/api/events/route.ts): se o sink do browser pudesse cunhá-lo, o
+    // denominador do único canal de receita novo viraria ficção.
+    | 'bulk_checkout_started',
   userId: string | null,
   metadata: Record<string, unknown>,
   sessionId?: string,
@@ -1821,6 +1828,181 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
   return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
 }
 
+// ─── KINEO-BULK-2026-07-27 — pacotes de atacado (mode: 'payment') ────────────
+// Escada aprovada pelo fundador em 27/07: 10/$99, 20/$179, 30/$249, 50/$379.
+// Vende VÍDEO, não ferramenta. Sem gate de plano: o comprador de atacado é
+// justamente quem NÃO tem assinatura — exigir plano seria o mesmo laço fechado
+// que mantém o Autopilot em 0 canais conectados (docs/PROJECT_STATE.md §3.2).
+//
+// Só USD. Ver a justificativa em lib/checkoutPricing.ts (BULK_PACKS): o fundador
+// aprovou quatro números em dólar e inventar câmbio para um SKU de atacado não é
+// decisão de Development.
+async function buildBulkPackAndRedirect(
+  req: NextRequest,
+  bulkId: BulkPackId,
+  isGet: boolean,
+): Promise<NextResponse> {
+  const appUrl = req.nextUrl.origin
+  const browserSessionId = browserSessionIdFrom(req)
+  const pack = BULK_PACKS[bulkId]
+  let failureUserId: string | null = null
+  const skuContext: Record<string, unknown> = {
+    sku: bulkId,
+    mode: 'payment',
+    bulk_videos: pack.videos,
+    bulk_credits: pack.credits,
+  }
+
+  async function redirectError(msg: string) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
+    return NextResponse.redirect(`${appUrl}/pricing?checkout_error=${encodeURIComponent(msg)}`)
+  }
+  async function jsonError(msg: string, status: number) {
+    await recordCheckoutEvent(
+      'checkout_failed',
+      failureUserId,
+      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      browserSessionId,
+    )
+    return NextResponse.json({ error: msg }, { status })
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('[stripe/checkout] STRIPE_SECRET_KEY is not set')
+    return isGet
+      ? redirectError('Payment service is not configured. Please contact support.')
+      : jsonError('Payment service is not configured. Please contact support.', 500)
+  }
+
+  // Preço de atacado é em dólar, sempre — não segue o país do IP como os outros.
+  const currency: Currency = 'usd'
+  const unitAmount = pack.usdMinor
+  skuContext.currency = currency
+  skuContext.unit_amount = unitAmount
+
+  const supabase = createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  failureUserId = user?.id ?? null
+  await recordCheckoutEvent('checkout_attempted', user?.id ?? null, skuContext, browserSessionId)
+  if (authError || !user) {
+    await recordCheckoutEvent('checkout_auth_required', null, skuContext, browserSessionId)
+    if (!isGet) return jsonError('You must be signed in to buy a video pack.', 401)
+    // `resumed=1` = trava de laço (erro visível em vez de login↔checkout eterno).
+    if (req.nextUrl.searchParams.get('resumed') === '1') {
+      return redirectError('We could not confirm your sign-in. Please sign in and try again.')
+    }
+    const resume = `${req.nextUrl.pathname}${req.nextUrl.search}${req.nextUrl.search ? '&' : '?'}resumed=1`
+    return NextResponse.redirect(`${appUrl}/login?reason=checkout&redirect=${encodeURIComponent(resume)}`)
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('email, stripe_customer_id')
+    .eq('id', user.id)
+    .single()
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'payment',
+    line_items: [
+      {
+        price_data: {
+          currency,
+          product_data: {
+            name: `Kineo — ${pack.videos} Shorts`,
+            description:
+              `One-time: ${pack.videos} ready-to-post vertical Shorts (script, voiceover, captions and footage). ` +
+              `No subscription. Credits never expire.`,
+          },
+          unit_amount: unitAmount,
+        },
+        quantity: 1,
+      },
+    ],
+    client_reference_id: user.id,
+    success_url: `${appUrl}/generate?success=true&pack=${bulkId}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/pricing`,
+    metadata: {
+      supabase_user_id: user.id,
+      // ⚠️ metadata.pack é a ÚNICA coisa que distingue bulk10 de autopilot_pilot:
+      // os dois custam 9900 em USD. O webhook se RECUSA a resolver esse valor por
+      // fallback (AMBIGUOUS_ONE_TIME_USD_AMOUNTS), então esta chave não é
+      // conveniência — é o que impede um pacote de 10 vídeos de virar um plano
+      // Autopilot de $299/mês.
+      pack: bulkId,
+      pack_credits: String(pack.credits),
+      bulk_videos: String(pack.videos),
+    },
+  }
+  if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
+  else sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+
+  // KINEO-CHECKOUT-TRIAGE-2026-07-25 — um clique = no máximo uma sessão Stripe.
+  // Produção mostrou 1 usuário gerando 7 sessions em 2,8s quando os SKUs avulsos
+  // não tinham chave nenhuma. Nasce com chave.
+  const bulkIdempotencyKey = oneTimeIdempotencyKey({
+    sku: bulkId,
+    user_id: user.id,
+    currency,
+    unit_amount: unitAmount,
+    customer: sessionParams.customer ?? null,
+  })
+
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(sessionParams, { idempotencyKey: bulkIdempotencyKey })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    // Um customer criado em BRL/INR não aceita uma sessão em USD. Cai para
+    // customer_email, exatamente como os outros SKUs one-time fazem.
+    if (msg.toLowerCase().includes('cannot combine currencies')) {
+      delete sessionParams.customer
+      sessionParams.customer_email = profile?.email ?? user.email ?? undefined
+      try {
+        session = await stripe.checkout.sessions.create(sessionParams, {
+          idempotencyKey: `${bulkIdempotencyKey}:email`,
+        })
+      } catch (retryErr) {
+        const rmsg = retryErr instanceof Error ? retryErr.message : String(retryErr)
+        console.error('[stripe/checkout] bulk retry failed:', rmsg)
+        return isGet
+          ? redirectError(`Payment session failed: ${rmsg || 'Please try again'}`)
+          : jsonError('Payment session failed.', 500)
+      }
+    } else {
+      console.error('[stripe/checkout] bulk session error:', msg)
+      return isGet
+        ? redirectError(`Payment session failed: ${msg || 'Please try again'}`)
+        : jsonError('Payment session failed.', 500)
+    }
+  }
+
+  console.log(
+    `[stripe/checkout] bulk session: ${bulkId} user=${user.id.slice(0, 8)} amount=${unitAmount} ${currency}`,
+  )
+  await recordCheckoutEvent(
+    'checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
+  // KINEO-BULK-2026-07-27 — evento nomeado do funil de atacado. `checkout_started`
+  // continua sendo emitido (o funil geral não pode ganhar um buraco), mas contar
+  // atacado a partir dele exige filtrar metadata.sku. Um nome próprio torna o
+  // funil de atacado contável direto.
+  await recordCheckoutEvent(
+    'bulk_checkout_started',
+    user.id,
+    { ...skuContext, stripe_session_id: session.id },
+    browserSessionId,
+  )
+  return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
+}
+
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — buildAvatarPackAndRedirect() removed.
 // Avatar packs sold profiles.avatar_credits, now unspendable (avatar generation
 // costs 120 universal video_credits). ?pack=avatar* now returns a clean 410 in
@@ -1855,6 +2037,13 @@ export async function GET(req: NextRequest) {
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
       if (packParam === 'topup40' || packParam === 'topup120') {
         return await buildTopupAndRedirect(req, packParam, true)
+      }
+      // KINEO-BULK-2026-07-27 — pacotes de atacado. Precisa vir ANTES do
+      // fallback buildPackAndRedirect, que venderia um Starter Pack de $4.90 no
+      // lugar de um pacote de $379 sem dar erro nenhum — a mesma armadilha
+      // documentada no branch do autopilot_pilot logo abaixo.
+      if (isBulkPackId(packParam)) {
+        return await buildBulkPackAndRedirect(req, packParam, true)
       }
       // KINEO-PILOT-99-2026-07-26 — sem este branch o ?pack=autopilot_pilot cai
       // no buildPackAndRedirect e vende um Starter Pack de $4.90 no lugar.

@@ -35,7 +35,7 @@ import {
   YouTubeOAuthConfigError,
   type YouTubeTokens,
 } from '@/lib/youtube'
-import { upsertChannelFromTokens } from '@/lib/youtubeChannels'
+import { upsertAllChannelsFromTokens } from '@/lib/youtubeChannels'
 import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
@@ -70,12 +70,19 @@ async function finish(
     userId?: string | null
     channelTitle?: string | null
     detail?: string | null
+    /** KINEO-YTCHANNEL-PICK-2026-07-27 — quantos canais este token alcançou. */
+    channelCount?: number | null
   } = {},
 ): Promise<NextResponse> {
   const target = new URL('/autopilot', req.nextUrl.origin)
   target.searchParams.set('yt', outcome)
   if (outcome === 'connected' && args.channelTitle) {
     target.searchParams.set('ch', args.channelTitle.slice(0, 80))
+  }
+  // A página precisa saber se houve ESCOLHA ou se o Google entregou um canal só.
+  // As duas situações pedem telas diferentes: seletor vs "é este aqui, não é?".
+  if (outcome === 'connected' && typeof args.channelCount === 'number') {
+    target.searchParams.set('n', String(args.channelCount))
   }
 
   await writeServerEvent({
@@ -90,6 +97,10 @@ async function finish(
       reason: outcome,
       ...(args.detail ? { error: args.detail.slice(0, 300) } : {}),
       ...(args.channelTitle ? { channel_title: args.channelTitle.slice(0, 80) } : {}),
+      // Quantos canais o token alcançou. É a única forma de descobrir, com
+      // dados e não com achismo, se o caso "mais de um canal" é raro ou comum —
+      // o que decide quanto vale investir no seletor.
+      ...(typeof args.channelCount === 'number' ? { channel_count: args.channelCount } : {}),
     },
   })
 
@@ -144,8 +155,11 @@ export async function GET(req: NextRequest) {
     return finish(req, 'channel_save_failed', { userId, detail: msg })
   }
 
-  // ── Registro do canal (a tabela que o Autopilot lê de verdade) ────────────
-  const upsert = await upsertChannelFromTokens({ userId, tokens })
+  // ── Registro dos canais (a tabela que o Autopilot lê de verdade) ──────────
+  // KINEO-YTCHANNEL-PICK-2026-07-27 — era upsertChannelFromTokens, que gravava
+  // items[0] e descartava o resto. Agora TODO canal que o token alcança vira
+  // linha, e quem escolhe é o usuário na tela do Autopilot.
+  const upsert = await upsertAllChannelsFromTokens({ userId, tokens })
 
   if (!upsert.ok) {
     if (upsert.reason === 'no_channel') {
@@ -167,8 +181,17 @@ export async function GET(req: NextRequest) {
     return finish(req, 'channel_save_failed', { userId, detail: upsert.error })
   }
 
+  const stored = upsert.channels
   console.log(
-    `[youtube/callback] connected user=${userId.slice(0, 8)} channel=${upsert.channelId} external=${upsert.externalChannelId ?? 'unknown'}`,
+    `[youtube/callback] connected user=${userId.slice(0, 8)} channels=${stored.length}/${upsert.reachedCount} ` +
+    stored.map((c) => `${c.title ?? '?'}(${c.externalChannelId ?? 'no-id'},${c.subscriberCount} subs)`).join(' | '),
   )
-  return finish(req, 'connected', { userId, channelTitle: upsert.title })
+  // `ch` só é mostrado quando NÃO há escolha a fazer. Com mais de um canal a
+  // página abre o seletor, e anunciar "X está conectado" ali seria repetir o
+  // erro original com outra roupa: dizer ao usuário que a escolha já foi feita.
+  return finish(req, 'connected', {
+    userId,
+    channelTitle: stored.length === 1 ? stored[0].title : null,
+    channelCount: stored.length,
+  })
 }
