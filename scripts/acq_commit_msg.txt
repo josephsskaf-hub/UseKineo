@@ -1,0 +1,41 @@
+ACQ: tirar as telas de app do indice e destravar o recrawl
+
+MEDIDO no Search Console (sc-domain:usekineo.com, 29/07): 55 paginas indexadas,
+43 nao indexadas, e OITO cliques de busca web em toda a historia do site. Das
+43, vinte e seis estao em "Discovered/Crawled - currently not indexed", que e o
+Google dizendo que ja viu as paginas de dinheiro e decidiu que nao valem o
+indice. Publicar mais pagina nao resolve esse problema.
+
+O que um site:usekineo.com devolve hoje: /avatar, /animate, /affiliate e
+/signup - telas de app logado - rankeando com titulo que o Google cacheou ANTES
+da renomeacao: "AI Avatar Studio - ShortsForgeAI", "From 11.90/mo". Conferi por
+grep: nenhuma dessas strings existe mais no repositorio. As paginas foram
+consertadas; o Google e que nao recrawleou. Quem acha a Kineo hoje pode ver uma
+marca morta a um preco que nunca cobramos, numa tela que nao da para usar sem
+conta.
+
+Dois custos reais: crawl budget (num dominio onde o Google ja recusa 26 landing
+pages de verdade, todo crawl gasto numa tela de app e um crawl a menos numa
+pagina feita para converter) e marca (o snippet velho E a primeira impressao).
+
+1) noindex no route group (dashboard). Uma linha, cobre as 11 telas.
+   noindex e NAO Disallow no robots.txt, e inverter a ordem e um gol contra
+   classico: Disallow bloqueia o CRAWL, e pagina que o Google nao rastreia e
+   pagina cujo noindex ele nunca le - a URL ficaria congelada no indice com o
+   titulo velho para sempre. A ordem certa e servir noindex, deixar o Google
+   recrawlear e derrubar, e so entao considerar bloquear.
+   follow:true de proposito: link interno segue passando sinal enquanto sai.
+   /viral-now declara index:true na propria pagina e sobrescreve o layout -
+   conferido, continua indexavel (esta no sitemap com prioridade 0.9).
+
+2) sitemap lastModified 25/07 -> 29/07. Nao e cosmetico: o cluster mudou de
+   verdade e a data velha virou uma mentira que custa trafego - ela diz ao
+   Google que nao ha nada novo, exatamente quando o problema E cache velho.
+
+Pareado com uma submissao IndexNow. A chave ja esta publicada em public/ e o
+Bing age rapido nela - e o Bing e o que sustenta a busca do ChatGPT, a fonte de
+aquisicao que melhor converte que a Kineo ja mediu (docs/growth, 23/07: ChatGPT
+trouxe 4 cadastros e OS DOIS unicos checkouts da semana; o Google inteiro
+trouxe 1 sessao e zero checkout).
+
+tsc --noEmit: EXITCODE=0.
