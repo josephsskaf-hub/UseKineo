@@ -32,6 +32,7 @@ import {
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
+import NextShortsSection from '@/components/video/NextShortsSection'
 import NicheOnboarding from '@/components/NicheOnboarding'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
@@ -7235,6 +7236,42 @@ export default function GenerateClient({
               analysis={analysis}
               copiedSection={copiedSection}
               onCopy={copySection}
+            />
+          )}
+
+          {/* KINEO-SPRINT-12H-2026-07-29 — the second-video problem.
+              Production counts on 2026-07-29: 212 people finished a video, 173
+              of them (82%) finished exactly one and never returned. This screen
+              was where they left, because the only forward action was
+              "Generate Another Short" -> handleReset() -> empty textarea. We
+              automate making the video and were still asking the customer to do
+              the genuinely hard part of running a channel: deciding what comes
+              next. Three named follow-ups, one tap each, answer that.
+              Placed ABOVE the upsell on purpose — the ask to pay reads very
+              differently to someone who can already see their next three
+              episodes than to someone staring at a blank box. */}
+          {phase === 'done' && finalVideoUrl && analysis && (
+            <NextShortsSection
+              topic={prompt}
+              title={analysis.title}
+              niche={analysis.niche}
+              hook={analysis.hook}
+              onEvent={(name, meta) => { try { void trackEvent(name, meta) } catch { /* ignore */ } }}
+              onPick={(idea) => {
+                // Order matters: handleReset() clears the prompt (see its tail),
+                // so the new prompt has to be written AFTER the reset or it is
+                // wiped by the same click that set it.
+                handleReset()
+                setPrompt(idea.prompt)
+                // Deliberately does NOT auto-generate. On the free plan a credit
+                // is scarce and an accidental tap that silently spends one is a
+                // refund conversation, not a retention win. The tap buys the
+                // decision — which was the expensive part — and the user still
+                // presses Generate.
+                try {
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                } catch { /* ignore */ }
+              }}
             />
           )}
 

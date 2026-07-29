@@ -646,6 +646,66 @@ export interface WhisperWord {
   word: string
   start: number
   end: number
+  // KINEO-SPRINT-12H-2026-07-29 — true when this word is the LAST word of a
+  // Whisper SEGMENT whose text ends in `.` `!` `?`. Whisper's word-level
+  // tokens carry NO punctuation (verified against production output), which
+  // silently broke two things at once:
+  //   1. captions ran straight through a full stop — the narration "…think for
+  //      it. It's called Fugu" burned on screen as `IT IT'S CALLED`.
+  //   2. sentenceStartTimes() tested for `[.!?]$` on those same unpunctuated
+  //      tokens, so it ALWAYS returned [] and the Kineo-Beat-2026 cut aligner
+  //      below never fired once in production. Dead feature, no error.
+  // The SEGMENT stream does carry punctuation, so we ask for both granularities
+  // and stamp the boundary back onto the word timeline. Optional so every
+  // existing caller and every persisted payload stays valid.
+  sentenceEnd?: boolean
+}
+
+/**
+ * KINEO-SPRINT-12H-2026-07-29
+ * Stamp `sentenceEnd` onto the word timeline using the punctuation that only
+ * the SEGMENT stream carries.
+ *
+ * A segment is a contiguous span of audio with a punctuated `text`. If that
+ * text ends in `.` `!` or `?`, then the last word falling inside the segment's
+ * time range closes a sentence. We match by time, not by string, because the
+ * two streams tokenise differently ("63%" is one segment token and three word
+ * tokens) — time is the only field that means the same thing in both.
+ *
+ * Fails open: if segments are missing or malformed, every word comes back
+ * unmarked and callers behave exactly as they did before this function existed.
+ */
+export function markSentenceEnds(
+  words: WhisperWord[],
+  segments: Array<{ start?: number; end?: number; text?: string }>,
+): WhisperWord[] {
+  if (!Array.isArray(words) || words.length === 0) return words ?? []
+  if (!Array.isArray(segments) || segments.length === 0) return words
+
+  const out = words.map((w) => ({ ...w }))
+
+  for (const seg of segments) {
+    const text = (seg?.text ?? '').trim()
+    const end = seg?.end
+    if (!text || typeof end !== 'number' || !Number.isFinite(end)) continue
+    // Trailing closing quote/paren is allowed after the terminator, same shape
+    // the old regex in sentenceStartTimes tested for.
+    if (!/[.!?]["'”’)\]]?$/.test(text)) continue
+
+    // Last word that STARTS at or before this segment's end. A small epsilon
+    // absorbs the sub-frame disagreement between the two streams.
+    let idx = -1
+    for (let i = 0; i < out.length; i++) {
+      if (out[i].start <= end + 0.02) idx = i
+      else break
+    }
+    if (idx >= 0) out[idx].sentenceEnd = true
+  }
+
+  // The final word always closes the narration; marking it costs nothing and
+  // keeps the last caption chunk from swallowing a trailing fragment.
+  out[out.length - 1].sentenceEnd = true
+  return out
 }
 
 /**
@@ -674,11 +734,22 @@ export async function transcribeTTSWithTimestamps(buffer: Buffer): Promise<Whisp
       model: 'whisper-1',
       file: file as unknown as Parameters<typeof openai.audio.transcriptions.create>[0]['file'],
       response_format: 'verbose_json',
-      timestamp_granularities: ['word'],
+      // KINEO-SPRINT-12H-2026-07-29 — 'segment' added alongside 'word'. Same
+      // call, same cost, one extra array in the response. See WhisperWord
+      // .sentenceEnd for why: the word stream has no punctuation, the segment
+      // stream does. Without this the caption chunker cannot see a full stop
+      // and the beat aligner is permanently dead.
+      timestamp_granularities: ['word', 'segment'],
     } as Parameters<typeof openai.audio.transcriptions.create>[0])
     const words: WhisperWord[] = transcription?.words ?? []
-    console.log(`[compose] Whisper transcribed ${words.length} words`)
-    return words
+    const segments: Array<{ start?: number; end?: number; text?: string }> =
+      transcription?.segments ?? []
+    const marked = markSentenceEnds(words, segments)
+    console.log(
+      `[compose] Whisper transcribed ${marked.length} words, ${segments.length} segments, ` +
+        `${marked.filter((w) => w.sentenceEnd).length} sentence boundaries`,
+    )
+    return marked
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.warn('[compose] Whisper transcription failed, using proportional fallback:', msg)
@@ -790,6 +861,21 @@ export function mapWhisperTimingsToSegments(
  *   Caption text comes from Whisper, timing comes from Whisper — perfect
  *   sync is guaranteed regardless of how numbers or abbreviations are spoken.
  */
+/**
+ * KINEO-SPRINT-12H-2026-07-29 — comparison key for the anti-stutter guard.
+ * Strips punctuation and case so `it.` and `It's` compare as related tokens
+ * without an apostrophe or a capital letter defeating the check. Deliberately
+ * keeps internal letters intact: we only want to catch a repeat, never merge
+ * two genuinely different words.
+ */
+function normalizeCaptionWord(w: string): string {
+  return (w ?? '')
+    .toLowerCase()
+    .replace(/[^a-z0-9']/g, '')
+    .replace(/'s$/, '')
+    .trim()
+}
+
 export function buildCaptionsFromWhisperWords(
   words: WhisperWord[],
   totalAudioDuration: number,
@@ -805,9 +891,61 @@ export function buildCaptionsFromWhisperWords(
 
   const result: Array<{ text: string; time: number; duration: number; highlight: string | null }> = []
 
-  for (let i = 0; i < windowWords.length; i += maxWords) {
-    const chunk = windowWords.slice(i, i + maxWords)
-    const text = chunk.map((w) => w.word).join(' ').trim()
+  // KINEO-SPRINT-12H-2026-07-29 — chunk on MEANING, not on a modulo.
+  //
+  // The old loop sliced every `maxWords` words blind. With maxWords=3 (which is
+  // what the 212 users who generated a video actually got, and what the
+  // Hollywood builder still used) a slice routinely straddled a full stop and
+  // burned nonsense on screen: "…think for it. It's called…" rendered as the
+  // caption `IT IT'S CALLED`. That artefact is visible today in the product's
+  // own homepage proof reel.
+  //
+  // Two boundary signals, both fail-open:
+  //   (a) sentenceEnd — punctuation recovered from the Whisper segment stream.
+  //   (b) an audible pause between consecutive words. Whisper reports real
+  //       silence, and TTS puts ~0.25–0.5s at a full stop versus ~0.05s inside
+  //       a clause, so 0.28s separates them cleanly without needing (a).
+  // If neither ever fires, maxWords still closes the chunk and behaviour is
+  // identical to the previous implementation.
+  const SENTENCE_GAP_SECONDS = 0.28
+  const groups: WhisperWord[][] = []
+  {
+    let current: WhisperWord[] = []
+    for (let i = 0; i < windowWords.length; i++) {
+      const w = windowWords[i]
+      current.push(w)
+      const next = windowWords[i + 1]
+      const gap = next ? next.start - w.end : Number.POSITIVE_INFINITY
+      const boundary =
+        current.length >= maxWords ||
+        w.sentenceEnd === true ||
+        (Number.isFinite(gap) && gap >= SENTENCE_GAP_SECONDS)
+      if (boundary) {
+        groups.push(current)
+        current = []
+      }
+    }
+    if (current.length) groups.push(current)
+  }
+
+  for (let i = 0; i < groups.length; i++) {
+    const chunk = groups[i]
+    let chunkWords = chunk.map((w) => w.word)
+
+    // Anti-stutter guard. Even with clean boundaries, TTS repeats ("it. It's")
+    // and Whisper hesitation tokens can put the same word at the tail of one
+    // chunk and the head of the next. On screen that reads as a broken render.
+    const prevGroup = groups[i - 1]
+    const prevLast = prevGroup?.[prevGroup.length - 1]?.word ?? ''
+    if (
+      chunkWords.length > 1 &&
+      prevLast &&
+      normalizeCaptionWord(prevLast) === normalizeCaptionWord(chunkWords[0])
+    ) {
+      chunkWords = chunkWords.slice(1)
+    }
+
+    const text = chunkWords.join(' ').trim()
     if (!text) continue
 
     // Caption starts when its first word is spoken (+ sync offset).
@@ -820,7 +958,11 @@ export function buildCaptionsFromWhisperWords(
     const adjustedStart = i === 0 ? Math.max(0, rawStart) : Math.max(0, rawStart + CAPTION_SYNC_OFFSET)
 
     // Caption ends when next chunk's first word starts, or at window end.
-    const nextChunk = windowWords[i + maxWords]
+    // KINEO-SPRINT-12H-2026-07-29 — reads the next GROUP, not `windowWords[i +
+    // maxWords]`. Groups are now variable length, so the old fixed stride was
+    // pointing at an unrelated word the moment any chunk closed early on a
+    // sentence boundary — which would have stretched or truncated the caption.
+    const nextChunk = groups[i + 1]?.[0]
     const endTime = nextChunk ? nextChunk.start : captionWindowEnd
     // PUSH #93 (FIX 1) — captions may now run to the end of the narration, so
     // clamp the LAST chunk's tail to the window end. Without this the +0.15s
@@ -857,10 +999,18 @@ export function sentenceStartTimes(words: WhisperWord[]): number[] {
   if (!Array.isArray(words) || words.length === 0) return []
   const starts: number[] = []
   for (let i = 1; i < words.length; i++) {
-    const prev = (words[i - 1]?.word ?? '').trim()
+    const prev = words[i - 1]
     const t = words[i]?.start
     if (typeof t !== 'number' || !Number.isFinite(t)) continue
-    if (/[.!?]["'”’)\]]?$/.test(prev)) starts.push(t)
+    // KINEO-SPRINT-12H-2026-07-29 — primary signal is the `sentenceEnd` flag
+    // stamped from the Whisper SEGMENT stream (see markSentenceEnds). The old
+    // regex below is kept ONLY as a fallback for payloads persisted before this
+    // change and for the proportional path, where word text may be punctuated.
+    // Relying on the regex alone is what kept this function returning [] on
+    // every production render since the feature shipped.
+    if (prev?.sentenceEnd === true || /[.!?]["'”’)\]]?$/.test((prev?.word ?? '').trim())) {
+      starts.push(t)
+    }
   }
   return starts
 }
@@ -1712,6 +1862,31 @@ export function buildCreatomateSource({
     }
     if (!(segLen > 0.4)) segLen = round3(Math.min(slotLen, remaining))
     const url = cleanClips[i % cleanClips.length]
+    // KINEO-SPRINT-12H-2026-07-29 — RE-ENTRY OFFSET on recycled footage.
+    //
+    // A 45s Short cut every 2.5–4s needs 12–18 slots, and the B-roll search
+    // routinely returns 5–7 usable clips, so `i % cleanClips.length` shows the
+    // viewer the SAME shot, from the SAME first frame, two or three times. That
+    // is the single most legible "cheap AI video" tell there is, and it lands
+    // on the free tier — the tier whose output decides whether the 82% of users
+    // who make exactly one video ever make a second.
+    //
+    // Stock clips are typically 10–30s while a slot is 2.5–4s, so the later
+    // seconds of the file are footage nobody has seen. Entering the same file
+    // at a later timestamp on each reuse reads as a different shot, at zero
+    // cost and with no new dependency. `trim_start` is already used on this
+    // exact element (below), so this adds no new Creatomate surface.
+    //
+    // Conservative on purpose: the true duration of each clip is not known here
+    // (the B-roll search does not return it), so the offset is capped at ~6s.
+    // Creatomate clamps a trim_start past the end of a shorter file back to the
+    // start, which is the pre-existing behaviour — worst case we are exactly
+    // where we were, never broken.
+    const reuseIndex = Math.floor(i / cleanClips.length)
+    const clipTrimStart =
+      reuseIndex > 0
+        ? round3(CLIP_TRIM_START + Math.min(reuseIndex * (segLen + 0.6), 6))
+        : CLIP_TRIM_START
     // Push #292 — Ken Burns slow zoom. Alternate zoom-in / zoom-out so
     // consecutive clips don't feel like the same motion. start_scale 100%→108%
     // for even clips (zoom in), 108%→100% for odd clips (zoom out). The
@@ -1721,7 +1896,14 @@ export function buildCreatomateSource({
     // Fast Mode v2 (b) — MOVIMENTO: cycle a 4-step Ken Burns pattern (center
     // push/pull + anchored push-ins that read as lateral pans) so consecutive
     // cuts never repeat the same motion. Fast only; others keep #292 behavior.
-    const kb = isFastStock ? FAST_KEN_BURNS_PATTERN[i % FAST_KEN_BURNS_PATTERN.length] : null
+    // KINEO-SPRINT-12H-2026-07-29 — the pattern index is offset by the reuse
+    // pass as well as the slot index. Without the offset, a clip list whose
+    // length is a multiple of 4 (the pattern length) would pair every recycled
+    // clip with the identical camera move, undoing half the work of the
+    // re-entry offset above.
+    const kb = isFastStock
+      ? FAST_KEN_BURNS_PATTERN[(i + reuseIndex) % FAST_KEN_BURNS_PATTERN.length]
+      : null
     const elem: CreatomateElement = {
       type: 'video',
       track: 2,
@@ -1730,7 +1912,7 @@ export function buildCreatomateSource({
       source: url,
       fit: 'cover',
       loop: true,
-      trim_start: CLIP_TRIM_START,
+      trim_start: clipTrimStart, // KINEO-SPRINT-12H-2026-07-29 — see reuseIndex above
       x: '50%',
       y: '50%',
       width: '100%',
@@ -2481,7 +2663,7 @@ export function buildHollywoodCreatomateSource({
     // Track 5 — captions for this narrated block.
     if (Array.isArray(block.words) && block.words.length > 0) {
       // Whisper path: timings are relative to the block mp3 → shift by offset.
-      const caps = buildCaptionsFromWhisperWords(block.words, block.audioDuration, 0, 3)
+      const caps = buildCaptionsFromWhisperWords(block.words, block.audioDuration, 0, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK)
       for (const cap of caps) {
         const t = round3(block.time + cap.time)
         if (t >= captionWindowEnd) continue
@@ -2497,7 +2679,7 @@ export function buildHollywoodCreatomateSource({
       }
     } else if (block.text && block.text.trim()) {
       // Proportional fallback within the block window.
-      const segments = buildCaptionSegments(block.text, 3)
+      const segments = buildCaptionSegments(block.text, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK)
       const totalWords = segments.reduce((s, seg) => s + Math.max(1, wordCount(seg.text)), 0) || 1
       let elapsed = block.time
       const window = Math.max(1, Math.min(audioDur, captionWindowEnd - block.time))
@@ -2537,7 +2719,7 @@ export function buildHollywoodCreatomateSource({
       const winStart = round3(t + 0.3)
       const winEnd = round3(Math.min(t + durations[i] - 0.4, captionWindowEnd))
       const window = winEnd - winStart
-      const segments = buildCaptionSegments(line, 3)
+      const segments = buildCaptionSegments(line, /* KINEO-SPRINT-12H-2026-07-29: was a hardcoded 3. Hollywood is the most expensive tier and was the last place still slicing captions three-at-a-time, i.e. the only path still able to burn `IT IT'S CALLED` on screen. Track the same knob every other tier uses. */ CAPTION_WORDS_PER_CHUNK)
       if (window > 0.5 && segments.length > 0) {
         const slot = window / segments.length
         segments.forEach((seg, k) => {

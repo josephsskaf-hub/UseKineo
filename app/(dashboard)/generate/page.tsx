@@ -65,8 +65,25 @@ export default async function GeneratePage({ searchParams }: GeneratePageProps) 
       })
     }
     // Resolve missing/late auth on the server and preserve the complete local
-    // destination. The login page resumes this exact activation path.
-    redirect(`/login?redirect=${encodeURIComponent(path)}`)
+    // destination. The auth page resumes this exact activation path.
+    //
+    // KINEO-SPRINT-12H-2026-07-29 — send NEW visitors to /signup, not /login.
+    //
+    // "Video Generation" is an item in the PUBLIC nav on the marketing home
+    // (app/KineoLanding.tsx), so the most common visitor arriving here has
+    // never had an account. Showing that person a LOGIN form — a form built for
+    // people who already bought — asks them for a password they have never
+    // chosen. The cheapest possible read of that screen is "this isn't for me".
+    //
+    // A returning user is still routed to /login, detected by the Supabase auth
+    // cookie the client keeps after a first sign-in. When in doubt we choose
+    // /signup, because a returning user on /signup sees a "Log in" link one tap
+    // away, while a new user on /login sees a wall.
+    const hasPriorSession = cookies()
+      .getAll()
+      .some((c) => c.name.startsWith('sb-') && c.name.includes('auth-token'))
+    const authPath = hasPriorSession ? '/login' : '/signup'
+    redirect(`${authPath}?redirect=${encodeURIComponent(path)}`)
   }
 
   // PUSH #96 — this route is force-dynamic, so this Server Component re-runs

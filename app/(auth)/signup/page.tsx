@@ -44,6 +44,34 @@ function activationRedirectFromSearch(search: string): string {
   return `/generate?${activationParams.toString()}`
 }
 
+/**
+ * KINEO-SPRINT-12H-2026-07-29 — true when the page is running inside an app's
+ * embedded webview rather than a real browser.
+ *
+ * Google rejects OAuth from these with `disallowed_useragent`, so any auto
+ * redirect to Google from here is a guaranteed dead end for the buyer. Detected
+ * by the vendor markers each app appends to its UA string:
+ *   FBAN/FBAV — Facebook · Instagram — TikTok's `BytedanceWebview`/`musical_ly`
+ *   LinkedInApp · Twitter · Snapchat · Pinterest
+ * plus the generic Android `; wv)` webview flag and the iOS heuristic (Safari
+ * on iOS always reports "Safari"; an in-app WKWebView does not).
+ *
+ * Deliberately conservative: a false NEGATIVE just restores the old behaviour,
+ * while a false POSITIVE only means the buyer sees the ordinary signup form
+ * with the Google button on it. Neither outcome can lose a sale.
+ */
+function isEmbeddedBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const ua = navigator.userAgent || ''
+  if (/FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Snapchat|Pinterest|Line\/|MicroMessenger|BytedanceWebview|musical_ly|TikTok|Twitter/i.test(ua)) {
+    return true
+  }
+  if (/\bwv\b/.test(ua) || /; wv\)/.test(ua)) return true
+  const isIOS = /iPhone|iPad|iPod/i.test(ua)
+  if (isIOS && !/Safari/i.test(ua)) return true
+  return false
+}
+
 function scorePassword(pw: string): Strength {
   if (!pw) return { level: 0, label: '', color: '#475569' }
   if (pw.length < 6)
@@ -106,11 +134,31 @@ export default function SignupPage() {
   // the exact proven OAuth -> /auth/callback?next=<checkout> -> resume path. Fires once
   // per browser session (guard) so a Google cancel/return never loops; ?noauto=1 or the
   // email form below remain as fallbacks.
+  //
+  // KINEO-SPRINT-12H-2026-07-29 — the autostart is now SUPPRESSED inside
+  // embedded browsers, and this is a revenue fix, not a preference.
+  //
+  // Google has blocked OAuth inside embedded webviews since 2021: the request
+  // is rejected with `disallowed_useragent` before any account chooser renders.
+  // Kineo sells a SHORT-FORM VIDEO product — a large share of its traffic
+  // arrives from the in-app browsers of Instagram, TikTok, Facebook and
+  // LinkedIn, which are exactly those webviews. For every one of those buyers
+  // the old code path was a guaranteed dead end: they tapped a price, the page
+  // redirected to Google, Google refused, and they landed on an error screen
+  // holding a credit card. The email form underneath worked the whole time and
+  // they never saw it.
+  //
+  // The autostart stays enabled where it actually helps (real browsers), so the
+  // one-click win from 2026-07-23 is preserved rather than reverted.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const p = new URLSearchParams(window.location.search)
     if (p.get('reason') !== 'checkout') return
     if (p.get('noauto') === '1') return
+    if (isEmbeddedBrowser()) {
+      try { trackCheckoutAuthStep('method_selected', 'signup_page_webview', activationRedirectFromSearch(window.location.search), 'email') } catch { /* ignore */ }
+      return
+    }
     try { if (sessionStorage.getItem('kineo_checkout_google_autostart') === '1') return } catch { /* ignore */ }
     const nextDestination = activationRedirectFromSearch(window.location.search)
     const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextDestination)}`
