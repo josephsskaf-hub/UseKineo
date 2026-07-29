@@ -156,7 +156,16 @@ export default function SignupPage() {
     if (p.get('reason') !== 'checkout') return
     if (p.get('noauto') === '1') return
     if (isEmbeddedBrowser()) {
-      try { trackCheckoutAuthStep('method_selected', 'signup_page_webview', activationRedirectFromSearch(window.location.search), 'email') } catch { /* ignore */ }
+      // Recorded as the ordinary signup surface with the EMAIL method, because
+      // that is literally what the buyer is now shown. `AuthSurface` is a
+      // closed union consumed by the checkout-auth funnel
+      // (lib/authAnalytics.ts:4) and widening it here would silently split
+      // every existing funnel report in two. The webview detail belongs in
+      // its own event, not smuggled into the surface name.
+      try {
+        trackCheckoutAuthStep('method_selected', 'signup_page', activationRedirectFromSearch(window.location.search), 'email')
+        void trackEvent('checkout_oauth_autostart_suppressed', { reason: 'embedded_webview' })
+      } catch { /* ignore */ }
       return
     }
     try { if (sessionStorage.getItem('kineo_checkout_google_autostart') === '1') return } catch { /* ignore */ }

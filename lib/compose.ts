@@ -863,16 +863,22 @@ export function mapWhisperTimingsToSegments(
  */
 /**
  * KINEO-SPRINT-12H-2026-07-29 — comparison key for the anti-stutter guard.
- * Strips punctuation and case so `it.` and `It's` compare as related tokens
- * without an apostrophe or a capital letter defeating the check. Deliberately
- * keeps internal letters intact: we only want to catch a repeat, never merge
- * two genuinely different words.
+ *
+ * Strips surrounding punctuation and case ONLY, so `the.` and `The` compare
+ * equal. It deliberately does NOT stem: an earlier version stripped a trailing
+ * `'s`, which made `it` and `It's` compare equal and silently DELETED the word
+ * "It's" from the caption of the exact sentence this sprint set out to fix.
+ * Caught by the chunker test before it shipped.
+ *
+ * The guard is a narrow safety net for a genuine repeat ("the the"), nothing
+ * more. Sentence boundaries are handled upstream by sentenceEnd and the pause
+ * split — this must never be load-bearing, because anything it removes is a
+ * word the narrator actually said.
  */
 function normalizeCaptionWord(w: string): string {
   return (w ?? '')
     .toLowerCase()
-    .replace(/[^a-z0-9']/g, '')
-    .replace(/'s$/, '')
+    .replace(/^[^a-z0-9']+|[^a-z0-9']+$/g, '')
     .trim()
 }
 
