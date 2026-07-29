@@ -17,6 +17,43 @@ import AffiliateAutoTrigger from '@/components/AffiliateAutoTrigger'
 // banner de dashboard. Só para usuário logado — /referral exige sessão, e um
 // visitante deslogado clicando em "Get my link" cairia numa parede de login.
 import ReferralPromoBanner from '@/components/ReferralPromoBanner'
+import type { Metadata } from 'next'
+
+// KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
+//
+// WHAT WAS MEASURED (Google Search Console, sc-domain:usekineo.com, 29/07):
+//   55 pages indexed · 43 NOT indexed · 8 total clicks from web search, ever.
+//   26 of the 43 sit in "Discovered/Crawled — currently not indexed", which is
+//   Google saying it has already seen those money pages and judged them not
+//   worth the index.
+//
+// Meanwhile a `site:usekineo.com` search returns /avatar, /animate, /affiliate
+// and /signup — logged-in app screens — ranking with titles Google cached
+// BEFORE the rename: "AI Avatar Studio — ShortsForgeAI", "From $11.90/mo".
+// Neither that brand nor that price exists anywhere in this codebase any more.
+// So a searcher who finds Kineo today can be shown a dead brand at a price we
+// never charged, on a screen they cannot use without an account.
+//
+// Two costs, both real:
+//   1. Crawl budget. On a domain where Google is already declining 26 real
+//      landing pages, every crawl spent on an app screen is one not spent on a
+//      page built to convert.
+//   2. Brand. The stale snippet IS the first impression.
+//
+// WHY noindex AND NOT robots.txt Disallow — this order matters and getting it
+// backwards is a classic own-goal. `Disallow` blocks the CRAWL, and a page
+// Google cannot crawl is a page whose `noindex` Google can never read, so an
+// already-indexed URL would be frozen in the index with its stale title
+// forever. The correct sequence is: serve noindex (here), let Google re-crawl
+// and drop them, and only then consider blocking. `follow: true` is deliberate
+// — internal links from these pages keep passing signal while they age out.
+//
+// The public marketing twins are NOT affected: /ai-avatar, /viral-now and the
+// rest of the acquisition cluster live outside this route group and keep their
+// own metadata.
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+}
 
 export default async function DashboardLayout({
   children,

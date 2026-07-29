@@ -10,7 +10,26 @@ import { CANONICAL_SLUGS } from '@/lib/comparisons'
 const BASE = 'https://www.usekineo.com'
 // Advance this only when the public acquisition cluster materially changes.
 // Using the request time for every URL makes lastModified meaningless.
-const LAST_MODIFIED = new Date('2026-07-25T12:00:00.000Z')
+//
+// KINEO-ACQ-SPRINT-2026-07-29 — advanced from 2026-07-25. This is not a
+// cosmetic bump; the cluster materially changed and the old date is now a lie
+// that costs traffic.
+//
+// What changed: `site:usekineo.com` on 29/07 returns pages whose titles Google
+// cached BEFORE the usekineo rename — "AI Avatar Studio — ShortsForgeAI",
+// "From $11.90/mo". Neither string exists in this repo any more. The pages were
+// fixed; Google simply has not re-crawled them. A frozen `lastModified` tells
+// Google there is nothing new here, which is precisely the wrong signal when
+// the whole problem is a stale cache. Search Console for the same day: 55
+// indexed, 43 not, and 8 web-search clicks in the entire history of the site.
+//
+// `lastModified` is a hint, not a command — Google is free to ignore it. It is
+// paired with an IndexNow submission (scripts/submit-indexnow.mjs), which Bing
+// and Yandex DO act on quickly, and Bing is what backs ChatGPT search: the
+// single best-converting acquisition source Kineo has measured (docs/growth,
+// 23/07 — ChatGPT sent 4 signups and BOTH of the week's checkouts, Google sent
+// 1 session and zero).
+const LAST_MODIFIED = new Date('2026-07-29T12:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
