@@ -1,45 +1,5 @@
 # PROMPT DIÁRIO — Kineo
 
-> ## MUDANÇAS — 30/07/2026 (sessão B)
->
-> Cinco regras novas, cada uma paga com um erro real desta sprint. O prompt agendado
-> `kineo-sprint-diario` foi atualizado com todas.
->
-> **1. Contar SEMPRE excluindo contas internas.** A regra era "conte pessoas, não eventos";
-> faltava *"e não conte a si mesmo"*. Existem **17 contas internas/teste** no banco e elas
-> estavam dentro de todo número da operação. Custo: o placar dizia **3 planos pagos** quando o
-> real é **1** — duas eram do fundador. A conta principal dele tem 261 dos 575 vídeos do banco
-> (45%), então qualquer média por usuário sem esse filtro está errada por um fator grande.
-> Filtro: `email ilike 'josephsskaf%' or ilike 'josephskaf%' or ilike '%@shortsforgeai.com'
-> or ilike '%@mailinator.com' or ilike '%@example.com'`.
->
-> **2. Placar SEMANAL obrigatório, não só cumulativo.** Métrica cumulativa não sabe cair. Os
-> cadastros passaram de **178/semana (06/07) para 8/semana (27/07)** — queda de 95% — e o placar
-> subiu em todas as linhas durante essas três semanas. `group by date_trunc('week', created_at)`
-> em cadastros e em pessoas-com-vídeo, todo dia.
->
-> **3. `events` e `credit_debits` entram no placar.** A tabela `events` tem 14.467 linhas e
-> nenhuma consulta da operação a tocava. É a **única** superfície onde falha de entrega paga
-> aparece: `videos` não registra (a rota retorna antes de escrever a linha), `credit_debits` não
-> registra (o débito nem foi tentado) e o agregador da Vercel não registra (é `console.error`,
-> não exceção). Query fixa: `generation_stage_error` dos últimos 7 dias agrupado por
-> `metadata->>'reason'` e `metadata->>'error'`.
->
-> **4. Para ler HTML de produção, NÃO usar o `web_fetch` do workspace — ele serve cache.** Ele
-> devolveu o título antigo da home e eu quase abri um incidente de "o deploy não subiu"; código,
-> deploy e produção estavam certos. O que funciona: o fetch da Vercel
-> (`web_fetch_vercel_url`) com um **query param novo** (`?probe=title`). Segunda vez em dois dias
-> que cache produziu diagnóstico errado.
->
-> **5. Logs de runtime da Vercel dão timeout** em janelas maiores que ~1h. Escopar por
-> `deploymentId` e ≤ 1h — ou aceitar que não vai haver log e **instrumentar o código**, que foi o
-> que sobrou de fazer hoje.
->
-> **Frente que ficou cega:** PALAVRAS-CHAVE. A extensão Claude-in-Chrome estava desconectada nas
-> duas sessões de 30/07 → nenhum dado de Search Console, consultas ou CTR de marca. Virou o gate
-> nº 0 por ser o item mais barato da lista inteira.
-
-
 Copie o bloco da §1 e mande. Só troque a duração no topo.
 A §2 explica por que cada regra está lá — leia uma vez, depois esqueça.
 

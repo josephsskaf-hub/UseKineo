@@ -12,6 +12,27 @@ Ordenado por retorno. Marque `[x]` quando resolver — eu leio este arquivo toda
 
 ---
 
+## 🔴 0-zero. Dar push no commit de hoje — 10 segundos
+
+**Duplo clique em `scripts\push_only.bat`.** É isso.
+
+O commit **`583e6a6`** ("ENTREGA PAGA: o único cliente pagante teve 7 vídeos recusados em 26h")
+está feito e verificado localmente, com `tsc --noEmit` = `EXITCODE=0`. **Só falta empurrar** — e
+enquanto ele não subir, a correção da entrega paga **não está em produção**.
+
+Por que eu não empurrei: a credencial do GitHub vive no Windows Credential Manager e não existe
+dentro do container (`could not read Username for 'https://github.com'`). Commitar eu consigo,
+usando um `GIT_INDEX_FILE` alternativo em `/tmp` para contornar o `.git/index.lock` que o
+OneDrive recria — o push é a única parte que precisa da sua máquina.
+
+Criei `scripts\push_only.bat` hoje e é ele que você deve usar, **não** o `push_sprint_12h.bat`:
+aquele commita usando `scripts/acq_commit_msg.txt`, e rodá-lo agora arriscaria um commit vazio ou
+um commit com mensagem de sprint antiga. O novo só empurra e confere o remoto.
+
+Confirmação de que funcionou: `git ls-remote origin main` deve devolver `583e6a6…`.
+
+---
+
 ## 🔴 0. Reconectar a extensão Claude-in-Chrome — 2 min
 
 **O item mais barato da lista, e ele bloqueou um terço do placar hoje.**
