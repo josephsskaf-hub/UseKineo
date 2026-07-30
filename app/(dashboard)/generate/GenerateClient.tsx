@@ -6621,16 +6621,50 @@ export default function GenerateClient({
                         ? 'Downloaded. Post it — it\u2019s yours.'
                         : 'Take your video. It\u2019s yours to post.'}
                     </h3>
+                    {/* ═══════════════════════════════════════════════════════
+                        KINEO-READING-ORDER-2026-07-30 — a ordem dos BOTÕES foi
+                        corrigida hoje (KINEO-DELIVER-FIRST, logo abaixo). A ordem
+                        de LEITURA não foi, e é ela que a pessoa consome primeiro.
+
+                        Antes desta mudança, tudo isto vinha ACIMA do botão verde:
+                          "Free copy carries a small Kineo watermark…"
+                          "$4.90 today · then $9.90/month in 30 days"
+                        O botão certo já estava em primeiro lugar, mas o TEXTO ainda
+                        abria com o defeito do produto e com um preço — no instante
+                        exato em que a pessoa recebe o que esperou 2–4 minutos para
+                        ter. Consertar a ordem visual e deixar a verbal intacta
+                        resolve metade do problema.
+
+                        MEDIDO em 14 dias, contando PESSOAS: 26 dispararam Generate,
+                        17 concluíram vídeo e 5 BAIXARAM (29%). E o último evento
+                        registrado de 6 das 26 é justamente olhar esta tela
+                        (post_video_offer_viewed / video_share_card_impression) —
+                        esta é a tela onde a maioria encerra a relação com o produto.
+
+                        Agora, antes do download a pessoa lê só o que o arquivo É e
+                        onde postar. Marca d'água e preço descem para junto do botão
+                        de upsell, que é o lugar deles.
+
+                        DEPOIS do download (watermarkedDownloadConfirmed) a ordem se
+                        inverte de propósito: quem já tem o arquivo na mão pode ouvir
+                        a oferta primeiro, porque aí é conversa e não pedágio.
+                        ═══════════════════════════════════════════════════════ */}
                     <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                       {watermarkedDownloadConfirmed
                         ? 'Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds 25 credits.'
-                        : 'Free copy carries a small Kineo watermark. Starter rebuilds this exact video clean and adds 25 credits.'}
+                        : 'Finished and yours to keep — post it on YouTube Shorts, TikTok or Reels, and monetize it.'}
                     </p>
-                    <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                      {postVideoIntroPrice && postVideoRenewalPrice
-                        ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
-                        : 'Your first month is discounted · local price loads before checkout'}
-                    </p>
+                    {/* O preço só aparece ACIMA do download depois que a pessoa já
+                        baixou. Antes disso ele desce para junto do botão de upsell
+                        (ver o bloco do divisor, mais abaixo) — mesma razão da nota
+                        KINEO-READING-ORDER acima. */}
+                    {watermarkedDownloadConfirmed && (
+                      <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                        {postVideoIntroPrice && postVideoRenewalPrice
+                          ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
+                          : 'Your first month is discounted · local price loads before checkout'}
+                      </p>
+                    )}
                   </div>
                   {/* ═══════════════════════════════════════════════════════
                       KINEO-DELIVER-FIRST-2026-07-30 — ENTREGAR ANTES DE VENDER.
@@ -6688,11 +6722,32 @@ export default function GenerateClient({
                       ? 'Download again (free copy)'
                       : `Download my Short (${duration}s · MP4)`}
                   </a>
+                  {/* KINEO-READING-ORDER-2026-07-30 — o rótulo era "OR", e "OR"
+                      afirma uma exclusividade que não existe: baixar de graça NÃO
+                      impede assinar depois, e enquadrar as duas opções como
+                      alternativas fazia o download grátis parecer uma renúncia.
+                      Agora o divisor faz uma pergunta e o upsell é um upgrade, não
+                      um caminho concorrente. Depois do download o rótulo volta a ser
+                      neutro, porque aí a oferta já foi lida no topo do cartão. */}
                   <div className="flex items-center gap-3 my-3" aria-hidden>
                     <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
-                    <span style={{ color: 'var(--muted2)', fontSize: '0.68rem', fontWeight: 700 }}>OR</span>
+                    <span style={{ color: 'var(--muted2)', fontSize: '0.68rem', fontWeight: 700, letterSpacing: '.06em' }}>
+                      {watermarkedDownloadConfirmed ? 'OR' : 'WANT IT WITHOUT THE WATERMARK?'}
+                    </span>
                     <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
                   </div>
+                  {!watermarkedDownloadConfirmed && (
+                    <>
+                      <p className="text-xs text-center" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                        Starter rebuilds this exact video clean and adds 25 credits.
+                      </p>
+                      <p className="text-xs mt-1.5 text-center font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                        {postVideoIntroPrice && postVideoRenewalPrice
+                          ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
+                          : 'Your first month is discounted · local price loads before checkout'}
+                      </p>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={handleRemoveWatermark}

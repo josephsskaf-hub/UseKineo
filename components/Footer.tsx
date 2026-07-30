@@ -39,12 +39,38 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/widget', label: 'Shorts idea widget' },
       { href: '/state-of-ai-shorts-2026', label: 'State of AI Shorts 2026' },
       { href: '/partners', label: 'Affiliate program - 40% recurring' },
-      // PUSH #95 — the affiliate dashboard itself (40% recurring commission,
-      // signup + stats + payout link) had zero internal links anywhere in the
-      // app; /partners above is the marketing page, this is the second,
-      // clearer link straight to the dashboard for affiliates who already
-      // know the program.
-      { href: '/affiliate', label: 'Affiliate Program — 40% recurring' },
+      // ═══════════════════════════════════════════════════════════════════════
+      // KINEO-AFFILIATE-DEDUPE-2026-07-30 — o segundo link foi REMOVIDO daqui.
+      //
+      // O que existia: duas linhas consecutivas no rodapé com rótulo praticamente
+      // idêntico — 'Affiliate program - 40% recurring' (/partners) e
+      // 'Affiliate Program — 40% recurring' (/affiliate). Para quem lê, é um bug
+      // de duplicação; a diferença era só o hífen contra o travessão.
+      //
+      // Por que o de /affiliate saiu, e não o de /partners:
+      //   1. /affiliate vive no route group (dashboard), que serve `noindex,
+      //      follow` desde 29/07. Link de rodapé para página noindex não constrói
+      //      nada — só gasta crawl num domínio onde 21 landing pages REAIS nunca
+      //      foram rastreadas.
+      //   2. É uma tela logada. O rodapé é lido majoritariamente por visitante
+      //      anônimo, que clica e bate num muro de cadastro.
+      //   3. /partners é a página pública, indexável, que explica o modelo.
+      //
+      // MEDIDO em 30/07, história inteira do banco: `affiliate_clicks` = 0 e
+      // `affiliate_referrals` = 0. Zero cliques desde sempre, apesar de duas
+      // linhas de rodapé, uma página de marketing, uma tela de dashboard e quatro
+      // tabelas. Pela regra de morte do prompt diário, o programa de afiliados é
+      // uma alavanca morta — está registrado no relatório da sprint.
+      //
+      // O programa NÃO foi desligado: dormente ele não custa nada, e desligar
+      // uma promessa pública de 40% recorrente é decisão do fundador, não minha.
+      // O que eu tirei é a duplicação e o link que não podia funcionar.
+      //
+      // (Contexto do PUSH #95, que adicionou este link: na época /affiliate não
+      // tinha nenhum link interno no app. Isso continua verdade e continua certo
+      // resolver — mas o lugar é a Sidebar do usuário LOGADO, que já tem um
+      // (components/Sidebar.tsx), não o rodapé público.)
+      // ═══════════════════════════════════════════════════════════════════════
       { href: '/pricing', label: 'Pricing' },
       { href: '/signup', label: 'Start free' },
     ],
