@@ -6611,20 +6611,20 @@ export default function GenerateClient({
                       className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
                       style={{ color: '#2997ff' }}
                     >
-                      Choose your export
+                      {watermarkedDownloadConfirmed ? 'Want it clean?' : 'Your Short is ready'}
                     </div>
                     <h3
                       className="font-black tracking-tight"
                       style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.25 }}
                     >
                       {watermarkedDownloadConfirmed
-                        ? 'Your watermarked copy is downloaded'
-                        : 'Keep this exact video — without the Kineo watermark'}
+                        ? 'Downloaded. Post it — it\u2019s yours.'
+                        : 'Take your video. It\u2019s yours to post.'}
                     </h3>
                     <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                       {watermarkedDownloadConfirmed
-                        ? 'Upgrade any time to rebuild this exact video clean and keep creating.'
-                        : 'Start Starter and we rebuild this exact video clean. You also get 25 credits for clean Fast Shorts this month.'}
+                        ? 'Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds 25 credits.'
+                        : 'Free copy carries a small Kineo watermark. Starter rebuilds this exact video clean and adds 25 credits.'}
                     </p>
                     <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
                       {postVideoIntroPrice && postVideoRenewalPrice
@@ -6632,17 +6632,78 @@ export default function GenerateClient({
                         : 'Your first month is discounted · local price loads before checkout'}
                     </p>
                   </div>
+                  {/* ═══════════════════════════════════════════════════════
+                      KINEO-DELIVER-FIRST-2026-07-30 — ENTREGAR ANTES DE VENDER.
+
+                      MEDIDO, 30 dias até 30/07, contando PESSOAS:
+                        243 dispararam Generate · 134 tiveram vídeo CONCLUÍDO
+                        · 27 BAIXARAM.  20%.
+                      107 pessoas esperaram 2–4 minutos, viram o vídeo pronto na
+                      tela, e foram embora sem ele.
+
+                      A tela explicava por quê. No instante em que a pessoa
+                      finalmente recebe o que veio buscar, o cabeçalho dizia o que
+                      havia de ERRADO com aquilo ("sem a marca d'água"), o botão
+                      grande pedia cartão, e o download — a coisa que ela esperou
+                      — ficava abaixo de um divisor "OR". O usuário PAGO, no ramo
+                      logo abaixo, sempre teve o oposto: "Download is the primary
+                      CTA (big green button)".
+
+                      Custa duas vezes, não uma. Além do download perdido, mata a
+                      distribuição: app/api/compose/route.ts diz, com todas as
+                      letras, que "the downloadable watermark + end card are the
+                      organic distribution loop". Todo vídeo com marca que é
+                      postado leva a Kineo a uma audiência nova. Segurar o
+                      download para vender $4,90 desliga o próprio canal orgânico
+                      — e o placar da empresa é 0 assinatura recorrente na
+                      história inteira, então o que estava sendo protegido não
+                      estava rendendo.
+
+                      Agora: o vídeo primeiro, verde e inteiro, igual ao pago. O
+                      upsell continua na mesma tela, logo abaixo, e fica mais
+                      forte DEPOIS do download (watermarkedDownloadConfirmed já
+                      trocava o texto — só faltava a ordem acompanhar). Vender
+                      para quem tem o arquivo na mão é uma conversa; vender para
+                      quem ainda não recebeu nada é um pedágio.
+                      ═══════════════════════════════════════════════════════ */}
+                  <a
+                    href={finalVideoUrl}
+                    onClick={handleDownload}
+                    download={`${slugifyTitle(analysis?.title) || `kineo-${duration}s`}.mp4`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl mt-4 py-3.5 px-3 text-[15px] font-black"
+                    style={{
+                      background: watermarkedDownloadConfirmed
+                        ? 'rgba(34,197,94,.10)'
+                        : 'linear-gradient(135deg, #22C55E, #15803D)',
+                      border: watermarkedDownloadConfirmed ? '1px solid rgba(34,197,94,.35)' : 'none',
+                      color: watermarkedDownloadConfirmed ? '#4ade80' : '#fff',
+                      textDecoration: 'none',
+                      boxShadow: watermarkedDownloadConfirmed ? 'none' : '0 8px 24px rgba(34,197,94,.30)',
+                    }}
+                  >
+                    <span>{watermarkedDownloadConfirmed ? '✓' : '⬇'}</span>
+                    {watermarkedDownloadConfirmed
+                      ? 'Download again (free copy)'
+                      : `Download my Short (${duration}s · MP4)`}
+                  </a>
+                  <div className="flex items-center gap-3 my-3" aria-hidden>
+                    <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
+                    <span style={{ color: 'var(--muted2)', fontSize: '0.68rem', fontWeight: 700 }}>OR</span>
+                    <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
+                  </div>
                   <button
                     type="button"
                     onClick={handleRemoveWatermark}
                     disabled={wmCheckout.pending !== null}
-                    className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center text-white"
+                    className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center"
                     style={{
-                      background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
-                      border: 'none',
+                      background: 'rgba(41,151,255,.10)',
+                      border: '1px solid rgba(41,151,255,.45)',
+                      color: '#5cb3ff',
                       cursor: wmCheckout.pending ? 'wait' : 'pointer',
                       opacity: wmCheckout.pending ? 0.7 : 1,
-                      boxShadow: '0 8px 24px rgba(41,151,255,.34)',
                     }}
                   >
                     {wmCheckout.pending ? (
@@ -6663,30 +6724,6 @@ export default function GenerateClient({
                       {wmCheckout.error}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 my-3" aria-hidden>
-                    <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
-                    <span style={{ color: 'var(--muted2)', fontSize: '0.68rem', fontWeight: 700 }}>OR</span>
-                    <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
-                  </div>
-                  <a
-                    href={finalVideoUrl}
-                    onClick={handleDownload}
-                    download={`${slugifyTitle(analysis?.title) || `kineo-${duration}s`}.mp4`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center justify-center gap-2 w-full rounded-xl py-3 px-3 text-sm font-bold"
-                    style={{
-                      background: watermarkedDownloadConfirmed ? 'rgba(41,151,255,.08)' : 'rgba(255,255,255,.05)',
-                      border: watermarkedDownloadConfirmed ? '1px solid rgba(41,151,255,.3)' : '1px solid var(--border2)',
-                      color: watermarkedDownloadConfirmed ? '#5cb3ff' : 'var(--text)',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    <span>{watermarkedDownloadConfirmed ? '✓' : '⬇'}</span>
-                    {watermarkedDownloadConfirmed
-                      ? 'Download the free watermarked copy again'
-                      : `Download free with Kineo watermark (${duration}s · MP4)`}
-                  </a>
                   <p className="text-center mt-2" style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45 }}>
                     Free export stays available · secure checkout · no hidden fees
                     {postVideoCurrency ? ` · prices in ${CURRENCY_DISPLAY[postVideoCurrency].label}` : ''}
