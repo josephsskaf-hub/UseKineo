@@ -12,6 +12,47 @@ Ordenado por retorno. Marque `[x]` quando resolver — eu leio este arquivo toda
 
 ---
 
+## ✅ RESOLVIDO NA SPRINT D (30/07, 19h) — leia antes do resto
+
+**Os dois gates `0-zero` acabaram.** O fundador liberou o computador durante a sprint, o
+`push_only.bat` v2 rodou, `b6fef68..83ce18a` subiu e o deploy `dpl_3xjP5CMnyLU6dQhtSgW25MBMCir9`
+está READY em produção. Verificado **por conteúdo** (REGRA 4), não por ancestralidade:
+`git show 83ce18a:"app/api/compose/status/[renderId]/route.ts" | grep -c KINEO-PAID-DELIVERY` → **2**.
+
+**E a entrega paga foi consertada sem depender disso.** A causa real não era código: o papel
+`authenticated` tinha perdido `EXECUTE` em `debit_video_credits`, derrubado pela migration
+`20260723184959 lock_debit_rpcs_from_public`. Resultado medido: **25 renders de 12 pessoas
+desde 23/07 15:19Z, 0 débitos, 100% dos vídeos limpos destruídos depois de prontos** — 8 deles
+do único cliente com plano pago ativo. Corrigido direto no Postgres pela migration
+`kineo_debit_grant_2026_07_30_restore_paid_delivery`. Detalhe completo em `docs/SPRINT-2026-07-30-D.md`.
+
+---
+
+## 🔴 NOVO A. Conectar a extensão Claude-in-Chrome — 2 minutos, destrava 3 frentes
+
+Quarta sprint seguida sem Search Console, sem Bing e sem submissão a diretório: as ferramentas de
+browser respondem **"Claude in Chrome is not connected"**. Não é senha nem conta — é a extensão.
+
+1. Instalar: <https://chromewebstore.google.com/detail/fcoeoabgfenejglbffodgkkbkcdhcgfn>
+2. Abrir o painel lateral do Claude no Chrome e entrar **com a mesma conta deste app**.
+
+Com isso eu passo a ler o Search Console sozinho, medir o decaimento do TAAFT e submeter a
+diretórios onde você já esteja logado — que é a frente de aquisição que está parada.
+
+---
+
+## 🔴 NOVO B. Autorizar o e-mail de win-back — 12 pessoas, a lista mais qualificada que existe
+
+Doze pessoas tiveram **25 vídeos prontos destruídos** entre 23 e 30/07 por culpa nossa. Elas
+atravessaram o funil inteiro — mais gente do que qualquer diretório trouxe no mesmo período — e
+saíram de mãos vazias. A lista nominal está em `docs/SPRINT-2026-07-30-D.md` §7.
+
+Preciso do seu "pode mandar" para disparar. O texto não vende nada: admite a falha, avisa que
+nenhum crédito foi debitado e pede um clique em Generate. Para `valos87196@gouziben.com` (pagante,
+75 créditos intactos, 8 tentativas frustradas) vale contato direto antes do e-mail.
+
+---
+
 ## 🔴 0-zero-A. Liberar computer-use na tarefa agendada — 1 minuto, resolve o push PARA SEMPRE
 
 **Este item destrava o de baixo permanentemente, e nenhuma sprint futura precisa dele de novo.**
@@ -33,9 +74,25 @@ entrega paga 6h parada em 29/07 e o que mantém a de UX pós-vídeo parada agora
 
 ---
 
-## 🔴 0-zero. Um commit esperando push — 10 segundos
+## 🔴 0-zero. DOIS commits esperando push — 10 segundos
 
 **Duplo clique em `scripts\push_only.bat`.** É a única coisa da lista que leva segundos.
+
+> 🚨 **30/07, relatório das 21h — o `push_only.bat` v1 teria APAGADO a correção da entrega paga.**
+> A v1 rodava `git add <2 caminhos>` seguido de `git commit`. **`git commit` sem `-a` commita o
+> índice inteiro**, não os caminhos do `add`. E o `.git\index` deste repo está envenenado com uma
+> cópia velha que marca a remoção de **876 linhas em 7 arquivos** — inclusive as 85 linhas da
+> correção da entrega paga, o `Footer.tsx` e as sprints B e C. Clicar no v1 repetiria o acidente do
+> `b6fef68` sobre o trabalho recém-restaurado, e desta vez **empurraria** o estrago.
+> **Já corrigido:** `scripts/push_only.bat` agora é v2 — apaga os locks, roda `git reset --mixed`
+> (desarma o índice, não toca em arquivo nenhum do disco) e **só empurra**. Não commita mais nada.
+> O v2 em si ficou sem commit: o `.git\HEAD.lock` que a sprint C deixou não pode ser apagado de
+> dentro do container. Ele funciona no disco do mesmo jeito; um `git add scripts/push_only.bat`
+> numa sprint futura resolve.
+
+**Commits locais aguardando push:** `e7fd432` (UX pós-vídeo) e `83ce18a` (restaura a entrega paga
++ `failure_reason`). Produção está em `b6fef68` — confirmado no deploy `dpl_J3VFJ6C7m7MTaGWvCUD7pRHim7H5`,
+READY, e `git cat-file b6fef68:route.ts` tem **0** marcadores `KINEO-PAID-DELIVERY`.
 
 > ⚠️ **CORRIGIDO EM 30/07 (sprint C): a linha "583e6a6 ✅ no ar" abaixo estava ERRADA.**
 > O commit está no histórico, mas o commit seguinte (`b6fef68`) **apagou as 70 linhas de código
