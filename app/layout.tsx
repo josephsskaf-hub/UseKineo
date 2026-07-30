@@ -46,9 +46,35 @@ export const viewport: Viewport = {
 // page increases relevance score → better Ad Rank → higher CTR.
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
-  title: 'Kineo AI YouTube Shorts Generator · $4.90 First Month',
+  // KINEO-BRAND-SERP-2026-07-29 — reescrito para INTENÇÃO DE MARCA.
+  //
+  // O QUE OS DADOS DIZEM (Search Console, 28 dias encerrando 27/07):
+  //   231 impressões · 8 cliques · posição média 22,4. E as consultas com mais
+  //   impressão são TODAS a própria marca:
+  //     kineo 10 · cineo 10 (erro de digitação) · kineo ai 9 · compare kineo 7
+  //     · creeo 3  →  ~39 impressões de marca, ZERO clique.
+  //
+  // Busca de marca converte a 30–60% de CTR em qualquer produto saudável.
+  // A da Kineo é 0%. Quem digita o nome já decidiu procurar a empresa; se não
+  // clica, é porque o resultado não parece ser a empresa que ele procura.
+  //
+  // Três defeitos no título antigo, todos no momento exato de verificação:
+  //   1. Liderava com DESCONTO ("$4.90 First Month"). Lê como anúncio, não como
+  //      site oficial.
+  //   2. Preço como STRING LITERAL em metadata — o padrão que AGENTS.md §2.3
+  //      proíbe, e que já produziu três vazamentos. Concretamente: a ficha do
+  //      TAAFT foi corrigida para "$9.90/mo" em 29/07, então quem vinha de lá
+  //      via $9,90 e depois $4,90, um contradizendo o outro.
+  //   3. A descrição vendia mecânica do free tier ("3 watermarked Fast videos
+  //      every 24h") em vez de responder "sim, é esta empresa e ela faz isto".
+  //
+  // O novo lidera com o nome (casa com a consulta), diz o que é em linguagem
+  // simples, marca "Official Site" como âncora de confiança para busca de
+  // marca, e não carrega preço nenhum — preço vive em lib/checkoutPricing.ts e
+  // em /pricing, que é onde ele pode mudar sem mentir em quatro lugares.
+  title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
   description:
-    'Launch a repeatable AI Shorts show with the same face, voice and style. Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card. Paid plans unlock clean MP4s.',
+    'Kineo turns one topic into a finished faceless YouTube Short — script, AI voiceover, matched footage and burned-in captions, usually in 2–4 minutes. 3 free videos every 24h, no card.',
   // PUSH #92 — P0 canonical bug fix: a root-level `alternates.canonical` was
   // shallow-merged onto every page in the tree that doesn't declare its own,
   // which told Google every un-canonicalized page is a duplicate of `/`
