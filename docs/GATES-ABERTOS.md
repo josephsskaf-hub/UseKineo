@@ -5,6 +5,41 @@
 
 Ordenado por retorno. Marque `[x]` quando resolver — eu leio este arquivo toda manhã.
 
+> **REORDENADO EM 30/07** pelos dados de `docs/SPRINT-2026-07-30-B.md` §4. O TAAFT subiu para
+> primeiro: é o canal nº 1 em volume **e** em qualidade (81 cadastros, 32,1% de ativação,
+> **metade dos compradores da história**) e está decaindo **48 → 16 → 9 → 5 por semana**.
+> Os cadastros semanais caíram 178 → 8 em três semanas, e o TAAFT explica quase toda a queda.
+
+---
+
+## 🔴 0. Reconectar a extensão Claude-in-Chrome — 2 min
+
+**O item mais barato da lista, e ele bloqueou um terço do placar hoje.**
+
+Em 30/07 a extensão estava desconectada nas duas sessões. Sem ela não há Search Console:
+zero dado de indexação, de consultas e de **CTR de marca** — que é a métrica de saúde mais
+sensível que temos e a origem do achado de 29/07. Duas sprints seguidas sem esse número e a
+frente de PALAVRAS-CHAVE fica cega.
+
+1. Extensão: https://chromewebstore.google.com/detail/fcoeoabgfenejglbffodgkkbkcdhcgfn
+2. Abrir o painel lateral do Claude no Chrome e entrar com a mesma conta do app.
+
+---
+
+## 🔴 0-bis. Um cliente pagante está sem receber — precisa de uma palavra sua
+
+**Não é aquisição. É o único cliente pagante ativo da empresa.**
+
+`valos87196@…` (Austrália, plano `basic`, 75 créditos) teve **7 vídeos limpos recusados entre
+29/07 e 30/07**, cada um com a mensagem errada dizendo para ele conferir o saldo. O saldo
+sempre esteve certo. O último vídeo que ele recebeu foi 10/07 — o dia em que passou a pagar.
+
+Corrigi a causa no código hoje (sessão B §2), mas **os 7 vídeos dele foram perdidos** e ele não
+recebeu nenhuma explicação. Deixei um rascunho de e-mail de desculpa + oferta de entrega manual
+na pasta de saída da sessão (fora do git, porque tem e-mail de cliente e o repo é público).
+
+**Bloqueio:** disparar e-mail é seu gate. 5 minutos.
+
 ---
 
 ## 🔴 1. Bing Webmaster Tools — 10 min
@@ -20,6 +55,19 @@ Ordenado por retorno. Marque `[x]` quando resolver — eu leio este arquivo toda
 ## 🔴 2. TAAFT — pedir 5 avaliações reais — 15 min
 
 **Link:** https://theresanaiforthat.com/ai/kineo/
+
+> **30/07 — este item virou o de maior retorno da lista.** Medido: TAAFT = **81 cadastros**,
+> **32,1% de ativação** (contra 28,7% da base) e **2 dos 4 compradores da história**. É o melhor
+> canal em volume E em qualidade. E está morrendo: **48 → 16 → 9 → 5** cadastros por semana.
+> Dois fatos novos que mudam como pedir:
+> · `free.theresanaiforthat.com` (42 cadastros) já passou o domínio principal (40) — a rota
+>   gratuita é a que está entregando;
+> · **`antonia@theresanaiforthat.com` tem conta na Kineo, com 5 vídeos concluídos e 85 créditos.**
+>   Alguém do TAAFT usou o produto de verdade. É o contato mais valioso que a empresa tem e
+>   ninguém sabia que existia.
+>
+> Lista de candidatos reais a avaliação (por vídeos concluídos, com país e origem) está na pasta
+> de saída da sessão — fora do git, porque tem e-mail de cliente.
 
 **Situação:** nota **3,0 de apenas 2 avaliações** (uma 5★, uma 1★). O bloco de Prós/Contras é gerado pela plataforma a partir dessas duas reviews — não é editável, e não deveria ser.
 
@@ -61,6 +109,13 @@ Verifiquei HTTP e inspecionei HTML em 29/07. Todos gratuitos, todos vivos:
 **Não perca tempo:** launch-list.org, startupstash.com, aitoolhunt.com, crozdesk.com, toolpilot.ai — todos **404** em 29/07. Futurepedia cobra **$247–497** e é o pior retorno da lista.
 
 **Por que importa mais do que parece:** domínio de 3 meses sem backlink não ranqueia, por melhor que seja o SEO on-page — e o SEO on-page da Kineo já está muito acima da média do estágio. **Autoridade é a variável que falta, e ela só vem de fora.**
+
+> **30/07 — prova empírica de que isso funciona neste nicho, e ela apareceu sozinha.**
+> **`topai.tools` trouxe 12 cadastros** e não está em documento nenhum: ninguém submeteu a Kineo
+> lá, o diretório indexou por conta própria. `uneed.best` trouxe 1 pelo mesmo caminho.
+> Doze cadastros de um diretório que recebeu **zero esforço** é o melhor argumento que existe
+> para os ~20 diretórios desta lista que recebem esforço nenhum. Acrescente
+> **topai.tools** e **uneed.best** à lista de submissão — os dois já nos conhecem.
 
 **Bloqueio:** cada um exige criar conta.
 
