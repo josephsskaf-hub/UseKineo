@@ -12,20 +12,60 @@ Ordenado por retorno. Marque `[x]` quando resolver — eu leio este arquivo toda
 
 ---
 
-## ✅ 0-zero. Push da correção de entrega paga — **JÁ ESTÁ EM PRODUÇÃO, nada a fazer**
+## 🔴 0-zero-A. Liberar computer-use na tarefa agendada — 1 minuto, resolve o push PARA SEMPRE
 
-Deixo registrado para você não gastar um minuto com isso.
+**Este item destrava o de baixo permanentemente, e nenhuma sprint futura precisa dele de novo.**
 
-A correção de entrega paga (`583e6a6`) e os gates (`b6fef68`) **subiram e estão no ar**:
+Em 30/07 (sprint C) tentei rodar o `push_only.bat` sozinho, pelo caminho que o próprio
+`CLAUDE.md` do projeto prescreve. Não é possível — e o motivo não estava documentado:
 
-- `origin/main` = `b6fef68`
-- deploy `dpl_J3VFJ6C7m7MTaGWvCUD7pRHim7H5` · **READY** · target production · alias `www.usekineo.com`
-- `tsc --noEmit` = `EXITCODE=0` antes do commit
+> `Computer-use access can't be approved during a scheduled run. To grant it, send a message in
+> this conversation, or add the app to the scheduled task's settings.`
 
-Criei `scripts\push_only.bat` para as próximas vezes. **Use ele, não o `push_sprint_12h.bat`** —
-aquele commita usando `scripts/acq_commit_msg.txt` e arriscaria um commit com mensagem de sprint
-antiga. O novo apaga os dois locks do OneDrive, commita só os caminhos explícitos que ficaram de
-fora, empurra e confere o remoto no fim.
+As quatro sprints do dia rodam agendadas. Nenhuma delas consegue clicar em nada, hoje.
+
+**O que fazer:** nas configurações da tarefa `kineo-sprint-diario`, adicionar **Explorador de
+Arquivos** (e, se aparecer a opção, **Git Bash**) à lista de apps autorizados. A partir daí eu
+empurro os commits sozinho e o gate 0-zero deixa de existir.
+
+**Enquanto isso não acontece, todo commit meu espera você.** Foi o que manteve uma correção de
+entrega paga 6h parada em 29/07 e o que mantém a de UX pós-vídeo parada agora.
+
+---
+
+## 🔴 0-zero. Um commit esperando push — 10 segundos
+
+**Duplo clique em `scripts\push_only.bat`.** É a única coisa da lista que leva segundos.
+
+> ⚠️ **CORRIGIDO EM 30/07 (sprint C): a linha "583e6a6 ✅ no ar" abaixo estava ERRADA.**
+> O commit está no histórico, mas o commit seguinte (`b6fef68`) **apagou as 70 linhas de código
+> dele**. Produção nunca recebeu a correção da entrega paga. Detalhe em `docs/SPRINT-2026-07-30-C.md`
+> §1. **O push agora é urgente, não cosmético: é o que restaura a entrega para o único cliente
+> pagante.**
+
+| Commit | O quê | Estado |
+|---|---|---|
+| `583e6a6` | Correção da entrega paga | ❌ **NO HISTÓRICO, MAS APAGADA POR `b6fef68`** |
+| `b6fef68` | `push_only.bat` + gates — e a reversão acidental acima | ✅ no ar (com o estrago) |
+| **`e7fd432`** | **UX pós-vídeo: ordem de leitura + rodapé de afiliado** | ⏳ **falta push** |
+| **`<sprint C>`** | **Restaura a correção da entrega paga + `failure_reason`** | ⏳ **falta push** |
+
+Os dois primeiros já subiram — deploy `dpl_J3VFJ6C7m7MTaGWvCUD7pRHim7H5`, READY, alias
+`www.usekineo.com`. O terceiro está commitado e verificado localmente (`tsc --noEmit` =
+`EXITCODE=0`) e **enquanto não subir, a mudança da tela pós-vídeo não está em produção** — que é
+justamente a tela onde 6 de 26 pessoas encerram a relação com o produto.
+
+Por que eu não empurro: a credencial do GitHub vive no Windows Credential Manager e não existe
+dentro do container (`could not read Username for 'https://github.com'`). Commitar eu consigo,
+contornando o `.git/index.lock` do OneDrive com um `GIT_INDEX_FILE` em `/tmp`. O push é a única
+parte que precisa da sua máquina.
+
+**Use `push_only.bat`, não `push_sprint_12h.bat`** — aquele commita usando
+`scripts/acq_commit_msg.txt` e arriscaria um commit com mensagem de sprint antiga. O novo apaga os
+dois locks do OneDrive, commita por caminho explícito só o que ficou de fora (nunca `git add -A`,
+por causa dos ~175 arquivos de ruído CRLF), empurra e confere o remoto no fim.
+
+Confirmação de que funcionou: `git ls-remote origin main` deve devolver `e7fd432…` ou mais recente.
 
 ---
 
@@ -135,6 +175,26 @@ Verifiquei HTTP e inspecionei HTML em 29/07. Todos gratuitos, todos vivos:
 > **topai.tools** e **uneed.best** à lista de submissão — os dois já nos conhecem.
 
 **Bloqueio:** cada um exige criar conta.
+
+---
+
+## 🟡 4-bis. Pagar uma vez torna o produto mais caro de usar — decisão de oferta, sua
+
+**Achado da sprint C, §2.1. Não é bug: é a regra funcionando como escrita.**
+
+`lib/credits/engineCost.ts:44` → `return isPaidUser ? 1 : 0`. Quem tem `has_paid=true` passa a
+gastar **1 crédito por vídeo Fast**; quem nunca pagou gasta **0** e gera à vontade (com marca
+d'água). Os três compradores avulsos ficaram em `plan='free'` com saldo finito — 10, 20 e 10
+créditos. Quando o saldo acabar, **quem pagou US$ 4,90 fica impedido de fazer o vídeo que qualquer
+visitante anônimo faz de graça.**
+
+Hoje **ninguém está em saldo zero**, então isso não custou cliente ainda. Mas os três compradores
+avulsos sumiram entre 3 e 13 dias depois de comprar, e a empresa tem **0 assinaturas recorrentes na
+história**.
+
+**Não mexi**: preço tem fonte única (`lib/checkoutPricing.ts`) e regra de oferta é sua.
+Minha recomendação, se quiser: dar ao comprador avulso o mesmo Fast gratuito que o visitante tem, e
+cobrar crédito só pelo export limpo. A compra passa a somar em vez de subtrair.
 
 ---
 

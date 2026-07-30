@@ -1,5 +1,81 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇAS — 30/07/2026 (sessão C)
+>
+> Três regras novas. A primeira é a mais cara já registrada aqui: ela destrói trabalho já
+> verificado, sem deixar rastro, e enganou duas sprints seguidas.
+>
+> **1. `cp .git/index` para `/tmp` é PROIBIDO. Use `git read-tree HEAD` num índice novo.**
+> O contorno do lock do OneDrive (`GIT_INDEX_FILE` em `/tmp`) estava documentado sem essa
+> ressalva. Copiar `.git/index` copia um índice possivelmente **obsoleto**; um `git add` por
+> caminho em cima dele preserva a versão velha de *todos os outros arquivos*. O commit sai
+> parecendo cirúrgico e **reverte silenciosamente o commit anterior**.
+> Custo real: `b6fef68` ("CHORE: push_only.bat e gates") apagou as **70 linhas da correção de
+> entrega paga** de `583e6a6`, mais `PROMPT-DIARIO.md` (−40) e `SPRINT-2026-07-30-B.md` (−199) —
+> e foi esse commit que subiu para produção. O único cliente pagante ficou o dia inteiro sem a
+> correção que os gates declaravam "no ar". Eu reproduzi o mesmo erro nesta sessão e só peguei na
+> conferência do `--stat`.
+>
+> **2. `git merge-base --is-ancestor` NÃO prova que uma correção está em produção.**
+> Prova apenas que o commit está no histórico. Um commit posterior pode ter apagado o conteúdo.
+> **Verificar sempre pelo CONTEÚDO** — um marcador único no código
+> (`git show <deploy>:<arquivo> | grep -c KINEO-<TAG>`), nunca pela topologia do grafo.
+> Foi essa confusão que produziu o "✅ no ar" falso nos gates.
+>
+> **3. "Zero erros" só é notícia junto com o denominador.** Após o deploy das 15:38Z havia
+> 0 erros — e **1 geração**. Zero sobre um não é evidência de nada, e aqui era ativamente
+> enganoso, porque o código consertado nem estava rodando. Todo número de falha vai acompanhado
+> do volume que o gerou.
+>
+> **4. Placar: "pagante" tem três definições e todas vão juntas.** Já compraram alguma vez
+> (`has_paid=true`) = 4 · plano pago ativo = 1 · assinaturas recorrentes na história = 0. As
+> sprints A/B reportaram "1" e o SQL do prompt devolve "4"; ambos certos, perguntas diferentes.
+> Reportar só uma delas foi o modo de falha "medir de fonte diferente a cada dia".
+>
+> **5. Computer-use não existe em execução agendada.** O `CLAUDE.md` manda empurrar via computer
+> use, e as quatro sprints do dia rodam agendadas — logo, nenhuma consegue. Não gastar chamadas
+> tentando. Saída: adicionar os apps às configurações da tarefa agendada (gate 0-zero-A).
+
+> ## MUDANÇAS — 30/07/2026 (sessão B)
+>
+> Cinco regras novas, cada uma paga com um erro real desta sprint. O prompt agendado
+> `kineo-sprint-diario` foi atualizado com todas.
+>
+> **1. Contar SEMPRE excluindo contas internas.** A regra era "conte pessoas, não eventos";
+> faltava *"e não conte a si mesmo"*. Existem **17 contas internas/teste** no banco e elas
+> estavam dentro de todo número da operação. Custo: o placar dizia **3 planos pagos** quando o
+> real é **1** — duas eram do fundador. A conta principal dele tem 261 dos 575 vídeos do banco
+> (45%), então qualquer média por usuário sem esse filtro está errada por um fator grande.
+> Filtro: `email ilike 'josephsskaf%' or ilike 'josephskaf%' or ilike '%@shortsforgeai.com'
+> or ilike '%@mailinator.com' or ilike '%@example.com'`.
+>
+> **2. Placar SEMANAL obrigatório, não só cumulativo.** Métrica cumulativa não sabe cair. Os
+> cadastros passaram de **178/semana (06/07) para 8/semana (27/07)** — queda de 95% — e o placar
+> subiu em todas as linhas durante essas três semanas. `group by date_trunc('week', created_at)`
+> em cadastros e em pessoas-com-vídeo, todo dia.
+>
+> **3. `events` e `credit_debits` entram no placar.** A tabela `events` tem 14.467 linhas e
+> nenhuma consulta da operação a tocava. É a **única** superfície onde falha de entrega paga
+> aparece: `videos` não registra (a rota retorna antes de escrever a linha), `credit_debits` não
+> registra (o débito nem foi tentado) e o agregador da Vercel não registra (é `console.error`,
+> não exceção). Query fixa: `generation_stage_error` dos últimos 7 dias agrupado por
+> `metadata->>'reason'` e `metadata->>'error'`.
+>
+> **4. Para ler HTML de produção, NÃO usar o `web_fetch` do workspace — ele serve cache.** Ele
+> devolveu o título antigo da home e eu quase abri um incidente de "o deploy não subiu"; código,
+> deploy e produção estavam certos. O que funciona: o fetch da Vercel
+> (`web_fetch_vercel_url`) com um **query param novo** (`?probe=title`). Segunda vez em dois dias
+> que cache produziu diagnóstico errado.
+>
+> **5. Logs de runtime da Vercel dão timeout** em janelas maiores que ~1h. Escopar por
+> `deploymentId` e ≤ 1h — ou aceitar que não vai haver log e **instrumentar o código**, que foi o
+> que sobrou de fazer hoje.
+>
+> **Frente que ficou cega:** PALAVRAS-CHAVE. A extensão Claude-in-Chrome estava desconectada nas
+> duas sessões de 30/07 → nenhum dado de Search Console, consultas ou CTR de marca. Virou o gate
+> nº 0 por ser o item mais barato da lista inteira.
+
+
 Copie o bloco da §1 e mande. Só troque a duração no topo.
 A §2 explica por que cada regra está lá — leia uma vez, depois esqueça.
 

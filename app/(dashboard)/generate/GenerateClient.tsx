@@ -2926,7 +2926,24 @@ export default function GenerateClient({
           setError(typeof data.error === 'string' ? data.error : GENERIC_ERROR)
           // PUSH #96 — the render provider itself reported failure. Name it so
           // it is separable from client-side and network causes.
-          trackGenerationFailure('composing', 'compose_render_reported_failed', { httpStatus: res.status })
+          //
+          // KINEO-FAILURE-REASON-2026-07-30 — that comment was only ever true
+          // for one of the three server branches that return `phase:'failed'`.
+          // The other two are ours (a failed billing check, a released cinematic
+          // claim), and both filed themselves under the provider's name. That is
+          // exactly why the paying customer's seven refusals of 29–30/07 could
+          // not be attributed to a branch after the fact: the only distinguishing
+          // signal was the human-readable copy, which we then reworded.
+          // The server now sends a machine-readable `failure_reason`; the old
+          // literal stays as the fallback so a client running against an older
+          // deployment still reports something rather than nothing.
+          trackGenerationFailure(
+            'composing',
+            typeof data.failure_reason === 'string' && data.failure_reason
+              ? data.failure_reason
+              : 'compose_render_reported_failed',
+            { httpStatus: res.status },
+          )
           setPhase('failed')
           return
         }

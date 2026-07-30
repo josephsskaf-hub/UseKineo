@@ -371,6 +371,10 @@ export async function GET(
       if (prepaidCinematicClaim?.status === 'released') {
         return NextResponse.json({
           phase: 'failed',
+          // KINEO-FAILURE-REASON-2026-07-30 — see the note on the client's
+          // failure tracking: `phase:'failed'` has three unrelated causes and
+          // they used to be indistinguishable in the events table.
+          failure_reason: 'cinematic_claim_released',
           error: 'This cinematic generation was closed and its credits were refunded.',
           creditsRefunded: prepaidCinematicClaim.creditCost,
           progress: 0,
@@ -513,15 +517,53 @@ export async function GET(
       // paid-debit path, so a FAILED premium debit is caught below (clean
       // premium video withheld) without mis-firing on the free / legacy paths.
       let deductionAttempted = false
+      let debitFailureCause: string | null = null
       if (!skipClientDeducted && !serverAlreadyDeducted) {
         if (shouldDeductCredits) {
-          deductionAttempted = true
+            // ── KINEO-PAID-DELIVERY-2026-07-30 ────────────────────────────────
+            // INCIDENT that produced this block: the only ACTIVE paying customer
+            // (plan='basic', has_paid=true, 75 credits on the balance) had SEVEN
+            // clean renders refused between 29/07 09:33Z and 30/07 12:44Z. Every
+            // one told him "please check your balance and try again". His balance
+            // was never the problem: `public.credit_debits` holds ZERO rows for
+            // him, so the charge was never even attempted, and his last delivered
+            // video is 10/07 — the day he started paying is the day delivery
+            // stopped. 0 recurring subscriptions in company history is at least
+            // partly THIS.
+            //
+            // Two things were wrong and both are fixed here.
+            //
+            // (1) `deductionAttempted` used to be set BEFORE the balance read.
+            //     A failed READ therefore fell into the permanent-withhold
+            //     branch below and destroyed a finished, paid-for video. A read
+            //     fault carries NO information about the customer's funds. It is
+            //     now treated exactly like the neighbouring hold-settlement
+            //     faults in this file: 503 + phase:'processing' + reconcile,
+            //     which makes the client poll again instead of losing the video.
+            //     The "never deliver an unpaid premium render" invariant is
+            //     untouched — we still do not return a clean URL.
+            //
+            // (2) The message blamed the customer's balance for something that
+            //     CANNOT be caused by a low balance. `debit_video_credits`
+            //     clamps with `greatest(balance - cost, 0)` and returns
+            //     `coalesce(balance, 0)`; it has no insufficient-funds branch and
+            //     raises only on 'not authenticated' / 'invalid cost'. So every
+            //     occurrence of this error is an infrastructure fault on OUR
+            //     side. Telling the buyer to go check his balance sent him to
+            //     look at a number that was already correct — seven times.
+            //
+            // `debitFailureCause` is carried out of this block so the withhold
+            // path below can log WHICH fault happened. Before today both causes
+            // produced the same message, no `videos` row and no `credit_debits`
+            // row, i.e. a paid delivery could fail on loop and be invisible to
+            // every metric the company tracks.
             const { error: fetchError } = await supabase
               .from('profiles')
               .select('video_credits')
               .eq('id', user.id)
               .single()
             if (!fetchError) {
+              deductionAttempted = true
               // Every clean export settles its full signed intent cost. There is
               // no premium free trial and no zero-balance Fast exception.
               const { data: newBalance, error: rpcErr } = await supabase
@@ -530,10 +572,24 @@ export async function GET(
                 creditsDeducted = true
                 creditsRemaining = newBalance
               } else {
+                debitFailureCause = rpcErr?.message
+                  ? `debit_rpc_error: ${rpcErr.message}`
+                  : 'debit_rpc_returned_no_balance'
                 console.error('[compose/status] credit deduct RPC error:', rpcErr?.message ?? 'no balance returned')
               }
           } else {
-            console.error('[compose/status] credit fetch error:', fetchError.message)
+            // Transient read fault — NOT evidence about the customer's funds.
+            console.error('[compose/status] credit balance read failed, retrying instead of withholding:', JSON.stringify({
+              render_id: renderId,
+              user_id_prefix: user.id.slice(0, 8),
+              quality,
+              cost,
+              cause: fetchError.message,
+            }))
+            return NextResponse.json(
+              { phase: 'processing', reconcile: true, error: 'Confirming your credits. Please retry.', progress: 99 },
+              { status: 503 },
+            )
           }
         } else {
           // KINEO-AVATAR-120-2026-07-06 — the dedicated avatar debit block
@@ -557,18 +613,35 @@ export async function GET(
         // poll). This includes paid Fast: a clean export never bypasses its
         // signed one-credit intent.
         if (shouldDeductCredits && deductionAttempted && !creditsDeducted) {
+          // KINEO-PAID-DELIVERY-2026-07-30 — `cause` is the whole point of this
+          // log line. Reaching here means the debit RPC itself faulted, which is
+          // always an infrastructure fault (see the long note above: the function
+          // has no insufficient-funds branch). Without the cause recorded, the
+          // seven refusals of 29–30/07 were undiagnosable after the fact.
           console.error('[compose/status] PREMIUM-DEBIT-FAILED — refusing to deliver clean premium video (no charge settled):', JSON.stringify({
             render_id: renderId,
             user_id_prefix: user.id.slice(0, 8),
             quality,
             cost,
+            cause: debitFailureCause ?? 'unknown',
           }))
           return NextResponse.json({
             phase: 'failed',
+            // KINEO-FAILURE-REASON-2026-07-30 — this is the branch that refused
+            // the paying customer's seven videos on 29–30/07. It reported itself
+            // to the events table as `compose_render_reported_failed`, i.e. as a
+            // Creatomate fault, which it never was. Naming it is what makes the
+            // next occurrence diagnosable from `events` alone — the only surface
+            // that survives, since the Vercel log aggregator times out.
+            failure_reason: 'premium_debit_failed',
             reconcile: true,
+            // Do NOT send the buyer to check a balance that cannot be the cause.
+            // This wording keeps the two facts he needs — he was not charged, and
+            // the video is recoverable — without accusing his account.
             error:
-              "We couldn't confirm the credits for this clean video, so it wasn't delivered. " +
-              'You have NOT been charged — please check your balance and try again.',
+              "Your clean video was held back because our billing check failed on our side, not yours. " +
+              'You have NOT been charged. Press Generate again — if it happens twice, reply to this ' +
+              'and we will deliver it manually.',
             creditsDeducted: false,
             creditsRemaining,
             progress: 0,
@@ -850,6 +923,10 @@ export async function GET(
       const creditsRefunded = prepaidProviderAsset ? 0 : await refundRenderCredits(renderId)
       return NextResponse.json({
         phase: 'failed',
+        // KINEO-FAILURE-REASON-2026-07-30 — the ONLY branch where the render
+        // provider genuinely reported failure. Everything else that reaches the
+        // client as `phase:'failed'` is ours.
+        failure_reason: state.status === 'cancelled' ? 'provider_render_cancelled' : 'provider_render_failed',
         error:
           (state.error ?? 'Render failed.') +
           (prepaidCinematicClaim
