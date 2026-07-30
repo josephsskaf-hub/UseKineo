@@ -106,6 +106,63 @@ const DURATION_TOLERANCE_SECONDS = 3
 const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
 
 const FREE_FAST_PREVIEW_LIMIT = 3
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-REFUSAL-TELEMETRY-2026-07-30 — TORNAR VISÍVEL A RECUSA
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIDO em produção (cqqukkvjjrguayiyjvhh, 30 dias encerrando 30/07):
+//
+//   244 pessoas clicaram em analisar
+//   243 pessoas dispararam Generate  ·  1367 disparos (5,6 por pessoa)
+//   135 pessoas saíram com vídeo concluído
+//   → 108 PESSOAS (44%) apertaram o botão e não receberam nada
+//
+//   E apenas ~8 dessas pessoas têm QUALQUER evento de falha registrado
+//   (generation_stage_error 5 · video_generation_failed 3 · generate_failed 3).
+//
+// Ou seja: ~100 pessoas por mês falham em SILÊNCIO. Nada no banco sabe que
+// elas falharam, nem por quê.
+//
+// A causa de o buraco existir é estrutural e está nesta rota: /api/compose tem
+// 77 pontos de retorno de erro e, até esta linha, ZERO chamadas de telemetria.
+// A rota que decide se um vídeo passa a existir era cega do lado da recusa.
+//
+// Um detalhe do mesmo levantamento fecha o diagnóstico: no período,
+// videos_criados = videos_ok = 256. O render NUNCA falha depois que a linha de
+// vídeo existe. Toda a perda é ANTES disso — exatamente aqui.
+//
+// A hipótese mais forte para o maior pedaço são os 5,6 disparos por pessoa
+// contra um teto de 3 por 24h: gente batendo no limite do free. Mas isso é
+// HIPÓTESE, e este log existe justamente para deixar de ser. Sem medir a
+// recusa não se pode nem consertá-la nem vendê-la — e quem apertou Generate e
+// levou "não" é o prospecto mais quente que este produto tem.
+//
+// Best-effort por projeto: nunca lança, nunca atrasa a resposta ao usuário.
+// Uma falha de telemetria não pode virar uma falha de produto.
+async function logComposeRefusal(
+  reason: string,
+  userId: string | null,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    if (!userId) return
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) return
+    const db = createAdminClient(url, key, { auth: { persistSession: false } })
+    await db.from('events').insert({
+      user_id: userId,
+      name: 'compose_refused',
+      path: '/api/compose',
+      metadata: { reason, ...metadata },
+    })
+  } catch (err) {
+    console.warn(
+      '[compose] refusal telemetry failed (ignorado):',
+      err instanceof Error ? err.message : String(err),
+    )
+  }
+}
 const FREE_FAST_WINDOW_MS = 24 * 60 * 60 * 1000
 // feature/ai-avatar — 'avatar' = premium talking-head render (VEED Fabric).
 // Checkpoint 1: no credit cost wired yet (billing lands in checkpoint 2).
@@ -792,6 +849,11 @@ export async function POST(req: NextRequest) {
       const reservedOrCompleted = claimRows.length + unmatchedVideoIds.size
       if (reservedOrCompleted > FREE_FAST_PREVIEW_LIMIT) {
         await releaseGenerationClaim()
+        // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
+        await logComposeRefusal('free_fast_limit', authenticatedUserId, {
+          used: reservedOrCompleted,
+          limit: FREE_FAST_PREVIEW_LIMIT,
+        })
         return NextResponse.json(
           {
             error: "You've hit today's free limit (3 Fast previews). Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
@@ -962,6 +1024,10 @@ export async function POST(req: NextRequest) {
           )
         }
         if (!cinematicUpstreamDebited && creditBalance < requiredCredits) {
+          // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
+          await logComposeRefusal('insufficient_credits_ai', authenticatedUserId, {
+            required: requiredCredits, balance: creditBalance, quality,
+          })
           return NextResponse.json(
             {
               error: `AI Generated needs ${requiredCredits} credits. You have ${creditBalance}.`,
@@ -983,6 +1049,10 @@ export async function POST(req: NextRequest) {
         } else {
           const requiredCredits = creditCostFor('fast', true)
           if (creditBalance < requiredCredits) {
+            // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
+            await logComposeRefusal('insufficient_credits_fast', authenticatedUserId, {
+              required: requiredCredits, balance: creditBalance,
+            })
             return NextResponse.json(
               {
                 error: `Fast needs ${requiredCredits} credit. You have ${creditBalance}. Upgrade or renew to keep creating clean exports.`,
