@@ -97,7 +97,12 @@ export const metadata: Metadata = {
     'make shorts without filming',
   ],
   openGraph: {
-    title: 'AI YouTube Shorts Generator — Script, Footage & Voice in 2–4 Min',
+    // KINEO-BRAND-SERP-2026-07-29 — alinhado ao <title>. Ficaram divergentes
+    // quando o title foi reescrito para intencao de marca: o Google mostrava
+    // "Kineo — ... (Official Site)" e todo compartilhamento social mostrava outra
+    // coisa. Para uma marca que ninguem ainda reconhece (e que 13 impressoes por
+    // mes escrevem errado), dois nomes diferentes e um custo que nao da para pagar.
+    title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
     description:
       'Launch a repeatable AI Shorts show with the same face, voice and style. Try up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.',
     url: 'https://www.usekineo.com',
@@ -114,7 +119,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI YouTube Shorts Generator — Script, Footage & Voice in 2–4 Min',
+    // KINEO-BRAND-SERP-2026-07-29 — alinhado ao <title>. Ficaram divergentes
+    // quando o title foi reescrito para intencao de marca: o Google mostrava
+    // "Kineo — ... (Official Site)" e todo compartilhamento social mostrava outra
+    // coisa. Para uma marca que ninguem ainda reconhece (e que 13 impressoes por
+    // mes escrevem errado), dois nomes diferentes e um custo que nao da para pagar.
+    title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
     description:
       'Launch a repeatable AI Shorts show with the same face, voice and style. Up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.',
     images: ['https://www.usekineo.com/og-image.png'],

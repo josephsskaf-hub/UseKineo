@@ -1311,6 +1311,22 @@ export default function GenerateClient({
               localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current))
               resumedRenderRef.current = false
               setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
+              // KINEO-REFUSAL-TELEMETRY-2026-07-30 — este ramo (retomada de render)
+              // era o ÚNICO 402 do arquivo que não abria o modal de upgrade e não
+              // registrava nada. O ramo de despacho principal (~L2728) já faz as
+              // duas coisas há tempos; aqui a pessoa recebia só um texto vermelho e
+              // sumia sem deixar rastro no banco.
+              //
+              // Encontrado enquanto eu investigava por que 108 pessoas em 30 dias
+              // apertam Generate e não recebem vídeo tendo ~8 eventos de erro no
+              // total. Não é a causa principal — `compose_daily_free_limit` não
+              // aparece uma vez sequer nos eventos, então o teto de 3/24h NÃO é o
+              // que está derrubando essas pessoas (minha hipótese de ontem estava
+              // errada). Mas é um ponto cego real, e ponto cego não se conserta
+              // depois: se não medir agora, na próxima investigação ele ainda estará
+              // invisível.
+              openOutOfCreditsModal('credits')
+              trackGenerationFailure('composing', 'compose_resume_daily_free_limit', { httpStatus: 402 })
               setPhase('options')
               return
             }
