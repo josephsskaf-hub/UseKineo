@@ -20,6 +20,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 | 31/07 | Outreach fundador→usuário: 4 win-back + 8 pedidos de review TAAFT | **ENVIADOS pelo fundador** (HTML limpo, links ancorados) | Reviews no TAAFT (baseline 2) + retorno das 4 vítimas | 07/08 |
 | 31/07 | Legenda de frase (4 palavras, fonte 62/76, quebra em pausa/frase) | No ar | Veredito do fundador no teste + retenção percebida | teste hoje |
 | 31/07 | Post build-in-public r/YouTubeCreators | Texto pronto (`REDDIT-POST-PRONTO.md`) — **falta o fundador postar** | Cadastros utm/referral reddit | após postar |
+| 31/07 | **Ponte pós-download "postou? cola o link"** (da fila; sprint 10h) | Tabela `posted_shorts` (migration aplicada), `POST /api/posted-shorts`, card na tela de sucesso, upload direto gravando sozinho (`cf13d17`) — 1ª métrica de Shorts POSTADOS | Linhas em `posted_shorts` + evento `posted_short_submitted` | 07/08 |
+| 31/07 | Revive do TAAFT ask (otimização, não ideia nova): flag por ação, gate 1º render, copy com motivo, botão primário (`99fa4e2`) | No ar após 8-PUSH — antes: 11 shows, **0 cliques na vida** | `taaft_review_ask_clicked` > 0 e reviews (baseline 2) | 07/08 |
 
 ## Mortas (não repetir)
 
@@ -34,7 +36,7 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 - Fazier free (falta: 3 comentários úteis + badge no rodapé do site — sessão logada)
 - aitoolsdirectory (rascunho salvo no iframe; renderer bugado — retentar)
-- Ponte pós-download "postou? cola o link" → wall of proof
+- Wall of proof PÚBLICO na landing/examples alimentado por `posted_shorts` (a ponte já coleta; falta a vitrine)
 - 2º/3º canal no Autopilot como outdoor (finance/history — RPMs altos)
 - Registrar cineo.com (13 impressões/mês do typo > "kineo ai") — custa dinheiro, gate
 - Badge "Made with Kineo" clicável no end-card do vídeo free (hoje é só texto)

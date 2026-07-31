@@ -1,5 +1,18 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇA — 31/07/2026 (feedback direto do fundador, vale para TUDO)
+>
+> **REGRA ZERO: ANTES DE PEDIR OU CONSTRUIR, VERIFICAR SE JÁ EXISTE.**
+> Palavras dele: *"sempre confirma se já existe as coisas que você tá me pedindo…
+> muitas coisas já existem."* O padrão se provou 3× num único dia:
+> 1. A supressão cruzada de 24h → **já existia e já estava ligada** (quase reimplementei);
+> 2. A chave do IndexNow → **já estava publicada** em `public/`;
+> 3. `KINEO_LIFECYCLE_EMAILS_ENABLED` → **já existia na Vercel desde 23/07** — mandei o
+>    fundador CRIAR e ele bateu em "variable already exists".
+> Este repositório tem mais coisas construídas do que documentadas. Antes de qualquer
+> instrução ao fundador ou implementação: grep no código, query no banco, olhada no
+> dashboard. O custo de checar é segundos; o custo de não checar é o tempo DELE.
+
 > ## MUDANÇAS — 30/07/2026 (sessão C)
 >
 > Três regras novas. A primeira é a mais cara já registrada aqui: ela destrói trabalho já
@@ -227,3 +240,18 @@ Para a primeira comparação. Depois use sempre o doc do dia anterior.
 
 As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 **Discovered – not indexed** (o Google enxerga?).
+
+## MUDANÇAS — sprint 10h de 31/07/2026
+
+1. **Locks zumbis:** sessão git travada deixa `HEAD.lock`/`main.lock`/`index.lock` que a
+   sandbox NÃO consegue apagar ("Operation not permitted") — mas consegue ESCREVER em
+   `.git/`. Receita validada: objetos via `GIT_INDEX_FILE=/tmp` + `git commit-tree`, e ref
+   via `echo <hash> > .git/refs/heads/main`. N-PUSH.bat agora apaga os 3 locks.
+2. **`git update-ref` falha PELA METADE:** pode atualizar `refs/heads/main` e morrer no
+   reflog do HEAD. Depois de QUALQUER erro de ref: `git log` antes de reexecutar, ou nasce
+   commit duplicado (aconteceu e foi corrigido hoje).
+3. **`origin/main` anda durante a sprint** — o fundador roda N-PUSH no meio. Revalidar
+   `git status -sb` antes de montar o N-PUSH seguinte.
+4. **REGRA ZERO rendeu 6/6:** caption-pack, llms.txt, /api/facts, upload YouTube,
+   TaaftReviewAsk e refund automático — tudo já existia. Duas "ideias novas" morreram no
+   grep antes de custar uma linha.

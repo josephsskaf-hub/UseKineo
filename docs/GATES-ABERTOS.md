@@ -5,6 +5,16 @@
 
 ---
 
+## 🔴 0. RODAR `scripts\8-PUSH.bat` — 10 segundos (sprint 10h, 31/07)
+
+Sobe 2 commits: a **ponte pós-download** ("postou? cola o link" — 1ª métrica de Shorts
+POSTADOS, tabela já criada em produção) e o **revive do TAAFT ask** (11 shows, 0 cliques na
+vida — consertado bem no meio da onda que é 94% TAAFT). O 8-PUSH também apaga os locks
+(`HEAD.lock`/`main.lock`) que a sessão travada das 10:01 deixou e que a sandbox não consegue
+remover. Vi que você já rodou o 7 hoje — obrigado, o fix da entrega paga está em produção.
+
+---
+
 ## ✅ SPRINT DE FLUXO 31/07 (3h) — o que EU já fiz sozinho, com a extensão viva
 
 | Ação | Resultado |
@@ -50,6 +60,14 @@ Todos verificados em 31/07. Cada um pede conta/login:
 Nota **3,0 com só 2 avaliações** governa o que todo LLM lê sobre a Kineo. O TAAFT segue sendo o canal nº 1 (81 cadastros, 32,1% de ativação, metade dos compradores da história) e está decaindo 48→16→9→5/semana. Mandar o link para 5 usuários reais é o item de maior retorno por minuto que existe: https://theresanaiforthat.com/ai/kineo/
 Lista de candidatos (por vídeos concluídos) em `docs/SPRINT-2026-07-30-D.md` §7.
 Bônus: **antonia@theresanaiforthat.com tem conta na Kineo com 5 vídeos** — contato mais valioso da empresa.
+
+## 🔴 1.b Send no rascunho do pagante — 30 segundos (sprint 10h)
+
+Rascunho novo no seu Gmail: **"Fixed — your videos will deliver now"** para
+`valos87196@…` (o único plano pago ativo). Diagnóstico fechado hoje: 6 vídeos dele foram
+renderizados e RECUSADOS na entrega por falha nossa de débito; o fix subiu no seu push desta
+manhã e um débito real liquidou às 10:55Z. Ele não tenta desde 30/07 12:44Z — este e-mail é
+o que o traz de volta. Só apertar Send.
 
 ## 🔴 2. E-mail de win-back — 12 pessoas, "pode mandar" seu
 
