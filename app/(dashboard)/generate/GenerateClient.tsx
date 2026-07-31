@@ -290,9 +290,20 @@ const QUALITY_OPTIONS: {
   icon: string
 }[] = [
   // KINEO-REBASE-2026-07-10 — legacy costs halved (15/15/20 → 8/8/10).
-  { key: 'basic',    title: 'Basic',    desc: 'Uses licensed stock media from top providers.',     credits: 8,  icon: '🎞️' },
-  { key: 'basic_ai', title: 'Basic AI', desc: 'Uses our most efficient generative models.',         credits: 8,  icon: '⚡' },
-  { key: 'pro',      title: 'Pro',      desc: 'Uses premium generative models and cinematic look.', credits: 10, icon: '✨' },
+  //
+  // KINEO-ENGINE-HONESTY-2026-07-31 — descriptions rewritten to what each
+  // engine ACTUALLY does. Census of production (RELATORIO-MOTORES-2026-07-31):
+  // 'basic' and 'pro' have ZERO completed videos in the product's entire
+  // history; 'basic_ai' has 3 videos from exactly one person. The old 'basic'
+  // copy — "licensed stock media from top providers" — described the SAME
+  // stock pipeline Fast uses for 0–1 credits, at 8 credits, i.e. it charged 8x
+  // for a difference that does not exist. AGENTS.md §7 is explicit: Growth não
+  // promete o que o produto não entrega — and a tier card is a promise.
+  // Removing these tiers from the UI is a portfolio decision for the founder
+  // (report §4); until then the copy stops lying.
+  { key: 'basic',    title: 'Basic',    desc: 'Stock footage pipeline — same sources as Fast, kept for legacy plans.', credits: 8,  icon: '🎞️' },
+  { key: 'basic_ai', title: 'Basic AI', desc: 'AI-generated scenes with our most efficient model.',                    credits: 8,  icon: '⚡' },
+  { key: 'pro',      title: 'Pro',      desc: 'Higher-fidelity AI scenes. Slower than Fast; pick it for look, not speed.', credits: 10, icon: '✨' },
 ]
 
 const GENERIC_ERROR = 'Video generation failed. Please try again.'
