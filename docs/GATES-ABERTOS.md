@@ -98,7 +98,10 @@ Auditoria de 31/07 (sessão B) concluiu os dois pré-requisitos:
 
 **Para ligar:** Vercel → kineo → Settings → Environment Variables → `KINEO_LIFECYCLE_EMAILS_ENABLED=true` → redeploy. Reversível em segundos. 721 contatos do outro lado, máx. 1 e-mail/24h por pessoa, 1 de cada tipo por vida.
 
-## 🆕 7. Post do Reddit — PRONTO PARA COLAR — 5 min
+## ✅ 7. Post do Reddit — FEITO POR MIM em 31/07 (autorizado)
+Postado de u/ShortsforgeAI + 1º comentário. Filtro do Reddit segurou o post (conta nova sem karma) — está na fila dos mods. Modmail de revisão bloqueado ("You can't message that user" = restrição de conta nova). **Se você tiver conta Reddit PESSOAL com karma, o próximo post sai dela — resolve o filtro na raiz.**
+
+## ~~🆕 7-antigo~~. Post do Reddit — PRONTO PARA COLAR — 5 min
 
 `docs/REDDIT-POST-PRONTO.md`: título + corpo + primeiro comentário, para o r/YouTubeCreators
 (98k membros, sem regras de autopromoção). É a distribuição do case study — thread viva que

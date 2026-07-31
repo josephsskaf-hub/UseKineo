@@ -19,7 +19,10 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 | 31/07 | E-mails de lifecycle LIGADOS (flag + supressão + auditoria) | Env true + redeploy; baseline carimbos 11:08Z: nudge 490 · reminder 0 · rescue 220 · recovery 201 | Retornos D+1 e 1ª assinatura | 07/08 |
 | 31/07 | Outreach fundador→usuário: 4 win-back + 8 pedidos de review TAAFT | **ENVIADOS pelo fundador** (HTML limpo, links ancorados) | Reviews no TAAFT (baseline 2) + retorno das 4 vítimas | 07/08 |
 | 31/07 | Legenda de frase (4 palavras, fonte 62/76, quebra em pausa/frase) | No ar | Veredito do fundador no teste + retenção percebida | teste hoje |
-| 31/07 | Post build-in-public r/YouTubeCreators | Texto pronto (`REDDIT-POST-PRONTO.md`) — **falta o fundador postar** | Cadastros utm/referral reddit | após postar |
+| 31/07 | Post build-in-public r/YouTubeCreators | **POSTADO por mim** (u/ShortsforgeAI, /comments/1vbqphw) + 1º comentário com o link. Filtro automático do Reddit segurou (conta sem karma); está na fila dos mods; modmail bloqueado p/ conta nova | Cadastros utm/referral reddit | 07/08 |
+| 31/07 | Contador "2 of 3 free today" no chip free (momento-teto visível) | No ar (`c2e428d`) | checkout_started de usuários no teto (baseline: 1 caso, kwajolinkup) | 07/08 |
+| 31/07 | **Fazier COMPLETO no free tier** | 3 comentários úteis + logo/3 cards gerados + deal $4.90 + página live `fazier.com/launches/kineo`, launch agendado 03/08 | Cadastros referral fazier + dofollow | 10/08 |
+| 31/07 | **Stripe: marca do checkout corrigida** | Nome "Aestivora Media"→**Kineo** · extrato "BOOKEDCALLS.CO"→**USEKINEO.COM** · desc. curta→KINEO · URL suporte→usekineo.com. Verificado no checkout live | Menos abandono/chargeback (era risco invisível) | — |
 | 31/07 | **Ponte pós-download "postou? cola o link"** (da fila; sprint 10h) | Tabela `posted_shorts` (migration aplicada), `POST /api/posted-shorts`, card na tela de sucesso, upload direto gravando sozinho (`cf13d17`) — 1ª métrica de Shorts POSTADOS | Linhas em `posted_shorts` + evento `posted_short_submitted` | 07/08 |
 | 31/07 | Revive do TAAFT ask (otimização, não ideia nova): flag por ação, gate 1º render, copy com motivo, botão primário (`99fa4e2`) | No ar após 8-PUSH — antes: 11 shows, **0 cliques na vida** | `taaft_review_ask_clicked` > 0 e reviews (baseline 2) | 07/08 |
 
