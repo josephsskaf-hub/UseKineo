@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
 
 // generate-script — Push #316 (updated from #311/#310)
 //
@@ -231,6 +232,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ script, alreadyStructured: false })
   } catch (err) {
     console.error('[generate-script] error:', err)
+    // KINEO-OPENAI-QUOTA-2026-07-31 — out-of-credits must never be a mute 500:
+    // page the founder and tell the user the truth (503 + honest copy).
+    if (looksOpenAiQuotaDead(err)) {
+      await alertOpenAiExhausted('/api/generate-script')
+      return NextResponse.json(
+        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

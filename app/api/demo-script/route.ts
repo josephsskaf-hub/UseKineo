@@ -10,6 +10,7 @@
 //   • output is the DEMO script only — no TTS, no footage, no render
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -88,6 +89,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ script })
   } catch (err) {
     console.error('[demo-script] error:', err instanceof Error ? err.message : String(err))
+    // KINEO-OPENAI-QUOTA-2026-07-31 — this is the PUBLIC landing demo: every
+    // TAAFT visitor's first impression. Out-of-credits must page the founder
+    // and show honest capacity copy, never a broken-looking generic error.
+    if (looksOpenAiQuotaDead(err)) {
+      await alertOpenAiExhausted('/api/demo-script (landing demo)')
+      return NextResponse.json(
+        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 500 })
   }
 }

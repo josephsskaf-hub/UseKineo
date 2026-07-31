@@ -17,6 +17,7 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
 // PUSH #96 — single source of truth for the people/lifestyle vocabulary.
 // This regex used to be re-declared literally below, with a comment on both
 // sides asking a human to keep them in sync. It is now derived from
@@ -473,6 +474,22 @@ export async function POST(req: NextRequest) {
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         console.error('[generate-fast] scene generation failed:', msg)
+        // KINEO-OPENAI-QUOTA-2026-07-31 — when the OpenAI account is out of
+        // credits, "try a different prompt" is a lie that burns retries (5+
+        // blind attempts/person measured during the 31/07 blackout). Page the
+        // founder, record a distinct reason, answer 503 with honest copy —
+        // GenerateClient already displays this error string verbatim.
+        if (looksOpenAiQuotaDead(err)) {
+          await alertOpenAiExhausted('/api/generate-video-fast (scene generation)')
+          recordFastFailure('scripting', 'openai_quota_dead', 503, user.id, {
+            error_name: err instanceof Error ? err.name : 'unknown',
+            clip_count: clipCount,
+          })
+          return NextResponse.json(
+            { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+            { status: 503 },
+          )
+        }
         recordFastFailure('scripting', 'scene_generation_failed', 500, user.id, {
           error_name: err instanceof Error ? err.name : 'unknown',
           clip_count: clipCount,

@@ -3,6 +3,7 @@
 // gpt-4o-mini + token cap, topic capped at 200 chars, per-IP 12/day limit.
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -79,6 +80,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ hooks })
   } catch (err) {
     console.error('[demo-hooks] error:', err instanceof Error ? err.message : String(err))
+    // KINEO-OPENAI-QUOTA-2026-07-31 — public lead-magnet page: same honest
+    // capacity handling as the landing demo.
+    if (looksOpenAiQuotaDead(err)) {
+      await alertOpenAiExhausted('/api/demo-hooks (free hook generator)')
+      return NextResponse.json(
+        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+        { status: 503 },
+      )
+    }
     return NextResponse.json({ error: 'Could not write hooks. Try again.' }, { status: 500 })
   }
 }
