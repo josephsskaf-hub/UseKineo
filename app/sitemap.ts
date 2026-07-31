@@ -81,6 +81,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/brainrot-video-generator', priority: 0.8, freq: 'weekly' },
     { path: '/youtube-automation', priority: 0.9, freq: 'weekly' },
     { path: '/how-to-start-a-faceless-youtube-channel', priority: 0.8, freq: 'weekly' },
+    // KINEO-CASE-STUDY-2026-07-31 — pagina de PROVA (nao keyword fina): canal real no
+    // Autopilot com numeros semanais, linkada do rodape da home. daily porque o conteudo
+    // muda toda semana e queremos recrawl rapido.
+    { path: '/youtube-automation-case-study', priority: 0.9, freq: 'daily' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
