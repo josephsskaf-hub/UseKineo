@@ -255,3 +255,16 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 4. **REGRA ZERO rendeu 6/6:** caption-pack, llms.txt, /api/facts, upload YouTube,
    TaaftReviewAsk e refund automático — tudo já existia. Duas "ideias novas" morreram no
    grep antes de custar uma linha.
+
+## MUDANÇAS — sprint 13h de 31/07/2026
+
+1. **Playbook de blackout tem DUAS metades permanentes:** detecção (openaiAlert/falAlert:
+   e-mail + 503 honesto) e recuperação (cron send-blackout-winback: e-mail automático às
+   vítimas quando o serviço volta, 1 por pessoa, sem desconto). Fornecedor de IA novo =
+   replicar ambas no dia 1.
+2. **`list_deployments` da Vercel é a verdade sobre o push do fundador** — deploy READY +
+   sha batendo com o HEAD local prova o que está servindo melhor que qualquer inferência
+   por git (foi assim que a 13h confirmou o 10-PUSH e o alarme vivos em produção).
+3. **Runtime logs da Vercel sem deploymentId e com janela de 3h estouram o time budget** —
+   escopar sempre; neste caso os 3 markers `openai_quota_dead` no banco provaram o mesmo
+   fato sem log nenhum.
