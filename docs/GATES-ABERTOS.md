@@ -7,25 +7,23 @@
 
 ## 🚨🚨 00. RECARREGAR CRÉDITOS OPENAI — PRODUÇÃO PARADA DESDE 11:07Z (2 min)
 
-**A conta OpenAI zerou os créditos.** Desde 11:07Z (08:07 sua hora): **ZERO vídeos gerados**,
-115 erros, 10 pessoas reais batendo em botão morto, **9 cadastros novos do TAAFT** chegando
-num produto que não gera nada — e a **demo pública da landing também está morta** (cada
-visitante TAAFT vê falha antes mesmo de se cadastrar). Log de produção, 13:46Z:
-`429 You have no credits remaining`.
+**A conta OpenAI zerou os créditos e SEGUE zerada** (medido às 16:02Z, sprint 13h):
+**5 horas paradas**, **15 pessoas reais / 196 erros**, 0 vídeos, demo da landing morta,
+e **45 cadastros nas últimas 24h** (recorde) entrando num produto que não gera nada.
 
 **→ https://platform.openai.com/settings/organization/billing/ — recarregar e acabou.**
 
-Enquanto isso construí o alarme que faltava (commit `c91f0c4`, espelho do falAlert do
-incidente fal.ai de 10/07): no próximo blackout você recebe **e-mail em segundos** + o
-usuário vê **503 honesto** ("team was automatically alerted — your free videos and credits
-are untouched") em vez de "try a different prompt". Sobe no 10-PUSH.
+✅ Você rodou o 10-PUSH (~15:40Z): o **alarme está NO AR** — cheque o Gmail, o e-mail
+🚨 automático do sistema deve ter chegado — e o usuário agora vê o **503 honesto** em vez
+de erro mudo. E depois do 11-PUSH, quando você recarregar, as ~15 vítimas recebem
+**sozinhas** o e-mail de win-back em até ~1h15 (cron novo da sprint 13h). Ou seja:
+recarregar destrava TRÊS coisas de uma vez — produção, demo e o convite de volta.
 
-## 🔴 0. RODAR `scripts\10-PUSH.bat` — 10 segundos (substitui o 8 e o 9)
+## 🔴 0. RODAR `scripts\11-PUSH.bat` — 10 segundos (substitui o 10)
 
-Sobe TUDO pendente (6 commits): ponte pós-download + TAAFT revive (sprint 10h) + docs
-Reddit/Fazier/Stripe (sessão autônoma) + **ALARME OPENAI** (sprint 11h — o mais urgente de
-subir: sem ele o próximo blackout é mudo de novo). Apaga também os 3 locks da sessão travada
-das 10:01. Regra de sempre: clique no MAIOR número da pasta.
+Sobe o **WIN-BACK PÓS-BLACKOUT** (sprint 13h): cron que detecta o fim do apagão e
+e-maila as vítimas sozinho ("foi culpa nossa, voltou, créditos intactos" — sem desconto,
+1 por pessoa, respeita opt-out). Regra de sempre: clique no MAIOR número da pasta.
 
 ---
 
@@ -99,7 +97,7 @@ Página da Kineo com 0 likes. "Suggest alternative" em OpusClip, Submagic, InVid
 
 Configurações da tarefa `kineo-sprint-diario` → adicionar **Explorador de Arquivos**. Aí as 4 sprints diárias empurram commits sozinhas.
 
-## 🟢 6. KINEO_LIFECYCLE_EMAILS_ENABLED — TECNICAMENTE PRONTO. Só falta sua palavra.
+## ✅ 6. KINEO_LIFECYCLE_EMAILS_ENABLED — LIGADO em 31/07 (nudges saindo em ritmo saudável: 502 às 16:02Z)
 
 Auditoria de 31/07 (sessão B) concluiu os dois pré-requisitos:
 - **Supressão cruzada de 24h: JÁ ESTAVA LIGADA** nos 4 crons + 2 rotas admin desde 27/07
