@@ -2129,6 +2129,27 @@ export function buildCreatomateSource({
       // the word being spoken, which IS the tier-1 active-word look.
       CAPTION_WORDS_PER_CHUNK,
     )
+    // KINEO-HOOK-SENTENCE-2026-07-31 — the hook treatment now covers the WHOLE
+    // first sentence, not a blind 2-second clock.
+    //
+    // What viewers saw before: CAPTION_HOOK_WINDOW_SECONDS = 2, but a spoken
+    // hook line ("What if a tiny ant dreamed of being a superhero?") runs 3-4s.
+    // The caption rendered LARGE for the first two seconds and then SHRANK
+    // mid-sentence — a visible size pop in the middle of the one line whose
+    // entire job is to hold attention. Every production render had this.
+    //
+    // Now the window ends where the first spoken sentence ends, read from the
+    // same sentenceEnd flags the caption chunker already uses (recovered from
+    // the Whisper SEGMENT stream on 29/07 — this is the second feature that
+    // boundary data pays for). Clamped to [2s, 6s]: never shorter than the old
+    // behaviour, never past the attention window even if punctuation is weird.
+    // Fail-open: no sentenceEnd found → exactly the old 2s constant.
+    const firstSentenceEndsAt = (() => {
+      const w = whisperWords.find((x) => x.sentenceEnd === true)
+      return w && Number.isFinite(w.end)
+        ? Math.min(6, Math.max(CAPTION_HOOK_WINDOW_SECONDS, w.end))
+        : CAPTION_HOOK_WINDOW_SECONDS
+    })()
     for (const cap of directCaps) {
       elements.push(...buildCaptionElements({
         text: cap.text,
@@ -2141,7 +2162,8 @@ export function buildCreatomateSource({
         // captions — exactly backwards. Emphasis now applies on all tiers.
         emphasize: FAST_EMPHASIS_RE.test(cap.text),
         // PUSH #93 (FIX 4) — opening chunks get the hook treatment.
-        hook: cap.time < CAPTION_HOOK_WINDOW_SECONDS,
+        // KINEO-HOOK-SENTENCE-2026-07-31 — window = first sentence, not 2s.
+        hook: cap.time < firstSentenceEndsAt,
       }))
     }
   } else {
