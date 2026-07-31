@@ -708,9 +708,26 @@ export default function KineoLanding({ initialUser }: Props) {
 
       {/* Marker: KINEO-TAAFT-BADGE-2026-07-01 (verification embed — homepage only) */}
       <div className="wrap" style={{ paddingTop: 28, paddingBottom: 28, textAlign: 'center', borderTop: '1px solid #2a2a2d' }}>
-        <div className="taaft-badge">
+        <div className="taaft-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
           <a href={"https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"} target="_blank" rel="nofollow noreferrer">
             <img width={200} height={42} loading="lazy" decoding="async" src={"https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"} alt="Featured on There's An AI For That" />
+          </a>
+          {/* KINEO-FAZIER-2026-07-31 — requisito do tier GRATUITO do Fazier: "A
+              backlink to our site is required (on your homepage or footer)".
+              Fazier é o diretório com a melhor razão dofollow/esforço medida na
+              pesquisa de 29/07 (57 links externos, 0 nofollow) e o free tier dá
+              listagem permanente + possível destaque na home deles. Link de
+              TEXTO deliberadamente — o embed de badge deles carrega um <script>
+              de terceiro na landing, e um script externo no caminho crítico da
+              página de conversão não vale um selo. dofollow de propósito: o
+              backlink recíproco É a moeda do acordo. */}
+          <a
+            href="https://fazier.com"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: '#86868b', fontSize: 12.5, fontWeight: 700, textDecoration: 'none', border: '1px solid #2a2a2d', borderRadius: 999, padding: '8px 14px' }}
+          >
+            Launched on Fazier
           </a>
         </div>
       </div>
