@@ -148,6 +148,27 @@ export async function POST(req: NextRequest) {
     })
 
     console.log(`[youtube/upload] success: videoId=${result.videoId}`)
+
+    // KINEO-POSTED-SHORTS-2026-07-31 — o upload direto É um Short publicado,
+    // e até hoje ele só existia num console.log que a Vercel descarta. Grava no
+    // mesmo estoque que o link colado (app/api/posted-shorts) para a métrica
+    // "vídeos NO YouTube" contar os dois caminhos. Best-effort: uma falha aqui
+    // JAMAIS pode falhar um upload que já aconteceu no canal do usuário.
+    try {
+      const { error: postedErr } = await supabase.from('posted_shorts').upsert(
+        {
+          user_id: user.id,
+          url: `https://www.youtube.com/shorts/${result.videoId}`,
+          youtube_video_id: result.videoId,
+          source: 'direct_upload',
+        },
+        { onConflict: 'user_id,youtube_video_id', ignoreDuplicates: true },
+      )
+      if (postedErr) console.warn('[youtube/upload] posted_shorts record failed:', postedErr.message)
+    } catch (e) {
+      console.warn('[youtube/upload] posted_shorts record threw:', e instanceof Error ? e.message : String(e))
+    }
+
     return NextResponse.json(result)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)

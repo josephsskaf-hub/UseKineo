@@ -1014,6 +1014,43 @@ export default function GenerateClient({
   const [ytResult, setYtResult] = useState<{ videoId: string; youtubeUrl: string } | null>(null)
   const [ytError, setYtError] = useState<string | null>(null)
 
+  // KINEO-POSTED-SHORTS-2026-07-31 — ponte pós-download. SPRINT-2026-07-30 §5:
+  // "Fazer o vídeo não é o produto. Postar é." O download é medido; o POST não
+  // era. Este bloco pede o link do Short publicado e grava em posted_shorts
+  // (via /api/posted-shorts) — primeira visibilidade real de vídeos NO YouTube
+  // + estoque do wall of proof. Escondido quando o upload direto já rodou
+  // (ytResult), porque aquele caminho grava sozinho no servidor.
+  const [postedLink, setPostedLink] = useState('')
+  const [postedLinkState, setPostedLinkState] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
+  const [postedLinkError, setPostedLinkError] = useState<string | null>(null)
+
+  async function submitPostedLink() {
+    const url = postedLink.trim()
+    if (!url || postedLinkState === 'saving' || postedLinkState === 'done') return
+    setPostedLinkState('saving')
+    setPostedLinkError(null)
+    try {
+      const res = await fetch('/api/posted-shorts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      })
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      if (res.ok && data?.ok) {
+        setPostedLinkState('done')
+        trackEvent('posted_short_submitted', { source: 'pasted' })
+      } else {
+        setPostedLinkState('error')
+        setPostedLinkError(
+          typeof data?.error === 'string' ? data.error : 'Could not save your link. Please try again.',
+        )
+      }
+    } catch {
+      setPostedLinkState('error')
+      setPostedLinkError('Could not save your link. Please try again.')
+    }
+  }
+
   // Idempotency flag for /api/compose/status — once we see `done` we tell the
   // server not to deduct credits again on subsequent polls.
   const deductedRef = useRef<boolean>(false)
@@ -7069,6 +7106,72 @@ export default function GenerateClient({
                   <p className="text-xs text-center mt-1" style={{ color: '#f87171' }}>{ytError}</p>
                 )}
               </div>
+
+              {/* KINEO-POSTED-SHORTS-2026-07-31 — a ponte "postou? cola o link".
+                  Logo depois das ações de download/share: o pedido só faz
+                  sentido depois que a pessoa levou o vídeo. Upload direto
+                  (ytResult) já grava sozinho no servidor — aí este bloco some. */}
+              {!ytResult && (
+                <div
+                  className="rounded-2xl px-5 py-4 mt-6 w-full"
+                  style={{ maxWidth: 480, background: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  {postedLinkState === 'done' ? (
+                    <div className="text-sm font-black" style={{ color: '#4ade80' }}>
+                      🎉 Got it — your Short is in our featured queue. Thanks!
+                    </div>
+                  ) : (
+                    <>
+                      <div className="text-sm font-black" style={{ color: '#f5f5f7' }}>
+                        Posted your Short? Drop the link 🔗
+                      </div>
+                      <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                        Paste your YouTube link — the best community Shorts get featured on Kineo.
+                      </p>
+                      <div className="flex gap-2 mt-3">
+                        <input
+                          type="url"
+                          value={postedLink}
+                          onChange={(e) => {
+                            setPostedLink(e.target.value)
+                            if (postedLinkState === 'error') {
+                              setPostedLinkState('idle')
+                              setPostedLinkError(null)
+                            }
+                          }}
+                          placeholder="https://youtube.com/shorts/…"
+                          className="flex-1 rounded-xl px-3 py-2 text-xs"
+                          style={{
+                            background: 'rgba(0,0,0,.35)',
+                            border: '1px solid rgba(255,255,255,.12)',
+                            color: 'var(--text)',
+                            outline: 'none',
+                            minWidth: 0,
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => { void submitPostedLink() }}
+                          disabled={postedLinkState === 'saving' || !postedLink.trim()}
+                          className="rounded-xl px-4 py-2 text-xs font-bold"
+                          style={{
+                            background: 'rgba(41,151,255,.10)',
+                            border: '1px solid rgba(41,151,255,.45)',
+                            color: '#2997ff',
+                            cursor: postedLinkState === 'saving' || !postedLink.trim() ? 'not-allowed' : 'pointer',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {postedLinkState === 'saving' ? 'Saving…' : 'Add my Short'}
+                        </button>
+                      </div>
+                      {postedLinkError && (
+                        <p className="text-xs mt-2" style={{ color: '#f87171' }}>{postedLinkError}</p>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
 
               {/* KINEO-TAAFT-REVIEW-2026-07-14 / KINEO-SPRINT-OFFER-2026-07-14 —
                   TAAFT review ask, MOVED here (right after the download/share
