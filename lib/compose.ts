@@ -105,7 +105,29 @@ const CAPTION_WIDTH = '78%'      // keeps the pill left of the right-hand chrome
 // colour markup is feature-gated across versions, so a malformed tag would
 // render as literal `[color]` text. See the buildCaptionElements docstring.
 // Revert = set this back to 3; it is the only knob.
-const CAPTION_WORDS_PER_CHUNK = 1
+//
+// KINEO-CAPTION-PHRASE-2026-07-31 — 1 → 4, DECISÃO DO FUNDADOR APÓS TESTE REAL.
+//
+// O Joseph gerou um vídeo de 1 crédito em produção, assistiu, e pediu: "gostaria
+// de deixar com 4-5 palavras com a fonte menor". Métrica de pipeline não enxerga
+// "cansa o olho" — teste de fundador enxerga. O active-word de 1 palavra (#94) é
+// a assinatura Submagic, mas em vídeos de 45s vira metrônomo: 100+ trocas de
+// legenda por vídeo competindo com o footage.
+//
+// Por que 4 e não os 5 pedidos: na caixa de 78% (842px) a fonte 62 rende ~4
+// palavras médias por linha; com 5 a quebra em 2 linhas vira frequente. 4 é o
+// teto que mantém 1 linha na maioria dos chunks — e o fundador pediu "4-5",
+// então 4 honra o pedido no limite seguro.
+//
+// A MELHORIA ESCONDIDA: quando o #94 escolheu 1 palavra, o corte por FRASE não
+// existia. Desde 29/07 o chunker quebra em sentenceEnd + pausa audível ≥0.28s
+// com maxWords como TETO (buildCaptionsFromWhisperWords). Com teto 4, os chunks
+// caem em fronteiras naturais da fala — média real 3-4 palavras, nunca cortando
+// frase no meio. É um caption de frase de verdade, não fatia cega de 4.
+//
+// A ênfase amarela (FAST_EMPHASIS_RE) volta a valer POR LINHA curta — uma linha
+// com "$40,000" inteira em amarelo, o padrão pré-#94 que funcionava bem.
+const CAPTION_WORDS_PER_CHUNK = 4
 // PUSH #94 — font sizes retuned for the one-word line. At 62 a lone word looked
 // small and lost the "punch" the effect depends on; a single word also has ~3x
 // the horizontal room a 3-word line had, so it can afford the size. Safe zone
@@ -119,8 +141,15 @@ const CAPTION_WORDS_PER_CHUNK = 1
 // never below, the 1536px line where YouTube's chrome starts. The worst-case
 // TOP is now ~70% versus the old documented 61.3% (3 wrapped lines @ 76), i.e.
 // the caption band got strictly SMALLER: one word almost never wraps.
-const CAPTION_FONT_SIZE = 86     // PUSH #94 — was 62 (3-word lines); one word needs the weight
-const CAPTION_HOOK_FONT_SIZE = 104 // PUSH #94 — was 76; keeps the ~1.21x hook/body ratio
+// KINEO-CAPTION-PHRASE-2026-07-31 — 86/104 → 62/76: o EXATO par que o PUSH #93
+// validou matematicamente para linhas multi-palavra nesta mesma caixa
+// (worst case 3 linhas @76 → topo em 61.3%, piso intacto em 1536px; a caixa é
+// bottom-anchored, então wrap cresce para CIMA, nunca sobre o chrome do
+// YouTube). Nenhuma conta nova precisou ser feita — voltamos para dentro de um
+// envelope já provado. 86/104 eram dimensionados para UMA palavra ocupar a
+// largura; com 4 palavras estourariam a caixa em todo chunk.
+const CAPTION_FONT_SIZE = 62
+const CAPTION_HOOK_FONT_SIZE = 76
 // PUSH #93 — chunks starting inside this window get the hook treatment.
 const CAPTION_HOOK_WINDOW_SECONDS = 2
 
