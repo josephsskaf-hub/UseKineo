@@ -5,25 +5,44 @@
 
 ---
 
-## 🚨🚨 00. RECARREGAR CRÉDITOS OPENAI — PRODUÇÃO PARADA DESDE 11:07Z (2 min)
+## 🚨 00. REABERTO — BLACKOUT OPENAI ROUND 2 (detectado pela sprint 16h às 19:02Z)
 
-**A conta OpenAI zerou os créditos e SEGUE zerada** (medido às 16:02Z, sprint 13h):
-**5 horas paradas**, **15 pessoas reais / 196 erros**, 0 vídeos, demo da landing morta,
-e **45 cadastros nas últimas 24h** (recorde) entrando num produto que não gera nada.
+**A recarga das 16:42Z segurou só 31 minutos.** Markers `openai_quota_dead` voltaram
+17:13Z–18:23Z: 15 markers / 5 vítimas no round 2, e **0 vídeos criados desde a recarga**
+— a produção não entregou UM vídeo o dia inteiro (desde 11:07Z). Não há tentativas de
+geração desde ~18:23Z, então não dá para afirmar o estado AGORA — mas 0 vídeos
+pós-recarga diz que ela nunca chegou a destravar de verdade.
 
-**→ https://platform.openai.com/settings/organization/billing/ — recarregar e acabou.**
+**Checar em https://platform.openai.com/settings/organization/billing/ (2 min), nesta ordem:**
+1. **Teto de $30/mês bateu?** Era o ponto único de falha previsto no pós-mortem. Se sim,
+   auto-reload fica morto até subir o teto → subir para $100+ (teto é permissão, não gasto).
+2. Colchão fino: gatilho $5 → recarrega só até $10 — a onda queima isso em minutos.
+   Subir gatilho para $10 → recarregar até $25.
+3. A recarga caiu na MESMA org da API key de produção? (conta com múltiplas orgs engana)
 
-✅ Você rodou o 10-PUSH (~15:40Z): o **alarme está NO AR** — cheque o Gmail, o e-mail
-🚨 automático do sistema deve ter chegado — e o usuário agora vê o **503 honesto** em vez
-de erro mudo. E depois do 11-PUSH, quando você recarregar, as ~15 vítimas recebem
-**sozinhas** o e-mail de win-back em até ~1h15 (cron novo da sprint 13h). Ou seja:
-recarregar destrava TRÊS coisas de uma vez — produção, demo e o convite de volta.
+O win-back dispara sozinho quando voltar (45 min sem marker + 1 vídeo completado).
+O e-mail 🚨 do round 2 pode ter chegado agrupado na mesma thread do das 15:40Z —
+conferir o Gmail de hoje ~14:15–15:25 (horário local).
 
-## 🔴 0. RODAR `scripts\11-PUSH.bat` — 10 segundos (substitui o 10)
+---
 
-Sobe o **WIN-BACK PÓS-BLACKOUT** (sprint 13h): cron que detecta o fim do apagão e
-e-maila as vítimas sozinho ("foi culpa nossa, voltou, créditos intactos" — sem desconto,
-1 por pessoa, respeita opt-out). Regra de sempre: clique no MAIOR número da pasta.
+## ✅ 00-a. ROUND 1 (histórico) — recarga feita pelo fundador, fim às 16:42Z (31/07)
+
+Duração total: **11:07Z → 16:42Z (5h35)**. Dano final: 15 vítimas externas / ~196 erros /
+0 vídeos no período. Verificado em produção às 16:50Z: **zero erros desde 16:43Z** (antes,
+~1/min). Timeline completa em SPRINT-2026-07-31 (§ sprints 11h e 13h).
+Alarme (10-PUSH) e win-back (11-PUSH) ambos no ar — deploy `a81f6d8` READY.
+O win-back dispara sozinho quando: 45 min sem erro de quota + 1 vídeo COMPLETADO depois
+de 16:42Z (cron roda às hh:05/hh:35). Nenhuma ação pendente.
+
+**Pós-mortem (16:55Z, screenshot do fundador):** saldo $18.98 e **auto-reload LIGADO**
+(gatilho $5 → recarrega até $10, teto $30/mês) — a causa raiz está tratada. ⚠️ Ajuste
+recomendado (2 min, botão Modify): colchão de $5 é fino para pico de onda (gatilho $10 →
+até $25) e o **teto de $30/mês é o novo ponto único de falha** se o volume seguir
+crescendo — subir para $100+ (teto é permissão, não gasto). Se o teto bater, o alarme
+pega em segundos e o win-back recupera as vítimas — mas melhor não bater.
+
+## ✅ 0. `scripts\11-PUSH.bat` — RODADO pelo fundador às ~16:44Z (deploy `a81f6d8` READY)
 
 ---
 

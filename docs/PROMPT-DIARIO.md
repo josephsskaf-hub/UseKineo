@@ -268,3 +268,17 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 3. **Runtime logs da Vercel sem deploymentId e com janela de 3h estouram o time budget** —
    escopar sempre; neste caso os 3 markers `openai_quota_dead` no banco provaram o mesmo
    fato sem log nenhum.
+
+
+## MUDANÇAS — sprint 16h de 31/07/2026
+
+1. **Gate encerrado há <1h = re-verificar na sprint seguinte.** O blackout OpenAI voltou
+   31 min após a recarga (round 2, 17:13Z) e ficou invisível atrás de um ✅ no doc de
+   gates. Pós-incidente, a query de saúde compara com a hora do FIM do incidente.
+2. **Recuperação só é real com vídeo COMPLETADO depois do fim** — "sem erros na última
+   hora" com zero tentativas é silêncio, não saúde.
+3. **Hipótese herdada de sprint anterior não é fato.** "Snapshot zumbi" veio como certeza
+   e caiu com uma timeline SQL por usuário: era render REAL em andamento + dois ramos de
+   UX mudos. 30 s de query economizaram uma tarde de refactor errado.
+4. **EOL é por ARQUIVO, não por repo:** `app/page.tsx` é CRLF no HEAD (43/50 linhas)
+   enquanto o resto é LF — conferir o blob do HEAD do arquivo específico antes de editar.
