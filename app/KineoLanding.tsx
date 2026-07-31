@@ -231,7 +231,10 @@ const KLP_CSS = `
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
 @media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
 .klp .hero-center .composer{margin:44px auto 0;max-width:660px;min-height:auto;text-align:left}
-.klp .hero-center .composer .ci{min-height:104px}
+/* KINEO-HERO-DECLUTTER-2026-07-30 — 104px deixava um vazio de quase uma dobra
+   entre o placeholder e os atalhos de tópico, e o card lia como "faltando algo".
+   84px ainda comporta as 3 linhas de rows={3} sem barra de rolagem. */
+.klp .hero-center .composer .ci{min-height:84px}
 .klp .hero-center .trust{text-align:center}
 @media(max-width:560px){.klp .hero-center .composer{margin-top:28px}.klp .hero-center .composer .ci{min-height:64px}}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:820px;margin:52px auto 0}
@@ -464,7 +467,24 @@ export default function KineoLanding({ initialUser }: Props) {
                 marginRight: 'auto',
               }}
             >
-              ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ 3 free videos every 24h&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime&nbsp;&nbsp;·&nbsp;&nbsp;
+              {/* KINEO-HERO-DECLUTTER-2026-07-30 — dois defeitos consertados aqui.
+                  (1) Havia um "·" solto no fim da lista, antes do link: o separador
+                      era digitado depois de cada item em vez de ENTRE eles, então o
+                      último item ficava com um ponto órfão pendurado. Visível na
+                      página em produção.
+                  (2) Estas três garantias são copy de AQUISIÇÃO — "no credit card",
+                      "cancel anytime" — e apareciam também para quem já tem conta e
+                      já pagou. Quem está logado não precisa ser convencido a se
+                      cadastrar; para ele isto é só ruído entre o botão e a galeria.
+                      Agora só o link de exemplos sobrevive ao login.
+                  A lista também deixou de dividir a linha com o link: eram 4 blocos
+                  na mesma frase, e o link é a única coisa clicável ali. */}
+              {!isSignedIn && (
+                <>
+                  ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ 3 free videos every 24h&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime
+                  <br />
+                </>
+              )}
               <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
             </p>
             {/* PROVA-SOCIAL-REAL-2026-07-02 — real DB counts; renders nothing if numbers are low/unavailable */}

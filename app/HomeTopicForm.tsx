@@ -478,10 +478,17 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
         </div>
       )}
 
+      {/* KINEO-HERO-DECLUTTER-2026-07-30 — esta linha dizia, com 148 caracteres,
+          duas coisas que a página já dizia acima dela. O subtítulo do herói é
+          "Script, voice, captions and scenes in a few minutes" e o próprio card
+          se chama "What should your Short be about?". Repetir "script, voice,
+          footage and captions" aqui era a terceira vez na mesma dobra.
+          Do texto antigo sobrou só o que era informação NOVA: quanto tempo
+          demora. Menos texto no momento da ação, e nada perdido. */}
       <p className="composer-proof">
         {isSignedIn
-          ? 'Full video: script, voice, footage and captions. It starts rendering the moment you hit the button — usually 2–4 minutes.'
-          : 'Get your full script — hook, three facts and a payoff — in seconds. No account, no card.'}
+          ? 'Starts rendering instantly — usually 2–4 minutes.'
+          : 'Full script in seconds — no account, no card.'}
       </p>
     </form>
   )
