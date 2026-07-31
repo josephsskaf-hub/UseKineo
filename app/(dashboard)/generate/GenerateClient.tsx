@@ -3091,6 +3091,24 @@ export default function GenerateClient({
       if (resumedRenderRef.current) return false
       if (activeRenderRestoreResolvedRef.current) return true
     }
+    // KINEO-GATE-FAILOPEN-2026-07-31 — if the restore effect is still
+    // unresolved after 4s but there is provably NOTHING to restore (no
+    // snapshot in storage), there is nothing a new analysis could race.
+    // Force the gate open instead of leaving a permanently dead button —
+    // same trade-off PUSH #96 already accepted: the worst case is a
+    // duplicate render, which beats an unusable page. (valos87196 burned
+    // 28 clicks on this class of dead button across 29–30/07.)
+    try {
+      if (!localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))) {
+        activeRenderRestoreResolvedRef.current = true
+        setActiveRenderRestoreResolved(true)
+        void trackEvent('active_render_gate_forced_open', {
+          attempt_id: generationAttemptRef.current,
+          retries: restoreRetryRef.current,
+        })
+        return true
+      }
+    } catch { /* storage unavailable — keep the gate closed */ }
     return false
   }
 
@@ -3139,12 +3157,21 @@ export default function GenerateClient({
     // click during the auth lookup must not race a restored composing job and
     // orphan it when the later analysis response commits its own phase.
     if (!(await waitForActiveRenderRestore())) {
-      if (!resumedRenderRef.current) setError('Checking for an in-progress render. Please try again in a moment.')
-      // PUSH #96 — this silent return is the dead-Generate-button path. It has
-      // to be visible in the funnel to be diagnosable at all.
+      // KINEO-GATE-UX-2026-07-31 — production data (31/07 08:44Z) killed the
+      // "zombie snapshot" theory: the blocked user had a REAL render in
+      // flight (compose claimed 08:35:06Z, completed 08:46:54Z) and hammered
+      // a silent dead button 33 times in 100 seconds while it finished. The
+      // resumed branch showed NOTHING; the other showed a vague "checking".
+      // Both branches now say the honest thing, and the event carries the
+      // gate state so the next occurrence identifies its exact path.
+      setError(resumedRenderRef.current
+        ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
+        : 'Still checking for an in-progress render. Please try again in a moment.')
       trackGenerationFailure('idle', resumedRenderRef.current
         ? 'analyze_blocked_by_resumed_render'
-        : 'analyze_blocked_active_render_gate')
+        : 'analyze_blocked_active_render_gate', {
+        detail: `resolved=${activeRenderRestoreResolvedRef.current} resumed=${resumedRenderRef.current} retries=${restoreRetryRef.current}`,
+      })
       return
     }
     const override = typeof overridePrompt === 'string' ? overridePrompt : undefined
@@ -3791,11 +3818,17 @@ export default function GenerateClient({
 
   async function handleGenerate() {
     if (!activeRenderRestoreResolvedRef.current || resumedRenderRef.current) {
-      if (!resumedRenderRef.current) setError('Checking for an in-progress render. Please try again in a moment.')
       // PUSH #96 — the dead-button path again, on the Generate CTA this time.
+      // KINEO-GATE-UX-2026-07-31 — honest copy on both branches (see
+      // handleAnalyze) + gate state in the event for diagnosis.
+      setError(resumedRenderRef.current
+        ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
+        : 'Still checking for an in-progress render. Please try again in a moment.')
       trackGenerationFailure('idle', resumedRenderRef.current
         ? 'generate_blocked_by_resumed_render'
-        : 'generate_blocked_active_render_gate')
+        : 'generate_blocked_active_render_gate', {
+        detail: `resolved=${activeRenderRestoreResolvedRef.current} resumed=${resumedRenderRef.current} retries=${restoreRetryRef.current}`,
+      })
       return
     }
     // #360 — double-submit guard. Block re-entry if a generation is already in

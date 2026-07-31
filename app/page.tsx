@@ -21,6 +21,34 @@ export const metadata: Metadata = {
 // client and forwards the resolved user/email/is_pro into the client
 // component as initial state, mirroring app/(dashboard)/layout.tsx.
 
+// KINEO-TYPO-BRAND-2026-07-31 — "cineo" is the single biggest brand query in
+// Search Console (14 impressions/7d, more than "kineo ai") and today those
+// searches surface nothing we control. alternateName is schema.org's official
+// slot for "other names people use for this thing" — common misspellings
+// included. This is the free version of buying cineo.com (which stays in the
+// queue as a paid gate). Homepage-only; server-rendered, zero client cost.
+const BRAND_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://www.usekineo.com/#org',
+      name: 'Kineo',
+      alternateName: ['Kineo AI', 'UseKineo', 'Cineo', 'Cineo AI'],
+      url: 'https://www.usekineo.com',
+      logo: 'https://www.usekineo.com/apple-touch-icon.png',
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://www.usekineo.com/#website',
+      name: 'Kineo — AI YouTube Shorts Generator',
+      alternateName: ['Kineo AI', 'Cineo'],
+      url: 'https://www.usekineo.com',
+      publisher: { '@id': 'https://www.usekineo.com/#org' },
+    },
+  ],
+}
+
 export default async function HomePage() {
   const supabase = createClient()
 
@@ -41,10 +69,16 @@ export default async function HomePage() {
   }
 
   return (
-    <KineoLanding
-      initialUser={user ? { id: user.id } : null}
-      initialEmail={email}
-      initialIsPro={isPro}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(BRAND_JSON_LD) }}
+      />
+      <KineoLanding
+        initialUser={user ? { id: user.id } : null}
+        initialEmail={email}
+        initialIsPro={isPro}
+      />
+    </>
   )
 }
