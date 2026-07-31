@@ -5186,6 +5186,15 @@ export default function GenerateClient({
             loading={creditsLoading}
             freeFastPreview={mode === 'fast' && !isPaidAccount}
             pricingHref={withIntentCampaign('/pricing')}
+            freeUsedToday={
+              recentVideos === null
+                ? null
+                : recentVideos.filter(
+                    (v) =>
+                      v.status === 'completed' &&
+                      Date.now() - new Date(v.created_at).getTime() < 24 * 60 * 60 * 1000,
+                  ).length
+            }
           />
         </div>
       </div>
@@ -8103,11 +8112,16 @@ function CreditsChip({
   loading,
   freeFastPreview,
   pricingHref,
+  freeUsedToday = null,
 }: {
   credits: number | null
   loading: boolean
   freeFastPreview: boolean
   pricingHref: string
+  // KINEO-FREE-COUNTER-2026-07-31 — quantos dos 3 Fast grátis das últimas 24h
+  // já foram usados. Derivado de recentVideos no cliente (nenhum endpoint
+  // novo); null = desconhecido → texto genérico antigo.
+  freeUsedToday?: number | null
 }) {
   if (loading) {
     return (
@@ -8147,10 +8161,24 @@ function CreditsChip({
               display: 'inline-block',
             }}
           />
-          Fast previews are free
+          {/* KINEO-FREE-COUNTER-2026-07-31 — POR QUE mostrar o uso, com o caso
+              que motivou: em 31/07 um usuário cadastrou, fez os 3 vídeos do dia
+              e abriu o checkout do Starter HORAS depois de chegar — o teto de
+              3/dia é o momento de conversão mais quente que o produto tem, e
+              era invisível: o chip dizia só "Up to 3/24h", sem progresso.
+              Escassez que o usuário não vê não prima o 3º vídeo nem prepara o
+              upgrade. `2 of 3` também corrige a leitura errada de "ilimitado"
+              que o texto genérico permitia. */}
+          {freeUsedToday !== null && freeUsedToday > 0
+            ? `${Math.min(freeUsedToday, 3)} of 3 free today`
+            : 'Fast previews are free'}
         </div>
         <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted2)', fontWeight: 600 }}>
-          Up to 3 / 24h · watermark · no card
+          {freeUsedToday !== null && freeUsedToday >= 3 ? (
+            <>Daily limit reached · <a href={pricingHref} style={{ color: '#5cb3ff', textDecoration: 'underline' }}>Starter = clean exports, no wait</a></>
+          ) : (
+            'Up to 3 / 24h · watermark · no card'
+          )}
         </p>
       </div>
     )
