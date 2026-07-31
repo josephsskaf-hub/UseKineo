@@ -29,6 +29,10 @@
       "schedule": "20 */2 * * *"
     },
     {
+      "path": "/api/cron/send-blackout-winback",
+      "schedule": "5,35 * * * *"
+    },
+    {
       "path": "/api/cron/send-activation-nudge",
       "schedule": "40 * * * *"
     },
