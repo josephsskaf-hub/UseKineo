@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+// KINEO-EMAIL-AUDIT-2026-07-31 — o e-mail prometia "25 more Shorts for $4.90";
+// o pack starter concede 30 créditos (lib/checkoutPricing.ts PACK_CREDITS).
+// Era o ÚNICO claim falso vivo nos 4 templates de lifecycle (a auditoria
+// completa está em docs/SPRINT-2026-07-30.md, sessão 31/07-B). Subestimava a
+// oferta — mentira "boa", mas mentira: quem compra recebe 30 e foi induzido a
+// decidir com 25. Agora o número vem da fonte única de preço e não pode
+// derivar de novo. Este era o último bloqueio TÉCNICO antes do flag
+// KINEO_LIFECYCLE_EMAILS_ENABLED (a supressão cruzada de 24h já está ligada
+// nos 4 crons + 2 rotas admin desde 27/07) — a decisão de virar segue sendo
+// exclusivamente do fundador.
+import { PACK_CREDITS } from '@/lib/checkoutPricing'
 
 // send-video-rescue — #477
 //
@@ -71,7 +82,7 @@ You already did the hard part — you generated a real Short with AI: script, vo
 If you want to keep posting without the hassle, two easy ways to keep going:
 
 - Founding offer: 50% off your first month. Cancel anytime, 7-day money-back: ${upgradeUrl}
-- Not ready for a subscription? Grab 25 more Shorts for $4.90, one-time (no plan): ${packUrl}
+- Not ready for a subscription? Grab ${PACK_CREDITS.starter} more Shorts for $4.90, one-time (no plan): ${packUrl}
 
 Or just make another one right now: ${makeUrl}
 

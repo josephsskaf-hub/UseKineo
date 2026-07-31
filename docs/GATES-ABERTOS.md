@@ -67,5 +67,21 @@ Página da Kineo com 0 likes. "Suggest alternative" em OpusClip, Submagic, InVid
 
 Configurações da tarefa `kineo-sprint-diario` → adicionar **Explorador de Arquivos**. Aí as 4 sprints diárias empurram commits sozinhas.
 
-## 🟡 6. KINEO_LIFECYCLE_EMAILS_ENABLED — continua sendo decisão SUA
-Ordem certa: auditar 4 templates → eu implemento supressão cruzada 24h → você vira a flag.
+## 🟢 6. KINEO_LIFECYCLE_EMAILS_ENABLED — TECNICAMENTE PRONTO. Só falta sua palavra.
+
+Auditoria de 31/07 (sessão B) concluiu os dois pré-requisitos:
+- **Supressão cruzada de 24h: JÁ ESTAVA LIGADA** nos 4 crons + 2 rotas admin desde 27/07
+  (`lib/lifecycle/suppression.ts` — os docs é que estavam atrasados).
+- **Templates auditados um a um:** remetente certo (`hello@usekineo.com`), claims honestos.
+  Único erro real — video-rescue prometia "25 Shorts por $4,90" quando o pack dá **30** —
+  corrigido e amarrado à fonte de preço (commit da sessão B).
+- A "falsidade documentada" ("first AI video is free, no credits") vive só num **comentário
+  de código** e no doc morto EMAIL-HOT-LEAD.md — nenhum e-mail enviado a contém.
+
+**Para ligar:** Vercel → kineo → Settings → Environment Variables → `KINEO_LIFECYCLE_EMAILS_ENABLED=true` → redeploy. Reversível em segundos. 721 contatos do outro lado, máx. 1 e-mail/24h por pessoa, 1 de cada tipo por vida.
+
+## 🆕 7. Post do Reddit — PRONTO PARA COLAR — 5 min
+
+`docs/REDDIT-POST-PRONTO.md`: título + corpo + primeiro comentário, para o r/YouTubeCreators
+(98k membros, sem regras de autopromoção). É a distribuição do case study — thread viva que
+se atualiza toda semana. Postar exige sua conta Reddit; o texto está pronto palavra por palavra.
