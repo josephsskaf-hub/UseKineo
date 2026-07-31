@@ -25,6 +25,7 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 | 31/07 | **Stripe: marca do checkout corrigida** | Nome "Aestivora Media"→**Kineo** · extrato "BOOKEDCALLS.CO"→**USEKINEO.COM** · desc. curta→KINEO · URL suporte→usekineo.com. Verificado no checkout live | Menos abandono/chargeback (era risco invisível) | — |
 | 31/07 | **Ponte pós-download "postou? cola o link"** (da fila; sprint 10h) | Tabela `posted_shorts` (migration aplicada), `POST /api/posted-shorts`, card na tela de sucesso, upload direto gravando sozinho (`cf13d17`) — 1ª métrica de Shorts POSTADOS | Linhas em `posted_shorts` + evento `posted_short_submitted` | 07/08 |
 | 31/07 | Revive do TAAFT ask (otimização, não ideia nova): flag por ação, gate 1º render, copy com motivo, botão primário (`99fa4e2`) | No ar após 8-PUSH — antes: 11 shows, **0 cliques na vida** | `taaft_review_ask_clicked` > 0 e reviews (baseline 2) | 07/08 |
+| 31/07 | **Blackout honesto + alarme OpenAI** (sprint 11h; nasceu do incidente das 11:07Z) | `lib/openaiAlert.ts` (espelho do falAlert) + wiring em 4 rotas (generate-script, demo-script, demo-hooks, fast/cenas): e-mail automático ao fundador em segundos, 503 com copy honesta no lugar de 500 mudo, reason distinto `openai_quota_dead` (`c91f0c4`) | Tempo-até-detecção do próximo blackout (hoje: 3h → meta <30 min) · fim das tentativas cegas (5+/pessoa hoje) | — (infra permanente) |
 
 ## Mortas (não repetir)
 

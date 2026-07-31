@@ -5,13 +5,27 @@
 
 ---
 
-## 🔴 0. RODAR `scripts\8-PUSH.bat` — 10 segundos (sprint 10h, 31/07)
+## 🚨🚨 00. RECARREGAR CRÉDITOS OPENAI — PRODUÇÃO PARADA DESDE 11:07Z (2 min)
 
-Sobe 2 commits: a **ponte pós-download** ("postou? cola o link" — 1ª métrica de Shorts
-POSTADOS, tabela já criada em produção) e o **revive do TAAFT ask** (11 shows, 0 cliques na
-vida — consertado bem no meio da onda que é 94% TAAFT). O 8-PUSH também apaga os locks
-(`HEAD.lock`/`main.lock`) que a sessão travada das 10:01 deixou e que a sandbox não consegue
-remover. Vi que você já rodou o 7 hoje — obrigado, o fix da entrega paga está em produção.
+**A conta OpenAI zerou os créditos.** Desde 11:07Z (08:07 sua hora): **ZERO vídeos gerados**,
+115 erros, 10 pessoas reais batendo em botão morto, **9 cadastros novos do TAAFT** chegando
+num produto que não gera nada — e a **demo pública da landing também está morta** (cada
+visitante TAAFT vê falha antes mesmo de se cadastrar). Log de produção, 13:46Z:
+`429 You have no credits remaining`.
+
+**→ https://platform.openai.com/settings/organization/billing/ — recarregar e acabou.**
+
+Enquanto isso construí o alarme que faltava (commit `c91f0c4`, espelho do falAlert do
+incidente fal.ai de 10/07): no próximo blackout você recebe **e-mail em segundos** + o
+usuário vê **503 honesto** ("team was automatically alerted — your free videos and credits
+are untouched") em vez de "try a different prompt". Sobe no 10-PUSH.
+
+## 🔴 0. RODAR `scripts\10-PUSH.bat` — 10 segundos (substitui o 8 e o 9)
+
+Sobe TUDO pendente (6 commits): ponte pós-download + TAAFT revive (sprint 10h) + docs
+Reddit/Fazier/Stripe (sessão autônoma) + **ALARME OPENAI** (sprint 11h — o mais urgente de
+subir: sem ele o próximo blackout é mudo de novo). Apaga também os 3 locks da sessão travada
+das 10:01. Regra de sempre: clique no MAIOR número da pasta.
 
 ---
 
