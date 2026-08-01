@@ -10,7 +10,8 @@
 //   • output is the DEMO script only — no TTS, no footage, no render
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted } from '@/lib/openaiAlert'
+import { fallbackDemoScript } from '@/lib/demoFallback'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -70,7 +71,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Type a topic first.' }, { status: 400 })
     }
 
-    const completion = await openai.chat.completions.create(
+    try {
+      const script = await generateLive(topic)
+      if (script) return NextResponse.json({ script })
+      return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 502 })
+    } catch (err) {
+      // KINEO-DEMO-NEVER-DIES (31/07) — the landing demo is every TAAFT
+      // visitor's first impression. When OpenAI is quota-dead we still page
+      // the founder, but the visitor gets a curated script from the static
+      // bank instead of a capacity error. Render stays honest; the demo
+      // never 503s again.
+      if (looksOpenAiQuotaDead(err)) {
+        await alertOpenAiExhausted('/api/demo-script (landing demo)')
+        return NextResponse.json({ script: fallbackDemoScript(topic), fallback: true })
+      }
+      throw err
+    }
+  } catch (err) {
+    console.error('[demo-script] error:', err instanceof Error ? err.message : String(err))
+    return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 500 })
+  }
+}
+
+async function generateLive(topic: string): Promise<string> {
+  const completion = await openai.chat.completions.create(
       {
         model: 'gpt-4o-mini',
         messages: [
@@ -82,23 +106,5 @@ export async function POST(req: NextRequest) {
       },
       { timeout: 20000, maxRetries: 1 },
     )
-    const script = completion.choices[0]?.message?.content?.trim() ?? ''
-    if (!script) {
-      return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 502 })
-    }
-    return NextResponse.json({ script })
-  } catch (err) {
-    console.error('[demo-script] error:', err instanceof Error ? err.message : String(err))
-    // KINEO-OPENAI-QUOTA-2026-07-31 — this is the PUBLIC landing demo: every
-    // TAAFT visitor's first impression. Out-of-credits must page the founder
-    // and show honest capacity copy, never a broken-looking generic error.
-    if (looksOpenAiQuotaDead(err)) {
-      await alertOpenAiExhausted('/api/demo-script (landing demo)')
-      return NextResponse.json(
-        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
-        { status: 503 },
-      )
-    }
-    return NextResponse.json({ error: 'Could not write the demo script. Try again.' }, { status: 500 })
-  }
+  return completion.choices[0]?.message?.content?.trim() ?? ''
 }

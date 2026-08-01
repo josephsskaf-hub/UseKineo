@@ -3,7 +3,8 @@
 // gpt-4o-mini + token cap, topic capped at 200 chars, per-IP 12/day limit.
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted } from '@/lib/openaiAlert'
+import { fallbackDemoHooks } from '@/lib/demoFallback'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -56,18 +57,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Type a topic first.' }, { status: 400 })
     }
 
-    const completion = await openai.chat.completions.create(
-      {
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: SYSTEM },
-          { role: 'user', content: `Topic: ${topic}` },
-        ],
-        max_tokens: 220,
-        temperature: 0.9,
-      },
-      { timeout: 20000, maxRetries: 1 },
-    )
+    let completion
+    try {
+      completion = await openai.chat.completions.create(
+        {
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: SYSTEM },
+            { role: 'user', content: `Topic: ${topic}` },
+          ],
+          max_tokens: 220,
+          temperature: 0.9,
+        },
+        { timeout: 20000, maxRetries: 1 },
+      )
+    } catch (err) {
+      // KINEO-DEMO-NEVER-DIES (31/07) — same posture as /api/demo-script:
+      // quota-dead pages the founder but the lead-magnet page keeps working
+      // from the curated static bank instead of erroring the visitor out.
+      if (looksOpenAiQuotaDead(err)) {
+        await alertOpenAiExhausted('/api/demo-hooks (free hook generator)')
+        return NextResponse.json({ hooks: fallbackDemoHooks(topic), fallback: true })
+      }
+      throw err
+    }
     const raw = completion.choices[0]?.message?.content?.trim() ?? ''
     const hooks = raw
       .split('\n')
@@ -80,15 +93,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ hooks })
   } catch (err) {
     console.error('[demo-hooks] error:', err instanceof Error ? err.message : String(err))
-    // KINEO-OPENAI-QUOTA-2026-07-31 — public lead-magnet page: same honest
-    // capacity handling as the landing demo.
-    if (looksOpenAiQuotaDead(err)) {
-      await alertOpenAiExhausted('/api/demo-hooks (free hook generator)')
-      return NextResponse.json(
-        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
-        { status: 503 },
-      )
-    }
     return NextResponse.json({ error: 'Could not write hooks. Try again.' }, { status: 500 })
   }
 }
