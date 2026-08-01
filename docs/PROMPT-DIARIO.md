@@ -282,3 +282,17 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
    UX mudos. 30 s de query economizaram uma tarde de refactor errado.
 4. **EOL é por ARQUIVO, não por repo:** `app/page.tsx` é CRLF no HEAD (43/50 linhas)
    enquanto o resto é LF — conferir o blob do HEAD do arquivo específico antes de editar.
+
+## MUDANÇAS — sprint 21h de 31/07/2026
+
+1. **REGRA ZERO vale para BILLING de fornecedor.** Três sprints carregaram hipóteses sobre
+   o blackout OpenAI; 10 minutos na sessão logada do Chrome fecharam o caso: org "Personal"
+   com $1.02 de uso em 15 dias = a chave de produção é de OUTRA conta, e a recarga das
+   16:42Z nunca teve efeito. Incidente de fornecedor → primeiro o dashboard do fornecedor.
+2. **"Recarga que não segurou" = quase sempre nunca teve efeito** (conta/org/projeto errado),
+   não consumo veloz. Teste em 10 s: o SALDO se moveu? Saldo parado = dinheiro no lugar errado.
+3. **Superfície anônima (demo/lead magnet) morre junto com o fornecedor e não deixa vítima
+   rastreável** — logado vira win-back, anônimo vira bounce invisível. Toda superfície
+   pública nova de IA nasce com fallback estático (padrão `lib/demoFallback.ts`).
+4. **Eu não crio nem colo segredos** (chaves API em env vars etc.) — em incidente de
+   credencial, o meu teto é diagnóstico fechado + gate mastigado com passos de 5 min.

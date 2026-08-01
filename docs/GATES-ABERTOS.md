@@ -5,24 +5,43 @@
 
 ---
 
-## 🚨 00. REABERTO — BLACKOUT OPENAI ROUND 2 (detectado pela sprint 16h às 19:02Z)
+## 🚨 00. DIAGNÓSTICO FECHADO (sprint 21h) — A RECARGA FOI PARA A CONTA ERRADA. Conserto: 5 min
 
-**A recarga das 16:42Z segurou só 31 minutos.** Markers `openai_quota_dead` voltaram
-17:13Z–18:23Z: 15 markers / 5 vítimas no round 2, e **0 vídeos criados desde a recarga**
-— a produção não entregou UM vídeo o dia inteiro (desde 11:07Z). Não há tentativas de
-geração desde ~18:23Z, então não dá para afirmar o estado AGORA — mas 0 vídeos
-pós-recarga diz que ela nunca chegou a destravar de verdade.
+**Verificado às ~00:05Z de 01/08 na SUA sessão logada do Chrome em platform.openai.com
+(hipótese 3 era a certa — as outras duas caíram):**
 
-**Checar em https://platform.openai.com/settings/organization/billing/ (2 min), nesta ordem:**
-1. **Teto de $30/mês bateu?** Era o ponto único de falha previsto no pós-mortem. Se sim,
-   auto-reload fica morto até subir o teto → subir para $100+ (teto é permissão, não gasto).
-2. Colchão fino: gatilho $5 → recarrega só até $10 — a onda queima isso em minutos.
-   Subir gatilho para $10 → recarregar até $25.
-3. A recarga caiu na MESMA org da API key de produção? (conta com múltiplas orgs engana)
+- O blackout foi **UM SÓ, contínuo, 11:07Z → 23:52Z+** (último erro registrado antes deste
+  relatório). 21 vítimas externas no dia, **0 vídeos entregues o dia inteiro**. Os "rounds"
+  eram só janelas de observação — os erros nunca pararam (17h→23h: erros em TODAS as horas).
+- A conta **josephsskaf@gmail.com tem UMA org só ("Personal")**: saldo **$18.98**, auto-reload
+  LIGADO ($5→$10, teto $30/mês), spend limit $50/mês. E essa org gastou **$1.02 em 15 dias**
+  (27 requests no período 17/07–01/08; única key "Aestivora Vora" `sk-...60kA`, last used
+  **17/jul**, monthly spend $0.00).
+- Conclusão inescapável: **a OPENAI_API_KEY da produção NÃO pertence a esta conta.** A
+  produção consome de OUTRA conta OpenAI, que está sem créditos desde 11:07Z. A recarga das
+  16:42Z caiu nesta conta (a errada) — por isso "não segurou": ela nunca teve efeito.
+- Código confirma: `lib/openai.ts` = `new OpenAI({ apiKey })` sem baseURL (api.openai.com
+  puro). `.env.local` local só tem placeholder `sk-...`; a chave real vive nos env vars da
+  Vercel.
 
-O win-back dispara sozinho quando voltar (45 min sem marker + 1 vídeo completado).
-O e-mail 🚨 do round 2 pode ter chegado agrupado na mesma thread do das 15:40Z —
-conferir o Gmail de hoje ~14:15–15:25 (horário local).
+**CONSERTO (5 min) — não cace a conta antiga; traga a produção para a conta que você já monitora:**
+1. https://platform.openai.com/api-keys (logado como josephsskaf@gmail.com) →
+   **Create new secret key** → copiar.
+2. https://vercel.com → projeto **kineo** → Settings → **Environment Variables** →
+   editar `OPENAI_API_KEY` (Production) → colar a nova chave → Save.
+3. Aba **Deployments** → menu ⋯ do deploy atual → **Redeploy** (env var nova só entra
+   com deploy novo). Antes disso, rode o `scripts\13-PUSH.bat` — aí o próprio push já
+   faz o deploy com a env nova.
+4. Pronto: produção passa a consumir da org com $18.98 + auto-reload ligado. O win-back
+   dispara SOZINHO na volta (45 min sem marker + 1 vídeo completado; cron hh:05/hh:35).
+5. Na mesma sessão (2 min, https://platform.openai.com/settings/organization/limits):
+   com a onda a 68 cadastros/24h, o colchão atual é fino → auto-reload **gatilho $10 /
+   recarregar até $25**, teto mensal de auto-reload **$30 → $100** e spend limit da org
+   **$50 → $200** (teto é permissão, não gasto — e o mês da OpenAI acabou de virar).
+
+⚠️ Por regra dura eu não crio nem colo chaves/segredos em campo nenhum — por isso este
+gate é seu. Teste de sucesso: gerar 1 vídeo → `videos.status='completed'` novo → win-back
+sai sozinho para as 21 vítimas.
 
 ---
 
