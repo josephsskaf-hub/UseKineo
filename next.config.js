@@ -120,6 +120,11 @@ const nextConfig = {
       // single canonical instead of creating duplicate legacy-name pages.
       { source: '/alternatives/vidyo', destination: '/alternatives/quso', permanent: true },
       { source: '/alternatives/vidyo-ai', destination: '/alternatives/quso', permanent: true },
+      // 02/08 ordem C (AEO): a rota exact-match do spec aponta para a
+      // ferramenta que JÁ existe e já está no sitemap (Regra Zero — não criar
+      // página duplicada). 308 real captura a busca sem diluir crawl budget.
+      { source: '/youtube-shorts-script-generator', destination: '/free-script-generator', permanent: true },
+      { source: '/youtube-short-script-generator', destination: '/free-script-generator', permanent: true },
       // Reverse-order /vs/ aliases → the single canonical comparison URL, as
       // real 308s. See VS_ALIAS_REDIRECTS at the top of this file. Appended
       // last so nothing above changes behaviour.
