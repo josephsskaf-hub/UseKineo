@@ -3421,11 +3421,24 @@ export default function GenerateClient({
         if (process.env.NODE_ENV === 'development') console.log('[gen-client] broll-plan CALL', { mode: 'autopilot', ts: bpCallTs, niche, awaited: true })
         brollPlanPromiseRef.current = (async (): Promise<BrollPlan | null> => {
           try {
-            const bpRes = await fetch('/api/generate-broll-plan', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ script: source, niche, tone: 'energetic', duration: 52, language }),
-            })
+            // KINEO-FAST-RETRY-2026-08-02 — one silent in-place retry on a
+            // network throw. Losing this plan silently degrades every scene to
+            // generic Pexels queries (the "random girl" regression #346 fixed).
+            let bpRes: Response
+            try {
+              bpRes = await fetch('/api/generate-broll-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script: source, niche, tone: 'energetic', duration: 52, language }),
+              })
+            } catch {
+              await new Promise((resolve) => setTimeout(resolve, 2000))
+              bpRes = await fetch('/api/generate-broll-plan', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script: source, niche, tone: 'energetic', duration: 52, language }),
+              })
+            }
             if (bpRes.ok) {
               const bpData = await bpRes.json()
               if (process.env.NODE_ENV === 'development') console.log('[gen-client] broll-plan RESOLVED', { mode: 'autopilot', ts: Date.now(), elapsed_ms: Date.now() - bpCallTs, degraded: bpData?.degraded ?? null, scenes_count: Array.isArray(bpData?.scenes) ? bpData.scenes.length : 0 })
@@ -4134,12 +4147,43 @@ export default function GenerateClient({
             broll_scenes: plan?.scenes?.length ?? 0,
           })
         }
-        const res = await fetch('/api/generate-video-fast', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded }),
-        })
-        const data = await res.json()
+        // KINEO-FAST-RETRY-2026-08-02 — `res.json()` had no catch here, so a
+        // Vercel 502/504 HTML body became SyntaxError and a network blip became
+        // TypeError; both died in the generic `fast_threw` catch (8 external
+        // users on 02/08 alone; ~half never generated again). Fast is the free,
+        // highest-volume dispatch — give it the same bounded reconnect the
+        // cinematic branch has had since #315. Retry rule: network throw or an
+        // unparseable body (intentional server responses ALWAYS carry JSON,
+        // including the honest 503 blackout copy — those are never retried).
+        let res!: Response
+        let data: Record<string, unknown> | null = null
+        let fastDispatchRetries = 0
+        for (;;) {
+          let parseFailed = false
+          try {
+            res = await fetch('/api/generate-video-fast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded }),
+            })
+            data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null
+          } catch (err) {
+            if (fastDispatchRetries >= 2) throw err
+            fastDispatchRetries += 1
+            setError('Connection hiccup — retrying your video automatically. Nothing was lost.')
+            await new Promise((resolve) => setTimeout(resolve, fastDispatchRetries * 2500))
+            continue
+          }
+          if (parseFailed && fastDispatchRetries < 2) {
+            fastDispatchRetries += 1
+            setError('Connection hiccup — retrying your video automatically. Nothing was lost.')
+            await new Promise((resolve) => setTimeout(resolve, fastDispatchRetries * 2500))
+            continue
+          }
+          break
+        }
+        if (fastDispatchRetries > 0 && res.ok && data !== null) setError(null)
+        if (data === null) data = {}
         // PUSH #96 — Fast is the default engine and the only free one, so this
         // is the highest-volume dispatch in the funnel. Every non-success exit
         // gets a named reason plus the HTTP status; the 401 branch never
