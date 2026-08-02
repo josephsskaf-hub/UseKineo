@@ -11,10 +11,19 @@
 >   da página em que se apoiar. Adicionar ao sitemap + IndexNow (script existente) pós-deploy.
 > - Métrica: indexação Bing + referral chatgpt/bing + cadastros utm da página.
 >
-> ### A — CANAL DA MARCA NO YOUTUBE: infra pronta (youtube/auth + Autopilot multi-canal).
-> - GATE DO FUNDADOR (5 min): criar CANAL DE MARCA "Kineo" na conta Google dele
->   (youtube.com → Configurações → Criar canal → canal de marca; NÃO precisa de conta nova)
->   e conectar em Autopilot → Connect channel.
+> ### A — DECISÃO FINAL DO FUNDADOR: usar o CURIOSITYVAULTLAB (12,6k, conectado, token ok).
+> SEM GATE — canal já conectado. Estratégia que preserva o case study:
+> 1. **VÍDEO-PILAR (primeira ação):** "I let an AI run my 12,600-subscriber channel —
+>    here's what happened" — é meta-conteúdo DO nicho (curiosidade sobre o próprio canal),
+>    é o case study em vídeo e é o anúncio. Gerar com o pipeline (conta do fundador),
+>    publicar via Autopilot/upload no canal. Descrição: link case study + usekineo.com.
+> 2. **EMBALAGEM DE TODOS OS DIÁRIOS:** os vídeos diários CONTINUAM no nicho (case study
+>    intacto). A aquisição entra pela descrição/pinned: "This entire channel is written,
+>    voiced and edited by AI — see how: usekineo.com". Verificar onde o Autopilot monta a
+>    descrição do upload e incluir o CTA padrão (Regra Zero: talvez já exista campo).
+> 3. **HOW-TOs de alta intenção: 1 POR SEMANA no máximo** (teste controlado — medir
+>    retenção/subs antes de escalar; se o canal sofrer, recuar para só o pilar + embalagem).
+> A bio do canal JÁ tem link usekineo (verificado 02/08).
 > - Depois do connect, SPRINT configura o schedule com os tópicos de alta intenção
 >   (1/dia, inglês, CTA usekineo.com na descrição + comentário fixado se possível):
 >   1. How I make faceless YouTube Shorts with AI in 3 minutes
