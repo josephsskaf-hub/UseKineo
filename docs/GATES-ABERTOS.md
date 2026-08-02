@@ -20,10 +20,11 @@
 
 1. ✅ ~~Send Emilio~~ — **FEITO 21:35Z** (verificado in:sent). Aguardando retorno dele.
 2. ✅ ~~14-PUSH~~ — **FEITO** (origin/main=845c6b5; fast-retry + first-win em produção).
-3. **Rodar `scripts\16-PUSH.bat`** — sobe AEO (JSON-LD + redirect exact-match) + 7 commits
-   de docs/ordens das sessões de hoje. 30s.
-4. 🗓️ **Fazier launch AMANHÃ 03/08** — fazier.com/launches/kineo.
-5. (Ordem E, 5 min, quando quiser) Conta no Product Hunt p/ agendar launch ter/qua.
+3. ✅ ~~16-PUSH~~ — **RODADO** (deploy sha 6a74621 READY; IndexNow 107 URLs HTTP 200 pós-deploy).
+4. 🗓️ **Fazier launch AMANHÃ seg 03/08** — fazier.com/launches/kineo.
+5. ✅ ~~Conta PH~~ — **2º LAUNCH AGENDADO: TERÇA 04/08 12:01am PT** (página refeita, galeria nova,
+   first comment pronto). No dia: responder comentários; NÃO pedir upvotes (regra PH).
+6. **Rodar `scripts\17-PUSH.bat`** quando existir (docs desta sessão) — 30s.
 
 **Regra:** eu nunca paro num gate. Anoto aqui, passo para a próxima coisa, e o Joseph resolve tudo de uma vez por dia.
 **Não posso:** criar conta · digitar senha · resolver CAPTCHA · mover dinheiro.
