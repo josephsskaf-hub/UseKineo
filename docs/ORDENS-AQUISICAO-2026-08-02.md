@@ -105,3 +105,20 @@ ganha recorrente e vira parceiro permanente. Métrica: cadastros por link de cad
 - ADS pagos: sem caixa este mês (cartões no limite). Reavaliar com 25+ pagantes/MRR.
 - AppSumo/LTD: acelera caixa mas MATA o MRR rumo aos 500 pagantes recorrentes e atrai
   caçador de deal. Só considerar se precisar de capital de giro.
+
+## F — PROCEDIMENTO OPERACIONAL (fundador confirmou: tocar já; autonomia máxima)
+DIVISÃO: sprints fazem TUDO exceto o Send (fundador: 1 lote/dia, máx 10 e-mails/dia —
+proteção de entregabilidade do Gmail).
+1. LISTA (sprint de hoje): 30 canais YouTube/TikTok 5k-100k dos nichos "faceless channel",
+   "make money on youtube", "AI tools review". Buscar via Chrome (youtube search: "faceless
+   youtube channel tutorial", "autoshorts review", "ai video generator review", etc).
+   Registrar em docs/INFLUENCERS.md: canal, subs, nicho, e-mail (About/site/linktree),
+   vídeo recente citável. Sem e-mail público = anotar como DM-gate, não travar.
+2. RASCUNHOS (10/dia): Gmail create_draft, padrão clean aprovado. PERSONALIZAR: citar um
+   vídeo real do canal na 1ª linha. Oferta: 3 meses de Creator grátis + link de afiliado
+   40% recorrente. Sem roteiro imposto ("say whatever you honestly think"). Assinatura
+   Joseph. Assunto sugerido: "Free 3 months of Kineo for [Channel] (no strings)".
+3. COMP: quem responder aceitando → conceder 3 meses Creator (150 cr/mês) via admin/SQL
+   com registro em docs/INFLUENCERS.md + e-mail de boas-vindas com o link de afiliado.
+4. MÉTRICA: respostas / vídeos publicados / cadastros por link de afiliado de cada um.
+   Regra de morte: 10 dias sem resposta = próximo lote de 10.
