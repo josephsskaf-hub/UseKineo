@@ -27,3 +27,28 @@ Se 1-2 países dominarem, avaliar preço regional/métodos locais como ideia fut
 
 ## Já vigiando (não duplicar): 4 abandonos entram no recovery automático; nudges D0 ativos;
 contador momento-teto no ar; Fazier lança segunda 03/08.
+
+---
+# ORDENS DE CONVERSÃO — RODADA 2 (02/08 ~15h30, meta do fundador: 10 compradores)
+
+## ORDEM 4 — E-MAIL DO TETO NO MESMO DIA (o gatilho mais quente que existe e não usamos)
+Quem faz o 3º vídeo do dia provou 3× que quer o produto HOJE. O contador visual já existe;
+falta o e-mail: quando um free user completa o 3º vídeo em 24h, enviar EM ATÉ 1H
+(novo cron ou hook no compose): "You hit today's limit — Starter removes the wall,
+first month half off". Stamp próprio (cap_hit_sent_at) + supressão cruzada 24h como os
+demais. É o kwajo/emilio-pattern automatizado. Métrica: cap_hit → checkout_started no dia.
+
+## ORDEM 5 — PROVA REAL NOS PONTOS DE DECISÃO (pricing + tela de upsell)
+Hoje o /pricing não tem NENHUMA prova social. Adicionar faixa com números REAIS puxados
+honestos (hardcode semanal ok): "870+ creators · videos rendered every day · rated on
+TAAFT". Nada inventado, nada de fake counter. No upsell pós-vídeo, uma linha: "Join 870+
+creators". Métrica: pricing_view → checkout_started.
+
+## ORDEM 6 — OFERTA FOUNDING 50 (DECISÃO DO FUNDADOR PENDENTE — preparar, não ligar)
+Proposta: primeiros 50 pagantes = "Founding Creator": preço travado pra sempre + badge no
+app. Urgência honesta (contador real "5 of 50 claimed") + história pra contar no case
+study. NÃO é desconto extra — é trava de preço (o intro já desconta). Sprint prepara a
+mecânica (flag no profile + faixa no pricing) e o fundador dá o go/no-go no relatório 22h.
+
+Contexto: já no ar hoje — resgate 2-4h, first-win pós-compra, garantia no radar (Ordem 2
+rodada 1), cartas pessoais enviadas. Meta: 10 compradores → marcos 10/25/50 do METAS.md.
