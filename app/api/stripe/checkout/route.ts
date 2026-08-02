@@ -1112,6 +1112,15 @@ async function buildAndRedirect(
   // entitlement, attribution or return behaviour, so another tier, currency,
   // intro/promo, billing period or cancel/success destination stays distinct.
   const checkoutWindow = Math.floor(Date.now() / (5 * 60 * 1000))
+  // KINEO-FAST-RECOVERY-2026-08-02: sessao expira em ~2h (era 24h default).
+  // POR QUE: o cron send-recovery so age sobre sessao EXPIRADA; com 24h o e-mail
+  // de resgate chegava no dia seguinte, intencao fria. Com 2h, o resgate chega
+  // 2-4h depois do abandono (cron roda a cada 2h) - a janela que recupera 2-3x.
+  // Pedido direto do fundador em 02/08 ("mandar em 3 horas no maximo").
+  // Derivado do checkoutWindow (bucket de 5 min) para ser DETERMINISTICO dentro
+  // da janela de idempotencia - expires_at dinamico com a mesma idempotencyKey
+  // seria rejeitado pelo Stripe. Minimo do Stripe e 30min: 2h passa folgado.
+  sessionParams.expires_at = checkoutWindow * 300 + 2 * 60 * 60
   const checkoutIdempotencyKeyFor = (finalCustomerId: string): string => {
     const checkoutSignature = JSON.stringify({
       version: 5,

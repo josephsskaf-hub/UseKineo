@@ -1,6 +1,7 @@
 # GATES ABERTOS — só o fundador consegue destravar
 
 > ## 🎯 METAS DA EMPRESA (fundador, 01/08): 500 pagantes → 1.000 pagantes
+> ⚡ ORDENS ATIVAS: docs/ORDENS-CONVERSAO-2026-08-02.md (recovery 2h + PayPal no decline)
 > Ver docs/METAS.md — toda sprint conecta o trabalho a uma das duas alavancas
 > (volume de cadastros × conversão) e o placar reporta a distância. Baseline: 4 compradores.
 
