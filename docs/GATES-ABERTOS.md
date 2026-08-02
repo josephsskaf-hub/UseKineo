@@ -1,5 +1,30 @@
 # GATES ABERTOS — só o fundador consegue destravar
 
+> ## 🎯 METAS DA EMPRESA (fundador, 01/08): 500 pagantes → 1.000 pagantes
+> Ver docs/METAS.md — toda sprint conecta o trabalho a uma das duas alavancas
+> (volume de cadastros × conversão) e o placar reporta a distância. Baseline: 4 compradores.
+
+> ## 🟢 01/08 01:10Z — INCIDENTE OPENAI RESOLVIDO. ENV JÁ TROCADA. MOTOR VALIDADO.
+> Sprint: leia `docs/INCIDENTE-OPENAI-2026-07-31.md` ANTES de mencionar OpenAI/env.
+> A chave foi trocada às 00:50Z, redeploy feito, vídeo `completed` às 01:04Z em produção.
+> **NÃO pedir troca de env de novo. Este gate está FECHADO.**
+>
+> ## 🟢 01/08 05:06Z — INCIDENTE #2 (Creatomate 402) TAMBÉM RESOLVIDO
+> Upgrade Growth 10K feito pelo fundador; vídeo de USUÁRIO REAL completed 05:06:21Z.
+> Herança permanente pras sprints: construir lib/creatomateAlert.ts + monitor de % de
+> créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
+
+
+## 📌 02/08 ~21:00Z — PENDENTES DO DIA (2×30s)
+
+1. **Gmail → Send do rascunho pro Emilio** (5º comprador, pagou $4.90 e nunca gerou
+   vídeo; rascunho pessoal id r-3846233472729920308 pronto na sua caixa).
+2. **Rodar `scripts\14-PUSH.bat`** — sobe: fix fast-retry (8 vítimas hoje, metade não
+   voltou), "First win in one click" no checkout success, e docs da sprint.
+3. Conferir se o Send do rascunho valos já foi (Regra Zero — pode ter sido feito à noite).
+4. 🗓️ **Fazier launch AMANHÃ 03/08** — fazier.com/launches/kineo.
+
+
 **Regra:** eu nunca paro num gate. Anoto aqui, passo para a próxima coisa, e o Joseph resolve tudo de uma vez por dia.
 **Não posso:** criar conta · digitar senha · resolver CAPTCHA · mover dinheiro.
 
