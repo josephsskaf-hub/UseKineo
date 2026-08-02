@@ -78,3 +78,30 @@ não viram afiliados formais. Métrica: convites enviados/aceitos.
 ## Já rodando, não duplicar: TAAFT reviews (8 asks enviados), Fazier launch 03/08, Reddit
 fila mods, case study semanal, IndexNow, watermark/end-card, contador momento-teto,
 resgate 2-4h, first-win pós-compra.
+
+---
+# ACELERADORES (02/08 ~16h — resposta ao "como acelerar?"). SPRINTS: PREPARAR JÁ.
+
+## E. PRODUCT HUNT LAUNCH — o pico grátis clássico (centenas de cadastros em 24h)
+O maior spike gratuito que existe, e a audiência é EXATAMENTE maker/creator — com intro
+de $4.90, compra por impulso acontece. Nosso Fazier free tier já deu o PH Launch Checklist.
+SPRINTS PREPARAM TUDO: assets (tagline, gallery — reusar os cards do Fazier), first comment
+do maker, resposta-padrão a perguntas, página /ph com oferta especial de launch (sem cupom
+novo: destacar o intro), lista do que o fundador clica no dia. Data sugerida: terça ou
+quarta da semana que vem (após Fazier segunda — não canibalizar). GATE (5 min): fundador
+cria conta PH e agenda na data. Meta histórica de ferramentas do nicho: 200-500 cadastros
+no dia + cauda de semanas.
+
+## F. SEEDING DE MICRO-INFLUENCERS — audiência emprestada a custo de créditos
+Como AutoShorts/Submagic cresceram. Alvo: 30 canais/perfis faceless & "make money on
+YouTube" de 5k-100k (YouTube/TikTok). Oferta: 3 meses de Creator GRÁTIS em troca de 1
+vídeo/menção honesta (sem roteiro imposto — honestidade converte mais). Custo real: só
+créditos de render. SPRINTS: montar lista qualificada (canais que fazem review de AI tools),
+rascunhos personalizados no Gmail (padrão clean aprovado), founder aperta Send em lote.
+Tracking: cupom-menção? NÃO — link de afiliado 40% (o programa já existe!) = influencer
+ganha recorrente e vira parceiro permanente. Métrica: cadastros por link de cada parceiro.
+
+## Registrados, NÃO fazer agora (trade-off ruim neste estágio):
+- ADS pagos: sem caixa este mês (cartões no limite). Reavaliar com 25+ pagantes/MRR.
+- AppSumo/LTD: acelera caixa mas MATA o MRR rumo aos 500 pagantes recorrentes e atrai
+  caçador de deal. Só considerar se precisar de capital de giro.
