@@ -1,5 +1,35 @@
 # ORDENS DE AQUISIÇÃO — 02/08 (CEO + fundador). SPRINTS: 1 POR SPRINT, NA ORDEM.
 
+> ## ⚡ DECISÃO DO FUNDADOR (02/08 ~15h): EXECUTAR **A** e **C** AGORA. B e D ficam na fila.
+>
+> ### C — PÁGINA-FERRAMENTA AEO: sprint executa JÁ (spec abaixo). Prioridade da próxima sprint.
+> - Rota: `/youtube-shorts-script-generator` (indexável; a EXCEÇÃO sancionada à regra
+>   anti-página-nova: é ferramenta real). Reusar a API demo-script EXISTENTE (com fallback).
+> - Conteúdo: H1 "Free YouTube Shorts Script Generator — no signup", gerador funcional,
+>   JSON-LD SoftwareApplication, 2-3 parágrafos honestos de como funciona, CTA único
+>   "Turn this script into a video →" pro /signup. Leve, sem lib nova, padrão de estilo
+>   da página em que se apoiar. Adicionar ao sitemap + IndexNow (script existente) pós-deploy.
+> - Métrica: indexação Bing + referral chatgpt/bing + cadastros utm da página.
+>
+> ### A — CANAL DA MARCA NO YOUTUBE: infra pronta (youtube/auth + Autopilot multi-canal).
+> - GATE DO FUNDADOR (5 min): criar CANAL DE MARCA "Kineo" na conta Google dele
+>   (youtube.com → Configurações → Criar canal → canal de marca; NÃO precisa de conta nova)
+>   e conectar em Autopilot → Connect channel.
+> - Depois do connect, SPRINT configura o schedule com os tópicos de alta intenção
+>   (1/dia, inglês, CTA usekineo.com na descrição + comentário fixado se possível):
+>   1. How I make faceless YouTube Shorts with AI in 3 minutes
+>   2. This AI writes, voices and edits a Short by itself (full demo)
+>   3. Best AI tool for faceless channels in 2026 (honest test)
+>   4. From one sentence to a posted Short — watch the whole pipeline
+>   5. How faceless channels make money (and the tool that automates them)
+>   6. I let an AI run my 12,000-subscriber channel — results
+>   7. 3 faceless niches that still work in 2026
+>   8. Stop editing Shorts by hand — do this instead
+>   9. The 3-video-a-day free workflow for new faceless channels
+>   10. AI Shorts generator comparison: what $5 actually buys
+> - Métrica: views dos vídeos da marca + cadastros referral youtube.com.
+
+
 Princípio (fundador): "ganhar clientes de forma jamais vista, pontos de vista não óbvios."
 Regra Zero antes de cada uma: verificar o que JÁ existe (Invite & Earn, Affiliate 40%,
 demo-script público, Autopilot, posted_shorts — todos JÁ construídos).
