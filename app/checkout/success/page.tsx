@@ -7,10 +7,31 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
+import { getViralNowTopics, type ViralTopic } from '@/lib/viralTopics'
+
+// KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
+// TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
+// generate/pricing/autopilot for 20 minutes and left without ever generating a
+// video. This page was a dead end for a buyer with no prompt in hand. Fix: the
+// moment someone pays, hand them their first win — 3 trending topics, one
+// click, video starts by itself via the existing create_intent=fast autostart
+// rail. Topics come from the deterministic in-bundle pool (no fetch, no
+// failure mode — the "demo never dies" principle applied at birth).
 
 export default function CheckoutSuccessPage() {
   const router = useRouter()
-  const [countdown, setCountdown] = useState(5)
+  const [countdown, setCountdown] = useState(15)
+  const [topics, setTopics] = useState<ViralTopic[]>([])
+
+  useEffect(() => {
+    // Computed after mount so the time-seeded shuffle can never cause a
+    // hydration mismatch.
+    try {
+      setTopics(getViralNowTopics().slice(0, 3))
+    } catch {
+      // silent — the plain Generate CTA below remains
+    }
+  }, [])
 
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search)
@@ -161,6 +182,60 @@ export default function CheckoutSuccessPage() {
         >
           Redirecting to the app in {countdown}…
         </p>
+
+        {topics.length > 0 && (
+          <div style={{ marginTop: 22, textAlign: 'left' }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.8rem',
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                color: 'var(--muted)',
+              }}
+            >
+              Your first video, one click — trending right now
+            </p>
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {topics.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/generate?create_intent=fast&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
+                  onClick={() => {
+                    void trackEvent('checkout_success_topic_clicked', {
+                      topic_id: t.id,
+                      vertical: t.vertical,
+                      badge: t.badge,
+                    })
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    textDecoration: 'none',
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    background: 'rgba(41,151,255,.08)',
+                    border: '1px solid rgba(41,151,255,.35)',
+                    color: 'var(--text)',
+                  }}
+                >
+                  <span aria-hidden="true" style={{ fontSize: '1.15rem' }}>{t.emoji}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: '0.9rem', fontWeight: 800, letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                      {t.title}
+                    </span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: '0.75rem', color: 'var(--muted2)' }}>
+                      {t.badge} · starts automatically
+                    </span>
+                  </span>
+                  <span aria-hidden="true" style={{ color: '#2997ff', fontWeight: 900 }}>→</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div
           style={{
