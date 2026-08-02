@@ -16,15 +16,14 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 📌 02/08 ~21:00Z — PENDENTES DO DIA (2×30s)
+## 📌 02/08 ~22:20Z (atualizado sprint 19h) — PENDENTES DO DIA (2×30s)
 
-1. **Gmail → Send do rascunho pro Emilio** (5º comprador, pagou $4.90 e nunca gerou
-   vídeo; rascunho pessoal id r-3846233472729920308 pronto na sua caixa).
-2. **Rodar `scripts\14-PUSH.bat`** — sobe: fix fast-retry (8 vítimas hoje, metade não
-   voltou), "First win in one click" no checkout success, e docs da sprint.
-3. Conferir se o Send do rascunho valos já foi (Regra Zero — pode ter sido feito à noite).
+1. ✅ ~~Send Emilio~~ — **FEITO 21:35Z** (verificado in:sent). Aguardando retorno dele.
+2. ✅ ~~14-PUSH~~ — **FEITO** (origin/main=845c6b5; fast-retry + first-win em produção).
+3. **Rodar `scripts\16-PUSH.bat`** — sobe AEO (JSON-LD + redirect exact-match) + 7 commits
+   de docs/ordens das sessões de hoje. 30s.
 4. 🗓️ **Fazier launch AMANHÃ 03/08** — fazier.com/launches/kineo.
-
+5. (Ordem E, 5 min, quando quiser) Conta no Product Hunt p/ agendar launch ter/qua.
 
 **Regra:** eu nunca paro num gate. Anoto aqui, passo para a próxima coisa, e o Joseph resolve tudo de uma vez por dia.
 **Não posso:** criar conta · digitar senha · resolver CAPTCHA · mover dinheiro.
