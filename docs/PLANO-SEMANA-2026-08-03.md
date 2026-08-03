@@ -44,6 +44,18 @@ clientes externos desconhecidos.** Quem não paga DESISTE sem digitar cartão.
    Stripe some. Adicionar retorno para /checkout/cancelled com mensagem específica de
    decline + alternativa (PayPal / outro cartão) + o resgate 2-4h já no ar.
 
+### BLOCO B — STATUS 03/08 (noite): medida 4 SHIPADA, medida 6 SPEC PRONTA
+**4 ✅** `video_ready_viewed` no ar (GenerateClient): dispara no done com aba visível;
+aba oculta → espera visibilitychange e marca was_hidden + seconds_to_return.
+Leitura para as sprints: completed sem ready_viewed = nunca voltou (alvo da 6);
+ready_viewed sem download = viu e não quis (UI/valor). Reportar a razão diariamente.
+**6 → SPRINT (Regra Zero conferida: NÃO existe nada parecido nos crons):** criar
+send-video-ready — e-mail único "Your video is ready 🎬" com thumbnail + link direto
+para o vídeo, disparado para vídeo completed sem download em 30 min. Stamp próprio
+(video_ready_sent_at ou tabela), supressão cruzada 24h, padrão dos demais crons.
+ALVO: a fatia "completed sem ready_viewed" que a medida 4 agora mede.
+**7 ✅ (Bloco C)** reset de senha consertado (PKCE) — commit fc10ada.
+
 ### BLOCO B — GERAR → BAIXAR (71 pessoas por 14 dias)
 **4. Medir POR QUE não baixam.** Não temos evento de "viu o vídeo pronto e saiu". Instrumentar
    video_ready_viewed + tempo até download/abandono. Sem isso, tudo aqui é palpite.

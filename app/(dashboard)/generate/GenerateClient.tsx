@@ -2542,6 +2542,48 @@ export default function GenerateClient({
     if (phase === 'done' || phase === 'failed') setWmUnlocking(false)
   }, [phase])
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // KINEO-READY-VIEWED-2026-08-03 — medida 4 do plano da semana.
+  //
+  // O buraco gerar→baixar perde 71 pessoas/14d e era CEGO: sabíamos que o
+  // servidor terminou (video_generation_completed) e que houve download
+  // (video_downloaded), mas não se o usuário VIU o vídeo pronto. A hipótese
+  // principal é a aba em segundo plano durante os 2–4 min de render — a
+  // pessoa espera, cansa, troca de aba e nunca volta. Este evento separa os
+  // dois casos: dispara quando phase vira 'done' E a aba está visível; se a
+  // aba estiver oculta, espera o primeiro retorno (visibilitychange) e marca
+  // was_hidden:true com quantos segundos a pessoa demorou para voltar.
+  //   completed sem ready_viewed  → nunca voltou (o e-mail da medida 6 é
+  //                                 exatamente para essa fatia)
+  //   ready_viewed sem download   → viu e não quis (problema de UI/valor)
+  // Uma vez por tentativa (ref), fire-and-forget como os demais.
+  // ═══════════════════════════════════════════════════════════════════════
+  const readyViewedTrackedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (phase !== 'done') return
+    const attemptId = generationAttemptRef.current
+    if (!attemptId || readyViewedTrackedRef.current === attemptId) return
+    const readyAt = Date.now()
+    const fire = (wasHidden: boolean) => {
+      if (readyViewedTrackedRef.current === attemptId) return
+      readyViewedTrackedRef.current = attemptId
+      void trackEvent('video_ready_viewed', {
+        attempt_id: attemptId,
+        was_hidden: wasHidden,
+        seconds_to_return: wasHidden ? Math.round((Date.now() - readyAt) / 1000) : 0,
+      })
+    }
+    if (document.visibilityState === 'visible') {
+      fire(false)
+      return
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fire(true)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [phase])
+
   // KINEO-SPRINT-OFFER-2026-07-14 — count each SUCCESSFUL render once
   // (localStorage survives reloads; the ref stops double-counting while we
   // stay in the same 'done' phase). Storage failure → count stays 0 and the
