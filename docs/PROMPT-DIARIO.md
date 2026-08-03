@@ -14,6 +14,16 @@
 > dashboard. O custo de checar é segundos; o custo de não checar é o tempo DELE.
 
 > ## MUDANÇAS — 30/07/2026 (sessão C)
+
+### 03/08 sprint 12h
+- Corolário 12h/03/08: sessão paralela cria e RODA o próprio N-PUSH durante a sprint (24-PUSH
+  nasceu e deployou em minutos) — revalidar `git status -sb` NA HORA antes de criar N-PUSH/gate.
+- Timeline de usuário: janela redonda (48h) pega a borda do dia da compra e finge atividade
+  nova — cortar sempre pelo último evento do doc anterior (quase virou "Emilio voltou").
+- Sandbox: GIT_INDEX_FILE em /tmp pode dar EACCES — usar $HOME; tsbuild de dono antigo em
+  /tmp idem — nome único.
+- Medida 6 executada e NO AR (send-video-ready); video_ready_sent_at entrou na supressão e
+  no placar D. Anomalia aberta: video_ready_viewed = 0 eventos pós-deploy — verificar.
 >
 > Três regras novas. A primeira é a mais cara já registrada aqui: ela destrói trabalho já
 > verificado, sem deixar rastro, e enganou duas sprints seguidas.
