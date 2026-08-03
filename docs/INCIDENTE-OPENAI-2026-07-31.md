@@ -70,10 +70,10 @@ CONTINUAM VALENDO — são a herança permanente do incidente.
 
 | Fornecedor | Proteção | Config | Ponto fraco restante |
 |---|---|---|---|
-| OpenAI (org Personal) | Auto-reload ON | bate $10 → recarrega até $30 | **TETO MENSAL $30** — burn real ~$3,8/dia ≈ $115/mês → teto esgota ~dia 10. Fundador orientado a subir p/ $150 (Modify). CONFERIR NA PRÓXIMA SPRINT se subiu. |
+| OpenAI (org Personal) | Auto-reload ON ✅ | bate $10 → recarrega até $25 · **teto mensal $100** (máx do tier 1; fundador configurou 03/08) | Teto cobre ~26 dias no burn atual (~$3,8/dia). Sprints: monitorar consumo mensal; quando a OpenAI liberar tier 2, subir teto p/ $150+. Se consumo mensal passar de $85, avisar no relatório 22h. |
 | fal (Seedance hooks) | Auto top-up ON + alerta e-mail $10 ON (ativado 03/08) | bate $20 → +$40 (cartão •8677) | Cartão •8677 pode ser o de limite estourado — fundador confirmando. Burn ~$5,2/dia. |
 | Creatomate | Growth 10K (reset 31/08) | 10.000 créditos | Sem auto-scale — monitor de % no placar (>80% = avisar). creatomateAlert.ts pendente (tarefa código). |
 | OpenAI/Creatomate alarmes | openaiAlert ON · creatomateAlert PENDENTE | | |
 
-SPRINTS: placar diário inclui saldo OpenAI (se legível via sessão), % Creatomate, e o
-teto mensal da OpenAI até confirmar $150.
+SPRINTS: placar diário inclui saldo OpenAI (se legível via sessão), % Creatomate.
+Teto OpenAI CONFIRMADO em $100 (máx do tier) — alarme interno se consumo mensal > $85.
