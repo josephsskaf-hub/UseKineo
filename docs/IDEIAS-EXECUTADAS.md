@@ -37,6 +37,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | 03/08 | **Medida 6 (PLANO-SEMANA) — cron send-video-ready** (gargalo gerar→baixar 30%: quem fecha a aba no render nunca sabe que o vídeo ficou pronto) | Cron `send-video-ready` (10,40 * * * *): e-mail único com thumbnail+título+link /history p/ completed 30min-24h sem download; stamp `video_ready_sent_at` (migration JÁ em produção); supressão cruzada 24h; pagantes incluídos (entrega, não venda) (`dda0859`, sobe no 24-PUSH) | video_ready_sent_at → download/ready_viewed no mesmo dia; taxa gerar→baixar 30%→? | 10/08 |
 
+| 03/08 | **Ordens G1+G3 (PESQUISA-CONCORRENTES) — ângulo EARN** (Crayo $7,2M ARR vende "ganhar dinheiro", não "fazer vídeo") | Página `/make-money-clipping-with-ai` (pay-per-view $1–5/1k rotulado estimativa, tabela vs ad-share, CTA free `utm_source=clipping-page`, sitemap 0.9) + claim "highest rate we know of in this niche (40%)" na /partners (`7b957c0`) | Cadastros utm_source=clipping-page; applies de afiliado | 10/08 |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
