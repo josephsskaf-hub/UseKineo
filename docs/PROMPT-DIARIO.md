@@ -319,3 +319,14 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 - video_ready_viewed validado (1º evento 15:58Z) — é métrica, não bug. send-video-ready: 2 sends 15:40Z.
 - G1+G3 executadas (7b957c0); restam G4 (Whop), G2 (GO do fundador), G5 (roadmap). 27-PUSH substitui 25-PUSH.
 - tsc: run frio + buildinfo de nome novo joga o cache fora — reusar o MESMO nome dentro da sprint.
+
+
+## MUDANÇAS 03/08 ~20:10Z (sessão interativa pós-sprint 16h)
+- **MANDATO DE CRIATIVIDADE (ordem do fundador)**: toda sprint pensa de primeiro princípio
+  ("como Elon Musk") em tráfego QUALIFICADO→vendas e registra seção IDEIA CEO no doc da
+  sprint; sprint 19h eleva a melhor do dia à fila. Tráfego qualificado = intenção de
+  criar/postar/ganhar, medido por cadastro/ativação.
+- **Corolário comunicação entre sessões**: decisão da sessão CEO só existe quando commitada;
+  ~5 iniciativas (1 de Whop) chegando via commit — sprints devem procurá-las no git log.
+- Gate Whop fechado no mesmo dia: whop.com/kineoclippers NO AR (Rota B grátis);
+  campanha paga adiada (sem caixa; religável com $50).
