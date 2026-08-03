@@ -733,7 +733,10 @@ export default function KineoLanding({ initialUser }: Props) {
       </div>
       <StickyFreeShortCTA />
       {/* KINEO-CRO-2026-07-25 — recover exiting logged-out visitors (was only on /pricing). */}
-      {!isSignedIn && <ExitIntentOffer />}
+      {/* KINEO-EXIT-VARIANT-2026-08-03 — na home o exit-intent vende o GRÁTIS
+          (cadastro), não deals: visitante que nunca gerou vídeo não deve levar
+          tabela de preço como última impressão. Deals seguem no /pricing. */}
+      {!isSignedIn && <ExitIntentOffer variant="free" />}
     </main>
     <Footer showStats={false} />
     </>

@@ -76,7 +76,15 @@ function checkoutIntentParam(): string {
     : ''
 }
 
-export default function ExitIntentOffer() {
+// KINEO-EXIT-VARIANT-2026-08-03 — POR QUE a prop `variant` existe.
+// O modal de deals ($4.90/$9.90) estava montado TAMBÉM na home para visitante
+// deslogado — gente que nunca gerou um vídeo levava tabela de preço como
+// última impressão (diagnóstico do fundador: "poluído"; diagnóstico do funil:
+// vender antes de entregar, o erro que já corrigimos na tela de download).
+// Na home o objetivo do exit-intent é CADASTRO, não venda: variant="free"
+// vende os 3 vídeos grátis sem cartão. O /pricing continua com o deal —
+// lá a pessoa já está decidindo preço.
+export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal' | 'free' } = {}) {
   const [open, setOpen] = useState(false)
   // KINEO-SPRINT-OFFER-2026-07-14 — 'pack' removed from the union with the
   // one-time escape-hatch link (single-offer cleanup: the modal now sells
@@ -255,6 +263,55 @@ export default function ExitIntentOffer() {
   }
 
   if (!open) return null
+
+  if (variant === 'free') {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+        style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)' }}
+        onClick={() => setOpen(false)}
+      >
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="exit-free-title"
+          tabIndex={-1}
+          className="relative w-full max-w-md rounded-2xl p-7 text-center outline-none"
+          style={{ background: '#161618', border: '1px solid rgba(41,151,255,.35)', boxShadow: '0 0 60px rgba(41,151,255,.15)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={() => setOpen(false)}
+            className="absolute right-4 top-3 text-xl font-bold"
+            style={{ color: '#86868b', background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            ×
+          </button>
+          <h2 id="exit-free-title" className="text-[1.35rem] font-black tracking-tight" style={{ color: '#f5f5f7' }}>
+            Before you go — make one free.
+          </h2>
+          <p className="mt-2 text-sm" style={{ color: '#a8adb5', lineHeight: 1.6 }}>
+            Type one idea, get a finished Short in about 3 minutes.
+            3 free videos every day · no card needed.
+          </p>
+          <a
+            href="/signup"
+            onClick={() => trackEvent('exit_intent_free_clicked')}
+            className="mt-5 block w-full rounded-xl px-4 py-3 text-[15px] font-extrabold text-white"
+            style={{ background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', textDecoration: 'none' }}
+          >
+            Create my free Short →
+          </a>
+          <p className="mt-3 text-[11.5px] font-semibold" style={{ color: '#86868b' }}>
+            No card · no watermark tricks · yours to post
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
