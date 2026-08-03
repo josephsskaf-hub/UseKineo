@@ -62,3 +62,18 @@ CONTINUAM VALENDO — são a herança permanente do incidente.
 3. **Monitor de consumo**: sprint das 10h inclui % de créditos Creatomate usados no placar
    (via sessão logada creatomate.com — Credit Usage no sidebar). Alerta interno se >80%.
 4. Vítimas do 402 (a partir de 04:11Z) entram no win-back automático quando fechar.
+
+
+---
+
+# 🛡️ ESTADO DAS REDES DE PROTEÇÃO DOS FORNECEDORES — 03/08 (noite, verificado nas dashboards)
+
+| Fornecedor | Proteção | Config | Ponto fraco restante |
+|---|---|---|---|
+| OpenAI (org Personal) | Auto-reload ON | bate $10 → recarrega até $30 | **TETO MENSAL $30** — burn real ~$3,8/dia ≈ $115/mês → teto esgota ~dia 10. Fundador orientado a subir p/ $150 (Modify). CONFERIR NA PRÓXIMA SPRINT se subiu. |
+| fal (Seedance hooks) | Auto top-up ON + alerta e-mail $10 ON (ativado 03/08) | bate $20 → +$40 (cartão •8677) | Cartão •8677 pode ser o de limite estourado — fundador confirmando. Burn ~$5,2/dia. |
+| Creatomate | Growth 10K (reset 31/08) | 10.000 créditos | Sem auto-scale — monitor de % no placar (>80% = avisar). creatomateAlert.ts pendente (tarefa código). |
+| OpenAI/Creatomate alarmes | openaiAlert ON · creatomateAlert PENDENTE | | |
+
+SPRINTS: placar diário inclui saldo OpenAI (se legível via sessão), % Creatomate, e o
+teto mensal da OpenAI até confirmar $150.
