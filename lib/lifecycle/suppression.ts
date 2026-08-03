@@ -77,6 +77,9 @@ const PROFILE_TIMESTAMP_COLUMNS = [
   'reminder_sent_at',
   'activation_nudge_sent_at',
   'video_rescue_sent_at',
+  // KINEO-CAP-HIT-2026-08-03 (Ordem 4) — e-mail do teto same-day.
+  // cron/send-cap-hit → profiles.cap_hit_sent_at
+  'cap_hit_sent_at',
 ] as const
 
 export interface LifecycleSuppression {

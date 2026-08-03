@@ -37,6 +37,10 @@
       "schedule": "40 * * * *"
     },
     {
+      "path": "/api/cron/send-cap-hit",
+      "schedule": "15,45 * * * *"
+    },
+    {
       "path": "/api/cron/autopilot-generate",
       "schedule": "0 * * * *"
     }
