@@ -109,7 +109,7 @@ export const metadata: Metadata = {
     siteName: 'Kineo',
     images: [
       {
-        url: 'https://www.usekineo.com/og-image.png',
+        url: 'https://www.usekineo.com/og-image.png?v=2',
         width: 1200,
         height: 630,
         alt: 'Kineo AI YouTube Shorts Generator',
@@ -127,7 +127,7 @@ export const metadata: Metadata = {
     title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
     description:
       'Launch a repeatable AI Shorts show with the same face, voice and style. Up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.',
-    images: ['https://www.usekineo.com/og-image.png'],
+    images: ['https://www.usekineo.com/og-image.png?v=2'],
   },
   icons: {
     icon: '/favicon.svg',

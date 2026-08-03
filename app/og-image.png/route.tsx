@@ -11,19 +11,31 @@ export const runtime = 'edge'
 export async function GET() {
   return new ImageResponse(
     (
+      // KINEO-OG-SAFEZONE-2026-08-03 — o layout anterior usava space-between
+      // com padding de 64px: a linha de rodapé ("usekineo.com · 3 watermarked
+      // Fast videos / 24h · paid = clean MP4") ficava COLADA na borda inferior.
+      // O X (e WhatsApp/Slack) cortam as bordas do card, arredondam cantos e
+      // sobrepõem "From usekineo.com" na base — o fundador postou no X em
+      // 03/08 e o card saiu com o texto decapitado ("torta", palavras dele).
+      // Regra nova: NADA de texto a menos de ~90px de qualquer borda; conteúdo
+      // centralizado verticalmente; o domínio saiu da arte (o X já o exibe
+      // sozinho abaixo do card — era redundante e era exatamente o que o corte
+      // comia).
       <div
         style={{
           width: '100%',
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
-          background: '#000',
-          padding: '64px 70px',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: 'linear-gradient(135deg, #000 55%, #06121f 100%)',
+          padding: '90px 100px',
           fontFamily: 'sans-serif',
+          textAlign: 'center',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 44 }}>
           <div
             style={{
               display: 'flex',
@@ -44,24 +56,19 @@ export async function GET() {
             Kineo
           </div>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div
-            style={{
-              display: 'flex',
-              color: '#F1F5F9',
-              fontSize: 66,
-              fontWeight: 800,
-              lineHeight: 1.12,
-            }}
-          >
-            Type an idea. Get a finished Short.
-          </div>
-          <div style={{ display: 'flex', color: '#94a3b8', fontSize: 34, fontWeight: 600 }}>
-            AI script · locked AI host · voiceover · captions — in a few minutes
-          </div>
+        <div
+          style={{
+            display: 'flex',
+            color: '#F1F5F9',
+            fontSize: 68,
+            fontWeight: 800,
+            lineHeight: 1.12,
+          }}
+        >
+          Type an idea. Get a finished Short.
         </div>
-        <div style={{ display: 'flex', color: '#86868b', fontSize: 30, fontWeight: 600 }}>
-          usekineo.com · 3 watermarked Fast videos / 24h · paid = clean MP4
+        <div style={{ display: 'flex', color: '#94a3b8', fontSize: 32, fontWeight: 600, marginTop: 22 }}>
+          AI script · voiceover · captions · footage — in minutes. Free to try, no card.
         </div>
       </div>
     ),
