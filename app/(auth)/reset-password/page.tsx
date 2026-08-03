@@ -15,18 +15,60 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
 
+  const [linkError, setLinkError] = useState<string | null>(null)
+
   useEffect(() => {
-    // Supabase puts the token in the URL hash — wait for auth state to process it
+    // ═══════════════════════════════════════════════════════════════════
+    // KINEO-RESET-PKCE-2026-08-03 — TODO RESET DE SENHA ESTAVA QUEBRADO.
+    //
+    // O bug (visto pelo fundador em 03/08, print do botão eternamente
+    // desabilitado): este client é o createBrowserClient do @supabase/ssr,
+    // que usa PKCE — o link do e-mail chega como /reset-password?code=XXX
+    // (QUERY param). O código antigo só procurava token no HASH
+    // (#access_token / type=recovery), o formato do fluxo implícito antigo.
+    // Resultado: `ready` nunca virava true, o botão ficava desabilitado e o
+    // aviso "looks stuck" era o estado permanente. Perda total da conta para
+    // quem esqueceu a senha.
+    //
+    // O conserto cobre os TRÊS caminhos possíveis, em ordem:
+    //  1. A lib já trocou o code sozinha na inicialização (detectSessionInUrl)
+    //     → getSession() devolve sessão → pronto.
+    //  2. O ?code= ainda está na URL → exchangeCodeForSession(code) manual.
+    //     Falhou = link expirado/já usado → mensagem honesta + caminho de volta.
+    //  3. Links antigos de hash (implicit flow) seguem funcionando.
+    // O listener continua como rede de segurança para o evento chegar depois
+    // do mount (PASSWORD_RECOVERY no implicit, SIGNED_IN no PKCE).
+    // ═══════════════════════════════════════════════════════════════════
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setReady(true)
       }
     })
-    // Also try to detect from URL hash directly
-    const hash = window.location.hash
-    if (hash.includes('type=recovery') || hash.includes('access_token')) {
-      setReady(true)
-    }
+
+    void (async () => {
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (sessionData.session) {
+        setReady(true)
+        return
+      }
+      const code = new URLSearchParams(window.location.search).get('code')
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+        if (exchangeError) {
+          setLinkError(
+            'This reset link has expired or was already used. Request a new one below — it only takes a second.',
+          )
+        } else {
+          setReady(true)
+        }
+        return
+      }
+      const hash = window.location.hash
+      if (hash.includes('type=recovery') || hash.includes('access_token')) {
+        setReady(true)
+      }
+    })()
+
     return () => subscription.unsubscribe()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -94,11 +136,22 @@ export default function ResetPasswordPage() {
                 Choose a strong password for your account.
               </p>
 
-              {!ready && (
+              {/* KINEO-RESET-PKCE-2026-08-03 — o aviso genérico "looks stuck"
+                  era a UI do bug (ver comentário no useEffect). Agora existem
+                  dois estados honestos: verificando (transitório, some sozinho)
+                  e link expirado (com o caminho de volta em um clique). */}
+              {linkError ? (
                 <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', color: '#f59e0b' }}>
-                  ⚠️ If this page looks stuck, go back and click the reset link from your email again.
+                  {linkError}{' '}
+                  <Link href="/forgot-password" style={{ color: '#2997ff', fontWeight: 700 }}>
+                    Request a new link →
+                  </Link>
                 </div>
-              )}
+              ) : !ready ? (
+                <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.2)', color: '#5cb3ff' }}>
+                  Verifying your reset link…
+                </div>
+              ) : null}
 
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <div>
