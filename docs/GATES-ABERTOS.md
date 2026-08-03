@@ -24,7 +24,7 @@
 4. 🗓️ **Fazier launch AMANHÃ seg 03/08** — fazier.com/launches/kineo.
 5. ✅ ~~Conta PH~~ — **2º LAUNCH AGENDADO: TERÇA 04/08 12:01am PT** (página refeita, galeria nova,
    first comment pronto). No dia: responder comentários; NÃO pedir upvotes (regra PH).
-6. **Rodar `scripts\17-PUSH.bat`** quando existir (docs desta sessão) — 30s.
+6. ✅ ~~17-PUSH~~ → **Rodar `scripts\18-PUSH.bat`** (engloba o 17 + código sprint 21h: PayPal no recovery + CTA Autopilot) — 30s.
 
 **Regra:** eu nunca paro num gate. Anoto aqui, passo para a próxima coisa, e o Joseph resolve tudo de uma vez por dia.
 **Não posso:** criar conta · digitar senha · resolver CAPTCHA · mover dinheiro.
