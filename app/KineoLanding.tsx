@@ -10,6 +10,7 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
 import HomeTopicForm from './HomeTopicForm'
+import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 
@@ -406,6 +407,9 @@ export default function KineoLanding({ initialUser }: Props) {
     <main className="klp">
       <style dangerouslySetInnerHTML={{ __html: KLP_CSS }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
+      {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
+          Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
+      <PhWelcomeBanner />
 
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">

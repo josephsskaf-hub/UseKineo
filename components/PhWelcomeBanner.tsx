@@ -1,0 +1,52 @@
+'use client'
+
+// KINEO-PH-WELCOME-2026-08-04 — tapete de boas-vindas do Product Hunt.
+// POR QUE: launch day (ter 04/08 00:01 PT). Visitante de launch converte mais
+// quando a página o RECONHECE — o banner fecha o loop "vim do PH → é aqui
+// mesmo → o que eu ganho hoje". Só aparece com utm_source=producthunt ou
+// ?ref=producthunt (o padrão que o PH anexa); para todo o resto do tráfego a
+// landing não muda em nada. Client-only + useEffect para não tocar no SSR/
+// cache da home. Some sozinho quando o tráfego do launch acabar — sem prazo,
+// sem flag, sem manutenção.
+import { useEffect, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
+
+export default function PhWelcomeBanner() {
+  const [show, setShow] = useState(false)
+
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search)
+      const src = `${q.get('utm_source') ?? ''} ${q.get('ref') ?? ''}`.toLowerCase()
+      if (src.includes('producthunt') || src.includes('product-hunt')) {
+        setShow(true)
+        void trackEvent('ph_welcome_banner_shown')
+      }
+    } catch { /* ignore */ }
+  }, [])
+
+  if (!show) return null
+
+  return (
+    <div
+      style={{
+        background: 'linear-gradient(90deg, rgba(218,85,44,.16), rgba(41,151,255,.14))',
+        borderBottom: '1px solid rgba(218,85,44,.35)',
+        padding: '10px 16px',
+        textAlign: 'center',
+        fontSize: '13.5px',
+        fontWeight: 700,
+        color: '#f5f5f7',
+      }}
+    >
+      Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks.{' '}
+      <a
+        href="/signup?utm_source=producthunt&intent_campaign=ph_launch_banner"
+        onClick={() => { void trackEvent('ph_welcome_banner_clicked') }}
+        style={{ color: '#5cb3ff', textDecoration: 'underline', fontWeight: 800 }}
+      >
+        Start free →
+      </a>
+    </div>
+  )
+}
