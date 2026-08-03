@@ -296,3 +296,10 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
    pública nova de IA nasce com fallback estático (padrão `lib/demoFallback.ts`).
 4. **Eu não crio nem colo segredos** (chaves API em env vars etc.) — em incidente de
    credencial, o meu teto é diagnóstico fechado + gate mastigado com passos de 5 min.
+
+## MUDANÇAS — 03/08 00:20Z (sprint 21h de 02/08)
+- Corolário novo da Regra Zero: código MULTI-TENANT não vira canal de marketing sem gate de
+  dono (Autopilot = canal de cliente $299/mês; CTA só via isInternalEmail).
+- Armadilha nova: e-mail HTML não auto-linka URL — linkificar (<a>) todo link de lifecycle.
+- Métrica de pagante: oficial = plano ATIVO (2), reportar junto com has_paid (5).
+- Baseline: ordens 2 e A2 FEITAS (8d0836a); A restam itens 1+3; 18-PUSH pendente.
