@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { useState } from 'react'
 
 // Push #175 — use checkout GET route instead of hardcoded Stripe links.
 // KINEO-SPRINT-FIX-2026-07-15 — plan/offer preservation: buyers who abandon an
@@ -32,6 +33,8 @@ function CheckoutCancelledContent() {
   // buyer who already abandoned once and taps it twice created two Stripe
   // sessions and saw no feedback at all in between.
   const checkout = useCheckoutLaunch('checkout_cancelled')
+  // KINEO-CANCEL-REASON-2026-08-03 — ver comentário no bloco do survey.
+  const [reasonSent, setReasonSent] = useState<string | null>(null)
   const searchParams = useSearchParams()
   const rawTier = searchParams.get('tier')
   const tier: 'starter' | 'basic' | 'pro' =
@@ -159,7 +162,52 @@ function CheckoutCancelledContent() {
               {checkout.error}
             </p>
           )}
+          {/* KINEO-CHECKOUT-REASSURANCE-2026-08-03 — a garantia estava em toda a
+              jornada MENOS aqui, na página onde o hesitante aterrissa. */}
+          <p style={{ marginTop: 10, fontSize: '0.8rem', color: 'var(--muted2)', textAlign: 'center', fontWeight: 600 }}>
+            7-day money-back guarantee · cancel anytime in one click
+          </p>
         </div>
+        {/* ═══════════════════════════════════════════════════════════════
+            KINEO-CANCEL-REASON-2026-08-03 — POR QUE ESTE SURVEY EXISTE.
+            Autópsia no Stripe (03/08): ZERO declines reais de clientes
+            externos — quem não paga está desistindo sem digitar o cartão, e
+            nós não fazemos ideia do motivo. Três botões, um clique, evento
+            checkout_cancel_reason no funil. É a instrumentação mais barata
+            que existe para a maior perda do funil (16 abrem → 1 paga).
+            Nenhuma resposta é obrigatória; a página funciona igual sem tocar. */}
+        {reasonSent === null ? (
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', fontWeight: 700, margin: '0 0 10px' }}>
+              Mind telling us what stopped you?
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {([
+                ['price', 'Price'],
+                ['just_looking', 'Just looking'],
+                ['had_questions', 'I had questions'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setReasonSent(value)
+                    trackEvent('checkout_cancel_reason', { tier, reason: value })
+                  }}
+                  style={{ padding: '8px 14px', borderRadius: 999, fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p style={{ marginTop: 16, textAlign: 'center', fontSize: '0.82rem', color: 'var(--muted2)', fontWeight: 600 }}>
+            {reasonSent === 'had_questions'
+              ? 'Thanks — email support@usekineo.com and Joseph answers personally.'
+              : 'Thanks — that helps us more than you know.'}
+          </p>
+        )}
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: '0.85rem' }}>
           <Link href={intentCampaign ? `/pricing?intent_campaign=${encodeURIComponent(intentCampaign)}` : '/pricing'} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>← Go back to pricing</Link>
           <a href="mailto:support@usekineo.com" style={{ color: 'var(--muted2)', textDecoration: 'none', fontWeight: 600 }}>Contact support</a>

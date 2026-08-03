@@ -869,6 +869,20 @@ async function buildAndRedirect(
     after_expiration: {
       recovery: { enabled: true },
     },
+    // KINEO-CHECKOUT-REASSURANCE-2026-08-03 — POR QUE ISTO EXISTE.
+    // Autópsia no Stripe (03/08): dos 19 payments "failed" da conta, 13 eram
+    // testes internos de maio e ZERO eram declines de clientes externos
+    // desconhecidos. Quem abre o checkout e não paga está DESISTINDO sem
+    // digitar o cartão (hesitação), não levando recusa. Este texto coloca a
+    // reversão de risco no exato pixel onde a hesitação acontece — embaixo do
+    // botão de pagar, dentro da página do Stripe, o único lugar da jornada que
+    // até hoje não dizia nada. Estático de propósito: não varia por sessão,
+    // então não interfere na idempotencyKey.
+    custom_text: {
+      submit: {
+        message: '7-day money-back guarantee. Cancel anytime from your dashboard in one click.',
+      },
+    },
     success_url: `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}`,
     metadata: {

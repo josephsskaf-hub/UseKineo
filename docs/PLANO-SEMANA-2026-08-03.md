@@ -18,7 +18,21 @@
 
 ## AS 10 MEDIDAS
 
-### BLOCO A — O ÚLTIMO METRO (15 pessoas perdidas com cartão na mão)
+### BLOCO A — O ÚLTIMO METRO — ✅ EXECUTADO em 03/08 (mesma noite)
+**Autópsia (medida 1) DERRUBOU o mito do decline:** dos 19 payments "failed" da conta,
+13 eram testes internos de maio ("moeda não aceita"/CVC, cartão •1375), 3 eram o abhijeet
+(INR, que depois COMPROU), 1 victoriaskaf (família), 1 o fundador. **ZERO declines de
+clientes externos desconhecidos.** Quem não paga DESISTE sem digitar cartão.
+**Remédios shipados (commit da noite):**
+- custom_text no checkout do Stripe: "7-day money-back guarantee. Cancel anytime..." —
+  reversão de risco no pixel exato da hesitação (única superfície da jornada sem ela)
+- /checkout/cancelled: garantia visível + survey de 1 clique "what stopped you?"
+  (price / just looking / had questions) → evento checkout_cancel_reason. SPRINTS:
+  reportar a distribuição diariamente — é o novo radar do maior buraco do funil.
+- PayPal (medida 2): REBAIXADA — sem declines reais, sem urgência. Reavaliar se o survey
+  apontar pagamento como motivo.
+
+### (original) BLOCO A — O ÚLTIMO METRO (15 pessoas perdidas com cartão na mão)
 **1. Autópsia de cada checkout perdido.** Stripe mostra 19 "malsucedidos" de 64 na vida
    (~40% decline bancário). Cruzar os 16 do período: país, moeda, decline code. Sem esse
    dado a gente está adivinhando. ENTREGA: tabela país × motivo no doc da sprint.
