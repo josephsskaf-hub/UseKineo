@@ -18,11 +18,15 @@
 
 ## 📌 03/08 ~14:30Z (sprint 10h) — PENDENTES DE HOJE
 
-1. ✅ ~~21/22/23-PUSH~~ — RODADOS (cap-hit + garantia checkout + reset senha + ready_viewed em produção).
-   ✅ ~~24-PUSH~~ — sessão paralela criou e RODOU durante a sprint 12h (dda0859 = cron
-   send-video-ready EM DEPLOY). ~~25-PUSH~~ obsoleto → **NOVO: rodar `scripts\27-PUSH.bat`** (30s) —
-   sobe a pesquisa Crayo (603cced) + página EARN /make-money-clipping-with-ai + claim 40%
-   na /partners (7b957c0) + docs das sprints 12h/13h.
+1. ✅ ~~21/22/23/24/27/28-PUSH~~ — RODADOS (produção = 1cf2670: página EARN + og-card v2
+   no ar; IndexNow 108 URLs rodado 19:04Z pela sprint 16h).
+   → **NOVO: rodar `scripts\29-PUSH.bat`** (30s) — sobe ADMIN HQ consolidado
+   (30cd789 + f812f06) + log engajamento X (dceea2c) + docs sprint 16h (pesquisa Whop).
+1b. **Conta Whop** (10 min, https://whop.com com josephsskaf@gmail.com) — destrava a
+   campanha Content Rewards (clippers pagos por view fazendo demo da Kineo) e o outreach
+   a comunidades. Ver `docs/PESQUISA-WHOP-2026-08-03.md` (spec pronto).
+1c. **GO: budget campanha Whop $250–500** — só depois da conta; eu monto tudo na sessão
+   logada, você só paga. Meta do teste: custo por cadastro < $2.
 2. ✅ ~~Fazier launch~~ — **NO AR, #1 DO DIA com 45 upvotes** (14:20Z). 3 comentários
    respondidos como maker na sua sessão. Só acompanhar; nada obrigatório seu.
 3. (30s, ouro) **TAAFT review — akajitin@gmail.com**: comprou HOJE 25 min após cadastrar

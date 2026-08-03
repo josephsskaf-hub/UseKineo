@@ -39,6 +39,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | 03/08 | **Ordens G1+G3 (PESQUISA-CONCORRENTES) — ângulo EARN** (Crayo $7,2M ARR vende "ganhar dinheiro", não "fazer vídeo") | Página `/make-money-clipping-with-ai` (pay-per-view $1–5/1k rotulado estimativa, tabela vs ad-share, CTA free `utm_source=clipping-page`, sitemap 0.9) + claim "highest rate we know of in this niche (40%)" na /partners (`7b957c0`) | Cadastros utm_source=clipping-page; applies de afiliado | 10/08 |
 
+| 03/08 | **Ordem G4 — pesquisa Whop EXECUTADA + spec de campanha pronto** (onde os clippers vivem: 6.800 produtos de clipping, Whop Clips 980k membros) | `docs/PESQUISA-WHOP-2026-08-03.md`: 3 rotas custadas — recomendada = Kineo como MARCA no Content Rewards ($1/1k views, zero fixo, campanha FORÇA criar conta+gerar vídeo = compra ativação, não alcance; case Lovable 16M views/$4,4k). Spec completo pronto p/ colar. Gates: conta Whop (10 min) + GO de budget $250-500 | Cadastros utm_source=whop (após GO); custo/cadastro < $2 | 7d após campanha no ar (não da pesquisa) |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
