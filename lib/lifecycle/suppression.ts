@@ -80,6 +80,9 @@ const PROFILE_TIMESTAMP_COLUMNS = [
   // KINEO-CAP-HIT-2026-08-03 (Ordem 4) — e-mail do teto same-day.
   // cron/send-cap-hit → profiles.cap_hit_sent_at
   'cap_hit_sent_at',
+  // KINEO-VIDEO-READY-2026-08-03 (Medida 6 do PLANO-SEMANA) — "your video is ready".
+  // cron/send-video-ready → profiles.video_ready_sent_at
+  'video_ready_sent_at',
 ] as const
 
 export interface LifecycleSuppression {

@@ -41,6 +41,10 @@
       "schedule": "15,45 * * * *"
     },
     {
+      "path": "/api/cron/send-video-ready",
+      "schedule": "10,40 * * * *"
+    },
+    {
       "path": "/api/cron/autopilot-generate",
       "schedule": "0 * * * *"
     }
