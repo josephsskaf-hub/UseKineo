@@ -330,3 +330,15 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
   ~5 iniciativas (1 de Whop) chegando via commit — sprints devem procurá-las no git log.
 - Gate Whop fechado no mesmo dia: whop.com/kineoclippers NO AR (Rota B grátis);
   campanha paga adiada (sem caixa; religável com $50).
+
+## MUDANÇAS 03/08 (sprint 19h)
+- Rota C Whop EXECUTADA: 3 rascunhos Gmail p/ donos das top 3 comunidades de clipping
+  (ranking whoptrends). Lição: dono de Whop NÃO tem e-mail público — outreach real é
+  Whop DM/IG; rascunho vira copy-paste, assunto carrega o destino.
+- Pitch-arma descoberto: comunidades pagam 30% de afiliado interno; nosso 40% recurring
+  supera o que o dono ganha promovendo o próprio Whop.
+- video_ready: 0/8 pós-send — veredito 04/08 antes de mexer.
+- IDEIA CEO do dia na Fila: OUTREACH-AS-DEMO (Short personalizado sobre o alvo em cada
+  outreach — o pitch é o produto rodando).
+- 31-PUSH substitui 30 (cabeçalho do 30 estava staled; push empurra tudo ahead mesmo assim,
+  mas o cabeçalho é o changelog do fundador — manter fiel).

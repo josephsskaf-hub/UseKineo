@@ -151,6 +151,16 @@ Todos verificados em 31/07. Cada um pede conta/login:
 
 ---
 
+## 🔴 0. (03/08 19h) Rodar `scripts\31-PUSH.bat` + enviar 3 outreach Whop — 6 min
+
+- **31-PUSH** (substitui o 30): sobe as 4 iniciativas da sessão CEO (WALL /wall, SCRIPT
+  LIBRARY /scripts, AEO 46 /vs, sitemap) + admin HQ + docs. 7 commits parados localmente.
+- **3 rascunhos no Gmail** (Rota C Whop, afiliado 40%): o canal real é **Whop DM / IG DM**
+  — abrir cada rascunho, copiar o CORPO e colar no destino que está no assunto:
+  1. carlosdelzo (whop.com/cashclipslatino) — em espanhol
+  2. @eugenelitman_ IG / whop.com/joinclipstudios
+  3. @adan.maxwell IG / whop.com/vitaclips
+
 ## 🔴 1. TAAFT — pedir 5 avaliações reais — 15 min
 
 Nota **3,0 com só 2 avaliações** governa o que todo LLM lê sobre a Kineo. O TAAFT segue sendo o canal nº 1 (81 cadastros, 32,1% de ativação, metade dos compradores da história) e está decaindo 48→16→9→5/semana. Mandar o link para 5 usuários reais é o item de maior retorno por minuto que existe: https://theresanaiforthat.com/ai/kineo/

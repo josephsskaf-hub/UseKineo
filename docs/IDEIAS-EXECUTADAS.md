@@ -41,6 +41,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | 03/08 | **Ordem G4 — pesquisa Whop EXECUTADA + spec de campanha pronto** (onde os clippers vivem: 6.800 produtos de clipping, Whop Clips 980k membros) | `docs/PESQUISA-WHOP-2026-08-03.md`: 3 rotas custadas — recomendada = Kineo como MARCA no Content Rewards ($1/1k views, zero fixo, campanha FORÇA criar conta+gerar vídeo = compra ativação, não alcance; case Lovable 16M views/$4,4k). Spec completo pronto p/ colar. Conta criada pelo fundador NO MESMO DIA; campanha paga ADIADA (sem caixa) → **Rota B grátis NO AR: whop.com/kineoclippers** (branding + welcome post com utm_source=whop, montado por mim na sessão logada) | Cadastros utm_source=whop (orgânico) | 10/08 |
 
+| 03/08 | **Rota C Whop — outreach a donos das top 3 comunidades de clipping** (ranking de receita whoptrends: Clipea.us #1 822 membros / Clip Studios #2 781 / VitaClips #3 509, +67% 30d) | 3 rascunhos prontos no Gmail (ES p/ Clipea, EN p/ os outros), copy-paste p/ Whop DM/IG (e-mail dos donos não é público; assunto de cada rascunho diz o destino). Pitch: afiliado 40% recurring vs 30% que o Whop paga a eles + feature na página EARN + demo sob medida. Fundador só cola e envia | Respostas de donos + applies em /partners + cadastros utm_source=whop | 10/08 |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
@@ -52,6 +54,7 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 ## Fila (avaliadas, ainda não executadas — livres para uma sprint pegar)
 
+- **IDEIA CEO 03/08 — OUTREACH-AS-DEMO**: todo outreach (Whop, influencers F, PH) vai com um Short personalizado sobre o ALVO gerado na Kineo em 3 min — o pitch É o produto; custo $0; ninguém faz porque dá trabalho. Métrica: taxa de resposta com vídeo vs sem. Retorno÷esforço ALTO/baixo. 1º uso: follow-up 48h da Rota C
 - Fazier free (falta: 3 comentários úteis + badge no rodapé do site — sessão logada)
 - aitoolsdirectory (rascunho salvo no iframe; renderer bugado — retentar)
 - Wall of proof PÚBLICO na landing/examples alimentado por `posted_shorts` (a ponte já coleta; falta a vitrine)
