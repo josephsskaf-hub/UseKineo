@@ -157,5 +157,9 @@ case study repostado passa nos filtros. NUNCA link antes disso — ban mata o ca
 videos" têm tráfego perene — 1 resposta boa rende meses. Depois da conta criada, sprints
 escrevem as respostas.
 
+## H1-EXTRA (03/08, do fundador): TODO link postado no X leva `?utm_source=x` no fim —
+## fura o cache de card do X E identifica o cadastro no funil. O card social vive em
+## /og-card.png (rota nova, design com safe zone); se mudar o design, MUDAR A ROTA de
+## novo (og-card-2.png...) — 3 caches empilhados (CDN+X+WhatsApp) não respeitam ?v=.
 ## MÉTRICA: cadastros com referral t.co / youtube / reddit / quora no placar semanal.
 ## Regra de morte: canal que não gerar 1 cadastro em 14 dias sai da rotação.
