@@ -3,8 +3,12 @@
 **META 1: 500 usuários PAGANTES**
 **META 2: 1.000 usuários PAGANTES**
 
-Baseline em 01/08/2026: **4 já compraram na vida · 1 plano pago ativo · 0 assinaturas recorrentes**.
-Usuários reais cadastrados: 794.
+**A MÉTRICA OFICIAL DAS METAS = PLANO PAGO ATIVO** (corrigido pelo fundador em 02/08:
+`has_paid` conta quem já pagou NA VIDA, incluindo reembolsados — mentira otimista).
+Baseline em 02/08/2026: **PAGANTES ATIVOS = 2** (valos/basic + emilio/starter) ·
+has_paid histórico = 5 · recorrentes que renovaram = 0. Usuários reais: ~875.
+Query oficial: `select count(*) from profiles where plan is not null and plan <> 'free'
+and <filtro contas internas>` — sempre reportar as 3 contagens juntas, meta mede a ATIVA.
 
 ## Tradução em dinheiro (mix Starter-dominante, ~R$50/mês médio)
 - Meta 1 (500) ≈ **R$ 25.000+/mês** de receita recorrente
@@ -25,6 +29,6 @@ Usuários reais cadastrados: 794.
 
 ## Regra para as sprints
 - Toda sprint conecta o que fez a UMA das duas alavancas, com número esperado.
-- O placar diário reporta a distância das metas: `select count(*) from profiles where
-  has_paid=true and <filtro contas internas>` — marco a anunciar: 10, 25, 50, 100, 250, 500.
+- O placar diário reporta a distância pela MÉTRICA OFICIAL (plano pago ativo) — marco a
+  anunciar: 10, 25, 50, 100, 250, 500. has_paid é métrica secundária (histórica).
 - Marco intermediário de moral: primeiro dia com 3+ vendas; primeira semana com 10+.
