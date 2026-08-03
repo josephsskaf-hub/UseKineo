@@ -18,9 +18,10 @@
 
 ## 📌 03/08 ~14:30Z (sprint 10h) — PENDENTES DE HOJE
 
-1. **Rodar `scripts\21-PUSH.bat`** (30s) — sobe a Ordem 4 (e-mail do teto same-day,
-   cron send-cap-hit) + PLANO DA SEMANA + docs. A coluna do banco já está em produção;
-   sem o push o cron não existe.
+1. ✅ ~~21/22/23-PUSH~~ — RODADOS (cap-hit + garantia checkout + reset senha + ready_viewed em produção).
+   **NOVO: rodar `scripts\24-PUSH.bat`** (30s) — sobe a Medida 6 (cron send-video-ready,
+   e-mail "your video is ready" p/ quem gerou e não baixou — gargalo de 70% do funil) +
+   docs. Migration já em produção; sem o push o cron não existe.
 2. ✅ ~~Fazier launch~~ — **NO AR, #1 DO DIA com 45 upvotes** (14:20Z). 3 comentários
    respondidos como maker na sua sessão. Só acompanhar; nada obrigatório seu.
 3. (30s, ouro) **TAAFT review — akajitin@gmail.com**: comprou HOJE 25 min após cadastrar

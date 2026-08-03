@@ -35,6 +35,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 | 02/08 | **Ordens 2 + A2 — PayPal no decline + embalagem Autopilot** (Regra Zero: PayPal já existia completo; Autopilot é serviço $299 de cliente → CTA só canal interno via isInternalEmail) | Recovery email com link PayPal por tier + linkify no HTML; descrição dos uploads do Curiosityvaultlab com CTA usekineo.com (`8d0836a`) | recovery→PayPal checkout / cadastros referral youtube.com | 09/08 |
 | 03/08 | **Ordem 4 — E-mail do teto same-day** (gatilho mais quente: 3º vídeo do dia = provou 3× que quer HOJE) | Cron `send-cap-hit` (15,45 * * * *): e-mail em ≤1h espelhando a cópia aprovada do refusal in-app; preços de checkoutPricing; coluna `cap_hit_sent_at` JÁ em produção; supressão cruzada 24h; gate lifecycle (`067900f`) | cap_hit_sent_at → checkout_started no mesmo dia | 10/08 |
 
+| 03/08 | **Medida 6 (PLANO-SEMANA) — cron send-video-ready** (gargalo gerar→baixar 30%: quem fecha a aba no render nunca sabe que o vídeo ficou pronto) | Cron `send-video-ready` (10,40 * * * *): e-mail único com thumbnail+título+link /history p/ completed 30min-24h sem download; stamp `video_ready_sent_at` (migration JÁ em produção); supressão cruzada 24h; pagantes incluídos (entrega, não venda) (`dda0859`, sobe no 24-PUSH) | video_ready_sent_at → download/ready_viewed no mesmo dia; taxa gerar→baixar 30%→? | 10/08 |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
