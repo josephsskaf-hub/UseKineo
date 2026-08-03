@@ -58,6 +58,7 @@ import {
 } from '@/lib/autopilot/pipeline'
 import { mintUserSession, type UserSession } from '@/lib/autopilot/session'
 import { buildAutopilotPrompt, pickTopic, recentTopicsForSchedule } from '@/lib/autopilot/topics'
+import { isInternalEmail } from '@/lib/internalAccounts'
 
 export const dynamic = 'force-dynamic'
 // Mesmo teto do send-reminders (conta Vercel Pro). Os dois passes respeitam um
@@ -272,6 +273,19 @@ async function publishPass(args: {
     })
 
     const meta = buildPublishMetadata(topic || 'Daily Short', schedule?.niche ?? null)
+    // KINEO-ORDEM-A2-2026-08-02 — brand CTA APENAS em canal interno (fundador).
+    // Autopilot é serviço done-for-you de $299/mês: o canal de um CLIENTE nunca
+    // vira outdoor da Kineo. Hoje o único schedule da base é o do fundador
+    // (Curiosityvaultlab) — exatamente onde a Ordem A manda o CTA entrar.
+    const { data: ownerProf } = await db
+      .from('profiles')
+      .select('email')
+      .eq('id', run.user_id)
+      .maybeSingle()
+    const brandCta = isInternalEmail((ownerProf as { email?: string | null } | null)?.email)
+    const description = brandCta
+      ? `${meta.description}\n\nThis entire channel is written, voiced and edited by AI — see how it works: https://usekineo.com`
+      : meta.description
     const privacyRaw = (schedule?.privacy_status ?? 'public').toString()
     const privacy: 'public' | 'private' | 'unlisted' =
       privacyRaw === 'private' || privacyRaw === 'unlisted' ? privacyRaw : 'public'
@@ -282,7 +296,7 @@ async function publishPass(args: {
       channelId: run.channel_id ?? schedule?.channel_id ?? null,
       videoUrl: status.videoUrl,
       title: meta.title,
-      description: meta.description,
+      description,
       tags: meta.tags,
       privacyStatus: privacy,
     })

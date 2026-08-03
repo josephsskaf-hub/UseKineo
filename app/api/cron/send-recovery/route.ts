@@ -60,7 +60,18 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
-function buildEmail(plan: string, userId: string) {
+// KINEO-ORDEM-2-2026-08-02 — PayPal no momento do decline: ~40% dos pagamentos
+// da história são "malsucedido" (decline de banco, Índia/Paquistão fortes).
+// PayPal JÁ existe (rotas /api/paypal/*); o e-mail só precisava oferecer.
+// O link exige login: usuário deslogado cai em /signup?redirect=/pricing, onde
+// os botões PayPal existem — fallback aceitável, nunca um beco sem saída.
+const PAYPAL_TIERS = new Set(['starter', 'basic', 'pro'])
+function paypalLink(tier: string): string {
+  return PAYPAL_TIERS.has(tier)
+    ? `https://www.usekineo.com/api/paypal/checkout?tier=${tier}`
+    : 'https://www.usekineo.com/pricing'
+}
+function buildEmail(plan: string, tier: string, userId: string) {
   const text = `Hey,
 
 This is the Kineo team.
@@ -70,6 +81,7 @@ We noticed you got all the way to the ${plan} checkout but didn't finish signing
 Whatever it was, we'd like to fix it. A few things that might help:
 
 - We accept card, Link, Google Pay and Apple Pay
+- Card didn't go through? You can pay with PayPal instead: ${paypalLink(tier)}
 - Your account comes with 30 free credits - so you can test the engine before paying anything
 - If the price was the issue, reply and tell us. We'd rather make you a deal than lose you
 
@@ -79,10 +91,14 @@ Kineo Team
 usekineo.com`
 
   // Deliberately plain HTML — it must read like a person, not a campaign.
+  // URLs viram <a> porque clientes de e-mail NÃO auto-linkam texto em HTML —
+  // e o link do PayPal só cumpre a Ordem 2 se for clicável.
+  const linkify = (line: string) =>
+    line.replace(/https?:\/\/[^\s]+/g, (u) => `<a href="${u}" style="color:#111;">${u}</a>`)
   const html =
     text
       .split('\n')
-      .map((line) => (line.trim() === '' ? '<br/>' : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${line}</p>`))
+      .map((line) => (line.trim() === '' ? '<br/>' : `<p style="margin:0 0 2px;font-family:Arial,sans-serif;font-size:14px;color:#111;line-height:1.55;">${linkify(line)}</p>`))
       .join('') + emailFooterHtml(userId)
 
   return { text: `${text}${emailFooterText(userId)}`, html }
@@ -191,7 +207,7 @@ export async function GET(req: NextRequest) {
     }
 
     const tierLabel = TIER_LABEL[(cand.tier ?? '').toLowerCase()] ?? 'Pro'
-    const { text, html } = buildEmail(tierLabel, userId)
+    const { text, html } = buildEmail(tierLabel, (cand.tier ?? '').toLowerCase(), userId)
 
     try {
       const res = await fetch('https://api.resend.com/emails', {
