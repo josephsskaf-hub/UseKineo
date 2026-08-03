@@ -3,6 +3,7 @@ import { NICHE_SLUGS } from './free-ai-shorts/[niche]/page'
 import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { CANONICAL_SLUGS } from '@/lib/comparisons'
+import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -38,6 +39,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '', priority: 1.0, freq: 'daily' },
     { path: '/pricing', priority: 0.9, freq: 'weekly' },
     { path: '/viral-now', priority: 0.9, freq: 'daily' },
+    // KINEO-WALL-2026-08-03 — public proof board (Shorts users actually
+    // published). Daily/0.9 like /viral-now: same profile — a page whose whole
+    // value is that it changed since yesterday.
+    { path: '/wall', priority: 0.9, freq: 'daily' },
+    // KINEO-SCRIPT-LIBRARY-2026-08-03 — hub for the ~572 public /v/[id] script
+    // pages that were orphaned (no hub, no internal links, 8 search clicks in
+    // site history). The per-vertical shelves are appended below.
+    { path: '/scripts', priority: 0.9, freq: 'daily' },
     // PUSH #92 — removed leftover `{ path: '/pt', priority: 0.9, freq:
     // 'weekly' }` entry: it contradicted the English-only decision recorded
     // in the comments below (KINEO-2026-07-25) — every other PT/ES sitemap
@@ -144,5 +153,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     })),
   ]
-  return [...staticEntries, ...nicheEntries, ...altEntries, ...exampleEntries, ...vsEntries]
+  // KINEO-SCRIPT-LIBRARY-2026-08-03 — one shelf per vertical. Kept synchronous
+  // on purpose: making sitemap() async to count scripts per shelf would put a
+  // Supabase round-trip on the sitemap's critical path. A shelf that is still
+  // thin renders with robots:noindex of its own accord (the page decides), and
+  // self-corrects the moment it clears the threshold — the sitemap listing it
+  // early costs nothing, while a DB outage that empties the sitemap would.
+  const scriptShelfEntries = SCRIPT_VERTICAL_SLUGS.map((slug) => ({
+    url: `${BASE}/scripts/${slug}`,
+    lastModified: LAST_MODIFIED,
+    changeFrequency: 'daily' as const,
+    priority: 0.8,
+  }))
+  return [
+    ...staticEntries,
+    ...nicheEntries,
+    ...altEntries,
+    ...exampleEntries,
+    ...vsEntries,
+    ...scriptShelfEntries,
+  ]
 }
