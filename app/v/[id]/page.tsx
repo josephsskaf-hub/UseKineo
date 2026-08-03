@@ -8,6 +8,12 @@ import {
   PUBLIC_BASE_URL,
   type PublicVideo,
 } from '@/lib/publicVideos'
+import {
+  generateFromScriptHref,
+  getRelatedScripts,
+  getScriptVertical,
+  type LibraryScript,
+} from '@/lib/scriptLibrary'
 
 // #459 — Public shareable video page (/v/[id]). Every generated video gets a
 // public landing: the 9:16 player + a "make your own free" CTA. When a user
@@ -107,15 +113,29 @@ function videoJsonLd(v: PublicVideo) {
   }
 }
 
-function breadcrumbJsonLd(v: PublicVideo) {
+// KINEO-SCRIPT-LIBRARY-2026-08-03 — the breadcrumb used to point at /examples,
+// a page of four hardcoded demos that has nothing to do with this video. It now
+// mirrors the REAL hierarchy the page sits in: Home › Shorts Script Library ›
+// <topic> › this script. That matters twice over — it is the trail Google
+// renders in the SERP, and it is the path authority now flows along.
+function breadcrumbJsonLd(v: PublicVideo, vertical: string | null) {
+  const trail: Array<{ name: string; item: string }> = [
+    { name: 'Home', item: PUBLIC_BASE_URL },
+    { name: 'Shorts Script Library', item: `${PUBLIC_BASE_URL}/scripts` },
+  ]
+  const meta = vertical ? getScriptVertical(vertical) : null
+  if (meta) trail.push({ name: meta.label, item: `${PUBLIC_BASE_URL}/scripts/${meta.slug}` })
+  trail.push({ name: v.title, item: v.pageUrl })
+
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: PUBLIC_BASE_URL },
-      { '@type': 'ListItem', position: 2, name: 'Examples', item: `${PUBLIC_BASE_URL}/examples` },
-      { '@type': 'ListItem', position: 3, name: v.title, item: v.pageUrl },
-    ],
+    itemListElement: trail.map((entry, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: entry.name,
+      item: entry.item,
+    })),
   }
 }
 
@@ -130,6 +150,14 @@ export default async function PublicVideoPage({ params }: { params: { id: string
   const ready = !!v?.playbackUrl
   const title = v?.title ?? 'AI YouTube Short'
   const signupHref = signupHrefFor(v)
+
+  // KINEO-SCRIPT-LIBRARY-2026-08-03 — sibling scripts. Only members of the
+  // library are returned and every member has already cleared the quality gate
+  // in lib/publicVideos.ts, so this rail can never link to a `noindex` page or
+  // a dead id. When Supabase is unreachable the library resolves to empty and
+  // the whole block simply does not render.
+  const { vertical, related } = await getRelatedScripts(params.id, 9)
+  const verticalMeta = vertical ? getScriptVertical(vertical) : null
 
   return (
     <main
@@ -149,7 +177,9 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           />
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd(v)).replace(/</g, '\\u003c') }}
+            dangerouslySetInnerHTML={{
+              __html: JSON.stringify(breadcrumbJsonLd(v, vertical)).replace(/</g, '\\u003c'),
+            }}
           />
         </>
       )}
@@ -160,9 +190,20 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             Kineo
           </Link>
           <span style={{ color: MUTED, fontSize: '0.85rem' }}> / </span>
-          <Link href="/examples" style={{ color: MUTED, textDecoration: 'none', fontSize: '0.85rem' }}>
-            Examples
+          <Link href="/scripts" style={{ color: MUTED, textDecoration: 'none', fontSize: '0.85rem' }}>
+            Shorts Script Library
           </Link>
+          {verticalMeta && (
+            <>
+              <span style={{ color: MUTED, fontSize: '0.85rem' }}> / </span>
+              <Link
+                href={`/scripts/${verticalMeta.slug}`}
+                style={{ color: MUTED, textDecoration: 'none', fontSize: '0.85rem' }}
+              >
+                {verticalMeta.label}
+              </Link>
+            </>
+          )}
         </nav>
 
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, lineHeight: 1.28, margin: '0 0 10px' }}>{title}</h1>
@@ -256,6 +297,29 @@ export default async function PublicVideoPage({ params }: { params: { id: string
                 {p}
               </p>
             ))}
+            {/* KINEO-SCRIPT-LIBRARY-2026-08-03 — the conversion moment. A reader
+                who just finished the script has the idea in their head RIGHT
+                NOW; asking here converts better than the generic hero CTA. Uses
+                the same /signup?prompt=…&create_intent=fast contract that
+                app/HomeTopicForm.tsx already builds — no new querystring. */}
+            <PublicVideoCtaLink
+              href={generateFromScriptHref(v.title, 'script_library_video_page')}
+              videoId={params.id}
+              style={{
+                display: 'inline-block',
+                marginTop: 6,
+                background: 'rgba(41,151,255,0.12)',
+                border: `1px solid ${BLUE}`,
+                color: BLUE,
+                fontWeight: 800,
+                padding: '12px 22px',
+                borderRadius: 12,
+                textDecoration: 'none',
+                fontSize: '0.95rem',
+              }}
+            >
+              Generate a Short from this script →
+            </PublicVideoCtaLink>
           </section>
         )}
 
@@ -275,6 +339,67 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           </section>
         )}
 
+        {/* KINEO-SCRIPT-LIBRARY-2026-08-03 — "More scripts like this".
+            THIS is the block that de-orphans the surface. Before it, every
+            /v/[id] page was a leaf with zero outbound links to any other
+            /v/[id]: the sitemap announced 575 URLs that nothing on the site
+            pointed to, and an orphan does not rank no matter how good its
+            JSON-LD is. Now each page links to up to 9 siblings in the same
+            vertical, so the pages form a connected graph a crawler can walk. */}
+        {related.length > 0 && (
+          <section style={{ marginTop: 34 }}>
+            <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 6px' }}>More scripts like this</h2>
+            <p style={{ color: MUTED, fontSize: '0.85rem', margin: '0 0 14px', lineHeight: 1.6 }}>
+              {verticalMeta ? (
+                <>
+                  From the{' '}
+                  <Link href={`/scripts/${verticalMeta.slug}`} style={{ color: BLUE, textDecoration: 'none' }}>
+                    {verticalMeta.label}
+                  </Link>{' '}
+                  shelf of the{' '}
+                  <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none' }}>
+                    Shorts Script Library
+                  </Link>
+                  . Full narration on every page, free to read.
+                </>
+              ) : (
+                <>
+                  From the{' '}
+                  <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none' }}>
+                    Shorts Script Library
+                  </Link>
+                  . Full narration on every page, free to read.
+                </>
+              )}
+            </p>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+              {related.map((s: LibraryScript) => (
+                <li
+                  key={s.id}
+                  style={{
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 12,
+                    padding: '11px 14px',
+                  }}
+                >
+                  <Link
+                    href={s.href}
+                    style={{ color: '#e5e7eb', textDecoration: 'none', fontWeight: 700, fontSize: '0.92rem', lineHeight: 1.45 }}
+                  >
+                    {s.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p style={{ margin: '14px 0 0', fontSize: '0.88rem' }}>
+              <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none', fontWeight: 800 }}>
+                Browse every free Shorts script →
+              </Link>
+            </p>
+          </section>
+        )}
+
         <section style={{ marginTop: 34 }}>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0 0 12px' }}>How this Short was made</h2>
           <p style={{ color: '#d2d2d7', fontSize: '0.95rem', lineHeight: 1.7, margin: '0 0 12px' }}>
@@ -285,6 +410,18 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           {/* Internal links so these pages are not orphan leaves: each one
               points back into the acquisition cluster that already ranks. */}
           <ul style={{ color: MUTED, fontSize: '0.92rem', lineHeight: 1.9, margin: 0, paddingLeft: 20 }}>
+            <li>
+              <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none' }}>
+                Free YouTube Shorts scripts library
+              </Link>
+            </li>
+            {verticalMeta && (
+              <li>
+                <Link href={`/free-ai-shorts/${verticalMeta.slug}`} style={{ color: BLUE, textDecoration: 'none' }}>
+                  Free {verticalMeta.label} Shorts generator
+                </Link>
+              </li>
+            )}
             <li>
               <Link href="/examples" style={{ color: BLUE, textDecoration: 'none' }}>
                 See more example Shorts made with Kineo

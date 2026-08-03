@@ -82,6 +82,12 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     links: [
       { href: '/free-ai-shorts-generator', label: 'Free AI Shorts generator' },
       { href: '/free-ai-shorts', label: 'Free AI Shorts by niche' },
+      // KINEO-SCRIPT-LIBRARY-2026-08-03 — the single most valuable link added in
+      // this change. /scripts is the parent of 575 previously ORPHAN /v/[id]
+      // pages; putting it in the global footer means every public page on the
+      // domain is one hop from the library, and the library is one hop from
+      // every script. Without this the hub would itself be an orphan.
+      { href: '/scripts', label: 'Free YouTube Shorts scripts' },
       { href: '/free-script-generator', label: 'Free script generator' },
       { href: '/free-hook-generator', label: 'Free hook generator' },
       { href: '/viral-score', label: 'Free viral score' },

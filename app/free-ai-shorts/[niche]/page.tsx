@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -488,6 +489,23 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             Start free →
           </OrganicCtaLink>
         </section>
+
+        {/* KINEO-SCRIPT-LIBRARY-2026-08-03 — reverse link into the script
+            library. The library's vertical slugs are deliberately the SAME
+            slugs as these niches, so when a matching shelf exists this page
+            can hand the visitor the real scripts instead of only the tool —
+            and, in the other direction, it gives /scripts/[vertical] an inbound
+            link from a page that is already indexed. */}
+        {SCRIPT_VERTICAL_SLUGS.includes(params.niche) && (
+          <section style={{ marginTop: 40, textAlign: 'center' }}>
+            <p style={{ fontSize: '0.9rem', color: '#CBD5E1', margin: 0, lineHeight: 1.6 }}>
+              Want to see finished scripts first?{' '}
+              <Link href={`/scripts/${params.niche}`} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 800 }}>
+                Read free {n.label} Shorts scripts →
+              </Link>
+            </p>
+          </section>
+        )}
 
         <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.8rem', color: '#64748B' }}>
           <span>More: </span>
