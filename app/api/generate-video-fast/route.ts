@@ -1082,6 +1082,17 @@ export async function POST(req: NextRequest) {
       // requested TTS speed to /api/compose.
       verbatim,
       speed: parsedScript.speed,
+      // KINEO-AI-SCENE-VISIBLE-2026-08-03 — POR QUE ISTO EXISTE.
+      // Todo PRIMEIRO vídeo de usuário free já recebe uma cena de abertura
+      // GERADA POR IA (Seedance 1.5 Pro, ~$0.22 de provider) — e medimos em
+      // 03/08 que esse hook é 100% do nosso gasto no fal. O usuário nunca soube:
+      // via uma abertura linda e assumia que era sorte do banco de imagens.
+      // Pagávamos pela demonstração do produto PAGO e jogávamos fora o argumento
+      // de venda. Agora o cliente recebe o flag e a tela de resultado pode dizer
+      // "esta cena foi gerada por IA — o Creator gera o vídeo inteiro assim".
+      // Custo incremental: zero. É a prova do upgrade dentro do vídeo dele,
+      // com o tema dele.
+      ai_scene_index: clipSources[0] === 'aiHook' ? 0 : null,
     })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
