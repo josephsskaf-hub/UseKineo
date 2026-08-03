@@ -1,9 +1,10 @@
 @echo off
-REM 25-PUSH - 03/08/2026 (12h, docs) - DOCS DA SPRINT 12h
+REM 25-PUSH - 03/08/2026 (madrugada) - MEDIDA 8: exit-intent da home
 REM
-REM   3479eb6  DOCS sprint 12h: Medida 6 executada, Fazier #1 defendido,
-REM            correcao Emilio (NAO voltou), placar deltas
-REM   + correcao GATES (24-PUSH ja rodado pela sessao paralela)
+REM   4cb4633  O modal de saida da HOME agora vende o GRATIS ("make one free,
+REM            no card") em vez da tabela de deals - visitante que nunca gerou
+REM            video nao leva preco como ultima impressao. /pricing mantem o
+REM            modal de deals (la a pessoa ja decide preco).
 REM
 REM Regra de sempre: CLIQUE NO MAIOR NUMERO DA PASTA.
 call "%~dp0\1-PUSH.bat"
