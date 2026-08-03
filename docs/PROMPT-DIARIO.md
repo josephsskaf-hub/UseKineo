@@ -313,3 +313,9 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 - Armadilha nova: e-mail HTML não auto-linka URL — linkificar (<a>) todo link de lifecycle.
 - Métrica de pagante: oficial = plano ATIVO (2), reportar junto com has_paid (5).
 - Baseline: ordens 2 e A2 FEITAS (8d0836a); A restam itens 1+3; 18-PUSH pendente.
+
+## MUDANÇAS — 03/08 sprint 13h
+- Corolário novo: sessão paralela também executa MEDIDAS DA FILA (Medida 8 saiu sem sprint) — checar git log antes de escolher a ideia.
+- video_ready_viewed validado (1º evento 15:58Z) — é métrica, não bug. send-video-ready: 2 sends 15:40Z.
+- G1+G3 executadas (7b957c0); restam G4 (Whop), G2 (GO do fundador), G5 (roadmap). 27-PUSH substitui 25-PUSH.
+- tsc: run frio + buildinfo de nome novo joga o cache fora — reusar o MESMO nome dentro da sprint.
