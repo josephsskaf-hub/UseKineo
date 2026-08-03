@@ -14,6 +14,7 @@
 // RLS: insert/select apenas da própria linha; dedupe por (user, youtube_id).
 
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
 // Aceita youtube.com/shorts/ID, youtu.be/ID, youtube.com/watch?v=ID (e m./www.).
@@ -84,6 +85,17 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error('[posted-shorts] insert failed:', error.message)
       return NextResponse.json({ error: 'Could not save your link. Please try again.' }, { status: 500 })
+    }
+
+    // KINEO-WALL-2026-08-03 — /wall lê `posted_shorts` através de um
+    // unstable_cache de 10 min (app/wall/page.tsx). Sem invalidar aqui, quem
+    // acabou de colar o link olharia para uma parede que ainda não o contém —
+    // e a promessa "cole e apareça" é justamente o gancho de retenção. Falha
+    // desta chamada não pode derrubar o insert, que já foi confirmado.
+    try {
+      revalidateTag('wall-of-proof')
+    } catch {
+      // non-blocking
     }
 
     return NextResponse.json({ ok: true, youtubeId })

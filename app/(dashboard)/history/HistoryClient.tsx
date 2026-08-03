@@ -1228,6 +1228,23 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                   {checkout.error}
                 </p>
               )}
+              {/* KINEO-WALL-2026-08-03 — gancho de retenção, uma linha, logo
+                  depois do download: quem acabou de baixar é exatamente quem
+                  está prestes a postar. Leva ao mesmo fluxo que já existe (o
+                  campo "cola o link" na tela de sucesso do /generate) e à
+                  página pública /wall. Sem estado novo, sem redesenho, sem
+                  encostar em paywall ou créditos. */}
+              <p style={{ margin: 0, textAlign: 'center', fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.5 }}>
+                Published it?{' '}
+                <a
+                  href="/wall"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
+                >
+                  Paste the link and get on the wall →
+                </a>
+              </p>
               <button
                 onClick={() => setLightbox(null)}
                 style={{ width: '100%', padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--muted)', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}

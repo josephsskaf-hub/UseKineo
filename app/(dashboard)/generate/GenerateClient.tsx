@@ -7281,17 +7281,41 @@ export default function GenerateClient({
                   className="rounded-2xl px-5 py-4 mt-6 w-full"
                   style={{ maxWidth: 480, background: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
+                  {/* KINEO-WALL-2026-08-03 — o mesmo campo, agora com um destino
+                      VISÍVEL: /wall. "Featured queue" era uma promessa vaga (fila
+                      de quê? decidida por quem?); o Wall of Proof é uma página
+                      pública, ranqueada por views reais, que a pessoa pode abrir
+                      no mesmo segundo. É esse o gancho de retenção — o usuário
+                      volta pra ver onde o Short dele ficou. Nada de layout, de
+                      paywall ou de créditos foi tocado aqui. */}
                   {postedLinkState === 'done' ? (
                     <div className="text-sm font-black" style={{ color: '#4ade80' }}>
-                      🎉 Got it — your Short is in our featured queue. Thanks!
+                      🎉 You&apos;re on the wall.{' '}
+                      <a
+                        href="/wall"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#2997ff', textDecoration: 'underline' }}
+                      >
+                        See your Short on the Wall of Proof →
+                      </a>
                     </div>
                   ) : (
                     <>
                       <div className="text-sm font-black" style={{ color: '#f5f5f7' }}>
-                        Posted your Short? Drop the link 🔗
+                        Published it? Paste the link and get on the wall 🔗
                       </div>
                       <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
-                        Paste your YouTube link — the best community Shorts get featured on Kineo.
+                        Your Short joins the{' '}
+                        <a
+                          href="/wall"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
+                        >
+                          Wall of Proof
+                        </a>{' '}
+                        — the public board of Shorts made with Kineo, ranked by real views.
                       </p>
                       <div className="flex gap-2 mt-3">
                         <input

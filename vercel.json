@@ -47,6 +47,10 @@
     {
       "path": "/api/cron/autopilot-generate",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/wall/refresh",
+      "schedule": "45 6 * * *"
     }
   ]
 }
