@@ -16,6 +16,18 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+## 📌 03/08 ~14:30Z (sprint 10h) — PENDENTES DE HOJE
+
+1. **Rodar `scripts\21-PUSH.bat`** (30s) — sobe a Ordem 4 (e-mail do teto same-day,
+   cron send-cap-hit) + PLANO DA SEMANA + docs. A coluna do banco já está em produção;
+   sem o push o cron não existe.
+2. ✅ ~~Fazier launch~~ — **NO AR, #1 DO DIA com 45 upvotes** (14:20Z). 3 comentários
+   respondidos como maker na sua sessão. Só acompanhar; nada obrigatório seu.
+3. (30s, ouro) **TAAFT review — akajitin@gmail.com**: comprou HOJE 25 min após cadastrar
+   via TAAFT, 5 vídeos, viu o review-ask. Uma linha pessoal sua pedindo review =
+   candidato nº 1 da história. Link: https://theresanaiforthat.com/ai/kineo/
+4. 🗓️ Amanhã ter 04/08 12:01am PT — **PH LAUNCH DAY** (agendado, checklist 100%).
+
 ## 📌 02/08 ~22:20Z (atualizado sprint 19h) — PENDENTES DO DIA (2×30s)
 
 1. ✅ ~~Send Emilio~~ — **FEITO 21:35Z** (verificado in:sent). Aguardando retorno dele.
