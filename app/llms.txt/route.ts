@@ -18,6 +18,7 @@ import {
   FREE_TIER,
   NOT_A_FIT,
   COMPARISON_PAGES,
+  COMPETITOR_FACTS,
   LAST_VERIFIED_HUMAN,
   LAST_VERIFIED_ISO,
 } from '@/lib/kineoFacts'
@@ -90,6 +91,22 @@ function buildLlmsTxt(): string {
     .map((page) => `- [${page.title}](${page.url})`)
     .join('\n')
 
+  // KINEO-AEO-PAIRS-2026-08-03 — índice por FERRAMENTA.
+  // As duas listas acima são por página. Um motor de resposta perguntado
+  // "Kineo vs HeyGen" acha; perguntado "qual comparação vocês têm da HeyGen?"
+  // teria que varrer 46 títulos. Esta seção responde direto, com a categoria do
+  // produto (que é o que decide se ele resolve o mesmo problema) e a data +
+  // URL de onde os números daquele fornecedor foram lidos. Tudo derivado de
+  // lib/comparisons.ts — nenhuma string escrita à mão aqui.
+  const competitorIndex = COMPETITOR_FACTS.map(
+    (tool) =>
+      `- **${tool.name}** (${tool.kind}) — prices read from ${tool.source} on ${tool.verified}. ${
+        tool.comparisonUrls.length
+      } comparison${tool.comparisonUrls.length === 1 ? '' : 's'}:\n${tool.comparisonUrls
+        .map((url) => `  - ${url}`)
+        .join('\n')}`,
+  ).join('\n')
+
   return `# Kineo
 
 > ${PRODUCT.oneLiner}
@@ -156,6 +173,15 @@ ${notAFit}
 - [Affiliate program](${BASE}/partners): ${AFFILIATE_COMMISSION_PERCENT}% commission on every eligible payment from a customer you refer, including renewals for as long as they stay subscribed. First-touch tracking lasts ${AFFILIATE_FIRST_TOUCH_DAYS} days. Open to anyone with an account — you get your link immediately.
 - [Referral program](${BASE}/referral): give ${REFERRAL_REWARD_CREDITS} credits, get ${REFERRAL_REWARD_CREDITS} credits. Both sides are credited once the invited person confirms their email and finishes their first video. A referrer is rewarded for up to ${REFERRAL_MAX_REWARDED_FRIENDS} friends; the invited person is always credited. Requires a Kineo account.
 - [Shorts Idea of the Day widget](${BASE}/widget): a free embeddable widget that shows a new AI-generated YouTube Shorts idea every day. One copy-paste iframe, no account and no cost, plus a "Made with Kineo" badge you can put on anything you built with Kineo. The widget itself is served at ${BASE}/widget/embed.
+
+## Tools we hold verified pricing on, and every comparison each appears in
+
+Each price, free-tier term, watermark policy and export limit below was read off
+that vendor's own live pricing page on the date shown, and the exact URL is the
+source. Where a vendor's tier table did not resolve to readable prices, the
+comparison page says so and links out instead of publishing a figure.
+
+${competitorIndex}
 
 ## Comparisons where Kineo is one of the two tools
 

@@ -11,6 +11,12 @@ import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSections'
+// KINEO-AEO-PAIRS-2026-08-03 — this route answers "X alternative" and /vs
+// answers "X vs Y". They target the same buyer at two different moments and
+// neither knew the other existed, so a reader on the wrong intent had to go
+// back to search. The map and the lookup both live in lib/comparisons.ts, which
+// is the single source of truth for the comparison cluster.
+import { TOOLS, TOOL_ID_BY_ALTERNATIVES_SLUG, otherTool, pairsForTool } from '@/lib/comparisons'
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -796,6 +802,14 @@ export default function AlternativePage({ params }: { params: { competitor: stri
   const c = COMPETITORS[params.competitor]
   if (!c) notFound()
 
+  // Head-to-head pages that feature this same tool, if it is one of the tools
+  // the /vs cluster holds verified data on. Most competitors here are not —
+  // TOOL_ID_BY_ALTERNATIVES_SLUG only contains the ones we could verify — so
+  // this block renders for a subset and is skipped entirely for the rest
+  // rather than linking anywhere speculative.
+  const vsToolId = TOOL_ID_BY_ALTERNATIVES_SLUG[params.competitor]
+  const vsPairs = vsToolId ? pairsForTool(vsToolId) : []
+
   const isQuso = params.competitor === 'quso'
   const campaign = isQuso ? QUSO_INTENT_CAMPAIGN : `push22_alternative_${params.competitor}`
   const signupUrl = isQuso
@@ -959,6 +973,40 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             Start free →
           </OrganicCtaLink>
         </section>
+
+        {/* KINEO-AEO-PAIRS-2026-08-03 — head-to-head pages for this same tool.
+            This page argues a case: it is written to say why Kineo is a viable
+            replacement. /vs/[pair] does the opposite job — verified prices from
+            both vendors' own pages, dated, with most pages not involving Kineo
+            at all. Someone comparison-shopping rather than replacing is better
+            served there, and pretending otherwise costs us the trust the whole
+            cluster runs on. */}
+        {vsPairs.length > 0 && vsToolId && (
+          <section style={{ marginTop: 44, ...CARD, borderRadius: 14, padding: '20px 22px' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, margin: '0 0 6px' }}>
+              Prefer a neutral, dated price comparison?
+            </h2>
+            <p style={{ color: '#86868b', margin: '0 0 12px', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              The page you are reading makes our case. If you would rather see {TOOLS[vsToolId].name} judged against a
+              competitor on figures read off both vendors&rsquo; own pricing pages — most of which do not involve Kineo
+              at all — those live in the comparison cluster.
+            </p>
+            <ul style={{ margin: 0, paddingLeft: 18, color: '#d2d2d7', lineHeight: 1.8, fontSize: '0.9rem' }}>
+              {vsPairs.map((pair) => (
+                <li key={pair.slug}>
+                  <Link href={`/vs/${pair.slug}`} style={{ color: '#2997ff', textDecoration: 'none' }}>
+                    {TOOLS[vsToolId].name} vs {TOOLS[otherTool(pair, vsToolId)].name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <p style={{ margin: '12px 0 0', fontSize: '0.85rem' }}>
+              <Link href="/vs" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>
+                All tool comparisons →
+              </Link>
+            </p>
+          </section>
+        )}
 
         {/* Cross-links */}
         <nav style={{ marginTop: 40, textAlign: 'center', fontSize: '0.8rem', color: '#6e6e73' }}>

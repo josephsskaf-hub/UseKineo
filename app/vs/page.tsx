@@ -12,7 +12,16 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { PAIRS, TOOLS, VERIFIED_ON } from '@/lib/comparisons'
+import {
+  ALTERNATIVES_SLUG,
+  PAIRS,
+  TOOLS,
+  TOOLS_IN_PAIRS,
+  VERIFIED_ON,
+  VERIFIED_ON_ISO,
+  otherTool,
+  pairsForTool,
+} from '@/lib/comparisons'
 
 export const dynamic = 'force-static'
 
@@ -50,7 +59,7 @@ const HEAD_TO_HEAD = PAIRS.filter((x) => x.a === 'kineo' || x.b === 'kineo')
 const HUB_FAQ: readonly { q: string; a: string }[] = [
   {
     q: 'Why do most of these comparisons not include Kineo?',
-    a: 'Because a page where the publisher is one of the contestants is worth less to you, and you already know that. Most of the pairs here are two other tools judged against each other, with Kineo disclosed at the end as one option among several. The four pages where Kineo is a contestant say so in the URL.',
+    a: 'Because a page where the publisher is one of the contestants is worth less to you, and you already know that. Most of the pairs here are two other tools judged against each other, with Kineo disclosed at the end as one option among several. The pages where Kineo is a contestant say so in the URL, every time.',
   },
   {
     q: 'How were the prices verified?',
@@ -65,8 +74,8 @@ const HUB_FAQ: readonly { q: string; a: string }[] = [
     a: 'A few widely-searched tools render their pricing client-side in a way we could not read from their own site. Rather than repeat a third-party figure, we left them out. Publishing a wrong competitor price is worse than publishing no page.',
   },
   {
-    q: 'Why only ' + PAIRS.length + ' comparisons?',
-    a: 'Because a full grid of every possible pair would be filler, and filler is exactly what search engines have spent the last year demoting. Each pair here had to clear two tests: people genuinely search for it, and we had something non-obvious to say about it. Pairs that cleared only one were cut.',
+    q: 'Why ' + PAIRS.length + ' comparisons and not all 55?',
+    a: 'Eleven tools make 55 possible pairs. We publish ' + PAIRS.length + '. The nine we refused all involve Klap, whose full tier table is rendered client-side and did not resolve to readable prices when we checked, so any Klap page beyond the one we already have could only repeat that one observation. Every pair we did publish required complete verified data on both tools — full tier list, free-tier terms, watermark policy and export limits — plus at least one difference between them that is not made on any other page here.',
   },
   {
     q: 'How often is this updated?',
@@ -94,6 +103,23 @@ export default function ComparisonsHubPage() {
       { '@type': 'ListItem', position: 1, name: 'Home', item: BASE },
       { '@type': 'ListItem', position: 2, name: 'Comparisons', item: `${BASE}/vs` },
     ],
+  }
+  // KINEO-AEO-PAIRS-2026-08-03 — the hub had no dateModified, so the one page
+  // whose entire pitch is "these prices are dated" carried no machine-readable
+  // date. VERIFIED_ON_ISO is the day the competitor facts were checked, not a
+  // build timestamp; if the human string is ever reworded past the parser, the
+  // helper returns '' and the fields are omitted rather than emitted wrong.
+  const webPageJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${BASE}/vs`,
+    url: `${BASE}/vs`,
+    name: TITLE,
+    description: DESCRIPTION,
+    inLanguage: 'en',
+    isPartOf: { '@type': 'WebSite', name: 'Kineo', url: BASE },
+    ...(VERIFIED_ON_ISO ? { dateModified: VERIFIED_ON_ISO, datePublished: VERIFIED_ON_ISO } : {}),
+    publisher: { '@type': 'Organization', name: 'Kineo', url: BASE },
   }
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -137,6 +163,7 @@ export default function ComparisonsHubPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd).replace(/</g, '\\u003c') }} />
 
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '64px 20px 88px' }}>
         <nav aria-label="Breadcrumb" style={{ margin: '0 0 20px' }}>
@@ -195,6 +222,53 @@ export default function ComparisonsHubPage() {
           {HEAD_TO_HEAD.map((pair) => cardFor(pair.slug, TOOLS[pair.a].name, TOOLS[pair.b].name, pair.whyItExists, 'Head-to-head'))}
         </div>
 
+        {/* KINEO-AEO-PAIRS-2026-08-03 — browse by tool.
+            Two flat grids worked at twelve pages and stop working at {PAIRS.length}: nobody
+            scans forty cards looking for one product name. This index is the
+            navigable view — pick the tool you are actually shopping for and see
+            every comparison it appears in, plus its /alternatives page where one
+            exists. It is also the internal-linking layer: without it the pages
+            added last would sit at the bottom of one long grid with a single
+            inbound link each. */}
+        <h2 style={h2}>Browse by tool</h2>
+        <p style={p}>
+          Every comparison each tool appears in, and its single-tool page where one exists. If you already know what you
+          are replacing, start here rather than scrolling the grids above.
+        </p>
+        <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          {TOOLS_IN_PAIRS.map((tool) => {
+            const list = pairsForTool(tool.id)
+            const altSlug = ALTERNATIVES_SLUG[tool.id]
+            return (
+              <section key={tool.id} style={{ ...CARD, padding: '18px 20px' }}>
+                <h3 style={{ fontSize: '1.02rem', fontWeight: 800, margin: '0 0 4px' }}>{tool.name}</h3>
+                <p style={{ color: MUTED, fontSize: '0.82rem', lineHeight: 1.5, margin: '0 0 10px' }}>
+                  {tool.kind} · {list.length} comparison{list.length === 1 ? '' : 's'} · verified {tool.verified}
+                </p>
+                <ul style={{ margin: 0, paddingLeft: 18, color: '#d2d2d7', lineHeight: 1.75, fontSize: '0.9rem' }}>
+                  {list.map((pair) => {
+                    const other = TOOLS[otherTool(pair, tool.id)]
+                    return (
+                      <li key={pair.slug}>
+                        <Link href={`/vs/${pair.slug}`} style={link}>
+                          vs {other.name}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+                {altSlug && (
+                  <p style={{ margin: '10px 0 0', fontSize: '0.85rem' }}>
+                    <Link href={`/alternatives/${altSlug}`} style={{ ...link, fontWeight: 700 }}>
+                      {tool.name} alternatives →
+                    </Link>
+                  </p>
+                )}
+              </section>
+            )
+          })}
+        </div>
+
         <h2 style={h2}>How these pages are written</h2>
         <div style={{ display: 'grid', gap: 10 }}>
           <section style={{ ...CARD, padding: '18px 20px' }}>
@@ -217,10 +291,11 @@ export default function ComparisonsHubPage() {
           <section style={{ ...CARD, padding: '18px 20px' }}>
             <h3 style={{ fontSize: '1.02rem', fontWeight: 750, margin: '0 0 8px' }}>{PAIRS.length} pages, not a generated grid</h3>
             <p style={{ color: '#d2d2d7', lineHeight: 1.65, fontSize: '0.95rem', margin: 0 }}>
-              With ten tools there are forty-five possible pairs. We wrote {PAIRS.length}. Each one had to clear two
-              tests — people genuinely search for it, and we had something non-obvious to say — and every card above
-              carries the specific reason that pair earned a page. Pairs that cleared only one test were cut rather than
-              padded out.
+              Eleven tools make fifty-five possible pairs. We publish {PAIRS.length}. A pair only gets a page if we hold
+              complete verified data on <em>both</em> tools — full tier list, free-tier terms, watermark policy and export
+              limits — and if there is a real difference between them we can point at from those numbers. Nine pairs were
+              refused outright because one side&rsquo;s pricing was not readable on its own site, and every card above
+              carries the specific reason that pair earned a page.
             </p>
           </section>
           <section style={{ ...CARD, padding: '18px 20px' }}>

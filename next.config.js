@@ -28,6 +28,45 @@ const VS_CANONICAL_SLUGS = [
   'kineo-vs-opus-clip',
   'kineo-vs-pictory',
   'kineo-vs-submagic',
+  // KINEO-AEO-PAIRS-2026-08-03 — the cluster went from 12 pairs to 46. Kept in
+  // the same hand-maintained order as PAIRS in lib/comparisons.ts so the two
+  // lists can be diffed by eye. Every entry here is alphabetical within the
+  // pair, which is what makes reverseSlug() below a safe transform: an alias is
+  // always the non-alphabetical order and therefore never shadows a real page.
+  'captions-vs-heygen',
+  'captions-vs-synthesia',
+  'creatify-vs-synthesia',
+  'heygen-vs-pictory',
+  'heygen-vs-submagic',
+  'heygen-vs-opus-clip',
+  'heygen-vs-quso',
+  'captions-vs-descript',
+  'captions-vs-opus-clip',
+  'captions-vs-quso',
+  'captions-vs-pictory',
+  'descript-vs-submagic',
+  'descript-vs-quso',
+  'descript-vs-pictory',
+  'quso-vs-submagic',
+  'captions-vs-creatify',
+  'creatify-vs-descript',
+  'creatify-vs-opus-clip',
+  'creatify-vs-pictory',
+  'creatify-vs-quso',
+  'creatify-vs-submagic',
+  'descript-vs-heygen',
+  'descript-vs-synthesia',
+  'opus-clip-vs-pictory',
+  'opus-clip-vs-synthesia',
+  'pictory-vs-quso',
+  'pictory-vs-synthesia',
+  'quso-vs-synthesia',
+  'submagic-vs-synthesia',
+  'captions-vs-kineo',
+  'creatify-vs-kineo',
+  'descript-vs-kineo',
+  'kineo-vs-quso',
+  'kineo-vs-synthesia',
 ]
 
 function reverseSlug(slug) {
@@ -125,6 +164,20 @@ const nextConfig = {
       // página duplicada). 308 real captura a busca sem diluir crawl budget.
       { source: '/youtube-shorts-script-generator', destination: '/free-script-generator', permanent: true },
       { source: '/youtube-short-script-generator', destination: '/free-script-generator', permanent: true },
+      // KINEO-AEO-PAIRS-2026-08-03 — /compare/* → /alternatives/*.
+      // These two paths already existed as App Router pages calling redirect()
+      // (app/compare/heygen-alternative, app/compare/invideo-alternative). They
+      // are in no sitemap, nothing links to them, and redirect() inside a
+      // prerendered page is the exact bug documented at the top of
+      // app/vs/[pair]/page.tsx: on Next 14.2.5 the export writes status 307
+      // with no Location header, so the visitor lands nowhere. Moving them here
+      // makes them real 308s emitted at the edge, before any page is served.
+      // The page files become unreachable dead code rather than a broken hop —
+      // config redirects are matched first — so nothing breaks by leaving them.
+      // Destinations are the two /alternatives pages that already exist and are
+      // already in the sitemap: no duplicate content, no new URL to index.
+      { source: '/compare/heygen-alternative', destination: '/alternatives/heygen', permanent: true },
+      { source: '/compare/invideo-alternative', destination: '/alternatives/invideo', permanent: true },
       // Reverse-order /vs/ aliases → the single canonical comparison URL, as
       // real 308s. See VS_ALIAS_REDIRECTS at the top of this file. Appended
       // last so nothing above changes behaviour.

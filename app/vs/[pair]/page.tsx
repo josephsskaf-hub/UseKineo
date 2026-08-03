@@ -39,14 +39,16 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import {
   ALL_PAIR_SLUGS,
+  ALTERNATIVES_SLUG,
   CANONICAL_SLUGS,
-  PAIRS,
   SPEC_ROWS,
   TOOLS,
   VERIFIED_ON,
+  VERIFIED_ON_ISO,
   canonicalFor,
   getPair,
   isCanonical,
+  relatedPairs,
 } from '@/lib/comparisons'
 
 export const dynamic = 'force-static'
@@ -164,6 +166,29 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
   // node: our verified prices are tiered strings ("$19/member/month, or $12
   // billed yearly"), and flattening one of them into a single machine-readable
   // number would assert something narrower than what we actually checked.
+  // KINEO-AEO-PAIRS-2026-08-03 — freshness, stated in a field a machine reads.
+  // The page already printed "prices verified <date>" in the badge and in the
+  // footnote, but only to humans. `dateModified` is the field answer engines
+  // and Google both use to decide whether a comparison is current enough to
+  // quote, and an undated comparison loses to a dated one every time. The value
+  // is VERIFIED_ON_ISO — the date the competitor facts were actually checked —
+  // not a build timestamp, which would claim freshness we did not earn.
+  // If VERIFIED_ON is ever reworded into a shape isoDateFor() cannot parse, the
+  // helper returns '' and both fields are dropped rather than emitted empty.
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': url,
+    url,
+    name: pair.title,
+    description: pair.description,
+    inLanguage: 'en',
+    isPartOf: { '@type': 'WebSite', name: 'Kineo', url: BASE },
+    about: [a, b].map((t) => ({ '@type': 'SoftwareApplication', name: t.name, url: t.homepage })),
+    ...(VERIFIED_ON_ISO ? { dateModified: VERIFIED_ON_ISO, datePublished: VERIFIED_ON_ISO } : {}),
+    publisher: { '@type': 'Organization', name: 'Kineo', url: BASE },
+    citation: [a.source, b.source],
+  }
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
@@ -200,7 +225,20 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
   }
   const cell: CSSProperties = { padding: '13px 16px', color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.9rem', verticalAlign: 'top' }
 
-  const others = PAIRS.filter((x) => x.slug !== pair.slug).slice(0, 6)
+  // KINEO-AEO-PAIRS-2026-08-03 — with 46 pages, "the first six in the array"
+  // pointed every page at the same six and left the rest of the cluster with no
+  // inbound internal links at all. relatedPairs() ranks by shared tool, so a
+  // reader on HeyGen vs Synthesia is offered the other HeyGen and Synthesia
+  // pages — which is both better for them and the reason the deeper pages get
+  // crawled.
+  const others = relatedPairs(pair, 6)
+
+  // The single-tool /alternatives pages that exist for these two tools. Not
+  // every tool has one (Captions and Creatify do not), so this is filtered
+  // rather than assumed — see ALTERNATIVES_SLUG in lib/comparisons.ts.
+  const altLinks = [a, b]
+    .map((t) => ({ name: t.name, slug: ALTERNATIVES_SLUG[t.id] }))
+    .filter((x): x is { name: string; slug: string } => Boolean(x.slug))
 
   return (
     <main
@@ -214,6 +252,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd).replace(/</g, '\\u003c') }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd).replace(/</g, '\\u003c') }} />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '64px 20px 88px' }}>
         <nav aria-label="Breadcrumb" style={{ margin: '0 0 20px' }}>
@@ -278,7 +317,8 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
         <div style={{ ...CARD, padding: 4, margin: '0 0 12px', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem', minWidth: 680 }}>
             <caption style={{ padding: '14px 16px', color: MUTED, fontSize: '0.82rem', textAlign: 'left' }}>
-              {a.name} and {b.name} compared on the ten things that decide it for a faceless-channel operator.
+              {a.name} and {b.name} compared on the {SPEC_ROWS.length} things that decide it for a faceless-channel
+              operator, each cell dated with the day it was read off the vendor&rsquo;s own page.
             </caption>
             <thead>
               <tr>
@@ -395,6 +435,26 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
         <p style={{ ...small, marginTop: 14 }}>
           <Link href="/vs" style={link}>See all {CANONICAL_SLUGS.length} comparisons →</Link>
         </p>
+
+        {/* KINEO-AEO-PAIRS-2026-08-03 — the other half of the cross-link. The
+            /alternatives/[competitor] pages answer "X alternative", this route
+            answers "X vs Y", and until now neither knew the other existed. Both
+            directions are linked so a reader who arrives on the wrong intent can
+            get to the right page in one click. Only tools that actually have an
+            /alternatives page are listed. */}
+        {altLinks.length > 0 && (
+          <p style={{ ...small, marginTop: 0 }}>
+            Looking to replace one of these rather than choose between them?{' '}
+            {altLinks.map((x, i) => (
+              <span key={x.slug}>
+                {i > 0 && ' · '}
+                <Link href={`/alternatives/${x.slug}`} style={link}>
+                  {x.name} alternatives
+                </Link>
+              </span>
+            ))}
+          </p>
+        )}
 
         <p style={{ ...small, marginTop: 32, marginBottom: 0 }}>
           Prices, free-tier terms and limits on this page were verified on {VERIFIED_ON} by reading each vendor&rsquo;s own

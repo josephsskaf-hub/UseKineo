@@ -30,7 +30,7 @@ import {
 } from './checkoutPricing'
 import { PLANS } from './pricing'
 import { creditCostFor } from './credits/engineCost'
-import { TOOLS, PAIRS, VERIFIED_ON, BASE } from './comparisons'
+import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -41,21 +41,15 @@ import { TOOLS, PAIRS, VERIFIED_ON, BASE } from './comparisons'
 // que já existe no repositório e que o time move quando revisa os números —
 // não uma data inventada nem `new Date()` (que mentiria "verificado hoje" em
 // todo request).
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
-
-function toIsoDate(human: string): string {
-  const match = /^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/.exec(human.trim())
-  if (!match) return ''
-  const monthIndex = MONTH_NAMES.indexOf(match[1])
-  if (monthIndex < 0) return ''
-  return `${match[3]}-${String(monthIndex + 1).padStart(2, '0')}-${match[2].padStart(2, '0')}`
-}
-
+// KINEO-AEO-PAIRS-2026-08-03 — a local copy of this parser used to live here.
+// The /vs pages now need the same ISO date for their JSON-LD `dateModified`,
+// and two implementations of "convert VERIFIED_ON to ISO" is exactly the second
+// copy this file's own header forbids: they would drift the first time either
+// was touched. The single implementation is `isoDateFor` in lib/comparisons.ts,
+// next to the string it parses. Behaviour is unchanged — same regex, same
+// month table, same empty string on a shape it cannot read.
 export const LAST_VERIFIED_HUMAN: string = VERIFIED_ON
-export const LAST_VERIFIED_ISO: string = toIsoDate(VERIFIED_ON)
+export const LAST_VERIFIED_ISO: string = VERIFIED_ON_ISO
 
 /* ------------------------------------------------------------------ *
  * Tipos
@@ -93,7 +87,21 @@ export interface CompetitorFact {
   name: string
   /** Categoria do produto — decide se ele resolve o mesmo problema. */
   kind: string
+  /** Primeira comparação publicada com esta ferramenta. Mantido por compatibilidade. */
   comparisonUrl: string
+  /**
+   * KINEO-AEO-PAIRS-2026-08-03 — TODAS as comparações em que a ferramenta
+   * aparece. `comparisonUrl` sozinho estava correto quando o cluster tinha 12
+   * pares e uma ferramenta aparecia em uma ou duas páginas; com 46 pares a
+   * HeyGen aparece em oito, e expor só a primeira faz /api/facts responder
+   * "a comparação da HeyGen é esta" quando existem outras sete. Um fato
+   * incompleto num arquivo feito para LLM citar vira uma resposta incompleta.
+   */
+  comparisonUrls: string[]
+  /** Data em que os números desta ferramenta foram lidos na página do fornecedor. */
+  verified: string
+  /** A URL exata de onde os números foram lidos. */
+  source: string
 }
 
 /* ------------------------------------------------------------------ *
@@ -286,11 +294,20 @@ export const PRODUCT = {
 export const COMPETITOR_FACTS: CompetitorFact[] = Object.values(TOOLS)
   .filter((tool) => tool.id !== 'kineo')
   .map((tool) => {
-    const pair = PAIRS.find((p) => p.a === tool.id || p.b === tool.id)
+    const urls = PAIRS.filter((p) => p.a === tool.id || p.b === tool.id).map(
+      (p) => `${BASE}/vs/${p.slug}`,
+    )
     return {
       name: tool.name,
       kind: tool.kind,
-      comparisonUrl: pair ? `${BASE}/vs/${pair.slug}` : `${BASE}/vs`,
+      comparisonUrl: urls[0] ?? `${BASE}/vs`,
+      comparisonUrls: urls.length > 0 ? urls : [`${BASE}/vs`],
+      // Data e fonte por ferramenta, não uma data global: se um fornecedor for
+      // reconferido antes dos outros, o consumidor de /api/facts vê qual número
+      // é recente e qual não é, em vez de herdar uma data que vale para o
+      // cluster inteiro.
+      verified: tool.verified,
+      source: tool.source,
     }
   })
 
