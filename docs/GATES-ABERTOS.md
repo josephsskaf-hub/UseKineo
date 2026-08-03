@@ -22,11 +22,13 @@
    no ar; IndexNow 108 URLs rodado 19:04Z pela sprint 16h).
    → **NOVO: rodar `scripts\29-PUSH.bat`** (30s) — sobe ADMIN HQ consolidado
    (30cd789 + f812f06) + log engajamento X (dceea2c) + docs sprint 16h (pesquisa Whop).
-1b. **Conta Whop** (10 min, https://whop.com com josephsskaf@gmail.com) — destrava a
-   campanha Content Rewards (clippers pagos por view fazendo demo da Kineo) e o outreach
-   a comunidades. Ver `docs/PESQUISA-WHOP-2026-08-03.md` (spec pronto).
-1c. **GO: budget campanha Whop $250–500** — só depois da conta; eu monto tudo na sessão
-   logada, você só paga. Meta do teste: custo por cadastro < $2.
+1b. ✅ ~~Conta Whop~~ — **FEITA pelo fundador ~19:45Z 03/08** e whop montado POR MIM na
+   sessão logada: **whop.com/kineoclippers** ("Kineo Clippers", descrição com free +
+   40% afiliado, welcome post com utm_source=whop, indexável). Rota B (grátis) NO AR.
+1c. ⏸️ Campanha Content Rewards paga — **ADIADA: fundador sem caixa agora** (03/08).
+   Spec pronto em `docs/PESQUISA-WHOP-2026-08-03.md`; religar quando houver budget
+   (dá pra testar com $50). Enquanto isso: Rota C grátis (outreach a donos de
+   comunidade com afiliado 40%) — eu rascunho no Gmail.
 2. ✅ ~~Fazier launch~~ — **NO AR, #1 DO DIA com 45 upvotes** (14:20Z). 3 comentários
    respondidos como maker na sua sessão. Só acompanhar; nada obrigatório seu.
 3. (30s, ouro) **TAAFT review — akajitin@gmail.com**: comprou HOJE 25 min após cadastrar
