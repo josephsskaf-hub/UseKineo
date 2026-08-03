@@ -122,3 +122,40 @@ proteção de entregabilidade do Gmail).
    com registro em docs/INFLUENCERS.md + e-mail de boas-vindas com o link de afiliado.
 4. MÉTRICA: respostas / vídeos publicados / cadastros por link de afiliado de cada um.
    Regra de morte: 10 dias sem resposta = próximo lote de 10.
+
+---
+# H. ENGAJAMENTO NOS CANAIS ONDE O CLIENTE JÁ FALA (aprovado pelo fundador 03/08 —
+# "vocês vão executar nas sprints, nos canais mais indicados")
+
+Origem: o fundador respondeu um tweet do nicho com o link e fez 1.071 views/24 likes.
+A tática escala — com regras, porque reply-spam mata conta e marca.
+
+## REGRAS DE OURO (valem para TODO canal)
+1. VALOR ANTES DO LINK: cada resposta ajuda/opina de verdade sobre o post; o link entra
+   como "built exactly this" no fim — ou NEM entra (2 de cada 3 respostas SEM link
+   constroem a conta; 1 com link colhe).
+2. Máx 5 respostas/dia por canal. Nunca em threads polêmicas/políticas. Nunca atacar
+   concorrente pelo nome.
+3. Registrar CADA resposta em docs/ENGAGEMENT-LOG.md (canal, link, teve-link?, resultado).
+4. Tom: fundador-que-constrói, não vendedor. 1ª pessoa, curto, específico ao post.
+
+## CANAIS, na ordem de prioridade
+**H1. X/Twitter (sessão do fundador — JÁ logada no Chrome).** Sprints: 1x/dia garimpar
+buscas — `"faceless channel" how` · `"editing shorts" OR "editing videos" hate OR tired` ·
+`autoshorts OR submagic OR crayo (problem OR alternative)` · `"youtube automation" start` —
+escolher os 5 melhores tweets (<24h, autor real, engajamento vivo), ESCREVER as respostas
+e POSTAR da sessão dele (autorização explícita 03/08). Log obrigatório.
+**H2. Comentários no YouTube (sessão logada).** Vídeos-alvo: reviews de concorrentes e
+tutoriais "faceless channel 2026". Comentar como espectador útil (dica real do nicho);
+link só quando alguém perguntar "qual ferramenta". O canal Curiosityvaultlab comentando
+em vídeos do nicho também puxa curiosos pro perfil (que tem o link).
+**H3. Reddit — MODO PACIÊNCIA.** A conta u/ShortsforgeAI tem 0 karma (post filtrado).
+Fase 1 (2 semanas): responder perguntas em r/NewTubers, r/youtubers, r/PartneredYoutube
+SEM NENHUM LINK — só ajuda genuína, construir karma. Fase 2: com karma >100, o post do
+case study repostado passa nos filtros. NUNCA link antes disso — ban mata o canal pra sempre.
+**H4. Quora (gate leve: fundador cria conta 1x).** Perguntas "how to make faceless youtube
+videos" têm tráfego perene — 1 resposta boa rende meses. Depois da conta criada, sprints
+escrevem as respostas.
+
+## MÉTRICA: cadastros com referral t.co / youtube / reddit / quora no placar semanal.
+## Regra de morte: canal que não gerar 1 cadastro em 14 dias sai da rotação.

@@ -1,7 +1,7 @@
 # GATES ABERTOS — só o fundador consegue destravar
 
 > ## 🎯 METAS DA EMPRESA (fundador, 01/08): 500 pagantes → 1.000 pagantes
-> ⚡ ORDENS ATIVAS: ORDENS-CONVERSAO (conversão) + ORDENS-AQUISICAO (aquisição) + **PESQUISA-CONCORRENTES-2026-08-03.md (G1 ângulo EARN, G2 desafio 30d [pedir GO], G3 afiliado 40% como arma, G4 Whop, G5 templates→roadmap)**
+> ⚡ ORDENS ATIVAS: ORDENS-CONVERSAO (conversão) + ORDENS-AQUISICAO (aquisição) + **PESQUISA-CONCORRENTES (G1-G5)** + **ordem H (engajamento X/YouTube/Reddit/Quora — aprovada 03/08, regras de ouro no doc; X já executável na sessão logada)**
 > Ver docs/METAS.md — toda sprint conecta o trabalho a uma das duas alavancas
 > (volume de cadastros × conversão) e o placar reporta a distância. Baseline: 4 compradores.
 
