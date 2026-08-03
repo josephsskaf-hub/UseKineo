@@ -79,7 +79,7 @@ export default function PartnersPage() {
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>Affiliate program</div>
           <h1 style={{ fontSize: 'clamp(1.9rem, 5.5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.12, margin: '16px 0 0' }}>AI Video Affiliate Program: Earn 40% Recurring</h1>
           <p style={{ fontSize: '1.05rem', color: '#CBD5E1', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 600 }}>
-            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>40% of eligible payments</b> while referred customers stay subscribed. 90-day first-touch tracking.
+            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>40% of eligible payments</b> while referred customers stay subscribed. Most AI video tools pay affiliates 20–30%; 40% recurring is the highest rate we know of in this niche. 90-day first-touch tracking.
           </p>
           <OrganicCtaLink href={APPLY} source="partners" placement="hero" style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}>Apply in Kineo →</OrganicCtaLink>
           <div style={{ marginTop: 14 }}>

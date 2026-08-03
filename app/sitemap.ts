@@ -29,7 +29,9 @@ const BASE = 'https://www.usekineo.com'
 // single best-converting acquisition source Kineo has measured (docs/growth,
 // 23/07 — ChatGPT sent 4 signups and BOTH of the week's checkouts, Google sent
 // 1 session and zero).
-const LAST_MODIFIED = new Date('2026-07-29T12:00:00.000Z')
+// KINEO-G1-2026-08-03 — advanced from 2026-07-29: new money-intent page
+// (/make-money-clipping-with-ai) added to the cluster; paired with IndexNow.
+const LAST_MODIFIED = new Date('2026-08-03T12:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -85,6 +87,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // Autopilot com numeros semanais, linkada do rodape da home. daily porque o conteudo
     // muda toda semana e queremos recrawl rapido.
     { path: '/youtube-automation-case-study', priority: 0.9, freq: 'daily' },
+    // KINEO-G1-2026-08-03 (docs/PESQUISA-CONCORRENTES-2026-08-03.md) — EARN-angle
+    // money-intent page: "make money clipping with AI" connects the pay-per-view
+    // clipping economy to the pipeline. 0.9 like the other money pages.
+    { path: '/make-money-clipping-with-ai', priority: 0.9, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
