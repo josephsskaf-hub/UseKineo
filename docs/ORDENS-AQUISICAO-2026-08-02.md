@@ -240,3 +240,19 @@ do COMEBACK50 ja digeridos e prova social fresca. GATE do fundador antes do ar: 
 final + politica de reembolso do desafio (mexe em promessa de dinheiro).
 Fase atual declarada pelo fundador: terminar a fase 1 (15-20 pagantes) — todo esforco da
 semana aponta pra isso.
+
+## ORDEM N — DIA DO PH (04/08): COMENTAR E RESPONDER E RESPONSABILIDADE DAS SPRINTS
+Fundador delegou explicitamente (madrugada 04/08): "e voce que vai comentar... os diarios
+vao dar uma olhada em todos os lugares que a gente esta pra eles poderem comentar."
+TODA sprint do dia inclui a ronda de engajamento:
+1. PRODUCT HUNT (prioridade): responder CADA comentario novo na pagina da Kineo, na conta
+   do fundador, tom de maker (gratidao curta + resposta tecnica honesta + pergunta de volta).
+   NUNCA pedir upvote. NUNCA responder critica na defensiva — agradecer e registrar feedback.
+2. X: responder mencoes/replies dos posts; Ordem H continua (max 5/dia, links so com
+   ?utm_source=x&t=<unico>).
+3. Reddit/Fazier/TAAFT: checar comentarios novos e responder com valor.
+4. Whop: checar respostas de Eugene/adan/Carlos (DMs de ontem) — se responderem, avisar o
+   fundador no relatorio E responder rapido com o proximo passo (criar link de parceiro).
+5. Registrar tudo em docs/ENGAGEMENT-LOG.md.
+Fix do glow VALIDADO pelo fundador no Fast (04/08 ~2h45). Veo 3.1 sendo validado com o
+script Dyatlov (vai pro TikTok do fundador).
