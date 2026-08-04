@@ -396,3 +396,18 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
    explicado** — o fundador precisa saber que o push dele muda o que o cliente paga.
 6. **Errou o cabeçalho do .bat depois de commitar?** Refaça o commit-tree sobre o MESMO pai
    (`HEAD^`) em vez de criar um commit novo — senão a contagem de commits do .bat mente.
+
+## MUDANÇAS — sprint 19h de 04/08/2026
+
+1. **PEDIR SEM DEVOLVER É O DEFEITO, NÃO A COPY.** Dois instrumentos cegos no MESMO dia
+   (`taaft_review_ask_clicked` 0/124 · `checkout_cancel_reason` 0/7): a tela pedia e respondia
+   "obrigado". Toda superfície que faz uma pergunta nasce com **resposta acionável por opção** —
+   se a única saída de um chip é um agradecimento, o chip já nasce morto.
+2. **COMMIT DE PREÇO DE SESSÃO PARALELA EXIGE VARREDURA DE LITERAIS NA MESMA SPRINT.** Ao ver
+   commit alheio que mexe em PREÇO, `grep` de literais de moeda nas superfícies daquele funil
+   ANTES de qualquer ideia nova.
+3. **LEAD QUE ABRE 3 CHECKOUTS EM TIERS DIFERENTES NÃO ESTÁ ACHANDO CARO.** Descer para o
+   barato e depois subir para o caro = confusão de catálogo. Resposta certa é comparação,
+   nunca desconto.
+4. **A REGRA ZERO PEGA BUG ALHEIO.** Ler o arquivo inteiro antes de editar expôs o
+   `displayedPrices` mentiroso. O achado mais caro da sprint veio de leitura, não de análise.

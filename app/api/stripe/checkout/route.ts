@@ -912,7 +912,13 @@ async function buildAndRedirect(
       },
     },
     success_url: `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}`,
+    // KINEO-OBJECTION-HANDLER-2026-08-04 — `region` passa a viajar no
+    // cancel_url. A página de cancelamento mostra preço, e desde
+    // KINEO-REGIONAL-PRICING-2026-08-04 o preço de um mesmo tier+moeda depende
+    // da REGIÃO: sem este parâmetro, o comprador brasileiro que desiste do
+    // Starter a R$24,90 aterrissa numa tela que promete R$49,90 e a única
+    // superfície de recuperação que temos passa a trabalhar CONTRA a venda.
+    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}`,
     metadata: {
       supabase_user_id: user.id,
       tier,

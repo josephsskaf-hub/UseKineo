@@ -16,6 +16,26 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+## 🟠 04/08 22:15Z (sprint 19h) — O QUE ESTÁ NA SUA MÃO
+
+**1. `scripts\37-PUSH.bat` — 1 commit.** `KINEO-OBJECTION-HANDLER`: a página de checkout
+   cancelado deixa de ser um survey morto (0 respostas / 7 cancelamentos) e passa a responder
+   cada objeção com botão. **⚠️ MEXE EM PREÇO EXIBIDO:** a página tinha uma tabela de preços
+   digitada à mão e o seu push das 22:00Z (preço regional BR) tornou 'R$49,90' mentiroso — o
+   brasileiro que desistia do Starter veria **2× o preço real** na única tela de recuperação
+   do funil. Este push corrige isso derivando tudo de `lib/checkoutPricing`. Quanto antes
+   subir, menos gente vê o preço errado.
+
+**2. Dois rascunhos de venda 1:1 no Gmail (Send).** Ambos são leads de HOJE, ainda quentes:
+   - **thewaqaskhanofficial@gmail.com** (TAAFT · 2 vídeos · 2 downloads · abriu 3 checkouts em
+     18 min e cancelou os três). Assunto: *"Which Kineo plan you actually need (30 seconds)"*.
+     **Sem desconto de propósito** — o comportamento dele foi confusão de catálogo, não preço.
+   - **pritikathar995@gmail.com** (Índia/INR · 1 vídeo · **0 downloads** · 2 checkouts).
+     Assunto: *"Download your Short before you pay us anything"*. Manda usar antes de pagar e
+     pergunta se o checkout falhou.
+
+**3. 🟠 Continua aberto (da 16h):** os **11 restantes** do COMEBACK50, a um `&confirm=SEND`.
+
 ## ✅ 04/08 22:05Z — OS DOIS GATES DA SPRINT 16h FORAM FECHADOS PELO FUNDADOR
 
 **A. PUSH FEITO.** `origin/main = 43e2a3b`, deploy **READY em produção** (22:00:42Z).

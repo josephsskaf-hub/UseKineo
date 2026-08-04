@@ -53,6 +53,30 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 ## Mortas (não repetir)
 
+### 04/08 (19h) — KINEO-OBJECTION-HANDLER (EXECUTADA)
+
+**Ideia:** o survey da página de checkout cancelado (`KINEO-CANCEL-REASON`, 03/08) tinha **0
+respostas na história inteira** contra 7 `checkout_cancelled` — 2º instrumento cego do dia,
+mesma assinatura do `<TaaftReviewAsk/>`. Causa: a tela **pedia e não devolvia** (clicar levava a
+"Thanks"). Não foi trocado por outro survey: virou objection handler com resposta acionável por
+chip (degrau mais barato com botão · comparação de planos · dúvidas inline · caminho grátis).
+
+**Execução:** `app/checkout/cancelled/page.tsx` + `&region=` no `cancel_url`
+(`app/api/stripe/checkout/route.ts`). No caminho, pegou um **bug de preço em produção**: a
+página tinha tabela hardcoded e o commit de preço regional (4e8af7a, no ar 22:00Z) tornou
+'R$49,90' mentiroso — o brasileiro que desistia veria 2× o preço real. Tudo derivado de
+`lib/checkoutPricing` agora.
+
+**Diagnóstico que gerou o desenho:** `thewaqaskhanofficial` (TAAFT) abriu 3 checkouts em 18min
+— US$199 anual → US$4,90 → US$299 — e cancelou os três. Descer para o barato e depois subir
+para o caro = confusão de catálogo, não preço.
+
+**Métrica:** `checkout_cancel_reason` > 0 · `checkout_downgrade_offer_clicked` ·
+`checkout_compare_plans_clicked` · `checkout_free_path_clicked`. **Valor esperado:** ataca o
+gargalo nº1 do plano da semana (checkout→pago), hoje 3 pagantes em 20 checkouts abertos.
+**Regra de morte:** 11/08 — se `checkout_cancel_reason` seguir em 0, a tela deve parar de perguntar.
+
+
 | Data | Ideia | Por que morreu |
 |---|---|---|
 | 31/07 | TAAFT rota grátis de ferramentas (tally) | Formulário fechado pela plataforma |
@@ -61,6 +85,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 | 30/07 | "Teto de 3/24h explica o gap de 44%" (hipótese) | Dado derrubou: 0 ocorrências em 30d |
 
 ## Fila (avaliadas, ainda não executadas — livres para uma sprint pegar)
+
+- **IDEIA CEO 04/08 (19h) — O PREÇO QUE VOCÊ ESCOLHE**: o chip *"Too expensive"* do objection handler não termina no degrau mais barato — termina em **"What would you pay per month?"** com um slider. Primeiro princípio: **um checkout aberto é uma conversa iniciada, e a empresa trata como formulário abandonado**. As 17 pessoas que abriram checkout em 14d e não pagaram são a única amostra do mundo com intenção de compra PROVADA pela Kineo — e o preço regional foi decidido por tabela de PIB, sem perguntar a elas. Três efeitos de uma vez: (1) curva de demanda real por moeda/região, de gente com cartão na mão, dado que nenhum concorrente tem; (2) nomear um número é compromisso psicológico — quem escreve "$12" já decidiu que a ferramenta vale algo; (3) se o número ≥ o degrau mais barato, a venda fecha sozinha na hora e ele não tem argumento contra o próprio número. O não-óbvio: a Kineo GASTA dinheiro adivinhando preço (regional, intro, cupons, COMEBACK50) e JOGA FORA a única fonte que responderia de graça. Ninguém faz porque exige admitir na tela que o preço é negociável. Métrica: respostas/semana · distância mediana até o Starter regional · conversão dos que nomearam ≥ Starter. Regra de morte: 14 dias sem 10 respostas. Retorno÷esforço ALTO/baixo (é um input dentro do chip que a sprint 19h acabou de construir)
 
 - **IDEIA CEO 04/08 (13h) — A FERRAMENTA DO REVIEWER**: parar de implorar por review e virar a ferramenta COM QUE SE FAZ o review. Programa `/for-reviewers`: todo canal/newsletter de review de IA ganha conta cheia comped, sem contrapartida nem exclusividade. Descoberto olhando o ToolRiot: eles publicam testes de ferramentas como Short de 60s — exatamente o que a Kineo produz — e o gargalo deles é produção (testam 4/semana, publicam 1). Efeito estrutural: **todo vídeo que eles fizerem sai na Kineo, inclusive os reviews dos concorrentes** (cada "Crayo vs OpusClip" com nosso end-card = arbitragem no marketing alheio), e o 40% recurring transforma review evergreen em receita recorrente. Inverte quem é o cliente: reviewer deixa de ser mídia a conquistar e vira usuário de infraestrutura — que não some quando a notícia esfria. Custo: 1 página + créditos comped. Métrica: contas de reviewer ativadas · vídeos renderizados por elas · cadastros dos end-cards. Regra de morte: 14 dias sem reviewer renderizando. Retorno÷esforço ALTO/baixo — 1º caso já no Gmail (item 3 do rascunho do ToolRiot)
 - **IDEIA CEO 04/08 (16h) — O ANEL DE PROVA**: o end-card do vídeo free deixa de ser a NOSSA marca e passa a ser **o crédito de quem fez** (`usekineo.com/@handle`) — link curto único por criador, apontando para os Shorts dele no `/wall` (que já existe e já ranqueia por views) e creditando referral a cada cadastro vindo dali. Primeiro princípio: `app/api/compose/route.ts` diz que "the downloadable watermark + end card are the organic distribution loop" — é o único canal que custa $0 e compõe sozinho, e o nosso plano de entrada vende exatamente **desligá-lo**. Cobramos para apagar o próprio marketing, e `posted_shorts=1` prova que ele nem é contável. A leitura óbvia é "badge mais bonito"; a real é que o badge **não serve para nada para quem posta** — é imposto, e imposto se evita. Com o anel: quem posta ganha tráfego e crédito (tirar a marca vira escolha com custo, e o upsell passa a competir com um benefício real), o post vira **contável por atribuição** sem o usuário colar URL, e cada Short postado vira unidade de aquisição rastreada — o tráfego mais qualificado que existe, porque vem de quem já publica. Ninguém no nicho faz porque exige tratar o usuário free como distribuidor, não como lead. Métrica: linhas novas em `posted_shorts`/semana · cadastros com utm de end-card · % de downloads que viram post. Regra de morte: 14 dias sem `posted_shorts` sair de 1. Retorno÷esforço ALTO/médio (`/wall` e `posted_shorts` já existem — falta o handle e o link)
