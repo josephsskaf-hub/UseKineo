@@ -1609,6 +1609,13 @@ export function buildCreatomateSource({
   // PUSH #95 — now actually draws (RECT_PATH). It sits BEHIND the track-2
   // footage, so enabling it changes nothing visible; it just finally does what
   // this comment always claimed and covers any sub-second gap.
+  // KINEO-BLACK-BASE-2026-08-04 — fill hardened #08080f → #000000. The
+  // composition never sets a background colour and Creatomate's default canvas
+  // is WHITE, so any frame gap between b-roll clips that this base failed to
+  // cover flashed white on screen. This full-canvas pure-black plate is the
+  // FIRST element on the LOWEST track (track 1, under the track-2 footage),
+  // spans the entire timeline (time 0 → totalDuration), and makes any b-roll
+  // gap render as invisible black instead of a white flash.
   elements.push({
     type: 'shape',
     track: 1,
@@ -1619,7 +1626,7 @@ export function buildCreatomateSource({
     width: '100%',
     height: '100%',
     path: RECT_PATH,
-    fill_color: '#08080f',
+    fill_color: '#000000',
   })
 
   // Track 2 — tile / loop the clips to fill the full duration.
@@ -2585,10 +2592,15 @@ export function buildHollywoodCreatomateSource({
   // PUSH #95 — needs RECT_PATH to draw at all; see the shape-stack block in
   // buildCreatomateSource. Behind the footage, so enabling it is invisible —
   // it just finally covers the sub-second gaps the comments above rely on.
+  // KINEO-BLACK-BASE-2026-08-04 — fill hardened #08080f → #000000, same fix as
+  // the standard builder: Creatomate's default canvas is WHITE (no background
+  // colour is ever set on the composition), so an uncovered frame gap between
+  // clips flashed white. First element, lowest track (1), full canvas, full
+  // duration — any b-roll gap now reads as invisible black.
   elements.push({
     type: 'shape', track: 1, time: 0, duration: totalDuration,
     x: '50%', y: '50%', width: '100%', height: '100%',
-    path: RECT_PATH, fill_color: '#08080f',
+    path: RECT_PATH, fill_color: '#000000',
   })
 
   // Track 2 — scenes tiled sequentially, NATIVE AUDIO ON (volume per engine).
