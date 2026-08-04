@@ -16,6 +16,27 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+## 📌 04/08 19:45Z (sprint 16h) — O QUE ESTÁ NA SUA MÃO AGORA
+
+**A. 🔴 PUSH — `scripts\36-PUSH.bat` (30s).** 6 commits parados localmente. Dois deles
+   **não são meus**: `6ce3d9a` + `4e8af7a`, o **preço regional** (Starter/Creator mais baratos
+   em países de menor renda; Brasil R$49,90 → R$24,90) que a sessão paralela commitou e
+   **ainda não está em produção** — enquanto este push não sair, o brasileiro segue vendo
+   R$49,90. Passei o `tsc` sobre tudo junto: **EXITCODE=0**. Os outros 4 são o
+   `<VideoRatingAsk/>` desta sprint + docs. **Não toca em render.**
+
+**B. 🔴 9 cliques de Send no Gmail — continuam parados.** Confirmei com `in:sent newer_than:1d`:
+   só há 2 threads de hoje, ambas de 02:03Z (parceiros, campanha antiga). Os **8 rascunhos
+   COMEBACK50** e o **rascunho do ToolRiot** seguem em Rascunhos, intactos. A flag
+   `comeback50_emailed` já está marcada nos 9 (checado: boolean `= true`, exatamente 9), então
+   a rota automática não vai duplicá-los — mas se você **não** apertar Send, essas 9 pessoas
+   ficam sem receber nada, por ninguém. É o item de maior retorno por segundo que existe hoje.
+
+**C. 🟠 Os 11 restantes do COMEBACK50** seguem a um clique de distância
+   (`&confirm=SEND` na rota, que agora existe em produção). Deixei sem apertar de propósito:
+   disparo em massa irreversível. Sua decisão.
+
+
 ## 📌 04/08 16:50Z (sprint 13h) — PENDENTES DE HOJE
 
 **0. ✅ PUSH FEITO POR VOCÊ DURANTE ESTA SPRINT — está tudo no ar.**

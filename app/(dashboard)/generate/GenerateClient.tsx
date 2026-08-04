@@ -50,7 +50,7 @@ import NicheOnboarding from '@/components/NicheOnboarding'
 // self-contained (source gate via /api/me/plan, once-per-browser localStorage
 // flag, analytics) and degrades to null on any failure so it can never break
 // the success screen.
-import TaaftReviewAsk from '@/components/TaaftReviewAsk'
+import VideoRatingAsk from '@/components/VideoRatingAsk'
 // KINEO-OFFER290-2026-07-07 — first-purchase $2.90 urgency banner. Self-gated on
 // OFFER_290_ENABLED (renders null while the flag is off — build-only for now).
 import Offer290Banner from './Offer290Banner'
@@ -966,15 +966,17 @@ export default function GenerateClient({
   // everyone else = 0. We render a separate "no tokens left, resets
   // monthly" state when the user IS pro but has spent their token.
   const [cinematicTokens, setCinematicTokens] = useState<number>(0)
-  // KINEO-TAAFT-REVIEW-2026-07-14 — the post-render TAAFT review ask that
-  // used to be wired here (signup-source state + localStorage gate + shown
-  // event) moved wholesale into <TaaftReviewAsk/> so the gating logic lives
-  // next to the card it gates; see the render site in the success branch.
+  // KINEO-TAAFT-REVIEW-2026-07-14 — the post-render review ask that used to be
+  // wired here (signup-source state + localStorage gate + shown event) moved
+  // wholesale into its own card so the gating logic lives next to the card it
+  // gates; see the render site in the success branch.
+  // KINEO-RATING-BEFORE-REVIEW-2026-08-04 — esse card agora é
+  // <VideoRatingAsk/> e o gate que importa não é mais renderCount, é
+  // `watermarkedDownloadConfirmed`: 0 clique em 124 exibições porque 67% dos
+  // pedidos iam para quem nunca baixou nada.
   // KINEO-SPRINT-OFFER-2026-07-14 — lifetime successful-render counter
   // (localStorage 'kineo_render_count', incremented once per completed
-  // render by the effect below). Passed to <TaaftReviewAsk/>, which only
-  // asks for a review from the 2nd render on — render #1 belongs to the
-  // upgrade offer, not to a review ask competing in the same viewport.
+  // render by the effect below), ainda passado ao card como piso mínimo.
   const [renderCount, setRenderCount] = useState<number>(0)
   const renderCountedRef = useRef(false)
   // Fast-mode-specific staged progress index (0..3). The real backend is
@@ -7666,16 +7668,23 @@ export default function GenerateClient({
                 </div>
               )}
 
-              {/* KINEO-TAAFT-REVIEW-2026-07-14 / KINEO-SPRINT-OFFER-2026-07-14 —
-                  TAAFT review ask, MOVED here (right after the download/share
-                  actions) from its old spot next to the upgrade block below:
-                  the review ask and the upsell were landing in the same
-                  viewport and competing for the same click. It also now only
-                  shows from the 2nd successful render on (renderCount prop —
-                  the counter effect above). All other gating (TAAFT signup
-                  source via /api/me/plan, once-per-browser localStorage flag)
-                  lives inside the component; any failure → renders null. */}
-              <TaaftReviewAsk renderCount={renderCount} />
+              {/* KINEO-RATING-BEFORE-REVIEW-2026-08-04 — <TaaftReviewAsk/> saiu
+                  daqui. Medido em 04/08: 124 exibições desde 15/07 e ZERO
+                  `taaft_review_ask_clicked` na tabela de eventos — duas
+                  revivências, nenhum clique, e a nota do TAAFT segue 3,0/2.
+                  Pela regra de morte, morreu. A causa não era copy: 56 dos 84
+                  que viram o pedido NUNCA baixaram um vídeo (67%).
+                  <VideoRatingAsk/> aplica o KINEO-DELIVER-FIRST ao pedido —
+                  só aparece com o arquivo já na mão (`downloaded`), pede UMA
+                  nota de um toque, e só quem dá 4–5 vê o TAAFT. Quem dá 1–3
+                  responde "o que faltou?" e nada é pedido a terceiro. Todo o
+                  gating (cota por browser, flag terminal) vive no componente;
+                  qualquer falha → renderiza null. */}
+              <VideoRatingAsk
+                downloaded={watermarkedDownloadConfirmed}
+                renderCount={renderCount}
+                videoTitle={analysis?.title}
+              />
 
               {/* Push #156 — Next-steps guide. Open by default (Push #296)
                   so users always see the 3-step publishing flow. */}

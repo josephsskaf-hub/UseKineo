@@ -377,3 +377,22 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
   significar campanha parada. Regra de segurança junto: marcar a flag de idempotência na hora
   e escrever o **SQL de rollback** no doc da sprint, para o disparo automático não duplicar.
 - 34-PUSH substitui o 33 (não rodado; ahead 3).
+
+## MUDANÇAS — sprint 16h de 04/08
+
+1. **A Regra Zero não para em "existe?" — vai até "está movendo o número?".** "A REVIEW É O
+   PRODUTO" estava na Fila como coisa a construir; já existia há 20 dias e estava morta (124
+   exibições, 0 cliques). Ideia da Fila começa por MEDIR o que já existe; muitas vezes o
+   trabalho não é construir, é matar e inverter.
+2. **Componente medido só por exibição é instrumento cego.** O card reportava 124 shows e
+   parecia vivo; o evento de clique nunca teve uma linha. Toda superfície que PEDE algo ao
+   usuário nasce com evento de AÇÃO, e a regra de morte corre sobre a ação, não sobre a view.
+3. **Flag booleana NOT NULL DEFAULT false conta com `= true`, nunca `is not null`** — contar
+   errado transforma 9 em 934 e parece incidente de disparo em massa.
+4. **Um princípio corrigido num lugar não se propaga sozinho.** DELIVER-FIRST consertou o
+   botão de download em 30/07; o pedido de review na MESMA tela continuou pedindo antes de
+   entregar por mais 5 dias. Ao aplicar um princípio, varrer as outras superfícies da tela.
+5. **Commit de sessão paralela que mexe em PREÇO entra no cabeçalho do N-PUSH com o impacto
+   explicado** — o fundador precisa saber que o push dele muda o que o cliente paga.
+6. **Errou o cabeçalho do .bat depois de commitar?** Refaça o commit-tree sobre o MESMO pai
+   (`HEAD^`) em vez de criar um commit novo — senão a contagem de commits do .bat mente.
