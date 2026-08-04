@@ -158,6 +158,39 @@ const MAX_TRANSIENT_POLL_ERRORS = 4
 const ACTIVE_RENDER_STORAGE_KEY = 'kineo_active_render_v1'
 const ACTIVE_RENDER_TTL_MS = 2 * 60 * 60 * 1000
 
+// KINEO-RESUME-RENDER-2026-08-04 — server-truth resume. The localStorage
+// snapshot above is only the fast-path: it dies with cleared storage or a
+// different browser, and the restore gate can wedge on flaky auth while the
+// render finishes server-side (real incident 04/08: video completed 04:54Z,
+// user staring at the blind "Still checking…" banner). GET /api/compose/active
+// reads the SAME durable sources the compose lock uses (compose_submission_claim
+// rows in `events` + `videos`) and reports the user's latest render as
+// rendering / completed / none within this window.
+const SERVER_ACTIVE_RENDER_WINDOW_MS = 15 * 60 * 1000
+
+type ServerActiveRenderProbe =
+  | {
+      state: 'rendering'
+      renderId: string | null
+      startedAtMs: number
+      quality: string
+      duration: Duration
+    }
+  | {
+      state: 'completed'
+      videoId: string | null
+      videoUrl: string | null
+      title: string | null
+      completedAtMs: number
+    }
+
+function formatElapsedShort(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000))
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return minutes > 0 ? `${minutes}m ${String(seconds).padStart(2, '0')}s` : `${seconds}s`
+}
+
 interface FastRenderInputs {
   clip_urls: string[]
   voiceover_script: string
@@ -762,6 +795,13 @@ export default function GenerateClient({
   // PUSH #96 — counts restore retries across effect re-runs so the auth retry
   // above can never loop forever.
   const restoreRetryRef = useRef(0)
+  // KINEO-RESUME-RENDER-2026-08-04 — what the SERVER says about this user's
+  // latest render (same sources as the compose lock; see /api/compose/active).
+  // Drives the resume card on Step 1 and the cross-session duplicate-render
+  // guard in handleGenerate. The tick re-renders the "elapsed" label.
+  const [serverActiveRender, setServerActiveRender] = useState<ServerActiveRenderProbe | null>(null)
+  const serverActiveRenderRef = useRef<ServerActiveRenderProbe | null>(null)
+  const [serverActiveRenderTick, setServerActiveRenderTick] = useState(() => Date.now())
   // #360 — synchronous re-entry guard against double-submit. Catches the
   // sub-render race the disabled button can't: two clicks before React
   // re-renders both see phase==='options'. The ref flips synchronously.
@@ -1155,7 +1195,36 @@ export default function GenerateClient({
     if (phase !== 'done' && phase !== 'failed') return
     resumedRenderRef.current = false
     try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
+    // KINEO-RESUME-RENDER-2026-08-04 — this render just settled in THIS tab;
+    // a stale 'rendering' probe must not block the next generation or show a
+    // resume card for a job whose result is already on screen.
+    serverActiveRenderRef.current = null
+    setServerActiveRender(null)
   }, [phase])
+
+  // KINEO-RESUME-RENDER-2026-08-04 — ask the server for the real state of the
+  // user's latest render on arrival. Fire-and-forget: the localStorage restore
+  // effect below stays the fast-path; this probe only feeds the resume card
+  // (and the duplicate guard) when that path has nothing to restore.
+  useEffect(() => {
+    void refreshServerActiveRender()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // While the resume card is visible: tick the elapsed label every second and
+  // re-probe every 10s so the card flips to "Your video is ready 🎉" by itself
+  // the moment the render lands — the user is never left blind again.
+  useEffect(() => {
+    if (isProcessingPhase(phase) || phase === 'done' || phase === 'failed') return
+    if (serverActiveRender?.state !== 'rendering') return
+    const tick = setInterval(() => setServerActiveRenderTick(Date.now()), 1000)
+    const probe = setInterval(() => { void refreshServerActiveRender() }, 10000)
+    return () => {
+      clearInterval(tick)
+      clearInterval(probe)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, serverActiveRender])
 
   useEffect(() => {
     return () => {
@@ -3193,6 +3262,100 @@ export default function GenerateClient({
     }
   }
 
+  // ── KINEO-RESUME-RENDER-2026-08-04 ────────────────────────────────────────
+  // Read the server truth about the user's latest render from the read-only
+  // probe (/api/compose/active — the SAME sources the compose lock uses).
+  // Never throws; a failed probe returns null and changes nothing, so this can
+  // never introduce a new dead end.
+  async function refreshServerActiveRender(): Promise<ServerActiveRenderProbe | null> {
+    try {
+      const res = await fetch('/api/compose/active', { cache: 'no-store' })
+      if (!res.ok) return null
+      const data = await res.json().catch(() => null) as Record<string, unknown> | null
+      if (!data) return null
+      let probe: ServerActiveRenderProbe | null = null
+      if (data.state === 'rendering') {
+        const startedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
+        const rawDuration = Number(data.duration)
+        probe = {
+          state: 'rendering',
+          renderId: typeof data.render_id === 'string' && data.render_id.trim() ? data.render_id.trim() : null,
+          startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : Date.now(),
+          quality: typeof data.quality === 'string' && data.quality ? data.quality : 'fast',
+          duration: rawDuration === 60 ? 60 : rawDuration === 90 ? 90 : 45,
+        }
+      } else if (data.state === 'completed') {
+        const completedAtMs = Date.parse(typeof data.completed_at === 'string' ? data.completed_at : '')
+        probe = {
+          state: 'completed',
+          videoId: typeof data.video_id === 'string' && data.video_id ? data.video_id : null,
+          videoUrl: typeof data.video_url === 'string' && data.video_url ? data.video_url : null,
+          title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : null,
+          completedAtMs: Number.isFinite(completedAtMs) ? completedAtMs : Date.now(),
+        }
+      }
+      if (probe && serverActiveRenderRef.current?.state !== probe.state) {
+        void trackEvent('server_active_render_detected', {
+          state: probe.state,
+          render_id: probe.state === 'rendering' ? probe.renderId : null,
+          video_id: probe.state === 'completed' ? probe.videoId : null,
+        })
+      }
+      serverActiveRenderRef.current = probe
+      setServerActiveRender(probe)
+      setServerActiveRenderTick(Date.now())
+      return probe
+    } catch {
+      return null
+    }
+  }
+
+  // Resume the server-confirmed render on the EXISTING progress screen: commit
+  // exactly the state the Push #92 snapshot restore commits, then let the
+  // standard phase==='composing' effect poll /api/compose/status/[renderId].
+  // No second polling path is introduced. If the render actually failed at the
+  // provider, that same poll surfaces the honest failure screen.
+  function resumeServerActiveRender() {
+    const probe = serverActiveRenderRef.current
+    if (!probe || probe.state !== 'rendering' || !probe.renderId) return
+    if (generationInFlightRef.current || isProcessingPhase(phase)) return
+    // The wedged restore gate is the exact dead end this bypasses: the render
+    // is confirmed server-side, so resolve the gate and reconnect.
+    activeRenderRestoreResolvedRef.current = true
+    setActiveRenderRestoreResolved(true)
+    resumedRenderRef.current = true
+    composeStartedRef.current = true
+    composingPollErrorsRef.current = 0
+    if (!generationAttemptRef.current) generationAttemptRef.current = newGenerationAttemptId()
+    falUsedRef.current =
+      probe.quality.startsWith('cinematic_') || probe.quality === 'avatar' || probe.quality === 'presenter'
+    if (falUsedRef.current) {
+      falQualityRef.current = probe.quality
+      setQuality('cinematic_ai')
+    } else if (probe.quality === 'fast' || probe.quality === 'basic' || probe.quality === 'basic_ai' || probe.quality === 'pro') {
+      setQuality(probe.quality)
+    }
+    setMode(
+      probe.quality === 'fast'
+        ? 'fast'
+        : probe.quality.startsWith('cinematic_')
+          ? 'cinematic_ai'
+          : 'cinematic',
+    )
+    setDuration(probe.duration)
+    setError(null)
+    setRenderId(probe.renderId)
+    setRenderProgress(5)
+    setPhase('composing')
+    trackEvent('generation_render_resumed', {
+      attempt_id: generationAttemptRef.current,
+      render_id: probe.renderId,
+      quality: probe.quality,
+      age_ms: Math.max(0, Date.now() - probe.startedAtMs),
+      recovered_from: 'server_active_probe',
+    })
+  }
+
   async function handleAnalyze(
     overridePrompt?: string,
     opts?: { fromTopic?: boolean; skipPreview?: boolean; structureFirst?: boolean },
@@ -3211,6 +3374,10 @@ export default function GenerateClient({
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
         : 'Still checking for an in-progress render. Please try again in a moment.')
+      // KINEO-RESUME-RENDER-2026-08-04 — the banner above used to be a dead
+      // end. Ask the server what is actually happening; the answer renders the
+      // resume card ("rendering — check progress" / "ready 🎉") above the form.
+      void refreshServerActiveRender()
       trackGenerationFailure('idle', resumedRenderRef.current
         ? 'analyze_blocked_by_resumed_render'
         : 'analyze_blocked_active_render_gate', {
@@ -3881,6 +4048,9 @@ export default function GenerateClient({
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
         : 'Still checking for an in-progress render. Please try again in a moment.')
+      // KINEO-RESUME-RENDER-2026-08-04 — same dead-end fix as handleAnalyze:
+      // surface the real render state (resume card) instead of only the banner.
+      void refreshServerActiveRender()
       trackGenerationFailure('idle', resumedRenderRef.current
         ? 'generate_blocked_by_resumed_render'
         : 'generate_blocked_active_render_gate', {
@@ -3901,6 +4071,30 @@ export default function GenerateClient({
       return
     }
     generationInFlightRef.current = true
+
+    // KINEO-RESUME-RENDER-2026-08-04 — cross-session duplicate guard. The
+    // localStorage gate above cannot see a render started in another browser
+    // or after storage was cleared; the server probe can. Re-confirm against
+    // the live probe before blocking (a stale 'rendering' from mount must not
+    // veto a legitimate generation after that render settled), then send the
+    // user to the resume card instead of dispatching a second render.
+    if (
+      serverActiveRenderRef.current?.state === 'rendering' &&
+      Date.now() - serverActiveRenderRef.current.startedAtMs < SERVER_ACTIVE_RENDER_WINDOW_MS
+    ) {
+      const freshProbe = await refreshServerActiveRender()
+      if (
+        freshProbe?.state === 'rendering' &&
+        Date.now() - freshProbe.startedAtMs < SERVER_ACTIVE_RENDER_WINDOW_MS
+      ) {
+        generationInFlightRef.current = false
+        setError('You already have a video rendering. Use "Check progress" on the blue card to follow it — you can start this idea as soon as it lands.')
+        trackGenerationFailure('idle', 'generate_blocked_server_active_render', {
+          detail: `render=${freshProbe.renderId ?? 'pending'} age_ms=${Math.max(0, Date.now() - freshProbe.startedAtMs)}`,
+        })
+        return
+      }
+    }
 
     const trimmed = (structuredScriptRef.current ?? prompt).trim()
     if (!trimmed) {
@@ -5372,6 +5566,89 @@ export default function GenerateClient({
           }}
         >
           {error}
+        </div>
+      )}
+
+      {/* KINEO-RESUME-RENDER-2026-08-04 — server-truth resume card. Replaces
+          the blind "Still checking…" dead end: if the server says a render is
+          in flight, show elapsed time + a button that reconnects to the
+          EXISTING progress screen (standard composing poll — no new flow). */}
+      {(phase === 'idle' || phase === 'script_preview' || phase === 'options') &&
+        serverActiveRender?.state === 'rendering' && (
+        <div
+          className="gv-card rounded-xl px-4 py-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+          style={{
+            background: 'rgba(41,151,255,.07)',
+            border: '1px solid rgba(41,151,255,.35)',
+          }}
+        >
+          <div>
+            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+              🎬 Your video is rendering — {formatElapsedShort(serverActiveRenderTick - serverActiveRender.startedAtMs)} elapsed
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+              We kept it running while you were away. Most videos finish in 2–4 minutes.
+            </div>
+          </div>
+          {serverActiveRender.renderId ? (
+            <button
+              type="button"
+              onClick={() => resumeServerActiveRender()}
+              className="font-bold text-sm px-4 py-2 rounded-lg"
+              style={{ background: '#2997ff', color: '#fff' }}
+            >
+              Check progress
+            </button>
+          ) : (
+            <span className="text-xs" style={{ color: 'var(--muted2)' }}>
+              Reconnecting…
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Render finished while the user was away (the 04:54 incident): never
+          leave them blind with a ready video — link straight to it. */}
+      {phase === 'idle' && serverActiveRender?.state === 'completed' && (
+        <div
+          className="gv-card rounded-xl px-4 py-4 mb-6 flex items-center justify-between gap-3 flex-wrap"
+          style={{
+            background: 'rgba(34,197,94,.07)',
+            border: '1px solid rgba(34,197,94,.35)',
+          }}
+        >
+          <div>
+            <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
+              🎉 Your video is ready{serverActiveRender.title ? ` — ${serverActiveRender.title}` : ''}
+            </div>
+            <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
+              It finished rendering while you were away and is saved in My Videos.
+            </div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {serverActiveRender.videoUrl && (
+              <a
+                href={serverActiveRender.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-sm px-4 py-2 rounded-lg"
+                style={{ background: '#22c55e', color: '#06220f' }}
+              >
+                Watch now
+              </a>
+            )}
+            <a
+              href="/history"
+              className="font-bold text-sm px-4 py-2 rounded-lg"
+              style={{
+                background: 'rgba(255,255,255,.06)',
+                border: '1px solid rgba(255,255,255,.14)',
+                color: 'var(--text)',
+              }}
+            >
+              Open My Videos
+            </a>
+          </div>
         </div>
       )}
 
