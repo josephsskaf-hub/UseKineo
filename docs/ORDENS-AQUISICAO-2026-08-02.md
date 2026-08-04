@@ -215,3 +215,10 @@ inteiro (x/y 50%, width/height 100%, fill_color '#000000', time 0, duration = to
 nos DOIS builders de composicao. Cuidado: compose.ts e o arquivo mais sensivel (marca d'agua,
 legendas, tracks documentadas nas linhas 53-61) — nao reordenar nada, so inserir a base preta.
 Validar com 1 render de teste antes de considerar fechado. Melhora TODOS os videos, free e pago.
+
+### ⛔ ORDEM L CONGELADA PELO FUNDADOR (04/08 01:15) — NAO EXECUTAR NO DIA DO PH
+"nao quero mudar isso agora!! amanha vamos estar no lancamento do PH nao quero perder nenhuma
+venda por causa de render mal feito." REGRA: NENHUMA sprint toca lib/compose.ts em 04/08.
+O diagnostico acima fica pronto; executar SO quando o fundador der GO explicito (sugerir no
+relatorio de 05/08, com render de teste antes de fechar). Dia de lancamento = freeze no pipeline
+de render. Isso vale como regra permanente: dia de PH/lancamento, so se mexe em copy e docs.
