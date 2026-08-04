@@ -163,3 +163,45 @@ escrevem as respostas.
 ## novo (og-card-2.png...) — 3 caches empilhados (CDN+X+WhatsApp) não respeitam ?v=.
 ## MÉTRICA: cadastros com referral t.co / youtube / reddit / quora no placar semanal.
 ## Regra de morte: canal que não gerar 1 cadastro em 14 dias sai da rotação.
+
+---
+# ORDENS 04/08 — definidas com o fundador na noite de 03/08
+
+## ORDEM I — E-mails COMEBACK50 (sprint 10h, PRIORIDADE 1 do dia)
+Decisão fechada com o fundador (ele aprovou: mês a mês, SEM cobrar 3 meses adiantado):
+- Cupom Stripe `COMEBACK50`: 50% off, duration=repeating 3 meses, válido só Creator e Studio
+  (NUNCA Starter — $4,95 não cobre inferência e atrai churn). GATE: fundador cria no
+  dashboard Stripe de manhã — a sprint prepara o passo a passo e pede o clique ANTES de enviar.
+- Segmentação MEDIDA (não misturar):
+  a) ~24 alvos COMEBACK50 = 16 free com >=3 downloads (lista na query do ENGAGEMENT: jatinnnnn078,
+     kingtopman, kylajanae78, toolriot, ajiterumololuwa, agadac02...) + 8 com stripe_customer_id
+     que geraram >=1 vídeo. E-mail: founder voice, 1 linha de oferta, Studio como recomendação
+     explícita ("If you're producing at volume, Studio is the one").
+  b) 39 com stripe_customer_id e ZERO vídeos = e-mail de ATIVAÇÃO SEM PREÇO (desconto pra quem
+     nunca gerou é inútil — o trabalho é fazer gerar o 1º vídeo).
+- Enviar via infra Resend existente (padrão send-hot-upsell), supressão 24h cruzada respeitada.
+- Margem: com 50% off o pior caso é NEGATIVO durante a promo (~-$5 a -$10/mês se estourar créditos).
+  É CAC deliberado, teto conhecido. Reportar conversões no relatório 22h.
+
+## ORDEM J — Resume de render (bug de UX apontado pelo fundador 04/08 00:50)
+Ele fechou a aba do render e não conseguiu voltar; ficou preso em "Still checking for an
+in-progress render". Duas correções:
+1. /generate com render em andamento => mostrar a TELA DE PROGRESSO do render existente
+   (deep-link de volta), nunca só bloquear com aviso.
+2. A trava de render precisa de saída: botão "ver andamento" + expiração curta clara.
+Investigar onde vive o lock (compose route / GenerateClient claim) antes de mexer. Regra Zero.
+
+## ORDEM K — Follow-ups do video-sitemap (fix 0398251 já em produção, validado: 561 vídeos,
+player_loc=0, zero content_loc==loc)
+1. FILTRAR do sitemap a entrada com MP4 em cloudfront com JWT EXPIRADO
+   (v/86639b07-46c5-4ec9-b6d3-c220baf7db7b — Googlebot recebe 403). Melhor: excluir do sitemap
+   toda content_loc com querystring assinada.
+2. Em 2-3 dias, conferir no Search Console se os 557 erros zeraram; reenviar o sitemap se preciso.
+3. Bing: sitemaps submetidos 04/08 (principal Success 162 URLs; video em Processing). Monitorar
+   aba AI Performance do Bing (mede tráfego de respostas de IA) a partir de ~1 semana.
+
+## Placar da noite 03->04/08 (para o relatório)
+3 DMs de clippers ENVIADOS (~6k membros alcançáveis) · 2 e-mails de afiliado com material pronto
+(toolriot J7SCBLLU / colormango 8WVZSBUX — monitorar cliques!) · wall + scripts + 46 /vs + admin
+CEO no ar · fix video-sitemap · aprovações automáticas LIGADAS pelo fundador (sprints agora
+empurram push sozinhas — 1-PUSH via bash, sem gate).
