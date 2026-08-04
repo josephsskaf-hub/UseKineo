@@ -908,9 +908,32 @@ async function buildAndRedirect(
 
   let discountApplied = false
 
-  // KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês (vence o ?promo=: o
-  // intro é mais fundo que 20%). Só monthly, só starter/basic, 1 por cliente.
-  if (intro && !isAnnual && (tier === 'starter' || tier === 'basic')) {
+  // KINEO-PROMO-BEATS-INTRO-2026-08-04 — PRECEDÊNCIA CORRIGIDA.
+  // O comentário abaixo ("o intro vence o ?promo=") nasceu em 13/07, quando
+  // todo promo em circulação valia 20% de UM mês. Deixou de ser verdade: o
+  // COMEBACK50 (Ordem I) é 50% por TRÊS meses, e o /pricing anexa `intro=1`
+  // SOZINHO em todo clique monthly de starter/basic (PricingClient.tsx:273).
+  // Resultado sem esta trava: a pessoa lê "50% off" no e-mail, clica, o intro
+  // aplica primeiro, `discountApplied` fica true e o bloco do promo é PULADO
+  // com um console.warn que ninguém lê. Nenhum erro aparece — só uma promessa
+  // quebrada na fatura. Agora o promo só perde para o intro se NÃO existir /
+  // não estiver ativo na Stripe; o lookup é reaproveitado mais abaixo para não
+  // gastar uma segunda chamada de API.
+  let resolvedPromo: Awaited<ReturnType<typeof stripe.promotionCodes.list>>['data'][number] | null = null
+  if (requestedPromo && !privatePackPromo) {
+    try {
+      const pre = await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })
+      resolvedPromo = pre.data[0] ?? null
+    } catch (preErr) {
+      // Falha de rede não pode custar a venda: sem resolução, o intro segue
+      // valendo e o bloco de promo mais abaixo tenta de novo.
+      console.warn('[stripe/checkout] promo pre-check failed, intro keeps priority:', preErr)
+    }
+  }
+
+  // KINEO-INTRO-MONTH-2026-07-13 — desconto de 1º mês. Só monthly, só
+  // starter/basic, 1 por cliente. Cede a vez a um ?promo= válido (ver acima).
+  if (intro && !resolvedPromo && !isAnnual && (tier === 'starter' || tier === 'basic')) {
     let introAlreadyUsed = false
     try {
       const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 20 })
@@ -976,8 +999,11 @@ async function buildAndRedirect(
 
   if (!discountApplied && requestedPromo) {
     try {
-      const codes = await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })
-      const pc = codes.data[0]
+      // Reaproveita o pre-check de precedência (KINEO-PROMO-BEATS-INTRO) quando
+      // ele já resolveu; só chama a Stripe de novo no caminho privatePackPromo,
+      // que é o único que não passa pelo pre-check.
+      const pc = resolvedPromo
+        ?? (await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })).data[0]
       if (pc) {
         if (privatePackPromo) {
           const restrictedCustomerId = typeof pc.customer === 'string'

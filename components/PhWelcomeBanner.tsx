@@ -47,6 +47,28 @@ export default function PhWelcomeBanner() {
       >
         Start free →
       </a>
+      {/*
+        KINEO-PH-PROMO-LINE-2026-08-04 (Ordem I, item 2) — a linha do cupom.
+        Redação DELIBERADA: "use code PRODUCTHUNT at checkout", e o link leva a
+        /pricing?promo=PRODUCTHUNT. Não diz "aplicado automaticamente" porque o
+        dashboard da Stripe estava em erro na hora e não deu para confirmar que
+        o CÓDIGO PROMOCIONAL (não o cupom) existe — o cupom eu vi na lista, o
+        promotion code não. Se ele não existir, o checkout ignora o promo em
+        silêncio (route.ts) e a pessoa cai no preço cheio: com esta redação ela
+        ainda tem o campo de cupom do próprio Stripe Checkout para digitar o
+        código, então o pior caso é fricção, não promessa quebrada.
+      */}
+      <span style={{ display: 'block', marginTop: 4, fontWeight: 600, opacity: .92 }}>
+        Staying? Use code{' '}
+        <a
+          href="/pricing?promo=PRODUCTHUNT&utm_source=producthunt&intent_campaign=ph_launch_banner"
+          onClick={() => { void trackEvent('ph_welcome_banner_promo_clicked') }}
+          style={{ color: '#5cb3ff', textDecoration: 'underline', fontWeight: 800 }}
+        >
+          PRODUCTHUNT
+        </a>{' '}
+        at checkout — 30% off your first 3 months.
+      </span>
     </div>
   )
 }

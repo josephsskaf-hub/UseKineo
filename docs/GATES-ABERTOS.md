@@ -16,7 +16,64 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 📌 04/08 15:00Z (sprint 11h) — PENDENTES DE HOJE
+## 📌 04/08 16:50Z (sprint 13h) — PENDENTES DE HOJE
+
+**0. 🔴 PUSH — `scripts\34-PUSH.bat` (30s). É O ÚNICO GARGALO DA CAMPANHA.**
+   3 commits meus parados. O `33-PUSH` **não foi rodado**: produção ainda serve `0c988b4`,
+   e por isso `/api/admin/send-comeback50` responde **404** — a ordem "sprint das 10h
+   dispara os e-mails" era fisicamente impossível sem este clique. O 34 sobe:
+   - o **fix `KINEO-PROMO-BEATS-INTRO`** (abaixo, item 1 — é o mais importante do dia);
+   - a rota COMEBACK50 + a linha do cupom PRODUCTHUNT no banner de PH;
+   - os docs das sprints 11h e 13h.
+   **Não toca em render** — nada de `lib/compose.ts`; seu freeze de dia de lançamento
+   segue intacto.
+
+**1. 🟢 NADA A FAZER, SÓ SAIBA: a campanha ia sair com uma promessa quebrada.**
+   O `/pricing` anexa `intro=1` sozinho em todo clique monthly de Starter/Creator, e o
+   checkout aplicava o intro ANTES do `?promo=` — o `COMEBACK50` era descartado com um
+   `console.warn`. As 19 pessoas leriam "50% off por 3 meses" e receberiam um mês com
+   desconto menor, **sem nenhum erro aparecer**. Corrigido nesta sprint (tsc=0). Só existe
+   em produção depois do item 0.
+
+**2. 🟠 8 RASCUNHOS NO GMAIL — 8 cliques de Send, a melhor lista do banco.**
+   Como o push travou o disparo automático, a campanha saiu por rascunho pessoal seu, um
+   por pessoa, abrindo pelo que cada uma fez. São: kingtopman (6 vídeos/24 downloads),
+   agadac02 (9/23), jatinnnnn078 (2/21 — pergunto se o export quebrou), kylajanae78 (6/20),
+   ajiterumololuwa (1/12), nooributter+1 (7/8, dormente desde julho), verifiedpee236 (3/6),
+   obasindubuisi20 (5/3). Sem preço no corpo; link com `utm_source=comeback50-personal`
+   para separar o que a rota manual converteu.
+   Os 8 já estão marcados com `comeback50_emailed=true`, então a rota automática (depois do
+   push) **não duplica** e vai para os outros 11. **Se decidir NÃO enviar**, o SQL de
+   rollback está na seção 3 do `docs/SPRINT-2026-08-04.md`.
+
+**3. 🟢 RASCUNHO ToolRiot (`hello@toolriot.com`) — 1 clique, e não é uma venda.**
+   Ele estava na fila para receber 50% off. Fui olhar quem é antes de mandar: **review lab**
+   que testa ferramentas de IA e publica **Shorts de 60s no YouTube** (@ToolRiot). Rodou a
+   Kineo em 01/08 (1 vídeo, 12 exports) e não publicou nada. O rascunho oferece conta cheia
+   comped **sem contrapartida** e propõe o teste que só a gente permite: o Short sobre a
+   Kineo, feito pela Kineo. Se você discordar de comped, é só não enviar — nada mais depende
+   disso.
+
+**4. ⏱️ 30 segundos, quando puder: confirmar o promotion code `PRODUCTHUNT`.**
+   O dashboard da Stripe entrou em erro exatamente nessa página. Vi o **cupom** na lista
+   (30% × 3 meses); não consegui ver o **código promocional**. O banner foi escrito para não
+   mentir mesmo se ele não existir ("use code at checkout"), então não é urgente.
+   Link: https://dashboard.stripe.com/coupons/PRODUCTHUNT
+
+**5. 🟠 Product Hunt — veredito com número.** O banner de boas-vindas apareceu **9 vezes em
+   24h** e o launch converteu **0**. 3 pontos, 0 comentários externos. Não é canal de
+   aquisição; é troféu. Nada a fazer lá hoje — regra de morte corre até 11/08.
+
+---
+
+## 📌 04/08 15:00Z (sprint 11h) — HISTÓRICO (itens 0 e 1 RESOLVIDOS)
+
+> ✅ **Item 1 (criar o cupom COMEBACK50) FECHADO** pela sessão CEO em 12:05 −0300 (`09956d5`).
+> Conferido por mim no dashboard, não presumido do commit: `COMEBACK50` é cupom **e** código
+> promocional ativo (`promo_1U0jqT…`, 50% por 3 meses, 0 resgates). `PRODUCTHUNT` idem como
+> cupom (código promocional pendente de conferência — item 4 acima).
+> O item 0 (push) segue aberto e virou o item 0 do bloco das 13h.
+
 
 **0. PUSH — 1 commit meu parado** (a sandbox não tem credencial do GitHub; o push sai da sua
    máquina). Sobe a campanha COMEBACK50 + os docs desta sprint. **Não toca em render** —
