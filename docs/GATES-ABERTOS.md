@@ -16,7 +16,27 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 📌 04/08 19:45Z (sprint 16h) — O QUE ESTÁ NA SUA MÃO AGORA
+## ✅ 04/08 22:05Z — OS DOIS GATES DA SPRINT 16h FORAM FECHADOS PELO FUNDADOR
+
+**A. PUSH FEITO.** `origin/main = 43e2a3b`, deploy **READY em produção** (22:00:42Z).
+   Consequências que valem para as próximas sprints:
+   - o **preço regional está no ar** — Brasil vê Starter R$24,90 (era R$49,90). A partir de
+     agora, qualquer leitura de conversão de checkout no Brasil é sobre o preço NOVO;
+   - `<VideoRatingAsk/>` está servindo. A janela de medição de `video_rated` /
+     `video_rating_reason` / `taaft_review_ask_clicked` **começa em 22:00Z de 04/08** — não
+     contar nada antes disso.
+
+**B. OS 9 SENDS SAÍRAM** (22:00:55Z–22:01:16Z), confirmado em `in:sent`: os 8 rascunhos
+   COMEBACK50 (kingtopman, obasindubuisi20, verifiedpee236, nooributter+1, ajiterumololuwa,
+   kylajanae78, jatinnnnn078, agadac02) + o ToolRiot. A flag `comeback50_emailed=true` já
+   estava marcada nos 9 antes do envio, então a rota automática **não vai duplicar**.
+   Medir `utm_source=comeback50-personal` a partir de 22:01Z, separado do disparo Resend.
+   **NÃO repetir este pedido.**
+
+**C. 🟠 Continua aberto:** os **11 restantes** do COMEBACK50, a um `&confirm=SEND` na rota
+   (que agora existe e está deployada). Disparo em massa irreversível — decisão sua.
+
+## 📌 04/08 19:45Z (sprint 16h) — O QUE ESTAVA NA SUA MÃO (A e B FECHADOS ÀS 22h, ver acima)
 
 **A. 🔴 PUSH — `scripts\36-PUSH.bat` (30s).** 6 commits parados localmente. Dois deles
    **não são meus**: `6ce3d9a` + `4e8af7a`, o **preço regional** (Starter/Creator mais baratos
