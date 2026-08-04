@@ -4,3 +4,16 @@
 - LIÇÃO: X cacheia card POR URL EXATA. O founder queimou ?utm_source=x no teste → sempre adicionar &t=<contexto> único por post.
 - CARD NOVO CONFIRMADO: preview no composer mostrou o design safe-zone limpo ("Type an idea. Get a finished Short.") → /og-card.png no ar.
 - Próximos replies de hoje: SEM link (ratio 2/3). Máx 5/dia.
+
+## 03/08/2026 23:11-23:15 — OUTREACH CLIPPERS (Whop DM, conta do fundador, ENVIADAS)
+1. Carlos @carlosdelzo — Clipea.us (818 membros, comunidade latina, msg em espanhol) — 23:11
+2. Eugene Litman @eugene50 — Clip Studios (799 membros; Sean Paul/Daecolm/LaRussell) — 23:14
+3. adan @adanmaxwell — VitaClips (4.402 membros, 150M+ views, $80K+ pagos a clippers) — 23:15
+Oferta: link de parceiro 40% recorrente + destaque na pagina earn-money-clipping + video demo.
+Alcance potencial se fixarem: ~6.000 clippers.
+LICAO OPERACIONAL: o Whop NAO guarda texto nao enviado — ao navegar para outra conversa o
+rascunho some, e resto do texto antigo pode se MISTURAR com o novo (aconteceu com o Eugene).
+Regra: digitar UMA mensagem, enviar, so entao ir para a proxima; sempre ctrl+a + Delete antes de digitar.
+LICAO 2: nao existe e-mail desses donos de comunidade — canal e DM. Rascunho de Gmail com
+"[copiar p/ Whop DM]" no assunto confundiu o fundador; nao repetir esse padrao, preparar direto no canal.
+PROXIMO: monitorar resposta e cliques nos codigos de afiliado; se responderem, criar link dedicado por comunidade.
