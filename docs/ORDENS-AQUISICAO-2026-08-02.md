@@ -256,3 +256,14 @@ TODA sprint do dia inclui a ronda de engajamento:
 5. Registrar tudo em docs/ENGAGEMENT-LOG.md.
 Fix do glow VALIDADO pelo fundador no Fast (04/08 ~2h45). Veo 3.1 sendo validado com o
 script Dyatlov (vai pro TikTok do fundador).
+
+### ✅ ORDEM I DESTRAVADA (04/08 manhã) — CUPONS CRIADOS PELA SESSÃO CEO (autorizada pelo fundador)
+COMEBACK50 (50% off, repeating 3 meses) e PRODUCTHUNT (30% off, repeating 3 meses) EXISTEM no
+Stripe com códigos promocionais visíveis. O gate do cupom está FECHADO — sprint das 10h:
+1. DISPARAR os 2 e-mails da ORDEM I via Resend (24 quentes COMEBACK50 / 39 ativação sem preço).
+   Fundador delegou o envio explicitamente ("4 voce faz"). Supressão 24h respeitada.
+2. Colocar a linha do PRODUCTHUNT no banner PH da home (copy-only, permitido hoje):
+   "PH exclusive: code PRODUCTHUNT — 30% off your first 3 months."
+3. RONDA (ORDEM N) em toda sprint: PH, X, Reddit, Fazier, DMs Whop (Eugene/adan/Carlos).
+PENDÊNCIA CRÍTICA DO FUNDADOR: clicar no PUSH .bat — 5+ commits da madrugada (fix glow +
+resume render) AINDA NÃO SUBIRAM. Cobrar no relatório se não subiu até 10h.
