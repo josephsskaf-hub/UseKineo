@@ -18,10 +18,15 @@
 
 import { useEffect, useState } from 'react'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { TIER_CREDITS } from '@/lib/checkoutPricing'
+import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
+
+// KINEO-ORDEM5-PROOF-2026-08-03 — price derived from the single source
+// (lib/checkoutPricing.ts) instead of a hardcoded "$9.90" that could go stale
+// exactly like the "50 Fast videos" line did in July.
+const STARTER_USD = `$${(TIER_PRICES.starter.usd / 100).toFixed(2)}`
 
 export default function LowCreditsUpsell() {
   const [eligible, setEligible] = useState(false)
@@ -95,7 +100,13 @@ export default function LowCreditsUpsell() {
             Now derived from TIER_CREDITS so it cannot go stale again. */}
         <span style={{ color: '#a5b4fc', fontSize: 13, fontWeight: 600 }}>
           Get {TIER_CREDITS.starter} credits every month — {TIER_CREDITS.starter} Fast
-          videos, or 1 AI Generated video. $9.90/mo. Cancel anytime.
+          videos, or 1 AI Generated video. {STARTER_USD}/mo. Cancel anytime.
+        </span>
+        {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5, linha de prova no upsell.
+            Número real com filtro de internas (896 em 03/08); piso "+",
+            atualizar com o placar. */}
+        <span style={{ color: 'rgba(199,210,254,.55)', fontSize: 12, fontWeight: 600 }}>
+          Join 890+ creators making Shorts with Kineo.
         </span>
       </div>
       <button
@@ -119,7 +130,7 @@ export default function LowCreditsUpsell() {
           whiteSpace: 'nowrap',
         }}
       >
-        {checkout.pending ? 'Loading…' : 'Go monthly — $9.90'}
+        {checkout.pending ? 'Loading…' : `Go monthly — ${STARTER_USD}`}
       </button>
       <button
         onClick={dismiss}

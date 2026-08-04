@@ -43,6 +43,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | 03/08 | **Rota C Whop — outreach a donos das top 3 comunidades de clipping** (ranking de receita whoptrends: Clipea.us #1 822 membros / Clip Studios #2 781 / VitaClips #3 509, +67% 30d) | 3 rascunhos prontos no Gmail (ES p/ Clipea, EN p/ os outros), copy-paste p/ Whop DM/IG (e-mail dos donos não é público; assunto de cada rascunho diz o destino). Pitch: afiliado 40% recurring vs 30% que o Whop paga a eles + feature na página EARN + demo sob medida. Fundador só cola e envia | Respostas de donos + applies em /partners + cadastros utm_source=whop | 10/08 |
 
+| 03/08 | **Ordem 5 — prova social REAL nos pontos de decisão** (Regra Zero: pricing tinha trust row e cards honestos, mas ZERO prova em números; a fake foi removida em 28/06 — a ordem pede números reais) | Faixa no hero do /pricing "890+ creators · 430+ Shorts rendered · featured on There's An AI For That" (896 perfis ext / 432 completed ext em 03/08, piso "+", atualizar semanal) + linha "Join 890+ creators" no LowCreditsUpsell + bônus: preço $9.90 hardcoded no upsell agora deriva de checkoutPricing (mesma classe de bug do "50 Fast videos" de julho) | pricing_view → checkout_started | 10/08 |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
@@ -57,7 +59,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 - **IDEIA CEO 03/08 — OUTREACH-AS-DEMO**: todo outreach (Whop, influencers F, PH) vai com um Short personalizado sobre o ALVO gerado na Kineo em 3 min — o pitch É o produto; custo $0; ninguém faz porque dá trabalho. Métrica: taxa de resposta com vídeo vs sem. Retorno÷esforço ALTO/baixo. 1º uso: follow-up 48h da Rota C
 - Fazier free (falta: 3 comentários úteis + badge no rodapé do site — sessão logada)
 - aitoolsdirectory (rascunho salvo no iframe; renderer bugado — retentar)
-- Wall of proof PÚBLICO na landing/examples alimentado por `posted_shorts` (a ponte já coleta; falta a vitrine)
+- ~~Wall of proof PÚBLICO~~ EXECUTADA pela sessão CEO 03/08 (`f34b0ef` — /wall no ar, ranqueado por views)
+- **IDEIA CEO 03/08 (21h) — PAY THE POST**: +2 créditos Fast por Short postado e VERIFICADO (URL entra em `posted_shorts`, a ponte já existe) — o watermark do vídeo free vira mídia paga em créditos (~$0,10/post de custo real) atacando o número mais fraco do placar (posted_shorts=1) e alimentando o /wall recém-lançado (status = 2º incentivo). Ninguém no nicho paga o POST, só a view. Métrica: linhas novas em posted_shorts/semana. Retorno÷esforço ALTO/médio (verificação de URL é o trabalho)
 - 2º/3º canal no Autopilot como outdoor (finance/history — RPMs altos)
 - Registrar cineo.com (13 impressões/mês do typo > "kineo ai") — custa dinheiro, gate
 - Badge "Made with Kineo" clicável no end-card do vídeo free (hoje é só texto)
