@@ -351,3 +351,29 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
   grep periódico de literais de preço rende bug real. Corrigido: deriva de TIER_PRICES.
 - Ordem 5 executada (18d1bda). 32-PUSH substitui 31 (ahead 10).
 - bash do workspace: timeout_ms máx 45000.
+
+### 04/08 ~16:50Z (sprint 13h) — MUDANÇAS
+
+- **Corolário novo (o mais caro do dia): GATE FECHADO ≠ AÇÃO POSSÍVEL.** A sessão CEO
+  criou o cupom `COMEBACK50` e a ordem virou "sprint das 10h dispara os e-mails". Só que
+  a rota que envia nunca foi deployada — produção servia `0c988b4` e
+  `/api/admin/send-comeback50` era **404**. Ordem que manda EXECUTAR algo por rota nova:
+  `list_deployments` **antes** de tentar, e ter um canal de entrega que não dependa de push.
+- **Armadilha nova: campanha com desconto precisa de DOIS preflights, não um.**
+  (a) o código existe e está ativo na Stripe — era o que o 409 da sprint 11h cobria;
+  (b) **nada no caminho do checkout consome o desconto antes dele**. Era (b) que ia quebrar:
+  o `/pricing` anexa `intro=1` sozinho em monthly starter/creator, o intro aplicava primeiro,
+  `discountApplied` virava true e o bloco do `?promo=` era pulado com `console.warn`.
+  Promessa de "50% off por 3 meses" viraria um mês com desconto menor, **sem erro nenhum**.
+- **Comentário de código com justificativa NUMÉRICA envelhece e vira bug.** "O intro vence o
+  `?promo=` porque é mais fundo que 20%" era verdade em 13/07 e ficou falso no dia em que
+  nasceu um promo de 50%×3 meses. Precedência justificada por número = revisar quando o
+  número muda.
+- **Antes de mandar cupom para um lead, olhar QUEM é (Regra Zero aplicada a pessoa, não a
+  código).** `hello@toolriot.com` estava na fila do desconto; é um **review lab** que publica
+  testes de 60s no YouTube e tinha rodado a Kineo sem publicar. O mesmo minuto de pesquisa
+  que evitou queimar o contato por $10/mês achou um canal de aquisição — e a IDEIA CEO do dia.
+- **Rascunho pessoal no Gmail é canal de PRODUÇÃO, não plano B.** Deploy travado não pode
+  significar campanha parada. Regra de segurança junto: marcar a flag de idempotência na hora
+  e escrever o **SQL de rollback** no doc da sprint, para o disparo automático não duplicar.
+- 34-PUSH substitui o 33 (não rodado; ahead 3).
