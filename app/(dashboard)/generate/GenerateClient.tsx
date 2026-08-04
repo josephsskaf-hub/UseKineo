@@ -18,11 +18,19 @@ import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
 import {
   CURRENCY_DISPLAY,
-  INTRO_PRICES,
-  TIER_PRICES,
   TOPUP_CREDITS,
+  // KINEO-REGIONAL-PRICING-2026-08-04 — esta tela PROMETE um preço ("X hoje,
+  // depois Y/mes") logo antes de mandar o usuario para o Stripe. Se ela ler
+  // TIER_PRICES/INTRO_PRICES direto, um comprador de pais de menor renda le
+  // $4.90 e a fatura sai $4.99 — nove centavos, mas e uma promessa quebrada.
+  // Por isso a regiao entra aqui tambem, e as tabelas cruas saem.
+  coercePriceRegion,
   formatCheckoutMoney,
+  getIntroPrice,
+  getTierPrice,
+  hasIntroOffer,
   type CheckoutCurrency,
+  type PriceRegion,
 } from '@/lib/checkoutPricing'
 import {
   buildSeriesContinuationHref,
@@ -436,6 +444,9 @@ export default function GenerateClient({
   const router = useRouter()
   const searchParams = useSearchParams()
   const [postVideoCurrency, setPostVideoCurrency] = useState<CheckoutCurrency | null>(null)
+  // KINEO-REGIONAL-PRICING-2026-08-04 — default 'standard': preco cheio ate o
+  // /api/geo dizer o contrario.
+  const [postVideoRegion, setPostVideoRegion] = useState<PriceRegion>('standard')
   const postVideoCurrencyTrackedRef = useRef(false)
   // PUSH #55 — keep the organic intent campaign attached to every recurring
   // checkout path reached from this screen. New signups are attributable from
@@ -2686,17 +2697,20 @@ export default function GenerateClient({
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo lookup failed')
-        return response.json() as Promise<{ country?: string; currency?: string }>
+        return response.json() as Promise<{ country?: string; currency?: string; region?: string }>
       })
-      .then(({ country, currency }) => {
+      .then(({ country, currency, region }) => {
         if (cancelled) return
         const safeCurrency: CheckoutCurrency =
           currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+        const safeRegion = coercePriceRegion(region)
         setPostVideoCurrency(safeCurrency)
+        setPostVideoRegion(safeRegion)
         if (!postVideoCurrencyTrackedRef.current) {
           postVideoCurrencyTrackedRef.current = true
           void trackEvent('post_video_currency_resolved', {
             currency: safeCurrency,
+            price_region: safeRegion,
             country: String(country || 'unknown').slice(0, 2).toUpperCase(),
             ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
           })
@@ -5407,11 +5421,28 @@ export default function GenerateClient({
     : ''
   const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
     !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
+  // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
+  // mes com desconto (preco de lista JA e o preco de entrada), entao
+  // postVideoHasIntro fica false e a copy abaixo troca de forma em vez de
+  // anunciar "X hoje, depois Y" com X === Y.
+  const postVideoHasIntro = postVideoCurrency
+    ? hasIntroOffer('starter', postVideoCurrency, postVideoRegion)
+    : false
   const postVideoIntroPrice = postVideoCurrency
-    ? formatCheckoutMoney(postVideoCurrency, INTRO_PRICES.starter[postVideoCurrency])
+    ? formatCheckoutMoney(
+        postVideoCurrency,
+        postVideoHasIntro
+          ? getIntroPrice('starter', postVideoCurrency, postVideoRegion)
+          : getTierPrice('starter', postVideoCurrency, postVideoRegion),
+      )
     : null
   const postVideoRenewalPrice = postVideoCurrency
-    ? formatCheckoutMoney(postVideoCurrency, TIER_PRICES.starter[postVideoCurrency])
+    ? formatCheckoutMoney(postVideoCurrency, getTierPrice('starter', postVideoCurrency, postVideoRegion))
+    : null
+  const postVideoPriceNote = postVideoIntroPrice && postVideoRenewalPrice
+    ? (postVideoHasIntro
+        ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
+        : `${postVideoRenewalPrice}/month · same price every month · cancel anytime`)
     : null
 
   const showStep1 = phase === 'idle' || phase === 'analyzing' || phase === 'scripting'
@@ -7137,9 +7168,7 @@ export default function GenerateClient({
                         KINEO-READING-ORDER acima. */}
                     {watermarkedDownloadConfirmed && (
                       <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                        {postVideoIntroPrice && postVideoRenewalPrice
-                          ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
-                          : 'Your first month is discounted · local price loads before checkout'}
+                        {postVideoPriceNote ?? 'Your first month is discounted · local price loads before checkout'}
                       </p>
                     )}
                     {/* ═══════════════════════════════════════════════════════
@@ -7258,9 +7287,7 @@ export default function GenerateClient({
                         Starter rebuilds this exact video clean and adds 25 credits.
                       </p>
                       <p className="text-xs mt-1.5 text-center font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                        {postVideoIntroPrice && postVideoRenewalPrice
-                          ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
-                          : 'Your first month is discounted · local price loads before checkout'}
+                        {postVideoPriceNote ?? 'Your first month is discounted · local price loads before checkout'}
                       </p>
                     </>
                   )}

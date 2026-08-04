@@ -17,7 +17,6 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
-  ANNUAL_PRICES,
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
   AUTOPILOT_PILOT_DAYS,
@@ -25,13 +24,20 @@ import {
   AUTOPILOT_PRICES,
   CURRENCY_DISPLAY,
   INTRO_CREDITS,
-  INTRO_PRICES,
   TIER_CREDITS,
-  TIER_PRICES,
+  // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES / INTRO_PRICES /
+  // ANNUAL_PRICES saíram: uma tabela indexada só por moeda não consegue
+  // responder "quanto ESTE visitante paga". Tudo passa pelos getters de região.
+  coercePriceRegion,
   formatCheckoutMoney,
+  getAnnualPrice,
+  getIntroPrice,
+  getTierPrice,
+  hasIntroOffer,
   type CheckoutCurrency as DisplayCurrency,
   type CheckoutPlanTier as BuyableTier,
   type CheckoutTier as PaidTier,
+  type PriceRegion,
 } from '@/lib/checkoutPricing'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
@@ -100,13 +106,16 @@ const FAQS: { q: string; a: string }[] = [
 // Free tier still exists for new signups via /signup, but is not shown here
 // to avoid users exploiting the $0 entry point.
 // Push #339 — added Starter plan at $2.90/mo (15 credits).
-function buildPricing(currency: DisplayCurrency) {
+// KINEO-REGIONAL-PRICING-2026-08-04 — `region` é parâmetro obrigatório: um
+// default aqui seria a forma mais silenciosa possível de a página inteira
+// voltar ao preço americano se alguém acrescentar uma chamada nova.
+function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
   // Push #404 — 3 plans: Starter (Fast) · Creator (Seedance, popular) · Studio (Kling).
   return [
     {
       tier: 'starter',
       name: 'Starter',
-      price: formatCheckoutMoney(currency, TIER_PRICES.starter[currency]),
+      price: formatCheckoutMoney(currency, getTierPrice('starter', currency, region)),
       priceSub: '/ month',
       // KINEO-REBASE-2026-07-10 — 50 → 25 credits (2:1 rebase, USD unchanged).
       // KINEO-SHOWCASE-2026-07-10 — V3C wording: Fast = 1 credit per video for
@@ -126,7 +135,7 @@ function buildPricing(currency: DisplayCurrency) {
     {
       tier: 'basic',
       name: 'Creator',
-      price: formatCheckoutMoney(currency, TIER_PRICES.basic[currency]),
+      price: formatCheckoutMoney(currency, getTierPrice('basic', currency, region)),
       priceSub: '/ month',
       // KINEO-PRICING-V3B-2026-07-10 — $24.90/150cr: 1 Hollywood film every
       // month included (150 cr), or ~7 AI-generated videos (20 cr each).
@@ -142,7 +151,7 @@ function buildPricing(currency: DisplayCurrency) {
     {
       tier: 'pro',
       name: 'Studio',
-      price: formatCheckoutMoney(currency, TIER_PRICES.pro[currency]),
+      price: formatCheckoutMoney(currency, getTierPrice('pro', currency, region)),
       priceSub: '/ month',
       // KINEO-STUDIO-400-2026-07-06 — Studio's extra value: more credits, Kling
       // at 1080p, priority render queue, and premium voices.
@@ -186,6 +195,10 @@ export default function PricingClient() {
   // silently redirecting to /generate when the API blocks a duplicate purchase.
   const [alreadySubscribed, setAlreadySubscribed] = useState(false)
   const [displayCurrency, setDisplayCurrency] = useState<DisplayCurrency | null>(null)
+  // KINEO-REGIONAL-PRICING-2026-08-04 — região separada da moeda. Default
+  // 'standard' (preço cheio) até o /api/geo responder: errar para cima é uma
+  // surpresa boa no checkout, errar para baixo é uma promessa quebrada.
+  const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
   const currencyTrackedRef = useRef(false)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
@@ -198,15 +211,42 @@ export default function PricingClient() {
   // #381 — monthly vs annual billing toggle. Annual ≈ 2 months free.
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
   const resolvedCurrency = displayCurrency ?? 'usd'
+  const resolvedRegion = displayRegion
   const currencyConfig = CURRENCY_DISPLAY[resolvedCurrency]
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
-    const totalMinor = ANNUAL_PRICES[tier][resolvedCurrency]
+    const totalMinor = getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
     result[tier] = {
       total: formatCheckoutMoney(resolvedCurrency, totalMinor),
       perMonth: formatCheckoutMoney(resolvedCurrency, totalMinor / 12),
     }
     return result
   }, {} as Record<PaidTier, { total: string; perMonth: string }>)
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // KINEO-REGIONAL-PRICING-2026-08-04 — "preço de entrada" ≠ "preço do 1º mês".
+  // ═════════════════════════════════════════════════════════════════════════
+  // Fora da região de menor renda os dois são diferentes ($4.90 no 1º mês,
+  // $9.90 depois) e a página vende o desconto. Na região `value` eles são o
+  // MESMO número, porque o preço de lista já é o preço de entrada — e aí toda
+  // frase construída em cima de "first month" tem de mudar de forma, não só de
+  // número. Estas duas funções são o único lugar onde essa diferença mora.
+  const entryPriceMinor = (tier: 'starter' | 'basic'): number =>
+    hasIntroOffer(tier, resolvedCurrency, resolvedRegion)
+      ? getIntroPrice(tier, resolvedCurrency, resolvedRegion)
+      : getTierPrice(tier, resolvedCurrency, resolvedRegion)
+
+  const entryPriceLabel = (tier: 'starter' | 'basic'): string =>
+    formatCheckoutMoney(resolvedCurrency, entryPriceMinor(tier))
+
+  const starterMonthlyLabel = formatCheckoutMoney(
+    resolvedCurrency,
+    getTierPrice('starter', resolvedCurrency, resolvedRegion),
+  )
+  const headline = hasIntroOffer('starter', resolvedCurrency, resolvedRegion)
+    ? `Start for ${entryPriceLabel('starter')}. Keep creating for ${starterMonthlyLabel}/mo.`
+    // Sem intro o gancho não é "o 1º mês é barato", é "TODO mês é barato" — o
+    // que, na região, é literalmente verdade e é o argumento mais forte.
+    : `${starterMonthlyLabel}/mo. Every month, not just the first.`
 
   // Conversion — exit-intent modal extracted to <ExitIntentOffer />
   // (components/ExitIntentOffer.tsx): Starter Pack rescue offer, once per
@@ -228,17 +268,20 @@ export default function PricingClient() {
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo lookup failed')
-        return response.json() as Promise<{ country?: string; currency?: string }>
+        return response.json() as Promise<{ country?: string; currency?: string; region?: string }>
       })
-      .then(({ country, currency }) => {
+      .then(({ country, currency, region }) => {
         if (cancelled) return
         const safeCurrency: DisplayCurrency =
           currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+        const safeRegion = coercePriceRegion(region)
         setDisplayCurrency(safeCurrency)
+        setDisplayRegion(safeRegion)
         if (!currencyTrackedRef.current) {
           currencyTrackedRef.current = true
           void trackEvent('pricing_currency_resolved', {
             currency: safeCurrency,
+            price_region: safeRegion,
             country: String(country || 'unknown').slice(0, 2).toUpperCase(),
           })
         }
@@ -389,9 +432,7 @@ export default function PricingClient() {
             Pricing
           </div>
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[#f5f5f7]">
-            {displayCurrency
-              ? `Start for ${formatCheckoutMoney(resolvedCurrency, INTRO_PRICES.starter[resolvedCurrency])}. Keep creating for ${formatCheckoutMoney(resolvedCurrency, TIER_PRICES.starter[resolvedCurrency])}/mo.`
-              : 'Your first month is discounted. Cancel anytime.'}
+            {displayCurrency ? headline : 'Your first month is discounted. Cancel anytime.'}
           </h1>
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
@@ -493,7 +534,7 @@ export default function PricingClient() {
             em -top-3 e antes encostavam no bloco de cima. Nenhum numero,
             rotulo ou plano mudou. */}
         <div className="grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
-          {buildPricing(resolvedCurrency).map((p) => {
+          {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
             // KINEO-2026-07-06 — cleaner pricing UI: same blue CTA on every card,
             // labeled with the plan name ("Choose Starter/Creator/Studio") so the
@@ -622,7 +663,8 @@ export default function PricingClient() {
                 {isPaid && (
                   <p className="mt-2.5 text-center text-[11.5px] font-semibold leading-relaxed text-[#86868b]">
                     {billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && displayCurrency
-                      ? `First month ${formatCheckoutMoney(resolvedCurrency, INTRO_PRICES[p.tier as 'starter' | 'basic'][resolvedCurrency])} · cancel anytime`
+                      && hasIntroOffer(p.tier as 'starter' | 'basic', resolvedCurrency, resolvedRegion)
+                      ? `First month ${entryPriceLabel(p.tier as 'starter' | 'basic')} · cancel anytime`
                       : 'Cancel anytime'}
                   </p>
                 )}
@@ -1178,7 +1220,7 @@ export default function PricingClient() {
           >
             {purchasing === 'starter'
               ? 'Loading…'
-              : `Starter ${displayCurrency ? formatCheckoutMoney(resolvedCurrency, INTRO_PRICES.starter[resolvedCurrency]) : ''}`}
+              : `Starter ${displayCurrency ? entryPriceLabel('starter') : ''}`}
           </button>
           <button
             type="button"
@@ -1200,7 +1242,7 @@ export default function PricingClient() {
           >
             {purchasing === 'basic'
               ? 'Loading…'
-              : `Creator ${displayCurrency ? formatCheckoutMoney(resolvedCurrency, INTRO_PRICES.basic[resolvedCurrency]) : ''} 🔥`}
+              : `Creator ${displayCurrency ? entryPriceLabel('basic') : ''} 🔥`}
           </button>
           <button
             type="button"
@@ -1221,7 +1263,7 @@ export default function PricingClient() {
           >
             {purchasing === 'pro'
               ? 'Loading…'
-              : `Studio ${displayCurrency ? formatCheckoutMoney(resolvedCurrency, TIER_PRICES.pro[resolvedCurrency]) : ''}`}
+              : `Studio ${displayCurrency ? formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion)) : ''}`}
           </button>
         </div>
       )}

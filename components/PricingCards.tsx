@@ -24,11 +24,17 @@ import {
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
   CURRENCY_DISPLAY,
-  INTRO_PRICES,
-  TIER_PRICES,
+  // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES/INTRO_PRICES não são mais
+  // lidos direto: as tabelas não sabem a região do visitante. getTierPrice /
+  // getIntroPrice / hasIntroOffer são o ponto único.
+  coercePriceRegion,
   formatCheckoutMoney,
+  getIntroPrice,
+  getTierPrice,
+  hasIntroOffer,
   type CheckoutCurrency,
   type CheckoutTier,
+  type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -86,6 +92,12 @@ export default function PricingCards({
   const checkout = useCheckoutLaunch('generate_step_1')
   const purchasing = checkout.pending
   const [displayCurrency, setDisplayCurrency] = useState<CheckoutCurrency | null>(null)
+  // KINEO-REGIONAL-PRICING-2026-08-04 — região é INDEPENDENTE da moeda (um
+  // visitante nigeriano é usd + value). Começa em 'standard' e só desce se o
+  // /api/geo disser o contrário: o default seguro é mostrar o preço cheio,
+  // porque prometer $4.99 e cobrar $9.90 é uma quebra de promessa e o
+  // contrário é só uma surpresa boa.
+  const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
   const error = checkout.error
   // Push #171 — show a clear "already subscribed" banner instead of
   // silently redirecting to /generate on duplicate purchase attempts.
@@ -107,14 +119,17 @@ export default function PricingCards({
     void fetch('/api/geo', { cache: 'no-store', credentials: 'same-origin' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo_lookup_failed')
-        const data = await response.json() as { currency?: string }
+        const data = await response.json() as { currency?: string; region?: string }
         const currency: CheckoutCurrency =
           data.currency === 'brl' || data.currency === 'inr' ? data.currency : 'usd'
+        const region = coercePriceRegion(data.region)
         if (cancelled) return
         setDisplayCurrency(currency)
+        setDisplayRegion(region)
         void trackEvent('inline_pricing_currency_resolved', {
           display_currency: currency,
           currency_label: CURRENCY_DISPLAY[currency].label,
+          price_region: region,
           pricing_surface: 'generate_step_1',
         })
       })
@@ -134,6 +149,12 @@ export default function PricingCards({
   function handleBuy(tier: CheckoutTier) {
     // KINEO-INTRO-MONTH-2026-07-13 — Starter/Creator levam o 1º mês com
     // desconto ($4.90/$9.90); o servidor valida elegibilidade (1 por conta).
+    // KINEO-REGIONAL-PRICING-2026-08-04 — `intent=1` continua indo sempre. Na
+    // região `value` o Starter não tem desconto (amountOff = 0) e o servidor
+    // ignora o parâmetro sozinho; mandar mesmo assim mantém o link idêntico ao
+    // de qualquer outra tela e evita que uma região resolvida errado no client
+    // apague um desconto que o servidor CONCEDERIA. A região nunca viaja na
+    // URL: quem decide é o header de IP no servidor.
     const introParam = tier === 'starter' || tier === 'basic' ? '&intro=1' : ''
     const campaignParam = intentCampaign
       ? `&intent_campaign=${encodeURIComponent(intentCampaign)}`
@@ -146,12 +167,14 @@ export default function PricingCards({
     void trackEvent('inline_pricing_checkout_clicked', {
       tier,
       display_currency: displayCurrency ?? 'resolving',
-      displayed_price_minor: displayCurrency ? TIER_PRICES[tier][displayCurrency] : null,
+      price_region: displayRegion,
+      displayed_price_minor: displayCurrency ? getTierPrice(tier, displayCurrency, displayRegion) : null,
       displayed_intro_price_minor:
         displayCurrency && (tier === 'starter' || tier === 'basic')
-          ? INTRO_PRICES[tier][displayCurrency]
+          ? getIntroPrice(tier, displayCurrency, displayRegion)
           : null,
-      intro: tier === 'starter' || tier === 'basic',
+      intro: (tier === 'starter' || tier === 'basic') &&
+        (!displayCurrency || hasIntroOffer(tier, displayCurrency, displayRegion)),
       pricing_surface: 'generate_step_1',
     })
   }
@@ -180,14 +203,21 @@ export default function PricingCards({
 
   function priceFor(tier: CheckoutTier): string {
     return displayCurrency
-      ? formatCheckoutMoney(displayCurrency, TIER_PRICES[tier][displayCurrency])
+      ? formatCheckoutMoney(displayCurrency, getTierPrice(tier, displayCurrency, displayRegion))
       : '—'
   }
 
   function introNoteFor(tier: 'starter' | 'basic'): string {
     if (!displayCurrency) return 'Checking your local first-month price…'
-    const intro = formatCheckoutMoney(displayCurrency, INTRO_PRICES[tier][displayCurrency])
-    const renewal = formatCheckoutMoney(displayCurrency, TIER_PRICES[tier][displayCurrency])
+    const renewal = formatCheckoutMoney(displayCurrency, getTierPrice(tier, displayCurrency, displayRegion))
+    // KINEO-REGIONAL-PRICING-2026-08-04 — na região `value` o Starter não tem
+    // 1º mês com desconto: o preço de lista JÁ é o preço de entrada. Escrever
+    // "First month X — renews at Y" com X == Y não é falso, mas insinua um
+    // desconto que a fatura não vai mostrar. Aqui a frase muda de forma.
+    if (!hasIntroOffer(tier, displayCurrency, displayRegion)) {
+      return `${renewal}/mo from day one — no intro trick, cancel anytime`
+    }
+    const intro = formatCheckoutMoney(displayCurrency, getIntroPrice(tier, displayCurrency, displayRegion))
     return `First month ${intro} — renews at ${renewal}/mo in 30 days, cancel anytime`
   }
 

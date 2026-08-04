@@ -6,26 +6,33 @@ import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
+// KINEO-REGIONAL-PRICING-2026-08-04 — ANNUAL_PRICES / TIER_PRICES /
+// INTRO_PRICES saíram dos imports DE PROPÓSITO. Ler as tabelas direto aqui é
+// exatamente o bug que o preço regional cria: a tabela não sabe em que região
+// o comprador está. Toda leitura passa por getAnnualPrice / monthlyPriceMinor /
+// getIntroPrice / introDiscountMinor, que recebem a região.
 import {
-  ANNUAL_PRICES,
   AUTOPILOT_PILOT_CREDITS,
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
   BULK_PACKS,
   INTRO_CREDITS,
-  INTRO_PRICES,
   PACK_CREDITS,
   TIER_CREDITS,
-  TIER_PRICES,
   TOPUP_CREDITS,
+  getAnnualPrice,
+  getIntroPrice,
+  introDiscountMinor,
   isBulkPackId,
   monthlyPriceMinor,
   resolveCheckoutCurrency,
+  resolvePriceRegion,
   type BulkPackId,
   type CheckoutCurrency as Currency,
   type CheckoutIntroTier as IntroTier,
   type CheckoutPlanTier as PlanTier,
+  type PriceRegion,
 } from '@/lib/checkoutPricing'
 // KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
 import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
@@ -308,12 +315,23 @@ type Billing = 'monthly' | 'annual'
 // cupom segue o checkout a preço cheio (nunca bloqueia venda).
 // Anti-abuso: 1 intro por cliente — recusa se o customer já teve QUALQUER
 // assinatura com metadata.intro='1' (cancelar/reassinar não repete o desconto).
+// KINEO-REGIONAL-PRICING-2026-08-04 — O ID DO CUPOM PRECISA DA REGIÃO.
+// Este id é a chave de idempotência do cupom na Stripe: se ele já existe, o
+// `amount_off` gravado na criação é reusado e o parâmetro passado aqui é
+// IGNORADO. Sem a região no id, `KINEO_INTRO_BASIC_USD` seria criado com
+// amount_off=1500 pelo primeiro americano (2490−990) e depois reaplicado a
+// todo comprador regional, cuja mensalidade é 1990 — primeira fatura de
+// $4.90 em vez de $9.90, para sempre, sem erro nenhum no log. O sufixo
+// _VALUE isola as duas escadas. O id da região padrão NÃO muda, de propósito:
+// os cupons que já existem na conta Stripe continuam válidos.
 async function ensureIntroCoupon(
   tier: IntroTier,
   currency: Currency,
+  region: PriceRegion,
   amountOff: number,
 ): Promise<string | null> {
-  const id = `KINEO_INTRO_${tier.toUpperCase()}_${currency.toUpperCase()}`
+  const regionSuffix = region === 'value' ? '_VALUE' : ''
+  const id = `KINEO_INTRO_${tier.toUpperCase()}_${currency.toUpperCase()}${regionSuffix}`
   try {
     await stripe.coupons.retrieve(id)
     return id
@@ -324,7 +342,7 @@ async function ensureIntroCoupon(
         amount_off: amountOff,
         currency,
         duration: 'once',
-        name: `Kineo — first month intro (${tier}/${currency.toUpperCase()})`,
+        name: `Kineo — first month intro (${tier}/${currency.toUpperCase()}/${region})`,
       })
       return id
     } catch (createErr) {
@@ -533,6 +551,12 @@ async function buildAndRedirect(
 
   const country = req.headers.get('x-vercel-ip-country') ?? 'US'
   const currency: Currency = resolveCheckoutCurrency(country)
+  // KINEO-REGIONAL-PRICING-2026-08-04 — a região sai do MESMO header do IP que
+  // a moeda, resolvida no servidor. O navegador não manda região nem moeda em
+  // lugar nenhum deste arquivo; se mandasse, o desconto regional viraria um
+  // cupom universal editável no devtools. Só afeta starter/basic — pro,
+  // autopilot, packs, top-ups e atacado leem tabelas sem região.
+  const region: PriceRegion = resolvePriceRegion(country)
   const rawPromo = (promo ?? '').trim()
   const requestedPromo = /^[A-Za-z0-9_-]{1,64}$/.test(rawPromo) ? rawPromo : undefined
   const privatePackPromo = isPrivatePackPromotion(rawPromo)
@@ -543,8 +567,8 @@ async function buildAndRedirect(
   // rather than 500-ing: a buyer who edits the URL should still be able to buy.
   const isAnnual = billing === 'annual'
   const unitAmount = isAnnual && tier !== 'autopilot'
-    ? ANNUAL_PRICES[tier][currency]
-    : monthlyPriceMinor(tier, currency)
+    ? getAnnualPrice(tier, currency, region)
+    : monthlyPriceMinor(tier, currency, region)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
@@ -552,6 +576,10 @@ async function buildAndRedirect(
     tier,
     billing,
     currency,
+    // KINEO-REGIONAL-PRICING-2026-08-04 — sem isto, o funil não consegue
+    // responder "o preço regional converteu?": duas assinaturas de $4.99 e
+    // $9.90 do mesmo tier ficariam indistinguíveis nos eventos de checkout.
+    price_region: region,
     intro_requested: intro,
     offer_requested: privatePackPromo ? 'kineo5_pack_upgrade' : null,
     return_to: returnToWatermark ? 'watermark_moment' : 'checkout_success',
@@ -889,6 +917,11 @@ async function buildAndRedirect(
       supabase_user_id: user.id,
       tier,
       billing,
+      // KINEO-REGIONAL-PRICING-2026-08-04 — a região viaja na metadata da
+      // sessão E da assinatura. Sem isso, a fatura de renovação de um
+      // assinante regional é indistinguível de um desconto aplicado por
+      // engano quando alguém for auditar a receita meses depois.
+      price_region: region,
       plan_credits: String(plan.credits),
       checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
       checkout_recovery: checkoutRecovery ? '1' : '0',
@@ -898,6 +931,7 @@ async function buildAndRedirect(
       metadata: {
         supabase_user_id: user.id,
         tier,
+        price_region: region,
         plan_credits: String(plan.credits),
         checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
         checkout_recovery: checkoutRecovery ? '1' : '0',
@@ -944,9 +978,16 @@ async function buildAndRedirect(
       console.warn('[stripe/checkout] intro eligibility check failed, allowing:', listErr)
     }
     if (!introAlreadyUsed) {
-      const amountOff = TIER_PRICES[tier][currency] - INTRO_PRICES[tier][currency]
+      // KINEO-REGIONAL-PRICING-2026-08-04 — a conta do desconto passou a ser
+      // por região. Na região `value` o Starter tem amountOff = 0 (o preço de
+      // lista JÁ é o preço de entrada — ver lib/checkoutPricing.ts), e o
+      // `if (amountOff > 0)` abaixo é o que impede a Stripe de receber um
+      // cupom de valor zero ou negativo: o checkout simplesmente segue no
+      // preço cheio, que ali é o preço barato. As telas usam hasIntroOffer()
+      // para não prometer o desconto que este ramo não vai aplicar.
+      const amountOff = introDiscountMinor(tier, currency, region)
       if (amountOff > 0) {
-        const couponId = await ensureIntroCoupon(tier, currency, amountOff)
+        const couponId = await ensureIntroCoupon(tier, currency, region, amountOff)
         if (couponId) {
           sessionParams.discounts = [{ coupon: couponId }]
           discountApplied = true
@@ -970,7 +1011,7 @@ async function buildAndRedirect(
           sessionParams.metadata!.plan_credits = String(INTRO_CREDITS[tier])
           sessionParams.metadata!.intro_credits = String(INTRO_CREDITS[tier])
           // Success page mostra o valor realmente cobrado hoje.
-          sessionParams.success_url = `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${INTRO_PRICES[tier][currency]}&intro=1&session_id={CHECKOUT_SESSION_ID}`
+          sessionParams.success_url = `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${getIntroPrice(tier, currency, region)}&intro=1&session_id={CHECKOUT_SESSION_ID}`
         }
       }
     }

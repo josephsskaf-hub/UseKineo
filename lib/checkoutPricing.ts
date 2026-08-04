@@ -73,8 +73,15 @@ export const AUTOPILOT_PILOT_CREDITS = 60
 
 // Monthly price for ANY paid plan, including Autopilot. Prefer this over
 // indexing TIER_PRICES directly when the tier can be 'autopilot'.
-export function monthlyPriceMinor(tier: CheckoutPlanTier, currency: CheckoutCurrency): number {
-  return tier === 'autopilot' ? AUTOPILOT_PRICES[currency] : TIER_PRICES[tier][currency]
+// KINEO-REGIONAL-PRICING-2026-08-04 — `region` é opcional e default 'standard':
+// Autopilot NÃO tem preço regional, e nenhum chamador antigo muda de
+// comportamento sem passar a região explicitamente.
+export function monthlyPriceMinor(
+  tier: CheckoutPlanTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): number {
+  return tier === 'autopilot' ? AUTOPILOT_PRICES[currency] : getTierPrice(tier, currency, region)
 }
 
 // Autopilot has no annual SKU on purpose: it is an operational commitment
@@ -89,6 +96,161 @@ export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 490, brl: 2490, inr: 39900 },
   basic: { usd: 990, brl: 4990, inr: 79900 },
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-REGIONAL-PRICING-2026-08-04 — PREÇO REGIONAL (APROVADO PELO FUNDADOR).
+// ═══════════════════════════════════════════════════════════════════════════
+// MOEDA E REGIÃO SÃO COISAS DIFERENTES. `CheckoutCurrency` responde "em que
+// moeda o cartão é cobrado" (BR→BRL, IN→INR, resto→USD). `PriceRegion` responde
+// "quanto este mercado consegue pagar". Um nigeriano paga em USD e mora numa
+// região de menor renda: sem esta separação ele só teria o preço americano.
+// Por isso resolvePriceRegion() vive AO LADO de resolveCheckoutCurrency() e
+// NÃO dentro dela.
+//
+// O QUE MUDA: só Starter e Creator (`basic`), só o mensal e o 1º mês.
+//   Starter  $9.90 → $4.99   ·  Creator $24.90 → $19.90
+// O QUE NÃO MUDA: Studio (`pro`), Autopilot, piloto, packs, top-ups e atacado.
+// Razão do fundador: o custo do MOTOR de IA não cai por região. Studio a 200
+// créditos custa até $23.40 de provider no pior caso — descontar o Studio o
+// deixaria estruturalmente negativo. O desconto regional só cabe onde a margem
+// aguenta, e a checagem de invariante no fim deste arquivo prova isso a cada
+// import em dev.
+export type PriceRegion = 'standard' | 'value'
+
+/** Só starter e basic têm preço regional. Coincide com CheckoutIntroTier. */
+export type RegionalTier = CheckoutIntroTier
+
+// Mensalidade na região de menor renda.
+//   usd 499 ($4.99) — NÃO 490. Ver a nota "COLISÃO DE VALOR" logo abaixo.
+//   inr 39900 (₹399) — metade do ₹799 atual, alinhado ao novo USD.
+//   brl — IDÊNTICO ao padrão de propósito: o Brasil NÃO está na região `value`
+//         (decisão do fundador ainda PENDENTE). Manter o valor espelhado aqui
+//         significa que, no dia em que 'BR' entrar em VALUE_REGION_COUNTRIES,
+//         nada muda por acidente — o número tem de ser escrito à mão.
+export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
+  starter: { usd: 499, brl: 4990, inr: 39900 },
+  // ₹1599 ≈ $19.84 — o INR do Creator JÁ equivale ao novo preço regional em
+  // dólar. Mantido igual ao padrão de propósito: não há nada a descontar.
+  basic: { usd: 1990, brl: 9990, inr: 159900 },
+}
+
+// ── COLISÃO DE VALOR: POR QUE $4.99 E NÃO $4.90 ────────────────────────────
+// PACK_PRICES.usd é 490 (o First Pack de $4.90, mode:'payment'). O Starter
+// regional é mode:'subscription' (app/api/stripe/checkout/route.ts:867) e o
+// fallback por valor do webhook está atrás de `if (session.mode === 'payment')`
+// (app/api/stripe/webhook/route.ts:414) — então, HOJE, 490 não colidiria de
+// fato. O motivo de não usar 490 mesmo assim é mais concreto que a teoria:
+//
+//   Se 490 passasse a ter dois donos, ele teria de entrar em
+//   AMBIGUOUS_ONE_TIME_USD_AMOUNTS para o invariante (6) parar de reclamar. E
+//   o webhook, ao ver um valor dessa lista sem metadata.pack, RECUSA a sessão
+//   (webhook/route.ts:~474). Isso MATARIA o fallback legado
+//   `amount === 490 → PACK_CREDITS.starter`, que existe justamente para as
+//   sessões de Payment Link antigas que chegam sem metadata. Trocaríamos um
+//   risco hipotético por uma regressão real em quem paga $4.90 hoje.
+//
+// $4.99 preserva a intenção do fundador (~$4.90), não colide com nada, e é o
+// que o invariante (7) machine-checka.
+
+// Primeiro mês na região de menor renda.
+//
+// ⚠️ O INTRO DO STARTER REGIONAL É INTENCIONALMENTE IGUAL À MENSALIDADE.
+// O cupom de 1º mês é criado com amount_off = mensalidade − intro. Com o
+// Starter regional em $4.99 não sobra desconto que feche a conta:
+//   INTRO_CREDITS.starter = 25 créditos → pior caso $2.59 de provider.
+//   Para cobrir isso o bruto precisa ser ≥ $2.99 (net $2.60). Um "1º mês por
+//   $2.49" seria −$0.47 no dia 1, e um "1º mês por $3.49" seria um desconto de
+//   $1.50 que não convence ninguém.
+// A leitura correta é outra: NA REGIÃO, O PREÇO DE LISTA JÁ É O PREÇO DE
+// ENTRADA. $4.99/mês regional == $4.90 que o resto do mundo paga só no 1º mês.
+// Mesma coisa em INR: ₹399 regional == o ₹399 que era o intro padrão.
+// Com intro == lista, amountOff = 0, e o checkout já pula o cupom nesse caso
+// (`if (amountOff > 0)`), então nenhum cupom lixo chega à Stripe.
+// hasIntroOffer() abaixo é o que as telas usam para não prometer um desconto
+// que não existe.
+//
+// O Creator regional MANTÉM intro de verdade: $19.90 → $9.90 (amountOff 1000)
+// e ₹1599 → ₹799 (amountOff 80000). Ambos positivos, ambos com margem (net
+// $9.31 contra $5.18 de pior caso em 50 créditos).
+export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
+  starter: { usd: 499, brl: 2490, inr: 39900 },
+  basic: { usd: 990, brl: 4990, inr: 79900 },
+}
+
+// Anual na região. NÃO é uma decisão de preço nova: é a MESMA razão que a
+// escada padrão já pratica (anual = 10× o mensal, "2 meses grátis") aplicada
+// ao número novo do fundador. Sem isto o toggle anual viraria um produto
+// quebrado na região — $99/ano contra $4.99/mês (= $59.88/ano) é um "desconto"
+// que custa 65% MAIS caro. O invariante (8) trava exatamente isso.
+//   starter usd 4990 = 10 × 499   ·  inr 399000 = 10 × 39900
+//   basic — igual ao padrão em todas as moedas, porque 19900 já é 10 × 1990.
+export const VALUE_REGION_ANNUAL_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
+  starter: { usd: 4990, brl: 49900, inr: 399000 },
+  basic: { usd: 19900, brl: 99900, inr: 1599000 },
+}
+
+/** true quando o tier tem tabela regional própria (starter/basic). */
+export function isRegionalTier(tier: CheckoutPlanTier): tier is RegionalTier {
+  return tier === 'starter' || tier === 'basic'
+}
+
+/**
+ * PONTO ÚNICO de leitura da mensalidade de um tier. Todo lugar que mostrava
+ * TIER_PRICES[tier][currency] direto passa por aqui. `region` tem default
+ * 'standard' para que qualquer chamador não migrado continue com o
+ * comportamento de hoje em vez de quebrar em silêncio.
+ */
+export function getTierPrice(
+  tier: CheckoutTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): number {
+  if (region === 'value' && isRegionalTier(tier)) return VALUE_REGION_TIER_PRICES[tier][currency]
+  return TIER_PRICES[tier][currency]
+}
+
+/** Preço do 1º mês. Ver a nota acima sobre o Starter regional. */
+export function getIntroPrice(
+  tier: RegionalTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): number {
+  if (region === 'value') return VALUE_REGION_INTRO_PRICES[tier][currency]
+  return INTRO_PRICES[tier][currency]
+}
+
+/** Preço anual. */
+export function getAnnualPrice(
+  tier: CheckoutTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): number {
+  if (region === 'value' && isRegionalTier(tier)) return VALUE_REGION_ANNUAL_PRICES[tier][currency]
+  return ANNUAL_PRICES[tier][currency]
+}
+
+/** amount_off do cupom de 1º mês. 0 = não existe desconto nesta combinação. */
+export function introDiscountMinor(
+  tier: RegionalTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): number {
+  return getTierPrice(tier, currency, region) - getIntroPrice(tier, currency, region)
+}
+
+/**
+ * true = há um 1º mês REALMENTE mais barato para vender. As telas devem
+ * checar isto antes de escrever "First month $X": na região `value` o Starter
+ * não tem intro, e prometer um desconto inexistente é a diferença entre uma
+ * página de preço e uma cobrança-surpresa.
+ */
+export function hasIntroOffer(
+  tier: RegionalTier,
+  currency: CheckoutCurrency,
+  region: PriceRegion = 'standard',
+): boolean {
+  return introDiscountMinor(tier, currency, region) > 0
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -285,8 +447,8 @@ export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: strin
 }
 
 /** USD price per credit of a recurring plan. Lower = better value for the user. */
-export function planUsdPerCredit(tier: CheckoutPlanTier): number {
-  return monthlyPriceMinor(tier, 'usd') / 100 / TIER_CREDITS[tier]
+export function planUsdPerCredit(tier: CheckoutPlanTier, region: PriceRegion = 'standard'): number {
+  return monthlyPriceMinor(tier, 'usd', region) / 100 / TIER_CREDITS[tier]
 }
 
 /**
@@ -294,11 +456,20 @@ export function planUsdPerCredit(tier: CheckoutPlanTier): number {
  * Autopilot is excluded: its credits are a byproduct of a managed service, not
  * the thing being sold, and including it would make the floor meaningless.
  * Every top-up must price ABOVE this number.
+ *
+ * KINEO-REGIONAL-PRICING-2026-08-04 — a região `value` entra no cálculo. Os
+ * top-ups NÃO têm preço regional, então o Creator regional ($19.90 / 150 cr =
+ * $0.1327/cr) é agora o piso real do produto inteiro. Se um dia um top-up
+ * descer abaixo disso, um assinante de país de menor renda passaria a comprar
+ * crédito avulso mais barato que a própria assinatura — o invariante (1)
+ * detecta isso porque este mínimo enxerga as duas regiões.
  */
 export const CHEAPEST_PLAN_USD_PER_CREDIT: number = Math.min(
   planUsdPerCredit('starter'),
   planUsdPerCredit('basic'),
   planUsdPerCredit('pro'),
+  planUsdPerCredit('starter', 'value'),
+  planUsdPerCredit('basic', 'value'),
 )
 
 export const CURRENCY_DISPLAY: Record<CheckoutCurrency, {
@@ -314,6 +485,70 @@ export const CURRENCY_DISPLAY: Record<CheckoutCurrency, {
 export function resolveCheckoutCurrency(country: string | null | undefined): CheckoutCurrency {
   const normalized = String(country || '').toUpperCase()
   return normalized === 'BR' ? 'brl' : normalized === 'IN' ? 'inr' : 'usd'
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-REGIONAL-PRICING-2026-08-04 — PAÍSES DA REGIÃO DE MENOR RENDA.
+// ═══════════════════════════════════════════════════════════════════════════
+// COMO ESTA LISTA FOI ESCOLHIDA (o fundador aprovou o critério, não os ISOs um
+// a um): interseção de DUAS coisas, nesta ordem —
+//   1. BASE DE USUÁRIOS MEDIDA. São os países de onde os 713 cadastros já
+//      chegam em volume e onde o funil morre no preço, não no produto. Cortar
+//      preço num país sem tráfego não gera venda; gera só desconto para quem
+//      já ia pagar.
+//   2. RENDA. Todos são economias de renda baixa/média-baixa a média (faixa do
+//      Banco Mundial), onde $9.90/mês é uma fração relevante da renda diária.
+// A lista é DELIBERADAMENTE curta. Cada país aqui é receita cortada pela
+// metade no Starter; ampliar é decisão do fundador, não de manutenção.
+//
+// ⚠️ 'BR' NÃO ESTÁ NESTA LISTA — E ISSO É PROPOSITAL.
+// A decisão do fundador sobre o Brasil está PENDENTE. O Brasil já tem preço
+// próprio em BRL (R$49,90 / R$99,90), então mexer nele é repricing de uma
+// moeda inteira, não uma exceção regional. Enquanto a decisão não vier, o
+// comprador brasileiro segue exatamente no preço de hoje. Para incluí-lo:
+// adicionar 'BR' aqui E escrever os números BRL em VALUE_REGION_TIER_PRICES /
+// VALUE_REGION_INTRO_PRICES / VALUE_REGION_ANNUAL_PRICES (hoje eles espelham
+// o padrão de propósito, então só entrar na lista não mudaria nada).
+export const VALUE_REGION_COUNTRIES: ReadonlySet<string> = new Set([
+  'IN', // Índia
+  'NG', // Nigéria
+  'PK', // Paquistão
+  'ZA', // África do Sul
+  'BD', // Bangladesh
+  'ID', // Indonésia
+  'PH', // Filipinas
+  'VN', // Vietnã
+  'EG', // Egito
+  'KE', // Quênia
+  'GH', // Gana
+  'LK', // Sri Lanka
+  'NP', // Nepal
+  'TZ', // Tanzânia
+  'UG', // Uganda
+  'MA', // Marrocos
+  'DZ', // Argélia
+])
+
+/**
+ * Região de preço a partir do país do IP (`x-vercel-ip-country`).
+ *
+ * Mora AO LADO de resolveCheckoutCurrency, não dentro: um comprador nigeriano
+ * é cobrado em USD (moeda) e paga o preço regional (região). Fundir as duas
+ * resoluções tornaria impossível descrever esse caso.
+ *
+ * País desconhecido/ausente → 'standard' (fail-safe: na dúvida, preço cheio;
+ * o erro caro é dar desconto a quem pagaria integral, não o contrário).
+ * O servidor SEMPRE re-resolve isto no /api/stripe/checkout — o navegador
+ * nunca escolhe a própria região, do mesmo jeito que nunca escolhe a moeda.
+ */
+export function resolvePriceRegion(country: string | null | undefined): PriceRegion {
+  const normalized = String(country || '').toUpperCase().trim()
+  return VALUE_REGION_COUNTRIES.has(normalized) ? 'value' : 'standard'
+}
+
+/** Narrowing para valores vindos da rede (/api/geo) — nunca confia no browser. */
+export function coercePriceRegion(raw: string | null | undefined): PriceRegion {
+  return raw === 'value' ? 'value' : 'standard'
 }
 
 export function formatCheckoutMoney(currency: CheckoutCurrency, amountMinor: number): string {
@@ -372,6 +607,17 @@ export function checkPricingInvariants(): string[] {
     { id: 'plan:autopilot', usdMinor: AUTOPILOT_PRICES.usd, credits: TIER_CREDITS.autopilot },
     { id: 'intro:starter', usdMinor: INTRO_PRICES.starter.usd, credits: INTRO_CREDITS.starter },
     { id: 'intro:basic', usdMinor: INTRO_PRICES.basic.usd, credits: INTRO_CREDITS.basic },
+    // KINEO-REGIONAL-PRICING-2026-08-04 — a região `value` leva EXATAMENTE o
+    // mesmo teste. É o ponto do arquivo onde um desconto regional generoso
+    // demais aparece como número, não como opinião: o Creator regional
+    // ($19.90 / 150 créditos) sobrevive por +$2.14 (11%) no pior caso, que é a
+    // margem mais fina de todo o catálogo. Uma reprecificação de motor que
+    // suba WORST_CASE_USD_PER_CREDIT de $0.117 para ~$0.135 apaga essa folga —
+    // e é aqui que isso vai gritar, antes de virar prejuízo.
+    { id: 'plan:starter/value', usdMinor: getTierPrice('starter', 'usd', 'value'), credits: TIER_CREDITS.starter },
+    { id: 'plan:basic/value', usdMinor: getTierPrice('basic', 'usd', 'value'), credits: TIER_CREDITS.basic },
+    { id: 'intro:starter/value', usdMinor: getIntroPrice('starter', 'usd', 'value'), credits: INTRO_CREDITS.starter },
+    { id: 'intro:basic/value', usdMinor: getIntroPrice('basic', 'usd', 'value'), credits: INTRO_CREDITS.basic },
   ]
   for (const sku of recurring) {
     const net = netAfterStripeUsd(sku.usdMinor / 100)
@@ -483,6 +729,15 @@ export function checkPricingInvariants(): string[] {
   for (const tier of Object.keys(ANNUAL_PRICES) as CheckoutTier[]) {
     claim(ANNUAL_PRICES[tier].usd, `annual:${tier}`)
   }
+  // KINEO-REGIONAL-PRICING-2026-08-04 — o anual regional entra pelo MESMO
+  // motivo defensivo dos anuais acima. Só é reivindicado quando difere do
+  // padrão: quando é o mesmo número (basic/value = 19900 = basic), é o mesmo
+  // preço do mesmo SKU e reivindicar duas vezes produziria uma colisão falsa
+  // que esconderia as verdadeiras.
+  for (const tier of ['starter', 'basic'] as RegionalTier[]) {
+    const valueAnnual = VALUE_REGION_ANNUAL_PRICES[tier].usd
+    if (valueAnnual !== ANNUAL_PRICES[tier].usd) claim(valueAnnual, `annual:${tier}/value`)
+  }
 
   for (const [amount, owners] of usdAmountOwners) {
     if (owners.length > 1 && !AMBIGUOUS_ONE_TIME_USD_AMOUNTS.has(amount)) {
@@ -498,6 +753,59 @@ export function checkPricingInvariants(): string[] {
         `USD amount ${amount} is listed in AMBIGUOUS_ONE_TIME_USD_AMOUNTS but only one SKU claims it. ` +
         `Stale entries block a legitimate amount fallback — remove it.`,
       )
+    }
+  }
+
+  // (7) KINEO-REGIONAL-PRICING-2026-08-04 — o preço regional NÃO pode empatar
+  // com nenhum SKU de compra única em USD.
+  //
+  // Hoje isso é redundante: o Path A do webhook está atrás de
+  // `session.mode === 'payment'` e toda assinatura é mode:'subscription'. Mas
+  // a redundância é exatamente o ponto — o preço regional é o número mais
+  // provável de ser mexido a próximo (o fundador vai testar $3.99, $5.99…), e
+  // o mode gate é uma propriedade de RUNTIME de outro arquivo. Se alguém
+  // escolher $4.90 aqui, o conserto não é "adicionar 490 à lista de ambíguos":
+  // isso mataria o fallback legado `amount === 490 → PACK_CREDITS.starter` das
+  // sessões de Payment Link antigas. O conserto é escolher outro preço, e esta
+  // mensagem diz isso.
+  const regionalUsdAmounts: Array<{ id: string; amount: number }> = []
+  for (const tier of ['starter', 'basic'] as RegionalTier[]) {
+    regionalUsdAmounts.push({ id: `plan:${tier}/value`, amount: getTierPrice(tier, 'usd', 'value') })
+    regionalUsdAmounts.push({ id: `intro:${tier}/value`, amount: getIntroPrice(tier, 'usd', 'value') })
+  }
+  for (const { id, amount } of regionalUsdAmounts) {
+    const owners = (usdAmountOwners.get(amount) ?? []).filter((o) => o !== id)
+    if (owners.length > 0) {
+      problems.push(
+        `${id} is USD ${amount}, the same amount as one-time SKU(s) ${owners.join(', ')}. ` +
+        `Pick a different regional price — do NOT add it to AMBIGUOUS_ONE_TIME_USD_AMOUNTS, ` +
+        `that would disable the legacy amount fallback those SKUs depend on.`,
+      )
+    }
+  }
+
+  // (8) KINEO-REGIONAL-PRICING-2026-08-04 — o anual tem de valer a pena DENTRO
+  // da própria região e da própria moeda.
+  //
+  // Sem isto, o preço regional cria um produto quebrado em silêncio: o Starter
+  // regional custa $4.99/mês ($59.88/ano) e o anual continuaria em $99 — 65%
+  // MAIS caro que pagar mês a mês, com o rótulo "2 meses grátis" em cima. O
+  // comprador que confia no rótulo é punido por confiar.
+  // A checagem é por (região × moeda) porque as três moedas têm escadas
+  // próprias e um reprice quase sempre mexe em uma só.
+  for (const region of ['standard', 'value'] as PriceRegion[]) {
+    for (const currency of Object.keys(CURRENCY_DISPLAY) as CheckoutCurrency[]) {
+      for (const tier of Object.keys(TIER_PRICES) as CheckoutTier[]) {
+        const annual = getAnnualPrice(tier, currency, region)
+        const twelveMonths = getTierPrice(tier, currency, region) * 12
+        if (annual >= twelveMonths) {
+          problems.push(
+            `annual:${tier} in ${currency}/${region} costs ${annual}, at or above 12 monthly ` +
+            `payments (${twelveMonths}). The annual toggle would sell a WORSE deal while the UI ` +
+            `says "≈2 months free".`,
+          )
+        }
+      }
     }
   }
 
