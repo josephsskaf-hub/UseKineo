@@ -124,14 +124,22 @@ export type RegionalTier = CheckoutIntroTier
 // Mensalidade na região de menor renda.
 //   usd 499 ($4.99) — NÃO 490. Ver a nota "COLISÃO DE VALOR" logo abaixo.
 //   inr 39900 (₹399) — metade do ₹799 atual, alinhado ao novo USD.
-//   brl — IDÊNTICO ao padrão de propósito: o Brasil NÃO está na região `value`
-//         (decisão do fundador ainda PENDENTE). Manter o valor espelhado aqui
-//         significa que, no dia em que 'BR' entrar em VALUE_REGION_COUNTRIES,
-//         nada muda por acidente — o número tem de ser escrito à mão.
+//   brl 2490 (R$24,90) — KINEO-REGIONAL-PRICING-BR-2026-08-04. Este número era
+//         o espelho do padrão (4990) enquanto a decisão sobre o Brasil estava
+//         pendente. ELA VEIO: o fundador incluiu o Brasil na região `value` em
+//         04/08/2026 (o dado que decidiu está no bloco de
+//         VALUE_REGION_COUNTRIES). R$49,90 → R$24,90 é o MESMO corte pela
+//         metade que o Starter levou em USD ($9.90 → $4.99) e em INR
+//         (₹799 → ₹399) — não é uma escada nova, é a mesma escada em BRL.
 export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 499, brl: 4990, inr: 39900 },
+  starter: { usd: 499, brl: 2490, inr: 39900 },
   // ₹1599 ≈ $19.84 — o INR do Creator JÁ equivale ao novo preço regional em
   // dólar. Mantido igual ao padrão de propósito: não há nada a descontar.
+  // KINEO-REGIONAL-PRICING-BR-2026-08-04 — o MESMO vale para o BRL: R$99,90 é
+  // ≈ $19,90, ou seja, o Creator brasileiro JÁ ESTAVA no preço regional antes
+  // de 'BR' entrar na lista. Entrar na região não muda nada para o Creator em
+  // BRL, e isso é o correto: não existe desconto a dar sobre um preço que já é
+  // o regional. No Brasil quem sente a mudança é o Starter (linha acima).
   basic: { usd: 1990, brl: 9990, inr: 159900 },
 }
 
@@ -152,6 +160,30 @@ export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurre
 //
 // $4.99 preserva a intenção do fundador (~$4.90), não colide com nada, e é o
 // que o invariante (7) machine-checka.
+//
+// ── E POR QUE, EM BRL, O EMPATE É ACEITO ───────────────────────────────────
+// KINEO-REGIONAL-PRICING-BR-2026-08-04. PACK_PRICES.brl é 2490 (o First Pack
+// brasileiro, app/api/stripe/checkout/route.ts:384) e o Starter regional em
+// BRL também é 2490 — exatamente o empate que acabou de ser RECUSADO em USD.
+// A decisão oposta aqui não é incoerência; é que NENHUM dos dois motivos que
+// reprovaram o 490 existe em BRL:
+//
+//   1. O empate não é alcançável. Todo o fallback por valor do webhook está
+//      dentro de `if (session.mode === 'payment')`
+//      (app/api/stripe/webhook/route.ts:413), e o Starter — regional ou não —
+//      é criado com `mode: 'subscription'`
+//      (app/api/stripe/checkout/route.ts:896). Uma assinatura nunca entra
+//      naquele bloco, então 2490 nunca chega a ser resolvido por valor.
+//   2. Mesmo se entrasse, não há SKU errado a conceder. A escada de valores
+//      legados escrita à mão no webhook é 900 / 1900 / 490 / 290 — 2490 não
+//      está lá. O pior caso seria o log 'unexpected amount_total' e ZERO
+//      créditos concedidos, não a concessão de outro produto.
+//
+// Em USD o 490 tem um dono legado ATIVO (`amount === 490 →
+// PACK_CREDITS.starter`) que seria morto ao declarar o valor ambíguo. Não há
+// equivalente em BRL: nenhuma linha do webhook lê 2490. Por isso o invariante
+// (7) checa colisão só em USD — é a única moeda onde o fallback por valor tem
+// entradas escritas à mão para matar.
 
 // Primeiro mês na região de menor renda.
 //
@@ -165,14 +197,21 @@ export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurre
 // A leitura correta é outra: NA REGIÃO, O PREÇO DE LISTA JÁ É O PREÇO DE
 // ENTRADA. $4.99/mês regional == $4.90 que o resto do mundo paga só no 1º mês.
 // Mesma coisa em INR: ₹399 regional == o ₹399 que era o intro padrão.
+// KINEO-REGIONAL-PRICING-BR-2026-08-04 — e mesma coisa em BRL: R$24,90
+// regional == o R$24,90 que era o INTRO_PRICES.starter.brl padrão. Logo
+// introDiscountMinor('starter','brl','value') = 2490 − 2490 = 0, o
+// `if (amountOff > 0)` do checkout pula o cupom, e nenhum cupom de valor zero
+// (que a Stripe recusaria) é criado para o comprador brasileiro.
 // Com intro == lista, amountOff = 0, e o checkout já pula o cupom nesse caso
 // (`if (amountOff > 0)`), então nenhum cupom lixo chega à Stripe.
 // hasIntroOffer() abaixo é o que as telas usam para não prometer um desconto
 // que não existe.
 //
-// O Creator regional MANTÉM intro de verdade: $19.90 → $9.90 (amountOff 1000)
-// e ₹1599 → ₹799 (amountOff 80000). Ambos positivos, ambos com margem (net
-// $9.31 contra $5.18 de pior caso em 50 créditos).
+// O Creator regional MANTÉM intro de verdade: $19.90 → $9.90 (amountOff 1000),
+// ₹1599 → ₹799 (amountOff 80000) e — KINEO-REGIONAL-PRICING-BR-2026-08-04 —
+// R$99,90 → R$49,90 (amountOff 5000, o INTRO_PRICES.basic.brl que já existia).
+// Todos positivos, todos com margem (net $9.31 contra $5.18 de pior caso em 50
+// créditos; o BRL é o mesmo produto vendido a ≈$9,90).
 export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 499, brl: 2490, inr: 39900 },
   basic: { usd: 990, brl: 4990, inr: 79900 },
@@ -184,9 +223,16 @@ export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurr
 // quebrado na região — $99/ano contra $4.99/mês (= $59.88/ano) é um "desconto"
 // que custa 65% MAIS caro. O invariante (8) trava exatamente isso.
 //   starter usd 4990 = 10 × 499   ·  inr 399000 = 10 × 39900
-//   basic — igual ao padrão em todas as moedas, porque 19900 já é 10 × 1990.
+//   KINEO-REGIONAL-PRICING-BR-2026-08-04 — brl 24900 = 10 × 2490. MESMA regra,
+//   aplicada ao BRL novo; não há decisão de preço nova aqui. Deixar o anual em
+//   49900 seria o produto quebrado que o invariante (8) descreve: R$499/ano
+//   contra R$24,90/mês (= R$298,80/ano) custaria 67% MAIS caro com o rótulo
+//   "≈2 meses grátis" em cima. Isto não é hipótese — o invariante (8) FALHA
+//   com 49900 aqui, e foi assim que o número foi conferido.
+//   basic — igual ao padrão em todas as moedas, porque 19900 já é 10 × 1990
+//   (e 99900 já é 10 × 9990, que é o BRL do Creator regional).
 export const VALUE_REGION_ANNUAL_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 4990, brl: 49900, inr: 399000 },
+  starter: { usd: 4990, brl: 24900, inr: 399000 },
   basic: { usd: 19900, brl: 99900, inr: 1599000 },
 }
 
@@ -501,15 +547,33 @@ export function resolveCheckoutCurrency(country: string | null | undefined): Che
 // A lista é DELIBERADAMENTE curta. Cada país aqui é receita cortada pela
 // metade no Starter; ampliar é decisão do fundador, não de manutenção.
 //
-// ⚠️ 'BR' NÃO ESTÁ NESTA LISTA — E ISSO É PROPOSITAL.
-// A decisão do fundador sobre o Brasil está PENDENTE. O Brasil já tem preço
-// próprio em BRL (R$49,90 / R$99,90), então mexer nele é repricing de uma
-// moeda inteira, não uma exceção regional. Enquanto a decisão não vier, o
-// comprador brasileiro segue exatamente no preço de hoje. Para incluí-lo:
-// adicionar 'BR' aqui E escrever os números BRL em VALUE_REGION_TIER_PRICES /
-// VALUE_REGION_INTRO_PRICES / VALUE_REGION_ANNUAL_PRICES (hoje eles espelham
-// o padrão de propósito, então só entrar na lista não mudaria nada).
+// ✅ 'BR' ENTROU — DECIDIDO PELO FUNDADOR EM 04/08/2026.
+// KINEO-REGIONAL-PRICING-BR-2026-08-04. A versão anterior deste comentário
+// dizia que a decisão sobre o Brasil estava PENDENTE. Não está mais.
+//
+// O DADO QUE DECIDIU: o Brasil é o 4º maior país da base — 59 usuários, 14
+// cadastros novos nos últimos 14 dias. Tráfego real, e crescendo. Contra isso:
+// ativação de apenas 20,3% e ZERO pagantes, com UM único checkout aberto em
+// toda a história do país. Volume alto com conversão zero é a assinatura de um
+// funil que morre no PREÇO e não no produto — que é literalmente o critério
+// (1) desta lista. R$49,90/mês por um app que o comprador ainda não sabe se
+// funciona é um pedido grande no Brasil; R$24,90 é o pedido que cabe.
+//
+// O QUE MUDA NA PRÁTICA: só o Starter, R$49,90 → R$24,90 (e o anual, 10×).
+// O Creator NÃO muda: R$99,90 ≈ $19,90 JÁ era o preço regional. Studio,
+// Autopilot, piloto, packs, top-ups e atacado seguem intocados, pelo mesmo
+// motivo de margem descrito no topo deste arquivo.
+//
+// ⚠️ O RISCO QUE O FUNDADOR ACEITOU, ESCRITO PARA NÃO SER ESQUECIDO: se os 59
+// brasileiros não convertem a R$49,90, é possível que também não convertam a
+// R$24,90 — e nesse caso cortamos pela metade a receita futura de um país sem
+// ter provado a hipótese. O experimento é barato só ENQUANTO a receita
+// brasileira for zero, que é o caso hoje. Se em ~30 dias o Brasil continuar em
+// 0 pagante, a conclusão é que o preço não era a causa: remover 'BR' desta
+// lista é uma linha, e os números BRL acima voltam a ser letra morta sem
+// quebrar nada.
 export const VALUE_REGION_COUNTRIES: ReadonlySet<string> = new Set([
+  'BR', // Brasil — entrou em 04/08/2026; ver o bloco acima
   'IN', // Índia
   'NG', // Nigéria
   'PK', // Paquistão
