@@ -77,8 +77,20 @@ function videoEntry(v: PublicVideo): string {
     `      <video:title>${xmlSafe(clamp(v.title, 100))}</video:title>`,
     `      <video:description>${xmlSafe(clamp(metaDescriptionFor(v), 2048))}</video:description>`,
   ]
+  // KINEO-VIDEO-SITEMAP-FIX-2026-08-04 — measured in Search Console on 04/08:
+  // "561 videos found, 557 errors — <video:content_loc> or <video:player_loc>
+  // has the same value as <loc>. These tags must link to the video itself, not
+  // to the video's HTML landing page." We were emitting player_loc = pageUrl,
+  // which IS the <loc> of the same entry, so Google discarded 557 of 561
+  // videos. Every /v/[id] page had been invisible to video search since the
+  // sitemap shipped.
+  //
+  // player_loc is meant to be a standalone EMBED url (an iframe player). We
+  // have no embed route — the page renders a bare <video> tag — so the correct
+  // move is to omit player_loc entirely and rely on content_loc, which is the
+  // real MP4 on the render CDN. Google requires at least one of the two, so a
+  // row with no playbackUrl yields neither and must be skipped by the caller.
   if (v.playbackUrl) parts.push(`      <video:content_loc>${xmlSafe(v.playbackUrl)}</video:content_loc>`)
-  parts.push(`      <video:player_loc>${xmlSafe(v.pageUrl)}</video:player_loc>`)
   // Google rejects a video whose duration falls outside 1–28800 seconds, so an
   // unknown or out-of-range runtime is omitted rather than guessed. `duration`
   // is the working source — `duration_seconds` is null on every row today.
@@ -101,7 +113,11 @@ export async function GET() {
   let videoEntries: string[] = []
   try {
     const videos = await listIndexablePublicVideos(SITEMAP_MAX_VIDEOS)
-    videoEntries = videos.map(videoEntry)
+    // KINEO-VIDEO-SITEMAP-FIX-2026-08-04 — a <video:video> needs at least one
+    // of content_loc / player_loc. Now that player_loc is gone (it duplicated
+    // <loc> and got 557 entries rejected), a row without playbackUrl would
+    // emit neither and invalidate the whole sitemap. Drop those rows instead.
+    videoEntries = videos.filter((v) => !!v.playbackUrl).map(videoEntry)
   } catch (err) {
     // eslint-disable-next-line no-console
     console.error('[video-sitemap] falling back to static examples only:', err)
