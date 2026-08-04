@@ -12,10 +12,24 @@
 // O caminho de upload direto (app/api/youtube/upload) grava na mesma tabela
 // com source='direct_upload'; aqui é só o caminho manual (source='pasted').
 // RLS: insert/select apenas da própria linha; dedupe por (user, youtube_id).
+//
+// ── KINEO-POST-TO-EARN-2026-08-04 ───────────────────────────────────────────
+// A partir de hoje esta rota também PAGA. Colar um link válido e inédito vale
+// 3 créditos: a marca d'água deixa de ser um imposto que o usuário tolera e
+// vira moeda que ele escolhe ganhar.
+//
+// O save e a recompensa são deliberadamente SEQUENCIAIS e independentes: o
+// link é gravado primeiro e a avaliação da recompensa NUNCA pode derrubá-lo.
+// Quem publicou e colou cumpriu a parte dele — se a checagem no YouTube cair,
+// ele perde o crédito daquela tentativa, não o lugar no wall.
+//
+// As travas anti-abuso e o pagamento estão em lib/postToEarnGrant.ts; os
+// números e as mensagens, em lib/postToEarn.ts. Esta rota só orquestra.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { grantPostToEarn } from '@/lib/postToEarnGrant'
 
 // Aceita youtube.com/shorts/ID, youtu.be/ID, youtube.com/watch?v=ID (e m./www.).
 // O ID volta normalizado para deduplicar o mesmo vídeo colado de formas diferentes.
@@ -47,6 +61,35 @@ function extractYouTubeId(raw: string): string | null {
   return null
 }
 
+// ── Rate limit ──────────────────────────────────────────────────────────────
+// Best-effort, em memória do processo (mesmo padrão de
+// app/api/public/viral-score/route.ts). Não é a trava de fraude — as travas
+// reais são o dedupe global e os tetos, que vivem no banco e sobrevivem a
+// qualquer reinício. Isto aqui só impede que um script fique martelando o
+// endpoint (cada tentativa custa uma chamada de rede ao oEmbed).
+//
+// Duas chaves: a conta E o IP. Só a conta deixaria passar 50 contas atrás do
+// mesmo IP; só o IP puniria escritório/faculdade com NAT compartilhado.
+const RATE_MAX = 12
+const RATE_WINDOW_MS = 60_000
+const hits = new Map<string, number[]>()
+
+function rateLimited(key: string): boolean {
+  const now = Date.now()
+  const arr = (hits.get(key) ?? []).filter((t) => now - t < RATE_WINDOW_MS)
+  if (arr.length >= RATE_MAX) return true
+  arr.push(now)
+  hits.set(key, arr)
+  // O Map é podado na própria escrita para não virar vazamento de memória num
+  // runtime de vida longa.
+  if (hits.size > 5_000) {
+    for (const [k, v] of hits) {
+      if (v.every((t) => now - t >= RATE_WINDOW_MS)) hits.delete(k)
+    }
+  }
+  return false
+}
+
 export async function POST(req: NextRequest) {
   try {
     const supabase = createClient()
@@ -55,6 +98,16 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const ip =
+      (req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? '').trim() ||
+      null
+    if (rateLimited(`u:${user.id}`) || (ip && rateLimited(`ip:${ip}`))) {
+      return NextResponse.json(
+        { error: 'Too many links at once — wait a minute and try again.' },
+        { status: 429 },
+      )
     }
 
     const body = (await req.json().catch(() => null)) as { url?: unknown } | null
@@ -98,7 +151,13 @@ export async function POST(req: NextRequest) {
       // non-blocking
     }
 
-    return NextResponse.json({ ok: true, youtubeId })
+    // KINEO-POST-TO-EARN-2026-08-04 — o link já está salvo e o wall já foi
+    // invalidado. SÓ AGORA se fala em crédito, e `grantPostToEarn` tem como
+    // contrato nunca lançar: qualquer desfecho vira um veredito com mensagem
+    // própria, e o save continua sendo um sucesso.
+    const reward = await grantPostToEarn({ userId: user.id, youtubeId, ip })
+
+    return NextResponse.json({ ok: true, youtubeId, reward })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[posted-shorts] error:', msg)

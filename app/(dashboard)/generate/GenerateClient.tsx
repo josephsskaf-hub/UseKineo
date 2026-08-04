@@ -16,6 +16,10 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
 import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
+// KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
+// client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
+// a promessa mostrada aqui lê a MESMA constante que o servidor executa.
+import { POST_TO_EARN_PITCH, type PostToEarnResult } from '@/lib/postToEarn'
 import {
   CURRENCY_DISPLAY,
   TOPUP_CREDITS,
@@ -1075,9 +1079,16 @@ export default function GenerateClient({
   // (via /api/posted-shorts) — primeira visibilidade real de vídeos NO YouTube
   // + estoque do wall of proof. Escondido quando o upload direto já rodou
   // (ytResult), porque aquele caminho grava sozinho no servidor.
+  //
+  // KINEO-POST-TO-EARN-2026-08-04 — o mesmo campo agora PAGA 3 créditos por
+  // Short publicado e inédito. A marca d'água deixa de ser um imposto e vira
+  // moeda. O saldo na tela se atualiza sozinho: já existe uma subscription
+  // realtime em profiles.video_credits (mais abaixo neste arquivo), então o
+  // número muda sem nenhum refetch manual aqui.
   const [postedLink, setPostedLink] = useState('')
   const [postedLinkState, setPostedLinkState] = useState<'idle' | 'saving' | 'done' | 'error'>('idle')
   const [postedLinkError, setPostedLinkError] = useState<string | null>(null)
+  const [postedReward, setPostedReward] = useState<PostToEarnResult | null>(null)
 
   async function submitPostedLink() {
     const url = postedLink.trim()
@@ -1090,10 +1101,22 @@ export default function GenerateClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url }),
       })
-      const data = (await res.json().catch(() => null)) as { ok?: boolean; error?: string } | null
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; reward?: PostToEarnResult }
+        | null
       if (res.ok && data?.ok) {
+        const reward = data.reward ?? null
+        setPostedReward(reward)
         setPostedLinkState('done')
         trackEvent('posted_short_submitted', { source: 'pasted' })
+        // Instrumentação do loop de recompensa: o motivo é a métrica que
+        // separa "trava pegou fraude" de "trava frustrou usuário honesto".
+        if (reward) {
+          trackEvent(reward.granted ? 'post_to_earn_claimed' : 'post_to_earn_rejected', {
+            reason: reward.reason,
+            credits: reward.credits,
+          })
+        }
       } else {
         setPostedLinkState('error')
         setPostedLinkError(
@@ -7594,25 +7617,51 @@ export default function GenerateClient({
                       no mesmo segundo. É esse o gancho de retenção — o usuário
                       volta pra ver onde o Short dele ficou. Nada de layout, de
                       paywall ou de créditos foi tocado aqui. */}
+                  {/* KINEO-POST-TO-EARN-2026-08-04 — o desfecho é ESPECÍFICO.
+                      "Deu certo" quando não veio crédito faria a pessoa achar
+                      que ganhou 3 créditos que nunca chegaram; é assim que um
+                      programa de recompensa vira ticket de suporte. */}
                   {postedLinkState === 'done' ? (
-                    <div className="text-sm font-black" style={{ color: '#4ade80' }}>
-                      🎉 You&apos;re on the wall.{' '}
-                      <a
-                        href="/wall"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#2997ff', textDecoration: 'underline' }}
+                    <div>
+                      <div
+                        className="text-sm font-black"
+                        style={{ color: postedReward?.granted ? '#4ade80' : '#f5f5f7' }}
                       >
-                        See your Short on the Wall of Proof →
-                      </a>
+                        {postedReward?.granted
+                          ? `🎉 +${postedReward.credits} credits — you're on the wall.`
+                          : "🎉 You're on the wall."}{' '}
+                        <a
+                          href="/wall"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2997ff', textDecoration: 'underline' }}
+                        >
+                          See your Short on the Wall of Proof →
+                        </a>
+                      </div>
+                      {postedReward && !postedReward.granted && (
+                        <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                          {postedReward.message}
+                        </p>
+                      )}
+                      {postedReward?.granted && postedReward.remainingThisWeek > 0 && (
+                        <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                          {postedReward.remainingThisWeek} more rewarded{' '}
+                          {postedReward.remainingThisWeek === 1 ? 'link' : 'links'} left this week.
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <>
                       <div className="text-sm font-black" style={{ color: '#f5f5f7' }}>
-                        Published it? Paste the link and get on the wall 🔗
+                        Published it? Paste the link and get paid 🔗
                       </div>
+                      {/* A regra ANTES de colar, não depois da recusa. */}
+                      <p className="text-xs mt-1.5 font-bold" style={{ color: '#4ade80', lineHeight: 1.55 }}>
+                        {POST_TO_EARN_PITCH}
+                      </p>
                       <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
-                        Your Short joins the{' '}
+                        Each video counts once and has to be public. Your Short also joins the{' '}
                         <a
                           href="/wall"
                           target="_blank"
