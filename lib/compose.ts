@@ -1946,6 +1946,16 @@ export function buildCreatomateSource({
     const kb = isFastStock
       ? FAST_KEN_BURNS_PATTERN[(i + reuseIndex) % FAST_KEN_BURNS_PATTERN.length]
       : null
+    // KINEO-CLIP-COVER-2026-08-04 — INVARIANT, audited after the founder's
+    // Fast print ("clip as a smaller centered rectangle with dark margins"):
+    // every b-roll element MUST cover 100% of the canvas — fit 'cover',
+    // x/y 50%, width/height 100%, and every scale animation (Ken Burns
+    // included) must stay >= 100% at all times, or the black track-1 base
+    // shows as a margin. The rectangle in that print was NOT this element:
+    // it was the partial-canvas 70%x55% 'screen' glow (fixed by
+    // KINEO-WASH-FIX-2026-08-04), which the render predated because that
+    // commit had not been deployed yet. Clip geometry here was verified
+    // correct; do not shrink these values or add sub-100% zooms.
     const elem: CreatomateElement = {
       type: 'video',
       track: 2,
@@ -2627,6 +2637,10 @@ export function buildHollywoodCreatomateSource({
       time: sceneStarts[i],
       duration: round3(Math.min(durations[i], totalDuration - sceneStarts[i]) + overlap),
       source: clip.url,
+      // KINEO-CLIP-COVER-2026-08-04 — INVARIANT: fit 'cover' at 100%x100%,
+      // centered. Any smaller value (or a sub-100% zoom) exposes the black
+      // track-1 base as a margin around the footage. See the note on the
+      // Fast clip element in buildCreatomateSource.
       fit: 'cover',
       loop: clip.engine !== 'host',
       x: '50%', y: '50%', width: '100%', height: '100%',
