@@ -45,6 +45,8 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | 03/08 | **Ordem 5 — prova social REAL nos pontos de decisão** (Regra Zero: pricing tinha trust row e cards honestos, mas ZERO prova em números; a fake foi removida em 28/06 — a ordem pede números reais) | Faixa no hero do /pricing "890+ creators · 430+ Shorts rendered · featured on There's An AI For That" (896 perfis ext / 432 completed ext em 03/08, piso "+", atualizar semanal) + linha "Join 890+ creators" no LowCreditsUpsell + bônus: preço $9.90 hardcoded no upsell agora deriva de checkoutPricing (mesma classe de bug do "50 Fast videos" de julho) | pricing_view → checkout_started | 10/08 |
 
+| 04/08 | **Ordem I — COMEBACK50: campanha para a coorte que PROVOU valor e nunca pagou** (prioridade 1 declarada do dia, nenhuma sprint tinha executado — zero ocorrências de "comeback" no repo) | `app/api/admin/send-comeback50/route.ts`: coorte montada AO VIVO do banco (≥3 downloads OU stripe_customer_id com ≥1 vídeo) = 19 pessoas reais hoje, as 6 do topo com 12–24 downloads; idempotência `profiles.comeback50_emailed` já criada em produção; **gate do fundador virou trava de código** (409 se COMEBACK50 não for promotion code ativo na Stripe — o checkout ignora promo inexistente em silêncio e o e-mail viraria mentira); copy voz-do-fundador abrindo pelo que a PESSOA fez, Studio recomendado, sem preço no arquivo. tsc=0. REGRA ZERO: a outra metade da ordem (39 com stripe e zero vídeos) foi MEDIDA — são 35 e 18 já tinham activation nudge → não construída de propósito | Compras dos 19 (has_paid) + cliques em /pricing?promo=COMEBACK50 | 11/08 |
+
 ## Mortas (não repetir)
 
 | Data | Ideia | Por que morreu |
@@ -56,6 +58,7 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 ## Fila (avaliadas, ainda não executadas — livres para uma sprint pegar)
 
+- **IDEIA CEO 04/08 — A REVIEW É O PRODUTO**: pedido de avaliação no TAAFT disparado DENTRO do app, no clique de download (pico de satisfação), só para quem chegou com `ref=taaft`. Trata a fonte de 94% do tráfego como LOOP e não como canal estático: review → ranking na categoria → tráfego → download → review. Resolve sozinho o gate nº1 (fundador implorando 5 reviews, aberto há 5 dias) e melhora o texto que todo LLM lê sobre a Kineo (hoje: nota 3,0 com 2 avaliações). Custo: 1 componente, $0. Métrica: nº de avaliações no TAAFT (hoje 2) e a nota. Retorno÷esforço ALTO/baixo. Não executada em 04/08 por causa do freeze de dia de lançamento
 - **IDEIA CEO 03/08 — OUTREACH-AS-DEMO**: todo outreach (Whop, influencers F, PH) vai com um Short personalizado sobre o ALVO gerado na Kineo em 3 min — o pitch É o produto; custo $0; ninguém faz porque dá trabalho. Métrica: taxa de resposta com vídeo vs sem. Retorno÷esforço ALTO/baixo. 1º uso: follow-up 48h da Rota C
 - Fazier free (falta: 3 comentários úteis + badge no rodapé do site — sessão logada)
 - aitoolsdirectory (rascunho salvo no iframe; renderer bugado — retentar)

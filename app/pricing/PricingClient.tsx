@@ -415,12 +415,12 @@ export default function PricingClient() {
 
           {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5: prova social com números
               REAIS no ponto de decisão. Cada número é conferível no banco COM o
-              filtro de contas internas (03/08: 896 perfis ext, 432 vídeos
-              completed ext). Piso hardcoded ("+") — atualizar semanalmente com
-              o placar, nunca inflar. TAAFT entra como "featured" (fato), não
-              como nota. Métrica da ordem: pricing_view → checkout_started. */}
+              filtro de contas internas (04/08 14:50Z: 915 perfis ext, 456 vídeos
+              completed ext — era 896/432 em 03/08). Piso hardcoded ("+") —
+              atualizar semanalmente com o placar, nunca inflar. TAAFT entra como
+              "featured" (fato), não como nota. Métrica: pricing_view → checkout_started. */}
           <p className="mt-3 text-center text-[12px] font-semibold text-[#6e6e73]">
-            890+ creators · 430+ Shorts rendered · featured on There&apos;s An AI For That
+            900+ creators · 450+ Shorts rendered · featured on There&apos;s An AI For That
           </p>
         </div>
 

@@ -16,6 +16,35 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+## 📌 04/08 15:00Z (sprint 11h) — PENDENTES DE HOJE
+
+**0. PUSH — 1 commit meu parado** (a sandbox não tem credencial do GitHub; o push sai da sua
+   máquina). Sobe a campanha COMEBACK50 + os docs desta sprint. **Não toca em render** —
+   os fixes de `lib/compose.ts` (glow/base preta) já subiram na sua sessão paralela durante
+   esta sprint, `origin/main` já está em `0c988b4`. Ou seja: nada aqui fura o seu freeze de
+   dia de lançamento.
+
+**1. 🔴 CRIAR O CUPOM `COMEBACK50` NA STRIPE — 2 minutos, destrava 19 e-mails prontos**
+   A rota `/api/admin/send-comeback50` está construída, testada (tsc=0) e **se recusa a
+   enviar** enquanto o código não existir (409), porque o checkout ignora promo inexistente
+   em silêncio e as 19 pessoas cairiam no preço cheio depois de ler "50% off".
+   Passo a passo (Stripe → Catálogo de produtos → Cupons → + Criar cupom):
+   1. Desconto percentual **50%** · Duração **Vários meses → 3 meses**
+   2. Aplicar a produtos específicos: **só Creator e Studio** (NUNCA o Starter)
+   3. Salvar → abrir o cupom → **Códigos promocionais → + Novo → `COMEBACK50`**
+   4. Me avisar: a próxima sprint roda o dry run e depois `&confirm=SEND`
+   **Alternativa de 0 minuto:** já existem `FOUNDING50` (50% uma vez) e `FOUNDER50` (50%
+   vitalício, 0/10 usados). Se preferir não criar nada, diga qual usar — eu troco o código
+   na rota. A escolha é sua porque muda promessa de dinheiro.
+   Quem recebe (19, os 6 primeiros por downloads): kingtopman (6 vídeos/24 downloads),
+   agadac02 (9/23), jatinnnnn078 (2/21), kylajanae78 (6/20), hello@toolriot (1/12),
+   ajiterumololuwa (1/12).
+
+**2. 🟠 Product Hunt — o lançamento não pegou.** 3 pontos, 0 comentários, 0 cadastros em 8h
+   (corte do top-17 do dia: 73 pontos). Não há nada para eu responder lá. Se você quiser
+   dar uma última chance ao canal hoje, o único movimento legítimo é **compartilhar o link
+   com sua rede** (X/WhatsApp) — nunca pedir upvote. Veredito completo no relatório das 22h.
+
 ## 📌 03/08 ~14:30Z (sprint 10h) — PENDENTES DE HOJE
 
 1. ✅ ~~21/22/23/24/27/28-PUSH~~ — RODADOS (produção = 1cf2670: página EARN + og-card v2

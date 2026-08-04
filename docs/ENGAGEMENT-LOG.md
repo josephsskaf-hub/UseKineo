@@ -17,3 +17,17 @@ Regra: digitar UMA mensagem, enviar, so entao ir para a proxima; sempre ctrl+a +
 LICAO 2: nao existe e-mail desses donos de comunidade — canal e DM. Rascunho de Gmail com
 "[copiar p/ Whop DM]" no assunto confundiu o fundador; nao repetir esse padrao, preparar direto no canal.
 PROXIMO: monitorar resposta e cliques nos codigos de afiliado; se responderem, criar link dedicado por comunidade.
+
+## 04/08/2026 14:50Z — RONDA DO DIA DO PH (Ordem N, sprint 11h)
+- **Product Hunt (producthunt.com/products/kineo-2):** lançamento no ar, "Launching today",
+  **3 pontos, 0 comentários externos**. O único comentário é o de maker do fundador (1d).
+  **Nada a responder** — a ronda foi executada e não havia superfície de engajamento.
+  Não se pediu upvote (regra do fundador + regra da plataforma).
+- **Leaderboard 04/08:** corte do top-17 em **73 pontos**; nº1 Hey Noah com 271. Kineo fora
+  por uma ordem de grandeza.
+- **Banco:** 0 eventos com ref/utm `producthunt` em 24h — nenhum cadastro veio do PH.
+- **TAAFT no mesmo período (comparação que importa):** 24 usuários no /generate, 20 iniciaram
+  geração, 12 concluíram vídeo, 6 baixaram, 5 viram pricing, 0 compraram.
+- **Whop:** sem resposta nova visível dos 3 donos (Carlos/Eugene/adan) até 15:00Z.
+- LIÇÃO: PH sem rede prévia é troféu, não canal. O custo real do dia não foi o tempo — foi o
+  freeze do pipeline de render (Ordem L congelada), pago por 3 pontos.
