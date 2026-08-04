@@ -18,7 +18,16 @@
 
 ## 📌 04/08 16:50Z (sprint 13h) — PENDENTES DE HOJE
 
-**0. 🔴 PUSH — `scripts\34-PUSH.bat` (30s). É O ÚNICO GARGALO DA CAMPANHA.**
+**0. ✅ PUSH FEITO POR VOCÊ DURANTE ESTA SPRINT — está tudo no ar.**
+   Deploy READY em produção com `66a0b86` (17:0xZ). Ou seja: o fix do desconto, a rota
+   COMEBACK50 e a linha do PRODUCTHUNT **existem em produção agora**. Validei a cadeia
+   inteira no ar, na sua sessão logada, com o dry run da rota:
+   `{"promo_live":true,"promo_detail":"promotion_code promo_1U0jqT… active",
+   "remaining_unemailed":11}` — o `promo_live:true` prova que o cupom resolve, e o
+   `remaining_unemailed:11` prova que os 9 que eu já cobri por rascunho **não vão duplicar**.
+   (Texto original do gate abaixo, mantido como registro.)
+
+~~**0. 🔴 PUSH — `scripts\34-PUSH.bat` (30s). É O ÚNICO GARGALO DA CAMPANHA.**~~
    3 commits meus parados. O `33-PUSH` **não foi rodado**: produção ainda serve `0c988b4`,
    e por isso `/api/admin/send-comeback50` responde **404** — a ordem "sprint das 10h
    dispara os e-mails" era fisicamente impossível sem este clique. O 34 sobe:
@@ -34,6 +43,15 @@
    `console.warn`. As 19 pessoas leriam "50% off por 3 meses" e receberiam um mês com
    desconto menor, **sem nenhum erro aparecer**. Corrigido nesta sprint (tsc=0). Só existe
    em produção depois do item 0.
+
+**1b. 🟠 O DISPARO DOS 11 RESTANTES — 1 clique, e eu deliberadamente NÃO apertei.**
+   A rota está viva e testada; falta só o envio. Deixei para você porque é disparo em massa
+   irreversível para 11 pessoas reais, e eu já cobri os 8 melhores por rascunho pessoal
+   (que converte mais). Link direto, na sua sessão logada:
+   https://www.usekineo.com/api/admin/send-comeback50?confirm=SEND
+   Se preferir testar com 2 antes: acrescente `&limit=2`. Quem recebe são os de cauda —
+   dabira4u (3 vídeos/4 downloads), farooqhumna93 (2/4), moiseshamester (3/3), rammarndi870
+   (3/3), jeff.a.wiggins (2/3), safuras090 (3/2) e 5 com cartão e vídeo mas 0 downloads.
 
 **2. 🟠 8 RASCUNHOS NO GMAIL — 8 cliques de Send, a melhor lista do banco.**
    Como o push travou o disparo automático, a campanha saiu por rascunho pessoal seu, um
