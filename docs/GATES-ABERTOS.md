@@ -16,17 +16,22 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 🟠 04/08 22:15Z (sprint 19h) — O QUE ESTÁ NA SUA MÃO
+## ✅ 04/08 22:28Z — GATE A DA SPRINT 19h JÁ FOI FECHADO PELO FUNDADOR
 
-**1. `scripts\37-PUSH.bat` — 1 commit.** `KINEO-OBJECTION-HANDLER`: a página de checkout
-   cancelado deixa de ser um survey morto (0 respostas / 7 cancelamentos) e passa a responder
-   cada objeção com botão. **⚠️ MEXE EM PREÇO EXIBIDO:** a página tinha uma tabela de preços
-   digitada à mão e o seu push das 22:00Z (preço regional BR) tornou 'R$49,90' mentiroso — o
-   brasileiro que desistia do Starter veria **2× o preço real** na única tela de recuperação
-   do funil. Este push corrige isso derivando tudo de `lib/checkoutPricing`. Quanto antes
-   subir, menos gente vê o preço errado.
+**PUSH FEITO DURANTE A SPRINT.** `origin/main = 6ea2180`, deploy `dpl_42nGKG…` **READY em
+produção** (22:28Z, confirmado por `list_deployments` + o `dpl=` nos assets servidos).
+O `37-PUSH.bat` virou no-op — **não pedir de novo**. Consequências:
+   - o **bug de preço está corrigido em produção**: a tela de checkout cancelado não promete
+     mais R$49,90 a quem vai pagar R$24,90;
+   - o `KINEO-OBJECTION-HANDLER` está servindo. **Janela de medição de `checkout_cancel_reason`
+     e dos 4 eventos novos começa em 22:28Z de 04/08** — nada antes disso conta.
+   - ⚠️ O cabeçalho do `37-PUSH.bat` cita o SHA `5976d8b`; o commit que entrou foi `6ea2180`
+     (mesmo conteúdo, refeito sobre o mesmo pai para caber o próprio .bat). Sem impacto —
+     registrado só para quem for conferir SHA no histórico.
 
-**2. Dois rascunhos de venda 1:1 no Gmail (Send).** Ambos são leads de HOJE, ainda quentes:
+## 🟠 04/08 22:15Z (sprint 19h) — O QUE CONTINUA NA SUA MÃO
+
+**1. Dois rascunhos de venda 1:1 no Gmail (só falta o Send).** Ambos são leads de HOJE:
    - **thewaqaskhanofficial@gmail.com** (TAAFT · 2 vídeos · 2 downloads · abriu 3 checkouts em
      18 min e cancelou os três). Assunto: *"Which Kineo plan you actually need (30 seconds)"*.
      **Sem desconto de propósito** — o comportamento dele foi confusão de catálogo, não preço.
@@ -34,7 +39,10 @@
      Assunto: *"Download your Short before you pay us anything"*. Manda usar antes de pagar e
      pergunta se o checkout falhou.
 
-**3. 🟠 Continua aberto (da 16h):** os **11 restantes** do COMEBACK50, a um `&confirm=SEND`.
+**2. 🟠 Da 16h:** os **11 restantes** do COMEBACK50, a um `&confirm=SEND`.
+
+**3. ⚪ Sem pressa (só docs):** `scripts\38-PUSH.bat` — 1 commit só de documentação
+   (fechamento deste gate). Pode ir junto com o próximo push de código.
 
 ## ✅ 04/08 22:05Z — OS DOIS GATES DA SPRINT 16h FORAM FECHADOS PELO FUNDADOR
 
