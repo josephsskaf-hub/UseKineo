@@ -83,6 +83,14 @@ const PROFILE_TIMESTAMP_COLUMNS = [
   // KINEO-VIDEO-READY-2026-08-03 (Medida 6 do PLANO-SEMANA) — "your video is ready".
   // cron/send-video-ready → profiles.video_ready_sent_at
   'video_ready_sent_at',
+  // KINEO-DAILY-NUDGE-2026-08-04 — "your 3 free Shorts are back" (retenção D7).
+  // cron/send-credits-back → profiles.credits_back_sent_at
+  //
+  // ÚNICO carimbo RECORRENTE da lista: o job reenvia a cada 3 dias, então esta
+  // coluna é "quando foi o último", não "se já foi". Isso não muda nada aqui —
+  // a supressão só olha a janela de 24h — mas evita que alguém leia a coluna
+  // como flag de "já processado para sempre", como as outras cinco.
+  'credits_back_sent_at',
 ] as const
 
 export interface LifecycleSuppression {
