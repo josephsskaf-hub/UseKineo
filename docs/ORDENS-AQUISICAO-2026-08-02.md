@@ -222,3 +222,21 @@ venda por causa de render mal feito." REGRA: NENHUMA sprint toca lib/compose.ts 
 O diagnostico acima fica pronto; executar SO quando o fundador der GO explicito (sugerir no
 relatorio de 05/08, com render de teste antes de fechar). Dia de lancamento = freeze no pipeline
 de render. Isso vale como regra permanente: dia de PH/lancamento, so se mexe em copy e docs.
+
+## ORDEM M — REPOSICIONAMENTO DA HERO (aprovado pelo fundador 04/08 ~2h30)
+Tese Crayo confirmada pelo fundador: vender GANHAR DINHEIRO com Shorts, nao "fazer video".
+- Hero da home: promessa de renda/monetizacao (YouTube E TikTok citados), honesta e SEM
+  garantia de ganhos (compliance: "creators use Kineo to build monetized channels", nunca
+  "voce vai ganhar $X"). Manter o form anonimo. A/B se possivel via evento.
+- QUANDO: QUARTA 05/08 (nunca no dia do PH — trafego de lancamento nao e cobaia de copy).
+- Espalhar a promessa tambem em: title/description SEO da home, OG card (rota nova!), PH
+  tagline NAO (ja esta no ar).
+
+## ORDEM G2 — DESAFIO 30 SHORTS / 30 DIAS / $27 — GO CONDICIONAL DO FUNDADOR
+Fundador entendeu e aprovou a mecanica ("onboard pago... 30 shorts de cada pessoa = relevancia
++ afiliados"). CALENDARIO: sprints preparam quarta/quinta (landing + Stripe one-time $27 +
+sequencia de 30 e-mails/checklist + regras), LANCAMENTO SEGUNDA 10/08 — com os dados do PH e
+do COMEBACK50 ja digeridos e prova social fresca. GATE do fundador antes do ar: precificacao
+final + politica de reembolso do desafio (mexe em promessa de dinheiro).
+Fase atual declarada pelo fundador: terminar a fase 1 (15-20 pagantes) — todo esforco da
+semana aponta pra isso.
