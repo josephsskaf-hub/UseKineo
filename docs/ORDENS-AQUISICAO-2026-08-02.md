@@ -205,3 +205,13 @@ player_loc=0, zero content_loc==loc)
 (toolriot J7SCBLLU / colormango 8WVZSBUX — monitorar cliques!) · wall + scripts + 46 /vs + admin
 CEO no ar · fix video-sitemap · aprovações automáticas LIGADAS pelo fundador (sprints agora
 empurram push sozinhas — 1-PUSH via bash, sem gate).
+
+## ORDEM L — Flash branco entre clipes (fundador viu 04/08 ~1h, DIAGNOSTICADO)
+Sintoma: "leve tela branca no meio dos videos". Causa CONFIRMADA: a composicao Creatomate
+(lib/compose.ts ~linhas 2426 e 2862: width 1080/height 1920/duration/elements) NAO define
+cor de fundo -> default do Creatomate e BRANCO. Gap de frames entre clipes de b-roll = flash branco.
+FIX: adicionar como PRIMEIRO elemento (camada mais baixa) um shape preto cobrindo o canvas
+inteiro (x/y 50%, width/height 100%, fill_color '#000000', time 0, duration = totalDuration)
+nos DOIS builders de composicao. Cuidado: compose.ts e o arquivo mais sensivel (marca d'agua,
+legendas, tracks documentadas nas linhas 53-61) — nao reordenar nada, so inserir a base preta.
+Validar com 1 render de teste antes de considerar fechado. Melhora TODOS os videos, free e pago.
