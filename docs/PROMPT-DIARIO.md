@@ -342,3 +342,12 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
   outreach — o pitch é o produto rodando).
 - 31-PUSH substitui 30 (cabeçalho do 30 estava staled; push empurra tudo ahead mesmo assim,
   mas o cabeçalho é o changelog do fundador — manter fiel).
+
+### 04/08 ~00:40Z (sprint 21h de 03/08)
+- Corolário novo: medição de e-mail lifecycle novo precisa de janela — 0/8 às 22h virou
+  1/9 com send→view→download em 17 min (video_ready, obasindubuisi20). Cortar pelo
+  timestamp do send; veredito só com 24h.
+- Armadilha nova: preço hardcoded em JSX ainda existia (LowCreditsUpsell "$9.90" ×2) —
+  grep periódico de literais de preço rende bug real. Corrigido: deriva de TIER_PRICES.
+- Ordem 5 executada (18d1bda). 32-PUSH substitui 31 (ahead 10).
+- bash do workspace: timeout_ms máx 45000.
