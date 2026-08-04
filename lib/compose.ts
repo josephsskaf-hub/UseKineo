@@ -2093,10 +2093,15 @@ export function buildCreatomateSource({
     track: 3,
     time: 0,
     duration: totalDuration,
+    // KINEO-WASH-FIX-2026-08-04 — this glow used to be a 70%x55% shape
+    // centered at y 48%. 'screen' at constant alpha lifts BLACKS too (black
+    // pixel -> glow color at its alpha), so on dark scenes the partial-canvas
+    // shape showed up as a fixed translucent bright rectangle with hard edges.
+    // Full-canvas keeps the highlight-lift intent with no visible border.
     x: '50%',
-    y: '48%',
-    width: '70%',
-    height: '55%',
+    y: '50%',
+    width: '100%',
+    height: '100%',
     path: RECT_PATH,
     fill_color: grade.glow,
     // PUSH #94 — lift only the highlights; 'screen' can never darken, so this
@@ -2690,7 +2695,12 @@ export function buildHollywoodCreatomateSource({
   })
   elements.push({
     type: 'shape', track: 3, time: 0, duration: totalDuration,
-    x: '50%', y: '48%', width: '70%', height: '55%',
+    // KINEO-WASH-FIX-2026-08-04 — this glow used to be a 70%x55% shape
+    // centered at y 48%. 'screen' at constant alpha lifts BLACKS too (black
+    // pixel -> glow color at its alpha), so on dark scenes the partial-canvas
+    // shape showed up as a fixed translucent bright rectangle with hard edges.
+    // Full-canvas keeps the highlight-lift intent with no visible border.
+    x: '50%', y: '50%', width: '100%', height: '100%',
     path: RECT_PATH, fill_color: grade.glow, blend_mode: 'screen',
   })
 
