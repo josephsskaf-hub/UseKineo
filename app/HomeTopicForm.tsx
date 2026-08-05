@@ -315,181 +315,210 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     ? (pending ? 'Starting…' : 'Create my free Short →')
     : (pending ? 'Writing your script…' : hasScript ? 'Write a new script →' : 'Write my script — free, no signup →')
 
+  // KINEO-HERO-BIGGER-2026-08-05 — a caixa era o elemento de maior tráfego da
+  // home (133 views/24h) e mesmo assim lia como um campo de busca: 660px de
+  // largura, 84px de altura, com os três atalhos de tópico presos DENTRO do
+  // card, empurrando a área de escrita para uma faixa fina.
+  //
+  // Agora o <form> é só o SHELL (sem moldura). O card visual (.composer) é um
+  // filho, e os atalhos saíram dele para duas colunas que ladeiam o card no
+  // desktop (≥1120px), ocupando o vazio que sobrava dos dois lados dentro do
+  // .wrap de 1024px. O card fica mais largo, mais alto e com fonte maior sem
+  // ficar mais comprido do que era — o espaço dos chips virou área de escrita.
+  //
+  // Mobile (a maior parte da base: IN/NG/PK/BR) é o caso padrão, não a exceção:
+  // o shell é um flex column, então os chips EMPILHAM ABAIXO do card como
+  // sempre fizeram. As colunas laterais só existem dentro do @media
+  // (min-width:1120px). Nada muda em eventos, querystring, submit ou estados.
+  const flankA = STARTER_TOPICS.slice(0, 1)
+  const flankB = STARTER_TOPICS.slice(1)
+
+  const renderStarter = (starter: (typeof STARTER_TOPICS)[number]) => (
+    <button
+      key={starter.id}
+      type="button"
+      title={starter.topic}
+      onClick={() => selectStarter(starter.topic, starter.id)}
+    >
+      {starter.label} →
+    </button>
+  )
+
   return (
     <form
       id="try-kineo"
-      className="composer"
+      className="composer-shell"
       ref={formRef}
       action={isSignedIn ? '/generate' : '/signup'}
       method="get"
       noValidate
       onSubmit={handleSubmit}
     >
-      <div className="composer-head">
-        <label htmlFor="home-short-topic">What should your Short be about?</label>
-        <span>{isSignedIn ? 'Free · no card' : 'Free · no signup'}</span>
-      </div>
-      <textarea
-        id="home-short-topic"
-        className="ci"
-        name="prompt"
-        rows={3}
-        required
-        minLength={MIN_PROMPT_LENGTH}
-        maxLength={1000}
-        value={prompt}
-        ref={textareaRef}
-        onChange={(event) => {
-          const next = event.target.value
-          setPrompt(next)
-          if (error) setError(null)
-          // The result belongs to the topic that produced it — drop it once the
-          // visitor edits away from that topic so nothing stale is handed off.
-          if (hasScript && next.trim() !== scriptTopic) {
-            setLines([])
-            setScriptTopic('')
-          }
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Type a topic — e.g. the island too dangerous to visit"
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? 'home-short-topic-error' : undefined}
-      />
-      {error && (
-        <p
-          id="home-short-topic-error"
-          role="alert"
-          style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '6px 0 0' }}
-        >
-          {error}
-          {!isSignedIn && prompt.trim().length >= MIN_PROMPT_LENGTH && (
-            <>
-              {' '}
-              <a href={fallbackHref} style={{ color: '#2997ff', fontWeight: 700 }}>
-                Create my Short anyway →
-              </a>
-            </>
-          )}
-        </p>
-      )}
-      <div className="topic-starters" aria-label="One-click topic starters">
-        <span>Not sure? Start with:</span>
-        <div>
-          {STARTER_TOPICS.map((starter) => (
-            <button
-              key={starter.id}
-              type="button"
-              title={starter.topic}
-              onClick={() => selectStarter(starter.topic, starter.id)}
-            >
-              {starter.label} →
-            </button>
-          ))}
+      <div className="composer">
+        <div className="composer-head">
+          <label htmlFor="home-short-topic">What should your Short be about?</label>
+          <span>{isSignedIn ? 'Free · no card' : 'Free · no signup'}</span>
         </div>
-      </div>
-      <input type="hidden" name="create_intent" value="fast" />
-      <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
-      <input type="hidden" name="utm_source" value="homepage" />
-      <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
-        {submitLabel}
-      </button>
-
-      {/* Anonymous-only: the script itself, then the honest wall. */}
-      {!isSignedIn && (
-        <div ref={resultRef} aria-live="polite">
-          {pending && (
-            <div
-              style={{
-                border: '1px solid rgba(255,255,255,0.08)',
-                borderRadius: 14,
-                padding: 16,
-                background: 'rgba(255,255,255,0.02)',
-                fontSize: 13,
-                color: '#86868b',
-              }}
-            >
-              Writing your hook, three facts and the payoff…
-            </div>
-          )}
-          {!pending && hasScript && (
-            <div
-              style={{
-                border: '1px solid rgba(41,151,255,0.25)',
-                borderRadius: 14,
-                padding: 18,
-                background: 'rgba(41,151,255,0.06)',
-                textAlign: 'left',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  color: '#2997ff',
-                  marginBottom: 12,
-                }}
-              >
-                Your script · free, no account
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {lines.map((line, i) => (
-                  <div key={i}>
-                    {line.label && (
-                      <div
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: '0.06em',
-                          color: '#2997ff',
-                          marginBottom: 2,
-                        }}
-                      >
-                        {line.label}
-                      </div>
-                    )}
-                    <div style={{ fontSize: 14.5, lineHeight: 1.5, color: '#f5f5f7' }}>{line.text}</div>
-                  </div>
-                ))}
-              </div>
-              <div
-                style={{
-                  marginTop: 16,
-                  paddingTop: 14,
-                  borderTop: '1px solid rgba(255,255,255,0.08)',
-                }}
-              >
-                <p style={{ fontSize: 12.5, lineHeight: 1.5, color: '#86868b', margin: '0 0 10px' }}>
-                  This script is yours to keep. Rendering it into a video — AI voice, footage and
-                  captions — needs a free account. No card. Your script comes with you.
-                </p>
-                <a
-                  className="btn btn-w"
-                  href={signupHref(activationPrompt)}
-                  onClick={handleCtaClick}
-                  style={{ textDecoration: 'none' }}
-                >
-                  Turn this into a video — free, no card →
+        <textarea
+          id="home-short-topic"
+          className="ci"
+          name="prompt"
+          rows={3}
+          required
+          minLength={MIN_PROMPT_LENGTH}
+          maxLength={1000}
+          value={prompt}
+          ref={textareaRef}
+          onChange={(event) => {
+            const next = event.target.value
+            setPrompt(next)
+            if (error) setError(null)
+            // The result belongs to the topic that produced it — drop it once the
+            // visitor edits away from that topic so nothing stale is handed off.
+            if (hasScript && next.trim() !== scriptTopic) {
+              setLines([])
+              setScriptTopic('')
+            }
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a topic — e.g. the island too dangerous to visit"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? 'home-short-topic-error' : undefined}
+        />
+        {error && (
+          <p
+            id="home-short-topic-error"
+            role="alert"
+            style={{ color: '#ff6b6b', fontSize: '0.85rem', margin: '6px 0 0' }}
+          >
+            {error}
+            {!isSignedIn && prompt.trim().length >= MIN_PROMPT_LENGTH && (
+              <>
+                {' '}
+                <a href={fallbackHref} style={{ color: '#2997ff', fontWeight: 700 }}>
+                  Create my Short anyway →
                 </a>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+              </>
+            )}
+          </p>
+        )}
+        <input type="hidden" name="create_intent" value="fast" />
+        <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
+        <input type="hidden" name="utm_source" value="homepage" />
+        <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
+          {submitLabel}
+        </button>
 
-      {/* KINEO-HERO-DECLUTTER-2026-07-30 — esta linha dizia, com 148 caracteres,
-          duas coisas que a página já dizia acima dela. O subtítulo do herói é
-          "Script, voice, captions and scenes in a few minutes" e o próprio card
-          se chama "What should your Short be about?". Repetir "script, voice,
-          footage and captions" aqui era a terceira vez na mesma dobra.
-          Do texto antigo sobrou só o que era informação NOVA: quanto tempo
-          demora. Menos texto no momento da ação, e nada perdido. */}
-      <p className="composer-proof">
-        {isSignedIn
-          ? 'Starts rendering instantly — usually 2–4 minutes.'
-          : 'Full script in seconds — no account, no card.'}
-      </p>
+        {/* Anonymous-only: the script itself, then the honest wall. */}
+        {!isSignedIn && (
+          <div ref={resultRef} aria-live="polite">
+            {pending && (
+              <div
+                style={{
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 14,
+                  padding: 16,
+                  background: 'rgba(255,255,255,0.02)',
+                  fontSize: 13,
+                  color: '#86868b',
+                }}
+              >
+                Writing your hook, three facts and the payoff…
+              </div>
+            )}
+            {!pending && hasScript && (
+              <div
+                style={{
+                  border: '1px solid rgba(41,151,255,0.25)',
+                  borderRadius: 14,
+                  padding: 18,
+                  background: 'rgba(41,151,255,0.06)',
+                  textAlign: 'left',
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    color: '#2997ff',
+                    marginBottom: 12,
+                  }}
+                >
+                  Your script · free, no account
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {lines.map((line, i) => (
+                    <div key={i}>
+                      {line.label && (
+                        <div
+                          style={{
+                            fontSize: 10,
+                            fontWeight: 800,
+                            letterSpacing: '0.06em',
+                            color: '#2997ff',
+                            marginBottom: 2,
+                          }}
+                        >
+                          {line.label}
+                        </div>
+                      )}
+                      <div style={{ fontSize: 14.5, lineHeight: 1.5, color: '#f5f5f7' }}>{line.text}</div>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  style={{
+                    marginTop: 16,
+                    paddingTop: 14,
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                  }}
+                >
+                  <p style={{ fontSize: 12.5, lineHeight: 1.5, color: '#86868b', margin: '0 0 10px' }}>
+                    This script is yours to keep. Rendering it into a video — AI voice, footage and
+                    captions — needs a free account. No card. Your script comes with you.
+                  </p>
+                  <a
+                    className="btn btn-w"
+                    href={signupHref(activationPrompt)}
+                    onClick={handleCtaClick}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    Turn this into a video — free, no card →
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* KINEO-HERO-DECLUTTER-2026-07-30 — esta linha dizia, com 148 caracteres,
+            duas coisas que a página já dizia acima dela. O subtítulo do herói é
+            "Script, voice, captions and scenes in a few minutes" e o próprio card
+            se chama "What should your Short be about?". Repetir "script, voice,
+            footage and captions" aqui era a terceira vez na mesma dobra.
+            Do texto antigo sobrou só o que era informação NOVA: quanto tempo
+            demora. Menos texto no momento da ação, e nada perdido. */}
+        <p className="composer-proof">
+          {isSignedIn
+            ? 'Starts rendering instantly — usually 2–4 minutes.'
+            : 'Full script in seconds — no account, no card.'}
+        </p>
+      </div>
+
+      {/* Os mesmos três atalhos, os mesmos dois eventos por clique, agora em
+          dois grupos: no desktop viram as colunas à esquerda e à direita do
+          card; abaixo de 1120px voltam a ser duas linhas de pílulas embaixo
+          da caixa. Grupo A leva a legenda, grupo B leva dois chips — dois
+          blocos de cada lado, para as colunas não ficarem tortas. */}
+      <div className="starter-flank starter-flank-a" role="group" aria-label="One-click topic starters">
+        <span className="starter-cap">Not sure? Start with:</span>
+        {flankA.map(renderStarter)}
+      </div>
+      <div className="starter-flank starter-flank-b" role="group" aria-label="More topic starters">
+        {flankB.map(renderStarter)}
+      </div>
     </form>
   )
 }

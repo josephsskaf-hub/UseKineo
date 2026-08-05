@@ -64,19 +64,26 @@ const KLP_CSS = `
    em vez de uma mancha chapada. */
 .klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.06),transparent 58%);pointer-events:none}
 .klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:22px 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
-.klp .composer{display:flex;flex-direction:column;gap:14px;margin-top:30px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:24px;width:100%;max-width:730px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
+/* KINEO-HERO-BIGGER-2026-08-05 — o <form> passou a ser o SHELL (sem moldura) e
+   o card visual virou um filho .composer. O shell é uma coluna no mobile (chips
+   empilham embaixo, como sempre) e vira grid de 3 colunas no desktop, com os
+   chips ladeando o card. Ver o bloco @media(min-width:1120px) mais abaixo. */
+.klp .composer-shell{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:30px;width:100%}
+.klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:730px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
 .klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
 .klp #try-kineo{scroll-margin-top:82px}
-.klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:17px;line-height:1.5;font-family:inherit;padding:6px 2px}
+.klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:18px;line-height:1.55;font-family:inherit;padding:6px 2px}
 .klp .composer .ci::placeholder{color:var(--muted2)}
 .klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:13px}
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.klp .composer-head label{font-size:14px;font-weight:700;color:var(--txt)}
+.klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
 .klp .composer-head span{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap}
-.klp .topic-starters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted2);font-size:12px}
-.klp .topic-starters>div{display:flex;gap:8px;flex-wrap:wrap}
-.klp .topic-starters button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 11px;min-height:44px;font:inherit;font-weight:650;cursor:pointer;transition:.18s}
-.klp .topic-starters button:hover,.klp .topic-starters button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
+/* Base = mobile: os dois grupos de atalhos são linhas de pílulas embaixo do
+   card. As colunas laterais são a exceção (só ≥1120px), nunca o padrão. */
+.klp .starter-flank{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:var(--muted2);font-size:12px;max-width:100%}
+.klp .starter-cap{color:var(--muted2);font-size:12px;font-weight:600;line-height:1.35}
+.klp .starter-flank button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 13px;min-height:44px;font:inherit;font-size:13px;font-weight:650;line-height:1.3;cursor:pointer;transition:.18s}
+.klp .starter-flank button:hover,.klp .starter-flank button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
 .klp section{padding:112px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
@@ -225,19 +232,41 @@ const KLP_CSS = `
 .klp .cmp tbody tr:hover td,.klp .cmp tbody tr:hover td:first-child{background:inherit}
 .klp .cmp tbody tr:hover td.us{background:rgba(41,151,255,.1)}
 }
-@media(max-width:520px){.klp .composer{flex-direction:column;align-items:stretch;padding:14px;gap:12px}.klp .composer .cbtn{align-self:stretch;justify-content:center}.klp .composer-proof{text-align:center}.klp .topic-starters{align-items:flex-start;flex-direction:column}}
-@media(max-width:560px){.klp .composer .ci{min-height:64px}.klp .hero{padding-top:40px}.klp .composer{margin-top:28px}.klp .composer .cbtn{order:1}.klp .composer-proof{order:1}.klp .topic-starters{order:2}}
-.klp .hero-center{position:relative;z-index:1;text-align:center;max-width:780px;margin:0 auto}
-.klp .hero-center h1{margin:0 auto;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance}
+@media(max-width:520px){.klp .composer{flex-direction:column;align-items:stretch;padding:14px;gap:12px}.klp .composer .cbtn{align-self:stretch;justify-content:center}.klp .composer-proof{text-align:center}}
+@media(max-width:560px){.klp .composer .ci{min-height:64px}.klp .hero{padding-top:40px}.klp .composer-shell{margin-top:28px;gap:12px}.klp .composer .cbtn{order:1}.klp .composer-proof{order:1}}
+/* KINEO-HERO-BIGGER-2026-08-05 — 780px era a medida de leitura do h1/.sub, mas
+   também travava a largura útil do composer. O container passa a 1024px (= a
+   largura interna do .wrap, então nada estoura na horizontal) e o h1 recebe a
+   medida de leitura antiga de volta, já que é ele quem precisava dela. */
+.klp .hero-center{position:relative;z-index:1;text-align:center;max-width:1024px;margin:0 auto}
+.klp .hero-center h1{margin:0 auto;max-width:780px;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance}
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
 @media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
-.klp .hero-center .composer{margin:44px auto 0;max-width:660px;min-height:auto;text-align:left}
+.klp .hero-center .composer-shell{margin:44px auto 0;max-width:1024px;text-align:left}
+.klp .hero-center .composer{margin:0 auto;max-width:760px;min-height:auto}
 /* KINEO-HERO-DECLUTTER-2026-07-30 — 104px deixava um vazio de quase uma dobra
    entre o placeholder e os atalhos de tópico, e o card lia como "faltando algo".
-   84px ainda comporta as 3 linhas de rows={3} sem barra de rolagem. */
-.klp .hero-center .composer .ci{min-height:84px}
+   84px ainda comporta as 3 linhas de rows={3} sem barra de rolagem.
+   KINEO-HERO-BIGGER-2026-08-05 — os atalhos saíram de dentro do card, então os
+   ~58px que eles ocupavam (pílula de 44px + gap) voltam para a área de escrita:
+   118px a 18px/1.55 são ~4 linhas visíveis. O card não fica mais comprido do
+   que era — só deixa de ser uma faixa fina. */
+.klp .hero-center .composer .ci{min-height:118px}
 .klp .hero-center .trust{text-align:center}
-@media(max-width:560px){.klp .hero-center .composer{margin-top:28px}.klp .hero-center .composer .ci{min-height:64px}}
+/* Colunas laterais: só quando existe espaço real para elas. 1024px de shell =
+   156 + 22 + 668 + 22 + 156. Abaixo disso o shell continua sendo a coluna
+   única do mobile — os chips nunca ficam nas laterais em tela pequena. */
+@media(min-width:1120px){
+.klp .hero-center .composer-shell{display:grid;grid-template-columns:156px minmax(0,1fr) 156px;align-items:center;gap:22px}
+.klp .hero-center .composer{grid-column:2;grid-row:1;max-width:none}
+.klp .hero-center .composer .ci{min-height:132px;font-size:19px}
+.klp .composer-shell .starter-flank{grid-row:1;flex-direction:column;align-items:stretch;justify-content:center;gap:10px;min-width:0}
+.klp .composer-shell .starter-flank-a{grid-column:1}
+.klp .composer-shell .starter-flank-b{grid-column:3}
+.klp .composer-shell .starter-flank button{width:100%;text-align:left;padding:10px 14px}
+.klp .composer-shell .starter-cap{padding-left:2px}
+}
+@media(max-width:560px){.klp .hero-center .composer-shell{margin-top:28px}.klp .hero-center .composer .ci{min-height:92px}}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:820px;margin:52px auto 0}
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:13px}
 .klp .hero-gallery .vcard .vt{font-size:12.5px}
