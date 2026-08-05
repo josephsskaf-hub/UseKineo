@@ -351,3 +351,17 @@ Vale para a sessao CEO e para TODAS as sprints diarias, daqui em diante:
   pagamentos e depositos ($ novos: micro-criadores, TAAFT domingo), senhas/chaves,
   compras, e qualquer coisa que mova dinheiro da conta dele.
 - Prestacao de contas: relatorio 22h + aviso imediato de venda/resgate/incidente.
+
+## ORDEM R — BING ADS $50 HOJE (06/08 tarde, aprovado em chat; fundador ansioso com 3 dias sem venda)
+Diagnostico do dia: funil vivo (14 cadastros, 101 nudges, 12 COMEBACK50 entregues) mas 12
+pricing views -> 4 clicks -> 0 checkout em 24h. Estatisticamente normal no volume atual —
+a resposta e MAIS INTENCAO no topo, nao panico.
+EXECUTAR HOJE (sessao logada Microsoft Ads via Bing Webmaster ja configurado 04/08):
+1. Campanha Search $50 total (teto diario $10), keywords EXATAS de concorrente:
+   "crayo alternative", "autoshorts alternative", "invideo alternative", "faceless video
+   generator", "ai shorts generator". Match exato/frase, US+CA+UK+AU.
+2. Landing: /alternatives/<concorrente> correspondente (ja prontas) com utm_source=bing.
+3. GATE fundador: só o cartao/pagamento da conta Microsoft Ads se pedir — resto e nosso.
+4. Medir por utm no placar diario; regra dos 7 dias vale.
+LEMBRETES DO DIA: shortlist micro-criadores AINDA DEVE SAIR HOJE (fundador paga a tarde);
+nudge 101 sents monitorar retorno; COMEBACK50 monitorar resgates (Stripe cupom COMEBACK50).
