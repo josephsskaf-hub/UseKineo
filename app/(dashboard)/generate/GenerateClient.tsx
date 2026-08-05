@@ -12,6 +12,7 @@ import PricingCards from '@/components/PricingCards'
 // AvatarPaywallModal below).
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent, trackSignupSource } from '@/lib/analytics'
+import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
 import { randomTopic } from '@/lib/curatedTopics'
@@ -4830,8 +4831,17 @@ export default function GenerateClient({
   // #383d — download with a title-based filename. The video lives on Supabase
   // (cross-origin), so the <a download="..."> attribute is IGNORED by browsers
   // and the file would save as a UUID. To force a readable name, fetch the file
-  // as a blob and download that with the slug. Falls back to opening the URL in
-  // a new tab if the blob fetch fails — download must never hard-break.
+  // as a blob and download that with the slug.
+  //
+  // KINEO-DOWNLOAD-TRUTH-2026-08-04 — a implementação inteira mudou de casa para
+  // lib/videoDownload.ts, que é agora a ÚNICA do produto (esta tela, /history e
+  // /my-videos chamavam o mesmo código copiado, com o mesmo defeito). Dois bugs
+  // morreram aqui:
+  //   1. o fallback era MUDO — `video_downloaded` só existia no caminho feliz,
+  //      então o buraco gerar→baixar (327 → 67 = 20%) era indiagnosticável;
+  //   2. o `window.open` roda DEPOIS de um `await`, fora do gesto do usuário:
+  //      no mobile o popup é barrado e a pessoa ficava com NADA, sem erro na
+  //      tela. Agora há um 3º degrau (location.href) que ninguém bloqueia.
   async function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
     if (!finalVideoUrl) return
     const slug = slugifyTitle(analysis?.title)
@@ -4842,32 +4852,18 @@ export default function GenerateClient({
         ? 'current_asset'
         : 'clean'
     e.preventDefault()
-    try {
-      const res = await fetch(finalVideoUrl)
-      if (!res.ok) throw new Error('fetch failed')
-      const blob = await res.blob()
-      const blobUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 4000)
-      trackEvent('video_downloaded', {
-        filename,
-        export_type: exportType,
-      })
-      if (exportType === 'watermarked') {
-        setWatermarkedDownloadConfirmed(true)
-      }
-    } catch {
-      // Fallback: open the original URL (old behavior) so the user still gets the file.
-      try {
-        window.open(finalVideoUrl, '_blank', 'noopener')
-      } catch {
-        /* last-resort no-op */
-      }
+    const method = await downloadVideoFile({
+      url: finalVideoUrl,
+      filename,
+      exportType,
+      surface: 'done_screen',
+      videoId: publicVideoId ?? null,
+    })
+    // Antes isto só rodava no caminho do blob: quem caísse no fallback ficava
+    // com o arquivo na mão e o app achando que não. Qualquer degrau que ENTREGOU
+    // conta como entregue — é o que destrava a marca d'água e o pedido de nota.
+    if (method && exportType === 'watermarked') {
+      setWatermarkedDownloadConfirmed(true)
     }
   }
 

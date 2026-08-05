@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
+import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
@@ -236,41 +237,29 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // attribute on cross-origin CDN URLs and save the raw UUID file, so we fetch
   // the bytes and name them ourselves. controlsList="nodownload" hides the ⋮
   // download path so users always get the correctly-named file.
+  // KINEO-DOWNLOAD-TRUTH-2026-08-04 — passa a usar lib/videoDownload, a única
+  // implementação de download do produto. O que muda: o clique agora é contado
+  // (`video_download_clicked`), a falha do blob deixa de ser muda e o fallback
+  // ganha um 3º degrau que nenhum navegador bloqueia.
   async function handleDownload(video: Video) {
     if (!video.video_url || downloadingId) return
     setDownloadingId(video.id)
+    const safeTitle = extractTitle(video.topic)
+      .replace(/[\\/:*?"<>|]/g, '')
+      .trim()
+      .replace(/\s+/g, '_')
+      .slice(0, 80)
+    const filename = safeTitle && safeTitle !== 'Untitled_Short'
+      ? `${safeTitle}.mp4`
+      : `shortsforge-${video.id.slice(0, 8)}.mp4`
     try {
-      const res = await fetch(video.video_url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      const objectUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = objectUrl
-      const safeTitle = extractTitle(video.topic)
-        .replace(/[\\/:*?"<>|]/g, '')
-        .trim()
-        .replace(/\s+/g, '_')
-        .slice(0, 80)
-      a.download = safeTitle && safeTitle !== 'Untitled_Short'
-        ? `${safeTitle}.mp4`
-        : `shortsforge-${video.id.slice(0, 8)}.mp4`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'video_downloaded',
-          metadata: {
-            video_id: video.id,
-            export_type: isWatermarkedFastAsset(video) ? 'watermarked' : 'clean',
-          },
-        }),
-      }).catch(() => {/* tracking must never affect UX */})
-    } catch {
-      window.open(video.video_url, '_blank', 'noopener,noreferrer')
+      await downloadVideoFile({
+        url: video.video_url,
+        filename,
+        exportType: isWatermarkedFastAsset(video) ? 'watermarked' : 'clean',
+        surface: 'history',
+        videoId: video.id,
+      })
     } finally {
       setDownloadingId(null)
     }

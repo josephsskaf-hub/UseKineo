@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
+import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
 export interface VideoRow {
@@ -215,46 +216,26 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
   // Native <a download> doesn't work for cross-origin CDN URLs — the browser
   // ignores the attribute and opens the MP4 in a new tab. Fetch the bytes
   // ourselves and trigger a blob download so the file actually saves locally.
+  //
+  // KINEO-DOWNLOAD-TRUTH-2026-08-04 — a implementação foi para lib/videoDownload
+  // (única no produto). Push #154 continua valendo: o nome do arquivo é o título.
   async function handleDownload(v: VideoRow) {
     if (!v.video_url || downloadingId) return
     setDownloadingId(v.id)
+    const safeTitle = v.title
+      .replace(/[\\/:*?"<>|]/g, '')
+      .trim()
+      .replace(/\s+/g, '_')
+      .slice(0, 80)
+    const filename = safeTitle ? `${safeTitle}.mp4` : `shortsforge-${v.id.slice(0, 8)}.mp4`
     try {
-      const res = await fetch(v.video_url)
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const blob = await res.blob()
-      const objectUrl = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = objectUrl
-      // Push #154 — use the video title as the download filename so the
-      // user can tell files apart without opening each one. Strip chars
-      // that are illegal in filenames on Windows/macOS, collapse spaces
-      // to underscores, and cap at 80 chars.
-      const safeTitle = v.title
-        .replace(/[\\/:*?"<>|]/g, '')
-        .trim()
-        .replace(/\s+/g, '_')
-        .slice(0, 80)
-      a.download = safeTitle ? `${safeTitle}.mp4` : `shortsforge-${v.id.slice(0, 8)}.mp4`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      // Give the browser a tick to start the download before revoking.
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1000)
-      // Fire-and-forget download tracking event (push #066).
-      fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'video_downloaded',
-          metadata: {
-            video_id: v.id,
-            export_type: isWatermarkedFastAsset(v) ? 'watermarked' : 'clean',
-          },
-        }),
-      }).catch(() => {/* swallow — tracking must never affect UX */})
-    } catch {
-      // Fall back to opening the URL in a new tab so the user isn't stranded.
-      window.open(v.video_url, '_blank', 'noopener,noreferrer')
+      await downloadVideoFile({
+        url: v.video_url,
+        filename,
+        exportType: isWatermarkedFastAsset(v) ? 'watermarked' : 'clean',
+        surface: 'my_videos',
+        videoId: v.id,
+      })
     } finally {
       setDownloadingId(null)
     }

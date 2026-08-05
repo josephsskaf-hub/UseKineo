@@ -16,6 +16,34 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+## 🔴 05/08 00:20Z (sprint 21h de 04/08) — **UM CLIQUE LIBERA 3 FEATURES PARADAS**
+
+**`scripts\40-PUSH.bat`** — 4 commits, e três deles já estavam prontos e parados no seu
+computador desde ontem à noite:
+
+| # | Commit | O quê | Estado |
+|---|---|---|---|
+| 1 | `249e172` | docs do replay | só documentação |
+| 2 | `23bc1ac` | **NUDGE DIÁRIO** — e-mail "seus 3 vídeos free voltaram" | migração **conferida em produção** nesta sprint ✅ |
+| 3 | `b1f05a7` | **POST TO EARN** — 3 créditos por Short publicado | tabela + trava anti-fraude **conferidas em produção** ✅ |
+| 4 | novo | **A VERDADE SOBRE O DOWNLOAD** | `tsc` EXITCODE=0 ✅ |
+
+Conferi as duas migrações no banco em vez de supor: **o único degrau que falta nos três é o
+push.** Se tivessem subido sem a migração, o POST TO EARN pagaria crédito sem trava de
+idempotência — dez contas colando o mesmo vídeo, dez pagamentos. Não é o caso.
+
+**O item 4, em uma frase:** 327 pessoas geraram um vídeo na Kineo e só 67 baixaram (**20%** — o
+maior buraco do funil), e esse número era **cego**: o evento só existia no caminho feliz e o
+fallback era mudo. Além disso o fallback usava `window.open` **depois de um `await`**, o que no
+celular é **popup bloqueado** — a pessoa ficava sem arquivo e **sem mensagem de erro**. Agora há
+um terceiro degrau que nenhum navegador barra, e o **clique** passa a ser contado.
+
+**Depois de rodar:** 24h depois, colar `docs/SQL-DOWNLOAD-TRUTH.sql` no Supabase. São 5 queries
+e elas dizem qual das três causas do buraco é a verdadeira — **antes** de gastarmos uma sprint
+construindo a Medida 5 (CTA sticky), que só resolve uma das três.
+
+⚪ O `39-PUSH.bat` (só docs) fica obsoleto: o 40 leva tudo o que ele levava.
+
 ## ✅ 04/08 22:28Z — GATE A DA SPRINT 19h JÁ FOI FECHADO PELO FUNDADOR
 
 **PUSH FEITO DURANTE A SPRINT.** `origin/main = 6ea2180`, deploy `dpl_42nGKG…` **READY em
