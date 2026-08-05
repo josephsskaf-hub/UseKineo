@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 
 // send-cap-hit — Ordem 4 (docs/ORDENS-CONVERSAO-2026-08-02.md), 03/08/2026.
@@ -36,17 +37,16 @@ const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 
 /** The free wall this email is about (compose/route.ts FREE_FAST_PREVIEW_LIMIT). */
 const FREE_CAP = 3
 
-function isTestEmail(email: string): boolean {
-  const e = email.toLowerCase()
-  return (
-    e.startsWith('josephsskaf') ||
-    e.startsWith('josephskaf') ||
-    e.endsWith('@shortsforgeai.com') ||
-    e.startsWith('test') ||
-    e.includes('mailinator') ||
-    e.startsWith('smoketest')
-  )
-}
+// Tetos explícitos (padrão de send-blackout-winback). Um incidente de fornecedor
+// EMPURRA gente para o muro — reserva abandonada consome cota — então a coorte
+// pode inchar de repente. Sem teto, um blackout viraria um disparo em massa.
+const MAX_PER_RUN = 60
+const MAX_COHORT_IDS = 300
+
+// A lista de contas internas mora em lib/internalAccounts.ts — cópia local
+// deixava de fora a irmã do fundador, os aliases `joseph+…` e o revisor do
+// TAAFT. Antes isso quase nunca importava (exigia 3 vídeos completos em 24h);
+// com a coorte lendo o muro, bastava UMA recusa para queimar essas contas.
 
 // Fail-closed cron auth (KINEO-CRON-FAILCLOSED-2026-07-27 pattern).
 function isAuthorized(req: NextRequest): boolean {
@@ -69,7 +69,7 @@ function buildEmail(userId: string) {
 
   const text = `Hey,
 
-You just made your 3rd video today — that's the free cap for 24 hours. Nice run.
+You've used up today's free Fast previews — the cap is ${FREE_CAP} every 24 hours.
 
 If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark, and your first month is half off — ${intro}, then ${monthly}/month. Cancel anytime.
 
@@ -82,7 +82,7 @@ usekineo.com`
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;">You just made your <strong>3rd video today</strong> — that's the free cap for 24 hours. Nice run.</p>
+  <p style="margin:0 0 14px;">You've used up <strong>today's free Fast previews</strong> — the cap is ${FREE_CAP} every 24 hours.</p>
   <p style="margin:0 0 14px;">If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark, and your first month is half off — <strong>${intro}</strong>, then ${monthly}/month. Cancel anytime.</p>
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Keep creating &rarr;</a></p>
   <p style="margin:0 0 14px;">Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.</p>
@@ -115,33 +115,85 @@ export async function GET(req: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // Who completed >= FREE_CAP videos in the rolling 24h window? Volume is small
-  // (dozens of completed videos/day), so counting in memory is fine and avoids
-  // a DB function.
+  // ── KINEO-CAPHIT-READS-THE-WALL-2026-08-05 ────────────────────────────────
+  // BUG CORRIGIDO: este cron existe para o momento em que a pessoa BATE no muro
+  // — e não lia o muro. Ele reconstruía a coorte a partir de `videos` completos
+  // (>= 3 em 24h), enquanto o muro de verdade (compose/route.ts) conta RESERVAS
+  // (`compose_submission_claim`), não vídeos. Os dois denominadores discordam:
+  // uma reserva abandonada consome a cota e não vira vídeo.
+  //
+  // Medido em 05/08: 27 de 231 reservas gratuitas em 7 dias (11,7%) não viraram
+  // vídeo. Efeito prático — as 3 pessoas que bateram no muro nas últimas 24h
+  // tinham 2 vídeos completos cada, ABAIXO do corte de 3. Este cron era
+  // estruturalmente cego para elas: 8 das 11 pessoas que bateram no muro em
+  // toda a história nunca receberam o e-mail, e nenhuma das 11 comprou.
+  //
+  // Fonte primária agora é `compose_refused` — o registro que o próprio muro
+  // escreve quando devolve 402. O proxy antigo (>= FREE_CAP vídeos em 24h)
+  // continua como fonte SECUNDÁRIA: quem completou a cota e ainda não tentou a
+  // 4ª também está no muro, só não esbarrou nele ainda.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: recentVideos, error: videosErr } = await admin
-    .from('videos')
-    .select('user_id')
-    .eq('status', 'completed')
-    .gte('created_at', since)
 
-  if (videosErr) {
-    console.error('[send-cap-hit] videos query error:', videosErr.message)
-    return NextResponse.json({ error: videosErr.message }, { status: 500 })
+  const [refusalsResult, videosResult] = await Promise.all([
+    admin
+      .from('events')
+      .select('user_id')
+      .eq('name', 'compose_refused')
+      .eq('metadata->>reason', 'free_fast_limit')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(2000),
+    // O proxy tem que contar O MESMO que o muro conta: Fast e sem crédito
+    // (compose/route.ts reserveFreeFastPreviewSlot). Sem `quality_mode`/
+    // `credits_used` aqui, renders cinematográficos e Fast PAGOS entravam na
+    // coorte — e um comprador com plan='free' recebia "você bateu no teto free".
+    admin
+      .from('videos')
+      .select('user_id')
+      .eq('status', 'completed')
+      .eq('quality_mode', 'fast')
+      .eq('credits_used', 0)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(2000),
+  ])
+
+  if (refusalsResult.error || videosResult.error) {
+    const msg = refusalsResult.error?.message ?? videosResult.error?.message ?? 'unknown'
+    console.error('[send-cap-hit] cohort query error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
+  // (a) Bateram no muro de verdade — sinal quente, sem ambiguidade.
+  const refusedIds = new Set<string>()
+  for (const row of refusalsResult.data ?? []) {
+    const id = row.user_id as string | null
+    if (id) refusedIds.add(id)
+  }
+
+  // (b) Proxy antigo: completaram a cota inteira na janela.
   const perUser = new Map<string, number>()
-  for (const row of recentVideos ?? []) {
+  for (const row of videosResult.data ?? []) {
     const id = row.user_id as string | null
     if (!id) continue
     perUser.set(id, (perUser.get(id) ?? 0) + 1)
   }
-  const cappedIds = Array.from(perUser.entries())
-    .filter(([, n]) => n >= FREE_CAP)
-    .map(([id]) => id)
+
+  // `.in('id', ...)` viaja na query string do PostgREST — mesma armadilha que
+  // lib/lifecycle/suppression.ts documenta (CHUNK_SIZE 200). Com a fonte nova a
+  // coorte pode crescer, então o teto é explícito. O resto volta na próxima
+  // rodada (30 min) — ninguém é perdido, só adiado.
+  const cappedIds = Array.from(
+    new Set<string>([
+      ...refusedIds,
+      ...Array.from(perUser.entries())
+        .filter(([, n]) => n >= FREE_CAP)
+        .map(([id]) => id),
+    ]),
+  ).slice(0, MAX_COHORT_IDS)
 
   if (cappedIds.length === 0) {
-    return NextResponse.json({ sent: 0, skipped: 0, total: 0 })
+    return NextResponse.json({ sent: 0, skipped: 0, total: 0, refused: 0, cohort: 0 })
   }
 
   const { data: candidates, error } = await admin
@@ -166,6 +218,8 @@ export async function GET(req: NextRequest) {
   let suppressed = 0
 
   for (const u of candidates ?? []) {
+    if (sent >= MAX_PER_RUN) break
+
     // Suppressed = another lifecycle email in the last 24h. NOT stamped — they
     // stay eligible on the next run while still inside their hot window.
     if (suppression.isSuppressed(u.id as string)) {
@@ -176,9 +230,15 @@ export async function GET(req: NextRequest) {
     const email = u.email?.trim()
     const plan = (u.plan ?? 'free').toLowerCase()
 
-    // Paid users don't have the wall; test accounts never get lifecycle mail.
-    // Stamp so the row is never reconsidered (same pattern as the other jobs).
-    if (!email || isTestEmail(email) || PAID_PLANS.has(plan)) {
+    // Plano é REVERSÍVEL e o carimbo é VITALÍCIO: carimbar um pagante aqui o
+    // queima para sempre caso ele volte para o free. Pagante só pula.
+    if (email && !isInternalEmail(email) && PAID_PLANS.has(plan)) {
+      skipped++
+      continue
+    }
+
+    // Conta interna / sem e-mail: carimba, porque isso nunca muda.
+    if (!email || isInternalEmail(email)) {
       skipped++
       await admin
         .from('profiles')
@@ -226,6 +286,10 @@ export async function GET(req: NextRequest) {
     sent,
     skipped,
     total: (candidates ?? []).length,
+    // Observabilidade da correção: quantos vieram do MURO (compose_refused) vs.
+    // do proxy antigo. `refused` alto com `sent` 0 = coorte já carimbada.
+    refused: refusedIds.size,
+    cohort: cappedIds.length,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
   })

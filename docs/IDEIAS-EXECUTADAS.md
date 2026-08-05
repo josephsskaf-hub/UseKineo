@@ -117,7 +117,31 @@ pelo cron de recuperação (que procurava só `openai_quota_dead` e teria devolv
 `no_blackout_in_window` com o produto no chão). **Métrica:** zero cluster de erro sem marcador
 correspondente. **Morte: 12/08.**
 
+## 05/08 (16h) — O SINAL DE COMPRA MAIS QUENTE ESTAVA INDO PARA O LIXO ✅
+
+Puxei o fio de um falso alarme (um "erro" das 19:00Z que era HTTP 402 de paywall) e ele terminou no
+dinheiro. **Quem bate no muro do free é a pessoa mais qualificada do funil inteiro** — usou o
+produto 3× hoje e pediu a 4ª. Em toda a história, **11 pessoas fizeram isso e as 11 continuam
+`free`/`has_paid=false`. Conversão: 0 de 11.** O cron feito para esse momento (`send-cap-hit`,
+Ordem 4) rodava de 30 em 30 min desde 03/08 e **8 das 11 nunca receberam o e-mail**.
+
+Causa: **dois denominadores para a mesma regra.** O muro (`compose/route.ts`) conta RESERVAS
+(`compose_submission_claim`); o cron contava VÍDEOS COMPLETOS (≥3/24h). Divergem sempre que uma
+reserva não vira vídeo — e **27 de 231 reservas free em 7 dias (11,7%) não viraram**. Resultado:
+as 3 pessoas que bateram no muro nas últimas 24h têm **2 vídeos completos cada**, abaixo do corte.
+O cron era **estruturalmente cego**, não ocasionalmente azarado.
+
+Correção: a coorte passa a ler `compose_refused` (o registro que o próprio muro escreve no 402),
+com o proxy antigo mantido como fonte secundária e **alinhado ao muro** (`quality_mode='fast'` +
+`credits_used=0`, senão um comprador com `plan='free'` recebia "você bateu no teto do grátis").
+A revisão adversarial barrou a 1ª versão com 6 bloqueadores — o pior deles **texto, não código**:
+a copy dizia *"You just made your 3rd video today — Nice run."* para quem tinha recebido 2 vídeos
+e acabado de perder renders num apagão. **Métrica:** `cap_hit_sent_at` → `checkout_started` no
+mesmo dia (hoje 3 enviados, 0 checkouts). **Morte: 12/08** se 10 envios não derem 1 checkout.
+
 ## Fila (avaliadas, ainda não executadas — livres para uma sprint pegar)
+
+- **IDEIA CEO 05/08 (16h) — VENDER A COTA QUE NÓS MESMOS QUEIMAMOS**: o plano free não é marketing, é uma **promessa numérica** ("3 por dia") — e nós a quebramos em **11,7% dos casos** (27 de 231 reservas em 7 dias consumiram a cota sem produzir vídeo), em silêncio, e **pedimos dinheiro na mesma tela**. Caso medido: cadastro novo do dia queimou 3 slots, recebeu 2 vídeos, bateu no muro no 1º dia. A inversão: **devolver a cota antes que a pessoa perceba que a perdeu, e usar a devolução como peça de venda** — reserva sem vídeo em 30 min → devolve o slot + uma linha ("uma das suas 3 gerações travou do nosso lado; devolvemos"). Por que vende mais que o upsell: a objeção real de quem testa um gerador de IA não é preço, é *"será que funciona?"* — o upsell responde com uma cobrança, a devolução responde com uma prova. O ativo escondido: **hoje a única forma de sabermos que um render morreu é o usuário apertar de novo e bater no muro** — nossa detecção de falha É o cliente irritado; a devolução transforma o mesmo evento em contato proativo. ⚠️ Tensão a resolver ANTES de construir: liberar toda reserva sem vídeo abre abuso (gerar/abandonar/repetir = computação infinita), então devolver só quando a falha for NOSSA (fornecedor/lambda morta) e nunca em abandono — o evento que distingue os dois já existe. Mexe em cota: nasce com revisão adversarial + conferência de migração. **Gatilho: imediato** (já medido). Métrica: % de reservas free sem vídeo (hoje 11,7%) · taxa de 2º vídeo (hoje 24,3%). Morte: 14 dias sem mover nenhuma das duas. Retorno÷esforço ALTO/médio
 
 - **IDEIA CEO 05/08 (13h) — O SEGURO CONTRA O FORNECEDOR QUE AINDA NÃO NOS TRAIU**: em 26 dias, TRÊS fornecedores derrubaram o produto de TRÊS jeitos diferentes (fal a $0 com 502 em 10/07; OpenAI sem crédito com 500 mudo em 31/07; OpenAI sem responder com 504 em 05/08) e toda vez construímos o detector do sintoma PASSADO — sempre blindados contra a última queda, nus contra a próxima. A inversão: **parar de detectar o fornecedor e detectar o CLIENTE**. Cron de 10 em 10 min com uma pergunta só: "quantas pessoas distintas tiveram erro nos últimos 15 min COM zero vídeos completados no período?" ≥3 pessoas e 0 conclusões → é queda, não importa de quem → alarme + 503 honesto + fila de win-back. Teria pegado o incidente de 05/08 às 15:41, **15 min depois do primeiro erro**, sem saber nada sobre OpenAI, timeout ou 504. Por que ninguém faz: exige admitir que você NÃO vai antecipar o próximo modo de falha, e monitorar o sintoma do usuário (ruidoso) em vez do erro do fornecedor (limpo e inútil). Por que traz dinheiro: a métrica que decide é cadastro que ATIVA, e pessoa do TAAFT queimada no 1º dia não volta — cada blackout não detectado é aquisição paga jogada fora. **Gatilho: imediato** (é uma query + um cron, ambos com molde pronto em `send-blackout-winback`). Métrica: tempo entre 1º erro do cluster e o alarme (hoje: **nunca**). Morte: 14 dias sem pegar um cluster que os detectores por fornecedor perderam. Retorno÷esforço ALTO/baixo
 
