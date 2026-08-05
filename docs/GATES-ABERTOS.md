@@ -1,4 +1,14 @@
-# 🔴 GATE #1 — `scripts\47-PUSH.bat` — **SUBSTITUI O 46, QUE NÃO FOI CLICADO** (05/08 19h)
+# 🟢 GATE #1 — `scripts\47-PUSH.bat` — **CLICADO ÀS ~19:28Z. FECHADO.**
+
+`origin/main` = `457a46f`. Subiu tudo o que estava parado desde ontem: estudo vivo, shortlist de
+micro-criadores, **hotfix do incidente OpenAI/504** e **o cap-hit lendo o muro**. A Vercel faz o
+deploy sozinha. Os pushes 44, 45 e 46 ficam obsoletos — não clicar.
+
+**Libera o gate #2 (Conor Martin, $100), que dependia do push.**
+
+<details><summary>texto original do gate (histórico)</summary>
+
+# ~~🔴 GATE #1 — `scripts\47-PUSH.bat`~~ (05/08 19h)
 
 **Clique só neste.** O 46 não foi clicado (`main` estava 2 commits à frente às 19:01Z). O 47 sobe
 tudo o que está pendente de uma vez — nada se perde por pular o 46.
@@ -20,6 +30,8 @@ entram na fila na primeira rodada depois do push.** Corrigida também a frase qu
 acabou de fazer seu 3º vídeo hoje — Nice run" para quem tinha recebido 2.
 
 Enquanto não for clicado, nada disto está no ar.
+
+</details>
 
 ---
 
