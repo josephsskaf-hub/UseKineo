@@ -1,7 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
+import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
+import {
+  looksOpenAiQuotaDead,
+  looksOpenAiHanging,
+  alertOpenAiExhausted,
+  ENGINE_CAPACITY_MESSAGE,
+} from '@/lib/openaiAlert'
+
+// KINEO-OPENAI-HANG-2026-08-05 — this route was the ONLY OpenAI-backed route in
+// the whole app with no maxDuration, so it silently inherited Vercel's short
+// default (15s). It does up to TWO sequential gpt-4o calls (the #383b quality
+// guardrail regenerates once), which does not fit in 15s — and since #310
+// AUTO-STRUCTURE every free-form prompt passes through here, this sat on the
+// critical path of essentially every generation. When the budget blew, the
+// lambda was killed mid-flight and the browser's fetch threw a bare TypeError
+// (`generate_script_threw`, http_status null) — the exact signature logged for
+// both users during the 05/08 15:36–15:56Z blackout.
+// 60s matches its siblings (analyze-idea, generate). Both gpt-4o calls below
+// are pinned to 35s with maxRetries 0 — 35 + 35 = 70 would overrun, but the
+// second only runs when the first RETURNED (the #383b guardrail needs a script
+// to critique), so a timeout on the first ends the request at 35s. What must
+// never happen is a retry doubling either one; that is why maxRetries is 0.
+export const maxDuration = 60
 
 // generate-script — Push #316 (updated from #311/#310)
 //
@@ -171,18 +192,24 @@ export async function POST(req: NextRequest) {
 
     const SYSTEM_PROMPT = buildSystemPrompt(language)
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      temperature: 0.7,
-      max_tokens: 700,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content: 'Write a viral YouTube Short script about this topic:\n\n' + topic,
-        },
-      ],
-    })
+    const completion = await openai.chat.completions.create(
+      {
+        model: 'gpt-4o',
+        temperature: 0.7,
+        max_tokens: 700,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          {
+            role: 'user',
+            content: 'Write a viral YouTube Short script about this topic:\n\n' + topic,
+          },
+        ],
+      },
+      // 35s, not the 20s client default: gpt-4o emitting a 700-token script
+      // routinely takes 10–18s, so 20s would turn a slow-but-HEALTHY call into a
+      // hard 503 plus a false "OpenAI is down" page to the founder.
+      { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 },
+    )
 
     let script = completion.choices[0]?.message?.content?.trim() ?? ''
     if (!script) {
@@ -215,7 +242,9 @@ export async function POST(req: NextRequest) {
                 `Your script had problems: ${problems.join('; ')}. Rewrite the FULL script using EXACTLY the required headers, in order, each present and on its own line: HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF. ESCALATION must raise the stakes above MICRO REWARD 3. RHYTHM must be 2-3 ultra-short 1-3 word punches. The PAYOFF MUST deliver the concrete answer the hook promised (a specific fact, number, name, mechanism, or the single most-accepted theory) — NO questions, NO "no one knows", NO "remains a mystery", NO teasing — with the follow CTA on a SEPARATE line after the reveal. Every fact (especially the PAYOFF) must be LESSER-KNOWN: never the single most famous fact about the topic. Respond with ONLY the script.`,
             },
           ],
-        })
+        },
+        // Same 35s budget as the first pass. Both fit inside maxDuration 60.
+        { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 })
         const retryScript = retry.choices[0]?.message?.content?.trim() ?? ''
         if (retryScript) {
           script = retryScript
@@ -236,6 +265,16 @@ export async function POST(req: NextRequest) {
     // page the founder and tell the user the truth (503 + honest copy).
     if (looksOpenAiQuotaDead(err)) {
       await alertOpenAiExhausted('/api/generate-script')
+      return NextResponse.json(
+        { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+        { status: 503 },
+      )
+    }
+    // KINEO-OPENAI-HANG-2026-08-05 — a hang now lands HERE instead of killing the
+    // lambda, so the user gets the same honest 503 the empty-wallet case gets
+    // (and the founder gets a page that says "slow", not "out of credits").
+    if (looksOpenAiHanging(err)) {
+      await alertOpenAiExhausted('/api/generate-script', 'hang')
       return NextResponse.json(
         { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
         { status: 503 },

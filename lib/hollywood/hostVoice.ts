@@ -78,13 +78,22 @@ export async function synthesizeHostSpeech(args: {
     0.7,
     Math.min(1.3, Number.isFinite(args.speed) && (args.speed as number) > 0 ? (args.speed as number) : 1.0),
   )
-  const { openai } = await import('@/lib/openai')
-  const speech = await openai.audio.speech.create({
-    model: 'tts-1-hd',
-    voice: args.voice,
-    input,
-    speed: safeSpeed,
-  })
+  // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
+  // Critical here: this runs inside per-block loops (app/api/compose/route.ts
+  // and generate-video-cinematic, the latter on a 60s budget). Inheriting 20s
+  // would burn ~40s per block and fall back to generateTTS, which re-picks a
+  // persona per call — silently resurrecting the "different voice every scene"
+  // bug this file exists to prevent (KINEO-HOLLYWOOD-HOST-2026-07-13).
+  const { openai, OPENAI_TTS_TIMEOUT_MS } = await import('@/lib/openai')
+  const speech = await openai.audio.speech.create(
+    {
+      model: 'tts-1-hd',
+      voice: args.voice,
+      input,
+      speed: safeSpeed,
+    },
+    { timeout: OPENAI_TTS_TIMEOUT_MS, maxRetries: 0 },
+  )
   const buf = Buffer.from(await speech.arrayBuffer())
   if (!buf || buf.length === 0) throw new Error('TTS returned an empty buffer')
   return buf

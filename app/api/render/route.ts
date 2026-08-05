@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
+import { openai, OPENAI_TTS_TIMEOUT_MS } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 // PUSH #95 — a Creatomate `shape` has NO geometry other than its `path`; with
 // no path it draws nothing and the API ignores it silently. Both shapes below
@@ -160,7 +160,11 @@ export async function POST(req: NextRequest) {
     if (process.env.OPENAI_API_KEY) {
       try {
         const ttsInput = script.length > 4000 ? script.slice(0, 4000) : script
-        const speech = await openai.audio.speech.create({ model: 'tts-1', voice: 'onyx', input: ttsInput })
+        // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
+        const speech = await openai.audio.speech.create(
+          { model: 'tts-1', voice: 'onyx', input: ttsInput },
+          { timeout: OPENAI_TTS_TIMEOUT_MS, maxRetries: 0 },
+        )
         const buf = Buffer.from(await speech.arrayBuffer())
         voiceoverUrl = await uploadVoiceover(user.id, buf)
         console.log('[render] voiceover:', voiceoverUrl ? 'uploaded ok' : 'null')

@@ -13,8 +13,8 @@ import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emai
 // most expensive traffic we have ever had.
 //
 // How it decides (all read-only until the send):
-//   1. Find `openai_quota_dead` markers in the last 48h (written by the routes
-//      wired to openaiAlert). None → no blackout → exit.
+//   1. Find BLACKOUT_MARKER_REASONS markers in the last 48h (written by the
+//      routes wired to openaiAlert). None → no blackout → exit.
 //   2. Recovery = last marker is >= 45 min old AND at least one video COMPLETED
 //      after it. Until both are true, do nothing (never e-mail "we're back"
 //      while we're down — that would be worse than silence).
@@ -51,6 +51,12 @@ const RECOVERY_QUIET_MS = 45 * 60 * 1000
 const DEDUPE_WINDOW_MS = 7 * 24 * HOUR_MS
 // Client-side gate noise — not provider failures, not blackout victims.
 const NON_PROVIDER_REASONS = new Set(['analyze_blocked_active_render_gate'])
+
+// KINEO-OPENAI-HANG-2026-08-05 — every reason that means "a provider took
+// generation down for everyone". Keep this list as the ONE place a new
+// provider-outage symptom gets registered: detection (lib/openaiAlert.ts) and
+// recovery (this cron) must never again know about different sets of symptoms.
+const BLACKOUT_MARKER_REASONS = ['openai_quota_dead', 'openai_hang']
 
 function isTestEmail(email: string): boolean {
   const e = email.toLowerCase()
@@ -133,7 +139,14 @@ export async function GET(req: NextRequest) {
     .from('events')
     .select('created_at')
     .eq('name', 'generation_stage_error')
-    .eq('metadata->>reason', 'openai_quota_dead')
+    // KINEO-OPENAI-HANG-2026-08-05 — was `.eq(reason, 'openai_quota_dead')`, and
+    // that single-symptom key made RECOVERY as blind as detection was. The 05/08
+    // blackout wrote no quota marker at all (OpenAI never answered; the lambda
+    // was killed before any catch could record one), so this cron would have
+    // reported `no_blackout_in_window` while two users — one a first-day TAAFT
+    // signup — burned 20 minutes on four dead attempts. Any marker in this set
+    // means "a provider took generation down"; recovery must not care which one.
+    .in('metadata->>reason', BLACKOUT_MARKER_REASONS)
     .gte('created_at', new Date(now - MARKER_LOOKBACK_MS).toISOString())
     .order('created_at', { ascending: true })
     .limit(2000)

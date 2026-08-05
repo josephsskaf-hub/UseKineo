@@ -7,7 +7,7 @@
 import { createHash } from 'node:crypto'
 import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
-import { buildCaptionSegments, pickHighlightWord, type CaptionSegment } from '@/lib/openai'
+import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
 import { splitIntoSections, hasViralSections } from '@/lib/narration/section-tts'
@@ -517,12 +517,16 @@ export async function generateTTS(
               ? sectionText
               : `${sectionText.replace(/\.+$/, '')}...`
           const input = pausedText.length > 3800 ? pausedText.slice(0, 3800) : pausedText
-          const speech = await openai.audio.speech.create({
-            model: 'tts-1-hd',
-            voice: resolvedVoice,
-            input,
-            speed: safeSection,
-          })
+          // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
+          const speech = await openai.audio.speech.create(
+            {
+              model: 'tts-1-hd',
+              voice: resolvedVoice,
+              input,
+              speed: safeSection,
+            },
+            { timeout: OPENAI_TTS_TIMEOUT_MS, maxRetries: 0 },
+          )
           buffers.push(Buffer.from(await speech.arrayBuffer()))
         }
         // PUSH #93 (FIX 6) — the bare byte-concat is kept: re-encoding or
@@ -539,12 +543,16 @@ export async function generateTTS(
   const input = cleaned.length > 3800 ? cleaned.slice(0, 3800) : cleaned
   const safeSpeed = Math.max(0.7, Math.min(1.3, Number.isFinite(baseSpeed) ? baseSpeed : 1.0))
   const { openai } = await import('@/lib/openai')
-  const speech = await openai.audio.speech.create({
-    model: 'tts-1-hd',
-    voice: resolvedVoice,
-    input,
-    speed: safeSpeed,
-  })
+  // KINEO-OPENAI-HANG-2026-08-05 — TTS overrides the 20s client default.
+  const speech = await openai.audio.speech.create(
+    {
+      model: 'tts-1-hd',
+      voice: resolvedVoice,
+      input,
+      speed: safeSpeed,
+    },
+    { timeout: OPENAI_TTS_TIMEOUT_MS, maxRetries: 0 },
+  )
   return Buffer.from(await speech.arrayBuffer())
 }
 
@@ -769,7 +777,14 @@ export async function transcribeTTSWithTimestamps(buffer: Buffer): Promise<Whisp
       // stream does. Without this the caption chunker cannot see a full stop
       // and the beat aligner is permanently dead.
       timestamp_granularities: ['word', 'segment'],
-    } as Parameters<typeof openai.audio.transcriptions.create>[0])
+    } as Parameters<typeof openai.audio.transcriptions.create>[0],
+    // KINEO-OPENAI-HANG-2026-08-05 — Whisper uploads the ENTIRE voiceover mp3
+    // (30–90s of audio) and asks for verbose_json with word+segment timestamps.
+    // The 20s client default is not enough for a 90s render, and this failure is
+    // SILENT: the catch returns [] and captions fall back to proportional
+    // distribution, so the symptom is permanently drifting captions on the paid
+    // path rather than an error anyone sees.
+    { timeout: OPENAI_WHISPER_TIMEOUT_MS, maxRetries: 0 })
     const words: WhisperWord[] = transcription?.words ?? []
     const segments: Array<{ start?: number; end?: number; text?: string }> =
       transcription?.segments ?? []

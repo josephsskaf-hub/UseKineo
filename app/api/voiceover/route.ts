@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { openai } from '@/lib/openai'
+import { openai, OPENAI_TTS_TIMEOUT_MS } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 
 export const maxDuration = 60
@@ -41,11 +41,16 @@ export async function POST(req: NextRequest) {
 
     let speech
     try {
-      speech = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: 'onyx',
-        input,
-      })
+      // KINEO-OPENAI-HANG-2026-08-05 — TTS legitimately runs longer than chat,
+      // so it overrides the 20s client default instead of inheriting it.
+      speech = await openai.audio.speech.create(
+        {
+          model: 'tts-1',
+          voice: 'onyx',
+          input,
+        },
+        { timeout: OPENAI_TTS_TIMEOUT_MS, maxRetries: 0 },
+      )
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[voiceover] OpenAI TTS error:', msg)

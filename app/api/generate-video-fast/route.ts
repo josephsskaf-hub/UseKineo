@@ -17,7 +17,12 @@ import { pickLibraryClips, type LibraryClip } from '@/lib/stockLibrary'
 // import { ensureAccessibleUrl } from '@/lib/videoCache'
 import { parseUserScript } from '@/lib/scriptParser'
 import { writeServerEvent } from '@/lib/serverEvents'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted, ENGINE_CAPACITY_MESSAGE } from '@/lib/openaiAlert'
+import {
+  looksOpenAiQuotaDead,
+  looksOpenAiHanging,
+  alertOpenAiExhausted,
+  ENGINE_CAPACITY_MESSAGE,
+} from '@/lib/openaiAlert'
 // PUSH #96 — single source of truth for the people/lifestyle vocabulary.
 // This regex used to be re-declared literally below, with a comment on both
 // sides asking a human to keep them in sync. It is now derived from
@@ -482,6 +487,25 @@ export async function POST(req: NextRequest) {
         if (looksOpenAiQuotaDead(err)) {
           await alertOpenAiExhausted('/api/generate-video-fast (scene generation)')
           recordFastFailure('scripting', 'openai_quota_dead', 503, user.id, {
+            error_name: err instanceof Error ? err.name : 'unknown',
+            clip_count: clipCount,
+          })
+          return NextResponse.json(
+            { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+            { status: 503 },
+          )
+        }
+        // KINEO-OPENAI-HANG-2026-08-05 — the sibling failure mode, and the one
+        // that actually bit on 05/08: OpenAI never answered, this route blew its
+        // 120s budget, and Vercel's gateway returned a raw 504 the client logged
+        // as `fast_dispatch_not_ok`. A gateway 504 skips this handler entirely,
+        // so the user saw the generic "Video generation failed. Please try
+        // again." and retried into the same wall 4 times. With the client
+        // timeout capped in lib/openai.ts the hang now arrives as a catchable
+        // error here, and gets the same honest 503 as an empty wallet.
+        if (looksOpenAiHanging(err)) {
+          await alertOpenAiExhausted('/api/generate-video-fast (scene generation)', 'hang')
+          recordFastFailure('scripting', 'openai_hang', 503, user.id, {
             error_name: err instanceof Error ? err.name : 'unknown',
             clip_count: clipCount,
           })

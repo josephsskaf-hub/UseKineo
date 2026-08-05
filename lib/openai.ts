@@ -1,5 +1,43 @@
 import OpenAI from 'openai'
 
+// KINEO-OPENAI-HANG-2026-08-05 — a SLOW OpenAI must fail INSIDE our catch.
+//
+// Incident 05/08 15:36–15:56Z: a brand-new TAAFT signup tried 4× in 20 min and
+// failed 4×. Signature: `fast_dispatch_not_ok` http_status 504 (generate-video-fast,
+// maxDuration 120) and `generate_script_threw` error TypeError, http_status null.
+// TypeError with no status = the browser's fetch died because the lambda was
+// killed mid-flight, NOT an application error.
+//
+// Root cause: the SDK defaults are timeout 600_000ms (10 MINUTES) and
+// maxRetries 2. So an upstream that hangs holds the function until Vercel's
+// gateway kills it. When the gateway kills the lambda, our catch block never
+// runs — meaning looksOpenAiQuotaDead(), alertOpenAiExhausted() and the static
+// fallback are ALL bypassed. The 31/07 machinery only ever fires when OpenAI
+// answers "insufficient_quota" fast; it is blind to silence.
+//
+// TIMEOUT must therefore sit BELOW the tightest route budget (30s) so the
+// request aborts as a catchable APIConnectionTimeoutError while we still own
+// the response. maxRetries 1 (not the default 2) keeps the worst case bounded.
+//
+// ⚠️ A TIMEOUT IS RETRIED. openai/core.js retries the abort while retries
+// remain and only THEN throws APIConnectionTimeoutError, so the real worst case
+// is timeout × (maxRetries + 1). Any call site whose route budget cannot absorb
+// that doubling MUST pass `maxRetries: 0` alongside its timeout — otherwise the
+// lambda is killed before the error is ever thrown and we are back to the exact
+// 05/08 bug. This is why the long-running call sites below all pin it to 0,
+// matching the convention analyze-idea already used.
+// TTS call sites pass their own longer per-request timeout — audio legitimately
+// takes longer than chat, and that path is on the money flow.
+const OPENAI_TIMEOUT_MS = 20_000
+export const OPENAI_TTS_TIMEOUT_MS = 55_000
+// Whisper uploads a whole voiceover mp3 and returns word+segment timestamps.
+export const OPENAI_WHISPER_TIMEOUT_MS = 60_000
+// generate-script runs gpt-4o at 700 max_tokens on the critical path of every
+// generation (#310 AUTO-STRUCTURE). 10–18s is NORMAL there, so the 20s default
+// would turn a merely-slow-but-healthy call into a hard 503 + a false founder
+// alarm. maxDuration 60 affords the headroom.
+export const OPENAI_SCRIPT_TIMEOUT_MS = 35_000
+
 // Lazy singleton — avoid instantiating at module load so Next.js can
 // statically analyze API route modules at build time without the env var.
 let _openai: OpenAI | null = null
@@ -7,7 +45,7 @@ function getClient(): OpenAI {
   if (_openai) return _openai
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY is not set')
-  _openai = new OpenAI({ apiKey })
+  _openai = new OpenAI({ apiKey, timeout: OPENAI_TIMEOUT_MS, maxRetries: 1 })
   return _openai
 }
 
