@@ -68,6 +68,38 @@ export const PUBLIC_EXAMPLES: readonly PublicExample[] = [
     videoPath: '/videos/example-shutdown.mp4',
     posterPath: '/videos/example-shutdown.jpg',
   },
+  // KINEO-HERO-SHOWCASE-2026-08-05 — os dois últimos entram pelo mesmo caminho
+  // dos quatro primeiros (commit 3a9f46a): export real do produto, baixado do
+  // Supabase Storage, recortado em 5s e comprimido no MESMO perfil (360x640,
+  // 30fps, ~235 KB, sem faixa de áudio). Nenhum stock, nenhuma miniatura
+  // inventada — o poster é um frame de verdade, com as legendas queimadas que
+  // o render entregou. Duração de saída conferida no ffprobe do arquivo cheio.
+  {
+    slug: 'runit-island-nuclear-dome',
+    title: 'Runit Island Nuclear Dome — AI Short Preview',
+    shortTitle: 'The island sealed under concrete',
+    description:
+      'Watch a five-second preview cut from a 45-second faceless Short created with Kineo about the concrete dome on Runit Island.',
+    prompt:
+      'Create a fast-paced faceless Short about the nuclear waste dome on Runit Island, with a curiosity hook, aerial footage and clear captions.',
+    outputDurationSeconds: 45,
+    previewDurationSeconds: 5,
+    videoPath: '/videos/example-runit.mp4',
+    posterPath: '/videos/example-runit.jpg',
+  },
+  {
+    slug: 'this-man-dream-face',
+    title: 'The Face Strangers Keep Dreaming — AI Short Preview',
+    shortTitle: 'The face strangers keep dreaming',
+    description:
+      'Watch a five-second preview cut from a 60-second faceless Short created with Kineo about the face thousands of strangers claim to dream about.',
+    prompt:
+      'Create a fast-paced faceless Short about the face thousands of strangers claim to see in their dreams, with a mystery hook, moody footage and readable captions.',
+    outputDurationSeconds: 60,
+    previewDurationSeconds: 5,
+    videoPath: '/videos/example-this-man.mp4',
+    posterPath: '/videos/example-this-man.jpg',
+  },
 ] as const
 
 export function getPublicExample(slug: string): PublicExample | undefined {

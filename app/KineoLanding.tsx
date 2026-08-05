@@ -69,7 +69,7 @@ const KLP_CSS = `
    empilham embaixo, como sempre) e vira grid de 3 colunas no desktop, com os
    chips ladeando o card. Ver o bloco @media(min-width:1120px) mais abaixo. */
 .klp .composer-shell{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:30px;width:100%}
-.klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:730px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
+.klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:820px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
 .klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:18px;line-height:1.55;font-family:inherit;padding:6px 2px}
@@ -82,7 +82,7 @@ const KLP_CSS = `
    card. As colunas laterais são a exceção (só ≥1120px), nunca o padrão. */
 .klp .starter-flank{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:var(--muted2);font-size:12px;max-width:100%}
 .klp .starter-cap{color:var(--muted2);font-size:12px;font-weight:600;line-height:1.35}
-.klp .starter-flank button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 13px;min-height:44px;font:inherit;font-size:13px;font-weight:650;line-height:1.3;cursor:pointer;transition:.18s}
+.klp .starter-flank button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 13px;min-height:44px;font:inherit;font-size:12.5px;font-weight:650;line-height:1.3;cursor:pointer;transition:.18s}
 .klp .starter-flank button:hover,.klp .starter-flank button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
 .klp section{padding:112px 0}
@@ -243,7 +243,7 @@ const KLP_CSS = `
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
 @media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
 .klp .hero-center .composer-shell{margin:44px auto 0;max-width:1024px;text-align:left}
-.klp .hero-center .composer{margin:0 auto;max-width:760px;min-height:auto}
+.klp .hero-center .composer{margin:0 auto;max-width:860px;min-height:auto}
 /* KINEO-HERO-DECLUTTER-2026-07-30 — 104px deixava um vazio de quase uma dobra
    entre o placeholder e os atalhos de tópico, e o card lia como "faltando algo".
    84px ainda comporta as 3 linhas de rows={3} sem barra de rolagem.
@@ -253,26 +253,55 @@ const KLP_CSS = `
    que era — só deixa de ser uma faixa fina. */
 .klp .hero-center .composer .ci{min-height:118px}
 .klp .hero-center .trust{text-align:center}
-/* Colunas laterais: só quando existe espaço real para elas. 1024px de shell =
-   156 + 22 + 668 + 22 + 156. Abaixo disso o shell continua sendo a coluna
-   única do mobile — os chips nunca ficam nas laterais em tela pequena. */
+/* Colunas laterais: só quando existe espaço real para elas. Abaixo disso o
+   shell continua sendo a coluna única do mobile — os chips nunca ficam nas
+   laterais em tela pequena.
+   KINEO-HERO-SHOWCASE-2026-08-05 — as pílulas laterais ficaram DISCRETAS
+   (12px, padding menor, fundo transparente, borda fraca): elas são um atalho,
+   não um segundo botão competindo com a caixa. O que elas devolvem em largura
+   vai todo para a caixa: 1024px de shell agora = 132 + 18 + 724 + 18 + 132
+   (era 156 + 22 + 668 + 22 + 156). O min-height de 44px só cai aqui, onde o
+   ponteiro é mouse — no toque o alvo continua com 44px. */
 @media(min-width:1120px){
-.klp .hero-center .composer-shell{display:grid;grid-template-columns:156px minmax(0,1fr) 156px;align-items:center;gap:22px}
+.klp .hero-center .composer-shell{display:grid;grid-template-columns:132px minmax(0,1fr) 132px;align-items:center;gap:18px}
 .klp .hero-center .composer{grid-column:2;grid-row:1;max-width:none}
 .klp .hero-center .composer .ci{min-height:132px;font-size:19px}
-.klp .composer-shell .starter-flank{grid-row:1;flex-direction:column;align-items:stretch;justify-content:center;gap:10px;min-width:0}
+.klp .composer-shell .starter-flank{grid-row:1;flex-direction:column;align-items:stretch;justify-content:center;gap:8px;min-width:0}
 .klp .composer-shell .starter-flank-a{grid-column:1}
 .klp .composer-shell .starter-flank-b{grid-column:3}
-.klp .composer-shell .starter-flank button{width:100%;text-align:left;padding:10px 14px}
-.klp .composer-shell .starter-cap{padding-left:2px}
+.klp .composer-shell .starter-flank button{width:100%;text-align:left;padding:7px 11px;min-height:0;font-size:12px;font-weight:600;border-radius:12px;background:transparent;border-color:var(--line);color:var(--muted)}
+.klp .composer-shell .starter-cap{padding-left:2px;font-size:11px}
 }
 @media(max-width:560px){.klp .hero-center .composer-shell{margin-top:28px}.klp .hero-center .composer .ci{min-height:92px}}
-.klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:820px;margin:52px auto 0}
-.klp .hero-gallery .vcard{aspect-ratio:9/16;padding:13px}
-.klp .hero-gallery .vcard .vt{font-size:12.5px}
-.klp .gallery-cap{position:relative;z-index:1;margin-top:20px;text-align:center;font-size:13.5px;color:var(--muted2)}
-@media(max-width:900px){.klp .hero-gallery{grid-template-columns:repeat(2,1fr);max-width:420px}}
-@media(max-width:560px){.klp .hero-gallery{grid-template-columns:repeat(2,1fr);max-width:380px}}
+/* KINEO-HERO-SHOWCASE-2026-08-05 — seis Shorts reais lado a lado, logo abaixo
+   da caixa. No desktop é uma fileira de 6; até 900px vira carrossel horizontal
+   com scroll-snap (o container rola, a PÁGINA não — nada de overflow lateral)
+   e o card fica com ~38% da largura, então três aparecem e o quarto assoma na
+   borda, que é o que convida a arrastar. */
+.klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:44px auto 0}
+.klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
+.klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
+.klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
+.klp .gallery-cap{position:relative;z-index:1;margin-top:18px;text-align:center;font-size:12.5px;color:var(--muted2)}
+/* Amplitude real: acima de 1240px sobram ≥80px de cada lado do .wrap (1080),
+   então o shell e a fileira saem 60px para fora dele — a caixa vai a ~824px e
+   os seis cards ganham ~12% de largura. O width:auto e o max-width:none são
+   obrigatórios: com o width:100% da base, margem negativa só empurraria a
+   caixa para a esquerda em vez de alargá-la. O .hero tem overflow:hidden, então
+   isto nunca vira barra de rolagem horizontal. Vem DEPOIS das regras-base de
+   propósito — media query não soma especificidade, quem escreve por último
+   ganha. */
+@media(min-width:1240px){
+.klp .hero-center .composer-shell{width:auto;max-width:none;margin-left:-60px;margin-right:-60px;grid-template-columns:140px minmax(0,1fr) 140px;gap:20px}
+.klp .hero-gallery{max-width:none;margin-left:-60px;margin-right:-60px}
+}
+@media(max-width:900px){
+.klp .hero-gallery{display:flex;gap:10px;margin-top:34px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}
+.klp .hero-gallery::-webkit-scrollbar{display:none}
+.klp .hero-gallery .vcard{flex:0 0 38%;max-width:190px;scroll-snap-align:start}
+/* O lift de -5px do hover seria cortado pelo overflow-y:hidden do trilho. */
+.klp .hero-gallery .vcard:hover,.klp .hero-gallery .vcard:focus-within{transform:none}
+}
 .klp .platforms{position:relative;z-index:1;margin:22px auto 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;color:var(--muted2);text-transform:uppercase}
 .klp .platforms b{color:var(--muted);font-weight:700}
 .klp .faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -289,7 +318,7 @@ const KLP_CSS = `
 .klp .wrap{padding:0 20px}
 .klp .hero-center h1{font-size:clamp(2.5rem,11.2vw,3.4rem);line-height:1.0;letter-spacing:-.042em}
 .klp .hero-center .sub{font-size:1.02rem;margin-top:16px;max-width:34ch}
-.klp .hero-gallery{gap:10px;margin-top:38px}
+.klp .hero-gallery{gap:10px;margin-top:30px}
 .klp .composer{padding:18px;border-radius:20px}
 .klp .composer .cbtn{padding:15px 24px;font-size:16px;min-height:52px}
 .klp .step,.klp .plan{padding:26px 22px}
@@ -526,7 +555,13 @@ export default function KineoLanding({ initialUser }: Props) {
             </div>
           </div>
           <HeroGallery />
-          <p className="gallery-cap">Real Kineo exports, not mockups. Each started with one topic — script, voice, footage and captions, automatically. <Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link> · <Link href="/niche-picker" className="link">Find your faceless niche →</Link></p>
+          {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
+              palavra, o que a seção "From idea to posted Short in 3 steps" diz
+              logo abaixo ("script, voice, footage and captions"). Fica só a
+              informação que a fileira sozinha não dá: que aquilo é export real.
+              Os três links internos continuam todos aqui — são distribuição
+              orgânica, não enfeite. */}
+          <p className="gallery-cap">Real Kineo exports, not mockups — each one started from a single topic. <Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link> · <Link href="/niche-picker" className="link">Find your faceless niche →</Link></p>
           <div className="platforms">Built for <b>YouTube Shorts</b> · <b>TikTok</b> · <b>Reels</b></div>
         </div>
       </header>
