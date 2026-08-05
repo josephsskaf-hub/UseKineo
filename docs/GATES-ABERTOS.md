@@ -613,3 +613,30 @@ mesma cadeia de verificacao de entrega. Prioridade alta — e dinheiro do client
 ### ⚠️ ETA MENTIROSA POR MOTOR (mesma familia: usuario no escuro)
 A tela promete "usually 2-4 minutes" para TODOS os motores. Veo 60s = 7 clipes x 2-4 min = 15-25 min.
 O fundador achou que tinha travado (05/08 03:30Z). TAREFA: ETA condicional por motor/duracao.
+
+---
+
+## 🔴 05/08/2026 22:5xZ — GATE NOVO E MAL DIAGNOSTICADO ATE AGORA: **O AUTO-PUSH NAO PODE FUNCIONAR EM SPRINT AGENDADA**
+
+A sprint das 19h concluiu que o `request_access` do Explorador de Arquivos "expirou 3x (180s)" e
+que bastava o fundador aprovar o dialogo quando ele aparecesse. **Isso esta errado.** A tentativa
+de hoje devolveu o motivo real, em texto:
+
+> *"Computer-use access to 'Explorador de Arquivos' can't be approved during a scheduled run.
+> To grant it, send a message in this conversation (the approval card will appear), or add the
+> app to the scheduled task's settings."*
+
+Nao e timeout, nao e o fundador demorando para clicar: **execucao agendada nao consegue levantar
+o dialogo de aprovacao, por desenho.** O dialogo nunca apareceu para ser aprovado.
+
+**Os dois caminhos que resolvem de verdade (so o fundador pode fazer):**
+1. **Adicionar "Explorador de Arquivos" nas configuracoes da tarefa agendada `kineo-sprint-diario`.**
+   E o caminho definitivo: vale para todas as sprints, sem clique diario. `update_scheduled_task`
+   NAO tem campo para isso — tem que ser pela interface da tarefa.
+2. Ou rodar um `N-PUSH.bat` manualmente, como sempre foi.
+
+**Enquanto isso: `scripts\49-PUSH.bat`** — 6 commits esperando, incluindo a correcao que devolve
+o e-mail do muro do plano free a quem bate no teto.
+
+⚠️ Consequencia para o prompt: a secao "PUSH: EU MESMO RODO" so vale em sessao INTERATIVA. Em
+sprint agendada o push continua sendo gate ate o item 1 acima ser feito.
