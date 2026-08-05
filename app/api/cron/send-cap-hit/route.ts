@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
+import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 
@@ -113,8 +114,12 @@ export async function GET(req: NextRequest) {
   if (!supabaseUrl || !serviceKey) {
     return NextResponse.json({ error: 'Supabase service env missing' }, { status: 500 })
   }
+  // KINEO-LIFECYCLE-FRESH-READ-2026-08-05 — `global.fetch` sem cache. Este job
+  // decide "eu ja mandei este e-mail?" lendo o banco; leitura velha vira
+  // reenvio, e reenvio custa a reputacao do dominio. Ver lib/lifecycle/freshFetch.ts.
   const admin = createAdminClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: freshFetch },
   })
 
   // ── KINEO-CAPHIT-READS-THE-WALL-2026-08-05 ────────────────────────────────
@@ -232,43 +237,33 @@ export async function GET(req: NextRequest) {
     `valores_crus=${JSON.stringify((candidates ?? []).map((u) => [u.id, u.cap_hit_sent_at]))}`,
   )
 
-  // ── TRAVA DE REENVIO (KINEO-CAPHIT-NO-REPEAT-2026-08-05) ───────────────────
-  // A instrumentação acima DIAGNOSTICA; esta trava PARA o sangramento agora,
-  // sem depender de saber a causa raiz. Em 05/08 a mesma pessoa recebeu 3
-  // e-mails idênticos em 90 minutos porque a ÚNICA memória de "já enviei" era a
-  // coluna `cap_hit_sent_at` — e é exatamente ela que, por algum motivo, o cron
-  // relê como nula.
+  // ── TRAVA DE REENVIO: RESERVA ATÔMICA (KINEO-CAPHIT-NO-REPEAT-2026-08-05) ──
+  // Em 05/08 a mesma pessoa recebeu 3 e-mails idênticos em 90 minutos porque a
+  // ÚNICA memória de "já enviei" era `profiles.cap_hit_sent_at` — e é exatamente
+  // ela que o cron relê como nula.
   //
-  // A regra é a mesma que este repositório já aprendeu duas vezes hoje: quando o
-  // registro de um MOMENTO é o que decide, ele nasce do EVENTO daquele momento.
-  // O envio agora grava `cap_hit_sent` em `events` — outro caminho de escrita,
-  // outra tabela — e a coorte passa a excluir quem tem esse evento. Se a coluna
-  // voltar a falhar, o e-mail ainda sai UMA vez, que é a promessa do job.
-  // SEM JANELA DE TEMPO, DE PROPOSITO. A promessa deste job, escrita no topo do
-  // arquivo, e "max 1 por usuario EVER". Uma janela de 30 dias faria o dedupe
-  // ESQUECER — e no dia 31, no exato cenario que motivou esta trava (a coluna
-  // nao persistir), a pessoa voltaria a coorte e receberia o SEGUNDO e-mail,
-  // sem nenhum log, porque para o codigo isso seria um envio legitimo. Janela
-  // finita e correta em job RECORRENTE (send-blackout-winback, 7d); aqui
-  // contradiz o invariante. O conjunto name='cap_hit_sent' e minusculo e o
-  // indice de `events.name` ja existe: a consulta sem corte custa o mesmo.
-  const { data: alreadySent, error: alreadyErr } = await admin
-    .from('events')
-    .select('user_id')
-    .eq('name', 'cap_hit_sent')
-    .in('user_id', (candidates ?? []).map((u) => u.id as string))
-
-  // Falha FECHADA: sem poder provar que ninguém já recebeu, o job não envia.
-  // Perder uma rodada custa 30 minutos; reenviar em loop custa o domínio.
-  if (alreadyErr) {
-    console.error(`[send-cap-hit] dedupe por evento falhou: ${alreadyErr.message} — nada enviado nesta rodada`)
-    return NextResponse.json({ error: alreadyErr.message, sent: 0, reason: 'dedupe_query_failed' }, { status: 500 })
-  }
-
-  const alreadySentIds = new Set((alreadySent ?? []).map((r) => r.user_id as string))
-  if (alreadySentIds.size > 0) {
-    console.log(`[send-cap-hit] ${alreadySentIds.size} já receberam (evento cap_hit_sent) — fora da coorte`)
-  }
+  // ⚠️ A PRIMEIRA VERSÃO DESTA TRAVA ESTAVA ERRADA, E A REVISÃO ADVERSARIAL
+  // PEGOU. Ela consultava `events` antes de enviar, e o comentário chamava isso
+  // de "outro caminho de escrita, outra tabela". **Não é.** É o MESMO cliente
+  // Supabase, o MESMO PostgREST, a MESMA conexão — só muda o nome da tabela. E
+  // este arquivo já lê `events` por esse caminho para montar a coorte, logo
+  // acima. Se a causa raiz for leitura velha/cache, uma checagem em código falha
+  // EXATAMENTE IGUAL, porque depende da mesma propriedade quebrada: a de que uma
+  // leitura reflete uma escrita anterior. O comentário anterior teria convencido
+  // o próximo leitor de que o problema estava fechado. Esse era o pior defeito.
+  //
+  // A trava real não PERGUNTA, ela RESERVA. O índice único parcial
+  // `events_cap_hit_sent_once_per_user` (migration `cap_hit_sent_unique_per_user`,
+  // aplicada em 05/08) faz o BANCO recusar o segundo registro. O laço abaixo
+  // insere o evento ANTES de mandar o e-mail e só envia se o insert foi aceito;
+  // violação de unicidade (23505) significa "alguém já recebeu" e pula.
+  //
+  // Isso troca esperança por garantia e NÃO depende de descobrir a causa raiz.
+  // Preço aceito, explicitamente: se o Resend falhar DEPOIS da reserva, a pessoa
+  // perde este e-mail para sempre. Um e-mail a menos é barato; um loop de
+  // reenvio queima o domínio da empresa inteira.
+  let reservationFailed = 0
+  let alreadyReserved = 0
 
   const suppression = await loadLifecycleSuppression(
     admin,
@@ -278,20 +273,9 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   let suppressed = 0
-  // A trava de reenvio inteira depende do evento `cap_hit_sent` existir. Se o
-  // insert falhar, a trava deixa de existir PARA AQUELA PESSOA — e isso tem que
-  // aparecer no payload, nao so num console.error que ninguem le. AGIR SEM
-  // REPORTAR e o mesmo defeito de agir errado.
-  let eventWriteFailures = 0
 
   for (const u of candidates ?? []) {
     if (sent >= MAX_PER_RUN) break
-
-    // Já recebeu (prova em `events`, independente da coluna). Nunca duas vezes.
-    if (alreadySentIds.has(u.id as string)) {
-      skipped++
-      continue
-    }
 
     // Suppressed = another lifecycle email in the last 24h. NOT stamped — they
     // stay eligible on the next run while still inside their hot window.
@@ -322,6 +306,35 @@ export async function GET(req: NextRequest) {
       continue
     }
 
+    // ── RESERVA: o banco decide se este envio pode acontecer ─────────────────
+    // Vem ANTES do Resend de propósito. O índice único parcial recusa o segundo
+    // insert, então duas rodadas nunca mandam o mesmo e-mail — mesmo que a
+    // leitura de `profiles` esteja velha, que é a causa raiz suspeita.
+    const stampedAt = new Date().toISOString()
+    const { error: reserveErr } = await admin.from('events').insert({
+      user_id: u.id,
+      name: 'cap_hit_sent',
+      path: '/api/cron/send-cap-hit',
+      // `email` aqui de propósito: numa investigação de "quem recebeu duas
+      // vezes", é o único campo que responde a pergunta sem outro JOIN.
+      metadata: { email, reserved_at: stampedAt },
+    })
+
+    if (reserveErr) {
+      // 23505 = unique_violation. Não é erro: é a trava fazendo o trabalho dela.
+      if (reserveErr.code === '23505') {
+        alreadyReserved++
+        console.log(`[send-cap-hit] ${u.id} JA RECEBEU (reserva existente) — reenvio impedido pelo banco`)
+      } else {
+        reservationFailed++
+        console.error(
+          `[send-cap-hit] reserva falhou para ${u.id}: ${reserveErr.code ?? '?'} ${reserveErr.message}` +
+          ' — NAO enviado (sem reserva nao ha garantia de envio unico)',
+        )
+      }
+      continue
+    }
+
     const { text, html } = buildEmail(u.id)
     try {
       const res = await fetch('https://api.resend.com/emails', {
@@ -345,28 +358,8 @@ export async function GET(req: NextRequest) {
         sent++
         // KINEO-CAPHIT-FORENSICS-2026-08-05 — o erro deste update era IGNORADO
         // (nos 5 crons de lifecycle). Escrita que falha em silêncio é
-        // indistinguível de escrita que funcionou, e é justamente o que
-        // permitiria o reenvio infinito. Agora o desfecho é lido de volta.
-        const stampedAt = new Date().toISOString()
-
-        // A PROVA DE ENVIO vai PRIMEIRO, e em outra tabela. Se o processo morrer
-        // aqui, a próxima rodada já não reenvia. Ordem deliberada: é melhor um
-        // e-mail a menos (a pessoa perde o nudge) do que um loop de reenvio.
-        const { error: evtErr } = await admin.from('events').insert({
-          user_id: u.id,
-          name: 'cap_hit_sent',
-          path: '/api/cron/send-cap-hit',
-          metadata: { stamped_at: stampedAt },
-        })
-        if (evtErr) {
-          eventWriteFailures++
-          console.error(
-            `[send-cap-hit][forense] evento cap_hit_sent NAO gravado para ${u.id}: ${evtErr.message}` +
-            ' — a trava de reenvio nao cobre esta pessoa nesta rodada',
-          )
-        }
-        alreadySentIds.add(u.id as string)
-
+        // indistinguível de escrita que funcionou. A reserva acima já garante o
+        // envio único; o carimbo abaixo continua sendo a métrica da Ordem 4.
         const { data: written, error: stampErr } = await admin
           .from('profiles')
           .update({ cap_hit_sent_at: stampedAt })
@@ -383,15 +376,39 @@ export async function GET(req: NextRequest) {
             ' a escrita foi aceita e nao persistiu; reenvio garantido na proxima rodada',
           )
         } else {
-          console.log(`[send-cap-hit][forense] carimbo de ${email} confirmado: ${written[0].cap_hit_sent_at}`)
+          // ⚠️ O `.select()` acima é o RETURNING do PRÓPRIO update: ele prova que
+          // a linha foi casada, e NADA sobre o que um SELECT posterior enxerga.
+          // Como staleness é justamente a hipótese, a sonda tem que ser uma
+          // leitura INDEPENDENTE, emitida depois. Se as duas discordarem, a
+          // causa raiz está provada e o alvo é o cliente/PostgREST, não o código.
+          const { data: reRead } = await admin
+            .from('profiles')
+            .select('cap_hit_sent_at')
+            .eq('id', u.id)
+            .maybeSingle()
+          const escrito = written[0].cap_hit_sent_at
+          const relido = reRead?.cap_hit_sent_at ?? null
+          if (escrito !== relido) {
+            console.error(
+              `[send-cap-hit][forense] 🔴 LEITURA DIVERGE DA ESCRITA para ${u.id}: ` +
+              `RETURNING=${escrito} mas SELECT posterior=${relido} — leitura velha CONFIRMADA`,
+            )
+          } else {
+            console.log(`[send-cap-hit][forense] carimbo de ${u.id} confirmado e relido: ${relido}`)
+          }
         }
         console.log(`[send-cap-hit] sent to ${email}`)
       } else {
-        console.error(`[send-cap-hit] resend failed for ${email}:`, await res.text())
-        // not stamped — retried on the next half-hour run
+        // ⚠️ A RESERVA JÁ FOI GRAVADA e não é desfeita de propósito: esta pessoa
+        // não recebe mais este e-mail. Preço aceito da garantia de envio único —
+        // mas tem que ser ALTO no log, senão vira perda silenciosa de lead quente.
+        console.error(
+          `[send-cap-hit] 🔴 resend RECUSOU ${email} DEPOIS da reserva — esta pessoa NAO recebera` +
+          ` o e-mail do muro: ${await res.text()}`,
+        )
       }
     } catch (err) {
-      console.error(`[send-cap-hit] error for ${email}:`, err)
+      console.error(`[send-cap-hit] 🔴 erro para ${email} DEPOIS da reserva (nao recebera):`, err)
     }
   }
 
@@ -405,8 +422,12 @@ export async function GET(req: NextRequest) {
     cohort: cappedIds.length,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
-    // > 0 = alguem recebeu o e-mail e a prova NAO foi gravada: a trava de
-    // reenvio esta cega para essa pessoa e ela pode receber de novo.
-    event_write_failures: eventWriteFailures,
+    // Quantos a TRAVA impediu de receber duas vezes. > 0 de forma recorrente =
+    // a coorte continua trazendo gente ja atendida, ou seja, a causa raiz da
+    // leitura velha SEGUE VIVA e o indice unico e a unica coisa nos segurando.
+    already_reserved: alreadyReserved,
+    // > 0 = o banco recusou a reserva por um motivo que NAO e duplicata. Ninguem
+    // foi enviado nesses casos: sem reserva, sem garantia, sem e-mail.
+    reservation_failed: reservationFailed,
   })
 }
