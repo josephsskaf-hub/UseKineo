@@ -640,3 +640,22 @@ o e-mail do muro do plano free a quem bate no teto.
 
 ⚠️ Consequencia para o prompt: a secao "PUSH: EU MESMO RODO" so vale em sessao INTERATIVA. Em
 sprint agendada o push continua sendo gate ate o item 1 acima ser feito.
+
+### ✅ 23:0xZ — O CAMINHO EXATO PARA DESTRAVAR O PUSH DE VEZ (veio da propria plataforma)
+
+Ao atualizar a tarefa agendada, o sistema devolveu a regra que faltava:
+
+> *"Tool approvals granted during a run are stored on the task and auto-applied to future runs.
+> If this task is likely to use remote connectors or browser control, recommend the user click
+> **'Run now'** first to pre-approve the tools it needs — this prevents future runs from pausing
+> on permission prompts."*
+
+**Ou seja: aprovacao dada numa execucao INTERATIVA fica guardada NA TAREFA e vale para todas as
+execucoes agendadas seguintes.** O que o fundador precisa fazer, **uma vez so**:
+
+1. Abrir a tarefa `kineo-sprint-diario` e clicar **"Run now"** (execucao interativa).
+2. Quando aparecer o cartao pedindo acesso ao **Explorador de Arquivos**, **aprovar**.
+3. Pronto. A partir dai as 6 sprints diarias rodam o `scripts\AUTO-PUSH.bat` sozinhas e o push
+   deixa de ser gate para sempre.
+
+E menos trabalho que clicar um `N-PUSH.bat` por dia, e resolve permanentemente.
