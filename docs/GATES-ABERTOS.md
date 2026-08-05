@@ -472,3 +472,26 @@ Postado de u/ShortsforgeAI + 1º comentário. Filtro do Reddit segurou o post (c
 `docs/REDDIT-POST-PRONTO.md`: título + corpo + primeiro comentário, para o r/YouTubeCreators
 (98k membros, sem regras de autopromoção). É a distribuição do case study — thread viva que
 se atualiza toda semana. Postar exige sua conta Reddit; o texto está pronto palavra por palavra.
+
+## 🔴 INCIDENTE DE CREDITO — DESCOBERTO 05/08 03:40Z (fundador reportou "creditos abaixaram sem video")
+CAUSA: modo cinematografico (seedance/veo/kling/hollywood) e avatar/presenter DEBITAM NO SUBMIT
+(app/api/generate-video-cinematic/route.ts:798), nao na entrega. Reembolso existia SO AO VIVO
+(dependia da aba aberta fazendo polling) e o sweep diario EXCLUIA cinematic-% de proposito.
+Aba fechada / fal travado = credito perdido para sempre, em silencio.
+A tela prometia "Credits are only charged on successful delivery" — VERDADE no fast, MENTIRA
+em todos os motores de IA. Promessa falsa para cliente pagante = risco de reembolso/chargeback.
+PROVA: 1 render abandonado de 22/07 com 150 creditos queimados que ninguem soube + os 2 do
+fundador em 05/08 (20 seedance + 90 veo).
+CORRIGIDO em e3ddf7a: sweepAbandonedCinematicDebits() no cron de refund (09:30), /api/compose/active
+passa a enxergar cinematic em fal_polling (a pilula global era cega na fase mais longa e ja paga),
+copy condicional por motor. Creditos do fundador devolvidos via refund_render_credits (397 -> 507).
+
+### ⚠️ RISCO IRMAO AINDA ABERTO — avatar/presenter
+avatar-% tem EXATAMENTE o mesmo buraco (debita no submit, refund so ao vivo, excluido do sweep).
+Hoje nao ha linha presa, mas o proximo avatar abandonado queima creditos igual.
+TAREFA PARA A PROXIMA SPRINT: estender sweepAbandonedCinematicDebits para avatar-% usando a
+mesma cadeia de verificacao de entrega. Prioridade alta — e dinheiro do cliente.
+
+### ⚠️ ETA MENTIROSA POR MOTOR (mesma familia: usuario no escuro)
+A tela promete "usually 2-4 minutes" para TODOS os motores. Veo 60s = 7 clipes x 2-4 min = 15-25 min.
+O fundador achou que tinha travado (05/08 03:30Z). TAREFA: ETA condicional por motor/duracao.
