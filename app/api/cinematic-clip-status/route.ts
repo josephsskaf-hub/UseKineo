@@ -68,9 +68,33 @@ async function checkFalClip(requestId: string, model: string): Promise<ClipStatu
     if (status === 'FAILED') return { id: requestId, status: 'failed', url: null }
     return { id: requestId, status: 'processing', url: null }
   } catch (error) {
+    // KINEO-CINEMATIC-RELIABILITY-2026-08-05 — incident 05/08 03:08Z/03:17Z:
+    // when a fal job fails at the APPLICATION level (content filter, internal
+    // model error), fal's queue result/status call throws 422 "Unprocessable
+    // Entity" — permanently. This catch mapped EVERY throw to 'processing', so
+    // one failed clip kept the whole render stuck at "6/7 done" forever (never
+    // allDone → never composed, never refunded). Both the 03:08 seedance and
+    // 03:17 veo renders died exactly this way (422 on every poll for 6+ min in
+    // the Vercel logs). A 422/400 from fal is TERMINAL, not transient: mark the
+    // clip failed so the render closes — compose proceeds with the surviving
+    // clips (client keeps clips with status 'done'), or the all-failed branch
+    // below refunds automatically.
+    const status = typeof (error as { status?: unknown })?.status === 'number'
+      ? (error as { status: number }).status
+      : null
+    const msg = error instanceof Error ? error.message : String(error)
+    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
+      const body = (error as { body?: unknown })?.body
+      console.error(
+        `[cinematic-status] clip TERMINAL provider error (${status ?? 'no status'}) model=${model} requestId=${requestId}:`,
+        msg,
+        body !== undefined ? JSON.stringify(body).slice(0, 500) : '',
+      )
+      return { id: requestId, status: 'failed', url: null }
+    }
     // Poll/network ambiguity is not a terminal provider failure and must never
     // trigger an automatic refund while a clip may still be rendering.
-    console.warn('[cinematic-status] transient poll error:', error instanceof Error ? error.message : String(error))
+    console.warn(`[cinematic-status] transient poll error requestId=${requestId}:`, msg)
     return { id: requestId, status: 'processing', url: null }
   }
 }
