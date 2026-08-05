@@ -219,6 +219,8 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
   //
   // KINEO-DOWNLOAD-TRUTH-2026-08-04 — a implementação foi para lib/videoDownload
   // (única no produto). Push #154 continua valendo: o nome do arquivo é o título.
+  // A entrega não mudou; o que mudou é que clique, falha e popup barrado agora
+  // deixam rastro.
   async function handleDownload(v: VideoRow) {
     if (!v.video_url || downloadingId) return
     setDownloadingId(v.id)

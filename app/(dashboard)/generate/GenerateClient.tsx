@@ -4840,8 +4840,11 @@ export default function GenerateClient({
   //   1. o fallback era MUDO — `video_downloaded` só existia no caminho feliz,
   //      então o buraco gerar→baixar (327 → 67 = 20%) era indiagnosticável;
   //   2. o `window.open` roda DEPOIS de um `await`, fora do gesto do usuário:
-  //      no mobile o popup é barrado e a pessoa ficava com NADA, sem erro na
-  //      tela. Agora há um 3º degrau (location.href) que ninguém bloqueia.
+  //      no mobile o popup é barrado e a pessoa fica com NADA, sem erro na
+  //      tela — e isso não deixava rastro nenhum. Agora deixa
+  //      (`video_download_popup_blocked`). A ENTREGA continua igual à que já
+  //      estava em produção: a correção de UI vem quando o número disser o
+  //      tamanho do problema.
   async function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
     if (!finalVideoUrl) return
     const slug = slugifyTitle(analysis?.title)
@@ -4852,7 +4855,7 @@ export default function GenerateClient({
         ? 'current_asset'
         : 'clean'
     e.preventDefault()
-    const method = await downloadVideoFile({
+    const outcome = await downloadVideoFile({
       url: finalVideoUrl,
       filename,
       exportType,
@@ -4860,9 +4863,12 @@ export default function GenerateClient({
       videoId: publicVideoId ?? null,
     })
     // Antes isto só rodava no caminho do blob: quem caísse no fallback ficava
-    // com o arquivo na mão e o app achando que não. Qualquer degrau que ENTREGOU
-    // conta como entregue — é o que destrava a marca d'água e o pedido de nota.
-    if (method && exportType === 'watermarked') {
+    // com o arquivo aberto na tela e o app achando que não — e é esta flag que
+    // destrava o upsell da marca d'água E o `VideoRatingAsk`. `fallback_opened`
+    // significa que o vídeo abriu numa aba: o arquivo ESTÁ na mão da pessoa.
+    // `popup_blocked` e `unavailable` continuam (corretamente) não contando.
+    const delivered = outcome === 'blob' || outcome === 'fallback_opened'
+    if (delivered && exportType === 'watermarked') {
       setWatermarkedDownloadConfirmed(true)
     }
   }

@@ -16,7 +16,35 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 🔴 05/08 00:20Z (sprint 21h de 04/08) — **UM CLIQUE LIBERA 3 FEATURES PARADAS**
+## 🔴🔴 05/08 00:35Z — **RODE `scripts\41-PUSH.bat` HOJE. É UMA CORREÇÃO DO QUE ACABOU DE SUBIR.**
+
+Você rodou o `40-PUSH.bat` **durante a sprint** (00:18Z, deploy `dpl_A4pgm6d8…` READY). Obrigado
+— mas ele levou junto uma **versão anterior** da mudança de download, que uma revisão
+adversarial derrubou **minutos depois** do commit. O `41-PUSH.bat` é a correção, e é **um commit
+só, para frente** (não desfaz nada, não mexe no que você já subiu de resto).
+
+**O que está errado no que está no ar (dois defeitos, ambos no caminho de fallback):**
+
+1. **A aba do app pode ser sequestrada.** Quando o download por blob falha, o código atual
+   navega a MESMA aba para o MP4. Se o Supabase não mandar `Content-Disposition: attachment`, a
+   pessoa cai num player de vídeo e **perde a página** — e na tela de vídeo pronto isso mata
+   justamente o upsell de marca d'água e o pedido de nota que rodam depois.
+2. **O número mais importante da empresa passaria a mentir para cima.** O código atual conta
+   `video_downloaded` também quando só *abriu uma aba* — sem prova de entrega. Esse evento é o
+   que `send-comeback50` e o cron `send-video-ready` usam para decidir **quem NÃO precisa de
+   e-mail de resgate**: inflá-lo faria a empresa parar de resgatar exatamente quem falhou.
+
+**O que o 41 faz:** a entrega volta a ser **idêntica à de produção de ontem** (blob →
+`window.open`), e fica só a parte boa — clique contado, falha com motivo, popup barrado visível.
+Sem degrau novo, sem risco. A correção de verdade do mobile vira trabalho de sprint **depois**
+que o número disser o tamanho do problema.
+
+**Quanto tempo o defeito fica no ar:** ele só aparece quando o download por blob falha, que é o
+caminho raro. Mas é o caminho de quem já estava com problema — por isso vale o clique hoje.
+
+⚪ Nada mais mudou: os 11 do COMEBACK50 e os 2 rascunhos do Gmail continuam como estavam.
+
+## ✅ 05/08 00:18Z — FECHADO PELO FUNDADOR: o `40-PUSH.bat` FOI RODADO (deploy READY)
 
 **`scripts\40-PUSH.bat`** — 4 commits, e três deles já estavam prontos e parados no seu
 computador desde ontem à noite:
@@ -35,8 +63,13 @@ idempotência — dez contas colando o mesmo vídeo, dez pagamentos. Não é o c
 **O item 4, em uma frase:** 327 pessoas geraram um vídeo na Kineo e só 67 baixaram (**20%** — o
 maior buraco do funil), e esse número era **cego**: o evento só existia no caminho feliz e o
 fallback era mudo. Além disso o fallback usava `window.open` **depois de um `await`**, o que no
-celular é **popup bloqueado** — a pessoa ficava sem arquivo e **sem mensagem de erro**. Agora há
-um terceiro degrau que nenhum navegador barra, e o **clique** passa a ser contado.
+celular é **popup bloqueado** — a pessoa fica sem arquivo e **sem mensagem de erro**, e o banco
+não registrava nada disso. Agora registra, e o **clique** passa a ser contado.
+
+**Risco baixo de propósito:** a **entrega** do arquivo continua idêntica à que já está em
+produção. Quem já conseguia baixar não sente diferença nenhuma — o que muda é só o que passa a
+ser contado. (Uma revisão adversarial derrubou a primeira versão desta mudança, que navegava a
+mesma aba e teria destruído o upsell de marca d'água e o pedido de nota.)
 
 **Depois de rodar:** 24h depois, colar `docs/SQL-DOWNLOAD-TRUTH.sql` no Supabase. São 5 queries
 e elas dizem qual das três causas do buraco é a verdadeira — **antes** de gastarmos uma sprint

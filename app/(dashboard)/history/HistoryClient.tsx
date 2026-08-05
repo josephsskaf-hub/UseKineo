@@ -240,7 +240,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // KINEO-DOWNLOAD-TRUTH-2026-08-04 — passa a usar lib/videoDownload, a única
   // implementação de download do produto. O que muda: o clique agora é contado
   // (`video_download_clicked`), a falha do blob deixa de ser muda e o fallback
-  // ganha um 3º degrau que nenhum navegador bloqueia.
+  // deixa de ser mudo (a ENTREGA continua idêntica à de produção).
   async function handleDownload(video: Video) {
     if (!video.video_url || downloadingId) return
     setDownloadingId(video.id)

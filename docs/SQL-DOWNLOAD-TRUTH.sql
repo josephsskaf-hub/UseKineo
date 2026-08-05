@@ -14,8 +14,11 @@
 -- Os eventos novos separam as três:
 --   video_download_clicked        → o denominador honesto (dispara antes do await)
 --   video_download_failed         → o blob quebrou; `reason` diz se é HTTP ou rede
---   video_download_popup_blocked  → o degrau 2 foi barrado (assinatura de MOBILE)
---   video_downloaded + method     → blob | popup | navigate
+--   video_download_popup_blocked  → o degrau 2 foi barrado (assinatura de MOBILE):
+--                                   a pessoa ficou SEM ARQUIVO e sem erro na tela
+--   video_download_fallback_opened→ abriu em aba nova (entrega provável, mas SEM PROVA:
+--                                   de propósito NÃO conta como video_downloaded)
+--   video_downloaded              → só quando os bytes passaram pela nossa mão (method=blob)
 --
 -- ⚠️ JANELA: nada antes do deploy conta. Preencher :deploy abaixo com o
 -- timestamp do deploy READY (o push desta sprint) antes de rodar.
@@ -43,7 +46,7 @@ from public.events e
 join ext on ext.id = e.user_id
 where e.name in ('video_download_clicked','video_downloaded',
                  'video_download_failed','video_download_popup_blocked',
-                 'video_download_dead_end')
+                 'video_download_fallback_opened')
   and e.created_at > :'deploy'::timestamptz
 group by 1
 order by pessoas desc;
@@ -75,9 +78,11 @@ where name in ('video_download_clicked','video_downloaded',
 group by 1
 order by clicaram desc;
 
--- ── 3. Por qual degrau o arquivo saiu ──────────────────────────────────────
--- `navigate` e `popup` > 0 são downloads que ANTES eram invisíveis: cada um
--- deles é uma pessoa que a empresa contava como "não baixou".
+-- ── 3. Por qual tela e por qual degrau o arquivo saiu ──────────────────────
+-- `video_downloaded` mantém a semântica histórica (só o degrau do blob), então
+-- este corte é comparável com tudo que veio antes. O que era invisível e agora
+-- aparece está em `video_download_fallback_opened` e `_popup_blocked` — some
+-- os dois ao total para ter o tamanho REAL da entrega.
 select coalesce(metadata->>'method','(legado)') metodo,
        coalesce(metadata->>'surface','?')       tela,
        count(*) n, count(distinct user_id) pessoas

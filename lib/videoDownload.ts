@@ -47,11 +47,40 @@
 //       send-comeback50 e o cron send-video-ready leem esse evento e NÃO podem
 //       quebrar. Esta mudança é puramente aditiva no payload.
 //
-//  2. CORRIGE o fallback bloqueável. Cascata de 3 degraus, e o último degrau
-//     não pode ser bloqueado por navegador nenhum:
-//         blob+download → window.open → location.href
-//     `window.open` devolve `null` quando o popup é barrado; hoje isso era
-//     engolido. Agora vira `navigate`, que sempre entrega o arquivo.
+//  2. TORNA O FALLBACK VISÍVEL — sem inventar entrega.
+//
+//     ⚠️ DECISÃO DELIBERADA, e ela contraria o rascunho desta mesma sprint. A
+//     primeira versão adicionava um 3º degrau (`location.href`) "que nenhum
+//     navegador bloqueia". Duas razões mataram esse degrau na revisão:
+//
+//       · `location.href` NAVEGA A MESMA ABA. Se a URL do Supabase não vier com
+//         `Content-Disposition: attachment`, o usuário é jogado num player de
+//         vídeo e PERDE o app — na done screen isso destrói justamente o upsell
+//         de marca d'água e o `VideoRatingAsk` que rodam depois. O fallback
+//         antigo (`_blank`) ao menos preservava a página.
+//       · Emitir `video_downloaded` ali seria FALSO POSITIVO: navegar para uma
+//         URL não prova entrega nenhuma. E `video_downloaded` é lido por
+//         `send-comeback50` e pelo cron `send-video-ready` para decidir quem
+//         NÃO precisa de e-mail — inflar esse evento faria a empresa parar de
+//         resgatar exatamente quem falhou.
+//
+//     A tese desta sprint é "medir antes de corrigir". Aplicá-la a si mesma
+//     significa: o comportamento de entrega fica IDÊNTICO ao que já estava em
+//     produção (blob → `window.open`), e o que muda é só a visibilidade. Se
+//     `video_download_popup_blocked` aparecer com volume, a correção certa não
+//     é sequestrar a aba — é mostrar na tela um link que o usuário toca (gesto
+//     real do usuário nunca é bloqueado). Isso é UI, e vira trabalho de sprint
+//     com o número na mão, não palpite às 21h.
+//
+//     Consequência importante: `video_downloaded` continua sendo emitido
+//     SOMENTE quando temos os bytes na mão (degrau do blob) — semântica
+//     inalterada, nenhum consumidor histórico muda de leitura.
+//
+//  3. NÃO CASCATEIA QUANDO NÃO ADIANTA. Se o `fetch` devolveu um STATUS HTTP
+//     (403/404/410...), o CORS deixou passar e o servidor disse que o arquivo
+//     não está lá — abrir a mesma URL numa aba nova só entrega uma página de
+//     erro. Cascata só faz sentido no erro sem status (rede/CORS), onde a
+//     navegação direta ainda pode funcionar.
 //
 // REGRA: telemetria nunca pode quebrar o download. Todo `track` é
 // fire-and-forget e todo caminho está dentro de try/catch.
@@ -61,8 +90,19 @@ import { trackEvent } from '@/lib/analytics'
 
 export type DownloadSurface = 'done_screen' | 'history' | 'my_videos'
 
-/** blob = ideal · popup = aba nova · navigate = mesma aba (último recurso) */
-export type DownloadMethod = 'blob' | 'popup' | 'navigate'
+/**
+ * Desfecho do download. Só `blob` conta como `video_downloaded` — é o único em
+ * que os bytes passaram pela nossa mão.
+ *   blob            → salvo com nome legível (ideal)
+ *   fallback_opened → abriu numa aba nova; o usuário tem o arquivo na tela
+ *   popup_blocked   → o navegador barrou; a pessoa ficou SEM NADA
+ *   unavailable     → o servidor negou o arquivo (status HTTP definitivo)
+ */
+export type DownloadOutcome =
+  | 'blob'
+  | 'fallback_opened'
+  | 'popup_blocked'
+  | 'unavailable'
 
 export interface DownloadVideoOptions {
   url: string
@@ -108,12 +148,11 @@ function fire(name: string, metadata: Record<string, unknown>): void {
 /**
  * Baixa o vídeo e conta a verdade sobre o que aconteceu.
  *
- * Devolve o método que efetivamente entregou o arquivo, ou `null` se os três
- * degraus falharam (só acontece em ambiente sem `window`).
+ * Devolve o desfecho. `null` só em ambiente sem `window` (SSR).
  */
 export async function downloadVideoFile(
   opts: DownloadVideoOptions,
-): Promise<DownloadMethod | null> {
+): Promise<DownloadOutcome | null> {
   const { url, filename, exportType, surface, videoId, extra } = opts
   const device = deviceClass()
 
@@ -157,50 +196,44 @@ export async function downloadVideoFile(
 
     fire('video_downloaded', {
       ...base,
-      method: 'blob' as DownloadMethod,
+      method: 'blob',
       bytes: blob.size,
       ms: Date.now() - startedAt,
     })
     return 'blob'
   } catch (err) {
-    // O motivo importa: HTTP 4xx/5xx é servidor, TypeError é rede/CORS.
-    const reason =
-      err instanceof Error ? err.message.slice(0, 120) : 'unknown'
+    // O motivo importa e decide se vale cascatear:
+    //   `HTTP 4xx/5xx` → o CORS passou e o SERVIDOR negou o arquivo. Abrir a
+    //                    mesma URL numa aba nova entrega uma página de erro.
+    //   qualquer outro → rede ou CORS. A navegação direta ainda pode funcionar.
+    const reason = err instanceof Error ? err.message.slice(0, 120) : 'unknown'
+    const httpStatus = /^HTTP (\d{3})$/.exec(reason)?.[1] ?? null
     fire('video_download_failed', {
       ...base,
       reason,
+      http_status: httpStatus,
       ms: Date.now() - startedAt,
     })
+    if (httpStatus) return 'unavailable'
   }
 
   // ── Degrau 2: aba nova. Pode ser BARRADA (estamos fora do gesto). ────────
+  // Comportamento IDÊNTICO ao que já estava em produção — o que muda é que
+  // agora sabemos quando ele é barrado. Deliberadamente NÃO emite
+  // `video_downloaded`: abrir uma aba não prova que o arquivo chegou, e esse
+  // evento decide quem os e-mails de resgate deixam de procurar.
   try {
-    const win = window.open(url, '_blank', 'noopener')
+    const win = window.open(url, '_blank', 'noopener,noreferrer')
     if (win) {
-      fire('video_downloaded', {
-        ...base,
-        method: 'popup' as DownloadMethod,
-        ms: Date.now() - startedAt,
-      })
-      return 'popup'
+      fire('video_download_fallback_opened', { ...base, ms: Date.now() - startedAt })
+      return 'fallback_opened'
     }
-    // `win === null` = popup bloqueado. Este era o buraco silencioso.
+    // `win === null` = popup bloqueado. ESTE era o buraco silencioso: a pessoa
+    // fica sem arquivo e sem mensagem de erro, e o banco não registrava nada.
     fire('video_download_popup_blocked', base)
   } catch {
     fire('video_download_popup_blocked', { ...base, threw: true })
   }
 
-  // ── Degrau 3: navegação na mesma aba. Nenhum navegador bloqueia. ─────────
-  try {
-    window.location.href = url
-    fire('video_downloaded', {
-      ...base,
-      method: 'navigate' as DownloadMethod,
-      ms: Date.now() - startedAt,
-    })
-    return 'navigate'
-  } catch {
-    fire('video_download_dead_end', base)
-    return null
-  }
+  return 'popup_blocked'
 }
