@@ -320,3 +320,24 @@ PARALELO, sem esperar o TAAFT. Status atual: 0 e-mails enviados. Cobrar isso nas
    escolhe 1-2 e paga (gate dele). UTM/cupom proprio por criador para medir.
 3. DOMINGO 09/08: submeter TAAFT $347 (Ordem O) para cair terca/quarta. Placar de CAC antes.
 4. Um experimento pago por vez continua valendo. Placar diario reporta cada um contra meta 30 pagantes/ago.
+
+## ORDEM Q — DIA 06/08: AUTORIZACAO TOTAL DO FUNDADOR (vale o dia inteiro)
+Fundador autorizou explicitamente (manha 06/08): "todas as outras coisas que nao precisar
+[de mim], eu autorizo voce fazer em meu lugar... vale pro dia inteiro de hoje", incluindo
+uso do computador/sessoes logadas. Gates dele hoje: (a) clicar 1 PUSH .bat de manha,
+(b) escolher e pagar 1-2 micro-criadores da shortlist ($50-100).
+JA EXECUTADO pela sessao CEO 06/08 manha: COMEBACK50 DISPARADO — 12 sent / 0 failed /
+fila zerada (via /api/admin/send-comeback50?confirm=SEND na sessao logada). Monitorar
+aberturas/resgates do cupom no placar de HOJE e reportar no relatorio 22h.
+TAREFAS DO DIA (alem das ordens I/N/O/P ja abertas):
+1. E-mail de ATIVACAO pros ~39 de checkout sem video (se rota equivalente existir; senao
+   criar no padrao send-comeback50) — mesma janela de hoje.
+2. SHORTLIST micro-criadores (Ordem P item 2) — entregar ate a tarde pro fundador pagar.
+3. BOUNTY MANUAL no whop Kineo Clippers: post fixado "$1/1k views, paid direct" + follow-up
+   de 1 linha nos DMs de Eugene/adan/Carlos.
+4. PAGINA /stats PUBLICA (ideia LLM do dia): dados reais da plataforma (Shorts gerados,
+   tempo medio de render por motor, distribuicao por nicho/pais, atualizacao diaria) —
+   numeros originais = ima de citacao de LLM. index:true, JSON-LD Dataset, linkar no llms.txt
+   e no footer. NAO expor dado de usuario individual, so agregados. Marcador KINEO-STATS.
+5. Conferir 1o disparo do nudge diario 15h UTC (54 elegiveis) e reportar.
+6. Verificar deploy do hero 820x475 apos push do fundador e conferir visual em 390px.
