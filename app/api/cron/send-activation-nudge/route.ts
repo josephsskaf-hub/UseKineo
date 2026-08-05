@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 
 // send-activation-nudge — Push #426
 //
@@ -155,11 +156,22 @@ export async function GET(req: NextRequest) {
     const email = u.email?.trim()
     const plan = (u.plan ?? 'free').toLowerCase()
 
-    if (!email || isTestEmail(email) || PAID_PLANS.has(plan)) {
+    // Plano é REVERSÍVEL e o carimbo é VITALÍCIO: carimbar um pagante aqui o
+    // queima para sempre caso ele volte para o free. Pagante só pula, sem
+    // carimbo. (mesmo desenho que send-cap-hit já usava)
+    if (email && !isTestEmail(email) && PAID_PLANS.has(plan)) {
+      skipped++
+      continue
+    }
+
+    // Sem e-mail / conta de teste: isto nunca muda, então carimba para não
+    // reconsiderar a linha — mas com o SENTINELA DE PULO, que a supressão de
+    // 24h ignora. KINEO-SKIP-STAMP-2026-08-05.
+    if (!email || isTestEmail(email)) {
       skipped++
       await admin
         .from('profiles')
-        .update({ activation_nudge_sent_at: new Date().toISOString() })
+        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
         .eq('id', u.id)
       continue
     }
@@ -171,9 +183,13 @@ export async function GET(req: NextRequest) {
       .eq('user_id', u.id)
     if ((count ?? 0) > 0) {
       skipped++
+      // ⚠️ ESTE É O CARIMBO QUE CALOU O CAP-HIT EM 05/08. "Já gerou vídeo" é
+      // irreversível, então continua carimbando para nunca reconsiderar — mas
+      // com o SENTINELA, porque quem acabou de gerar vídeo é exatamente quem
+      // pode bater no teto minutos depois e precisa receber o e-mail do muro.
       await admin
         .from('profiles')
-        .update({ activation_nudge_sent_at: new Date().toISOString() })
+        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
         .eq('id', u.id)
       continue
     }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 // KINEO-EMAIL-AUDIT-2026-07-31 — o e-mail prometia "25 more Shorts for $4.90";
 // o pack starter concede 30 créditos (lib/checkoutPricing.ts PACK_CREDITS).
 // Era o ÚNICO claim falso vivo nos 4 templates de lifecycle (a auditoria
@@ -198,10 +199,18 @@ export async function GET(req: NextRequest) {
     const plan = (u.plan ?? 'free').toLowerCase()
     const paid = PAID_PLANS.has(plan) || u.is_pro === true
 
-    // Invalid / test / already paid → mark so we never reconsider.
-    if (!email || isTestEmail(email) || paid) {
+    // Plano é REVERSÍVEL e o carimbo é VITALÍCIO: carimbar um pagante aqui o
+    // queima para sempre caso ele volte para o free. Pagante só pula, sem carimbo.
+    if (email && !isTestEmail(email) && paid) {
       skipped++
-      await admin.from('profiles').update({ video_rescue_sent_at: new Date().toISOString() }).eq('id', u.id)
+      continue
+    }
+
+    // Sem e-mail / conta de teste: irreversível → carimba com o SENTINELA DE
+    // PULO, que a supressão de 24h ignora. KINEO-SKIP-STAMP-2026-08-05.
+    if (!email || isTestEmail(email)) {
+      skipped++
+      await admin.from('profiles').update({ video_rescue_sent_at: LIFECYCLE_SKIP_STAMP }).eq('id', u.id)
       continue
     }
 

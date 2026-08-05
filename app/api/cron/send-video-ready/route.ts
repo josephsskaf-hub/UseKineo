@@ -2,18 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 
 // send-video-ready — Medida 6 do PLANO-SEMANA-2026-08-03 (Bloco B, gerar→baixar).
 //
 // The measured funnel (03/08): only 30% of people who generate a video ever
-// download it. A big slice closes the tab during the 2-4 min render and never
+// download it. A big slice closes the tab during the 3-7 min render and never
 // comes back — the video sits in /history and nobody tells them. This cron
 // runs every 30 min and sends ONE email ("Your video is ready 🎬") with the
 // thumbnail and a direct link, for videos completed 30min-24h ago that the
 // user never downloaded.
 //
 // Guard rails (same as the other lifecycle jobs):
-// - max 1 per user EVER (profiles.video_ready_sent_at, also stamped on skip)
+// - max 1 per user EVER (profiles.video_ready_sent_at). Pulo por atributo
+//   IRREVERSIVEL carimba LIFECYCLE_SKIP_STAMP, que a supressao de 24h ignora.
 // - 24h cross-suppression via lib/lifecycle/suppression.ts (fail-closed)
 // - KINEO_LIFECYCLE_EMAILS_ENABLED gate, CRON_SECRET fail-closed
 // - skips test/founder accounts and opted-out users
@@ -219,9 +221,11 @@ export async function GET(req: NextRequest) {
     // reconsidered (same pattern as the other jobs).
     if (!email || isTestEmail(email)) {
       skipped++
+      // Sentinela de pulo (KINEO-SKIP-STAMP-2026-08-05): nunca reconsiderada,
+      // e sem calar os outros jobs de ciclo de vida por 24h.
       await admin
         .from('profiles')
-        .update({ video_ready_sent_at: new Date().toISOString() })
+        .update({ video_ready_sent_at: LIFECYCLE_SKIP_STAMP })
         .eq('id', u.id)
       continue
     }

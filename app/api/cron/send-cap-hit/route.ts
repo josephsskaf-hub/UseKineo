@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 
@@ -18,7 +19,8 @@ import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 // Prices/credits come from lib/checkoutPricing.ts — the single price source.
 //
 // Guard rails (same as the other lifecycle jobs):
-// - max 1 per user EVER (profiles.cap_hit_sent_at, also stamped on skip)
+// - max 1 per user EVER (profiles.cap_hit_sent_at). Pulo por atributo
+//   IRREVERSIVEL carimba LIFECYCLE_SKIP_STAMP; pagante (reversivel) nao carimba.
 // - 24h cross-suppression via lib/lifecycle/suppression.ts (fail-closed)
 // - KINEO_LIFECYCLE_EMAILS_ENABLED gate, CRON_SECRET fail-closed
 // - skips test/founder accounts, paid plans, opted-out users
@@ -240,9 +242,11 @@ export async function GET(req: NextRequest) {
     // Conta interna / sem e-mail: carimba, porque isso nunca muda.
     if (!email || isInternalEmail(email)) {
       skipped++
+      // Sentinela de pulo (KINEO-SKIP-STAMP-2026-08-05): a linha nunca é
+      // reconsiderada, mas o carimbo não entra na janela de 24h da supressão.
       await admin
         .from('profiles')
-        .update({ cap_hit_sent_at: new Date().toISOString() })
+        .update({ cap_hit_sent_at: LIFECYCLE_SKIP_STAMP })
         .eq('id', u.id)
       continue
     }

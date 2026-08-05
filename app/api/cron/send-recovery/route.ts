@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 
 // send-recovery — Push #425
 //
@@ -13,7 +14,8 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 // hello@usekineo.com, asking what got in the way.
 //
 // Guard rails:
-//   - max 1 recovery email per user, ever (recovery_sent_at marks ALL rows)
+//   - max 1 recovery email per user, ever (recovery_sent_at). Pagante e opt-out
+//     sao REVERSIVEIS: pulam sem carimbar. Teste/sem e-mail levam o sentinela.
 //   - skips users who already converted to a paid plan
 //   - skips founder/test accounts (same rules as /admin's isTestEmail)
 //   - only looks at sessions expired in the last 48h, so a fresh deploy
@@ -195,12 +197,21 @@ export async function GET(req: NextRequest) {
 
     const optedOut = (prof as { email_opted_out?: boolean | null } | undefined)?.email_opted_out === true
 
-    if (!email || isTestEmail(email) || PAID_PLANS.has(plan) || optedOut) {
+    // Plano pago e opt-out são REVERSÍVEIS e o carimbo é VITALÍCIO: quem volta
+    // ao free, ou quem se reinscreve, nasceria queimado para sempre. Só pula.
+    if (email && !isTestEmail(email) && (PAID_PLANS.has(plan) || optedOut)) {
       skipped++
-      // Mark so we never reconsider these rows (converted/test/unreachable).
+      continue
+    }
+
+    // Sem e-mail / conta de teste: irreversível → carimba para não reconsiderar
+    // a linha, com o SENTINELA DE PULO, que a supressão de 24h ignora.
+    // KINEO-SKIP-STAMP-2026-08-05.
+    if (!email || isTestEmail(email)) {
+      skipped++
       await admin
         .from('checkout_abandoned')
-        .update({ recovery_sent_at: new Date().toISOString() })
+        .update({ recovery_sent_at: LIFECYCLE_SKIP_STAMP })
         .eq('user_id', userId)
         .is('recovery_sent_at', null)
       continue

@@ -24,7 +24,8 @@
 // ─────────────────────
 // Dado um conjunto de user ids, devolve quem recebeu QUALQUER e-mail de ciclo
 // de vida nas últimas LIFECYCLE_SUPPRESSION_HOURS horas, tomando o MÁXIMO das
-// 4 colunas datadas acima. Um usuário suprimido não entra na coorte de nenhum
+// 6 colunas datadas de `profiles` (lista em PROFILE_TIMESTAMP_COLUMNS) mais
+// `checkout_abandoned.recovery_sent_at`. Um usuário suprimido não entra na coorte de nenhum
 // job naquela execução.
 //
 // SEM MIGRATION, SEM COLUNA NOVA. Só leitura das colunas que já existem.
@@ -43,22 +44,32 @@
 //    as duas colunas para timestamptz — migration, que exige autorização
 //    separada. Registrado, não feito.
 //
-// 2. As colunas marcam "processado", não "enviado".
-//    Todos os 4 jobs carimbam a coluna também quando PULAM alguém (conta de
-//    teste, plano pago, opt-out) para nunca reconsiderar a linha. Então um
-//    carimbo pode significar "pulado", e a supressão vai errar para o lado de
-//    NÃO enviar. Verificado que a sobreposição real é ~vazia: todo usuário
-//    carimbado-por-pulo é teste/pago/opt-out, e os 4 jobs já excluem os três
-//    casos por conta própria. O único carimbo-por-pulo exclusivo é o de
-//    send-activation-nudge para quem já gerou vídeo — e a coorte de
-//    send-video-rescue exige vídeo com 24h+, enquanto a janela do nudge é de
-//    1–6h após o cadastro, então os dois não se encontram.
+// 2. ~~As colunas marcam "processado", não "enviado".~~
+//    ✅ CORRIGIDO EM 05/08/2026 — KINEO-SKIP-STAMP-2026-08-05.
+//
+//    O texto que estava aqui dizia que a sobreposição entre "carimbado por pulo"
+//    e "coorte de outro job" era ~vazia, e listava o único caso conhecido
+//    (send-activation-nudge pulando quem já gerou vídeo) como inofensivo porque
+//    a coorte do send-video-rescue exige vídeo com 24h+.
+//
+//    **A análise estava certa para os jobs que existiam quando foi escrita, e a
+//    conclusão apodreceu no dia em que um job novo entrou na lista.** O
+//    `send-cap-hit` dispara MINUTOS depois da recusa, não 24h depois — e em
+//    05/08 exatamente aquele carimbo-por-pulo "inofensivo" calou por 24h o sinal
+//    de compra mais quente do funil (`eziafakaego2026@gmail.com`, recusa 19:00Z,
+//    carimbo de pulo 19:40:47Z, e-mail que nunca existiu).
+//
+//    A correção não é reanalisar a sobreposição de novo a cada job novo — é
+//    fazer o pulo parar de se parecer com um envio. Os jobs agora carimbam
+//    `LIFECYCLE_SKIP_STAMP` (época Unix) quando pulam, e esta supressão só
+//    aceita carimbo posterior a `REAL_SEND_FLOOR_MS`. Ver lib/lifecycle/skipStamp.ts.
 //
 // FALHA FECHADA. Se qualquer consulta der erro, TODOS os ids entram como
 // suprimidos e `degraded` vira true. Perder um e-mail é barato; mandar e-mail
 // repetido para uma base de 713 pessoas queima domínio.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isRealSendStamp, REAL_SEND_FLOOR_MS } from './skipStamp'
 
 /** Janela mínima entre dois e-mails de ciclo de vida para o MESMO usuário. */
 export const LIFECYCLE_SUPPRESSION_HOURS = 24
@@ -135,6 +146,9 @@ export async function loadLifecycleSuppression(
 
   const bump = (userId: unknown, when: number) => {
     if (typeof userId !== 'string' || !userId || when <= 0) return
+    // KINEO-SKIP-STAMP-2026-08-05 — carimbo de PULO não cala ninguém. Só entra
+    // na janela de 24h o carimbo que corresponde a um e-mail que saiu de verdade.
+    if (!isRealSendStamp(when)) return
     if ((lastEmailAt.get(userId) ?? 0) < when) lastEmailAt.set(userId, when)
   }
 
@@ -167,7 +181,9 @@ export async function loadLifecycleSuppression(
         .from('checkout_abandoned')
         .select('user_id, recovery_sent_at')
         .in('user_id', part)
-        .not('recovery_sent_at', 'is', null)
+        // KINEO-SKIP-STAMP-2026-08-05 — corta o carimbo de PULO na origem, em vez
+        // de trazer a linha e descartá-la no `bump`. Mesmo resultado, menos I/O.
+        .gte('recovery_sent_at', new Date(REAL_SEND_FLOOR_MS).toISOString())
 
       if (abandonedErr) {
         return closed(`checkout_abandoned: ${abandonedErr.code ?? '?'} ${abandonedErr.message}`)
