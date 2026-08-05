@@ -307,3 +307,16 @@ Ads pagos seguem vetados ("sem caixa este mês, cartoes no limite — reavaliar 
 Whop Content Rewards: ADIADO, nao morto ($250-500, religavel com $50).
 Micro-influenciadores (Plano F) NAO custam caixa (creditos + afiliado 40%) — devem rodar EM
 PARALELO, sem esperar o TAAFT. Status atual: 0 e-mails enviados. Cobrar isso nas sprints.
+
+## ORDEM P — INVESTIMENTO 06/08 (decidido com o fundador na madrugada de 05->06/08)
+1. WHOP CONTENT REWARDS: VETADO — o Whop agora exige MINIMO $1.000 de deposito (verificado
+   na tela 05/08; a pesquisa de 03/08 dizia "sem minimo" — mudou). Campanha ficou MONTADA
+   (nome/regras/capa) no app da comunidade; so voltar quando 25+ pagantes justificarem $1k.
+   NAO repetir o pedido de budget ao fundador.
+2. AMANHA (06/08), budget $50-100 do fundador: MICRO-CRIADORES (Plano F destravado com caixa).
+   Sprint da manha entrega SHORTLIST de 5-8 canais 10-30k subs do nicho faceless/AI-money
+   (canal, views medias, engajamento, e-mail/contato) + rascunho de proposta: $50-100 por
+   video dedicado honesto + afiliado 40% recurring + 3 meses de Creator gratis. Fundador
+   escolhe 1-2 e paga (gate dele). UTM/cupom proprio por criador para medir.
+3. DOMINGO 09/08: submeter TAAFT $347 (Ordem O) para cair terca/quarta. Placar de CAC antes.
+4. Um experimento pago por vez continua valendo. Placar diario reporta cada um contra meta 30 pagantes/ago.
