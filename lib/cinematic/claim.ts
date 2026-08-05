@@ -433,7 +433,10 @@ export async function loadSettledCinematicClaimForRender(args: {
     birth.claim.resolutionReason === 'provider_submitted_and_debited'
   const isRefunded =
     birth.claim.status === 'released' &&
-    /^provider_(all_failed|failed)_refunded$/.test(birth.claim.resolutionReason)
+    // KINEO-CREDIT-INTEGRITY-2026-08-05 — `abandoned` joins the terminal
+    // refunded reasons: the cron sweep releases a settled claim whose render
+    // never delivered (closed tab / stalled fal poll) after refunding it.
+    /^provider_(all_failed|failed|abandoned)_refunded$/.test(birth.claim.resolutionReason)
   if (
     (!isDebited && !isRefunded) || birth.claim.quality !== quality ||
     birth.claim.creditCost !== cost ||
@@ -735,7 +738,11 @@ export async function releaseCinematicClaim(args: {
     // A provider can still fail every queued clip after the deterministic
     // upfront debit. The status route refunds that exact billing reference
     // first, then records the terminal released state here.
-    if (!/^provider_(all_failed|failed)_refunded$/.test(reason) || reference !== current.resolutionReference) {
+    // KINEO-CREDIT-INTEGRITY-2026-08-05 — `provider_abandoned_refunded` is the
+    // same shape for a render that never reached delivery at all (tab closed
+    // mid-`fal_polling`, poll never resumed): the cron sweep refunds the exact
+    // billing reference first, then lands the claim here.
+    if (!/^provider_(all_failed|failed|abandoned)_refunded$/.test(reason) || reference !== current.resolutionReference) {
       return { ok: false, error: 'settled claim can only be released after its provider debit is refunded', conflict: true }
     }
   }

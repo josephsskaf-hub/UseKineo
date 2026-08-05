@@ -24,7 +24,7 @@
 // portão de e-mail nunca deveria ter podido bloquear a devolução de dinheiro.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { sweepStuckRenderDebits } from '@/lib/credits/refund'
+import { sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepStaleAnimateClaims } from '@/lib/animate/service'
 
 export const dynamic = 'force-dynamic'
@@ -47,6 +47,10 @@ export async function GET(req: NextRequest) {
 
   const renders = { scanned: 0, refunded: 0, creditsReturned: 0 }
   const animate = { scanned: 0, refunded: 0, released: 0 }
+  // KINEO-CREDIT-INTEGRITY-2026-08-05 — os motores cinematográficos debitam no
+  // SUBMIT e só tinham refund AO VIVO (dependente da aba do usuário continuar
+  // aberta). Esta terceira varredura fecha o buraco.
+  const cinematic = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
   const errors: string[] = []
 
   // As duas varreduras são independentes: uma falhar não pode impedir a outra
@@ -67,9 +71,17 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] stale-animate sweep failed:', msg)
   }
 
-  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, errors }))
+  try {
+    Object.assign(cinematic, await sweepAbandonedCinematicDebits())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`abandoned_cinematic: ${msg}`)
+    console.error('[cron/refund-sweep] abandoned-cinematic sweep failed:', msg)
+  }
+
+  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, errors }))
 
   // 200 mesmo com erro parcial: as duas varreduras são idempotentes e rodam de
   // novo amanhã. Um 5xx aqui só produziria ruído de alerta sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, errors })
 }

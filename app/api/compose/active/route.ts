@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
+import { CINEMATIC_CLAIM_EVENT, CINEMATIC_CLAIM_PATH } from '@/lib/cinematic/claim'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-RESUME-RENDER-2026-08-04 — READ-ONLY probe: "what is the truth about
@@ -36,6 +37,21 @@ import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
 // Auth: session cookie (same as compose/status). Service role only for the
 // reads, always filtered to user.id. Degrades to state:'none' on any lookup
 // fault so the page never gets a NEW dead end from its dead-end fix.
+//
+// KINEO-CREDIT-INTEGRITY-2026-08-05 — CINEMATIC RENDERS WERE INVISIBLE HERE.
+// A cinematic generation is DEBITED and submitted to fal by
+// /api/generate-video-cinematic, and only reaches /api/compose (and therefore
+// only writes a compose_submission_claim) AFTER every clip finishes. Between
+// those two moments — the `fal_polling` stage, the longest and most expensive
+// part of the job — this probe returned state:'none'. Incident 05/08 03:08Z /
+// 03:17Z: two paid cinematic renders (110 credits) sat in fal_polling with no
+// compose claim and no `videos` row, so the pill said nothing and the user had
+// no evidence the render ever existed.
+// We now also read the signed cinematic birth claim (name=
+// cinematic_submission_claim, status=settled = provider submitted AND debited).
+// It carries no Creatomate render id, so it is reported with render_id:null and
+// resumable:false — the client must NOT offer "Check progress" for it (there is
+// nothing to poll on /api/compose/status yet), only show that it is alive.
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const dynamic = 'force-dynamic'
@@ -64,10 +80,10 @@ export async function GET() {
 
     const since = new Date(Date.now() - ACTIVE_WINDOW_MS).toISOString()
 
-    const [claimsResult, videoResult] = await Promise.all([
+    const [claimsResult, videoResult, cinematicResult] = await Promise.all([
       admin
         .from('events')
-        .select('id, metadata, created_at')
+        .select('id, metadata, session_id, created_at')
         .eq('user_id', user.id)
         .eq('name', COMPOSE_CLAIM_EVENT)
         .eq('path', COMPOSE_CLAIM_PATH)
@@ -83,6 +99,18 @@ export async function GET() {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      // The cinematic birth claim: written (and debited) before the fal
+      // submission, settled once the provider accepted the clips. This is the
+      // ONLY server-side evidence a cinematic render exists during fal_polling.
+      admin
+        .from('events')
+        .select('id, metadata, session_id, created_at')
+        .eq('user_id', user.id)
+        .eq('name', CINEMATIC_CLAIM_EVENT)
+        .eq('path', CINEMATIC_CLAIM_PATH)
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(5),
     ])
 
     if (claimsResult.error) {
@@ -143,11 +171,53 @@ export async function GET() {
       return NextResponse.json({
         state: 'rendering',
         render_id: renderId && renderId.length <= 160 ? renderId : null,
+        resumable: true,
         started_at: activeClaim.created_at,
         elapsed_ms: Math.max(0, Date.now() - activeClaimAt),
         quality: typeof metadata.quality === 'string' && metadata.quality ? metadata.quality : 'fast',
         duration: rawDuration === 60 || rawDuration === 90 ? rawDuration : 45,
       })
+    }
+
+    // No compose claim in flight — but a cinematic job may still be generating
+    // its clips at fal (the stage that has already been PAID for). Report it so
+    // the render is never invisible; it carries no render id, so the client
+    // shows presence only and must not attempt a compose/status poll.
+    if (!cinematicResult.error && Array.isArray(cinematicResult.data)) {
+      const composeSessions = new Set(
+        claims
+          .map((row) => (typeof row.session_id === 'string' ? row.session_id : ''))
+          .filter(Boolean),
+      )
+      const activeCinematic = cinematicResult.data.find((row) => {
+        const metadata = row.metadata && typeof row.metadata === 'object'
+          ? row.metadata as Record<string, unknown>
+          : {}
+        // `settled` = provider accepted the submission AND the credits were
+        // debited. `released` was refunded/closed; `pending`/`done` are still
+        // inside the birth request and resolve within seconds.
+        if (metadata.status !== 'settled') return false
+        const sessionId = typeof row.session_id === 'string' ? row.session_id : ''
+        return !(sessionId && composeSessions.has(sessionId))
+      })
+      const cinematicAt = activeCinematic ? Date.parse(String(activeCinematic.created_at ?? '')) : NaN
+      if (activeCinematic && Number.isFinite(cinematicAt) && (!recentVideo || cinematicAt > recentVideoAt)) {
+        const metadata = activeCinematic.metadata && typeof activeCinematic.metadata === 'object'
+          ? activeCinematic.metadata as Record<string, unknown>
+          : {}
+        return NextResponse.json({
+          state: 'rendering',
+          render_id: null,
+          resumable: false,
+          stage: 'ai_scenes',
+          started_at: activeCinematic.created_at,
+          elapsed_ms: Math.max(0, Date.now() - cinematicAt),
+          quality: typeof metadata.quality === 'string' && metadata.quality ? metadata.quality : 'cinematic_ai',
+          duration: 45,
+        })
+      }
+    } else if (cinematicResult.error) {
+      console.warn('[compose/active] cinematic claim lookup failed:', cinematicResult.error.message)
     }
 
     if (recentVideo && typeof recentVideo.video_url === 'string' && recentVideo.video_url) {

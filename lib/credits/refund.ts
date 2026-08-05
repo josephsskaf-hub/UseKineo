@@ -11,6 +11,8 @@
 //   animate-<falRequestId> — Animate feature (upfront debit)
 //   legacy-<creatomate-id> — legacy /api/render path (upfront debit)
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
+import { CINEMATIC_CLAIM_EVENT, releaseCinematicClaim } from '@/lib/cinematic/claim'
 
 function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -70,8 +72,11 @@ export async function refundRenderCredits(renderId: string): Promise<number> {
  *               persist to `videos` (the WebM IS the product, no compose).
  *               Their failures are refunded live by /api/gesture-clip-status.
  *   cinematic-% — cinematic birth jobs debit before authenticated Fal polling;
- *                 their final video uses a different Creatomate render id.
- *                 Terminal Fal/Compose failures refund this key live.
+ *                 their final video uses a different Creatomate render id, so
+ *                 the "no videos row keyed by render_id" test above would
+ *                 refund every SUCCESSFUL cinematic render. They are swept by
+ *                 sweepAbandonedCinematicDebits() below instead, which maps
+ *                 the birth claim to its compose render id before deciding.
  *   avatar-% — avatar birth jobs also debit before authenticated Fal polling;
  *              their final compose uses another render id. Fal failures are
  *              refunded live by /api/avatar-status.
@@ -133,6 +138,200 @@ export async function sweepStuckRenderDebits(): Promise<{
   if (result.refunded > 0) {
     console.log(
       `[refund/sweep] refunded ${result.refunded} stuck render(s), ${result.creditsReturned} credits returned`
+    )
+  }
+  return result
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-CREDIT-INTEGRITY-2026-08-05 — the cinematic hole.
+//
+// INCIDENTE (05/08, conta do fundador): dois renders cinematográficos (seedance
+// 20cr + veo 90cr) foram DEBITADOS no submit, chegaram ao estágio `fal_polling`
+// e nunca entregaram. Nenhuma linha em `videos`, nenhum refund, 110 créditos
+// evaporados — e a tela ainda dizia "Credits are only charged on successful
+// delivery".
+//
+// POR QUE ACONTECEU: os motores cinematográficos debitam ANTES de submeter ao
+// fal (chave determinística `cinematic-<claimId>`), e o ÚNICO refund existente
+// era AO VIVO — /api/generate-video-cinematic quando a submissão falha e
+// /api/cinematic-clip-status quando TODOS os clipes falham. Os dois exigem que
+// a aba do usuário continue fazendo polling. Aba fechada, rede caída, poll
+// travado, fal parado em IN_PROGRESS para sempre = ninguém nunca chama o
+// refund. E `sweepStuckRenderDebits()` excluía `cinematic-%` de propósito.
+//
+// O QUE ESTA VARREDURA FAZ: para cada débito `cinematic-%` não reembolsado e
+// mais velho que o cutoff, decide "isto ENTREGOU?" pela mesma cadeia que o
+// resto do sistema já usa como verdade:
+//   credit_debits.render_id  →  events(cinematic_submission_claim,
+//   metadata.resolution_reference = render_id)  →  session_id = generationId
+//   →  events(compose_submission_claim, mesmo user + session_id)
+//   →  metadata.render_id (id do Creatomate)  →  linha em `videos`
+// Se existe linha em `videos`, ENTREGOU: não reembolsa, nunca.
+// Se não existe claim de compose nenhum, o render provadamente nunca chegou a
+// ser submetido para composição (o claim é escrito ANTES de qualquer POST ao
+// provedor) → abandonado → reembolsa.
+//
+// FALHA FECHADA: qualquer erro de consulta pula a linha (roda de novo amanhã).
+// Melhor devolver tarde do que devolver o que foi entregue.
+//
+// IDEMPOTÊNCIA: o dinheiro volta por refund_render_credits (UPDATE condicional
+// WHERE refunded_at IS NULL ... RETURNING), então dois crons simultâneos, ou
+// esta varredura correndo com o refund ao vivo, jamais reembolsam duas vezes —
+// só uma das chamadas recebe amount > 0. O evento de auditoria e o release do
+// claim só acontecem nessa chamada vencedora.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Um render cinematográfico realista (submissão + clipes no fal + compose)
+// termina em minutos. 3h é ~30x a margem: nada que ainda esteja vivo é tocado.
+const CINEMATIC_ABANDON_CUTOFF_MS = 3 * 60 * 60 * 1000
+
+function metadataOf(row: { metadata?: unknown } | null): Record<string, unknown> {
+  return row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
+    ? row.metadata as Record<string, unknown>
+    : {}
+}
+
+function textField(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+export async function sweepAbandonedCinematicDebits(): Promise<{
+  scanned: number
+  delivered: number
+  refunded: number
+  creditsReturned: number
+}> {
+  const result = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
+  const db = adminClient()
+  if (!db) return result
+  const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!secret) return result
+
+  const cutoff = new Date(Date.now() - CINEMATIC_ABANDON_CUTOFF_MS).toISOString()
+  const { data: debits, error } = await db
+    .from('credit_debits')
+    .select('render_id, user_id, amount')
+    .eq('kind', 'video')
+    .is('refunded_at', null)
+    .like('render_id', 'cinematic-%')
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (error) {
+    console.error('[refund/cinematic-sweep] debit query failed:', error.message)
+    return result
+  }
+  const candidates = debits ?? []
+  result.scanned = candidates.length
+  if (candidates.length === 0) return result
+
+  for (const debit of candidates) {
+    const billingReference = textField(debit.render_id)
+    const userId = textField(debit.user_id)
+    if (!billingReference || !userId) continue
+
+    // 1) The signed birth claim that owns this ledger key.
+    const { data: birthRow, error: birthError } = await db
+      .from('events')
+      .select('user_id, session_id, metadata')
+      .eq('name', CINEMATIC_CLAIM_EVENT)
+      .eq('user_id', userId)
+      .eq('metadata->>resolution_reference', billingReference)
+      .maybeSingle()
+    if (birthError) {
+      console.warn(`[refund/cinematic-sweep] birth claim lookup failed ref=${billingReference}:`, birthError.message)
+      continue
+    }
+    if (!birthRow) continue // no verifiable owner → fail closed
+
+    const birthMeta = metadataOf(birthRow)
+    // Only a `settled` claim carries a live upfront debit. `released` already
+    // resolved (refunded live); `pending`/`done` are handled by the birth route.
+    if (textField(birthMeta.status) !== 'settled') continue
+    const generationId = textField(birthRow.session_id)
+    if (!generationId) continue
+
+    // 2) Did this generation ever reach compose? The compose claim is written
+    //    BEFORE any provider POST, so its absence proves non-delivery.
+    const { data: composeRow, error: composeError } = await db
+      .from('events')
+      .select('metadata')
+      .eq('name', COMPOSE_CLAIM_EVENT)
+      .eq('user_id', userId)
+      .eq('session_id', generationId)
+      .limit(1)
+      .maybeSingle()
+    if (composeError) {
+      console.warn(`[refund/cinematic-sweep] compose claim lookup failed gen=${generationId}:`, composeError.message)
+      continue
+    }
+
+    // 3) A compose render id with a persisted `videos` row = DELIVERED. Hands off.
+    const composeRenderId = textField(metadataOf(composeRow).render_id)
+    if (composeRenderId) {
+      const { data: video, error: videoError } = await db
+        .from('videos')
+        .select('render_id')
+        .eq('user_id', userId)
+        .eq('render_id', composeRenderId)
+        .limit(1)
+        .maybeSingle()
+      if (videoError) {
+        console.warn(`[refund/cinematic-sweep] videos lookup failed render=${composeRenderId}:`, videoError.message)
+        continue // fail CLOSED — never refund a render we could not verify
+      }
+      if (video) {
+        result.delivered += 1
+        continue
+      }
+    }
+
+    // 4) Never delivered. Give the money back, then record the audit trail.
+    const amount = await refundRenderCredits(billingReference)
+    if (amount <= 0) continue
+    result.refunded += 1
+    result.creditsReturned += amount
+
+    const { error: auditError } = await db.from('events').insert({
+      user_id: userId,
+      name: 'credits_refunded',
+      path: '/api/cron/refund-sweep',
+      session_id: generationId,
+      metadata: {
+        render_id: billingReference,
+        amount,
+        reason: 'cinematic_abandoned_no_delivery',
+        quality: textField(birthMeta.quality) || null,
+        engine: textField(birthMeta.engine) || null,
+        refunded_at: new Date().toISOString(),
+      },
+    })
+    if (auditError) {
+      console.error(`[refund/cinematic-sweep] audit event failed ref=${billingReference}:`, auditError.message)
+    }
+
+    // Land the claim in its terminal `released` state so the birth route and
+    // compose/status agree the debit is gone (and a replay cannot re-settle it).
+    const released = await releaseCinematicClaim({
+      db,
+      secret,
+      userId,
+      generationId,
+      reason: 'provider_abandoned_refunded',
+      reference: billingReference,
+    })
+    if (!released.ok) {
+      console.error(`[refund/cinematic-sweep] claim release failed gen=${generationId}:`, released.error)
+    }
+    console.log(`[refund/cinematic-sweep] refunded ${amount} credits ref=${billingReference}`)
+  }
+
+  if (result.refunded > 0) {
+    console.log(
+      `[refund/cinematic-sweep] refunded ${result.refunded} abandoned cinematic render(s), ` +
+      `${result.creditsReturned} credits returned (${result.delivered} delivered, untouched)`
     )
   }
   return result
