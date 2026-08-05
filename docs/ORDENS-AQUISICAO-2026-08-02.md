@@ -341,3 +341,13 @@ TAREFAS DO DIA (alem das ordens I/N/O/P ja abertas):
    e no footer. NAO expor dado de usuario individual, so agregados. Marcador KINEO-STATS.
 5. Conferir 1o disparo do nudge diario 15h UTC (54 elegiveis) e reportar.
 6. Verificar deploy do hero 820x475 apos push do fundador e conferir visual em 390px.
+
+## 🔑 AUTORIZACAO PERMANENTE DO FUNDADOR (06/08/2026, manha)
+"daqui pra frente voce assume em tudo, voce tem minha autorizacao."
+Vale para a sessao CEO e para TODAS as sprints diarias, daqui em diante:
+- Executar sem pedir: codigo+push, e-mails via Resend/rotas admin, posts e respostas nas
+  contas logadas (X/Whop/PH/Reddit), cupons e configuracoes nao-financeiras, sitemaps.
+- CONTINUAM sendo gate do fundador (regra dura, nao muda com autorizacao):
+  pagamentos e depositos ($ novos: micro-criadores, TAAFT domingo), senhas/chaves,
+  compras, e qualquer coisa que mova dinheiro da conta dele.
+- Prestacao de contas: relatorio 22h + aviso imediato de venda/resgate/incidente.
