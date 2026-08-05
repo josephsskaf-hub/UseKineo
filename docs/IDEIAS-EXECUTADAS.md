@@ -159,3 +159,21 @@ mesmo dia (hoje 3 enviados, 0 checkouts). **Morte: 12/08** se 10 envios não der
 - 2º/3º canal no Autopilot como outdoor (finance/history — RPMs altos)
 - Registrar cineo.com (13 impressões/mês do typo > "kineo ai") — custa dinheiro, gate
 - Badge "Made with Kineo" clicável no end-card do vídeo free (hoje é só texto)
+
+## 05/08/2026 21h — KINEO-SKIP-STAMP: o pulo parou de se parecer com envio
+- **O quê:** `*_sent_at` carimbava também quem foi PULADO, e `suppression.ts` lia o carimbo como
+  prova de e-mail enviado. **267 de 679 carimbos de `activation_nudge` (39%) eram ficção**, e 8
+  pessoas estavam caladas por e-mails que nunca existiram.
+- **Correção:** pulo carimba a época Unix (`LIFECYCLE_SKIP_STAMP`); a supressão só aceita carimbo
+  posterior a 2020. Pagante e opt-out (atributos REVERSÍVEIS) pulam sem carimbar. Backfill de 267
+  linhas aplicado. Commit `5ca669a`.
+- **Métrica:** e-mails de lifecycle suprimidos por carimbo falso → **0**. Prazo: 7 dias.
+- **Como falsificar:** se em 12/08 alguém bater no teto do free e NÃO receber o cap-hit por causa
+  de um `*_sent_at` que não corresponde a envio, a correção falhou.
+
+## 05/08/2026 21h — IDEIA CEO na fila: `send-post-nudge` (o convite que nunca chega)
+- **O buraco:** 47 baixaram em 7d, `posted_shorts` = **2** na história. Nenhum dos 13 crons cobre
+  "baixou e não postou" — o trecho mais quente do funil.
+- **Regra Zero:** post-to-earn, mural e `/api/posted-shorts` **já existem**. Falta o convite, não o
+  produto. Alavanca cega, não ausente.
+- **Métrica:** `posted_shorts` 2 → 12 em 7 dias. Não moveu, morre.
