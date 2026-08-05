@@ -74,7 +74,7 @@ ${titleLine}
 
 It's saved in your library — watch it and grab the download here: ${url}
 
-It only took a couple of minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.
+It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.
 
 Kineo Team
 usekineo.com`
@@ -88,7 +88,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">${title ? `<strong>&ldquo;${title}&rdquo;</strong> is done rendering and waiting for you.` : '<strong>Your video is done rendering</strong> and waiting for you.'}</p>
   ${thumbHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Watch &amp; download &rarr;</a></p>
-  <p style="margin:0 0 14px;">It only took a couple of minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.</p>
+  <p style="margin:0 0 14px;">It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
 </div>

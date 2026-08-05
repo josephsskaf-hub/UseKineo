@@ -210,6 +210,66 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // ── KINEO-CAPHIT-FORENSICS-2026-08-05 ──────────────────────────────────────
+  // Em 05/08 este cron reenviou o MESMO e-mail 3× para a mesma pessoa (21:45Z,
+  // 22:45Z, 23:15Z). Para ser reselecionada, a linha dela precisa passar pelo
+  // `.is('cap_hit_sent_at', null)` acima — mas uma consulta SQL direta ao banco,
+  // nos mesmos minutos, mostrava o carimbo lá, estável. Ou seja: **o cron enxerga
+  // uma versão da tabela diferente da que o Postgres serve ao SQL direto.**
+  // Na mesma rodada, alguém sem NENHUM carimbo aparecia como suprimido.
+  //
+  // Já foram eliminados com evidência: trigger do banco, escrita de NULL no
+  // código, linha duplicada (lower/btrim), réplica de leitura, outro cron
+  // sobrescrevendo, e a montagem da coorte.
+  //
+  // Estes três logs decidem entre as duas explicações que sobraram, em UMA rodada:
+  //   · valor cru NULL  → leitura velha/cache; o alvo é o cliente Supabase do cron.
+  //   · valor cru com timestamp → o `.is(col, null)` do PostgREST não faz o que o
+  //     código diz, e o problema vale para TODOS os crons de lifecycle.
+  // Some daqui assim que a causa estiver fechada.
+  console.log(
+    `[send-cap-hit][forense] coorte=${cappedIds.length} candidatos=${(candidates ?? []).length} ` +
+    `valores_crus=${JSON.stringify((candidates ?? []).map((u) => [u.id, u.cap_hit_sent_at]))}`,
+  )
+
+  // ── TRAVA DE REENVIO (KINEO-CAPHIT-NO-REPEAT-2026-08-05) ───────────────────
+  // A instrumentação acima DIAGNOSTICA; esta trava PARA o sangramento agora,
+  // sem depender de saber a causa raiz. Em 05/08 a mesma pessoa recebeu 3
+  // e-mails idênticos em 90 minutos porque a ÚNICA memória de "já enviei" era a
+  // coluna `cap_hit_sent_at` — e é exatamente ela que, por algum motivo, o cron
+  // relê como nula.
+  //
+  // A regra é a mesma que este repositório já aprendeu duas vezes hoje: quando o
+  // registro de um MOMENTO é o que decide, ele nasce do EVENTO daquele momento.
+  // O envio agora grava `cap_hit_sent` em `events` — outro caminho de escrita,
+  // outra tabela — e a coorte passa a excluir quem tem esse evento. Se a coluna
+  // voltar a falhar, o e-mail ainda sai UMA vez, que é a promessa do job.
+  // SEM JANELA DE TEMPO, DE PROPOSITO. A promessa deste job, escrita no topo do
+  // arquivo, e "max 1 por usuario EVER". Uma janela de 30 dias faria o dedupe
+  // ESQUECER — e no dia 31, no exato cenario que motivou esta trava (a coluna
+  // nao persistir), a pessoa voltaria a coorte e receberia o SEGUNDO e-mail,
+  // sem nenhum log, porque para o codigo isso seria um envio legitimo. Janela
+  // finita e correta em job RECORRENTE (send-blackout-winback, 7d); aqui
+  // contradiz o invariante. O conjunto name='cap_hit_sent' e minusculo e o
+  // indice de `events.name` ja existe: a consulta sem corte custa o mesmo.
+  const { data: alreadySent, error: alreadyErr } = await admin
+    .from('events')
+    .select('user_id')
+    .eq('name', 'cap_hit_sent')
+    .in('user_id', (candidates ?? []).map((u) => u.id as string))
+
+  // Falha FECHADA: sem poder provar que ninguém já recebeu, o job não envia.
+  // Perder uma rodada custa 30 minutos; reenviar em loop custa o domínio.
+  if (alreadyErr) {
+    console.error(`[send-cap-hit] dedupe por evento falhou: ${alreadyErr.message} — nada enviado nesta rodada`)
+    return NextResponse.json({ error: alreadyErr.message, sent: 0, reason: 'dedupe_query_failed' }, { status: 500 })
+  }
+
+  const alreadySentIds = new Set((alreadySent ?? []).map((r) => r.user_id as string))
+  if (alreadySentIds.size > 0) {
+    console.log(`[send-cap-hit] ${alreadySentIds.size} já receberam (evento cap_hit_sent) — fora da coorte`)
+  }
+
   const suppression = await loadLifecycleSuppression(
     admin,
     (candidates ?? []).map((u) => u.id as string),
@@ -218,9 +278,20 @@ export async function GET(req: NextRequest) {
   let sent = 0
   let skipped = 0
   let suppressed = 0
+  // A trava de reenvio inteira depende do evento `cap_hit_sent` existir. Se o
+  // insert falhar, a trava deixa de existir PARA AQUELA PESSOA — e isso tem que
+  // aparecer no payload, nao so num console.error que ninguem le. AGIR SEM
+  // REPORTAR e o mesmo defeito de agir errado.
+  let eventWriteFailures = 0
 
   for (const u of candidates ?? []) {
     if (sent >= MAX_PER_RUN) break
+
+    // Já recebeu (prova em `events`, independente da coluna). Nunca duas vezes.
+    if (alreadySentIds.has(u.id as string)) {
+      skipped++
+      continue
+    }
 
     // Suppressed = another lifecycle email in the last 24h. NOT stamped — they
     // stay eligible on the next run while still inside their hot window.
@@ -272,10 +343,48 @@ export async function GET(req: NextRequest) {
 
       if (res.ok) {
         sent++
-        await admin
+        // KINEO-CAPHIT-FORENSICS-2026-08-05 — o erro deste update era IGNORADO
+        // (nos 5 crons de lifecycle). Escrita que falha em silêncio é
+        // indistinguível de escrita que funcionou, e é justamente o que
+        // permitiria o reenvio infinito. Agora o desfecho é lido de volta.
+        const stampedAt = new Date().toISOString()
+
+        // A PROVA DE ENVIO vai PRIMEIRO, e em outra tabela. Se o processo morrer
+        // aqui, a próxima rodada já não reenvia. Ordem deliberada: é melhor um
+        // e-mail a menos (a pessoa perde o nudge) do que um loop de reenvio.
+        const { error: evtErr } = await admin.from('events').insert({
+          user_id: u.id,
+          name: 'cap_hit_sent',
+          path: '/api/cron/send-cap-hit',
+          metadata: { stamped_at: stampedAt },
+        })
+        if (evtErr) {
+          eventWriteFailures++
+          console.error(
+            `[send-cap-hit][forense] evento cap_hit_sent NAO gravado para ${u.id}: ${evtErr.message}` +
+            ' — a trava de reenvio nao cobre esta pessoa nesta rodada',
+          )
+        }
+        alreadySentIds.add(u.id as string)
+
+        const { data: written, error: stampErr } = await admin
           .from('profiles')
-          .update({ cap_hit_sent_at: new Date().toISOString() })
+          .update({ cap_hit_sent_at: stampedAt })
           .eq('id', u.id)
+          .select('id, cap_hit_sent_at')
+        if (stampErr) {
+          console.error(
+            `[send-cap-hit][forense] FALHA AO CARIMBAR ${email}: ${stampErr.code ?? '?'} ${stampErr.message}` +
+            ' — esta pessoa vai receber o e-mail DE NOVO na próxima rodada',
+          )
+        } else if (!written || written.length === 0) {
+          console.error(
+            `[send-cap-hit][forense] carimbo de ${email} nao afetou NENHUMA linha (0 rows) —` +
+            ' a escrita foi aceita e nao persistiu; reenvio garantido na proxima rodada',
+          )
+        } else {
+          console.log(`[send-cap-hit][forense] carimbo de ${email} confirmado: ${written[0].cap_hit_sent_at}`)
+        }
         console.log(`[send-cap-hit] sent to ${email}`)
       } else {
         console.error(`[send-cap-hit] resend failed for ${email}:`, await res.text())
@@ -296,5 +405,8 @@ export async function GET(req: NextRequest) {
     cohort: cappedIds.length,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
+    // > 0 = alguem recebeu o e-mail e a prova NAO foi gravada: a trava de
+    // reenvio esta cega para essa pessoa e ela pode receber de novo.
+    event_write_failures: eventWriteFailures,
   })
 }
