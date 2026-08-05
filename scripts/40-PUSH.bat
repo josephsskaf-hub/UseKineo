@@ -1,7 +1,7 @@
 @echo off
 REM 40-PUSH - 05/08 00:20Z (sprint 21h de 04/08) - LEVA CODIGO NOVO
 REM
-REM   4 commits. Os tres primeiros ja estavam prontos e parados:
+REM   5 commits. Os tres primeiros ja estavam prontos e parados:
 REM
 REM   1) 249e172  DOCS - adendo do replay (so documentacao)
 REM   2) 23bc1ac  NUDGE DIARIO - cron send-credits-back ("seus 3 videos free
@@ -14,6 +14,7 @@ REM                dez contas colariam o mesmo video e ele pagaria dez vezes).
 REM   4) NOVO     A VERDADE SOBRE O DOWNLOAD - lib/videoDownload.ts vira a unica
 REM                implementacao de download do produto (3 telas usavam copias
 REM                do mesmo codigo com o mesmo bug).
+REM   5) NOVO     DOCS - PROMPT-DIARIO com os aprendizados da sprint.
 REM
 REM   POR QUE O 4 IMPORTA: 327 pessoas geraram um video, 67 baixaram (20%). Era
 REM   o maior buraco do funil E era CEGO - o evento video_downloaded so existia

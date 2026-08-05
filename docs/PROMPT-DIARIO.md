@@ -411,3 +411,31 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
    nunca desconto.
 4. **A REGRA ZERO PEGA BUG ALHEIO.** Ler o arquivo inteiro antes de editar expôs o
    `displayedPrices` mentiroso. O achado mais caro da sprint veio de leitura, não de análise.
+
+## MUDANÇAS — sprint 21h de 04/08/2026 (00:20Z de 05/08)
+
+1. **AGIR SEM REPORTAR É O MESMO DEFEITO DE PEDIR SEM DEVOLVER.** A lição da 19h cobria
+   superfícies que *perguntam*; faltava a metade maior — as que **executam**. Padrão permanente:
+   **toda ação do usuário emite o CLIQUE (antes de qualquer `await`) e o DESFECHO, inclusive o
+   caminho de erro.** Evento que só existe no caminho feliz colapsa três causas opostas num
+   único silêncio, e aí a correção escolhida vira sorteio. Terceira ocorrência do padrão em 24h
+   (`taaft_review_ask_clicked` · `checkout_cancel_reason` · `video_downloaded`), e a mais cara,
+   porque estava em cima do maior número da empresa: 327 geraram → 67 baixaram (20%).
+2. **ANTES DE CONSTRUIR A CORREÇÃO DE UM NÚMERO RUIM, VERIFICAR SE O NÚMERO É MEDIDO INTEIRO.**
+   A Medida 5 (CTA sticky) estava na fila para atacar os 20% de download; uma hora de leitura
+   mostrou que o **denominador não existia** — e o CTA só resolveria 1 das 3 causas possíveis.
+   **Medida na fila ≠ hipótese testada.** Medir primeiro custou 1h e pode poupar uma sprint.
+3. **CÓDIGO COPIADO EM 3 TELAS TEM O MESMO BUG EM 3 TELAS.** Corolário da regra dos "pares":
+   ao achar defeito numa função, `grep` pela assinatura dela no resto do produto **antes** de
+   corrigir. Se estiver duplicada, a correção é **extrair**, não remendar N vezes.
+4. **`window.open` DEPOIS DE UM `await` É POPUP BLOQUEADO NO MOBILE.** Fora do gesto do usuário
+   o navegador barra, `window.open` devolve `null`, o `catch` já passou e a pessoa fica sem
+   arquivo **e sem erro na tela**. Regra técnica dura: fallback de entrega de arquivo termina em
+   `location.href`, que ninguém bloqueia.
+5. **COMMIT DE SESSÃO PARALELA PODE VIR SEM DOC.** `git log` não serve só para achar o HEAD —
+   serve para descobrir **feature entregue e não relatada**. Dois features de 04/08 (NUDGE
+   DIÁRIO, POST TO EARN) não estavam em doc nenhum e teriam ficado fora do relatório das 22h.
+   Conferir se **cada commit de código do dia** aparece no `SPRINT-*.md`.
+6. **FEATURE QUE MEXE EM CRÉDITO/DINHEIRO: CONFERIR A MIGRAÇÃO NO BANCO ANTES DE PEDIR O PUSH.**
+   Duas migrações órfãs foram verificadas por query (`to_regclass`, `information_schema`) em vez
+   de supostas. Push sem a trava UNIQUE do POST TO EARN = o mesmo vídeo pagando N vezes.
