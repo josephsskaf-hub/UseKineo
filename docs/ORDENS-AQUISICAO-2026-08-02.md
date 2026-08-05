@@ -365,3 +365,19 @@ EXECUTAR HOJE (sessao logada Microsoft Ads via Bing Webmaster ja configurado 04/
 4. Medir por utm no placar diario; regra dos 7 dias vale.
 LEMBRETES DO DIA: shortlist micro-criadores AINDA DEVE SAIR HOJE (fundador paga a tarde);
 nudge 101 sents monitorar retorno; COMEBACK50 monitorar resgates (Stripe cupom COMEBACK50).
+
+## ORDEM R-v2 (SUBSTITUI a R) — PESQUISA HONESTA 06/08: BING CANCELADO, BLITZ + REDDIT
+Pesquisa com fontes (06/08 tarde): Bing = volume irrisorio nas keywords do nicho, publico
+errado — CANCELAR ordem R, nao montar. TAAFT $347 REBAIXADO: estimativas de clique sao
+marketing proprio, Trustpilot com queixas — NAO pagar domingo sem revisao com o fundador.
+EXECUTAR AGORA (budget ~$200 do fundador):
+1. BLITZ SHOUTOUTS (prioridade 1): listar 30 canais YT 3-15k subs + 20 contas X do nicho
+   faceless/AI-money; DM com oferta: $50-100 por shoutout/post IMEDIATO + afiliado 40% +
+   Creator gratis. Fechar 2-3 com quem responder em 24h. Cupom proprio com DEADLINE 48h.
+   GATE fundador: so o pagamento dos fechados.
+2. REDDIT ADS $100: campanha trafego, r/NewTubers + r/PartneredYoutube + r/youtubers,
+   ad nativo texto -> checkout com cupom 50% 1o mes, $35/dia x 3 dias, utm_source=reddit.
+   GATE fundador: cartao na conta Reddit Ads.
+3. LICAO DE CONTEUDO (para skill e Autopilot): retencao do Cicada = 7,38s/2,1% completo,
+   drop em 0:01 — 1o FRAME precisa ser imagem forte + voz imediata + legenda grande.
+   Nunca abrir com tela escura/texto ilegivel. Aplicar em todos os proximos videos.
