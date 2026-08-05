@@ -17,6 +17,11 @@ import AffiliateAutoTrigger from '@/components/AffiliateAutoTrigger'
 // banner de dashboard. Só para usuário logado — /referral exige sessão, e um
 // visitante deslogado clicando em "Get my link" cairia numa parede de login.
 import ReferralPromoBanner from '@/components/ReferralPromoBanner'
+// KINEO-GLOBAL-RENDER-PILL-2026-08-05 — o render deixou de se perder: uma
+// pílula flutuante lê /api/compose/active e leva de volta ao vídeo em
+// QUALQUER página do app (o /generate já tinha esse card, o resto não tinha).
+// Só para usuário logado: a probe exige sessão e devolveria 401.
+import ActiveRenderPill from '@/components/ActiveRenderPill'
 import type { Metadata } from 'next'
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
@@ -106,6 +111,7 @@ export default async function DashboardLayout({
       <EnablePushBanner />
       {user && <ReferralAutoTrigger />}
       {user && <AffiliateAutoTrigger />}
+      {user && <ActiveRenderPill />}
     </DashboardShell>
   )
 }
