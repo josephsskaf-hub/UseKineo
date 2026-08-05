@@ -439,3 +439,40 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 6. **FEATURE QUE MEXE EM CRÉDITO/DINHEIRO: CONFERIR A MIGRAÇÃO NO BANCO ANTES DE PEDIR O PUSH.**
    Duas migrações órfãs foram verificadas por query (`to_regclass`, `information_schema`) em vez
    de supostas. Push sem a trava UNIQUE do POST TO EARN = o mesmo vídeo pagando N vezes.
+
+## MUDANÇAS — sprint 10h de 05/08/2026 (KINEO-LIVE-STUDY)
+
+1. **Ordem do fundador não é só "não é fato" — pode nem ser TAREFA.** Duas das seis tarefas da
+   ORDEM Q já estavam feitas. "E-mail de ativação pros ~39 de checkout sem vídeo": eram **9**,
+   **8 já tinham recebido**, e a rota (`send-abandon-recovery`) existe e **roda todo dia por
+   cron**. "Página /stats pública": já existe como `/state-of-ai-shorts-2026`. Antes de executar
+   um item de ordem, fazer as DUAS coisas: medir a coorte ao vivo E procurar a rota/página que
+   já a atende. Vinte minutos de Regra Zero pouparam duas sprints.
+
+2. **Número publicado apodrece igual a lista chumbada — e é pior, porque é público.** Um estudo
+   "free to cite" ficou 12 dias com CINCO números errados, o pior deles por 1,9x. Toda superfície
+   que publica número para fora (estudo, /facts, /llms.txt, prova social, comparações) nasce
+   lendo a fonte ou nasce com data de validade explícita na tela.
+
+3. **Amostra pequena nunca vira número público.** A mediana errada saiu de **12 renders**. Piso:
+   n ≥ 30 para publicar percentil, com o n visível ao lado do número.
+
+4. **Ao corrigir um número na "fonte única", grepar a faixa em TEXTO LIVRE no repo inteiro.**
+   `lib/kineoFacts.ts` é fonte única de verdade — e a mesma faixa estava escrita à mão em **111
+   lugares de 31 arquivos**. Corrigir só a fonte teria criado duas verdades no mesmo domínio.
+
+5. **Claim comparativo contra concorrente nomeado é passivo, e ele envelhece junto com o número.**
+   Ao mexer em qualquer número de performance, grepar `faster than` / `better than` / `cheaper
+   than` e conferir se a afirmação sobrevive. Achamos um "Is Kineo faster than Revid? Sim" que o
+   número novo tornava indefensável.
+
+6. **A revisão adversarial pré-commit pagou de novo — 4 bloqueadores, 2 deles meus.** O mais
+   grave: a guarda de sanidade cobria só o volume, então uma janela vazia publicaria "0 min de
+   mediana · 0% concluem" com `live:true`, e o zero entraria num JSON-LD sob licença CC-BY.
+   `tsc` verde não pegaria nenhum dos quatro. **Corolário novo: quando um módulo tem um FALLBACK,
+   a guarda de sanidade tem que cobrir TODOS os campos publicados, não só o primeiro** — e o piso
+   nunca deve ser o próprio fallback (senão, no dia em que o número real cair legitimamente
+   abaixo dele, a página trava no fallback para sempre, em silêncio).
+
+7. **Todo caminho de fallback silencioso precisa de `console.error`.** Um estudo congelado que
+   ninguém percebe é exatamente o defeito que o módulo existe para eliminar.
