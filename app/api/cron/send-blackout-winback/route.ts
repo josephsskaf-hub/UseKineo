@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
 // KINEO-BLACKOUT-WINBACK-2026-07-31 — the second half of the blackout playbook.
@@ -130,6 +131,10 @@ export async function GET(req: NextRequest) {
   }
   const admin = createAdminClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // KINEO-LIFECYCLE-FRESH-READ-2026-08-05 — leitura de cron nunca vem de
+    // cache. O reenvio triplo do send-cap-hit nasceu disso; este job lia pelo
+    // mesmo caminho. Ver lib/lifecycle/freshFetch.ts.
+    global: { fetch: freshFetch },
   })
 
   const now = Date.now()

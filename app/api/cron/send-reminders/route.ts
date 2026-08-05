@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 
@@ -158,6 +159,10 @@ export async function GET(req: NextRequest) {
   // FECHADA (ver lib/lifecycle/suppression.ts).
   const suppressionAdmin = createAdminClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    // KINEO-LIFECYCLE-FRESH-READ-2026-08-05 — leitura de cron nunca vem de
+    // cache. O reenvio triplo do send-cap-hit nasceu disso; este job lia pelo
+    // mesmo caminho. Ver lib/lifecycle/freshFetch.ts.
+    global: { fetch: freshFetch },
   })
   const suppression = await loadLifecycleSuppression(
     suppressionAdmin,
