@@ -88,7 +88,7 @@ const STEPS: { title: string; detail: string }[] = [
   {
     title: '2. Build a daily production pipeline',
     detail:
-      'The clippers who get paid treat it like a factory: a repeatable way to go from idea to posted video in minutes, every day. This is where AI collapses the cost — a tool like Kineo turns one typed topic into a finished 9:16 Short (script, voiceover, visuals, captions) in about 2–4 minutes.',
+      'The clippers who get paid treat it like a factory: a repeatable way to go from idea to posted video in minutes, every day. This is where AI collapses the cost — a tool like Kineo turns one typed topic into a finished 9:16 Short (script, voiceover, visuals, captions) in about 3–7 minutes.',
   },
   {
     title: '3. Post daily, track per-view earnings, cut what fails',
@@ -311,7 +311,7 @@ export default function MakeMoneyClippingWithAiPage() {
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             The clipping economy pays for view volume, and volume is a production
             problem. Kineo turns one typed topic into a finished faceless Short — script,
-            AI voiceover, matched visuals and captions — in about 2–4 minutes. Generate
+            AI voiceover, matched visuals and captions — in about 3–7 minutes. Generate
             up to 3 watermarked videos every 24 hours free, no credit card, and see
             whether a daily pipeline fits your workflow before spending anything.
           </p>

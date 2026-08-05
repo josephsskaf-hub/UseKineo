@@ -145,8 +145,8 @@ const FACTS: { fact: string }[] = [
   {
     fact:
       `Measured on ${PRODUCT.fastGenerationSample}: a ` +
-      `${PRODUCT.fastGenerationMedianMinutes.toFixed(2)}-minute median completion time and a ` +
-      `${PRODUCT.fastGenerationP90Minutes.toFixed(2)}-minute p90.`,
+      `${PRODUCT.fastGenerationMedianMinutes.toFixed(1)}-minute median completion time and a ` +
+      `${PRODUCT.fastGenerationP90Minutes.toFixed(1)}-minute p90.`,
   },
   {
     fact:
@@ -253,8 +253,8 @@ const QA: { q: string; a: string }[] = [
     q: 'How long does it take to generate a video?',
     a:
       `${FREE_TIER.engine} Mode completion is ${PRODUCT.fastGenerationTime}. Measured on ` +
-      `${PRODUCT.fastGenerationSample}: a ${PRODUCT.fastGenerationMedianMinutes.toFixed(2)}-minute ` +
-      `median and a ${PRODUCT.fastGenerationP90Minutes.toFixed(2)}-minute p90. The generative ` +
+      `${PRODUCT.fastGenerationSample}: a ${PRODUCT.fastGenerationMedianMinutes.toFixed(1)}-minute ` +
+      `median and a ${PRODUCT.fastGenerationP90Minutes.toFixed(1)}-minute p90. The generative ` +
       `engines take longer, because each scene is produced before the final composition.`,
   },
   {

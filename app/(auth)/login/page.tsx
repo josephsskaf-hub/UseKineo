@@ -201,7 +201,7 @@ export default function LoginPage() {
                 Turn ideas into viral Shorts.
               </h2>
               <p className="text-sm mb-8" style={{ color: 'var(--muted2)' }}>
-                AI script, footage, voiceover — usually done in 2–4 minutes.
+                AI script, footage, voiceover — usually done in 3–7 minutes.
               </p>
 
               <ul className="flex flex-col gap-4">

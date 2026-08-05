@@ -744,7 +744,7 @@ export default function KineoLanding({ initialUser }: Props) {
             {/* KINEO-CRO-2026-07-25 — objection-busting Q&As (also mirrored in components/StructuredData.tsx FAQPage schema). */}
             <div className="qa"><h3>Can I run a whole channel with the same host?</h3><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></div>
             <div className="qa"><h3>Can I monetize the videos?</h3><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></div>
-            <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 2–4 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
+            <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
           </div>
         </div>
       </section>

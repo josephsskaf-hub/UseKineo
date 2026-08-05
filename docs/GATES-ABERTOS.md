@@ -16,6 +16,42 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
+
+## 🔴 05/08 14:00Z — **`scripts\44-PUSH.bat` — O ESTUDO VIVO + O TEMPO REAL DE RENDER**
+
+Um clique. É o único gate desta sprint. 1 commit, para frente, não desfaz nada.
+
+**O que está errado no ar agora e este push conserta:** a página pública
+`/state-of-ai-shorts-2026` é um estudo "free to cite" com os números chumbados em 24/07 — e os
+**cinco** estão errados hoje. O pior: publica **mediana de 2,30 min** de render contra **4,2 min
+reais** (p90 6,6), a partir de uma amostra de DOZE renders.
+
+E esse número não mora só ali: mora em `lib/kineoFacts.ts`, que alimenta o `/llms.txt` e o
+`/facts` — os arquivos que servimos de bandeja para o ChatGPT e o Bing, o canal que já traz **4x
+mais tráfego que o Google inteiro**. Ou seja, **estamos ensinando o ChatGPT a prometer, em nosso
+nome, metade do tempo real de espera.** Quem chega por essa citação espera 2 min, o render leva
+4–7, e vai embora antes do vídeo ficar pronto — o que explica direto o maior buraco do funil
+(333 geraram, 69 baixaram).
+
+Depois do push, confira no celular: `www.usekineo.com/state-of-ai-shorts-2026` deve dizer
+"updated daily · last read August 5, 2026" e mostrar mediana **4.2 min**.
+
+> As duas migrações do banco **já estão aplicadas** (`study_stats_functions`,
+> `study_speed_fast_only`) e conferidas — a página não depende do push para não quebrar.
+
+## ✅ 05/08 13:50Z — GATES ANTERIORES **FECHADOS** (conferido, não suposto)
+
+| Item | Como conferi | Estado |
+|---|---|---|
+| 11 restantes do COMEBACK50 | `comeback50_emailed` = **21** · 12 eventos `comeback50_sent` hoje | ✅ **DISPARADO** |
+| Rascunhos Waqas / pritikathar | `list_drafts` não devolve mais nenhum dos dois | ✅ **saíram** |
+| `41-PUSH.bat` | `origin/main` = `ac791ec`, muito à frente | ✅ fechado |
+
+**Não pedir nenhum dos três de novo.**
+
+⏳ **NUDGE DIÁRIO ainda não disparou:** `credits_back_sent_at` = **0** às 13:50Z. O cron
+`send-credits-back` roda **15:25Z**. A sprint das 13h confere e reporta.
+
 ## ✅ 05/08 00:22Z — **FECHADO. O `41-PUSH` FOI RODADO E A CORREÇÃO ESTÁ EM PRODUÇÃO.**
 
 `origin/main = dc5a7ec`, deploy `dpl_8zinEF…` **READY às 00:22:42Z**. A versão com o

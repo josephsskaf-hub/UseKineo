@@ -184,7 +184,7 @@ export default function CaseStudyPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
             Type one topic, get a finished Short with script, voice, footage and captions — usually
-            in 2–4 minutes. 3 free videos every 24h, no card.
+            in 3–7 minutes. 3 free videos every 24h, no card.
           </p>
           <Link
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"

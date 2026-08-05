@@ -208,7 +208,7 @@ export default function NichePickerPage() {
 
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6 }}>
           Picked your niche? Kineo turns one typed topic into a finished faceless
-          Short — script, AI voiceover, visuals and captions — usually in 2–4 minutes.{' '}
+          Short — script, AI voiceover, visuals and captions — usually in 3–7 minutes.{' '}
           <a
             href="https://www.usekineo.com/free-ai-shorts-generator?utm_source=niche-picker&utm_medium=tool&utm_campaign=acq5"
             style={{ color: ACCENT, textDecoration: 'none' }}

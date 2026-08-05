@@ -299,7 +299,7 @@ export default function ShortsRpmByNichePage() {
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Pick a niche from the ranking above and generate your first faceless
-            Short in about 2–4 minutes. Up to 3 watermarked videos every 24 hours,
+            Short in about 3–7 minutes. Up to 3 watermarked videos every 24 hours,
             no credit card.
           </p>
           <a

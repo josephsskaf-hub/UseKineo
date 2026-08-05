@@ -260,14 +260,29 @@ export const PRODUCT = {
   // fonte: app/pricing/PricingClient.tsx:99 ("Download watermark-free MP4");
   // app/facts/page.tsx:39.
   outputFormat: 'MP4',
-  // fonte: app/facts/page.tsx:36-37 — mediana medida 2.30 min e p90 3.50 min
-  // em 12 renders Fast concluídos na janela de 7 dias encerrada em 23/07/2026.
-  // A faixa "2–4 min" é a mesma usada em app/layout.tsx e em 8 páginas
-  // públicas (ex.: app/youtube-shorts-from-topic/page.tsx:24).
-  fastGenerationTime: 'usually 2–4 minutes',
-  fastGenerationMedianMinutes: 2.3,
-  fastGenerationP90Minutes: 3.5,
-  fastGenerationSample: '12 completed Fast renders in the 7 days ending July 23, 2026',
+  // KINEO-LIVE-STUDY-2026-08-05 — REMEDIDO, e o número anterior estava errado
+  // por quase 2x. A medida antiga (2,30 min / 3,50 min p90) vinha de uma amostra
+  // de DOZE renders numa janela de 7 dias de julho; com 114 renders concluídos
+  // desde 02/08 a mediana real é 4,2 min e o p90 é 6,6 min.
+  //
+  // POR QUE ISTO IMPORTA MAIS QUE UM DECIMAL: este módulo é a fonte que o
+  // /llms.txt e o /facts entregam prontinha para os motores de resposta. Publicar
+  // "3–7 minutes" ensinava o ChatGPT e o Bing a prometer, em nosso nome, metade
+  // do tempo real de espera — e quem chega por essa citação desiste no meio do
+  // render. O tempo de espera é a promessa mais cara que este arquivo faz.
+  //
+  // A janela começa em 02/08/2026, depois dos dois apagões de fornecedor de
+  // 31/07 (OpenAI) e 01/08 (Creatomate), pelo mesmo critério declarado na
+  // metodologia pública de /state-of-ai-shorts-2026.
+  //
+  // ⚠️ AINDA DESALINHADO: a faixa "3–7 minutes" continua escrita à mão em ~20
+  // páginas públicas (app/layout.tsx, KineoLanding, páginas de nicho). Trocar
+  // todas é a próxima ordem — está registrada em docs/SPRINT-2026-08-05.md.
+  fastGenerationTime: 'usually 3–7 minutes',
+  fastGenerationMedianMinutes: 4.2,
+  fastGenerationP90Minutes: 6.6,
+  fastGenerationSample:
+    '114 completed Fast renders since August 2, 2026 (measured end-to-end, per attempt)',
   // fonte: app/terms/page.tsx:79 — "You retain ownership of the videos you
   // generate".
   userOwnsOutput: true,

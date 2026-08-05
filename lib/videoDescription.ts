@@ -31,7 +31,7 @@ const KINEO_DOMAIN = 'usekineo.com'
  * Byte-identical to the original inline append in app/api/video-summary.
  */
 export const KINEO_CREDIT_LINE =
-  '⚡ Made with Kineo — create Shorts like this, usually in 2–4 minutes: https://www.usekineo.com?utm_source=video_desc'
+  '⚡ Made with Kineo — create Shorts like this, usually in 3–7 minutes: https://www.usekineo.com?utm_source=video_desc'
 
 /** Blank line between the user's description and the credit line. */
 const CREDIT_SEPARATOR = '\n\n'

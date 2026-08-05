@@ -363,7 +363,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Volume is the whole game, and volume is exactly what an AI generator gives you.
             Kineo turns one typed idea into a finished faceless Short — script, AI
-            voiceover, visuals and captions — in about 2–4 minutes. Generate up to 3
+            voiceover, visuals and captions — in about 3–7 minutes. Generate up to 3
             watermarked videos every 24 hours with no credit card, in a high-RPM niche of
             your choice.
           </p>

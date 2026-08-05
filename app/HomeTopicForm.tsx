@@ -435,7 +435,7 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
             demora. Menos texto no momento da ação, e nada perdido. */}
         <p className="composer-proof">
           {isSignedIn
-            ? 'Starts rendering instantly — usually 2–4 minutes.'
+            ? 'Starts rendering instantly — usually 3–7 minutes.'
             : 'Full script in seconds — no account, no card.'}
         </p>
       </div>

@@ -203,7 +203,7 @@ export default function WidgetPage() {
             Kineo
           </a>{' '}
           turns any of these ideas into a finished faceless Short — script,
-          voiceover, visuals and captions — in about 2–4 minutes. Up to 3 free
+          voiceover, visuals and captions — in about 3–7 minutes. Up to 3 free
           watermarked videos every 24 hours, no credit card.
         </p>
       </div>

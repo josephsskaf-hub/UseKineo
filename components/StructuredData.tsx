@@ -164,7 +164,7 @@ const faqSchema = {
       name: 'How long does one video take?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Fast Mode usually finishes in 2–4 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.',
+        text: 'Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.',
       },
     },
   ],

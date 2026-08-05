@@ -60,7 +60,7 @@ const TOOLS: Tool[] = [
     slug: null,
     category: 'From-scratch faceless Short generator',
     take:
-      'Kineo is the only tool on this list that turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 2–4 minutes, and you can also paste your own script or add a talking AI Presenter. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.',
+      'Kineo is the only tool on this list that turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script or add a talking AI Presenter. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.',
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: 'Up to 3 watermarked Fast videos / 24h, no card',
@@ -170,7 +170,7 @@ const TOOLS: Tool[] = [
 const FAQ: { q: string; a: string }[] = [
   {
     q: 'What is the best AI YouTube Shorts generator in 2026?',
-    a: 'It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, usually in about 2–4 minutes. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that.',
+    a: 'It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, usually in about 3–7 minutes. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that.',
   },
   {
     q: 'What is the difference between a from-scratch generator and a re-clipper?',
@@ -483,7 +483,7 @@ export default function BestAiShortsGeneratorsPage() {
             Most tools here assume you already have something — a long video to clip, a script to
             narrate, a clip to caption, or an avatar to render. Kineo is the one that starts from
             nothing but a topic and hands you a finished, ready-to-post 9:16 Short: hook-first
-            script, AI voiceover, matched visuals and captions, usually in about 2–4 minutes. Test
+            script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
             it free — up to 3 watermarked Fast videos every 24 hours, no credit card.
           </p>
           <a

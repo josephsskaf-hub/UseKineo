@@ -267,7 +267,7 @@ export default function RedditStoryVideoGeneratorPage() {
         </h1>
         <p style={{ fontSize: '1.08rem', color: '#d2d2d7', lineHeight: 1.65, margin: '16px 0 0' }}>
           Paste a retold thread and Kineo narrates it word-for-word, matches vertical footage to every line and burns in
-          the captions — a finished 9:16 Short, usually in 2–4 minutes. The generator is the easy half. The half that
+          the captions — a finished 9:16 Short, usually in 3–7 minutes. The generator is the easy half. The half that
           decides whether the video holds attention and whether it can ever earn is the edit you do first, and that is
           what most of this page is about.
         </p>

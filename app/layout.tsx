@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   // em /pricing, que é onde ele pode mudar sem mentir em quatro lugares.
   title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
   description:
-    'Kineo turns one topic into a finished faceless YouTube Short — script, AI voiceover, matched footage and burned-in captions, usually in 2–4 minutes. 3 free videos every 24h, no card.',
+    'Kineo turns one topic into a finished faceless YouTube Short — script, AI voiceover, matched footage and burned-in captions, usually in 3–7 minutes. 3 free videos every 24h, no card.',
   // PUSH #92 — P0 canonical bug fix: a root-level `alternates.canonical` was
   // shallow-merged onto every page in the tree that doesn't declare its own,
   // which told Google every un-canonicalized page is a duplicate of `/`

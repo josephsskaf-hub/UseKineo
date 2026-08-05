@@ -1034,8 +1034,8 @@ export default function PricingClient() {
                   },
                   {
                     label: 'Render time',
-                    free: 'Usually 2–4 min (Fast)',
-                    starter: 'Usually 2–4 min',
+                    free: 'Usually 3–7 min (Fast)',
+                    starter: 'Usually 3–7 min',
                     basic: '~3-5 min',
                     pro: '~3-5 min',
                   },
