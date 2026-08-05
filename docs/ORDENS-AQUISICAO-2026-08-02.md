@@ -267,3 +267,43 @@ Stripe com códigos promocionais visíveis. O gate do cupom está FECHADO — sp
 3. RONDA (ORDEM N) em toda sprint: PH, X, Reddit, Fazier, DMs Whop (Eugene/adan/Carlos).
 PENDÊNCIA CRÍTICA DO FUNDADOR: clicar no PUSH .bat — 5+ commits da madrugada (fix glow +
 resume render) AINDA NÃO SUBIRAM. Cobrar no relatório se não subiu até 10h.
+
+## 💰 ORDEM O — TAAFT PACOTE $347 (GO DO FUNDADOR, 05/08) — PRIMEIRO INVESTIMENTO PAGO DA EMPRESA
+Decisao do fundador em chat (05/08 madrugada): investir **$347 no pacote completo do TAAFT**
+(theresanaiforthat.com/get-featured → "Everything you need": listing + Just Released +
+**mencao na newsletter de 1,2M+ assinantes**; taxa unica, listagem nao expira).
+Whop Content Rewards NAO foi escolhido agora — spec continua pronta em PESQUISA-WHOP para depois.
+
+POR QUE ESTE E NAO OUTRO (evidencia medida, nao opiniao):
+- TAAFT = 81 cadastros, 32,1% ativacao, **METADE DOS COMPRADORES DA HISTORIA**. Unico canal
+  que ja converteu de verdade.
+- E esta MORRENDO: 48 -> 16 -> 9 -> 5 cadastros/semana. 94% do trafego qualificado depende
+  dessa uma listagem.
+- O pico de 31/07-01/08 (137 cadastros) caiu com o produto QUEBRADO (blackout OpenAI 14h).
+  Agora: render limpo, reset de senha consertado, garantia no checkout, preco regional,
+  wall/scripts/46 comparacoes no ar. O mesmo pico agora encontra um funil que funciona.
+
+### TAREFAS DAS SPRINTS (ordem de execucao)
+1. **ANTES DE PAGAR — montar o placar de CAC por canal.** Os docs registram em 3 lugares que
+   NAO EXISTE medicao de CAC (METRICS_AND_FUNNEL §3.4, ROADMAP §6). Sem denominador, $347
+   vira gasto e nao experimento. Entregar: visao por utm_source/referrer com cadastros ->
+   ativou -> checkout -> pagou -> receita, e custo do canal informado a mao. Meio dia de trabalho.
+2. **Preparar a submissao** (sprint faz tudo, fundador so paga): ficha revisada com o
+   posicionamento novo (ganhar dinheiro com Shorts, nao "fazer video"), screenshots/galeria
+   atualizadas com wall + biblioteca, descricao com free tier honesto (3/24h sem cartao),
+   e UTM proprio para medir o pico (?utm_source=taaft&utm_campaign=featured_ago26).
+3. **TIMING (decidido com o fundador):** submeter DOMINGO ou SEGUNDA para cair TERCA/QUARTA —
+   a newsletter deles sai 3x/semana e o meio de semana e quando o publico pesquisa ferramenta.
+   Evitar vespera de feriado americano.
+4. **GATE DO FUNDADOR: o pagamento de $347.** A sprint deixa o carrinho/checkout pronto na
+   sessao logada dele e AVISA — dinheiro e sempre clique do fundador.
+5. **Regra dos 7 dias:** medir cadastros/ativacao/compras com utm taaft por 7 dias apos o
+   pico. Se custo por cadastro < $3 e ao menos 1 pagante, repetir. Se nao, registrar como
+   morto e nao repetir (mesma regra que matou PH e Fazier).
+6. **Nao gastar em nada mais** ate esta medicao fechar. Um experimento por vez.
+
+### Contexto de caixa (para nao repetir pedidos)
+Ads pagos seguem vetados ("sem caixa este mês, cartoes no limite — reavaliar com 25+ pagantes").
+Whop Content Rewards: ADIADO, nao morto ($250-500, religavel com $50).
+Micro-influenciadores (Plano F) NAO custam caixa (creditos + afiliado 40%) — devem rodar EM
+PARALELO, sem esperar o TAAFT. Status atual: 0 e-mails enviados. Cobrar isso nas sprints.
