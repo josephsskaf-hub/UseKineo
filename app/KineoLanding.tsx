@@ -247,13 +247,20 @@ const KLP_CSS = `
    que era — só deixa de ser uma faixa fina. */
 .klp .hero-center .composer .ci{min-height:118px}
 .klp .hero-center .trust{text-align:center}
-/* KINEO-HERO-NO-CHIPS-2026-08-05 — o grid de 3 colunas (132px | caixa | 132px)
-   que abrigava os chips laterais foi removido junto com os chips. No desktop a
-   caixa deixa de ter teto de 860px e ocupa a largura toda do shell (1024px no
-   .wrap; mais nas telas amplas via o bloco ≥1240px abaixo). */
-@media(min-width:1120px){
-.klp .hero-center .composer{max-width:none}
-.klp .hero-center .composer .ci{min-height:132px;font-size:19px}
+/* KINEO-HERO-820x475-2026-08-05 — medida escolhida pelo fundador na tela
+   ("medi aqui fica ótima nessa medida"): no desktop o card do prompt tem
+   exatamente 820px de largura por 475px de altura, centrado no shell.
+   min-height em vez de height travado porque a linha de erro e o script
+   gerado inline nascem DENTRO do card — com altura fixa eles estourariam;
+   no estado vazio o card fecha em exatamente 475px porque a textarea
+   (flex:1 na base) absorve toda a folga vertical entre label, CTA e proof,
+   virando um campo alto que convida texto longo, sem scroll interno.
+   Abaixo de 900px nada disto se aplica: o card volta a width:100% fluido
+   com altura auto (textarea 118px → 92px em ≤560), nunca 820 fixo, nunca
+   overflow horizontal. */
+@media(min-width:900px){
+.klp .hero-center .composer{width:820px;max-width:820px;min-height:475px}
+.klp .hero-center .composer .ci{font-size:19px}
 }
 @media(max-width:560px){.klp .hero-center .composer-shell{margin-top:28px}.klp .hero-center .composer .ci{min-height:92px}}
 /* KINEO-HERO-SHOWCASE-2026-08-05 — seis Shorts reais lado a lado, logo abaixo
@@ -267,16 +274,12 @@ const KLP_CSS = `
 .klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
 .klp .gallery-cap{position:relative;z-index:1;margin-top:18px;text-align:center;font-size:12.5px;color:var(--muted2)}
 /* Amplitude real: acima de 1240px sobram ≥80px de cada lado do .wrap (1080),
-   então o shell e a fileira saem 60px para fora dele — a caixa (agora sem os
-   chips laterais, = largura do shell) vai a ~1200px e os seis cards ganham
-   ~12% de largura. O width:auto e o max-width:none são
-   obrigatórios: com o width:100% da base, margem negativa só empurraria a
-   caixa para a esquerda em vez de alargá-la. O .hero tem overflow:hidden, então
-   isto nunca vira barra de rolagem horizontal. Vem DEPOIS das regras-base de
-   propósito — media query não soma especificidade, quem escreve por último
-   ganha. */
+   então a fileira de seis Shorts sai 60px para fora dele e cada card ganha
+   ~12% de largura. O .hero tem overflow:hidden, então isto nunca vira barra
+   de rolagem horizontal. KINEO-HERO-820x475-2026-08-05: o composer-shell
+   SAIU deste bloco — o card agora é 820px fixo e centrado, alargar o shell
+   não fazia mais nada por ele. */
 @media(min-width:1240px){
-.klp .hero-center .composer-shell{width:auto;max-width:none;margin-left:-60px;margin-right:-60px}
 .klp .hero-gallery{max-width:none;margin-left:-60px;margin-right:-60px}
 }
 @media(max-width:900px){
