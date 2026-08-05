@@ -1,3 +1,18 @@
+# 🔴 GATE #1 — `scripts\46-PUSH.bat` — HOTFIX DE INCIDENTE ATIVO (05/08 16h)
+
+**Este substitui o 45, que JÁ FOI CLICADO.** Sobe 1 commit (`2f1c441`).
+
+Às 15h36–16h um cadastro **novo, vindo do TAAFT**, tentou gerar vídeo **4 vezes em 20 minutos e
+falhou nas 4** — e o incidente ainda estava ativo quando o arquivo foi criado. Causa: o cliente
+OpenAI não tinha limite de tempo (padrão do SDK = 10 minutos), então uma chamada lenta segurava a
+função até a Vercel matá-la; com a função morta, o nosso tratamento de erro nunca rodava — sem
+alarme, sem mensagem honesta e sem e-mail de recuperação. **Créditos estavam OK** (não é o
+incidente de 31/07 de novo).
+
+Enquanto não for clicado, o produto continua exposto ao mesmo modo de falha.
+
+---
+
 # GATES ABERTOS — só o fundador consegue destravar
 
 > ## 🎯 METAS DA EMPRESA (fundador, 01/08): 500 pagantes → 1.000 pagantes

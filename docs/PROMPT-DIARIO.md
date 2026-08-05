@@ -493,3 +493,24 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 - **Janela de medição favorável + pedido de teste longo = armadilha.** Se o e-mail pede "teste 30
   dias", o número de 3 dias não basta: dar TAMBÉM o número de 30 dias, mesmo feio. Tirar a
   munição antes dela existir é mais barato que responder a um vídeo público.
+
+## MUDANÇAS — sprint 13h de 05/08 (incidente KINEO-OPENAI-HANG)
+
+- **Erro de cliente sem `http_status` é assinatura de LAMBDA MORTA, não de bug de lógica.** E
+  quando a lambda morre o `catch` não roda — então TODO o tratamento de erro da rota é ficção.
+  Ao ver TypeError com `http_status: null`, procurar orçamento de tempo, não `if`.
+- **Timeout de SDK é RETENTADO: o pior caso é `timeout × (maxRetries + 1)`.** Todo call site cujo
+  `maxDuration` não absorve a multiplicação precisa de `maxRetries: 0` explícito. Sem isso o fix
+  passa no `tsc`, parece pronto, e reproduz o incidente que veio consertar.
+- **Detector de queda nasce amarrado ao SINTOMA do incidente que o gerou.** Ao mexer em alarme,
+  perguntar "e se cair de OUTRO jeito?" — e conferir se a RECUPERAÇÃO lê os mesmos marcadores que
+  a DETECÇÃO escreve. Aqui a detecção e o win-back conheciam conjuntos diferentes de sintomas, e
+  os dois ficaram mudos.
+- **Alarme com receita errada é pior que alarme nenhum**: modos de falha com ações opostas
+  (recarregar crédito × esperar) precisam de mensagem e throttle separados.
+- **`err.name` não identifica erro do SDK OpenAI** (nunca é atribuído — sempre `'Error'`). Usar
+  `instanceof`, e gatear regex de mensagem por `instanceof` para não paginar por erro de OUTRO
+  fornecedor capturado num `try` largo.
+- **A checagem de saúde do prompt achou isto sozinha.** 9 erros numa hora contra "1 isolado" do
+  baseline era o produto no chão com o placar parecendo normal (`ativados` congelado em 334).
+  Cluster numa hora só > número absoluto pequeno.
