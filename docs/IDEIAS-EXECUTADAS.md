@@ -10,6 +10,7 @@ conta como nova. Formato: data · ideia · o que foi executado · métrica-alvo 
 
 | Data | Ideia | Executado | Métrica-alvo | Morte em |
 |---|---|---|---|---|
+| 05/08 | **SHORTLIST PAGÁVEL DE MICRO-CRIADORES + a regra que reprova audiência comprada** (Ordem P item 2 / Q item 2) | `docs/SHORTLIST-MICROCRIADORES-2026-08-05.md`: 6 canais MEDIDOS hoje na página real do YouTube (inscritos, views totais, nº de vídeos, país, contato), 1 vetado com prova (**Ai Titan: 91,7k inscritos e 117k views TOTAIS em 34 vídeos = comprada**), 4 descartados. Recomendação: **Conor Martin $100** — 4,24k subs mas 1,64M views/266 vídeos e review de concorrente direto com 15,1k views = **$0,0066/view qualificada**, e busca (perene), não feed. 2 rascunhos prontos no Gmail, reescritos após revisão adversarial que pegou 4 bloqueadores (produção contradizia o e-mail; "3 meses grátis" sem mecanismo de entrega; decimal que apodrece em 24h; .bat inexistente). Régua nova: **views ÷ vídeos, nunca inscritos** | Cadastros com `utm_source` do criador + ativação deles | 7 dias após o 1º vídeo ir ao ar |
 | 29/07 | Loop "Seus próximos 3 Shorts" pós-vídeo | No ar (`b7cca06` anterior) | Taxa de 2º vídeo (baseline 18,4%) | 05/08 |
 | 29/07 | Reindex de marca no Google (noindex app + título Official Site) | No ar + reindex manual 31/07 | CTR de marca (baseline 0% / ~39 impr.) | 07/08 |
 | 29/07 | IndexNow → índice do Bing/ChatGPT | 2 submissões (106 e 107 URLs, HTTP 200) | Cadastros com origem ChatGPT/Bing | 07/08 |

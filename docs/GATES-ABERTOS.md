@@ -17,7 +17,36 @@
 
 
 
+## 🔴 05/08 14:30Z — SPRINT DAS 11h: **1 CLIQUE + 3 DECISÕES DE 2 MINUTOS**
+
+### 1. `scripts\45-PUSH.bat` — **substitui o 44. Clique só neste.**
+O 44 **não foi clicado** (`main` estava 2 commits à frente às 14:01Z). O 45 faz a mesma coisa e
+sobe os **3 commits de hoje**: o estudo vivo + os aprendizados + a shortlist de micro-criadores.
+
+### 2. Enviar o rascunho do **Conor Martin** ($100) — recomendação: **SIM**
+Já está no Gmail, revisado. `@conormartinai`: 4,24k inscritos, mas **1,64M de views em 266
+vídeos**, e o *"Revid AI Review (after 30 days)"* dele fez **15.134 views**. Quem procura review
+de concorrente está comparando ferramenta com o cartão na mão — **$0,0066 por view qualificada**,
+e o vídeo continua entregando daqui a um ano porque é busca, não feed.
+⚠️ **Enviar DEPOIS do push.** O e-mail manda ele para `/state-of-ai-shorts-2026`; enquanto a
+página velha estiver no ar, ela mostra 2,30 min onde o e-mail diz 4,2.
+
+### 3. Enviar o rascunho do **Malva AI** — **não compromete nenhum dólar**
+155k inscritos, e-mail de negócio público. O rascunho só pede a tabela de preço dele.
+
+### 4. Criar no Stripe um **cupom de 100% off por 3 meses** (2 min no painel)
+É o **único** jeito de entregar os "3 meses de Creator" que os dois e-mails prometem. Não existe
+rota admin que conceda plano pago, e o caminho SQL entregaria Creator **vitalício** com crédito de
+um mês só. O checkout já resolve `?promo=`.
+
+> Contexto completo, com os canais medidos e o que foi **vetado** (Ai Titan: 91,7k inscritos e
+> 117k views totais = audiência comprada): `docs/SHORTLIST-MICROCRIADORES-2026-08-05.md`
+
+---
+
 ## 🔴 05/08 14:00Z — **`scripts\44-PUSH.bat` — O ESTUDO VIVO + O TEMPO REAL DE RENDER**
+> ⬆️ **SUPERSEDIDO PELO 45-PUSH acima** (mesmo push, 3 commits em vez de 1). Se você já clicou
+> no 44, clique no 45 mesmo assim — ele completa o que faltou.
 
 Um clique. É o único gate desta sprint. 1 commit, para frente, não desfaz nada.
 

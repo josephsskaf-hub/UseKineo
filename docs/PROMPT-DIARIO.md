@@ -476,3 +476,20 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 
 7. **Todo caminho de fallback silencioso precisa de `console.error`.** Um estudo congelado que
    ninguém percebe é exatamente o defeito que o módulo existe para eliminar.
+
+## 05/08 — SPRINT DAS 11h (shortlist de micro-criadores) — MUDANÇAS
+- **Rascunho de e-mail é superfície publicada — passa pela revisão adversarial igual a código.**
+  Os 4 bloqueadores desta sprint estavam TODOS em texto, nenhum em código.
+- **Antes de citar uma URL nossa num e-mail que sai para fora, buscar o conteúdo SERVIDO.**
+  Commit local não é produção: `main` à frente de `origin/main` significa que a promessa está no
+  disco e a contradição está no ar. O e-mail que vende honestidade seria a prova do descuido.
+- **Prometer benefício exige achar o MECANISMO de entrega antes do Send.** "3 meses de Creator
+  grátis" não tinha rota; o caminho óbvio (SQL) entregaria plano VITALÍCIO com crédito de 1 mês.
+  Grep pela rota que CONCEDE, não pela coluna que armazena.
+- **Ao avaliar criador/canal/parceiro: views totais ÷ nº de vídeos, nunca inscritos.** 91,7k
+  inscritos com 3,4k views/vídeo é audiência comprada — e é o que parece a melhor compra da lista.
+- **Número com decimal dentro de e-mail apodrece em 24h** quando a fonte é página que revalida.
+  Em texto que sai para fora: arredondar e apontar para a fonte viva.
+- **Janela de medição favorável + pedido de teste longo = armadilha.** Se o e-mail pede "teste 30
+  dias", o número de 3 dias não basta: dar TAMBÉM o número de 30 dias, mesmo feio. Tirar a
+  munição antes dela existir é mais barato que responder a um vídeo público.
