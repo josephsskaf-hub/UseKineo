@@ -16,7 +16,33 @@
 > créditos no placar (tarefas 2-3 do doc de incidente). Ambos os apagões da noite: FECHADOS.
 
 
-## 🔴🔴 05/08 00:35Z — **RODE `scripts\41-PUSH.bat` HOJE. É UMA CORREÇÃO DO QUE ACABOU DE SUBIR.**
+## ✅ 05/08 00:22Z — **FECHADO. O `41-PUSH` FOI RODADO E A CORREÇÃO ESTÁ EM PRODUÇÃO.**
+
+`origin/main = dc5a7ec`, deploy `dpl_8zinEF…` **READY às 00:22:42Z**. A versão com o
+`location.href` ficou no ar **4 minutos e 36 segundos** (00:18:06 → 00:22:42Z). Não pedir de novo.
+**Janela de medição do `KINEO-DOWNLOAD-TRUTH` começa em 05/08 00:22:42Z** — nada antes conta.
+Rodar `docs/SQL-DOWNLOAD-TRUTH.sql` a partir de **06/08 00:30Z**.
+
+## 🟠 05/08 00:50Z — OS DOIS E-MAILS **AINDA NÃO SAÍRAM** (conferido, não suposto)
+
+O fundador reportou "já fiz isso" às 00:48Z. Conferi antes de aceitar — e o push realmente saiu,
+mas os dois e-mails não:
+
+| Item | Como conferi | Estado |
+|---|---|---|
+| 11 restantes do COMEBACK50 | `count(*) filter (where comeback50_emailed)` = **9** (seria 20) | ❌ não saiu |
+| Rascunhos Waqas / pritikathar | `list_drafts` ainda devolve os dois (22:10Z), `in:sent` não tem | ❌ não saiu |
+
+**Como fazer cada um, exato:**
+
+1. **COMEBACK50** — logado como conta interna, abrir
+   `https://www.usekineo.com/api/admin/send-comeback50` (dry run, mostra `remaining_unemailed`),
+   conferir o número e então abrir a mesma URL com **`?confirm=SEND`**. A rota tem gate duro: se
+   o cupom não estiver vivo no Stripe, nada sai.
+2. **Os 2 rascunhos** — Gmail → Rascunhos → `thewaqaskhanofficial@gmail.com` e
+   `pritikathar995@gmail.com` → Enviar. São leads de 04/08, esfriam rápido.
+
+## (histórico) 05/08 00:35Z — pedido do `41-PUSH.bat`, já atendido
 
 Você rodou o `40-PUSH.bat` **durante a sprint** (00:18Z, deploy `dpl_A4pgm6d8…` READY). Obrigado
 — mas ele levou junto uma **versão anterior** da mudança de download, que uma revisão
