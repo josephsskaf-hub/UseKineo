@@ -514,3 +514,33 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
 - **A checagem de saúde do prompt achou isto sozinha.** 9 erros numa hora contra "1 isolado" do
   baseline era o produto no chão com o placar parecendo normal (`ativados` congelado em 334).
   Cluster numa hora só > número absoluto pequeno.
+
+## MUDANÇAS — sprint das 16h de 05/08 (KINEO-CAPHIT-READS-THE-WALL)
+
+- **A CHECAGEM DE SAÚDE DO PROMPT CONTA PAYWALL COMO APAGÃO.** `compose_daily_free_limit` e
+  `free_fast_limit` (HTTP 402) caem dentro de `generation_stage_error` e `compose_refused` — os
+  dois nomes exatos da query de saúde. Um dia de boas vendas parece incidente, e um incidente de
+  verdade fica escondido no ruído. A query tem que excluir
+  `metadata->>'reason' in ('compose_daily_free_limit','free_fast_limit')`.
+- **EVENTO DE NEGÓCIO ENFIADO EM MÉTRICA DE FALHA VALE OS DOIS ERROS**: inventa apagão que não
+  houve **e** esconde o sinal de compra. Antes de chamar de erro, ler o `reason`.
+- **CRON DE MOMENTO TEM QUE LER O REGISTRO DAQUELE MOMENTO.** Se existe evento que marca o
+  instante (`compose_refused`), a coorte nasce dele — nunca de uma reconstrução por outra tabela.
+  **Se o gatilho e o cron contam coisas diferentes, o cron está errado.** Aqui o muro contava
+  RESERVAS e o cron contava VÍDEOS COMPLETOS: 8 das 11 pessoas que bateram no muro na história
+  nunca receberam o e-mail feito para elas.
+- **COTA COBRADA NA RESERVA E NÃO DEVOLVIDA É PROMESSA QUEBRADA EM SILÊNCIO** (medido: 11,7% das
+  reservas free em 7 dias não viraram vídeo). Ao mexer em qualquer teto: *o que acontece com a
+  reserva que não vira entrega?*
+- **A REVISÃO ADVERSARIAL PEGA MAIS TEXTO DO QUE CÓDIGO, DE NOVO.** O bloqueador mais grave do dia
+  foi uma frase de e-mail — *"You just made your 3rd video today"* — **verificável e falsa** para o
+  destinatário (ele abre `/history` e conta 2). Toda afirmação factual sobre o que o usuário FEZ
+  tem que ser conferida contra o banco, ou reescrita como afirmação sobre a REGRA, que é sempre
+  verdadeira. `tsc` estava verde nas duas versões.
+- **NÚMERO HARDCODED EM COPY AO LADO DA CONSTANTE QUE O DEFINE** (`"3rd"` × `FREE_CAP`): interpolar
+  sempre — senão o dia em que a regra mudar, a mentira vira permanente.
+- **CÓPIA LOCAL DE LISTA QUE TEM FONTE ÚNICA APODRECE EM SILÊNCIO**: o `isTestEmail()` local do
+  cron não conhecia a irmã do fundador, os aliases `joseph+…` nem o revisor do TAAFT. Enquanto a
+  coorte era estreita ninguém notava; ao alargar a coorte, a cópia velha vira envio indevido.
+- **CARIMBO VITALÍCIO EM CIMA DE ATRIBUTO REVERSÍVEL QUEIMA GENTE**: marcar `cap_hit_sent_at` ao
+  pular um PAGANTE apaga a pessoa para sempre caso ela volte ao free. Carimbar só o que não muda.

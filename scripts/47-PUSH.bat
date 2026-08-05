@@ -9,7 +9,7 @@ echo  47-PUSH  ^|  SUBSTITUI O 46 (NAO CLICADO)  ^|  05/08/2026 16h
 echo ============================================================
 echo.
 echo  ATENCAO: o 46-PUSH.bat NAO foi clicado. Este arquivo o
-echo  SUBSTITUI e sobe TUDO: 3 commits de uma vez.
+echo  SUBSTITUI e sobe TUDO o que esta pendente de uma vez.
 echo  Nao precisa clicar o 46. Os commits ja estao feitos -
 echo  este arquivo so EMPURRA.
 echo.

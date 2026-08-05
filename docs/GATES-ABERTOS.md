@@ -1,4 +1,30 @@
-# 🔴 GATE #1 — `scripts\46-PUSH.bat` — HOTFIX DE INCIDENTE ATIVO (05/08 16h)
+# 🔴 GATE #1 — `scripts\47-PUSH.bat` — **SUBSTITUI O 46, QUE NÃO FOI CLICADO** (05/08 19h)
+
+**Clique só neste.** O 46 não foi clicado (`main` estava 2 commits à frente às 19:01Z). O 47 sobe
+tudo o que está pendente de uma vez — nada se perde por pular o 46.
+
+**O que vai junto:**
+
+**1. Hotfix do incidente de hoje.** Às 15h36–16h42 o OpenAI parou de responder e matava a função
+antes do nosso tratamento de erro: sem alarme, sem mensagem honesta, sem e-mail de recuperação —
+um cadastro **novo, vindo do TAAFT**, falhou 4× em 20 min no primeiro dia dele. **O motor já
+voltou sozinho** (11 vídeos `completed` desde 16h42, o último 18:58Z), então isto não é urgência
+de produto parado: é a blindagem para a próxima vez, que hoje não existe no ar.
+
+**2. O e-mail que vende na hora certa.** Quem bate no limite do plano free é a pessoa mais pronta
+para comprar do funil inteiro — usou 3× hoje e pediu a 4ª. **Na história toda, 11 pessoas fizeram
+isso e nenhuma comprou.** O cron que existe para esse momento procurava quem *terminou* 3 vídeos,
+enquanto o limite conta *tentativas* — e quem bate no muro costuma ter 2 vídeos prontos. Ele era
+cego por construção: **8 das 11 nunca receberam nada.** Agora lê o próprio limite; **3 pessoas
+entram na fila na primeira rodada depois do push.** Corrigida também a frase que dizia "você
+acabou de fazer seu 3º vídeo hoje — Nice run" para quem tinha recebido 2.
+
+Enquanto não for clicado, nada disto está no ar.
+
+---
+
+<!-- gate 46 (substituído pelo 47) -->
+# ~~GATE ANTIGO — `46-PUSH.bat`~~ (substituído)
 
 **Este substitui o 45, que JÁ FOI CLICADO.** Sobe 1 commit (`2f1c441`).
 
