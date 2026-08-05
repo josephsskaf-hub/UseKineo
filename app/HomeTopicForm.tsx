@@ -32,24 +32,6 @@ import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 const HOME_PROMPT_CAMPAIGN = 'push69_home_one_click_starters'
 const HOME_PROMPT_VIEW_MARKER = 'kineo_push69_home_one_click_starters_viewed'
 
-const STARTER_TOPICS = [
-  {
-    id: 'mystery_island',
-    label: 'Mystery island',
-    topic: 'The island so dangerous that nobody is allowed to visit',
-  },
-  {
-    id: 'money_habits',
-    label: 'Money habits',
-    topic: 'Three billionaire habits that quietly compound wealth',
-  },
-  {
-    id: 'lost_city',
-    label: 'Lost city',
-    topic: 'The abandoned city that was frozen in time',
-  },
-] as const
-
 const MIN_PROMPT_LENGTH = 8
 
 // app/(auth)/signup/page.tsx slices the forwarded ?prompt= at 1000 chars, so the
@@ -132,33 +114,6 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
   // Fallback destination when the free script cannot be written: degrade to the
   // pre-#101 behaviour (raw topic → signup) instead of leaving a dead end.
   const fallbackHref = signupHref(prompt.trim().slice(0, ACTIVATION_PROMPT_MAX))
-
-  // Prefills the composer with a starter topic instead of navigating away —
-  // the label promises a prefill, so a click must never redirect. Actual
-  // submission still goes through the form's own onSubmit below.
-  function selectStarter(topic: string, starterId: string) {
-    const metadata = {
-      source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero_starter',
-      destination: isSignedIn ? '/generate' : 'inline_script',
-      signed_in: isSignedIn,
-      starter_id: starterId,
-      topic_length: topic.length,
-    }
-    void trackEvent('home_topic_starter_clicked', metadata, '/')
-    void trackEvent('organic_topic_submitted', metadata, '/')
-    setPrompt(topic)
-    setError(null)
-    setLines([])
-    setScriptTopic('')
-    requestAnimationFrame(() => {
-      const el = textareaRef.current
-      if (!el) return
-      el.focus()
-      const end = el.value.length
-      el.setSelectionRange(end, end)
-    })
-  }
 
   useEffect(() => {
     try {
@@ -315,35 +270,13 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     ? (pending ? 'Starting…' : 'Create my free Short →')
     : (pending ? 'Writing your script…' : hasScript ? 'Write a new script →' : 'Write my script — free, no signup →')
 
-  // KINEO-HERO-BIGGER-2026-08-05 — a caixa era o elemento de maior tráfego da
-  // home (133 views/24h) e mesmo assim lia como um campo de busca: 660px de
-  // largura, 84px de altura, com os três atalhos de tópico presos DENTRO do
-  // card, empurrando a área de escrita para uma faixa fina.
-  //
-  // Agora o <form> é só o SHELL (sem moldura). O card visual (.composer) é um
-  // filho, e os atalhos saíram dele para duas colunas que ladeiam o card no
-  // desktop (≥1120px), ocupando o vazio que sobrava dos dois lados dentro do
-  // .wrap de 1024px. O card fica mais largo, mais alto e com fonte maior sem
-  // ficar mais comprido do que era — o espaço dos chips virou área de escrita.
-  //
-  // Mobile (a maior parte da base: IN/NG/PK/BR) é o caso padrão, não a exceção:
-  // o shell é um flex column, então os chips EMPILHAM ABAIXO do card como
-  // sempre fizeram. As colunas laterais só existem dentro do @media
-  // (min-width:1120px). Nada muda em eventos, querystring, submit ou estados.
-  const flankA = STARTER_TOPICS.slice(0, 1)
-  const flankB = STARTER_TOPICS.slice(1)
-
-  const renderStarter = (starter: (typeof STARTER_TOPICS)[number]) => (
-    <button
-      key={starter.id}
-      type="button"
-      title={starter.topic}
-      onClick={() => selectStarter(starter.topic, starter.id)}
-    >
-      {starter.label} →
-    </button>
-  )
-
+  // KINEO-HERO-NO-CHIPS-2026-08-05 — os três atalhos de tópico ("Mystery
+  // island" etc.) e a legenda "Not sure? Start with:" foram REMOVIDOS por
+  // decisão do fundador após ver no ar: as "bolhas na lateral" poluíam o hero.
+  // O <form> continua sendo o SHELL (sem moldura) com o card .composer como
+  // filho — mas agora, sem as colunas laterais, o card ocupa a largura toda do
+  // shell no desktop. Nada muda em eventos restantes, querystring, submit ou
+  // estados; só o evento home_topic_starter_clicked deixa de existir na home.
   return (
     <form
       id="try-kineo"
@@ -505,19 +438,6 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
             ? 'Starts rendering instantly — usually 2–4 minutes.'
             : 'Full script in seconds — no account, no card.'}
         </p>
-      </div>
-
-      {/* Os mesmos três atalhos, os mesmos dois eventos por clique, agora em
-          dois grupos: no desktop viram as colunas à esquerda e à direita do
-          card; abaixo de 1120px voltam a ser duas linhas de pílulas embaixo
-          da caixa. Grupo A leva a legenda, grupo B leva dois chips — dois
-          blocos de cada lado, para as colunas não ficarem tortas. */}
-      <div className="starter-flank starter-flank-a" role="group" aria-label="One-click topic starters">
-        <span className="starter-cap">Not sure? Start with:</span>
-        {flankA.map(renderStarter)}
-      </div>
-      <div className="starter-flank starter-flank-b" role="group" aria-label="More topic starters">
-        {flankB.map(renderStarter)}
       </div>
     </form>
   )

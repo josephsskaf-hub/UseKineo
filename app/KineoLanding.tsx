@@ -64,10 +64,10 @@ const KLP_CSS = `
    em vez de uma mancha chapada. */
 .klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.06),transparent 58%);pointer-events:none}
 .klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:22px 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
-/* KINEO-HERO-BIGGER-2026-08-05 — o <form> passou a ser o SHELL (sem moldura) e
-   o card visual virou um filho .composer. O shell é uma coluna no mobile (chips
-   empilham embaixo, como sempre) e vira grid de 3 colunas no desktop, com os
-   chips ladeando o card. Ver o bloco @media(min-width:1120px) mais abaixo. */
+/* KINEO-HERO-NO-CHIPS-2026-08-05 — o <form> é o SHELL (sem moldura) e o card
+   visual é um filho .composer. Os chips de tópico que ladeavam/empilhavam foram
+   removidos (decisão do fundador após ver no ar), então o shell é uma coluna em
+   todas as larguras e o card ocupa a largura toda do shell no desktop. */
 .klp .composer-shell{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:30px;width:100%}
 .klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:820px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow .22s ease,border-color .22s ease}
 .klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
@@ -78,12 +78,6 @@ const KLP_CSS = `
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
 .klp .composer-head span{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap}
-/* Base = mobile: os dois grupos de atalhos são linhas de pílulas embaixo do
-   card. As colunas laterais são a exceção (só ≥1120px), nunca o padrão. */
-.klp .starter-flank{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;color:var(--muted2);font-size:12px;max-width:100%}
-.klp .starter-cap{color:var(--muted2);font-size:12px;font-weight:600;line-height:1.35}
-.klp .starter-flank button{border:1px solid var(--line2);background:#111113;color:#d2d2d7;border-radius:999px;padding:7px 13px;min-height:44px;font:inherit;font-size:12.5px;font-weight:650;line-height:1.3;cursor:pointer;transition:.18s}
-.klp .starter-flank button:hover,.klp .starter-flank button:focus-visible{border-color:var(--blue);color:#fff;outline:none;background:rgba(41,151,255,.1)}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
 .klp section{padding:112px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
@@ -253,24 +247,13 @@ const KLP_CSS = `
    que era — só deixa de ser uma faixa fina. */
 .klp .hero-center .composer .ci{min-height:118px}
 .klp .hero-center .trust{text-align:center}
-/* Colunas laterais: só quando existe espaço real para elas. Abaixo disso o
-   shell continua sendo a coluna única do mobile — os chips nunca ficam nas
-   laterais em tela pequena.
-   KINEO-HERO-SHOWCASE-2026-08-05 — as pílulas laterais ficaram DISCRETAS
-   (12px, padding menor, fundo transparente, borda fraca): elas são um atalho,
-   não um segundo botão competindo com a caixa. O que elas devolvem em largura
-   vai todo para a caixa: 1024px de shell agora = 132 + 18 + 724 + 18 + 132
-   (era 156 + 22 + 668 + 22 + 156). O min-height de 44px só cai aqui, onde o
-   ponteiro é mouse — no toque o alvo continua com 44px. */
+/* KINEO-HERO-NO-CHIPS-2026-08-05 — o grid de 3 colunas (132px | caixa | 132px)
+   que abrigava os chips laterais foi removido junto com os chips. No desktop a
+   caixa deixa de ter teto de 860px e ocupa a largura toda do shell (1024px no
+   .wrap; mais nas telas amplas via o bloco ≥1240px abaixo). */
 @media(min-width:1120px){
-.klp .hero-center .composer-shell{display:grid;grid-template-columns:132px minmax(0,1fr) 132px;align-items:center;gap:18px}
-.klp .hero-center .composer{grid-column:2;grid-row:1;max-width:none}
+.klp .hero-center .composer{max-width:none}
 .klp .hero-center .composer .ci{min-height:132px;font-size:19px}
-.klp .composer-shell .starter-flank{grid-row:1;flex-direction:column;align-items:stretch;justify-content:center;gap:8px;min-width:0}
-.klp .composer-shell .starter-flank-a{grid-column:1}
-.klp .composer-shell .starter-flank-b{grid-column:3}
-.klp .composer-shell .starter-flank button{width:100%;text-align:left;padding:7px 11px;min-height:0;font-size:12px;font-weight:600;border-radius:12px;background:transparent;border-color:var(--line);color:var(--muted)}
-.klp .composer-shell .starter-cap{padding-left:2px;font-size:11px}
 }
 @media(max-width:560px){.klp .hero-center .composer-shell{margin-top:28px}.klp .hero-center .composer .ci{min-height:92px}}
 /* KINEO-HERO-SHOWCASE-2026-08-05 — seis Shorts reais lado a lado, logo abaixo
@@ -284,15 +267,16 @@ const KLP_CSS = `
 .klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
 .klp .gallery-cap{position:relative;z-index:1;margin-top:18px;text-align:center;font-size:12.5px;color:var(--muted2)}
 /* Amplitude real: acima de 1240px sobram ≥80px de cada lado do .wrap (1080),
-   então o shell e a fileira saem 60px para fora dele — a caixa vai a ~824px e
-   os seis cards ganham ~12% de largura. O width:auto e o max-width:none são
+   então o shell e a fileira saem 60px para fora dele — a caixa (agora sem os
+   chips laterais, = largura do shell) vai a ~1200px e os seis cards ganham
+   ~12% de largura. O width:auto e o max-width:none são
    obrigatórios: com o width:100% da base, margem negativa só empurraria a
    caixa para a esquerda em vez de alargá-la. O .hero tem overflow:hidden, então
    isto nunca vira barra de rolagem horizontal. Vem DEPOIS das regras-base de
    propósito — media query não soma especificidade, quem escreve por último
    ganha. */
 @media(min-width:1240px){
-.klp .hero-center .composer-shell{width:auto;max-width:none;margin-left:-60px;margin-right:-60px;grid-template-columns:140px minmax(0,1fr) 140px;gap:20px}
+.klp .hero-center .composer-shell{width:auto;max-width:none;margin-left:-60px;margin-right:-60px}
 .klp .hero-gallery{max-width:none;margin-left:-60px;margin-right:-60px}
 }
 @media(max-width:900px){
