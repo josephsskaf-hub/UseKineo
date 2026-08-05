@@ -659,3 +659,25 @@ execucoes agendadas seguintes.** O que o fundador precisa fazer, **uma vez so**:
    deixa de ser gate para sempre.
 
 E menos trabalho que clicar um `N-PUSH.bat` por dia, e resolve permanentemente.
+
+---
+
+## 🔎 23:47Z (sprint 23h) — TERCEIRO DIAGNOSTICO DO PUSH, E ELE CONTRADIZ OS DOIS ANTERIORES
+
+`request_access` numa sprint AGENDADA devolveu, hoje, uma mensagem **nova**:
+
+> *"Another Claude session is currently using the computer. Wait for the user to acknowledge it
+> is finished (stop button in the Claude window), or find a non-computer-use approach."*
+
+Nao e "timeout" (sprint das 19h) nem "sprint agendada nao levanta dialogo" (sprint das 21h).
+E **contencao**: existe uma sessao interativa aberta segurando o computador — que e, muito
+provavelmente, a MESMA sessao pela qual os pushes de hoje entraram (`origin/main` andou duas vezes
+durante esta sprint, ate `691fe57`, deploy READY 23:29Z).
+
+**Licao para o prompt, e ela vale alem do push:** *o mesmo sintoma ("nao consegui") teve tres
+causas diferentes em tres sprints do mesmo dia.* Diagnostico de gate tem prazo de validade de UMA
+sprint. Reler a mensagem crua todas as vezes, nunca herdar a conclusao.
+
+**O gate permanente NAO mudou** e continua sendo o item 1 acima (Run now + aprovar o Explorador de
+Arquivos uma vez). Enquanto isso: **`scripts\50-PUSH.bat`, 2 commits**, sendo o principal a trava
+que impede o e-mail do muro de ser reenviado em loop.
