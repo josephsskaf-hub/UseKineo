@@ -681,3 +681,25 @@ sprint. Reler a mensagem crua todas as vezes, nunca herdar a conclusao.
 **O gate permanente NAO mudou** e continua sendo o item 1 acima (Run now + aprovar o Explorador de
 Arquivos uma vez). Enquanto isso: **`scripts\50-PUSH.bat`, 2 commits**, sendo o principal a trava
 que impede o e-mail do muro de ser reenviado em loop.
+
+---
+
+## 🔎 01:45Z 06/08 (sprint extra) — O PUSH VOLTOU A SER GATE, E A MENSAGEM CRUA É A DE ONTEM
+
+`request_access` numa sprint AGENDADA devolveu, hoje, **exatamente** a mensagem da sprint das 21h:
+
+> *"Computer-use access to 'Explorador de Arquivos' can't be approved during a scheduled run. To
+> grant it, send a message in this conversation (the approval card will appear), or add the app to
+> the scheduled task's settings. (Retrying returns this same result.)"*
+
+Nenhuma menção a contenção por outra sessão (o terceiro diagnóstico, das 23:47Z). **Uma tentativa
+só**, como manda o prompt — o próprio texto avisa que retentar devolve o mesmo.
+
+**Confirmado, então, o que a sprint das 00h descobriu:** o que destrava é **o fundador mandar
+qualquer mensagem na conversa durante a sprint** (foi assim que 3 pushes saíram sozinhos às
+23:28Z de ontem). A alternativa permanente continua sendo adicionar o **Explorador de Arquivos**
+nas **configurações da tarefa agendada** `kineo-sprint-diario` — `update_scheduled_task` não tem
+esse campo, é pela interface.
+
+**Represado agora: `scripts\51-PUSH.bat` — 2 commits.** O principal faz a tela do Autopilot parar
+de dizer *"isso é para quem paga"* para 2 dos 3 assinantes ativos da empresa.

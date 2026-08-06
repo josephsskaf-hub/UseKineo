@@ -204,3 +204,25 @@ mesmo dia (hoje 3 enviados, 0 checkouts). **Morte: 12/08** se 10 envios não der
   vender alívio de uma punição.
 - **Métrica:** cadastros com utm de end-card · `posted_shorts`/semana. **Morte: 14 dias.**
 - Retorno÷esforço ALTO/médio — `/wall` e `posted_shorts` já existem; falta o handle e o link.
+
+## 06/08/2026 01h — A TELA QUE DIZIA "ISSO É PARA QUEM PAGA" PARA QUEM PAGA (executada)
+- **O buraco (medido):** 13 pessoas atingiram `autopilot_page_viewed { state: not_entitled }` e
+  **2 delas eram, naquele instante, 2 dos 3 assinantes ATIVOS da empresa** — o Starter 12 min
+  depois de pagar (veio do TAAFT, comprou em 52s, **nunca completou um vídeo**) e o assinante de
+  Creator ($24,90). Os dois leram *"Autopilot is part of the paid plans"*, frase falsa para quem
+  acabou de pagar, e sumiram. A tela também não tinha porta de volta: o único link era o de
+  gastar mais.
+- **Correção:** 3 coortes com 3 verdades (free / já-pagante / piloto de $99 vencido), link de
+  volta para `/generate` gateado por saldo real, `#autopilot` em `/pricing` (o CTA apontava para
+  âncora inexistente), e `autopilot_page_viewed` passa a carregar `plan` + `on_paid_plan` sem
+  tocar em `state`.
+- **Métrica:** `not_entitled` com `on_paid_plan = true` **deixa de terminar em silêncio** —
+  medir `autopilot_upgrade_clicked` e `autopilot_generate_clicked` dessa coorte. Alvo:
+  ≥1 clique de volta ao produto por pagante que atinge a tela.
+- **Como falsificar:** se em 13/08 houver ≥3 novos `not_entitled` com `on_paid_plan=true` e
+  **zero** cliques em qualquer um dos dois CTAs, o problema não era a copy — é que o pagante não
+  quer o Autopilot e a tela deveria ser um caminho de suporte, não de venda.
+- **Morte:** 13/08.
+- **A revisão adversarial pegou 4 defeitos que o `tsc` não vê**, incluindo eu repetindo na copy
+  nova do piloto exatamente a mentira-na-tela que a mudança existe para matar (promessa sobre
+  estado impressa sem checar o estado).
