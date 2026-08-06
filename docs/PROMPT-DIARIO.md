@@ -577,3 +577,54 @@ sprints agendadas. REGRA A PARTIR DE AGORA:
 7. **LINK COM ANCORA TEM QUE ATERRISSAR** — `#foo` sem `id="foo"` despeja no topo. Ja aconteceu 2x
    (#paste no /wall, #autopilot no /pricing). Grepar o id antes de linkar.
 8. **NAO EXISTE ESLINT NO REPO**: import morto e variavel nao usada nao sao pegos pelo tsc.
+
+---
+
+## MUDANÇAS — sprint 11h de 06/08/2026 (14:30–15:10Z)
+
+⚠️ **`update_scheduled_task` foi REJEITADO nesta execução.** Os aprendizados abaixo estão apenas
+aqui e no SPRINT-2026-08-06.md — **a próxima sprint precisa aplicá-los ao prompt agendado.**
+
+### 1. "NÃO É ABUSO" SÓ DESCARTA UMA OBJEÇÃO — NÃO AUTORIZA A CORREÇÃO
+Medi que 13% das reservas free nunca viram vídeo, que 8 das 13 pessoas recusadas pelo teto tinham
+uma reserva assim na janela, e que o máximo por pessoa era 2 em três semanas. Tratei "não há
+concentração, logo não é abuso" como sinal verde e fui codar. Era necessário e não suficiente. A
+pergunta que faltava não era *quem se beneficia*, era **quem escreve o registro em que eu estou me
+apoiando**.
+
+### 2. PROVA ESCRITA PELO CLIENTE NÃO É PROVA
+`videos` só recebe linha quando o navegador do usuário completa o polling. Ausência de linha não
+prova falha nossa — prova que a aba fechou. Eu ia devolver cota com base nisso, e como existe rota
+autenticada que entrega o MP4 sem produzir essa escrita, a regra viraria **3 a cada 45min (~96/dia)
+em vez de 3 por 24h**. E o mesmo erro contaminou a MEDIÇÃO: 9 das 35 reservas "mortas" tinham
+download nas 2h seguintes, ou seja eu devolveria vaga para quem RECEBEU o produto.
+**Regra: antes de apoiar decisão de cota/dinheiro numa tabela, perguntar QUEM FAZ O INSERT.**
+
+### 3. A RESPOSTA PODE JÁ ESTAR COMENTADA NO ARQUIVO QUE EU ESTOU EDITANDO
+A frase que derrubou a correção inteira — *"`videos` is written only after the client polls a
+successful render"* — estava **duas linhas acima do meu diff**, escrita meses antes por outra
+pessoa. Ler os comentários do bloco que se altera é parte da Regra Zero, não cortesia.
+
+### 4. INSTRUMENTO É ENTREGÁVEL LEGÍTIMO
+Quando a medição não separa as duas hipóteses (falha nossa × handshake perdido), commitar o
+MEDIDOR e não o remédio é o resultado certo da sprint — não um fracasso. Foi o que foi commitado.
+
+### 5. A SEGUNDA PASSADA ACHA O QUE A PRIMEIRA CRIOU
+Corrigindo o bloqueador, adicionei um `throw` "por segurança" para linha sem `user_id`. Mas
+`events.user_id` é **ON DELETE SET NULL**: apagar uma conta deixa reservas órfãs, a query do cron
+varre a base inteira sem filtrar isso, e o throw derrubaria o job de lifecycle inteiro a cada rodada
+até a linha sair da janela de 24h. Virou parâmetro explícito `onUnknownUser` (compose lança, cron
+pula). **Rodar a revisão duas vezes não é zelo, é o que pega o defeito da própria correção.**
+
+### 6. AO EXTRAIR, GREPAR O VALOR LITERAL — E OS PONTEIROS
+A extração da cota achou uma **terceira** cópia do número 3 (`FREE_CAP` no send-cap-hit), com um
+comentário apontando para a constante que eu tinha acabado de mover. Mais 3 ponteiros
+`arquivo.ts:linha` viraram mentira silenciosa. Grepar o CONCEITO, o VALOR e os PONTEIROS.
+
+### 7. PREVISÃO QUE DEPENDE DE TRÁFEGO PODE SER INCOBRÁVEL — E ISSO É UM DADO
+`autopilot_page_viewed` com `on_paid_plan` não pôde ser cobrada: **0 visitas em 12h**. Preferir
+previsões sobre o que o SISTEMA faz sozinho (crons), não sobre o que usuários fazem.
+
+### 8. A BASELINE DO PROMPT ATRASA NOS GATES, NÃO SÓ NOS COMMITS
+A baseline dizia "3 commits represados + 51-PUSH.bat". Os 3 estavam em produção e o gate estava
+fechado. Conferir `git log origin/main..HEAD` **e** o estado real do gate antes de repetir o pedido.
