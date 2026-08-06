@@ -202,6 +202,25 @@ export async function loadLifecycleSuppression(
       for (const row of (abandonedRows ?? []) as unknown as Array<Record<string, unknown>>) {
         bump(row.user_id, parseTime(row.recovery_sent_at))
       }
+
+      // KINEO-TRIAL-EMAILS-2026-08-07 — cron/trial-lifecycle-emails carimba em
+      // trial_emails_log (uma linha por user × kind), não em profiles. Sem esta
+      // consulta os cinco e-mails do trial ficariam invisíveis para os outros
+      // jobs — a regra deste módulo é entrar aqui no MESMO commit em que o job
+      // nasce. Corte na origem: só linhas dentro da janela de 24h interessam.
+      const { data: trialEmailRows, error: trialEmailErr } = await admin
+        .from('trial_emails_log')
+        .select('user_id, sent_at')
+        .in('user_id', part)
+        .gte('sent_at', new Date(cutoff).toISOString())
+
+      if (trialEmailErr) {
+        return closed(`trial_emails_log: ${trialEmailErr.code ?? '?'} ${trialEmailErr.message}`)
+      }
+
+      for (const row of (trialEmailRows ?? []) as unknown as Array<Record<string, unknown>>) {
+        bump(row.user_id, parseTime(row.sent_at))
+      }
     }
   } catch (err) {
     return closed(err instanceof Error ? err.message : String(err))

@@ -61,6 +61,10 @@
       "schedule": "55 * * * *"
     },
     {
+      "path": "/api/cron/trial-lifecycle-emails",
+      "schedule": "30 16 * * *"
+    },
+    {
       "path": "/api/wall/refresh",
       "schedule": "45 6 * * *"
     }

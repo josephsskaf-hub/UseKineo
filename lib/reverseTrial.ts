@@ -74,7 +74,11 @@ export const TRIAL_GRANT_CREDITS = TRIAL_CREDIT_CAP
 
 export type TrialVariant = '3d' | '7d'
 
-const TRIAL_VARIANT_DAYS: Record<TrialVariant, number> = { '3d': 3, '7d': 7 }
+// Exportado desde KINEO-TRIAL-EMAILS-2026-08-07: o cron de e-mails de ciclo de
+// vida deriva o INÍCIO do trial (trial_ends_at − dias da variante) para saber
+// se um trial está no D0 — não existe coluna trial_started_at, e criar uma só
+// para isso seria um segundo relógio para divergir do primeiro.
+export const TRIAL_VARIANT_DAYS: Record<TrialVariant, number> = { '3d': 3, '7d': 7 }
 
 // Anti-abuso mínimo desta fase: domínios descartáveis bloqueados na ativação.
 // Tokens sem ponto casam por substring do domínio (pega mailinator.com,
