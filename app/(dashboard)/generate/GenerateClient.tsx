@@ -1101,7 +1101,13 @@ export default function GenerateClient({
   // pessoa acabou de assistir, entao mudar o padrao seria regressao. O bug era
   // nao existir escolha nenhuma.
   const [ytPrivacy, setYtPrivacy] = useState<YouTubePrivacy>('public')
-  const [ytResult, setYtResult] = useState<{ videoId: string; youtubeUrl: string } | null>(null)
+  // KINEO-P2E-FIX-2026-08-07 — a resposta do upload agora traz o veredito do
+  // Post to Earn: até hoje este caminho não pagava NADA (o motor só era
+  // chamado pelo link colado), e agora que paga, a tela precisa dizer. Crédito
+  // que entra em silêncio é indistinguível de crédito que não entrou.
+  const [ytResult, setYtResult] = useState<
+    { videoId: string; youtubeUrl: string; reward?: PostToEarnResult | null } | null
+  >(null)
   const [ytError, setYtError] = useState<string | null>(null)
 
   // KINEO-POSTED-SHORTS-2026-07-31 — ponte pós-download. SPRINT-2026-07-30 §5:
@@ -7618,20 +7624,36 @@ export default function GenerateClient({
                 {/* Push #317 — YouTube upload: connect or post directly */}
                 {ytResult ? (
                   // Upload succeeded — show link to the live Short
-                  <a
-                    href={ytResult.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-bold"
-                    style={{
-                      background: 'rgba(41,151,255,.10)',
-                      border: '1px solid rgba(41,151,255,.40)',
-                      color: '#5cb3ff',
-                      textDecoration: 'none',
-                    }}
-                  >
-                    ✅ Short posted! View on YouTube ↗
-                  </a>
+                  <>
+                    <a
+                      href={ytResult.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full rounded-xl py-3 text-sm font-bold"
+                      style={{
+                        background: 'rgba(41,151,255,.10)',
+                        border: '1px solid rgba(41,151,255,.40)',
+                        color: '#5cb3ff',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      ✅ Short posted! View on YouTube ↗
+                    </a>
+                    {/* KINEO-P2E-FIX-2026-08-07 — o veredito da recompensa
+                        deste upload. Só aparece quando houve crédito ou quando
+                        o claim foi para revisão: silêncio quando não houve nem
+                        um nem outro é honesto (não prometemos nada aqui). */}
+                    {ytResult.reward?.granted && (
+                      <p className="text-xs mt-2 text-center font-black" style={{ color: '#4ade80' }}>
+                        +{ytResult.reward.credits} credits added for publishing it 🎉
+                      </p>
+                    )}
+                    {ytResult.reward?.pending && (
+                      <p className="text-xs mt-2 text-center" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                        {ytResult.reward.message}
+                      </p>
+                    )}
+                  </>
                 ) : ytConnected === 'error' ? (
                   // KINEO-YT-CONNECT-2026-07-26 — a checagem falhou. NÃO
                   // oferecemos "conectar": mandar quem já tem canal refazer o

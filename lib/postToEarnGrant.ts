@@ -1,7 +1,27 @@
 // lib/postToEarnGrant.ts — KINEO-POST-TO-EARN-2026-08-04
+//                          KINEO-P2E-FIX-2026-08-07
 //
 // O MOTOR que decide e paga a recompensa de Post to Earn. Server-only: usa o
 // service role. As regras/números vivem em lib/postToEarn.ts (client-safe).
+//
+// ── O QUE QUEBROU (diagnóstico de 07/08/2026) ───────────────────────────────
+// `post_to_earn_claims` tinha ZERO linhas desde o lançamento, com 3 Shorts
+// reais no /wall. Motivo: este motor só era chamado por
+// app/api/posted-shorts/route.ts (source='pasted'), e:
+//   · as 2 entradas do fundador vieram de app/api/youtube/upload/route.ts
+//     (source='direct_upload'), que gravava em posted_shorts e NUNCA chamava
+//     esta função — o caminho do upload direto não tinha recompensa nenhuma;
+//   · a 1 entrada colada (Juliana, 01/08) é ANTERIOR ao commit que criou o
+//     Post to Earn (b1f05a7, 04/08).
+// Ou seja: o único caminho que pagava nunca recebeu tráfego. Não era bug de
+// verificação, de RLS nem de try/catch — era um caminho desconectado.
+//
+// A correção conecta o upload direto (source) e acrescenta o que faltava para
+// o programa ser honesto: ATRIBUIÇÃO. Antes, "vídeo público + a conta gerou
+// algum vídeo" pagava — um usuário podia colar qualquer vídeo antigo do
+// próprio canal, sem nenhuma relação com a Kineo, e receber. Agora o crédito
+// automático exige prova de que o Short é da Kineo; quando a prova não é
+// obtível, o claim entra na fila `pending` e um humano decide.
 //
 // ⚠️ ISTO GASTA DINHEIRO DE VERDADE. O arquivo foi escrito assumindo que
 // alguém VAI tentar roubar, porque vai: a recompensa é automática, o input é
@@ -19,15 +39,20 @@
 //      Fecha a conta descartável criada só para colar link de terceiro.
 //
 //   3. DEDUPE GLOBAL — post_to_earn_claims.youtube_video_id é UNIQUE no
-//      mundo. `posted_shorts` NÃO servia para isso: o unique de lá é
+//      mundo (índice parcial: claims `rejected` liberam o vídeo de novo).
+//      `posted_shorts` NÃO servia para isso: o unique de lá é
 //      (user_id, youtube_video_id), ou seja, dez contas colando o mesmo
 //      vídeo seriam dez linhas legítimas e dez pagamentos.
 //
-//   4. JANELA ROLANTE — 2 recompensas por 7 dias por usuário.
+//   4. JANELA ROLANTE — 2 recompensas por 7 dias por usuário. Claims
+//      `pending` OCUPAM vaga na janela: senão, um script encheria a fila de
+//      revisão de graça.
 //
 //   5. TETO VITALÍCIO — 30 créditos por usuário, e depois disso loga.
 //
 //   6. DISJUNTOR GLOBAL — 100 créditos/dia somando todo mundo.
+//
+//   7. ATRIBUIÇÃO (novo) — o vídeo é da Kineo? Só `granted` com prova.
 //
 // IDEMPOTÊNCIA: o INSERT do claim é a autorização. Ele acontece ANTES do
 // crédito e é protegido pelo índice único global; quem perde a corrida recebe
@@ -35,6 +60,11 @@
 // o claim é desfeito — o vídeo volta a poder ser recompensado, o que é o lado
 // certo para errar (perder uma recompensa é recuperável; pagar duas vezes é
 // dinheiro que não volta).
+//
+// INSTRUMENTAÇÃO: todo desfeito — concessão, fila, recusa e erro — grava um
+// evento COM MOTIVO, e o await é proposital: `void` numa função serverless
+// perde a escrita quando o runtime congela depois da resposta, que é
+// exatamente como um programa de recompensa falha em silêncio.
 
 import { wallAdminClient } from '@/lib/wallOfProof'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -47,20 +77,38 @@ import {
   postToEarnMessage,
   type PostToEarnReason,
   type PostToEarnResult,
+  type PostToEarnSource,
 } from '@/lib/postToEarn'
 
-/** Timeout do oEmbed. A verificação não pode segurar a resposta do save. */
+/** Timeout das chamadas ao YouTube. A verificação não pode segurar a resposta
+ *  do save — o link do usuário já está gravado quando isto roda. */
 const OEMBED_TIMEOUT_MS = 6_000
 
 /** Teto de linhas lidas nas contagens. Blindagem contra um estado corrompido
  *  virar uma leitura gigante — nenhum usuário legítimo passa de 10 claims. */
 const CLAIM_READ_LIMIT = 500
 
-type ClaimRow = { id: string; credits: number | null; created_at: string }
+/**
+ * Marcas que provam atribuição na descrição/título do vídeo. São as strings
+ * que lib/videoDescription.ts realmente escreve (usekineo.com) e o domínio de
+ * produção usado nos CTAs (shortsforgeai.com). "kineo" solto NÃO entra na
+ * lista: casaria com palavra alheia e pagaria por vídeo que não é nosso.
+ */
+const KINEO_ATTRIBUTION_MARKERS = ['usekineo.com', 'shortsforgeai.com', 'made with kineo']
+
+type ClaimStatus = 'granted' | 'pending' | 'rejected'
+
+type ClaimRow = {
+  id: string
+  credits: number | null
+  created_at: string
+  status: ClaimStatus | null
+}
 
 function result(reason: PostToEarnReason, credits: number, remaining: number): PostToEarnResult {
   return {
     granted: reason === 'granted',
+    pending: reason === 'pending_review',
     credits: reason === 'granted' ? credits : 0,
     reason,
     remainingThisWeek: Math.max(0, remaining),
@@ -96,6 +144,69 @@ export async function verifyPublicYouTubeVideo(
   }
 }
 
+export type KineoAttribution = {
+  /** True só quando existe PROVA. Ausência de prova nunca vira `true`. */
+  verified: boolean
+  /** Como se provou (ou por que não deu). Vai para a coluna `reason` do claim
+   *  e para o evento — é o que transforma a fila de revisão em algo acionável
+   *  em vez de uma caixa de links sem contexto. */
+  how: string
+}
+
+/**
+ * O vídeo é MESMO um Short feito com a Kineo?
+ *
+ * Três caminhos, em ordem de força da prova:
+ *
+ *   1. `direct_upload` — a própria Kineo subiu o arquivo no canal do usuário
+ *      (app/api/youtube/upload). Não existe prova melhor: nós renderizamos e
+ *      nós publicamos. Zero chamadas de rede.
+ *   2. `pasted` + YOUTUBE_API_KEY — lê o snippet e procura o credit link que
+ *      lib/videoDescription.ts escreve. É a verificação automática de verdade.
+ *   3. `pasted` sem chave — SEM PROVA. Não recusa (o usuário pode estar 100%
+ *      certo) e não paga (não podemos saber). Vai para revisão humana.
+ *
+ * NUNCA lança: qualquer falha vira `verified: false` com motivo.
+ */
+export async function verifyKineoAttribution(
+  youtubeId: string,
+  source: PostToEarnSource,
+): Promise<KineoAttribution> {
+  if (source === 'direct_upload') return { verified: true, how: 'direct_upload' }
+
+  const apiKey = (process.env.YOUTUBE_API_KEY ?? '').trim()
+  if (!apiKey) return { verified: false, how: 'no_youtube_api_key' }
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), OEMBED_TIMEOUT_MS)
+  try {
+    const url =
+      'https://www.googleapis.com/youtube/v3/videos' +
+      `?part=snippet&id=${encodeURIComponent(youtubeId)}&key=${encodeURIComponent(apiKey)}`
+    const res = await fetch(url, { cache: 'no-store', signal: controller.signal })
+    if (!res.ok) return { verified: false, how: `youtube_api_http_${res.status}` }
+    const json = (await res.json()) as {
+      items?: { snippet?: { title?: unknown; description?: unknown } }[]
+    }
+    const snippet = json.items?.[0]?.snippet
+    if (!snippet) return { verified: false, how: 'youtube_api_no_item' }
+    const haystack = `${typeof snippet.title === 'string' ? snippet.title : ''}\n${
+      typeof snippet.description === 'string' ? snippet.description : ''
+    }`.toLowerCase()
+    const hit = KINEO_ATTRIBUTION_MARKERS.find((m) => haystack.includes(m))
+    return hit
+      ? { verified: true, how: `description_match:${hit}` }
+      : { verified: false, how: 'no_kineo_credit_link' }
+  } catch (err) {
+    return {
+      verified: false,
+      how: err instanceof Error && err.name === 'AbortError' ? 'youtube_api_timeout' : 'youtube_api_error',
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 /**
  * Avalia as travas e, se tudo passar, credita.
  *
@@ -106,8 +217,11 @@ export async function grantPostToEarn(args: {
   userId: string
   youtubeId: string
   ip: string | null
+  /** Ausente = 'pasted', o comportamento histórico desta função. */
+  source?: PostToEarnSource
 }): Promise<PostToEarnResult> {
   const { userId, youtubeId, ip } = args
+  const source: PostToEarnSource = args.source ?? 'pasted'
   const admin = wallAdminClient()
   if (!admin) {
     console.error('[post-to-earn] service role not configured — no reward evaluated')
@@ -116,11 +230,12 @@ export async function grantPostToEarn(args: {
 
   const reject = async (reason: PostToEarnReason, remaining: number, detail?: string) => {
     // Instrumentação: sem isto o programa é fé. `reason` é a métrica que diz
-    // se a regra está barrando fraude ou frustrando usuário honesto.
-    void writeServerEvent({
+    // se a regra está barrando fraude ou frustrando usuário honesto. O await
+    // é deliberado — ver o cabeçalho.
+    await writeServerEvent({
       name: 'post_to_earn_rejected',
       userId,
-      metadata: { reason, youtube_video_id: youtubeId, ...(detail ? { detail } : {}) },
+      metadata: { reason, youtube_video_id: youtubeId, source, ...(detail ? { detail } : {}) },
     })
     return result(reason, 0, remaining)
   }
@@ -147,8 +262,9 @@ export async function grantPostToEarn(args: {
     const windowStart = new Date(Date.now() - POST_TO_EARN_WINDOW_DAYS * 86_400_000)
     const { data: myClaimsRaw, error: claimsErr } = await admin
       .from('post_to_earn_claims')
-      .select('id, credits, created_at')
+      .select('id, credits, created_at, status')
       .eq('user_id', userId)
+      .neq('status', 'rejected')
       .order('created_at', { ascending: true })
       .limit(CLAIM_READ_LIMIT)
     if (claimsErr) {
@@ -192,6 +308,15 @@ export async function grantPostToEarn(args: {
       return await reject('global_cap', remaining)
     }
 
+    // ── Trava 7: o vídeo é da Kineo? ────────────────────────────────────────
+    // Decide o STATUS do claim, não se ele existe: com prova, `granted` e
+    // pagamento; sem prova, `pending` com o motivo gravado. Em nenhum dos dois
+    // casos o vídeo fica livre para outra conta reivindicar (o unique global
+    // pega os dois status) e em nenhum deles se paga sem verificação.
+    const attribution = await verifyKineoAttribution(youtubeId, source)
+    const status: ClaimStatus = attribution.verified ? 'granted' : 'pending'
+    const claimCredits = attribution.verified ? POST_TO_EARN_CREDITS : 0
+
     // ── Trava 3 + IDEMPOTÊNCIA: o claim ─────────────────────────────────────
     // Este INSERT é a autorização de pagamento. O índice único global em
     // youtube_video_id garante que exatamente UMA requisição no universo
@@ -201,9 +326,14 @@ export async function grantPostToEarn(args: {
       .insert({
         user_id: userId,
         youtube_video_id: youtubeId,
-        credits: POST_TO_EARN_CREDITS,
+        credits: claimCredits,
         channel_title: meta.channelTitle,
         ip: ip ? ip.slice(0, 64) : null,
+        status,
+        source,
+        verification: attribution.how,
+        reason: attribution.verified ? null : attribution.how,
+        granted_at: attribution.verified ? new Date().toISOString() : null,
       })
       .select('id')
     if (claimErr) {
@@ -226,8 +356,9 @@ export async function grantPostToEarn(args: {
     // zero, como faria um "se estourou, todo mundo cai").
     const { data: recheckRaw, error: recheckErr } = await admin
       .from('post_to_earn_claims')
-      .select('id, credits, created_at')
+      .select('id, credits, created_at, status')
       .eq('user_id', userId)
+      .neq('status', 'rejected')
       .gte('created_at', windowStart.toISOString())
       .order('created_at', { ascending: true })
       .limit(CLAIM_READ_LIMIT)
@@ -238,6 +369,29 @@ export async function grantPostToEarn(args: {
         await admin.from('post_to_earn_claims').delete().eq('id', claimId)
         return await reject('weekly_cap', 0, 'race_lost')
       }
+    }
+
+    // ── Fila de revisão ─────────────────────────────────────────────────────
+    // Sem prova de atribuição não há pagamento AGORA — e o claim fica de pé,
+    // com motivo, esperando um humano (post_to_earn_review no banco). Isto é o
+    // oposto de falhar em silêncio: a linha existe, o motivo existe, o evento
+    // existe e a mensagem na tela diz o prazo.
+    if (!attribution.verified) {
+      console.log(
+        `[post-to-earn] PENDING review: user ${userId} video ${youtubeId} (${attribution.how}, source=${source})`,
+      )
+      await writeServerEvent({
+        name: 'post_to_earn_pending',
+        userId,
+        metadata: {
+          youtube_video_id: youtubeId,
+          source,
+          verification: attribution.how,
+          claim_id: claimId,
+          channel_title: meta.channelTitle,
+        },
+      })
+      return result('pending_review', 0, remaining - 1)
     }
 
     // ── Pagamento ───────────────────────────────────────────────────────────
@@ -280,7 +434,7 @@ export async function grantPostToEarn(args: {
     console.log(
       `[post-to-earn] +${POST_TO_EARN_CREDITS} credits to ${userId} for ${youtubeId} (lifetime ${lifetimeCredits + POST_TO_EARN_CREDITS}/${POST_TO_EARN_LIFETIME_CREDIT_CAP})`,
     )
-    void writeServerEvent({
+    await writeServerEvent({
       name: 'post_to_earn_claimed',
       userId,
       metadata: {
@@ -288,12 +442,22 @@ export async function grantPostToEarn(args: {
         youtube_video_id: youtubeId,
         lifetime_credits: lifetimeCredits + POST_TO_EARN_CREDITS,
         channel_title: meta.channelTitle,
+        source,
+        verification: attribution.how,
       },
     })
 
     return result('granted', POST_TO_EARN_CREDITS, remaining - 1)
   } catch (err) {
-    console.error('[post-to-earn] unexpected:', err instanceof Error ? err.message : String(err))
+    const detail = err instanceof Error ? err.message : String(err)
+    console.error('[post-to-earn] unexpected:', detail)
+    // Mesmo o caminho "nunca deveria acontecer" grava motivo: um erro que só
+    // existe no log da Vercel é um erro que ninguém vê.
+    await writeServerEvent({
+      name: 'post_to_earn_rejected',
+      userId,
+      metadata: { reason: 'unavailable', youtube_video_id: youtubeId, source, detail: detail.slice(0, 200) },
+    }).catch(() => {})
     return result('unavailable', 0, 0)
   }
 }

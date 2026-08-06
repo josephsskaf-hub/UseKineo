@@ -95,3 +95,158 @@ $$;
 -- card sem um JOIN extra. Se um dia divergirem, o livro-razão manda.
 ALTER TABLE public.posted_shorts ADD COLUMN IF NOT EXISTS rewarded_at timestamptz;
 ALTER TABLE public.posted_shorts ADD COLUMN IF NOT EXISTS reward_credits integer;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- KINEO-P2E-FIX-2026-08-07 — o programa NUNCA pagou ninguém
+-- ═══════════════════════════════════════════════════════════════════════════
+--
+-- Diagnóstico (07/08/2026, produção): post_to_earn_claims com 0 linhas e 3
+-- Shorts reais no /wall. O motor lib/postToEarnGrant.ts só era chamado por
+-- app/api/posted-shorts (link COLADO); as 2 entradas do fundador vieram do
+-- upload direto (app/api/youtube/upload), que gravava em posted_shorts e não
+-- chamava o motor, e a 1 entrada colada é de 01/08 — anterior ao commit que
+-- criou o Post to Earn (04/08). O único caminho que pagava nunca recebeu
+-- tráfego. Não foi RLS, não foi try/catch, não foi API key: era um caminho
+-- desconectado.
+--
+-- Esta seção é PURAMENTE ADITIVA e idempotente. Ela acrescenta o que faltava
+-- para o programa ser honesto e auditável:
+--
+--   status        granted | pending | rejected  (pending = fila de revisão)
+--   source        pasted | direct_upload        (de onde veio o link)
+--   verification  COMO se provou a autoria      (direct_upload, description_match:…)
+--   reason        POR QUE não foi automático    (no_youtube_api_key, …)
+--   granted_at / reviewed_at / reviewed_by      (trilha da decisão)
+--
+-- Por que `pending` existe: sem YOUTUBE_API_KEY o servidor NÃO consegue ler a
+-- descrição do vídeo e portanto não consegue provar que o Short é da Kineo.
+-- Pagar assim mesmo é convite para fazenda de contas (qualquer vídeo antigo do
+-- canal serviria); recusar é injusto com quem fez tudo certo. Então o claim
+-- fica de pé, com motivo, e um humano decide. A copy pública diz esse prazo.
+--
+-- PARA O CRÉDITO VOLTAR A SER 100% AUTOMÁTICO: definir YOUTUBE_API_KEY no
+-- ambiente (a mesma chave que app/api/wall/refresh já usa). Com ela, o motor
+-- lê o snippet do vídeo e credita na hora quando encontra o credit link.
+
+ALTER TABLE public.post_to_earn_claims
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'granted';
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS source text;
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS verification text;
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS granted_at timestamptz;
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+ALTER TABLE public.post_to_earn_claims ADD COLUMN IF NOT EXISTS reviewed_by text;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'post_to_earn_claims_status_check'
+  ) THEN
+    ALTER TABLE public.post_to_earn_claims
+      ADD CONSTRAINT post_to_earn_claims_status_check
+      CHECK (status IN ('granted', 'pending', 'rejected'));
+  END IF;
+END
+$$;
+
+-- A trava de dedupe global vira PARCIAL. Motivo: um claim recusado na revisão
+-- não pode queimar o vídeo para sempre — se o usuário corrigir a descrição e
+-- colar de novo, o vídeo tem que poder ser avaliado outra vez. `granted` e
+-- `pending` continuam ocupando a vaga única (é o que impede pagamento duplo e
+-- é o que impede duas contas disputarem o mesmo Short enquanto um está na
+-- fila). Criado ANTES do DROP do índice antigo: em nenhum instante a tabela
+-- fica sem proteção contra duplicata.
+CREATE UNIQUE INDEX IF NOT EXISTS post_to_earn_claims_video_active_unique
+  ON public.post_to_earn_claims (youtube_video_id)
+  WHERE status <> 'rejected';
+
+DROP INDEX IF EXISTS public.post_to_earn_claims_video_unique;
+
+-- Fila de revisão: "o que está pendente, mais antigo primeiro".
+CREATE INDEX IF NOT EXISTS post_to_earn_claims_pending_idx
+  ON public.post_to_earn_claims (created_at)
+  WHERE status = 'pending';
+
+-- ── A AÇÃO da revisão manual ────────────────────────────────────────────────
+-- Aprovar/recusar um claim pendente com UMA chamada, sem UPDATE solto na mão
+-- (um UPDATE manual creditaria duas vezes se rodasse duas vezes, e é
+-- exatamente isso que acontece quando alguém revisa a fila cansado).
+--
+-- IDEMPOTENTE POR CONSTRUÇÃO: o UPDATE só casa quando status = 'pending', e o
+-- crédito só roda se o UPDATE devolveu linha. Chamar de novo devolve
+-- 'noop:<status atual>' e não paga nada.
+--
+-- SECURITY DEFINER + revoke geral: só o service role (ou o SQL editor do dono)
+-- executa. Se `authenticated` pudesse chamar, qualquer usuário aprovaria o
+-- próprio claim pelo DevTools — que é a versão mais cara possível deste bug.
+CREATE OR REPLACE FUNCTION public.post_to_earn_review(
+  p_claim uuid,
+  p_approve boolean,
+  p_note text DEFAULT NULL,
+  p_credits integer DEFAULT 3
+)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user uuid;
+  v_status text;
+BEGIN
+  IF p_approve THEN
+    UPDATE public.post_to_earn_claims
+       SET status = 'granted',
+           credits = GREATEST(p_credits, 0),
+           granted_at = now(),
+           reviewed_at = now(),
+           reviewed_by = COALESCE(p_note, 'manual_review')
+     WHERE id = p_claim AND status = 'pending'
+     RETURNING user_id INTO v_user;
+
+    IF v_user IS NULL THEN
+      SELECT status INTO v_status FROM public.post_to_earn_claims WHERE id = p_claim;
+      RETURN 'noop:' || COALESCE(v_status, 'not_found');
+    END IF;
+
+    PERFORM public.add_video_credits(v_user, GREATEST(p_credits, 0));
+
+    UPDATE public.posted_shorts
+       SET rewarded_at = now(), reward_credits = GREATEST(p_credits, 0)
+     WHERE user_id = v_user
+       AND youtube_video_id = (SELECT youtube_video_id FROM public.post_to_earn_claims WHERE id = p_claim);
+
+    RETURN 'granted';
+  ELSE
+    UPDATE public.post_to_earn_claims
+       SET status = 'rejected',
+           credits = 0,
+           reviewed_at = now(),
+           reviewed_by = COALESCE(p_note, 'manual_review')
+     WHERE id = p_claim AND status = 'pending'
+     RETURNING user_id INTO v_user;
+
+    IF v_user IS NULL THEN
+      SELECT status INTO v_status FROM public.post_to_earn_claims WHERE id = p_claim;
+      RETURN 'noop:' || COALESCE(v_status, 'not_found');
+    END IF;
+
+    RETURN 'rejected';
+  END IF;
+END
+$$;
+
+REVOKE ALL ON FUNCTION public.post_to_earn_review(uuid, boolean, text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.post_to_earn_review(uuid, boolean, text, integer) FROM anon;
+REVOKE ALL ON FUNCTION public.post_to_earn_review(uuid, boolean, text, integer) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.post_to_earn_review(uuid, boolean, text, integer) TO service_role;
+
+-- ── A fila, pronta para revisar ─────────────────────────────────────────────
+--   SELECT c.id, c.youtube_video_id, c.channel_title, c.reason, c.created_at,
+--          'https://youtube.com/watch?v=' || c.youtube_video_id AS watch
+--     FROM public.post_to_earn_claims c
+--    WHERE c.status = 'pending'
+--    ORDER BY c.created_at;
+--
+--   SELECT public.post_to_earn_review('<claim id>', true,  'checked: has credit link');
+--   SELECT public.post_to_earn_review('<claim id>', false, 'not a Kineo video');

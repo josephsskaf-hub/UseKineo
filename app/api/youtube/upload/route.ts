@@ -11,6 +11,9 @@ import {
 } from '@/lib/youtube'
 import { getChannel, getValidChannelAccessToken } from '@/lib/youtubeChannels'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
+// KINEO-P2E-FIX-2026-08-07 — o upload direto agora também PAGA. Ver o bloco no
+// fim do handler para o porquê (era o caminho que nunca concedia crédito).
+import { grantPostToEarn } from '@/lib/postToEarnGrant'
 
 // KINEO-YTCONNECT-2026-07-26 — era 60, e lib/autopilot/pipeline.ts chama esta
 // rota com timeoutMs: 290_000. A Vercel matava a função aos 60s enquanto o cron
@@ -169,7 +172,54 @@ export async function POST(req: NextRequest) {
       console.warn('[youtube/upload] posted_shorts record threw:', e instanceof Error ? e.message : String(e))
     }
 
-    return NextResponse.json(result)
+    // KINEO-P2E-FIX-2026-08-07 — ESTE ERA O BURACO. O Post to Earn promete
+    // publicamente "+3 créditos por Short publicado", mas o motor
+    // (lib/postToEarnGrant) só era chamado pelo caminho do link COLADO. Quem
+    // publicava pelo botão de upload direto — o caminho mais fácil, o que a
+    // própria Kineo oferece na tela de sucesso — gravava a linha em
+    // posted_shorts e nunca recebia nada, sem sequer um motivo registrado.
+    // Resultado: post_to_earn_claims com ZERO linhas desde o lançamento.
+    //
+    // O upload direto é o caso de atribuição mais forte que existe (nós
+    // renderizamos e nós publicamos), então ele entra com source
+    // 'direct_upload' e é creditado na hora. As travas são as MESMAS do link
+    // colado — dedupe global, 2/semana, 30 vitalícios, disjuntor diário — e o
+    // oEmbed continua exigindo vídeo público, o que naturalmente deixa de fora
+    // o Autopilot quando ele publica como unlisted/private.
+    //
+    // RISCO RESIDUAL CONHECIDO: `videoUrl` é livre, então em tese alguém pode
+    // subir um mp4 que não é da Kineo pelo próprio endpoint e receber. O preço
+    // desse caminho é conectar um canal real por OAuth e ele continua preso aos
+    // mesmos tetos (2/semana, 30 vitalícios, ~$3 por conta para sempre). Fechar
+    // exigindo que a URL seja um asset nosso é o próximo passo — e não foi
+    // feito aqui porque bloquearia upload legítimo de vídeo já baixado.
+    //
+    // A recompensa só é AVALIADA quando a publicação é pública. Um upload
+    // 'unlisted'/'private' (o padrão do Autopilot) nunca poderia passar no
+    // oEmbed, então chamar o motor ali seria gastar rede para gerar um evento
+    // de recusa por run de cron — ruído que esconderia a rejeição que importa.
+    //
+    // Best-effort, como o insert acima: `grantPostToEarn` tem como contrato
+    // nunca lançar, e um vídeo JÁ publicado no canal do usuário jamais pode
+    // virar erro 5xx por causa da recompensa.
+    let reward: Awaited<ReturnType<typeof grantPostToEarn>> | null = null
+    if (privacyStatus === 'public') {
+      try {
+        const ip =
+          (req.headers.get('x-forwarded-for')?.split(',')[0] ?? req.headers.get('x-real-ip') ?? '').trim() ||
+          null
+        reward = await grantPostToEarn({
+          userId: user.id,
+          youtubeId: result.videoId,
+          ip,
+          source: 'direct_upload',
+        })
+      } catch (e) {
+        console.warn('[youtube/upload] post-to-earn threw:', e instanceof Error ? e.message : String(e))
+      }
+    }
+
+    return NextResponse.json({ ...result, reward })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[youtube/upload] error:', msg)

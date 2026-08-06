@@ -38,10 +38,26 @@ export const POST_TO_EARN_LIFETIME_CREDIT_CAP = 30
  *  o prejuízo do dia inteiro para em ~$10 e aparece no log. */
 export const POST_TO_EARN_GLOBAL_DAILY_CREDIT_CAP = 100
 
+/** KINEO-P2E-FIX-2026-08-07 — prazo prometido para a fila de revisão manual.
+ *  Um link que o servidor não consegue ATRIBUIR à Kineo sozinho (sem
+ *  YOUTUBE_API_KEY, ou com descrição sem o credit link) não é recusado nem
+ *  pago no escuro: vira claim `pending` e um humano decide. O número aparece
+ *  na copy pública — se mudar aqui, muda na tela. */
+export const POST_TO_EARN_PENDING_REVIEW_HOURS = 24
+
+/** Como o link chegou. `direct_upload` é o vídeo que a PRÓPRIA Kineo publicou
+ *  no canal do usuário (app/api/youtube/upload) — nesse caminho a autoria é
+ *  provada por construção. `pasted` é uma URL que o usuário digitou, e aí a
+ *  autoria precisa ser verificada de fora. */
+export type PostToEarnSource = 'pasted' | 'direct_upload'
+
 /** Veredito de uma tentativa de recompensa. Cada motivo tem UMA mensagem
  *  específica — "não deu" genérico é o que faz o usuário achar que foi roubado. */
 export type PostToEarnReason =
   | 'granted'
+  /** KINEO-P2E-FIX-2026-08-07 — vídeo público e dentro de todas as travas, mas
+   *  sem prova de que foi feito com a Kineo. Fila de revisão manual. */
+  | 'pending_review'
   | 'not_public'
   | 'no_video_yet'
   | 'already_claimed'
@@ -52,6 +68,10 @@ export type PostToEarnReason =
 
 export type PostToEarnResult = {
   granted: boolean
+  /** True quando o claim ficou em revisão manual: não pagou AINDA, e não é
+   *  recusa. A UI precisa distinguir os três estados — dizer "não deu" para
+   *  quem está na fila é mentir para um usuário que fez tudo certo. */
+  pending: boolean
   /** Créditos concedidos NESTA requisição. 0 quando não houve concessão. */
   credits: number
   reason: PostToEarnReason
@@ -61,8 +81,17 @@ export type PostToEarnResult = {
   message: string
 }
 
-/** A promessa, ANTES de colar. Mesma frase no /wall e no /generate. */
-export const POST_TO_EARN_PITCH = `Publish your Short with our watermark, paste the link, get ${POST_TO_EARN_CREDITS} credits — up to ${POST_TO_EARN_MAX_PER_WINDOW} per week.`
+/**
+ * A promessa, ANTES de colar. Mesma frase no /wall, no /generate e no e-mail.
+ *
+ * KINEO-P2E-FIX-2026-08-07 — a versão anterior prometia crédito automático
+ * ("paste the link, get 3 credits") e o sistema NÃO entregava isso para todo
+ * mundo: sem YOUTUBE_API_KEY o servidor não consegue provar que o vídeo foi
+ * feito na Kineo, e pagar sem prova nenhuma é convite para fazenda de contas.
+ * A frase agora diz as duas coisas que acontecem de verdade — crédito na hora
+ * quando dá para verificar, revisão humana quando não dá.
+ */
+export const POST_TO_EARN_PITCH = `Publish your Kineo Short with the credit link, paste the URL, get ${POST_TO_EARN_CREDITS} credits — up to ${POST_TO_EARN_MAX_PER_WINDOW} per week. Verified links are credited instantly; the rest are reviewed within ${POST_TO_EARN_PENDING_REVIEW_HOURS}h.`
 
 /**
  * Mensagem para cada desfecho.
@@ -76,6 +105,8 @@ export function postToEarnMessage(reason: PostToEarnReason, credits: number): st
   switch (reason) {
     case 'granted':
       return `+${credits} credits added. Thanks for repping Kineo.`
+    case 'pending_review':
+      return `Your Short is saved and queued for review. We couldn't confirm the Kineo credit link automatically — a human checks it within ${POST_TO_EARN_PENDING_REVIEW_HOURS}h and the ${POST_TO_EARN_CREDITS} credits land then.`
     case 'not_public':
       return "We couldn't open that video on YouTube. Make sure it's published and public, then paste the link again."
     case 'no_video_yet':

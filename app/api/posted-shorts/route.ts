@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
     // invalidado. SÓ AGORA se fala em crédito, e `grantPostToEarn` tem como
     // contrato nunca lançar: qualquer desfecho vira um veredito com mensagem
     // própria, e o save continua sendo um sucesso.
-    const reward = await grantPostToEarn({ userId: user.id, youtubeId, ip })
+    const reward = await grantPostToEarn({ userId: user.id, youtubeId, ip, source: 'pasted' })
 
     return NextResponse.json({ ok: true, youtubeId, reward })
   } catch (err) {
