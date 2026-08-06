@@ -177,3 +177,30 @@ mesmo dia (hoje 3 enviados, 0 checkouts). **Morte: 12/08** se 10 envios não der
 - **Regra Zero:** post-to-earn, mural e `/api/posted-shorts` **já existem**. Falta o convite, não o
   produto. Alavanca cega, não ausente.
 - **Métrica:** `posted_shorts` 2 → 12 em 7 dias. Não moveu, morre.
+
+## 06/08/2026 00h — KINEO-POST-NUDGE: o convite que nunca chegou (EXECUTADA, no ar)
+- **O quê:** o Post to Earn está no ar desde 04/08 e `post_to_earn_claims` tinha **0 linhas** —
+  nunca pagou um crédito. Não por defeito do mecanismo (ele é completo, paga pelo mesmo RPC dos
+  webhooks de pagamento), mas porque **nenhum dos 13 crons, nenhum e-mail e nenhum banner jamais
+  convidou ninguém a postar**. O convite só existia dentro do app, para quem já tinha voltado.
+- **Medido:** 73 pessoas baixaram um vídeo; 72 nunca registraram um Short; `posted_shorts` = 2.
+- **Correção:** cron `send-post-nudge` (`50 * * * *`). Coorte = `video_downloaded` nos últimos
+  7 dias − quem já postou − quem está no muro do free agora. Reserva atômica antes do Resend,
+  teto derivado do disjuntor global, cooldown 14d, supressão cruzada 24h. `/wall` ganhou âncora
+  `#paste` e o link digitado por deslogado sobrevive ao login. Commit `0650805`.
+- **Métrica:** `posted_shorts` **2 → 12** e `post_to_earn_claims` **0 → 8** em 7 dias (13/08).
+- **Como falsificar:** se em 13/08 os e-mails tiverem saído (evento `post_nudge_sent` > 20) e
+  `posted_shorts` continuar ≤ 4, o problema NÃO era o convite — é a fricção de publicar no
+  YouTube, e a próxima alavanca é o upload direto (`app/api/youtube/upload` já existe), não copy.
+- **Morte:** 13/08 sem mover nenhum dos dois números.
+
+## 06/08/2026 00h — IDEIA CEO na fila: O IMPOSTO QUE VIRA SALÁRIO
+- **A inversão:** o end-card do vídeo free deixa de dizer *Kineo* e passa a dizer
+  `usekineo.com/@handle` — o handle de quem fez. A marca d'água deixa de ser imposto (que se paga
+  para remover) e vira crédito de autoria (que criador exibe).
+- **Por que traz dinheiro:** cada Short postado vira aquisição rastreável **sem o usuário colar
+  URL nenhuma** — resolve por atribuição o mesmo buraco que o `send-post-nudge` resolve por
+  convite. E o upsell "remova a marca d'água" passa a competir com um benefício real, em vez de
+  vender alívio de uma punição.
+- **Métrica:** cadastros com utm de end-card · `posted_shorts`/semana. **Morte: 14 dias.**
+- Retorno÷esforço ALTO/médio — `/wall` e `posted_shorts` já existem; falta o handle e o link.
