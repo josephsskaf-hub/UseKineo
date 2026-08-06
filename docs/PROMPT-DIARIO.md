@@ -555,3 +555,25 @@ sprints agendadas. REGRA A PARTIR DE AGORA:
    ORDENS/ENGAGEMENT — leiam de la, nao perguntem ao fundador.
 3. Assuntos PONTUAIS/decisoes: acontecem no chat principal com o fundador. Sprints executam
    e reportam; nao abrem discussoes novas com ele, so gates objetivos.
+
+## MUDANCAS — sprint extra 06/08 01h (KINEO-PAID-NOT-ENTITLED)
+1. **EOL SE CONFERE NO HEAD, NAO NO DISCO.** `file` mostra o working tree; quem decide o tamanho
+   do diff e o `HEAD`. 331 arquivos desta arvore sao LF no repo e CRLF no disco — eu normalizei
+   "para o que o disco tinha" e o commit levaria 2.856 linhas de lixo num arquivo so.
+   Conferir: `git show HEAD:<arquivo> | grep -c $'\r$'` ANTES de normalizar.
+2. **PRECO NAO E SO NUMERO, E MOEDA.** `lib/pricing.priceLabel` e USD fixo; quem tem preco
+   regional e `lib/checkoutPricing` (o BR paga R$1.499 num produto de $299). Interpolar da fonte
+   unica AINDA pode mentir para 2 de 3 moedas. Saida mais barata: nao mostrar preco fora de
+   /pricing, que resolve a moeda.
+3. **AFIRMACAO SOBRE ESTADO NUNCA E IMPRESSA INCONDICIONALMENTE.** "Esta tudo como voce deixou" e
+   uma consulta, nao uma frase. Se o payload ja traz o estado, gatear.
+4. **PEDIR SEM DEVOLVER VALE PARA TELA, NAO SO E-MAIL.** Toda tela que RECUSA algo devolve o
+   caminho para o que a pessoa JA tem. A tela do Autopilot tinha um unico link — o de gastar mais.
+5. **RODAR A REVISAO ADVERSARIAL DUAS VEZES** quando as correcoes da primeira forem grandes. A
+   segunda passada achou que a MINHA correcao repetia o defeito que eu estava consertando.
+6. **HIPOTESE DE DIVIDA HERDADA TAMBEM SE MEDE.** "MEXE EM DINHEIRO" na fila nao prova que existe
+   vitima. Tres hipoteses cairam com tres queries — e a quarta, que ninguem tinha escrito, era a
+   que valia. A timeline do PAGANTE e a query mais valiosa do painel.
+7. **LINK COM ANCORA TEM QUE ATERRISSAR** — `#foo` sem `id="foo"` despeja no topo. Ja aconteceu 2x
+   (#paste no /wall, #autopilot no /pricing). Grepar o id antes de linkar.
+8. **NAO EXISTE ESLINT NO REPO**: import morto e variavel nao usada nao sao pegos pelo tsc.
