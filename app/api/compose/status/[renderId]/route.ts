@@ -10,6 +10,9 @@ import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 // client's ?quality / ?deducted query params. creditCostFor is the single
 // shared price table (was a local copy here).
 import { creditCostFor, normalizeQuality } from '@/lib/credits/engineCost'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 import { releaseFailedFreeFastClaim, settleComposeCreditHoldForRender } from '@/lib/credits/composeHold'
 import { getRenderIntent } from '@/lib/credits/renderIntent'
 import {
@@ -566,8 +569,11 @@ export async function GET(
               deductionAttempted = true
               // Every clean export settles its full signed intent cost. There is
               // no premium free trial and no zero-balance Fast exception.
-              const { data: newBalance, error: rpcErr } = await supabase
-                .rpc('debit_video_credits', { p_render: renderId, p_cost: cost })
+              const { data: newBalance, error: rpcErr } = await debitVideoCredits(supabase, {
+                userId: user.id,
+                renderId,
+                cost,
+              })
               if (!rpcErr && typeof newBalance === 'number') {
                 creditsDeducted = true
                 creditsRemaining = newBalance

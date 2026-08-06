@@ -575,6 +575,10 @@ export default function GenerateClient({
   const [isStarter, setIsStarter] = useState<boolean>(false)
   const [isCreator, setIsCreator] = useState<boolean>(false)
   const [isStudio, setIsStudio] = useState<boolean>(false)
+  // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial (direitos do Creator;
+  // motores Studio ficam com cadeado). Vem do servidor via /api/credits e é
+  // false sempre que a flag KINEO_REVERSE_TRIAL_ENABLED está OFF.
+  const [trialActive, setTrialActive] = useState<boolean>(false)
   // #404 — once we know the plan, default the mode/engine to that plan's engine.
   const planDefaultedRef = useRef<boolean>(false)
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
@@ -1823,6 +1827,8 @@ export default function GenerateClient({
           if (typeof data.isStarter === 'boolean') setIsStarter(data.isStarter)
           if (typeof data.isCreator === 'boolean') setIsCreator(data.isCreator)
           if (typeof data.isStudio === 'boolean') setIsStudio(data.isStudio)
+          // KINEO-REVERSE-TRIAL-P1-2026-08-06 — estado do reverse trial.
+          if (typeof data.trialActive === 'boolean') setTrialActive(data.trialActive)
           if (!planDefaultedRef.current) {
             planDefaultedRef.current = true
             // #448 — Viral Now quick-entry (?autoanalyze=1) defaults to Fast (free)
@@ -6334,6 +6340,7 @@ export default function GenerateClient({
             isCreator={isCreator}
             isStudio={isStudio}
             hasPaid={hasPaid}
+            trialActive={trialActive}
             onUpgrade={openOutOfCreditsModal}
           />
           )}
@@ -9576,6 +9583,7 @@ function ModeSelector({
   isCreator,
   isStudio,
   hasPaid,
+  trialActive,
   onUpgrade,
 }: {
   mode: GenerationMode
@@ -9593,6 +9601,9 @@ function ModeSelector({
   // KINEO-REBASE-2026-07-10 — universal engine gates: any paying account
   // (pack buyer or any plan) unlocks every engine, balance permitting.
   hasPaid: boolean
+  // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial: Seedance destrava,
+  // Kling/Veo/Hollywood mostram cadeado "Studio". False com a flag OFF.
+  trialActive: boolean
   onUpgrade: () => void
 }) {
   const fastFeatures = ['Smart stock footage (matched per scene)', 'Natural AI voice', 'Usually ready in 3–7 minutes']
@@ -9616,7 +9627,11 @@ function ModeSelector({
   // Free-plan Fast is watermarked server-side; removing the mark + AI engines
   // are the paid upgrades. So Fast is always unlocked.
   const fastUnlocked = true
-  const seedanceUnlocked = anyPaid
+  // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial = direitos do Creator:
+  // Seedance destrava; Kling/Veo/Hollywood NUNCA (cadeado "Studio" abaixo).
+  // O servidor impõe o mesmo gate em generate-video-cinematic. Flag OFF ⇒
+  // trialActive é false e tudo aqui fica idêntico ao comportamento atual.
+  const seedanceUnlocked = anyPaid || trialActive
   const klingUnlocked = anyPaid
   const cinematicUnlocked = anyPaid
   const fastSelected = mode === 'fast'
@@ -9730,7 +9745,7 @@ function ModeSelector({
                     <span className="block text-[10px]" style={{ color: 'var(--muted)' }}>{m.sub}</span>
                   </span>
                   <span className="text-[11px] font-black px-2 py-0.5 rounded-full whitespace-nowrap" style={{ background: 'rgba(41,151,255,.18)', color: '#7cc0ff', border: '1px solid rgba(41,151,255,.3)' }}>
-                    {cinematicUnlocked ? `${m.cr} cr` : '🔒'}
+                    {cinematicUnlocked ? `${m.cr} cr` : trialActive ? '🔒 Studio' : '🔒'}
                   </span>
                 </button>
               )

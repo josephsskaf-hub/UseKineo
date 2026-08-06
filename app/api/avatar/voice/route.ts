@@ -9,6 +9,9 @@ import { uploadAvatarAudio } from '@/lib/avatar/storage'
 import { cloneVoice } from '@/lib/avatar/voice'
 import { CLONE_VOICE_CREDIT_COST } from '@/lib/credits/engineCost'
 import { refundRenderCredits } from '@/lib/credits/refund'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 
 export const maxDuration = 120
 export const dynamic = 'force-dynamic'
@@ -87,8 +90,11 @@ export async function POST(req: NextRequest) {
         { status: 402 },
       )
     }
-    const { data: debitedBalance, error: debitErr } = await supabase
-      .rpc('debit_video_credits', { p_render: billingReference, p_cost: CLONE_VOICE_CREDIT_COST })
+    const { data: debitedBalance, error: debitErr } = await debitVideoCredits(supabase, {
+      userId: user.id,
+      renderId: billingReference,
+      cost: CLONE_VOICE_CREDIT_COST,
+    })
     if (debitErr || typeof debitedBalance !== 'number') {
       const insufficient = /balance|credit|insufficient/i.test(debitErr?.message ?? '')
       console.error('[avatar/voice] clone debit failed:', debitErr?.message ?? 'no balance returned')

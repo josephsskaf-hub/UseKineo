@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_TTS_TIMEOUT_MS } from '@/lib/openai'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 // PUSH #95 — a Creatomate `shape` has NO geometry other than its `path`; with
 // no path it draws nothing and the API ignores it silently. Both shapes below
@@ -357,8 +360,11 @@ export async function POST(req: NextRequest) {
     // missing videos row is its normal success state). The RPC floors the
     // balance at 0, replacing the old read→compute→write race.
     try {
-      const { error: dedErr } = await supabase
-        .rpc('debit_video_credits', { p_render: `legacy-${renderId}`, p_cost: RENDER_COST })
+      const { error: dedErr } = await debitVideoCredits(supabase, {
+        userId: user.id,
+        renderId: `legacy-${renderId}`,
+        cost: RENDER_COST,
+      })
       if (dedErr) {
         console.error('[render] credit deduction error:', dedErr.message)
       }

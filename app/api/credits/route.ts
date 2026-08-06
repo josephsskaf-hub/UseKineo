@@ -4,6 +4,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { OFFER_290_ENABLED } from '@/lib/flags'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial surface para a UI do
+// generate (cadeado Studio). Flag OFF => bloco nunca executa, resposta identica.
+import { REVERSE_TRIAL_ENABLED, isTrialActive } from '@/lib/reverseTrial'
 
 // KINEO-ZERO-SIGNUP-2026-07-09 — new signups start at 0 credits (InVideo
 // model): Fast renders are free to generate/watch (watermarked) and the money
@@ -106,6 +109,26 @@ export async function GET(req: Request) {
       firstVideoAt = (firstVid as { created_at?: string } | null)?.created_at ?? null
     }
 
+    // KINEO-REVERSE-TRIAL-P1-2026-08-06 — estado do reverse trial para a UI.
+    // SO roda com a flag ON (OFF = zero query extra, resposta byte-identica).
+    // Leitura separada e best-effort: um env sem as colunas trial_* nunca
+    // derruba a resposta principal de creditos.
+    let trialActive = false
+    let trialEndsAt: string | null = null
+    if (REVERSE_TRIAL_ENABLED) {
+      try {
+        const { data: trialData, error: trialErr } = await supabase
+          .from('profiles')
+          .select('trial_status, trial_ends_at, trial_credits_used')
+          .eq('id', user.id)
+          .single()
+        if (!trialErr && trialData) {
+          trialActive = isTrialActive(trialData)
+          trialEndsAt = trialActive && typeof trialData.trial_ends_at === 'string' ? trialData.trial_ends_at : null
+        }
+      } catch { /* best-effort — trial fica false */ }
+    }
+
     if (error) {
       // Column may not exist yet — return default safely
       if (error.code === '42703' || error.message?.includes('video_credits')) {
@@ -158,6 +181,9 @@ export async function GET(req: Request) {
       offer290Enabled: OFFER_290_ENABLED,
       offer290Used,
       firstVideoAt,
+      // KINEO-REVERSE-TRIAL-P1-2026-08-06 — cadeado Studio na UI do generate.
+      trialActive,
+      trialEndsAt,
       plan: planVal,
       isStarter,
       isCreator,

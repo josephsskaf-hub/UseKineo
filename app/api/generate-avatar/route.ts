@@ -34,6 +34,9 @@ import {
   uploadVoiceoverToSupabase,
 } from '@/lib/compose'
 import { parseUserScript, stripScriptMarkers } from '@/lib/scriptParser'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 import {
   AvatarSubmitError,
   submitAvatarJob,
@@ -849,9 +852,10 @@ export async function POST(req: NextRequest) {
     // This closes the gap where another endpoint could spend the same balance
     // while the raw avatar MP4 was already rendering.
     const billingReference = avatarBillingReference(userId, generationId)
-    const { data: debitedBalance, error: debitError } = await supabase.rpc('debit_video_credits', {
-      p_render: billingReference,
-      p_cost: AVATAR_CREDIT_COST,
+    const { data: debitedBalance, error: debitError } = await debitVideoCredits(supabase, {
+      userId,
+      renderId: billingReference,
+      cost: AVATAR_CREDIT_COST,
     })
     if (debitError || typeof debitedBalance !== 'number') {
       console.error('[generate-avatar] upfront debit failed:', debitError?.message ?? 'no balance returned')

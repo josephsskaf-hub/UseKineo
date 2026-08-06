@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { AvatarSubmitError, checkAvatarJob, submitAnimateJob, type AvatarJobState } from '@/lib/avatar/veed'
 import { refundRenderCredits } from '@/lib/credits/refund'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 import {
   confirmAnimateDebit,
   loadVerifiedAnimateClaimByBilling,
@@ -80,8 +83,11 @@ export async function reserveAnimateCredits(args: {
   billingReference: string
 }): Promise<number> {
   const billingReference = assertAnimateBillingReference(args.billingReference)
-  const { data: newBalance, error } = await args.supabase
-    .rpc('debit_video_credits', { p_render: billingReference, p_cost: ANIMATE_COST })
+  const { data: newBalance, error } = await debitVideoCredits(args.supabase, {
+    userId: args.userId,
+    renderId: billingReference,
+    cost: ANIMATE_COST,
+  })
   if (error || typeof newBalance !== 'number') {
     const message = error?.message ?? 'no balance returned'
     console.error(`[animate] upfront debit failed user=${args.userId.slice(0, 8)}:`, message)

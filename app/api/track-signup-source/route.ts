@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { sanitizeAcquisitionReferrer, sanitizeAcquisitionUtmSource } from '@/lib/acquisitionSource'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — ativação do reverse trial. Esta rota é
+// o único touchpoint server-side que TODOS os fluxos de signup já chamam
+// (signup page, login page, mount do /generate), por isso a ativação mora
+// aqui. Com KINEO_REVERSE_TRIAL_ENABLED OFF é um no-op absoluto.
+import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 
 // #383 — best-effort signup attribution.
 //
@@ -27,6 +32,20 @@ export async function POST(req: NextRequest) {
     // attribute. Not an error for the caller; signup proceeds untouched.
     if (!user) {
       return NextResponse.json({ ok: false, reason: 'no-session' })
+    }
+
+    // KINEO-REVERSE-TRIAL-P1-2026-08-06 — ativação do reverse trial (flag OFF
+    // = no-op). Guardas internas: só perfil NOVO (<24h), 1 trial por conta
+    // para sempre (trial_status não-nulo nunca reativa), domínio descartável
+    // bloqueado, conta paga pulada. Best-effort: nunca quebra o signup.
+    try {
+      await maybeActivateReverseTrial({
+        userId: user.id,
+        email: user.email ?? null,
+        userCreatedAt: user.created_at ?? null,
+      })
+    } catch (e) {
+      console.error('[track-signup-source] reverse-trial non-fatal:', e instanceof Error ? e.message : String(e))
     }
 
     // Parse gclid / utm_source from the body (best-effort; tolerate no/invalid body).

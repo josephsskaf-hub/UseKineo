@@ -28,6 +28,12 @@ import { generateHollywoodAnchors, generateCinematicSceneStill, ANCHORS_USD, typ
 // KINEO-CINEMATIC-ANCHOR-2026-07-24 — flag that gates the classic-Kling anchor
 // (FLUX still) + image-to-video path. OFF by default → pure t2v, byte-identical.
 import { CINEMATIC_ANCHOR_ENABLED } from '@/lib/flags'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial: entitlement Creator
+// durante o trial (Studio NUNCA) + débito pelo wrapper único que soma no hard
+// cap de 60. Com KINEO_REVERSE_TRIAL_ENABLED OFF, isTrialActive() é sempre
+// false e debitVideoCredits é byte-idêntico ao rpc direto.
+import { isTrialActive } from '@/lib/reverseTrial'
+import { debitVideoCredits } from '@/lib/credits/debit'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: anchored
 // dialogue scenes get ONE voice. The scene's line is synthesized with OUR TTS
 // (same persona the compose narration resolves — see lib/hollywood/hostVoice)
@@ -642,7 +648,9 @@ export async function POST(req: NextRequest) {
     // paid provider work, and is keyed to this protected generation.
     const { data: profile, error: profileErr } = await supabase
       .from('profiles')
-      .select('video_credits, plan, has_paid')
+      // KINEO-REVERSE-TRIAL-P1-2026-08-06 — trial_* lidos para o entitlement
+      // do reverse trial (colunas criadas por migração aditiva em 06/08).
+      .select('video_credits, plan, has_paid, trial_status, trial_ends_at, trial_credits_used')
       .eq('id', user.id)
       .single()
 
@@ -661,12 +669,22 @@ export async function POST(req: NextRequest) {
       'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
     ])
     const isPaidUser = profile?.has_paid === true || PAID_PLANS.has(planVal)
+    // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial ativo = direitos do
+    // CREATOR (Seedance liberado abaixo), mas NUNCA os motores Studio: o gate
+    // Kling/Veo/Hollywood continua exigindo conta PAGA de verdade — trialActive
+    // não o satisfaz de propósito. Expiração passiva: isTrialActive() já nega
+    // trial vencido no relógio OU no cap de 60, sem depender de cron. Flag OFF
+    // ⇒ trialActive é sempre false e nada aqui muda.
+    const trialActive = isTrialActive(profile)
 
-    // Premium engines (Kling/Veo/Hollywood) need any PAID account — no free trial.
+    // Premium engines (Kling/Veo/Hollywood) need any PAID account — the
+    // reverse trial never includes the Studio engines.
     if ((wantsKling || wantsVeo || wantsHollywood) && !isPaidUser) {
       return NextResponse.json(
         {
-          error: 'Premium engines (Kling, Veo, Hollywood) are available on every paid plan. Upgrade to use them.',
+          error: trialActive
+            ? 'Kling, Veo and Hollywood are Studio engines — not included in your trial. Upgrade to Studio to use them.'
+            : 'Premium engines (Kling, Veo, Hollywood) are available on every paid plan. Upgrade to use them.',
           upsell: 'creator',
           balance,
         },
@@ -688,7 +706,9 @@ export async function POST(req: NextRequest) {
 
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
-    if (!isPaidUser) {
+    // KINEO-REVERSE-TRIAL-P1-2026-08-06 — exceção EXPLÍCITA e flag-gated: o
+    // reverse trial (Creator por 3/7 dias, cap 60 no backend) libera o Seedance.
+    if (!isPaidUser && !trialActive) {
       return NextResponse.json(
         {
           error: 'AI Generated videos are on the paid plans. Upgrade to use the AI engine.',
@@ -795,9 +815,10 @@ export async function POST(req: NextRequest) {
       insufficient: boolean
       error: string
     }> => {
-      const { data, error } = await supabase.rpc('debit_video_credits', {
-        p_render: billingReference,
-        p_cost: creditCost,
+      const { data, error } = await debitVideoCredits(supabase, {
+        userId: user.id,
+        renderId: billingReference,
+        cost: creditCost,
       })
       if (error || typeof data !== 'number') {
         const message = error?.message ?? 'no balance returned'

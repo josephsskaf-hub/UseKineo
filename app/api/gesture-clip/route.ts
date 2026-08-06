@@ -16,6 +16,9 @@ import { createClient } from '@/lib/supabase/server'
 import { AvatarSubmitError, submitAnimateJob } from '@/lib/avatar/veed'
 import { getCharacterImageUrl } from '@/lib/characters'
 import { refundRenderCredits } from '@/lib/credits/refund'
+// KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
+// (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
+import { debitVideoCredits } from '@/lib/credits/debit'
 
 export const maxDuration = 60
 export const dynamic = 'force-dynamic'
@@ -128,7 +131,7 @@ export async function POST(req: NextRequest) {
     let newBalance: number | null = null
     let debitErr: { message?: string } | null = null
     for (let attempt = 1; attempt <= 2; attempt += 1) {
-      const res = await supabase.rpc('debit_video_credits', { p_render: renderId, p_cost: cost })
+      const res = await debitVideoCredits(supabase, { userId: user.id, renderId, cost })
       debitErr = res.error
       if (!res.error && typeof res.data === 'number') {
         newBalance = res.data
