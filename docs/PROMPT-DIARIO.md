@@ -628,3 +628,26 @@ previsões sobre o que o SISTEMA faz sozinho (crons), não sobre o que usuários
 ### 8. A BASELINE DO PROMPT ATRASA NOS GATES, NÃO SÓ NOS COMMITS
 A baseline dizia "3 commits represados + 51-PUSH.bat". Os 3 estavam em produção e o gate estava
 fechado. Conferir `git log origin/main..HEAD` **e** o estado real do gate antes de repetir o pedido.
+
+### 06/08 sprint 13h — 5 aprendizados (todos pagos com erro real desta sprint)
+1. **Antes de citar outra rota como PRECEDENTE, ler a rota.** Escrevi "ausência não nega, igual à
+   `/api/compose/status`" — ela decide o **contrário**, e a frase estava lá em comentário. Segunda
+   sprint seguida em que a frase que derruba o meu diff já estava escrita no repositório por outra
+   pessoa. Precedente não conferido é invenção com sotaque de autoridade.
+2. **Correção que só protege o que ainda não existe é COSMÉTICA.** Perguntar sempre: *quantas linhas
+   do estado atual esta guarda cobre HOJE?* Se a resposta for zero (nenhum render legado tinha linha
+   de posse), o desenho está errado, por mais elegante que pareça.
+3. **Copiar o código de status HTTP de outra rota exige olhar o CLIENTE dela.** O `503` está certo na
+   rota irmã porque lá o cliente repolla; nos dois clientes desta rota qualquer não-200 é terminal e
+   um blip de 1s mataria um render pago. Contrato de erro é do par rota+cliente, nunca da rota só.
+4. **Função que devolve `false` em vez de lançar precisa ter o RETORNO CHECADO.** `try/catch` não pega
+   o que não é exceção e o `await` sozinho dá aparência de garantia. Foi o que quase produziu a pior
+   combinação possível: usuário DEBITADO num render que a própria API depois nega.
+5. **Ao instalar um registro novo numa tabela, grepar quem LÊ a tabela.** `render_jobs` alimenta dois
+   scripts de medição; sem o filtro, cada render legado viraria "job maduro nunca completado" e
+   derrubaria a taxa de conclusão de forma falsa e permanente. Instrumento novo não pode contaminar
+   métrica antiga (regra de 05/08, agora do outro lado: quem escreve também contamina).
+
+**Baseline registrada nesta sprint (usar como fonte única do A/B do trial):** 30 dias, contas
+internas fora — 365 signups · 177 com ≥1 vídeo (48,5%) · 5 já compraram · 3 com plano pago ativo ·
+**1,4 pagante por 100 signups**. Instrumento: `scripts/measure-trial-funnel.mjs`.
