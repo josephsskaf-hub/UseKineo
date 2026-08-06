@@ -52,6 +52,12 @@ import {
   validComposeGenerationId,
   verifyComposeClaim,
 } from '@/lib/composeClaim'
+import {
+  FREE_FAST_PREVIEW_LIMIT,
+  FREE_FAST_WINDOW_MS,
+  countFreeFastUsage,
+  countUndeliveredReservations,
+} from '@/lib/freeFastQuota'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: the hollywood
 // narration blocks are synthesized with ONE pinned voice, resolved from the
 // full voiceover_script — the SAME resolution the cinematic route ran for the
@@ -105,7 +111,9 @@ const DURATION_TOLERANCE_SECONDS = 3
 // need a bump — those invalidate themselves.
 const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
 
-const FREE_FAST_PREVIEW_LIMIT = 3
+// FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
+// Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron
+// send-credits-back lia os mesmos números de uma cópia separada.
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-REFUSAL-TELEMETRY-2026-07-30 — TORNAR VISÍVEL A RECUSA
@@ -163,7 +171,6 @@ async function logComposeRefusal(
     )
   }
 }
-const FREE_FAST_WINDOW_MS = 24 * 60 * 60 * 1000
 // feature/ai-avatar — 'avatar' = premium talking-head render (VEED Fabric).
 // Checkpoint 1: no credit cost wired yet (billing lands in checkpoint 2).
 // KINEO-HOLLYWOOD-2026-07-09 — 'cinematic_hollywood' added (per-scene engines,
@@ -796,7 +803,7 @@ export async function POST(req: NextRequest) {
       const [claimsResult, videosResult] = await Promise.all([
         composeAdmin
           .from('events')
-          .select('id,metadata')
+          .select('id,metadata,created_at')
           .eq('user_id', authenticatedUserId)
           .eq('name', COMPOSE_CLAIM_EVENT)
           .eq('path', COMPOSE_CLAIM_PATH)
@@ -822,37 +829,45 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const claimRows = Array.isArray(claimsResult.data)
-        ? claimsResult.data as Array<{ id?: unknown; metadata?: unknown }>
-        : []
-      const claimedRenderIds = new Set<string>()
-      for (const row of claimRows) {
-        const metadata = row.metadata && typeof row.metadata === 'object'
-          ? row.metadata as Record<string, unknown>
-          : {}
-        const renderId = typeof metadata.render_id === 'string' ? metadata.render_id.trim() : ''
-        if (renderId) claimedRenderIds.add(renderId)
-      }
+      // KINEO-DEAD-RESERVATION-2026-08-06 — a contagem saiu daqui e virou
+      // lib/freeFastQuota.ts, fonte única compartilhada com send-credits-back.
+      // A REGRA NÃO MUDOU: toda reserva na janela continua ocupando vaga, como
+      // antes. A tentativa de mudá-la (devolver a vaga de reserva que não virou
+      // vídeo) foi descartada na revisão adversarial — `videos` é escrito pelo
+      // CLIENTE no polling, então "sem linha em videos" não prova falha nossa,
+      // prova apenas que o cliente não avisou. Ver o cabeçalho daquele arquivo.
+      const claimRows = Array.isArray(claimsResult.data) ? claimsResult.data : []
+      const videoRows = Array.isArray(videosResult.data) ? videosResult.data : []
+      const usageByUser = countFreeFastUsage({
+        claims: claimRows,
+        videos: videoRows,
+        defaultUserId: authenticatedUserId,
+      })
+      const reservedOrCompleted = usageByUser.get(authenticatedUserId) ?? 0
 
-      // Preserve pre-PUSH19 Fast previews that have a videos row but no claim.
-      // New completed renders have both records and are counted once by render_id.
-      const unmatchedVideoIds = new Set<string>()
-      const videoRows = Array.isArray(videosResult.data)
-        ? videosResult.data as Array<{ id?: unknown; render_id?: unknown }>
-        : []
-      for (const row of videoRows) {
-        const renderId = typeof row.render_id === 'string' ? row.render_id.trim() : ''
-        if (renderId && claimedRenderIds.has(renderId)) continue
-        if (typeof row.id === 'string' && row.id) unmatchedVideoIds.add(row.id)
-      }
-
-      const reservedOrCompleted = claimRows.length + unmatchedVideoIds.size
       if (reservedOrCompleted > FREE_FAST_PREVIEW_LIMIT) {
+        // Calculado ANTES do release e fora do argumento de logComposeRefusal:
+        // como argumento ele seria avaliado fora do try/catch que protege a
+        // telemetria, e uma exceção aqui transformaria um 402 legítimo em 500.
+        const undeliveredReservations = countUndeliveredReservations({
+          claims: claimRows,
+          videos: videoRows,
+          now: Date.now(),
+          defaultUserId: authenticatedUserId,
+        }).get(authenticatedUserId) ?? 0
+
         await releaseGenerationClaim()
         // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
         await logComposeRefusal('free_fast_limit', authenticatedUserId, {
           used: reservedOrCompleted,
           limit: FREE_FAST_PREVIEW_LIMIT,
+          // INSTRUMENTO, não regra: quantas das vagas contadas acima são
+          // reservas sem linha em `videos` e já fora do período de graça. Mede
+          // quanto desta recusa é potencialmente indevida, para a próxima
+          // sprint cruzar com o status real do render no Creatomate. Campo
+          // NOVO — `reason` e `used` seguem significando o mesmo de sempre,
+          // porque instrumento novo não pode inflar métrica antiga.
+          undelivered_reservations: undeliveredReservations,
         })
         return NextResponse.json(
           {

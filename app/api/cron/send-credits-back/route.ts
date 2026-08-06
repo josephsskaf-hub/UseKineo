@@ -4,6 +4,12 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { COMPOSE_CLAIM_EVENT, COMPOSE_CLAIM_PATH } from '@/lib/composeClaim'
+import {
+  FREE_FAST_PREVIEW_LIMIT,
+  FREE_FAST_WINDOW_MS,
+  countFreeFastUsage,
+  countUndeliveredReservations,
+} from '@/lib/freeFastQuota'
 import { getViralNowTopics } from '@/lib/viralTopics'
 
 // send-credits-back — KINEO-DAILY-NUDGE-2026-08-04.
@@ -13,7 +19,7 @@ import { getViralNowTopics } from '@/lib/viralTopics'
 // Retenção D7 = 0,4%. Dos 205 usuários que geraram vídeo nos últimos 30 dias,
 // 200 geraram SÓ no dia do cadastro e nunca voltaram. O free tier NÃO é "3
 // vídeos e acabou": ele renova 3 Fast previews a cada 24h numa janela rolante
-// (app/api/compose/route.ts — FREE_FAST_PREVIEW_LIMIT = 3, FREE_FAST_WINDOW_MS
+// (lib/freeFastQuota.ts — FREE_FAST_PREVIEW_LIMIT = 3, FREE_FAST_WINDOW_MS
 // = 24h). Ninguém sabe disso. O produto tem um loop diário embutido e nunca
 // contou para o usuário.
 //
@@ -79,14 +85,11 @@ const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial', 'autopilot', 'autopilot_trial'])
 
-/**
- * A regra do free tier. NÃO reimplementar: estes dois valores e o algoritmo de
- * contagem abaixo são cópia fiel de reserveFreeFastPreviewSlot()
- * (app/api/compose/route.ts). Se um dia o compose mudar o limite, este job
- * passa a mentir — por isso o número aparece no corpo do e-mail vindo daqui.
- */
-const FREE_FAST_PREVIEW_LIMIT = 3
-const FREE_FAST_WINDOW_MS = 24 * 60 * 60 * 1000
+// A regra do free tier vinha daqui, numa "cópia fiel" do compose mantida à mão
+// — e o aviso de não reimplementar não impediu que fossem duas implementações.
+// Desde 06/08/2026 os dois valores e o algoritmo de contagem vêm de
+// lib/freeFastQuota.ts, então o compose e este e-mail não podem mais divergir.
+// O número continua aparecendo no corpo do e-mail interpolado da constante.
 
 /** Último vídeo tem de ter pelo menos isto de idade (não interromper sessão). */
 const MIN_IDLE_MS = 24 * 60 * 60 * 1000
@@ -292,16 +295,24 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2) Tem crédito free AGORA? ────────────────────────────────────────────
-  // Mesma fonte de verdade do compose: claims reservados em `events` +
-  // previews Fast de custo 0 em `videos`, deduplicados por render_id, na janela
-  // rolante de 24h. Quem chegou aqui não gera há 24h+, então na prática o
-  // consumo é 0 — mas um claim órfão de render que falhou ainda ocupa vaga, e
-  // prometer crédito inexistente é o pior erro possível deste e-mail.
+  // Mesma fonte de verdade do compose — agora literalmente a mesma função,
+  // lib/freeFastQuota.countFreeFastUsage, e não mais uma segunda cópia deste
+  // cálculo (KINEO-DEAD-RESERVATION-2026-08-06). Quem chegou aqui não gera há
+  // 24h+, então na prática o consumo é 0.
+  //
+  // Uma reserva que nunca virou vídeo CONTINUA ocupando vaga aqui, exatamente
+  // como antes — a correção disso não está neste commit. O que se sabe hoje é
+  // que 8 das 13 pessoas recusadas pelo teto tinham uma reserva nessa condição,
+  // mas 9 das 35 reservas assim tiveram download logo depois, ou seja, ausência
+  // de linha em `videos` não prova falha nossa: prova que o cliente não avisou.
+  // Enquanto a entrega não for registrada pelo servidor, devolver a vaga por
+  // ausência de sinal abriria a cota. `blocked_by_undelivered`, abaixo, mede o
+  // tamanho da coorte que a correção certa alcançaria.
   const windowStart = new Date(now - FREE_FAST_WINDOW_MS).toISOString()
   const [claimsResult, freeVideosResult] = await Promise.all([
     admin
       .from('events')
-      .select('user_id, metadata')
+      .select('user_id, metadata, created_at')
       .eq('name', COMPOSE_CLAIM_EVENT)
       .eq('path', COMPOSE_CLAIM_PATH)
       .eq('metadata->>quality', 'fast')
@@ -326,31 +337,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'free_quota_audit_failed' }, { status: 503 })
   }
 
-  const claimsPerUser = new Map<string, number>()
-  const claimedRenderIds = new Set<string>()
-  for (const row of (claimsResult.data ?? []) as Array<Record<string, unknown>>) {
-    const id = typeof row.user_id === 'string' ? row.user_id : ''
-    if (!id) continue
-    claimsPerUser.set(id, (claimsPerUser.get(id) ?? 0) + 1)
-    const metadata = row.metadata && typeof row.metadata === 'object' ? row.metadata as Record<string, unknown> : {}
-    const renderId = typeof metadata.render_id === 'string' ? metadata.render_id.trim() : ''
-    if (renderId) claimedRenderIds.add(renderId)
-  }
-
-  // Previews Fast anteriores ao PUSH19 têm linha em `videos` sem claim — contam
-  // uma vez, e só quando o render_id não foi contado acima.
-  const usedPerUser = new Map<string, number>(claimsPerUser)
-  for (const row of (freeVideosResult.data ?? []) as Array<Record<string, unknown>>) {
-    const id = typeof row.user_id === 'string' ? row.user_id : ''
-    if (!id) continue
-    const renderId = typeof row.render_id === 'string' ? row.render_id.trim() : ''
-    if (renderId && claimedRenderIds.has(renderId)) continue
-    usedPerUser.set(id, (usedPerUser.get(id) ?? 0) + 1)
-  }
+  const usedPerUser = countFreeFastUsage({
+    claims: claimsResult.data ?? [],
+    videos: freeVideosResult.data ?? [],
+    // Varredura global: reserva órfã de conta deletada (`user_id` NULL, porque
+    // events.user_id é ON DELETE SET NULL) é pulada, não fatal. Ver o docstring.
+    onUnknownUser: 'skip',
+  })
 
   const withCreditsIds = idleIds.filter((id) => (usedPerUser.get(id) ?? 0) < FREE_FAST_PREVIEW_LIMIT)
+
+  // INSTRUMENTO, não regra (KINEO-DEAD-RESERVATION-2026-08-06): quantas pessoas
+  // desta fila estão sendo consideradas sem crédito por causa de uma reserva
+  // que nunca virou vídeo. Não altera quem recebe o e-mail — mede o tamanho da
+  // coorte que uma correção server-side de entrega passaria a alcançar.
+  const undeliveredByUser = countUndeliveredReservations({
+    claims: claimsResult.data ?? [],
+    videos: freeVideosResult.data ?? [],
+    now,
+  })
+  const blockedByUndelivered = idleIds.filter(
+    (id) => (usedPerUser.get(id) ?? 0) >= FREE_FAST_PREVIEW_LIMIT && (undeliveredByUser.get(id) ?? 0) > 0,
+  ).length
   if (withCreditsIds.length === 0) {
-    return NextResponse.json({ sent: 0, eligible: 0, reason: 'nobody_with_free_credits' })
+    // O campo do instrumento vai TAMBÉM aqui: este é justamente o run em que
+    // todo mundo da fila está sem crédito, ou seja, a amostra mais informativa
+    // para saber quanto disso é reserva sem entrega.
+    return NextResponse.json({
+      sent: 0,
+      eligible: 0,
+      reason: 'nobody_with_free_credits',
+      blocked_by_undelivered: blockedByUndelivered,
+    })
   }
 
   // ── 3) Perfis: free, não opt-out, fora do cooldown deste e-mail ───────────
@@ -488,6 +506,10 @@ export async function GET(req: NextRequest) {
     capped_out: Math.max(0, eligible.length - batch.length),
     idle_window: idleIds.length,
     with_free_credits: withCreditsIds.length,
+    // KINEO-DEAD-RESERVATION-2026-08-06 — quantos desta fila tinham uma reserva
+    // morta escondendo a vaga. Campo novo; nenhum campo existente mudou de
+    // significado.
+    blocked_by_undelivered: blockedByUndelivered,
     skipped_plan_or_test: skippedPlanOrTest,
     suppressed_recent_lifecycle: suppression.suppressedCount,
     suppression_degraded: suppression.degraded,

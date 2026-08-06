@@ -223,8 +223,9 @@ export const ENGINE_FACTS: EngineFact[] = [
  * Plano gratuito
  * ------------------------------------------------------------------ */
 
-// fonte: app/api/compose/route.ts:108 (`FREE_FAST_PREVIEW_LIMIT = 3`, o limite
-// realmente aplicado no servidor) e :793 (a checagem da janela de 24h rolante);
+// fonte: lib/freeFastQuota.ts (`FREE_FAST_PREVIEW_LIMIT = 3` e
+// `countFreeFastUsage`, o limite realmente aplicado no servidor, consumido
+// tanto pelo compose quanto pelos crons de lifecycle);
 // lib/comparisons.ts:302 e app/pricing/page.tsx:13 (mesma redação ao usuário).
 // O limite é uma const local não exportada naquela rota, então o número está
 // escrito aqui — mas conferido contra a linha que faz o enforcement, não

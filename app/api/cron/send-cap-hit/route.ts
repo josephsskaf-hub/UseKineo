@@ -6,6 +6,7 @@ import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
+import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
 
 // send-cap-hit — Ordem 4 (docs/ORDENS-CONVERSAO-2026-08-02.md), 03/08/2026.
 //
@@ -37,8 +38,13 @@ const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial', 'autopilot', 'autopilot_trial'])
 
-/** The free wall this email is about (compose/route.ts FREE_FAST_PREVIEW_LIMIT). */
-const FREE_CAP = 3
+/**
+ * The free wall this email is about. Third copy of this number until
+ * 06/08/2026 — and the comment here still pointed at a constant that had been
+ * moved out of compose/route.ts, which is exactly how a hardcoded 3 survives a
+ * refactor. Single source: lib/freeFastQuota.ts.
+ */
+const FREE_CAP = FREE_FAST_PREVIEW_LIMIT
 
 // Tetos explícitos (padrão de send-blackout-winback). Um incidente de fornecedor
 // EMPURRA gente para o muro — reserva abandonada consome cota — então a coorte
