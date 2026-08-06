@@ -420,3 +420,12 @@ Resposta sem dinheiro: TODA sprint do fim de semana submete/atualiza 1 DIRETORIO
 antigo), Toolify, AI Tools Directory. Cada um com utm proprio (?utm_source=<diretorio>).
 Registrar submissao + data no ENGAGEMENT-LOG; medir pico de cada um na regra dos 7 dias.
 Prioridade continua: trial primeiro em engenharia; diretorio e a tarefa de aquisicao da vez.
+
+## 🐛 BUG PRIORITARIO — POST TO EARN NAO CONCEDE CREDITOS (07/08, medido)
+Sintoma: links entram no wall (posted_shorts=3) mas post_to_earn_claims=0 NA HISTORIA —
+nenhum credito jamais concedido, incluindo 2 pastes do fundador (Cicada 06/08 e A858 07/08
+via /wall). O mecanismo que prometemos publicamente ("paste the link, get 3 credits") esta
+quebrado em silencio = tela mentindo, a pior categoria.
+SPRINT: diagnosticar grantPostToEarn (lib/postToEarnGrant.ts) — por que nao dispara no fluxo
+do /wall (WallSubmitLink) e/ou do posted-shorts; consertar; conceder RETROATIVO aos elegiveis
+(respeitando caps); instrumentar post_to_earn_rejected para nunca mais falhar mudo.
