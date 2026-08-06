@@ -703,7 +703,12 @@ export default function PricingClient() {
 
             Monthly only — no annual toggle applies to this card.
             ══════════════════════════════════════════════════════════════ */}
-        <div className="mx-auto mt-14 max-w-5xl">
+        {/* KINEO-PAID-NOT-ENTITLED-2026-08-06 — âncora de aterrissagem. Quem
+            chega de /autopilot clicando "See what Autopilot adds" já sabe o que
+            quer; sem o id ele caía no topo, numa grade de 3 cards que de
+            propósito NÃO contém o Autopilot. Mesmo degrau de desistência que o
+            #paste do /wall resolveu ontem. */}
+        <div id="autopilot" className="mx-auto mt-14 max-w-5xl scroll-mt-24">
           <div className="mb-4 text-center">
             <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
               Or don&apos;t make videos at all

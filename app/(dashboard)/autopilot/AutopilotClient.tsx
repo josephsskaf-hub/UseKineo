@@ -26,6 +26,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+// KINEO-PAID-NOT-ENTITLED-2026-08-06 — o NOME do plano vem da fonte única
+// (`basic` é "Creator", `pro` é "Studio"). PREÇO, de propósito, NÃO vem: o
+// `priceLabel` de lib/pricing é fixo em USD e o cliente BR paga R$1.499
+// (lib/checkoutPricing.AUTOPILOT_PRICES). Escrever "$299" aqui seria mentir
+// para 2 das 3 moedas — quem mostra preço é /pricing, que resolve a moeda.
+import { PLANS } from '@/lib/pricing'
+import { AUTOPILOT_PILOT_PLAN } from '@/lib/autopilot/config'
 
 const CYAN = '#2997ff'
 const TEXT = '#F1F5F9'
@@ -320,6 +327,40 @@ const SKIP_REASON: Record<string, string> = {
   profile_lookup_failed: 'Temporary account lookup error.',
 }
 
+// ── Quem já paga não pode ouvir "isso é para quem paga" ─────────────────────
+// KINEO-PAID-NOT-ENTITLED-2026-08-06 — 13 pessoas chegaram ao estado
+// `not_entitled` e DUAS delas eram, naquele momento, 2 dos 3 assinantes ativos
+// da empresa (um Starter 12 min depois de pagar, e o assinante de Creator).
+// A tela dizia a ambos "Autopilot is part of the paid plans" — uma frase FALSA
+// para quem acabou de pagar, na única tela onde ele estava avaliando se valeu.
+// Os dois sumiram e nenhum dos dois voltou.
+//
+// Duas correções, e a segunda importa mais que a primeira:
+//   1. quem está num plano pago lê que Autopilot é um TIER separado (não "os
+//      planos pagos"), com o preço na cara para não haver surpresa no /pricing;
+//   2. a tela devolve o caminho para o produto que ele JÁ COMPROU. Antes, o
+//      único link daqui era o de gastar mais dinheiro; um assinante que veio
+//      olhar e disse "agora não" saía sem porta nenhuma de volta.
+//
+// `onPaidPlan` casa por PADRÃO NEGATIVO (tudo que não é free/vazio), nunca por
+// lista fechada de planos — lista fechada é exatamente o que apodrece quando o
+// próximo SKU nasce.
+function isOnPaidPlan(plan: string | null | undefined): boolean {
+  const raw = (plan ?? '').toString().trim().toLowerCase()
+  return raw !== '' && raw !== 'free'
+}
+
+// O nome que o CLIENTE reconhece, não o valor guardado: 'basic' é Creator e
+// 'pro' é Studio. Chamar de "Basic" quem comprou "Creator" seria a mesma
+// classe de erro que esta mudança corrige. Sem nome conhecido → frase que não
+// depende de nome (um `autopilot_pilot` expirado cai aqui, e ele PAGOU).
+function planDisplayName(plan: string | null | undefined): string | null {
+  const raw = (plan ?? '').toString().trim().toLowerCase().replace(/_trial$/, '')
+  if (!raw || raw === 'free') return null
+  const known = (PLANS as Record<string, { name?: string } | undefined>)[raw]
+  return known?.name ?? null
+}
+
 function RunStatusBadge({ status }: { status: string }) {
   const s = RUN_STATUS[status] ?? { label: status, bg: 'rgba(148,163,184,0.14)', color: MUTED }
   return (
@@ -500,8 +541,16 @@ export default function AutopilotClient() {
           : 'no_schedule'
   useEffect(() => {
     if (!stateName) return
-    track('autopilot_page_viewed', { state: stateName })
-  }, [stateName])
+    // KINEO-PAID-NOT-ENTITLED-2026-08-06 — `state` NÃO muda (a série histórica
+    // de `not_entitled` continua comparável). Os dois campos novos são o que
+    // faltava: descobrir que 2 dos 13 `not_entitled` eram assinantes ativos
+    // exigiu um JOIN manual contra profiles, e por isso o defeito viveu 6 dias.
+    track('autopilot_page_viewed', {
+      state: stateName,
+      plan: data?.plan ?? null,
+      on_paid_plan: isOnPaidPlan(data?.plan),
+    })
+  }, [stateName]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Desfecho do OAuth do YouTube ──────────────────────────────────────────
   // KINEO-YTCONNECT-2026-07-26 — lê o `?yt=` que /api/youtube/callback agora
@@ -759,8 +808,30 @@ export default function AutopilotClient() {
     </header>
   )
 
-  // ── ESTADO 1: sem plano ───────────────────────────────────────────────────
+  // ── ESTADO 1: sem direito ao Autopilot ────────────────────────────────────
+  // KINEO-PAID-NOT-ENTITLED-2026-08-06 — DUAS coortes, e elas precisam ouvir
+  // coisas diferentes. Ver a nota em isOnPaidPlan().
   if (!data.entitled) {
+    const rawPlan = (data.plan ?? '').toString().trim().toLowerCase()
+    // O piloto de $99 é compra ÚNICA com prazo: `plan` continua
+    // 'autopilot_pilot' para sempre e só `plan_expires_at` o mata
+    // (lib/autopilot/config.isAutopilotEntitled). Sem este branch ele leria
+    // "Autopilot is a separate plan from the one you have" — falso: o plano
+    // DELE era o Autopilot, e ele viu a máquina publicar por 7 dias. Este é o
+    // único usuário que já provou o produto, e é onde o upsell de $299 vive.
+    const pilotEnded = rawPlan === AUTOPILOT_PILOT_PLAN
+    // "Está tudo como você deixou" é uma afirmação sobre o ESTADO, e o estado
+    // vem no payload (a rota devolve channels/schedules antes de qualquer gate
+    // de direito). Um comprador do piloto que nunca conectou o canal leria uma
+    // frase falsa — a mesma classe de mentira-na-tela que esta mudança corrige.
+    const pilotHadSetup =
+      pilotEnded && data.schedules.length > 0 && data.channels.length > 0
+    const onPaidPlan = isOnPaidPlan(data.plan)
+    const currentPlanName = planDisplayName(data.plan)
+    // "Faça você mesmo" só é um convite se houver crédito para gastar. Sem
+    // saldo, /generate deixa o usuário escrever o prompt, queima OpenAI/Pexels
+    // e só recusa no fim (compose devolve 402) — pedir sem poder entregar.
+    const canGenerateNow = data.credits >= data.creditCostPerVideo
     return (
       <div className={WRAP}>
         {header}
@@ -770,26 +841,99 @@ export default function AutopilotClient() {
           style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 40px rgba(41,151,255,.08)' }}
         >
           <div className="font-black mb-2" style={{ fontSize: '1.15rem', color: TEXT }}>
-            Autopilot is part of the paid plans.
+            {pilotEnded
+              ? 'Your Autopilot pilot has ended.'
+              : onPaidPlan
+                ? currentPlanName
+                  ? `You're on ${currentPlanName}. Autopilot is a separate plan.`
+                  : 'Autopilot is a separate plan from the one you have.'
+                : 'Autopilot is part of the paid plans.'}
           </div>
           <p className="text-sm mb-5" style={{ color: MUTED, lineHeight: 1.65 }}>
-            Publishing to your channel on its own — every day, with no one watching — is the one
-            thing we only do for paying accounts. Upgrade and this page becomes a two-field form:
-            what your channel is about, and what time it posts.
+            {pilotEnded ? (
+              pilotHadSetup ? (
+                <>
+                  Nothing is being published to your channel right now. Everything you set up is
+                  still here — pick Autopilot back up and the daily Short starts again from the next
+                  slot, with the same channel and the same schedule.
+                </>
+              ) : (
+                <>
+                  Nothing is publishing to your channel right now, and there is no schedule set up
+                  yet. Autopilot takes two fields — what your channel is about and what time it
+                  posts — and it publishes a Short every day from there.
+                </>
+              )
+            ) : onPaidPlan ? (
+              <>
+                {currentPlanName ?? 'Your plan'} gives you credits to make videos yourself.
+                Autopilot is the one that runs the channel for you: it writes, makes and publishes
+                a Short to your YouTube every day, whether or not you open this tab. It is a
+                different plan rather than an add-on, so starting it means switching — you can
+                change or cancel your current plan in{' '}
+                <Link href="/account" style={{ color: CYAN, fontWeight: 700 }}>Account</Link>.
+              </>
+            ) : (
+              <>
+                Publishing to your channel on its own — every day, with no one watching — is the one
+                thing we only do for paying accounts. Upgrade and this page becomes a two-field form:
+                what your channel is about, and what time it posts.
+              </>
+            )}
           </p>
           <ul className="text-sm mb-6" style={{ color: MUTED, lineHeight: 1.9, listStyle: 'none', padding: 0, margin: 0 }}>
             <li>· A finished, voiced, captioned Short published daily</li>
             <li>· Topics pulled from what is trending in your niche today</li>
             <li>· Pause any time, in one click</li>
           </ul>
+          <div className="flex flex-wrap items-center gap-4">
           <Link
-            href="/pricing?src=autopilot"
-            onClick={() => track('autopilot_upgrade_clicked', { plan: data.plan })}
+            href={
+              pilotEnded
+                ? '/pricing?src=autopilot_pilot_ended#autopilot'
+                : onPaidPlan
+                  ? '/pricing?src=autopilot_paid#autopilot'
+                  : '/pricing?src=autopilot'
+            }
+            onClick={() =>
+              track('autopilot_upgrade_clicked', {
+                plan: data.plan,
+                on_paid_plan: onPaidPlan,
+                pilot_ended: pilotEnded,
+              })
+            }
             className="inline-block text-sm"
             style={{ ...primaryButton, textDecoration: 'none', display: 'inline-block' }}
           >
-            See plans and unlock Autopilot →
+            {pilotEnded
+              ? 'Keep Autopilot running →'
+              : onPaidPlan
+                ? 'See what Autopilot adds →'
+                : 'See plans and unlock Autopilot →'}
           </Link>
+          {/* A PORTA DE VOLTA. Um assinante que veio olhar o Autopilot e disse
+              "agora não" saía desta tela sem nenhum caminho para o produto que
+              ele JÁ pagou — o único link era o de gastar mais. Foi exatamente
+              o que aconteceu com o Starter de 01/08: pagou, veio aqui 12 min
+              depois, leu que aquilo era "para quem paga", e nunca gerou um
+              único vídeo. */}
+          {/* Só aparece quando LEVA a algum lugar novo. Sem saldo, este link
+              apontaria para /pricing — o mesmo destino do botão ao lado — e
+              dois links irmãos para a mesma página não são uma escolha, são
+              ruído. Quem está sem crédito já tem o CTA principal. */}
+          {onPaidPlan && canGenerateNow ? (
+            <Link
+              href="/generate"
+              onClick={() =>
+                track('autopilot_generate_clicked', { plan: data.plan, credits: data.credits })
+              }
+              className="text-sm"
+              style={{ color: CYAN, fontWeight: 800, textDecoration: 'none' }}
+            >
+              Or make one yourself now →
+            </Link>
+          ) : null}
+          </div>
         </div>
       </div>
     )
