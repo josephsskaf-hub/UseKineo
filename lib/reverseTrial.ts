@@ -43,8 +43,13 @@
 //     grant (registro por LINHA, não pela constante);
 //   · downgradeExpiredTrial() (fim do arquivo) revoga o não gasto e fecha o
 //     estado numa escrita atômica, chamado de /api/cron/trial-downgrade.
-// O que AINDA falta antes da flag: itens 3–9 da fase 2 (paywalls, e-mails,
-// troca do free tier, primeiro minuto pago, webhook, QA completo).
+// O que AINDA falta antes da flag (atualizado 07/08 — [KINEO-REVERSE-TRIAL-P2-
+// 2026-08-07]): e-mails D0–D10, anti-abuso fase 2 (fingerprint), troca atômica
+// do free tier + copy, compose ciente do trial (gate do fundador: marca d'água
+// e cota free), preço por moeda no UpgradeModal do /generate, QA completo.
+// JÁ FECHADOS além do grant e do cron: modal de downgrade + paywall contextual
+// (aaee4f6) e o webhook da Stripe carimbando trial_status='converted'
+// (markTrialConverted em app/api/stripe/webhook/route.ts).
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -565,8 +570,19 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
       const patch: Record<string, unknown> = { trial_credits_used: newUsed }
       if (shouldExpire) patch.trial_status = 'expired'
 
-      const query = db.from('profiles').update(patch).eq('id', userId)
-      // Última tentativa: grava sem a guarda otimista (ver docstring).
+      // KINEO-REVERSE-TRIAL-P2-2026-08-07 — `.eq('trial_status', 'active')` em
+      // TODAS as tentativas, inclusive a terceira sem guarda de contagem. Sem
+      // isto havia uma corrida real: o webhook da Stripe agora carimba
+      // 'converted' (markTrialConverted) e uma escrita daqui, lida ANTES do
+      // pagamento e gravada DEPOIS, sobrescreveria o estado terminal com
+      // 'expired' — exatamente o "converted sobrescrito" que a revisão
+      // adversarial procura. A guarda nunca trava: se o status mudou, a UPDATE
+      // faz 0 linhas, a releitura vê não-'active' e retorna. O que se perde é
+      // a contagem de UM débito de quem acabou de pagar — irrelevante, o cap
+      // só existe enquanto o trial está ativo.
+      const query = db.from('profiles').update(patch).eq('id', userId).eq('trial_status', 'active')
+      // Última tentativa: grava sem a guarda otimista de CONTAGEM (ver
+      // docstring); a guarda de STATUS fica sempre.
       const { data: updated, error: updateErr } = attempt < 3
         ? await query.eq('trial_credits_used', used).select('id')
         : await query.select('id')

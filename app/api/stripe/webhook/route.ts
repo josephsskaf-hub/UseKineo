@@ -21,6 +21,11 @@ import {
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
+// KINEO-REVERSE-TRIAL-P2-2026-08-07 — fase 2, item webhook: pagamento
+// bem-sucedido carimba trial_status='converted' na hora (markTrialConverted
+// abaixo). A flag e o evento seguem o padrão do resto do trial.
+import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
+import { writeServerEvent } from '@/lib/serverEvents'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -295,6 +300,62 @@ async function recordBulkPurchase(
   } catch (err) {
     // Telemetria nunca derruba uma concessão de crédito já confirmada.
     console.error('[stripe webhook] bulk_purchase_completed threw:', err)
+  }
+}
+
+// KINEO-REVERSE-TRIAL-P2-2026-08-07 — REVERSE TRIAL, FASE 2 (webhook):
+// pagamento bem-sucedido fecha o trial como 'converted' NA HORA, sem esperar a
+// próxima passada do cron de downgrade (que já faz o mesmo por isPayingProfile,
+// mas só de hora em hora — e o A/B 3d/7d conta conversão por esta coluna).
+//
+// Decisões que a revisão adversarial obrigou a escrever aqui:
+//
+// 1. SÓ 'active' e 'expired' viram 'converted' — NUNCA 'converted' (retry do
+//    Stripe acha 0 linhas e não duplica o evento: idempotente por construção) e
+//    NUNCA 'downgraded' (estado terminal escrito pelo cron; uma compra tardia é
+//    conversão dos e-mails D3+, não do trial — reabrir o estado corromperia o
+//    braço do A/B que já contou aquele trial como churn).
+// 2. BEST-EFFORT, nunca lança: roda DEPOIS do entitlement confirmado, e um
+//    carimbo de experimento não pode custar retry de webhook nem atrasar a
+//    resposta ao Stripe. Se falhar, o cron converte na rodada seguinte — a
+//    rede de segurança registrada em downgradeExpiredTrial.
+// 3. Atrás da flag, como todo o trial: com a flag OFF nenhum perfil tem
+//    trial_status para converter (o gate poupa o round-trip). Rollback (flag
+//    OFF com trials vivos) continua coberto: o cron decide SEM flag, de
+//    propósito — ver o cabeçalho de trialNeedsDowngrade.
+// 4. O evento 'trial_converted' só sai quando a UPDATE afetou uma linha — é o
+//    par do 'trial_expired'/'trial_downgraded': acontece UMA vez por trial.
+async function markTrialConverted(
+  supabase: AdminClient,
+  userId: string | null | undefined,
+  context: { source: string; stripeRef: string | null },
+): Promise<void> {
+  if (!REVERSE_TRIAL_ENABLED) return
+  if (!userId) return
+  try {
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update({ trial_status: 'converted' })
+      .eq('id', userId)
+      .in('trial_status', ['active', 'expired'])
+      .select('id')
+    if (error) {
+      console.error('[stripe webhook] trial_converted update failed:', error.message, userId)
+      return
+    }
+    if (!updated || updated.length === 0) return
+    console.log(`[stripe webhook] TRIAL CONVERTED user=${userId.slice(0, 8)} via=${context.source}`)
+    // AWAIT pelo mesmo motivo do grant e do trial_expired (lib/reverseTrial.ts):
+    // acontece uma vez por trial e é o dado que o A/B 3d vs 7d mede. Nunca lança
+    // (reporta false), então o await é seguro.
+    await writeServerEvent({
+      name: 'trial_converted',
+      userId,
+      path: '/api/stripe/webhook',
+      metadata: { source: context.source, stripe_ref: context.stripeRef },
+    })
+  } catch (err) {
+    console.error('[stripe webhook] trial_converted threw:', err)
   }
 }
 
@@ -615,6 +676,10 @@ export async function POST(req: NextRequest) {
               console.log(`[stripe webhook] bulk pack ${packMeta}: ${bulkPack.videos} videos → user ${userId}`)
             }
           }
+          // KINEO-REVERSE-TRIAL-P2-2026-08-07 — chegar aqui = crédito CONCEDIDO
+          // (o ramo de erro lança antes). Um pack/piloto comprado durante ou
+          // logo após o trial também é conversão.
+          await markTrialConverted(supabase, userId, { source: 'checkout_payment', stripeRef: session.id })
           await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
           break
         }
@@ -698,6 +763,11 @@ export async function POST(req: NextRequest) {
           entitlementConfirmed = true
           entitlementPending = false
           await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+          // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre a janela de crash entre
+          // o publish do fulfillment e o carimbo da primeira execução: o resume
+          // idempotente passa por aqui, e a UPDATE guardada faz 0 linhas quando
+          // já convertido.
+          await markTrialConverted(supabase, userId, { source: 'checkout_subscription_resumed', stripeRef: session.id })
           console.log('[stripe webhook] subscription Checkout already fulfilled:', session.id)
           break
         }
@@ -832,6 +902,12 @@ export async function POST(req: NextRequest) {
         entitlementConfirmed = true
         entitlementPending = false
         console.log(`[stripe webhook] ${isTrial ? 'TRIAL' : 'subscription'} start: ${tier} (${resumedGrant ? 'resumed idempotently' : `balance ${current}→${next}`}) → user ${userId}`)
+
+        // KINEO-REVERSE-TRIAL-P2-2026-08-07 — assinatura criada = conversão do
+        // reverse trial. Vale também para isTrial (sub em trial do Stripe): o
+        // plano vira `${tier}_trial`, que isPayingProfile já conta como pagante
+        // — o webhook e o cron dão o MESMO veredito sobre a mesma linha.
+        await markTrialConverted(supabase, userId, { source: 'checkout_subscription', stripeRef: session.id })
 
         break
       }
@@ -1005,6 +1081,11 @@ export async function POST(req: NextRequest) {
           console.log(`[stripe webhook] renewal: ${renewalTier} (${renewalCredits}, cin=${renewalCinematicTokens}) → user ${renewalUserId}`)
         }
 
+        // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre pagamento que só chega como
+        // invoice (ex.: primeira cobrança do dia 4 pós-trial do Stripe, ou sub
+        // criada fora do Checkout). Quase sempre 0 linhas (o Checkout já
+        // carimbou); idempotente e barato.
+        await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
         await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', attributionSystem: subscription.metadata?.affiliate_system })
 
         break
