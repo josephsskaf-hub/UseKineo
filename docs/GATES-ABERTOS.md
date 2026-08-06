@@ -1,3 +1,61 @@
+# 🔴 GATE — `scripts\56-PUSH.bat` — **10 COMMITS REPRESADOS** (06/08, sprint 19h)
+
+Substitui o **55**, o **54** e o **53** — todos obsoletos, **não clicar**.
+`origin/main` = `c3f3c46` (revalidado por `git ls-remote` no fim desta sprint).
+
+**O que continua fora do ar enquanto isto não subir** — e o primeiro item é o que importa:
+- 🚨 **`/api/render/[id]`**: a rota em produção devolve a **URL do MP4 de qualquer render
+  para qualquer usuário logado**. Corrigida em `d1133c7`, represada desde as 13h.
+- o cron de downgrade do trial (`89a235d`), o grant de 40 créditos, o interlinking das 3
+  páginas de receita, e o modal/paywall desta sprint (`aaee4f6`).
+
+Nada disto liga a flag. `KINEO_REVERSE_TRIAL_ENABLED` segue **OFF** e o push não muda nada
+para nenhum usuário hoje — exceto **fechar o vazamento de URL**.
+
+**Como destrava:** mandar qualquer mensagem na conversa durante uma sprint, ou rodar o `.bat`
+pelo Explorador (selecionar o arquivo na pasta e dar Return — a barra de endereço falha em
+silêncio). Permanente: abrir a tarefa `kineo-sprint-diario` → **Run now** → aprovar o cartão
+do Explorador de Arquivos **uma vez**.
+
+---
+
+# 🔴 GATE NOVO — O `compose` NÃO CONHECE O TRIAL (bloqueador do QA da flag)
+
+Achado da revisão adversarial desta sprint, e é o mais grave do dia.
+
+`isTrialActive()` é consultado em **UM arquivo só**: `app/api/generate-video-cinematic`.
+O **`app/api/compose/route.ts` — que decide MARCA D'ÁGUA, export limpo e a cota de
+3 Fast/24h — não sabe que o trial existe.**
+
+Consequência com a flag ON: quem entra no trial ganha o motor de AI, gera o vídeo… e recebe
+**marca d'água**, e ainda bate na cota free de 3 Fast por 24h. A promessa é "direitos de
+Creator exceto Studio"; o que o código entrega é "o motor, e só".
+
+**Não toquei** — mexer em marca d'água/compose é gate do fundador (guardrail explícito).
+**Isto precisa ser decidido antes do QA do trial**, senão o A/B mede um trial quebrado.
+
+---
+
+# 🟠 GATE — o `UpgradeModal` do `/generate` mostra preço USD FIXO
+
+As linhas de plano do modal usam `PLAN_LIST` de `lib/pricing.ts`, cujos `priceLabel` são
+literais (`$9.90`, `$24.90`, `$37.90`), USD-only. O defeito é **pré-existente**, mas a razão
+`trial_ended` criada nesta sprint **amplia o alcance dele**: a coorte que perde o trial inclui
+BR e IN por construção (a região `value` cobre BR desde 04/08). O `TrialDowngradeModal` novo
+faz certo (moeda de `/api/geo` + `lib/checkoutPricing`) — o contraste é a prova.
+Bloqueador do QA da flag.
+
+---
+
+# 🟠 ACHADO MENOR REGISTRADO (pré-existente, não introduzido)
+
+`app/api/credits/route.ts:36` — `void supabase.from('profiles').update({last_ip,last_country})`.
+Os builders do supabase-js v2 são **thenables preguiçosos**: só executam quando alguém chama
+`.then()`. `void` não chama. Esse UPDATE provavelmente **nunca disparou**, e a geo da página
+`/admin/users` deve estar vazia desde sempre. Correção de uma linha, fora do escopo desta sprint.
+
+---
+
 # 🟢 GATE #1 — `scripts\47-PUSH.bat` — **CLICADO ÀS ~19:28Z. FECHADO.**
 
 `origin/main` = `457a46f`. Subiu tudo o que estava parado desde ontem: estudo vivo, shortlist de

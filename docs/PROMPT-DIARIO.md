@@ -680,3 +680,58 @@ internas fora — 365 signups · 177 com ≥1 vídeo (48,5%) · 5 já compraram 
    reportei como órfã de prioridade 0.9 uma página apagada semanas atrás — lida de dentro do
    comentário que documentava a remoção dela. (E a Regra Zero pegou outras duas: `/compare/*`
    tem zero link interno DE PROPÓSITO, são redirects anti-conteúdo-duplicado.)
+
+
+---
+
+## APRENDIZADOS DA SPRINT 19h DE 06/08 — `KINEO-TRIAL-PAYWALL`
+
+1. **A GUARDA APLICADA EM UMA DAS DUAS TELAS É PIOR QUE NENHUMA GUARDA.** Pus
+   `creditsGranted > 0` no paywall do `/generate` e esqueci o modal — a superfície MAIS
+   ALTA das duas. Resultado: duas telas da mesma feature dando **veredictos opostos sobre a
+   MESMA linha do banco**. A pergunta que faltou não é "corrigi?", é **"quantas superfícies
+   leem esta regra?"**. Guarda de coorte mora no SERVIDOR, no ponto único, nunca em cada tela.
+
+2. **"ENDURECER" UMA GUARDA SEM CONFERIR O PAYLOAD REAL PRODUZ UM NO-OP COM CARA DE
+   CORREÇÃO.** Troquei `hasPaid === true` por `!== false` "para falhar fechado". A segunda
+   passada enumerou todos os returns da rota e mostrou que `hasPaid` sai como `false`
+   **literal** também no caminho degradado — a troca alterava **zero** respostas reais. O
+   campo que respondia era `entitlementsResolved`, e **o comentário da própria rota já
+   dizia isso**. Antes de endurecer uma guarda: enumerar os returns da fonte, um por um.
+
+3. **CONSERTAR UM VAZAMENTO DE CHAVE E RECRIÁ-LO UMA CHAVE AO LADO.** Namespaceei a chave de
+   dispensa por conta (`:userKey`) com a justificativa escrita no arquivo, e na linha
+   seguinte criei a chave de dedupe do evento **global por navegador** — mesmo cenário,
+   mesmo defeito. Quando uma correção estabelece um namespace, **as chaves irmãs entram no
+   mesmo commit**.
+
+4. **IMPRESSÃO E DESFECHO PRECISAM CONTAR A MESMA UNIDADE, OU A RAZÃO ENTRE ELES NÃO É TAXA
+   DE NADA.** Deduplicar a exibição por `sessionStorage` (N por pessoa) contra um desfecho
+   gravado em `localStorage` (1 por pessoa, para sempre) produz numerador e denominador com
+   cardinalidades diferentes. Não é "quase certo": é um número sem significado.
+
+5. **NÚMERO QUE VIAJA PARA O CLIENTE NÃO SAI ARREDONDADO DO SERVIDOR.** `trialUiState`
+   expõe `msLeft`, não `daysLeft`. Derivado com decimal apodrece na viagem; quem arredonda é
+   quem exibe, no momento de exibir.
+
+6. **O CAMPO QUE FALTA NA API É O BLOQUEIO REAL, E ELE SE DISFARÇA DE TAREFA DE UI.** As duas
+   telas desta sprint pareciam trabalho de front. O que impedia as duas de existir era uma
+   linha do backend: `trialEndsAt` só viajava quando o trial estava ATIVO, então o cliente
+   **não conseguia distinguir "nunca teve trial" de "o trial acabou"** — a única distinção
+   que importa para quem fala com essa coorte. Antes de desenhar a tela: perguntar se o
+   estado que ela precisa **existe do lado de cá**.
+
+7. **PROP DO SERVER COMPONENT > CAMPO NOVO NA API, quando o cliente precisa do dado ANTES do
+   fetch.** Eu tinha posto `userKey` em `/api/credits`; com isso a chave de dispensa só era
+   conhecida **na resposta**, e o short-circuit por localStorage ficava impossível — quem já
+   dispensou passaria a pagar uma chamada de 3 queries **por navegação, para sempre**. O
+   layout já é Server Component e já tinha o `user` em mãos. Uma prop resolveu custo,
+   colisão de chave e superfície de API de uma vez.
+
+8. **VERIFICAR A COPY CONTRA O CÓDIGO É MAIS BARATO DO QUE PARECE E PEGA MAIS QUE O `tsc`.**
+   As três frases derrubadas nesta sprint (`marca d'água`, `0 credits`, `unlimited renders`)
+   passariam em qualquer build. A que mais custou foi descoberta por um grep de uma linha:
+   **`isTrialActive` é consultado em UM arquivo só** — logo tudo que o `compose` decide
+   (marca d'água, export limpo, cota free) está fora do trial, e metade da promessa do
+   produto não existe. **Grepar o predicado de entitlement e listar quem o consulta deveria
+   ser o primeiro passo de qualquer feature de plano**, não o último.
