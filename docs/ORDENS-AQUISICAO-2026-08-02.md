@@ -412,3 +412,11 @@ SPRINTS: disparar os contatos Tier A (DMs X autorizados; e-mails que existirem e
 sao Send do fundador), negociar valor/data, fechar com deadline de entrega. TODO pagamento
 = gate do fundador na hora da entrega. Cada fechado ganha link de afiliado 40% + cupom
 proprio para medir. Registrar tudo no ENGAGEMENT-LOG.
+
+## ORDEM S — RAJADA DE DIRETORIOS GRATIS (07-09/08; fundador preocupado com queda de signups)
+Diagnostico: queda = decaimento normal do pico TAAFT (48→16→9→5/sem); chao organico ~15-20/dia.
+Resposta sem dinheiro: TODA sprint do fim de semana submete/atualiza 1 DIRETORIO GRATIS (meta
+2/dia): TopAI.tools (atualizar - ja deu 12), aixploria, Uneed, SaaSHub, AlternativeTo (gate
+antigo), Toolify, AI Tools Directory. Cada um com utm proprio (?utm_source=<diretorio>).
+Registrar submissao + data no ENGAGEMENT-LOG; medir pico de cada um na regra dos 7 dias.
+Prioridade continua: trial primeiro em engenharia; diretorio e a tarefa de aquisicao da vez.
