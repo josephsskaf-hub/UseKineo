@@ -398,3 +398,17 @@ EXECUTAR AGORA (budget ~$200 do fundador):
   — nao pagar para encher funil que ainda nao converteu. (Substitui o cronograma "domingo".)
 · fal.ai: auto-reload CONFIRMADO (saldo $41,97, top-up ON $20→+$40 cartao 8677, verificado
   06/08 15:15 BRT). PARAR de projetar apagao de saldo nos docs.
+
+## ✅ GO DO FUNDADOR — BLITZ TIER A (~$300-400 total; 06/08 noite)
+Compatibilidade com o gate de trafego pago: o que comeca AGORA e a parte GRATIS (outreach e
+negociacao, 1-2 semanas); o PAGAMENTO de cada shoutout so acontece na entrega do video —
+que coincide com o trial ligado pos-QA. Nao viola o gate.
+Alvos Tier A (criterio views/videos, lista em BLITZ-SHOUTOUTS-2026-08-06.md):
+- Conor Martin $100 — rascunho JA NO GMAIL do fundador (gate dele: apertar Send)
+- Sanji $50-100 — DM X (algoritmo empurrando ele agora; prioridade de velocidade)
+- Adam Del Duca $50 — contato via canal
+- Steffen Miro — via Typeform dele
+SPRINTS: disparar os contatos Tier A (DMs X autorizados; e-mails que existirem em rascunho
+sao Send do fundador), negociar valor/data, fechar com deadline de entrega. TODO pagamento
+= gate do fundador na hora da entrega. Cada fechado ganha link de afiliado 40% + cupom
+proprio para medir. Registrar tudo no ENGAGEMENT-LOG.
