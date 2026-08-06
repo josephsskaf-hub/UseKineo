@@ -651,3 +651,32 @@ fechado. Conferir `git log origin/main..HEAD` **e** o estado real do gate antes 
 **Baseline registrada nesta sprint (usar como fonte única do A/B do trial):** 30 dias, contas
 internas fora — 365 signups · 177 com ≥1 vídeo (48,5%) · 5 já compraram · 3 com plano pago ativo ·
 **1,4 pagante por 100 signups**. Instrumento: `scripts/measure-trial-funnel.mjs`.
+
+### 06/08 sprint 16h — 6 aprendizados (KINEO-TRIAL-DOWNGRADE + KINEO-ORPHAN-REVENUE)
+1. **Regra escrita em SQL numa query E em TypeScript num predicado é a mesma regra em dois
+   idiomas — e envelhece em um só.** Quando a decisão é de DINHEIRO, ler o conjunto amplo e
+   filtrar com a MESMA função é mais barato que a query esperta. Bônus técnico: o `or()` do
+   PostgREST com valor interpolado (timestamp ISO) **não estoura** no erro de parse — devolve
+   a coorte errada em silêncio, e coorte errada revoga crédito de gente.
+2. **Teto de LEITURA e teto de ESCRITA são dois números diferentes.** Juntá-los faz a
+   ordenação da página decidir QUEM é processado. Aqui isso colocava o lead mais quente do
+   funil (quem queimou os 40 créditos em 1 dia, cujo `trial_ends_at` está no FUTURO e portanto
+   ordena por último) na última posição da fila do e-mail de resgate.
+3. **Allowlist decide errado do lado caro quando a pergunta é "quem paga".** Denylist
+   invertida (qualquer plano ≠ free OU has_paid) falha FECHADO. Medido em produção: **3
+   perfis pagam com `plan='free'`** e **1 tem `plan='pro'` sem `has_paid`** — nenhum eixo
+   sozinho está certo, e as duas cópias de `PAID_PLANS` do repo já divergem entre si.
+4. **A política de "perder o compare-and-swap" não é global, é POR OPERAÇÃO.** O grant desiste
+   tarde (largar a guarda para não deixar usuário com trial e zero crédito); a revogação
+   desiste cedo (pular a linha para não destruir crédito comprado). A pergunta que escolhe o
+   lado é *qual dos dois erros é permanente?*
+5. **Página no sitemap sem link interno é uma classe de bug, e ela se CONCENTRA nas páginas de
+   VENDA** — ninguém linka naturalmente uma landing de produto a partir de um artigo. As 3
+   órfãs do site eram as 3 páginas de receita. Sitemap é convite, link interno é voto.
+   `scripts/audit-orphan-pages.mjs` roda em segundos e sai com exit 1 — vale em toda sprint
+   que crie página. **Exclusões que decidem o resultado: `sitemap.ts` e rotas `/api/**` não
+   contam como link interno.**
+6. **Parser que lê o próprio repositório precisa descartar COMENTÁRIOS antes de casar.** Quase
+   reportei como órfã de prioridade 0.9 uma página apagada semanas atrás — lida de dentro do
+   comentário que documentava a remoção dela. (E a Regra Zero pegou outras duas: `/compare/*`
+   tem zero link interno DE PROPÓSITO, são redirects anti-conteúdo-duplicado.)
