@@ -26,8 +26,40 @@ const linkStyle: React.CSSProperties = {
 const navGroups: { title: string; links: { href: string; label: string; costCalculator?: boolean }[] }[] = [
   {
     title: 'Product',
+    // ═══════════════════════════════════════════════════════════════════════
+    // KINEO-ORPHAN-REVENUE-2026-08-06 — AUDITORIA DE ÓRFÃS (sprint 16h).
+    //
+    // Cruzando as 38 entradas do sitemap com os links internos REAIS do
+    // repositório (sitemap e rotas /api não contam: nenhum dos dois passa
+    // autoridade), TRÊS páginas tinham ZERO link interno — e as três são
+    // páginas de RECEITA, o que é o oposto de coincidência:
+    //   · /make-money-clipping-with-ai (0.9) — 389 linhas, intenção de dinheiro,
+    //     e o destino das DMs de 03/08 para ~6.000 clippers do Whop;
+    //   · /ai-avatar (0.8) — o próprio comentário do arquivo se descreve como
+    //     "public sales landing for the AI Avatar add-on (revenue page)";
+    //   · /facts (0.7) — a página AEO feita para ChatGPT/Perplexity, cujo
+    //     comentário diz "Linked from /llms.txt and the sitemap", isto é, foi
+    //     desenhada SEM link em HTML. E o canal de answer engine é o de melhor
+    //     conversão já medido aqui (docs/growth 23/07: ChatGPT trouxe os DOIS
+    //     checkouts da semana; o Google trouxe uma sessão e zero).
+    //
+    // Estar no sitemap não é ser linkada: sitemap é um convite, link interno é
+    // um voto. Página que só recebe convite fica em "Discovered – currently not
+    // indexed", que é exatamente o número que o placar diário persegue. A
+    // correção é de uma linha por página e não publica NADA de novo — respeita
+    // a regra de não lançar página de SEO enquanto houver órfã não rastreada;
+    // ela ATACA essa regra pelo lado certo, que é irrigar o que já existe.
+    //
+    // Efeito medido (não estimado): 0 → 26 links internos para cada uma. 26 é o
+    // número de páginas públicas que renderizam este rodapé, não as 54 públicas
+    // do app — o Footer não está no layout raiz.
+    // ═══════════════════════════════════════════════════════════════════════
     links: [
       { href: '/viral-now', label: 'Trending Shorts ideas today' },
+      { href: '/ai-avatar', label: 'AI Avatar video — your face, any script' },
+      // `&` literal, NÃO `&amp;`: isto é uma string JS renderizada como
+      // {children}, não texto JSX — a entidade HTML sairia na tela como texto.
+      { href: '/facts', label: 'Kineo facts & numbers (citable)' },
       { href: '/free-ai-shorts-generator', label: 'Free AI Shorts generator' },
       { href: '/faceless-video-generator', label: 'Faceless video generator' },
       { href: '/youtube-shorts-from-topic', label: 'YouTube Shorts from a topic' },
@@ -97,6 +129,11 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
   {
     title: 'Shorts money & growth',
     links: [
+      // KINEO-ORPHAN-REVENUE-2026-08-06 — ver o bloco no topo do grupo 'Product'.
+      // Esta é a página de intenção de DINHEIRO (prioridade 0.9 no sitemap) e o
+      // destino das DMs enviadas em 03/08 para as 3 comunidades de clipping do
+      // Whop (~6.000 clippers). Ela estava no sitemap e em NENHUM link interno.
+      { href: '/make-money-clipping-with-ai', label: 'Make money clipping with AI' },
       { href: '/how-much-do-youtube-shorts-pay', label: 'How much do Shorts pay?' },
       { href: '/youtube-shorts-rpm-by-niche', label: 'Shorts RPM by niche (2026)' },
       { href: '/best-ai-shorts-generators', label: 'Best AI Shorts generators' },
