@@ -34,6 +34,16 @@ import ActiveRenderPill from '@/components/ActiveRenderPill'
 // pode mostrar (a elegibilidade nunca e decidida no cliente); a flag aqui so
 // evita gastar a pergunta quando a resposta e conhecida.
 import TrialDowngradeModal from '@/components/TrialDowngradeModal'
+// KINEO-TRIAL-ABUSE-PMP-2026-08-07 - O PRIMEIRO MINUTO PAGO. Tres SKUs do
+// checkout (topup, bulk e o piloto do Autopilot) redirecionam DIRETO para
+// /generate?success=true e /autopilot?success=true, e um grep por `success` em
+// todo o (dashboard) nao encontra nenhum leitor: o cartao era cobrado e o app
+// nao dizia nada. Este toast le o parametro, confirma o pagamento e repola
+// /api/credits por ~20s ate o saldo do webhook chegar, disparando
+// `creditsChanged` para o resto da UI se atualizar SEM refresh manual.
+// Montado no layout porque os destinos sao telas diferentes; sem `success` na
+// URL ele retorna no primeiro efeito (zero fetch, zero render).
+import PaymentConfirmedToast from '@/components/PaymentConfirmedToast'
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import type { Metadata } from 'next'
 
@@ -125,6 +135,7 @@ export default async function DashboardLayout({
       {user && <ReferralAutoTrigger />}
       {user && <AffiliateAutoTrigger />}
       {user && <ActiveRenderPill />}
+      {user && <PaymentConfirmedToast />}
       {/* `userKey` vem daqui, do SERVIDOR, e nao de /api/credits: a chave de
           dispensa precisa ser conhecida ANTES do fetch, senao quem ja dispensou
           o modal continua pagando uma chamada a /api/credits (3 queries) em toda

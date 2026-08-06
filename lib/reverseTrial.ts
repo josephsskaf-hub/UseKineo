@@ -53,6 +53,16 @@
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
+// KINEO-TRIAL-ABUSE-PMP-2026-08-07 — sinal de device/IP (fase 2 do anti-abuso).
+// Este módulo recebe SÓ o hash, nunca o IP: o cálculo mora na borda
+// (app/api/track-signup-source), ver o cabeçalho de lib/trialFingerprint.ts.
+import {
+  evaluateTrialFingerprint,
+  fingerprintLabel,
+  recordTrialFingerprint,
+  TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
+  TRIAL_FINGERPRINT_WINDOW_DAYS,
+} from '@/lib/trialFingerprint'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -85,6 +95,7 @@ export const TRIAL_VARIANT_DAYS: Record<TrialVariant, number> = { '3d': 3, '7d':
 // team.mailinator.net etc.); tokens com ponto casam o domínio exato ou
 // subdomínios. minitts.net e dysonc.com já apareceram na nossa base.
 const DISPOSABLE_EMAIL_TOKENS = [
+  // — originais da fase 1 —
   'mailinator',
   'guerrillamail',
   '10minutemail',
@@ -93,6 +104,57 @@ const DISPOSABLE_EMAIL_TOKENS = [
   'sharklasers',
   'minitts.net',
   'dysonc.com',
+  // — KINEO-TRIAL-ABUSE-PMP-2026-08-07: reforço da lista —
+  // Todo token SEM ponto foi conferido um a um contra a regra de SUBSTRING:
+  // nenhum deles é substring de um provedor real. Por isso 'getnada' e não
+  // 'nada' ('canada...'), 'throwawaymail' e não 'throwaway'.
+  'temp-mail',
+  'tempail',
+  'tempinbox',
+  'minuteinbox',
+  'disposablemail',
+  'dispostable',
+  'trashmail',
+  'throwawaymail',
+  'fakeinbox',
+  'emailfake',
+  'emailondeck',
+  'mailcatch',
+  'maildrop',
+  'mailnesia',
+  'mailsac',
+  // 'dropmail' era substring e casava 'raindropmail.com' / 'dropmailbox.com'
+  // (pegado na 2ª passada da revisão). Ancorado no domínio real do serviço.
+  'dropmail.me',
+  'inboxkitten',
+  'getnada',
+  'burnermail',
+  'harakirimail',
+  '1secmail',
+  'moakt',
+  'mohmal',
+  'discardmail',
+  'grr.la',
+  'spam4.me',
+  'pokemail.net',
+  'mail.tm',
+  'linshiyouxiang.net',
+  // fakenamegenerator: domínios fixos, casados por igualdade/subdomínio.
+  'armyspy.com',
+  'cuvox.de',
+  'einrot.com',
+  'superrito.com',
+  'teleworm.us',
+  'rhyta.com',
+  'jourrapide.com',
+  'gustr.com',
+  'dayrep.com',
+  'fleckens.hu',
+  // ⚠️ NÃO ENTRAM AQUI, e a ausência é deliberada: serviços de ALIAS/RELAY
+  // (privaterelay.appleid.com do Hide My Email, anonaddy, simplelogin,
+  // duck.com, firefox relay). São usados por clientes reais e pagantes; um
+  // deles nesta lista tira o trial de gente que compraria. A lista é de
+  // caixas DESCARTÁVEIS, não de caixas privadas.
 ] as const
 
 export function isDisposableEmail(email: string | null | undefined): boolean {
@@ -375,6 +437,13 @@ export async function maybeActivateReverseTrial(args: {
   userId: string
   email: string | null | undefined
   userCreatedAt: string | null | undefined
+  /**
+   * KINEO-TRIAL-ABUSE-PMP-2026-08-07 — hash de (IP + user-agent +
+   * accept-language), JÁ salgado, calculado na borda. Opcional: ausente
+   * (undefined/null) = sinal ausente = concede, exatamente como antes desta
+   * mudança. Nenhum IP entra nesta função — ver lib/trialFingerprint.ts.
+   */
+  fingerprintHash?: string | null
 }): Promise<{ activated: boolean; reason: string }> {
   if (!REVERSE_TRIAL_ENABLED) return { activated: false, reason: 'flag_off' }
   try {
@@ -405,6 +474,52 @@ export async function maybeActivateReverseTrial(args: {
     const plan = ((profile as { plan?: string | null }).plan ?? 'free').toLowerCase()
     if ((plan !== 'free' && plan !== '') || (profile as { has_paid?: boolean }).has_paid === true) {
       return { activated: false, reason: 'already_paid' }
+    }
+
+    // ── GUARDA 7 (KINEO-TRIAL-ABUSE-PMP-2026-08-07): DEVICE/IP ───────────────
+    // Última guarda antes da escrita, e é a ordem certa: ela custa uma query, e
+    // não faz sentido pagá-la por quem já foi recusado por motivo mais barato
+    // (perfil velho, e-mail descartável, trial já usado, conta paga).
+    //
+    // Falha ABERTO em todo ramo que não seja "limite comprovadamente
+    // ultrapassado" — sem salt, sem IP, tabela ausente, query com erro: concede.
+    // O evento é o que impede isso de virar um buraco silencioso.
+    const fingerprintHash = args.fingerprintHash ?? null
+    const verdict = await evaluateTrialFingerprint(db, fingerprintHash)
+    if (verdict.reason === 'check_failed') {
+      // Suspeito, não bloqueante: o sinal existia e não pôde ser lido.
+      await writeServerEvent({
+        name: 'trial_fingerprint_check_failed',
+        userId: args.userId,
+        metadata: { fingerprint: fingerprintLabel(fingerprintHash) },
+      })
+    }
+    if (!verdict.allow) {
+      // SILENCIOSO POR CONTRATO: o chamador (/api/track-signup-source) devolve
+      // o mesmo JSON de sempre e o signup segue normal. A conta é criada, só
+      // não ganha trial. Nenhuma copy acusatória chega ao usuário — se este
+      // bloqueio for um falso positivo, o pior que aconteceu foi ele não ter
+      // recebido um brinde que nunca lhe foi prometido.
+      console.warn(
+        `[reverse-trial] fingerprint limit user=${args.userId.slice(0, 8)} fp=${fingerprintLabel(fingerprintHash)} prior=${verdict.priorActivations}`,
+      )
+      await recordTrialFingerprint(db, {
+        hash: fingerprintHash,
+        userId: args.userId,
+        outcome: 'blocked',
+      })
+      await writeServerEvent({
+        name: 'trial_blocked_fingerprint',
+        userId: args.userId,
+        metadata: {
+          reason: verdict.reason,
+          fingerprint: fingerprintLabel(fingerprintHash),
+          prior_activations: verdict.priorActivations,
+          max_activations: TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
+          window_days: TRIAL_FINGERPRINT_WINDOW_DAYS,
+        },
+      })
+      return { activated: false, reason: 'fingerprint_limit' }
     }
 
     const variant = trialVariantFor(args.userId)
@@ -509,6 +624,17 @@ export async function maybeActivateReverseTrial(args: {
     }
 
     console.log(`[reverse-trial] ACTIVATED user=${args.userId.slice(0, 8)} variant=${variant} ends=${endsAt} +${TRIAL_GRANT_CREDITS}cr`)
+    // KINEO-TRIAL-ABUSE-PMP-2026-08-07 — o slot só é QUEIMADO depois que o
+    // trial existe de verdade. Gravar antes (na expectativa) faria toda
+    // ativação abortada — CAS perdido, instância congelada — deixar um slot
+    // consumido, e slot consumido é falso positivo para a PRÓXIMA pessoa
+    // daquele IP. Best-effort: perder este registro custa um sinal, nunca um
+    // crédito.
+    await recordTrialFingerprint(db, {
+      hash: fingerprintHash,
+      userId: args.userId,
+      outcome: 'activated',
+    })
     // Auditoria: é esta linha que responde "quanto crédito de trial a operação
     // concedeu vs. receita nova" no relatório diário, e é a referência que o cron
     // de downgrade (item 2) usa para revogar o saldo remanescente.

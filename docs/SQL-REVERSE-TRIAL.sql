@@ -45,3 +45,48 @@ create index if not exists idx_profiles_trial_pending_downgrade
 -- Estados de trial_status: null (nunca teve) → 'active' → 'expired' (teto
 -- atingido, escrito pelo débito) → 'downgraded' | 'converted' (terminais,
 -- escritos pelo cron). Só 'active' e 'expired' entram na coorte do cron.
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- FASE 2, ANTI-ABUSO — KINEO-TRIAL-ABUSE-PMP-2026-08-07
+-- Migração `trial_signup_fingerprints` (projeto cqqukkvjjrguayiyjvhh).
+-- SOMENTE ADITIVA: cria uma tabela NOVA. Nenhuma coluna, índice, policy ou
+-- linha existente é tocada — desligar a feature é remover a env do salt.
+--
+-- O QUE ESTA TABELA GUARDA — e o que ela deliberadamente NÃO guarda:
+--   fingerprint_hash  SHA-256 de (SALT | ip | user-agent | accept-language).
+--                     O IP CRU NUNCA É GRAVADO, aqui nem em log. O salt vem de
+--                     KINEO_TRIAL_FINGERPRINT_SALT (env, server-only); sem ele
+--                     lib/trialFingerprint.ts devolve null e NADA é inserido.
+--                     Trocar o salt invalida a base inteira de propósito.
+--   user_id           quem foi avaliado. ON DELETE SET NULL: apagar a conta
+--                     (LGPD/GDPR) não pode ser bloqueado por esta tabela, e o
+--                     hash sobrevive como contador anônimo.
+--   outcome           'activated' (trial concedido — é ESTE que conta para o
+--                     limite) | 'blocked' (bateu no limite, conta criada sem
+--                     trial e SEM aviso ao usuário).
+--
+-- REGRA: no máximo TRIAL_FINGERPRINT_MAX_ACTIVATIONS (2) linhas 'activated'
+-- por hash em TRIAL_FINGERPRINT_WINDOW_DAYS (30). Acima disso, o signup segue
+-- normal porém sem trial. Qualquer erro de leitura CONCEDE o trial e grava o
+-- evento trial_fingerprint_check_failed — falha aberto por ordem do fundador
+-- ("é melhor errar concedendo do que barrar cliente real").
+--
+-- RLS ligada SEM POLICY = ninguém lê pelo anon/authenticated key; só o
+-- service-role (a rota de signup e o painel /admin/trial-abuse) enxerga.
+
+create table if not exists public.trial_signup_fingerprints (
+  id uuid primary key default gen_random_uuid(),
+  fingerprint_hash text not null,
+  user_id uuid references auth.users(id) on delete set null,
+  outcome text not null default 'activated',
+  created_at timestamptz not null default now()
+);
+
+-- A ÚNICA query quente: count por hash + outcome dentro da janela.
+create index if not exists idx_trial_fp_hash_created
+  on public.trial_signup_fingerprints (fingerprint_hash, created_at desc);
+-- Painel: bloqueios recentes em ordem cronológica.
+create index if not exists idx_trial_fp_outcome_created
+  on public.trial_signup_fingerprints (outcome, created_at desc);
+
+alter table public.trial_signup_fingerprints enable row level security;

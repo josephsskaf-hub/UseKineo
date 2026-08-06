@@ -22,6 +22,15 @@ export default function CheckoutSuccessPage() {
   const router = useRouter()
   const [countdown, setCountdown] = useState(15)
   const [topics, setTopics] = useState<ViralTopic[]>([])
+  // KINEO-TRIAL-ABUSE-PMP-2026-08-07 - PRIMEIRO MINUTO PAGO. Esta tela dizia
+  // "Your plan is being activated" e, logo abaixo, "If your credits do not
+  // appear immediately, refresh in a few seconds" - duas frases que sao a
+  // confissao de um limbo: a pagina NUNCA perguntava ao servidor se o webhook
+  // ja tinha creditado, entao delegava ao comprador a tarefa de apertar F5 no
+  // minuto mais caro da relacao com ele. Agora ela pergunta: /api/credits em
+  // ~20s de poll, e a copy passa a afirmar o que foi LIDO.
+  const [credits, setCredits] = useState<number | null>(null)
+  const [syncing, setSyncing] = useState(true)
 
   useEffect(() => {
     // Computed after mount so the time-seeded shuffle can never cause a
@@ -85,6 +94,34 @@ export default function CheckoutSuccessPage() {
       }
     } catch {
       // silent — never break the page
+    }
+  }, [])
+
+  // Poll do saldo. Agressivo no comeco (o caso comum e o webhook ja ter
+  // rodado antes do redirect) e ralo depois; ~20s no total. Nunca afirma um
+  // DELTA ("+120 creditos"): o baseline pre-compra nao existe neste cliente,
+  // entao a unica frase honesta e o saldo ATUAL, que sobe sozinho se o
+  // webhook chegar atrasado. Falha em silencio - o CTA manual continua ali.
+  useEffect(() => {
+    let cancelled = false
+    const delays = [0, 2_000, 5_000, 10_000, 20_000]
+    const timers = delays.map((delay, i) =>
+      setTimeout(async () => {
+        try {
+          const res = await fetch('/api/credits', { cache: 'no-store' })
+          if (!res.ok || cancelled) return
+          const data = (await res.json()) as { credits?: unknown }
+          if (!cancelled && typeof data.credits === 'number') setCredits(data.credits)
+        } catch {
+          /* rede instavel - a proxima tentativa cobre */
+        } finally {
+          if (i === delays.length - 1 && !cancelled) setSyncing(false)
+        }
+      }, delay),
+    )
+    return () => {
+      cancelled = true
+      timers.forEach(clearTimeout)
     }
   }, [])
 
@@ -159,17 +196,22 @@ export default function CheckoutSuccessPage() {
             lineHeight: 1.55,
           }}
         >
-          Your plan is being activated.
+          {credits === null ? 'Your plan is being activated.' : 'Your plan is active.'}
         </p>
         <p
           style={{
             marginTop: 8,
             fontSize: '0.85rem',
-            color: 'var(--muted)',
+            color: credits === null ? 'var(--muted)' : '#34d399',
+            fontWeight: credits === null ? 400 : 700,
             lineHeight: 1.55,
           }}
         >
-          If your credits do not appear immediately, refresh in a few seconds.
+          {credits !== null
+            ? `${credits.toLocaleString('en-US')} credits available${syncing ? ' · syncing' : ''}`
+            : syncing
+              ? 'Checking your balance…'
+              : 'If your credits do not appear immediately, refresh in a few seconds.'}
         </p>
         <p
           style={{
