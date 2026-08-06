@@ -9,6 +9,10 @@ import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -392,7 +396,7 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   const n = NICHES[params.niche]
   if (!n) return {}
   const title = `${n.h1} — Kineo`
-  const description = `${n.intro} Create up to 3 watermarked Fast videos every 24h with no card. Starter is $4.90 for the first month.`
+  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is $4.90 for the first month.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
@@ -431,7 +435,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
             {n.intro}
           </p>
           <p style={{ fontSize: '0.85rem', color: '#86868b', margin: '10px 0 0' }}>
-            Script • Voiceover • Captions • Footage • Ready in a few minutes · <b style={{ color: '#2997ff' }}>up to 3 watermarked Fast videos / 24h</b>, no card
+            Script • Voiceover • Captions • Footage • Ready in a few minutes · <b style={{ color: '#2997ff' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>
           <OrganicCtaLink
             href={signupUrlForIdea(primaryIdea)}
@@ -479,7 +483,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
         {/* Final CTA */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Make a {n.label} Fast video free</h2>
-          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>Up to 3 watermarked Fast videos every 24h. No card. Starter is $4.90 for the first month when you want clean exports.</p>
+          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is $4.90 for the first month when you want clean exports.</p>
           <OrganicCtaLink
             href={signupUrlForIdea(primaryIdea)}
             source={campaign}

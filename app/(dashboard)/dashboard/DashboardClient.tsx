@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 // Push #317 — YouTube analytics types
 interface ChannelStats {
@@ -644,7 +645,7 @@ export default function DashboardClient({
             🔑 Create your account to start
           </p>
           <p className="text-sm mb-4" style={{ color: '#86868b' }}>
-            Create up to 3 watermarked Fast videos every 24 hours — no card.
+            <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — no card." onKey="headline" />
           </p>
         </div>
       )}

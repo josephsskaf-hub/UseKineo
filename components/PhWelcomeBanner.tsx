@@ -10,6 +10,7 @@
 // sem flag, sem manutenção.
 import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 export default function PhWelcomeBanner() {
   const [show, setShow] = useState(false)
@@ -39,7 +40,7 @@ export default function PhWelcomeBanner() {
         color: '#f5f5f7',
       }}
     >
-      Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks.{' '}
+      <FreeTierCopy legacy="Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks." on="Welcome, Product Hunters — your Creator trial starts now: 40 free credits. No card, no tricks." />{' '}
       <a
         href="/signup?utm_source=producthunt&intent_campaign=ph_launch_banner"
         onClick={() => { void trackEvent('ph_welcome_banner_clicked') }}

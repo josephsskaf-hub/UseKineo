@@ -39,6 +39,8 @@ import {
   type CheckoutTier as PaidTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -48,7 +50,9 @@ const PAYPAL_ENABLED = false
 
 // Push #099 — FAQ entries shown below the pricing comparison table. Pure
 // content array so the accordion renders from one source of truth.
-const FAQS: { q: string; a: string }[] = [
+// [KINEO-TRIAL-SWAP-2026-08-07] — virou função da oferta: a resposta sobre o
+// free tier troca junto com a flag (OFF = literais antigos byte a byte).
+const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
   {
     // KINEO-FAQ-NOCARD-2026-07-13 — a resposta antiga ("Yes, a card is
     // required... charged immediately") CONTRADIZIA a oferta de previews sem
@@ -58,7 +62,7 @@ const FAQS: { q: string; a: string }[] = [
     // mention: the pack has no public CTA anymore (single-offer cleanup),
     // so naming it here would advertise a product the page doesn't sell.
     q: 'Do I need a credit card to start?',
-    a: 'No. A new free account can create, watch, download and share up to 3 Fast videos with a watermark every 24 hours, with no card. Free access grants no credits and no premium AI Generated videos. Subscribe only when you want a clean, watermark-free MP4. Your first-month and renewal prices are shown in your local checkout currency above.',
+    a: `No. ${ft(OFFER, 'A new free account can create, watch, download and share up to 3 Fast videos with a watermark every 24 hours, with no card. Free access grants no credits and no premium AI Generated videos.', OFFER.copy.sentence + ' The residual free plan grants no credits and no premium AI Generated videos.')} Subscribe only when you want a clean, watermark-free MP4. Your first-month and renewal prices are shown in your local checkout currency above.`,
   },
   {
     q: 'How fast are videos generated?',
@@ -172,6 +176,9 @@ function trackPricingEvent(name: string): void {
 }
 
 export default function PricingClient() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
+  const FAQS = buildFaqs(OFFER)
 
   // Push #099 — open FAQ index for the accordion (null = all collapsed). First
   // question is open by default so the section reads as scannable, not empty.
@@ -519,7 +526,7 @@ export default function PricingClient() {
           style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
         >
           <p className="text-[12.5px] font-semibold text-[#86868b]">
-            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">Create up to 3 Fast videos free every 24h</Link> — no card; download and share with a watermark.
+            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', ' — no card; new accounts get a 40-credit Creator trial.')}
           </p>
           <CostCalculatorLink
             placement="pricing_pre_cards"
@@ -914,7 +921,7 @@ export default function PricingClient() {
             {
               icon: '🆓',
               title: 'Try before you pay',
-              body: 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card. Free access grants no credits or premium AI Generated videos.',
+              body: ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card. Free access grants no credits or premium AI Generated videos.', OFFER.copy.planCardBody),
             },
             {
               icon: '📲',
@@ -990,7 +997,7 @@ export default function PricingClient() {
                   // unlock for ANY paid plan (balance permitting).
                   {
                     label: 'Fast mode (smart stock)',
-                    free: 'Up to 3 / 24h · watermark',
+                    free: ft(OFFER, 'Up to 3 / 24h · watermark', '1/mo · watermark'),
                     starter: '✅ 1 cr',
                     basic: '✅ 1 cr',
                     pro: '✅ 1 cr',
@@ -1072,7 +1079,7 @@ export default function PricingClient() {
           </div>
 
           <p className="mt-4 text-center text-[12px] text-[#86868b]">
-            Free access lets you create, watch, download and share up to 3 watermarked Fast videos per 24h; it includes no credits or premium AI Generated videos. Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.
+            {ft(OFFER, 'Free access lets you create, watch, download and share up to 3 watermarked Fast videos per 24h; it includes no credits or premium AI Generated videos.', OFFER.copy.planCardBody)} Every paid plan unlocks clean, watermark-free MP4s and can access every engine when its balance covers the full credit cost.
           </p>
         </div>
 

@@ -13,6 +13,10 @@ import HomeTopicForm from './HomeTopicForm'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 type Props = {
   initialUser?: { id: string } | null
@@ -531,7 +535,7 @@ export default function KineoLanding({ initialUser }: Props) {
                   na mesma frase, e o link é a única coisa clicável ali. */}
               {!isSignedIn && (
                 <>
-                  ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ 3 free videos every 24h&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime
+                  ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime
                   <br />
                 </>
               )}
@@ -673,7 +677,7 @@ export default function KineoLanding({ initialUser }: Props) {
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><h2>Simple pricing. Try Fast free first.</h2><p>Create, download and share up to 3 watermarked Fast videos every 24h, no card. Paid plans unlock clean MP4s.</p></div>
+          <div className="sec-h"><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
                 signup with the complete checkout destination encoded, which
@@ -714,7 +718,7 @@ export default function KineoLanding({ initialUser }: Props) {
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote">Try it first: <b>create, watch, download and share up to 3 Fast videos every 24h</b> — no card, watermark included.</div>
+          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 40 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
             🔒 Secure checkout powered by Stripe&nbsp;&nbsp;·&nbsp;&nbsp;Cancel in one click&nbsp;&nbsp;·&nbsp;&nbsp;Credits refunded automatically if a render fails
@@ -734,7 +738,7 @@ export default function KineoLanding({ initialUser }: Props) {
           <div className="faq">
             <div className="qa"><h3>Is the video really mine to post?</h3><p>Yes. Never-paid free users can download, share and post the watermarked MP4. Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
             <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. Free downloads carry a watermark; paid plans unlock the clean MP4.</p></div>
-            <div className="qa"><h3>Is there a watermark?</h3><p>Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them. Paid plans export clean, watermark-free MP4s.</p></div>
+            <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get a Creator trial with clean exports; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.</p></div>
             <div className="qa"><h3>Can I use my own script?</h3><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></div>
             <div className="qa"><h3>What if a generation fails?</h3><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></div>
             {/* KINEO-SPRINT-OFFER-2026-07-14 — "credits never expire" was the
@@ -755,7 +759,7 @@ export default function KineoLanding({ initialUser }: Props) {
             <div className="glow" />
             <div style={{ position: 'relative', zIndex: 1 }}>
               <h2 className="gtxt">Type a topic. Get a finished Short.</h2>
-              <p>Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.</p>
+              <p>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
               <div className="fcta"><Link className="btn btn-w" href="#try-kineo">Choose my topic — free</Link></div>
             </div>
           </div>

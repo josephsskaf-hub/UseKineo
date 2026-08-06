@@ -22,6 +22,10 @@ import {
   otherTool,
   pairsForTool,
 } from '@/lib/comparisons'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -322,7 +326,7 @@ export default function ComparisonsHubPage() {
         <p style={p}>
           If you got here because you have no footage and no script, that is the situation Kineo was built for. Type a
           topic and it returns a finished faceless 9:16 Short — script, AI voiceover, footage matched line by line,
-          captions. Three watermarked videos every 24 hours, no card.
+          captions. {ft(OFFER, 'Three watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
         </p>
         <TopicGeneratorForm
           campaign={CAMPAIGN}
@@ -347,7 +351,7 @@ export default function ComparisonsHubPage() {
         >
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Stop comparing. Make one and look at it.</div>
           <p style={{ color: MUTED, margin: '8px 0 18px' }}>
-            Up to 3 watermarked Fast videos every 24 hours — no card.
+            {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href={`/signup?create_intent=fast&intent_campaign=${CAMPAIGN}`}

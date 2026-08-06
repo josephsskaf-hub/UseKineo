@@ -7,6 +7,10 @@
 
 import type { Metadata } from 'next'
 import CopyButton from '@/components/CopyButton'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const metadata: Metadata = {
   title: 'Free Shorts Idea of the Day Widget — Embed on Your Site | Kineo',
@@ -203,8 +207,7 @@ export default function WidgetPage() {
             Kineo
           </a>{' '}
           turns any of these ideas into a finished faceless Short — script,
-          voiceover, visuals and captions — in about 3–7 minutes. Up to 3 free
-          watermarked videos every 24 hours, no credit card.
+          voiceover, visuals and captions — in about 3–7 minutes. {ft(OFFER, 'Up to 3 free watermarked videos every 24 hours, no credit card.', OFFER.copy.headline)}
         </p>
       </div>
     </main>

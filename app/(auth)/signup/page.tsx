@@ -10,6 +10,8 @@ import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/ana
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -90,6 +92,8 @@ function scorePassword(pw: string): Strength {
 }
 
 export default function SignupPage() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const supabase = createClient()
 
   const [email, setEmail] = useState('')
@@ -421,14 +425,14 @@ export default function SignupPage() {
                     boxShadow: '0 0 6px rgba(41,151,255,.6)',
                   }}
                 />
-                🎁 Up to 3 watermarked Fast videos / 24h · No card
+                🎁 {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card
               </div>
 
               <ul className="flex flex-col gap-4">
                 {[
                   'AI writes the script for you',
                   'Stock footage + voiceover included',
-                  'Create, download & share 3 watermarked Fast videos / 24h',
+                  ft(OFFER, 'Create, download & share 3 watermarked Fast videos / 24h', 'Full Creator trial: 40 credits, every engine except Studio'),
                 ].map((line) => (
                   <li
                     key={line}
@@ -545,7 +549,7 @@ export default function SignupPage() {
                 <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
                   {isCheckoutResume
                     ? 'Your selected plan and intro price are saved. Continue securely below.'
-                    : 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.'}
+                    : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
 
                 {/* KINEO-CHECKOUT-RESUME-2026-07-07 — OAuth signups also resume

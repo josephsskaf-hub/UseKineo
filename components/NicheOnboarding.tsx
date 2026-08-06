@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 // PUSH #96 — `viral_onboarding_viewed` reported 389 events across only 40
 // distinct sessions (~9.7 impressions per session) while
@@ -153,7 +154,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           Start with one ready-to-make idea.
         </h1>
         <p style={{ margin: '0 0 20px', color: '#a1a1a6', fontSize: '0.94rem', lineHeight: 1.55 }}>
-          Kineo builds the script, voiceover, footage and captions. Free access includes up to 3 watermarked Fast videos every 24 hours, with no card.
+          Kineo builds the script, voiceover, footage and captions. <FreeTierCopy legacy="Free access includes up to 3 watermarked Fast videos every 24 hours, with no card." onKey="sentence" />
         </p>
 
         <div style={{ marginBottom: 18, padding: '17px 18px', borderRadius: 16, border: '1px solid rgba(41,151,255,0.35)', background: 'rgba(41,151,255,0.08)' }}>

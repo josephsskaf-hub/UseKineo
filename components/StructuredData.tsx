@@ -1,3 +1,8 @@
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
+
 // StructuredData — schema.org JSON-LD for Google rich results / AI search.
 // Server-safe (no hooks, no client APIs): renders <script type="application/ld+json"> tags.
 //
@@ -116,7 +121,7 @@ const faqSchema = {
       name: 'Is there a watermark?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them. Paid plans export clean, watermark-free MP4s.',
+        text: `${ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get a Creator trial with clean exports; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.`,
       },
     },
     {

@@ -3,17 +3,21 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { NICHE_SLUGS } from './[niche]/page'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
 export const metadata: Metadata = {
   title: 'Free AI Shorts Generator by Niche — 28 Faceless Formats | Kineo',
   description:
-    'Pick a niche and turn one idea into a complete faceless Short with script, voice, footage and captions. Create up to 3 watermarked Fast videos every 24h, no card.',
+    `Pick a niche and turn one idea into a complete faceless Short with script, voice, footage and captions. ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/free-ai-shorts' },
   openGraph: {
     title: 'Free AI Shorts Generator by Niche | Kineo',
-    description: '14 faceless Shorts formats with ready-to-use ideas. Up to 3 watermarked Fast videos every 24h, no card.',
+    description: `14 faceless Shorts formats with ready-to-use ideas. ${ft(OFFER, 'Up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
     url: 'https://www.usekineo.com/free-ai-shorts',
     type: 'website',
   },
@@ -58,7 +62,7 @@ const NICHE_CARDS: Record<string, { label: string; title: string; example: strin
 const FAQ = [
   {
     q: 'Can I create an AI Short for free?',
-    a: 'Yes. A new Kineo account can create, watch, download and share up to 3 watermarked Fast videos every 24 hours without a credit card. Paid plans unlock clean exports and premium AI engines.',
+    a: `Yes. ${ft(OFFER, 'A new Kineo account can create, watch, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.`,
   },
   {
     q: 'Which faceless niche should I start with?',
@@ -108,7 +112,7 @@ export default function FreeAiShortsHubPage() {
             Make a Fast video free →
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            Up to 3 watermarked Fast videos / 24h · no card · Starter $4.90 first month
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter $4.90 first month
           </p>
         </section>
 

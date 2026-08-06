@@ -6,6 +6,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'push66_faceless_video_generator'
@@ -30,7 +34,7 @@ const FAQ = [
   },
   {
     q: 'Can I test the faceless video generator for free?',
-    a: 'Yes. New accounts can create, watch, download, and share up to three watermarked Fast videos every 24 hours without a credit card.',
+    a: `Yes. ${ft(OFFER, 'New accounts can create, watch, download, and share up to three watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)}`,
   },
   {
     q: 'How do I remove the Kineo watermark?',
@@ -104,7 +108,7 @@ export default function FacelessVideoGeneratorPage() {
       '@type': 'Offer',
       price: '0',
       priceCurrency: 'USD',
-      description: 'Up to three watermarked Fast videos every 24 hours without a credit card.',
+      description: ft(OFFER, 'Up to three watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence),
     },
     featureList: [
       'Topic-to-video generation',
@@ -231,7 +235,7 @@ export default function FacelessVideoGeneratorPage() {
 
         <h2 style={h2}>Transparent free and paid output</h2>
         <p style={p}>
-          New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card. Starter costs $4.90 for the first month, then $9.90 per month, and unlocks clean MP4 exports. Cancel anytime.
+          {ft(OFFER, 'New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card.', OFFER.copy.sentence)} Starter costs $4.90 for the first month, then $9.90 per month, and unlocks clean MP4 exports. Cancel anytime.
         </p>
         <p style={p}>
           Compare related workflows: <Link href="/free-ai-shorts-generator" style={{ color: '#2997ff' }}>free AI Shorts generator</Link>, <Link href="/text-to-video-shorts" style={{ color: '#2997ff' }}>text-to-video Shorts</Link>, and <Link href="/alternatives" style={{ color: '#2997ff' }}>Kineo alternatives and comparisons</Link>.

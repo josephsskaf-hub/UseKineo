@@ -16,6 +16,10 @@ import CostCalculatorLink from '@/components/CostCalculatorLink'
 // PROVA-SOCIAL-REAL-2026-07-02 — client badge with real DB counts; self-hides
 // when the numbers are low or the stats API fails, so the footer stays honest.
 import LiveStatsBadge from '@/components/LiveStatsBadge'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const linkStyle: React.CSSProperties = {
   color: '#86868b',
@@ -176,8 +180,7 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
         </Link>
         <p style={{ margin: '6px auto 0', maxWidth: 460, color: '#86868b' }}>
           Turn one idea into a ready-to-post faceless YouTube Short — script,
-          AI voiceover, footage &amp; captions in a few minutes. Create, download and share
-          up to 3 watermarked Fast videos every 24h, no card. Paid plans unlock clean MP4s.
+          AI voiceover, footage &amp; captions in a few minutes. {ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.
         </p>
       </div>
 

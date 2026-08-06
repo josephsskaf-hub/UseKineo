@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 export const SAASHUB_CAMPAIGN = 'push65_saashub_directory_bridge'
 
@@ -118,8 +119,7 @@ export default function SaaSHubBridgeClient({ isSignedIn }: { isSignedIn: boolea
       </div>
 
       <p className="mt-4 text-xs leading-5 text-white/45">
-        No card. New accounts can create, watch, download and share up to three
-        watermarked Fast videos every 24 hours. Paid plans unlock clean exports.
+        No card. <FreeTierCopy legacy="New accounts can create, watch, download and share up to three watermarked Fast videos every 24 hours." onKey="sentence" /> Paid plans unlock clean exports.
       </p>
     </div>
   )

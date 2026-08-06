@@ -10,6 +10,7 @@ import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 interface Video {
   id: string
@@ -529,7 +530,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               </p>
             ) : cleanExportLocked === true ? (
               <p className="text-xs leading-relaxed mt-2" style={{ color: '#5cb3ff', marginBottom: 0 }}>
-                Fast includes up to 3 watermarked previews per 24 hours. Download and share them free; Starter unlocks clean watermark-free exports.
+                <FreeTierCopy legacy="Fast includes up to 3 watermarked previews per 24 hours. Download and share them free; Starter unlocks clean watermark-free exports." on="Free accounts include 1 watermarked Fast video per month. Download and share it free; Starter unlocks clean watermark-free exports." />
               </p>
             ) : null}
           </div>

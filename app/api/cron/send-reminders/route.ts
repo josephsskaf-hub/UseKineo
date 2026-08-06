@@ -4,6 +4,10 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
+const OFFER = getFreeTierOffer()
 
 // Cron route: fires daily via Vercel Cron (see vercel.json).
 // Finds users who signed up 20–28 hours ago and have no paid plan,
@@ -189,7 +193,7 @@ export async function GET(req: NextRequest) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Your free Fast previews are waiting — Kineo</title>
+  <title>${ft(OFFER, 'Your free Fast previews are waiting', 'Your Creator trial is waiting')} — Kineo</title>
 </head>
 <body style="margin:0;padding:0;background:#000000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#000000;padding:40px 20px;">
@@ -208,8 +212,8 @@ export async function GET(req: NextRequest) {
 
               <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.3);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
                 <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px;">⏰ YOUR FAST ACCESS IS READY</p>
-                <p style="color:#f1f5f9;font-size:24px;font-weight:900;margin:0 0 4px;">Up to 3 Fast videos every 24h.</p>
-                <p style="color:#64748b;font-size:13px;margin:0;">No card. Free videos include a Kineo watermark.</p>
+                <p style="color:#f1f5f9;font-size:24px;font-weight:900;margin:0 0 4px;">${ft(OFFER, 'Up to 3 Fast videos every 24h.', OFFER.copy.chip)}</p>
+                <p style="color:#64748b;font-size:13px;margin:0;">${ft(OFFER, 'No card. Free videos include a Kineo watermark.', 'No card. Trial credits export clean, watermark-free videos.')}</p>
               </div>
 
               <p style="color:#94a3b8;font-size:14px;margin:0 0 24px;line-height:1.7;">
@@ -256,9 +260,9 @@ export async function GET(req: NextRequest) {
         body: JSON.stringify({
           from: FROM_EMAIL,
           to: [user.email],
-          subject: 'Your free Fast previews are waiting',
+          subject: ft(OFFER, 'Your free Fast previews are waiting', 'Your Creator trial is waiting'),
           html,
-          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first Fast video yet.\n\nCreate, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.\n\nStart here: ${activationUrl}\n\n— The Kineo Team${emailFooterText(user.id)}`,
+          text: `${greeting}\n\nYou signed up for Kineo but haven't made your first Fast video yet.\n\n${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}\n\nStart here: ${activationUrl}\n\n— The Kineo Team${emailFooterText(user.id)}`,
           headers: unsubscribeHeaders(user.id),
         }),
       })

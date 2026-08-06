@@ -8,6 +8,10 @@
 // requirement. Always link users to YouTube's own policies — rules change.
 
 import type { Metadata } from 'next'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -345,7 +349,7 @@ export default function CanYouMonetizeAiVideosPage() {
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Type a topic and generate a faceless Short with a unique script, your own angle and one
-            consistent host. Up to 3 watermarked videos every 24 hours, no card required.
+            consistent host. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card required.', OFFER.copy.headline)}
           </p>
           <a
             href="/free-ai-shorts-generator?utm_source=monetize-policy&utm_medium=seo&utm_campaign=seo-sprint"

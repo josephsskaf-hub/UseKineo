@@ -11,6 +11,7 @@ import {
   countUndeliveredReservations,
 } from '@/lib/freeFastQuota'
 import { getViralNowTopics } from '@/lib/viralTopics'
+import { getFreeTierOffer } from '@/lib/freeTierOffer'
 
 // send-credits-back — KINEO-DAILY-NUDGE-2026-08-04.
 //
@@ -227,6 +228,14 @@ ${emailFooterHtml(userId)}`
 export async function GET(req: NextRequest) {
   if (!isAuthorized(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // [KINEO-TRIAL-SWAP-2026-08-07] — com o reverse trial ligado o free tier é
+  // 1 Fast/mês: a premissa deste e-mail ("suas 3 grátis voltaram, é 3 a cada
+  // 24h, para sempre") deixa de existir. Nenhuma copy daqui precisa de troca —
+  // a rota inteira só roda com a flag OFF, onde ela continua 100% verdadeira.
+  if (getFreeTierOffer().reverseTrial) {
+    return NextResponse.json({ sent: 0, reason: 'reverse_trial_free_tier' })
   }
 
   // ?dry=1 — mede o público sem tocar em nada. O gate de lifecycle e a chave da

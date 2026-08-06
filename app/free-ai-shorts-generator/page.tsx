@@ -6,6 +6,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'push60_free_ai_shorts_generator'
@@ -20,7 +24,7 @@ const FEATURES = [
   },
   {
     t: 'No card for the first test',
-    d: 'New accounts can create up to 3 watermarked Fast videos every 24 hours before choosing a paid plan.',
+    d: ft(OFFER, 'New accounts can create up to 3 watermarked Fast videos every 24 hours before choosing a paid plan.', OFFER.copy.sentence),
   },
   {
     t: 'Built for faceless channels',
@@ -31,7 +35,7 @@ const FEATURES = [
 const FAQ = [
   {
     q: 'Is there a free AI Shorts generator?',
-    a: 'Yes. Kineo lets new accounts create up to 3 watermarked Fast videos every 24 hours with no credit card. Paid plans unlock clean exports and higher quality engines.',
+    a: `Yes. ${ft(OFFER, 'Kineo lets new accounts create up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and higher quality engines.`,
   },
   {
     q: 'Does it generate the whole Short or only a script?',
@@ -118,7 +122,7 @@ export default function FreeAiShortsGeneratorPage() {
           </OrganicCtaLink>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos every 24h. No card required.
+          {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
 
         <TopicGeneratorForm

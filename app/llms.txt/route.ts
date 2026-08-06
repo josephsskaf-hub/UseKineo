@@ -133,7 +133,7 @@ ${PRODUCT.formerName}.
 
 ## Free tier
 
-- Up to ${FREE_TIER.videosPer24h} ${FREE_TIER.engine} videos every ${FREE_TIER.rollingWindowHours} hours, on a rolling window. This limit is enforced server-side.
+- ${FREE_TIER.videosPer24h === 3 ? `Up to 3 ${FREE_TIER.engine} videos every 24 hours, on a rolling window.` : `${FREE_TIER.allowance}, on a rolling window.`} This limit is enforced server-side.
 - No credit card required.
 - ${PRODUCT.watermarkPolicy} Free renders can still be watched, downloaded and shared.
 - Only the ${FREE_TIER.engine} engine is available for free. The generative engines below require a paid plan.

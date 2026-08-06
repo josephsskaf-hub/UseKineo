@@ -18,6 +18,12 @@
 //  - This file is the single source of truth for the whole cluster, so a fact
 //    can never drift between two pages.
 
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
+// este módulo só é importado por código server-side, ver revisão no SPRINT).
+const OFFER = getFreeTierOffer()
+
 export const VERIFIED_ON = 'July 26, 2026'
 export const BASE = 'https://www.usekineo.com'
 
@@ -299,10 +305,10 @@ export const TOOLS: Record<ToolId, Tool> = {
     kind: 'From-scratch generator',
     category: 'Turns one typed topic into a finished faceless 9:16 Short — script, AI voiceover, matched footage, captions.',
     needsSource: 'No. A sentence is the whole input. There is no footage to upload and no timeline to learn.',
-    freeTier: 'Up to 3 watermarked Fast videos every 24 hours, with no card.',
+    freeTier: ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, with no card.', OFFER.copy.sentence),
     entryPrice: 'Starter $4.90 for the first month, then $9.90/month',
     fullPricing:
-      'Free (up to 3 watermarked Fast videos per 24h, no card) · Starter $9.90/mo, $4.90 for the first month, 25 credits ($99/year) · Creator $24.90/mo, 150 credits ($199/year) · Studio $37.90/mo, 200 credits ($379/year). 7-day money-back guarantee.',
+      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', 'Creator trial on signup: 40 credits; then 1 Fast/mo')}) · Starter $9.90/mo, $4.90 for the first month, 25 credits ($99/year) · Creator $24.90/mo, 150 credits ($199/year) · Studio $37.90/mo, 200 credits ($379/year). 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
     voice: 'AI voiceover generated from the script it wrote, with premium voices on higher tiers.',
@@ -1094,7 +1100,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Free tiers reveal the intent of each',
-        p: 'HeyGen Free: 3 videos a month, 1 minute each, 1 custom digital twin, 500+ stock avatars. Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. One is sized for evaluating an avatar; the other for finding out whether a daily posting habit is survivable.',
+        p: `HeyGen Free: 3 videos a month, 1 minute each, 1 custom digital twin, 500+ stock avatars. ${ft(OFFER, 'Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. One is sized for evaluating an avatar; the other for finding out whether a daily posting habit is survivable.', OFFER.copy.cmpKineoFree)}`,
       },
     ],
     pickA: [
@@ -1109,7 +1115,7 @@ export const PAIRS: Pair[] = [
       'You have a topic, not a script, and writing the script is the part you keep not doing.',
       'Your ceiling is budget: $9.90/month, or $4.90 for a first month, against $29.',
       'You publish 9:16 and nothing else, so a tool that does only 9:16 costs you nothing.',
-      'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.',
+      ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', 'You want to test the full workflow before paying anything — a Creator trial with 40 credits, no card.'),
     ],
     differences: [
       {
@@ -1144,7 +1150,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which has a better free tier?',
-        a: 'They are not comparable. HeyGen gives 3 one-minute videos a month with access to its avatar roster; Kineo gives up to 3 watermarked Fast videos every 24 hours. Kineo’s is more generous by volume, HeyGen’s by capability.',
+        a: `They are not comparable. HeyGen gives 3 one-minute videos a month with access to its avatar roster. ${ft(OFFER, 'Kineo gives up to 3 watermarked Fast videos every 24 hours. Kineo’s is more generous by volume, HeyGen’s by capability.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         q: 'Do Kineo credits roll over?',
@@ -1176,7 +1182,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The free tiers have opposite shapes',
-        p: 'OpusClip free gives 60 credits a month at up to 1080p, but the clips are watermarked and stop being exportable after 3 days. Kineo free gives up to 3 watermarked Fast videos every 24 hours with no card. OpusClip’s is a better look at the product; Kineo’s is a better look at whether you can sustain a posting schedule.',
+        p: `OpusClip free gives 60 credits a month at up to 1080p, but the clips are watermarked and stop being exportable after 3 days. ${ft(OFFER, 'Kineo free gives up to 3 watermarked Fast videos every 24 hours with no card. OpusClip’s is a better look at the product; Kineo’s is a better look at whether you can sustain a posting schedule.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'On price at entry, Kineo is lower and that is not the main point',
@@ -1187,7 +1193,7 @@ export const PAIRS: Pair[] = [
       'You have no long-form footage and no plan to record any.',
       'The bottleneck is writing and producing at all, not distributing something that exists.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.',
+      ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', 'You want to try the real workflow before paying — a Creator trial with 40 credits, no card.'),
       'You want a clean MP4 on the cheapest paid plan: every Kineo paid tier is watermark-free.',
     ],
     pickB: [
@@ -1262,7 +1268,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Trial terms differ in a way that matters',
-        p: 'Pictory lists a 14-day free trial and no permanently free plan. Kineo offers up to 3 watermarked Fast videos every 24 hours indefinitely, no card. If you want to test over a month rather than a fortnight, that is a practical difference, not a marketing one.',
+        p: `Pictory lists a 14-day free trial and no permanently free plan. ${ft(OFFER, 'Kineo offers up to 3 watermarked Fast videos every 24 hours indefinitely, no card. If you want to test over a month rather than a fortnight, that is a practical difference, not a marketing one.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'On volume, Pictory’s quota is larger and differently shaped',
@@ -1352,14 +1358,14 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Both free tiers watermark, with different caps',
-        p: 'Submagic free: 3 videos a month, watermarked, 200MB and 1 minute 30 seconds maximum each. Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. Kineo’s free tier is more generous by volume; Submagic’s shows you the thing it is actually best at.',
+        p: `Submagic free: 3 videos a month, watermarked, 200MB and 1 minute 30 seconds maximum each. ${ft(OFFER, 'Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. Kineo’s free tier is more generous by volume; Submagic’s shows you the thing it is actually best at.', OFFER.copy.cmpKineoFree)}`,
       },
     ],
     pickA: [
       'There is no video yet. This is the whole case for Kineo on this page.',
       'You do not film, do not want to, and the channel is faceless by design.',
       'You want script, voiceover, footage and captions from one typed sentence.',
-      'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.',
+      ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', 'You want to prove the workflow fits before paying — a Creator trial with 40 credits.'),
       'Budget is tight: $9.90/month, or $4.90 for a first month.',
     ],
     pickB: [
@@ -3943,7 +3949,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'The free tiers are the most honest comparison on this page',
-        p: 'Captions Free lists basic editing — trimming, transitions, media assets — and one caption template, with no AI credits and no generative AI features at all. Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card. One free plan lets you evaluate an editor; the other lets you find out whether you can sustain a daily posting habit. Neither shows you the other thing.',
+        p: `Captions Free lists basic editing — trimming, transitions, media assets — and one caption template, with no AI credits and no generative AI features at all. ${ft(OFFER, 'Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card. One free plan lets you evaluate an editor; the other lets you find out whether you can sustain a daily posting habit. Neither shows you the other thing.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'Captions is the more capable tool and the more expensive one',
@@ -3969,7 +3975,7 @@ export const PAIRS: Pair[] = [
       'You have a topic, not a clip, and the missing step is the video existing at all.',
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
       'You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.',
-      'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.',
+      ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', 'You want to test the real thing before paying: a Creator trial with 40 credits, no card.'),
       'Budget is the binding constraint: $9.90/month, or $4.90 for a first month, against $24.99.',
     ],
     differences: [
@@ -4005,7 +4011,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which free tier is better?',
-        a: 'They are not comparable. Kineo gives up to 3 watermarked Fast videos every 24 hours with no card — more generous by volume. Captions Free gives an editor with no AI credits and no generative AI features — less generous by capability, and it will not show you the features you would be paying for.',
+        a: `They are not comparable. ${ft(OFFER, 'Kineo gives up to 3 watermarked Fast videos every 24 hours with no card — more generous by volume.', OFFER.copy.cmpKineoFree)} Captions Free gives an editor with no AI credits and no generative AI features — less generous by capability, and it will not show you the features you would be paying for.`,
       },
       {
         q: 'Do Kineo credits roll over?',
@@ -4037,7 +4043,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The free tiers reveal what each is sized for',
-        p: 'Creatify Free: 10 credits a month, roughly 2 video ads or 20 image ads, watermarked, with 300 AI actors and 40 templates to look at. Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. One shows you the roster; the other shows you whether you can keep a daily habit going.',
+        p: `Creatify Free: 10 credits a month, roughly 2 video ads or 20 image ads, watermarked, with 300 AI actors and 40 templates to look at. ${ft(OFFER, 'Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. One shows you the roster; the other shows you whether you can keep a daily habit going.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'Duration is capped on one side and priced by engine on the other',
@@ -4091,7 +4097,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which free tier gives more output?',
-        a: 'Kineo: up to 3 watermarked Fast videos every 24 hours with no card, against Creatify’s 10 credits a month for roughly 2 watermarked video ads. Creatify’s free tier shows you a much larger AI actor roster, which is the thing it is actually demonstrating.',
+        a: `${ft(OFFER, 'Kineo: up to 3 watermarked Fast videos every 24 hours with no card, against Creatify’s 10 credits a month for roughly 2 watermarked video ads.', OFFER.copy.cmpKineoFree + ' Creatify Free: 10 credits a month for roughly 2 watermarked video ads.')} Creatify’s free tier shows you a much larger AI actor roster, which is the thing it is actually demonstrating.`,
       },
       {
         q: 'Do either of them roll credits over?',
@@ -4123,7 +4129,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The metering is not comparable and the free tiers are not either',
-        p: 'Descript counts media hours ingested — 60 minutes free, 10 hours on Hobbyist at $24/month or $16 annually, 30 on Creator, 40 on Business — plus 400, 800 and 1,500 AI credits a month. Kineo counts render engines: Fast 1 credit, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150, from 25 credits on Starter. Descript Free is 720p watermarked with 100 one-time AI credits; Kineo free is up to 3 watermarked Fast videos every 24 hours, no card.',
+        p: `Descript counts media hours ingested — 60 minutes free, 10 hours on Hobbyist at $24/month or $16 annually, 30 on Creator, 40 on Business — plus 400, 800 and 1,500 AI credits a month. Kineo counts render engines: Fast 1 credit, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150, from 25 credits on Starter. Descript Free is 720p watermarked with 100 one-time AI credits; ${ft(OFFER, 'Kineo free is up to 3 watermarked Fast videos every 24 hours, no card.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'On price at entry Kineo is lower, and that is not the argument',
@@ -4142,7 +4148,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage with nobody on screen.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.',
+      ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', 'You want to test a real posting rhythm before paying — a Creator trial with 40 credits, no card.'),
     ],
     differences: [
       {
@@ -4209,7 +4215,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The free tiers are shaped for different questions',
-        p: 'quso Free: 75 credits a month, renders capped at 720p, chapters and short videos, TikTok publishing, CutMagic, 7-day data retention. Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. quso’s answers "does the clipping work on my footage"; Kineo’s answers "can I actually keep a daily schedule".',
+        p: `quso Free: 75 credits a month, renders capped at 720p, chapters and short videos, TikTok publishing, CutMagic, 7-day data retention. ${ft(OFFER, 'Kineo free: up to 3 watermarked Fast videos every 24 hours, no card. quso’s answers "does the clipping work on my footage"; Kineo’s answers "can I actually keep a daily schedule".', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'On price at entry Kineo is lower and the units are unrelated',
@@ -4287,7 +4293,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: 'Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is $9.90/month for 25 credits with a Fast video costing 1 credit, and its free tier allows up to 3 Fast videos every 24 hours.',
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is $9.90/month for 25 credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', ', and every new account starts with a Creator trial: 40 free credits.')}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',
@@ -4295,7 +4301,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Their free tier is better than ours at showing you the product',
-        p: 'Synthesia Basic gives 1,200 credits, up to 10 minutes of video a month, 25 AI-generated video assets, 9 avatars, 160+ languages and 1 editor seat, with the Synthesia logo on the output. Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card — more videos, one engine, one format. Different generosity, honestly.',
+        p: `Synthesia Basic gives 1,200 credits, up to 10 minutes of video a month, 25 AI-generated video assets, 9 avatars, 160+ languages and 1 editor seat, with the Synthesia logo on the output. ${ft(OFFER, 'Kineo free gives up to 3 watermarked Fast videos every 24 hours, no card — more videos, one engine, one format. Different generosity, honestly.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'Kineo’s constraint is the point and it will read as a flaw',
@@ -4353,7 +4359,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which free tier is better?',
-        a: 'They are not comparable. Synthesia Basic gives 1,200 credits and up to 10 minutes of video a month with 9 avatars and 160+ languages, at the cost of a logo. Kineo gives up to 3 watermarked Fast videos every 24 hours with no card. Kineo’s is more generous by volume, Synthesia’s by capability.',
+        a: `They are not comparable. Synthesia Basic gives 1,200 credits and up to 10 minutes of video a month with 9 avatars and 160+ languages, at the cost of a logo. ${ft(OFFER, 'Kineo gives up to 3 watermarked Fast videos every 24 hours with no card. Kineo’s is more generous by volume, Synthesia’s by capability.', OFFER.copy.cmpKineoFree)}`,
       },
     ],
     kineo:

@@ -11,6 +11,8 @@
 // clicks on page content behind the gutters.
 
 import { useEffect, useState } from 'react'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 
 // KINEO-DL-PAYWALL-2026-07-09 — sticky bar was DISABLED per Joseph ("bem
@@ -25,13 +27,18 @@ const Z_INDEX = 60
 
 export default function StickyFreeShortCTA({
   href = '/signup?utm_source=sticky_cta',
-  label = 'Create up to 3 watermarked Fast videos every 24h — no card',
+  label,
   cta = 'Start free',
 }: {
   href?: string
   label?: string
   cta?: string
 }) {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — o default do rótulo agora vem da oferta
+  // (flag OFF = literal antigo byte a byte). Quem passa `label` explícito segue
+  // mandando; só o DEFAULT acompanha a flag.
+  const OFFER = useFreeTierOffer()
+  const labelText = label ?? ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h — no card', OFFER.copy.headline)
   const [dismissed, setDismissed] = useState(false)
   const [visible, setVisible] = useState(false)
 
@@ -122,7 +129,7 @@ export default function StickyFreeShortCTA({
             ⚡
           </span>
           <p style={{ flex: 1, margin: 0, minWidth: 0, fontSize: '0.84rem', fontWeight: 700, color: '#f5f5f7', lineHeight: 1.3 }}>
-            {label}
+            {labelText}
           </p>
           <Link
             href={href}

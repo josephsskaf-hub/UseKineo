@@ -31,6 +31,10 @@ import {
   SCRIPT_VERTICALS,
   type LibraryScript,
 } from '@/lib/scriptLibrary'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const revalidate = 3600
 
@@ -263,7 +267,7 @@ export default async function ScriptsHubPage() {
               {
                 n: '3',
                 t: 'Let the generator build the video',
-                d: 'Hand the idea to Kineo and it writes the script, records the voiceover, burns in the captions and matches footage to every beat. Up to 3 watermarked Fast videos every 24h, no card.',
+                d: `Hand the idea to Kineo and it writes the script, records the voiceover, burns in the captions and matches footage to every beat. ${ft(OFFER, 'Up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
               },
             ].map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
@@ -294,8 +298,7 @@ export default async function ScriptsHubPage() {
         <section style={{ marginTop: 52, textAlign: 'center', ...CARD, borderRadius: 18, padding: '30px 20px' }}>
           <h2 style={{ fontSize: '1.45rem', fontWeight: 900, margin: 0 }}>Turn any of these ideas into a video</h2>
           <p style={{ color: '#CBD5E1', margin: '10px 0 20px', fontSize: '0.95rem', lineHeight: 1.6 }}>
-            Type a topic, get a 9:16 Short with script, voiceover, captions and footage in a few minutes. Up to 3
-            watermarked Fast videos every 24 hours, no card.
+            Type a topic, get a 9:16 Short with script, voiceover, captions and footage in a few minutes. {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href={generateFromScriptHref('A viral YouTube Short about a surprising fact', CAMPAIGN)}

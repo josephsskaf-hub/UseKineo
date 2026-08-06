@@ -10,6 +10,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from './TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const FEATURED_EXAMPLE = PUBLIC_EXAMPLES[0]
@@ -18,7 +22,7 @@ const PUBLICATION_DATE = '2026-07-16T00:00:00.000Z'
 export const metadata: Metadata = {
   title: 'Make a YouTube Short From a Topic — AI Writes, Voices & Edits It | Kineo',
   description:
-    'Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. Try up to 3 watermarked Fast videos every 24h; Starter is $4.90 for the first month.',
+    `Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $4.90 for the first month.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/youtube-shorts-from-topic' },
   openGraph: {
     title: 'Make a YouTube Short From a Topic — usually ready in 3–7 minutes',
@@ -46,7 +50,7 @@ const STEPS: { n: string; t: string; d: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   { q: 'Is there an AI that makes a YouTube Short from just a topic?', a: 'Yes. Kineo turns a single topic into a finished faceless Short — it writes the script, records the AI voiceover, finds matching footage and adds captions, then renders a ready-to-post 9:16 video, usually in 3–7 minutes. You never film anything.' },
   { q: 'Can I make a YouTube Short from a script, narrated word-for-word?', a: 'Yes. Paste your own script and Kineo narrates it verbatim, matches footage to each line and captions it — no editing or timeline required.' },
-  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card. Starter costs $4.90 for the first month, then $9.90/month, with a 7-day money-back guarantee.' },
+  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: `${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter costs $4.90 for the first month, then $9.90/month, with a 7-day money-back guarantee.` },
   { q: 'How is this different from OpusClip or Submagic?', a: 'OpusClip and Submagic re-clip or caption a long video you already filmed. Kineo generates the entire video from a topic — ideal for faceless creators who start with nothing but an idea.' },
   { q: 'Do I need any editing skills?', a: 'No. There is no timeline to learn. You type a topic (or paste a script) and download a finished 9:16 Short ready to post on YouTube, TikTok and Reels.' },
 ]
@@ -104,7 +108,7 @@ export default function YouTubeShortsFromTopicPage() {
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
         </p>
 
         <TopicGeneratorForm />
@@ -173,7 +177,7 @@ export default function YouTubeShortsFromTopicPage() {
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Type a topic. Get a finished Short.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>Try up to 3 watermarked Fast videos every 24h — no card.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
           <OrganicCtaLink href="#try-a-topic" source="push43_topic_form" placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Make my Fast video →</OrganicCtaLink>
         </div>
       </div>

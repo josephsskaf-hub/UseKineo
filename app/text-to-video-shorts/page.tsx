@@ -6,6 +6,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const FORM_ID = 'try-text-to-video'
@@ -42,7 +46,7 @@ const FAQ = [
   },
   {
     q: 'Can I test it before paying?',
-    a: 'Yes. New accounts can create up to 3 watermarked Fast videos every 24 hours without a credit card. Paid plans unlock watermark-free exports and higher quality engines.',
+    a: `Yes. ${ft(OFFER, 'New accounts can create up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock watermark-free exports and higher quality engines.`,
   },
   {
     q: 'Can I paste my own script?',
@@ -132,7 +136,7 @@ export default function TextToVideoShortsPage() {
           </OrganicCtaLink>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos every 24h. No card required.
+          {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
 
         <TopicGeneratorForm

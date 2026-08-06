@@ -31,6 +31,7 @@ import {
 import { PLANS } from './pricing'
 import { creditCostFor } from './credits/engineCost'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
+import { getFreeTierOffer } from './freeTierOffer'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -223,6 +224,10 @@ export const ENGINE_FACTS: EngineFact[] = [
  * Plano gratuito
  * ------------------------------------------------------------------ */
 
+// [KINEO-TRIAL-SWAP-2026-08-07] — flag ON: 1 Fast/mês + trial Creator no
+// signup. Os campos abaixo passam a ler lib/freeTierOffer.ts (mesma fonte do
+// enforcement no /api/compose). Flag OFF: valores idênticos aos literais
+// antigos (3 / 24 / mesma frase).
 // fonte: lib/freeFastQuota.ts (`FREE_FAST_PREVIEW_LIMIT = 3` e
 // `countFreeFastUsage`, o limite realmente aplicado no servidor, consumido
 // tanto pelo compose quanto pelos crons de lifecycle);
@@ -230,10 +235,17 @@ export const ENGINE_FACTS: EngineFact[] = [
 // O limite é uma const local não exportada naquela rota, então o número está
 // escrito aqui — mas conferido contra a linha que faz o enforcement, não
 // contra material de marketing.
+const FREE_OFFER = getFreeTierOffer()
+
 export const FREE_TIER = {
-  videosPer24h: 3,
+  // Nome legado: com a flag ON o valor é "por janela" (janela de 30 dias).
+  videosPer24h: FREE_OFFER.limit,
   engine: 'Fast',
-  rollingWindowHours: 24,
+  rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
+  /** Frase pronta da franquia — única forma segura de virar copy. */
+  allowance: FREE_OFFER.reverseTrial
+    ? '1 watermarked Fast video per month (every new account also starts with a 40-credit Creator trial)'
+    : 'up to 3 watermarked Fast videos every 24 hours',
   creditCardRequired: false,
   watermark: true,
   // fonte: app/api/cron/send-activation-nudge/route.ts:53 — "create, watch,

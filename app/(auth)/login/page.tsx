@@ -9,6 +9,8 @@ import AppleSignInButton from '@/components/AppleSignInButton'
 import { trackSignupSource } from '@/lib/analytics'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // Only honor redirects that stay on our own site, so a malicious referrer
 // can't bounce a logged-in user out to an external phishing page.
@@ -27,6 +29,8 @@ function isCheckoutResume(): boolean {
 }
 
 export default function LoginPage() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const supabase = createClient()
 
   const [email, setEmail] = useState('')
@@ -208,7 +212,7 @@ export default function LoginPage() {
                 {[
                   'AI writes the script for you',
                   'Stock footage + voiceover included',
-                  'New free accounts: 3 watermarked Fast videos / 24h',
+                  ft(OFFER, 'New free accounts: 3 watermarked Fast videos / 24h', 'New accounts: full Creator trial — 40 credits'),
                 ].map((line) => (
                   <li
                     key={line}

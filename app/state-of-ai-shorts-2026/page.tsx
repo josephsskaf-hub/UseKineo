@@ -25,6 +25,10 @@ import {
   RELIABILITY_WINDOW_START,
   STUDY_REVALIDATE_SECONDS,
 } from '@/lib/studyStats'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 // Revalidação diária: os números vêm do banco, então `force-static` mentiria.
 // O valor vem do módulo dos dados — duas cópias do mesmo número é como o
@@ -391,7 +395,7 @@ export default async function StateOfAiShortsPage() {
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Pick one of the top-3 niches above and generate your first faceless Short. Expect
-            about {s.medianMinutes} minutes. Up to 3 watermarked videos every 24 hours, no card.
+            about {s.medianMinutes} minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
           <a
             href="https://www.usekineo.com/free-ai-shorts-generator?utm_source=state-of-ai-shorts&utm_medium=study&utm_campaign=acq5"

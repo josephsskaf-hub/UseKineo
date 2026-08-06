@@ -44,6 +44,10 @@ import {
   SCRIPT_VERTICAL_SLUGS,
   type LibraryScript,
 } from '@/lib/scriptLibrary'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const revalidate = 3600
 export const dynamicParams = false
@@ -267,7 +271,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
           <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0 }}>Make a {v.label} Short from any of these</h2>
           <p style={{ color: '#CBD5E1', margin: '10px 0 18px', fontSize: '0.94rem', lineHeight: 1.6 }}>
             Kineo writes the script, records the voiceover, burns in the captions and matches footage to every beat.
-            Up to 3 watermarked Fast videos every 24 hours, no card.
+            {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href={generateFromScriptHref(cards[0]?.title ?? v.h1, campaign)}

@@ -103,9 +103,9 @@ const NEUTRAL_PAGES = COMPARISON_PAGES.filter((p) => !p.involvesKineo)
 const COMPETITOR_NAMES = listEn(COMPETITOR_FACTS.map((c) => c.name))
 
 /** Só a franquia, sem a cláusula do cartão — encaixa no meio de uma frase. */
-const FREE_TIER_ALLOWANCE =
-  `up to ${FREE_TIER.videosPer24h} watermarked ${FREE_TIER.engine} videos every ` +
-  `${FREE_TIER.rollingWindowHours} hours`
+// [KINEO-TRIAL-SWAP-2026-08-07] — frase pronta de lib/kineoFacts.ts (decidida
+// pela flag do reverse trial; OFF = literal antigo byte a byte).
+const FREE_TIER_ALLOWANCE = FREE_TIER.allowance
 
 /** Franquia + cartão, para vir logo depois de um verbo ("can create ..."). */
 const FREE_TIER_SENTENCE = `${FREE_TIER_ALLOWANCE}, with no credit card`

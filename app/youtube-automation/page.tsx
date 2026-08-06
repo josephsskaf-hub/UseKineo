@@ -23,6 +23,10 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -266,7 +270,7 @@ export default function YouTubeAutomationPage() {
           </Link>
         </div>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
         </p>
 
         <h2 style={h2}>Three things called &ldquo;YouTube automation&rdquo;</h2>
@@ -479,7 +483,7 @@ export default function YouTubeAutomationPage() {
         >
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Automate the assembly. Keep the judgement.</div>
           <p style={{ color: MUTED, margin: '8px 0 18px' }}>
-            Up to 3 watermarked Fast videos every 24 hours — no card.
+            {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href="/signup?create_intent=fast&intent_campaign=push96_youtube_automation_hub"

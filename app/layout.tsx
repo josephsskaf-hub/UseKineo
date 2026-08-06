@@ -5,7 +5,16 @@ import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
 import { Analytics } from '@vercel/analytics/next'
+import { FreeTierOfferProvider } from '@/components/FreeTierOfferProvider'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import './globals.css'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — a oferta do free tier (comportamento + copy)
+// resolvida UMA vez no servidor. O provider abaixo leva o MESMO objeto para
+// todos os client components; as metadata strings usam ft() (flag OFF = literal
+// atual byte a byte). Na Vercel, virar a flag = setar env + REDEPLOY (o rebuild
+// troca as páginas estáticas junto — ver lib/freeTierOffer.ts).
+const OFFER = getFreeTierOffer()
 
 // Push #92 — Core Web Vitals: self-host both families with next/font/google
 // instead of the render-blocking googleapis.com @import that used to sit at
@@ -74,7 +83,7 @@ export const metadata: Metadata = {
   // em /pricing, que é onde ele pode mudar sem mentir em quatro lugares.
   title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
   description:
-    'Kineo turns one topic into a finished faceless YouTube Short — script, AI voiceover, matched footage and burned-in captions, usually in 3–7 minutes. 3 free videos every 24h, no card.',
+    `Kineo turns one topic into a finished faceless YouTube Short — script, AI voiceover, matched footage and burned-in captions, usually in 3–7 minutes. ${ft(OFFER, '3 free videos every 24h, no card.', OFFER.copy.headline)}`,
   // PUSH #92 — P0 canonical bug fix: a root-level `alternates.canonical` was
   // shallow-merged onto every page in the tree that doesn't declare its own,
   // which told Google every un-canonicalized page is a duplicate of `/`
@@ -104,7 +113,7 @@ export const metadata: Metadata = {
     // mes escrevem errado), dois nomes diferentes e um custo que nao da para pagar.
     title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
     description:
-      'Launch a repeatable AI Shorts show with the same face, voice and style. Try up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.',
+      `Launch a repeatable AI Shorts show with the same face, voice and style. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.', OFFER.copy.headline)}`,
     url: 'https://www.usekineo.com',
     siteName: 'Kineo',
     images: [
@@ -126,7 +135,7 @@ export const metadata: Metadata = {
     // mes escrevem errado), dois nomes diferentes e um custo que nao da para pagar.
     title: 'Kineo — AI YouTube Shorts Generator (Official Site)',
     description:
-      'Launch a repeatable AI Shorts show with the same face, voice and style. Up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.',
+      `Launch a repeatable AI Shorts show with the same face, voice and style. ${ft(OFFER, 'Up to 3 watermarked Fast videos every 24h, no card; paid plans unlock clean MP4s.', OFFER.copy.headline)}`,
     images: ['https://www.usekineo.com/og-card.png'],
   },
   icons: {
@@ -211,7 +220,10 @@ export default function RootLayout({
           mostrava a tela "Get Started" e zero pageview: nao havia nada
           enviando dado. Sem isso nao existe numero nenhum de trafego pra
           medir se as mudancas de SEO funcionaram. */}
-      <body><StructuredData /><SourceCapture /><CheckoutResumeBanner />{children}<Analytics /></body>
+      {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
+          conteúdo: é o único caminho pelo qual client components leem a oferta
+          do free tier (a env da flag não existe no browser). */}
+      <body><StructuredData /><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner />{children}</FreeTierOfferProvider><Analytics /></body>
     </html>
   )
 }

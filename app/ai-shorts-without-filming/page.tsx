@@ -13,6 +13,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const FEATURED_EXAMPLE = PUBLIC_EXAMPLES[1]
@@ -29,7 +33,7 @@ const FORM_EXAMPLES = [
 export const metadata: Metadata = {
   title: 'Make YouTube Shorts Without Filming — Faceless AI Shorts, No Camera | Kineo',
   description:
-    'Make faceless YouTube Shorts without filming. Type one idea and get script, AI voiceover, footage and captions. Try up to 3 watermarked Fast videos every 24h, no card.',
+    `Make faceless YouTube Shorts without filming. Type one idea and get script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/ai-shorts-without-filming' },
   openGraph: {
     title: 'Make YouTube Shorts without filming — faceless AI, no camera',
@@ -62,12 +66,12 @@ const NO_NEED: { t: string; d: string }[] = [
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'Can I make YouTube Shorts without filming anything?', a: 'Yes. Kineo builds the entire Short from a single idea — it writes the script, generates an AI voiceover, matches footage to each line and adds captions. You never open a camera, upload footage or record your voice, and a new account can create up to 3 watermarked Fast videos every 24 hours with no card.' },
+  { q: 'Can I make YouTube Shorts without filming anything?', a: `Yes. Kineo builds the entire Short from a single idea — it writes the script, generates an AI voiceover, matches footage to each line and adds captions. You never open a camera, upload footage or record your voice${ft(OFFER, ', and a new account can create up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
   { q: 'How do I make faceless Shorts with no camera?', a: 'Type one topic, let the AI create the script and voiceover, select or generate visuals, and add captions, then download a finished 9:16 video. Fast Mode is usually ready in 3–7 minutes, and there is nothing to film.' },
   { q: 'Will my face or voice ever be shown?', a: 'No. The channel format is faceless by design — you never appear on screen, and the narration is an AI voiceover, so your own voice stays private. It is made for anonymous creators who want a channel without being on camera.' },
   { q: 'Is this just a clip cutter like OpusClip or Submagic?', a: 'No. Clip cutters re-clip a long video you already filmed — which still requires you to record footage first. Kineo works the other way around: it creates the video from an idea, so you start with nothing but a topic and never film at all.' },
   { q: 'Do I need editing skills to make a Short without filming?', a: 'No. There is no timeline and no clips to arrange. The script, AI voiceover, footage and captions are generated and assembled automatically, so you get a ready-to-post Short without touching an editor.' },
-  { q: 'How much does it cost to make Shorts without filming?', a: 'A new account can create up to 3 watermarked Fast videos every 24 hours with no credit card. Paid plans unlock clean exports and premium AI engines; Starter is $4.90 for the first month and then $9.90/month.' },
+  { q: 'How much does it cost to make Shorts without filming?', a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines; Starter is $4.90 for the first month and then $9.90/month.` },
 ]
 
 export default function AiShortsWithoutFilmingPage() {
@@ -116,14 +120,14 @@ export default function AiShortsWithoutFilmingPage() {
           Make YouTube Shorts Without Filming a Single Frame
         </h1>
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Kineo turns one idea into a finished faceless Short — the hook and script, an AI voiceover, footage matched to every line, and captions. No camera, no face on screen, no recording your voice. Fast Mode is usually ready in 3–7 minutes. Create up to 3 watermarked Fast videos every 24 hours with no card.
+          Kineo turns one idea into a finished faceless Short — the hook and script, an AI voiceover, footage matched to every line, and captions. No camera, no face on screen, no recording your voice. Fast Mode is usually ready in 3–7 minutes. {ft(OFFER, 'Create up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)}
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={FORM_ANCHOR} source={INTENT_CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Try your idea free →</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · No camera
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · No camera
         </p>
 
         <TopicGeneratorForm
@@ -213,7 +217,7 @@ export default function AiShortsWithoutFilmingPage() {
 
         <h2 style={h2}>Stay anonymous, ship daily</h2>
         <p style={p}>
-          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses 1 credit, AI Generated (Seedance) uses 20, and Cinematic (Kling) uses 50</strong>. Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits. Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
+          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses 1 credit, AI Generated (Seedance) uses 20, and Cinematic (Kling) uses 50</strong>. {ft(OFFER, 'Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits.', 'After the Creator trial, free accounts keep 1 free Fast video per month without using paid-plan credits.')} Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>
@@ -227,7 +231,7 @@ export default function AiShortsWithoutFilmingPage() {
         </div>
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
-          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Make up to 3 watermarked Fast videos every 24h.</div>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>{ft(OFFER, 'Make up to 3 watermarked Fast videos every 24h.', OFFER.copy.headline)}</div>
           <p style={{ color: '#86868b', margin: '8px 0 18px' }}>One idea in, a ready-to-post Short out. No camera, no card.</p>
           <OrganicCtaLink href={FORM_ANCHOR} source={INTENT_CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Try my idea →</OrganicCtaLink>
         </div>

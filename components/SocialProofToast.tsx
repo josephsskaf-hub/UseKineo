@@ -7,6 +7,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 const MESSAGES = [
   { emoji: '⚡', text: 'Script, voiceover, footage & captions in a few minutes' },
@@ -32,6 +34,8 @@ interface ToastEntry {
 }
 
 export default function SocialProofToast() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const pathname = usePathname()
   const [toast, setToast] = useState<ToastEntry | null>(null)
   const [msgIndex, setMsgIndex] = useState(() => randBetween(0, MESSAGES.length - 1))
@@ -39,7 +43,11 @@ export default function SocialProofToast() {
 
   const show = useCallback(() => {
     const idx = msgIndex % MESSAGES.length
-    const msg = MESSAGES[idx]
+    const raw = MESSAGES[idx]
+    // A única mensagem que promete o free tier passa pela troca da oferta.
+    const msg = raw.text === 'Up to 3 Fast previews every 24h — no card'
+      ? { ...raw, text: ft(OFFER, raw.text, `${OFFER.copy.chip} — no card`) }
+      : raw
     const id = ++idRef.current
 
     setToast({ id, emoji: msg.emoji, text: msg.text, visible: true })

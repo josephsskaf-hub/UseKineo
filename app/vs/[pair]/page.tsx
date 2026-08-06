@@ -50,6 +50,10 @@ import {
   isCanonical,
   relatedPairs,
 } from '@/lib/comparisons'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -413,7 +417,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
             Make one free →
           </OrganicCtaLink>
           <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-            Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
           </p>
         </section>
 

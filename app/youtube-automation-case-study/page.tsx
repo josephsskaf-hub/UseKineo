@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-CASE-STUDY-2026-07-31 — "WE RUN A REAL CHANNEL WITH KINEO. IN PUBLIC."
@@ -184,7 +188,7 @@ export default function CaseStudyPage() {
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
             Type one topic, get a finished Short with script, voice, footage and captions — usually
-            in 3–7 minutes. 3 free videos every 24h, no card.
+            in 3–7 minutes. {ft(OFFER, '3 free videos every 24h, no card.', OFFER.copy.headline)}
           </p>
           <Link
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"

@@ -6,7 +6,7 @@ import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
-import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // send-cap-hit — Ordem 4 (docs/ORDENS-CONVERSAO-2026-08-02.md), 03/08/2026.
 //
@@ -44,7 +44,10 @@ const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 
  * moved out of compose/route.ts, which is exactly how a hardcoded 3 survives a
  * refactor. Single source: lib/freeFastQuota.ts.
  */
-const FREE_CAP = FREE_FAST_PREVIEW_LIMIT
+// [KINEO-TRIAL-SWAP-2026-08-07] — limite E copy vêm de lib/freeTierOffer.ts
+// (flag OFF: 3/24h, byte-idêntico ao comportamento anterior; ON: 1/mês).
+const OFFER = getFreeTierOffer()
+const FREE_CAP = OFFER.limit
 
 // Tetos explícitos (padrão de send-blackout-winback). Um incidente de fornecedor
 // EMPURRA gente para o muro — reserva abandonada consome cota — então a coorte
@@ -78,23 +81,23 @@ function buildEmail(userId: string) {
 
   const text = `Hey,
 
-You've used up today's free Fast previews — the cap is ${FREE_CAP} every 24 hours.
+${ft(OFFER, `You've used up today's free Fast previews — the cap is ${FREE_CAP} every 24 hours.`, OFFER.copy.limitHitEmailIntro)}
 
-If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark, and your first month is half off — ${intro}, then ${monthly}/month. Cancel anytime.
+${ft(OFFER, `If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark, and your first month is half off — ${intro}, then ${monthly}/month. Cancel anytime.`, `If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark — ${intro} your first month, then ${monthly}/month. Cancel anytime.`)}
 
 Keep creating: ${url}
 
-Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.
+${ft(OFFER, 'Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.', OFFER.copy.limitResetLine)}
 
 Kineo Team
 usekineo.com`
 
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;">You've used up <strong>today's free Fast previews</strong> — the cap is ${FREE_CAP} every 24 hours.</p>
-  <p style="margin:0 0 14px;">If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark, and your first month is half off — <strong>${intro}</strong>, then ${monthly}/month. Cancel anytime.</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, `You've used up <strong>today's free Fast previews</strong> — the cap is ${FREE_CAP} every 24 hours.`, OFFER.copy.limitHitEmailIntroHtml)}</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, `If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark, and your first month is half off — <strong>${intro}</strong>, then ${monthly}/month. Cancel anytime.`, `If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark — <strong>${intro}</strong> your first month, then ${monthly}/month. Cancel anytime.`)}</p>
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Keep creating &rarr;</a></p>
-  <p style="margin:0 0 14px;">Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, 'Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.', OFFER.copy.limitResetLine)}</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
 </div>
@@ -353,7 +356,7 @@ export async function GET(req: NextRequest) {
           from: FROM_EMAIL,
           to: [email],
           reply_to: 'hello@usekineo.com',
-          subject: "You hit today's free limit — Starter removes the wall",
+          subject: OFFER.copy.limitHitEmailSubject,
           text,
           html,
           headers: unsubscribeHeaders(u.id),

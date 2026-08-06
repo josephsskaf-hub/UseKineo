@@ -6,6 +6,8 @@ import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 interface AccountClientProps {
   email: string
@@ -58,6 +60,8 @@ export default function AccountClient(props: AccountClientProps) {
 }
 
 function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountClientProps) {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -398,7 +402,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
                     {hasPaid ? (
                       <ReadOnlyRow label="Legacy paid access" value="Clean Fast videos · 1 credit each" />
                     ) : (
-                      <ReadOnlyRow label="Never-paid allowance" value="3 watermarked Fast videos / 24h" />
+                      <ReadOnlyRow label="Never-paid allowance" value={ft(OFFER, '3 watermarked Fast videos / 24h', OFFER.copy.residual)} />
                     )}
                   </>
                 ) : (
@@ -486,7 +490,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
                     No card required
                   </div>
                   <h3 className="text-lg font-black mb-2" style={{ color: 'var(--text)' }}>
-                    {hasPaid ? 'Your purchased credits stay available' : 'Up to 3 Fast videos every 24 hours'}
+                    {hasPaid ? 'Your purchased credits stay available' : ft(OFFER, 'Up to 3 Fast videos every 24 hours', OFFER.copy.residual)}
                   </h3>
                   <p className="text-sm mb-3" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
                     {hasPaid

@@ -6,6 +6,10 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const INTENT_CAMPAIGN = 'push50_faceless_decision_guide'
@@ -225,7 +229,7 @@ const FAQ = [
   },
   {
     q: 'How much does Kineo cost?',
-    a: 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card. Starter is $4.90 for the first month and then $9.90 per month. Check the pricing page for the current plan details before buying.',
+    a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $4.90 for the first month and then $9.90 per month. Check the pricing page for the current plan details before buying.`,
   },
 ] as const
 
@@ -279,7 +283,7 @@ export default function FacelessChannelIdeasPage() {
           </OrganicCtaLink>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month, then $9.90/month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month, then $9.90/month
         </p>
 
         <TopicGeneratorForm
@@ -388,7 +392,7 @@ export default function FacelessChannelIdeasPage() {
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Stop guessing. Test one real idea.</div>
-          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>Create up to 3 watermarked Fast videos every 24 hours without a card.</p>
+          <p style={{ color: '#86868b', margin: '8px 0 18px' }}>{ft(OFFER, 'Create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.headline)}</p>
           <OrganicCtaLink href={FORM_ANCHOR} source={INTENT_CAMPAIGN} placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Test my first idea →</OrganicCtaLink>
         </div>
       </div>

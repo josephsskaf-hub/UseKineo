@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
+const OFFER = getFreeTierOffer()
 
 // #456 — saves an exit-intent lead to `leads`.
 // #461 — Measure 2 (lead nurture): on a NEW lead, instantly emails the lead
@@ -38,7 +42,7 @@ Here are your 10 viral Short ideas — pick any one and you can have a video in 
 
 ${list}
 
-Want to turn one into a real Short right now? Type it into Kineo and the AI writes the script, voiceover, captions and finds the footage. Create up to 3 watermarked Fast videos every 24 hours — no card needed.
+Want to turn one into a real Short right now? Type it into Kineo and the AI writes the script, voiceover, captions and finds the footage. ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24 hours — no card needed.', OFFER.copy.headline)}
 
 Make a Fast video: ${url}
 
@@ -54,7 +58,7 @@ usekineo.com`
   <p style="font-size:15px;">Hey,</p>
   <p style="font-size:15px;">Here are your <b>10 viral Short ideas</b> — pick any one and you can have a video in 3–7 minutes:</p>
   ${ideasHtml}
-  <p style="font-size:15px;margin-top:16px;">Want to turn one into a real Short right now? Type it into Kineo — the AI writes the script, voiceover, captions and finds the footage. <b>Create up to 3 watermarked Fast videos every 24 hours, no card needed.</b></p>
+  <p style="font-size:15px;margin-top:16px;">Want to turn one into a real Short right now? Type it into Kineo — the AI writes the script, voiceover, captions and finds the footage. <b>${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24 hours, no card needed.', OFFER.copy.headline)}</b></p>
   <p style="margin:20px 0;">
     <a href="${url}" style="background:#2997ff;color:#ffffff;font-weight:bold;text-decoration:none;padding:12px 22px;border-radius:10px;font-family:Arial,sans-serif;font-size:15px;display:inline-block;">Make a Fast video →</a>
   </p>

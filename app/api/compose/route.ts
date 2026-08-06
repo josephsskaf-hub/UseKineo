@@ -53,11 +53,18 @@ import {
   verifyComposeClaim,
 } from '@/lib/composeClaim'
 import {
-  FREE_FAST_PREVIEW_LIMIT,
-  FREE_FAST_WINDOW_MS,
   countFreeFastUsage,
   countUndeliveredReservations,
 } from '@/lib/freeFastQuota'
+// [KINEO-TRIAL-SWAP-2026-08-07] — o limite/janela/copy do free tier agora vêm
+// da MESMA fonte que toda a copy pública (lib/freeTierOffer.ts), decididos pela
+// flag KINEO_REVERSE_TRIAL_ENABLED:
+//   OFF → 3 Fast/24h (idêntico a FREE_FAST_PREVIEW_LIMIT/FREE_FAST_WINDOW_MS —
+//         diff de runtime zero);
+//   ON  → 1 Fast por janela rolante de 30 dias, 15s máx, watermark (o watermark
+//         do free Fast já existe — isFreePlanFast abaixo). 480p PENDENTE: o
+//         builder Creatomate não tem knob de resolução (ver docs/SPRINT do dia).
+import { getFreeTierOffer } from '@/lib/freeTierOffer'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: the hollywood
 // narration blocks are synthesized with ONE pinned voice, resolved from the
 // full voiceover_script — the SAME resolution the cinematic route ran for the
@@ -83,6 +90,11 @@ const FORCE_WATERMARK_EMAILS = new Set<string>([
 // 90s request silently coerced to 45 → the script was sized for 45s and the
 // final video came out ~half the requested length.
 const SUPPORTED_DURATIONS = [10, 30, 45, 50, 60, 90] as const
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — resolvido no módulo (runtime de servidor; na
+// Vercel a env é fixa por deployment, então isto nunca muda no meio da vida do
+// processo). Flag OFF ⇒ { limit: 3, windowMs: 24h, maxFreeFastSeconds: null }.
+const FREE_OFFER = getFreeTierOffer()
 
 // Push #234 — how far the measured narration may stray from the requested
 // duration before we re-synthesize the TTS at an adjusted speed to pull it
@@ -376,7 +388,12 @@ export async function POST(req: NextRequest) {
     // (e.g. duration=4 from AvatarStudioClient) into 45, and combined with the
     // ">4s" plausibility gate below produced a 45s render where the avatar
     // speaks for ~4s and the remaining ~40s is black screen.
-    const duration = isAvatarReq
+    // [KINEO-TRIAL-SWAP-2026-08-07] — `let`, não `const`: o free tier com a
+    // flag do reverse trial ligada limita o Fast grátis a 15s, e a decisão
+    // "este request é free" só existe depois do lookup de plano (isFreePlanFast,
+    // abaixo). O clamp acontece lá, ANTES de qualquer reserva/TTS. Flag OFF:
+    // nenhuma reatribuição — valor idêntico ao de sempre.
+    let duration = isAvatarReq
       ? Math.max(3, Math.min(90, Math.round(requestedDuration)))
       : (SUPPORTED_DURATIONS as readonly number[]).includes(requestedDuration)
         ? requestedDuration
@@ -795,11 +812,11 @@ export async function POST(req: NextRequest) {
       // it cannot serialize concurrent submissions. Reserve this generation in
       // the existing events PK mutex first, then audit the rolling window. Each
       // concurrent request commits its own unique claim before it counts; at
-      // most FREE_FAST_PREVIEW_LIMIT claims can observe a count within quota.
+      // most FREE_OFFER.limit claims can observe a count within quota.
       const reservation = await claimGenerationSubmission(0)
       if (reservation.kind !== 'acquired') return reservation.response
 
-      const since = new Date(Date.now() - FREE_FAST_WINDOW_MS).toISOString()
+      const since = new Date(Date.now() - FREE_OFFER.windowMs).toISOString()
       const [claimsResult, videosResult] = await Promise.all([
         composeAdmin
           .from('events')
@@ -845,7 +862,7 @@ export async function POST(req: NextRequest) {
       })
       const reservedOrCompleted = usageByUser.get(authenticatedUserId) ?? 0
 
-      if (reservedOrCompleted > FREE_FAST_PREVIEW_LIMIT) {
+      if (reservedOrCompleted > FREE_OFFER.limit) {
         // Calculado ANTES do release e fora do argumento de logComposeRefusal:
         // como argumento ele seria avaliado fora do try/catch que protege a
         // telemetria, e uma exceção aqui transformaria um 402 legítimo em 500.
@@ -860,7 +877,7 @@ export async function POST(req: NextRequest) {
         // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
         await logComposeRefusal('free_fast_limit', authenticatedUserId, {
           used: reservedOrCompleted,
-          limit: FREE_FAST_PREVIEW_LIMIT,
+          limit: FREE_OFFER.limit,
           // INSTRUMENTO, não regra: quantas das vagas contadas acima são
           // reservas sem linha em `videos` e já fora do período de graça. Mede
           // quanto desta recusa é potencialmente indevida, para a próxima
@@ -871,7 +888,9 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json(
           {
-            error: "You've hit today's free limit (3 Fast previews). Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
+            // [KINEO-TRIAL-SWAP-2026-08-07] — copy do 402 vem da mesma fonte
+            // que a promessa pública (flag OFF = frase antiga byte a byte).
+            error: FREE_OFFER.copy.limitHitError,
             upsell: 'credits',
             outOfCredits: true,
             upgrade: '/pricing',
@@ -880,7 +899,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      console.log(`[compose] free Fast quota reserved: ${reservedOrCompleted}/${FREE_FAST_PREVIEW_LIMIT} in rolling 24h`)
+      console.log(`[compose] free Fast quota reserved: ${reservedOrCompleted}/${FREE_OFFER.limit} in rolling window of ${Math.round(FREE_OFFER.windowMs / 3600000)}h`)
       return null
     }
 
@@ -1003,7 +1022,8 @@ export async function POST(req: NextRequest) {
     }
 
     // PUSH #20 — one entitlement truth, resolved server-side. Never-paid free
-    // accounts get up to 3 watermarked Fast videos / rolling 24h. Active plans
+    // accounts get FREE_OFFER.limit watermarked Fast videos per FREE_OFFER
+    // rolling window (flag OFF: 3/24h; reverse trial ON: 1/30d). Active plans
     // and prior buyers with remaining credits get clean exports and pay the
     // documented credit cost. Premium AI has no free trial.
     let isFreePlanFast = false
@@ -1059,6 +1079,19 @@ export async function POST(req: NextRequest) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.
           withEndCard = true
+          // [KINEO-TRIAL-SWAP-2026-08-07] — free tier do reverse trial: Fast
+          // grátis limitado a 15s. Clamp ANTES da reserva de cota (o claim
+          // grava `duration` no metadata) e antes de TTS/word-count, que
+          // escalam pelo mesmo número. Flag OFF: maxFreeFastSeconds é null e
+          // nada muda. Contas em trial ativo não passam por aqui — trial gera
+          // com crédito (caminho pago), então o clamp só atinge o free real.
+          if (
+            FREE_OFFER.maxFreeFastSeconds !== null &&
+            duration > FREE_OFFER.maxFreeFastSeconds
+          ) {
+            duration = FREE_OFFER.maxFreeFastSeconds
+            console.log(`[compose] free tier duration clamped to ${duration}s (reverse-trial free tier)`)
+          }
           const quotaResponse = await reserveFreeFastPreviewSlot()
           if (quotaResponse) return quotaResponse
         } else {

@@ -9,6 +9,8 @@
 // and its (prop-less) API are unchanged so importers still compile.
 
 import { useEffect, useRef, useState } from 'react'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 interface TrustSignal {
   id: string
@@ -116,6 +118,8 @@ function SignalCard({ signal, visible, index }: { signal: TrustSignal; visible: 
 }
 
 export default function SocialProof() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const ref = useRef<HTMLDivElement | null>(null)
   const [visible, setVisible] = useState(false)
 
@@ -178,9 +182,13 @@ export default function SocialProof() {
       </div>
 
       <div className="social-proof-grid">
-        {TRUST_SIGNALS.map((s, i) => (
-          <SignalCard key={s.id} signal={s} visible={visible} index={i} />
-        ))}
+        {TRUST_SIGNALS.map((raw, i) => {
+          // O selo 'free' promete a oferta — passa pela troca; os demais ficam.
+          const s = raw.id === 'free'
+            ? { ...raw, title: ft(OFFER, raw.title, OFFER.copy.chip), sub: ft(OFFER, raw.sub, 'Trial exports are clean · no card') }
+            : raw
+          return <SignalCard key={s.id} signal={s} visible={visible} index={i} />
+        })}
       </div>
 
       <style>{`

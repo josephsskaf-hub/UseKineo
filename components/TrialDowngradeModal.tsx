@@ -57,6 +57,7 @@ import {
   type CheckoutCurrency,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 // Dispensa por CONTA e por navegador. NÃO é o gate de elegibilidade — esse é
 // do servidor; isto só evita que o modal reapareça a cada navegação.
@@ -355,7 +356,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
                   ele não compra — AI exige conta paga, custe o que custar o
                   saldo. Omitido quando o número não é conhecido. */}
               {creditsNow !== null && <li>{creditsNow} credits left (Fast only)</li>}
-              <li>{FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h</li>
+              <li><FreeTierCopy legacy={`${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h`} on="1 free Fast video per month" /></li>
             </ul>
           </div>
         </div>

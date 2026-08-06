@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const metadata: Metadata = {
   title: 'Real AI Shorts Examples | Kineo',
@@ -76,7 +80,7 @@ export default function ExamplesPage() {
         <div className="mt-12 rounded-3xl border border-cyan-300/20 bg-cyan-300/[0.055] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <h2 className="text-xl font-black">Bring your own topic.</h2>
-            <p className="mt-1 text-sm leading-6 text-white/60">Try up to three watermarked Fast videos every 24 hours. No card required.</p>
+            <p className="mt-1 text-sm leading-6 text-white/60">{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</p>
           </div>
           <Link
             href="/generate?utm_source=examples&amp;utm_medium=proof&amp;utm_campaign=push31"

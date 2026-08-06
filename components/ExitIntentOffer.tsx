@@ -41,6 +41,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
@@ -295,7 +296,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           </h2>
           <p className="mt-2 text-sm" style={{ color: '#a8adb5', lineHeight: 1.6 }}>
             Type one idea, get a finished Short in about 3 minutes.
-            3 free videos every day · no card needed.
+            <FreeTierCopy legacy="3 free videos every day · no card needed." on="Creator trial on signup: 40 free credits · no card needed." />
           </p>
           <a
             href="/signup"

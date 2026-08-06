@@ -4,6 +4,10 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
+const OFFER = getFreeTierOffer()
 
 // send-activation-nudge — Push #426
 //
@@ -58,7 +62,7 @@ function buildEmail(userId: string) {
 
 It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.
 
-Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card. Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.
+${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.
 
 Make your first video here: ${url}
 
@@ -70,7 +74,7 @@ usekineo.com`
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">It's the team at Kineo. You signed up a little while ago but haven't made your first video yet — so here's a nudge, because the first one is the fun part.</p>
-  <p style="margin:0 0 14px;">Create, watch, download and share up to <strong>3 watermarked Fast videos every 24 hours</strong> with no card. Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, 'Create, watch, download and share up to <strong>3 watermarked Fast videos every 24 hours</strong> with no card.', OFFER.copy.headline)} Type any idea ("the Bermuda Triangle mystery", "how Bezos starts his day") and the AI writes the script, adds the voiceover, captions and footage.</p>
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Make my first video →</a></p>
   <p style="margin:0 0 14px;">Stuck on anything? Just reply to this email — a real person reads every message.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>

@@ -21,6 +21,8 @@ import {
   type CheckoutCurrency,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
+import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // Push #175 — use checkout GET route instead of hardcoded Stripe links.
 // KINEO-SPRINT-FIX-2026-07-15 — plan/offer preservation: buyers who abandon an
@@ -40,6 +42,8 @@ export default function CheckoutCancelledPage() {
 }
 
 function CheckoutCancelledContent() {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the retry link was a bare <a href>: a
   // buyer who already abandoned once and taps it twice created two Stripe
   // sessions and saw no feedback at all in between.
@@ -290,8 +294,7 @@ function CheckoutCancelledContent() {
                       Then don&apos;t pay yet.
                     </p>
                     <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
-                      Starter is already our lowest plan. Make up to 3 Fast videos every 24h on the free
-                      account instead — no card. They carry a watermark; everything else is the same.
+                      Starter is already our lowest plan. {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account instead — no card. They carry a watermark; everything else is the same.', 'Use the free account instead — 1 free Fast video/month, no card. It carries a watermark; everything else is the same.')}
                     </p>
                     <Link
                       href="/generate"
@@ -357,7 +360,7 @@ function CheckoutCancelledContent() {
                     Fair — then look at the product, not the price.
                   </p>
                   <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
-                    Make up to 3 Fast videos every 24h on the free account, no card. If one of them is good
+                    {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', 'Use your trial credits — 40 free credits on signup, no card.')} If one of them is good
                     enough to post, that&apos;s the only argument for paying that actually works.
                   </p>
                   <Link

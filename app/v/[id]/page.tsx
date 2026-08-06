@@ -14,6 +14,10 @@ import {
   getScriptVertical,
   type LibraryScript,
 } from '@/lib/scriptLibrary'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 // #459 — Public shareable video page (/v/[id]). Every generated video gets a
 // public landing: the 9:16 player + a "make your own free" CTA. When a user
@@ -61,7 +65,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const title = v?.title ?? 'AI YouTube Short'
   const desc = v
     ? metaDescriptionFor(v)
-    : 'Made with Kineo — type any topic and AI writes the script, voiceover, captions and footage. Create up to 3 watermarked Fast videos every 24 hours with no card.'
+    : `Made with Kineo — type any topic and AI writes the script, voiceover, captions and footage. ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)}`
 
   return {
     metadataBase: new URL(PUBLIC_BASE_URL),
@@ -263,8 +267,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         >
           <p style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Made in a few minutes with AI 🤯</p>
           <p style={{ margin: '6px 0 14px', color: '#CBD5E1', fontSize: '0.9rem', lineHeight: 1.5 }}>
-            Use this idea as your starting point. Create, share and download up to 3 watermarked Fast videos every 24
-            hours — upgrade only when you want a clean export.
+            Use this idea as your starting point. {ft(OFFER, 'Create, share and download up to 3 watermarked Fast videos every 24 hours — upgrade only when you want a clean export.', OFFER.copy.headline + ' Upgrade only when you want more.')}
           </p>
           <PublicVideoCtaLink
             href={signupHref}

@@ -10,6 +10,10 @@
 // posting the same 9:16 export to both, which is Kineo's whole pitch.
 
 import type { Metadata } from 'next'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -306,8 +310,7 @@ export default function TikTokVsYouTubeShortsPage() {
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Kineo turns one typed idea into a finished faceless video and exports one clean
             9:16 MP4 you post to YouTube Shorts, TikTok <em>and</em> Instagram Reels — no
-            watermark down-ranking, no re-editing per platform. Generate up to 3 free
-            videos every 24 hours, no card.
+            watermark down-ranking, no re-editing per platform. {ft(OFFER, 'Generate up to 3 free videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
           <a
             href="https://www.usekineo.com/free-ai-shorts-generator?utm_source=tiktok-vs-shorts&utm_medium=seo&utm_campaign=seo-sprint"

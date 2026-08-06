@@ -7,6 +7,10 @@
 // the visible FAQ so the markup can never drift from what a human reads.
 
 import type { Metadata } from 'next'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -363,9 +367,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             Volume is the whole game, and volume is exactly what an AI generator gives you.
             Kineo turns one typed idea into a finished faceless Short — script, AI
-            voiceover, visuals and captions — in about 3–7 minutes. Generate up to 3
-            watermarked videos every 24 hours with no credit card, in a high-RPM niche of
-            your choice.
+            voiceover, visuals and captions — in about 3–7 minutes. {ft(OFFER, 'Generate up to 3 watermarked videos every 24 hours with no credit card, in a high-RPM niche of your choice.', OFFER.copy.headline + ' Pick a high-RPM niche of your choice.')}
           </p>
           <a
             href="/free-ai-shorts-generator?utm_source=payout-page&utm_medium=seo&utm_campaign=seo-sprint"

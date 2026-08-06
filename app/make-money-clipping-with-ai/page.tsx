@@ -12,6 +12,10 @@
 // tier. Metric: signups with utm_source=clipping-page.
 
 import type { Metadata } from 'next'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -311,9 +315,7 @@ export default function MakeMoneyClippingWithAiPage() {
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
             The clipping economy pays for view volume, and volume is a production
             problem. Kineo turns one typed topic into a finished faceless Short — script,
-            AI voiceover, matched visuals and captions — in about 3–7 minutes. Generate
-            up to 3 watermarked videos every 24 hours free, no credit card, and see
-            whether a daily pipeline fits your workflow before spending anything.
+            AI voiceover, matched visuals and captions — in about 3–7 minutes. {ft(OFFER, 'Generate up to 3 watermarked videos every 24 hours free, no credit card, and see whether a daily pipeline fits your workflow before spending anything.', OFFER.copy.headline + ' See whether a daily pipeline fits your workflow before spending anything.')}
           </p>
           <a
             href="/free-ai-shorts-generator?utm_source=clipping-page&utm_medium=seo&utm_campaign=earn-angle"

@@ -3,6 +3,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const QUSO_INTENT_CAMPAIGN = 'push52_vidyo_quso_pricing_decision'
 
@@ -35,7 +39,7 @@ export default function QusoDecisionSections() {
           placeholder: 'Describe the faceless Short you want to create',
           submit: 'Turn this topic into a Fast Short →',
           examplesLabel: 'Example prompts',
-          note: 'Your exact topic stays attached through signup. Up to 3 watermarked Fast videos per 24h; no card required.',
+          note: `Your exact topic stays attached through signup. ${ft(OFFER, 'Up to 3 watermarked Fast videos per 24h; no card required.', OFFER.copy.headline)}`,
         }}
       />
 

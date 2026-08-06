@@ -23,6 +23,10 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -291,7 +295,7 @@ export default function HowToStartAFacelessYouTubeChannelPage() {
           </Link>
         </div>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
         </p>
 
         <h2 style={h2}>The three decisions you make once</h2>
@@ -407,9 +411,7 @@ export default function HowToStartAFacelessYouTubeChannelPage() {
           Kineo is the production layer in Phase 2. Type one topic — or paste a script you wrote — and it produces the
           script structure, the AI voiceover, footage matched line by line and burned-in captions, exported as a
           ready-to-post 9:16 MP4, usually in two to four minutes. You keep the niche decision, the research, the angle
-          and the hook, which are the four things that decide whether the channel works. A new account can create up to
-          three watermarked Fast videos every 24 hours without a card, which is enough to find out whether your format
-          survives contact with a real video.
+          and the hook, which are the four things that decide whether the channel works. {ft(OFFER, 'A new account can create up to three watermarked Fast videos every 24 hours without a card, which is enough to find out whether your format survives contact with a real video.', OFFER.copy.sentence + ' That is enough to find out whether your format survives contact with a real video.')}
         </p>
         <p style={small}>
           On disclosure: script drafting, caption generation and voiceover assistance are{' '}
@@ -476,7 +478,7 @@ export default function HowToStartAFacelessYouTubeChannelPage() {
         >
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Phase 2 starts with one video.</div>
           <p style={{ color: MUTED, margin: '8px 0 18px' }}>
-            Up to 3 watermarked Fast videos every 24 hours — no card.
+            {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href="/signup?create_intent=fast&intent_campaign=push96_start_faceless_channel"

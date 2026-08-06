@@ -13,6 +13,10 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import ShortCostCalculator from './ShortCostCalculator'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 const CALCULATOR_CAMPAIGN = 'push77_short_cost_calculator'
 const CALCULATOR_FORM_ID = 'try-costed-workflow'
@@ -23,7 +27,7 @@ const CALCULATOR_EXAMPLES = [
 ] as const
 
 export const metadata: Metadata = {
-  title: 'Affordable AI Shorts Maker — 3 Fast Videos Every 24h | Kineo',
+  title: ft(OFFER, 'Affordable AI Shorts Maker — 3 Fast Videos Every 24h | Kineo', 'Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo'),
   description:
     'Calculate the local cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.',
   alternates: { canonical: 'https://www.usekineo.com/cheapest-ai-shorts-maker' },
@@ -46,16 +50,16 @@ const WHY_CHEAPER: { t: string; d: string }[] = [
   { t: 'Built only for faceless Shorts', d: 'It does one job — turn an idea into a short-form video — so you’re not paying for a bloated general-purpose video suite you’ll never fully use.' },
   { t: 'Start at 1 credit with Fast Mode', d: 'You choose the engine. Fast Mode uses matched stock footage for 1 credit per video. Original AI Generated scenes use 20 credits, while premium Cinematic scenes use 50.' },
   { t: 'No camera, no editor, no extra subscriptions', d: 'Script, AI voiceover, footage and captions are all generated in one pass — so the price of a Short is the credits, not a stack of separate tools.' },
-  { t: 'Try before you pay anything', d: 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no credit card, so you can confirm the workflow fits before paying.' },
+  { t: 'Try before you pay anything', d: `${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no credit card, so you can confirm the workflow fits before paying.', OFFER.copy.sentence + ' Confirm the workflow fits before paying.')}` },
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'What is the cheapest AI shorts maker?', a: 'The answer depends on visual engine and monthly volume. Kineo Fast Mode uses 1 credit per complete faceless Short, while AI Generated uses 20 and Cinematic uses 50. A new account can test up to 3 watermarked Fast videos every 24 hours without a card; the calculator on this page uses the current local subscription prices.' },
+  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. Kineo Fast Mode uses 1 credit per complete faceless Short, while AI Generated uses 20 and Cinematic uses 50. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current local subscription prices.` },
   { q: 'How do I make AI YouTube Shorts cheap?', a: 'Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately.' },
   { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
   { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
   { q: 'Do I have to use the most expensive AI engine?', a: 'No. You pick the engine per video. Fast Mode uses 1 credit with matched stock footage, AI Generated uses 20 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes.' },
-  { q: 'Can I really make a Short for free first?', a: 'Yes. A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card. Paid plans unlock clean exports and premium AI engines.' },
+  { q: 'Can I really make a Short for free first?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.` },
 ]
 
 export default function CheapestAiShortsMakerPage() {
@@ -78,14 +82,14 @@ export default function CheapestAiShortsMakerPage() {
           The Cheapest AI Shorts Maker That Builds the Whole Video
         </h1>
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. Try up to 3 watermarked Fast videos every 24 hours with no card. The calculator below shows the local first-month and renewal price. No camera, no editing, no timeline.
+          Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. {ft(OFFER, 'Try up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} The calculator below shows the local first-month and renewal price. No camera, no editing, no timeline.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Make a Fast video free →</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · Local prices matched to Checkout
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · Local prices matched to Checkout
         </p>
 
         <ShortCostCalculator />
@@ -151,7 +155,7 @@ export default function CheapestAiShortsMakerPage() {
         </div>
 
         <div style={{ marginTop: 44, textAlign: 'center', background: 'radial-gradient(circle at 50% 0%, rgba(41,151,255,0.14), #0c0c0e 70%)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 18, padding: '34px 22px' }}>
-          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>Make up to 3 watermarked Fast videos every 24h.</div>
+          <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>{ft(OFFER, 'Make up to 3 watermarked Fast videos every 24h.', OFFER.copy.headline)}</div>
           <p style={{ color: '#86868b', margin: '8px 0 18px' }}>One idea in, a ready-to-post Short out. No credit card.</p>
           <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="final" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}>Make my Fast video →</OrganicCtaLink>
         </div>

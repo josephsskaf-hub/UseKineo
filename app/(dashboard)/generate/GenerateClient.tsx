@@ -17,6 +17,11 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
 import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
+// KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — módulo puro e client-safe (nenhum
+// import, nenhum segredo): é a fonte única do custo por motor, e o modal de
+// upgrade passou a DERIVAR "quantos vídeos de IA este plano compra" dele em vez
+// de redigitar o número.
+import { creditCostFor } from '@/lib/credits/engineCost'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -29,11 +34,18 @@ import {
   // TIER_PRICES/INTRO_PRICES direto, um comprador de pais de menor renda le
   // $4.90 e a fatura sai $4.99 — nove centavos, mas e uma promessa quebrada.
   // Por isso a regiao entra aqui tambem, e as tabelas cruas saem.
+  // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — INTRO_CREDITS/TIER_CREDITS e
+  // isRegionalTier entram porque o sublabel de cada plano do UpgradeModal
+  // deixou de ser literal: ele agora deriva preco E creditos da MESMA tabela
+  // que a rota da Stripe cobra.
+  INTRO_CREDITS,
+  TIER_CREDITS,
   coercePriceRegion,
   formatCheckoutMoney,
   getIntroPrice,
   getTierPrice,
   hasIntroOffer,
+  isRegionalTier,
   type CheckoutCurrency,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
@@ -47,6 +59,8 @@ import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
 import NicheOnboarding from '@/components/NicheOnboarding'
+import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
+import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
 // videos now cost 120 universal credits; the avatar 402 already routes to the
@@ -450,6 +464,8 @@ export default function GenerateClient({
   initialViralPrompt?: string
   initialUserId: string
 }) {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
+  const OFFER = useFreeTierOffer()
   const router = useRouter()
   const searchParams = useSearchParams()
   const [postVideoCurrency, setPostVideoCurrency] = useState<CheckoutCurrency | null>(null)
@@ -457,6 +473,10 @@ export default function GenerateClient({
   // /api/geo dizer o contrario.
   const [postVideoRegion, setPostVideoRegion] = useState<PriceRegion>('standard')
   const postVideoCurrencyTrackedRef = useRef(false)
+  // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — país da última resposta do
+  // /api/geo. Só existe para o evento `post_video_currency_resolved`, que
+  // passou a ser emitido fora do `.then()` do fetch (ver o efeito abaixo).
+  const resolvedCountryRef = useRef<string | null>(null)
   // PUSH #55 — keep the organic intent campaign attached to every recurring
   // checkout path reached from this screen. New signups are attributable from
   // their profile, but an existing free user arriving from YouTube also needs
@@ -2723,13 +2743,27 @@ export default function GenerateClient({
     }
   }, [phase, finalVideoUrl])
 
-  // Resolve currency only when a free user reaches the clean-export decision.
-  // Checkout repeats the country lookup server-side and never accepts a
-  // currency override from the browser.
+  // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — ESTA RESOLUÇÃO ERA TARDIA DEMAIS,
+  // E ISSO ERA O BUG.
+  //
+  // A condição antiga era "só quando um usuário free chega à decisão de export
+  // limpo". Só que o `UpgradeModal` desta tela — a superfície de venda MAIS
+  // BATIDA do produto (todo Generate/Analyze sem saldo cai nela, e a razão
+  // `trial_ended` do reverse trial também) — escrevia preço em DÓLAR FIXO para
+  // todo mundo justamente porque nunca havia moeda resolvida quando ele abria.
+  // A coorte que perde o trial inclui BR e IN por construção.
+  //
+  // Resolver NO MONTE, e não no momento em que a tela de venda aparece, é o que
+  // remove o piscar do preço: a alternativa (abrir o fetch quando o modal abre)
+  // faria o comprador ver um traço, depois um número — e mostrar USD nesse
+  // intervalo, que é a outra saída, é a promessa quebrada que este commit
+  // conserta. Custo: UMA request a um endpoint que só lê um header de IP.
+  // UM estado de moeda por tela: duas cópias da mesma pergunta divergem.
+  //
+  // Isto é só EXIBIÇÃO. O /api/stripe/checkout re-resolve país → moeda →
+  // região no servidor e nunca aceita nenhum dos dois vindo do navegador.
   useEffect(() => {
-    const eligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
-      !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
-    if (!eligible || postVideoCurrency) return
+    if (postVideoCurrency) return
     let cancelled = false
 
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
@@ -2742,24 +2776,52 @@ export default function GenerateClient({
         const safeCurrency: CheckoutCurrency =
           currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
         const safeRegion = coercePriceRegion(region)
+        // O país fica guardado porque quem EMITE o evento agora é outro efeito,
+        // e ele roda MUITO depois desta resposta (só quando o usuário chega à
+        // tela pós-vídeo). Sem o ref, o país morria aqui dentro.
+        resolvedCountryRef.current = String(country || 'unknown').slice(0, 2).toUpperCase()
         setPostVideoCurrency(safeCurrency)
         setPostVideoRegion(safeRegion)
-        if (!postVideoCurrencyTrackedRef.current) {
-          postVideoCurrencyTrackedRef.current = true
-          void trackEvent('post_video_currency_resolved', {
-            currency: safeCurrency,
-            price_region: safeRegion,
-            country: String(country || 'unknown').slice(0, 2).toUpperCase(),
-            ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
-          })
-        }
       })
       .catch(() => {
+        // O checkout resolve a moeda de novo no servidor pelo header de IP:
+        // este fallback muda o RÓTULO, nunca a cobrança.
         if (!cancelled) setPostVideoCurrency('usd')
       })
 
     return () => { cancelled = true }
-  }, [phase, finalVideoUrl, planTier, hasPaid, wmUnlocking, postVideoCurrency, intentCampaign])
+  }, [postVideoCurrency])
+
+  // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — a emissão de
+  // `post_video_currency_resolved` saiu do efeito acima DE PROPÓSITO, e este é
+  // o ponto todo: o evento significa "um usuário free chegou à decisão de
+  // export limpo e resolvemos a moeda dele". Se ele continuasse dentro do
+  // fetch, a resolução no monte passaria a emitir o evento para TODA visita ao
+  // /generate — instrumento novo contaminando série antiga, e o denominador
+  // deixaria de significar o que significava. No sentido oposto, deixar o
+  // evento lá dentro faria TODO mundo emitir uma vez e ninguém mais, porque o
+  // efeito acima retorna cedo com a moeda já em mãos. Separado, o evento roda
+  // exatamente na condição original, uma vez por sessão.
+  useEffect(() => {
+    if (postVideoCurrencyTrackedRef.current) return
+    if (!postVideoCurrency) return
+    // Só emite quando o /api/geo REALMENTE respondeu. O ramo de falha do fetch
+    // fixa a moeda em 'usd' sem preencher o país, e antes desta mudança ele
+    // nunca produzia evento (o `.then()` que emitia não rodava). Sem esta
+    // guarda, falhas de geo passariam a injetar `country: 'unknown'` numa série
+    // histórica que nunca teve essa categoria.
+    if (resolvedCountryRef.current === null) return
+    const cleanExportEligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
+      !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
+    if (!cleanExportEligible) return
+    postVideoCurrencyTrackedRef.current = true
+    void trackEvent('post_video_currency_resolved', {
+      currency: postVideoCurrency,
+      price_region: postVideoRegion,
+      country: resolvedCountryRef.current,
+      ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+    })
+  }, [postVideoCurrency, postVideoRegion, phase, finalVideoUrl, planTier, hasPaid, wmUnlocking, intentCampaign])
 
   // PUSH #25 — measure a real offer impression, not merely an eligible render.
   // The result player is tall on mobile, so the clean-export card can exist
@@ -4954,7 +5016,7 @@ export default function GenerateClient({
     trackEvent('video_share_clicked', metadata)
     const destination = channel === 'whatsapp'
       ? `https://wa.me/?text=${encodeURIComponent(`Watch my Short and tell me what you think: ${url}`)}`
-      : `https://twitter.com/intent/tweet?text=${encodeURIComponent('I made this YouTube Short with Kineo. Create up to 3 Fast videos every 24h with no card.')}&url=${encodeURIComponent(url)}`
+      : `https://twitter.com/intent/tweet?text=${encodeURIComponent(ft(OFFER, 'I made this YouTube Short with Kineo. Create up to 3 Fast videos every 24h with no card.', 'I made this YouTube Short with Kineo. Start free — your first video is on us.'))}&url=${encodeURIComponent(url)}`
     window.open(destination, '_blank', 'noopener,noreferrer')
     trackEvent('video_share_channel_opened', metadata)
     if (channel === 'whatsapp') {
@@ -5763,6 +5825,11 @@ export default function GenerateClient({
         <UpgradeModal
           reason={upgradeReason}
           isSubscriber={isStarter || isCreator || isStudio}
+          // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o MESMO estado de moeda
+          // da tela (resolvido pelo /api/geo assim que este modal abre). Uma
+          // resolução por tela, não uma por modal.
+          currency={postVideoCurrency}
+          region={postVideoRegion}
           // Driven by the launcher, not `upgradeLoading`: the old flag was set
           // once and never cleared, so a failed redirect left the modal stuck
           // on "…" forever. The launcher's watchdog releases it after 15 s.
@@ -7035,8 +7102,8 @@ export default function GenerateClient({
                     </span>{' '}
                     left —{' '}
                     {credits >= 20
-                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid ? 'Free Fast includes up to 3 watermarked previews per 24 hours.' : 'Paid Fast clean exports use 1 credit each.'}`
-                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid ? 'You can still make up to 3 watermarked Fast previews per 24 hours.' : 'Paid Fast clean exports use 1 credit each.'}`}
+                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`
+                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid ? ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'You can still make 1 free watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -8823,6 +8890,8 @@ function CreditsChip({
   // novo); null = desconhecido → texto genérico antigo.
   freeUsedToday?: number | null
 }) {
+  // [KINEO-TRIAL-SWAP-2026-08-07] — limite e rótulos vêm da oferta (flag OFF: 3/today).
+  const OFFER = useFreeTierOffer()
   if (loading) {
     return (
       <div
@@ -8870,14 +8939,14 @@ function CreditsChip({
               upgrade. `2 of 3` também corrige a leitura errada de "ilimitado"
               que o texto genérico permitia. */}
           {freeUsedToday !== null && freeUsedToday > 0
-            ? `${Math.min(freeUsedToday, 3)} of 3 free today`
+            ? `${Math.min(freeUsedToday, OFFER.limit)} of ${OFFER.limit} free ${OFFER.copy.counterNoun}`
             : 'Fast previews are free'}
         </div>
         <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted2)', fontWeight: 600 }}>
-          {freeUsedToday !== null && freeUsedToday >= 3 ? (
-            <>Daily limit reached · <a href={pricingHref} style={{ color: '#5cb3ff', textDecoration: 'underline' }}>Starter = clean exports, no wait</a></>
+          {freeUsedToday !== null && freeUsedToday >= OFFER.limit ? (
+            <>{ft(OFFER, 'Daily limit reached', 'Monthly limit reached')} · <a href={pricingHref} style={{ color: '#5cb3ff', textDecoration: 'underline' }}>Starter = clean exports, no wait</a></>
           ) : (
-            'Up to 3 / 24h · watermark · no card'
+            ft(OFFER, 'Up to 3 / 24h · watermark · no card', '1 free Fast/month · watermark · no card')
           )}
         </p>
       </div>
@@ -10069,6 +10138,16 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
 // KINEO-SPRINT-OFFER-2026-07-14 — Creator carries the "MOST POPULAR" badge
 // now (lib/pricing recommended flag moved pro → basic) and the starter/basic
 // rows show the intro-month price inline; onUpgrade appends ?intro=1.
+// KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — `PlanConfig.tier` é `PlanTier`
+// ('free' | 'starter' | 'basic' | 'pro' | 'autopilot'), mas as tabelas de preço
+// de lib/checkoutPricing só conhecem os três planos self-serve. Esta função é a
+// única conversão permitida entre os dois vocabulários, e ela devolve null em
+// vez de mentir — indexar TIER_PRICES com um tier ausente é TypeError, não
+// preço errado.
+function asCheckoutTier(tier: string): 'starter' | 'basic' | 'pro' | null {
+  return tier === 'starter' || tier === 'basic' || tier === 'pro' ? tier : null
+}
+
 function UpgradeModal({
   loading,
   onUpgrade,
@@ -10076,6 +10155,8 @@ function UpgradeModal({
   reason = 'credits',
   isSubscriber = false,
   checkoutError = null,
+  currency = null,
+  region = 'standard',
 }: {
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
@@ -10084,6 +10165,15 @@ function UpgradeModal({
   isSubscriber?: boolean
   /** Inline English error from the parent's plan-row launcher. */
   checkoutError?: string | null
+  /**
+   * KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — moeda/região resolvidas pelo
+   * /api/geo no componente pai. `null` = ainda resolvendo: as linhas de plano
+   * seguram o preço em vez de escrever dólar. Mostrar USD para um visitante do
+   * Brasil e trocar o número um instante depois é pior do que segurar (mesma
+   * regra do PricingCards e do TrialDowngradeModal).
+   */
+  currency?: CheckoutCurrency | null
+  region?: PriceRegion
 }) {
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the top-up buttons below were raw
   // window.location.href with only `loading` (a prop that is never true for
@@ -10097,10 +10187,47 @@ function UpgradeModal({
   // KINEO-SPRINT-OFFER-2026-07-14 — intro-month sublabels so the modal shows
   // ONE offer consistently (first month price + what it renews at is on the
   // plan rows themselves; the checkout applies it via ?intro=1).
+  // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — este mapa era LITERAL e em DÓLAR
+  // ('first month $4.90, then $9.90/mo'), e o modal é a superfície de venda
+  // mais batida do app. Agora cada linha é derivada de lib/checkoutPricing —
+  // a MESMA tabela de onde a rota da Stripe cobra — pela moeda e pela região
+  // do comprador.
+  //
+  // ⚠️ TRÊS AFIRMAÇÕES DA COPY ANTIGA FORAM DERRUBADAS AQUI, e as três eram
+  // verificáveis e falsas:
+  //   1. "first month $4.90, then $9.90/mo" para QUALQUER comprador. Falso em
+  //      BR/IN (R$/₹) e falso também em USD na região `value`, onde o Starter
+  //      NÃO tem 1º mês mais barato (VALUE_REGION_INTRO_PRICES). Prometer um
+  //      desconto que não existe é a diferença entre uma página de preço e uma
+  //      cobrança-surpresa — por isso `hasIntroOffer` decide se a frase existe.
+  //   2. "1 Hollywood film / month" no Creator. Falso NO MÊS QUE O BOTÃO
+  //      VENDE: o CTA deste modal manda `&intro=1` para starter/basic, e o 1º
+  //      mês concede INTRO_CREDITS.basic = 50 créditos, não os 150 que um
+  //      render Hollywood custa. A frase era verdadeira só a partir da 1ª
+  //      renovação — a linha agora nomeia os créditos do 1º mês e os da
+  //      renovação separadamente, cada um da sua constante.
+  //   3. "up to 10 AI-generated videos" no Studio. 200 créditos ÷ 20 (Seedance,
+  //      o motor de IA mais barato) = 10 — o número estava certo, mas
+  //      redigitado; agora é derivado, então sobrevive ao próximo reprice.
+  //
+  // Enquanto `currency` for null nada de dinheiro é escrito.
+  const SEEDANCE_CREDITS = creditCostFor('cinematic_ai')
+  function planUnlockLine(tier: 'starter' | 'basic' | 'pro'): string {
+    const credits = TIER_CREDITS[tier]
+    const aiVideos = SEEDANCE_CREDITS > 0 ? Math.floor(credits / SEEDANCE_CREDITS) : 0
+    const videosPart = aiVideos > 0 ? ` · up to ${aiVideos} AI-generated video${aiVideos === 1 ? '' : 's'}` : ''
+    if (!currency) return `${credits} credits / month${videosPart}`
+    if (isRegionalTier(tier) && hasIntroOffer(tier, currency, region)) {
+      const intro = formatCheckoutMoney(currency, getIntroPrice(tier, currency, region))
+      const full = formatCheckoutMoney(currency, getTierPrice(tier, currency, region))
+      return `First month ${intro} (${INTRO_CREDITS[tier]} credits), then ${full}/mo for ${credits} credits${videosPart}`
+    }
+    return `${credits} credits / month${videosPart}`
+  }
   const unlocks: Record<string, string> = {
-    starter: '25 credits / month · first month $4.90, then $9.90/mo',
-    basic: '150 credits · 1 Hollywood film / month · first month $9.90, then $24.90/mo', // KINEO-PRICING-V3B-2026-07-10
-    pro: '200 credits · up to 10 AI-generated videos',
+    starter: planUnlockLine('starter'),
+    basic: planUnlockLine('basic'),
+    pro: planUnlockLine('pro'),
   }
   // KINEO-PLAN-GATE-MODAL — accurate headline per reason: a real credit shortage
   // vs an engine that needs a higher plan. Users who HAVE credits but picked a
@@ -10196,12 +10323,21 @@ function UpgradeModal({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {PLAN_LIST.map((plan) => {
             const recommended = !!plan.recommended
+            // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o `as 'starter'|'basic'|'pro'`
+            // que estava aqui era um cast SEM verificação sobre `PlanConfig.tier`,
+            // cujo tipo real inclui 'free' e 'autopilot'. Enquanto a linha só
+            // imprimia `plan.priceLabel` isso era inofensivo; agora ela indexa
+            // TIER_PRICES, e um tier fora da tabela derrubaria o modal INTEIRO
+            // com TypeError no meio de uma tela que pede dinheiro. Plano que não
+            // sabemos precificar simplesmente não é vendido aqui (fail-closed).
+            const tier = asCheckoutTier(plan.tier)
+            if (!tier) return null
             return (
               <button
                 key={plan.tier}
                 type="button"
                 disabled={loading}
-                onClick={() => onUpgrade(plan.tier as 'starter' | 'basic' | 'pro')}
+                onClick={() => onUpgrade(tier)}
                 style={{
                   position: 'relative',
                   width: '100%',
@@ -10243,12 +10379,20 @@ function UpgradeModal({
                   <span style={{ display: 'block', fontWeight: 900, color: '#F1F5F9', fontSize: '0.98rem' }}>
                     {plan.name}{' '}
                     <span style={{ color: recommended ? '#5cb3ff' : '#86868b', fontWeight: 800 }}>
-                      {plan.priceLabel}
+                      {/* KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — era
+                          `plan.priceLabel`, um literal em DÓLAR de
+                          lib/pricing.ts ('$9.90'/'$24.90'/'$37.90'), mostrado a
+                          compradores de BR e IN que a rota da Stripe cobra em
+                          R$ e ₹. Agora vem de lib/checkoutPricing, a mesma
+                          tabela que a rota bilha, pela moeda E pela região.
+                          Enquanto o /api/geo não responde, um traço — não um
+                          preço errado que troca de número na cara do usuário. */}
+                      {currency ? formatCheckoutMoney(currency, getTierPrice(tier, currency, region)) : '—'}
                       <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>{plan.periodLabel}</span>
                     </span>
                   </span>
                   <span style={{ display: 'block', fontSize: '0.78rem', color: '#86868b', marginTop: 2 }}>
-                    {unlocks[plan.tier]}
+                    {unlocks[tier]}
                   </span>
                 </span>
                 <span
@@ -10597,7 +10741,7 @@ function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, lineHeight: 1.4 }}>
-        🎉 Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed.
+        🎉 <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on="Your Creator trial is live — 40 free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed." />
       </span>
       <button
         type="button"

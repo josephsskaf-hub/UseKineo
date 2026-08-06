@@ -1,5 +1,9 @@
 import type { Metadata } from 'next'
 import PricingClient from './PricingClient'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 // PUSH #92 — P0 canonical bug fix. This page used to be 'use client' at L1,
 // which meant it could not export `metadata` at all — it silently inherited
@@ -10,12 +14,12 @@ import PricingClient from './PricingClient'
 export const metadata: Metadata = {
   title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
   description:
-    'Create up to 3 watermarked Fast videos every 24h with no card. Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.',
+    `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
   alternates: { canonical: '/pricing' },
   openGraph: {
     title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
     description:
-      'Create up to 3 watermarked Fast videos every 24h with no card. Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.',
+      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
     url: 'https://www.usekineo.com/pricing',
     siteName: 'Kineo',
     images: [
@@ -32,7 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
     description:
-      'Create up to 3 watermarked Fast videos every 24h with no card. Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.',
+      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
     images: ['https://www.usekineo.com/og-image.png'],
   },
 }

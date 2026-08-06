@@ -22,6 +22,10 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+
+// [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
+const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
@@ -174,7 +178,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does Kineo cost?',
-    a: 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card. Starter is $4.90 for the first month, then $9.90 per month. Check the pricing page for current plan details.',
+    a: `${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $4.90 for the first month, then $9.90 per month. Check the pricing page for current plan details.`,
   },
 ]
 
@@ -289,7 +293,7 @@ export default function RedditStoryVideoGeneratorPage() {
           </Link>
         </div>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          Up to 3 watermarked Fast videos / 24h · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
         </p>
 
         <TopicGeneratorForm
@@ -528,7 +532,7 @@ export default function RedditStoryVideoGeneratorPage() {
         >
           <div style={{ fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', fontWeight: 900 }}>One thread. One finished Short.</div>
           <p style={{ color: MUTED, margin: '8px 0 18px' }}>
-            Up to 3 watermarked Fast videos every 24 hours — no card.
+            {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
             href={FORM_ANCHOR}
