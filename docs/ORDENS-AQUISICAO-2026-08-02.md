@@ -381,3 +381,20 @@ EXECUTAR AGORA (budget ~$200 do fundador):
 3. LICAO DE CONTEUDO (para skill e Autopilot): retencao do Cicada = 7,38s/2,1% completo,
    drop em 0:01 — 1o FRAME precisa ser imagem forte + voz imediata + legenda grande.
    Nunca abrir com tela escura/texto ilegivel. Aplicar em todos os proximos videos.
+
+━━━ 🔴 DECISOES FINAIS DO FUNDADOR — REVERSE TRIAL (06/08 noite; EM CONFLITO, ISTO VENCE) ━━━
+· Fase 2 vem ANTES de qualquer item da fila exceto o achado de seguranca /api/render/[id].
+· CONCESSAO = TETO = 40 creditos (gate fechado; commit 036ab25 ja aplicou 40 no codigo).
+  NUNCA subir sem aprovacao. Hollywood (150cr) inalcancavel por design.
+· Trial = CREATOR, 3 dias (A/B com 7), SEM cartao. NUNCA Studio.
+· PRICING: precos intocados. 50% off SO nos e-mails D5/D10 pos-trial — NUNCA em superficie
+  publica. QA varre antes de ligar a flag.
+· TROCA ATOMICA: codigo+copy+e-mails juntos, incluindo as 28 paginas /free-ai-shorts/* e a
+  promessa "3 free Shorts every 24h" em TODAS as superficies.
+· "PRIMEIRO MINUTO PAGO" no escopo (pos-checkout: video ja renderizando via Viral Now).
+· FLAG so liga apos QA completo signup→trial→teto→downgrade→resgate.
+· 🔒 GATE DE TRAFEGO PAGO: TAAFT $347 (ordem O) e QUALQUER investimento pago novo SO DISPARAM
+  depois do QA do trial aprovado e flag ligada. Se 09/08 chegar antes, ADIAR e registrar aqui
+  — nao pagar para encher funil que ainda nao converteu. (Substitui o cronograma "domingo".)
+· fal.ai: auto-reload CONFIRMADO (saldo $41,97, top-up ON $20→+$40 cartao 8677, verificado
+  06/08 15:15 BRT). PARAR de projetar apagao de saldo nos docs.

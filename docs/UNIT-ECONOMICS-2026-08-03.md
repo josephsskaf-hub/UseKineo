@@ -63,7 +63,7 @@ Seedance" (10%) — exatamente o plano que tua Fase 1 já manda subir mais. Diag
 confirmado pelo dado, por motivo diferente do suposto.
 
 ## 🔴 RISCO URGENTE DESCOBERTO (fora do escopo pedido, mas bloqueante)
-**Saldo fal: $38,33 · burn diário: $6,79 → ~5,6 DIAS até zerar.**
+**Saldo fal: $38,33 · auto-reload ON confirmado 06/08 (saldo $41,97, $20→+$40 cartao 8677) — NAO projetar apagao.**
 Sem auto-reload configurado = 3º apagão de fornecedor em 4 dias, e desta vez mata o AI hook
 (o "wow" do 1º vídeo de todo free). Ação: recarregar/ativar auto-reload no fal.
 
