@@ -544,3 +544,14 @@ As duas que decidem tudo: **taxa de 2º vídeo** (o produto retém?) e
   coorte era estreita ninguém notava; ao alargar a coorte, a cópia velha vira envio indevido.
 - **CARIMBO VITALÍCIO EM CIMA DE ATRIBUTO REVERSÍVEL QUEIMA GENTE**: marcar `cap_hit_sent_at` ao
   pular um PAGANTE apaga a pessoa para sempre caso ela volte ao free. Carimbar só o que não muda.
+
+## PROTOCOLO DE COMUNICACAO ENTRE SESSOES (ordem do fundador, 06/08 noite)
+O fundador nao quer trabalho repetido nem cegueira entre a sessao CEO (chat principal) e as
+sprints agendadas. REGRA A PARTIR DE AGORA:
+1. TODA sprint, ANTES de agir: ler docs/ORDENS-AQUISICAO (ordens novas da sessao CEO) +
+   docs/ENGAGEMENT-LOG.md + o proprio SPRINT-<data>.md do dia. Nunca refazer o que ja consta.
+2. TODA sprint, AO TERMINAR: escrever no SPRINT-<data>.md um bloco "RESUMO PARA O CEO" de
+   ate 10 linhas: o que fez, numeros, gates abertos. E o que a sessao CEO fez fica em
+   ORDENS/ENGAGEMENT — leiam de la, nao perguntem ao fundador.
+3. Assuntos PONTUAIS/decisoes: acontecem no chat principal com o fundador. Sprints executam
+   e reportam; nao abrem discussoes novas com ele, so gates objetivos.
