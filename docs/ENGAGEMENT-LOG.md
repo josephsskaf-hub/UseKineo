@@ -31,3 +31,5 @@ PROXIMO: monitorar resposta e cliques nos codigos de afiliado; se responderem, c
 - **Whop:** sem resposta nova visível dos 3 donos (Carlos/Eugene/adan) até 15:00Z.
 - LIÇÃO: PH sem rede prévia é troféu, não canal. O custo real do dia não foi o tempo — foi o
   freeze do pipeline de render (Ordem L congelada), pago por 3 pontos.
+
+## 06/08 noite — BLITZ TIER A: FUNDADOR ENVIOU os e-mails do Gmail (Conor Martin $100 + demais rascunhos existentes). Sprints: NAO reenviar e-mail; seguir com DM X do Sanji (prioridade velocidade), Adam e Typeform do Steffen; monitorar respostas e negociar. Pagamento so na entrega (gate fundador).
