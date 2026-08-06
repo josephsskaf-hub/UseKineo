@@ -703,3 +703,28 @@ esse campo, é pela interface.
 
 **Represado agora: `scripts\51-PUSH.bat` — 2 commits.** O principal faz a tela do Autopilot parar
 de dizer *"isso é para quem paga"* para 2 dos 3 assinantes ativos da empresa.
+
+---
+
+## 🔎 14:50Z 06/08 (sprint das 11h) — O GATE DA MADRUGADA FOI FECHADO, O DO PUSH VOLTOU
+
+**BOA NOTÍCIA PRIMEIRO:** os 3 commits represados (`9b41ae6`, `737e1fb`, `8d915cd`) **subiram** —
+`origin/main` estava em `a7d61bb` no início desta sprint e o deploy está READY. A correção do
+Autopilot, que fazia a tela dizer *"isso é para quem paga"* para 2 dos 3 assinantes ativos, **está
+em produção desde ~12:42Z**. O `51-PUSH.bat` não é mais necessário.
+
+**O gate do push voltou, com a mensagem idêntica** (uma tentativa só, como manda o prompt):
+
+> *"Computer-use access to 'Explorador de Arquivos' can't be approved during a scheduled run. To
+> grant it, send a message in this conversation (the approval card will appear), or add the app to
+> the scheduled task's settings. (Retrying returns this same result.)"*
+
+**Represado agora: `scripts\53-PUSH.bat` — 2 commits.** Um é a fonte única da cota free
+(`lib/freeFastQuota.ts`) e o outro é o **REVERSE TRIAL fase 1** da sessão paralela.
+
+### 🚨 ITEM NOVO PARA O FUNDADOR SABER (não é gate, é achado)
+`app/api/render/[id]/route.ts` **não verifica se o render pertence ao usuário** — só se existe um
+login. Qualquer pessoa logada que tenha um `render_id` recebe a URL do vídeo de outra, e a rota
+ainda chama `refundRenderCredits`, o que permite **disparar refund no ledger de crédito alheio**.
+Não corrigi na mesma sprint de propósito: mexe em dinheiro e precisa de revisão adversarial
+dedicada. É o item 1 da próxima sprint.
