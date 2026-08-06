@@ -35,12 +35,16 @@
 // daria o DIREITO de usar os motores pagos a quem não tem saldo para debitar —
 // trial que não gera vídeo não converte ninguém.
 //
-// ⚠️ DÍVIDA EXPLÍCITA QUE ESTE COMMIT CRIA (item 2 da fase 2, cron de
-// downgrade): trial que termina no DIA (3/7) sem gastar tudo deixa saldo
-// remanescente em video_credits. O cron de downgrade PRECISA revogar o que
-// sobrou — o evento de auditoria `trial_credits_granted` (escrito abaixo) é o
-// que diz quanto foi concedido e quando. Enquanto a flag estiver OFF isto é
-// inerte; ligar a flag ANTES do cron de downgrade seria dar 40 créditos vitalícios.
+// ✅ DÍVIDA #1 PAGA (06/08, sprint 16h — [KINEO-TRIAL-DOWNGRADE-2026-08-06]):
+// "trial que termina no DIA (3/7) sem gastar tudo deixa saldo remanescente em
+// video_credits" era o motivo de ligar a flag antes do cron dar 40 créditos
+// VITALÍCIOS. Resolvido em duas metades, ambas neste arquivo:
+//   · a ativação passou a gravar `trial_credits_granted` na MESMA UPDATE do
+//     grant (registro por LINHA, não pela constante);
+//   · downgradeExpiredTrial() (fim do arquivo) revoga o não gasto e fecha o
+//     estado numa escrita atômica, chamado de /api/cron/trial-downgrade.
+// O que AINDA falta antes da flag: itens 3–9 da fase 2 (paywalls, e-mails,
+// troca do free tier, primeiro minuto pago, webhook, QA completo).
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { writeServerEvent } from '@/lib/serverEvents'
@@ -115,6 +119,30 @@ export interface TrialProfileFields {
   trial_credits_used?: unknown
 }
 
+/** trial_credits_used como número, tolerante a null/tipo errado. */
+export function trialCreditsUsed(profile: TrialProfileFields | null | undefined): number {
+  const used = profile?.trial_credits_used
+  return typeof used === 'number' && Number.isFinite(used) ? used : 0
+}
+
+/**
+ * O RELÓGIO venceu? Data ausente ou ilegível conta como VENCIDO — um trial sem
+ * prazo legível não pode virar trial eterno.
+ */
+export function trialClockExpired(
+  profile: TrialProfileFields | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  const endsRaw = profile?.trial_ends_at
+  const ends = typeof endsRaw === 'string' ? Date.parse(endsRaw) : NaN
+  return !Number.isFinite(ends) || now >= ends
+}
+
+/** O TETO de créditos foi atingido? */
+export function trialCapReached(profile: TrialProfileFields | null | undefined): boolean {
+  return trialCreditsUsed(profile) >= TRIAL_CREDIT_CAP
+}
+
 /**
  * A VERDADE ÚNICA sobre "este perfil está em trial ativo?". Usada em TODOS os
  * checks de entitlement — a expiração é passiva: passou de trial_ends_at ou
@@ -128,11 +156,32 @@ export function isTrialActive(
 ): boolean {
   if (!REVERSE_TRIAL_ENABLED) return false
   if (!profile || profile.trial_status !== 'active') return false
-  const endsRaw = profile.trial_ends_at
-  const ends = typeof endsRaw === 'string' ? Date.parse(endsRaw) : NaN
-  if (!Number.isFinite(ends) || now >= ends) return false
-  const used = typeof profile.trial_credits_used === 'number' ? profile.trial_credits_used : 0
-  return used < TRIAL_CREDIT_CAP
+  return !trialClockExpired(profile, now) && !trialCapReached(profile)
+}
+
+/**
+ * A coorte do CRON DE DOWNGRADE (fase 2, item 2): trials que já NÃO estão
+ * ativos e ainda não foram processados.
+ *
+ * ⚠️ NÃO é `!isTrialActive(...)`, e a diferença é a razão de esta função
+ * existir. `isTrialActive` carrega a FLAG; se o cron perguntasse por ela,
+ * DESLIGAR a flag (um rollback perfeitamente razoável) faria o cron enxergar
+ * TODOS os trials vivos como vencidos e revogar o crédito de todo mundo na
+ * rodada seguinte. Por isso a decisão do cron é independente de flag — e a
+ * lição de 05/08 ("se o gatilho e o cron contam coisas diferentes, o cron está
+ * errado") é honrada pelo lado certo: os dois leem `trialClockExpired` e
+ * `trialCapReached`, os MESMOS predicados, e nunca podem divergir.
+ *
+ * `'downgraded'` e `'converted'` são estados TERMINais escritos por este cron —
+ * ficam fora da coorte, e é isso que o torna idempotente por construção.
+ */
+export function trialNeedsDowngrade(
+  profile: TrialProfileFields | null | undefined,
+  now: number = Date.now(),
+): boolean {
+  const status = profile?.trial_status
+  if (status !== 'active' && status !== 'expired') return false
+  return trialClockExpired(profile, now) || trialCapReached(profile)
 }
 
 // Service-role client (mesmo padrão de lib/credits/renderIntent.ts): a
@@ -260,6 +309,15 @@ export async function maybeActivateReverseTrial(args: {
           trial_ends_at: endsAt,
           trial_variant: variant,
           video_credits: (balance ?? 0) + TRIAL_GRANT_CREDITS,
+          // REGISTRO POR LINHA do que ESTA conta recebeu (fase 2, item 2).
+          // O cron de downgrade revoga o saldo remanescente do grant, e a conta
+          // "quanto sobrou" precisa do que foi CONCEDIDO. Ler a constante na
+          // hora da revogação seria correto só enquanto o teto nunca mudasse:
+          // no dia em que o fundador aprovar 40→60, todo trial concedido a 40
+          // passaria a ter 60 revogados. Número de dinheiro que envelhece mora
+          // na LINHA, não na constante. (Vai na MESMA UPDATE do grant — nenhum
+          // round-trip novo, nenhuma janela em que o crédito exista sem rastro.)
+          trial_credits_granted: TRIAL_GRANT_CREDITS,
         })
         .eq('id', args.userId)
         .is('trial_status', null)
@@ -393,5 +451,193 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
     }
   } catch (e) {
     console.error('[reverse-trial] cap accounting threw:', e instanceof Error ? e.message : String(e))
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 2, ITEM 2 — DOWNGRADE DO FIM DO TRIAL
+//
+// O que este bloco resolve é a DÍVIDA #1 declarada no commit d1133c7: a
+// expiração já era passiva (entitlement volta ao free na request seguinte),
+// mas o SALDO remanescente dos 40 créditos concedidos ficava na conta para
+// sempre. Ligar a flag sem isto = 40 créditos vitalícios por e-mail.
+//
+// Três decisões que a revisão adversarial obrigou a escrever aqui:
+//
+// 1. QUEM PAGA NUNCA TEM CRÉDITO REVOGADO — e a checagem é DENYLIST INVERTIDA
+//    (qualquer plan diferente de 'free'/vazio, OU has_paid), não a allowlist
+//    PAID_PLANS que send-cap-hit e send-activation-nudge carregam (e que já
+//    divergem entre si: uma tem 'autopilot', a outra não). Allowlist falha
+//    ABERTO no plano que ninguém lembrou de acrescentar — e "falhar aberto"
+//    aqui significa tirar crédito de um cliente pagante. Mesma guarda da
+//    ativação, pelo mesmo motivo, no sentido seguro.
+//
+// 2. PERDER A CORRIDA DO CAS 3× = PULAR A LINHA, nunca gravar sem guarda.
+//    É o OPOSTO da escolha feita no grant, de propósito: lá, desistir deixava
+//    um usuário com trial e sem crédito nenhum (dano permanente e invisível);
+//    aqui, desistir só adia a revogação em uma hora, enquanto gravar sem guarda
+//    destruiria um crédito comprado que chegou no meio da corrida. A assimetria
+//    do dano é que escolhe o lado.
+//
+// 3. REVOGA-SE O NÃO GASTO DO GRANT, LIMITADO PELO SALDO — nunca "zera a
+//    conta". `min(saldo, max(0, concedido − usado))`. Crédito de indicação,
+//    crédito comprado e crédito de refund ficam onde estão.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Linha de profiles que o cron de downgrade precisa ler. */
+export interface TrialDowngradeRow extends TrialProfileFields {
+  id: string
+  plan?: unknown
+  has_paid?: unknown
+  video_credits?: unknown
+  trial_credits_granted?: unknown
+  trial_variant?: unknown
+}
+
+export type TrialDowngradeOutcome =
+  | { action: 'skipped'; reason: string; creditsRevoked: 0 }
+  | { action: 'converted'; reason: 'paid'; creditsRevoked: 0 }
+  | { action: 'downgraded'; reason: 'credit_cap' | 'clock'; creditsRevoked: number }
+
+/** Colunas exigidas pelo downgrade — uma constante para o cron e os testes não divergirem. */
+export const TRIAL_DOWNGRADE_SELECT =
+  'id, plan, has_paid, video_credits, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant'
+
+function isPayingProfile(row: TrialDowngradeRow): boolean {
+  if (row.has_paid === true) return true
+  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
+  return plan !== '' && plan !== 'free'
+}
+
+/**
+ * Processa UM trial vencido: revoga o saldo remanescente do grant e fecha o
+ * estado. Nunca lança — o cron não pode morrer por causa de uma linha.
+ *
+ * Escrita ATÔMICA única (nada de "revoga e depois marca"): `video_credits`,
+ * `trial_status` e `trial_downgraded_at` saem juntos, com compare-and-swap em
+ * `trial_status` (o estado observado) e em `video_credits` (o saldo observado).
+ * Ou a linha inteira muda, ou nada muda — logo não existe estado intermediário
+ * "crédito revogado mas trial ainda aberto", que na rodada seguinte revogaria
+ * de novo.
+ */
+export async function downgradeExpiredTrial(
+  db: SupabaseClient,
+  userId: string,
+  now: number = Date.now(),
+): Promise<TrialDowngradeOutcome> {
+  try {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const { data, error } = await db
+        .from('profiles')
+        .select(TRIAL_DOWNGRADE_SELECT)
+        .eq('id', userId)
+        .maybeSingle()
+      if (error) {
+        console.error('[reverse-trial] downgrade read failed:', error.message)
+        return { action: 'skipped', reason: 'read_error', creditsRevoked: 0 }
+      }
+      if (!data) return { action: 'skipped', reason: 'no_profile', creditsRevoked: 0 }
+      const row = data as unknown as TrialDowngradeRow
+
+      // Releitura: o estado pode ter mudado entre a query da coorte e agora.
+      if (!trialNeedsDowngrade(row, now)) {
+        return { action: 'skipped', reason: 'not_due', creditsRevoked: 0 }
+      }
+
+      const observedStatus = row.trial_status as string
+      const rawBalance = row.video_credits
+      const balance = typeof rawBalance === 'number' && Number.isFinite(rawBalance) ? rawBalance : null
+      const grantedRaw = row.trial_credits_granted
+      const granted = typeof grantedRaw === 'number' && Number.isFinite(grantedRaw) ? grantedRaw : 0
+      const used = trialCreditsUsed(row)
+
+      const paying = isPayingProfile(row)
+      // Não gastou do grant = pode ser revogado; limitado pelo saldo real, que
+      // pode ser menor (o /api/credits/deduct decrementa fora do RPC) — e nunca
+      // negativo, porque `used` pode ULTRAPASSAR `granted` (o último débito
+      // antes do teto pode custar mais do que faltava).
+      //
+      // `granted` VINDO 0 REVOGA 0, de propósito e sem fallback para a
+      // constante. Uma linha de trial sem registro de concessão é ou (a) de
+      // antes desta coluna existir — e a produção tem ZERO trials, a flag nunca
+      // esteve ligada, então esse conjunto é vazio — ou (b) editada à mão. Nos
+      // dois casos, "assumir 40" tiraria crédito que talvez a pessoa tenha
+      // COMPRADO. Na dúvida sobre dinheiro alheio, não mexer.
+      const unspent = Math.max(0, granted - used)
+      const revoke = paying || balance === null ? 0 : Math.min(Math.max(0, balance), unspent)
+
+      const reason: 'credit_cap' | 'clock' = trialCapReached(row) ? 'credit_cap' : 'clock'
+      // ⚠️ SEAM PARA O ITEM 4 (extensão automática "+2 dias se 3+ vídeos e não
+      // assinou"): o ponto de decisão dela é AQUI, antes desta escrita, e não um
+      // cron separado. Depois que a linha vira 'downgraded' e o saldo é
+      // revogado, estender significaria conceder crédito DE NOVO — reabrindo
+      // exatamente o replay que o desenho do grant foi feito para eliminar.
+      // Quem for implementar: a extensão é um ramo desta mesma UPDATE
+      // (trial_ends_at += 2d, trial_extended = true, status segue 'active'),
+      // com a MESMA guarda de CAS. E a contagem de "3+ vídeos" NÃO pode sair da
+      // tabela `videos`, que é escrita pelo CLIENTE (lição de 06/08): a fonte
+      // server-side é `render_jobs` / `credit_debits`.
+      const patch: Record<string, unknown> = {
+        // 'converted' é rede de segurança, NÃO substitui o webhook da Stripe
+        // (item 8): quem comprou durante o trial e nunca teve o status atualizado
+        // sairia daqui contado como churn no A/B.
+        trial_status: paying ? 'converted' : 'downgraded',
+        // ⚠️ COORTE DOS E-MAILS D3+ (item 4) = trial_status = 'downgraded' E
+        // trial_downgraded_at na janela. NUNCA só `trial_downgraded_at is not
+        // null`: esta coluna também é carimbada em quem CONVERTEU, e mandar
+        // "Here's what you just lost access to" para um assinante ativo é
+        // exatamente a classe de erro que a revisão de 05/08 pegou (afirmação
+        // sobre o usuário que ele consegue conferir e que é falsa).
+        trial_downgraded_at: new Date(now).toISOString(),
+      }
+      if (revoke > 0) patch.video_credits = (balance ?? 0) - revoke
+
+      let write = db.from('profiles').update(patch).eq('id', userId).eq('trial_status', observedStatus)
+      // O eixo do saldo no CAS só existe quando há dinheiro em jogo. Sem
+      // revogação, exigir o saldo só produziria retry inútil quando um débito
+      // legítimo acontece no mesmo segundo. (`revoke > 0` implica `balance`
+      // numérico — ver o cálculo acima —, então não há ramo de null aqui.)
+      if (revoke > 0) write = write.eq('video_credits', balance as number)
+      const { data: updated, error: writeErr } = await write.select('id')
+      if (writeErr) {
+        console.error('[reverse-trial] downgrade update failed:', writeErr.message)
+        return { action: 'skipped', reason: 'update_error', creditsRevoked: 0 }
+      }
+      if (!updated || updated.length === 0) continue // perdeu a corrida — relê
+
+      const outcome: TrialDowngradeOutcome = paying
+        ? { action: 'converted', reason: 'paid', creditsRevoked: 0 }
+        : { action: 'downgraded', reason, creditsRevoked: revoke }
+      console.log(
+        `[reverse-trial] ${outcome.action.toUpperCase()} user=${userId.slice(0, 8)} reason=${outcome.reason} revoked=${outcome.creditsRevoked} used=${used}/${granted}`,
+      )
+      // AWAIT pelo mesmo motivo do grant e do trial_expired: acontece UMA vez
+      // por trial. Mas o registro que os e-mails D3+ vão usar como COORTE é a
+      // COLUNA trial_downgraded_at, escrita na mesma UPDATE do dinheiro — não
+      // este evento. Evento que falha vira buraco de auditoria; coorte que falha
+      // vira gente sem e-mail e gente com e-mail duplicado.
+      await writeServerEvent({
+        name: 'trial_downgraded',
+        userId,
+        metadata: {
+          outcome: outcome.action,
+          reason: outcome.reason,
+          credits_revoked: outcome.creditsRevoked,
+          credits_granted: granted,
+          credits_used: used,
+          variant: typeof row.trial_variant === 'string' ? row.trial_variant : null,
+          from_status: observedStatus,
+        },
+      })
+      return outcome
+    }
+    // 3 corridas perdidas: PULA. Ver decisão 2 no cabeçalho deste bloco — a
+    // próxima rodada pega, e o entitlement já está correto desde o vencimento
+    // (isTrialActive é passivo). Adiar revogação é barato; gravar sem guarda não.
+    console.warn(`[reverse-trial] downgrade lost CAS 3x user=${userId.slice(0, 8)} — retry next run`)
+    return { action: 'skipped', reason: 'lost_race', creditsRevoked: 0 }
+  } catch (e) {
+    console.error('[reverse-trial] downgrade threw:', e instanceof Error ? e.message : String(e))
+    return { action: 'skipped', reason: 'threw', creditsRevoked: 0 }
   }
 }

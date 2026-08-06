@@ -57,6 +57,10 @@
       "schedule": "50 * * * *"
     },
     {
+      "path": "/api/cron/trial-downgrade",
+      "schedule": "55 * * * *"
+    },
+    {
       "path": "/api/wall/refresh",
       "schedule": "45 6 * * *"
     }

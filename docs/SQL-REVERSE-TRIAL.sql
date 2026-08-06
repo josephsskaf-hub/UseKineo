@@ -25,3 +25,23 @@ alter table public.profiles add column if not exists trial_credits_used integer 
 alter table public.profiles add column if not exists trial_extended boolean not null default false;
 alter table public.profiles add column if not exists trial_variant text;
 create index if not exists idx_profiles_trial_ends_at on public.profiles (trial_ends_at);
+
+-- ── FASE 2, ITEM 2 (cron de downgrade) — migração `reverse_trial_p2_downgrade_columns`
+-- APLICADA em 06/08/2026 no projeto cqqukkvjjrguayiyjvhh (verificada por
+-- information_schema pós-apply). Migração ANTES do deploy, a ordem certa.
+alter table public.profiles add column if not exists trial_credits_granted integer not null default 0;
+alter table public.profiles add column if not exists trial_downgraded_at timestamptz;
+create index if not exists idx_profiles_trial_pending_downgrade
+  on public.profiles (trial_ends_at)
+  where trial_status in ('active', 'expired');
+
+-- trial_credits_granted: registro POR LINHA do que a conta recebeu. Se o teto
+--   40 mudar um dia, trials antigos revogam o que de fato receberam — número de
+--   dinheiro que envelhece mora na linha, não na constante.
+-- trial_downgraded_at: instante em que o cron processou o fim do trial. É a
+--   coorte dos e-mails D3+, SEMPRE combinada com trial_status='downgraded'
+--   (a coluna também é carimbada em quem CONVERTEU).
+--
+-- Estados de trial_status: null (nunca teve) → 'active' → 'expired' (teto
+-- atingido, escrito pelo débito) → 'downgraded' | 'converted' (terminais,
+-- escritos pelo cron). Só 'active' e 'expired' entram na coorte do cron.
