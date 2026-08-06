@@ -368,7 +368,24 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
       }
       if (updated && updated.length > 0) {
         if (shouldExpire) {
-          console.log(`[reverse-trial] EXPIRED at cap user=${userId.slice(0, 8)} used=${newUsed}/${TRIAL_CREDIT_CAP}`)
+          console.log(`[reverse-trial] EXPIRED user=${userId.slice(0, 8)} used=${newUsed}/${TRIAL_CREDIT_CAP}`)
+          // INSTRUMENTO DO A/B (sprint 13h) — sem este evento o experimento
+          // 3d vs 7d não tem como distinguir "trial acabou porque a pessoa USOU
+          // tudo" de "acabou porque o relógio venceu", que é exatamente a
+          // pergunta que decide se o teto de 40 está apertado demais ou de menos.
+          // console.log não é dado: não sobrevive à janela de log da Vercel nem
+          // entra em query. Awaited pelo mesmo motivo do grant — é o rastro de
+          // um evento que acontece UMA vez por trial e nunca mais.
+          await writeServerEvent({
+            name: 'trial_expired',
+            userId,
+            metadata: {
+              reason: newUsed >= TRIAL_CREDIT_CAP ? 'credit_cap' : 'clock',
+              credits_used: newUsed,
+              cap: TRIAL_CREDIT_CAP,
+              expired_before_deadline: newUsed >= TRIAL_CREDIT_CAP && Number.isFinite(ends) && Date.now() < ends,
+            },
+          })
         }
         return
       }
