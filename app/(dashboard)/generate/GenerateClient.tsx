@@ -2817,8 +2817,12 @@ export default function GenerateClient({
     // guarda, falhas de geo passariam a injetar `country: 'unknown'` numa série
     // histórica que nunca teve essa categoria.
     if (resolvedCountryRef.current === null) return
+    // KINEO-TRIAL-BLOCKERS-2026-08-07 — mesma coorte de showPostVideoExportChoice:
+    // se a oferta de export limpo não aparece para o trial, a impressão dela
+    // também não pode ser contada (métrica de oferta que conta quem nunca a viu
+    // é ruído puro na conversão do A/B 3d vs 7d).
     const cleanExportEligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
-      !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
+      !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
     if (!cleanExportEligible) return
     postVideoCurrencyTrackedRef.current = true
     void trackEvent('post_video_currency_resolved', {
@@ -2827,15 +2831,16 @@ export default function GenerateClient({
       country: resolvedCountryRef.current,
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     })
-  }, [postVideoCurrency, postVideoRegion, phase, finalVideoUrl, planTier, hasPaid, wmUnlocking, intentCampaign])
+  }, [postVideoCurrency, postVideoRegion, phase, finalVideoUrl, planTier, hasPaid, trialActive, wmUnlocking, intentCampaign])
 
   // PUSH #25 — measure a real offer impression, not merely an eligible render.
   // The result player is tall on mobile, so the clean-export card can exist
   // below the fold without ever being seen. Count it only after at least half
   // of the card enters the viewport, once per finished asset.
   useEffect(() => {
+    // KINEO-TRIAL-BLOCKERS-2026-08-07 — ver cleanExportEligible acima.
     const eligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
-      !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current) && Boolean(postVideoCurrency)
+      !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current) && Boolean(postVideoCurrency)
     const element = postVideoOfferRef.current
     const offerKey = publicVideoId || finalVideoUrl
     if (!eligible || !element || !offerKey || postVideoOfferTrackedKeyRef.current === offerKey) return
@@ -2853,7 +2858,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, wmUnlocking, intentCampaign, postVideoCurrency])
+  }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, wmUnlocking, intentCampaign, postVideoCurrency])
 
   // ────────────────────────────────────────────────────────────────────────
   // PHASE: clips_ready  →  fire /api/compose once, then transition to composing
@@ -4947,7 +4952,10 @@ export default function GenerateClient({
     if (!finalVideoUrl) return
     const slug = slugifyTitle(analysis?.title)
     const filename = slug ? `${slug}.mp4` : `kineo-${duration}s.mp4`
-    const exportType = planTier === 'free' && !hasPaid
+    // KINEO-TRIAL-BLOCKERS-2026-08-07 — o download de uma conta em trial é
+    // CLEAN de verdade agora; rotulá-lo 'watermarked' contaminaria a série que
+    // mede a pressão do watermark sobre a conversão.
+    const exportType = planTier === 'free' && !hasPaid && !trialActive
       ? 'watermarked'
       : planTier === null && !hasPaid
         ? 'current_asset'
@@ -5498,7 +5506,16 @@ export default function GenerateClient({
   // KINEO-PRICING-V3C-2026-07-10 — Fast costs 1 credit for PAYING accounts
   // (mirrors creditCostFor('fast', isPaidUser) server-side). Free users keep
   // seeing Free/0 — their render stays downloadable and shareable with a watermark.
-  const isPaidAccount = hasPaid || (planTier !== null && planTier !== 'free')
+  // KINEO-TRIAL-BLOCKERS-2026-08-07 — o servidor passou a tratar trial ativo
+  // como conta PAGA (marca d'água, clamp, cota e o 402 do motor de AI — ver
+  // /api/compose). Este booleano é o espelho disso no cliente: sem ele a tela
+  // continuaria dizendo "0 / FREE", "free preview · watermark" e oferecendo a
+  // descrição marcada para um vídeo que agora sai LIMPO e custa 1 crédito.
+  // Interface que contradiz o servidor sobre dinheiro é pior que interface
+  // desatualizada — é uma afirmação falsa que o usuário consegue conferir.
+  // `trialActive` vem de /api/credits (isTrialActive server-side); com a flag
+  // OFF é sempre false e nada aqui muda.
+  const isPaidAccount = hasPaid || trialActive || (planTier !== null && planTier !== 'free')
   const showInlineFirstVideo = mode === 'fast' && !isPaidAccount && (
     showFirstShortNudge || (recentVideos !== null && recentVideos.length === 0)
   )
@@ -5544,8 +5561,13 @@ export default function GenerateClient({
   const nextStepsDescription = nextStepsDescriptionBase
     ? buildBrandedYouTubeDescription(nextStepsDescriptionBase, { isFreePlan: !isPaidAccount })
     : ''
+  // KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive`: esta é a caixa que VENDE
+  // a remoção da marca d'água ($4.90). Depois da correção do servidor o Fast de
+  // uma conta em trial já sai limpo, então oferecer "pague para tirar a marca
+  // d'água" seria cobrar por algo que a pessoa já tem — o pior desfecho
+  // possível desta tela.
   const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
-    !hasPaid && !wmUnlocking && Boolean(lastFastRenderRef.current)
+    !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
   // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
   // mes com desconto (preco de lista JA e o preco de entrada), entao
   // postVideoHasIntro fica false e a copy abaixo troca de forma em vez de
@@ -7107,9 +7129,12 @@ export default function GenerateClient({
                       {credits} credit{credits === 1 ? '' : 's'}
                     </span>{' '}
                     left —{' '}
+                    {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive` nos dois
+                        ramos: durante o trial o Fast é PAGO (1 crédito, export
+                        limpo), então a frase correta é a do ramo pago. */}
                     {credits >= 20
-                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`
-                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid ? ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'You can still make 1 free watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`}
+                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`
+                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'You can still make 1 free watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -7487,7 +7512,7 @@ export default function GenerateClient({
                     download={`${slugifyTitle(analysis?.title) || `kineo-${duration}s`}.mp4`}
                     target="_blank"
                     rel="noreferrer"
-                    title={planTier === 'free' && !hasPaid
+                    title={planTier === 'free' && !hasPaid && !trialActive
                       ? 'Download MP4 with Kineo watermark'
                       : planTier === null && !hasPaid
                         ? 'Download MP4'
@@ -7502,7 +7527,11 @@ export default function GenerateClient({
                     }}
                   >
                     <span style={{ fontSize: '1.15rem' }}>⬇</span>
-                    {planTier === 'free' && !hasPaid
+                    {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive`: o MP4 do
+                        trial não tem marca d'água (o servidor decide por
+                        isFreePlanFast, que agora exclui o trial). O botão não
+                        pode prometer o contrário. */}
+                    {planTier === 'free' && !hasPaid && !trialActive
                       ? `Download with Kineo watermark (${duration}s · MP4)`
                       : planTier === null && !hasPaid
                         ? `Download Your Short (${duration}s · MP4)`
@@ -7893,7 +7922,7 @@ export default function GenerateClient({
                     <span>
                       <span style={{ color: 'var(--text)', fontWeight: 700 }}>Download your video</span>{' '}
                       — use the download button above to save the file to your device
-                      {planTier === 'free' && !hasPaid ? ' with the Kineo watermark; Starter exports this same video clean' : ''}.
+                      {planTier === 'free' && !hasPaid && !trialActive ? ' with the Kineo watermark; Starter exports this same video clean' : ''}.
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>

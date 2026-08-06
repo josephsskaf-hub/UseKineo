@@ -239,5 +239,284 @@ Enquanto esses dois casos não passarem contra o banco real, o veredito não mud
 
 ---
 
+# CORREÇÕES DOS BLOQUEADORES — `[KINEO-TRIAL-BLOCKERS-2026-08-07]`
+
+*Escrito depois do veredito acima, sobre `a4d73dd`. Fecha os 3 bloqueadores e o item
+cosmético. Nada além disso foi alterado — o que foi auditado e deliberadamente NÃO
+mexido está listado, com o motivo, na tabela de pontos auditados.*
+
+**`npx tsc --noEmit` → EXIT=0.**
+
+## A raiz comum de #1 e #2, e por que a correção não foi "escrever `plan='creator'`"
+
+Uma conta em trial é, para o banco, `plan='free' has_paid=false` — e isso é
+**deliberado**: escrever um plano pago numa conta que não pagou contaminaria MRR,
+`/admin/overview`, as coortes de e-mail e o webhook da Stripe. A consequência é que o
+entitlement do trial não existe em coluna nenhuma; ele tem que ser **derivado na
+leitura**. Até `a4d73dd` essa derivação existia em **um arquivo só**.
+
+A correção é uma fonte única — `getEffectiveEntitlement()` em `lib/reverseTrial.ts` —
+consultada por todo gate free/pago do caminho de geração:
+
+```ts
+getEffectiveEntitlement(profile, { isPaidAccount /* predicado LOCAL do call site */ })
+  → { isTrial, isPaidAccount, treatAsPaid, allowsStudioEngines,
+      watermark, maxDurationSeconds, countsAgainstFreeQuota }
+```
+
+Três invariantes ficaram escritas no código (bloco de comentário do próprio arquivo):
+
+1. **`isPaidAccount` continua sendo calculado no call site e é PASSADO para o helper.**
+   Os `PAID_PLANS` do repositório divergem entre si (o de `/api/footage` tem 6 planos,
+   o de `/api/compose` tem 10). Se o helper recalculasse "quem paga" com uma lista
+   própria, a flag OFF deixaria de ser diff-zero em algum arquivo e ninguém notaria.
+   Do jeito que está, **toda mudança é um termo `|| isTrialActive(...)` que vale
+   `false` com a flag desligada** — auditável por inspeção local, linha a linha.
+2. **`allowsStudioEngines = isPaidAccount`, nunca `treatAsPaid`.** Kling/Veo/Hollywood
+   jamais entram no trial. É por isso que o teto é 40 (Hollywood custa 150).
+3. **O teto de 40 não migrou para o helper.** Continua passivo dentro de
+   `isTrialActive()` — é o que faz `isTrial` virar false no próprio débito que estoura
+   o teto, na mesma request.
+
+## 🔴 #1 — Trial em Seedance debitado e recusado (402) — **FECHADO**
+
+| O que mudou | Onde |
+|---|---|
+| `hasPaidCreditAccess` ganhou `\|\| ent.isTrial` | `app/api/compose/route.ts` (bloco de entitlement de `cinematic_ai`) |
+| O `SELECT` do perfil passou a trazer as colunas de trial (`TRIAL_ENTITLEMENT_COLUMNS`) | idem |
+| `currentPaid` da **releitura de admissão** ganhou `\|\| isTrialActive(currentProfile)` | `app/api/generate-video-cinematic/route.ts` |
+
+⚠️ **Achado NOVO, que o QA original não tinha pego:** o bloqueador #1 tinha um **segundo
+portão**, dentro da própria rota cinematic. O gate trial-aware de entrada (`:685`)
+aprovava a conta, e a **releitura de admissão** poucas linhas antes do débito
+(`currentPaid`) tinha o seu próprio predicado de "conta paga", que não conhecia o
+trial, e a matava com `402 "AI Generated videos require a paid plan."` — dois
+veredictos opostos sobre a mesma conta, na mesma request. Corrigir só o `/api/compose`
+teria deixado o Seedance do trial **igualmente impossível**, e o reteste teria falhado
+antes mesmo de chegar ao compose.
+
+⚠️ **Segundo achado, da 1ª revisão adversarial da própria correção — o ÚLTIMO Seedance
+do trial.** Com o teto em 40 e o Seedance em 20, o trial tem exatamente 2 renders. No
+**segundo**, o débito leva `trial_credits_used` a 40, o que **expira o trial na mesma
+request** (expiração passiva, por desenho). Quando o cliente chamava `/api/compose` em
+seguida, `ent.isTrial` já era `false`, o saldo era 0 — e o 402 voltava, com os 20
+créditos já gastos. Ou seja: o bloqueador #1 sobreviveria exatamente no render que mais
+importa. A regra correta não é "é trial?", é **"o crédito já foi cobrado ⇒ entrega"**:
+
+```ts
+const hasPaidCreditAccess =
+  !isFreePlan || (hasPaid && creditBalance > 0) || ent.isTrial ||
+  (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)
+```
+
+`cinematicUpstreamDebited` é `cinematicBirthClaim.status === 'settled'` — uma linha de
+claim assinada e verificada no servidor (`lib/cinematic/claim.ts`), que o cliente não
+consegue forjar. O `REVERSE_TRIAL_ENABLED &&` na frente é explicado na seção de
+flag-OFF, abaixo.
+
+**Como reverificar:** conta nova com a flag ON → gerar **dois** Seedance seguidos. Os
+dois renderizam, sem 402. Ao fim: `trial_credits_used = 40`, `trial_status = 'expired'`,
+`video_credits = 0`, e **nenhuma** linha no estorno do `refund-sweep` do dia seguinte.
+
+## 🔴 #2 — Trial em Fast: marca d'água, corte de 15s e cota free — **FECHADO**
+
+`isFreePlanFast` é o interruptor **mestre** do free tier: dele saem, em cascata, a marca
+d'água, o end card, o clamp de 15s, a reserva de cota (1/30d com a flag ON) e o **preço
+0** do render. Uma linha fecha os cinco:
+
+```ts
+isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial
+```
+
+⚠️ **Achado da revisão adversarial: essa linha sozinha teria TROCADO um defeito por
+outro pior.** Deixando de ser "free", o Fast do trial passa a ser um render **pago** e
+cai em `reservePaidCreditSlot()` — que tem o **seu próprio** predicado de conta paga
+(`hasPaidEntitlement`) e o recusaria com `402 "Clean and premium exports require a paid
+plan."`. O trial perderia o Fast **por completo**, em vez de recebê-lo sujo. Por isso
+`hasPaidEntitlement` também ganhou `|| isTrialActive(creditProfile)` (e as colunas de
+trial no `SELECT`).
+
+**O Fast do trial agora custa 1 crédito de verdade**, e isso é intencional: um Fast
+grátis não passaria por `recordReverseTrialDebit` (que só roda com `cost > 0`) e seria
+**invisível para o próprio teto de 40** — o trial poderia gerar Fast infinito.
+
+O clamp passou a ler `ent.maxDurationSeconds` em vez de `FREE_OFFER.maxFreeFastSeconds`
+direto. Dentro daquele ramo os dois são o mesmo valor por construção (runtime idêntico);
+o ganho é que a regra "quem sofre clamp" deixou de ser reconstruída ali. **Foi
+exatamente a divergência entre "quem é free para o clamp" e "quem é free para o trial"
+que produziu este bloqueador.**
+
+O comentário de `compose/route.ts` que afirmava *"contas em trial ativo não passam por
+aqui"* foi corrigido: a afirmação agora é verdadeira, e o comentário **aponta o código
+que a impõe** em vez de só declará-la.
+
+**Como reverificar:** conta em trial → gerar um Fast. O MP4 sai **sem marca d'água e sem
+end card**, com a **duração pedida** (não 15s), a cota de 1/30d **não é consumida**
+(nenhuma linha nova de `compose_claim` com `cost=0` na janela) e `video_credits` cai
+**1**, com `trial_credits_used` subindo 1.
+
+## 🔴 #3 — `KINEO_TRIAL_FINGERPRINT_SALT` ausente = anti-abuso mudo — **FECHADO (nunca mais silencioso)**
+
+A postura **não mudou** — continua **fail-open** (concede o trial), como o fundador
+determinou. O que mudou é que deixou de ser silenciosa, em três lugares:
+
+1. **`lib/trialFingerprint.ts`** — novo `trialFingerprintSaltConfigured()`, com o
+   **mesmo predicado** que `trialFingerprintHash()` usa (presente e não-vazio após
+   `trim`). Se os dois divergissem, o painel mentiria sobre o estado do anti-abuso. O
+   nome da env var virou a constante exportada `TRIAL_FINGERPRINT_SALT_ENV` — não é
+   redigitado em mensagem nenhuma.
+2. **`lib/reverseTrial.ts`** — na ativação, se o salt falta: `console.error` explícito +
+   evento `trial_fingerprint_salt_missing`. **Uma vez por PROCESSO** (latch de módulo),
+   não por signup: um log por signup em pico é indistinguível de ruído, e log que
+   ninguém lê é o mesmo silêncio com custo de storage. Serverless recicla processo com
+   frequência, então a linha reaparece sozinha sem virar spam.
+3. **`/admin/trial-abuse`** — faixa **vermelha** permanente no topo:
+   *"anti-abuso INATIVO: falta KINEO_TRIAL_FINGERPRINT_SALT"*. Vem **antes** da faixa de
+   tabela ausente, porque sem salt a tabela nem chega a ser consultada — a ordem das
+   faixas espelha a ordem em que as coisas falham. É lida do **ambiente vivo** (Server
+   Component), não de evento: evento só prova que faltava quando alguém se cadastrou.
+
+O texto da faixa diz em voz alta o que o painel não conseguia dizer antes: **os
+contadores ficam em zero por falta de sinal, não por falta de abuso.**
+
+### ⚙️ AÇÃO MANUAL OBRIGATÓRIA DO FUNDADOR (não foi feita por esta sessão, de propósito)
+
+| Campo | Valor |
+|---|---|
+| **Onde** | Vercel → projeto `shortsforgeai` → Settings → Environment Variables |
+| **Nome (exato)** | `KINEO_TRIAL_FINGERPRINT_SALT` |
+| **Ambiente** | **Production** (marcar também Preview se quiser testar em preview) |
+| **Quando** | No **MESMO deploy** em que `KINEO_REVERSE_TRIAL_ENABLED=true`. Nunca depois. |
+| **Valor sugerido (gerado agora, 48 bytes aleatórios)** | `Rviw6C1J28OBB0oFDL9dnmQC/XlGVgOPjMgd+qpB8UHo1SQmKskpE42MMA2VAoLg` |
+
+Para gerar outro em vez de usar o sugerido, qualquer um dos dois:
+
+```bash
+openssl rand -base64 48
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
+
+⚠️ **Trocar o salt depois invalida TODA a base de fingerprints** (o hash muda), o que
+zera a janela de 30 dias e libera quem estava bloqueado. Definir **uma vez** e não
+mexer. O valor não é segredo de autenticação — é sal de derivação; o risco de vazá-lo é
+tornar os hashes de IP correlacionáveis, não dar acesso a nada.
+
+**Como reverificar:** depois do deploy, abrir `/admin/trial-abuse`. **Sem a faixa
+vermelha = salt configurado.** Com a faixa = ainda falta, e o anti-abuso está inativo.
+
+## BÔNUS (item "liga mas monitora" #1) — **FECHADO**
+
+`app/youtube-automation-case-study/page.tsx` — o botão hardcoded virou
+`{ft(OFFER, 'Start free — 3 videos a day', 'Start free — 40 credits, no card')}`.
+Flag OFF devolve o literal **byte a byte**. Era o último dos 155 call sites classificados
+no item (h) que ainda vazava.
+
+---
+
+## PROVA DE QUE A FLAG OFF CONTINUA IDÊNTICA
+
+Toda mudança de runtime desta correção é de **uma** destas 5 formas — verificado linha a
+linha no diff (`git diff --cached`, filtrando comentários):
+
+| Forma | Vale o quê com a flag OFF | Onde |
+|---|---|---|
+| `\|\| isTrialActive(row)` / `\|\| ent.isTrial` | `false` (primeira linha de `isTrialActive` é `if (!REVERSE_TRIAL_ENABLED) return false`) | compose ×2, cinematic, compose/status ×2, youtube/upload |
+| `&& !isTrialActive(row)` / `&& !trialActive` | `true` (termo neutro no AND) | video-summary, compose (`isFreePlanFast`), 8 sites do GenerateClient |
+| `\|\| d.trialActive === true` | `false` — `/api/credits` só popula `trialActive` dentro de `if (REVERSE_TRIAL_ENABLED)` | HistoryClient, MyVideosClient |
+| `SELECT` ganhando colunas de trial | Nenhum efeito: PostgREST devolve campos a mais, ninguém os lê com a flag OFF | 6 rotas |
+| `ft(OFFER, legacy, on)` | Devolve `legacy` byte a byte | case study |
+
+**A única exceção, e ela é EXPLÍCITA:** `(REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)`.
+A 1ª versão não tinha o `REVERSE_TRIAL_ENABLED &&`, e a conferência de flag-OFF achou um
+caso **hoje alcançável** em que ela mudaria comportamento com a flag desligada —
+descrito na dívida #7 abaixo. O gate foi então amarrado à flag para preservar
+"flag OFF ⇒ produção idêntica ao estado de hoje", que é a fronteira de rollback do
+sprint inteiro.
+
+---
+
+## PONTOS DE GATE AUDITADOS — a pergunta foi "existe algum outro caminho onde trial ainda é tratado como free?"
+
+Varredura exaustiva de `PAID_PLANS`, `has_paid`, `is_pro`, `isFreePlan`, `isFreePlanFast`,
+`hasPaidCreditAccess`, `isPaidUser`, `isPaidAccount`, `fetchUserPlan`, `creditCostFor`,
+`withEndCard`, `watermark`, `FREE_OFFER`, `reserveFreeFastPreviewSlot`, `402`, `403` em
+`app/`, `lib/` e `components/`. Duas passadas.
+
+### ✅ CORRIGIDOS (12 pontos, 12 arquivos)
+
+| # | Arquivo : predicado | Consequência que o trial sofria |
+|---|---|---|
+| 1 | `api/compose` · `hasPaidCreditAccess` | 402 no Seedance **já debitado** |
+| 2 | `api/compose` · `isFreePlanFast` | marca d'água + end card + clamp 15s + cota 1/30d + preço 0 |
+| 3 | `api/compose` · `reservePaidCreditSlot.hasPaidEntitlement` | 402 no Fast **e** em avatar/presenter |
+| 4 | `api/compose` · clamp lendo `ent.maxDurationSeconds` | (fonte da regra, runtime idêntico) |
+| 5 | `api/generate-video-cinematic` · `currentPaid` (releitura de admissão) | 402 poucas linhas antes do débito |
+| 6 | `api/compose/status` · branding do histórico | descrição marcada persistida |
+| 7 | `api/compose/status` · `fastIsPaidUser` (liquidação legada) | render legado liquidado a 0 → marcado como asset com watermark |
+| 8 | `api/youtube/upload` · `isPaid` | linha de crédito Kineo gravada na descrição **real** do canal |
+| 9 | `api/video-summary` · `isFreePlan` | descrição marcada no painel |
+| 10 | `GenerateClient` · `isPaidAccount` + 7 sites de copy/telemetria | "0 / FREE", "free preview · watermark", venda de remoção de marca d'água ($4.90) de um vídeo **já limpo**, export rotulado `watermarked` |
+| 11 | `HistoryClient` · `cleanAccess` | paywall de export limpo + selo "⬇ WM" |
+| 12 | `MyVideosClient` · `cleanAccess` | idem |
+
+O selo "⬇ WM" das duas bibliotecas se resolve sozinho por um segundo caminho:
+`isWatermarkedFastAsset()` é `quality_mode === 'fast' && credits_used === 0`, e o Fast do
+trial agora custa 1.
+
+### ⚪ AUDITADOS E **NÃO** ALTERADOS — com o motivo
+
+Escopo desta correção: os 3 bloqueadores + o item cosmético. Estes gates tratam o trial
+como free, foram conferidos um a um e **não** afetam o caminho de geração/export que os
+bloqueadores descrevem. Ficam registrados para o fundador decidir.
+
+| Arquivo : gate | O que o trial perde | Por que não foi mexido |
+|---|---|---|
+| `api/footage` · `isPaid` | upload de footage própria | Feature de plano pago fora do caminho de geração; nenhum grep do escopo (`isFreePlan`/`hasPaidCreditAccess`/`isFreePlanFast`) casa aqui |
+| `api/characters` · `characterLimitFor(plan, hasPaid)` → 0 | salvar personagem | idem |
+| `api/autopilot/schedules` · `AUTOPILOT_PAID_PLANS` | Autopilot | O predicado **de propósito** ignora `has_paid`/`is_pro` (comentário no próprio arquivo); Autopilot é tier próprio, não "Creator" |
+| `api/generate` · `is_pro` + `FREE_LIMIT=1` | geração de script em lote | Caminho **legado** (`!isTopicMode`); o pipeline v2.5 usa `generate-script`→`analyze-idea`. Mesma classe do `/api/credits/deduct` já registrado como "armadilha carregada, não vazamento ativo" |
+| `api/generate-thumbnail` · `plan === 'pro'` | thumbnail `low` em vez de `medium` | Um **Creator pago** também recebe `low` — não é regressão de trial |
+| `api/generate-video` e `compose` · `fetchUserPlan().isPro` | 403 em `basic`/`basic_ai`/`pro` | Qualidades da era Runway; a UI atual só emite `fast`/`cinematic_ai`/`creator` |
+| `api/generate-video-fast` · `AI_HOOK_PAID_PLANS` | — | Classifica o trial como free-tier e por isso **dá** o hook AI grátis. É benefício, não degradação |
+| ~30 sites de admin/métricas/coorte de e-mail | — | Leitura, sem impacto de entitlement. O trial entra em coorte de upsell free enquanto o trial corre: **defeito de mensagem**, não de acesso |
+| `AccountClient`, `DashboardClient`, `layout`, `ThumbnailGeneratorClient`, `LowCreditsUpsell` | copy de free tier | Cosmético, fora do caminho de geração/export |
+
+### 💸 DÍVIDA NOVA DESCOBERTA (não é do trial, não foi corrigida)
+
+**#7 — Comprador de pacote pode tomar 402 num Seedance que já pagou.**
+`plan='free'`, `has_paid=true`, saldo exatamente 20: o débito de 20 zera o saldo,
+`hasPaid && creditBalance > 0` vira `false`, e `/api/compose` recusa um render **já
+cobrado** — estorno só no `refund-sweep` das 09:30 do dia seguinte. É o **mesmo defeito
+do bloqueador #1**, atingindo um cliente **pagante**, e é **anterior** ao reverse trial
+(existe hoje, em produção, com a flag OFF). A correção é uma linha (tirar o
+`REVERSE_TRIAL_ENABLED &&` do termo `cinematicUpstreamDebited`), mas isso alargaria um
+gate para contas **fora** do trial — fora do escopo desta correção e fora da fronteira
+de rollback da flag. **Decisão do fundador.**
+
+---
+
+## VEREDITO ATUALIZADO
+
+# 🟡 PODE LIGAR — depois de 1 ação manual + 1 reteste
+
+Os 3 bloqueadores estão fechados no código. **Sobram duas coisas, e nenhuma é código:**
+
+1. **Setar `KINEO_TRIAL_FINGERPRINT_SALT` na Vercel (produção)**, no mesmo deploy da
+   flag. Instruções exatas + valor sugerido na seção do #3. Confirmação visual:
+   `/admin/trial-abuse` **sem** a faixa vermelha.
+2. **O reteste fim-a-fim contra o banco real continua obrigatório** — e continua **não
+   executado por esta sessão**, pelos mesmos motivos da tabela "NÃO CONSEGUI TESTAR"
+   (o `.env.local` da raiz é o stub, e o host corta shell em ~178s). Um signup real,
+   **dois** Seedance (para exercitar o teto de 40 e o caso do último render) e **um**
+   Fast, conferindo: os dois Seedance renderizam sem 402, o Fast sai **sem marca
+   d'água**, com a **duração pedida**, **não** consome a cota do free tier e debita
+   **1** crédito. Enquanto esses três casos não passarem contra o banco real, o veredito
+   não vira verde.
+
+*Correções de 07/08/2026 sobre `a4d73dd`. `tsc --noEmit` EXIT=0. Flag
+`KINEO_REVERSE_TRIAL_ENABLED` permanece OFF neste commit.*
+
+---
+
 *QA executado em 07/08/2026. Deploy `ec9f112`. Flag `KINEO_REVERSE_TRIAL_ENABLED` OFF
 durante toda a auditoria de produção.*

@@ -28,7 +28,9 @@ import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
 import { REVERSE_TRIAL_ENABLED, TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
 import {
+  trialFingerprintSaltConfigured,
   TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
+  TRIAL_FINGERPRINT_SALT_ENV,
   TRIAL_FINGERPRINT_TABLE,
   TRIAL_FINGERPRINT_WINDOW_DAYS,
 } from '@/lib/trialFingerprint'
@@ -251,6 +253,30 @@ export default async function AdminTrialAbusePage() {
         {' · '}cap {TRIAL_CREDIT_CAP} credits{' · '}fingerprint limit{' '}
         {TRIAL_FINGERPRINT_MAX_ACTIVATIONS} activations / {TRIAL_FINGERPRINT_WINDOW_DAYS}d
       </p>
+
+      {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADOR #3 DO QA. Sem o salt o
+          hash é sempre null, o verdict é sempre 'no_signal' e o anti-abuso
+          inteiro vira um no-op: nenhuma linha, nenhum evento de bloqueio,
+          nenhum aviso — os contadores abaixo ficam TODOS em zero e um zero
+          nesta tela é indistinguível de "não houve abuso". Esta faixa vem
+          ANTES da de tabela ausente de propósito: sem salt, nem a tabela chega
+          a ser consultada, então a ordem das faixas espelha a ordem em que as
+          coisas falham. Lida do ambiente VIVO (Server Component), não de
+          evento — evento só prova que faltava quando alguém se cadastrou. */}
+      {!trialFingerprintSaltConfigured() && (
+        <div
+          className="rounded-2xl p-4 mb-5 text-[12.5px]"
+          style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#f87171' }}
+        >
+          <strong>anti-abuso INATIVO: falta {TRIAL_FINGERPRINT_SALT_ENV}.</strong> Sem essa variável
+          de ambiente o fingerprint de device/IP nunca é calculado: TODO signup recebe trial sem
+          nenhuma checagem, e os contadores desta página ficam em zero por falta de sinal — não por
+          falta de abuso. A concessão segue fail-open de propósito; o que não pode é ser silenciosa.
+          Defina {TRIAL_FINGERPRINT_SALT_ENV} no ambiente de produção da Vercel no MESMO deploy em
+          que <code>KINEO_REVERSE_TRIAL_ENABLED=true</code> — instruções exatas (como gerar o valor)
+          em <code>docs/QA-REVERSE-TRIAL-2026-08-07.md</code>.
+        </div>
+      )}
 
       {data.fingerprintTableMissing && (
         <div

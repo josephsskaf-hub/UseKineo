@@ -194,7 +194,12 @@ export default function CaseStudyPage() {
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
             className="mt-5 inline-block rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-200"
           >
-            Start free — 3 videos a day
+            {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — último vazamento de copy do QA
+                (item h): este botão estava hardcoded duas linhas abaixo de um
+                parágrafo que JÁ passa por ft(), então com a flag ON a mesma
+                caixa dizia "Creator trial: 40 credits" no texto e "3 videos a
+                day" no botão. Flag OFF devolve o literal byte a byte. */}
+            {ft(OFFER, 'Start free — 3 videos a day', 'Start free — 40 credits, no card')}
           </Link>
           <p className="mt-4 text-xs text-white/40">
             Curious about the money side? <Link href="/how-much-do-youtube-shorts-pay" className="underline hover:text-white/70">How much Shorts pay</Link> ·{' '}

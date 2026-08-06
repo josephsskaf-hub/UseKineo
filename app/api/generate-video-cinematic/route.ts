@@ -33,7 +33,7 @@ import { CINEMATIC_ANCHOR_ENABLED } from '@/lib/flags'
 // cap de 40 (ADENDO A1 de 06/08). Com KINEO_REVERSE_TRIAL_ENABLED OFF,
 // isTrialActive() é sempre
 // false e debitVideoCredits é byte-idêntico ao rpc direto.
-import { isTrialActive, trialUiState } from '@/lib/reverseTrial'
+import { isTrialActive, trialUiState, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 import { debitVideoCredits } from '@/lib/credits/debit'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: anchored
 // dialogue scenes get ONE voice. The scene's line is synthesized with OUR TTS
@@ -1122,7 +1122,12 @@ export async function POST(req: NextRequest) {
     }
     const { data: currentProfile, error: currentProfileError } = await cinematicAdmin
       .from('profiles')
-      .select('video_credits,plan,has_paid')
+      // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial: a RELEITURA de
+      // admissão (logo abaixo) tem o seu PRÓPRIO predicado de "conta paga", e
+      // ele não conhecia o trial. O gate trial-aware de cima (:685) deixava a
+      // conta passar e esta releitura a matava com 402 poucas linhas antes do
+      // débito — dois veredictos opostos sobre a mesma conta, na mesma request.
+      .select(`video_credits, plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
       .eq('id', user.id)
       .single()
     if (currentProfileError || typeof currentProfile?.video_credits !== 'number') {
@@ -1133,7 +1138,17 @@ export async function POST(req: NextRequest) {
       )
     }
     const currentPlan = String(currentProfile.plan ?? 'free').toLowerCase()
-    const currentPaid = currentProfile.has_paid === true || PAID_PLANS.has(currentPlan)
+    // KINEO-TRIAL-BLOCKERS-2026-08-07 — mesmo termo do gate de entrada
+    // (`trialActive`, :685), agora relido do estado FRESCO: se o trial expirou
+    // entre a admissão e aqui (relógio venceu ou o teto de 40 foi atingido por
+    // um débito concorrente), isTrialActive() volta false e este 402 é o
+    // correto. Os motores Studio continuam FORA — quem chega aqui já passou
+    // pelo gate Kling/Veo/Hollywood, que exige `isPaidUser` de verdade.
+    // Flag OFF ⇒ termo false ⇒ predicado idêntico ao anterior.
+    const currentPaid =
+      currentProfile.has_paid === true ||
+      PAID_PLANS.has(currentPlan) ||
+      isTrialActive(currentProfile)
     const currentBalance = Math.max(0, currentProfile.video_credits)
     const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)
     if (!currentPaid || holds.totalHeld > currentBalance) {

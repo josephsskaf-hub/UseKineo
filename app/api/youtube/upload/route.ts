@@ -11,6 +11,9 @@ import {
 } from '@/lib/youtube'
 import { getChannel, getValidChannelAccessToken } from '@/lib/youtubeChannels'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo é entitlement pago (ver
+// lib/reverseTrial.ts). Flag OFF ⇒ isTrialActive() é sempre false.
+import { isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 // KINEO-P2E-FIX-2026-08-07 — o upload direto agora também PAGA. Ver o bloco no
 // fim do handler para o porquê (era o caminho que nunca concedia crédito).
 import { grantPostToEarn } from '@/lib/postToEarnGrant'
@@ -120,13 +123,20 @@ export async function POST(req: NextRequest) {
     try {
       const { data: planRow } = await supabase
         .from('profiles')
-        .select('has_paid, plan')
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo = Creator pago, e um
+        // Creator publica no YouTube com descrição LIMPA. Sem este termo, o
+        // vídeo de quem está em trial (que agora sai sem marca d'água) ainda
+        // levava a linha de crédito do Kineo gravada na descrição real do
+        // canal do usuário — meio caminho de correção é pior que nenhum,
+        // porque o produto passa a se contradizer dentro do mesmo vídeo.
+        .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
         .eq('id', user.id)
         .maybeSingle()
       const planName = ((planRow as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
       const isPaid =
         (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
-        PAID_PLANS.has(planName)
+        PAID_PLANS.has(planName) ||
+        isTrialActive(planRow)
       isFreePlan = !isPaid
     } catch (e) {
       console.warn('[youtube/upload] plan lookup failed, uploading clean description:',

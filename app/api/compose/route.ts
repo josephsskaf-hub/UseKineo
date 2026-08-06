@@ -65,6 +65,25 @@ import {
 //         do free Fast já existe — isFreePlanFast abaixo). 480p PENDENTE: o
 //         builder Creatomate não tem knob de resolução (ver docs/SPRINT do dia).
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADORES #1 e #2 DO QA DE 07/08.
+// Esta rota decide marca d'água, clamp de duração, cota do free tier e o 402 do
+// motor de AI — e até hoje NÃO SABIA que o reverse trial existe. Uma conta em
+// trial ativo tem `plan='free' has_paid=false` no banco (a ativação não escreve
+// plano, de propósito: escrever contaminaria MRR e coortes), então TODOS os
+// predicados abaixo a liam como free. Resultado medido pelo QA: Seedance
+// debitava 20 créditos e tomava 402 aqui (estorno só no sweep do dia seguinte),
+// e o Fast saía com marca d'água, cortado em 15s e queimando a cota de 1/30d.
+// O comentário que afirmava "contas em trial ativo não passam por aqui" era
+// FALSO e foi corrigido junto com o código.
+// getEffectiveEntitlement é a fonte única; `isPaidAccount` continua sendo o
+// predicado LOCAL desta rota (PAID_PLANS daqui), então com a flag OFF o termo
+// novo vale false e o comportamento é idêntico byte a byte.
+import {
+  getEffectiveEntitlement,
+  isTrialActive,
+  REVERSE_TRIAL_ENABLED,
+  TRIAL_ENTITLEMENT_COLUMNS,
+} from '@/lib/reverseTrial'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: the hollywood
 // narration blocks are synthesized with ONE pinned voice, resolved from the
 // full voiceover_script — the SAME resolution the cinematic route ran for the
@@ -934,7 +953,11 @@ export async function POST(req: NextRequest) {
 
       const { data: creditProfile, error: creditProfileError } = await composeAdmin
         .from('profiles')
-        .select('video_credits,plan,has_paid')
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — as colunas de trial entram no
+        // SELECT porque o gate logo abaixo passou a consultá-las. Sem elas
+        // isTrialActive() lê undefined e nega — a falha seria silenciosa e do
+        // lado caro (trial pagando 402 no próprio crédito).
+        .select(`video_credits, plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
         .eq('id', authenticatedUserId)
         .single()
       if (creditProfileError || typeof creditProfile?.video_credits !== 'number') {
@@ -952,7 +975,15 @@ export async function POST(req: NextRequest) {
         'starter', 'starter_trial', 'basic', 'basic_trial',
         'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
       ])
-      const hasPaidEntitlement = paidPlans.has(plan) || creditProfile.has_paid === true
+      // KINEO-TRIAL-BLOCKERS-2026-08-07 — o trial ativo é entitlement PAGO
+      // aqui. Sem este termo, corrigir `isFreePlanFast` abaixo (bloqueador #2)
+      // TROCARIA um defeito por outro pior: o Fast do trial deixaria de ser
+      // "free com marca d'água" e passaria a cair nesta reserva paga, que o
+      // recusaria com 402 "Clean and premium exports require a paid plan" —
+      // ou seja, o trial perderia o Fast POR COMPLETO em vez de recebê-lo sujo.
+      // Flag OFF ⇒ isTrialActive() é false ⇒ predicado idêntico ao anterior.
+      const hasPaidEntitlement =
+        paidPlans.has(plan) || creditProfile.has_paid === true || isTrialActive(creditProfile)
       const heldByOtherJobs = Math.max(0, holds.totalHeld - cost)
       const availableBalance = Math.max(0, balance - heldByOtherJobs)
       if (!hasPaidEntitlement || holds.totalHeld > balance) {
@@ -1031,7 +1062,11 @@ export async function POST(req: NextRequest) {
     if (quality === 'cinematic_ai' || quality === 'fast') {
       const { data: prof, error: profileAccessError } = await supabase
         .from('profiles')
-        .select('video_credits, plan, has_paid')
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial no SELECT: é
+        // delas que sai `ent` abaixo. Constante compartilhada em vez de lista
+        // redigitada, porque esquecer UMA delas falha em silêncio e do lado
+        // caro (trial_ends_at ausente = relógio lido como vencido).
+        .select(`video_credits, plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
         .eq('id', user.id)
         .single()
       if (profileAccessError) {
@@ -1048,7 +1083,54 @@ export async function POST(req: NextRequest) {
       const isFreePlan = !PAID_PLANS.has((prof?.plan ?? 'free').toLowerCase())
       const hasPaid = (prof as { has_paid?: boolean } | null)?.has_paid === true
       const creditBalance = Math.max(0, Number(prof?.video_credits ?? 0))
-      const hasPaidCreditAccess = !isFreePlan || (hasPaid && creditBalance > 0)
+      // KINEO-TRIAL-BLOCKERS-2026-08-07 — ENTITLEMENT EFETIVO (bloqueadores #1
+      // e #2). `isPaidAccount` recebe o predicado LOCAL desta rota, o mesmo de
+      // sempre; o helper só acrescenta o termo do trial. Com a flag OFF
+      // `ent.isTrial` é false e `ent.treatAsPaid === !isFreePlan || hasPaid`
+      // não altera nenhuma decisão abaixo.
+      const ent = getEffectiveEntitlement(prof, { isPaidAccount: !isFreePlan || hasPaid })
+      // BLOQUEADOR #1: `|| ent.isTrial`. Sem ele, a conta em trial já debitada
+      // em 20 créditos por /api/generate-video-cinematic tomava 402 aqui e só
+      // era estornada pelo cron `refund-sweep` das 09:30 do dia seguinte. O
+      // saldo em si continua sendo cobrado pela checagem logo abaixo — o trial
+      // nasce com 40 créditos e paga o Seedance com eles, que é como o teto de
+      // 40 se aplica sozinho (ver invariante 3 em lib/reverseTrial.ts).
+      //
+      // ⚠️ `|| cinematicUpstreamDebited` — ACHADO DA 1ª REVISÃO ADVERSARIAL
+      // DESTA PRÓPRIA CORREÇÃO, e sem ele o bloqueador #1 SOBREVIVERIA no caso
+      // que mais importa: o ÚLTIMO Seedance do trial.
+      //   trial com used=20, saldo 20 → /api/generate-video-cinematic aprova
+      //   (isTrialActive true, 20 < 40), debita 20 → used=40 ⇒ o teto expira o
+      //   trial NA MESMA request (expiração passiva, por desenho) ⇒ quando o
+      //   cliente chama /api/compose logo em seguida, ent.isTrial já é FALSE,
+      //   o saldo é 0 e o 402 volta — com os 20 créditos JÁ gastos.
+      // O mesmo vale para o trial cujo relógio vence nos segundos entre as duas
+      // rotas. A regra certa não é "trial?", é: CRÉDITO JÁ COBRADO ⇒ ENTREGA.
+      // `cinematicUpstreamDebited` é `cinematicBirthClaim.status === 'settled'`,
+      // uma linha de claim assinada e verificada no servidor (lib/cinematic/
+      // claim.ts) — o cliente não consegue forjá-la, então isto não abre porta
+      // para free nenhum: só honra um débito que o nosso próprio backend já fez.
+      //
+      // ⚠️ POR QUE `REVERSE_TRIAL_ENABLED &&` NA FRENTE — 2ª REVISÃO
+      // ADVERSARIAL. A 1ª versão deste termo NÃO era gateada pela flag, e a
+      // conferência de "flag OFF ⇒ diff zero" achou UM caso hoje alcançável em
+      // que ele mudaria comportamento com a flag desligada: comprador de
+      // PACOTE (`plan='free'`, `has_paid=true`) cujo saldo era exatamente 20 e
+      // acabou de gastá-lo no Seedance — `creditBalance > 0` vira false depois
+      // do débito e ele toma 402 num render que JÁ PAGOU, com estorno só no
+      // sweep do dia seguinte. É o mesmo defeito do bloqueador #1, atingindo um
+      // cliente pagante, e é ANTERIOR ao reverse trial.
+      // NÃO foi corrigido aqui de propósito: esta correção fecha os
+      // bloqueadores do QA e nada além disso, e a flag é a fronteira de
+      // rollback do sprint inteiro — alargar um gate para contas fora do trial
+      // sairia junto num rollback que deveria devolver a produção ao estado
+      // exato de hoje. Registrado como dívida em
+      // docs/QA-REVERSE-TRIAL-2026-08-07.md para o fundador decidir.
+      const hasPaidCreditAccess =
+        !isFreePlan ||
+        (hasPaid && creditBalance > 0) ||
+        ent.isTrial ||
+        (REVERSE_TRIAL_ENABLED && cinematicUpstreamDebited)
 
       if (quality === 'cinematic_ai') {
         const requiredCredits = creditCostFor('cinematic_ai', true)
@@ -1074,7 +1156,16 @@ export async function POST(req: NextRequest) {
         }
       } else {
         // quality === 'fast'
-        isFreePlanFast = isFreePlan && !hasPaid
+        // BLOQUEADOR #2: `&& !ent.isTrial`. Este booleano é o interruptor
+        // MESTRE do free tier — dele saem, nesta ordem, a marca d'água (linha
+        // ~1810), o end card, o clamp de 15s, a reserva de cota (1 Fast/30d com
+        // a flag ON) e o preço 0 do render (creditCostFor(quality, !isFreePlanFast)).
+        // Uma conta em trial batia nos CINCO. O trial agora segue o caminho
+        // PAGO: export limpo, sem clamp, sem cota, e o Fast custa 1 crédito de
+        // verdade — que é o que faz o render aparecer no teto de 40 (um Fast
+        // grátis seria invisível para o próprio cap do trial).
+        // Flag OFF ⇒ ent.isTrial false ⇒ predicado idêntico ao anterior.
+        isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial
         if (isFreePlanFast) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.
@@ -1083,13 +1174,28 @@ export async function POST(req: NextRequest) {
           // grátis limitado a 15s. Clamp ANTES da reserva de cota (o claim
           // grava `duration` no metadata) e antes de TTS/word-count, que
           // escalam pelo mesmo número. Flag OFF: maxFreeFastSeconds é null e
-          // nada muda. Contas em trial ativo não passam por aqui — trial gera
-          // com crédito (caminho pago), então o clamp só atinge o free real.
-          if (
-            FREE_OFFER.maxFreeFastSeconds !== null &&
-            duration > FREE_OFFER.maxFreeFastSeconds
-          ) {
-            duration = FREE_OFFER.maxFreeFastSeconds
+          // nada muda.
+          // ⚠️ KINEO-TRIAL-BLOCKERS-2026-08-07 — este comentário AFIRMAVA
+          // "contas em trial ativo não passam por aqui — trial gera com crédito
+          // (caminho pago)". Era FALSO: nada no caminho de `fast` consultava o
+          // trial, e o QA de 07/08 mediu a conta em trial recebendo clamp,
+          // marca d'água e a cota free (bloqueador #2). Agora a afirmação é
+          // VERDADE, e ela é verdade por causa do `!ent.isTrial` no
+          // `isFreePlanFast` acima — não por causa desta frase. Comentário que
+          // descreve uma garantia sem apontar o código que a impõe é como esta
+          // linha ficou errada por um dia inteiro em produção.
+          // KINEO-TRIAL-BLOCKERS-2026-08-07 — o clamp passou a vir de
+          // `ent.maxDurationSeconds` em vez de `FREE_OFFER.maxFreeFastSeconds`
+          // direto. Dentro deste ramo os dois são o MESMO valor por construção
+          // (aqui `treatAsPaid` é necessariamente false: isFreePlanFast implica
+          // plano free, sem has_paid e sem trial), então o runtime não muda —
+          // o que muda é que a regra "quem sofre clamp" deixa de ser reconstruída
+          // aqui e passa a ser lida de onde ela mora. Foi a divergência entre
+          // "quem é free para o clamp" e "quem é free para o trial" que
+          // produziu o bloqueador #2.
+          const maxFreeSeconds = ent.maxDurationSeconds
+          if (maxFreeSeconds !== null && duration > maxFreeSeconds) {
+            duration = maxFreeSeconds
             console.log(`[compose] free tier duration clamped to ${duration}s (reverse-trial free tier)`)
           }
           const quotaResponse = await reserveFreeFastPreviewSlot()

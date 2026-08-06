@@ -60,9 +60,15 @@ import {
   evaluateTrialFingerprint,
   fingerprintLabel,
   recordTrialFingerprint,
+  trialFingerprintSaltConfigured,
   TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
+  TRIAL_FINGERPRINT_SALT_ENV,
   TRIAL_FINGERPRINT_WINDOW_DAYS,
 } from '@/lib/trialFingerprint'
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — o entitlement efetivo precisa saber qual é
+// o free tier vigente (clamp de duração) para responder o que um NÃO-pago
+// recebe. lib/freeTierOffer.ts não importa nada — sem ciclo.
+import { getFreeTierOffer } from '@/lib/freeTierOffer'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -83,6 +89,10 @@ export const TRIAL_CREDIT_CAP = 40
 export const TRIAL_GRANT_CREDITS = TRIAL_CREDIT_CAP
 
 export type TrialVariant = '3d' | '7d'
+
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — latch do aviso de salt ausente (bloqueador
+// #3). Módulo-level de propósito: uma vez por PROCESSO, não por signup.
+let missingSaltReported = false
 
 // Exportado desde KINEO-TRIAL-EMAILS-2026-08-07: o cron de e-mails de ciclo de
 // vida deriva o INÍCIO do trial (trial_ends_at − dias da variante) para saber
@@ -405,6 +415,116 @@ export function trialUiState(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — ENTITLEMENT EFETIVO: A ÚNICA RESPOSTA
+// PARA "ESTA CONTA É TRATADA COMO PAGA?"
+//
+// POR QUE ESTE BLOCO EXISTE (bloqueadores #1 e #2 do QA de 07/08):
+// `maybeActivateReverseTrial` NÃO toca em `plan` nem em `has_paid` — de
+// propósito, porque escrever plan='creator' numa conta que não pagou
+// contaminaria MRR, coortes de e-mail, webhook da Stripe e todo painel de
+// admin. A consequência é que uma conta em trial ativo é, para o banco,
+// `plan='free' has_paid=false` — e TODO gate free/pago do produto a lia como
+// free. O QA mediu o resultado: quem escolhia Seedance (o motor que o trial
+// existe para liberar) tomava 402 depois de ter o crédito debitado, e quem
+// escolhia Fast recebia marca d'água, corte em 15s e a cota free apertada
+// (1/30d desde 15e4154). O trial cobrava e não entregava.
+//
+// A CORREÇÃO NÃO É "escrever plan='creator'". É esta função: o entitlement
+// EFETIVO é derivado na leitura, num lugar só, e todo gate passa a perguntar
+// por ele em vez de reimplementar a regra.
+//
+// ⚠️ TRÊS INVARIANTES QUE NÃO PODEM SER DESFEITAS POR ENGANO:
+//
+//   1. FLAG OFF ⇒ DIFF DE RUNTIME ZERO. `isTrialActive()` já retorna false
+//      para qualquer entrada com a flag OFF, logo `isTrial=false`, logo
+//      `treatAsPaid === isPaidAccount`. E `isPaidAccount` NÃO é recalculado
+//      aqui por padrão nos call sites: cada gate CONTINUA computando o seu
+//      predicado local (os PAID_PLANS de cada arquivo divergem entre si — o
+//      de /api/footage tem 6 planos, o de /api/compose tem 10) e o passa em
+//      `opts.isPaidAccount`. O que esta função adiciona é UM termo OR que
+//      vale false com a flag desligada. É isso que torna "flag OFF =
+//      comportamento idêntico" auditável por inspeção local, sem depender de
+//      esta função ter copiado a lista certa.
+//
+//   2. `allowsStudioEngines` é `isPaidAccount`, NUNCA `treatAsPaid`. Kling,
+//      Veo e Hollywood jamais entram no trial (spec do fundador de 06/08 e
+//      razão de o teto ser 40: Hollywood custa 150 e é inalcançável por
+//      desenho). Se um dia alguém "simplificar" isto para `treatAsPaid`, o
+//      trial passa a distribuir ~$15 de render por conta grátis.
+//
+//   3. O TETO de 40 créditos NÃO mora aqui e não pode migrar para cá. Ele é
+//      passivo, dentro de `isTrialActive()` (via `trialCapReached`), e é o
+//      que faz `isTrial` virar false sozinho no débito que estoura o teto —
+//      na MESMA request, sem cron. Um gate que perguntasse "trial?" e depois
+//      "cabe no teto?" separadamente teria duas verdades sobre o mesmo
+//      instante.
+//
+// O QUE O TRIAL RECEBE, EXPLICITAMENTE: crédito debitado de verdade (o Fast
+// do trial custa 1 crédito e SOMA no teto — trial que gera de graça seria um
+// trial invisível para o próprio cap), export limpo, sem clamp de duração e
+// sem consumir a cota do free tier.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Linha de profiles suficiente para resolver o entitlement efetivo. */
+export interface EffectiveEntitlementRow extends TrialProfileFields, PayingProfileFields {}
+
+/**
+ * Colunas de trial que um SELECT precisa trazer para `getEffectiveEntitlement`
+ * responder a verdade. Uma constante, e não a lista redigitada em cada rota,
+ * porque o modo de falha de esquecer uma delas é SILENCIOSO e do lado caro:
+ * sem `trial_ends_at` o relógio conta como vencido, sem `trial_credits_used` o
+ * teto conta como zero.
+ */
+export const TRIAL_ENTITLEMENT_COLUMNS = 'trial_status, trial_ends_at, trial_credits_used'
+
+export interface EffectiveEntitlement {
+  /** Trial ativo AGORA (relógio + teto já avaliados). Sempre false com a flag OFF. */
+  isTrial: boolean
+  /** Conta COMPROVADAMENTE paga, sem contar trial. */
+  isPaidAccount: boolean
+  /** O predicado que todo gate free/pago deve consultar. */
+  treatAsPaid: boolean
+  /** Kling / Veo / Hollywood. Trial NUNCA — ver invariante 2. */
+  allowsStudioEngines: boolean
+  /** Marca d'água + end card no export. */
+  watermark: boolean
+  /** Corte de duração do Fast grátis; null = sem corte. */
+  maxDurationSeconds: number | null
+  /** Este render consome a cota do free tier (3/24h com a flag OFF, 1/30d com ON)? */
+  countsAgainstFreeQuota: boolean
+}
+
+/**
+ * Resolve o entitlement efetivo de uma linha de `profiles`.
+ *
+ * `opts.isPaidAccount` — PASSE SEMPRE o predicado local do call site (ver
+ * invariante 1). O default (`isPayingProfile`, denylist invertida) existe só
+ * para chamadores novos que não têm um predicado herdado para preservar.
+ */
+export function getEffectiveEntitlement(
+  profile: EffectiveEntitlementRow | null | undefined,
+  opts?: { isPaidAccount?: boolean; now?: number },
+): EffectiveEntitlement {
+  const now = opts?.now ?? Date.now()
+  const isPaidAccount =
+    typeof opts?.isPaidAccount === 'boolean' ? opts.isPaidAccount : isPayingProfile(profile)
+  const isTrial = isTrialActive(profile, now)
+  const treatAsPaid = isPaidAccount || isTrial
+  return {
+    isTrial,
+    isPaidAccount,
+    treatAsPaid,
+    // ⚠️ isPaidAccount, NÃO treatAsPaid. Ver invariante 2.
+    allowsStudioEngines: isPaidAccount,
+    watermark: !treatAsPaid,
+    // getFreeTierOffer() é puro e sem dependências (lib/freeTierOffer.ts não
+    // importa nada) — nenhum ciclo de import é criado aqui.
+    maxDurationSeconds: treatAsPaid ? null : getFreeTierOffer().maxFreeFastSeconds,
+    countsAgainstFreeQuota: !treatAsPaid,
+  }
+}
+
 // Service-role client (mesmo padrão de lib/credits/renderIntent.ts): a
 // contabilidade do trial não pode depender de RLS do usuário logado.
 function adminClient(): SupabaseClient | null {
@@ -485,6 +605,23 @@ export async function maybeActivateReverseTrial(args: {
     // ultrapassado" — sem salt, sem IP, tabela ausente, query com erro: concede.
     // O evento é o que impede isso de virar um buraco silencioso.
     const fingerprintHash = args.fingerprintHash ?? null
+    // KINEO-TRIAL-BLOCKERS-2026-08-07 (bloqueador #3) — sem o salt o hash é
+    // sempre null, o verdict é sempre 'no_signal' e TODA conta ganha trial sem
+    // checagem de device. Continua concedendo (fail-open, ordem do fundador),
+    // mas nunca mais em silêncio: um aviso e um evento por PROCESSO. Ver o
+    // bloco de comentário em lib/trialFingerprint.ts para o porquê do "por
+    // processo" e /admin/trial-abuse para a faixa vermelha permanente.
+    if (!trialFingerprintSaltConfigured() && !missingSaltReported) {
+      missingSaltReported = true
+      console.error(
+        `[reverse-trial] ANTI-ABUSE INACTIVE: ${TRIAL_FINGERPRINT_SALT_ENV} is not set — every signup is getting a trial with no device/IP check. Set it in the Vercel production env (see docs/QA-REVERSE-TRIAL-2026-08-07.md).`,
+      )
+      await writeServerEvent({
+        name: 'trial_fingerprint_salt_missing',
+        userId: args.userId,
+        metadata: { env_var: TRIAL_FINGERPRINT_SALT_ENV, once_per_process: true },
+      })
+    }
     const verdict = await evaluateTrialFingerprint(db, fingerprintHash)
     if (verdict.reason === 'check_failed') {
       // Suspeito, não bloqueante: o sinal existia e não pôde ser lido.

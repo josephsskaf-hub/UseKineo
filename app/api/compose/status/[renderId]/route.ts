@@ -5,6 +5,9 @@ import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { refundRenderCredits } from '@/lib/credits/refund'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo é entitlement pago (ver
+// lib/reverseTrial.ts). Flag OFF ⇒ isTrialActive() é sempre false.
+import { isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 // KINEO-CREDIT-INTENT-2026-07-11 — the billing decision now reads the engine
 // (and price) from the server-side render_jobs intent row, NEVER from the
 // client's ?quality / ?deducted query params. creditCostFor is the single
@@ -394,7 +397,7 @@ export async function GET(
         try {
           const { data: payerProf } = await supabase
             .from('profiles')
-            .select('has_paid, plan')
+            .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
             .eq('id', user.id)
             .maybeSingle()
           const PAID_PLANS = new Set([
@@ -402,9 +405,17 @@ export async function GET(
             'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
           ])
           const planName = ((payerProf as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
+          // KINEO-TRIAL-BLOCKERS-2026-08-07 — só o caminho LEGADO (render sem
+          // intent assinado) chega aqui; todo render novo é liquidado pelo
+          // `intentCost`, que /api/compose já grava com o custo do trial (1
+          // crédito para o Fast). O termo entra mesmo assim para os dois
+          // caminhos não divergirem: um render legado de uma conta em trial
+          // seria liquidado a 0 e depois classificado como asset com marca
+          // d'água pelo `credits_used === 0` do histórico.
           fastIsPaidUser =
             (payerProf as { has_paid?: boolean } | null)?.has_paid === true ||
-            PAID_PLANS.has(planName)
+            PAID_PLANS.has(planName) ||
+            isTrialActive(payerProf)
         } catch (e) {
           console.warn('[fast-credit] legacy paid-status lookup failed:',
             e instanceof Error ? e.message : String(e))
@@ -756,7 +767,10 @@ export async function GET(
         try {
           const { data: planRow } = await supabase
             .from('profiles')
-            .select('has_paid, plan')
+            // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial: esta é a
+            // descrição PERSISTIDA no histórico, e ela tem que concordar com o
+            // que /api/youtube/upload publica de fato.
+            .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
             .eq('id', user.id)
             .maybeSingle()
           const PAID_PLANS = new Set([
@@ -766,7 +780,8 @@ export async function GET(
           const planName = ((planRow as { plan?: string } | null)?.plan ?? 'free').toLowerCase()
           const isPaid =
             (planRow as { has_paid?: boolean } | null)?.has_paid === true ||
-            PAID_PLANS.has(planName)
+            PAID_PLANS.has(planName) ||
+            isTrialActive(planRow)
           historyDescription = buildBrandedYouTubeDescription(ytDescriptionParam, {
             isFreePlan: !isPaid,
           })

@@ -58,6 +58,39 @@ export function fingerprintLabel(hash: string | null | undefined): string {
   return typeof hash === 'string' && hash.length >= 12 ? hash.slice(0, 12) : 'none'
 }
 
+// ── KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADOR #3 DO QA: O NO-OP MUDO ──────
+// Sem `KINEO_TRIAL_FINGERPRINT_SALT` no ambiente, `trialFingerprintHash()`
+// devolve null, `evaluateTrialFingerprint` devolve `{allow:true,
+// reason:'no_signal'}` e o trial é concedido — SEM linha, SEM evento, SEM log.
+// O anti-abuso inteiro fica desligado e nada em lugar nenhum reclama. Com 360
+// signups/30d e 40 créditos por trial (~$4,1 de custo), isso é ~$1.480/mês de
+// exposição que ninguém veria.
+//
+// A POSTURA NÃO MUDA — continua FAIL-OPEN (concede; a ordem do fundador é "na
+// dúvida, conceder e registrar evento suspeito"). O que muda é que deixa de ser
+// SILENCIOSO: quem ativa emite UM aviso por processo + UM evento por processo
+// (ver `maybeActivateReverseTrial` em lib/reverseTrial.ts) e o painel
+// /admin/trial-abuse abre com uma faixa vermelha permanente enquanto faltar.
+//
+// Uma vez POR PROCESSO, e não por signup, porque um log por signup em pico de
+// tráfego é indistinguível de ruído — e log que ninguém lê é o mesmo silêncio
+// com custo de storage. Serverless recicla processo com frequência, então a
+// linha reaparece sozinha sem virar spam.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Nome exato da env var. Aqui, e não redigitado em mensagem de erro nenhuma. */
+export const TRIAL_FINGERPRINT_SALT_ENV = 'KINEO_TRIAL_FINGERPRINT_SALT'
+
+/**
+ * O salt existe neste ambiente? MESMO predicado usado por
+ * `trialFingerprintHash` (presente e não-vazio depois de trim) — se os dois
+ * divergirem, o painel mente sobre o estado do anti-abuso.
+ */
+export function trialFingerprintSaltConfigured(): boolean {
+  const salt = process.env[TRIAL_FINGERPRINT_SALT_ENV]
+  return typeof salt === 'string' && salt.trim().length > 0
+}
+
 export interface TrialFingerprintSource {
   ip?: string | null
   userAgent?: string | null
@@ -92,7 +125,7 @@ export function clientIpFromHeaders(headers: Headers): string | null {
  *     positivo, não um sinal.
  */
 export function trialFingerprintHash(src: TrialFingerprintSource): string | null {
-  const salt = process.env.KINEO_TRIAL_FINGERPRINT_SALT
+  const salt = process.env[TRIAL_FINGERPRINT_SALT_ENV]
   if (!salt || !salt.trim()) return null
   const ip = (src.ip ?? '').trim()
   if (!ip) return null

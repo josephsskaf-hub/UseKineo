@@ -142,8 +142,11 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
         if (!res.ok) return
         const data = await res.json()
         const balance = Math.max(0, Number(data.credits ?? 0))
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — ver HistoryClient: trial ativo tem
+        // export limpo, então não pode receber o paywall de export limpo.
         const cleanAccess =
           data.isStarter === true || data.isCreator === true || data.isStudio === true ||
+          data.trialActive === true ||
           (data.hasPaid === true && balance > 0)
         if (!cancelled) setCleanExportLocked(!cleanAccess)
       } catch {

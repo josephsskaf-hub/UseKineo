@@ -169,8 +169,15 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       .then((d) => {
         if (cancelled || !d) return
         const balance = Math.max(0, Number(d.credits ?? 0))
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo tem export limpo (o
+        // servidor deixou de marcar os renders do trial). Sem este termo a
+        // biblioteca continuaria vendendo "desbloqueie o export limpo" para
+        // quem já baixa limpo — e o selo "⬇ WM" apareceria em vídeo sem marca.
+        // /api/credits já devolve `trialActive` (isTrialActive server-side);
+        // com a flag OFF ele é sempre false e nada muda.
         const cleanAccess =
           d.isStarter === true || d.isCreator === true || d.isStudio === true ||
+          d.trialActive === true ||
           (d.hasPaid === true && balance > 0)
         setCleanExportLocked(!cleanAccess)
       })

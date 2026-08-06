@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai } from '@/lib/openai'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
+// KINEO-TRIAL-BLOCKERS-2026-08-07 — trial ativo é entitlement pago (ver
+// lib/reverseTrial.ts). Flag OFF ⇒ isTrialActive() é sempre false.
+import { isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 
 // video-summary — Push #421
 //
@@ -143,14 +146,26 @@ RULES:
     try {
       const { data: planRow } = await supabase
         .from('profiles')
-        .select('plan')
+        // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial (mesma correção
+        // de /api/youtube/upload e do histórico em /api/compose/status).
+        .select(`plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
         .eq('id', user.id)
         .single()
       const PAID_PLANS = new Set([
         'starter', 'starter_trial', 'basic', 'basic_trial',
         'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial',
       ])
-      const isFreePlan = !PAID_PLANS.has(((planRow?.plan ?? 'free') as string).toLowerCase())
+      // ⚠️ DÍVIDA PRÉ-EXISTENTE, DELIBERADAMENTE NÃO CORRIGIDA AQUI: este é o
+      // único dos três sites de branding que ignora `has_paid`, então quem
+      // comprou um pacote avulso (plan='free', has_paid=true) recebe descrição
+      // marcada neste painel e limpa no upload real. É um defeito ANTERIOR ao
+      // reverse trial e alheio aos bloqueadores desta correção — está
+      // registrado em docs/QA-REVERSE-TRIAL-2026-08-07.md, seção de pontos
+      // auditados, para o fundador decidir. O termo do trial entra sem mexer
+      // nele: `isTrialActive` não depende de `has_paid`.
+      const isFreePlan =
+        !PAID_PLANS.has(((planRow?.plan ?? 'free') as string).toLowerCase()) &&
+        !isTrialActive(planRow)
       finalDescription = buildBrandedYouTubeDescription(description, { isFreePlan })
     } catch {
       // best-effort: on any failure ship the clean description
