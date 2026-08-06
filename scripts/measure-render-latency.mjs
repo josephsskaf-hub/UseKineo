@@ -66,10 +66,19 @@ const now = Date.now()
 const cutoff = new Date(now - hours * 60 * 60 * 1000).toISOString()
 const maturityCutoffMs = now - 20 * 60 * 1000
 
+// KINEO-RENDER-OWNERSHIP-2026-08-06 — EXCLUIR `legacy-%`.
+// A partir de 06/08 o caminho legado (/api/render) grava uma linha de posse em
+// render_jobs. Esse caminho NUNCA persiste em `videos` (é o estado NORMAL de
+// sucesso dele — mesma razão pela qual lib/credits/refund.ts exclui `legacy-%`
+// da varredura de débitos presos). Sem este filtro, cada render legado viraria
+// aqui um job "maduro e nunca completado" e derrubaria matureCompletionRate de
+// forma permanente e falsa — instrumento novo não pode contaminar métrica
+// antiga. Achado da revisão adversarial desta sprint.
 const jobs = await fetchAll(() => db
   .from('render_jobs')
   .select('render_id,quality,cost,created_at')
   .gte('created_at', cutoff)
+  .not('render_id', 'like', 'legacy-%')
   .order('created_at', { ascending: true }))
 
 const videos = await fetchAll(() => db

@@ -129,10 +129,16 @@ const videos = await fetchAll(() => db
   .gte('created_at', cutoff)
   .order('created_at', { ascending: true }))
 
+// KINEO-RENDER-OWNERSHIP-2026-08-06 — o PAR de measure-render-latency.mjs
+// (regra do CLAUDE.md: ao mexer num, procurar o irmão). Desde 06/08 o caminho
+// legado grava linha de posse em render_jobs com chave `legacy-%`; esse caminho
+// nunca persiste em `videos`, então sem este filtro ele viraria um degrau
+// artificial na série de renders por fonte de aquisição a partir de hoje.
 const renderJobs = await fetchAll(() => db
   .from('render_jobs')
   .select('user_id,render_id,quality,created_at')
   .gte('created_at', cutoff)
+  .not('render_id', 'like', 'legacy-%')
   .order('created_at', { ascending: true }))
 
 const sessions = await stripeListAll((startingAfter) => stripe.checkout.sessions.list({

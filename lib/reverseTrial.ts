@@ -26,14 +26,24 @@
 //   de cron (o cron de downgrade formal é FASE 2).
 // - 1 trial por conta, PARA SEMPRE: trial_status não-nulo nunca é reativado.
 //
-// ⚠️ DECISÃO ABERTA PARA A FASE 2 (registrada, NÃO implementada — máximo rigor
-// em crédito): a ativação NÃO concede video_credits. Um perfil novo nasce com
-// 0 créditos (handle_new_user), então com a flag ON o trial dá o DIREITO de
-// usar os motores pagos, mas o usuário só consegue debitar se tiver saldo.
-// Antes de ligar a flag, o CEO decide o grant do trial (sugestão natural: 40,
-// o próprio cap). Conceder crédito é decisão de dinheiro, não de fundação.
+// ✅ DECISÃO FECHADA PELO FUNDADOR (06/08) — FASE 2, ITEM 1: a ativação CONCEDE
+// crédito, e a concessão é o PRÓPRIO TETO: 40. Por isso TRIAL_GRANT_CREDITS é
+// derivado de TRIAL_CREDIT_CAP em vez de ser um segundo literal — os dois não
+// podem divergir nem por acidente de digitação (a terceira cópia do número 3 na
+// cota free custou uma sprint inteira; aqui o número nasce único).
+// Um perfil novo nasce com 0 créditos (handle_new_user); sem o grant, a flag ON
+// daria o DIREITO de usar os motores pagos a quem não tem saldo para debitar —
+// trial que não gera vídeo não converte ninguém.
+//
+// ⚠️ DÍVIDA EXPLÍCITA QUE ESTE COMMIT CRIA (item 2 da fase 2, cron de
+// downgrade): trial que termina no DIA (3/7) sem gastar tudo deixa saldo
+// remanescente em video_credits. O cron de downgrade PRECISA revogar o que
+// sobrou — o evento de auditoria `trial_credits_granted` (escrito abaixo) é o
+// que diz quanto foi concedido e quando. Enquanto a flag estiver OFF isto é
+// inerte; ligar a flag ANTES do cron de downgrade seria dar 40 créditos vitalícios.
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+import { writeServerEvent } from '@/lib/serverEvents'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -45,6 +55,13 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
  * inalcançável por design.
  */
 export const TRIAL_CREDIT_CAP = 40
+
+/**
+ * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):
+ * concessão = teto. Derivado, nunca redigitado — se um dia o teto mudar (só com
+ * aprovação do fundador), a concessão acompanha na mesma linha.
+ */
+export const TRIAL_GRANT_CREDITS = TRIAL_CREDIT_CAP
 
 export type TrialVariant = '3d' | '7d'
 
@@ -184,23 +201,116 @@ export async function maybeActivateReverseTrial(args: {
 
     const variant = trialVariantFor(args.userId)
     const endsAt = new Date(Date.now() + TRIAL_VARIANT_DAYS[variant] * 24 * 60 * 60 * 1000).toISOString()
-    // NOTA FASE 2: nenhum video_credits é concedido aqui — ver o bloco
-    // "DECISÃO ABERTA" no topo do arquivo.
-    const { data: updated, error: updateErr } = await db
-      .from('profiles')
-      .update({ trial_status: 'active', trial_ends_at: endsAt, trial_variant: variant })
-      .eq('id', args.userId)
-      .is('trial_status', null)
-      .select('id')
-    if (updateErr) {
-      console.error('[reverse-trial] activation update failed:', updateErr.message)
-      return { activated: false, reason: 'update_error' }
+
+    // ── ATIVAÇÃO + GRANT NA MESMA ESCRITA (fase 2, item 1) ───────────────────
+    // A primeira versão deste diff fazia dois round-trips (UPDATE guardado por
+    // `.is('trial_status', null)` → RPC add_video_credits → rollback se o RPC
+    // falhasse). A revisão adversarial matou o desenho com dois cenários que o
+    // rollback NÃO cobre:
+    //   · morte do processo entre as duas escritas (esta função é chamada de
+    //     /api/track-signup-source, que o cliente dispara fire-and-forget e a
+    //     plataforma pode derrubar) ⇒ conta com trial 'active' e 0 créditos,
+    //     travada PARA SEMPRE pela guarda "1 trial por conta";
+    //   · RPC que COMMITA e perde a resposta (timeout pós-commit, 504 do
+    //     PostgREST) ⇒ o rollback zera trial_status, a próxima request reativa e
+    //     concede +40 DE NOVO — repetível enquanto created_at < 24h.
+    // O precedente do Post to Earn não valia: lá o rollback apaga um claim
+    // chaveado por um recurso externo escasso (youtube_video_id UNIQUE), então o
+    // replay exige um vídeo novo; aqui o "recurso escasso" era um booleano que o
+    // próprio rollback devolvia ao estado inicial.
+    //
+    // DESENHO ATUAL: uma ÚNICA UPDATE carrega o trial E o saldo, com
+    // compare-and-swap nos dois eixos:
+    //   `.is('trial_status', null)`  → 1 trial por conta, para sempre;
+    //   `.eq('video_credits', saldo lido)` → soma sem read-modify-write cego.
+    // Ou a linha inteira muda, ou nada muda: não existe janela entre "ativou" e
+    // "creditou", logo não existe rollback, logo não existe replay. Perder a
+    // corrida do CAS devolve 0 linhas e a gente relê e tenta de novo (mesmo
+    // padrão otimista de recordReverseTrialDebit abaixo).
+    //
+    // Por que SOMAR (saldo + 40) e não escrever 40: um perfil novo nasce com 0,
+    // mas o crédito de indicação (/api/referral/qualify) pode chegar antes;
+    // escrever 40 apagaria esse crédito. NOTA HONESTA: aquele caminho escreve em
+    // video_credits com read→compute→write fora de qualquer RPC (assim como
+    // /api/credits/deduct e os webhooks de pagamento), então o CAS daqui protege
+    // ESTA escrita, não a daquele lado — a corrida inversa é dívida pré-existente
+    // e está registrada no relatório.
+    let granted = false
+    for (let attempt = 1; attempt <= 3 && !granted; attempt += 1) {
+      const { data: balanceRow, error: balanceErr } = await db
+        .from('profiles')
+        .select('video_credits, trial_status')
+        .eq('id', args.userId)
+        .maybeSingle()
+      if (balanceErr || !balanceRow) {
+        console.error('[reverse-trial] balance read failed:', balanceErr?.message ?? 'no row')
+        return { activated: false, reason: 'read_error' }
+      }
+      // Releitura: outra request pode ter ativado entre o primeiro select e aqui.
+      if (balanceRow.trial_status !== null && balanceRow.trial_status !== undefined) {
+        return { activated: false, reason: 'lost_race' }
+      }
+      const rawBalance = (balanceRow as { video_credits?: unknown }).video_credits
+      const balance = typeof rawBalance === 'number' ? rawBalance : null
+
+      const write = db
+        .from('profiles')
+        .update({
+          trial_status: 'active',
+          trial_ends_at: endsAt,
+          trial_variant: variant,
+          video_credits: (balance ?? 0) + TRIAL_GRANT_CREDITS,
+        })
+        .eq('id', args.userId)
+        .is('trial_status', null)
+      // video_credits é NULLABLE: `.eq(col, null)` nunca casa em SQL, então o
+      // CAS de uma linha sem saldo precisa ser `.is(col, null)`.
+      // ÚLTIMA TENTATIVA SEM A GUARDA DE SALDO (2ª passada da revisão): o eixo
+      // `video_credits` do CAS é opcional para a garantia que importa — quem
+      // garante "1 trial por conta" é o `.is('trial_status', null)`, que fica
+      // SEMPRE. Manter o eixo do saldo nas 2 primeiras tentativas protege um
+      // crédito concorrente (ex.: /api/referral/qualify escrevendo saldo com
+      // read→compute→write); insistir nele na terceira só produziria um usuário
+      // sem trial NENHUM, silenciosamente. Mesmo padrão de recordReverseTrialDebit.
+      const guarded = attempt >= 3
+        ? write
+        : balance === null ? write.is('video_credits', null) : write.eq('video_credits', balance)
+      const { data: updated, error: updateErr } = await guarded.select('id')
+      if (updateErr) {
+        console.error('[reverse-trial] activation+grant update failed:', updateErr.message)
+        return { activated: false, reason: 'update_error' }
+      }
+      if (updated && updated.length > 0) {
+        granted = true
+        break
+      }
+      // 0 linhas: ou outra request ativou, ou o saldo mudou embaixo. Relê.
     }
-    if (!updated || updated.length === 0) {
-      // Outra request ativou primeiro — idempotente, não é erro.
+    if (!granted) {
+      console.error(`[reverse-trial] activation lost CAS 3x user=${args.userId.slice(0, 8)}`)
       return { activated: false, reason: 'lost_race' }
     }
-    console.log(`[reverse-trial] ACTIVATED user=${args.userId.slice(0, 8)} variant=${variant} ends=${endsAt}`)
+
+    console.log(`[reverse-trial] ACTIVATED user=${args.userId.slice(0, 8)} variant=${variant} ends=${endsAt} +${TRIAL_GRANT_CREDITS}cr`)
+    // Auditoria: é esta linha que responde "quanto crédito de trial a operação
+    // concedeu vs. receita nova" no relatório diário, e é a referência que o cron
+    // de downgrade (item 2) usa para revogar o saldo remanescente.
+    // AWAIT, não `void` (2ª passada da revisão): o grant escreve video_credits
+    // direto, sem linha em credit_debits — este evento é o ÚNICO rastro de que
+    // 40 créditos foram concedidos. Quem chama isto é /api/track-signup-source,
+    // disparado fire-and-forget pelo cliente; uma promessa solta pode morrer com
+    // o congelamento da instância serverless e o rastro do dinheiro sumir.
+    // writeServerEvent nunca lança (reporta false), então o await é seguro.
+    await writeServerEvent({
+      name: 'trial_credits_granted',
+      userId: args.userId,
+      metadata: {
+        credits: TRIAL_GRANT_CREDITS,
+        cap: TRIAL_CREDIT_CAP,
+        variant,
+        trial_ends_at: endsAt,
+      },
+    })
     return { activated: true, reason: variant }
   } catch (e) {
     console.error('[reverse-trial] activation threw:', e instanceof Error ? e.message : String(e))

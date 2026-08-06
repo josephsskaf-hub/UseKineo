@@ -4,6 +4,9 @@ import { openai, OPENAI_TTS_TIMEOUT_MS } from '@/lib/openai'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
+// KINEO-RENDER-OWNERSHIP-2026-08-06 — a linha de posse deste render, escrita
+// pelo servidor antes de o cliente poder pollar (ver GET /api/render/[id]).
+import { recordRenderIntent } from '@/lib/credits/renderIntent'
 import { stripScriptMarkers } from '@/lib/scriptParser'
 // PUSH #95 — a Creatomate `shape` has NO geometry other than its `path`; with
 // no path it draws nothing and the API ignores it silently. Both shapes below
@@ -359,6 +362,52 @@ export async function POST(req: NextRequest) {
     // stuck-render sweep (this pipeline never persists to `videos`, so a
     // missing videos row is its normal success state). The RPC floors the
     // balance at 0, replacing the old read→compute→write race.
+    // KINEO-RENDER-OWNERSHIP-2026-08-06 — POSSE ANTES DO DÉBITO.
+    // Grava render_jobs['legacy-<id>'] = { user_id, quality:'legacy', cost:1 }.
+    // É o ÚNICO registro server-side de quem é o dono deste render, e o GET
+    // /api/render/[id] agora FALHA FECHADO sem ele (404). Duas consequências que
+    // este comentário precisa deixar explícitas para o próximo leitor:
+    //
+    //   1. Se este insert falhar, o cliente legítimo perde o próprio render no
+    //      poll seguinte. É deliberado — a alternativa (liberar quando falta
+    //      posse) mantém o vazamento de URL aberto para sempre, porque HOJE
+    //      nenhum render legado tem linha. recordRenderIntent loga alto na
+    //      falha justamente para esse caso ser diagnosticável.
+    //   2. A chave leva o prefixo `legacy-` (a MESMA do ledger). Sem o prefixo,
+    //      compose/status enxergaria um render legado como intent válido e a
+    //      quality desconhecida colapsaria em 'basic_ai' (8 créditos) — cobrança
+    //      dupla. O prefixo também mantém a linha fora dos leitores que já
+    //      excluem `legacy-%` por convenção.
+    //
+    // NÃO afirmo aqui que isto "tira o preço da mão do chamador": p_cost já vinha
+    // do servidor (RENDER_COST). A linha é sobre POSSE, não sobre preço.
+    // SEM POSSE, SEM DÉBITO (achado da 2ª passada da revisão adversarial):
+    // recordRenderIntent NÃO lança — devolve `false`. Se o retorno fosse
+    // descartado, existiria a pior combinação possível: o usuário é DEBITADO,
+    // o GET nega o próprio render dele (404) e o refund ao vivo desta rota é
+    // justamente o único que existe, porque sweepStuckRenderDebits exclui
+    // `legacy-%` de propósito. Um crédito cobrado que nenhum caminho devolve.
+    // Então: falhou a posse ⇒ aborta ANTES do débito. Ninguém paga por um
+    // render que a gente já sabe que vai se recusar a entregar.
+    let intentRecorded = false
+    try {
+      intentRecorded = await recordRenderIntent({
+        renderId: `legacy-${renderId}`,
+        userId: user.id,
+        quality: 'legacy',
+        cost: RENDER_COST,
+      })
+    } catch (err) {
+      console.error('[render] render intent threw:', err)
+    }
+    if (!intentRecorded) {
+      console.error('[render] ABORT — sem linha de posse para render:', renderId)
+      return NextResponse.json(
+        { error: 'Could not start your render. Please try again.' },
+        { status: 503 },
+      )
+    }
+
     try {
       const { error: dedErr } = await debitVideoCredits(supabase, {
         userId: user.id,
