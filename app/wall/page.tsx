@@ -393,7 +393,12 @@ export default async function WallOfProofPage({
           </ul>
         )}
 
+        {/* id="paste" — destino do botão "Paste my link" do e-mail
+            send-post-nudge. Sem a âncora, quem clica no e-mail cai no TOPO da
+            página e precisa rolar até 60 cards para achar o campo que o botão
+            prometeu. Mexer neste id quebra aquele e-mail. */}
         <section
+          id="paste"
           style={{
             marginTop: 44,
             padding: 24,

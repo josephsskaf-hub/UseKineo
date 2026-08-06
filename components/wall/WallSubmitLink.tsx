@@ -34,7 +34,19 @@ const GREEN = '#4ade80'
 type State = 'idle' | 'saving' | 'done' | 'error' | 'unauthenticated'
 
 export default function WallSubmitLink() {
-  const [url, setUrl] = useState('')
+  // KINEO-POST-NUDGE-2026-08-05 — o campo nasce PREENCHIDO quando a pessoa
+  // volta do login. Ver o comentário do 401 em submit(): sem isto, quem chega
+  // deslogado (o caso normal de quem veio pelo e-mail) digita o link, é mandado
+  // para o login e volta para um campo vazio, tendo que ir buscar a URL do
+  // Short de novo. Esse é o degrau exato em que a pessoa desiste.
+  const [url, setUrl] = useState(() => {
+    if (typeof window === 'undefined') return ''
+    try {
+      return new URLSearchParams(window.location.search).get('prefill')?.slice(0, 300) ?? ''
+    } catch {
+      return ''
+    }
+  })
   const [state, setState] = useState<State>('idle')
   const [error, setError] = useState<string | null>(null)
   // Veredito da recompensa. Pode ser null se uma versão antiga da rota
@@ -54,7 +66,19 @@ export default function WallSubmitLink() {
         body: JSON.stringify({ url: value }),
       })
       if (res.status === 401) {
+        // KINEO-POST-NUDGE-2026-08-05 — o link que a pessoa acabou de digitar
+        // VIAJA com ela até o login e volta preenchido. Antes daqui o ramo
+        // `unauthenticated` desmontava o input, e o valor sumia: ela cumpria
+        // exatamente o que o e-mail pediu e era mandada de volta para buscar a
+        // URL do Short outra vez. `resolveAuthRedirect` preserva a query
+        // string do destino, então o `prefill` sobrevive à ida e à volta.
         setState('unauthenticated')
+        try {
+          const back = `/wall?prefill=${encodeURIComponent(value)}#paste`
+          window.location.href = `/login?redirect=${encodeURIComponent(back)}`
+        } catch {
+          // Se a navegação falhar, o convite de login abaixo continua na tela.
+        }
         return
       }
       const data = (await res.json().catch(() => null)) as

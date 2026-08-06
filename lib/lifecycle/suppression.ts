@@ -102,6 +102,16 @@ const PROFILE_TIMESTAMP_COLUMNS = [
   // a supressão só olha a janela de 24h — mas evita que alguém leia a coluna
   // como flag de "já processado para sempre", como as outras cinco.
   'credits_back_sent_at',
+  // KINEO-POST-NUDGE-2026-08-05 — "você baixou e nunca postou".
+  // cron/send-post-nudge → profiles.post_nudge_sent_at
+  //
+  // SEGUNDO carimbo recorrente da lista (cooldown de 14 dias), pelo mesmo
+  // motivo do anterior: hábito não se constrói com um e-mail só. Entrar aqui é
+  // OBRIGATÓRIO e não opcional — um job de lifecycle que não aparece nesta
+  // lista fica invisível para os outros seis, e a pessoa recebe dois e-mails
+  // nossos com minutos de diferença. Job novo que manda e-mail entra aqui no
+  // mesmo commit em que nasce.
+  'post_nudge_sent_at',
 ] as const
 
 export interface LifecycleSuppression {

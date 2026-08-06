@@ -1,0 +1,18 @@
+-- KINEO-POST-NUDGE-2026-08-05
+--
+-- Coluna do cron `send-post-nudge` ("você baixou o vídeo e nunca postou").
+--
+-- Já aplicada em produção via MCP em 05/08/2026 23:52Z; este arquivo existe
+-- para que a coluna sobreviva a um `db reset` e a qualquer ambiente novo. A
+-- tabela `posted_shorts` foi criada fora do versionamento em 31/07 e até hoje
+-- não tem DDL no repo — o mesmo buraco, uma vez só, já basta.
+--
+-- SEMÂNTICA: esta coluna é lida como JANELA (cooldown de 14 dias), nunca como
+-- flag de "já processado". Consequência direta, e é a lição de 05/08
+-- (lib/lifecycle/skipStamp.ts, REGRA 2): ela NUNCA pode receber o sentinela
+-- LIFECYCLE_SKIP_STAMP. `Date.parse('1970-01-01') === 0` é invisível para o
+-- teste `lastSent > 0` do cron, e um pulo carimbado assim viraria "elegível
+-- para sempre" — o oposto exato do que o carimbo queria dizer.
+--
+-- Aditiva e idempotente: nenhuma linha existente muda de comportamento.
+alter table public.profiles add column if not exists post_nudge_sent_at timestamptz;
