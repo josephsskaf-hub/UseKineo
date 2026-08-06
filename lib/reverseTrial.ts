@@ -17,9 +17,11 @@
 //   em trial_variant). SEM tocar em Stripe.
 // - Durante o trial: mesmos direitos do CREATOR, EXCETO os motores Studio
 //   (Kling / Veo / Hollywood) — NUNCA Studio no trial.
-// - HARD CAP de 60 créditos NO BACKEND: todo débito de crédito de uma conta em
-//   trial soma em trial_credits_used; ao atingir 60 o trial expira na hora
-//   (trial_status='expired'), mesmo antes do dia 3/7.
+// - HARD CAP de 40 créditos NO BACKEND (ADENDO A1 de 06/08: era 60; 40 limita
+//   o pior caso a ~$4,1/trial e mantém Hollywood inalcançável por design):
+//   todo débito de crédito de uma conta em trial soma em trial_credits_used;
+//   ao atingir 40 o trial expira na hora (trial_status='expired'), mesmo antes
+//   do dia 3/7.
 // - Expiração PASSIVA: isTrialActive() decide em toda leitura — nada depende
 //   de cron (o cron de downgrade formal é FASE 2).
 // - 1 trial por conta, PARA SEMPRE: trial_status não-nulo nunca é reativado.
@@ -28,7 +30,7 @@
 // em crédito): a ativação NÃO concede video_credits. Um perfil novo nasce com
 // 0 créditos (handle_new_user), então com a flag ON o trial dá o DIREITO de
 // usar os motores pagos, mas o usuário só consegue debitar se tiver saldo.
-// Antes de ligar a flag, o CEO decide o grant do trial (sugestão natural: 60,
+// Antes de ligar a flag, o CEO decide o grant do trial (sugestão natural: 40,
 // o próprio cap). Conceder crédito é decisão de dinheiro, não de fundação.
 
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -37,8 +39,12 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
 export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED === 'true'
 
-/** Hard cap de créditos que um trial pode consumir, imposto no servidor. */
-export const TRIAL_CREDIT_CAP = 60
+/**
+ * Hard cap de créditos que um trial pode consumir, imposto no servidor.
+ * ADENDO A1 (06/08): 60 → 40 — pior caso ~$4,1/trial; Hollywood segue
+ * inalcançável por design.
+ */
+export const TRIAL_CREDIT_CAP = 40
 
 export type TrialVariant = '3d' | '7d'
 
@@ -95,7 +101,8 @@ export interface TrialProfileFields {
 /**
  * A VERDADE ÚNICA sobre "este perfil está em trial ativo?". Usada em TODOS os
  * checks de entitlement — a expiração é passiva: passou de trial_ends_at ou
- * bateu no cap de 60, isto retorna false na mesma request, sem esperar cron.
+ * bateu no cap de 40 (adendo A1), isto retorna false na mesma request, sem
+ * esperar cron.
  * Com a flag OFF retorna false para qualquer entrada (nenhum caminho novo).
  */
 export function isTrialActive(
@@ -205,7 +212,7 @@ export async function maybeActivateReverseTrial(args: {
  * Contabilidade do HARD CAP, chamada pelo ponto único de débito
  * (lib/credits/debit.ts) DEPOIS de um debit_video_credits bem-sucedido.
  * Soma o custo em trial_credits_used quando a conta está em trial 'active';
- * ao atingir 60 (ou se o relógio já passou de trial_ends_at) marca
+ * ao atingir 40 (ou se o relógio já passou de trial_ends_at) marca
  * trial_status='expired' NA MESMA escrita — a expiração no cap é imediata,
  * não espera dia 3/7 nem cron.
  *

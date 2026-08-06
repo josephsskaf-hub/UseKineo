@@ -7,7 +7,8 @@
 // formato de retorno ({ data: saldo novo | null, error }).
 //
 // O que ele acrescenta: TODO débito bem-sucedido passa por um único lugar, e é
-// aqui que o hard cap do reverse trial (60 créditos) é contabilizado — atrás
+// aqui que o hard cap do reverse trial (40 créditos, adendo A1 de 06/08) é
+// contabilizado — atrás
 // da flag KINEO_REVERSE_TRIAL_ENABLED (default OFF ⇒ comportamento idêntico
 // ao rpc direto, byte a byte). Um débito novo no futuro DEVE usar este wrapper
 // em vez do rpc cru; senão ele não soma no cap (a classe de bug que a revisão
