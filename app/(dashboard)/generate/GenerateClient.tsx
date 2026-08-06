@@ -1009,7 +1009,9 @@ export default function GenerateClient({
   // (real shortage) vs 'studio'/'creator' (engine needs a higher plan). Drives an
   // accurate headline instead of a misleading "out of credits" for users who HAVE
   // credits but picked a plan-gated engine (e.g. Cinematic/Kling on Starter).
-  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator'>('credits')
+  // KINEO-TRIAL-PAYWALL-2026-08-06 — 'trial_ended' entra como quarta razao:
+  // quem PERDEU o acesso precisa de uma headline diferente de quem nunca teve.
+  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended'>('credits')
   const [upgradeLoading, setUpgradeLoading] = useState(false)
 
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every checkout CTA on this screen used
@@ -4344,8 +4346,16 @@ export default function GenerateClient({
           // KINEO-PLAN-GATE-MODAL — a 402 carrying `upsell` is a PLAN gate (the
           // engine needs Creator/Studio), NOT a credit shortage. Show the correct
           // headline so users who HAVE credits aren't wrongly told they're broke.
-          const gateReason: 'credits' | 'studio' | 'creator' =
-            data?.upsell === 'studio' ? 'studio' : data?.upsell === 'creator' ? 'creator' : 'credits'
+          // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — `reason` e mais
+          // especifico que `upsell` e por isso e consultado PRIMEIRO:
+          // 'trial_ended' e 'plan_ai_engine' chegam os dois com
+          // upsell='creator', mas so o primeiro fala com alguem que ja teve o
+          // motor e o perdeu. Valor desconhecido cai no comportamento antigo,
+          // entao servidor e cliente fora de sincronia nunca quebram a tela.
+          const gateReason: 'credits' | 'studio' | 'creator' | 'trial_ended' =
+            data?.reason === 'trial_ended'
+              ? 'trial_ended'
+              : data?.upsell === 'studio' ? 'studio' : data?.upsell === 'creator' ? 'creator' : 'credits'
           setError(typeof data?.error === 'string' ? data.error : `This needs more credits. You have ${data?.balance ?? 0}.`)
           if (data?.resume_same_generation === true && data?.generationId === cinematicGenerationId) {
             preserveGenerationAttemptRef.current = true
@@ -5055,7 +5065,7 @@ export default function GenerateClient({
   // Push #109 — free users at 0 credits get the urgency modal (with the
   // 10-min countdown); everyone else keeps the standard out-of-credits
   // modal.
-  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' = 'credits') {
+  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' | 'trial_ended' = 'credits') {
     // #380 — unified: every out-of-credits moment now opens the 3-plan upgrade
     // modal (Spark/Basic/Pro) so the user picks a plan at peak intent.
     // KINEO-PLAN-GATE-MODAL — carry the reason so the headline is accurate.
@@ -10070,7 +10080,7 @@ function UpgradeModal({
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
   onClose: () => void
-  reason?: 'credits' | 'studio' | 'creator'
+  reason?: 'credits' | 'studio' | 'creator' | 'trial_ended'
   isSubscriber?: boolean
   /** Inline English error from the parent's plan-row launcher. */
   checkoutError?: string | null
@@ -10110,6 +10120,28 @@ function UpgradeModal({
     studio: {
       title: 'Unlock premium AI engines 🎬',
       sub: 'Kling, Veo and Hollywood are available on every paid plan — you just need the credits. Pick a plan below. Cancel anytime · 7-day money-back.',
+    },
+    // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — PAYWALL CONTEXTUAL.
+    // Quem sai do trial nao esta descobrindo um recurso novo: ele esta perdendo
+    // um que ja usou. A copy nomeia a PERDA em vez de repetir o argumento de
+    // venda que ele ja aceitou uma vez.
+    //
+    // ⚠️ DUAS FRASES DERRUBADAS PELA REVISAO ADVERSARIAL antes de existirem:
+    //   · "pick up exactly where you stopped" — PROMESSA FALSA. O unico retorno
+    //     de estado do repo e `resume_same_generation`, e ele so viaja no ramo
+    //     de FALHA DE DEBITO, nunca neste 402 de plano. Depois do Stripe o
+    //     usuario volta com o formulario zerado.
+    //   · o comentario original dizia "nenhum preco no texto, os precos vivem
+    //     nas linhas de plano abaixo, em UMA fonte por moeda". A segunda metade
+    //     e FALSA NO ARQUIVO ONDE ESTAVA ESCRITA: as linhas de plano deste modal
+    //     usam `PLAN_LIST` de lib/pricing.ts, cujos priceLabel sao literais USD
+    //     ('$9.90', '$24.90', '$37.90'). O defeito e PRE-EXISTENTE, mas esta
+    //     razao AMPLIA o alcance dele: a coorte que perde o trial inclui BR e IN
+    //     por construcao. Registrado como GATE bloqueador do QA da flag no
+    //     relatorio da sprint — nada disso existe em producao com a flag OFF.
+    trial_ended: {
+      title: 'That was part of your trial ⏳',
+      sub: 'Your trial gave you the AI engine. Reactivate it with any paid plan below. Cancel anytime · 7-day money-back.',
     },
   }
   const head = HEAD[reason] ?? HEAD.credits

@@ -22,6 +22,19 @@ import ReferralPromoBanner from '@/components/ReferralPromoBanner'
 // QUALQUER página do app (o /generate já tinha esse card, o resto não tinha).
 // Só para usuário logado: a probe exige sessão e devolveria 401.
 import ActiveRenderPill from '@/components/ActiveRenderPill'
+// KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 2b) - modal comparativo de
+// downgrade do reverse trial. Montado aqui porque e a unica superficie que
+// TODA tela autenticada atravessa, e quem saiu do trial volta pelo dashboard,
+// nao necessariamente pelo /generate.
+//
+// A FLAG E LIDA AQUI, NO SERVIDOR, e nao dentro do componente: com
+// KINEO_REVERSE_TRIAL_ENABLED OFF o componente nem chega ao browser, entao o
+// custo desta feature no estado atual de producao e exatamente ZERO - nenhum
+// fetch a mais por navegacao. O componente ainda pergunta ao servidor quem ele
+// pode mostrar (a elegibilidade nunca e decidida no cliente); a flag aqui so
+// evita gastar a pergunta quando a resposta e conhecida.
+import TrialDowngradeModal from '@/components/TrialDowngradeModal'
+import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import type { Metadata } from 'next'
 
 // KINEO-ACQ-SPRINT-2026-07-29 — KEEP THE APP OUT OF THE SEARCH INDEX.
@@ -112,6 +125,13 @@ export default async function DashboardLayout({
       {user && <ReferralAutoTrigger />}
       {user && <AffiliateAutoTrigger />}
       {user && <ActiveRenderPill />}
+      {/* `userKey` vem daqui, do SERVIDOR, e nao de /api/credits: a chave de
+          dispensa precisa ser conhecida ANTES do fetch, senao quem ja dispensou
+          o modal continua pagando uma chamada a /api/credits (3 queries) em toda
+          navegacao, para sempre. Com a prop, o componente le o localStorage e sai
+          em ~0ms. Prefixo curto do id serve so de namespace de chave, nunca de
+          autorizacao - o cliente ja tem o id inteiro pela sessao do Supabase. */}
+      {user && REVERSE_TRIAL_ENABLED && <TrialDowngradeModal userKey={user.id.slice(0, 8)} />}
     </DashboardShell>
   )
 }

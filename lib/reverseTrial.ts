@@ -184,6 +184,156 @@ export function trialNeedsDowngrade(
   return trialClockExpired(profile, now) || trialCapReached(profile)
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-TRIAL-PAYWALL-2026-08-06 — FASE 2, ITENS 2b e 3: o ESTADO DO TRIAL
+// PARA A UI, calculado UMA vez no servidor.
+//
+// Por que isto existe em vez de o componente ler as colunas e decidir:
+// a regra "quem vê o modal de downgrade" é uma regra de DINHEIRO (ela pede
+// assinatura) e ela já tem duas armadilhas registradas neste repositório:
+//
+//   1. ⚠️ `trial_downgraded_at` TAMBÉM é carimbado em quem CONVERTEU. Decidir
+//      por essa coluna mostra "veja o que você perdeu" para quem acabou de
+//      PAGAR. A coorte correta é `trial_status === 'downgraded'`, e ela mora
+//      aqui, num lugar só — a mesma regra que os e-mails D3+ (item 4) vão usar.
+//   2. ⚠️ "quem paga" decidido por ALLOWLIST de planos erra do lado caro: a
+//      produção tem 3 perfis pagando com `plan='free'` e 1 com `plan='pro'`
+//      sem `has_paid`. Por isso a pergunta é feita por DENYLIST invertida
+//      (`isPayingProfile`), que falha FECHADO: na dúvida, é pagante e o
+//      upsell não aparece.
+//
+// Escrever esta regra em TypeScript no componente E de novo na query do e-mail
+// seria a MESMA regra em dois idiomas — o modo de falha mais caro já registrado
+// no PROMPT-DIARIO, porque ela envelhece em um só.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Fase do trial do ponto de vista da INTERFACE. Descritiva e sem juízo de
+ * valor: quem decide o que mostrar é `showDowngradeModal`, abaixo.
+ *
+ * - `none`        — flag OFF, ou conta que nunca teve trial (`trial_status` null).
+ * - `active`      — trial valendo agora (`isTrialActive` true).
+ * - `ending`      — o prazo venceu ou o teto foi atingido, mas o cron ainda não
+ *                   passou. O ENTITLEMENT já caiu (a expiração é passiva); só o
+ *                   crédito remanescente ainda não foi revogado.
+ * - `downgraded`  — o cron fechou o trial sem compra.
+ * - `converted`   — o cron fechou o trial de alguém que pagou.
+ */
+export type TrialUiPhase = 'none' | 'active' | 'ending' | 'downgraded' | 'converted'
+
+export interface TrialUiState {
+  phase: TrialUiPhase
+  /** ISO de `trial_ends_at`, ou null. Vem em TODA fase (o cliente precisa distinguir "nunca teve trial" de "o trial acabou"). */
+  endsAt: string | null
+  /** Milissegundos até o fim, quando ainda houver. NUNCA um "dias restantes" já arredondado: número derivado com decimal apodrece na viagem e o cliente arredonda no momento de exibir. */
+  msLeft: number | null
+  /** Créditos concedidos NA LINHA (não a constante — um trial antigo pode ter recebido outro número). */
+  creditsGranted: number
+  /** Créditos consumidos, cru. Pode ULTRAPASSAR `creditsGranted`: o último débito antes do teto pode custar mais do que faltava. */
+  creditsUsed: number
+  /** `creditsUsed` limitado por `creditsGranted` — o único seguro para copy do tipo "you used N of M". */
+  creditsUsedForDisplay: number
+  /** O teto vigente HOJE. Vai para o cliente para nenhuma copy precisar redigitar 40. */
+  cap: number
+  /**
+   * A ÚNICA autorização para o modal comparativo de downgrade aparecer.
+   * `phase === 'downgraded'` E não-pagante. Nunca derivado de datas no cliente.
+   */
+  showDowngradeModal: boolean
+}
+
+/** Linha mínima para responder "esta conta paga?" — a mesma pergunta do cron. */
+export interface PayingProfileFields {
+  plan?: unknown
+  has_paid?: unknown
+}
+
+/**
+ * DENYLIST invertida: só é "não paga" quem tem `has_paid` falso E plano
+ * vazio/'free'. Qualquer outra coisa (plano desconhecido, coluna ausente,
+ * grafia nova) conta como PAGANTE — o erro caro aqui é pedir assinatura a
+ * quem já assinou, não deixar de pedir a quem não assinou.
+ */
+export function isPayingProfile(row: PayingProfileFields | null | undefined): boolean {
+  if (!row) return false
+  if (row.has_paid === true) return true
+  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
+  return plan !== '' && plan !== 'free'
+}
+
+/** Linha de profiles suficiente para montar o estado de UI do trial. */
+export interface TrialUiRow extends TrialProfileFields, PayingProfileFields {
+  trial_credits_granted?: unknown
+}
+
+/**
+ * Monta o estado do trial para a interface. Nunca lança; entrada nula vira
+ * `none`. Com a flag OFF devolve SEMPRE `none` — desligar a flag é um rollback
+ * completo, inclusive da interface, sem deixar modal órfão na tela de ninguém.
+ */
+export function trialUiState(
+  profile: TrialUiRow | null | undefined,
+  now: number = Date.now(),
+): TrialUiState {
+  const empty: TrialUiState = {
+    phase: 'none',
+    endsAt: null,
+    msLeft: null,
+    creditsGranted: 0,
+    creditsUsed: 0,
+    creditsUsedForDisplay: 0,
+    cap: TRIAL_CREDIT_CAP,
+    showDowngradeModal: false,
+  }
+  if (!REVERSE_TRIAL_ENABLED || !profile) return empty
+
+  const status = typeof profile.trial_status === 'string' ? profile.trial_status : null
+  if (status === null) return empty
+
+  const endsRaw = profile.trial_ends_at
+  const endsAt = typeof endsRaw === 'string' ? endsRaw : null
+  const endsMs = endsAt ? Date.parse(endsAt) : NaN
+  const msLeft = Number.isFinite(endsMs) ? Math.max(0, endsMs - now) : null
+
+  const grantedRaw = profile.trial_credits_granted
+  const creditsGranted =
+    typeof grantedRaw === 'number' && Number.isFinite(grantedRaw) ? grantedRaw : 0
+  const creditsUsed = trialCreditsUsed(profile)
+
+  let phase: TrialUiPhase
+  if (status === 'downgraded') phase = 'downgraded'
+  else if (status === 'converted') phase = 'converted'
+  else if (isTrialActive(profile, now)) phase = 'active'
+  else if (status === 'active' || status === 'expired') phase = 'ending'
+  // Status gravado por uma versão futura que este código não conhece: não
+  // inventar uma fase. `none` não mostra nada, que é o desfecho seguro.
+  else return empty
+
+  return {
+    phase,
+    endsAt,
+    msLeft,
+    creditsGranted,
+    creditsUsed,
+    creditsUsedForDisplay:
+      creditsGranted > 0 ? Math.min(creditsUsed, creditsGranted) : creditsUsed,
+    cap: TRIAL_CREDIT_CAP,
+    // ⚠️ `creditsGranted > 0` mora AQUI, e não em cada tela, porque a SEGUNDA
+    // passada da revisão adversarial pegou a primeira correção pela metade: a
+    // guarda tinha sido posta só no paywall do /generate, e o modal — a
+    // superfície mais alta das duas — continuava abrindo com a frase "your
+    // trial credits have expired" para uma linha que nunca recebeu crédito
+    // nenhum. Duas telas da mesma feature dando veredictos opostos sobre a
+    // MESMA linha do banco é o defeito que este arquivo inteiro existe para
+    // impedir. Só fala de PERDA quem comprovadamente RECEBEU.
+    //
+    // Efeito colateral desejado: qualquer rota futura que esqueça
+    // `trial_credits_granted` no SELECT perde o upsell (silencioso, mas do lado
+    // seguro) em vez de inventar uma perda que não houve.
+    showDowngradeModal: phase === 'downgraded' && !isPayingProfile(profile) && creditsGranted > 0,
+  }
+}
+
 // Service-role client (mesmo padrão de lib/credits/renderIntent.ts): a
 // contabilidade do trial não pode depender de RLS do usuário logado.
 function adminClient(): SupabaseClient | null {
@@ -503,11 +653,11 @@ export type TrialDowngradeOutcome =
 export const TRIAL_DOWNGRADE_SELECT =
   'id, plan, has_paid, video_credits, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, trial_variant'
 
-function isPayingProfile(row: TrialDowngradeRow): boolean {
-  if (row.has_paid === true) return true
-  const plan = typeof row.plan === 'string' ? row.plan.trim().toLowerCase() : ''
-  return plan !== '' && plan !== 'free'
-}
+// KINEO-TRIAL-PAYWALL-2026-08-06 — `isPayingProfile` foi PROMOVIDA para o topo
+// deste arquivo (junto de trialUiState) e exportada. O cron e a interface
+// precisam responder "esta conta paga?" com a MESMA função: se o cron achar que
+// converteu e a tela achar que não, a pessoa recebe "veja o que você perdeu"
+// depois de pagar. Duas cópias da mesma regra envelhecem em uma só.
 
 /**
  * Processa UM trial vencido: revoga o saldo remanescente do grant e fecha o

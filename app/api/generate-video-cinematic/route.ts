@@ -30,9 +30,10 @@ import { generateHollywoodAnchors, generateCinematicSceneStill, ANCHORS_USD, typ
 import { CINEMATIC_ANCHOR_ENABLED } from '@/lib/flags'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial: entitlement Creator
 // durante o trial (Studio NUNCA) + débito pelo wrapper único que soma no hard
-// cap de 60. Com KINEO_REVERSE_TRIAL_ENABLED OFF, isTrialActive() é sempre
+// cap de 40 (ADENDO A1 de 06/08). Com KINEO_REVERSE_TRIAL_ENABLED OFF,
+// isTrialActive() é sempre
 // false e debitVideoCredits é byte-idêntico ao rpc direto.
-import { isTrialActive } from '@/lib/reverseTrial'
+import { isTrialActive, trialUiState } from '@/lib/reverseTrial'
 import { debitVideoCredits } from '@/lib/credits/debit'
 // KINEO-HOLLYWOOD-HOST-2026-07-13 — HOLLYWOOD HOST MODE v3.5: anchored
 // dialogue scenes get ONE voice. The scene's line is synthesized with OUR TTS
@@ -650,7 +651,11 @@ export async function POST(req: NextRequest) {
       .from('profiles')
       // KINEO-REVERSE-TRIAL-P1-2026-08-06 — trial_* lidos para o entitlement
       // do reverse trial (colunas criadas por migração aditiva em 06/08).
-      .select('video_credits, plan, has_paid, trial_status, trial_ends_at, trial_credits_used')
+      // KINEO-TRIAL-PAYWALL-2026-08-06 — `trial_credits_granted` entra na
+      // leitura porque trialUiState() precisa dele para o paywall contextual
+      // dizer QUANTOS créditos a pessoa teve. O número mora na LINHA, não na
+      // constante: um trial ativado antes de um teto novo recebeu outro valor.
+      .select('video_credits, plan, has_paid, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted')
       .eq('id', user.id)
       .single()
 
@@ -673,9 +678,25 @@ export async function POST(req: NextRequest) {
     // CREATOR (Seedance liberado abaixo), mas NUNCA os motores Studio: o gate
     // Kling/Veo/Hollywood continua exigindo conta PAGA de verdade — trialActive
     // não o satisfaz de propósito. Expiração passiva: isTrialActive() já nega
-    // trial vencido no relógio OU no cap de 60, sem depender de cron. Flag OFF
+    // trial vencido no relógio OU no cap de 40 (ADENDO A1 de 06/08; este
+    // comentário dizia 60 e ficou para trás quando o teto baixou — número em
+    // comentário envelhece, por isso o valor vivo é TRIAL_CREDIT_CAP). Flag OFF
     // ⇒ trialActive é sempre false e nada aqui muda.
     const trialActive = isTrialActive(profile)
+    // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — a fase do trial vai
+    // junto da recusa para o cliente escolher a copy certa. O SERVIDOR não
+    // escreve preço: `lib/pricing.priceLabel` é USD fixo e esta rota atende
+    // BRL e INR, então um preço nascido aqui seria a moeda errada para uma
+    // parte real da base. Quem imprime o número é o cliente, que já resolve a
+    // moeda em /api/geo.
+    const trialUi = trialUiState(profile)
+    // `creditsGranted > 0` NAO e zelo: sem ele, um perfil com
+    // trial_status='active' e trial_ends_at NULL/ilegivel cai em 'ending' (o
+    // trialClockExpired trata data ilegivel como vencida, de proposito) e a
+    // copy contextual diria "o motor de AI era do seu trial" a alguem que nunca
+    // teve trial funcional. So fala de PERDA quem comprovadamente RECEBEU.
+    const trialEnded =
+      (trialUi.phase === 'downgraded' || trialUi.phase === 'ending') && trialUi.creditsGranted > 0
 
     // Premium engines (Kling/Veo/Hollywood) need any PAID account — the
     // reverse trial never includes the Studio engines.
@@ -683,9 +704,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: trialActive
-            ? 'Kling, Veo and Hollywood are Studio engines — not included in your trial. Upgrade to Studio to use them.'
+            ? 'Kling, Veo and Hollywood are Studio engines — not included in your trial. Upgrade to unlock them.'
             : 'Premium engines (Kling, Veo, Hollywood) are available on every paid plan. Upgrade to use them.',
-          upsell: 'creator',
+          // KINEO-TRIAL-PAYWALL-2026-08-06 — DEFEITO CORRIGIDO: este gate é o
+          // dos motores Studio e mandava `upsell: 'creator'`, que no cliente
+          // abre a headline "Unlock AI-generated videos 🤖" — a resposta errada
+          // para quem JÁ tinha AI liberado e pediu Kling/Veo/Hollywood. O
+          // cliente já tinha a headline certa ('studio') e ela nunca era
+          // alcançada por esta rota. Copy e payload agora dizem a mesma coisa.
+          upsell: 'studio',
+          reason: trialActive ? 'trial_studio_engine' : 'plan_studio_engine',
           balance,
         },
         { status: 402 },
@@ -707,12 +735,26 @@ export async function POST(req: NextRequest) {
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
     // KINEO-REVERSE-TRIAL-P1-2026-08-06 — exceção EXPLÍCITA e flag-gated: o
-    // reverse trial (Creator por 3/7 dias, cap 60 no backend) libera o Seedance.
+    // reverse trial (Creator por 3/7 dias, cap 40 no backend) libera o Seedance.
     if (!isPaidUser && !trialActive) {
       return NextResponse.json(
         {
-          error: 'AI Generated videos are on the paid plans. Upgrade to use the AI engine.',
+          // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — PAYWALL
+          // CONTEXTUAL. Para quem NUNCA teve trial a frase segue idêntica. Para
+          // quem acabou de sair de um, "AI Generated videos are on the paid
+          // plans" é informação que ele já tem e não explica por que a tela que
+          // funcionava ontem parou: a recusa precisa nomear a PERDA, que é o
+          // único motivo pelo qual ele está aqui.
+          error: trialEnded
+            ? 'The AI engine was part of your trial. Reactivate it to keep making AI videos.'
+            : 'AI Generated videos are on the paid plans. Upgrade to use the AI engine.',
           upsell: 'creator',
+          reason: trialEnded ? 'trial_ended' : 'plan_ai_engine',
+          // Créditos que a pessoa REALMENTE recebeu e gastou no trial — o
+          // cliente usa para "you made N videos with your trial credits" em vez
+          // de um argumento genérico de plano. Só sai quando houve trial.
+          trialCreditsGranted: trialEnded ? trialUi.creditsGranted : undefined,
+          trialCreditsUsed: trialEnded ? trialUi.creditsUsedForDisplay : undefined,
           balance,
         },
         { status: 402 },

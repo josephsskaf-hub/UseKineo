@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial surface para a UI do
 // generate (cadeado Studio). Flag OFF => bloco nunca executa, resposta identica.
-import { REVERSE_TRIAL_ENABLED, isTrialActive } from '@/lib/reverseTrial'
+import { REVERSE_TRIAL_ENABLED, isTrialActive, trialUiState, type TrialUiState } from '@/lib/reverseTrial'
 
 // KINEO-ZERO-SIGNUP-2026-07-09 — new signups start at 0 credits (InVideo
 // model): Fast renders are free to generate/watch (watermarked) and the money
@@ -113,20 +113,31 @@ export async function GET(req: Request) {
     // SO roda com a flag ON (OFF = zero query extra, resposta byte-identica).
     // Leitura separada e best-effort: um env sem as colunas trial_* nunca
     // derruba a resposta principal de creditos.
+    // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, itens 2b e 3) - o estado do trial
+    // vai INTEIRO para o cliente, calculado por trialUiState() no servidor.
+    // O buraco que isto fecha: ate agora `trialEndsAt` so viajava quando o
+    // trial estava ATIVO, entao a interface nao conseguia distinguir "nunca teve
+    // trial" de "o trial acabou" - e sem essa distincao nao existe modal de
+    // downgrade nem paywall contextual, porque os dois falam justamente com quem
+    // JA PERDEU o acesso. `trial_credits_granted` entra na leitura pelo mesmo
+    // motivo: a copy diz quantos creditos a pessoa usou, e esse numero mora na
+    // LINHA (um trial antigo pode ter recebido um teto diferente do de hoje).
     let trialActive = false
     let trialEndsAt: string | null = null
+    let trial: TrialUiState = trialUiState(null)
     if (REVERSE_TRIAL_ENABLED) {
       try {
         const { data: trialData, error: trialErr } = await supabase
           .from('profiles')
-          .select('trial_status, trial_ends_at, trial_credits_used')
+          .select('trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, plan, has_paid')
           .eq('id', user.id)
           .single()
         if (!trialErr && trialData) {
           trialActive = isTrialActive(trialData)
           trialEndsAt = trialActive && typeof trialData.trial_ends_at === 'string' ? trialData.trial_ends_at : null
+          trial = trialUiState(trialData)
         }
-      } catch { /* best-effort — trial fica false */ }
+      } catch { /* best-effort - trial fica no estado vazio */ }
     }
 
     if (error) {
@@ -144,6 +155,9 @@ export async function GET(req: Request) {
           isStarter: false,
           isCreator: false,
           isStudio: false,
+          // Perfil ainda nao existe: nao ha trial nenhum. A forma do payload
+          // continua a mesma para o cliente nunca precisar de um caminho especial.
+          trial: trialUiState(null),
         })
       }
       // Don't fall back to DEFAULT_CREDITS on an unknown error — that would hide a
@@ -184,6 +198,10 @@ export async function GET(req: Request) {
       // KINEO-REVERSE-TRIAL-P1-2026-08-06 — cadeado Studio na UI do generate.
       trialActive,
       trialEndsAt,
+      // KINEO-TRIAL-PAYWALL-2026-08-06 - estado completo do trial (fase, prazo,
+      // creditos concedidos/usados, teto e a UNICA autorizacao para o modal de
+      // downgrade aparecer). Com a flag OFF isto e sempre a forma vazia.
+      trial,
       plan: planVal,
       isStarter,
       isCreator,
