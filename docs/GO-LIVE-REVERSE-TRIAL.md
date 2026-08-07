@@ -62,3 +62,16 @@ Este arquivo e a unica fonte da ordem de ligamento.
 O QA reprovou depois de o fundador ter autorizado ligar. Manter essa ordem: autorizacao do
 fundador libera o RISCO DE NEGOCIO, nao substitui a verificacao tecnica. Ligar sem o passo 5
 seria entregar ao cliente novo exatamente a tela que mente que passamos a semana consertando.
+
+## Nota 23h — deploy nao disparou
+
+O push de 4b0de92 chegou ao GitHub (git ls-remote confirma) mas a Vercel NAO abriu build:
+o ultimo deploy de producao continua ec9f112, de 2h antes. As duas variaveis de ambiente ja
+estao criadas (KINEO_REVERSE_TRIAL_ENABLED=true e KINEO_TRIAL_FINGERPRINT_SALT), ou seja o
+PROXIMO deploy liga o trial.
+
+POR ISSO, REGRA DESTA JANELA: NAO clicar em "Redeploy" num deploy antigo. Redeploy reconstroi
+O MESMO COMMIT (ec9f112), que NAO contem as correcoes dos 3 bloqueadores do QA (6dfad6a) —
+seria ligar o trial exatamente na versao que cobra e nao entrega. O deploy tem que ser do
+HEAD atual. Este commit existe para forcar um push novo e testar se o webhook do GitHub
+volta a disparar.
