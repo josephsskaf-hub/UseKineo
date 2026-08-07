@@ -738,6 +738,23 @@ export default function SignupPage() {
                       }}
                     >
                       {error}
+                      {/* KINEO-STARTFREE-SIGNUP-2026-08-07 — "User already
+                          registered" was a dead end: the signup screen never
+                          linked to sign-in or password recovery (only /login
+                          and the modal did), so someone who forgot the password
+                          had nowhere to go from here. Shown only for that
+                          error, so a real validation message stays clean. */}
+                      {/already\s*registered|already\s*exists/i.test(error) && (
+                        <div style={{ marginTop: 8, color: 'var(--muted2)' }}>
+                          <Link href={loginHref} style={{ color: '#2997ff', fontWeight: 700 }}>
+                            Sign in instead
+                          </Link>
+                          {' · '}
+                          <Link href="/forgot-password" style={{ color: '#2997ff', fontWeight: 700 }}>
+                            Forgot your password?
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   )}
 
