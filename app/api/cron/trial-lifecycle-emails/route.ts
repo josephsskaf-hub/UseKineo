@@ -3,6 +3,10 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+// KINEO-D0-EMAIL-REVIEW-2026-08-07 — a linha do que sobra depois do trial não
+// pode ser redigitada aqui. Com a flag ON o free tier é 1 Fast/MÊS, não 3/dia;
+// o e-mail "ends soon" dizia "free daily limit", que é a copy da flag OFF.
+import { getFreeTierOffer } from '@/lib/freeTierOffer'
 import {
   REVERSE_TRIAL_ENABLED,
   TRIAL_CREDIT_CAP,
@@ -88,11 +92,25 @@ const CHUNK_SIZE = 200
 
 /**
  * Janela do welcome. A spec diz "ativação <24h", e é isso que o cron diário
- * alcança; as 24h extras existem SÓ para o caso de o primeiro dia ter sido
+ * alcança; as horas extras existem SÓ para o caso de o primeiro dia ter sido
  * comido pela supressão cruzada (ex.: activation-nudge saiu horas antes) — a
- * pessoa recebe o welcome no D1 em vez de nunca.
+ * pessoa recebe o welcome no D1/D2 em vez de nunca.
+ *
+ * ⚠️ KINEO-D0-EMAIL-REVIEW-2026-08-07 — 48h → 72h, MEDIDO, não estético. As
+ * duas primeiras contas reais (07/08, NP e PK) estavam DEVIDAS para o welcome
+ * no primeiro disparo (16:30Z) e as DUAS estavam suprimidas: cada uma já tinha
+ * recebido o "your video is ready" no mesmo dia (09:40:44Z e 05:40:44Z,
+ * carimbos reais de 2026 em video_ready_sent_at, não carimbo de pulo). Com
+ * janela de 48h isso dá exatamente DUAS tentativas; como send-video-ready
+ * (:10/:40), send-cap-hit (:15/:45) e send-post-nudge (:50) rodam de hora em
+ * hora e carimbam a mesma janela de 24h, duas tentativas seguidas comidas
+ * fazem o welcome nunca existir — em silêncio, sem erro em lugar nenhum. 72h
+ * dá três tentativas. A copy foi tornada neutra no tempo no mesmo commit ("40
+ * credits just landed" virou saldo real), então o e-mail continua verdadeiro
+ * se sair no D2. Para a variante 3d nada muda: `isTrialActive` e o ramo
+ * `ending_soon` já resolvem a linha antes de chegar aqui.
  */
-const D0_WINDOW_MS = 48 * HOUR_MS
+const D0_WINDOW_MS = 72 * HOUR_MS
 
 /**
  * "Ends tomorrow"/"ends soon", por variante. Com cadência diária, o disparo
@@ -185,6 +203,17 @@ interface Candidate {
   balance: number | null
   /** Créditos a devolver na extensão (só linha 'downgraded' já revogada). */
   restore: number
+  /**
+   * KINEO-D0-EMAIL-REVIEW-2026-08-07 — o que a pessoa TEM agora, não o que foi
+   * concedido. O welcome dizia "40 credits just landed in your account" para
+   * quem já tinha gasto um (as duas primeiras contas reais estavam em 39). "40"
+   * é verdade sobre a CONCESSÃO (trial_credits_granted) e mentira sobre o
+   * SALDO, e a frase fala de saldo ("in your account"). O número vai daqui, do
+   * mínimo entre o que sobra do teto e o saldo real — nunca superestima.
+   */
+  creditsLeft: number
+  /** Créditos de trial já gastos. Decide "first Short" × "next Short". */
+  creditsUsed: number
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -224,7 +253,27 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
   const extended = row.trial_extended === true
   const endsMs = parseTime(row.trial_ends_at)
 
-  const base = { id, email, variant, status, needsExtensionUpdate: false, balance: null, restore: 0 }
+  // KINEO-D0-EMAIL-REVIEW-2026-08-07 — saldo que o e-mail pode AFIRMAR. Dois
+  // limites, e vale o menor: o que sobra do teto do trial (o e-mail fala do
+  // trial) e o saldo real da conta (é dele que o débito sai). Saldo ausente ou
+  // não-numérico cai no limite do teto — nunca inventa crédito que não existe.
+  const rawBalanceNow = row.video_credits
+  const balanceNow =
+    typeof rawBalanceNow === 'number' && Number.isFinite(rawBalanceNow) ? Math.max(0, rawBalanceNow) : null
+  const capLeft = Math.max(0, TRIAL_CREDIT_CAP - used)
+  const creditsLeft = balanceNow === null ? capLeft : Math.min(capLeft, balanceNow)
+
+  const base = {
+    id,
+    email,
+    variant,
+    status,
+    needsExtensionUpdate: false,
+    balance: null,
+    restore: 0,
+    creditsLeft,
+    creditsUsed: used,
+  }
 
   if (status === 'active') {
     // Retry do e-mail de extensão: o UPDATE aconteceu num run anterior mas o
@@ -302,44 +351,86 @@ function utm(campaign: string): string {
 function buildEmail(c: Candidate): { subject: string; text: string; html: string } {
   const footerText = emailFooterText(c.id)
   const footerHtml = emailFooterHtml(c.id)
+  // KINEO-D0-EMAIL-REVIEW-2026-08-07 — 480px → 560px: o rodapé de
+  // emailFooterHtml() é 560px com `margin:… auto`, então o corpo de 480px
+  // ficava à esquerda e o rodapé centralizado, desalinhados no mesmo e-mail.
   const wrap = (inner: string) =>
-    `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">${inner}</div>\n${footerHtml}`
+    `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:560px;">${inner}</div>\n${footerHtml}`
+  // `&` cru dentro de href é referência de entidade não terminada. Escapar SÓ
+  // no HTML — a versão `text` tem que continuar com a URL literal, senão a
+  // pessoa cola "&amp;utm_source" no navegador.
+  const attr = (url: string) => url.replace(/&/g, '&amp;')
   const cta = (url: string, label: string) =>
-    `<p style="margin:0 0 20px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${label} &rarr;</a></p>`
+    `<p style="margin:0 0 20px;"><a href="${attr(url)}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${label} &rarr;</a></p>`
   const sig = `<p style="margin:0 0 2px;">Kineo Team</p>\n<p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>`
 
   if (c.kind === 'd0_welcome') {
     const url = `${APP_URL}/generate?${utm('trial_d0')}`
+    // ── KINEO-D0-EMAIL-REVIEW-2026-08-07 — TRÊS AFIRMAÇÕES CORRIGIDAS ────────
+    //
+    // 1. "40 credits just landed in your account". As duas primeiras contas
+    //    reais (07/08) receberiam isso com 39 no saldo — já tinham gerado um
+    //    Short. `${TRIAL_CREDIT_CAP}` é a CONCESSÃO; a frase fala do SALDO. O
+    //    número passa a ser `c.creditsLeft`, medido na linha.
+    //
+    // 2. "everything Creator has is unlocked". FALSO por spec: o trial NUNCA
+    //    tem os motores Studio (Kling / Veo / Hollywood — lib/reverseTrial.ts,
+    //    invariante 2 de getEffectiveEntitlement: `allowsStudioEngines` é
+    //    `isPaidAccount`, jamais `treatAsPaid`), e o plano Creator é vendido
+    //    justamente COM Hollywood ("1 Hollywood film every month included",
+    //    lib/pricing.ts). O e-mail prometia um motor que o servidor recusa com
+    //    402. A frase passa a ser a MESMA que a copy pública aprovada usa:
+    //    "every engine except Studio" (ON_COPY em lib/freeTierOffer.ts).
+    //
+    // 3. "Make your first Short" para quem já fez o primeiro. Ambas as contas
+    //    reais tinham trial_credits_used=1 e video_ready_sent_at carimbado
+    //    horas antes. Condicional em `c.creditsUsed`.
+    const first = c.creditsUsed <= 0
+    const creditLine = first
+      ? `${c.creditsLeft} credits are sitting in your account`
+      : `You have ${c.creditsLeft} credits left`
+    const bodyLine = first
+      ? `The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.`
+      : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Type any topic, hit generate, and it's done in about a minute.`
+    const ctaLabel = first ? 'Make your first Short' : 'Make your next Short'
     const text = `Hey,
 
-Your Creator trial is live. ${TRIAL_CREDIT_CAP} credits just landed in your account — everything Creator has is unlocked, no card needed.
+Your Creator trial is live. ${creditLine} — every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.
 
-The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.
+${bodyLine}
 
-Make your first Short: ${url}
+${ctaLabel}: ${url}
 
 Kineo Team
 usekineo.com`
     const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${TRIAL_CREDIT_CAP} credits just landed in your account &mdash; everything Creator has is unlocked, no card needed.</p>
-  <p style="margin:0 0 14px;">The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.</p>
-  ${cta(url, 'Make your first Short')}
+  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.</p>
+  <p style="margin:0 0 14px;">${bodyLine}</p>
+  ${cta(url, ctaLabel)}
   ${sig}`)
-    return { subject: `Your Creator trial is live — ${TRIAL_CREDIT_CAP} credits inside`, text: `${text}${footerText}`, html }
+    return { subject: `Your Creator trial is live — ${c.creditsLeft} credits inside`, text: `${text}${footerText}`, html }
   }
 
   if (c.kind === 'ending_soon') {
     const url = `${APP_URL}/pricing?${utm('trial_ending')}`
     const when = c.variant === '3d' ? 'tomorrow' : 'in 2 days'
     const subject = c.variant === '3d' ? 'Your Creator trial ends tomorrow' : '2 days left on your Creator trial'
+    // KINEO-D0-EMAIL-REVIEW-2026-08-07 — "You're back to the free daily limit"
+    // era a copy da flag DESLIGADA (3 Fast a cada 24h). Com KINEO_REVERSE_TRIAL_
+    // ENABLED ligada — o único mundo em que este e-mail existe — o free tier é
+    // 1 Fast por MÊS (ON_OFFER: limit 1, windowMs 30 dias). Dizer "daily"
+    // prometia 30x o que a pessoa vai receber e ainda esvaziava a urgência do
+    // próprio e-mail. A linha vem de getFreeTierOffer() para não poder divergir
+    // de novo quando o free tier mudar.
+    const freeResidual = getFreeTierOffer().copy.residual
     const text = `Hey,
 
 Your Creator trial ends ${when}. After that you're back on the free plan, which means:
 
 - Your unused trial credits expire
 - The Creator AI engines lock
-- You're back to the free daily limit
+- You're down to ${freeResidual}
 
 If Kineo's been working for you, keep everything exactly as it is: ${url}
 
@@ -351,7 +442,7 @@ usekineo.com`
   <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
     <li>Your unused trial credits expire</li>
     <li>The Creator AI engines lock</li>
-    <li>You're back to the free daily limit</li>
+    <li>You're down to ${freeResidual}</li>
   </ul>
   <p style="margin:0 0 14px;">If Kineo's been working for you, keep everything exactly as it is:</p>
   ${cta(url, 'Keep Creator')}
