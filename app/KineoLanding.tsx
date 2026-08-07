@@ -61,13 +61,21 @@ const KLP_CSS = `
 .klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .klp .nav-mobile-menu{display:none}
 .klp .nav-toggle-input:checked~.nav-mobile-menu{display:flex}
-.klp .hero{position:relative;padding:96px 0 92px;overflow:hidden}
+/* KINEO-HERO-FIRSTFOLD-2026-08-07 — os espacos verticais do hero deixam de ser
+   fixos e passam a escalar com a ALTURA da viewport (vh). Num notebook comum
+   (1440x900 => ~790px uteis) 96px de padding-top eram quase 12% da dobra
+   gastos em vazio antes de qualquer palavra. O clamp mantem o respiro em
+   monitores altos (cap 88px) e comprime onde falta espaco (piso 22px).
+   Medido, nao chutado — ver a conta completa no corpo do commit. */
+.klp .hero{position:relative;padding:clamp(22px,3.6vh,88px) 0 clamp(56px,7.5vh,92px);overflow:hidden}
 /* rgba(120,140,175) era um azul-acinzentado que nao existe em lugar nenhum da
    paleta — o unico tom solto do hero. Trocado pelo azul da marca, em duas
    camadas (uma quente e larga, uma fria e concentrada) para dar profundidade
    em vez de uma mancha chapada. */
 .klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.06),transparent 58%);pointer-events:none}
-.klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:22px 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
+/* KINEO-HERO-FIRSTFOLD-2026-08-07 — 22px fixos viram clamp por altura de tela.
+   A FONTE nao muda (o fundador aprovou a escala tipografica); so o respiro. */
+.klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:clamp(10px,1.5vh,22px) 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
 /* KINEO-HERO-NO-CHIPS-2026-08-05 — o <form> é o SHELL (sem moldura) e o card
    visual é um filho .composer. Os chips de tópico que ladeavam/empilhavam foram
    removidos (decisão do fundador após ver no ar), então o shell é uma coluna em
@@ -240,7 +248,10 @@ const KLP_CSS = `
 .klp .hero-center h1{margin:0 auto;max-width:780px;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance}
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
 @media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
-.klp .hero-center .composer-shell{margin:44px auto 0;max-width:1024px;text-align:left}
+/* KINEO-HERO-FIRSTFOLD-2026-08-07 — 44px fixos entre o subtitulo e a caixa.
+   Vira clamp por vh: 44px continua em telas altas, ~19px num notebook de 790px
+   uteis. A caixa (667x432) nao encolhe — so o vazio acima dela. */
+.klp .hero-center .composer-shell{margin:clamp(15px,2.4vh,44px) auto 0;max-width:1024px;text-align:left}
 .klp .hero-center .composer{margin:0 auto;max-width:860px;min-height:auto}
 /* KINEO-HERO-DECLUTTER-2026-07-30 — 104px deixava um vazio de quase uma dobra
    entre o placeholder e os atalhos de tópico, e o card lia como "faltando algo".
@@ -273,7 +284,10 @@ const KLP_CSS = `
    com scroll-snap (o container rola, a PÁGINA não — nada de overflow lateral)
    e o card fica com ~38% da largura, então três aparecem e o quarto assoma na
    borda, que é o que convida a arrastar. */
-.klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:44px auto 0}
+/* KINEO-HERO-FIRSTFOLD-2026-08-07 — margem superior da fileira em clamp por vh.
+   Os overrides de <=900px (34px) e <=560px (30px) vem DEPOIS no arquivo e
+   continuam ganhando por ordem — mobile/tablet nao herdam este clamp. */
+.klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
 .klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
 .klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
@@ -512,7 +526,9 @@ export default function KineoLanding({ initialUser }: Props) {
               className="trust"
               style={{
                 textAlign: 'center',
-                marginTop: 20,
+                // KINEO-HERO-FIRSTFOLD-2026-08-07 — respiro proporcional a
+                // altura da tela em vez de 20px fixos. Mesma copy, mesmo corpo.
+                marginTop: 'clamp(8px,1.3vh,20px)',
                 fontSize: 13.5,
                 lineHeight: 1.7,
                 color: 'var(--muted2)',
@@ -542,7 +558,8 @@ export default function KineoLanding({ initialUser }: Props) {
               <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
             </p>
             {/* PROVA-SOCIAL-REAL-2026-07-02 — real DB counts; renders nothing if numbers are low/unavailable */}
-            <div style={{ marginTop: 18, display: 'flex', justifyContent: 'center', minHeight: 22 }}>
+            {/* KINEO-HERO-FIRSTFOLD-2026-08-07 — marginTop 18 -> clamp por vh. */}
+            <div style={{ marginTop: 'clamp(6px,1.1vh,18px)', display: 'flex', justifyContent: 'center', minHeight: 22 }}>
               <LiveStatsBadge />
             </div>
           </div>
