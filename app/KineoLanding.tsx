@@ -474,7 +474,7 @@ export default function KineoLanding({ initialUser }: Props) {
         <div className="nav-right">
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="#try-kineo">Start free</Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?src=nav">Start free</Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -485,7 +485,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
-                : <Link className="btn btn-w" href="#try-kineo">Start free</Link>}
+                : <Link className="btn btn-w" href="/signup?src=nav-mobile">Start free</Link>}
             </label>
           </div>
         </div>
