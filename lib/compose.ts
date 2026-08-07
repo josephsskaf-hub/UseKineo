@@ -18,21 +18,20 @@ import {
 } from '@/lib/narration/elevenlabs'
 
 const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
-const CTA_TEXT = 'usekineo.com'
-// PUSH #100 — WATERMARK_TEXT is deliberately SEPARATE from CTA_TEXT. The burned
-// watermark is the only brand element a viewer sees on a re-uploaded Short, so
-// it has to name a destination that is (a) typeable from memory and (b)
-// attributable. `/free` is both: it maps to app/free/route.ts, which stamps a
-// first-touch source cookie and forwards to `/` with utm_source=watermark.
-// CTA_TEXT is left alone on purpose — it also renders on PAID exports (see the
-// tail CTA below), and widening its blast radius is a separate decision.
+// KINEO-ONE-WATERMARK-2026-08-07 — ONE brand element on a free render, and it
+// is this one. The founder's screenshot of a freshly generated free video
+// showed the same message stacked FOUR times: this burnt watermark, a "Made
+// with Kineo" lockup in the 2.5s tail, the SAME lockup again over the first 2s,
+// and a "usekineo.com" CTA also in the tail — all in the same top corner where
+// the watermark already says the domain. His verdict was "não precisa de 3
+// falando a mesma coisa". Decision: keep only the burnt,
+// full-duration watermark. It is the only element that survives a re-upload,
+// and the only one carrying an attributable destination — `/free` maps to
+// app/free/route.ts, which stamps a first-touch source cookie and forwards to
+// `/` with utm_source=watermark.
+// CTA_TEXT, CTA_TAIL_SECONDS and INTRO_LOCKUP_SECONDS were deleted together
+// with the elements they fed: nothing in this file emits a CTA tail any more.
 const WATERMARK_TEXT = 'usekineo.com/free'
-const CTA_TAIL_SECONDS = 2.5
-// PUSH #100 — the "Made with Kineo" lockup is now ALSO shown in the first
-// INTRO_LOCKUP_SECONDS of the video, not only in the CTA tail. The tail plays
-// at the lowest-retention moment of a Short; the first two seconds are the
-// highest. Same element, same styling, same gating flag (`endCard`).
-const INTRO_LOCKUP_SECONDS = 2
 // Push #293 / Kineo-Audio-2026 — Background music volume + fades. Lowered
 // 18%→12% so the narrator always dominates (InVideo/OpusClip sit music ~10-14%
 // under a VO). Creatomate can't sidechain-duck, so a fixed low level plus a
@@ -40,15 +39,18 @@ const INTRO_LOCKUP_SECONDS = 2
 // (PUSH #93 amended the fade-out: it no longer spans the whole CTA tail.)
 const MUSIC_VOLUME = '12%'
 const MUSIC_FADE_IN_SECONDS = 0.8
-// PUSH #93 — MUSIC TAIL. Was 2.5s, i.e. exactly CTA_TAIL_SECONDS, so the music
-// bed hit silence precisely over the outro: the CTA (the one frame we want the
-// viewer to act on) played at the quietest moment of the whole video — the
-// inverse of the short-form pattern, where the bed carries the outro and only
-// ducks out on the very last beat. 1.2s keeps the bed clearly audible under the
-// first ~1.3s of the CTA window and still resolves to silence inside the
-// timeline (the fade window is [totalDuration-1.2, totalDuration] and is
-// additionally clamped to totalDuration/2, so it always starts AND completes
-// before the last frame).
+// PUSH #93 — MUSIC TAIL. Was 2.5s, i.e. exactly the length of the old 2.5s CTA
+// tail, so the music bed hit silence precisely over the outro: the one frame we
+// wanted the viewer to act on played at the quietest moment of the whole video
+// — the inverse of the short-form pattern, where the bed carries the outro and
+// only ducks out on the very last beat. 1.2s keeps the bed clearly audible
+// through the closing words and still resolves to silence inside the timeline
+// (the fade window is [totalDuration-1.2, totalDuration] and is additionally
+// clamped to totalDuration/2, so it always starts AND completes before the last
+// frame).
+// KINEO-ONE-WATERMARK-2026-08-07 — the CTA tail element itself is gone, so this
+// fade is now a pure audio resolve with no overlay to cooperate with. The 1.2s
+// value is kept: it is about how music should end, not about the deleted CTA.
 const MUSIC_FADE_OUT_SECONDS = 1.2
 // Push #064 — yellow used for the per-caption highlight word overlay.
 const HIGHLIGHT_COLOR = '#FFD700'
@@ -65,13 +67,18 @@ const HIGHLIGHT_COLOR = '#FFD700'
 //   y   0.0% ─┬─ (top band 0–20%; PUSH #95 deleted the letterbox bar that used
 //             │   to be drawn here — it never rendered. Text below is unmoved.)
 //        5.0% │  WATERMARK "usekineo.com/free" font 40 + plate
-//             │                                       band ≈  55–137px   [free trial only]
-//       13.0% │  END CARD  "Made with Kineo" font 44 band ≈ 205–295px   [free trial only,
-//             │                                       now BOTH first 2s AND last 2.5s]
-//       18.0% │  CTA       "usekineo.com"   font 36  band ≈ 320–372px   [free trial only,
-//             │                                       last 2.5s — PUSH #100 gated this on
-//             │                                       endCard; it used to burn into PAID
-//             │                                       exports sold as "watermark-free"]
+//             │                                       band ≈  55–137px
+//             │                                       [free render only, t=0→end]
+//             │
+//             │  KINEO-ONE-WATERMARK-2026-08-07 — the REST OF THE TOP BAND IS
+//             │  NOW EMPTY. y 13% held "Made with Kineo" (tail + first 2s) and
+//             │  y 18% held the "usekineo.com" CTA tail. Both were deleted: on
+//             │  a ~35s Short, three overlays saying the same thing read as
+//             │  clutter, and the watermark above already states the domain,
+//             │  for the entire video, in the attributable `/free` form.
+//             │  If anything is ever re-added here, redo the collision
+//             │  arithmetic in the track 9 block — the watermark band bottom
+//             │  is 137px and the caption top is 1350px.
 //       20.0% ─┴─ (end of top band)
 //       20.5%     … footage / color-grade overlays only …
 //   ~70.3%    ┬─ CAPTION top — PUSH #94, single word @ hook font 104 (1350px).
@@ -92,7 +99,7 @@ const HIGHLIGHT_COLOR = '#FFD700'
 // PUSH #94 — padding 2.5%→3%: worst case (one word filling the 842.4px box)
 // spans [93.5, 986.5], still inside the 90px/990px guardrails. 4% would NOT be
 // (it computes to [85.1, 994.9]) — see the note at background_x_padding.
-// The CTA/end-card/watermark are centered short strings well inside that.
+// The watermark is a centered short string well inside that.
 const CAPTION_BOTTOM_Y = '78%'   // bottom edge of the caption box (hard floor)
 const CAPTION_WIDTH = '78%'      // keeps the pill left of the right-hand chrome
 // PUSH #94 — ONE-WORD CAPTIONS. Tier-1 Shorts tools (Submagic / OpusClip /
@@ -244,10 +251,22 @@ export interface ComposeInputs {
    */
   watermark?: boolean
   /**
-   * #482 — when true, append a "Made with Kineo" end card in the final
-   * CTA window. Option A: shown on FREE + Starter renders (every posted video
-   * becomes an ad — the Loom/CapCut viral loop); clean on Creator/Studio.
-   * Decision made server-side in /api/compose (never trusts the client).
+   * #482 — used to append a "Made with Kineo" end card plus a "usekineo.com"
+   * CTA in the final 2.5s window (and, after PUSH #100, a second copy of the
+   * lockup over the first 2s).
+   *
+   * KINEO-ONE-WATERMARK-2026-08-07 — THIS OPTION NO LONGER HAS ANY VISUAL
+   * EFFECT. The founder saw a fresh free render carrying three overlays that
+   * all said the same thing and ruled that a free video keeps exactly ONE brand
+   * element: the burnt, full-length watermark gated by `watermark` above. Every
+   * element this flag used to draw was deleted from BOTH builders.
+   *
+   * It is deliberately still ACCEPTED rather than removed, because callers pass
+   * it today — app/api/compose/route.ts:1455 and :1920, and
+   * app/api/compose/unlock/route.ts:512 (endCard:false on the paid re-render).
+   * Keeping the property leaves those call sites type-checking unchanged. It is
+   * intentionally NOT destructured in either builder: nothing reads it, so an
+   * unused local can never mask a half-finished re-wiring.
    */
   endCard?: boolean
   /**
@@ -1444,8 +1463,12 @@ function round3(v: number): number {
 //   4. Word-level highlight: instead of coloring the whole line yellow, we keep
 //      the base caption in white and emit a SECOND element on track 7 showing
 //      just the highlight keyword in large yellow — creating the "word pop"
-//      effect seen in high-retention Shorts. CTA lives on track 6 (last 2.5s)
-//      and captions end before CTA starts, so tracks 5/7 never conflict with 6.
+//      effect seen in high-retention Shorts. (Push #277 reverted the second
+//      element — see the docstring above — so captions in fact emit track 5
+//      only, and the track-conflict question below is moot either way.)
+//      KINEO-ONE-WATERMARK-2026-08-07 — track 6 (the CTA tail) and track 10
+//      (the intro lockup) are no longer emitted at all, so the only other
+//      overlay track left in a render is 9, the watermark, at y 5%.
 export function buildCaptionElements({
   text,
   time,
@@ -1540,8 +1563,11 @@ export function buildCaptionElements({
 
 /**
  * Build a Creatomate source JSON: video clips tiled to fill `duration`,
- * voiceover audio across the full timeline, captions evenly distributed,
- * and a CTA in the last 2.5 seconds.
+ * voiceover audio across the full timeline, captions evenly distributed, and —
+ * on free renders only — the burnt `usekineo.com/free` watermark across the
+ * whole timeline. KINEO-ONE-WATERMARK-2026-08-07: that watermark is the ONLY
+ * brand element this builder emits; the CTA tail and both "Made with Kineo"
+ * lockups were removed.
  */
 export function buildCreatomateSource({
   clipUrls,
@@ -1555,7 +1581,6 @@ export function buildCreatomateSource({
   whisperWords,
   musicUrl,
   watermark = false,
-  endCard = false,
   avatarUrl = null,
   avatarHookSeconds = null,
 }: ComposeInputs): Record<string, unknown> {
@@ -2185,8 +2210,9 @@ export function buildCreatomateSource({
     // spoken with no caption on screen, on every render. Tail is now 0: captions
     // cover the narration to its end. They still cannot run past the audio —
     // captionWindowEnd is the audio length and the last chunk is clamped to it
-    // inside buildCaptionsFromWhisperWords. The CTA no longer needs a caption
-    // blackout because it moved out of the caption band entirely (FIX 2).
+    // inside buildCaptionsFromWhisperWords. Nothing competes for that band any
+    // more — KINEO-ONE-WATERMARK-2026-08-07 deleted the tail CTA outright, so a
+    // caption blackout at the end of the timeline would buy nothing.
     const directCaps = buildCaptionsFromWhisperWords(
       whisperWords,
       Math.min(masterDuration, totalDuration),
@@ -2274,96 +2300,28 @@ export function buildCreatomateSource({
     }
   }
 
-  // Track 6 — CTA in the final 2.5s.
-  // PUSH #93 (FIX 1 + FIX 2) — was `y: '90%'` (1728px), i.e. ~190px INSIDE the
-  // ~380px band YouTube's Shorts player paints over with the title/channel row
-  // and progress bar: the domain we pay to promote was invisible to every
-  // viewer in the feed. It also sat in the same vertical band the captions were
-  // being deleted for. Moved into the top letterbox bar (already darkened by
-  // track 3), where it is both visible AND clear of the caption band, so the
-  // caption no longer has to be suppressed for it to exist. Font 30→36 —
-  // legible at the top of the frame without competing with the caption.
+  // Tracks 6, 7 and 10 — DELETED (KINEO-ONE-WATERMARK-2026-08-07).
   //
-  // PUSH #100 (BILLING FIX) — this push used to be UNCONDITIONAL, so every paid
-  // export carried "usekineo.com" burned into the last 2.5s while
-  // app/pricing/PricingClient.tsx:99,120,145 sells "Download watermark-free
-  // MP4". app/api/compose/unlock/route.ts:512 passes endCard:false precisely
-  // because the user PAID to remove branding — and the domain stayed anyway.
-  // That is a refund/chargeback argument, not a growth loop. Now gated on the
-  // same `endCard` flag as the rest of the branding stack, so free renders are
-  // unchanged and paid renders are actually clean.
-  const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
-  if (endCard) {
-    elements.push({
-      type: 'text',
-      track: 6,
-      time: round3(ctaTime),
-      duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-      text: CTA_TEXT,
-      x: '50%',
-      y: '18%',
-      width: '80%',
-      font_family: 'Montserrat',
-      font_size: 36,
-      font_weight: '700',
-      fill_color: '#ffffff',
-      stroke_color: 'rgba(99,102,241,0.9)',
-      stroke_width: 2,
-    })
-  }
-
-  // Track 7 — #482 "Made with Kineo" end card (free unpaid Fast only — withEndCard is
-  // set ONLY under isFreePlanFast at app/api/compose/route.ts:976-980, so
-  // Starter/Creator/Studio are all clean).
-  // PUSH #93 (FIX 2) — was `y: '80%'`, the very first row of YouTube's chrome,
-  // so the ad-for-the-product was cropped/covered for the users it targets.
-  // Now stacked directly ABOVE the CTA in the top band, forming one lockup
-  // ("Made with Kineo" / "usekineo.com") at y 13% + y 18%. Both sit inside the
-  // 0–20% letterbox bar and ~930px above the caption floor, so nothing collides.
-  if (endCard) {
-    elements.push({
-      type: 'text',
-      track: 7,
-      time: round3(ctaTime),
-      duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-      text: 'Made with Kineo',
-      x: '50%',
-      y: '13%',
-      width: '86%',
-      font_family: 'Montserrat',
-      font_size: 44,
-      font_weight: '800',
-      fill_color: '#ffffff',
-      stroke_color: 'rgba(99,102,241,0.95)',
-      stroke_width: 3,
-      background_color: 'rgba(13,13,20,0.55)',
-    })
-
-    // Track 10 — PUSH #100. SECOND instance of the exact same lockup, in the
-    // first ~2s. Rationale: on a Short, watch-time decays hardest in the first
-    // 3 seconds, so the tail instance is shown to the smallest audience the
-    // video will ever have. Gated on the SAME `endCard` flag, so paid renders
-    // (Creator/Studio) stay completely clean — this adds no new tier behaviour.
-    // Own track (10) so it can never share a track slot with the tail copy on a
-    // pathologically short timeline. Styling is byte-identical to the tail.
-    elements.push({
-      type: 'text',
-      track: 10,
-      time: 0,
-      duration: round3(Math.min(INTRO_LOCKUP_SECONDS, totalDuration)),
-      text: 'Made with Kineo',
-      x: '50%',
-      y: '13%',
-      width: '86%',
-      font_family: 'Montserrat',
-      font_size: 44,
-      font_weight: '800',
-      fill_color: '#ffffff',
-      stroke_color: 'rgba(99,102,241,0.95)',
-      stroke_width: 3,
-      background_color: 'rgba(13,13,20,0.55)',
-    })
-  }
+  // What used to be here, all gated on `endCard`:
+  //   • track 6  — "usekineo.com"    y 18%, last 2.5s
+  //   • track 7  — "Made with Kineo" y 13%, last 2.5s
+  //   • track 10 — "Made with Kineo" y 13%, first 2s (PUSH #100)
+  //
+  // On a free render those three played on top of track 9, the burnt
+  // "usekineo.com/free" watermark that already runs the whole video at y 5%.
+  // The founder's screenshot of a free render showed all four at once: the same
+  // message, in the same corner, four times. His call was "não precisa de 3
+  // falando a mesma coisa" — one brand element.
+  //
+  // The watermark is the one that stays (see the track 9 block below): it is
+  // full-duration, it survives a re-upload of the MP4 (the other three only
+  // existed for 2–2.5s), and `usekineo.com/free` is the attributable URL —
+  // app/free/route.ts stamps utm_source=watermark. The CTA went too, precisely
+  // because it named the SAME domain in the SAME band as the watermark.
+  //
+  // Paid renders are unaffected: they already passed watermark:false and
+  // endCard:false, so they emitted none of these and still emit nothing.
+  // `endCard` is now inert everywhere — see the ComposeInputs doc above.
 
   // Track 8 — background music (Push #293).
   // Phonk / motivational track from Pixabay at low volume, looping under
@@ -2398,42 +2356,38 @@ export function buildCreatomateSource({
   }
 
   // Track 9 — #384 free-trial watermark, burned into the final MP4 so it can't
-  // be stripped. Text = "usekineo.com" (one consistent brand across the
-  // app; the same domain shown in the end CTA). Placed at the TOP. Full duration,
-  // semi-transparent. ONLY added when watermark:true (server free-AI-trial decision).
-  // PUSH #93 (FIX 2) — y:5% is already OUTSIDE YouTube's covered bands (bottom
-  // ~380px / right ~90px), so the position is kept as-is. It is re-verified here
-  // because the CTA and end card have MOVED INTO the top band: at font 28 the
-  // watermark occupies ≈76–116px, the end card starts at ≈205px and the CTA at
-  // ≈320px, so the watermark → end card → CTA stack never overlaps.
+  // be stripped. Text = WATERMARK_TEXT ('usekineo.com/free'). Placed at the TOP,
+  // full duration, plated. ONLY added when watermark:true — a server-side
+  // free-tier decision (app/api/compose/route.ts:1915), never client input.
+  //
+  // KINEO-ONE-WATERMARK-2026-08-07 — THIS IS NOW THE ONLY BRAND ELEMENT IN THE
+  // WHOLE RENDER. The tail CTA (track 6) and both "Made with Kineo" lockups
+  // (tracks 7 and 10) were deleted above, so the old "watermark → end card →
+  // CTA" stack is a stack of one. Do not re-add a second one without re-running
+  // the arithmetic below.
+  //
+  // PUSH #93 (FIX 2) — y:5% is outside YouTube's covered bands (bottom ~380px /
+  // right ~90px), so the position is kept as-is.
   // TO SWAP FOR A LOGO PNG LATER: replace this text element with an image one:
   //   { type:'image', track:9, time:0, duration:totalDuration, source:<logoUrl>,
   //     x:'50%', y:'6%', width:'30%', opacity:'60%' }
   //
   // ── PUSH #100 — LEGIBILITY PASS + COLLISION ARITHMETIC (1080×1920) ──────────
   // Problem: font 28 @ alpha 0.6 with a 1px 35%-black stroke and NO plate is
-  // 1.46% of frame height and effectively disappears over bright footage. The
-  // one element in this file that IS reliably legible is the end card, and the
-  // only thing it does differently is a background plate. So: 28→40, alpha
-  // 0.6→0.92, plus the end card's exact plate colour rgba(13,13,20,0.55).
+  // 1.46% of frame height and effectively disappears over bright footage. So:
+  // 28→40, alpha 0.6→0.92, plus a plate at rgba(13,13,20,0.55) (the colour the
+  // now-deleted end card used, which was the one reliably legible element here).
   //
   // Vertical band, using THIS FILE'S OWN measured ratios (y_anchor defaults to
-  // 50%, i.e. `y` is the element's CENTRE):
-  //   • unplated text, from the old note above: font 28 → 76–116px about a
-  //     96px centre ⇒ half-height 20px ⇒ 0.714 × font (line box ≈ 1.43 × font).
-  //   • PLATED text, from the end card above:   font 44 → 205–295px about a
-  //     249.6px centre ⇒ half-height 45px ⇒ 1.023 × font (line box + the
-  //     plate's y-padding ≈ 2.05 × font).
-  // The watermark is now plated, so it takes the plated ratio:
+  // 50%, i.e. `y` is the element's CENTRE). PLATED text measured at font 44 gave
+  // a 205–295px band about a 249.6px centre ⇒ half-height 45px ⇒ 1.023 × font
+  // (line box + the plate's y-padding ≈ 2.05 × font). The watermark is plated,
+  // so it takes that ratio:
   //   centre    = 5% × 1920                     =  96.0px
   //   half-band = 1.023 × 40                    ≈  41.0px
   //   band      = 96 − 41 … 96 + 41             =  55 … 137px
-  // Collision checks:
+  // Collision checks (the only two left — the top band holds nothing else):
   //   top of frame     0px   vs band top    55px → 55px clear, never clipped.
-  //   end card top   205px   vs band bottom 137px → 68px clear.  NO COLLISION.
-  //   (that end card now also renders at t=0..2, concurrently with the
-  //    watermark — the 68px gap is what makes that safe.)
-  //   CTA top        320px   vs band bottom 137px → 183px clear.
   //   caption top   1350px   vs band bottom 137px → 1213px clear.
   // Horizontal: width 80% = 864px centred ⇒ x ∈ [108, 972], left of the 990px
   // action-button column. 'usekineo.com/free' is 17 chars ≈ 0.58em avg advance
@@ -2490,7 +2444,9 @@ export function buildCreatomateSource({
 //  - Background music is OFF (the native audio IS the realism).
 //  - KINEO-HOLLYWOOD-22-2026-07-10: the niche-aware color grade IS applied
 //    (slightly stronger than AI Gen) — it unifies the look across engines.
-//  - CTA / end card / watermark follow the exact same rules as everywhere else.
+//  - Watermark follows the exact same rule as everywhere else. The CTA and the
+//    "Made with Kineo" end card no longer exist in either builder
+//    (KINEO-ONE-WATERMARK-2026-08-07).
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface HollywoodClipInput {
@@ -2542,7 +2498,6 @@ export function buildHollywoodCreatomateSource({
   clips,
   narrationBlocks,
   watermark = false,
-  endCard = false,
 }: {
   clips: HollywoodClipInput[]
   narrationBlocks: HollywoodNarrationBlock[]
@@ -2735,9 +2690,9 @@ export function buildHollywoodCreatomateSource({
 
   // PUSH #93 (FIX 1) — same defect as the standard builder: the caption window
   // stopped 2.5s before the timeline end while the final scene's narration /
-  // dialogue audio kept playing, so the closing line ran uncaptioned. The CTA
-  // has moved out of the caption band (FIX 2 below), so captions can now run to
-  // the very end of the timeline and the CTA still has a clear frame of its own.
+  // dialogue audio kept playing, so the closing line ran uncaptioned. Captions
+  // now run to the very end of the timeline; there is nothing left to reserve a
+  // tail for (KINEO-ONE-WATERMARK-2026-08-07 removed the CTA element).
   const captionWindowEnd = totalDuration
 
   // Track 4 — narration blocks. Each block's mp3 starts at its scene offset.
@@ -2854,50 +2809,21 @@ export function buildHollywoodCreatomateSource({
     }))
   })
 
-  // Track 6 — CTA in the final window (identical to the standard builder).
-  // PUSH #93 (FIX 2) — y:90% and the end card's y:80% are both inside the
-  // ~380px band YouTube's Shorts player covers, so neither was ever visible in
-  // the feed. Same defect, same fix as the standard builder: both move into the
-  // top letterbox bar (already darkened by track 3 above), which also keeps
-  // them clear of the now-bottom-anchored caption band.
-  // PUSH #100 (BILLING FIX) — gated on `endCard`, same as the standard builder.
-  // Was unconditional, which burned "usekineo.com" into paid Studio exports.
-  const ctaTime = Math.max(0, totalDuration - CTA_TAIL_SECONDS)
-  if (endCard) {
-    elements.push({
-      type: 'text', track: 6, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-      text: CTA_TEXT, x: '50%', y: '18%', width: '80%',
-      font_family: 'Montserrat', font_size: 36, font_weight: '700',
-      fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.9)', stroke_width: 2,
-    })
-  }
-
-  // Track 7 — end card (same rule as the standard builder).
-  if (endCard) {
-    elements.push({
-      type: 'text', track: 7, time: round3(ctaTime), duration: Math.min(CTA_TAIL_SECONDS, totalDuration),
-      text: 'Made with Kineo', x: '50%', y: '13%', width: '86%',
-      font_family: 'Montserrat', font_size: 44, font_weight: '800',
-      fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.95)', stroke_width: 3,
-      background_color: 'rgba(13,13,20,0.55)',
-    })
-    // Track 10 — PUSH #100 intro lockup (identical to the standard builder).
-    elements.push({
-      type: 'text', track: 10, time: 0,
-      duration: round3(Math.min(INTRO_LOCKUP_SECONDS, totalDuration)),
-      text: 'Made with Kineo', x: '50%', y: '13%', width: '86%',
-      font_family: 'Montserrat', font_size: 44, font_weight: '800',
-      fill_color: '#ffffff', stroke_color: 'rgba(99,102,241,0.95)', stroke_width: 3,
-      background_color: 'rgba(13,13,20,0.55)',
-    })
-  }
+  // Tracks 6, 7 and 10 — DELETED, identical to the standard builder
+  // (KINEO-ONE-WATERMARK-2026-08-07). The tail CTA "usekineo.com" and both
+  // "Made with Kineo" lockups (tail + first 2s) are gone; the burnt watermark
+  // on track 9 below is the single brand element. Hollywood renders are paid
+  // Studio work anyway, so the only caller that ever set endCard here was the
+  // FORCE_WATERMARK_EMAILS self-promo list (app/api/compose/route.ts:1455) —
+  // those accounts now get the watermark alone, like every other free render.
 
   // Track 8 — background music intentionally OMITTED: the engines' native
   // audio (voice + ambience) IS the realism; music on top breaks it.
 
   // Track 9 — watermark (same rule as the standard builder).
-  // PUSH #100 — kept byte-identical to the standard builder: font 40, alpha
-  // 0.92, end-card plate. Band ≈55–137px, 68px clear of the 205px end card.
+  // Kept byte-identical to the standard builder: font 40, alpha 0.92, plate.
+  // Band ≈55–137px; the top band is otherwise empty now, so the only collision
+  // checks that matter are the frame top (55px clear) and the caption top.
   // Full arithmetic is in the standard builder's block above.
   if (watermark) {
     elements.push({
