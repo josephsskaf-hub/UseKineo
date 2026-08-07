@@ -786,3 +786,81 @@ login. Qualquer pessoa logada que tenha um `render_id` recebe a URL do vídeo de
 ainda chama `refundRenderCredits`, o que permite **disparar refund no ledger de crédito alheio**.
 Não corrigi na mesma sprint de propósito: mexe em dinheiro e precisa de revisão adversarial
 dedicada. É o item 1 da próxima sprint.
+
+---
+
+## 🔎 22:0xZ 06/08 (sprint 19h/21h) — UM GATE NOVO: O ÍNDICE DO GIT ESTÁ PRESO POR OUTRA SESSÃO
+
+O gate do push continua o de sempre (2 commits represados, `scripts\56-PUSH.bat`). O **novo** é
+outro e não deve ser confundido com ele — a lição de 06/08 vale ("o mesmo sintoma teve três causas
+em três sprints; diagnóstico de gate vale UMA sprint"):
+
+`.git/index.lock` existe desde **19:13** e todo `git add` devolve *"Another git process seems to be
+running in this repository"*. **NÃO é lock morto:** `.git/index` foi tocado nos minutos seguintes e
+**20+ arquivos foram reescritos entre 19:07 e 19:30** (`lib/freeTierOffer.ts`,
+`components/FreeTierOfferProvider.tsx`, auth, pricing, checkout/cancelled, llms.txt, Sidebar…),
+ou seja **uma sessão paralela está executando a TROCA ATÔMICA DO FREE TIER (fase 2, item 6) agora**.
+
+**Não removi o lock, e essa é a decisão:** apagar o índice de um `git commit` alheio em andamento
+corrompe o índice para todas as sessões. O trabalho desta sprint
+(`app/(dashboard)/generate/GenerateClient.tsx`, correção de moeda do UpgradeModal) está **no disco,
+com `tsc --noEmit` EXIT=0**, e entra no próximo commit — seja o meu, seja o da sessão paralela se
+ela usar `add -A`.
+
+**Efeito colateral a conferir na próxima sprint:** se a sessão paralela commitou com `add -A`, o
+fix de moeda entrou no commit da troca do free tier, sem mensagem própria. `git log -1 --stat` no
+GenerateClient.tsx resolve a dúvida em uma linha.
+
+### 🚨 ITEM PARA O FUNDADOR (não é gate de código, é gate de dinheiro)
+**Três fornecedores reportaram falha de cobrança em 30 horas:** fal.ai (*Payment failed*,
+#BCOUKU-00033, 05/08; nova fatura #BCOUKU-00034 de US$ 25,00 vencendo 18/08), OpenAI
+(*Auto-recharge Failed* 05/08, recuperado 12 min depois no cartão final 1375) e **Render**
+(*Invalid payment info / unpaid balance*, 06/08 11:58, **ainda em aberto**). Isoladas são ruído;
+juntas apontam para **o meio de pagamento**, não para saldo. Registra-se também que
+*auto-reload ligado* e *cobrança falhando* são compatíveis — a premissa "fal está resolvido" não
+cobre este sintoma. Meio de pagamento é gate do fundador; nada foi tocado.
+
+---
+
+## 🟠 ABERTO — `characterLimitFor` não conhece `creator`, `studio` nem `autopilot`
+*(achado da sprint 21h de 06/08, KINEO-TRIAL-FEATURE-GATES; não corrigido de propósito)*
+
+`lib/characters.ts` decide a cota de personagens por STRING de plano:
+`pro`/`pro_trial` → 10 · `starter`/`basic` (+`_trial`) → 3 · **qualquer outra coisa
+→ `hasPaid ? 3 : 0`**. As strings `creator`, `creator_trial`, `studio`,
+`studio_trial`, `autopilot`, `autopilot_trial` e `autopilot_pilot` **não têm ramo**
+e caem no fallback. Consequências verificáveis, hoje, com a flag OFF:
+
+- `plan='studio'` recebe **3 personagens em vez de 10** — o cliente mais caro
+  recebe a cota do mais barato;
+- `plan='creator'` com `has_paid=false` recebe **0** e vê o 402 de "feature paga".
+
+As sete strings são valores que o webhook da Stripe realmente escreve
+(`app/api/admin/users/route.ts` lista o conjunto canônico). **Exposição real hoje é
+baixa** — a produção tem só 3 planos pagos ativos (2 `starter`, 1 `basic`), e todo
+caminho de escrita que produz as strings novas também grava `has_paid=true`, que é
+o primeiro termo dos gates. Mas o defeito arma no dia em que o primeiro Studio
+assinar.
+
+**Não corrigi porque não é bug de código, é decisão de produto:** definir a cota de
+Creator/Studio/Autopilot é decidir o que o cliente comprou. Uma linha do fundador
+("Studio = 10, Creator = 3, Autopilot = ?") fecha isso em 5 minutos de código.
+
+### Irmão do mesmo defeito: 5 listas diferentes de "plano pago" no repo
+Grep de allowlists de plano encontrou **cinco conjuntos distintos** em 14 arquivos:
+`starter/basic/pro` (7 arquivos, sem creator/studio/autopilot) · +creator/studio
+(3) · +autopilot (2) · sem os `_trial` (1) · e um com `autopilot_pilot` (1). Os 12
+que não são gate de feature são e-mails/admin/métricas — errar ali custa um e-mail,
+não uma feature. Os dois que ERAM gate de feature (`footage`, `characters`) foram
+os corrigidos nesta sprint. O padrão certo já existe e está documentado em
+`lib/reverseTrial.ts`: `isPayingProfile` (denylist invertida, falha FECHADO), porque
+allowlist "erra do lado caro" — a produção tem 3 perfis pagando com `plan='free'` e
+1 com `plan='pro'` sem `has_paid`.
+
+## 🔵 Para o GO-LIVE: o único gate free/pago que DISCORDA do trial
+`app/api/generate-video-fast/route.ts` usa `AI_HOOK_PAID_PLANS` no sentido
+INVERTIDO — o hook de IA é perk exclusivo do free tier. Uma conta em trial é
+`plan='free', has_paid=false`, logo **ganha um perk que o pagante não ganha**. Não é
+regressão (o mesmo signup sem trial também ganharia) e não custa dinheiro, mas é a
+única superfície onde "trial = Creator" não vale. Registrado para não virar
+surpresa no reteste da flag.

@@ -17,6 +17,8 @@ import {
   totalFootageBytes,
   USER_FOOTAGE_BUCKET,
 } from '@/lib/userFootage'
+// KINEO-TRIAL-FEATURE-GATES-2026-08-07 — ver o bloco do gate no POST.
+import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,13 +66,53 @@ export async function POST(req: NextRequest) {
     }
 
     // Plan gate — footage próprio é feature paga (free vê o cadeado).
-    const { data: profile } = await supabase
+    //
+    // [KINEO-TRIAL-FEATURE-GATES-2026-08-07] Duas coisas mudam aqui, e nenhuma
+    // delas altera o comportamento com a flag OFF:
+    //
+    //   1. O predicado de pagante continua sendo o LOCAL (`PAID_PLANS` abaixo),
+    //      passado explicitamente a `getEffectiveEntitlement` — invariante 1 de
+    //      lib/reverseTrial.ts. Com KINEO_REVERSE_TRIAL_ENABLED OFF,
+    //      `isTrialActive()` é sempre false, logo `treatAsPaid === isPaid` e o
+    //      diff de runtime é ZERO, por construção.
+    //   2. Com a flag ON, quem está em trial passa. A promessa vendida no
+    //      signup é "direitos de Creator, exceto os motores Studio" — e upload
+    //      de footage é feature de Starter pra cima (ver `PAID_PLANS` acima),
+    //      logo está dentro do trial. Sem esta linha o trial cobra 40 créditos
+    //      e devolve 402 numa feature prometida, que é o mesmo defeito que o QA
+    //      de 07/08 já pegou duas vezes (compose e cinematic): o entitlement do
+    //      trial existia em UM arquivo só.
+    //
+    // `TRIAL_ENTITLEMENT_COLUMNS` é constante justamente porque esquecer uma
+    // coluna falha em SILÊNCIO e do lado caro (sem `trial_ends_at` o relógio
+    // conta como vencido).
+    //
+    // ⚠️ O `error` do SELECT é lido, e não descartado como antes. O motivo é
+    // que a invariante "diff zero com a flag OFF" passou a depender de uma
+    // MIGRAÇÃO de schema que a flag não controla: num ambiente sem as colunas
+    // de trial o PostgREST devolve 42703, `data` vem null, e o gate negaria
+    // 402 para TODO usuário, pagante inclusive. Falhar em silêncio do lado caro
+    // é exatamente o modo de falha que esta rota não pode ter. Mesmo 503 do
+    // precedente em app/api/compose/route.ts.
+    //
+    // `PGRST116` (0 linhas) é EXCLUÍDO do 503 de propósito: perfil inexistente
+    // sempre caiu no 402 aqui, e transformá-lo em 503 seria mudança de
+    // comportamento com a flag OFF — justamente o que este diff promete não
+    // fazer. O 503 cobre só a falha de LEITURA (coluna/permissão/rede).
+    const { data: profile, error: profileAccessError } = await supabase
       .from('profiles')
-      .select('has_paid, plan')
+      .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
       .eq('id', user.id)
       .single()
+    if (profileAccessError && profileAccessError.code !== 'PGRST116') {
+      console.error('[footage] entitlement lookup failed:', profileAccessError.message)
+      return NextResponse.json(
+        { error: 'Your plan could not be verified. Nothing was uploaded. Please retry.' },
+        { status: 503 },
+      )
+    }
     const isPaid = profile?.has_paid === true || PAID_PLANS.has((profile?.plan ?? '').toString())
-    if (!isPaid) {
+    if (!getEffectiveEntitlement(profile, { isPaidAccount: isPaid }).treatAsPaid) {
       return NextResponse.json(
         {
           error: 'Uploading your own footage is a paid feature — use YOUR clips and photos in every video. Upgrade to unlock it.',
