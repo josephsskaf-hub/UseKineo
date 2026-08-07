@@ -849,6 +849,12 @@ export default function GenerateClient({
   const resumedRenderRef = useRef(false)
   const [activeRenderRestoreResolved, setActiveRenderRestoreResolved] = useState(false)
   const [activeRenderRestoreRetry, setActiveRenderRestoreRetry] = useState(0)
+  // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — set when the gate blocks a click on
+  // a snapshot we could NOT prove stale. That is the one case the automatic
+  // fail-open must not cover (the snapshot may point at a real paid render),
+  // so the user gets an explicit escape instead of a dead button. Until today
+  // the only way out of this state was an undocumented `?wm_unlock=1` URL.
+  const [activeRenderGateBlocked, setActiveRenderGateBlocked] = useState(false)
   // PUSH #96 — counts restore retries across effect re-runs so the auth retry
   // above can never loop forever.
   const restoreRetryRef = useRef(0)
@@ -3337,12 +3343,56 @@ export default function GenerateClient({
       .join('\n\n')
   }
 
+  // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — mirrors the discard rules the
+  // restore effect already applies (see the `stored.userId !== user.id ||
+  // !Number.isFinite(startedAt) || age < 0 || age > ACTIVE_RENDER_TTL_MS`
+  // block). Returns 'stale' when the snapshot is garbage the effect itself
+  // would have deleted, 'live' when it may still point at a real render, and
+  // 'absent' when there is nothing stored. Deliberately does NOT re-check the
+  // per-stage payload shape: a malformed payload is unusable but we would
+  // rather keep the pointer than risk discarding a paid render on a rule the
+  // effect evaluates with the verified user id, which we do not have here.
+  function classifyStoredActiveRender(): 'absent' | 'stale' | 'live' {
+    let raw: string | null = null
+    try {
+      raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
+    } catch {
+      // Storage unavailable — we cannot prove anything. Treat as live so the
+      // gate stays closed, exactly as before this change.
+      return 'live'
+    }
+    if (!raw) return 'absent'
+    try {
+      const stored = JSON.parse(raw) as Partial<ActiveRenderSnapshot>
+      const startedAt = Number(stored.startedAt)
+      const age = Date.now() - startedAt
+      if (!Number.isFinite(startedAt) || age < 0 || age > ACTIVE_RENDER_TTL_MS) return 'stale'
+      return 'live'
+    } catch {
+      // Unparseable JSON: the effect removes this snapshot too (see the
+      // JSON.parse catch in the restore effect).
+      return 'stale'
+    }
+  }
+
   async function waitForActiveRenderRestore(): Promise<boolean> {
-    if (activeRenderRestoreResolvedRef.current) return !resumedRenderRef.current
+    // Any path that OPENS the gate must also clear the manual-escape banner,
+    // otherwise the recovery button from a previous blocked click survives into
+    // an unrelated later error and invites the user to discard a live render.
+    if (activeRenderRestoreResolvedRef.current) {
+      if (!resumedRenderRef.current) {
+        setActiveRenderGateBlocked(false)
+        return true
+      }
+      return false
+    }
     for (let attempt = 0; attempt < 40; attempt += 1) {
       await new Promise((resolve) => setTimeout(resolve, 100))
       if (resumedRenderRef.current) return false
-      if (activeRenderRestoreResolvedRef.current) return true
+      if (activeRenderRestoreResolvedRef.current) {
+        setActiveRenderGateBlocked(false)
+        return true
+      }
     }
     // KINEO-GATE-FAILOPEN-2026-07-31 — if the restore effect is still
     // unresolved after 4s but there is provably NOTHING to restore (no
@@ -3351,18 +3401,87 @@ export default function GenerateClient({
     // same trade-off PUSH #96 already accepted: the worst case is a
     // duplicate render, which beats an unusable page. (valos87196 burned
     // 28 clicks on this class of dead button across 29–30/07.)
-    try {
-      if (!localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))) {
-        activeRenderRestoreResolvedRef.current = true
-        setActiveRenderRestoreResolved(true)
-        void trackEvent('active_render_gate_forced_open', {
-          attempt_id: generationAttemptRef.current,
-          retries: restoreRetryRef.current,
-        })
-        return true
-      }
-    } catch { /* storage unavailable — keep the gate closed */ }
+    //
+    // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — the 31/07 fail-open keyed on the
+    // PRESENCE of a snapshot, and that is why it did not save the very user it
+    // was written for: valos87196 (the only active paying account) came back
+    // on 07/08, read the pricing page at 11:43:01Z, and burned 31 more blocked
+    // clicks over 3h23 with `resolved=false resumed=false retries=0` — zero
+    // analyze_idea_clicked, zero generate_started, never past the first click.
+    // His snapshot was written 30/07 12:39Z: EIGHT DAYS old against a two-hour
+    // TTL. The age check that would have discarded it lives INSIDE the restore
+    // effect, which is precisely the code that is hung (retries=0 proves
+    // auth.getUser() returned no error and never resolved either). So the gate
+    // was holding the product shut on evidence the system already considers
+    // expired. Opening on a provably-stale snapshot is strictly safer than the
+    // old behaviour: it only opens where the effect would have deleted the
+    // snapshot anyway, and the 15-minute server-side gate in handleGenerate
+    // still catches a genuinely in-flight render.
+    // Adversarial review 2/2 — the first version of this block ALSO deleted the
+    // stale snapshot. That was strictly worse than the 31/07 fail-open, which
+    // never destroyed anything: `age` is computed from the CLIENT clock, so an
+    // NTP jump or a resumed VM can age a live render past the TTL, and unlike
+    // the restore effect we have no verified user id to confirm the snapshot is
+    // even ours. Opening the gate is enough — an expired snapshot is inert, and
+    // keeping it preserves the only local pointer to a paid render.
+    const stored = classifyStoredActiveRender()
+    if (stored === 'absent' || stored === 'stale') {
+      activeRenderRestoreResolvedRef.current = true
+      setActiveRenderRestoreResolved(true)
+      void trackEvent('active_render_gate_forced_open', {
+        attempt_id: generationAttemptRef.current,
+        retries: restoreRetryRef.current,
+        snapshot: stored,
+      })
+      setActiveRenderGateBlocked(false)
+      return true
+    }
+    // Snapshot exists and we could not prove it stale — it may point at a real
+    // paid render, so we keep the gate closed but stop pretending this is a
+    // transient "try again in a moment". Surface the manual escape.
+    setActiveRenderGateBlocked(true)
     return false
+  }
+
+  // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — user-driven escape from the blocked
+  // gate. `handleReset` already does this, but it is rendered only inside the
+  // `showRender` block, i.e. never in the `idle` phase where the block occurs:
+  // the one button that fixes the problem was invisible exactly when it was
+  // needed. This drops the local pointer only; nothing server-side, no credit
+  // and no render is touched, and any render still in flight is re-discovered
+  // by the /api/compose/active probe on the next page load.
+  // Adversarial review 2/2 — this used to drop the local pointer unconditionally
+  // and the copy next to it promised the user's credits were safe. Both were
+  // wrong in the same case: with a CINEMATIC job still at fal there is no
+  // resumable render id, so the 15-minute server veto in handleGenerate does
+  // NOT fire (see KINEO-CREDIT-INTEGRITY-2026-08-05), and discarding the local
+  // guards would let the very next click dispatch — and debit — a second render.
+  // The server probe is now the authority: if it still sees a render in the
+  // window we refuse the discard, resumable or not, and say so.
+  async function discardActiveRenderSnapshot() {
+    const probe = await refreshServerActiveRender()
+    if (
+      probe?.state === 'rendering' &&
+      Date.now() - probe.startedAtMs < SERVER_ACTIVE_RENDER_WINDOW_MS
+    ) {
+      setActiveRenderGateBlocked(false)
+      setError('Good news — a render really is still running on our side. It will appear here on its own; reload if you do not see it in a minute.')
+      void trackEvent('active_render_gate_discard_refused', {
+        attempt_id: generationAttemptRef.current,
+        resumable: Boolean(probe.resumable),
+      })
+      return
+    }
+    try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
+    resumedRenderRef.current = false
+    activeRenderRestoreResolvedRef.current = true
+    setActiveRenderRestoreResolved(true)
+    setActiveRenderGateBlocked(false)
+    setError(null)
+    void trackEvent('active_render_gate_discarded_by_user', {
+      attempt_id: generationAttemptRef.current,
+      retries: restoreRetryRef.current,
+    })
   }
 
   // PUSH #96 — 1428 `generate_started` produced only 2 `generate_failed`. The
@@ -4184,7 +4303,38 @@ export default function GenerateClient({
   }
 
   async function handleGenerate() {
-    if (!activeRenderRestoreResolvedRef.current || resumedRenderRef.current) {
+    // KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — this used to read the ref
+    // synchronously while handleAnalyze awaited waitForActiveRenderRestore().
+    // The asymmetry was not intentional and it cost real clicks twice: a click
+    // landing milliseconds before the restore effect resolves was a hard block
+    // with no wait and no fail-open, and a hung effect made this CTA dead
+    // FOREVER (nothing in the code releases it by elapsed time). Awaiting the
+    // shared helper gives Generate the same 4s window and the same stale-
+    // snapshot escape hatch as Analyze. The helper short-circuits on the
+    // already-resolved ref, so the healthy path costs nothing.
+    //
+    // #360 double-submit guard, HOISTED ABOVE THE AWAIT. This guard used to sit
+    // after the gate, which was safe only because the gate was synchronous:
+    // the re-entry window was ~0ms. Awaiting the gate opens that window to 4
+    // SECONDS, and this is the credit-spending handler — two clicks inside the
+    // window would both clear the gate and dispatch two renders, i.e. two
+    // debits. The guard must be evaluated and the ref claimed before any await.
+    if (generationInFlightRef.current || isProcessingPhase(phase)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[gen] #360 handleGenerate ignored — already in flight', {
+          inFlight: generationInFlightRef.current,
+          phase,
+        })
+      }
+      return
+    }
+    generationInFlightRef.current = true
+
+    if (!(await waitForActiveRenderRestore())) {
+      // The gate rejected the attempt: release the claim taken above, or the
+      // page stays permanently un-clickable — the exact failure mode this
+      // commit exists to remove.
+      generationInFlightRef.current = false
       // PUSH #96 — the dead-button path again, on the Generate CTA this time.
       // KINEO-GATE-UX-2026-07-31 — honest copy on both branches (see
       // handleAnalyze) + gate state in the event for diagnosis.
@@ -4201,19 +4351,16 @@ export default function GenerateClient({
       })
       return
     }
-    // #360 — double-submit guard. Block re-entry if a generation is already in
-    // flight (synchronous ref) or the UI is in a processing phase. Prevents the
-    // duplicate generate-video-fast calls / orphan broll_metrics rows we saw.
-    if (generationInFlightRef.current || isProcessingPhase(phase)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[gen] #360 handleGenerate ignored — already in flight', {
-          inFlight: generationInFlightRef.current,
-          phase,
-        })
-      }
-      return
-    }
+    // Adversarial review 2/2 — the claim above is NOT hermetic across the await:
+    // the effect at the top of this component clears generationInFlightRef on
+    // every transition to a non-processing phase, and the restore effect can
+    // move the phase to `failed` while we are waiting. Re-assert the claim the
+    // instant the gate opens, before anything can be dispatched.
     generationInFlightRef.current = true
+
+    // (#360 double-submit guard now runs above the gate await — see the note
+    // at the top of this function. The claim on generationInFlightRef is
+    // already held at this point.)
 
     // KINEO-RESUME-RENDER-2026-08-04 — cross-session duplicate guard. The
     // localStorage gate above cannot see a render started in another browser
@@ -5790,6 +5937,34 @@ export default function GenerateClient({
           }}
         >
           {error}
+          {/* KINEO-GATE-STALE-SNAPSHOT-2026-08-07 — the gate blocked on a
+              snapshot we could not prove stale. Without this the page is a
+              dead end: the only paying account burned 31 clicks over 3h23 on
+              07/08 and never reached a single generate_started. */}
+          {/* Adversarial review 2/2 — gated on the phase as well. The restore
+              effect can resolve seconds later and put a REAL paid render on
+              screen (setPhase('composing')) without clearing `error`, which
+              would have left this button sitting next to a live progress bar
+              inviting the user to throw the render away. */}
+          {activeRenderGateBlocked && !isProcessingPhase(phase) && (
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => { void discardActiveRenderSnapshot() }}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold"
+                style={{
+                  background: 'rgba(239,68,68,.15)',
+                  border: '1px solid rgba(239,68,68,.45)',
+                  color: '#fca5a5',
+                }}
+              >
+                Nothing is rendering — let me start a new video
+              </button>
+              <span className="text-xs" style={{ color: 'rgba(248,113,113,.75)' }}>
+                We check with the server first. Your credits and finished videos are safe.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -7155,6 +7330,27 @@ export default function GenerateClient({
               >
                 🔄 Retry
               </button>
+              {/* Adversarial review 2/2 — the main error card is rendered with
+                  `phase !== 'failed'`, so a gate block landing HERE (Retry calls
+                  handleGenerate, which can be blocked) showed the dead-end copy
+                  with no escape at all: the original bug, in the one phase where
+                  users click hardest. */}
+              {activeRenderGateBlocked && (
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    onClick={() => { void discardActiveRenderSnapshot() }}
+                    className="rounded-lg px-3 py-1.5 text-xs font-bold"
+                    style={{
+                      background: 'rgba(239,68,68,.15)',
+                      border: '1px solid rgba(239,68,68,.45)',
+                      color: '#fca5a5',
+                    }}
+                  >
+                    Nothing is rendering — let me start a new video
+                  </button>
+                </div>
+              )}
               <div className="mt-3 text-sm">
                 <a href="/history" style={{ color: '#2997ff', fontWeight: 700 }}>View all your videos →</a>
               </div>

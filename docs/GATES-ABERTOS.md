@@ -1,4 +1,41 @@
-# 🔴 GATE — `scripts\56-PUSH.bat` — **10 COMMITS REPRESADOS** (06/08, sprint 19h)
+# 🔴 GATE ATUAL — `scripts\58-PUSH.bat` — **1 COMMIT** (07/08, sprint 10h)
+
+Substitui o **57**, **56**, **55**, **54** e **53** — todos já executados ou obsoletos, **não clicar**.
+`origin/main` = `3faabec` (revalidado por `git ls-remote` no início desta sprint), com deploy
+READY em produção nesse mesmo SHA.
+
+**Commit represado:** `ee5106d` — o gate de render morto que prendeu o único pagante ativo
+(`valos87196`, 75 créditos comprados) por **3h23min / 31 cliques bloqueados** hoje, depois de
+ele ler a página de preço às 11:43:01Z. Junto vai a prova social (#2 Fazier + TAAFT) promovida
+para a dobra da home.
+
+**Risco:** baixo. 2 arquivos de UI, `tsc --noEmit` EXITCODE=0, nenhuma rota de API, nenhuma
+migração, nada de dinheiro/marca d'água/preço. Revisão adversarial rodada 2×.
+
+**Como destrava:** mandar qualquer mensagem na conversa durante uma sprint, ou rodar o `.bat`
+pelo Explorador (selecionar o arquivo na pasta e dar Return — a barra de endereço falha em
+silêncio). Permanente: abrir a tarefa `kineo-sprint-diario` → **Run now** → aprovar o cartão
+do Explorador de Arquivos **uma vez**.
+
+---
+
+## ⚠️ AVISO DE LEITURA — os blocos abaixo estão VENCIDOS (corrigido 07/08 sprint 10h)
+
+Quem ler o arquivo de cima para baixo conclui errado. Estado verificado hoje:
+
+- ✅ **`/api/render/[id]` NÃO está vazando.** Fechado em produção desde `ec9f112`, conferido
+  por CONTEÚDO (marcador `KINEO-RENDER-OWNERSHIP-2026-08-06`) + deploy READY. O alarme
+  vermelho logo abaixo é histórico.
+- ✅ **Os "10 commits represados" subiram.** Assim como os 4 do 57-PUSH.
+- ✅ **`KINEO_REVERSE_TRIAL_ENABLED` está LIGADA em produção**, não OFF. Há 2 trials reais
+  ativos, com 40 créditos concedidos cada e 100% de ativação.
+- ✅ **O `compose` conhece o trial** (fechado em `6dfad6a`, gates de motor).
+
+Segue o histórico, mantido para não repetir diagnóstico:
+
+---
+
+# 🗄️ HISTÓRICO — GATE — `scripts\56-PUSH.bat` — **10 COMMITS REPRESADOS** (06/08, sprint 19h) — ✅ RESOLVIDO
 
 Substitui o **55**, o **54** e o **53** — todos obsoletos, **não clicar**.
 `origin/main` = `c3f3c46` (revalidado por `git ls-remote` no fim desta sprint).

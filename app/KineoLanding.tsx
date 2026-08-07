@@ -562,6 +562,46 @@ export default function KineoLanding({ initialUser }: Props) {
             <div style={{ marginTop: 'clamp(6px,1.1vh,18px)', display: 'flex', justifyContent: 'center', minHeight: 22 }}>
               <LiveStatsBadge />
             </div>
+            {/* KINEO-PROOF-ABOVE-FOLD-2026-08-07 — a empresa ganhou #2 Produto
+                do Dia no Fazier (04/08) e leva ~1.000 cliques/semana do TAAFT, e
+                as duas provas só existiam DEPOIS do CTA final (linha ~840, sob
+                um borderTop): quem converte nunca chegava lá.
+                Texto, nunca o embed com <script> deles: a restrição do
+                KINEO-FAZIER-2026-07-31 vale mais ainda na dobra.
+                Revisão adversarial: o Fazier é <span>, NÃO link. "#2 Product of
+                the Day" é um ranking DIÁRIO de 04/08 — um link para
+                fazier.com em 07/08 mostra outro produto e desmente a própria
+                prova no clique. O backlink dofollow que o tier grátis exige
+                continua sendo o do rodapé, que segue "Launched on Fazier"
+                (neutro, não precisa de comprovação e não duplica a frase).
+                Nenhum número de tração aqui: o LiveStatsBadge logo acima já é a
+                fonte medida, e "947 perfis" inclui contas internas. */}
+            <div
+              style={{
+                marginTop: 'clamp(6px,1.1vh,14px)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap',
+                fontSize: 12,
+                color: '#86868b',
+              }}
+            >
+              <span
+                style={{ color: '#c9c9cf', fontWeight: 700, border: '1px solid #2a2a2d', borderRadius: 999, padding: '5px 11px' }}
+              >
+                <span aria-hidden="true">🏆 </span>#2 Product of the Day on Fazier
+              </span>
+              <a
+                href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"
+                target="_blank"
+                rel="nofollow noreferrer"
+                style={{ color: '#c9c9cf', fontWeight: 700, textDecoration: 'none', border: '1px solid #2a2a2d', borderRadius: 999, padding: '5px 11px' }}
+              >
+                Featured on There&apos;s An AI For That
+              </a>
+            </div>
           </div>
           <HeroGallery />
           {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
