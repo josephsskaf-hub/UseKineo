@@ -17,6 +17,18 @@ interface AccountClientProps {
   hasPaid: boolean
   createdAt: string | null
   planTier?: 'free' | 'starter' | 'basic' | 'pro'
+  // KINEO-TRIAL-SURFACES-2026-08-07 — uma conta em TRIAL e, para o banco,
+  // `plan='free' has_paid=false`, e esta tela decidia tudo por esses dois
+  // campos. Resultado, palavra por palavra, para quem estava com 40 creditos
+  // de trial na mao: "Free Access", "Included credits: 0", "Purchased credits:
+  // 40" (nao foram compradas), "Never-paid allowance: 1 free Fast video/month",
+  // "The allowance grants no credits and does not include premium AI Generated
+  // video" (o trial da as duas coisas) e o botao "Unlock clean, watermark-free
+  // MP4s" (o export do trial JA sai limpo). Seis afirmacoes falsas na unica
+  // tela onde a pessoa vai conferir o que tem. Resolvido no servidor
+  // (isTrialActive em page.tsx); com a flag OFF chega sempre false.
+  trialActive?: boolean
+  trialEndsAt?: string | null
 }
 
 // Settings v3 (12/06) — practical, Vercel/Linear-shaped account page.
@@ -59,7 +71,7 @@ export default function AccountClient(props: AccountClientProps) {
   )
 }
 
-function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountClientProps) {
+function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive = false, trialEndsAt = null }: AccountClientProps) {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
   const OFFER = useFreeTierOffer()
   const router = useRouter()
@@ -79,7 +91,9 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
       ? '🔵 Creator Plan'
       : tier === 'starter'
         ? '🟢 Starter Plan'
-        : '🆓 Free Access'
+        : trialActive
+          ? '🎁 Creator Trial'
+          : '🆓 Free Access'
   const planStyle = PLAN_COLORS[tier]
   const initial = (email?.[0] ?? 'U').toUpperCase()
 
@@ -395,7 +409,22 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
               </h2>
               <div className="flex flex-col gap-1 mb-5">
                 <ReadOnlyRow label="Current plan" value={planLabel.replace(/^[^ ]+ /, '')} />
-                {tier === 'free' ? (
+                {tier === 'free' && trialActive ? (
+                  <>
+                    {/* O saldo do trial nao e "included: 0" nem "purchased": foi
+                        CONCEDIDO e expira. E o unico numero desta tela que o
+                        usuario consegue conferir contra o badge do topo — os
+                        dois vem do mesmo /api/credits e nao podem divergir. */}
+                    <ReadOnlyRow label="Trial credits" value={credits === null ? '—' : String(credits)} />
+                    <ReadOnlyRow label="Trial ends" value={formatDate(trialEndsAt)} />
+                    {/* "except Studio" nao e detalhe: Kling/Veo/Hollywood NUNCA
+                        entram no trial (invariante 2 de getEffectiveEntitlement)
+                        e prometer o contrario aqui seria o caso Kling — a tela
+                        destravando o que o servidor recusa com 402. */}
+                    <ReadOnlyRow label="Trial includes" value="Every engine except Studio · clean exports" />
+                    <ReadOnlyRow label="After the trial" value={ft(OFFER, '3 watermarked Fast videos / 24h', OFFER.copy.residual)} />
+                  </>
+                ) : tier === 'free' ? (
                   <>
                     <ReadOnlyRow label="Included credits" value="0" />
                     {(credits ?? 0) > 0 && <ReadOnlyRow label="Purchased credits" value={String(credits)} />}
@@ -478,7 +507,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
               style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,.07)', backdropFilter: 'blur(12px)' }}
             >
               <h2 className="font-bold mb-5" style={{ color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.12em', fontSize: '0.63rem' }}>
-                {tier === 'free' ? 'Free videos' : 'Credits'}
+                {tier !== 'free' ? 'Credits' : trialActive ? 'Trial credits' : 'Free videos'}
               </h2>
 
               {tier === 'free' ? (
@@ -490,14 +519,20 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
                     No card required
                   </div>
                   <h3 className="text-lg font-black mb-2" style={{ color: 'var(--text)' }}>
-                    {hasPaid ? 'Your purchased credits stay available' : ft(OFFER, 'Up to 3 Fast videos every 24 hours', OFFER.copy.residual)}
+                    {trialActive
+                      ? 'Your Creator trial is running'
+                      : hasPaid ? 'Your purchased credits stay available' : ft(OFFER, 'Up to 3 Fast videos every 24 hours', OFFER.copy.residual)}
                   </h3>
                   <p className="text-sm mb-3" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
-                    {hasPaid
-                      ? 'Your legacy pack keeps clean Fast exports available at 1 credit each. Upgrade to a monthly plan when you want a recurring balance.'
-                      : 'Never-paid free accounts can create, watch, download and share each Fast video with a watermark. The allowance grants no credits and does not include premium AI Generated video.'}
+                    {trialActive
+                      ? `Trial credits unlock every engine except Studio and export clean, watermark-free MP4s. When the trial ends, unspent trial credits are removed and free access is ${OFFER.copy.residual}.`
+                      : hasPaid
+                        ? 'Your legacy pack keeps clean Fast exports available at 1 credit each. Upgrade to a monthly plan when you want a recurring balance.'
+                        : 'Never-paid free accounts can create, watch, download and share each Fast video with a watermark. The allowance grants no credits and does not include premium AI Generated video.'}
                   </p>
-                  {(credits ?? 0) > 0 && (
+                  {/* "Purchased" e falso para o saldo do trial — ele foi
+                      concedido, e a linha de cima ja mostra o numero. */}
+                  {!trialActive && (credits ?? 0) > 0 && (
                     <p className="text-xs mb-3" style={{ color: 'var(--muted2)' }}>
                       Purchased credit balance: <strong style={{ color: 'var(--text)' }}>{credits}</strong>
                     </p>
@@ -507,7 +542,10 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier }: AccountCli
                     className="inline-flex rounded-xl px-4 py-2.5 text-sm font-black"
                     style={{ background: '#2997ff', color: '#fff', textDecoration: 'none' }}
                   >
-                    {hasPaid ? 'See monthly plans →' : 'Unlock clean, watermark-free MP4s →'}
+                    {/* Quem esta em trial JA exporta limpo: vender "desbloqueie
+                        o export limpo" para ele e a mesma classe de mentira que
+                        a etiqueta FREE do Fast (f9a4a9b). */}
+                    {trialActive || hasPaid ? 'See monthly plans →' : 'Unlock clean, watermark-free MP4s →'}
                   </Link>
                 </div>
               ) : (

@@ -15,6 +15,11 @@ import { trackEvent, trackSignupSource } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
+// KINEO-TRIAL-SURFACES-2026-08-07 — import de TIPO apenas (apagado no build,
+// nenhum codigo de servidor viaja), mesmo padrao de components/TrialDowngradeModal.
+// O tipo vem da MESMA definicao que /api/credits serializa: renomear a fase la
+// passa a quebrar o build aqui em vez de fazer a guarda sumir em silencio.
+import type { TrialUiPhase } from '@/lib/reverseTrial'
 import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
 // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — módulo puro e client-safe (nenhum
@@ -599,6 +604,14 @@ export default function GenerateClient({
   // motores Studio ficam com cadeado). Vem do servidor via /api/credits e é
   // false sempre que a flag KINEO_REVERSE_TRIAL_ENABLED está OFF.
   const [trialActive, setTrialActive] = useState<boolean>(false)
+  // KINEO-TRIAL-SURFACES-2026-08-07 — a FASE, nao so "esta ativo". O banner de
+  // boas-vindas promete "Your Creator trial is live — 40 free credits, every
+  // engine except Studio" e a UNICA guarda dele e `credits >= 1`: um assinante,
+  // um comprador de pacote, ou alguem cujo trial foi NEGADO (e-mail descartavel
+  // / fingerprint) e comprou credito liam a promessa de um trial que nao tem —
+  // e o motor prometido devolveria 402 do servidor. Vem de /api/credits
+  // (trialUiState no servidor); com a flag OFF e sempre 'none'.
+  const [trialPhase, setTrialPhase] = useState<TrialUiPhase>('none')
   // #404 — once we know the plan, default the mode/engine to that plan's engine.
   const planDefaultedRef = useRef<boolean>(false)
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
@@ -1857,6 +1870,8 @@ export default function GenerateClient({
           if (typeof data.isStudio === 'boolean') setIsStudio(data.isStudio)
           // KINEO-REVERSE-TRIAL-P1-2026-08-06 — estado do reverse trial.
           if (typeof data.trialActive === 'boolean') setTrialActive(data.trialActive)
+          // KINEO-TRIAL-SURFACES-2026-08-07 — fase do trial (flag OFF: 'none').
+          if (typeof data?.trial?.phase === 'string') setTrialPhase(data.trial.phase as TrialUiPhase)
           if (!planDefaultedRef.current) {
             planDefaultedRef.current = true
             // #448 — Viral Now quick-entry (?autoanalyze=1) defaults to Fast (free)
@@ -5516,6 +5531,45 @@ export default function GenerateClient({
   // `trialActive` vem de /api/credits (isTrialActive server-side); com a flag
   // OFF é sempre false e nada aqui muda.
   const isPaidAccount = hasPaid || trialActive || (planTier !== null && planTier !== 'free')
+  // KINEO-TRIAL-SURFACES-2026-08-07 — CONTADOR DA COTA FREE.
+  //
+  // O chip do topo ja dizia "N of {OFFER.limit} free {OFFER.copy.counterNoun}"
+  // e "Monthly limit reached", mas N era medido numa janela de 24h escrita a
+  // mao. A primeira versao desta correcao trocou o literal por OFFER.windowMs e
+  // parava ai — e a SEGUNDA PASSADA da revisao adversarial derrubou essa
+  // correcao, porque com a flag ON (janela de 30 dias) ela mente para o LADO
+  // PIOR, negando acesso a quem tem:
+  //
+  //   · `recentVideos` vem de /api/videos, que devolve as ULTIMAS 6 linhas
+  //     (.limit(6)) — numa janela de 30 dias o numero satura;
+  //   · `interface RecentVideo` nao tem `quality_mode` nem `credits_used`, os
+  //     dois campos pelos quais o SERVIDOR decide o que consome a cota free
+  //     (app/api/compose). Num mes, os videos Seedance do proprio trial seriam
+  //     contados como se fossem o Fast gratis, e a tela diria "monthly limit
+  //     reached" para quem nunca gastou o Fast do mes.
+  //
+  // Numa janela de 24h — a de hoje, flag OFF — as duas fontes de erro sao
+  // desprezíveis e o numero continua exatamente o que a tela ja mostrava. Com a
+  // flag ON o contador vira `null` DE PROPOSITO: sem a informacao de cota
+  // consumida, a copy descreve a REGRA e nao afirma DISPONIBILIDADE. Trocar uma
+  // afirmacao falsa por outra, so que na direcao de recusar, nao e correcao.
+  //
+  // O que fecha isto de verdade: a cota consumida tem que vir do SERVIDOR, que
+  // ja a calcula em lib/freeFastQuota.countFreeFastUsage — registrado no doc
+  // desta varredura como a proxima sprint, nao improvisado aqui.
+  const freeFastUsedInWindow = useMemo(() => {
+    if (OFFER.reverseTrial) return null
+    if (recentVideos === null) return null
+    return recentVideos.filter(
+      (v) =>
+        v.status === 'completed' &&
+        Date.now() - new Date(v.created_at).getTime() < OFFER.windowMs,
+    ).length
+  }, [recentVideos, OFFER.reverseTrial, OFFER.windowMs])
+  // Cota free comprovadamente ESGOTADA. So isto autoriza trocar a frase "you
+  // can still make…", que afirma ESTADO. Sem contagem conhecida a copy antiga
+  // fica byte a byte: afirmar esgotamento sem prova erra para o outro lado.
+  const freeFastQuotaSpent = freeFastUsedInWindow !== null && freeFastUsedInWindow >= OFFER.limit
   const showInlineFirstVideo = mode === 'fast' && !isPaidAccount && (
     showFirstShortNudge || (recentVideos !== null && recentVideos.length === 0)
   )
@@ -5721,15 +5775,7 @@ export default function GenerateClient({
             loading={creditsLoading}
             freeFastPreview={mode === 'fast' && !isPaidAccount}
             pricingHref={withIntentCampaign('/pricing')}
-            freeUsedToday={
-              recentVideos === null
-                ? null
-                : recentVideos.filter(
-                    (v) =>
-                      v.status === 'completed' &&
-                      Date.now() - new Date(v.created_at).getTime() < 24 * 60 * 60 * 1000,
-                  ).length
-            }
+            freeUsedToday={freeFastUsedInWindow}
           />
         </div>
       </div>
@@ -5844,7 +5890,7 @@ export default function GenerateClient({
       )}
 
       {showStep1 && showWelcome && (
-        <WelcomeBanner onDismiss={dismissWelcome} />
+        <WelcomeBanner onDismiss={dismissWelcome} trialLive={trialActive || trialPhase === 'active'} />
       )}
 
       {/* Push #098 — out-of-credits upgrade modal. Opened by any Generate /
@@ -6169,8 +6215,18 @@ export default function GenerateClient({
               {/* KINEO-SPRINT-OFFER-2026-07-14 — dropped the stale "Get 25 more
                   for $4.90" (the pack is 10 credits since V3C and has no public
                   CTA anymore). Welcome moment sells nothing — just start. */}
+              {/* KINEO-TRIAL-SURFACES-2026-08-07 — a IRMA exata da etiqueta
+                  corrigida em f9a4a9b, e uma tela ANTES dela: durante o trial o
+                  Fast custa 1 credito e sai LIMPO, entao "free … with a
+                  watermark" era falso nas duas metades, na primeira frase que a
+                  conta nova le. `trialActive` e sempre false com a flag OFF —
+                  o ramo de baixo continua identico ao de hoje. */}
               <span>
-                You&apos;re in. <strong>Your Fast previews are free to create, watch, share and download with a watermark</strong> — we&apos;ve loaded an idea below.
+                {trialActive ? (
+                  <>You&apos;re in. <strong>Your trial credits unlock every engine except Studio, and your exports come out clean</strong> — we&apos;ve loaded an idea below.</>
+                ) : (
+                  <>You&apos;re in. <strong>Your Fast previews are free to create, watch, share and download with a watermark</strong> — we&apos;ve loaded an idea below.</>
+                )}
               </span>
             </div>
           )}
@@ -7134,7 +7190,7 @@ export default function GenerateClient({
                         limpo), então a frase correta é a do ramo pago. */}
                     {credits >= 20
                       ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`
-                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'You can still make 1 free watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`}
+                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : 'Paid Fast clean exports use 1 credit each.'}`}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -8989,9 +9045,14 @@ function CreditsChip({
               Escassez que o usuário não vê não prima o 3º vídeo nem prepara o
               upgrade. `2 of 3` também corrige a leitura errada de "ilimitado"
               que o texto genérico permitia. */}
+          {/* KINEO-TRIAL-SURFACES-2026-08-07 — sem contagem conhecida, "Fast
+              previews are free" le como uma afirmacao sobre O SALDO DESTA CONTA
+              agora, e com o free tier de 1/mes ela e falsa para quem ja gastou.
+              A variante da flag ON descreve a REGRA (OFFER.copy.residual) e nao
+              promete nada. Flag OFF: `ft` devolve o literal de hoje. */}
           {freeUsedToday !== null && freeUsedToday > 0
             ? `${Math.min(freeUsedToday, OFFER.limit)} of ${OFFER.limit} free ${OFFER.copy.counterNoun}`
-            : 'Fast previews are free'}
+            : ft(OFFER, 'Fast previews are free', OFFER.copy.residual)}
         </div>
         <p className="text-[11px] mt-1.5" style={{ color: 'var(--muted2)', fontWeight: 600 }}>
           {freeUsedToday !== null && freeUsedToday >= OFFER.limit ? (
@@ -10792,7 +10853,8 @@ function UrgencyModal({
 // ─── Push #098 — first-visit welcome banner ─────────────────────────────────
 // Dismissible green banner shown above Step 1. The dismiss handler writes
 // the sf_welcomed flag to localStorage so the banner never returns.
-function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
+function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialLive: boolean }) {
+  const OFFER = useFreeTierOffer()
   return (
     <div
       role="status"
@@ -10804,7 +10866,18 @@ function WelcomeBanner({ onDismiss }: { onDismiss: () => void }) {
       }}
     >
       <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, lineHeight: 1.4 }}>
-        🎉 <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on="Your Creator trial is live — 40 free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed." />
+        {/* KINEO-TRIAL-SURFACES-2026-08-07 — a versao ON AFIRMA "Your Creator
+            trial is live" e a unica guarda deste banner e `credits >= 1`: quem
+            assinou, quem comprou pacote, e quem teve o trial NEGADO mas tem
+            saldo liam a promessa de um trial que nao existe — e "every engine
+            except Studio" e justamente o que o servidor recusaria com 402.
+            Regra de ouro: nunca prometer o que o servidor recusa. Com a flag
+            OFF `OFFER.reverseTrial` e false e o ramo abaixo e o de hoje. */}
+        🎉 {OFFER.reverseTrial && !trialLive ? (
+          'Welcome to Kineo — we dropped a viral idea below. Hit Generate, or type your own. No card needed.'
+        ) : (
+          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on="Your Creator trial is live — 40 free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed." />
+        )}
       </span>
       <button
         type="button"
