@@ -1,7 +1,9 @@
 import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
 import GenerateClient from './GenerateClient'
@@ -92,6 +94,35 @@ export default async function GeneratePage({ searchParams }: GeneratePageProps) 
   // of the activation funnel by ~2.7x, which is exactly the step we are trying
   // to measure. 30 minutes is longer than any single generation attempt, so a
   // returning user on a genuinely new visit still registers.
+  // KINEO-TRIAL-ACTIVATION-SERVER-2026-08-07 — a ativação do trial NÃO pode
+  // depender só de /api/track-signup-source. Aquela rota é chamada pelo cliente
+  // (fire-and-forget) e tem uma trava de sessão: `sfa_src_sent` no
+  // sessionStorage. Quem já teve uma chamada bem-sucedida naquela aba — por
+  // exemplo alguém que estava logado, saiu e criou uma segunda conta — NUNCA
+  // dispara a chamada de novo, e o trial silenciosamente não acontece. Foi
+  // exatamente isso que o fundador viu no primeiro teste em produção: conta nova
+  // criada 01:18Z, zero créditos, e um único POST na rota às 01:07Z.
+  //
+  // Aqui é o primeiro ponto SERVIDOR que toda conta autenticada atravessa, e a
+  // função é idempotente por contrato (só perfil <24h, `trial_status` não-nulo
+  // nunca reativa, CAS na escrita). Chamar dos dois lugares não concede dois
+  // trials — só remove o ponto único de falha. Best-effort: nunca quebra a
+  // página, nem é aguardada por nada que o usuário veja.
+  try {
+    await maybeActivateReverseTrial({
+      userId: user.id,
+      email: user.email ?? null,
+      userCreatedAt: user.created_at ?? null,
+      // Sem o hash aqui: o header de IP existe, mas a guarda de fingerprint
+      // pertence à borda do signup. Ausente = concede (fail-open), que é o
+      // comportamento já documentado — e quem chega por /api/track-signup-source
+      // continua passando pela checagem completa.
+      fingerprintHash: trialFingerprintFromHeaders(headers()),
+    })
+  } catch {
+    /* best-effort — a página nunca quebra por causa do trial */
+  }
+
   await writeServerEvent({
     name: 'generate_arrived_server',
     userId: user.id,
