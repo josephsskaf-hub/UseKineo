@@ -411,7 +411,24 @@ export function trialUiState(
     // Efeito colateral desejado: qualquer rota futura que esqueça
     // `trial_credits_granted` no SELECT perde o upsell (silencioso, mas do lado
     // seguro) em vez de inventar uma perda que não houve.
-    showDowngradeModal: phase === 'downgraded' && !isPayingProfile(profile) && creditsGranted > 0,
+    // KINEO-TRIAL-MODAL-NOW-2026-08-07 — 'ending' entrou junto de 'downgraded'.
+    // Medido no primeiro trial real: o teto de 40 é atingido DENTRO da request
+    // que gera o vídeo (recordReverseTrialDebit grava 'expired' na hora), mas
+    // só o cron de :55 promove 'expired' → 'downgraded'. O modal, que era a
+    // única tela desse momento, ficava esperando até 60 minutos — e o momento
+    // é o de maior intenção de compra que este produto tem: a pessoa acabou de
+    // ver o vídeo pronto e acabou de descobrir que não tem mais crédito. Uma
+    // hora depois ela não está mais aqui.
+    //
+    // 'ending' = trial que já NÃO dá acesso (isTrialActive false) por relógio
+    // ou por teto, aguardando o cron. As duas guardas que importam continuam
+    // valendo em todas as fases: não é pagante, e recebeu crédito de verdade.
+    // O cron segue existindo — ele é quem REVOGA o saldo não gasto; esta linha
+    // só decide quando a TELA aparece.
+    showDowngradeModal:
+      (phase === 'downgraded' || phase === 'ending') &&
+      !isPayingProfile(profile) &&
+      creditsGranted > 0,
   }
 }
 
