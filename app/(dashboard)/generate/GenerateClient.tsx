@@ -9752,7 +9752,19 @@ function ModeSelector({
   // (Seedance=Creator+, Kling/Veo/Hollywood=Studio) is retired: ANY paying
   // user unlocks every engine (server still guards the credit balance). Fast is
   // the only free mode advertised; legacy AI eligibility remains server-guarded.
+  // KINEO-TRIAL-FAST-BADGE-2026-08-07 — `trialActive` entrou aqui porque o
+  // fundador viu a contradição na própria tela: a conta em trial gerou um Fast,
+  // o servidor cobrou 1 crédito (saldo 20→19, medido no banco) e este card
+  // continuava anunciando "FREE". O trial é tratado como conta paga em todo o
+  // resto do produto (sem marca d'água, sem cota do free) — o preço do Fast
+  // tinha que acompanhar. Etiqueta que promete grátis e cobra é a mesma classe
+  // de defeito que passamos a semana consertando, só que em miniatura.
   const anyPaid = isStarter || isCreator || isStudio || (hasPaid && (credits ?? 0) > 0)
+  // Só a ETIQUETA de preço do Fast: `anyPaid` NÃO pode receber `trialActive`,
+  // porque ele também destrava Kling/Veo/Hollywood (linhas abaixo) e o servidor
+  // devolve 402 "Studio engines" para quem está em trial — destravar na tela
+  // seria trocar uma etiqueta errada por uma promessa falsa, que é pior.
+  const fastCostsCredit = anyPaid || trialActive
   // Fast Mode is the free growth engine (subject to the server's daily cap).
   // Free-plan Fast is watermarked server-side; removing the mark + AI engines
   // are the paid upgrades. So Fast is always unlocked.
@@ -9796,7 +9808,7 @@ function ModeSelector({
                KINEO-PRICING-V3C-2026-07-10 — paying accounts now pay 1 credit
                per Fast video, so their badge says so; free users keep FREE
                (downloadable watermark; clean export is the paid upgrade). */
-            anyPaid ? (
+            fastCostsCredit ? (
               <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)' }}>1 credit</span>
             ) : (
               <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)' }}>FREE</span>
