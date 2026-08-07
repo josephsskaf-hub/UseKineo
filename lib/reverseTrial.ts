@@ -812,12 +812,12 @@ export async function maybeActivateReverseTrial(args: {
  * menos uma vez, nunca deixar de expirar (o próximo débito re-soma e expira).
  * Nunca lança: débito de crédito jamais falha por causa da contabilidade.
  */
-export async function recordReverseTrialDebit(userId: string, cost: number): Promise<void> {
-  if (!REVERSE_TRIAL_ENABLED) return
-  if (!userId || !Number.isFinite(cost) || cost <= 0) return
+export async function recordReverseTrialDebit(userId: string, cost: number): Promise<boolean> {
+  if (!REVERSE_TRIAL_ENABLED) return true
+  if (!userId || !Number.isFinite(cost) || cost <= 0) return true
   try {
     const db = adminClient()
-    if (!db) return
+    if (!db) return true
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const { data: profile, error: readErr } = await db
         .from('profiles')
@@ -826,9 +826,11 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
         .maybeSingle()
       if (readErr || !profile) {
         if (readErr) console.error('[reverse-trial] cap read failed:', readErr.message)
-        return
+        // Falha de LEITURA é transitória: devolve false para que quem reservou
+        // o render no ledger devolva a reserva e a próxima tentativa conte.
+        return !readErr
       }
-      if (profile.trial_status !== 'active') return
+      if (profile.trial_status !== 'active') return true
       const used = typeof profile.trial_credits_used === 'number' ? profile.trial_credits_used : 0
       const newUsed = used + Math.round(cost)
       const endsRaw = (profile as { trial_ends_at?: unknown }).trial_ends_at
@@ -855,7 +857,7 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
         : await query.select('id')
       if (updateErr) {
         console.error('[reverse-trial] cap update failed:', updateErr.message)
-        return
+        return false
       }
       if (updated && updated.length > 0) {
         if (shouldExpire) {
@@ -878,12 +880,306 @@ export async function recordReverseTrialDebit(userId: string, cost: number): Pro
             },
           })
         }
-        return
+        return true
       }
       // Perdeu a corrida — relê e tenta de novo.
     }
+    // Saiu do laço: a 3ª tentativa não tem guarda de contagem, então 0 linhas
+    // só acontece quando o status deixou de ser 'active' (converted/expired).
+    // Não há o que contar e uma retentativa não mudaria isso.
+    return true
   } catch (e) {
     console.error('[reverse-trial] cap accounting threw:', e instanceof Error ? e.message : String(e))
+    return false
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — CONTABILIZAR SÓ DÉBITO REAL
+//
+// BUG EM PRODUÇÃO (1º trial real, conta 84c9ddee, 07/08 01:31Z): `credit_debits`
+// tinha UMA linha de 20; `video_credits` foi 40→20 (um débito só); mas
+// `trial_credits_used` = 40 e `trial_status` = 'expired'. O trial morreu com
+// METADE dos créditos ainda no saldo — e, como o entitlement cai junto, os 20
+// restantes deixam de valer para os motores de IA: "cobra e não entrega".
+//
+// CAUSA: `public.debit_video_credits` é IDEMPOTENTE por render — o insert em
+// credit_debits colide (unique_violation), a função devolve `video_credits` e
+// NÃO debita de novo. `lib/credits/debit.ts` chamava recordReverseTrialDebit()
+// em TODO retorno sem erro, inclusive nesse replay no-op. Cada re-chamada do
+// mesmo render somava o custo inteiro no teto sem tirar um crédito sequer.
+// O replay não é raro nem hipotético: /api/generate-video-cinematic debita
+// adiantado (upfront) e, na MESMA request, `settleDebitAndRespond()` re-chama
+// o mesmo `billingReference` como "confirmação idempotente" — 20 + 20 = 40 em
+// 0,5 segundo, exatamente o que os eventos daquela conta mostram.
+//
+// A TRAVA: não confiar no chamador, nem em "comparar saldo antes/depois" (duas
+// requests concorrentes tornam a comparação mentirosa). Dois fatos, ambos lidos
+// do banco com service role:
+//   (1) EXISTE linha em credit_debits do par (render_id, user_id) e ela não
+//       está estornada  ⇒ dinheiro saiu MESMO desta conta. O par importa: a PK
+//       de credit_debits é só render_id, então um render de OUTRO usuário não
+//       pode ser contado aqui;
+//   (2) o INSERT em trial_debit_ledger (PK render_id) passa ⇒ este render ainda
+//       NÃO foi contado. unique_violation ⇒ replay ⇒ não soma. A trava é o
+//       índice único: duas requests simultâneas do mesmo render, só uma entra.
+// O valor somado é o `amount` REAL da linha de credit_debits, não o custo que o
+// chamador passou — o RPC usa `render_jobs.cost` como custo autoritativo quando
+// existe, então os dois podem divergir e o teto tem que seguir o dinheiro.
+//
+// CRESCIMENTO DO LEDGER: a linha só nasce para conta com trial 'active'. Um
+// trial dura 3–7 dias e tem teto de 40 créditos ⇒ no máximo ~40 linhas por
+// conta, para sempre. Não é um espelho de credit_debits.
+//
+// ERRO ESCOLHIDO: se a contabilidade falhar DEPOIS da reserva, a reserva é
+// desfeita (delete) para a próxima chamada contar. O erro barato continua sendo
+// contar DEPOIS (ou de menos, e o SQL de reconciliação conserta), nunca contar
+// duas vezes e matar o trial de quem pagou com o próprio tempo.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TrialDebitAccounting =
+  /** Contado agora no teto. */
+  | 'counted'
+  /** Mesmo render já contado antes (replay do RPC idempotente). NÃO soma. */
+  | 'replay'
+  /** Nenhum débito real desta conta para este render (ou já estornado). */
+  | 'no_debit'
+  /** Conta não está em trial 'active' — o teto não se aplica. */
+  | 'not_in_trial'
+  /** Flag OFF, env ausente ou falha transitória: nada foi contado. */
+  | 'skipped'
+
+/**
+ * Ponto único de contabilidade do teto a partir de um DÉBITO POR RENDER.
+ * Chamada por lib/credits/debit.ts depois do RPC. Nunca lança.
+ */
+export async function recordReverseTrialDebitForRender(args: {
+  userId: string
+  renderId: string
+  /** Custo que o chamador pediu — usado só se a linha do ledger não trouxer valor. */
+  fallbackCost: number
+}): Promise<TrialDebitAccounting> {
+  if (!REVERSE_TRIAL_ENABLED) return 'skipped'
+  const userId = (args.userId ?? '').trim()
+  const renderId = (args.renderId ?? '').trim()
+  if (!userId || !renderId) return 'skipped'
+  const db = adminClient()
+  if (!db) return 'skipped'
+
+  try {
+    // (0) Só contas em trial ativo geram linha no ledger — bound de crescimento.
+    const { data: profile, error: profileErr } = await db
+      .from('profiles')
+      .select('trial_status')
+      .eq('id', userId)
+      .maybeSingle()
+    if (profileErr) {
+      console.error('[reverse-trial] ledger profile read failed:', profileErr.message)
+      return 'skipped'
+    }
+    if (!profile || profile.trial_status !== 'active') return 'not_in_trial'
+
+    // (1) Prova factual de que o dinheiro saiu DESTA conta neste render.
+    const { data: debitRow, error: debitErr } = await db
+      .from('credit_debits')
+      .select('amount, refunded_at')
+      .eq('render_id', renderId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (debitErr) {
+      console.error('[reverse-trial] ledger debit read failed:', debitErr.message)
+      return 'skipped'
+    }
+    if (!debitRow) return 'no_debit'
+    if (debitRow.refunded_at) return 'no_debit'
+    const real = typeof debitRow.amount === 'number' ? debitRow.amount : NaN
+    const amount = Number.isFinite(real) && real > 0 ? Math.round(real) : Math.round(args.fallbackCost)
+    if (!Number.isFinite(amount) || amount <= 0) return 'no_debit'
+
+    // (2) Reserva idempotente: o índice único é a trava, inclusive entre duas
+    // requests concorrentes do mesmo render.
+    const { error: claimErr } = await db
+      .from('trial_debit_ledger')
+      .insert({ render_id: renderId, user_id: userId, cost: amount })
+    if (claimErr) {
+      if (claimErr.code === '23505') return 'replay'
+      console.error('[reverse-trial] ledger claim failed:', claimErr.message)
+      return 'skipped'
+    }
+
+    // (3) RE-LEITURA DEPOIS DA RESERVA — a corrida estorno × débito.
+    // Entre (1) e (2) um estorno pode ter carimbado `refunded_at` deste mesmo
+    // render (varredura de abandono, /cinematic-clip-status). Sem esta releitura
+    // o custo entraria no teto de um render cujo dinheiro JÁ VOLTOU: overcount,
+    // o lado que PUNE o usuário. Com ela o pior caso vira undercount (o estorno
+    // pode ter apagado esta reserva antes de nós somarmos) — o lado barato, que
+    // o SQL de reconciliação conserta. A janela é de milissegundos e exige um
+    // estorno simultâneo ao débito do mesmo render; a assimetria é o ponto.
+    const { data: recheck, error: recheckErr } = await db
+      .from('credit_debits')
+      .select('refunded_at')
+      .eq('render_id', renderId)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (!recheckErr && recheck?.refunded_at) {
+      const { error: undoErr } = await db
+        .from('trial_debit_ledger')
+        .delete()
+        .eq('render_id', renderId)
+      if (undoErr) console.error('[reverse-trial] ledger undo after refund race failed:', undoErr.message)
+      return 'no_debit'
+    }
+
+    const recorded = await recordReverseTrialDebit(userId, amount)
+    if (!recorded) {
+      // Falha transitória: devolve a reserva para a próxima chamada poder contar.
+      const { error: rollbackErr } = await db
+        .from('trial_debit_ledger')
+        .delete()
+        .eq('render_id', renderId)
+      if (rollbackErr) {
+        console.error('[reverse-trial] ledger rollback failed (cap may undercount by 1 debit):', rollbackErr.message)
+      }
+      return 'skipped'
+    }
+    return 'counted'
+  } catch (e) {
+    console.error('[reverse-trial] ledger accounting threw:', e instanceof Error ? e.message : String(e))
+    return 'skipped'
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — O OUTRO LADO DA MOEDA: O ESTORNO.
+//
+// O teto tem que seguir o DINHEIRO, não a intenção. Se um render é reembolsado
+// (refund_render_credits: falha do provedor, submissão que não saiu, varredura
+// de abandono), o crédito volta para `video_credits` — e, sem este bloco,
+// `trial_credits_used` continuaria carregando um custo que a conta não pagou.
+// O usuário seria punido no teto por um vídeo que NUNCA recebeu: a versão
+// silenciosa do mesmo "cobra e não entrega" que o double-count causou.
+//
+// IDEMPOTÊNCIA, mesma disciplina do débito: a chave é a LINHA do ledger, não a
+// confiança no chamador. O DELETE ... RETURNING é a trava — só a chamada que
+// REMOVEU a linha devolve o custo. N estornos do mesmo render devolvem UMA vez.
+// (refund_render_credits já é idempotente por conta própria, mas a contabilidade
+// não pode depender disso: qualquer caminho futuro que chame isto duas vezes
+// ainda subtrai uma vez só.)
+//
+// O NÚMERO É O DA LINHA DO LEDGER, não o `amount` que o RPC devolveu: o ledger
+// guarda exatamente o que foi SOMADO no teto (que veio de credit_debits.amount,
+// derivado de render_jobs.cost). Somar X e devolver Y deixaria o teto torto.
+//
+// RE-DÉBITO DEPOIS DO ESTORNO é impossível por construção e é por isso que
+// apagar a linha é seguro: refund_render_credits só carimba `refunded_at`, NÃO
+// apaga a linha de credit_debits, então um novo debit_video_credits do mesmo
+// render colide na PK e não tira nada. E se ele fosse chamado, o guard
+// `debitRow.refunded_at` em recordReverseTrialDebitForRender() devolve
+// 'no_debit' — nunca reconta um render estornado.
+//
+// RESSUSCITAR O TRIAL: se o teto foi o que matou o trial e o estorno derruba o
+// consumo abaixo de 40 com o relógio ainda no futuro, o trial volta para
+// 'active'. Sem isto o estorno devolveria créditos INÚTEIS (entitlement no free
+// não roda os motores de IA) — o pior dos dois mundos. 'converted' (pagou) e
+// 'downgraded' (créditos já revogados) são terminais e NÃO são tocados.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type TrialRefundAccounting =
+  /** Custo devolvido ao teto agora. */
+  | 'uncounted'
+  /** Este render nunca somou no teto (ou já foi devolvido). Nada a fazer. */
+  | 'not_counted'
+  /** Flag OFF, env ausente ou falha transitória. */
+  | 'skipped'
+
+/**
+ * Devolve ao teto do trial o custo de um render ESTORNADO. Chamada por
+ * lib/credits/refund.ts depois de um refund_render_credits com amount > 0.
+ * Nunca lança.
+ */
+export async function recordReverseTrialRefundForRender(renderId: string): Promise<TrialRefundAccounting> {
+  if (!REVERSE_TRIAL_ENABLED) return 'skipped'
+  const id = (renderId ?? '').trim()
+  if (!id) return 'skipped'
+  const db = adminClient()
+  if (!db) return 'skipped'
+
+  try {
+    // A trava: só quem REMOVEU a linha devolve o custo.
+    const { data: removed, error: removeErr } = await db
+      .from('trial_debit_ledger')
+      .delete()
+      .eq('render_id', id)
+      .select('user_id, cost')
+    if (removeErr) {
+      console.error('[reverse-trial] refund ledger release failed:', removeErr.message)
+      return 'skipped'
+    }
+    const row = (removed ?? [])[0]
+    if (!row) return 'not_counted'
+    const userId = typeof row.user_id === 'string' ? row.user_id : ''
+    const cost = typeof row.cost === 'number' ? Math.round(row.cost) : 0
+    if (!userId || cost <= 0) return 'not_counted'
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const { data: profile, error: readErr } = await db
+        .from('profiles')
+        .select('trial_status, trial_ends_at, trial_credits_used')
+        .eq('id', userId)
+        .maybeSingle()
+      if (readErr || !profile) {
+        if (readErr) console.error('[reverse-trial] refund cap read failed:', readErr.message)
+        return 'skipped'
+      }
+      const status = typeof profile.trial_status === 'string' ? profile.trial_status : ''
+      // Terminais: pagou, ou já teve o saldo revogado. Mexer no teto de quem
+      // saiu do trial não devolve nada a ninguém e reescreve estado fechado.
+      if (status !== 'active' && status !== 'expired') return 'not_counted'
+
+      const used = typeof profile.trial_credits_used === 'number' ? profile.trial_credits_used : 0
+      const newUsed = Math.max(used - cost, 0)
+      const endsRaw = (profile as { trial_ends_at?: unknown }).trial_ends_at
+      const ends = typeof endsRaw === 'string' ? Date.parse(endsRaw) : NaN
+      const clockAlive = Number.isFinite(ends) && Date.now() < ends
+      // Só ressuscita quem o TETO matou: consumo real agora abaixo de 40 e
+      // prazo ainda válido. Relógio vencido continua 'expired', como deve.
+      const revive = status === 'expired' && newUsed < TRIAL_CREDIT_CAP && clockAlive
+      const patch: Record<string, unknown> = { trial_credits_used: newUsed }
+      if (revive) patch.trial_status = 'active'
+
+      const query = db.from('profiles').update(patch).eq('id', userId).eq('trial_status', status)
+      const { data: updated, error: updateErr } = attempt < 3
+        ? await query.eq('trial_credits_used', used).select('id')
+        : await query.select('id')
+      if (updateErr) {
+        console.error('[reverse-trial] refund cap update failed:', updateErr.message)
+        return 'skipped'
+      }
+      if (updated && updated.length > 0) {
+        if (revive) {
+          console.log(`[reverse-trial] REVIVED user=${userId.slice(0, 8)} used=${newUsed}/${TRIAL_CREDIT_CAP} (refund render=${id})`)
+          await writeServerEvent({
+            name: 'trial_cap_refunded',
+            userId,
+            metadata: {
+              render_id: id,
+              credits_returned: cost,
+              credits_used: newUsed,
+              cap: TRIAL_CREDIT_CAP,
+              revived: true,
+            },
+          })
+        }
+        return 'uncounted'
+      }
+      // Perdeu a corrida (ou o status mudou) — relê e tenta de novo.
+    }
+    // 3 tentativas sem escrever: o status saiu de 'active'/'expired' no meio do
+    // caminho (converted/downgraded). Não há teto para devolver.
+    return 'not_counted'
+  } catch (e) {
+    console.error('[reverse-trial] refund ledger accounting threw:', e instanceof Error ? e.message : String(e))
+    return 'skipped'
   }
 }
 

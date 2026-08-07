@@ -520,3 +520,206 @@ Os 3 bloqueadores estão fechados no código. **Sobram duas coisas, e nenhuma é
 
 *QA executado em 07/08/2026. Deploy `ec9f112`. Flag `KINEO_REVERSE_TRIAL_ENABLED` OFF
 durante toda a auditoria de produção.*
+
+---
+
+# 🔴 INCIDENTE NO 1º TRIAL REAL — O TETO CONTAVA O REPLAY DO DÉBITO
+# `[KINEO-TRIAL-DOUBLECOUNT-2026-08-07]`
+
+*Achado no PRIMEIRO trial real da base (conta de teste do fundador,
+`84c9ddee-1404-48d0-b7a6-163c860fad0a`), horas depois das correções dos bloqueadores
+acima. **O reteste fim-a-fim que o veredito exigia era exatamente isto — e ele reprovou.***
+
+## O sintoma, com os números do banco
+
+| Fato | Valor observado | Valor correto |
+|---|---|---|
+| Créditos concedidos | 40 | 40 |
+| Vídeos AI gerados | **1** (cinematic/Seedance, custo 20) | — |
+| Linhas em `credit_debits` | **1** (`cinematic-0ea18752-…`, `amount=20`) | 1 |
+| `profiles.video_credits` | 20 (40 − 20) ✅ **o dinheiro está certo** | 20 |
+| `profiles.trial_credits_used` | **40** ❌ | 20 |
+| `profiles.trial_status` | **`expired`** ❌ | `active` |
+
+**O trial morreu depois de UM vídeo, com metade dos créditos ainda na conta.** E como o
+entitlement do trial é derivado na leitura (`isTrialActive`), com o trial expirado a conta
+volta a ser free na request seguinte: **os 20 créditos restantes deixam de valer para os
+motores de IA.** É o "cobra e não entrega" do bloqueador #1 voltando por outra porta — desta
+vez sem nenhum 402 para denunciá-lo.
+
+## Causa-raiz (confirmada, não inferida)
+
+`pg_get_functiondef('public.debit_video_credits')` em produção:
+
+```sql
+begin
+  insert into credit_debits (render_id, user_id, kind, amount) values (p_render, v_user, 'video', v_cost);
+exception when unique_violation then
+  select video_credits into v_balance from profiles where id = v_user;
+  return coalesce(v_balance, 0);   -- ← devolve o saldo e NÃO DEBITA
+end;
+```
+
+**O RPC é IDEMPOTENTE POR RENDER.** No replay ele devolve o saldo atual com `error = null`
+e não tira um crédito sequer — que é o comportamento certo para o dinheiro.
+
+`lib/credits/debit.ts` chamava `recordReverseTrialDebit(userId, cost)` em **todo** retorno
+com `error === null` e saldo numérico. Ou seja: **tratava "sem erro" como sinônimo de
+"debitou".** Cada replay do mesmo render somava o custo inteiro em `trial_credits_used` sem
+mover o saldo.
+
+**E o replay não é hipotético.** `app/api/generate-video-cinematic/route.ts` chama o débito
+**duas vezes na mesma request feliz**, com o MESMO `billingReference`:
+
+1. `upfrontDebit` — antes de submeter ao provedor (linha ~1190);
+2. `settleDebitAndRespond()` → `ensureCinematicDebit()` — a "confirmação idempotente"
+   antes de expor request IDs (linha ~924).
+
+20 + 20 = 40 em ~0,5 segundo. É literalmente o que os eventos daquela conta mostram.
+
+## A correção — a contabilidade do teto virou idempotente POR RENDER, igual ao dinheiro
+
+**Princípio:** a semântica do RPC de dinheiro **não foi tocada**. O que mudou é que a
+contabilidade parou de confiar no chamador e passou a exigir **dois fatos lidos do banco**.
+
+### 1. Tabela nova `public.trial_debit_ledger` (migração aditiva)
+
+`supabase/migrations/20260807030000_trial_debit_ledger.sql`
+
+```sql
+create table if not exists public.trial_debit_ledger (
+  render_id  text primary key,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  cost       integer not null check (cost > 0),
+  created_at timestamptz not null default now()
+);
+alter table public.trial_debit_ledger enable row level security;  -- sem policy = só service role
+revoke all on public.trial_debit_ledger from anon, authenticated;
+```
+
+**Por que uma tabela e não uma alternativa:**
+
+| Alternativa considerada | Por que foi recusada |
+|---|---|
+| Comparar saldo antes/depois do RPC | Mentiroso sob concorrência: dois renders simultâneos mudam o saldo um do outro. Diagnostica errado exatamente quando importa. |
+| Fazer o RPC devolver "debitou / replay" | Muda a **assinatura e a semântica** da função autoritativa do dinheiro, que 8 call sites e 3 crons dependem. Risco alto, benefício idêntico. |
+| Derivar `trial_credits_used` de `SUM(credit_debits)` a cada leitura | Custo por request e perde a expiração **na mesma escrita** (`patch.trial_status='expired'`), que é o que faz o teto ser imediato e não depender de cron. |
+| **Ledger próprio com PK = render_id** ✅ | O índice único **é** a trava, inclusive entre requests concorrentes. Aditivo, reversível, e o crescimento é limitado por desenho (só nasce para trial `active`; teto de 40 ⇒ ≤ ~40 linhas por conta, para sempre). |
+
+### 2. `recordReverseTrialDebitForRender()` — `lib/reverseTrial.ts`
+
+Chamada por `lib/credits/debit.ts` no lugar de `recordReverseTrialDebit()`. Exige, em ordem:
+
+0. perfil com `trial_status = 'active'` (senão `not_in_trial`, e nenhuma linha nasce);
+1. **linha em `credit_debits` do par `(render_id, user_id)` com `refunded_at IS NULL`** —
+   prova factual de que o dinheiro saiu **desta** conta. O par importa: a PK de
+   `credit_debits` é só `render_id`, então filtrar pelo usuário impede contar um render de
+   outra conta;
+2. **`INSERT` em `trial_debit_ledger`** — `23505` (`unique_violation`) ⇒ replay ⇒ **não soma**;
+3. **releitura de `refunded_at` DEPOIS da reserva** — fecha a corrida estorno × débito
+   (detalhe abaixo);
+4. só então `recordReverseTrialDebit(userId, amount)`.
+
+**O número somado é `credit_debits.amount`, NUNCA o `p_cost` do chamador.** O RPC usa
+`render_jobs.cost` como custo autoritativo quando existe (`KINEO-DEBIT-GRANT-2026-07-30`),
+então os dois podem divergir — e o teto tem que seguir o dinheiro que saiu, não o argumento
+que alguém passou.
+
+**Falha depois da reserva** (ex.: `recordReverseTrialDebit` devolve `false` por erro
+transitório) ⇒ a reserva é **desfeita** (`delete`) para a próxima tentativa contar. O erro
+barato é contar **depois** ou **de menos**; nunca contar duas vezes e matar o trial.
+
+### 3. Chamada redundante eliminada na raiz — `generate-video-cinematic`
+
+Quando o `upfrontDebit` e o `settleDebitAndRespond()` acontecem **na mesma request**, a
+segunda chamada ao RPC não prova nada que a primeira já não tenha provado. Um flag local
+(`debitConfirmedThisRequest`) reusa o resultado. **As outras duas entradas de
+`settleDebitAndRespond` (claim já existente / resposta em cache) continuam confirmando de
+verdade** — nesses caminhos o débito **não** rodou nesta request e a confirmação é a única
+prova que existe. Isto é defesa em profundidade: o ledger sozinho já bastaria.
+
+### 4. ESTORNO — o outro lado, que **não** estava tratado (achado da revisão adversarial)
+
+`refund_render_credits` devolve o crédito para `video_credits`, mas **nada devolvia o custo
+ao teto**. Consequência: um render que falhou (provedor caiu, `sweepAbandonedCinematicDebits`,
+`/cinematic-clip-status`) devolvia o dinheiro **e mantinha os 20 no `trial_credits_used`** —
+o teto punindo o usuário por um vídeo que ele nunca recebeu, e podendo matar o trial com o
+saldo cheio. A versão silenciosa do mesmo defeito.
+
+`recordReverseTrialRefundForRender(renderId)` (`lib/reverseTrial.ts`), chamada de
+`lib/credits/refund.ts` quando o RPC devolve `amount > 0`:
+
+- **`DELETE … RETURNING` na linha do ledger é a trava** — só quem **removeu** a linha devolve
+  o custo. N estornos do mesmo render devolvem **uma** vez;
+- devolve **o `cost` da linha do ledger**, não o `amount` do RPC: é exatamente o número que
+  foi somado. Somar X e devolver Y deixaria o teto torto;
+- **ressuscita o trial** quando foi o **teto** que o matou: `status='expired'` +
+  `newUsed < 40` + `trial_ends_at > now()` ⇒ volta a `active`, com evento
+  `trial_cap_refunded`. Sem isto o estorno devolveria créditos **inúteis** (entitlement free
+  não roda os motores de IA) — o pior dos dois mundos. `converted` (pagou) e `downgraded`
+  (créditos já revogados) são **terminais e não são tocados**;
+- **re-débito depois de estorno é impossível por construção**, e é por isso que apagar a
+  linha do ledger é seguro: `refund_render_credits` só carimba `refunded_at`, **não apaga a
+  linha de `credit_debits`** — um novo `debit_video_credits` do mesmo render colide na PK e
+  não tira nada. E se fosse chamado, o guard `refunded_at` do passo (1) devolve `no_debit`.
+
+### 5. `/api/credits/deduct` — auditado, e **corrigido**
+
+Chama `recordReverseTrialDebit(user.id, 1)` **sem `render_id`**, então o ledger por render
+não se aplica. A pergunta é se um retry do cliente pode somar duas vezes:
+
+**Não indevidamente — a rota não é idempotente por desenho.** Cada chamada bem-sucedida tira
+1 crédito **de verdade** (`UPDATE … .gt('video_credits', 0)`), logo cada uma **deve** somar 1.
+Chamar duas vezes cobra duas vezes, e contar duas vezes é o correto.
+
+**Mas existia um caso real de "sem erro e sem débito":** a corrida em que outro request zerou
+o saldo entre o `SELECT` e o `UPDATE`. O `.gt('video_credits', 0)` faz a UPDATE afetar **0
+linhas** e o supabase-js devolve `error: null` — nenhum crédito saiu, e o teto somava 1 assim
+mesmo. **A mesma classe de bug, na versão manual desta rota.** Corrigido com `.select()`:
+só soma quando a UPDATE **mudou** uma linha. De quebra, a resposta passou a devolver o saldo
+**real** da linha em vez de `current - 1`, que sob essa mesma corrida informava um crédito
+que não existe. (Isto reclassifica o item #4 de "liga mas monitora" — a armadilha era maior
+do que "soma sempre 1".)
+
+## Revisão adversarial — as corridas que foram procuradas de propósito
+
+| Cenário | Resultado |
+|---|---|
+| Duas requests **simultâneas** do mesmo render | O RPC debita numa e replica na outra. As duas leem `credit_debits` e veem a linha; as duas tentam o `INSERT` no ledger — **o índice único deixa uma passar**. `counted` + `replay`. ✅ |
+| Render debita → é estornado → é re-debitado | Impossível: `refund_render_credits` mantém a linha de `credit_debits`, então o novo débito colide na PK. E o guard `refunded_at` bloqueia a recontagem. ✅ |
+| `p_cost` do chamador ≠ `render_jobs.cost` (custo autoritativo do banco) | A contabilidade lê `credit_debits.amount` — **o mesmo número que o RPC gravou**, não o argumento. ✅ |
+| **Estorno concorrente com o débito do mesmo render** (a corrida mais fina) | A releitura de `refunded_at` **depois** da reserva torna o pior caso um **undercount** (o estorno pode apagar a reserva antes de somarmos), não um overcount. A assimetria é deliberada: undercount favorece o usuário e o SQL de reconciliação conserta; overcount mata trial. ✅ |
+| Débito chegando **depois** de `markTrialConverted` (Stripe) | `.eq('trial_status','active')` em todas as tentativas de `recordReverseTrialDebit` — `converted` nunca é sobrescrito. Já coberto por `KINEO-REVERSE-TRIAL-P2-2026-08-07`, reverificado. ✅ |
+| `.select()` novo em `/credits/deduct` barrado por RLS | `profiles` tem `FOR ALL USING (auth.uid() = id)` — a mesma rota já faz `.select()` da própria linha no começo. Sem regressão. ✅ |
+| Ledger crescendo sem limite | Linha só nasce com `trial_status='active'`; teto de 40 ⇒ ≤ ~40 linhas por conta, para sempre. Não é espelho de `credit_debits`. ✅ |
+
+## Reparo dos dados (executado via MCP, SQL idempotente)
+
+`supabase/migrations/20260807030500_trial_cap_reconcile.sql` — três escritas, todas
+condicionais (rodar de novo não muda nada): (1) semeia o ledger com o que já foi contado,
+para o replay não voltar a somar depois do deploy; (2) `trial_credits_used` = soma **real**
+dos débitos não estornados; (3) ressuscita **só** quem o teto matou (`expired` com consumo
+real < 40 e relógio no futuro) — `converted`/`downgraded` intocados.
+
+**Estado verificado depois da execução:**
+
+```
+id=84c9ddee-…  trial_status=active  trial_credits_used=20  video_credits=20  trial_ends_at=2026-08-14 01:28Z
+trial_debit_ledger: 1 linha (cinematic-0ea18752-…, cost=20)
+```
+
+**Outros perfis afetados:** varredura em toda a base — `select … from profiles where
+trial_status is not null` devolve **exatamente 1 linha** (a conta acima). O bug nasceu com o
+1º trial e foi pego no 1º trial. Nenhuma outra conta tocada.
+
+## Lição
+
+O QA acima aprovou o teto com **39/39 asserções**, incluindo os cenários de concorrência —
+porque o harness chamava `recordReverseTrialDebit()` **direto**, nunca `debitVideoCredits()`
+contra um RPC idempotente de verdade. **A contabilidade estava certa; o gatilho dela é que
+estava errado.** Toda vez que um sistema tem uma operação idempotente e um contador do lado
+de fora, o contador precisa da **própria** chave de idempotência — não da ausência de erro
+do chamador.
+
+*Correção de 07/08/2026. `npx tsc --noEmit` → **EXIT=0**. Flag `KINEO_REVERSE_TRIAL_ENABLED`
+permanece OFF neste commit.*

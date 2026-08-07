@@ -15,7 +15,7 @@
 // adversarial desta fase existe para pegar).
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { REVERSE_TRIAL_ENABLED, recordReverseTrialDebit } from '@/lib/reverseTrial'
+import { REVERSE_TRIAL_ENABLED, recordReverseTrialDebitForRender } from '@/lib/reverseTrial'
 
 export interface DebitResult {
   /** Saldo novo devolvido pelo RPC, ou null quando o RPC falhou/atipou. */
@@ -35,9 +35,22 @@ export async function debitVideoCredits(
 
   // Contabilidade do trial SÓ depois de débito confirmado (error nulo E saldo
   // numérico) e custo > 0. Nunca lança; nunca altera o resultado do débito.
+  //
+  // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — "sem erro" NÃO é sinônimo de "debitou".
+  // O RPC é idempotente por render: no replay ele devolve o saldo atual e não
+  // tira nada. A versão anterior somava o custo no teto do trial nesse no-op —
+  // o 1º trial real morreu com 20 dos 40 créditos ainda no saldo porque a mesma
+  // request cinematic chama o débito duas vezes (upfront + confirmação). Quem
+  // decide agora se soma é o par (linha real em credit_debits, reserva única em
+  // trial_debit_ledger), nunca a confiança no chamador. Ver o bloco em
+  // lib/reverseTrial.ts.
   if (REVERSE_TRIAL_ENABLED && !error && balance !== null && args.cost > 0) {
     try {
-      await recordReverseTrialDebit(args.userId, args.cost)
+      await recordReverseTrialDebitForRender({
+        userId: args.userId,
+        renderId: args.renderId,
+        fallbackCost: args.cost,
+      })
     } catch (e) {
       console.error('[credits/debit] trial cap accounting non-fatal:', e instanceof Error ? e.message : String(e))
     }

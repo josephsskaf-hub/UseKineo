@@ -40,11 +40,17 @@ export async function POST() {
     }
 
     const next = current - 1
-    const { error: updateError } = await supabase
+    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — `.select()` para saber se a UPDATE
+    // MUDOU alguma linha. Sem isto, uma corrida que zerou o saldo entre o read e
+    // o write devolve `error: null` com ZERO linhas afetadas: nenhum crédito
+    // saiu, mas o teto do trial somava 1 assim mesmo — a mesma classe de bug do
+    // replay do RPC cinematic, na versão manual desta rota.
+    const { data: updatedRows, error: updateError } = await supabase
       .from('profiles')
       .update({ video_credits: next })
       .eq('id', user.id)
       .gt('video_credits', 0)
+      .select('video_credits')
 
     if (updateError) {
       console.error('[credits/deduct] update error:', updateError.message)
@@ -72,13 +78,34 @@ export async function POST() {
     // (0 eventos em `/create` na história inteira, 0 linhas `legacy-%` em
     // credit_debits desde 12/06). É uma armadilha carregada, não um vazamento
     // ativo — e é a razão de ela não ser tratada como incidente nesta sprint.
-    try {
-      await recordReverseTrialDebit(user.id, 1)
-    } catch (e) {
-      console.error('[credits/deduct] trial cap accounting non-fatal:', e instanceof Error ? e.message : String(e))
+    //
+    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — REPLAY, o outro lado do mesmo bug:
+    // aqui NÃO existe render_id, então não há como o ledger por render (a trava
+    // de lib/credits/debit.ts) valer. O que substitui a trava é o fato de esta
+    // rota não ser idempotente: cada chamada bem-sucedida tira 1 crédito DE
+    // VERDADE, logo cada uma deve somar 1 no teto — chamar duas vezes cobra duas
+    // vezes, e contar duas vezes é o correto. O único caso de "sem erro e sem
+    // débito" era a corrida que zerou o saldo (0 linhas afetadas), e é
+    // exatamente o que `debited` abaixo passa a exigir.
+    const debitedRow = (updatedRows ?? [])[0]
+    const debited = Boolean(debitedRow)
+    if (debited) {
+      try {
+        await recordReverseTrialDebit(user.id, 1)
+      } catch (e) {
+        console.error('[credits/deduct] trial cap accounting non-fatal:', e instanceof Error ? e.message : String(e))
+      }
+    } else {
+      console.warn('[credits/deduct] update affected 0 rows — balance raced to zero, nothing debited')
     }
 
-    return NextResponse.json({ credits: next, success: true })
+    // Saldo devolvido: o valor REAL da linha quando ela mudou; 0 quando a
+    // corrida zerou o saldo (o `.gt(0)` só falha nesse caso) — devolver
+    // `current - 1` ali seria informar um crédito que não existe.
+    const remaining = typeof debitedRow?.video_credits === 'number'
+      ? debitedRow.video_credits
+      : (debited ? next : 0)
+    return NextResponse.json({ credits: remaining, success: true })
   } catch (err) {
     console.error('[credits/deduct] unexpected:', err)
     return NextResponse.json(

@@ -851,6 +851,20 @@ export async function POST(req: NextRequest) {
     }
 
     const billingReference = `cinematic-${cinematicClaimId(user.id, generationId)}`
+    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — de onde veio o replay do débito.
+    // O débito adiantado (`upfrontDebit`) e a "confirmação idempotente" dentro
+    // de settleDebitAndRespond() são o MESMO `billingReference`. Quando os dois
+    // acontecem na MESMA request (caminho feliz: debita → submete → publica →
+    // settle), o RPC roda duas vezes: a segunda colide na PK de credit_debits,
+    // devolve o saldo e não tira nada. Isso é correto para o dinheiro, mas era
+    // contado duas vezes no teto do trial (20 + 20 = 40 em 0,5s — foi assim que
+    // o 1º trial real morreu com metade dos créditos). A trava definitiva é o
+    // ledger por render em lib/reverseTrial.ts; aqui só se elimina a chamada
+    // redundante: se ESTA request já confirmou o débito, reusa o resultado.
+    // As outras duas entradas de settleDebitAndRespond (claim já existente /
+    // resposta em cache) continuam confirmando de verdade — lá o débito NÃO
+    // rodou nesta request e a confirmação é a única prova que temos.
+    let debitConfirmedThisRequest: { ok: true; balance: number; insufficient: false; error: '' } | null = null
     const ensureCinematicDebit = async (creditCost: number): Promise<{
       ok: boolean
       balance: number
@@ -910,7 +924,9 @@ export async function POST(req: NextRequest) {
       // The job was atomically debited before provider submission. Re-running
       // the same deterministic ledger key here is an idempotent recovery check
       // before exposing request IDs or allowing authenticated polling.
-      const debit = await ensureCinematicDebit(claim.creditCost)
+      // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — pulada quando esta mesma request já
+      // efetuou o débito adiantado (ver o bloco em `ensureCinematicDebit`).
+      const debit = debitConfirmedThisRequest ?? await ensureCinematicDebit(claim.creditCost)
       if (!debit.ok) {
         console.error('[cinematic] deterministic debit confirmation failed:', debit.error)
         return NextResponse.json(
@@ -1185,6 +1201,9 @@ export async function POST(req: NextRequest) {
       )
     }
     if (activeBirthClaim) activeBirthClaim.debitConfirmed = true
+    // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — o débito desta request está feito e
+    // confirmado; settleDebitAndRespond() não precisa repetir o mesmo RPC.
+    debitConfirmedThisRequest = { ok: true, balance: upfrontDebit.balance, insufficient: false, error: '' }
 
     const publishCinematicResponse = async (
       response: Record<string, unknown>,

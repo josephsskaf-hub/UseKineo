@@ -13,6 +13,8 @@
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, releaseCinematicClaim } from '@/lib/cinematic/claim'
+// KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — ver o bloco do estorno em lib/reverseTrial.ts.
+import { recordReverseTrialRefundForRender } from '@/lib/reverseTrial'
 
 function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,6 +48,17 @@ export async function refundRenderCredits(renderId: string): Promise<number> {
     const amount = typeof data === 'number' ? data : 0
     if (amount > 0) {
       console.log(`[refund] auto-refunded ${amount} credits for render=${id}`)
+      // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — o teto segue o dinheiro. O RPC só
+      // devolve amount > 0 para o ÚNICO chamador que reivindicou a linha (UPDATE
+      // condicional em refunded_at), então isto roda uma vez por estorno; e a
+      // própria contabilidade é idempotente pela linha do ledger. Nunca lança e
+      // NUNCA altera o valor devolvido: dinheiro de volta não pode falhar por
+      // causa de contabilidade de trial.
+      try {
+        await recordReverseTrialRefundForRender(id)
+      } catch (e) {
+        console.error(`[refund] trial cap release non-fatal render=${id}:`, e instanceof Error ? e.message : String(e))
+      }
     }
     return amount
   } catch (e) {
