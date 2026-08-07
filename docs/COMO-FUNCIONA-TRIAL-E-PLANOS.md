@@ -98,10 +98,55 @@ compra do produto.
 Promove `active`/`expired` → `downgraded` e **revoga o saldo não gasto do
 grant**. Nunca toca crédito comprado nem conta pagante.
 
-⚠️ PENDÊNCIA ABERTA (07/08 03:00): o cron rodou 200 com uma linha elegível e
-não a processou; `events.trial_downgraded` = 0 em toda a história. Custo hoje é
-zero (não havia saldo a revogar), mas se um trial vencer COM saldo sobrando o
-crédito vira vitalício. Item 1 do próximo sprint.
+✅ PENDÊNCIA FECHADA EM CÓDIGO (07/08 03:40) — `KINEO-DOWNGRADE-CRON-FIX-2026-08-07`
+
+**O que aconteceu.** O cron rodou DUAS vezes com uma linha comprovadamente
+elegível e não processou nenhuma: 01:55:17Z (perfil `84c9ddee` já `expired`,
+40/40 desde 01:31:47Z) e 02:55:07Z (o mesmo perfil, `expired`, 41/40 desde
+02:47:06Z). Nas duas o HTTP foi 200 e o console ficou **vazio** — enquanto o
+`send-post-nudge` das 02:50:42Z, no MESMO deployment e com o MESMO cliente
+service-role, logou normalmente. Ou seja: o problema não era permissão de
+banco, não era a flag, não era `isPayingProfile` e não era coluna faltando no
+SELECT (`trial_credits_used` sempre esteve lá).
+
+**Causa raiz.** Duas linhas, e as duas na rota:
+
+1. `app/api/cron/trial-downgrade/route.ts` — a coorte perguntava
+   `.in('trial_status', ['active','expired'])`, uma SEGUNDA cópia em SQL da
+   lista que `trialNeedsDowngrade()` já tinha em TypeScript. Uma GET **sem
+   nenhum parâmetro variável** (a rota tirou o timestamp do SQL de propósito),
+   portanto byte a byte idêntica em toda rodada — a única query deste projeto
+   que um cache de `fetch` do App Router pode servir repetida. Nas horas em que
+   ainda não existia trial nenhum a resposta era `[]`; as rodadas seguintes
+   herdavam esse `[]`. Todos os outros crons escapam por acidente: as queries
+   deles interpolam `now`, então a chave nunca repete.
+2. `if (ids.length > 0) console.log(...)` (última linha do handler) — a rota era
+   observável **exatamente quando funcionava** e muda **exatamente quando
+   falhava**. Foi por isso que o smoke de 03:10Z fechou com "causa raiz não
+   determinada": não havia o que ler.
+
+**O que mudou.**
+- A coorte não opina mais sobre elegibilidade: o SQL só pergunta "já teve
+  trial?" e exclui os estados terminais — e a lista de terminais vem de
+  `TRIAL_TERMINAL_STATUSES`, **a mesma constante** que `trialNeedsDowngrade`
+  usa. Não existe mais uma segunda cópia da regra para envelhecer sozinha.
+  `trialNeedsDowngrade` é o juiz único (e a releitura dentro de
+  `downgradeExpiredTrial` é o segundo juiz, sobre dado fresco).
+- O cliente do cron passa `cache: 'no-store'` explícito.
+- O cron **sempre** loga e sempre responde com `cohort_rows`, `cohort_count`,
+  `due`, `processed`, `deferred`, `skip_reasons` (agregado do porquê de cada
+  descarte) e `tally`.
+- `cohort_count` é uma contagem independente feita pelo banco com o mesmo
+  predicado. Se ela vier > 0 e a leitura vier vazia em DUAS tentativas, a rota
+  responde **500 `cohort_read_mismatch`** em vez de 200 mudo.
+
+**Teste falsificável (o fundador confere).** Depois do deploy, na virada
+das :55, o perfil `84c9ddee-1404-48d0-b7a6-163c860fad0a` tem que sair de
+`trial_status='expired'` para `'downgraded'`, com `trial_downgraded_at`
+preenchido e um evento `trial_downgraded` em `events`. `video_credits` continua
+0 e `credits_revoked` vem 0 — esse perfil já gastou 41 de 40, não há saldo a
+revogar; o que se prova aqui é o **processamento**, não a revogação. Se às HH:56
+ele ainda estiver `expired`, o log do cron agora diz o motivo em uma linha.
 
 ---
 

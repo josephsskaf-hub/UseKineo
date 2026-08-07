@@ -249,6 +249,20 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     // Fim observável: trial_ends_at quando já passou; senão (teto estourado
     // antes do prazo) o carimbo do cron de downgrade. Sem nenhum dos dois, a
     // linha ainda não tem relógio — espera o próximo run.
+    //
+    // ⚠️ KINEO-DOWNGRADE-CRON-FIX-2026-08-07 — DEPENDÊNCIA REGISTRADA, NÃO É
+    // BUG DESTA ROTA. A COORTE aqui está certa: `.in('trial_status', ['active',
+    // 'expired','downgraded'])` já enxerga quem morreu por TETO com prazo no
+    // futuro. Quem NÃO enxergava era o relógio: para essa pessoa
+    // `trial_ends_at` está no futuro, então o único carimbo possível é
+    // `trial_downgraded_at` — escrito exclusivamente pelo cron de downgrade.
+    // Enquanto aquele cron devolvia 200 sem processar ninguém (rodadas de
+    // 01:55:17Z e 02:55:07Z de 07/08), `endedAt` ficava 0 e o D5/D10 NUNCA saía
+    // — justamente para o lead mais quente do funil, o que gastou os 40
+    // créditos. Corrigido na origem (a coorte do downgrade), e não aqui:
+    // inventar um segundo relógio (ex.: último débito) criaria duas verdades
+    // sobre "quando o trial acabou", que é a classe de erro que este arquivo
+    // inteiro existe para impedir.
     const downAt = parseTime(row.trial_downgraded_at)
     const endedAt = endsMs > 0 && endsMs <= now ? endsMs : downAt > 0 && downAt <= now ? downAt : 0
     if (endedAt === 0) return null

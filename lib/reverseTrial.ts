@@ -261,8 +261,51 @@ export function trialNeedsDowngrade(
   now: number = Date.now(),
 ): boolean {
   const status = profile?.trial_status
-  if (status !== 'active' && status !== 'expired') return false
+  if (typeof status !== 'string') return false
+  if (!(TRIAL_OPEN_STATUSES as readonly string[]).includes(status)) return false
   return trialClockExpired(profile, now) || trialCapReached(profile)
+}
+
+/**
+ * KINEO-DOWNGRADE-CRON-FIX-2026-08-07 — POR QUE A LISTA DE STATUS VIROU
+ * CONSTANTE EXPORTADA.
+ *
+ * Na noite de 07/08 o cron rodou às 01:55:17Z e às 02:55:07Z com UMA linha
+ * comprovadamente elegível (`expired`, 40/40 e depois 41/40, prazo em 14/08 —
+ * morreu por TETO, não por relógio) e devolveu 200 sem processar nada e sem
+ * escrever UMA linha de console. A rota tinha a lista de status escrita DUAS
+ * vezes: aqui, em TypeScript, e de novo no `.in('trial_status', [...])` da
+ * query da coorte. As duas concordavam naquele dia — mas a única razão de elas
+ * concordarem era coincidência, e é exatamente esse par que a lição de 05/08
+ * ("se o gatilho e o cron contam coisas diferentes, o cron está errado")
+ * proíbe. Agora existe UM lugar; a coorte SQL nem cita mais status (ver
+ * app/api/cron/trial-downgrade/route.ts), e esta função é o juiz único.
+ *
+ * ⚠️ NÃO alargue `TRIAL_OPEN_STATUSES` para "qualquer status não-terminal".
+ * Um status gravado por uma versão futura que este código não conhece tem que
+ * cair FORA — revogar crédito por engano é irreversível; adiar não é.
+ */
+export const TRIAL_OPEN_STATUSES = ['active', 'expired'] as const
+
+/** Escritos pelo cron e nunca reprocessados — é o que o torna idempotente. */
+export const TRIAL_TERMINAL_STATUSES = ['downgraded', 'converted'] as const
+
+/**
+ * Por que uma linha do banco NÃO foi processada. Só descritivo — quem decide
+ * continua sendo `trialNeedsDowngrade`. Existe para o cron poder RELATAR o
+ * agregado dos descartes em vez de devolver 200 mudo, que foi o defeito que
+ * deixou a falha de 07/08 sem causa raiz observável por 3 horas.
+ */
+export function trialDowngradeSkipReason(
+  profile: TrialProfileFields | null | undefined,
+  now: number = Date.now(),
+): string | null {
+  if (trialNeedsDowngrade(profile, now)) return null
+  const status = profile?.trial_status
+  if (typeof status !== 'string') return 'status_missing'
+  if ((TRIAL_TERMINAL_STATUSES as readonly string[]).includes(status)) return 'terminal'
+  if (!(TRIAL_OPEN_STATUSES as readonly string[]).includes(status)) return `unknown_status:${status}`
+  return 'still_running'
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

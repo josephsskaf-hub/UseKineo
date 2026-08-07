@@ -3,7 +3,9 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import {
   REVERSE_TRIAL_ENABLED,
   TRIAL_CREDIT_CAP,
+  TRIAL_TERMINAL_STATUSES,
   downgradeExpiredTrial,
+  trialDowngradeSkipReason,
   trialNeedsDowngrade,
   type TrialDowngradeOutcome,
   type TrialProfileFields,
@@ -84,8 +86,21 @@ export async function GET(req: NextRequest) {
     console.error('[trial-downgrade] service-role env missing')
     return NextResponse.json({ error: 'not_configured' }, { status: 500 })
   }
+  // KINEO-DOWNGRADE-CRON-FIX-2026-08-07 — `cache: 'no-store'` EXPLÍCITO.
+  // A query da coorte é a única deste projeto que é BYTE A BYTE IGUAL em toda
+  // rodada (ela não interpola `now` — de propósito, ver o bloco abaixo). Dentro
+  // do App Router quem executa `fetch` é a versão instrumentada do Next, e uma
+  // GET idêntica sem `no-store` é a única forma de um job de hora em hora
+  // continuar lendo a resposta da PRIMEIRA rodada — que, nas horas em que
+  // nenhum trial existia, era `[]`. Todos os outros crons escapam por acidente:
+  // eles carregam um timestamp na URL, então a chave nunca repete. Isto custa
+  // nada e fecha a hipótese; sem isto, ela não seria falsificável de fora.
   const db = createAdminClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: 'no-store' }),
+    },
   })
 
   const now = Date.now()
@@ -107,21 +122,92 @@ export async function GET(req: NextRequest) {
   // o MESMO predicado em memória. Ordenado por vencimento ASC, com nulos
   // primeiro: os mais atrasados entram na frente, e quem ainda não venceu fica
   // no fim da fila (e é descartado pelo filtro).
-  const { data: openTrials, error } = await db
-    .from('profiles')
-    .select('id, trial_status, trial_ends_at, trial_credits_used')
-    .in('trial_status', ['active', 'expired'])
-    .order('trial_ends_at', { ascending: true, nullsFirst: true })
-    .limit(COHORT_PAGE)
+  // KINEO-DOWNGRADE-CRON-FIX-2026-08-07 — A COORTE NÃO OPINA MAIS SOBRE
+  // ELEGIBILIDADE. A versão anterior repetia a lista de status em SQL
+  // (`.in('trial_status', ['active','expired'])`) e de novo em TypeScript
+  // dentro de `trialNeedsDowngrade`. As duas cópias concordavam no dia em que
+  // foram escritas — e essa é justamente a forma como este par de bugs nasce:
+  // na hora em que uma das duas mudar, o cron passa a devolver 200 sem
+  // processar a pessoa certa, exatamente como nas rodadas de 01:55:17Z e
+  // 02:55:07Z de 07/08.
+  //
+  // Agora o SQL faz UMA pergunta que não pode envelhecer: "esta linha já teve
+  // trial alguma vez?" (`trial_status is not null`). Tudo o mais — status
+  // aberto, relógio, teto — é decidido por `trialNeedsDowngrade`, o JUIZ ÚNICO,
+  // e depois RE-decidido pela releitura dentro de `downgradeExpiredTrial`. A
+  // coorte é deliberadamente LARGA: ela pode trazer 'downgraded' e 'converted'
+  // (terminais) e linhas ainda vivas; todas caem no filtro, e o custo é ler uma
+  // coluna a mais de um conjunto que hoje tem 1 linha em 963 perfis. Coorte
+  // larga custa leitura; coorte estreita custa dinheiro que ninguém vê sumir.
+  // A ÚNICA coisa que o SQL ainda exclui são os estados TERMINais — e mesmo
+  // essa lista NÃO é redigitada aqui: ela vem de `TRIAL_TERMINAL_STATUSES`, a
+  // mesma constante que `trialNeedsDowngrade` usa. Não é uma segunda cópia da
+  // regra, é a MESMA fonte. Sem esse corte, a coorte cresceria para sempre
+  // (todo trial que já existiu) e, passados 1000 deles, linhas terminais
+  // antigas empurrariam para fora da página justo quem acabou de vencer.
+  const cohortSelect = 'id, trial_status, trial_ends_at, trial_credits_used'
+  const terminalFilter = `(${TRIAL_TERMINAL_STATUSES.join(',')})`
+  const readCohort = () =>
+    db
+      .from('profiles')
+      .select(cohortSelect)
+      .not('trial_status', 'is', null)
+      .not('trial_status', 'in', terminalFilter)
+      .order('trial_ends_at', { ascending: true, nullsFirst: true })
+      .limit(COHORT_PAGE)
+
+  const { data: openTrials, error } = await readCohort()
 
   if (error) {
     console.error('[trial-downgrade] cohort query failed:', error.message)
     return NextResponse.json({ error: 'cohort_query_failed' }, { status: 500 })
   }
 
-  const open = openTrials ?? []
+  // CONTAGEM INDEPENDENTE, no servidor do banco, com o MESMO predicado da
+  // coorte. Ela existe por um motivo só: em 07/08 a rota devolveu 200 com zero
+  // processados enquanto o banco tinha a linha elegível, e NÃO HAVIA COMO SABER
+  // de fora se a leitura tinha voltado vazia ou se o filtro tinha descartado.
+  // Uma leitura silenciosamente vazia (cache, RLS, chave errada, réplica) passa
+  // a ser um 500 barulhento em vez de um 200 mudo — a diferença entre um bug de
+  // 3 horas sem causa raiz e um alarme.
+  const { count: cohortCount, error: countErr } = await db
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .not('trial_status', 'is', null)
+    .not('trial_status', 'in', terminalFilter)
+
+  let open = openTrials ?? []
+  if (countErr) {
+    console.warn('[trial-downgrade] cohort cross-check failed:', countErr.message)
+  } else if ((cohortCount ?? 0) > 0 && open.length === 0) {
+    // UMA releitura antes de gritar. A contagem roda DEPOIS da leitura, então
+    // um trial ativado nesse intervalo produziria count=1/rows=0 legítimo —
+    // alarme falso de hora em hora corrói a confiança no alarme verdadeiro.
+    const retry = await readCohort()
+    open = retry.data ?? []
+    if (!retry.error && open.length === 0) {
+      console.error(
+        `[trial-downgrade] COHORT READ MISMATCH: count=${cohortCount} rows=0 em 2 leituras — leitura vazia com banco cheio`,
+      )
+      return NextResponse.json(
+        { error: 'cohort_read_mismatch', cohort_count: cohortCount, rows: 0 },
+        { status: 500 },
+      )
+    }
+  }
+
+  // Agregado dos DESCARTES: sem isto, "0 processados" não distingue "não havia
+  // ninguém" de "havia e o filtro comeu".
+  const skipReasons: Record<string, number> = {}
   const due = open
-    .filter((row) => trialNeedsDowngrade(row as TrialProfileFields, now))
+    .filter((row) => {
+      const reason = trialDowngradeSkipReason(row as TrialProfileFields, now)
+      if (reason) {
+        skipReasons[reason] = (skipReasons[reason] ?? 0) + 1
+        return false
+      }
+      return trialNeedsDowngrade(row as TrialProfileFields, now)
+    })
     .map((r) => (r as { id: string }).id)
     .filter(Boolean)
   // O teto é de ESCRITAS, aplicado DEPOIS do filtro. A fila que sobrar entra na
@@ -147,7 +233,12 @@ export async function GET(req: NextRequest) {
     flag_enabled: REVERSE_TRIAL_ENABLED,
     // Todo número vem com o denominador (regra dos 30/07): `processed` sozinho
     // não distingue "não havia ninguém" de "a fila estourou o teto".
-    open_trials: open.length,
+    // `cohort_rows` = linhas lidas (TODAS as que já tiveram trial).
+    // `cohort_count` = a mesma pergunta respondida pelo banco, independente.
+    // Divergência entre as duas é o alarme; igualdade é a prova de leitura sã.
+    cohort_rows: open.length,
+    cohort_count: countErr ? null : (cohortCount ?? 0),
+    open_trials: open.length - (skipReasons.terminal ?? 0),
     due: due.length,
     processed: ids.length,
     deferred: due.length - ids.length,
@@ -155,10 +246,17 @@ export async function GET(req: NextRequest) {
     downgraded,
     converted,
     credits_revoked: creditsRevoked,
+    // Por que cada linha da coorte NÃO foi processada, agregado. Sem PII.
+    skip_reasons: skipReasons,
     tally,
     cap: TRIAL_CREDIT_CAP,
     ran_at: nowIso,
   }
-  if (ids.length > 0) console.log('[trial-downgrade]', JSON.stringify(payload))
+  // SEMPRE loga. A guarda `if (ids.length > 0)` que existia aqui é o motivo de
+  // as rodadas de 01:55:17Z e 02:55:07Z de 07/08 não terem deixado UMA linha de
+  // rastro: o cron era observável exatamente quando funcionava, e mudo
+  // exatamente quando falhava. Um job de dinheiro que roda 24×/dia e não diz o
+  // que viu é um job que ninguém pode auditar. Uma linha por hora é barato.
+  console.log('[trial-downgrade]', JSON.stringify(payload))
   return NextResponse.json(payload)
 }
