@@ -381,6 +381,20 @@ const GENERIC_ERROR = 'Video generation failed. Please try again.'
 // credits chip. With 1 credit = 1 Fast Mode video, this triggers when the
 // user is down to their last handful of videos for the month.
 const LOW_CREDITS_THRESHOLD = 5
+/**
+ * KINEO-TRIAL-OFFER-SCARCITY-2026-08-08 — fração da concessão do trial a partir
+ * da qual o contador "N of M trial credits used" passa a argumentar A FAVOR de
+ * assinar, e por isso volta a ser impresso na caixa de oferta pós-vídeo.
+ * Ver o bloco de `trialOfferHeadline`.
+ *
+ * ⚠️ MORA NO ESCOPO DE MÓDULO DE PROPÓSITO. Ele é lido em DOIS lugares que não
+ * podem se enxergar: o efeito de impressão (que roda ~3.000 linhas acima da
+ * declaração do valor derivado e por isso recalcula a condição inteira, sob
+ * pena de TDZ) e o próprio corpo do componente. Deixar o 0.5 literal nos dois
+ * era divergência garantida no dia em que alguém mudasse um só — e os dois
+ * alimentam campos de evento que só fazem sentido comparados entre si.
+ */
+const TRIAL_COUNTER_URGENCY_FLOOR = 0.5
 
 // Push #048 — Visual History row shape returned by GET /api/videos.
 interface RecentVideo {
@@ -3116,6 +3130,20 @@ export default function GenerateClient({
           trialUiFetchedAtRef.current !== null &&
           trialDoneAtRef.current !== null &&
           trialUiFetchedAtRef.current >= trialDoneAtRef.current,
+        // KINEO-TRIAL-OFFER-SCARCITY-2026-08-08 — campo NOVO, por adição, pelo
+        // mesmo motivo do clique: "disponível" deixou de ser "impresso".
+        // A condição é REESCRITA aqui em vez de ler `trialCounterRendered`
+        // (declarado ~3.000 linhas abaixo) porque o array de dependências deste
+        // efeito é avaliado durante o render — lê-lo seria ReferenceError de TDZ
+        // em runtime, invisível ao tsc. É a mesma razão, e a mesma nota, que já
+        // obriga a elegibilidade acima a ser recalculada.
+        trial_counter_rendered_at_impression:
+          trialUiFetchedAtRef.current !== null &&
+          trialDoneAtRef.current !== null &&
+          trialUiFetchedAtRef.current >= trialDoneAtRef.current &&
+          typeof trialUi?.creditsUsedForDisplay === 'number' &&
+          typeof trialUi?.cap === 'number' && trialUi.cap > 0 &&
+          trialUi.creditsUsedForDisplay >= trialUi.cap * TRIAL_COUNTER_URGENCY_FLOOR,
         trial_cap: trialUi?.cap ?? null,
         ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
         ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -6136,6 +6164,76 @@ export default function GenerateClient({
     return `${days} day${days === 1 ? '' : 's'} left`
   })()
 
+  // ═══ KINEO-TRIAL-OFFER-SCARCITY-2026-08-08 ═══════════════════════════════
+  // O TÍTULO DESTA CAIXA ANUNCIAVA ABUNDÂNCIA NO INSTANTE EM QUE PEDIA DINHEIRO.
+  //
+  // MEDIDO, não suposto. Desde que a caixa subiu (10:20:31Z de hoje) ela tem
+  // 14 impressões de 9 pessoas e ZERO cliques — `trial_post_video_offer_clicked`
+  // não existe uma única vez na tabela `events`. E o botão NÃO está quebrado:
+  // ele emite o evento antes de qualquer await, o `launch()` é o mesmo hook do
+  // resto do funil, e `trial_counter_shown_at_impression` veio `true` em 14 de
+  // 14 — ou seja, a caixa renderizou completa todas as vezes.
+  //
+  // O que ela renderizou é o problema. O título era o contador de crédito, e a
+  // distribuição das 14 impressões diz o que ele imprimiu:
+  //   "1 of 40 trial credits used"  → 5 pessoas   ← a frase MAIS COMUM da caixa
+  //   2,3,4,5 of 40                 → 4 pessoas
+  //   20,21,23,24 of 40             → 5 impressões
+  // Nove das quatorze vezes, a manchete do único lugar onde a empresa pede
+  // cartão para a coorte de trial foi uma barra de progresso em ~5%: "você
+  // gastou 1 dos 40 créditos que ganhou". Debaixo dela, "Creator picks up where
+  // the trial ends" e um botão de assinatura. Pedir cartão embaixo de "você tem
+  // 39 créditos sobrando" não é uma oferta fraca — é um argumento CONTRA a
+  // própria oferta, escrito pela própria oferta. 0 de 14 é o resultado previsto.
+  //
+  // O que é escasso no trial é PRAZO, não crédito: o prazo cai sozinho, o
+  // crédito não. Então o prazo passa a ser a manchete, e o contador só aparece
+  // quando ele argumenta A FAVOR de comprar — metade da concessão ou mais.
+  //
+  // NÃO É supressão de informação: a caixa continua dizendo o que a pessoa
+  // ganha (`Creator picks up where the trial ends`) e o preço continua vindo
+  // inteiro de checkoutPricing. Nenhum número novo, nenhum desconto, nenhuma
+  // promessa que o produto não cumpra — só qual verdade lidera.
+  const trialCounterRendered =
+    trialCreditsCounterLabel !== null &&
+    typeof trialUi?.creditsUsedForDisplay === 'number' &&
+    trialCreditsCap > 0 &&
+    trialUi.creditsUsedForDisplay >= trialCreditsCap * TRIAL_COUNTER_URGENCY_FLOOR
+
+  // ⚠️ REVISÃO ADVERSARIAL, PASSADA 2 — DEFEITO CRIADO PELA PASSADA 1.
+  // `trialOfferTimeLeftLabel` devolve `null` por DOIS motivos incompatíveis:
+  // (a) falta `msLeft` na resposta — não sabemos o prazo; (b) resta menos de
+  // 1 hora — sabemos, e é o prazo mais urgente que existe. A passada 1 promoveu
+  // o prazo a manchete com um `??` para o texto antigo, o que fazia a caixa
+  // dizer "Your Creator trial is running" para quem tem MENOS DE UMA HORA —
+  // trocando o pior momento de urgência pela frase mais calma do arquivo, que é
+  // o defeito original agravado. Os dois nulos precisam ser distinguidos antes
+  // de qualquer manchete.
+  const trialOfferEndsWithinHour = (() => {
+    const msAtFetch = trialUi?.msLeft
+    const fetchedAt = trialUiFetchedAtRef.current
+    if (typeof msAtFetch !== 'number' || !Number.isFinite(msAtFetch) || fetchedAt === null) return false
+    const remaining = msAtFetch - Math.max(0, Date.now() - fetchedAt)
+    return remaining < 3_600_000
+  })()
+
+  // ⚠️ REVISÃO ADVERSARIAL, PASSADA 2 — SEGUNDO DEFEITO CRIADO PELA PASSADA 1.
+  // A passada 1 escreveu a manchete como `Your Creator trial: 2 days left`, e a
+  // sobrancelha IMEDIATAMENTE ACIMA desta linha já diz "Your Creator trial".
+  // A caixa passaria a abrir com o mesmo sujeito duas vezes em duas linhas
+  // coladas. A sobrancelha carrega o sujeito; a manchete carrega só o que mudou.
+  const trialOfferHeadline = trialOfferTimeLeftLabel
+    // "2 days left" / "6 hours left", lido logo abaixo de "Your Creator trial".
+    ? trialOfferTimeLeftLabel.charAt(0).toUpperCase() + trialOfferTimeLeftLabel.slice(1)
+    // Prazo conhecido e curto. Não imprime número (a guarda de 1h existe porque
+    // "0 hours left" lido depois do vencimento é promessa falsa), mas também
+    // não finge calma.
+    : trialOfferEndsWithinHour
+      ? 'Ends within the hour'
+      // Prazo DESCONHECIDO — o único caso em que a frase antiga continua sendo
+      // a frase certa: ela não afirma prazo nenhum.
+      : 'Your trial is running'
+
   const showStep1 = phase === 'idle' || phase === 'analyzing' || phase === 'scripting'
   const showScriptPreview = phase === 'script_preview'
   // Phase 3 — new intermediate phases
@@ -8226,9 +8324,23 @@ export default function GenerateClient({
                         className="font-black tracking-tight"
                         style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.25 }}
                       >
-                        {trialCreditsCounterLabel ?? 'Your Creator trial is running'}
-                        {trialOfferTimeLeftLabel ? ` · ${trialOfferTimeLeftLabel}` : ''}
+                        {/* KINEO-TRIAL-OFFER-SCARCITY-2026-08-08 — o prazo lidera.
+                            Ver o bloco de `trialOfferHeadline`: em 9 das 14
+                            impressões desta caixa a manchete era "1..5 of 40
+                            trial credits used", um argumento contra a compra
+                            escrito pela própria oferta. */}
+                        {trialOfferHeadline}
                       </h3>
+                      {/* O contador só é impresso quando argumenta A FAVOR de
+                          comprar (metade da concessão ou mais). Abaixo disso ele
+                          não some por conveniência: ele deixa de ser manchete e
+                          deixa de ser dito num lugar onde só pode atrapalhar —
+                          o saldo continua visível no resto do produto. */}
+                      {trialCounterRendered && (
+                        <p className="text-xs mt-1.5 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                          {trialCreditsCounterLabel}
+                        </p>
+                      )}
                       {/* REVISÃO ADVERSARIAL, PASSADA 1 — a frase não afirma o
                           que acontece com o SALDO no fim do trial. O cron de
                           downgrade revoga, mas ele já falhou uma vez em produção
@@ -8263,7 +8375,19 @@ export default function GenerateClient({
                           // análise do A/B leria "viu o contador" para quem viu
                           // a caixa sem contador nenhum.
                           trial_credits_used: trialUi?.creditsUsedForDisplay ?? null,
+                          // ⚠️ `trial_counter_shown` NÃO muda de significado.
+                          // Ele sempre quis dizer "o contador fresco estava
+                          // DISPONÍVEL", e continua querendo — mexer nele
+                          // invalidaria a comparação com as 14 impressões que já
+                          // existem. Desde KINEO-TRIAL-OFFER-SCARCITY-2026-08-08
+                          // disponível deixou de ser sinônimo de impresso, então
+                          // o que foi PINTADO na tela entra como campo NOVO, por
+                          // adição. Ler os dois juntos responde a pergunta que
+                          // paga a mudança: quem clica é quem viu o número ou
+                          // quem não viu?
                           trial_counter_shown: trialCreditsCounterLabel !== null,
+                          trial_counter_rendered: trialCounterRendered,
+                          trial_headline: trialOfferHeadline,
                           trial_cap: trialCreditsCap,
                           ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
                           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),

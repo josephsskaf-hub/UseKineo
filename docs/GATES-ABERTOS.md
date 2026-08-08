@@ -1,3 +1,39 @@
+# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **3 COMMITS** (08/08, sprints 12h e 13h)
+
+`origin/main` = **`3204672`** — conferido por `git ls-remote origin refs/heads/main`
+na sprint das 13h de 08/08.
+
+✅ **CORREÇÃO DE ESTADO: o 63 JÁ RODOU e os 8 commits que os resumos das 10h e 11h
+anunciaram como represados ESTÃO EM PRODUÇÃO.** O bloco anterior deste arquivo
+dizia `origin/main = 8dd5f91` e "o dia 08/08 inteiro está represado"; o remoto
+respondeu `3204672`. O documento estava errado, não o repositório — e dois
+relatórios seguidos abriram com um alerta vermelho que já não existia. Fonte da
+verdade daqui em diante: **`git ls-remote`, nunca o doc anterior.**
+
+**Commits represados (3, do mais novo para o mais antigo):**
+
+1. **Commit da sprint 13h** — `KINEO-TRIAL-OFFER-SCARCITY-2026-08-08`: a caixa de
+   oferta pós-vídeo do trial tem **14 impressões e 0 cliques**, e em 9 delas a
+   manchete foi "1..5 of 40 trial credits used" — um argumento contra a compra
+   escrito pela própria oferta. O prazo passa a liderar; o contador só aparece
+   com metade da concessão gasta. Métrica por adição (`trial_counter_rendered`,
+   `trial_headline`); `trial_counter_shown` intocado para não invalidar as 14
+   impressões que já existem. Nenhum preço, desconto ou promessa nova.
+2. **`57e7db6`** — `KINEO-TRIAL-EMAIL-STARVATION` + a 3ª superfície do
+   `KINEO-AEO-FREE-TOOLS`. **A correção estava pronta no disco desde as 11h e
+   nunca tinha sido commitada** (`vercel.json` e a rota do cron estavam ` M`;
+   HEAD seguia com `"30 16 * * *"`). Re-medido antes de subir: **16 dos 23
+   trials estão suprimidos no único tiro diário de 16:30Z**. Enquanto este
+   commit não subir, `trial_emails_log` continua em 0 por construção.
+3. **`ebea323`** — TAAFT relançamento: pacote de decisão para as 18h (só doc).
+
+⚠️ O 63 **não cria commit**: só faz `git push`. Não faz `git add`, não faz
+`git reset`, não escreve em arquivo nenhum — não há como apagar trabalho.
+
+---
+
+## 🗄 HISTÓRICO — bloco anterior (estado incorreto, mantido para rastreio)
+
 # 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **7 COMMITS** (08/08, sprints da madrugada + 10h)
 
 Substitui o **62** e todos os anteriores — **não clicar** em nenhum deles.
@@ -34,7 +70,6 @@ nenhum dos três chegou a rodar.
 (erro proposital → EXITCODE=2 apontando `lib/kineoFacts.ts`; arquivo restaurado
 byte-idêntico, conferido por `cmp`). Não há mais dívida de prova de tipos na fila.
 
----
 
 ## 🗄 HISTÓRICO — GATE `scripts\62-PUSH.bat` — **JÁ RODOU**, 3 commits em produção
 
