@@ -105,6 +105,18 @@ export async function searchVault(
 }
 
 /**
+ * KINEO-BUGHUNT-2026-08-08 — o único adaptador entre o score FRACIONÁRIO do
+ * ranker e a coluna INTEGER de `clip_vault`. Ver a nota longa no insert.
+ * Ausente/NaN/Infinity viram 0 (o mesmo default de antes); o clamp mantém o
+ * valor dentro do int4 mesmo que algum ranker futuro exploda de escala.
+ */
+const VAULT_SCORE_MAX = 2147483647
+function safeVaultScore(raw: number | undefined): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return 0
+  return Math.max(-VAULT_SCORE_MAX, Math.min(VAULT_SCORE_MAX, Math.round(raw)))
+}
+
+/**
  * Copy a stock clip into our storage + index it. FIRE-AND-FORGET: call without
  * await (`void vaultClipAsync(...)`). Dedup by source_url. Never throws.
  */
@@ -166,11 +178,46 @@ export async function vaultClipAsync(input: {
       storage_url: storageUrl,
       query: (input.query ?? '').slice(0, 200),
       tags: (input.tags ?? '').toLowerCase().slice(0, 500),
-      score: input.score ?? 0,
+      // ⚠️ KINEO-BUGHUNT-2026-08-08 — `clip_vault.score` é INTEGER e o ranker
+      // manda FLOAT. Era `input.score ?? 0`, e o Postgres recusava a linha
+      // inteira com `invalid input syntax for type integer: "17.484130859375"`.
+      //
+      // PROVA POR GRUPO DE CONTROLE, medida na tabela (não deduzida):
+      //   · 346 clips de stock, o ÚLTIMO em 24/07 — e param exatamente ali;
+      //   · os 346 têm 15 scores distintos, todos INTEIROS de 8 a 24, escritos
+      //     antes de o re-ranker estético (PUSH #96) tornar o score fracionário;
+      //   · os 6 clips escritos DEPOIS (01/08 a 07/08) são todos ai-hook, o
+      //     único chamador que passa um literal inteiro (`score: 30`,
+      //     lib/fastAiHook.ts). Mesmo código, mesma tabela, mesmo cliente: o que
+      //     muda entre quem entra e quem não entra é só a casa decimal.
+      //
+      // O caminho do stock — o principal — está 100% morto há 15 dias, em
+      // silêncio, num `console.warn` de um fire-and-forget. O custo não é o
+      // registro perdido: é o COFRE QUE PAROU DE CRESCER. Sem vault quente,
+      // `searchVault` erra, toda cena volta para a Pixabay, e a Pixabay em
+      // 500/503 dentro de um orçamento de 120s é a origem medida dos 60 timeouts
+      // de /api/generate-video-fast (17,8% das chamadas da rota) e das 41
+      // pessoas que apertaram gerar e não receberam vídeo NEM aviso.
+      //
+      // Arredondar é seguro por construção: `score` só é usado para ORDENAR
+      // (`.order('score')` e `score + matched` em searchVault) — nunca é
+      // exibido, comparado por igualdade nem somado a dinheiro. As 346 linhas
+      // vivas já são inteiras, então isto não cria uma escala nova.
+      // `Number.isFinite` cobre NaN/Infinity (que voltariam a quebrar o insert)
+      // e o clamp evita estourar o int4. NÃO é migração: mudar a coluna para
+      // numeric exigiria autorização separada e não é necessário para ordenar.
+      score: safeVaultScore(input.score),
       duration_sec: input.durationSec ?? null,
     })
     if (insErr) {
       console.warn('[clip-vault] index insert failed:', insErr.message)
+      // O upload acontece ANTES do insert, então toda falha de índice deixava um
+      // arquivo ÓRFÃO no bucket: ninguém o encontra (a busca só lê a tabela) e
+      // ninguém o apaga. São 15 dias de clips de até 40MB pagos e inalcançáveis.
+      // O `path` é único por chamada (timestamp + aleatório), então este delete
+      // nunca alcança o arquivo de outra invocação — inclusive no caso legítimo
+      // de corrida em que `source_url` (UNIQUE) rejeita a segunda gravação.
+      await admin.storage.from(VAULT_BUCKET).remove([path]).catch(() => {})
       return
     }
     console.log(`[clip-vault] VAULTED ${Math.round(buf.byteLength / 1e6)}MB "${(input.query ?? '').slice(0, 40)}" → ${path}`)
