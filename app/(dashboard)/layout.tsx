@@ -34,6 +34,22 @@ import ActiveRenderPill from '@/components/ActiveRenderPill'
 // pode mostrar (a elegibilidade nunca e decidida no cliente); a flag aqui so
 // evita gastar a pergunta quando a resposta e conhecida.
 import TrialDowngradeModal from '@/components/TrialDowngradeModal'
+// KINEO-TRIAL-ENTRY-VISIBILITY-2026-08-08 — o ANÚNCIO do trial, que nunca
+// existiu. Medido em produção 08/08: das 36 pessoas em trial, as ÚNICAS
+// superfícies que mencionam o trial são um evento de servidor (invisível), a
+// caixa pós-vídeo (13 pessoas, só depois do vídeo pronto) e o e-mail (9
+// pessoas, primeiro disparo hoje 16:30Z). Um reverse trial converte por aversão
+// à perda, e ninguém teme perder o que não sabe que tem — 0 conversões em 36.
+//
+// Montado ANTES de `{children}`, em FLUXO NORMAL (sem `position: fixed` e sem
+// `z-index`): o rodapé já tem 5 camadas disputando espaço e a revisão do painel
+// de download de 07/08 pagou pelo defeito de um resgate que enterrava o CTA de
+// compra. Um anúncio não pode cobrir a oferta.
+//
+// A flag é lida AQUI, no servidor, pelo mesmo motivo do TrialDowngradeModal:
+// com KINEO_REVERSE_TRIAL_ENABLED OFF o componente não chega ao browser e o
+// custo desta feature é exatamente ZERO — nenhum fetch a mais por navegação.
+import TrialActiveBanner from '@/components/TrialActiveBanner'
 // KINEO-TRIAL-ABUSE-PMP-2026-08-07 - O PRIMEIRO MINUTO PAGO. Tres SKUs do
 // checkout (topup, bulk e o piloto do Autopilot) redirecionam DIRETO para
 // /generate?success=true e /autopilot?success=true, e um grep por `success` em
@@ -128,6 +144,11 @@ export default async function DashboardLayout({
       generationsUsed={videosCount}
       isLoggedIn={!!user}
     >
+      {/* KINEO-TRIAL-ENTRY-VISIBILITY-2026-08-08 — ANTES de `{children}` de
+          propósito: em fluxo normal, no topo do `<main>`, é o único lugar do app
+          que toda tela autenticada atravessa e que não cobre nada. `userKey`
+          vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
+      {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
       {children}
       <InstallAppBanner />
       {user && <ReferralPromoBanner />}
