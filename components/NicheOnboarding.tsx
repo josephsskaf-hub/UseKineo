@@ -182,7 +182,19 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
             fontWeight: 900,
           }}
         >
-          Create this free watermarked video →
+          {/* KINEO-PRELAUNCH-PATH-2026-08-08 — este e o PRIMEIRO botao que uma
+              conta nova toca. Com a flag ON a conta esta em trial Creator e o
+              MP4 sai LIMPO (GenerateClient afirma isso duas vezes na tela
+              seguinte), entao "free watermarked" era falso justamente para a
+              coorte que a empresa acabou de pagar para trazer. A versao ON NAO
+              troca uma promessa por outra: ela apenas para de afirmar a marca
+              d'agua, porque a mesma tela tambem e vista por quem ja saiu do
+              trial (ai o Fast gratis realmente carimba). Flag OFF devolve a
+              frase atual byte a byte. */}
+          <FreeTierCopy
+            legacy="Create this free watermarked video →"
+            on="Create this video free →"
+          />
         </button>
         {/* PUSH #96 — JOB 2(a)/(e): the only escape hatch was a ~17px tall
             underlined link in #86868b on #131316. It was both under the 44px

@@ -112,7 +112,18 @@ export default function DashboardShell({
         <CreditRebaseBanner />
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
         <AvatarLaunchBanner />
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">{children}</main>
+        {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra
+            que ele existe para compensar. MobileNav e fixed bottom:0 com uma
+            linha de 62px MAIS paddingBottom: max(env(safe-area-inset-bottom),
+            6px) — ou seja 68px no pior caso sem notch e ~96px num iPhone com
+            home indicator. Os ultimos ~32px de TODA tela do dashboard ficavam
+            permanentemente embaixo da nav no celular, inclusive a borda de
+            baixo do botao de download e a ultima linha do card de oferta.
+            pb-28 (112px) e classe padrao do Tailwind (nao e valor arbitrario,
+            entao nao depende do JIT gerar nada novo) e cobre 62+34+6=102px com
+            folga. `md:pb-0` inalterado: no desktop a MobileNav e md:hidden e
+            nada muda. */}
+        <main className="flex-1 overflow-y-auto pb-28 md:pb-0">{children}</main>
         <MobileNav />
       </div>
     </div>

@@ -99,7 +99,18 @@ export default function InstallAppBanner() {
         position: 'fixed',
         left: 12,
         right: 12,
-        bottom: 12,
+        // KINEO-PRELAUNCH-PATH-2026-08-08 — bottom:12 com zIndex 70 cobria a
+        // MobileNav (zIndex 50, MESMO contexto de empilhamento: os dois moram
+        // dentro do wrapper `relative z-10` do DashboardShell). A nav ocupa de
+        // 0 a 62+max(safe-area,6px) e a fileira tocavel comeca ~34px acima do
+        // chao num iPhone — este banner tapava de 34 a 76px, ou seja a maior
+        // parte de Generator / Viral Now / My Videos / Pricing. 62px da nav +
+        // 12px de respiro + a safe area. No desktop a MobileNav e md:hidden,
+        // entao o banner passa a flutuar ~74px acima do rodape em vez de 12px
+        // — efeito puramente cosmetico num card dispensavel, e o unico preco
+        // de nao usar valor arbitrario de Tailwind (que poderia nao ser gerado
+        // pelo JIT e zerar o offset).
+        bottom: 'calc(74px + env(safe-area-inset-bottom))',
         zIndex: 70,
         display: 'flex',
         alignItems: 'center',

@@ -105,7 +105,12 @@ export default function EnablePushBanner() {
         position: 'fixed',
         left: 12,
         right: 12,
-        bottom: 76, // sits above the install banner when both are visible
+        // KINEO-PRELAUNCH-PATH-2026-08-08 — bottom:76 empilhava em cima de um
+        // InstallAppBanner que estava em bottom:12; agora o install banner
+        // subiu 62px para sair de cima da MobileNav, entao este sobe junto ou
+        // os dois se sobrepoem. 74 (novo piso do install) + ~64 de altura dele
+        // + 12 de respiro = 150, mais a mesma safe area.
+        bottom: 'calc(150px + env(safe-area-inset-bottom))', // sits above the install banner when both are visible
         zIndex: 69,
         display: 'flex',
         alignItems: 'center',

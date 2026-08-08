@@ -657,7 +657,13 @@ export default function KineoLanding({ initialUser }: Props) {
               <tr><td>Finds and matches footage</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">your upload</td><td className="no" data-label="HeyGen">avatar only</td><td className="no" data-label="Submagic">your upload</td></tr>
               <tr><td>No per-minute caps</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">credits</td><td className="no" data-label="HeyGen">credits</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td>Reusable AI host — same voice &amp; style every episode</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
-              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">3 / day</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              {/* KINEO-PRELAUNCH-PATH-2026-08-08 — esta celula era o UNICO literal
+                  de free tier da tabela que nunca passou por ft(). Com a flag ON
+                  o produto entrega trial Creator (40 creditos, export limpo) e a
+                  home ainda anunciava "3 / day" — uma promessa MENOR do que a real
+                  e, pior, uma que o servidor recusa (o free ON e 1 Fast/mes).
+                  Flag OFF devolve "3 / day" byte a byte. */}
+              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', '40-credit trial')}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
               <tr><td>Starting price</td><td className="us" data-label="Kineo">$4.90 first month</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
@@ -793,8 +799,14 @@ export default function KineoLanding({ initialUser }: Props) {
         <div className="wrap">
           <div className="sec-h"><h2>Questions, answered.</h2></div>
           <div className="faq">
-            <div className="qa"><h3>Is the video really mine to post?</h3><p>Yes. Never-paid free users can download, share and post the watermarked MP4. Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
-            <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. Free downloads carry a watermark; paid plans unlock the clean MP4.</p></div>
+            {/* KINEO-PRELAUNCH-PATH-2026-08-08 — as duas respostas abaixo eram
+                literais fixos e contradiziam a resposta "Is there a watermark?"
+                logo abaixo (essa ja e ft()). Com a flag ON o mesmo bloco de FAQ
+                dizia, em tres paragrafos seguidos, que o download gratis TEM e
+                NAO TEM marca d'agua. Flag OFF devolve as frases atuais byte a
+                byte; o texto fora do ft() nao mudou. */}
+            <div className="qa"><h3>Is the video really mine to post?</h3><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Trial exports come out clean — download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
+            <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads come out clean; after the trial the free Fast video carries a watermark, and paid plans always export clean.')}</p></div>
             <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get a Creator trial with clean exports; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.</p></div>
             <div className="qa"><h3>Can I use my own script?</h3><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></div>
             <div className="qa"><h3>What if a generation fails?</h3><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></div>

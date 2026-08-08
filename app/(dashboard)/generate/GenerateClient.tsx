@@ -6499,9 +6499,13 @@ export default function GenerateClient({
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
-            alignItems: 'center',
+            // KINEO-PRELAUNCH-PATH-2026-08-08 — mesmo defeito do UrgencyModal:
+            // center sem overflow corta os dois extremos do card no celular e
+            // nao ha como rolar ate o botao. flex-start + overflowY:auto.
+            alignItems: 'flex-start',
             justifyContent: 'center',
             padding: 16,
+            overflowY: 'auto',
           }}
         >
           <div
@@ -11422,9 +11426,17 @@ function UrgencyModal({
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
-        alignItems: 'center',
+        // KINEO-PRELAUNCH-PATH-2026-08-08 — era alignItems:'center' SEM overflow.
+        // Um flex item mais alto que o container centralizado tem o topo E o
+        // rodape cortados, e sem overflow nao ha scroll: no Safari do iPhone
+        // (com a barra de URL a area util fica ~660px de 844) o CTA deste modal
+        // ficava inalcancavel. NicheOnboarding e TrialDowngradeModal ja usam
+        // flex-start + overflowY:auto exatamente por isso — este e o mesmo
+        // padrao. No desktop o modal continua no topo com o mesmo padding.
+        alignItems: 'flex-start',
         justifyContent: 'center',
         padding: '20px',
+        overflowY: 'auto',
       }}
     >
       <style jsx>{`

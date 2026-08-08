@@ -105,7 +105,13 @@ const faqSchema = {
       name: 'Is the video really mine to post?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes. Never-paid free users can download, share and post the watermarked MP4. Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.',
+        // KINEO-PRELAUNCH-PATH-2026-08-08 — o comentario no topo deste bloco
+        // manda espelhar o #faq da KineoLanding VERBATIM, e a resposta visivel
+        // acabou de virar ft(). Sem esta troca o JSON-LD serviria ao Google a
+        // frase antiga enquanto a pagina mostra a nova — exatamente o "spam
+        // signal" que o comentario adverte. Mesmos dois argumentos, na mesma
+        // ordem: com a flag OFF os dois textos voltam byte a byte ao de hoje.
+        text: `${ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Trial exports come out clean — download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.`,
       },
     },
     {
@@ -113,7 +119,7 @@ const faqSchema = {
       name: 'Do I need any editing skills?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. Free downloads carry a watermark; paid plans unlock the clean MP4.',
+        text: `None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. ${ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads come out clean; after the trial the free Fast video carries a watermark, and paid plans always export clean.')}`,
       },
     },
     {
