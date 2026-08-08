@@ -321,6 +321,71 @@ const SEARCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000
 const SEARCH_CACHE_MAX = 300
 const searchCache = new Map<string, { at: number; hits: PixabayVideo[] }>()
 
+// KINEO-CAPACITY-2026-08-08 — Pixabay é o MESMO buraco que a OpenAI tinha em
+// 05/08, e ainda está aberto. O `fetch` abaixo não tinha timeout nenhum, então
+// um Pixabay lento segurava a lambda até a Vercel matá-la: 61 timeouts de 120s
+// medidos em /api/generate-video-fast (20 pessoas) e 134 `fast_dispatch_not_ok`
+// em 41 pessoas, o pico deles exatamente na janela 05/08 15:18–16:47Z em que o
+// Pixabay devolveu 500/503/504 em série. Quando o gateway mata a lambda o nosso
+// catch NUNCA roda — nem o fallback de stockLibrary, nem uma mensagem honesta.
+// A pessoa fica 2 minutos olhando um spinner e recebe um erro genérico.
+//
+// Três travas, todas atrás de env var e todas fail-open (na dúvida, devolve []
+// como sempre devolveu — nenhuma delas pode derrubar uma geração que hoje passa):
+//
+//  1. TIMEOUT por request. Tem de caber MUITO abaixo do orçamento da rota (120s)
+//     para o erro ser capturável enquanto ainda somos donos da resposta.
+//  2. UMA retentativa só em falha TRANSIENTE (rede, 429, 5xx). 429/5xx é o sinal
+//     que mais merece retry e era o único tratado como "zero resultados".
+//     Pior caso limitado: 2 × timeout + backoff.
+//  3. DISJUNTOR de instância. Sem ele o pior caso seria 9 cenas × 12,3s = 110s,
+//     ou seja o timeout de 120s de volta pela porta dos fundos. Depois de N
+//     falhas transientes CONSECUTIVAS a instância para de chamar o Pixabay por
+//     um tempo e cai direto no fallback — a pessoa recebe um vídeo com b-roll
+//     genérico em segundos em vez de nada em dois minutos.
+function envInt(name: string, fallback: number, min: number, max: number): number {
+  const raw = Number.parseInt((process.env[name] ?? '').trim(), 10)
+  if (!Number.isFinite(raw)) return fallback
+  return Math.min(max, Math.max(min, raw))
+}
+
+/** Orçamento de UMA chamada ao Pixabay. Resposta saudável é <1s. */
+const PIXABAY_TIMEOUT_MS = envInt('PIXABAY_TIMEOUT_MS', 6_000, 1_000, 30_000)
+/** Total de tentativas (1 = sem retentativa). Pior caso = timeout × tentativas. */
+const PIXABAY_MAX_ATTEMPTS = envInt('PIXABAY_MAX_ATTEMPTS', 2, 1, 3)
+const PIXABAY_RETRY_BACKOFF_MS = envInt('PIXABAY_RETRY_BACKOFF_MS', 300, 0, 5_000)
+/** Falhas transientes consecutivas que abrem o disjuntor da instância. */
+const PIXABAY_BREAKER_THRESHOLD = envInt('PIXABAY_BREAKER_THRESHOLD', 4, 1, 100)
+/** Quanto tempo o disjuntor fica aberto antes de deixar UMA sonda passar. */
+const PIXABAY_BREAKER_COOLDOWN_MS = envInt('PIXABAY_BREAKER_COOLDOWN_MS', 60_000, 1_000, 600_000)
+
+let consecutiveTransientFailures = 0
+let breakerOpenUntil = 0
+
+/** Contadores da instância — leitura barata para log/diagnóstico. Nunca lançam. */
+const pixabayHealth = { ok: 0, transient: 0, hard: 0, timeout: 0, shortCircuited: 0 }
+
+/**
+ * Fotografia do estado do Pixabay NESTA instância de lambda. Serve para o
+ * caminho de geração registrar, numa linha só, que o vídeo saiu degradado —
+ * hoje a degradação é 100% silenciosa (o `[]` de um 503 é indistinguível do
+ * `[]` de "não achei nada"). Não zera os contadores: é diagnóstico, não fila.
+ */
+export function readPixabayHealth(): Readonly<typeof pixabayHealth> & { breakerOpen: boolean } {
+  return { ...pixabayHealth, breakerOpen: Date.now() < breakerOpenUntil }
+}
+
+function noteTransientFailure(): void {
+  consecutiveTransientFailures += 1
+  if (consecutiveTransientFailures >= PIXABAY_BREAKER_THRESHOLD && Date.now() >= breakerOpenUntil) {
+    breakerOpenUntil = Date.now() + PIXABAY_BREAKER_COOLDOWN_MS
+    console.error(
+      `[pixabay] BREAKER OPEN — ${consecutiveTransientFailures} falhas transientes consecutivas; ` +
+        `pulando o Pixabay por ${PIXABAY_BREAKER_COOLDOWN_MS}ms e caindo no fallback de stock`,
+    )
+  }
+}
+
 async function searchPixabay(
   query: string,
   perPage = 5,
@@ -367,18 +432,74 @@ async function searchPixabay(
   // master clears min_height=1200 while a 1920x1080 landscape does not.
   if (verticalPreferred) url += `&min_height=1200`
 
-  let res: Response
-  try {
-    res = await fetch(url, { cache: 'no-store' })
-  } catch (err) {
-    console.error('[pixabay] fetch threw:', err instanceof Error ? err.message : String(err))
+  // KINEO-CAPACITY-2026-08-08 — disjuntor da instância. O cache acima já foi
+  // consultado, então isto só pula a REDE, nunca um resultado que já temos.
+  if (Date.now() < breakerOpenUntil) {
+    pixabayHealth.shortCircuited += 1
     return []
   }
 
-  if (!res.ok) {
-    console.error(`[pixabay] non-ok status=${res.status} for query="${query}"`)
+  let res: Response | null = null
+  for (let attempt = 1; attempt <= PIXABAY_MAX_ATTEMPTS; attempt += 1) {
+    const isLastAttempt = attempt === PIXABAY_MAX_ATTEMPTS
+    try {
+      res = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(PIXABAY_TIMEOUT_MS) })
+    } catch (err) {
+      // Rede caiu ou o timeout abortou. Ambos são transientes por definição.
+      const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')
+      if (timedOut) pixabayHealth.timeout += 1
+      pixabayHealth.transient += 1
+      console.error(
+        `[pixabay] fetch ${timedOut ? `timed out after ${PIXABAY_TIMEOUT_MS}ms` : 'threw'} ` +
+          `(tentativa ${attempt}/${PIXABAY_MAX_ATTEMPTS}) query="${query}": ` +
+          (err instanceof Error ? err.message : String(err)),
+      )
+      res = null
+      if (isLastAttempt) {
+        noteTransientFailure()
+        return []
+      }
+      if (PIXABAY_RETRY_BACKOFF_MS > 0) {
+        await new Promise((resolve) => setTimeout(resolve, PIXABAY_RETRY_BACKOFF_MS))
+      }
+      continue
+    }
+
+    if (res.ok) break
+
+    // 429 e 5xx são transientes — merecem retentativa. 4xx que não seja 429
+    // (chave inválida, query malformada) é permanente: repetir só queima tempo
+    // do orçamento da rota, e NÃO conta para o disjuntor, porque o Pixabay está
+    // de pé e a culpa é nossa.
+    const transient = res.status === 429 || res.status >= 500
+    console.error(
+      `[pixabay] non-ok status=${res.status} (${transient ? 'transiente' : 'permanente'}, ` +
+        `tentativa ${attempt}/${PIXABAY_MAX_ATTEMPTS}) for query="${query}"`,
+    )
+    if (!transient) {
+      pixabayHealth.hard += 1
+      consecutiveTransientFailures = 0
+      return []
+    }
+    pixabayHealth.transient += 1
+    res = null
+    if (isLastAttempt) {
+      noteTransientFailure()
+      return []
+    }
+    if (PIXABAY_RETRY_BACKOFF_MS > 0) {
+      await new Promise((resolve) => setTimeout(resolve, PIXABAY_RETRY_BACKOFF_MS))
+    }
+  }
+
+  // Defensivo: o laço só sai com `res.ok`, mas o tipo não sabe disso.
+  if (!res || !res.ok) {
+    noteTransientFailure()
     return []
   }
+
+  pixabayHealth.ok += 1
+  consecutiveTransientFailures = 0
 
   let data: { hits?: PixabayVideo[] }
   try {

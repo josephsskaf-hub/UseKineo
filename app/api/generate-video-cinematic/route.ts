@@ -6,6 +6,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
+// KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
+import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
@@ -1178,6 +1180,22 @@ export async function POST(req: NextRequest) {
           balance: Math.max(0, currentBalance - heldByOtherJobs),
         },
         { status: 402 },
+      )
+    }
+
+    // KINEO-CAPACITY-2026-08-08 — DISJUNTOR GLOBAL, o último portão antes do
+    // dinheiro sair. Fica DEPOIS da checagem de saldo e ANTES do débito de
+    // propósito: quem bate no teto não é cobrado, não perde crédito e não
+    // precisa de estorno — o caminho mais barato de todos. `releaseBirthClaim`
+    // devolve o claim para a próxima tentativa não colidir consigo mesma.
+    // Fail-open por dentro: só nega quando a contagem foi lida COM SUCESSO e
+    // estourou. Ver a conta que justifica o número em lib/aiRenderCircuitBreaker.
+    const aiCap = await checkAiRenderDailyCap(cinematicAdmin)
+    if (!aiCap.allowed) {
+      await releaseBirthClaim('global_daily_ai_cap')
+      return NextResponse.json(
+        { error: AI_RENDER_CAP_MESSAGE, code: 'global_daily_ai_cap' },
+        { status: 503 },
       )
     }
 
