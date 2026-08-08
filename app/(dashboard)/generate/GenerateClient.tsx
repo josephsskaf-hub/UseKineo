@@ -3072,6 +3072,14 @@ export default function GenerateClient({
       trackEvent('post_video_offer_viewed', {
         source: 'result_export_choice',
         offer: 'starter_intro_month',
+        // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — esta caixa nunca soube nada
+        // sobre trial, e a partir de agora ela divide a tela com a caixa de
+        // assinatura na fase 'ending'. Sem este campo não há como responder se
+        // a oferta avulsa de $4.90 rouba o clique da assinatura no instante de
+        // maior intenção — que é a única pergunta capaz de justificar suprimir
+        // uma das duas depois. Campo por ADIÇÃO: as 210 impressões que já
+        // existem continuam comparáveis (ausente ≠ 'active').
+        trial_phase_at_impression: trialUi?.phase ?? null,
         ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
         ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
       })
@@ -3079,7 +3087,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, wmUnlocking, intentCampaign, postVideoCurrency])
+  }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, trialUi, wmUnlocking, intentCampaign, postVideoCurrency])
 
   // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — carimba a chegada em `done`. É o
   // relógio contra o qual a leitura do trial é julgada fresca ou velha (ver
@@ -3102,20 +3110,74 @@ export default function GenerateClient({
   // é instrumento cego, e a regra de morte desta caixa (7 dias) corre sobre o
   // CLIQUE, nunca sobre a view.
   useEffect(() => {
-    const eligible =
-      phase === 'done' && Boolean(finalVideoUrl) && trialActive === true &&
-      trialUi?.phase === 'active' && !hasPaid && !isStarter && !isCreator && !isStudio &&
+    // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — 'ending' entra junto de 'active'.
+    // A condição continua REESCRITA aqui (TDZ, ver nota acima) e por isso é o
+    // par exato de `trialPostVideoPhase`: divergir as duas faria a caixa
+    // aparecer sem ser medida, ou ser medida sem aparecer. 'ending' NÃO pode
+    // exigir `trialActive` — `isTrialActive` já é false, e é essa queda que
+    // define a fase.
+    const trialOfferPhaseForImpression: 'active' | 'ending' | null =
+      phase === 'done' && Boolean(finalVideoUrl) &&
+      !hasPaid && !isStarter && !isCreator && !isStudio &&
       typeof trialUi?.cap === 'number' && trialUi.cap > 0
+        ? (trialActive === true && trialUi?.phase === 'active'
+            ? 'active'
+            // Espelho EXATO da guarda de perda de `trialPostVideoPhase` — ver a
+            // nota lá. Divergir aqui faria a caixa aparecer sem ser contada.
+            : (trialUi?.phase === 'ending' &&
+               typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0)
+              ? 'ending'
+              : null)
+        : null
+    const eligible = trialOfferPhaseForImpression !== null
     const element = trialPostVideoOfferRef.current
     const offerKey = publicVideoId || finalVideoUrl
-    if (!eligible || !element || !offerKey || trialPostVideoOfferTrackedKeyRef.current === offerKey) return
+    // ⚠️ PASSADA 2 — a chave de deduplicação passou a incluir a FASE. Antes era
+    // uma impressão por vídeo, "primeiro que chegar leva": a caixa é elegível
+    // em 'active' e em 'ending', o refetch do /api/credits resolve ~100ms DEPOIS
+    // do observer (o campo do contador aqui embaixo já admite essa corrida), e
+    // no caso que motivou a mudança — trial que morre DENTRO da request — a
+    // impressão ficaria carimbada 'active' num vídeo cujo clique sai 'ending'.
+    // A coorte 'ending' nasceria com 0 impressões e ≥1 clique, e a razão que
+    // decide se esta caixa fica de pé seria uma divisão por zero. Com a fase na
+    // chave, a virada re-emite: no máximo 2 impressões por vídeo, uma por fase,
+    // cada uma com a fase que ela realmente mediu.
+    const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}`
+    if (!eligible || !element || !offerKey || trialPostVideoOfferTrackedKeyRef.current === offerImpressionKey) return
 
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
-      trialPostVideoOfferTrackedKeyRef.current = offerKey
+      trialPostVideoOfferTrackedKeyRef.current = offerImpressionKey
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
         offer: 'creator_monthly',
+        // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — a caixa passou a ter DUAS
+        // manchetes possíveis para duas situações opostas ("2 days left" vs
+        // "All 40 trial credits used"). Sem este campo as 28 impressões que já
+        // existem e as novas viram uma média sem sentido, e a pergunta que paga
+        // a mudança — quem compra, quem ainda tem trial ou quem acabou de
+        // perdê-lo? — fica sem resposta.
+        //
+        // ⚠️ PASSADA 2 — O NOME CARREGA A RESSALVA, como já fazem os dois
+        // campos do contador logo abaixo. Este payload sai UMA vez por vídeo
+        // (guarda de `offerKey`), e a caixa é elegível nas duas fases: quando o
+        // trial morre DENTRO da request — o único caso medido, e a razão de ser
+        // desta mudança — o observer pode disparar antes do refetch do
+        // /api/credits resolver, gravando 'active' num vídeo que segue em
+        // 'ending'. Chamar o campo de `trial_phase` faria a análise ler a fase
+        // do CLIQUE contra a fase de um instante anterior. A chave de
+        // deduplicação abaixo passou a incluir a fase, então a virada re-emite
+        // e a coorte 'ending' deixa de nascer com denominador zero.
+        trial_phase_at_impression: trialOfferPhaseForImpression,
+        // PASSADA 2 — par do campo homônimo do clique, que tinha ficado só de
+        // um lado. Sem ele o corte teto-vs-relógio tem numerador e não tem
+        // denominador. Reescrito inline (TDZ).
+        trial_ended_by_cap_at_impression:
+          trialOfferPhaseForImpression === 'ending' &&
+          typeof trialUi?.creditsUsedForDisplay === 'number' &&
+          typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0 &&
+          typeof trialUi?.cap === 'number' && trialUi.cap > 0 &&
+          trialUi.creditsUsedForDisplay >= Math.min(trialUi.creditsGranted, trialUi.cap),
         trial_credits_used: trialUi?.creditsUsedForDisplay ?? null,
         // REVISÃO ADVERSARIAL, PASSADA 2 — DEFEITO CRIADO PELA PASSADA 1. O
         // contador só aparece com prova de frescor, e essa prova pode chegar
@@ -3137,12 +3199,30 @@ export default function GenerateClient({
         // efeito é avaliado durante o render — lê-lo seria ReferenceError de TDZ
         // em runtime, invisível ao tsc. É a mesma razão, e a mesma nota, que já
         // obriga a elegibilidade acima a ser recalculada.
+        // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1 — DEFEITO GRAVE MEU. O irmão deste
+        // campo no CLIQUE (`trial_counter_rendered`) ganhou `!trialEndedByCap`
+        // e este não tinha ganhado: para a coorte exata que a mudança existe
+        // para medir — trial morto por teto — a impressão diria `true`, o
+        // clique diria `false` e a tela não pintaria nada. A razão
+        // clique/impressão segmentada pelo contador, que é a pergunta que paga
+        // esta caixa, nasceria quebrada. Reescrito inline (TDZ, ver acima).
         trial_counter_rendered_at_impression:
           trialUiFetchedAtRef.current !== null &&
           trialDoneAtRef.current !== null &&
           trialUiFetchedAtRef.current >= trialDoneAtRef.current &&
           typeof trialUi?.creditsUsedForDisplay === 'number' &&
           typeof trialUi?.cap === 'number' && trialUi.cap > 0 &&
+          // ⚠️ PASSADA 2 — DEFEITO CRIADO PELA CORREÇÃO #4 DA PASSADA 1: o
+          // espelho tinha vindo SEM o conjunto de fase, enquanto o original
+          // (`trialEndedByCap`) exige `phase === 'ending'`. Com `granted` menor
+          // que `cap` e trial ainda ATIVO, a tela pintaria "20 of 40", o clique
+          // diria `true` e a impressão diria `false` — o defeito #4 recriado ao
+          // contrário, pela correção do #4. Hoje é inalcançável só porque
+          // TRIAL_GRANT_CREDITS === TRIAL_CREDIT_CAP, que é exatamente a
+          // coincidência da qual a correção #5 declarou não querer depender.
+          !(trialOfferPhaseForImpression === 'ending' &&
+            typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0 &&
+            trialUi.creditsUsedForDisplay >= Math.min(trialUi.creditsGranted, trialUi.cap)) &&
           trialUi.creditsUsedForDisplay >= trialUi.cap * TRIAL_COUNTER_URGENCY_FLOOR,
         trial_cap: trialUi?.cap ?? null,
         ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
@@ -6048,6 +6128,39 @@ export default function GenerateClient({
   // uma conta em trial já sai limpo, então oferecer "pague para tirar a marca
   // d'água" seria cobrar por algo que a pessoa já tem — o pior desfecho
   // possível desta tela.
+  // ⚠️ KINEO-TRIAL-DEATH-OFFER-2026-08-08 — DECISÃO DE NÃO FAZER, e ela custou
+  // a melhor parte da ideia. A passada 1 desta mudança suprimia esta caixa em
+  // 'ending', para que a morte do trial não ligasse a oferta de $4.90 no mesmo
+  // instante em que liga a de assinatura. A revisão adversarial mostrou o preço
+  // escondido: suprimi-la LIGA o ramo `{!showPostVideoExportChoice && …}`, que
+  // é OUTRO botão de download, e cujo rótulo em `!trialActive` promete
+  // "Download with Kineo watermark". Se o arquivo composto na request que MATOU
+  // o trial sai limpo ou marcado depende de `hasPaidEntitlement` dentro de
+  // app/api/compose — e marca d'água é proibição dura desta sessão, não posso
+  // nem verificar mexendo nem arriscar rotular errado o arquivo que a pessoa
+  // acabou de esperar. Trocar a UI de DOWNLOAD para consertar uma UI de OFERTA
+  // é apostar a entrega para ganhar o upsell, e a entrega vem primeiro
+  // (KINEO-DELIVER-FIRST; a sprint de hoje mediu 33% de falha de download no
+  // mobile).
+  //
+  // ⚠️ PASSADA 2 — CORREÇÃO DO PRÓPRIO COMENTÁRIO. A passada 1 escreveu aqui
+  // que as duas caixas ficam "em posições diferentes da tela, ambas
+  // verdadeiras", e o revisor mostrou que a frase é FALSA no código: os dois
+  // cards são ADJACENTES e visualmente GÊMEOS (mesmo gradiente, mesma borda
+  // rgba(41,151,255,.5), mesmo boxShadow, mesmo rounded-2xl px-5 py-5), e o
+  // único elemento entre eles — o <a> de download — é suprimido justamente por
+  // `showPostVideoExportChoice`. Em 'ending' a pessoa vê dois cartões azuis
+  // iguais, empilhados, cada um com um botão de checkout de tier DIFERENTE
+  // ($4.90 avulso e Creator mensal), nenhum mencionando o outro. Isso é um
+  // custo real que este commit ACEITA de olhos abertos, não uma coisa que ele
+  // resolve: entre entregar o arquivo com rótulo certo e ter uma oferta só na
+  // tela, a entrega ganha. Fica registrado como o próximo defeito a matar.
+  //
+  // E o instrumento para matá-lo entra AGORA, senão a decisão volta a ser
+  // intuição: `trial_phase` passa a viajar também no evento da caixa de $4.90,
+  // que antes não tinha campo nenhum de trial. Com ele dá para perguntar se a
+  // caixa avulsa rouba clique da assinatura em 'ending' — e aí a supressão
+  // volta com número.
   const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
     !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
   // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
@@ -6120,16 +6233,93 @@ export default function GenerateClient({
     trialUiFetchedAtRef.current >= trialDoneAtRef.current
       ? `${trialUi.creditsUsedForDisplay} of ${trialCreditsCap} trial credits used`
       : null
-  const showTrialPostVideoOffer =
+  // ═══ KINEO-TRIAL-DEATH-OFFER-2026-08-08 ═══════════════════════════════════
+  // A CAIXA SUMIA EXATAMENTE NO SEGUNDO EM QUE ELA VALIA MAIS.
+  //
+  // MEDIDO, e é o primeiro e único caso da história (conta 2762a44e, MX, hoje):
+  // trial ativado 18:43:05Z com 40 créditos, variante 3d. A pessoa queimou os
+  // 40 em 1h15 e o teto foi atingido DENTRO da request do vídeo, 19:58:59Z
+  // (`trial_expired`, reason `credit_cap`). O vídeo terminou de compor às
+  // 20:03:22Z e ela FICOU na tela. Às 20:04:22Z a tela imprimiu
+  // `post_video_offer_viewed` — a caixa genérica de $4.90 — e NÃO
+  // `trial_post_video_offer_viewed`.
+  //
+  // Não foi acidente de medição: o `creditsChanged` do fim do render refaz o
+  // /api/credits, então o cliente APRENDEU que o trial tinha morrido e reagiu
+  // REBAIXANDO a oferta. A caixa que pede assinatura exigia `phase === 'active'`
+  // e caiu; a caixa genérica exige `!trialActive` e subiu no lugar. O produto
+  // detecta o instante de maior intenção de compra que ele tem — a pessoa
+  // acabou de ver um vídeo que gostou e acabou de descobrir que não tem mais
+  // crédito — e responde trocando a oferta forte pela fraca (210 impressões de
+  // 131 pessoas na história, 1 clique em 10 dias).
+  //
+  // E a outra tela desse momento não cobre o buraco. `TrialDowngradeModal`
+  // pergunta ao servidor UMA vez, na montagem (deps `[dismissKey, shownKey]`),
+  // e o trial morre NO MEIO da sessão, sem remontagem — então o modal só pode
+  // aparecer na navegação SEGUINTE. Placar: `trial_downgrade_modal_shown` tem
+  // 1 evento em toda a história (07/08 02:58Z, teste do fundador) contra 41
+  // trials. A correção de 07/08 tirou o atraso de até 60 min do cron; o que ela
+  // não podia tirar é o cliente RE-PERGUNTAR, e é isso que esta caixa resolve:
+  // ela já vive numa tela que refaz a leitura sozinha.
+  //
+  // ESCOPO — só 'ending'. 'downgraded' fica FORA de propósito: depois do cron a
+  // pessoa só volta por navegação nova, e aí o modal monta e faz o pedido.
+  // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
+  // tela, que é o defeito que esta mudança está consertando, invertido.
+  const trialPostVideoPhase: 'active' | 'ending' | null =
     phase === 'done' &&
     Boolean(finalVideoUrl) &&
-    trialActive === true &&
-    trialUi?.phase === 'active' &&
     hasPaid !== true &&
     isStarter !== true &&
     isCreator !== true &&
     isStudio !== true &&
     trialCreditsCap > 0
+      // 'active' preserva a guarda DUPLA original (entitlement do servidor E
+      // fase). 'ending' não pode exigir `trialActive`: `isTrialActive` já é
+      // false, e é justamente essa queda que define a fase.
+      ? (trialActive === true && trialUi?.phase === 'active'
+          ? 'active'
+          // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1, DEFEITO GRAVE MEU:
+          // `creditsGranted > 0`. Diferente de 'active', o ramo 'ending' faz
+          // AFIRMAÇÃO DE PERDA ("has ended", "All N trial credits used"), e
+          // lib/reverseTrial centraliza esta guarda justamente para isso — o
+          // comentário de lá diz, com todas as letras, "só fala de PERDA quem
+          // comprovadamente RECEBEU", e é por ela que `showDowngradeModal` já
+          // não abre para linha sem concessão. Gravar `trial_credits_granted`
+          // na ativação foi mudança POSTERIOR ao início do trial, então linha
+          // legada com 0 existe de verdade. Sem esta guarda, uma conta que
+          // nunca recebeu crédito leria que gastou os 40.
+          : (trialUi?.phase === 'ending' &&
+             typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0)
+            ? 'ending'
+            : null)
+      : null
+  const showTrialPostVideoOffer = trialPostVideoPhase !== null
+  // POR QUE o trial acabou. Só tem sentido em 'ending'.
+  //
+  // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1 — a comparação é contra o CONCEDIDO, não
+  // contra a constante. `creditsUsedForDisplay` sai clampado a `creditsGranted`
+  // (lib/reverseTrial), enquanto `trialCreditsCap` é `TRIAL_CREDIT_CAP`. Hoje os
+  // dois valem 40 e a distinção não aparece; no dia em que a constante mudar, ou
+  // numa linha antiga com concessão diferente, `usado >= cap` viraria
+  // INALCANÇÁVEL e uma morte por teto imprimiria "Your trial period is over"
+  // com dias de prazo sobrando — exatamente a mentira que a manchete abaixo
+  // existe para impedir. Comparar com o que a pessoa REALMENTE recebeu é a
+  // pergunta certa: "acabou o que era seu?".
+  //
+  // ⚠️ PASSADA 2 — `Math.min(granted, cap)`. Comparar só com o grant erra do
+  // outro lado quando o grant é MAIOR que o teto (conta antiga se o cap for
+  // rebaixado): a morte por teto acontece em `used === cap`, e `cap < granted`
+  // faria a condição nunca fechar — imprimindo "Your trial period is over" para
+  // quem morreu de teto com prazo sobrando, que é a mesma mentira do #5 vista
+  // pelo espelho. O limite real de gasto é o MENOR dos dois, sempre.
+  const trialEndedByCap =
+    trialPostVideoPhase === 'ending' &&
+    typeof trialUi?.creditsUsedForDisplay === 'number' &&
+    typeof trialUi?.creditsGranted === 'number' &&
+    trialUi.creditsGranted > 0 &&
+    trialCreditsCap > 0 &&
+    trialUi.creditsUsedForDisplay >= Math.min(trialUi.creditsGranted, trialCreditsCap)
   // O preço é SEMPRE lib/checkoutPricing, pela moeda que o /api/geo resolveu no
   // monte. O checkout re-resolve país → moeda → região no servidor e nunca
   // aceita nenhum dos dois do navegador: isto aqui é só RÓTULO.
@@ -6194,8 +6384,17 @@ export default function GenerateClient({
   // ganha (`Creator picks up where the trial ends`) e o preço continua vindo
   // inteiro de checkoutPricing. Nenhum número novo, nenhum desconto, nenhuma
   // promessa que o produto não cumpra — só qual verdade lidera.
+  // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — `!trialEndedByCap`: num trial morto
+  // por teto a manchete JÁ é "All 40 trial credits used", e a linha do contador
+  // logo abaixo diria "40 of 40 trial credits used". A mesma frase duas vezes,
+  // coladas. O campo não muda de significado — `trial_counter_rendered` sempre
+  // quis dizer "foi PINTADO na tela", e continua querendo; o que mudou é que
+  // neste caso ele não é pintado porque seria repetição, não porque foi
+  // suprimido. Por isso a condição mora aqui, na fonte única do booleano, e não
+  // no JSX: assim o evento não pode discordar da tela.
   const trialCounterRendered =
     trialCreditsCounterLabel !== null &&
+    !trialEndedByCap &&
     typeof trialUi?.creditsUsedForDisplay === 'number' &&
     trialCreditsCap > 0 &&
     trialUi.creditsUsedForDisplay >= trialCreditsCap * TRIAL_COUNTER_URGENCY_FLOOR
@@ -6222,7 +6421,24 @@ export default function GenerateClient({
   // sobrancelha IMEDIATAMENTE ACIMA desta linha já diz "Your Creator trial".
   // A caixa passaria a abrir com o mesmo sujeito duas vezes em duas linhas
   // coladas. A sobrancelha carrega o sujeito; a manchete carrega só o que mudou.
-  const trialOfferHeadline = trialOfferTimeLeftLabel
+  // ⚠️ KINEO-TRIAL-DEATH-OFFER-2026-08-08 — A FASE VENCE O RELÓGIO, e esta
+  // ordem é o ponto mais delicado da mudança. Num trial morto por TETO o
+  // `msLeft` continua POSITIVO: a conta 2762a44e tinha ~2,7 DIAS de prazo
+  // sobrando quando ficou sem crédito nenhum. Deixar a manchete de prazo passar
+  // primeiro imprimiria "2 days left" para quem não tem mais nada — a mentira
+  // mais cara que esta caixa poderia contar, porque ela destrói a urgência
+  // exatamente no único instante em que a urgência é verdadeira.
+  const trialOfferHeadline = trialPostVideoPhase === 'ending'
+    ? (trialEndedByCap
+        // O número impresso é o CONCEDIDO, o mesmo contra o qual
+        // `trialEndedByCap` foi decidido — imprimir o cap aqui enquanto a
+        // decisão usa o grant faria a frase "All 40 …" aparecer para quem
+        // recebeu 20. Nenhum número redigitado: sai do payload do servidor.
+        ? `All ${Math.min(trialUi?.creditsGranted ?? trialCreditsCap, trialCreditsCap)} trial credits used`
+        // Morte por RELÓGIO. Não afirma teto (pode ter sobrado crédito, e o
+        // cron é quem revoga) nem promete prazo.
+        : 'Your trial period is over')
+    : trialOfferTimeLeftLabel
     // "2 days left" / "6 hours left", lido logo abaixo de "Your Creator trial".
     ? trialOfferTimeLeftLabel.charAt(0).toUpperCase() + trialOfferTimeLeftLabel.slice(1)
     // Prazo conhecido e curto. Não imprime número (a guarda de 1h existe porque
@@ -8318,7 +8534,11 @@ export default function GenerateClient({
                         className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
                         style={{ color: '#2997ff' }}
                       >
-                        Your Creator trial
+                        {/* KINEO-TRIAL-DEATH-OFFER-2026-08-08 — a sobrancelha
+                            carrega o SUJEITO e o tempo verbal; a manchete
+                            carrega só o que mudou. Em 'ending' o sujeito deixa
+                            de ser um trial que corre. */}
+                        {trialPostVideoPhase === 'ending' ? 'Your Creator trial has ended' : 'Your Creator trial'}
                       </div>
                       <h3
                         className="font-black tracking-tight"
@@ -8349,7 +8569,15 @@ export default function GenerateClient({
                           com incidente aberto. "Picks up where the trial ends" é
                           verdadeiro nos dois desfechos. */}
                       <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                        Creator picks up where the trial ends — {TIER_CREDITS.basic} credits every month.
+                        {/* KINEO-TRIAL-DEATH-OFFER-2026-08-08 — "picks up where
+                            the trial ends" está no futuro e fica errado para
+                            quem já acabou. A promessa NÃO muda de conteúdo em
+                            nenhuma das duas: continua sem prometer motor algum
+                            (Kling/Veo/Hollywood seguem "🔒 Studio") e continua
+                            interpolando TIER_CREDITS, nunca um número novo. */}
+                        {trialPostVideoPhase === 'ending'
+                          ? `Creator picks up from here — ${TIER_CREDITS.basic} credits every month.`
+                          : `Creator picks up where the trial ends — ${TIER_CREDITS.basic} credits every month.`}
                       </p>
                       {trialOfferPriceNote && (
                         <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
@@ -8389,6 +8617,13 @@ export default function GenerateClient({
                           trial_counter_rendered: trialCounterRendered,
                           trial_headline: trialOfferHeadline,
                           trial_cap: trialCreditsCap,
+                          // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — par do campo
+                          // homônimo da impressão. A pergunta que decide se esta
+                          // mudança fica de pé é comparar CLIQUE POR IMPRESSÃO
+                          // entre 'active' e 'ending'; sem o campo nos dois
+                          // lados a razão não existe.
+                          trial_phase: trialPostVideoPhase,
+                          trial_ended_by_cap: trialEndedByCap,
                           ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
                           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
                         })
@@ -8421,7 +8656,21 @@ export default function GenerateClient({
                       className="text-center mt-2"
                       style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45 }}
                     >
-                      Your trial keeps working until it ends · secure checkout · cancel anytime
+                      {/* ⚠️ KINEO-TRIAL-DEATH-OFFER-2026-08-08 — REVISÃO
+                          ADVERSARIAL, PASSADA 1, BLOQUEADOR. Esta linha era
+                          incondicional e a passada 1 da minha própria mudança
+                          reescreveu sobrancelha, manchete e promessa sem tocar
+                          nela. O card passaria a ler, de cima para baixo:
+                          "Your Creator trial has ended" → "All 40 trial credits
+                          used" → preço → "Your trial keeps working until it
+                          ends". Contradição literal em quatro linhas, e na
+                          frase de segurança, que é a última coisa lida antes de
+                          entregar o cartão. Em 'ending' o `isTrialActive` já é
+                          false: o trial NÃO segue funcionando, e é essa queda
+                          que define a fase. */}
+                      {trialPostVideoPhase === 'ending'
+                        ? 'Secure checkout · cancel anytime'
+                        : 'Your trial keeps working until it ends · secure checkout · cancel anytime'}
                     </p>
                   </div>
                 )}
