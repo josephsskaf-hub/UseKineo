@@ -1022,3 +1022,37 @@ INVERTIDO — o hook de IA é perk exclusivo do free tier. Uma conta em trial é
 regressão (o mesmo signup sem trial também ganharia) e não custa dinheiro, mas é a
 única superfície onde "trial = Creator" não vale. Registrado para não virar
 surpresa no reteste da flag.
+
+---
+
+## 🔴 08/08 14:5xZ — REPO TRAVADO POR DOIS CADEADOS ÓRFÃOS + INDEX ENVENENADO
+
+**Um processo git morreu às 10:23 e deixou dois locks de 0 bytes:**
+`.git/index.lock` e `.git/refs/heads/main.lock`. O sandbox **não consegue removê-los**
+(`Operation not permitted`), então nenhuma sprint agendada consegue `git add`, `git reset`
+nem `git update-ref` até que sejam apagados **do Windows**.
+
+**O perigo real não é o cadeado — é o que ficou STAGED no index:**
+
+| arquivo | o que está staged |
+|---|---|
+| `docs/SPRINT-2026-08-08.md` | **DELEÇÃO** |
+| `scripts/63-PUSH.bat` | **DELEÇÃO** |
+| `docs/ENGAGEMENT-LOG.md` | reversão de 27 linhas |
+| `docs/GATES-ABERTOS.md` | reversão de 40 linhas |
+
+**216 deleções esperando o próximo `git commit` normal.** Quem commitar sem `git reset`
+antes apaga o doc do dia e o script de push.
+
+**O commit da sprint 11h existe e está íntegro** — foi montado com `GIT_INDEX_FILE`
+alternativo a partir de `read-tree HEAD`, então NÃO passou pelo index envenenado e carrega
+exatamente 7 arquivos, zero deleções:
+
+```
+85c2ac4bd66c3c93cfc941d7e933faff6025f1c4
+```
+
+**Como destravar (1 clique):** selecionar `scripts\64-DESTRAVA-E-PUSH.bat` no Explorador e
+dar Return. Ele apaga os dois cadeados, move `main` para `85c2ac4`, roda `git reset` (sem
+`--hard`, não toca em arquivo do disco) e faz o push dos 9 commits. Não cria commit, não faz
+`git add`, não apaga arquivo do projeto.
