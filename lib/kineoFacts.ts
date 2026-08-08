@@ -533,6 +533,78 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
  * Payload para /api/facts
  * ------------------------------------------------------------------ */
 
+export interface FreeToolFact {
+  name: string
+  url: string
+  /** O que sai da ferramenta. Nunca 'video' — ver o comentário em freeTools. */
+  output: 'text'
+  requiresAccount: false
+  requiresCard: false
+  requiresEmail: false
+  /**
+   * Como o limite é aplicado. Por IP, não por usuário — não existe usuário.
+   * `null` = sem limite nenhum, o que só é honesto para ferramenta que roda
+   * 100% no browser e não chama servidor (ex.: a calculadora).
+   */
+  rateLimit: string | null
+  what: string
+}
+
+/**
+ * Fonte única das duas ferramentas públicas. /llms.txt as descreve em prosa a
+ * partir dos MESMOS caminhos; se um dia uma delas passar a exigir conta, este
+ * objeto é o lugar onde a mentira aparece primeiro.
+ */
+export const FREE_TOOL_FACTS: FreeToolFact[] = [
+  {
+    name: 'Free YouTube Shorts script generator',
+    url: `${BASE}/free-script-generator`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: 'per IP, per day',
+    what: 'Type a topic and get a full structured Shorts script (hook, beats, payoff) rendered in the page.',
+  },
+  {
+    name: 'Free viral hook generator',
+    url: `${BASE}/free-hook-generator`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: 'per IP, per day',
+    what: 'Type a topic and get opening hooks for a Short. Text only — it does not render a video.',
+  },
+  {
+    name: 'Free viral score for a Short idea',
+    url: `${BASE}/viral-score`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: 'per IP, per day',
+    what: 'Paste a Short idea and get a 0-100 read on hook, retention, trend and shareability, plus specific tips to raise it.',
+  },
+  {
+    name: 'YouTube Shorts money calculator',
+    url: `${BASE}/shorts-money-calculator`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    // Não chama servidor nenhum: a conta inteira roda no browser. Declarar um
+    // limite aqui seria inventar uma restrição que o código não aplica.
+    rateLimit: null,
+    // ⚠️ REVISÃO ADVERSARIAL, PASSADA 2 — a 1ª versão deste texto terminava em
+    // "runs entirely in the browser", e a linha do /llms.txt acrescenta essa
+    // MESMA frase quando rateLimit é null. O texto renderizado dizia a coisa
+    // duas vezes seguidas. O campo `what` descreve o QUE a ferramenta faz; de
+    // onde ela roda é assunto do campo de limite.
+    what: 'Estimate Shorts earnings from views and niche RPM.',
+  },
+]
+
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   /**
@@ -554,6 +626,22 @@ export interface KineoFactsPayload {
   offerEffectiveSinceHuman?: string
   currency: 'USD'
   freeTier: typeof FREE_TIER
+  /**
+   * KINEO-AEO-FREE-TOOLS-2026-08-08 — as ÚNICAS superfícies da Kineo que
+   * entregam resultado sem conta, sem cartão e sem e-mail.
+   *
+   * Por que isto entra nos FATOS e não só na prosa do /llms.txt: a lição do
+   * KINEO-AEO-FACTS-WINDOW (10h de hoje) é que um LLM prefere campo
+   * ESTRUTURADO a prosa. Publicar as duas ferramentas só no texto e não aqui
+   * repetiria o mesmo erro ao contrário — e as três superfícies (/llms.txt,
+   * /api/facts, /facts) discordariam entre si, que é exatamente o defeito que
+   * a mesma sprint consertou.
+   *
+   * NÃO é gateado por flag: as duas ferramentas existem com a flag ligada ou
+   * desligada. Nenhuma delas produz vídeo — `output` diz 'text' de propósito,
+   * para que um agente não as recomende como gerador de vídeo grátis.
+   */
+  freeTools: FreeToolFact[]
   plans: PlanFact[]
   engines: EngineFact[]
   competitors: CompetitorFact[]
@@ -586,6 +674,7 @@ export function getKineoFacts(): KineoFactsPayload {
       : {}),
     currency: 'USD',
     freeTier: FREE_TIER,
+    freeTools: FREE_TOOL_FACTS,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
     competitors: COMPETITOR_FACTS,
