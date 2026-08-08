@@ -1,3 +1,36 @@
+# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **7 COMMITS** (08/08, sprints 12h→16h)
+
+`origin/main` = **`3204672`** — conferido por `git ls-remote origin refs/heads/main`
+na sprint das 16h de 08/08 (mesmo valor das 13h: **o 63 ainda NÃO rodou**).
+`HEAD` local = **`fa86339`**.
+
+⚠️ A regra que vale é *tudo o que estiver à frente de `3204672`* — a contagem
+envelhece a cada sprint, o SHA não.
+
+**Novos nesta sprint (16h), além dos 5 já listados no bloco abaixo:**
+
+6. **`fa86339`** — `KINEO-TRIAL-ENTRY-VISIBILITY-2026-08-08`: **o trial nunca foi
+   dito a ninguém.** Das 36 pessoas em trial, as únicas superfícies que mencionam
+   o trial são um evento de SERVIDOR (invisível), a caixa pós-vídeo (13 pessoas,
+   só desde hoje 10:20Z e só depois do vídeo pronto) e o e-mail (9 pessoas,
+   primeiro disparo hoje 16:30Z). Ninguém teme perder o que não sabe que tem.
+   Entrega: `components/TrialActiveBanner.tsx` + mount no layout do dashboard,
+   gateado pela MESMA flag, em fluxo normal (sem `z-index`, para não cobrir o CTA
+   de compra). 2 arquivos, +401 linhas, 0 remoções.
+7. **doc da sprint 16h** — este bloco + `SPRINT-2026-08-08.md` +
+   `VIDEO-2026-08-08-A858.md` + a correção da regra do `.lock` no `PROMPT-DIARIO`.
+
+🔒 **O que está represado muda número:** a manchete nova da caixa de oferta
+(`1ae2960`), a cadência dos e-mails do trial (`57e7db6`) e o banner (`fa86339`)
+são as **três** correções que atacam o 0-de-36, e nenhuma está no ar.
+
+⚠️ O 63 **não cria commit**: só faz `git push`. Não faz `git add`, não faz
+`git reset`, não escreve em arquivo nenhum — não há como apagar trabalho.
+
+---
+
+## 🗄 HISTÓRICO — bloco da sprint 13h (5 commits, ainda válido para os itens 1–5)
+
 # 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **5 COMMITS** (08/08, sprints 12h e 13h)
 
 `origin/main` = **`3204672`** — conferido por `git ls-remote origin refs/heads/main`

@@ -29,6 +29,20 @@
 > de reflog. **Quem vir `git commit` falhando deve rodar `git cat-file -t <sha>`
 > ANTES de recriar o trabalho.**
 >
+> **2b. CORREÇÃO (sprint 16h de 08/08) — a checagem do `.lock` está ERRADA e
+> teria impedido um commit legítimo.** A regra 2 acima manda conferir que
+> `refs/heads/main.lock` contém **exatamente** o SHA a gravar. Na sprint das 16h
+> o `main.lock` era **lixo órfão**: estava lá desde 13:31 com `1ae2960`, um
+> commit da sprint das 13h **já superado** (o `main` foi gravado às 13:38 com
+> `c817bb0`). Seguir a regra ao pé da letra faria recusar a gravação de um
+> commit correto — ou, pior numa sessão apressada, "ajustar" o ref para o SHA
+> velho e **apagar a sprint anterior**.
+> **A checagem certa é por PARENTESCO:** `git cat-file commit <novo> | grep
+> ^parent` tem de ser **igual ao valor atual de `refs/heads/main`**, e
+> `git merge-base --is-ancestor <ref-atual> <novo>` tem de passar. Só então
+> gravar. O conteúdo do `.lock` **não é evidência de nada** — ele sobrevive a
+> tentativas antigas porque o OneDrive recusa o `unlink`.
+
 > **3. `tsc --noEmit` do projeto inteiro não termina neste shell (>25 min).**
 > Alternativa que dá prova real em segundos: um `tsconfig` que **estende** o do
 > projeto e escopa o `include` em `next-env.d.ts` + o arquivo alterado.
