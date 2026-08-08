@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
-import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
 
 type ResumeOffer = {
   available: true
@@ -47,6 +47,11 @@ export default function CheckoutResumeBanner() {
   const [offer, setOffer] = useState<ResumeOffer | null>(null)
   const viewedKey = useRef<string | null>(null)
   const checkout = useCheckoutLaunch('checkout_resume_banner')
+  // KINEO-CHECKOUT-REDIRECT-2026-08-08 — os dois cards ocupam o MESMO canto.
+  // Enquanto o CTA de resgate (checkout travado agora, sessão viva) está no ar,
+  // este banner ("seu checkout está salvo") sai da frente: são dois pedidos
+  // concorrentes no instante mais sensível da jornada, e o urgente é o outro.
+  const stalled = useStalledCheckout()
 
   useEffect(() => {
     if (shouldHide(pathname)) {
@@ -98,7 +103,7 @@ export default function CheckoutResumeBanner() {
     return () => controller.abort()
   }, [pathname])
 
-  if (!offer || shouldHide(pathname)) return null
+  if (!offer || shouldHide(pathname) || stalled) return null
 
   const firstCharge = formatMoney(offer.firstChargeAmount, offer.currency)
   const renewal = formatMoney(offer.renewalAmount, offer.currency)

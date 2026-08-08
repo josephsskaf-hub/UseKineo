@@ -342,10 +342,39 @@ async function ensureIntroCoupon(
         amount_off: amountOff,
         currency,
         duration: 'once',
-        name: `Kineo — first month intro (${tier}/${currency.toUpperCase()}/${region})`,
+        // KINEO-CHECKOUT-REDIRECT-2026-08-08 — `Coupon.name` DA STRIPE TEM
+        // LIMITE DE 40 CARACTERES, e o nome antigo passava dele:
+        //   "Kineo — first month intro (basic/USD/value)"  = 43
+        //   "Kineo — first month intro (basic/USD/standard)" = 46
+        // O log de produção de 07/08 19:27:09, no request que perdeu a venda:
+        //   [stripe/checkout] intro coupon unavailable — full price:
+        //   KINEO_INTRO_BASIC_USD_VALUE  Invalid string: Kine...lue);
+        //   must be at most 40 characters   (param: 'name')
+        // Como o `region` só entrou no id/nome em KINEO-REGIONAL-PRICING
+        // (04/08), os cupons da região padrão JÁ EXISTIAM na conta Stripe e o
+        // `retrieve` acima os encontrava — o estouro só atingia cupons AINDA
+        // NÃO CRIADOS, ou seja, todos os `_VALUE`. Resultado: desde 04/08 todo
+        // comprador da região `value` (África, Índia, Brasil, LatAm) via
+        // "First month $9.90" no botão e recebia um checkout de $19.90, sem um
+        // único erro visível. O usuário e934461f… é exatamente esse caso:
+        // displayed_intro_price_minor 990, checkout_started intro_applied
+        // false. Promessa de preço quebrada no pixel mais sensível do funil.
+        // Nome curto (pior caso "Kineo intro starter/USD/standard" = 32) e
+        // clamp defensivo para que a próxima mudança de rótulo não repita isto.
+        name: `Kineo intro ${tier}/${currency.toUpperCase()}/${region}`.slice(0, 40),
       })
       return id
     } catch (createErr) {
+      // Fail-safe de segunda ordem: `name` é PURAMENTE cosmético (aparece no
+      // dashboard, nunca na fatura), então ele jamais pode ser o motivo de um
+      // desconto prometido não ser aplicado. Se a criação falhar por causa
+      // dele, cria o mesmo cupom sem nome antes de desistir.
+      try {
+        await stripe.coupons.create({ id, amount_off: amountOff, currency, duration: 'once' })
+        return id
+      } catch {
+        /* cai no recheck de corrida abaixo */
+      }
       // Corrida entre requests: outro request pode ter criado entre o retrieve
       // e o create. Confere de novo antes de desistir.
       try {

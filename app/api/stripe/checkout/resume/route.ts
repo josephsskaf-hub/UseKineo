@@ -443,6 +443,20 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   return noStore(NextResponse.json({
     available: true,
     resumeUrl: '/api/stripe/checkout/resume?go=1',
+    // KINEO-CHECKOUT-REDIRECT-2026-08-08 — a URL hospedada pela Stripe, crua,
+    // para quem precisa de uma ÂNCORA e não de mais um redirect nosso.
+    // O incidente de 07/08 foi exatamente o salto final navegador→Stripe
+    // travando; o resgate não pode gastar um salto de servidor antes disso.
+    //
+    // Por que isto não vaza nada: `retrieveOwnedSubscriptionSession` já recusou
+    // qualquer sessão cujo metadata.supabase_user_id não seja ESTE usuário, e
+    // `?go=1` manda este mesmo usuário para esta mesma URL num 3xx. Devolvê-la
+    // em JSON para o dono autenticado não concede nada novo.
+    //
+    // `internal_retry` fica de fora de propósito: aquele destino é uma rota
+    // NOSSA que CUNHA sessão e precisa da validação de servidor (preço privado
+    // KINEO5, elegibilidade do intro). Ele continua só como `resumeUrl`.
+    directUrl: resolution.destinationKind === 'internal_retry' ? null : resolution.destination,
     destinationKind: resolution.destinationKind,
     planName: resolution.planName,
     tier: resolution.tier,
