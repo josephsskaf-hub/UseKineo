@@ -966,7 +966,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
 
         {/* Final CTA */}
         <section style={{ marginTop: 44, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>Make a faceless Fast video free</h2>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, 'Make a faceless Fast video free', OFFER.copy.ctaHeading)}</h2>
           <p style={{ color: '#86868b', margin: '8px 0 18px', fontSize: '0.95rem' }}>One idea in, a ready-to-post watermarked video out. No editing, no card.</p>
           <OrganicCtaLink
             href={signupUrl}

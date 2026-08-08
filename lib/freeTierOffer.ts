@@ -70,6 +70,18 @@ export interface FreeTierCopy {
   limitHitEmailIntroHtml: string
   /** Linha "espere a cota voltar" dos e-mails de cap. */
   limitResetLine: string
+  /**
+   * KINEO-SEO-CTA-TRIAL-2026-08-07 — rótulo do BOTÃO primário das páginas de
+   * aquisição. Entrou aqui porque a troca atômica cobriu meta, chip e FAQ e
+   * deixou de fora justamente a string com maior taxa de leitura da página: o
+   * botão. A dobra prometia "Free Creator trial — 40 credits" e o botão logo
+   * abaixo vendia o free tier ANTIGO ("Make a Fast video free"), que com a flag
+   * ON nem existe mais (1 Fast/mês). Quem lê só o botão — a maioria — recebia
+   * a oferta fraca.
+   */
+  ctaPrimary: string
+  /** Título do bloco de CTA (h2) das mesmas páginas. Mesmo motivo. */
+  ctaHeading: string
 }
 
 export interface FreeTierOffer {
@@ -106,6 +118,9 @@ const OFF_COPY: FreeTierCopy = {
     "You've used up <strong>today's free Fast previews</strong> — the cap is 3 every 24 hours.",
   limitResetLine:
     'Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.',
+  // Literais atuais das paginas, byte a byte (diff zero com a flag OFF).
+  ctaPrimary: 'Make a Fast video free →',
+  ctaHeading: 'Make a faceless Fast video free',
 }
 
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
@@ -134,6 +149,12 @@ const ON_COPY: FreeTierCopy = {
     "You've used <strong>this month's free Fast video</strong> — the free plan includes 1 per month.",
   limitResetLine:
     'Or wait — your free Fast video comes back next month, and your videos stay in your library either way.',
+  // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
+  // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
+  // numero de tracao. "40 Creator credits" e verificavel: e o grant exato.
+  ctaPrimary: 'Start free — 40 Creator credits →',
+  // Primeira oracao da headline aprovada pelo fundador, verbatim.
+  ctaHeading: 'Start free — your first video is on us',
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000

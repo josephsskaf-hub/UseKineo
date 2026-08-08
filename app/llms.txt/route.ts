@@ -131,9 +131,15 @@ composition.
 You keep ownership of every video you generate. Kineo was formerly named
 ${PRODUCT.formerName}.
 
-## Free tier
+${/* KINEO-AEO-TRIAL-2026-08-07 — o TÍTULO também é copy, e num arquivo lido por
+     máquina ele é o rótulo que o motor de resposta usa para decidir o que a
+     seção responde. "Free tier" convida a citar o limite residual; a pergunta
+     que traz cadastro é "o que eu ganho ao criar uma conta". Gateado pela mesma
+     flag: com ela OFF o arquivo inteiro é byte a byte o de hoje. */ ''}${
+  FREE_TIER.videosPer24h === 3 ? '## Free tier' : '## What a new account gets for free'
+}
 
-- ${FREE_TIER.videosPer24h === 3 ? `Up to 3 ${FREE_TIER.engine} videos every 24 hours, on a rolling window.` : `${FREE_TIER.allowance}, on a rolling window.`} This limit is enforced server-side.
+- ${FREE_TIER.videosPer24h === 3 ? `Up to 3 ${FREE_TIER.engine} videos every 24 hours, on a rolling window. This limit is enforced server-side.` : `${FREE_TIER.allowance}. Both limits are enforced server-side.`}
 - No credit card required.
 - ${PRODUCT.watermarkPolicy} Free renders can still be watched, downloaded and shared.
 - Only the ${FREE_TIER.engine} engine is available for free. The generative engines below require a paid plan.

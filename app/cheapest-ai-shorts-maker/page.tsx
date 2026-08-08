@@ -85,7 +85,7 @@ export default function CheapestAiShortsMakerPage() {
           Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. {ft(OFFER, 'Try up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} The calculator below shows the local first-month and renewal price. No camera, no editing, no timeline.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Make a Fast video free →</OrganicCtaLink>
+          <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>

@@ -237,14 +237,36 @@ export const ENGINE_FACTS: EngineFact[] = [
 // contra material de marketing.
 const FREE_OFFER = getFreeTierOffer()
 
+// KINEO-AEO-TRIAL-2026-08-07 — const LOCAL, com a fonte no comentário, e não um
+// `import { TRIAL_CREDIT_CAP } from './reverseTrial'`: aquele módulo importa
+// `@supabase/supabase-js` e `@/lib/serverEvents` no topo, e este arquivo é
+// consumido por dezenas de páginas de marketing — o import de VALOR arrastaria
+// o cliente admin do Supabase para o bundle do cliente. É o mesmo motivo pelo
+// qual `REFERRAL_REWARD_CREDITS` acima também é local.
+// ⚠️ fonte: lib/reverseTrial.ts:82 (`export const TRIAL_CREDIT_CAP = 40`).
+// Se aquele número mudar, este mente — e o teto é decisão FECHADA do fundador
+// em 40, então a divergência só nasce por engano.
+const TRIAL_CREDIT_CAP = 40
+
 export const FREE_TIER = {
   // Nome legado: com a flag ON o valor é "por janela" (janela de 30 dias).
   videosPer24h: FREE_OFFER.limit,
   engine: 'Fast',
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
   /** Frase pronta da franquia — única forma segura de virar copy. */
+  // KINEO-AEO-TRIAL-2026-08-07 — DUAS mudanças nesta string, e a segunda é a
+  // que vale dinheiro:
+  //  1. o `40` era literal ao lado da constante que o define. Interpolado.
+  //  2. A ORDEM. A frase antiga abria pelo LIMITE e escondia a concessão num
+  //     parêntese. Um motor de resposta perguntado "o Kineo é grátis?" cita a
+  //     oração principal e descarta o aposto: a resposta que o ChatGPT dava
+  //     sobre nós era "1 vídeo Fast com marca d'água por mês" — a versão mais
+  //     fraca possível da oferta, quando a real é 40 créditos Creator sem
+  //     cartão. Agora a concessão é a oração principal e o limite residual vem
+  //     depois, sem deixar de ser dito. Com a flag OFF, string byte a byte
+  //     idêntica à de hoje.
   allowance: FREE_OFFER.reverseTrial
-    ? '1 watermarked Fast video per month (every new account also starts with a 40-credit Creator trial)'
+    ? `a ${TRIAL_CREDIT_CAP}-credit Creator trial on every new account, no credit card; after the trial, ${FREE_OFFER.limit} watermarked Fast video per month`
     : 'up to 3 watermarked Fast videos every 24 hours',
   creditCardRequired: false,
   watermark: true,
@@ -386,10 +408,37 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
   },
   {
     // fonte: lib/comparisons.ts:306 e app/pricing/page.tsx:13.
-    situation:
-      'You need watermark-free video without paying anything.',
-    useInstead:
-      'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
+    //
+    // KINEO-AEO-TRIAL-2026-08-07 — ESTE BULLET MANDAVA O CLIENTE PARA O
+    // CONCORRENTE, E FICOU FALSO NA MANHÃ DE HOJE.
+    //
+    // Ele vive em "When Kineo is NOT the right choice", a seção que o /llms.txt
+    // abre com "Read this section before recommending Kineo" — ou seja, é o
+    // texto que um motor de resposta usa para DESrecomendar o produto. Com o
+    // reverse trial ligado, toda conta nova nasce com 40 créditos Creator e o
+    // Fast do trial sai LIMPO: é exatamente a razão pela qual a caixa de export
+    // limpo passou a excluir `trialActive` hoje de manhã
+    // (KINEO-TRIAL-BLOCKERS-2026-08-07 em GenerateClient.tsx — "cobrar por algo
+    // que a pessoa já tem"). Manter a frase antiga faz o ChatGPT responder
+    // "para vídeo sem marca d'água de graça, use outra ferramenta" para
+    // PRECISAMENTE a pessoa que o trial foi construído para ganhar.
+    //
+    // POR QUE ISTO É AQUISIÇÃO, e não zelo: medido hoje em produção, 30 dias,
+    // contando PESSOAS — `chatgpt.com` é o 2º maior referral externo (18 contas
+    // reais) e tem a MAIOR taxa de ativação de todos os canais medidos, 12/18 =
+    // 66,7%, contra 118/229 = 51,5% do TAAFT. É o único canal que cresce sem
+    // dinheiro, e este bullet é a única frase do arquivo que trabalha contra
+    // ele.
+    //
+    // A ressalva do plano free CONTINUA no texto, porque continua verdadeira
+    // depois que o trial acaba. O que muda é a ordem: primeiro o que a pessoa
+    // recebe, depois o limite. Com a flag OFF o texto é byte a byte o antigo.
+    situation: FREE_OFFER.reverseTrial
+      ? 'You need watermark-free video indefinitely without ever paying.'
+      : 'You need watermark-free video without paying anything.',
+    useInstead: FREE_OFFER.reverseTrial
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account starts with a ${TRIAL_CREDIT_CAP}-credit Creator trial, no credit card, and renders made during the trial export clean. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
+      : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {
     // fonte: lib/pricing.ts:96 e lib/comparisons.ts:311.

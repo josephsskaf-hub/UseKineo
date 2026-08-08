@@ -155,6 +155,9 @@ export async function GET(req: Request) {
           isStarter: false,
           isCreator: false,
           isStudio: false,
+          // KINEO-TRIAL-ENTITLEMENT-TIER-2026-08-07 — mesma FORMA do payload
+          // principal. Perfil inexistente não tem trial nem plano: 'free'.
+          entitlementTier: 'free' as const,
           // Perfil ainda nao existe: nao ha trial nenhum. A forma do payload
           // continua a mesma para o cliente nunca precisar de um caminho especial.
           trial: trialUiState(null),
@@ -206,6 +209,35 @@ export async function GET(req: Request) {
       isStarter,
       isCreator,
       isStudio,
+      // KINEO-TRIAL-ENTITLEMENT-TIER-2026-08-07 — A VERDADE SOBRE OS DIREITOS,
+      // separada do PLANO COMERCIAL. isStarter/isCreator/isStudio são derivados
+      // de `plan`, e o reverse trial DE PROPÓSITO não escreve `plan` (escrever
+      // contaminaria MRR, coortes de e-mail e o webhook da Stripe — decisão em
+      // docs/AUDITORIA-SUPERFICIES-TRIAL-2026-08-07.md). Consequência medida em
+      // produção 07/08: uma conta com 40 créditos e direitos de Creator recebia
+      // isCreator:false, e o generate a tratava como plano grátis.
+      //
+      // `entitlementTier` responde "o que esta conta PODE usar agora", enquanto
+      // `plan`/`isCreator` continuam respondendo "o que esta conta COMPROU". Os
+      // dois têm que existir: quem fatura, faz e-mail de coorte ou conta MRR
+      // precisa do segundo; quem decide interface precisa do primeiro.
+      //
+      // ⚠️ NÃO alargue isCreator para o trial em vez disto. `isCreator` também
+      // alimenta `anyPaid` no GenerateClient, que destrava Kling/Veo/Hollywood —
+      // motores que o servidor recusa para trial com 402 (invariante 2 de
+      // lib/reverseTrial.ts). Trocar etiqueta errada por promessa falsa é pior.
+      //
+      // Com a flag OFF `trialActive` é sempre false, então este campo é função
+      // pura de `plan` e nenhum ramo novo do cliente pode disparar.
+      entitlementTier: isStudio
+        ? 'studio'
+        : isCreator
+          ? 'creator'
+          : isStarter
+            ? 'starter'
+            : trialActive
+              ? 'creator'
+              : 'free',
     })
   } catch (err) {
     console.error('[credits GET] unexpected:', err)

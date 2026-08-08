@@ -104,7 +104,7 @@ export default function YouTubeShortsFromTopicPage() {
           Type one topic — or paste a script — and Kineo generates the whole faceless Short for you: the hook and script, an AI voiceover, footage matched to every line, and captions. A ready-to-post 9:16 video, usually in 3–7 minutes. No camera, no editing, no timeline to learn.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href="#try-a-topic" source="push43_topic_form" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Make a Fast video free →</OrganicCtaLink>
+          <OrganicCtaLink href="#try-a-topic" source="push43_topic_form" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>

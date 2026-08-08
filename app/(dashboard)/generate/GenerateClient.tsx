@@ -19,7 +19,7 @@ import type { BrollPlan } from '@/lib/broll/types'
 // nenhum codigo de servidor viaja), mesmo padrao de components/TrialDowngradeModal.
 // O tipo vem da MESMA definicao que /api/credits serializa: renomear a fase la
 // passa a quebrar o build aqui em vez de fazer a guarda sumir em silencio.
-import type { TrialUiPhase } from '@/lib/reverseTrial'
+import type { TrialUiPhase, TrialUiState } from '@/lib/reverseTrial'
 import { randomTopic } from '@/lib/curatedTopics'
 import { PLAN_LIST } from '@/lib/pricing'
 // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — módulo puro e client-safe (nenhum
@@ -612,6 +612,32 @@ export default function GenerateClient({
   // e o motor prometido devolveria 402 do servidor. Vem de /api/credits
   // (trialUiState no servidor); com a flag OFF e sempre 'none'.
   const [trialPhase, setTrialPhase] = useState<TrialUiPhase>('none')
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o RESTO do TrialUiState. Até aqui
+  // só a `phase` sobrevivia à viagem do /api/credits e os outros campos eram
+  // descartados no cliente; a oferta pós-vídeo do trial precisa do teto
+  // (`cap`), do consumo (`creditsUsedForDisplay`) e do tempo restante para não
+  // redigitar 40 na copy nem arredondar "dias restantes" no servidor — ver o
+  // comentário de `msLeft` em lib/reverseTrial.ts. Com a flag OFF o servidor
+  // devolve `trialUiState(null)`, cuja fase é 'none', então este estado nunca
+  // habilita nada.
+  const [trialUi, setTrialUi] = useState<TrialUiState | null>(null)
+  // `msLeft` é o restante NO INSTANTE da resposta. Guardar o momento da
+  // recepção e descontar o decorrido usa o relógio do cliente só para o DELTA,
+  // que é imune a fuso e a relógio adiantado — o erro que um `Date.parse(endsAt)
+  // - Date.now()` cru cometeria.
+  const trialUiFetchedAtRef = useRef<number | null>(null)
+  // REVISÃO ADVERSARIAL, PASSADA 1 — DEFEITO MEU: o contador era falsificável.
+  // `creditsUsedForDisplay` vem do /api/credits, que só é refeito no `mount` e
+  // no evento `creditsChanged`. O `creditsChanged` do fim do render está atrás
+  // de `if (!deductedRef.current && data.creditsDeducted)`, e o canal Realtime
+  // que também atualiza saldo NÃO refaz esta leitura. Logo existe caminho real
+  // em que a caixa diria "0 of 40 trial credits used" para quem acabou de
+  // queimar 20 — o mesmo defeito de classe que a revisão do e-mail D0 matou
+  // ("40 credits just landed" para quem tinha 39). Este ref marca o instante em
+  // que a tela entrou em `done`; o número só é impresso se a leitura do trial
+  // for POSTERIOR a ele. Sem prova de frescor, a caixa aparece inteira, com
+  // preço e CTA — só sem o número.
+  const trialDoneAtRef = useRef<number | null>(null)
   // #404 — once we know the plan, default the mode/engine to that plan's engine.
   const planDefaultedRef = useRef<boolean>(false)
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
@@ -992,6 +1018,11 @@ export default function GenerateClient({
   const wmUnlockRanRef = useRef(false)
   const postVideoOfferRef = useRef<HTMLDivElement | null>(null)
   const postVideoOfferTrackedKeyRef = useRef<string | null>(null)
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — par próprio para a caixa do trial.
+  // Reusar os refs acima faria as duas caixas disputarem a MESMA chave e uma
+  // delas nunca contaria, mesmo sendo mutuamente exclusivas hoje.
+  const trialPostVideoOfferRef = useRef<HTMLDivElement | null>(null)
+  const trialPostVideoOfferTrackedKeyRef = useRef<string | null>(null)
 
   // Push #045A — transient "Copied!" feedback on the Copy URL button in the
   // result section. Cleared automatically after ~2s.
@@ -1064,6 +1095,12 @@ export default function GenerateClient({
   const urgencyCheckout = useCheckoutLaunch('generate_urgency_modal')
   const exitIntentCheckout = useCheckoutLaunch('generate_exit_intent_upgrade')
   const postVideoCheckout = useCheckoutLaunch('generate_post_video_upsell')
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — SUPERFÍCIE PRÓPRIA, de propósito.
+  // Reaproveitar 'generate_post_video_upsell' misturaria uma coorte nova (trial)
+  // numa série histórica que só continha comprador de pacote legado, e o
+  // denominador de `checkout_cta_suppressed`/`checkout_launched` daquela
+  // superfície deixaria de significar o que significava.
+  const trialPostVideoCheckout = useCheckoutLaunch('generate_trial_post_video')
   const upsellSectionCheckout = useCheckoutLaunch('generate_upsell_section')
 
   // Push #109 — stronger urgency variant for free users who just used
@@ -1878,13 +1915,87 @@ export default function GenerateClient({
           if (typeof data.trialActive === 'boolean') setTrialActive(data.trialActive)
           // KINEO-TRIAL-SURFACES-2026-08-07 — fase do trial (flag OFF: 'none').
           if (typeof data?.trial?.phase === 'string') setTrialPhase(data.trial.phase as TrialUiPhase)
+          // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — validação por CAMPO, não por
+          // presença: um servidor antigo (ou o ramo de perfil inexistente) pode
+          // mandar um `trial` sem os números, e a copy da oferta imprime os dois.
+          // Sem os dois, não guarda nada e a oferta não aparece — nunca "0 of 0".
+          {
+            const rawTrial = data?.trial
+            if (
+              rawTrial &&
+              typeof rawTrial === 'object' &&
+              typeof rawTrial.cap === 'number' &&
+              rawTrial.cap > 0 &&
+              typeof rawTrial.creditsUsedForDisplay === 'number'
+            ) {
+              trialUiFetchedAtRef.current = Date.now()
+              setTrialUi(rawTrial as TrialUiState)
+            }
+          }
           if (!planDefaultedRef.current) {
             planDefaultedRef.current = true
             // #448 — Viral Now quick-entry (?autoanalyze=1) defaults to Fast (free)
             // so a niche click never pre-selects the 30-credit AI Gen. The user
             // upgrades to AI Gen deliberately (no accidental credit burn).
             const fromViralNow = searchParams?.get('autoanalyze') === '1'
+            // KINEO-TRIAL-DEFAULT-ENGINE-2026-08-07 — o trial existe para a pessoa
+            // PROVAR o motor que a assinatura vende, e a tela escolhia o motor de
+            // 1 crédito por ela. Medido em produção 07/08: as 2 contas reais em
+            // trial trouxeram `mode: "fast"` em TODOS os eventos, desde a primeira
+            // linha, ANTES de qualquer clique — ninguém escolheu Fast, Fast já vinha
+            // escolhido. Resultado: 1 de 40 créditos usados, 97,5% da concessão
+            // parada, zero contato com o Seedance.
+            //
+            // A causa não era este `else if`: era `isCreator` ser derivado de
+            // `plan`, que o trial de propósito não escreve. `entitlementTier`
+            // (novo em /api/credits) responde a pergunta certa — "o que esta conta
+            // PODE usar agora" — e por isso o ramo abaixo é uma LEITURA da verdade,
+            // não uma exceção costurada aqui.
+            //
+            // As CINCO guardas, cada uma paga por um defeito real:
+            //  1. isStarter/isCreator/isStudio !== true — um plano COMPRADO é
+            //     decidido pelos ramos existentes. Starter em especial tem 25
+            //     créditos/MÊS: um Seedance pré-selecionado queimaria 80% da cota
+            //     mensal num clique. A janela é real (o webhook da Stripe escreve
+            //     o plano ANTES de flipar trial_status para 'converted').
+            //  2. create_intent !== 'fast' — o autostart das 28 páginas de SEO só
+            //     dispara com `mode === 'fast'` (o guard de dispatch mais abaixo
+            //     chama clearActivation caso contrário). Trocar o motor aqui
+            //     trocaria o PRIMEIRO VÍDEO da pessoa por NENHUM vídeo. Ativação
+            //     vence prova de motor: quem chega por SEO já vem com prompt.
+            //  3. hasPaid !== true — quem COMPROU um pacote de créditos e está em
+            //     trial ao mesmo tempo é estado real (plan continua 'free', então
+            //     as guardas de plano acima não o pegam). Pré-selecionar um motor
+            //     de 20 créditos gastaria dinheiro que a pessoa já pagou, sem ela
+            //     pedir. É o mesmo buraco que a revisão das 11h obrigou a fechar
+            //     para Starter, e que ficou aberto para o comprador de pacote.
+            //  4. saldo >= creditCostFor('cinematic_ai') — `outOfCredits()` é
+            //     cost-blind, o aviso de saldo é suprimido para 'cinematic_ai' e o
+            //     botão segue vivo: sem esta guarda um trial com 19 créditos
+            //     gastaria o analyze (GPT) e comeria um 402 no generate.
+            //  5. creditCostFor, e não um `20` novo — a fonte única do preço já
+            //     está importada neste arquivo (linha ~29). Escrever a constante
+            //     de novo foi exatamente o defeito que a revisão das 11h pegou.
+            //
+            // Isto NÃO é um efeito novo: roda uma vez só, dentro do guard
+            // `planDefaultedRef`, na montagem, antes de existir qualquer render.
+            // Não observa `phase` nem `mode`, logo não pode reescrever a etiqueta
+            // de preço de um vídeo já cobrado (o defeito que matou a tentativa
+            // das 11h). Com a flag do reverse trial OFF, `entitlementTier` é
+            // função pura de `plan` e 'creator' implica isCreator === true, então
+            // esta condição é PROVADAMENTE inalcançável e o comportamento fica
+            // byte a byte igual ao de hoje.
+            const trialDefaultsToCreatorEngine =
+              data.entitlementTier === 'creator' &&
+              data.isStarter !== true &&
+              data.isCreator !== true &&
+              data.isStudio !== true &&
+              data.hasPaid !== true &&
+              searchParams?.get('create_intent') !== 'fast' &&
+              typeof data.credits === 'number' &&
+              data.credits >= creditCostFor('cinematic_ai')
             if (fromViralNow) { setMode('fast') }
+            else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
             // Fix 03/07 — Studio also defaults to Seedance (40cr): Kling (60cr) kept
             // pre-selecting itself on every load for Studio accounts (reported 5x),
@@ -2880,6 +2991,65 @@ export default function GenerateClient({
     observer.observe(element)
     return () => observer.disconnect()
   }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, wmUnlocking, intentCampaign, postVideoCurrency])
+
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — carimba a chegada em `done`. É o
+  // relógio contra o qual a leitura do trial é julgada fresca ou velha (ver
+  // `trialDoneAtRef`). Efeito, e não uma linha dentro do poll: `setPhase('done')`
+  // tem mais de um chamador (poll do compose, restore de render ativo), e um
+  // carimbo que mora em UM deles mente nos outros.
+  useEffect(() => {
+    if (phase === 'done') trialDoneAtRef.current = Date.now()
+  }, [phase])
+
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — impressão REAL da caixa do trial.
+  // A elegibilidade é recalculada aqui em vez de reusar `showTrialPostVideoOffer`
+  // de propósito: aquele `const` é declarado ~3.000 linhas abaixo e o array de
+  // dependências é avaliado DURANTE o render, no ponto em que este `useEffect` é
+  // chamado — lê-lo aqui seria ReferenceError de TDZ em runtime, invisível ao
+  // tsc. É a mesma razão pela qual `cleanExportEligible` acima também repete a
+  // condição em vez de ler `showPostVideoExportChoice`.
+  //
+  // O par IMPRESSÃO + AÇÃO é obrigatório: uma superfície medida só por exibição
+  // é instrumento cego, e a regra de morte desta caixa (7 dias) corre sobre o
+  // CLIQUE, nunca sobre a view.
+  useEffect(() => {
+    const eligible =
+      phase === 'done' && Boolean(finalVideoUrl) && trialActive === true &&
+      trialUi?.phase === 'active' && !hasPaid && !isStarter && !isCreator && !isStudio &&
+      typeof trialUi?.cap === 'number' && trialUi.cap > 0
+    const element = trialPostVideoOfferRef.current
+    const offerKey = publicVideoId || finalVideoUrl
+    if (!eligible || !element || !offerKey || trialPostVideoOfferTrackedKeyRef.current === offerKey) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
+      trialPostVideoOfferTrackedKeyRef.current = offerKey
+      trackEvent('trial_post_video_offer_viewed', {
+        source: 'result_trial_continue',
+        offer: 'creator_monthly',
+        trial_credits_used: trialUi?.creditsUsedForDisplay ?? null,
+        // REVISÃO ADVERSARIAL, PASSADA 2 — DEFEITO CRIADO PELA PASSADA 1. O
+        // contador só aparece com prova de frescor, e essa prova pode chegar
+        // DEPOIS desta impressão (o observer dispara assim que a caixa entra na
+        // tela; o refetch do /api/credits resolve ~100ms depois). Chamar este
+        // campo de `trial_counter_shown`, como no clique, faria a análise
+        // concluir "a maioria viu a caixa sem número" quando o número apareceu
+        // um instante depois. O nome diz exatamente o que foi medido: o estado
+        // NO INSTANTE DA IMPRESSÃO. O clique — que é o momento da decisão —
+        // carrega o campo sem ressalva.
+        trial_counter_shown_at_impression:
+          trialUiFetchedAtRef.current !== null &&
+          trialDoneAtRef.current !== null &&
+          trialUiFetchedAtRef.current >= trialDoneAtRef.current,
+        trial_cap: trialUi?.cap ?? null,
+        ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+        ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+      })
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign])
 
   // ────────────────────────────────────────────────────────────────────────
   // PHASE: clips_ready  →  fire /api/compose once, then transition to composing
@@ -4447,6 +4617,10 @@ export default function GenerateClient({
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
     postVideoOfferTrackedKeyRef.current = null
+    // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o par do trial zera junto: sem
+    // isto, o 2o video da mesma sessao herdaria a chave do 1o e a impressao
+    // nunca mais seria contada.
+    trialPostVideoOfferTrackedKeyRef.current = null
     setGenerateProgress(0)
     setRenderProgress(0)
     composeStartedRef.current = false
@@ -5260,6 +5434,10 @@ export default function GenerateClient({
     setPublicVideoId(null)
     setSharedPublic(null)
     postVideoOfferTrackedKeyRef.current = null
+    // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o par do trial zera junto: sem
+    // isto, o 2o video da mesma sessao herdaria a chave do 1o e a impressao
+    // nunca mais seria contada.
+    trialPostVideoOfferTrackedKeyRef.current = null
     setGenerateProgress(0)
     setRenderProgress(0)
     setError(null)
@@ -5792,6 +5970,96 @@ export default function GenerateClient({
         ? `${postVideoIntroPrice} today · then ${postVideoRenewalPrice}/month in 30 days · cancel anytime`
         : `${postVideoRenewalPrice}/month · same price every month · cancel anytime`)
     : null
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — A COORTE QUE MAIS VALE É A ÚNICA
+  // QUE NÃO RECEBE OFERTA NENHUMA NESTA TELA.
+  //
+  // MEDIDO em produção hoje (events, 10 dias, contando PESSOAS):
+  //   · `post_video_offer_viewed`: 193 impressões · `post_video_clean_export_clicked`: 1.
+  //   · a impressão despencou HOJE — 19 em 06/08 para 5 em 07/08, com o mesmo
+  //     volume de `video_ready_viewed` — porque `showPostVideoExportChoice`
+  //     ganhou `!trialActive` nesta manhã (KINEO-TRIAL-BLOCKERS-2026-08-07).
+  //
+  // Aquele `!trialActive` está CERTO e não se mexe: a caixa dele vende a
+  // remoção da marca d'água por $4.90, e o Fast de uma conta em trial já sai
+  // limpo — cobrar por algo que a pessoa já tem é o pior desfecho da tela.
+  // O defeito é o que ficou no lugar: NADA. Com a flag ligada, todo cadastro
+  // novo nasce em trial, então a coorte inteira de contas novas termina o
+  // vídeo — o instante de maior intenção de compra do produto — e a tela não
+  // menciona que o trial acaba, quanto já foi consumido, nem que existe plano.
+  // O outro upsell desta tela (`planTier === 'free' && hasPaid && …`) exige
+  // `hasPaid`, então também não a alcança. Placar de hoje: 5 trials ativos,
+  // 0 conversões, e 84% de quem conclui um vídeo nunca chega a ver preço.
+  //
+  // AS GUARDAS, e o que cada uma paga:
+  //  1. `trialActive` — verdade do SERVIDOR (isTrialActive em /api/credits).
+  //     Com KINEO_REVERSE_TRIAL_ENABLED OFF é sempre false, então este bloco é
+  //     provadamente inalcançável e a tela fica byte a byte igual à de hoje.
+  //  2. `trialUi?.phase === 'active'` — segunda leitura da MESMA resposta.
+  //     `trialUiState` já devolve 'ending' quando o prazo venceu ou o teto foi
+  //     atingido; oferecer "continue" a quem já perdeu o acesso é a conversa do
+  //     TrialDowngradeModal, não desta caixa, e as duas não podem coexistir.
+  //  3. `!hasPaid` e os três `!is*` — quem já comprou não é convidado a comprar
+  //     o Creator de novo. A janela é real: o webhook da Stripe escreve `plan`
+  //     ANTES de virar trial_status para 'converted'.
+  //  4. `trialCreditsCap > 0` — o rótulo imprime "N of M"; sem M não há caixa.
+  //  5. `finalVideoUrl` — a oferta só existe com o arquivo entregue. É a regra
+  //     KINEO-DELIVER-FIRST, e por isso ela é RENDERIZADA depois do download.
+  // ═══════════════════════════════════════════════════════════════════════
+  const trialCreditsCap = trialUi && typeof trialUi.cap === 'number' ? trialUi.cap : 0
+  // Só é impresso com prova de frescor — ver o comentário de `trialDoneAtRef`.
+  const trialCreditsCounterLabel =
+    trialUi &&
+    typeof trialUi.creditsUsedForDisplay === 'number' &&
+    trialUiFetchedAtRef.current !== null &&
+    trialDoneAtRef.current !== null &&
+    trialUiFetchedAtRef.current >= trialDoneAtRef.current
+      ? `${trialUi.creditsUsedForDisplay} of ${trialCreditsCap} trial credits used`
+      : null
+  const showTrialPostVideoOffer =
+    phase === 'done' &&
+    Boolean(finalVideoUrl) &&
+    trialActive === true &&
+    trialUi?.phase === 'active' &&
+    hasPaid !== true &&
+    isStarter !== true &&
+    isCreator !== true &&
+    isStudio !== true &&
+    trialCreditsCap > 0
+  // O preço é SEMPRE lib/checkoutPricing, pela moeda que o /api/geo resolveu no
+  // monte. O checkout re-resolve país → moeda → região no servidor e nunca
+  // aceita nenhum dos dois do navegador: isto aqui é só RÓTULO.
+  const trialOfferHasIntro = postVideoCurrency
+    ? hasIntroOffer('basic', postVideoCurrency, postVideoRegion)
+    : false
+  const trialOfferFullPrice = postVideoCurrency
+    ? formatCheckoutMoney(postVideoCurrency, getTierPrice('basic', postVideoCurrency, postVideoRegion))
+    : null
+  const trialOfferIntroPrice = postVideoCurrency && trialOfferHasIntro
+    ? formatCheckoutMoney(postVideoCurrency, getIntroPrice('basic', postVideoCurrency, postVideoRegion))
+    : null
+  const trialOfferPriceNote = trialOfferFullPrice
+    ? (trialOfferIntroPrice
+        ? `${trialOfferIntroPrice} first month · then ${trialOfferFullPrice}/month · cancel anytime`
+        : `${trialOfferFullPrice}/month · cancel anytime`)
+    : null
+  // FRASE DE PRAZO OU NENHUMA. `msLeft` é o restante no instante da RESPOSTA;
+  // descontar o decorrido desde então usa o relógio do cliente só para o delta.
+  // Abaixo de 1 hora a frase não é impressa: um "0 hours left" ou um "1 day"
+  // que a pessoa lê depois do vencimento é promessa falsa, e a guarda 2 já
+  // tira a caixa quando o servidor confirma o fim.
+  const trialOfferTimeLeftLabel = (() => {
+    const msAtFetch = trialUi?.msLeft
+    const fetchedAt = trialUiFetchedAtRef.current
+    if (typeof msAtFetch !== 'number' || !Number.isFinite(msAtFetch) || fetchedAt === null) return null
+    const remaining = msAtFetch - Math.max(0, Date.now() - fetchedAt)
+    if (remaining < 3_600_000) return null
+    const hours = Math.floor(remaining / 3_600_000)
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} left`
+    const days = Math.floor(hours / 24)
+    return `${days} day${days === 1 ? '' : 's'} left`
+  })()
 
   const showStep1 = phase === 'idle' || phase === 'analyzing' || phase === 'scripting'
   const showScriptPreview = phase === 'script_preview'
@@ -7789,6 +8057,124 @@ export default function GenerateClient({
                         ? `Download Your Short (${duration}s · MP4)`
                         : `Download clean Short (${duration}s · MP4)`}
                   </a>
+                )}
+
+                {/* ═══════════════════════════════════════════════════════════
+                    KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — a única oferta que
+                    a coorte em trial vê nesta tela. Ver a nota completa em
+                    `showTrialPostVideoOffer` (a caixa de export limpo exclui o
+                    trial com razão, e nada tinha ficado no lugar).
+
+                    POSIÇÃO: DEPOIS do botão de download, nunca antes.
+                    KINEO-DELIVER-FIRST mediu 107 pessoas que esperaram o vídeo,
+                    viram a tela pronta e foram embora sem o arquivo. O trial já
+                    baixa limpo — não existe pedágio aqui, e não pode parecer que
+                    existe.
+
+                    A COPY não promete motor nenhum. O trial roda com entitlement
+                    Creator MENOS Kling/Veo/Hollywood, e a tela rotula esses três
+                    como "🔒 Studio": qualquer frase do tipo "continue com tudo
+                    que você tem" ou "destrave X" ou contradiz o cadeado ou
+                    promete o que o servidor recusa com 402. O que se afirma aqui
+                    é só o verificável: quanto do teto foi consumido, quanto
+                    tempo resta, e quantos créditos/mês o Creator dá — este
+                    último interpolado de TIER_CREDITS, não redigitado.
+                    ═══════════════════════════════════════════════════════════ */}
+                {showTrialPostVideoOffer && (
+                  <div
+                    ref={trialPostVideoOfferRef}
+                    className="w-full rounded-2xl px-5 py-5"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(41,151,255,.12), rgba(41,151,255,.05))',
+                      border: '1px solid rgba(41,151,255,.5)',
+                      boxShadow: '0 0 28px rgba(41,151,255,.16)',
+                    }}
+                  >
+                    <div className="text-center">
+                      <div
+                        className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
+                        style={{ color: '#2997ff' }}
+                      >
+                        Your Creator trial
+                      </div>
+                      <h3
+                        className="font-black tracking-tight"
+                        style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.25 }}
+                      >
+                        {trialCreditsCounterLabel ?? 'Your Creator trial is running'}
+                        {trialOfferTimeLeftLabel ? ` · ${trialOfferTimeLeftLabel}` : ''}
+                      </h3>
+                      {/* REVISÃO ADVERSARIAL, PASSADA 1 — a frase não afirma o
+                          que acontece com o SALDO no fim do trial. O cron de
+                          downgrade revoga, mas ele já falhou uma vez em produção
+                          (smoke 07/08 03:00Z, linha elegível não processada), e
+                          uma promessa de produto não pode depender de um cron
+                          com incidente aberto. "Picks up where the trial ends" é
+                          verdadeiro nos dois desfechos. */}
+                      <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                        Creator picks up where the trial ends — {TIER_CREDITS.basic} credits every month.
+                      </p>
+                      {trialOfferPriceNote && (
+                        <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
+                          {trialOfferPriceNote}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // O CLIQUE é emitido ANTES de qualquer outra coisa. O
+                        // `launch()` pode recusar (trava de duplo clique) e
+                        // navegar para fora em seguida: registrar depois dele
+                        // perde exatamente os cliques que interessa explicar.
+                        // O DESFECHO fica com o próprio hook, que emite
+                        // `checkout_cta_suppressed` no ramo recusado.
+                        void trackEvent('trial_post_video_offer_clicked', {
+                          source: 'result_trial_continue',
+                          tier: 'basic',
+                          // O evento carrega o número CRU do último payload,
+                          // fresco ou não, e um booleano dizendo se a pessoa
+                          // chegou a LER esse número na tela. Sem o booleano, a
+                          // análise do A/B leria "viu o contador" para quem viu
+                          // a caixa sem contador nenhum.
+                          trial_credits_used: trialUi?.creditsUsedForDisplay ?? null,
+                          trial_counter_shown: trialCreditsCounterLabel !== null,
+                          trial_cap: trialCreditsCap,
+                          ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+                          ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+                        })
+                        const started = trialPostVideoCheckout.launch(
+                          'basic',
+                          withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
+                          { tier: 'basic', intro: true, from: 'trial_post_video' },
+                        )
+                        if (!started) return
+                        trackCheckoutClick('basic')
+                      }}
+                      disabled={trialPostVideoCheckout.pending !== null}
+                      className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black text-white"
+                      style={{
+                        background: 'linear-gradient(135deg, #2997ff, #0a6fd8)',
+                        border: '1px solid rgba(41,151,255,.6)',
+                        cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
+                        opacity: trialPostVideoCheckout.pending !== null ? 0.6 : 1,
+                        boxShadow: '0 8px 24px rgba(41,151,255,.28)',
+                      }}
+                    >
+                      {trialPostVideoCheckout.pending !== null ? 'Opening checkout…' : 'Continue on Creator'}
+                    </button>
+                    {trialPostVideoCheckout.error && (
+                      <p className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
+                        {trialPostVideoCheckout.error}
+                      </p>
+                    )}
+                    <p
+                      className="text-center mt-2"
+                      style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45 }}
+                    >
+                      Your trial keeps working until it ends · secure checkout · cancel anytime
+                    </p>
+                  </div>
                 )}
 
                 {/* Keep the revenue/export decision first. Free users see this

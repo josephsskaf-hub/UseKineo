@@ -109,7 +109,7 @@ export default function FreeAiShortsHubPage() {
             placement="hero"
             style={{ display: 'inline-block', marginTop: 24, background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
           >
-            Make a Fast video free →
+            {ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
             {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter $4.90 first month
