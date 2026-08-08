@@ -735,3 +735,287 @@ internas fora — 365 signups · 177 com ≥1 vídeo (48,5%) · 5 já compraram 
    (marca d'água, export limpo, cota free) está fora do trial, e metade da promessa do
    produto não existe. **Grepar o predicado de entitlement e listar quem o consulta deveria
    ser o primeiro passo de qualquer feature de plano**, não o último.
+
+---
+
+## APRENDIZADOS DA SPRINT 19h/21h DE 06/08 — `KINEO-UPGRADE-MODAL-CURRENCY`
+
+1. **A TELA ERRADA ESTAVA CERTA — O DEFEITO ERA *QUANDO* O DADO CHEGAVA.** O gate dizia
+   "o UpgradeModal mostra preço em dólar fixo", e a leitura óbvia é "conserte o modal".
+   O modal não tinha o que mostrar: a única resolução de moeda da tela estava presa a
+   *"quando um usuário free chega à decisão de export limpo"*, e no instante em que a tela
+   de venda abre ninguém tinha perguntado o país do comprador. Antes de reescrever a tela,
+   perguntar **em que momento o dado que ela precisa passa a existir** — a correção real
+   foi mover um gatilho, não redesenhar uma UI.
+
+2. **PREÇO QUE VIAJA PARA A TELA PRECISA DE *UM* RESOLVEDOR POR TELA.** A saída fácil era
+   abrir um segundo `fetch('/api/geo')` + segundo estado dentro do modal. Duas cópias da
+   mesma pergunta na mesma tela é como elas começam a divergir (e é a mesma família do
+   "regra em SQL e em TypeScript" de 16h). Reusar o estado do pai e passar por prop resolve
+   custo, consistência e o piscar do número de uma vez.
+
+3. **CAST SEM VERIFICAÇÃO É INOFENSIVO ATÉ O DIA EM QUE O VALOR VIRA ÍNDICE.** O
+   `plan.tier as 'starter'|'basic'|'pro'` conviveu em paz com `plan.priceLabel` — rótulo
+   errado, no máximo. No momento em que a mesma expressão passou a **indexar `TIER_PRICES`**,
+   o mesmo cast virou TypeError capaz de derrubar o modal inteiro numa tela que pede
+   dinheiro. **Ao trocar "imprimir um campo" por "indexar uma tabela", o cast antigo vira
+   dívida nova.**
+
+4. **ARREDONDAR A CORREÇÃO DO INSTRUMENTO NOS DOIS SENTIDOS.** Mover a resolução para a
+   montagem faria `post_video_currency_resolved` sair em toda visita ao /generate (série
+   antiga contaminada). Mas a guarda ingênua contra isso teria o defeito **simétrico**: o
+   ramo de FALHA do geo, que antes não emitia nada, passaria a injetar `country: 'unknown'`
+   numa categoria que a série nunca teve. Ao mexer no gatilho de um evento, enumerar os
+   **dois** desvios — o que passa a emitir demais e o que passa a emitir de menos.
+
+5. **`tsc` VERMELHO EM REPOSITÓRIO COM SESSÃO PARALELA PRECISA SER ATRIBUÍDO ANTES DE SER
+   CONSERTADO.** Uma execução acusou 19 erros em arquivos que eu não tinha tocado; a
+   execução seguinte, minutos depois, voltou a zero. Era outra sessão no meio de um refactor
+   (`lib/freeTierOffer.ts` nasceu às 19:07). Consertar aquilo teria sido escrever por cima do
+   trabalho alheio. **Primeiro `git diff -- <meu arquivo>` e o mtime dos arquivos que
+   reclamam; só depois o conserto.**
+
+6. **`.git/index.lock` DE OUTRA SESSÃO NÃO SE APAGA — E O TESTE É O `mtime`, NÃO O RELÓGIO.**
+   Lock parado há 20 minutos parece morto. `.git/index` tocado nos últimos minutos + 20
+   arquivos reescritos na mesma janela provam que está VIVO. Apagar o índice de um `git
+   commit` alheio em andamento corrompe o índice para todo mundo. Trabalho fica no disco,
+   `tsc` limpo, e o commit sai na sprint seguinte.
+
+7. **A COPY DE PREÇO MENTE EM DUAS DIMENSÕES, E A SEGUNDA É A QUE NINGUÉM CONFERE.** A
+   primeira é a moeda (BR lendo "$9.90"). A segunda é o **mês que o botão realmente vende**:
+   "150 credits · 1 Hollywood film / month" era verdade só a partir da 1ª renovação, porque
+   o CTA manda `&intro=1` e o 1º mês concede 50 créditos. **Uma frase de plano precisa ser
+   conferida contra a URL que o botão dispara**, não contra a tabela de preço cheio. E há
+   uma terceira: na região `value` o Starter **não tem intro**, então prometer "first month
+   $4.90" ali é desconto inexistente — quem decide se a frase existe tem que ser a mesma
+   função que a rota usa para decidir se cria o cupom (`hasIntroOffer` / `amountOff > 0`).
+
+8. **A RONDA DE RESPOSTAS É UMA TAREFA DE AQUISIÇÃO DE PRIMEIRA CLASSE, NÃO ADMINISTRATIVA.**
+   Ela achou, em minutos, **um cliente pagante oferecendo espontaneamente distribuir a Kineo
+   nas comunidades dele** — não lido há 3 dias. Nenhuma página nova de SEO nem diretório
+   novo competia com isso em retorno por minuto. **O canal mais barato da empresa é a caixa
+   de entrada que ninguém abriu**, e ele decai por dia parado.
+
+9. **RESPOSTA A OFERTA DE DIVULGAÇÃO NÃO É "SIM" — É TRANSFORMAR O FAVOR EM CANAL MEDIDO.**
+   "Sim, obrigado" produz um post não rastreado que ninguém sabe se converteu. A resposta
+   útil tem três partes: link rastreado com termo comercial **já autorizado** (40% recorrente,
+   o mesmo do Whop), **algo para a audiência dele** (créditos-bônus na chegada, para o post
+   ser um presente e não um anúncio) e **a peça produzida por nós**, para custar um clique a
+   ele. Ninguém posta o que dá trabalho.
+
+10. **ALERTA DE FORNECEDOR SÓ VIRA PADRÃO QUANDO SE OLHAM OS TRÊS JUNTOS.** fal.ai, OpenAI e
+    Render reportaram falha de cobrança em 30 horas. Cada um isolado é ruído de cobrança;
+    juntos são **um meio de pagamento falhando**. E isso contradiz de frente a premissa que o
+    próprio prompt manda parar de questionar ("auto-reload confirmado") — **auto-reload
+    ligado e cobrança falhando são compatíveis**. Premissa dada como fechada ainda perde para
+    evidência nova; o certo é reportar a evidência, não reabrir a decisão.
+
+---
+
+## 07/08 — sprint 13h (`KINEO-TRIAL-ENTITLEMENT-TIER`)
+
+1. **UM CAMPO PODE RESPONDER DUAS PERGUNTAS DIFERENTES — E AÍ ELE MENTE PARA UMA DELAS.**
+   `isCreator` respondia *"o que esta conta comprou"* e estava sendo usado para decidir
+   *"o que esta conta pode usar"*. As duas coincidiram por meses; o reverse trial as separou,
+   e o produto passou a tratar uma conta com 40 créditos como plano grátis. **Antes de
+   alargar um booleano existente, perguntar qual PERGUNTA ele responde.** Alargar `isCreator`
+   teria destravado Kling/Veo na tela — motores que o servidor recusa com 402.
+
+2. **A GUARDA QUE PROTEGE A ATIVAÇÃO VEM ANTES DA QUE PROVA O PRODUTO.** Pré-selecionar o
+   motor caro cancelaria o autostart das 28 páginas de SEO (o dispatch exige `mode === 'fast'`),
+   trocando o **primeiro vídeo** da pessoa por **nenhum vídeo**. Toda mudança de padrão no
+   `/generate` tem que ser checada contra `create_intent=fast` e `?autoanalyze=1`.
+
+3. **"MINHA CORREÇÃO É INERTE?" É UMA QUERY, NÃO UMA OPINIÃO.** A 1ª passada adversarial
+   levantou que a guarda de `create_intent` poderia neutralizar o fix na população medida.
+   `select count(*) … name like 'activation_autostart%'` = **0** nas 3 contas de trial.
+   Sempre falsificar o próprio ceticismo com dado antes de reescrever a correção.
+
+4. **PROVA DE "FLAG OFF = IDÊNTICO" SE ESCREVE COMO SCRIPT, NÃO COMO PARÁGRAFO.** 640
+   combinações de flags/saldo/plano num `.mjs` de 20 linhas: 0 disparos com OFF. Custa 2
+   minutos e substitui uma frase que ninguém consegue conferir.
+
+5. **DEFEITO REGISTRADO NUMA REVISÃO ANTERIOR PODE VOLTAR NA CORREÇÃO SEGUINTE.** O buraco do
+   `hasPaid` (comprador de pacote em trial) foi achado e fechado para Starter na revisão das
+   11h — e eu o reintroduzi hoje, no mesmo formato. **Ler a tabela de defeitos da tentativa
+   anterior é parte do checklist da revisão, não leitura opcional.**
+
+6. **A TROCA ATÔMICA DE COPY MEDE SUCESSO NA STRING MAIS LIDA, NÃO NA CONTAGEM DE STRINGS.**
+   187 strings conferidas, meta/og/FAQ/chip aprovados — e o **botão** ficou de fora. A
+   auditoria dizia "100% idêntico"; a página dizia uma coisa na dobra e outra no CTA. **Numa
+   varredura de copy, listar as superfícies por taxa de leitura antes de contar ocorrências.**
+
+7. **`.git\index.lock` DO ONEDRIVE: reconfirmado irremovível** (`Operation not permitted`,
+   mtime de 3h antes). Não gastar sprint tentando — o N-PUSH.bat faz o commit, começando por
+   `git reset --mixed` e `git add` de caminhos explícitos.
+
+
+
+---
+
+## Aprendizados operacionais — sprint 16h de 07/08/2026
+
+1. **REMOVER UMA GUARDA É METADE DO TRABALHO; A OUTRA METADE É PERGUNTAR O QUE FICA
+   NO LUGAR.** Um `!trialActive` correto, acrescentado de manhã por uma razão certa
+   (não cobrar por algo que a pessoa já tem), apagou a ÚNICA oferta que a coorte
+   mais valiosa via na tela de maior intenção de compra. O commit da manhã não
+   tinha defeito nenhum — o defeito nasceu do vazio que ele deixou. **Toda vez que
+   uma coorte sai de uma superfície de venda, a pergunta seguinte é "e agora essa
+   coorte vê o quê?", respondida com `grep` nas outras ofertas da mesma tela.**
+   (Aqui a resposta era: o outro upsell exige `hasPaid`, logo nada.)
+
+2. **A SÉRIE DE UM EVENTO DENUNCIA REGRESSÃO DE UI QUE NENHUM TESTE PEGA.**
+   `post_video_offer_viewed` caiu de 19 para 5 com `video_ready_viewed` estável no
+   mesmo dia. `tsc` verde, nenhum erro, nenhum 5xx. **Comparar duas séries que
+   deveriam andar juntas custa uma query e é o único instrumento que enxerga
+   "a caixa sumiu para um pedaço das pessoas".**
+
+3. **REGRA DE MORTE PRECISA SER RODADA, NÃO LEMBRADA.** 193 impressões / 1 clique em
+   10 dias estavam no banco há dias e ninguém tinha dividido um pelo outro. **A
+   razão view→ação de toda superfície que PEDE algo entra no placar da sprint, não
+   na memória.**
+
+4. **`const` DECLARADO DEPOIS DO `useEffect` É TDZ EM RUNTIME, E O `tsc` NÃO VÊ.**
+   O array de dependências é avaliado DURANTE o render, no ponto em que o
+   `useEffect` é chamado. Num arquivo de 11 mil linhas a distância entre o efeito e
+   a derivação é de milhares de linhas e o erro parece impossível. **Efeito
+   recalcula a condição inline; nunca lê um `const` declarado abaixo dele.**
+
+5. **NÚMERO VINDO DE FETCH SÓ VIRA COPY COM PROVA DE FRESCOR.** Não basta o dado
+   existir: é preciso saber se ele foi lido DEPOIS do evento que o mudou. O padrão
+   que funcionou: um ref com o carimbo do momento do evento, outro com o carimbo da
+   leitura, e a copy só imprime o número quando `leitura >= evento`. **Sem prova, a
+   superfície aparece inteira e o número simplesmente não é impresso** — degradação
+   silenciosa e honesta, em vez de um número plausível e falso.
+
+6. **A SEGUNDA PASSADA ACHOU UM DEFEITO DE NOME.** A primeira passada criou um campo
+   de evento com o mesmo nome nos dois lados do funil, mas a condição podia mudar
+   ENTRE a impressão e o clique. Nome de campo é contrato de análise: se ele não
+   diz *quando* foi medido, a análise conclui o oposto. **Campo cujo valor depende
+   do instante leva o instante no nome.**
+
+7. **O TEXTO ESCRITO PARA MÁQUINAS ENVELHECE IGUAL AO ESCRITO PARA GENTE — E É PIOR,
+   PORQUE NINGUÉM O LÊ.** O `/llms.txt` tem uma seção que ele mesmo apresenta como
+   *"Read this section before recommending Kineo"*, e ela mandava usar outra
+   ferramenta para exatamente o que o produto passou a oferecer naquela manhã.
+   **Toda troca atômica de oferta inclui `/llms.txt`, `/api/facts` e `lib/kineoFacts.ts`
+   na lista de superfícies — e a conferência é por `fetch` do arquivo SERVIDO.**
+
+8. **EM ARQUIVO LIDO POR MÁQUINA, A ORDEM DAS ORAÇÕES É A OFERTA.** "1 vídeo grátis
+   por mês (a conta nova também ganha 40 créditos)" e "40 créditos na conta nova;
+   depois, 1 vídeo grátis por mês" são o mesmo fato — mas um motor de resposta cita
+   a oração principal e descarta o aposto. **A concessão nunca vai entre
+   parênteses. O TÍTULO da seção também é copy: "Free tier" convida a citar o
+   limite; "What a new account gets for free" convida a citar a concessão.**
+
+9. **CANAL NÃO MEDIDO NÃO EXISTE — E PODE SER O MELHOR QUE SE TEM.** `chatgpt.com`
+   nunca apareceu em documento algum e é o 2º maior referral externo, com a MAIOR
+   ativação de todos (66,7% contra 51,5% do TAAFT). Estava desde sempre em
+   `events.metadata->>'ref'`. **Um `group by` na fonte de referência, contando
+   PESSOAS, entra no placar semanal: é a query mais barata que já produziu um canal
+   novo aqui.**
+
+10. **`.bat` GRAVADO EM LF É SUSPEITO DE NÃO RODAR.** O 58, o 59 e o 60 estão em LF e
+    nenhum dos três rodou. O `cmd.exe` lê `.bat` byte a byte e `goto :label` tem
+    histórico de falhar em arquivo LF-only. **N-PUSH nasce em CRLF.** E, na mensagem
+    do commit dentro do `.bat`: **`%` isolado é comido pelo parser do `cmd` mesmo
+    entre aspas** (`97,5%` virava `97,5`) — escrever `%%`; e **emoji sai como lixo**
+    na codepage padrão do console — remover antes.
+
+11. **FALSIFICAR O `tsc` CUSTA 2 MINUTOS E VALE POR TRÊS SPRINTS.** Introduzir um erro
+    de tipo proposital, confirmar `EXITCODE=2` com as linhas de erro, restaurar e
+    reconfirmar `EXITCODE=0`. **"EXITCODE=0 com log vazio" só é prova depois que se
+    provou que aquele comando sabe falhar.**
+
+12. **SCRIPT DE INÉRCIA TAMBÉM TEM QUE FALHAR SE O RAMO NUNCA DISPARAR.** Provar "0
+    disparos com a flag OFF" é metade; a outra metade é provar que existe entrada
+    que DISPARA com a flag ON. Sem isso, código morto passa por segurança e a sprint
+    acha que entregou uma oferta que ninguém verá.
+
+---
+
+## Aprendizados da sprint 21h de 07/08/2026
+
+### 1. `pgrep -f "<comando>"` CASA A PRÓPRIA LINHA DE COMANDO DO SHELL — e eu "monitorei" um processo morto por 10 minutos
+
+Rodei o `tsc` destacado e fiquei sondando com `pgrep -f "tsc --noEmit"`. Ele respondeu
+"processo VIVO" sete vezes seguidas. **Era o meu próprio `bash -c` que continha a string
+`tsc --noEmit` no argumento.** O `ps -eo args | grep tsc` não mostrava nada: o processo já
+tinha morrido na primeira sondagem. Perdi ~10 minutos de sprint monitorando um fantasma que
+era o reflexo da minha própria pergunta.
+
+**Regra:** para provar que um processo existe, use `ps -eo pid,etimes,args | grep <nome>` e
+**olhe o PID e o tempo**, ou faça o processo escrever um arquivo de sinal. `pgrep -f` com o
+mesmo texto que está no seu comando é auto-referência, não evidência.
+
+### 2. A REGRA DO EXITCODE VALE DUAS VEZES PARA PROCESSO DESTACADO — log vazio de processo morto é IDÊNTICO a log vazio de sucesso
+
+Três tentativas (`nohup &`, `setsid nohup`, `setsid bash -c`) deixaram `/tmp/tsc*.log` com
+**0 bytes**. Zero byte de `tsc --noEmit` é exatamente o que um build limpo produz — e é
+também o que um processo morto no meio produz. Sem o `echo "EXITCODE=$?" > arquivo` **escrito
+pelo próprio processo destacado**, os dois casos são indistinguíveis, e o PROMPT-DIARIO já
+registrava que isso me enganou três vezes. Nesta sprint quase me enganou uma quarta.
+
+Complemento operacional desta árvore: **processo destacado NÃO sobrevive ao fim da chamada de
+bash** (nem com `nohup`, nem com `setsid`, nem com `disown`). O sandbox mata o grupo inteiro.
+Não existe "rodar em background entre chamadas" aqui — o que não couber nos 44s não roda.
+
+### 3. QUANDO O CHECK COMPLETO NÃO CABE, O SUBSTITUTO PRECISA SER FALSIFICÁVEL — e precisa ir no gate
+
+O `tsc` do projeto inteiro deixou de caber nos 44s. O substituto que aceitei foi: (a) `tsc`
+**escopado** no arquivo alterado, com EXITCODE **e falsificado**; (b) prova de que as linhas
+`export` são **byte-idênticas ao HEAD**, logo nenhum consumidor quebra por assinatura. Isso é
+mais fraco que o check completo e **a ressalva foi escrita no GATES-ABERTOS, em cima, junto do
+botão** — não enterrada num rodapé de sprint. Prova parcial que não viaja junto do gate vira
+prova completa na cabeça de quem clica.
+
+### 4. A SEGUNDA PASSADA ACHOU QUE UMA CORREÇÃO DA PRIMEIRA REABRIU O BURACO QUE OUTRA CORREÇÃO DA PRIMEIRA TINHA FECHADO
+
+Novo modo de falha, mais fino que "a 2ª passada acha o que a 1ª criou". Na MESMA passada eu
+fiz duas correções: **(A)** o painel do caso `unavailable` passa a não ter link (o servidor
+negou o arquivo); **(B)** o painel passa a ser reaproveitado em vez de recriado (para não
+perder o toque do usuário). Isoladamente as duas estão certas. Juntas, **(B) desliga (A)**: o
+reuso trocava só o título e deixava o link antigo na tela, exatamente o que (A) existia para
+impedir.
+
+**Regra:** quando uma passada produz **duas ou mais** correções no mesmo objeto, a revisão
+seguinte tem que testar o **produto** delas, não cada uma. A pergunta é literalmente "a
+correção X ainda vale depois da correção Y?".
+
+### 5. `z-index` "logo acima" SÓ SE MEDE CONTRA A PILHA REAL — e o meu comentário justificava um número falso
+
+Escrevi `z-index:60` com um comentário afirmando que "z-50 é o teto das barras fixas do app".
+A 2ª passada mediu: `EnablePushBanner` 69, `InstallAppBanner` 70, `TrialDowngradeModal` 999,
+`UpgradeModal` **1000** — e o `UpgradeModal` abre **na mesma tela** do botão que eu estava
+consertando. O painel de resgate ficaria invisível E inclicável embaixo dele, com o auto-hide
+de 180s correndo por baixo. **Um comentário que justifica um número é uma afirmação
+verificável e entra na revisão como código.** `grep -rn "z-\[\?[0-9]" components/` custa
+segundos.
+
+### 6. "CONTE PESSOAS" DERRUBOU O MEU PRÓPRIO ACHADO DE AQUISIÇÃO, NA VÉSPERA DE EU REPORTÁ-LO
+
+Eu ia reportar: *"o tráfego não-TAAFT dobrou (98 → 197 sessões/dia) e o site desperdiça 200
+visitas por dia"*. Antes de escrever, apliquei a regra da casa: **sessão não é gente**. Das
+**923 sessões sem referrer em 4 dias, só 166 (18%) chegaram a ver o campo da home** e 39
+digitaram algo. A sessão está inflada **~5,6×**; a empresa tem ~41 visitantes humanos/dia, não
+205. O achado invertia de sinal: não é tráfego desperdiçado, **é tráfego que não existe**.
+
+E o mesmo cuidado derrubou o diagnóstico da sprint anterior na direção contrária: o "penhasco"
+não é o site tendo parado de converter — **a conversão do TAAFT SUBIU** (65/226 = 28,8% em
+31/07 → 3/8 = 37,5% hoje). Duas conclusões opostas, as duas erradas, as duas mortas pelo mesmo
+teste. **Antes de reportar um número de aquisição, pergunte quantas PESSOAS ele representa e
+qual leitura ele derruba se estiver certo.**
+
+### 7. FALLBACK NUNCA EXERCITADO NÃO É FALLBACK — É DÍVIDA QUE SE PARECE COM SEGURO
+
+O `window.open` do download existia para salvar quem o blob não salvasse. Medido: **0 de 10.**
+Nunca funcionou uma única vez, porque roda depois de um `await` e todo navegador mobile barra
+popup fora do gesto. Ele estava lá desde sempre, com comentário explicando o propósito, dando
+a sensação de que o caminho de erro estava coberto.
+
+**Regra:** todo caminho de fallback precisa de um evento próprio e de uma leitura periódica da
+sua taxa de sucesso. Um fallback com 0 sucessos em N tentativas não é um fallback degradado —
+é uma tela em branco com boas intenções. E a instrumentação que revelou isso (04/08) custou
+uma sprint e pagou três dias depois: **o comentário do arquivo já prescrevia a correção certa,
+condicionada ao número.** Prescrever a correção junto com a medição é o que fez a sprint
+seguinte ser execução em vez de palpite.

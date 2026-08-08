@@ -1,16 +1,99 @@
-# 🔴 GATE ATUAL — `scripts\58-PUSH.bat` — **1 COMMIT** (07/08, sprint 10h)
+# 🔴 GATE ATUAL — `scripts\62-PUSH.bat` — **3 COMMITS** (07/08, sprints 10h + 13h + 16h + 21h)
 
-Substitui o **57**, **56**, **55**, **54** e **53** — todos já executados ou obsoletos, **não clicar**.
-`origin/main` = `3faabec` (revalidado por `git ls-remote` no início desta sprint), com deploy
-READY em produção nesse mesmo SHA.
+Substitui o **61**, o **60**, o **59**, o **58**, o **57**, o **56**, o **55**, o **54** e o
+**53** — **não clicar** em nenhum deles. `origin/main` = `3faabec`.
 
-**Commit represado:** `ee5106d` — o gate de render morto que prendeu o único pagante ativo
-(`valos87196`, 75 créditos comprados) por **3h23min / 31 cliques bloqueados** hoje, depois de
-ele ler a página de preço às 11:43:01Z. Junto vai a prova social (#2 Fazier + TAAFT) promovida
-para a dobra da home.
+**Por que 62 e não 61:** a sprint das 21h escreveu código novo em `lib/videoDownload.ts`,
+arquivo que **não estava na lista do 61**. Rodar o 61 agora deixaria de fora a correção do
+download no celular — a única coisa desta fila que impede uma pessoa de ir embora sem o vídeo
+que acabou de fazer. O 62 faz **tudo** o que o 61 fazia, em dois commits, mais o terceiro.
 
-**Risco:** baixo. 2 arquivos de UI, `tsc --noEmit` EXITCODE=0, nenhuma rota de API, nenhuma
-migração, nada de dinheiro/marca d'água/preço. Revisão adversarial rodada 2×.
+⚠️ **O 62 está gravado em CRLF de propósito.** O 58, o 59 e o 60 foram gravados em LF e
+**nenhum dos três chegou a rodar**.
+
+**Commits represados (3):**
+
+1. **`c65406d`** (já commitado, sprint 10h) — o gate de render morto que prendeu o único
+   pagante ativo (`valos87196`, 75 créditos comprados) por **3h23min / 31 cliques bloqueados**.
+   Junto vai a prova social (#2 Fazier + TAAFT) promovida para a dobra da home.
+2. **Commit novo** (sprints 13h + 16h) — `KINEO-TRIAL-ENTITLEMENT-TIER` +
+   `KINEO-SEO-CTA-TRIAL` + `KINEO-TRIAL-POSTVIDEO-OFFER` + `KINEO-AEO-TRIAL`.
+3. **Commit novo** (sprint 21h) — `KINEO-DOWNLOAD-MOBILE-RESCUE`: **o "plano B" do download
+   tem 0 de 10 de aproveitamento desde que existe.** 33% de quem tenta baixar no celular fica
+   com NADA na mão (4 casos nas últimas 24h). 1 arquivo, 3 call sites intactos, superfície
+   exportada byte-idêntica ao HEAD.
+
+⚠️ **RESSALVA DE PROVA — leia antes de aprovar o commit 3.** O `tsc --noEmit` do **projeto
+inteiro** rodou EXITCODE=0 numa versão ANTERIOR às correções da 2ª revisão adversarial; depois
+disso ele passou a estourar o teto de 44s do shell do host em todas as tentativas, inclusive
+destacado (`setsid`), e **log vazio não é prova — processo morto também deixa log vazio**. O
+que ESTÁ provado da versão final: `tsc` **escopado** no arquivo alterado com EXITCODE=0 **e
+falsificado** (erro proposital → EXITCODE=2 apontando o próprio arquivo, restaurado
+byte-idêntico), mais a prova de que **as linhas `export` são idênticas ao HEAD** e o tipo
+`DownloadOutcome` não mudou — isto é, nenhum consumidor pode quebrar por assinatura. A
+primeira sprint com shell folgado deve rodar o `tsc` do projeto inteiro e registrar o EXITCODE.
+
+**Risco:** baixo. `/api/credits` só GANHA um campo (aditivo). Os dois ramos novos de cliente
+são provadamente inalcançáveis com a flag OFF (640 e **1.458** combinações testadas por
+script, **0 disparos**). Copy de marketing gateada pela mesma flag, com os literais OFF
+conferidos byte a byte contra `git show HEAD` (6/6). `tsc --noEmit` EXITCODE=0 — e o próprio
+`tsc` foi **falsificado** na sprint das 16h (erro proposital → EXITCODE=2). Nenhuma migração,
+nada de dinheiro / marca d'água / preço / checkout / flag.
+
+⚠️ **Ao montar o próximo N-PUSH:** o `git status` desta árvore lista **~311 arquivos
+"modificados"** que são idênticos ao HEAD (índice envenenado do OneDrive). O tamanho do diff
+se confere com **`git diff HEAD --ignore-cr-at-eol`**, nunca com `git diff` puro, e o staging
+é **por caminho explícito** — `git add -A` aqui apagaria 281 linhas de
+`docs/REVISAO-EMAIL-D0-2026-08-07.md`. O `.bat` começa com `git reset --mixed` por isso.
+E o `.git\index.lock` **continua irremovível pelo sandbox** (`Operation not permitted`),
+reconfirmado nas sprints das 13h e das 16h: por isso o `.bat` faz o commit.
+
+**Como destrava:** mandar qualquer mensagem na conversa durante uma sprint, ou rodar o `.bat`
+pelo Explorador (selecionar o arquivo na pasta e dar Return — a barra de endereço falha em
+silêncio). Permanente: abrir a tarefa `kineo-sprint-diario` → **Run now** → aprovar o cartão
+do Explorador de Arquivos **uma vez**.
+
+---
+
+## 🗄 HISTÓRICO — GATE `scripts\60-PUSH.bat` (07/08, sprints 10h + 13h) — SUBSTITUÍDO PELO 61
+
+
+Substitui o **59** (NÃO executado), **58**, **57**, **56**, **55**, **54** e **53** — **não
+clicar** em nenhum deles. `origin/main` = `3faabec`, revalidado por `git ls-remote` no início
+**e no fim** da sprint das 13h, com deploy READY em produção nesse mesmo SHA.
+
+**Commits represados (2):**
+
+1. **`c65406d`** (já commitado, sprint 10h) — o gate de render morto que prendeu o único
+   pagante ativo (`valos87196`, 75 créditos comprados) por **3h23min / 31 cliques bloqueados**,
+   depois de ele ler a página de preço às 11:43:01Z. Junto vai a prova social (#2 Fazier +
+   TAAFT) promovida para a dobra da home. ⚠️ **Correção de hash:** o relatório das 10h dizia
+   `ee5106d`; o commit que existe na árvore é `c65406d`. **Ele NÃO voltou desde 11:44:16Z**
+   (conferido nesta sprint) — enquanto não subir, o produto segue fechado para ele.
+2. **`KINEO-TRIAL-ENTITLEMENT-TIER` + `KINEO-SEO-CTA-TRIAL`** (sprint 13h, o commit que o
+   `.bat` FAZ) — `/api/credits` passa a devolver `entitlementTier`, e o generate deixa de
+   pré-selecionar o motor grátis para quem está em reverse trial. Junto: o botão primário
+   das páginas de aquisição para de vender o free tier antigo.
+
+⚠️ **CORREÇÃO DE UM ITEM ERRADO DESTE PRÓPRIO DOC.** A versão anterior anunciava o commit 2
+como `KINEO-TRIAL-PROVES-ENGINE` "da sprint 11h". **Aquela correção foi REVERTIDA pela própria
+revisão adversarial das 11h** (podia rotular um vídeo de 20 créditos como "Free · Fast Mode" na
+tela do cliente) — o commit das 11h seria **só de documentação**. O que sobe agora é uma
+implementação DIFERENTE, pela rota que o diagnóstico das 11h prescreveu: campo novo em
+`/api/credits`, sem efeito novo, sem snap-back, sem tocar em `mode` fora da montagem.
+
+**Risco:** baixo. Duas rotas de leitura (`/api/credits` ganha um campo aditivo), um ramo novo
+provadamente inalcançável com a flag OFF (640 combinações testadas, 0 disparos), 6 páginas de
+marketing com copy gateada pelo helper que já existia. `tsc --noEmit` EXITCODE=0. Nenhuma
+migração, nada de dinheiro / marca d'água / preço / checkout.
+
+⚠️ **Ao montar o próximo N-PUSH:** o `git status` desta árvore lista **~311 arquivos
+"modificados"** que são idênticos ao HEAD (índice envenenado do OneDrive). O tamanho do diff
+se confere com **`git diff HEAD`**, nunca com `git diff` puro, e o staging é **por caminho
+explícito** — `git add -A` aqui comprometeria os 311 e apagaria 281 linhas de
+`docs/REVISAO-EMAIL-D0-2026-08-07.md`. O `.bat` começa com `git reset --mixed` por isso.
+E o `.git\index.lock` **continua irremovível pelo sandbox** (`Operation not permitted`,
+mtime 10:20 de hoje) — reconfirmado nesta sprint: por isso o `.bat` faz o commit.
 
 **Como destrava:** mandar qualquer mensagem na conversa durante uma sprint, ou rodar o `.bat`
 pelo Explorador (selecionar o arquivo na pasta e dar Return — a barra de endereço falha em
