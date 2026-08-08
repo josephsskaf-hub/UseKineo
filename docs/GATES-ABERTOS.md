@@ -1,4 +1,4 @@
-# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **3 COMMITS** (08/08, sprints 12h e 13h)
+# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **5 COMMITS** (08/08, sprints 12h e 13h)
 
 `origin/main` = **`3204672`** — conferido por `git ls-remote origin refs/heads/main`
 na sprint das 13h de 08/08.
@@ -10,7 +10,12 @@ respondeu `3204672`. O documento estava errado, não o repositório — e dois
 relatórios seguidos abriram com um alerta vermelho que já não existia. Fonte da
 verdade daqui em diante: **`git ls-remote`, nunca o doc anterior.**
 
-**Commits represados (3, do mais novo para o mais antigo):**
+**Commits represados (5, do mais novo para o mais antigo).** A regra que vale é
+*tudo o que estiver à frente de `3204672`* — a contagem envelhece, o SHA não:
+
+0. **`c96a103`** — prova de tipos paga e falsificada + a lição do `git commit` que
+   falhou com o commit já criado (trava órfã do OneDrive). Só documento.
+0b. **doc final da sprint 13h** — esta correção de contagem + `PROMPT-DIARIO`.
 
 1. **Commit da sprint 13h** — `KINEO-TRIAL-OFFER-SCARCITY-2026-08-08`: a caixa de
    oferta pós-vídeo do trial tem **14 impressões e 0 cliques**, e em 9 delas a

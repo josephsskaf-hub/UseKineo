@@ -1,5 +1,40 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇAS — 08/08/2026 (sprint 13h) — duas regras, ambas sobre ENTREGA
+>
+> **1. "Escrevi a correção" não é "entreguei a correção". Fechar toda sprint com
+> `git status` E `git log origin/main..HEAD`.** A sprint das 11h de 08/08
+> diagnosticou a inanição dos e-mails do trial, escreveu a correção inteira e
+> **190 linhas de documento afirmando a entrega — e não rodou `git commit`.**
+> `vercel.json` e a rota do cron ficaram ` M` na árvore; HEAD seguiu com
+> `"30 16 * * *"`. Consequência: a entrega nº 1 proposta para o dia seguinte
+> ("confirmar que `trial_emails_log` deixou de ser 0") mediria um deploy que
+> nunca existiu, e o zero teria sido lido como "a hipótese estava errada".
+> É a regra 3 (*zero sobre nada não é evidência de nada*) mordendo a própria
+> operação. **Corolário:** o mesmo vale para o número de commits represados —
+> `git ls-remote origin refs/heads/main` mostrou que o `63-PUSH` **já tinha
+> rodado**, enquanto dois relatórios seguidos abriram com um alerta vermelho de
+> 8 commits que já estavam em produção. **Contar pelo SHA do remoto, nunca pelo
+> doc da sprint anterior.**
+>
+> **2. `git commit` pode FALHAR com o commit já criado. Conferir antes de
+> refazer.** O OneDrive recusa o `unlink` de `.git/HEAD.lock` e
+> `.git/index.lock` (`rm` → "Operation not permitted"), então uma trava órfã de
+> um commit anterior bloqueia todos os seguintes com "a git process may have
+> crashed". Mas `git commit-tree` já gravou o objeto. Sequência que funciona:
+> `git write-tree` → `git commit-tree` → (se `update-ref` falhar) **escrita
+> direta do SHA em `.git/refs/heads/main`** — e antes de escrever, conferir que
+> `refs/heads/main.lock` já contém **exatamente** aquele SHA, para gravar o que
+> o próprio git decidiu e não uma escolha nossa. Custo: o commit fica sem linha
+> de reflog. **Quem vir `git commit` falhando deve rodar `git cat-file -t <sha>`
+> ANTES de recriar o trabalho.**
+>
+> **3. `tsc --noEmit` do projeto inteiro não termina neste shell (>25 min).**
+> Alternativa que dá prova real em segundos: um `tsconfig` que **estende** o do
+> projeto e escopa o `include` em `next-env.d.ts` + o arquivo alterado.
+> O `next-env.d.ts` é **obrigatório**: sem ele o `<style jsx>` do styled-jsx
+> gera falsos positivos `TS2322` em linhas que ninguém tocou. Falsificar sempre.
+
 > ## MUDANÇA — 31/07/2026 (feedback direto do fundador, vale para TUDO)
 >
 > **REGRA ZERO: ANTES DE PEDIR OU CONSTRUIR, VERIFICAR SE JÁ EXISTE.**
