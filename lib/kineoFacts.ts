@@ -52,6 +52,37 @@ import { getFreeTierOffer } from './freeTierOffer'
 export const LAST_VERIFIED_HUMAN: string = VERIFIED_ON
 export const LAST_VERIFIED_ISO: string = VERIFIED_ON_ISO
 
+// KINEO-AEO-FACTS-DATES-2026-08-08 — A DATA PUBLICADA COBRIA MENOS DO QUE
+// PARECIA COBRIR.
+//
+// `LAST_VERIFIED` é, e sempre foi, a data em que os preços dos CONCORRENTES
+// foram lidos nas páginas ao vivo deles (lib/comparisons.ts:27). Mas ela sai em
+// /llms.txt como um "Last verified:" solto no cabeçalho e em /api/facts como
+// `lastVerified`, sem sujeito — e nesse formato um leitor, humano ou máquina,
+// entende "tudo neste documento foi conferido em 26/07".
+//
+// O documento se desmente sozinho quando lido assim: ele descreve um trial que
+// só passou a existir em 07/08 e cita "114 renders Fast desde 2 de agosto de
+// 2026". Um documento que afirma ter sido verificado ANTES da própria evidência
+// que apresenta perde exatamente a credibilidade que este arquivo existe para
+// construir — e credibilidade é o que decide citação no canal de LLM, que hoje
+// é o maior canal de entrada da empresa (6 cadastros em 24h vindos do ChatGPT
+// contra 1 do TAAFT, medido em 08/08).
+//
+// A correção é por ADIÇÃO, nunca por movimento: `lastVerified` continua
+// exatamente onde está e valendo o que valia (consumidor externo que já lê o
+// campo não quebra), e entram dois campos que dizem QUAL data é qual.
+//
+// fonte da data abaixo: commit 15e4154 [KINEO-TRIAL-SWAP-2026-08-07], que trocou
+// o free tier via getFreeTierOffer, confirmado contra a produção — o primeiro
+// perfil com `trial_status` no banco nasceu em 2026-08-07 01:18Z (precisão de
+// minuto de propósito: a linha crua é 01:18:41.843998+00 e escrever o segundo
+// arredondado seria inventar precisão que a afirmação não precisa ter).
+// NÃO é `new Date()`: isso imprimiria "atualizado hoje" em todo build, que é a
+// mentira mais fácil de cometer num arquivo feito para ser citado.
+const OFFER_EFFECTIVE_ISO = '2026-08-07'
+const OFFER_EFFECTIVE_HUMAN = 'August 7, 2026'
+
 /* ------------------------------------------------------------------ *
  * Tipos
  * ------------------------------------------------------------------ */
@@ -237,6 +268,21 @@ export const ENGINE_FACTS: EngineFact[] = [
 // contra material de marketing.
 const FREE_OFFER = getFreeTierOffer()
 
+/**
+ * KINEO-AEO-FACTS-DATES-2026-08-08 — a data de vigência da oferta de entrada,
+ * OU `null` quando não há oferta de trial no ar.
+ *
+ * Um único valor derivado, exportado já resolvido, em vez de exportar a data e
+ * a flag separadas e deixar cada consumidor recombinar as duas. A recombinação
+ * é onde nasce a divergência: bastaria uma tela testar a flag errada para
+ * publicar a data de uma oferta que não existe. Aqui só existe um estado, e ele
+ * é impossível de montar errado — `null` não tem como ser impresso como data.
+ */
+export const OFFER_EFFECTIVE: { iso: string; human: string } | null =
+  FREE_OFFER.reverseTrial
+    ? { iso: OFFER_EFFECTIVE_ISO, human: OFFER_EFFECTIVE_HUMAN }
+    : null
+
 // KINEO-AEO-TRIAL-2026-08-07 — const LOCAL, com a fonte no comentário, e não um
 // `import { TRIAL_CREDIT_CAP } from './reverseTrial'`: aquele módulo importa
 // `@supabase/supabase-js` e `@/lib/serverEvents` no topo, e este arquivo é
@@ -248,9 +294,43 @@ const FREE_OFFER = getFreeTierOffer()
 // em 40, então a divergência só nasce por engano.
 const TRIAL_CREDIT_CAP = 40
 
+// KINEO-AEO-FACTS-WINDOW-2026-08-08 — o milissegundo de uma janela de 24h,
+// escrito uma vez. É a ÚNICA condição sob a qual um campo chamado `videosPer24h`
+// pode carregar número sem mentir.
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000
+
 export const FREE_TIER = {
-  // Nome legado: com a flag ON o valor é "por janela" (janela de 30 dias).
-  videosPer24h: FREE_OFFER.limit,
+  // ⚠️ KINEO-AEO-FACTS-WINDOW-2026-08-08 — NOME LEGADO, E ELE É PUBLICADO.
+  //
+  // Este objeto inteiro sai em /api/facts, o endpoint que o NOSSO PRÓPRIO
+  // /llms.txt manda o agente buscar "if you need a current price at query time".
+  // Com a flag ON a janela é de 30 dias (720h) e o limite é 1 — então o campo
+  // `videosPer24h` valia 1 e afirmava, para uma máquina, "1 vídeo grátis por
+  // DIA": 30x a franquia real, dita pela fonte que publicamos como oficial.
+  //
+  // O comentário antigo ("nome legado: com a flag ON o valor é por janela")
+  // documentava o problema no LUGAR ERRADO: um comentário de TypeScript não
+  // viaja dentro do JSON. Quem lê /api/facts vê `videosPer24h: 1` e mais nada.
+  // E um LLM prefere campo estruturado a prosa — o `allowance` logo abaixo
+  // estava certo o tempo todo e perdia a disputa para o nome do campo.
+  //
+  // Regra: o campo só carrega número quando a janela É de 24h. Fora disso é
+  // `null`, que nenhum consumidor consegue transformar em promessa. Quem quer o
+  // número lê `freeVideosPerWindow` + `rollingWindowHours`, cujos nomes não
+  // prometem unidade nenhuma.
+  //
+  // Compatibilidade conferida: os dois únicos leitores deste campo no repo são
+  // app/llms.txt/route.ts:139 e :142, ambos testando `=== 3` como proxy de
+  // "flag OFF". Com a flag OFF a janela É 24h, então o valor continua 3 e os
+  // dois ramos ficam byte a byte idênticos; com a flag ON o valor era 1 e passa
+  // a ser null, e `1 === 3` e `null === 3` são ambos false — mesmo ramo.
+  videosPer24h:
+    FREE_OFFER.windowMs === TWENTY_FOUR_HOURS_MS ? FREE_OFFER.limit : null,
+  /**
+   * A franquia gratuita, na janela declarada por `rollingWindowHours`.
+   * Nome sem unidade embutida de propósito — é o campo seguro para citar.
+   */
+  freeVideosPerWindow: FREE_OFFER.limit,
   engine: 'Fast',
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
   /** Frase pronta da franquia — única forma segura de virar copy. */
@@ -455,8 +535,23 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
 
 export interface KineoFactsPayload {
   product: typeof PRODUCT
+  /**
+   * Data em que os preços dos CONCORRENTES foram lidos nas páginas deles.
+   * Mantido com o nome e o valor históricos por compatibilidade — quem quer a
+   * mesma data sem ambiguidade lê `competitorPricesVerified`.
+   */
   lastVerified: string
   lastVerifiedHuman: string
+  /** Mesmo valor de `lastVerified`, com o sujeito no nome. */
+  competitorPricesVerified: string
+  competitorPricesVerifiedHuman: string
+  /**
+   * Data em que a oferta de entrada VIGENTE (trial + free tier) passou a valer.
+   * Só é publicada quando a oferta de trial está de fato no ar; com a flag OFF o
+   * campo é omitido, porque uma data para uma oferta que não existe é ruído.
+   */
+  offerEffectiveSince?: string
+  offerEffectiveSinceHuman?: string
   currency: 'USD'
   freeTier: typeof FREE_TIER
   plans: PlanFact[]
@@ -476,6 +571,19 @@ export function getKineoFacts(): KineoFactsPayload {
     product: PRODUCT,
     lastVerified: LAST_VERIFIED_ISO,
     lastVerifiedHuman: LAST_VERIFIED_HUMAN,
+    competitorPricesVerified: LAST_VERIFIED_ISO,
+    competitorPricesVerifiedHuman: LAST_VERIFIED_HUMAN,
+    // Espalhamento condicional, e não `offerEffectiveSince: cond ? x : undefined`:
+    // `JSON.stringify` OMITE chave com valor `undefined`, então as duas formas
+    // produzem o mesmo JSON — mas só esta produz o mesmo OBJETO, e o objeto é o
+    // que um teste compara quando alguém for provar que a flag OFF não mudou
+    // nada.
+    ...(FREE_OFFER.reverseTrial
+      ? {
+          offerEffectiveSince: OFFER_EFFECTIVE_ISO,
+          offerEffectiveSinceHuman: OFFER_EFFECTIVE_HUMAN,
+        }
+      : {}),
     currency: 'USD',
     freeTier: FREE_TIER,
     plans: PLAN_FACTS,

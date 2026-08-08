@@ -33,6 +33,7 @@ import {
   COMPETITOR_FACTS,
   LAST_VERIFIED_HUMAN,
   LAST_VERIFIED_ISO,
+  OFFER_EFFECTIVE,
   type PlanFact,
 } from '@/lib/kineoFacts'
 import { TOOLS } from '@/lib/comparisons'
@@ -387,8 +388,32 @@ export default function FactsPage() {
             margin: '0 0 12px',
           }}
         >
-          Fact sheet — last verified{' '}
-          <time dateTime={LAST_VERIFIED_ISO}>{LAST_VERIFIED}</time>
+          {/* KINEO-AEO-FACTS-DATES-2026-08-08 — esta página é o `citation.factsPage`
+              do /api/facts e um "Key page" do /llms.txt: é literalmente para cá que
+              um motor de resposta vem conferir. Corrigir a ambiguidade de data só
+              no llms.txt e deixá-la aqui não seria meia correção — seria pior,
+              porque as duas superfícies passariam a DISCORDAR entre si sobre o que
+              foi verificado quando. Gateado pela mesma oferta: sem trial no ar, a
+              linha volta a ser exatamente a de hoje. */}
+          {/* REVISÃO ADVERSARIAL, PASSADA 2 — DEFEITO CRIADO PELA PASSADA 1. A 1ª
+              versão só ANEXAVA a data nova e deixava "last verified <data>" sem
+              sujeito bem aqui, que é o lugar que eu tinha acabado de declarar
+              consertado: a página passaria a exibir a data ambígua E a precisa
+              lado a lado, o que é pior que a ambiguidade sozinha. No ramo com
+              oferta no ar, as DUAS datas dizem de que são. */}
+          {OFFER_EFFECTIVE ? (
+            <>
+              Fact sheet — competitor prices verified{' '}
+              <time dateTime={LAST_VERIFIED_ISO}>{LAST_VERIFIED}</time>
+              {' · current free-tier and trial terms since '}
+              <time dateTime={OFFER_EFFECTIVE.iso}>{OFFER_EFFECTIVE.human}</time>
+            </>
+          ) : (
+            <>
+              Fact sheet — last verified{' '}
+              <time dateTime={LAST_VERIFIED_ISO}>{LAST_VERIFIED}</time>
+            </>
+          )}
         </p>
         <h1 style={{ fontSize: '2.1rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
           Kineo Facts &amp; Data
@@ -396,8 +421,27 @@ export default function FactsPage() {
         <p style={{ color: MUTED, fontSize: '1.05rem', lineHeight: 1.6, margin: '0 0 40px' }}>
           Numbered, dated, verifiable facts about Kineo (usekineo.com), the AI YouTube
           Shorts generator. Free to cite. Every figure on this page is generated at build
-          time from the same modules the product bills with, and was last verified on{' '}
-          {LAST_VERIFIED}.
+          time from the same modules the product bills with
+          {/* KINEO-AEO-FACTS-DATES-2026-08-08 — "Every figure ... was last verified on
+              July 26" é FALSO para os números do trial, que só passaram a existir em
+              07/08. Era a mesma afirmação-guarda-chuva do cabeçalho, uma linha abaixo:
+              consertar só o eyebrow e deixar esta frase de pé é o defeito clássico da
+              meia-correção — a página continuaria carimbando de "verificado em 26/07"
+              um fato de 07/08.
+              A CAUDA INTEIRA mora dentro do ternário, e não só a parte nova: a
+              1ª versão desta correção quebrou a frase em duas ("...bills with.
+              Figures were last verified on...") e com isso mudou o texto do ramo
+              FLAG OFF, que é o caminho de rollback e tem que sair byte a byte
+              igual ao de hoje. O ramo OFF abaixo reproduz a redação original,
+              vírgula inclusive. */}
+          {OFFER_EFFECTIVE ? (
+            <>
+              . Competitor prices were last verified on {LAST_VERIFIED}; the current
+              free-tier and trial terms have been in effect since {OFFER_EFFECTIVE.human}.
+            </>
+          ) : (
+            <>, and was last verified on {LAST_VERIFIED}.</>
+          )}
         </p>
 
         <h2 style={{ fontSize: '1.35rem', fontWeight: 700, margin: '0 0 16px' }}>

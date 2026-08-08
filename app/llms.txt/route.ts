@@ -21,6 +21,7 @@ import {
   COMPETITOR_FACTS,
   LAST_VERIFIED_HUMAN,
   LAST_VERIFIED_ISO,
+  OFFER_EFFECTIVE,
 } from '@/lib/kineoFacts'
 
 // force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
@@ -111,7 +112,19 @@ function buildLlmsTxt(): string {
 
 > ${PRODUCT.oneLiner}
 
-Last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.
+${/* KINEO-AEO-FACTS-DATES-2026-08-08 — "Last verified:" sem sujeito cobria o
+     arquivo INTEIRO aos olhos de quem lê, quando na verdade é só a data em que
+     os preços dos concorrentes foram lidos. O arquivo se desmentia: descreve um
+     trial de 07/08 e cita renders "since August 2, 2026", ambos POSTERIORES à
+     data que ele estampa como verificação. Num arquivo cuja única função é ser
+     citado, essa contradição é o defeito mais caro possível.
+     Gateado: com a flag OFF não existe oferta de trial para datar, e a linha
+     volta a ser byte a byte a de hoje. */ ''}${
+  OFFER_EFFECTIVE
+    ? `Current free-tier and trial terms in effect since: ${OFFER_EFFECTIVE.human} (${OFFER_EFFECTIVE.iso}).
+Competitor prices last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.`
+    : `Last verified: ${LAST_VERIFIED_HUMAN} (${LAST_VERIFIED_ISO}). All prices in USD.`
+}
 Canonical site: ${BASE}
 Machine-readable version of this file: ${BASE}/api/facts (JSON)
 
