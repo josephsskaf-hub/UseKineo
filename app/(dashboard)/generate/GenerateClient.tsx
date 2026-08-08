@@ -600,6 +600,17 @@ export default function GenerateClient({
   const [isStarter, setIsStarter] = useState<boolean>(false)
   const [isCreator, setIsCreator] = useState<boolean>(false)
   const [isStudio, setIsStudio] = useState<boolean>(false)
+  // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — "o que esta conta PODE usar
+  // agora", vindo de /api/credits. `null` = ainda não resolvido (montagem ou
+  // erro de rede), e NADA que dependa disto pode assumir "grátis" nesse
+  // estado: fechar o cadeado por default pintaria um paywall na tela de um
+  // assinante toda vez que a rede engasgasse.
+  //
+  // ⚠️ ESTE CAMPO NÃO ENTRA EM `anyPaid`. `anyPaid` destrava Kling/Veo/
+  // Hollywood, que o servidor recusa para trial com 402 (invariante 2 de
+  // lib/reverseTrial.ts). Ele existe SÓ para responder a pergunta do upload de
+  // footage, e é lido num lugar só.
+  const [entitlementTier, setEntitlementTier] = useState<'free' | 'starter' | 'creator' | 'studio' | null>(null)
   // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial (direitos do Creator;
   // motores Studio ficam com cadeado). Vem do servidor via /api/credits e é
   // false sempre que a flag KINEO_REVERSE_TRIAL_ENABLED está OFF.
@@ -676,6 +687,34 @@ export default function GenerateClient({
   const footageInputRef = useRef<HTMLInputElement | null>(null)
   const voiceInputRef = useRef<HTMLInputElement | null>(null)
 
+  // ═══ KINEO-BUGHUNT-FILA-2026-08-08 — ITEM #4: A TELA NÃO PODE OFERECER O QUE
+  // O SERVIDOR RECUSA ═══════════════════════════════════════════════════════
+  //
+  // Até aqui o bloco "🎬 My footage" abria o seletor de arquivos para TODO
+  // mundo. Quem não tinha direito escolhia o clipe, esperava, e só então
+  // recebia um 402 traduzido num texto vermelho — 26 vezes na janela de 7 dias.
+  // O trabalho jogado fora é do usuário, e o pedido chegava ao servidor só para
+  // ser negado.
+  //
+  // O PREDICADO É COPIADO DO SERVIDOR, LINHA POR LINHA (app/api/footage/route.ts):
+  //   isPaid = has_paid === true || PAID_PLANS.has(plan)   → `hasPaid || isStarter || isCreator || isStudio`
+  //   treatAsPaid = isPaid || trial ativo                  → `|| trialActive`
+  //
+  // `hasPaid` entra SOZINHO de propósito: existem contas com `has_paid=true` e
+  // `plan='free'` (compra avulsa de créditos — 3 delas medidas em §4 do doc da
+  // caçada). O servidor libera essas contas, então `entitlementTier === 'free'`
+  // não pode, por si só, fechar o cadeado — senão a tela negaria o que o
+  // servidor aceita, que é o MESMO defeito de cabeça para baixo.
+  //
+  // `trialActive` entra aqui e NÃO em `anyPaid`: footage é feature de Starter
+  // pra cima, logo está dentro da promessa do trial (o gate do servidor já
+  // decidiu isso em 07/08); Kling/Veo/Hollywood não estão, e é `anyPaid` que
+  // destrava aqueles.
+  //
+  // `null` = ainda não sei → NÃO tranca. Ver o comentário de `entitlementTier`.
+  // (a constante `footageLocked` vive logo abaixo de `hasPaid`, ~450 linhas
+  // adiante: `const` de módulo/escopo não pode ser lido antes de declarado.)
+
   useEffect(() => {
     fetch('/api/footage', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { items: [] }))
@@ -717,6 +756,16 @@ export default function GenerateClient({
 
   async function handleFootageFiles(files: FileList | null) {
     if (!files || files.length === 0 || footageUploading) return
+    // KINEO-BUGHUNT-FILA-2026-08-08 — segunda trava, não decoração: o <input>
+    // fica no DOM (o cadeado é visual) e um arquivo pode chegar aqui por
+    // arrastar-e-soltar ou por um clique que venceu a corrida com o estado. O
+    // servidor recusa de qualquer jeito; isto só evita gastar a paciência da
+    // pessoa com um upload que já nasceu negado.
+    if (footageLocked) {
+      setFootageMsg('Uploading your own clips is part of the paid plans — see /pricing to unlock it.')
+      if (footageInputRef.current) footageInputRef.current.value = ''
+      return
+    }
     setFootageUploading(true)
     setFootageMsg('')
     try {
@@ -739,6 +788,13 @@ export default function GenerateClient({
   async function handleVoiceFile(files: FileList | null) {
     const file = files?.[0]
     if (!file || voiceUploading) return
+    // O upload de voz sobe pela MESMA rota (/api/footage, uploadUserFile) e
+    // toma o MESMO 402. Mesmo cadeado, pelo mesmo motivo.
+    if (footageLocked) {
+      setFootageMsg('Uploading your own voiceover is part of the paid plans — see /pricing to unlock it.')
+      if (voiceInputRef.current) voiceInputRef.current.value = ''
+      return
+    }
     setVoiceUploading(true)
     setFootageMsg('')
     try {
@@ -1011,6 +1067,13 @@ export default function GenerateClient({
   //  - lastFastRenderRef: the exact inputs of the just-made non-avatar video, so the
   //    clean re-render reproduces the SAME video (not a fresh random one).
   const [hasPaid, setHasPaid] = useState(false)
+  // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — o cadeado do bloco "My footage".
+  // A justificativa completa do predicado está junto de `footageInputRef`; aqui
+  // só porque `hasPaid` é declarado nesta linha e um `const` não pode ser lido
+  // antes de existir.
+  const footageLocked =
+    entitlementTier !== null &&
+    !(hasPaid || isStarter || isCreator || isStudio || trialActive)
   const [wmUnlocking, setWmUnlocking] = useState(false)
   const [wmUnlockError, setWmUnlockError] = useState<string | null>(null)
   const [watermarkedDownloadConfirmed, setWatermarkedDownloadConfirmed] = useState(false)
@@ -1081,7 +1144,7 @@ export default function GenerateClient({
   // credits but picked a plan-gated engine (e.g. Cinematic/Kling on Starter).
   // KINEO-TRIAL-PAYWALL-2026-08-06 — 'trial_ended' entra como quarta razao:
   // quem PERDEU o acesso precisa de uma headline diferente de quem nunca teve.
-  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended'>('credits')
+  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage'>('credits')
   const [upgradeLoading, setUpgradeLoading] = useState(false)
 
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every checkout CTA on this screen used
@@ -1911,6 +1974,18 @@ export default function GenerateClient({
           if (typeof data.isStarter === 'boolean') setIsStarter(data.isStarter)
           if (typeof data.isCreator === 'boolean') setIsCreator(data.isCreator)
           if (typeof data.isStudio === 'boolean') setIsStudio(data.isStudio)
+          // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — validado contra a lista,
+          // não aceito por ser string: um servidor antigo (ou o ramo de perfil
+          // inexistente de /api/credits) que mandar outra coisa deixa o estado
+          // em `null`, que é o "não sei" e não fecha cadeado nenhum.
+          if (
+            data.entitlementTier === 'free' ||
+            data.entitlementTier === 'starter' ||
+            data.entitlementTier === 'creator' ||
+            data.entitlementTier === 'studio'
+          ) {
+            setEntitlementTier(data.entitlementTier)
+          }
           // KINEO-REVERSE-TRIAL-P1-2026-08-06 — estado do reverse trial.
           if (typeof data.trialActive === 'boolean') setTrialActive(data.trialActive)
           // KINEO-TRIAL-SURFACES-2026-08-07 — fase do trial (flag OFF: 'none').
@@ -5481,7 +5556,7 @@ export default function GenerateClient({
   // Push #109 — free users at 0 credits get the urgency modal (with the
   // 10-min countdown); everyone else keeps the standard out-of-credits
   // modal.
-  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' | 'trial_ended' = 'credits') {
+  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage' = 'credits') {
     // #380 — unified: every out-of-credits moment now opens the 3-plan upgrade
     // modal (Spark/Basic/Pro) so the user picks a plan at peak intent.
     // KINEO-PLAN-GATE-MODAL — carry the reason so the headline is accurate.
@@ -6743,21 +6818,54 @@ export default function GenerateClient({
           <div className="mt-4" style={{ maxWidth: 830 }}>
             <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted)' }}>
               🎬 My footage <span style={{ textTransform: 'none', fontWeight: 600 }}>— use your own clips &amp; photos</span>
+              {footageLocked && (
+                <span style={{ textTransform: 'none', fontWeight: 800, color: '#f0b429', marginLeft: 8 }}>· Paid plans</span>
+              )}
             </div>
             <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.03)', border: selectedFootageIds.length > 0 ? '1px solid rgba(41,151,255,0.35)' : '1px solid var(--border)' }}>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => footageInputRef.current?.click()}
-                  disabled={footageUploading}
-                  className="rounded-lg px-3 py-2 text-[12px] font-bold"
-                  style={{ background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.4)', color: '#2997ff', cursor: footageUploading ? 'not-allowed' : 'pointer' }}
-                >
-                  {footageUploading ? '📤 Uploading…' : '📤 Upload clips / photos'}
-                </button>
+                {/* KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — o botão só abre o
+                    seletor de arquivos para quem o servidor deixa subir. Sem
+                    direito, o MESMO botão vira o caminho do upgrade, com o
+                    rótulo dizendo a verdade antes do clique. A alternativa
+                    (esconder o bloco) foi descartada de propósito: "seus
+                    próprios clipes" é justamente o motivo de assinar que o
+                    briefing chama de isca do free→pago — escondê-lo apagaria o
+                    argumento de venda junto com a frustração.
+
+                    ⚠️ DEFEITO DA MINHA 1ª PASSADA, corrigido: isto era um
+                    `<a href="/pricing">`. Numa tela cujo estado inteiro é o
+                    tópico que a pessoa acabou de digitar, navegação de página
+                    inteira APAGA o rascunho — e o próprio repo já registra que
+                    "depois do Stripe o usuário volta com o formulário zerado"
+                    (revisão adversarial do `trial_ended` no UpgradeModal). O
+                    caminho certo é o modal desta mesma tela, que é a superfície
+                    de venda de verdade e não custa o texto do usuário. */}
+                {footageLocked ? (
+                  <button
+                    type="button"
+                    onClick={() => openOutOfCreditsModal('footage')}
+                    className="rounded-lg px-3 py-2 text-[12px] font-bold"
+                    style={{ background: 'rgba(240,180,41,0.10)', border: '1px solid rgba(240,180,41,0.40)', color: '#f0b429', cursor: 'pointer' }}
+                  >
+                    🔒 Upload clips / photos — unlock with a plan
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => footageInputRef.current?.click()}
+                    disabled={footageUploading}
+                    className="rounded-lg px-3 py-2 text-[12px] font-bold"
+                    style={{ background: 'rgba(41,151,255,0.12)', border: '1px solid rgba(41,151,255,0.4)', color: '#2997ff', cursor: footageUploading ? 'not-allowed' : 'pointer' }}
+                  >
+                    {footageUploading ? '📤 Uploading…' : '📤 Upload clips / photos'}
+                  </button>
+                )}
                 <input ref={footageInputRef} type="file" multiple accept="video/mp4,video/quicktime,video/webm,image/jpeg,image/png" className="hidden" onChange={(e) => handleFootageFiles(e.target.files)} />
                 <span className="text-[11px]" style={{ color: 'var(--muted)' }}>
-                  MP4/MOV/JPG · up to 50 MB each · your clips fill the first scenes, stock fills the rest
+                  {footageLocked
+                    ? 'Your own clips and photos as B-roll — included in every paid plan.'
+                    : 'MP4/MOV/JPG · up to 50 MB each · your clips fill the first scenes, stock fills the rest'}
                 </span>
               </div>
               {footageItems.filter((f) => f.kind !== 'audio').length > 0 && (
@@ -6799,15 +6907,28 @@ export default function GenerateClient({
               🎙️ My voice <span style={{ textTransform: 'none', fontWeight: 600 }}>— replace the AI narrator</span>
             </div>
             <div className="rounded-xl p-3 flex flex-wrap items-center gap-2" style={{ background: 'rgba(255,255,255,0.03)', border: (myVoiceUrl || useClonedVoice) ? '1px solid rgba(41,151,255,0.35)' : '1px solid var(--border)' }}>
-              <button
-                type="button"
-                onClick={() => voiceInputRef.current?.click()}
-                disabled={voiceUploading}
-                className="rounded-lg px-3 py-2 text-[12px] font-bold"
-                style={{ background: myVoiceUrl ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: myVoiceUrl ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: myVoiceUrl ? '#2997ff' : 'var(--muted2)', cursor: voiceUploading ? 'not-allowed' : 'pointer' }}
-              >
-                {voiceUploading ? '🎙️ Uploading…' : myVoiceUrl ? '✓ My voiceover loaded' : '🎙️ Upload my voiceover (MP3/WAV)'}
-              </button>
+              {/* KINEO-BUGHUNT-FILA-2026-08-08 — mesmo cadeado do bloco de
+                  footage: este upload usa a MESMA rota e leva o MESMO 402. */}
+              {footageLocked ? (
+                <button
+                  type="button"
+                  onClick={() => openOutOfCreditsModal('footage')}
+                  className="rounded-lg px-3 py-2 text-[12px] font-bold"
+                  style={{ background: 'rgba(240,180,41,0.10)', border: '1px solid rgba(240,180,41,0.40)', color: '#f0b429', cursor: 'pointer' }}
+                >
+                  🔒 Upload my voiceover — unlock with a plan
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => voiceInputRef.current?.click()}
+                  disabled={voiceUploading}
+                  className="rounded-lg px-3 py-2 text-[12px] font-bold"
+                  style={{ background: myVoiceUrl ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: myVoiceUrl ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: myVoiceUrl ? '#2997ff' : 'var(--muted2)', cursor: voiceUploading ? 'not-allowed' : 'pointer' }}
+                >
+                  {voiceUploading ? '🎙️ Uploading…' : myVoiceUrl ? '✓ My voiceover loaded' : '🎙️ Upload my voiceover (MP3/WAV)'}
+                </button>
+              )}
               <input ref={voiceInputRef} type="file" accept="audio/mpeg,audio/wav,audio/mp4,audio/x-m4a" className="hidden" onChange={(e) => handleVoiceFile(e.target.files)} />
               {myVoiceUrl && (
                 <button type="button" onClick={() => setMyVoiceUrl('')} className="text-[11px] underline" style={{ color: 'var(--muted)', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -10867,7 +10988,7 @@ function UpgradeModal({
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
   onClose: () => void
-  reason?: 'credits' | 'studio' | 'creator' | 'trial_ended'
+  reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage'
   isSubscriber?: boolean
   /** Inline English error from the parent's plan-row launcher. */
   checkoutError?: string | null
@@ -10953,6 +11074,19 @@ function UpgradeModal({
     studio: {
       title: 'Unlock premium AI engines 🎬',
       sub: 'Kling, Veo and Hollywood are available on every paid plan — you just need the credits. Pick a plan below. Cancel anytime · 7-day money-back.',
+    },
+    // KINEO-BUGHUNT-FILA-2026-08-08 (item #4) — razão PRÓPRIA para o cadeado de
+    // "My footage" / "My voice". Reusar `creator` era a saída barata e teria
+    // aberto um modal dizendo "Unlock AI-generated videos" para quem clicou em
+    // "subir meu clipe" — trocar um affordance mentiroso por um título
+    // mentiroso não conserta nada.
+    //
+    // "every paid plan" é conferido, não retórico: o gate do servidor é
+    // `PAID_PLANS` em app/api/footage/route.ts, que contém starter, basic e pro
+    // (mais os três _trial). Os três planos vendidos aqui estão dentro.
+    footage: {
+      title: 'Use your own clips and voice 🎬',
+      sub: 'Uploading your own footage, photos and voiceover is included with every paid plan — your clips fill the first scenes, stock fills the rest. Cancel anytime · 7-day money-back.',
     },
     // KINEO-TRIAL-PAYWALL-2026-08-06 (fase 2, item 3) — PAYWALL CONTEXTUAL.
     // Quem sai do trial nao esta descobrindo um recurso novo: ele esta perdendo

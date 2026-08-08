@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+// KINEO-BUGHUNT-FILA-2026-08-08 — `@/lib/supabase/server` (cliente de cookie)
+// NÃO é importado aqui de propósito: um cron não tem sessão, e sob RLS o
+// cliente anônimo lê 0 linhas de `profiles`. Ver o bloco da coorte.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -127,7 +129,41 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Supabase service env missing' }, { status: 500 })
   }
 
-  const supabase = createClient()
+  // ⚠️ KINEO-BUGHUNT-FILA-2026-08-08 — ERA `createClient()`, O CLIENTE ANÔNIMO.
+  //
+  // Este cron roda SEM sessão: a chamada vem do agendador da Vercel com o
+  // `Bearer CRON_SECRET`, nunca com o cookie de um usuário. O cliente de
+  // `@/lib/supabase/server` lê o cookie, não acha nenhum, e emite a requisição
+  // como `anon` — que sob RLS não enxerga a linha de NINGUÉM em `profiles`.
+  // A coorte abaixo, portanto, voltava SEMPRE vazia: 0 candidatos, 0 envios,
+  // 200 OK, nenhum erro em lugar nenhum. A prova está no banco: `reminder_sent_at`
+  // é NULL nas 973 linhas de `profiles`, desde sempre.
+  //
+  // O mesmo cliente também fazia o UPDATE de `reminder_sent_at` (fim do laço) —
+  // que pelo mesmo motivo nunca escreveria linha alguma. Se por acaso a leitura
+  // um dia voltasse a funcionar sem a escrita, o resultado seria PIOR que o
+  // silêncio de hoje: o mesmo e-mail saindo todo dia para a mesma pessoa,
+  // porque a marca de idempotência nunca gruda. Por isso os dois passam a usar
+  // o MESMO cliente de service_role.
+  //
+  // O comentário do bloco de supressão logo acima já dizia, desde 27/07, que
+  // "esta rota lê a coorte pelo cliente de cookie, que não enxerga linha de
+  // outro usuário" — o diagnóstico estava escrito no arquivo; faltou aplicá-lo
+  // à coorte, não só à trava.
+  //
+  // HOJE ISTO ESTÁ MASCARADO pelo portão `KINEO_LIFECYCLE_EMAILS_ENABLED`, que
+  // retorna lá em cima. Com a flag OFF nada abaixo desta linha executa, então o
+  // comportamento em produção é, comprovadamente, idêntico. A correção entra
+  // ANTES de alguém ligar a flag justamente para o dia em que ligarem não ser
+  // o dia de descobrir o defeito.
+  //
+  // As envs já foram validadas acima (o bloco da supressão aborta sem elas), e
+  // `freshFetch` entra pelo mesmo motivo do cliente de supressão: leitura de
+  // cron nunca vem de cache (KINEO-LIFECYCLE-FRESH-READ-2026-08-05).
+  const supabase = createAdminClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { fetch: freshFetch },
+  })
 
   // Find users who signed up 20–28 hours ago, have no paid plan, and
   // haven't received a reminder yet.
@@ -161,15 +197,15 @@ export async function GET(req: NextRequest) {
   // de ciclo de vida por usuário por 24h, somando os 4 jobs. Sem isto, quem se
   // encaixa em vários critérios recebe até 4 e-mails no mesmo dia. Falha
   // FECHADA (ver lib/lifecycle/suppression.ts).
-  const suppressionAdmin = createAdminClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    // KINEO-LIFECYCLE-FRESH-READ-2026-08-05 — leitura de cron nunca vem de
-    // cache. O reenvio triplo do send-cap-hit nasceu disso; este job lia pelo
-    // mesmo caminho. Ver lib/lifecycle/freshFetch.ts.
-    global: { fetch: freshFetch },
-  })
+  // KINEO-BUGHUNT-FILA-2026-08-08 — era um SEGUNDO cliente de service_role,
+  // criado aqui com exatamente as mesmas opções do de cima (incl. o `freshFetch`
+  // do KINEO-LIFECYCLE-FRESH-READ-2026-08-05: leitura de cron nunca vem de
+  // cache — o reenvio triplo do send-cap-hit nasceu disso). Agora que a coorte
+  // também é lida com service_role, os dois são o MESMO cliente: uma rota de
+  // e-mail com duas conexões ao mesmo banco é a forma mais fácil de, um dia,
+  // alguém consertar uma e esquecer a outra.
   const suppression = await loadLifecycleSuppression(
-    suppressionAdmin,
+    supabase,
     candidates.map((u) => u.id as string),
   )
   const targets = candidates.filter((u) => !suppression.isSuppressed(u.id as string))

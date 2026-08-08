@@ -214,6 +214,17 @@ interface Candidate {
   creditsLeft: number
   /** Créditos de trial já gastos. Decide "first Short" × "next Short". */
   creditsUsed: number
+  /**
+   * KINEO-BUGHUNT-FILA-2026-08-08 — quanto tempo REALMENTE falta, medido na
+   * linha. É daqui que sai a copy do `ending_soon`; ver `endingSoonTiming()`.
+   * Para as coortes pós-fim vale 0 e ninguém lê.
+   *
+   * O relógio é o MESMO `now` que decidiu o kind, de propósito: este arquivo
+   * inteiro existe para não ter duas verdades sobre o mesmo instante. A deriva
+   * possível é o tempo do laço de envio (minutos), abaixo da granularidade de
+   * hora da frase.
+   */
+  msLeft: number
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -273,6 +284,7 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     restore: 0,
     creditsLeft,
     creditsUsed: used,
+    msLeft: Math.max(0, endsMs - now),
   }
 
   if (status === 'active') {
@@ -342,6 +354,75 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
   }
 
   return null
+}
+
+/**
+ * ═══ KINEO-BUGHUNT-FILA-2026-08-08 — O PRAZO VEM DO RELÓGIO, NÃO DA VARIANTE ═══
+ *
+ * O DEFEITO (item #3 de docs/BUGHUNT-2026-08-08.md, medido, não deduzido):
+ * a frase era `c.variant === '3d' ? 'tomorrow' : 'in 2 days'`. Ou seja, o
+ * e-mail afirmava um PRAZO derivado do plano do trial, não do tempo que
+ * faltava — e as duas coisas divergem sempre que a supressão de 24h empurra o
+ * envio para o dia seguinte.
+ *
+ * O caminho real: cron diário 16:30Z + supressão cruzada de 24h. Para um trial
+ * de 3 dias nascido depois das 16:30, o `d0_welcome` ocupa o D1, o `ending_soon`
+ * do D2 é suprimido pelo PRÓPRIO welcome, e a linha só passa no D3 — a ~1h30 do
+ * fim, dizendo "ends tomorrow". Metade das contas reais é 3d.
+ *
+ * A CORREÇÃO NÃO MEXE EM QUEM RECEBE, SÓ NO QUE O E-MAIL DIZ. `dueKind()` não
+ * mudou uma linha: a coorte, a janela `ENDING_SOON_MS`, a prioridade e a
+ * cadência diária são exatamente as de antes. Trocar a cadência (a outra
+ * correção sugerida no doc, 6/6h) multiplicaria por 4 as execuções de um job de
+ * e-mail sem ninguém ter medido o custo — e não é preciso: o problema nunca foi
+ * a hora do envio, foi a frase mentir sobre ela.
+ *
+ * NOS DIAS CERTOS A COPY É BYTE A BYTE A MESMA — é isso que torna a mudança
+ * segura de auditar:
+ *   · 3d disparando no D2 (msLeft ≤ 36h, ≥ 24h) → "tomorrow"      + o subject antigo
+ *   · 7d disparando no D5 (msLeft ≤ 60h, ≥ 48h) → "in 2 days"     + o subject antigo
+ * O que muda é só o caso que estava errado: com menos de 24h a frase vira
+ * "in about N hours", e abaixo de 6h o assunto vira "Last call" — porque
+ * mandar "acaba amanhã" para quem acaba em 90 minutos não é urgência, é
+ * informação falsa, e queima a única chance de conversão que resta.
+ *
+ * ARREDONDAMENTO PARA BAIXO (`Math.floor`), sempre: o e-mail nunca pode
+ * prometer mais tempo do que existe. 5h59 vira "about 5 hours", não 6.
+ */
+const ENDING_SOON_URGENT_MS = 6 * HOUR_MS
+
+// ⚠️ DEFEITO DA MINHA 1ª PASSADA, corrigido: esta função nasceu `export`ada
+// (reflexo de "seria bom testar de fora"). Um arquivo `route.ts` do App Router
+// só pode exportar os campos que o Next reconhece — `GET`, `dynamic`,
+// `maxDuration` e afins; qualquer outro nome faz o `next build` falhar na
+// validação de tipos das rotas. E o `tsc --noEmit` desta casa NÃO pegaria:
+// a checagem mora no .d.ts que o Next gera durante o build. O teste de fora
+// mora em scripts/prove-ending-soon-timing.mjs, que carrega uma cópia
+// declarada como cópia.
+function endingSoonTiming(msLeft: number): { when: string; subject: string } {
+  const safeMs = Number.isFinite(msLeft) ? Math.max(0, msLeft) : 0
+  if (safeMs < HOUR_MS) {
+    return {
+      when: 'in less than an hour',
+      subject: 'Last call — your Creator trial ends in less than an hour',
+    }
+  }
+  if (safeMs < DAY_MS) {
+    const hours = Math.floor(safeMs / HOUR_MS)
+    const when = `in about ${hours} ${hours === 1 ? 'hour' : 'hours'}`
+    return {
+      when,
+      subject:
+        safeMs < ENDING_SOON_URGENT_MS
+          ? `Last call — your Creator trial ends ${when}`
+          : `Your Creator trial ends ${when}`,
+    }
+  }
+  if (safeMs < 2 * DAY_MS) {
+    return { when: 'tomorrow', subject: 'Your Creator trial ends tomorrow' }
+  }
+  const days = Math.floor(safeMs / DAY_MS)
+  return { when: `in ${days} days`, subject: `${days} days left on your Creator trial` }
 }
 
 function utm(campaign: string): string {
@@ -414,8 +495,10 @@ usekineo.com`
 
   if (c.kind === 'ending_soon') {
     const url = `${APP_URL}/pricing?${utm('trial_ending')}`
-    const when = c.variant === '3d' ? 'tomorrow' : 'in 2 days'
-    const subject = c.variant === '3d' ? 'Your Creator trial ends tomorrow' : '2 days left on your Creator trial'
+    // KINEO-BUGHUNT-FILA-2026-08-08 — era `c.variant === '3d' ? 'tomorrow' :
+    // 'in 2 days'`: um prazo derivado do PLANO do trial, não do tempo que
+    // falta. Ver o bloco de `endingSoonTiming()`.
+    const { when, subject } = endingSoonTiming(c.msLeft)
     // KINEO-D0-EMAIL-REVIEW-2026-08-07 — "You're back to the free daily limit"
     // era a copy da flag DESLIGADA (3 Fast a cada 24h). Com KINEO_REVERSE_TRIAL_
     // ENABLED ligada — o único mundo em que este e-mail existe — o free tier é

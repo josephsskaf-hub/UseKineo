@@ -18,7 +18,9 @@ import {
   USER_FOOTAGE_BUCKET,
 } from '@/lib/userFootage'
 // KINEO-TRIAL-FEATURE-GATES-2026-08-07 — ver o bloco do gate no POST.
-import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
+import { getEffectiveEntitlement, TRIAL_ENTITLEMENT_COLUMNS, type EffectiveEntitlement } from '@/lib/reverseTrial'
+// KINEO-BUGHUNT-FILA-2026-08-08 — telemetria da RECUSA (ver logFootageRefusal).
+import { writeServerEvent } from '@/lib/serverEvents'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +39,55 @@ const EXT_BY_MIME: Record<string, string> = {
 }
 
 const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
+
+// ═══ KINEO-BUGHUNT-FILA-2026-08-08 — A RECUSA PASSA A SER MEDIDA ═══════════
+//
+// Item #4 de docs/BUGHUNT-2026-08-08.md: esta rota devolveu 402 vinte e seis
+// vezes na janela de 7 dias ("Uploading your own footage is a paid feature") e
+// escreveu ZERO eventos. O irmão dela, /api/compose, já emite `compose_refused`
+// desde 05/08 (24 eventos / 12 pessoas) — e foi exatamente esse evento que
+// virou a fonte primária de duas coortes de e-mail (send-cap-hit,
+// send-post-nudge). A diferença entre as duas rotas nunca foi de importância:
+// foi só de instrumento.
+//
+// Sem isto não se sabe QUEM levou "não" aqui, nem se levou por não ter plano,
+// por estourar a cota de 500MB ou por mandar um formato que a rota não aceita —
+// e quem tenta subir o próprio material é, por definição, um usuário engajado.
+//
+// `tier` responde "o que esta conta PODE usar", NÃO "o que ela comprou": sem
+// ele, um trial (que TEM direito a footage — ver o bloco do gate) e um free
+// ficariam indistinguíveis no evento, e a próxima pessoa a ler estes números
+// concluiria a coisa errada sobre a mesma linha do funil.
+//
+// Best-effort, igual ao precedente: `writeServerEvent` nunca lança e nunca
+// muda o corpo nem o status da resposta. Uma falha de telemetria não pode
+// virar uma falha de produto.
+function footageTier(
+  profile: { plan?: unknown; has_paid?: unknown } | null,
+  ent: EffectiveEntitlement,
+): string {
+  const plan = (profile?.plan ?? '').toString()
+  if (plan === 'pro' || plan === 'pro_trial') return 'studio'
+  if (plan === 'basic' || plan === 'basic_trial') return 'creator'
+  if (plan === 'starter' || plan === 'starter_trial') return 'starter'
+  if (ent.isTrial) return 'trial'
+  if (profile?.has_paid === true) return 'paid_credits'
+  return 'free'
+}
+
+async function logFootageRefusal(
+  reason: string,
+  userId: string | null,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  if (!userId) return
+  await writeServerEvent({
+    name: 'footage_refused',
+    userId,
+    path: '/api/footage',
+    metadata: { reason, ...metadata },
+  })
+}
 
 export async function GET() {
   try {
@@ -106,13 +157,27 @@ export async function POST(req: NextRequest) {
       .single()
     if (profileAccessError && profileAccessError.code !== 'PGRST116') {
       console.error('[footage] entitlement lookup failed:', profileAccessError.message)
+      await logFootageRefusal('entitlement_unverified', user.id, {
+        action: (body.action ?? '').toString(),
+        tier: 'unknown',
+        code: profileAccessError.code ?? null,
+      })
       return NextResponse.json(
         { error: 'Your plan could not be verified. Nothing was uploaded. Please retry.' },
         { status: 503 },
       )
     }
     const isPaid = profile?.has_paid === true || PAID_PLANS.has((profile?.plan ?? '').toString())
-    if (!getEffectiveEntitlement(profile, { isPaidAccount: isPaid }).treatAsPaid) {
+    const entitlement = getEffectiveEntitlement(profile, { isPaidAccount: isPaid })
+    const tier = footageTier(profile, entitlement)
+    if (!entitlement.treatAsPaid) {
+      // A recusa que o item #4 mediu 26 vezes sem uma única linha de telemetria.
+      await logFootageRefusal('paid_feature', user.id, {
+        action: (body.action ?? '').toString(),
+        tier,
+        size_bytes: Math.max(0, Number(body.sizeBytes) || 0),
+        content_type: (body.contentType ?? '').toString().slice(0, 40),
+      })
       return NextResponse.json(
         {
           error: 'Uploading your own footage is a paid feature — use YOUR clips and photos in every video. Upgrade to unlock it.',
@@ -127,15 +192,26 @@ export async function POST(req: NextRequest) {
       const contentType = (body.contentType ?? '').toString()
       const ext = EXT_BY_MIME[contentType]
       if (!ext) {
+        await logFootageRefusal('unsupported_type', user.id, { tier, content_type: contentType.slice(0, 40) })
         return NextResponse.json({ error: 'Use JPG, PNG, MP4, MOV or WebM files.' }, { status: 400 })
       }
       const sizeBytes = Math.max(0, Number(body.sizeBytes) || 0)
       if (sizeBytes > 50 * 1024 * 1024) {
+        await logFootageRefusal('file_too_large', user.id, { tier, size_bytes: sizeBytes })
         return NextResponse.json({ error: 'Each file must be under 50 MB.' }, { status: 400 })
       }
       const used = await totalFootageBytes(user.id)
       if (used + sizeBytes > FOOTAGE_QUOTA_PAID) {
         const leftMb = Math.max(0, Math.floor((FOOTAGE_QUOTA_PAID - used) / (1024 * 1024)))
+        // Recusa de quem JÁ PAGA e encheu os 500MB — a única desta rota que é
+        // pedido de mais produto, não de upgrade. Sem separá-la por `reason`,
+        // ela se somaria à do paywall e inflaria o número que mede o funil.
+        await logFootageRefusal('quota_exceeded', user.id, {
+          tier,
+          size_bytes: sizeBytes,
+          used_bytes: used,
+          quota_bytes: FOOTAGE_QUOTA_PAID,
+        })
         return NextResponse.json(
           { error: `You have ${leftMb} MB left of your 500 MB footage storage — delete something to upload more.` },
           { status: 409 },
@@ -148,6 +224,7 @@ export async function POST(req: NextRequest) {
       const { data, error } = await admin.storage.from(USER_FOOTAGE_BUCKET).createSignedUploadUrl(path)
       if (error || !data) {
         console.error('[footage] signed url failed:', error?.message)
+        await logFootageRefusal('signed_url_failed', user.id, { tier, size_bytes: sizeBytes })
         return NextResponse.json({ error: 'Could not start the upload. Please try again.' }, { status: 502 })
       }
       return NextResponse.json({
@@ -176,6 +253,10 @@ export async function POST(req: NextRequest) {
         .single()
       if (error || !data) {
         console.error('[footage] confirm insert failed:', error?.message)
+        // Mesma classe do defeito #1 desta caçada (objeto no Storage sem linha
+        // no índice), com uma diferença: aqui o arquivo já é do usuário e apagá-lo
+        // seria destruir o upload dele. Fica medido, não apagado.
+        await logFootageRefusal('confirm_insert_failed', user.id, { tier, kind, size_bytes: sizeBytes })
         return NextResponse.json({ error: 'Could not register the upload.' }, { status: 500 })
       }
       console.log(`[footage] confirmed user=${user.id.slice(0, 8)} kind=${kind} bytes=${sizeBytes}`)
