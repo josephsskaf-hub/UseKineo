@@ -29,6 +29,7 @@ import {
   PLAN_FACTS,
   ENGINE_FACTS,
   FREE_TIER,
+  FREE_TOOL_FACTS,
   COMPARISON_PAGES,
   COMPETITOR_FACTS,
   LAST_VERIFIED_HUMAN,
@@ -158,6 +159,26 @@ const FACTS: { fact: string }[] = [
     fact:
       `Output format is ${OUTPUT_FORMAT} — the format YouTube Shorts, TikTok and Instagram ` +
       `Reels accept.`,
+  },
+  // KINEO-AEO-FREE-TOOLS-2026-08-08 — terceira superfície. /llms.txt e
+  // /api/facts passaram a publicar as duas ferramentas sem conta no mesmo
+  // commit; deixar esta página de fora faria as três discordarem, que é o
+  // defeito consertado na sprint das 10h de hoje. Texto DERIVADO de
+  // FREE_TOOL_FACTS — se uma delas passar a exigir conta, a frase muda sozinha
+  // em vez de virar mentira datada.
+  {
+    fact:
+      `${FREE_TOOL_FACTS.length} Kineo tools produce a result with no account, no card and no ` +
+      `email: ${listEn(FREE_TOOL_FACTS.map((t) => `the ${t.name.toLowerCase()} at ${t.url}`))}. ` +
+      // ⚠️ REVISÃO ADVERSARIAL, PASSADA 2 — a 1ª versão dizia "both are
+      // rate-limited <limite do primeiro>", afirmando sobre as DUAS um campo
+      // lido de UMA. Bastava alguém mudar o limite de uma delas para a página
+      // publicar uma mentira sem que nada quebrasse. Agora a frase só afirma o
+      // limite quando as duas concordam de fato.
+      (new Set(FREE_TOOL_FACTS.map((t) => t.rateLimit)).size === 1
+        ? `All are rate-limited ${FREE_TOOL_FACTS[0].rateLimit} and output text only — `
+        : `All output text only — `) +
+      `rendering a finished video requires an account.`,
   },
   {
     fact:

@@ -70,10 +70,55 @@ import {
 //     conta não entra em janela nenhuma (atraso máximo de ~1h, irrelevante em
 //     janelas de dias).
 //
-// AGENDAMENTO: "30 16 * * *" (vercel.json). Minuto :30 não colide com nenhum
-// job horário (:00/:05/:10/:15/:20/:35/:40/:45/:50/:55) e 16:30 UTC fica 1h05
-// depois do send-credits-back (15:25) — a supressão cruzada de 24h resolve a
-// interseção das coortes, e 16h30 UTC ainda é caixa de entrada aberta nos EUA.
+// ═══ AGENDAMENTO — KINEO-TRIAL-EMAIL-STARVATION-2026-08-08 ══════════════════
+// "25 * * * *" (vercel.json). ERA "30 16 * * *" — UM disparo por dia.
+//
+// O DEFEITO, MEDIDO E NÃO DEDUZIDO: `trial_emails_log` tinha ZERO linhas em
+// toda a história, com 16 trials reais e 2 dias de flag ligada. Nenhum dos
+// cinco e-mails desta rota — welcome, ending_soon, D5, D10, extensão — chegou
+// a existir. E não é bug de código desta rota: é INANIÇÃO ESTRUTURAL.
+//
+// A trava é a supressão cruzada de 24h (lib/lifecycle/suppression.ts), que é
+// "primeiro a carimbar leva". Contra ela corriam:
+//   send-video-ready      :10,:40  → 48 disparos/dia
+//   send-cap-hit          :15,:45  → 48 disparos/dia
+//   send-blackout-winback :05,:35  → 48 disparos/dia
+//   send-activation-nudge :40      → 24 disparos/dia
+//   send-post-nudge       :50      → 24 disparos/dia
+//   ... e esta rota, 1 disparo/dia. 1 contra ~190.
+//
+// A PROVA (08/08, as 16 linhas com trial_status preenchido): 14 delas já
+// tinham carimbo REAL de outro job de lifecycle dentro de 3h26 do cadastro —
+// send-video-ready em 10 casos (43min a 76min depois do signup),
+// send-post-nudge em 3, send-activation-nudge em 1. TODOS antes de qualquer
+// 16:30Z possível. No dia seguinte o mesmo padrão se repete (send-video-rescue
+// carimbou 7574e7f0 e d1b6d890 às 14:00:57Z de 08/08, 2h30 antes do único tiro
+// do dia). Um job de 1 tiro/dia dentro de uma janela EXCLUSIVA de 24h disputada
+// por jobs de 24-48 tiros/dia não tem azar: ele tem aritmética contra.
+//
+// ⚠️ O COMENTÁRIO ANTIGO ERRAVA NA UNIDADE, E O ERRO SOBREVIVEU A UMA CORREÇÃO.
+// Ele raciocinava sobre colisão de MINUTO (":30 não colide com nenhum job
+// horário") e concluía que "a supressão cruzada de 24h resolve a interseção das
+// coortes". A trava não é de minuto, é de 24 HORAS — escolher um minuto vazio
+// não compra nada. Em 07/08 o KINEO-D0-EMAIL-REVIEW já tinha DIAGNOSTICADO esta
+// corrida (ver D0_WINDOW_MS) e receitou o paliativo certo para o remédio errado:
+// alargou a janela de 48h→72h para dar "três tentativas" em vez de duas. Três
+// tentativas por dia útil contra ~190 carimbos continuam perdendo — e o placar
+// de 24h depois foi 0 linhas. A cadência era a variável, não a janela.
+//
+// POR QUE :25 E NÃO :05/:35. Minutos já ocupados por job horário: :00 :05 :10
+// :15 :20 :30 :35 :40 :45 :50 :55. :25 é livre (só o send-credits-back diário
+// das 15:25 cruza, 1× por dia). Cadência HORÁRIA e não semi-horária de
+// propósito: 24 tiros/dia já põe esta rota em pé de igualdade com os jobs que
+// hoje a atropelam, sem dobrar a carga de leitura nem o risco de cota da Resend
+// (100/dia no plano grátis — ver docs/CAPACIDADE-TAAFT-2026-08-08.md). Uma
+// variável por vez.
+//
+// SEGURANÇA DE DUPLICATA: intocada. A idempotência real é o claim em
+// trial_emails_log com PK(user_id, email_kind) ANTES do envio — 24 execuções
+// por dia não podem mandar dois do mesmo kind, porque o upsert com
+// ignoreDuplicates devolve 0 linhas para a segunda. A cadência não afrouxa
+// nada: ela só dá mais chances de ganhar a MESMA janela.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -85,8 +130,20 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const DAY_MS = 24 * 60 * 60 * 1000
 const HOUR_MS = 60 * 60 * 1000
 
-/** Teto duro de envios por execução (spec: 200). */
-const MAX_PER_RUN = 200
+/**
+ * Teto duro de envios por execução. A spec dizia 200 quando a rota rodava UMA
+ * vez por dia: 200 era o teto DIÁRIO disfarçado de teto por execução.
+ *
+ * KINEO-TRIAL-EMAIL-STARVATION-2026-08-08 — com cadência horária o mesmo 200
+ * viraria 4.800/dia de teto teórico, num domínio cuja cota da Resend no plano
+ * grátis é 100/dia (docs/CAPACIDADE-TAAFT-2026-08-08.md). 40 por execução
+ * mantém o teto diário na mesma ordem de grandeza do que a spec autorizou e
+ * ainda drena, em 2 execuções (2 horas), o maior dia de cadastros da história
+ * da empresa (69 em 01/08) — contra as 24h que a cadência antiga levava para
+ * drenar o primeiro lote. Ninguém é perdido: quem não coube volta no próximo
+ * run, ordenado por KIND_PRIORITY.
+ */
+const MAX_PER_RUN = 40
 /** PostgREST manda `in.(...)` na query string — fatiar para não estourar a URL. */
 const CHUNK_SIZE = 200
 
@@ -111,6 +168,35 @@ const CHUNK_SIZE = 200
  * `ending_soon` já resolvem a linha antes de chegar aqui.
  */
 const D0_WINDOW_MS = 72 * HOUR_MS
+
+/**
+ * ⚠️ IDADE MÍNIMA DO WELCOME — KINEO-TRIAL-EMAIL-STARVATION-2026-08-08.
+ *
+ * Guarda que existe SÓ por causa da mudança de cadência acima, e que impede
+ * esta correção de trocar um dano por outro.
+ *
+ * Com 1 disparo/dia, o welcome nunca chegava perto do cadastro. Com disparo
+ * horário ele passaria a ser devido no PRIMEIRO :25 depois do signup — isto é,
+ * 0 a 60 minutos depois — e aí GANHARIA a janela de 24h de quem hoje a leva:
+ * o send-video-ready (:10/:40), que carimbou 10 das 16 contas de trial entre
+ * 43min e 76min do cadastro. Trocar "your video is ready" (um e-mail disparado
+ * por um fato, que leva a pessoa de volta à tela do vídeo pronto — onde mora a
+ * caixa de oferta do trial que subiu hoje, commit dd1575c) por um welcome
+ * genérico seria uma REGRESSÃO de receita disfarçada de correção.
+ *
+ * 4h resolve os dois lados sem inventar uma política nova:
+ *   · quem GEROU vídeo recebe primeiro o e-mail transacional, que é melhor —
+ *     e o welcome espera a janela abrir (tem 72h e agora 24 tentativas/dia
+ *     para caber nela, contra as 3 tentativas totais de antes);
+ *   · quem NÃO gerou nada não dispara send-video-ready nenhum, e é exatamente
+ *     essa pessoa que o texto do welcome ("Your first AI video in 5 minutes")
+ *     existe para buscar — ela recebe no mesmo dia, ainda dentro do D0.
+ *
+ * A guarda vale só para os dois ramos de `d0_welcome`. `ending_soon` continua
+ * alcançável em qualquer idade de propósito: um prazo curto patológico
+ * (trial_ends_at próximo por qualquer motivo) tem que conseguir avisar.
+ */
+const D0_MIN_AGE_MS = 4 * HOUR_MS
 
 /**
  * "Ends tomorrow"/"ends soon", por variante. Com cadência diária, o disparo
@@ -300,9 +386,12 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     // coorte pós-fim pega a linha quando o status virar.
     if (!isTrialActive(row, now)) return null
     const startMs = endsMs - TRIAL_VARIANT_DAYS[variant] * DAY_MS
-    if (now - startMs < 24 * HOUR_MS) return { ...base, kind: 'd0_welcome' }
+    const ageMs = now - startMs
+    // D0_MIN_AGE_MS: ver o bloco da constante. Só o welcome espera; o aviso de
+    // prazo, não.
+    if (ageMs >= D0_MIN_AGE_MS && ageMs < 24 * HOUR_MS) return { ...base, kind: 'd0_welcome' }
     if (endsMs - now <= ENDING_SOON_MS[variant]) return { ...base, kind: 'ending_soon' }
-    if (now - startMs < D0_WINDOW_MS) return { ...base, kind: 'd0_welcome' }
+    if (ageMs >= D0_MIN_AGE_MS && ageMs < D0_WINDOW_MS) return { ...base, kind: 'd0_welcome' }
     return null
   }
 

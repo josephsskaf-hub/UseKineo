@@ -62,7 +62,7 @@
     },
     {
       "path": "/api/cron/trial-lifecycle-emails",
-      "schedule": "30 16 * * *"
+      "schedule": "25 * * * *"
     },
     {
       "path": "/api/wall/refresh",
