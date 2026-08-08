@@ -1,3 +1,5 @@
+import { FAL_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
+
 /**
  * A paid Fal queue submission must be sent exactly once. The SDK may retry
  * POSTs after a transport/gateway failure even though Fal accepted the first
@@ -33,31 +35,61 @@ export async function submitFalQueueOnce(
     throw new FalQueueSubmitError('FAL_KEY is not configured', { ambiguous: false })
   }
 
+  // KINEO-CREDIT-STUCK-2026-08-08 — 429 é o ÚNICO status repetido aqui.
+  // O contrato "exactly once" desta função continua intacto: 429 significa que
+  // o fal recusou o pedido (nada foi enfileirado, nada foi cobrado), então o
+  // POST seguinte não pode criar um job duplicado. Falha de transporte e 5xx
+  // seguem AMBÍGUAS e NUNCA são repetidas — é o caso em que o fal pode ter
+  // aceitado sem conseguir responder.
+  //
+  // ⚠️ O ORÇAMENTO AQUI É MÍNIMO POR CAUSA DE UMA RETENTATIVA QUE JÁ EXISTE
+  // POR FORA: `submitScene` em app/api/generate-video-cinematic/route.ts repete
+  // a submissão uma vez após 800ms quando o id volta null. As duas camadas se
+  // multiplicam, e a rota tem `maxDuration = 60` com um caminho SERIAL de até 9
+  // cenas — um teto generoso aqui viraria timeout de lambda com o débito vivo,
+  // que é exatamente o defeito que este commit fecha. Ver FAL_SUBMIT_RATE_LIMIT.
+  const policy = FAL_SUBMIT_RATE_LIMIT
+  let attempt = 0
   let response: Response
-  try {
-    response = await fetch(`https://queue.fal.run/${model}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Key ${key}`,
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(input),
-      cache: 'no-store',
-    })
-  } catch (error) {
-    throw new FalQueueSubmitError('Fal queue submit transport failed', {
-      ambiguous: true,
-      cause: error,
-    })
-  }
-
-  const raw = await response.text().catch(() => '')
+  let raw = ''
   let payload: Record<string, unknown> = {}
-  try {
-    payload = raw ? JSON.parse(raw) as Record<string, unknown> : {}
-  } catch {
+
+  for (;;) {
+    try {
+      response = await fetch(`https://queue.fal.run/${model}`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Key ${key}`,
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(input),
+        cache: 'no-store',
+      })
+    } catch (error) {
+      throw new FalQueueSubmitError('Fal queue submit transport failed', {
+        ambiguous: true,
+        cause: error,
+      })
+    }
+
+    raw = await response.text().catch(() => '')
     payload = {}
+    try {
+      payload = raw ? JSON.parse(raw) as Record<string, unknown> : {}
+    } catch {
+      payload = {}
+    }
+
+    if (response.status !== 429 || attempt >= policy.retries) break
+
+    attempt += 1
+    const waitMs = rateLimitWaitMs(policy, attempt, response.headers.get('retry-after'))
+    console.warn(
+      `[fal/queue] 429 em ${model} — tentativa ${attempt}/${policy.retries} em ${waitMs}ms ` +
+      '(rate limit e transiente; o pedido NAO foi enfileirado)',
+    )
+    await sleep(waitMs)
   }
 
   if (!response.ok) {

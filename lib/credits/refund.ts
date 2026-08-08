@@ -68,11 +68,11 @@ export async function refundRenderCredits(renderId: string): Promise<number> {
 }
 
 /**
- * Daily sweep (called from an existing daily cron — Vercel Hobby silently
- * rejects deploys when crons exceed the plan limits, so we piggyback instead
- * of adding an entry to vercel.json): find `video` debits older than 2h that
- * never produced a `videos` row (a SUCCESS row always carries render_id — the
- * #357 hard guarantee) and refund them.
+ * Backstop sweep — roda de HORA EM HORA desde KINEO-CREDIT-STUCK-2026-08-08
+ * (era 1×/dia; ver o cabeçalho de app/api/cron/refund-sweep/route.ts para o
+ * porquê e o custo). Encontra `video` debits mais velhos que 2h que nunca
+ * produziram uma linha em `videos` (a SUCCESS row always carries render_id —
+ * the #357 hard guarantee) and refunds them.
  *
  * Excluded on purpose:
  *   animate-% — Animate clips never persist to `videos`, so "no videos row"
@@ -185,7 +185,8 @@ export async function sweepStuckRenderDebits(): Promise<{
 // ser submetido para composição (o claim é escrito ANTES de qualquer POST ao
 // provedor) → abandonado → reembolsa.
 //
-// FALHA FECHADA: qualquer erro de consulta pula a linha (roda de novo amanhã).
+// FALHA FECHADA: qualquer erro de consulta pula a linha (roda de novo na hora
+// seguinte — KINEO-CREDIT-STUCK-2026-08-08 tirou esta varredura do ritmo diário).
 // Melhor devolver tarde do que devolver o que foi entregue.
 //
 // IDEMPOTÊNCIA: o dinheiro volta por refund_render_credits (UPDATE condicional

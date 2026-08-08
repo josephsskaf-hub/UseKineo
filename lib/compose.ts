@@ -9,6 +9,8 @@ import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
+// KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
+import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
 import { splitIntoSections, hasViralSections } from '@/lib/narration/section-tts'
 import {
@@ -2857,21 +2859,43 @@ export async function submitCreatomateRender(source: Record<string, unknown>): P
   const key = process.env.CREATOMATE_API_KEY
   if (!key) throw new Error('CREATOMATE_API_KEY is not configured.')
 
+  // KINEO-CREDIT-STUCK-2026-08-08 — o Creatomate entra em TODO render (Fast ou
+  // IA), então ele é o gargalo do pico. Um 429 aqui virava
+  // `ambiguous = false` → app/api/compose/route.ts solta o claim e devolve
+  // "Render service rejected the job", ou seja: o vídeo da pessoa morre porque
+  // o provedor estava ocupado por um segundo. 429 = pedido NÃO aceito, logo
+  // repetir o POST não pode criar um segundo render cobrado — a garantia de
+  // "submit once" continua valendo. 5xx/408/timeout seguem ambíguos e NÃO são
+  // repetidos aqui (o caller trata via claim durável).
   let res: Response
-  try {
-    res = await fetch(`${CREATOMATE_BASE}/renders`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${key}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ source }),
-    })
-  } catch (error) {
-    throw new CreatomateSubmitError(
-      `Creatomate submit connection failed: ${error instanceof Error ? error.message : String(error)}`,
-      true,
+  let rateLimitAttempt = 0
+  for (;;) {
+    try {
+      res = await fetch(`${CREATOMATE_BASE}/renders`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ source }),
+      })
+    } catch (error) {
+      throw new CreatomateSubmitError(
+        `Creatomate submit connection failed: ${error instanceof Error ? error.message : String(error)}`,
+        true,
+      )
+    }
+    if (res.status !== 429 || rateLimitAttempt >= CREATOMATE_SUBMIT_RATE_LIMIT.retries) break
+    rateLimitAttempt += 1
+    const waitMs = rateLimitWaitMs(CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitAttempt, res.headers.get('retry-after'))
+    // Drenar o corpo antes de descartar a resposta: no undici (Node 18+) um
+    // body não consumido segura o socket do pool.
+    await res.text().catch(() => '')
+    console.warn(
+      `[creatomate] 429 no submit — tentativa ${rateLimitAttempt}/${CREATOMATE_SUBMIT_RATE_LIMIT.retries} em ${waitMs}ms ` +
+      '(rate limit e transiente; o render NAO foi criado)',
     )
+    await sleep(waitMs)
   }
 
   let text: string

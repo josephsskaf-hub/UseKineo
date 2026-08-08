@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/refund-sweep",
-      "schedule": "30 9 * * *"
+      "schedule": "30 * * * *"
     },
     {
       "path": "/api/cron/send-reminders",

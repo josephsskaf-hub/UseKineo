@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { pollCreatomateRender } from '@/lib/compose'
 import { persistRenderAssets } from '@/lib/renderAssets'
 import { refundRenderCredits } from '@/lib/credits/refund'
@@ -25,6 +25,10 @@ import {
 } from '@/lib/avatar/reservation'
 import {
   loadSettledCinematicClaimForRender,
+  // KINEO-CREDIT-STUCK-2026-08-08 — o estorno ao vivo precisa LANDAR o claim em
+  // `released`, senão a próxima leitura ainda o vê `settled` (débito vivo) e um
+  // render futuro seria tratado como pré-pago sem que ninguém tenha pago.
+  releaseCinematicClaim,
   type CinematicClaim,
 } from '@/lib/cinematic/claim'
 
@@ -274,7 +278,12 @@ export async function GET(
       quality === 'cinematic_hollywood'
     let prepaidCinematicClaim: CinematicClaim | null = null
     let prepaidAvatarClaim: VerifiedAvatarBirthClaim | null = null
-    let cinematicAdmin: ReturnType<typeof createAdminClient> | null = null
+    // KINEO-CREDIT-STUCK-2026-08-08 — era `ReturnType<typeof createAdminClient>`.
+    // Esse tipo instancia os genéricos do supabase-js com `unknown`, e aí toda
+    // tabela vira `never` (um `.insert({...})` não compila). `SupabaseClient` é o
+    // MESMO valor em runtime, com o default `any` do schema — é o tipo que
+    // lib/credits/refund.ts e lib/cinematic/claim.ts já usam.
+    let cinematicAdmin: SupabaseClient | null = null
     let cinematicSecret = ''
     if (hasServerIntent && isCinematicQuality) {
       const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -936,12 +945,136 @@ export async function GET(
           )
         }
       }
-      // Cinematic and Avatar birth credits pay for raw Fal assets already
-      // delivered to the authenticated owner. A downstream Creatomate failure
-      // must not refund those assets; only terminal Fal failure refunds the
-      // deterministic birth key in its dedicated status route.
-      const prepaidProviderAsset = prepaidCinematicClaim !== null || prepaidAvatarClaim !== null
-      const creditsRefunded = prepaidProviderAsset ? 0 : await refundRenderCredits(renderId)
+      // ── KINEO-CREDIT-STUCK-2026-08-08 — O ESTORNO SAI DO VARREDOR ─────────
+      //
+      // O QUE ESTAVA AQUI, E POR QUE ERA UM BURACO:
+      //   const prepaidProviderAsset = prepaidCinematicClaim !== null || ...
+      //   const creditsRefunded = prepaidProviderAsset ? 0 : await refund(...)
+      // com a justificativa de que "os clipes do fal já foram entregues ao dono
+      // autenticado, então uma falha do Creatomate não pode estorná-los" e a tela
+      // dizia "Your AI scenes remain paid and protected; no second AI-scene
+      // charge is needed to reassemble them."
+      //
+      // A PROMESSA ERA VAZIA. Não existe caminho de "remontar sem cobrar de novo":
+      //   · o compose claim (`compose_submission_claim`) já está em `status:'done'`
+      //     amarrado a ESTE render_id (app/api/compose/route.ts
+      //     completeGenerationClaim) — uma nova chamada a /api/compose com o mesmo
+      //     generationId cai em `responseForClaimRow` → replay do MESMO render id
+      //     morto. Não há segunda composição possível.
+      //   · um generationId NOVO nasce com um birth claim NOVO → submissão nova ao
+      //     fal → cobrança nova.
+      // Resultado real: sem vídeo E sem crédito. Num trial de 40 créditos, um
+      // Seedance de 20 é METADE da experiência que a empresa comprou.
+      //
+      // E O SISTEMA JÁ SE CONTRADIZIA: sweepAbandonedCinematicDebits()
+      // (lib/credits/refund.ts, KINEO-CREDIT-INTEGRITY-2026-08-05) faz EXATAMENTE
+      // este estorno — mesma chave, mesmo release — quando não encontra linha em
+      // `videos` para o render de compose. Ou seja, o dinheiro voltava de qualquer
+      // jeito; só voltava até 24h depois (cron diário), depois de a pessoa já ter
+      // pedido reembolso ou ido embora. Aqui só antecipamos o que já era a decisão
+      // da casa, no instante em que a falha é conhecida.
+      //
+      // ORDEM OBRIGATÓRIA — dinheiro primeiro, estado depois:
+      //   1) refundRenderCredits(<chave do débito>)  ← idempotente por UPDATE
+      //      condicional (WHERE refunded_at IS NULL) no RPC refund_render_credits;
+      //      passa por recordReverseTrialRefundForRender, então o teto do trial
+      //      volta e o trial ressuscita quando foi o teto que o matou.
+      //   2) releaseCinematicClaim(...'provider_failed_refunded')  ← só é ACEITO
+      //      pelo claim quando a referência bate; e o próprio claim.ts documenta
+      //      que o release de um claim `settled` exige que o débito já tenha sido
+      //      estornado. Invertendo a ordem, a tela prometeria estorno sem estorno.
+      // Se (1) falhar, nada muda de estado e o cron (agora de hora em hora, não
+      // 1×/dia) devolve o dinheiro como sempre devolveu. Se só (2) falhar, o
+      // dinheiro JÁ voltou — ver a nota no `console.error` do release.
+      //
+      // AVATAR/PRESENTER FICAM COMO ESTAVAM, DE PROPÓSITO: são inalcançáveis no
+      // trial (110/70 créditos contra teto de 40), tiveram 3 renders em 30 dias, e
+      // o ativo do VEED é entregue e reaproveitável por outro caminho. Mexer neles
+      // horas antes do lançamento é risco sem cliente do outro lado.
+      let creditsRefunded = 0
+      let cinematicRefundNote = ''
+      if (prepaidCinematicClaim) {
+        const billingReference = prepaidCinematicClaim.resolutionReference
+        if (prepaidCinematicClaim.status === 'released') {
+          // O cron (ou um poll anterior) já devolveu. Dizer "protegido e pago"
+          // aqui seria mentir sobre crédito que a pessoa JÁ tem de volta.
+          creditsRefunded = prepaidCinematicClaim.creditCost
+        } else if (billingReference.startsWith('cinematic-')) {
+          creditsRefunded = await refundRenderCredits(billingReference)
+          if (creditsRefunded > 0 && cinematicAdmin && cinematicSecret) {
+            const released = await releaseCinematicClaim({
+              db: cinematicAdmin,
+              secret: cinematicSecret,
+              userId: user.id,
+              generationId: prepaidCinematicClaim.generationId,
+              reason: 'provider_failed_refunded',
+              reference: billingReference,
+            })
+            if (!released.ok) {
+              // Uma segunda tentativa: o update é condicionado à assinatura
+              // anterior (updateClaim), então um conflito concorrente (outro
+              // poll da mesma aba) se resolve na releitura.
+              const retry = await releaseCinematicClaim({
+                db: cinematicAdmin,
+                secret: cinematicSecret,
+                userId: user.id,
+                generationId: prepaidCinematicClaim.generationId,
+                reason: 'provider_failed_refunded',
+                reference: billingReference,
+              })
+              if (!retry.ok) {
+                // ⚠️ ACHADO DA 2ª REVISÃO ADVERSARIAL — não escrever aqui que
+                // "o cron reconcilia". ELE NÃO RECONCILIA: em
+                // sweepAbandonedCinematicDebits() o release só roda depois de um
+                // `refundRenderCredits` com amount > 0, e o débito já está
+                // estornado, então a varredura devolve 0 e faz `continue`.
+                // O estado residual é um claim `settled` cujo débito já voltou.
+                // CONSEQUÊNCIA REAL: nenhuma para o cliente — o dinheiro está na
+                // conta dele, e o claim é preso a ESTE generationId, que morreu
+                // com este render; uma geração nova nasce com claim novo. Fica
+                // registrado como dívida técnica, não como risco de cobrança.
+                console.error(
+                  `[compose/status] estorno OK mas release do claim cinematografico falhou gen=${prepaidCinematicClaim.generationId}: ${retry.error}` +
+                  ' — o credito JA voltou ao usuario; o claim fica settled (residuo inofensivo, ver comentario)',
+                )
+              }
+            }
+            // Auditoria — MESMO shape do evento que o cron já escreve
+            // (`credits_refunded`), para que uma consulta única enxergue os
+            // estornos ao vivo e os do varredor. Nunca fatal: o dinheiro já
+            // voltou, e uma falha de log não pode virar erro na tela.
+            // supabase-js NÃO lança em erro de banco (devolve `{ error }`), daí
+            // o try/catch E a checagem do retorno.
+            try {
+              const { error: auditError } = await cinematicAdmin.from('events').insert({
+                user_id: user.id,
+                name: 'credits_refunded',
+                path: '/api/compose/status',
+                session_id: prepaidCinematicClaim.generationId,
+                metadata: {
+                  render_id: billingReference,
+                  compose_render_id: renderId,
+                  amount: creditsRefunded,
+                  reason: 'compose_failed_after_provider_assets',
+                  quality: prepaidCinematicClaim.quality,
+                  engine: prepaidCinematicClaim.engine,
+                  refunded_at: new Date().toISOString(),
+                },
+              })
+              if (auditError) {
+                console.error(`[compose/status] auditoria do estorno falhou (nao fatal): ${auditError.message}`)
+              }
+            } catch (auditErr) {
+              console.error('[compose/status] auditoria do estorno lancou (nao fatal):', auditErr instanceof Error ? auditErr.message : String(auditErr))
+            }
+          }
+        }
+        cinematicRefundNote = creditsRefunded > 0
+          ? ` Your ${creditsRefunded} credits were automatically refunded.`
+          : ' You were not charged for this video.'
+      } else if (!prepaidAvatarClaim) {
+        creditsRefunded = await refundRenderCredits(renderId)
+      }
       return NextResponse.json({
         phase: 'failed',
         // KINEO-FAILURE-REASON-2026-07-30 — the ONLY branch where the render
@@ -951,7 +1084,7 @@ export async function GET(
         error:
           (state.error ?? 'Render failed.') +
           (prepaidCinematicClaim
-            ? ' Your AI scenes remain paid and protected; no second AI-scene charge is needed to reassemble them.'
+            ? cinematicRefundNote
             : prepaidAvatarClaim
             ? ' Your completed avatar remains paid and protected; no second avatar charge is needed to reassemble it.'
             : creditsRefunded > 0

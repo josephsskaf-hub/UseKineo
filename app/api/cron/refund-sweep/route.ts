@@ -23,6 +23,37 @@
 // Por isso ela roda independentemente de KINEO_LIFECYCLE_EMAILS_ENABLED: o
 // portão de e-mail nunca deveria ter podido bloquear a devolução de dinheiro.
 
+// KINEO-CREDIT-STUCK-2026-08-08 — DE 1×/DIA PARA DE HORA EM HORA
+// (vercel.json: `30 9 * * *` → `30 * * * *`).
+//
+// O PROBLEMA COM O DIÁRIO: um crédito preso às 09h31 só voltava às 09h30 do dia
+// seguinte — quase 24h. Numa noite de pico de lançamento isso não é "atraso de
+// contabilidade", é a pessoa abrindo o app, vendo o saldo errado, pedindo
+// reembolso ou indo embora. E o trial de 40 créditos torna o dano proporcional:
+// um Seedance preso (20 cr) é METADE do que a empresa comprou por $347.
+//
+// POR QUE DE HORA EM HORA E NÃO A CADA 5 MIN: os cutoffs internos das varreduras
+// (2h para render comum, 3h para cinematográfico) já garantem que nada VIVO é
+// tocado — varrer mais rápido que isso não devolve nada mais cedo, só gasta.
+// De hora em hora é o menor intervalo que ainda reduz o pior caso de 24h para
+// ~1h acima do cutoff, e é a mesma cadência que send-activation-nudge,
+// send-post-nudge e trial-downgrade já rodam sem problema.
+//
+// CUSTO: 24 execuções/dia em vez de 1. Cada uma faz no máximo 200 + 1000 + 200
+// SELECTs e ZERO chamadas a provedor pago quando não há nada a devolver — que é
+// o caso na esmagadora maioria das rodadas (hoje, 08/08, a base tem ZERO débitos
+// presos). Nenhum e-mail é enviado por esta rota, então não consome cota do
+// Resend. Nenhuma tabela nova: as três varreduras já existiam.
+//
+// IDEMPOTÊNCIA (o que torna a frequência segura): todo o dinheiro volta por
+// refund_render_credits — UPDATE condicional `WHERE refunded_at IS NULL
+// ... RETURNING` — então N rodadas simultâneas rendem no máximo UM estorno. As
+// varreduras também falham FECHADAS: qualquer erro de consulta pula a linha e
+// tenta na rodada seguinte (que agora vem em 1h, não em 24h).
+//
+// :30 foi escolhido por não colidir com nenhum outro cron horário existente
+// (:05/:35 winback, :10/:40 video-ready, :15/:45 cap-hit, :40 activation,
+// :50 post-nudge, :55 trial-downgrade, :00 autopilot).
 import { NextRequest, NextResponse } from 'next/server'
 import { sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepStaleAnimateClaims } from '@/lib/animate/service'
@@ -81,7 +112,7 @@ export async function GET(req: NextRequest) {
 
   console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, errors }))
 
-  // 200 mesmo com erro parcial: as duas varreduras são idempotentes e rodam de
-  // novo amanhã. Um 5xx aqui só produziria ruído de alerta sem ação possível.
+  // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
+  // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
   return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, errors })
 }

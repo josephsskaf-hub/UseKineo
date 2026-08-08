@@ -7,6 +7,8 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { isInternalEmail } from '@/lib/internalAccounts'
 import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-CREDIT-STUCK-2026-08-08 — mesma pausa usada na política de 429.
+import { sleep } from '@/lib/rateLimit'
 
 // send-cap-hit — Ordem 4 (docs/ORDENS-CONVERSAO-2026-08-02.md), 03/08/2026.
 //
@@ -54,6 +56,14 @@ const FREE_CAP = OFFER.limit
 // pode inchar de repente. Sem teto, um blackout viraria um disparo em massa.
 const MAX_PER_RUN = 60
 const MAX_COHORT_IDS = 300
+
+// KINEO-CREDIT-STUCK-2026-08-08 — o plano Resend permite 2 requisições por
+// segundo. 550ms entre envios fica logo abaixo desse teto sem tornar a rodada
+// lenta demais para o orçamento da lambda.
+const RESEND_PACE_MS = 550
+// `maxDuration = 60`. Paramos de INICIAR envios aos 45s para que nenhuma
+// reserva fique gravada sem que o resultado do envio tenha sido tratado.
+const RUN_BUDGET_MS = 45_000
 
 // A lista de contas internas mora em lib/internalAccounts.ts — cópia local
 // deixava de fora a irmã do fundador, os aliases `joseph+…` e o revisor do
@@ -268,11 +278,38 @@ export async function GET(req: NextRequest) {
   // violação de unicidade (23505) significa "alguém já recebeu" e pula.
   //
   // Isso troca esperança por garantia e NÃO depende de descobrir a causa raiz.
-  // Preço aceito, explicitamente: se o Resend falhar DEPOIS da reserva, a pessoa
-  // perde este e-mail para sempre. Um e-mail a menos é barato; um loop de
-  // reenvio queima o domínio da empresa inteira.
+  //
+  // ⚠️ KINEO-CREDIT-STUCK-2026-08-08 — O "PREÇO ACEITO" NÃO ERA ACEITÁVEL.
+  // O comentário original terminava assim: "Preço aceito, explicitamente: se o
+  // Resend falhar DEPOIS da reserva, a pessoa perde este e-mail para sempre."
+  // Reservar antes de enviar continua CERTO (é o que impede o reenvio triplo de
+  // 05/08). O que estava errado é a reserva ser DEFINITIVA mesmo quando o envio
+  // não aconteceu: reserva sem envio não é "um e-mail a menos", é um lead quente
+  // que a trava marcou como atendido sem nunca ter sido atendido, para sempre.
+  //
+  // E a falha não é hipotética hoje: o plano Resend é 2 req/s e 100 e-mails/dia.
+  // Este laço dispara até 60 POSTs em rajada. No pico do TAAFT o Resend VAI
+  // devolver 429/quota — e cada 429 queimava um lead permanentemente.
+  //
+  // CORREÇÃO (compensação, não remoção da trava): quando o Resend RECUSA
+  // EXPLICITAMENTE (resposta não-2xx: 429, cota, 4xx), a reserva é DESFEITA —
+  // delete escopado por `user_id` + `metadata->>reserved_at`, que é o carimbo
+  // único DESTA tentativa, então é impossível apagar a reserva de outra pessoa
+  // ou uma reserva antiga bem-sucedida. Sem reserva, a rodada seguinte (30 min)
+  // reconsidera a pessoa normalmente. Se o próprio delete falhar, o
+  // comportamento antigo permanece (fail-closed).
+  //
+  // Uma EXCEÇÃO DE TRANSPORTE (fetch que estoura) é caso diferente e mantém a
+  // reserva: não sabemos se o e-mail saiu, e a doutrina desta casa para
+  // ambiguidade é não repetir. Ver o bloco do `catch` lá embaixo.
+  //
+  // RITMO: além disso o laço agora respeita o limite de 2 req/s do Resend com
+  // uma pausa entre envios, e para antes do teto da lambda (maxDuration = 60s).
+  // Quem sobrar não foi reservado e volta na próxima rodada.
   let reservationFailed = 0
   let alreadyReserved = 0
+  let reservationsReleased = 0
+  let deferredByDeadline = 0
 
   const suppression = await loadLifecycleSuppression(
     admin,
@@ -283,8 +320,64 @@ export async function GET(req: NextRequest) {
   let skipped = 0
   let suppressed = 0
 
+  const SEND_DEADLINE = Date.now() + RUN_BUDGET_MS
+
+  /**
+   * KINEO-CREDIT-STUCK-2026-08-08 — desfaz a reserva de UM envio que não saiu.
+   *
+   * O escopo do delete é o que torna isso seguro: `user_id` + o carimbo
+   * `reserved_at` gerado nesta iteração. Esse par identifica exclusivamente a
+   * linha que ACABAMOS de inserir, então é impossível apagar a reserva de outra
+   * pessoa, nem uma reserva antiga de um e-mail que de fato foi entregue.
+   *
+   * Se o delete falhar, NÃO tentamos de novo nem lançamos: o comportamento cai
+   * de volta no antigo (reserva mantida = no máximo um e-mail perdido), que é o
+   * lado seguro. O log é ruidoso de propósito.
+   */
+  async function releaseReservation(
+    userId: string,
+    reservedAt: string,
+    cause: string,
+    detail: string,
+  ): Promise<void> {
+    const { data, error } = await admin
+      .from('events')
+      .delete()
+      .eq('user_id', userId)
+      .eq('name', 'cap_hit_sent')
+      .eq('metadata->>reserved_at', reservedAt)
+      .select('id')
+    if (error) {
+      console.error(
+        `[send-cap-hit] 🔴 envio falhou (${cause}) para ${userId} E a reserva NAO pôde ser desfeita:` +
+        ` ${error.code ?? '?'} ${error.message} — esta pessoa nao recebera o e-mail do muro. Detalhe: ${detail.slice(0, 300)}`,
+      )
+      return
+    }
+    if (!data || data.length === 0) {
+      console.error(
+        `[send-cap-hit] 🔴 envio falhou (${cause}) para ${userId} e o delete da reserva nao casou NENHUMA linha` +
+        ` — reserva possivelmente orfa; verificar events.cap_hit_sent. Detalhe: ${detail.slice(0, 300)}`,
+      )
+      return
+    }
+    reservationsReleased++
+    console.warn(
+      `[send-cap-hit] envio falhou (${cause}) para ${userId} — reserva DESFEITA, sera` +
+      ` tentado de novo na proxima rodada. Detalhe: ${detail.slice(0, 300)}`,
+    )
+  }
+
   for (const u of candidates ?? []) {
     if (sent >= MAX_PER_RUN) break
+    // KINEO-CREDIT-STUCK-2026-08-08 — parar ANTES do teto da lambda. Uma
+    // interrupção por timeout no meio de um envio deixaria a reserva gravada sem
+    // e-mail e sem a compensação abaixo, que é exatamente o defeito que este
+    // commit fecha. Quem sobrar não foi reservado e volta em 30 min.
+    if (Date.now() > SEND_DEADLINE) {
+      deferredByDeadline++
+      continue
+    }
 
     // Suppressed = another lifecycle email in the last 24h. NOT stamped — they
     // stay eligible on the next run while still inside their hot window.
@@ -408,17 +501,45 @@ export async function GET(req: NextRequest) {
         }
         console.log(`[send-cap-hit] sent to ${email}`)
       } else {
-        // ⚠️ A RESERVA JÁ FOI GRAVADA e não é desfeita de propósito: esta pessoa
-        // não recebe mais este e-mail. Preço aceito da garantia de envio único —
-        // mas tem que ser ALTO no log, senão vira perda silenciosa de lead quente.
-        console.error(
-          `[send-cap-hit] 🔴 resend RECUSOU ${email} DEPOIS da reserva — esta pessoa NAO recebera` +
-          ` o e-mail do muro: ${await res.text()}`,
-        )
+        // KINEO-CREDIT-STUCK-2026-08-08 — o envio NÃO aconteceu, logo a reserva
+        // não pode sobreviver: devolvê-la é o que transforma "perdido para
+        // sempre" em "tenta de novo em 30 min".
+        const body = await res.text().catch(() => '')
+        await releaseReservation(u.id as string, stampedAt, `resend_${res.status}`, body)
       }
     } catch (err) {
-      console.error(`[send-cap-hit] 🔴 erro para ${email} DEPOIS da reserva (nao recebera):`, err)
+      // ⚠️ AMBÍGUO — A RESERVA FICA. ACHADO DA 2ª REVISÃO ADVERSARIAL.
+      //
+      // A primeira versão desta correção também devolvia a reserva aqui, com o
+      // argumento de que "a supressão de 24h ainda segura a repetição na rodada
+      // seguinte". **Isso é FALSO.** `loadLifecycleSuppression` lê as colunas
+      // `*_sent_at` de `profiles` — e `cap_hit_sent_at` só é carimbado DEPOIS de
+      // um envio bem-sucedido. Num envio que estourou, o carimbo não existe,
+      // logo não há supressão nenhuma segurando nada: a rodada seguinte (30 min)
+      // reenviaria de verdade.
+      //
+      // E uma exceção de transporte NÃO prova que o e-mail não saiu — o POST
+      // pode ter sido aceito pelo Resend com a resposta perdida na volta. Este
+      // repositório já tem doutrina para isso e ela é unânime: `ambiguous` NUNCA
+      // é repetido (FalQueueSubmitError, CreatomateSubmitError, o claim de
+      // compose). Aplicar a mesma regra aqui é o que mantém a coerência: só
+      // devolvemos a reserva quando o Resend RECUSOU EXPLICITAMENTE (bloco
+      // acima), porque só ali sabemos que não houve entrega.
+      //
+      // Preço, agora consciente e limitado a um caso raro: um e-mail
+      // possivelmente perdido numa falha de rede. O caso comum do pico — 429 e
+      // cota diária — é resposta explícita e É recuperado.
+      console.error(
+        `[send-cap-hit] 🔴 erro de transporte para ${email} DEPOIS da reserva — resultado DESCONHECIDO,` +
+        ' reserva MANTIDA de proposito (pode ter sido entregue); esta pessoa nao sera reprocessada:',
+        err,
+      )
     }
+
+    // Resend free = 2 req/s. Uma rajada de 60 POSTs viola isso com folga e o
+    // provedor responde 429 — que agora custa uma rodada, não um lead, mas ainda
+    // assim é melhor não provocar. A pausa só existe entre envios REAIS.
+    await sleep(RESEND_PACE_MS)
   }
 
   return NextResponse.json({
@@ -438,5 +559,11 @@ export async function GET(req: NextRequest) {
     // > 0 = o banco recusou a reserva por um motivo que NAO e duplicata. Ninguem
     // foi enviado nesses casos: sem reserva, sem garantia, sem e-mail.
     reservation_failed: reservationFailed,
+    // KINEO-CREDIT-STUCK-2026-08-08 — quantos envios falharam e tiveram a
+    // reserva DEVOLVIDA (voltam na proxima rodada em vez de sumir). > 0 de forma
+    // recorrente = o Resend esta recusando (429 / cota diaria de 100).
+    reservations_released: reservationsReleased,
+    // Quantos ficaram para a proxima rodada por causa do orcamento de tempo.
+    deferred_by_deadline: deferredByDeadline,
   })
 }
