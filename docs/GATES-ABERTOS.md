@@ -1,4 +1,42 @@
-# 🔴 GATE ATUAL — `scripts\62-PUSH.bat` — **3 COMMITS** (07/08, sprints 10h + 13h + 16h + 21h)
+# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **7 COMMITS** (08/08, sprints da madrugada + 10h)
+
+Substitui o **62** e todos os anteriores — **não clicar** em nenhum deles.
+`origin/main` = `8dd5f91`. O **62 já rodou** e levou os 3 commits de 07/08 para produção;
+o que está represado agora é **o dia 08/08 inteiro**.
+
+⚠️ **O 63 é diferente de todos os anteriores: ele NÃO cria commit.** Os 7 commits já
+existem no repositório local. O script só faz `git push`. Ele não faz `git add`, não faz
+`git reset`, não escreve em nenhum arquivo do disco — então **não há como ele apagar
+trabalho**, que era o risco real dos anteriores (o `b6fef68` reverteu 70 linhas assim).
+Se falhar, nada é perdido e os commits continuam intactos.
+
+⚠️ Gravado em **CRLF** (43/43 linhas conferidas). O 58, o 59 e o 60 nasceram em LF e
+nenhum dos três chegou a rodar.
+
+**Commits represados (7, do mais novo para o mais antigo):**
+
+1. **`b4b5d4e`** (sprint 10h de 08/08) — `KINEO-AEO-FACTS-WINDOW` + `KINEO-AEO-FACTS-DATES`:
+   `/api/facts` afirmava a uma máquina que o grátis é **30x maior do que é**
+   (`videosPer24h: 1` com janela de 720h), no endpoint que o nosso próprio `/llms.txt`
+   manda o agente buscar — e **o ChatGPT virou hoje o maior canal de entrada da empresa**
+   (6 cadastros em 24h contra 1 do TAAFT). 3 arquivos, aditivo, `tsc` do projeto inteiro
+   EXITCODE=0 **e falsificado**.
+2. **`eb7fee1`** — crédito preso: estorno no caminho da falha do Creatomate.
+3. **`32e845c`** — pré-lançamento TAAFT: a home prometia menos do que o produto entrega.
+4. **`c843595`** — capacidade pré-TAAFT: Pixabay com disjuntor + teto diário de renders.
+5. **`508d918`** — órfãos do B-roll: 2.662 objetos medidos, **nada movido** (falta a chave).
+6. **`e81fd72`** — BUGHUNT fila: `ending_soon` com prazo real.
+7. **`d39a61b`** — BUGHUNT: cofre de clips morto há 15 dias (score FLOAT em coluna INTEGER).
+
+✅ **RESSALVA DO 62 PAGA.** O 62 pedia que "a primeira sprint com shell folgado rode o
+`tsc` do projeto inteiro e registre o EXITCODE". Feito na sprint das 10h de 08/08:
+**`npx tsc --noEmit` do projeto inteiro, EXITCODE=0**, e o `tsc` foi **falsificado**
+(erro proposital → EXITCODE=2 apontando `lib/kineoFacts.ts`; arquivo restaurado
+byte-idêntico, conferido por `cmp`). Não há mais dívida de prova de tipos na fila.
+
+---
+
+## 🗄 HISTÓRICO — GATE `scripts\62-PUSH.bat` — **JÁ RODOU**, 3 commits em produção
 
 Substitui o **61**, o **60**, o **59**, o **58**, o **57**, o **56**, o **55**, o **54** e o
 **53** — **não clicar** em nenhum deles. `origin/main` = `3faabec`.

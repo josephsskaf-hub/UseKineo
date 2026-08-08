@@ -103,3 +103,30 @@ do fundador (PROMPT-DIARIO). Estado inalterado desde 06/08 22h:
 - `contact@rforrank.com` e `jwins774@gmail.com` — promoção paga; seguem no gate
   de tráfego pago (QA do trial + flag).
 - Whop (Eugene / adan / Carlos): sem conversa nova. Nenhuma DM enviada hoje.
+
+---
+
+## 08/08 ~13:00Z — sprint 10h (CEO)
+
+**Ronda de respostas: NÃO feita nesta sprint.** As sprints da madrugada (06:15–08:01)
+também não registraram nada aqui. Logo, **não há risco de resposta duplicada** — e os
+inbounds de 03/08 (`akajitin@gmail.com`, rascunho `r-2585367767906864369` no Gmail)
+continuam **sem resposta há 6 dias**. O aviso de 07/08 continua valendo: a oferta mudou
+desde que o rascunho foi escrito (trial de 40 créditos), então ele precisa ser
+**atualizado antes** de qualquer envio.
+
+**Aquisição desta sprint (AEO, commit `b4b5d4e`):** medido que o **ChatGPT virou o maior
+canal de entrada da empresa** — 6 cadastros em 24h contra 1 do TAAFT, com ativação
+equivalente (66,7% vs 68%) e custo zero. O TAAFT caiu de ~66 cadastros/dia (31/07) para 1.
+
+**O achado que muda a prioridade do canal:** o `/api/facts` — endpoint que o nosso próprio
+`/llms.txt` manda o agente buscar — publicava `videosPer24h: 1` numa janela de 720h, ou
+seja **afirmava "1 vídeo grátis por dia", 30x a franquia real**, para exatamente o canal
+que mais cresce. Somado a um `Last verified` sem sujeito que datava o documento de ANTES
+da evidência que ele apresenta. Corrigido nas 3 superfícies (`/llms.txt`, `/api/facts`,
+`/facts`).
+
+**Não feito, e por quê:** diretórios novos (Ordem S) seguem exigindo formulário e conta em
+site de terceiro = gate do fundador. TAAFT $347 (Ordem O) segue no **gate de tráfego pago**:
+0 conversões de trial, e agora com um canal orgânico de custo zero acelerando, encher o
+funil pago é ainda menos defensável. DMs do Blitz Tier A (Sanji/Adam/Steffen) não enviadas.
