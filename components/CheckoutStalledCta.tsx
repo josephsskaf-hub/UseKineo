@@ -21,10 +21,14 @@
 //      exatamente o que Safari/iOS exige para permitir a navegação (o gesto do
 //      clique original já tinha "expirado" depois de segundos de espera).
 //
-//   2. NUNCA APARECE EM CIMA DE UM CHECKOUT QUE FUNCIONOU. Só é publicado pelo
-//      watchdog de 15 s, e `pageshow` (volta do bfcache, volta do Stripe)
-//      limpa o store. Se a navegação tivesse acontecido, `pagehide` já teria
+//   2. NUNCA APARECE EM CIMA DE UM CHECKOUT QUE FUNCIONOU. O card só NASCE pelo
+//      watchdog de 15 s, e `pageshow` (volta do bfcache, volta do Stripe) limpa
+//      o store. Se a navegação tivesse acontecido, `pagehide` já teria
 //      cancelado o watchdog antes.
+//      KINEO-CHECKOUT-RESCUE-BLIND-2026-08-09: existe um SEGUNDO publicador,
+//      `upgradeStalledCheckout`, que troca a URL de um card já visível. Ele não
+//      viola a regra porque recusa quando não há card ('no_card') — promover
+//      não é criar.
 //
 //   3. NUNCA OFERECE LINK EXPIRADO. A URL preferida vem de
 //      /api/stripe/checkout/resume, que RECARREGA a sessão da Stripe no
@@ -34,25 +38,40 @@
 
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { clearStalledCheckout, useStalledCheckout } from '@/lib/checkoutTelemetry'
+import { clearStalledCheckout, useStalledCheckout, type StalledCheckoutKind } from '@/lib/checkoutTelemetry'
 
 export default function CheckoutStalledCta() {
   const stalled = useStalledCheckout()
   const shownKeyRef = useRef<string | null>(null)
+  // Tipo do link NO MOMENTO DA IMPRESSÃO. Sem ele, um card impresso como
+  // `server_retry` e promovido a `stripe_direct` antes do clique daria 1
+  // impressão a um tipo e 1 clique ao outro — e o CTR por tipo, que é a única
+  // pergunta que este trabalho existe para responder ("o link direto converte
+  // melhor?"), sairia 0% de um lado e divisão por zero do outro.
+  const shownKindRef = useRef<StalledCheckoutKind | null>(null)
 
   useEffect(() => {
     if (!stalled) {
       shownKeyRef.current = null
+      shownKindRef.current = null
       return
     }
-    const key = `${stalled.surface}:${stalled.selection}:${stalled.url}`
+    // KINEO-CHECKOUT-RESCUE-BLIND-2026-08-09 — a chave NÃO inclui mais a URL.
+    // O card agora pode ser promovido no lugar (`server_retry` → `stripe_direct`)
+    // sem desmontar, e com a URL na chave essa troca emitiria um SEGUNDO
+    // `checkout_fallback_shown` — o mesmo card viraria duas impressões e a razão
+    // view→clique desta superfície nasceria pela metade. Quem conta a promoção é
+    // `checkout_fallback_upgraded`. Um clique novo limpa o store, o efeito zera
+    // esta ref, e um stall realmente novo volta a contar.
+    const key = `${stalled.surface}:${stalled.selection}`
     if (shownKeyRef.current === key) return
     shownKeyRef.current = key
+    shownKindRef.current = stalled.kind
     try {
       void trackEvent('checkout_fallback_shown', {
         surface: stalled.surface,
         selection: stalled.selection,
-        fallback_kind: stalled.direct ? 'stripe_direct' : 'server_retry',
+        fallback_kind: shownKindRef.current,
       })
     } catch {
       // A recuperação nunca pode quebrar por causa de telemetria.
@@ -111,7 +130,13 @@ export default function CheckoutStalledCta() {
             void trackEvent('checkout_fallback_clicked', {
               surface: stalled.surface,
               selection: stalled.selection,
-              fallback_kind: stalled.direct ? 'stripe_direct' : 'server_retry',
+              // O tipo no CLIQUE (pode ter sido promovido depois da impressão)…
+              fallback_kind: stalled.kind,
+              // …e o tipo na IMPRESSÃO, que é o que fecha a razão view→clique.
+              // Nome com o instante embutido: campo cujo valor depende de QUANDO
+              // foi medido leva o quando no nome, senão a análise conclui o
+              // oposto.
+              shown_kind: shownKindRef.current,
             })
           } catch {
             /* never block the navigation */
