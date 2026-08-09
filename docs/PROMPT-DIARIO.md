@@ -1068,3 +1068,78 @@ sua taxa de sucesso. Um fallback com 0 sucessos em N tentativas não é um fallb
 uma sprint e pagou três dias depois: **o comentário do arquivo já prescrevia a correção certa,
 condicionada ao número.** Prescrever a correção junto com a medição é o que fez a sprint
 seguinte ser execução em vez de palpite.
+
+---
+
+## Aprendizados — sprint 21h de 08/08/2026 (KINEO-CHECKOUT-RESCUE-BLIND)
+
+### 1. UM HOOK COMPARTILHADO POR DOIS PRODUTOS RESGATA UM COM O OUTRO
+
+`useCheckoutLaunch` serve assinatura (`?tier=`) **e** compra avulsa (`?pack=`).
+O endpoint de resgate só conhece assinatura, e o cookie dele dura 30 dias. Logo,
+uma compra de $7 que travasse recebia o link de um **plano recorrente**. Ninguém
+escreveu esse bug: ele nasceu do dia em que o segundo produto passou a usar o
+primeiro hook. **Ao reaproveitar um caminho de dinheiro para um produto novo,
+a pergunta não é "funciona?", é "o que este caminho assume sobre o produto?".**
+
+### 2. PRODUTO NÃO É PREÇO — E A SEGUNDA PASSADA ACHOU O SEGUNDO DENTRO DA CORREÇÃO DO PRIMEIRO
+
+Fechei a divergência de produto (tier ≠ tier) e **escrevi em comentário** que
+tinha fechado a de preço. Não tinha: mesma `tier`, `billing` diferente = sessão
+anual ($99) resgatando um clique mensal com intro ($4,90). **20×.** O campo que
+resolve (`billing`) já viajava na resposta e continuava sem ser declarado no
+tipo — o defeito idêntico, um nível abaixo, dentro do próprio conserto.
+**Corolário permanente: comparar identidade de produto nunca basta; a chave é
+(produto, periodicidade, desconto). E um comentário que declara cobertura é uma
+afirmação verificável — a 2ª passada falsificou a minha.**
+
+### 3. A CORREÇÃO DE UM BUG DE DINHEIRO PODE DESLIGAR A FEATURE NA MELHOR SUPERFÍCIE
+
+Exigir `?tier=` na URL matou o resgate no `CheckoutResumeBanner`, que lança a
+própria sessão a retomar (`/resume?go=1`, sem tier). Era **a única tela onde o
+produto é assinatura por construção e o tier é garantidamente igual** — e é a do
+comprador que já abandonou uma vez. **Toda guarda nova por atributo da URL exige
+enumerar os call sites e dizer, um a um, se ainda passam e se deveriam.** A
+saída foi um terceiro estado ("o servidor é a autoridade"), não uma exceção.
+
+### 4. `...metadata` POR ÚLTIMO É UMA COLISÃO SILENCIOSA — E JÁ ESTAVA GRAVANDO ERRADO
+
+`checkout_failure` espalhava `...metadata` depois de `reason`, e o `GenerateClient`
+passa `reason: upgradeReason` ('credits'/'studio'/'trial_ended'). O evento que mede
+falha de checkout vinha gravando o motivo do **modal** no lugar do **nome do erro**,
+na superfície de maior tráfego. **Em evento de telemetria, o spread do call site vem
+PRIMEIRO: os campos de diagnóstico do próprio evento são os que não podem ser
+sobrescritos.** Grep de `...metadata,` fechando objeto de `trackEvent` rende bug real.
+
+### 5. O CAMPO QUE VOCÊ SHIPA JUNTO COM A CORREÇÃO É O QUE DIZ QUE ELA FALHOU
+
+A correção de checkout das 10h teria "funcionado" no relato: o card apareceu.
+Só que `fallback_kind` gravou `server_retry` — e é isso, e só isso, que revela
+que o botão oferecia a rota que acabara de travar. **Correção de caminho de erro
+nasce com um campo que distingue o conserto do sucesso aparente**; sem ele, a
+sprint seguinte lê "card exibido" e vai embora satisfeita.
+
+### 6. GUARDA DE GERAÇÃO SÓ NO CAMINHO FELIZ ENVIESA O HISTOGRAMA PARA FALHA
+
+Conferir `gen` apenas antes de gravar sucesso, e não antes de gravar erro, faz
+sondas órfãs de cliques mortos entrarem só como `http_error`/`network_error`. O
+dataset criado para medir a correção nasceria dizendo que ela não funciona.
+**A checagem de validade vale para TODOS os desfechos, ou para nenhum.**
+Corolário do denominador: como `pagehide` invalida a geração quando a navegação
+**dá certo**, `checkout_resume_probe` se divide por `checkout_redirect_timeout`,
+nunca por `checkout_cta_clicked`.
+
+### 7. REVOGAR UMA OFERTA NÃO É APAGAR A TELA
+
+Ao descobrir tarde que o comprador já assina, limpar o card **e** a mensagem
+deixa a pessoa 20 s depois com a tela vazia e o botão re-habilitado — ela clica
+de novo. **Toda revogação troca a oferta por uma frase, nunca por silêncio.**
+É a mesma regra de "pedir sem devolver", aplicada a desfazer.
+
+### 8. TRÊS VOCABULÁRIOS PARA O MESMO CAMPO FAZEM O JOIN DAR ZERO
+
+Impressão dizia `server_retry`, watchdog dizia `resume_endpoint`/`idempotent_retry`.
+O CTR por tipo — a única pergunta que o trabalho existia para responder — não
+podia ser calculado. Pior: um `boolean` (`direct`) fundia dois casos **opostos**
+(sessão viva com 2 saltos × repetição da rota que travou). **Campo que aparece em
+mais de um evento nasce como união literal exportada, num arquivo só.**

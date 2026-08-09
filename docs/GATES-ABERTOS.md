@@ -1,3 +1,43 @@
+# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **4 COMMITS** (08/08, sprints 19h e 21h)
+
+`origin/main` = **`6fcc83b`** — conferido por `git ls-remote origin refs/heads/main`
+na sprint das 21h de 08/08. `HEAD` local = **`d122fa2`**.
+
+⚠️ A regra que vale é *tudo o que estiver à frente de `6fcc83b`* — a contagem
+envelhece a cada sprint, o SHA não.
+
+🛑 **ESTE PUSH TIRA DOIS BUGS DE DINHEIRO DO AR. Eles NÃO foram criados hoje —
+estão vivos em produção agora:**
+
+1. **Compra AVULSA resgatada com link de ASSINATURA.** `?pack=starter`,
+   `?pack=autopilot_pilot`, `?pack=starter290` e os top-ups usam o mesmo hook de
+   checkout, mas o `/api/stripe/checkout/resume` **só conhece assinatura** e o
+   cookie dura **30 dias**. Quem abandonou um plano e depois comprou um top-up
+   que travasse recebia, como "resgate", o link de um **plano recorrente**.
+2. **Clique MENSAL resgatado numa sessão ANUAL.** Mesmo `tier`, periodicidade
+   diferente: primeira cobrança prometida de **$4,90** contra **$99,00** — **20×**.
+   O campo `billing` sempre veio do servidor e o cliente nunca o lia.
+
+**Commits à frente de `6fcc83b` (do mais novo para o mais antigo):**
+
+1. **`d122fa2`** — `KINEO-CHECKOUT-RESCUE-BLIND-2026-08-09`: o **primeiro clique
+   da história** na caixa de oferta do trial aconteceu às 22:11:50Z e **quebrou no
+   checkout**; o resgate shipado de manhã degradou para `server_retry` e ofereceu
+   a mesma rota que acabara de travar. Sonda vira sequência (6s/10s/13,5s),
+   telemetria em todo desfecho, promoção do link no card já visível — mais os
+   dois bloqueadores acima. 2 arquivos de código + doc.
+2. **`99446c7`** — doc desta sprint (21h): este gate + 8 aprendizados no PROMPT-DIARIO.
+3. **`c7a7c59`** — doc da sprint 19h.
+4. **`212d147`** — `KINEO-TRIAL-DEATH-OFFER-2026-08-08`: a caixa de assinatura
+   passa a cobrir a fase `'ending'` (trial morto por teto).
+
+⚠️ O 63 **não cria commit**: só faz `git push`. Não faz `git add`, não faz
+`git reset`, não escreve em arquivo nenhum — não há como apagar trabalho.
+
+---
+
+## 🗄 HISTÓRICO — bloco da sprint 16h
+
 # 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **7 COMMITS** (08/08, sprints 12h→16h)
 
 `origin/main` = **`3204672`** — conferido por `git ls-remote origin refs/heads/main`
