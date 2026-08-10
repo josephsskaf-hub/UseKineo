@@ -208,6 +208,37 @@ const ENDING_SOON_MS: Record<TrialVariant, number> = {
   '7d': 60 * HOUR_MS,
 }
 
+/**
+ * ═══ KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 ════════════════════════════════
+ * Janela do e-mail de PERDA, disparado logo depois do downgrade: [0, 48h).
+ *
+ * O BURACO QUE ESTA CONSTANTE FECHA (medido em produção, não deduzido). Até
+ * hoje `dueKind()` só tinha três saídas para uma linha morta: extensão (exige
+ * `used < 10`), D5 (a partir de 5 dias) e D10. Logo, quem foi rebaixado tendo
+ * usado 10 créditos ou mais caía num `return null` implícito e ficava
+ * **CINCO DIAS EM SILÊNCIO** — e só então recebia um cupom. O instante de maior
+ * aversão à perda da vida do funil (o crédito acabou de ser revogado) não tinha
+ * e-mail nenhum, e o primeiro contato pós-morte era um desconto.
+ *
+ * POR QUE HOJE. Os dois primeiros vencimentos reais da história são hoje,
+ * 10/08, às 17:57Z e 18:22Z. Um deles usou 11 créditos — acima do teto da
+ * extensão — e é a MESMA conta que produziu o único clique em COMPRAR da
+ * história da empresa (`e934461f`, ver SPRINT-2026-08-08). Sem esta janela, o
+ * lead mais quente que a empresa já teve morre sem receber uma linha até 15/08.
+ *
+ * POR QUE 48h E NÃO ATÉ O D5. O assunto é "what you JUST lost". Passadas 48h a
+ * frase deixa de ser verdade, e mandar um e-mail de perda uma semana depois é
+ * pior do que não mandar. Acima de 48h o comportamento é EXATAMENTE o de antes
+ * (silêncio até o D5) — esta mudança não pode causar regressão em nenhuma linha
+ * que já existia, só preenche um vazio.
+ *
+ * NÃO LEVA DESCONTO, DE PROPÓSITO. COMEBACK50 é do D5/D10 e de mais lugar
+ * nenhum (ordem do fundador, 06/08). Descontar no minuto da perda queima a
+ * margem exatamente em quem tem a maior intenção e ensina a coorte a esperar
+ * pelo cupom. Aqui a oferta é o preço cheio; o cupom é a segunda tentativa.
+ */
+const DOWNGRADED_LOSS_TO_MS = 48 * HOUR_MS
+
 /** Janela do e-mail de oferta D5: [5, 10) dias após o fim do trial. */
 const OFFER_D5_FROM_MS = 5 * DAY_MS
 /** D10 (última chamada): [10, 15) dias. Depois disso, silêncio — coorte morta. */
@@ -231,17 +262,32 @@ const COMEBACK_CODE = 'COMEBACK50'
 type EmailKind =
   | 'd0_welcome'
   | 'ending_soon'
+  | 'downgraded_loss'
   | 'expired_offer_d5'
   | 'expired_lastcall_d10'
   | 'trial_extended'
 
-/** Ordem de corte quando o teto de 200 aperta: o mais valioso primeiro. */
+/**
+ * Ordem de corte quando o teto por execução aperta: o mais valioso primeiro.
+ *
+ * (O comentário anterior dizia "o teto de 200". `MAX_PER_RUN` é 40 desde que
+ * existe — número falso num comentário que justifica uma decisão, corrigido de
+ * passagem em 10/08. Lição 5 da sprint 21h de 07/08: comentário que afirma um
+ * número é afirmação verificável, e entra na revisão como código.)
+ *
+ * KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 — `downgraded_loss` entra em 3,
+ * ACIMA das duas ofertas com cupom, e a razão não é estética: a janela dele é
+ * de 48h e a do D5 é de 5 dias. Num corte por teto, adiar o D5 custa horas de
+ * uma janela de 120h; adiar a perda pode estourar a janela inteira e o e-mail
+ * nunca mais sai. Prioridade alta = janela curta, não "importância".
+ */
 const KIND_PRIORITY: Record<EmailKind, number> = {
   trial_extended: 0,
   d0_welcome: 1,
   ending_soon: 2,
-  expired_offer_d5: 3,
-  expired_lastcall_d10: 4,
+  downgraded_loss: 3,
+  expired_offer_d5: 4,
+  expired_lastcall_d10: 5,
 }
 
 // Fail-closed cron auth (KINEO-CRON-FAILCLOSED-2026-07-27 pattern).
@@ -300,6 +346,18 @@ interface Candidate {
   creditsLeft: number
   /** Créditos de trial já gastos. Decide "first Short" × "next Short". */
   creditsUsed: number
+  /**
+   * KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 — quantos créditos a REVOGAÇÃO
+   * levou. É `granted − used`, o mesmo teto que `downgradeExpiredTrial` pode
+   * ter tirado, e serve a UMA frase do e-mail de perda.
+   *
+   * ⚠️ Só é afirmável quando `status === 'downgraded'`. Numa linha 'expired' o
+   * cron de downgrade ainda NÃO passou e o saldo continua na conta: dizer "seus
+   * créditos expiraram" ali seria mentira verificável pela própria pessoa, que
+   * abriria o app e veria o número intacto. Quem decide isso é `dueKind`, não a
+   * template — por isso o campo já chega aqui valendo 0 no caso 'expired'.
+   */
+  creditsLost: number
   /**
    * KINEO-BUGHUNT-FILA-2026-08-08 — quanto tempo REALMENTE falta, medido na
    * linha. É daqui que sai a copy do `ending_soon`; ver `endingSoonTiming()`.
@@ -360,6 +418,14 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
   const capLeft = Math.max(0, TRIAL_CREDIT_CAP - used)
   const creditsLeft = balanceNow === null ? capLeft : Math.min(capLeft, balanceNow)
 
+  // KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 — `granted` era calculado DENTRO
+  // do ramo da extensão. Agora dois ramos precisam do mesmo número (a extensão,
+  // para devolver; a perda, para afirmar quanto sumiu), e duas cópias da mesma
+  // conta em ramos diferentes é exatamente como este arquivo já criou bug antes
+  // (ver o bloco da coorte no cron de downgrade). Uma conta, um lugar.
+  const grantedRaw = row.trial_credits_granted
+  const granted = typeof grantedRaw === 'number' && Number.isFinite(grantedRaw) ? grantedRaw : 0
+
   const base = {
     id,
     email,
@@ -370,6 +436,8 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     restore: 0,
     creditsLeft,
     creditsUsed: used,
+    // Preenchido de verdade só no ramo 'downgraded' — ver o comentário do campo.
+    creditsLost: 0,
     msLeft: Math.max(0, endsMs - now),
   }
 
@@ -421,8 +489,8 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     if (!extended && used < EXTENSION_MAX_CREDITS_USED && sinceEnd < EXTENSION_MAX_AGE_MS) {
       const rawBalance = row.video_credits
       const balance = typeof rawBalance === 'number' && Number.isFinite(rawBalance) ? rawBalance : null
-      const grantedRaw = row.trial_credits_granted
-      const granted = typeof grantedRaw === 'number' && Number.isFinite(grantedRaw) ? grantedRaw : 0
+      // `granted` vem do escopo da função desde
+      // KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 (era recalculado aqui).
       // Linha 'downgraded' já teve o não-gasto revogado pelo cron de downgrade;
       // a extensão devolve granted−used — o teto do que aquela revogação pode
       // ter tirado (ela revoga min(saldo, não-gasto), então no caso raro de o
@@ -433,6 +501,19 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
       // 'expired' ainda tem o saldo: devolver seria conceder em dobro.
       const restore = status === 'downgraded' ? Math.max(0, granted - used) : 0
       return { ...base, kind: 'trial_extended', needsExtensionUpdate: true, balance, restore }
+    }
+    // ═══ KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 — O E-MAIL DA PERDA ════════
+    // Chega aqui quem NÃO foi estendido: ou já usou 10+ créditos, ou já gastou
+    // a extensão única, ou passou dos 7 dias. Antes desta linha existir, essa
+    // pessoa não recebia NADA por 5 dias. Ver o bloco de DOWNGRADED_LOSS_TO_MS.
+    //
+    // A frase de crédito só é afirmada sobre linha 'downgraded': é a única em
+    // que a revogação COMPROVADAMENTE aconteceu (o cron carimba o status e o
+    // saldo na MESMA escrita atômica). Em 'expired' o saldo ainda está lá, e o
+    // e-mail se calaria sobre créditos em vez de mentir — por isso o `0`.
+    if (sinceEnd < DOWNGRADED_LOSS_TO_MS) {
+      const lost = status === 'downgraded' ? Math.max(0, granted - used) : 0
+      return { ...base, kind: 'downgraded_loss', creditsLost: lost }
     }
     if (sinceEnd >= OFFER_D5_FROM_MS && sinceEnd < OFFER_D10_FROM_MS) {
       return { ...base, kind: 'expired_offer_d5' }
@@ -620,6 +701,56 @@ usekineo.com`
   ${cta(url, 'Keep Creator')}
   ${sig}`)
     return { subject, text: `${text}${footerText}`, html }
+  }
+
+  if (c.kind === 'downgraded_loss') {
+    // ═══ KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 ═══════════════════════════
+    // SEM PREÇO LITERAL, e isto é decisão, não esquecimento. Nenhum dos quatro
+    // e-mails deste arquivo imprime valor: todos mandam para /pricing, que
+    // resolve a moeda na hora (US$ / valor / BRL, fonte única em
+    // lib/checkoutPricing.ts). Este cron NÃO sabe a moeda da pessoa — existe
+    // `signup_country` na tabela, mas ele não é a entrada de
+    // checkoutPricing, e derivar moeda aqui criaria uma SEGUNDA verdade de
+    // preço fora da fonte única, que é exatamente o que a ordem do fundador
+    // proíbe. Um e-mail que promete um número e um checkout que cobra outro é
+    // o bug de 08/08 ($4,90 × $99) de novo, por outra porta.
+    //
+    // SEM CUPOM: COMEBACK50 é do D5/D10 e de mais lugar nenhum.
+    const url = `${APP_URL}/pricing?${utm('trial_downgraded_loss')}`
+    const freeResidual = getFreeTierOffer().copy.residual
+    // A linha de crédito é condicional em DOIS testes (status provado
+    // 'downgraded' em dueKind + quantidade > 0). Quem queimou os 40 não perdeu
+    // saldo nenhum — para essa pessoa a frase seria ruído, e ruído numa lista
+    // de perdas enfraquece as perdas que são reais.
+    const lostLine = c.creditsLost > 0 ? `${c.creditsLost} unused trial credits — gone` : null
+    const bullets = [
+      lostLine,
+      'The Creator AI engines are locked again',
+      `You're back to ${freeResidual}`,
+    ].filter((l): l is string => l !== null)
+    const text = `Hey,
+
+Your Creator trial ended. Here's what you just lost access to:
+
+${bullets.map((b) => `- ${b}`).join('\n')}
+
+The videos you already made are yours — they stay in your account.
+
+If the trial was doing its job, Creator picks up exactly where it left off: ${url}
+
+Kineo Team
+usekineo.com`
+    const html = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial ended.</strong> Here's what you just lost access to:</p>
+  <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
+    ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
+  </ul>
+  <p style="margin:0 0 14px;">The videos you already made are yours &mdash; they stay in your account.</p>
+  <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
+  ${cta(url, 'Get Creator back')}
+  ${sig}`)
+    return { subject: `Here's what you just lost access to`, text: `${text}${footerText}`, html }
   }
 
   if (c.kind === 'expired_offer_d5') {
