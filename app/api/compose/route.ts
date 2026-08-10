@@ -42,6 +42,11 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
+// KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
+// recusa TERMINAL do fornecedor nenhum render_id nasce, logo /api/compose/status
+// nunca é chamado e o estorno ao vivo de lá é inalcançável. Sem isto, o único
+// caminho de volta é o cron de 3h.
+import { refundCinematicBirthOnProviderRejection } from '@/lib/cinematic/refundOnRejection'
 import {
   loadPrepaidAvatarClaimForGeneration,
   type VerifiedAvatarBirthClaim,
@@ -1572,8 +1577,22 @@ export async function POST(req: NextRequest) {
             { status: 409 },
           )
         }
+        // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — gêmeo do caminho padrão.
+        // Só no ramo TERMINAL: acima, o ramo ambíguo já retornou 409. Release
+        // ANTES do estorno — a nota de ORDEM está no gêmeo e vale igual aqui.
         await releaseGenerationClaim()
-        return NextResponse.json({ error: 'Render service rejected the job. Please try again.' }, { status: 502 })
+        const hollywoodRefunded = await refundCinematicBirthOnProviderRejection({
+          db: composeAdmin,
+          secret: serviceRoleKey,
+          userId: authenticatedUserId,
+          claim: cinematicBirthClaim,
+          context: 'compose_hollywood',
+          composeQuality: quality,
+        })
+        return NextResponse.json({
+          error: 'Render service rejected the job. Please try again.' +
+            (hollywoodRefunded > 0 ? ` Your ${hollywoodRefunded} credits were automatically refunded.` : ''),
+        }, { status: 502 })
       }
 
       // Same best-effort broll_metrics link as the standard path.
@@ -2066,8 +2085,40 @@ export async function POST(req: NextRequest) {
         )
       }
       await releaseGenerationClaim()
+      // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — o crédito cinematográfico foi
+      // debitado no NASCIMENTO do clipe (generate-video-cinematic, antes do fal).
+      // Aqui o render morre sem nunca existir: sem render_id o cliente não tem o
+      // que polar, e o estorno ao vivo de /api/compose/status é inalcançável.
+      // Devolver agora tira 3–4h de espera do cron. Só no ramo TERMINAL — o
+      // ramo ambíguo já retornou 409 acima, e ali o job pode existir no
+      // fornecedor.
+      const refundedOnRejection = await refundCinematicBirthOnProviderRejection({
+        db: composeAdmin,
+        secret: serviceRoleKey,
+        userId: authenticatedUserId,
+        claim: cinematicBirthClaim,
+        context: 'compose',
+        composeQuality: quality,
+      })
+      // ⚠️ ORDEM — release ANTES do estorno, e isto é deliberado. A 1ª revisão
+      // adversarial mandou inverter (estornar primeiro) para fechar a janela em
+      // que um retry imediato da mesma aba encontra o claim cinematográfico
+      // ainda `settled`. A 2ª revisão derrubou a própria correção da 1ª:
+      //   · a janela é INÓCUA — `refund_render_credits` reivindica a linha com
+      //     UPDATE condicional em `refunded_at`, então o segundo estorno devolve
+      //     0. Crédito em dobro é impossível por construção;
+      //   · inverter, porém, põe 1 RPC + até 2 releases + 1 insert ANTES do
+      //     único DELETE que destrava a pessoa. Se a função serverless morrer no
+      //     meio (justamente o que acontece quando o fornecedor está fora e tudo
+      //     fica lento), o claim de submissão fica preso e a pessoa passa a
+      //     receber "This render is already being submitted" — fail-closed.
+      // Trocar uma corrida inofensiva por um travamento real é mau negócio.
+      // O DELETE é barato e garantido; o estorno vem depois e nunca lança.
       return NextResponse.json(
-        { error: 'Render service rejected the job. Please try again.' },
+        {
+          error: 'Render service rejected the job. Please try again.' +
+            (refundedOnRejection > 0 ? ` Your ${refundedOnRejection} credits were automatically refunded.` : ''),
+        },
         { status: 502 }
       )
     }
