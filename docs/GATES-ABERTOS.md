@@ -1,10 +1,46 @@
-# 🔴 GATE ATUAL — **10 COMMITS** (08/08 19h/21h + 10/08 madrugada/10h/11h)
+# 🔴 GATE ATUAL — **12 COMMITS** (08/08 19h/21h + 10/08 madrugada/10h/11h/13h)
 
 `origin/main` = **`6fcc83b`** — reconferido por `git ls-remote origin refs/heads/main`
-na sprint das 11h de 10/08 (mesmo valor desde 08/08: **o push ainda NAO rodou**).
+na sprint das 16h de 10/08 (mesmo valor desde 08/08: **o push ainda NAO rodou**).
 
 ⚠️ A regra que vale e *tudo o que estiver a frente de `6fcc83b`* — a contagem
 envelhece a cada sprint, o SHA nao.
+
+⚠️ **O script e o `scripts\66-PUSH.bat`.** O prompt diario ainda manda rodar
+`52-PUSH.bat` e o `65-PUSH.bat` tem cabecalho staled ("1 commit pronto"). O 66
+substitui os dois.
+
+---
+
+# 🚨 GATE Nº1 DE HOJE — CREATOMATE: O PLANO ESTOUROU (diagnostico FECHADO 10/08 19:4xZ)
+
+**Nao e bug, nao e cobranca, nao e incidente do fornecedor. E o teto mensal do
+plano, atingido na data que a aritmetica manda.**
+
+Prova (sprint 16h, secoes 1–3 do SPRINT-2026-08-10.md):
+- Plano **Growth 10K** pago em 01/08 (Paddle nº 80035218-167963147, R$ 668,57).
+  **Zero e-mails do Creatomate/Paddle desde entao** — sem falha, sem suspensao.
+- Formula publica do fornecedor: `creditos = W*H*FPS*dur/1e8`. Nosso output e
+  1080x1920@30 = **0,62208 cr/s**.
+- **309 videos entregues no ciclo = 14.415s = 8.967 creditos = 89,7% do plano**,
+  em 8,7 dias de 31 — contando **so os entregues**. Com falhados e a rota
+  legada, cruza 10.000 exatamente em **09/08 16:21**, a hora do ultimo video.
+- Queima **1.038 cr/dia** → Growth 10K dura **9,6 dias**. Estourou identico em
+  01/08 no Essential. **Vai estourar de novo em 01/09.**
+
+**COMO FECHAR (30 segundos):** ha um **rascunho pronto no Gmail**, resposta a
+thread "Emergency credit top-up request" para `casper@creatomate.com` — que
+resolveu o estouro de 01/08 em **2h11min**. So clicar em Enviar.
+
+**Alternativa direta:** creatomate.com/dashboard → Subscription → **Growth 10K
+para Growth 40K** (upgrade no meio do ciclo e permitido; da para descer depois).
+Autonomia na queima de hoje: 10K = 9,6 dias · 20K = 19,3 · 30K = 28,9 ·
+**40K = 38,5**. **So o 40K cobre um ciclo de 31 dias.**
+
+⚠️ Ressalva honesta sobre a prova: os 8.967 creditos sao **estimativa nossa**
+pela formula publica, nao leitura do contador do fornecedor. O numero exato esta
+em `Dashboard → API Log`. A estimativa e um **piso** (ignora renders falhados),
+e por isso o argumento nao depende de precisao: o piso ja e 89,7%.
 
 ## 🛑 URGENCIA NOVA E MAIOR QUE TODAS AS ANTERIORES: O PRODUTO ESTA PARADO
 
