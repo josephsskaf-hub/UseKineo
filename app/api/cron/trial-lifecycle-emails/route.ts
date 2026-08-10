@@ -64,11 +64,16 @@ import {
 //
 // RELÓGIOS. Não existe trial_started_at nem trial_expired_at:
 //   · início  = trial_ends_at − dias da variante (TRIAL_VARIANT_DAYS);
-//   · fim     = trial_ends_at quando já passou; para quem estourou o TETO
-//     antes do prazo (trial_ends_at ainda no futuro) o fim observável é
-//     trial_downgraded_at, carimbado pelo cron horário de downgrade — até lá a
-//     conta não entra em janela nenhuma (atraso máximo de ~1h, irrelevante em
-//     janelas de dias).
+//   · fim     = o MENOR entre trial_ends_at e — SÓ quando o status já é
+//     'downgraded' — trial_downgraded_at, entre os que já passaram. Quem morre
+//     de relógio tem o prazo; quem estoura o TETO antes do prazo tem o carimbo
+//     do cron horário de downgrade (até ele passar, a conta não entra em janela
+//     nenhuma — atraso de ~1h, irrelevante em janelas de dias). É MENOR, e não
+//     "o prazo, senão o carimbo", e a qualificação do status não é detalhe: ver
+//     KINEO-TRIAL-CLOCK-NONMONOTONIC-2026-08-10 em dueKind(). Perda de acesso é
+//     evento único DENTRO DE UM CICLO; a distância até ela só cresce. (Entre
+//     ciclos não: a extensão reescreve trial_ends_at e o relógio recomeça, de
+//     propósito — é outro trial.)
 //
 // ═══ AGENDAMENTO — KINEO-TRIAL-EMAIL-STARVATION-2026-08-08 ══════════════════
 // "25 * * * *" (vercel.json). ERA "30 16 * * *" — UM disparo por dia.
@@ -464,9 +469,12 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
   }
 
   if (status === 'expired' || status === 'downgraded') {
-    // Fim observável: trial_ends_at quando já passou; senão (teto estourado
-    // antes do prazo) o carimbo do cron de downgrade. Sem nenhum dos dois, a
-    // linha ainda não tem relógio — espera o próximo run.
+    // Fim observável: o PRIMEIRO carimbo real que já passou — `trial_ends_at`
+    // para quem morreu de relógio, `trial_downgraded_at` para quem estourou o
+    // teto antes do prazo. Sem nenhum dos dois, a linha ainda não tem relógio —
+    // espera o próximo run. (A frase anterior aqui dizia "trial_ends_at quando
+    // já passou; SENÃO o carimbo", que é literalmente o defeito descrito no
+    // bloco KINEO-TRIAL-CLOCK-NONMONOTONIC abaixo: o "senão" caducava.)
     //
     // ⚠️ KINEO-DOWNGRADE-CRON-FIX-2026-08-07 — DEPENDÊNCIA REGISTRADA, NÃO É
     // BUG DESTA ROTA. A COORTE aqui está certa: `.in('trial_status', ['active',
@@ -481,8 +489,87 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     // inventar um segundo relógio (ex.: último débito) criaria duas verdades
     // sobre "quando o trial acabou", que é a classe de erro que este arquivo
     // inteiro existe para impedir.
-    const downAt = parseTime(row.trial_downgraded_at)
-    const endedAt = endsMs > 0 && endsMs <= now ? endsMs : downAt > 0 && downAt <= now ? downAt : 0
+    // ═══ KINEO-TRIAL-CLOCK-NONMONOTONIC-2026-08-10 — O RELÓGIO ANDAVA PARA TRÁS ══
+    //
+    // O DEFEITO (medido em produção, não deduzido). A linha anterior era:
+    //
+    //     endsMs > 0 && endsMs <= now ? endsMs : downAt > 0 && downAt <= now ? downAt : 0
+    //
+    // Ela prefere `trial_ends_at` SEMPRE QUE ele já passou. Para quem morre no
+    // TETO, `trial_downgraded_at` é dias ANTES de `trial_ends_at` — então o
+    // ternário devolve `downAt` enquanto o prazo é futuro e TROCA para `endsMs`
+    // no instante em que o prazo passa. `sinceEnd` não é uma função crescente do
+    // tempo: ele CAI para ~0 nesse instante, e a cadência inteira reinicia.
+    //
+    // A COORTE ATINGIDA É 100% DA COORTE REBAIXADA. 10 de 10 linhas
+    // 'downgraded' da história têm `trial_ends_at > trial_downgraded_at` — ou
+    // seja, TODA pessoa que já foi rebaixada morreu por teto, nenhuma por
+    // relógio. Não é um caso de borda; é o caso normal. (9 delas são reais; a
+    // décima, `84c9ddee`, cai em `isTestEmail` e nunca receberia e-mail. O
+    // script de prova roda sobre as 9 — os dois números falam da mesma coorte.)
+    //
+    // O CUSTO, nas 9 linhas reais de hoje, MEDIDO simulando o cron hora a hora
+    // (scripts/prove-trial-clock-monotonic.mjs, seção 4 — e não por aritmética
+    // sobre as datas, que foi como a primeira versão deste comentário errou o
+    // número; a revisão adversarial derrubou, ver o doc da sprint). O desvio do
+    // relógio NÃO cai igual sobre os três kinds:
+    //   · downgraded_loss — a janela de 48h REABRE no instante da troca. Não
+    //     duplica e-mail (o claim em trial_emails_log é permanente); o que ela
+    //     dava, por acidente, era uma 2ª janela caso a 1ª fosse comida pela
+    //     supressão cruzada. Com o cron horário, 48 tentativas contra uma trava
+    //     de 24h/usuário tornam essa rede desnecessária.
+    //   · expired_offer_d5 (COMEBACK50) — atrasa +3d SÓ nas 5 linhas em que
+    //     `ends − down < 5d`; nas outras 4 o D5 abre antes de o ternário trocar
+    //     de perna, e os dois relógios disparam no MESMO instante. Média 1,7d.
+    //     `e6acebb8` recebe o D5 em 14/08 nos dois — o número "21/08" da versão
+    //     anterior deste comentário era do D10.
+    //   · expired_lastcall_d10 — este desliza SEMPRE: +3d em 5 linhas e +7d em
+    //     4, média 4,8d. Em `e6acebb8` o defeito empurra o last-call de 19/08
+    //     (relógio novo) para 26/08 (relógio antigo). É o kind que a correção
+    //     realmente devolve.
+    //
+    // ⚠️ RESTRIÇÃO DE CALENDÁRIO PARA O DEPLOY. O relógio novo anda para trás,
+    // logo as janelas FECHADAS também: o D10 novo fecha em `down+15d` enquanto o
+    // antigo só abre em `ends+10d`. Nas 4 linhas de desvio grande esses
+    // intervalos não se sobrepõem — deployar entre 25/08 e 27/08 mataria o
+    // last-call dessas contas EM SILÊNCIO. A seção 6 do script de prova falha
+    // sozinha se o dia do deploy cair nessa faixa; rodar `npm run
+    // prove:trial-clock` antes de subir é o que torna esta frase acionável.
+    //
+    // ISTO NÃO É OPINIÃO NOVA SOBRE QUAL É O FIM: o bloco logo acima já decidiu
+    // que, para quem estoura o teto, o fim observável é `trial_downgraded_at`. O
+    // ternário concordava com essa decisão por alguns dias e depois a desfazia
+    // sozinho. A correção só faz a decisão parar de expirar.
+    //
+    // A REGRA: o fim é o PRIMEIRO carimbo real que já passou, nunca o mais
+    // recente. Perda de acesso é evento único dentro de um ciclo — uma vez que
+    // aconteceu, a distância até ela só cresce. (Um ciclo NOVO, aberto pela
+    // extensão, reescreve `trial_ends_at` e reinicia legitimamente a contagem.)
+    //
+    // ⚠️ POR QUE `downAt` SÓ VALE EM 'downgraded': a coluna é reescrita a cada
+    // rebaixamento (patch incondicional em `downgradeExpiredTrial`), mas uma
+    // linha 'expired' é o estado TRANSITÓRIO entre o vencimento — teto OU
+    // relógio, gravado pelo próprio débito em `recordReverseTrialDebit` — e o
+    // cron das :55 fechar a conta. Nela o carimbo é, por construção, de um ciclo
+    // ANTERIOR (rebaixado → estendido → venceu de novo). Confiar nele ali seria
+    // adotar como fim deste ciclo a morte do ciclo passado, e o `min()` tornaria
+    // esse erro permanente. Em 'expired' o único relógio honesto é o prazo. Hoje
+    // isso é inerte: 0 linhas 'expired' e 0 `trial_extended` no banco, e as 10
+    // 'downgraded' têm o carimbo.
+    //
+    // `endedByStamp`, e não "byCap": `trial_downgraded_at` é carimbado nas duas
+    // mortes, teto e relógio — `downgradeExpiredTrial` não distingue. O `min()`
+    // neutraliza a diferença; o NOME não pode afirmar uma causa que a coluna não
+    // carrega.
+    const downAt = status === 'downgraded' ? parseTime(row.trial_downgraded_at) : 0
+    const endedByClock = endsMs > 0 && endsMs <= now ? endsMs : 0
+    const endedByStamp = downAt > 0 && downAt <= now ? downAt : 0
+    const endedAt =
+      endedByClock > 0 && endedByStamp > 0
+        ? Math.min(endedByClock, endedByStamp)
+        : endedByClock > 0
+          ? endedByClock
+          : endedByStamp
     if (endedAt === 0) return null
     const sinceEnd = now - endedAt
 

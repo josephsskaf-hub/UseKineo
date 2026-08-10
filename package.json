@@ -14,7 +14,8 @@
     "growth:activation": "node scripts/inspect-activation-failures.mjs",
     "growth:latency": "node scripts/measure-render-latency.mjs",
     "growth:checkout": "node scripts/inspect-checkout-abandonment.mjs",
-    "growth:sources": "node scripts/measure-source-funnel.mjs"
+    "growth:sources": "node scripts/measure-source-funnel.mjs",
+    "prove:trial-clock": "node scripts/prove-trial-clock-monotonic.mjs"
   },
   "dependencies": {
     "@fal-ai/client": "^1.10.1",
