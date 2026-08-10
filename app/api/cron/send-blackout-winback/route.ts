@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 
@@ -48,6 +48,15 @@ const MAX_PER_RUN = 60
 const HOUR_MS = 60 * 60 * 1000
 const MARKER_LOOKBACK_MS = 48 * HOUR_MS
 const PRE_MARKER_WINDOW_MS = 6 * HOUR_MS
+// KINEO-WINBACK-WINDOW-TOO-SHORT-2026-08-10 — teto da janela ANTES do primeiro
+// marcador. O piso continua sendo PRE_MARKER_WINDOW_MS; o valor real passa a
+// ser "desde o último vídeo que deu certo" (ver resolvePreMarkerStart).
+// Por que 96h: o apagão de 08–10/08 durou 30 horas e o código de detecção só
+// existiu a partir do meio dele, então TODA vítima das primeiras 24h caía fora
+// da janela de 6h e nunca receberia o pedido de desculpas. 96h cobre esse caso
+// com folga e ainda impede que um fim de semana ocioso arraste erros antigos e
+// sem relação para dentro da coorte.
+const MAX_PRE_MARKER_WINDOW_MS = 96 * HOUR_MS
 const RECOVERY_QUIET_MS = 45 * 60 * 1000
 const DEDUPE_WINDOW_MS = 7 * 24 * HOUR_MS
 // Client-side gate noise — not provider failures, not blackout victims.
@@ -66,6 +75,45 @@ const NON_PROVIDER_REASONS = new Set(['analyze_blocked_active_render_gate'])
 // cron devolvendo `no_blackout_in_window` o tempo inteiro. Detecção e
 // recuperação ficaram mudas juntas, de novo.
 const BLACKOUT_MARKER_REASONS = ['openai_quota_dead', 'openai_hang', 'creatomate_rejected']
+
+/**
+ * Início REAL do apagão: o instante do último vídeo concluído ANTES do primeiro
+ * marcador. Limitado por MAX_PRE_MARKER_WINDOW_MS e nunca menor que a janela
+ * fixa antiga — um apagão nunca fica com uma coorte MENOR do que teria antes
+ * desta mudança.
+ *
+ * Fail-open de propósito: se a consulta falhar, cai no comportamento antigo
+ * (6h). Uma vítima a menos é ruim; um cron de recuperação que não roda por
+ * causa de uma consulta auxiliar é pior.
+ */
+async function resolvePreMarkerStart(
+  admin: SupabaseClient<any>,
+  firstDead: number,
+): Promise<number> {
+  const floor = firstDead - PRE_MARKER_WINDOW_MS
+  const ceiling = firstDead - MAX_PRE_MARKER_WINDOW_MS
+  try {
+    const { data, error } = await admin
+      .from('videos')
+      .select('created_at')
+      .eq('status', 'completed')
+      .lt('created_at', new Date(firstDead).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const rows = (data ?? []) as Array<{ created_at: string }>
+    if (error || rows.length === 0) return floor
+    const lastHealthy = new Date(rows[0].created_at).getTime()
+    if (!Number.isFinite(lastHealthy)) return floor
+    // Nunca depois do piso (coorte não encolhe) e nunca antes do teto.
+    return Math.min(floor, Math.max(lastHealthy, ceiling))
+  } catch (e) {
+    console.warn(
+      '[blackout-winback] resolvePreMarkerStart falhou, usando a janela fixa:',
+      e instanceof Error ? e.message : String(e),
+    )
+    return floor
+  }
+}
 
 function isTestEmail(email: string): boolean {
   const e = email.toLowerCase()
@@ -188,7 +236,33 @@ export async function GET(req: NextRequest) {
   }
 
   // 3) Victims inside the window.
-  const windowStart = new Date(firstDead - PRE_MARKER_WINDOW_MS).toISOString()
+  //
+  // KINEO-WINBACK-WINDOW-TOO-SHORT-2026-08-10 — a janela deixa de ser uma
+  // constante e passa a ser MEDIDA: um apagão começa no instante em que o
+  // último vídeo saiu com sucesso, não 6 horas antes do primeiro marcador.
+  //
+  // O comentário do topo deste arquivo já registrava, em 31/07, que "o código
+  // do alarme pode ser deployado NO MEIO do apagão" — e a resposta na época
+  // foram 6 horas fixas, calibradas naquele incidente (morto às 11:07Z,
+  // marcadores só a partir das 15:40Z: 4h33). Em 08–10/08 o mesmo modo de
+  // falha voltou numa escala em que 6h não cobria nada: último vídeo bom em
+  // 09/08 16:21:08Z, 30 horas de apagão, e o símbolo `creatomate_rejected` só
+  // passa a ser escrito no deploy deste conjunto de commits. Com a janela
+  // antiga, as pessoas queimadas nas primeiras 24 horas — inclusive os 30
+  // cadastros novos que chegaram DURANTE o apagão, vindos de TAAFT e do
+  // ChatGPT — sairiam da coorte em silêncio. São exatamente as pessoas mais
+  // caras que já entraram aqui.
+  //
+  // Uma constante calibrada num incidente é uma constante calibrada no
+  // PASSADO. O último vídeo bem-sucedido não precisa de calibração: ele é o
+  // começo do apagão, por definição, em qualquer escala.
+  const preMarkerStart = await resolvePreMarkerStart(admin, firstDead)
+  const windowStart = new Date(preMarkerStart).toISOString()
+  console.log(
+    `[blackout-winback] janela = ${windowStart} → ${new Date(lastDead).toISOString()} ` +
+      `(${((lastDead - preMarkerStart) / HOUR_MS).toFixed(1)}h; ` +
+      `${((firstDead - preMarkerStart) / HOUR_MS).toFixed(1)}h antes do 1º marcador)`,
+  )
   const windowEnd = new Date(lastDead).toISOString()
   const { data: errs, error: errsError } = await admin
     .from('events')
