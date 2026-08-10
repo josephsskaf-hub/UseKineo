@@ -37,6 +37,9 @@ import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
 // the trusted source /api/compose/status bills from (instead of the client's
 // ?quality / ?deducted query params). creditCostFor is the shared price table.
 import { creditCostFor } from '@/lib/credits/engineCost'
+// KINEO-CREATOMATE-BLACKOUT-2026-08-10 — o Creatomate era o único fornecedor do
+// caminho de render sem alarme, e é o que entra em 100% dos vídeos.
+import { alertCreatomateDown } from '@/lib/creatomateAlert'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
 import {
@@ -178,7 +181,8 @@ const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
 //
 // Best-effort por projeto: nunca lança, nunca atrasa a resposta ao usuário.
 // Uma falha de telemetria não pode virar uma falha de produto.
-async function logComposeRefusal(
+async function logComposeEvent(
+  eventName: string,
   reason: string,
   userId: string | null,
   metadata: Record<string, unknown> = {},
@@ -191,9 +195,13 @@ async function logComposeRefusal(
     const db = createAdminClient(url, key, { auth: { persistSession: false } })
     await db.from('events').insert({
       user_id: userId,
-      name: 'compose_refused',
+      name: eventName,
       path: '/api/compose',
-      metadata: { reason, ...metadata },
+      // Os campos de diagnóstico do próprio evento vêm DEPOIS do spread do call
+      // site, nunca antes (lição 4 da sprint 21h de 08/08: `...metadata` por
+      // último é colisão silenciosa — `reason` já foi sobrescrito uma vez neste
+      // repositório e o evento de falha passou meses gravando outra coisa).
+      metadata: { ...metadata, reason },
     })
   } catch (err) {
     console.warn(
@@ -201,6 +209,72 @@ async function logComposeRefusal(
       err instanceof Error ? err.message : String(err),
     )
   }
+}
+
+async function logComposeRefusal(
+  reason: string,
+  userId: string | null,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  return logComposeEvent('compose_refused', reason, userId, metadata)
+}
+
+// KINEO-CREATOMATE-BLACKOUT-2026-08-10 — a recusa do PROVEDOR, vista do lado do
+// servidor, com o status e a mensagem que só ele conhece.
+//
+// Por que um evento novo, e por que com ESTE nome: em 22h de apagão, tudo o que
+// o banco guardou foram 55 linhas de `generation_stage_error` escritas pelo
+// CLIENTE com `reason='compose_not_ok'` e `http_status=502` — o 502 é o NOSSO,
+// e o motivo do Creatomate ia inteiro para `console.error`, ou seja para os
+// logs de runtime da Vercel, que nesta conta dão timeout em qualquer janela
+// (PROMPT-DIARIO, 30/07 regra 5). O incidente foi diagnosticável em "o
+// fornecedor recusou" e em NADA além disso.
+//
+// O nome é `generation_stage_error` de propósito, e não um nome novo: é o nome
+// que a RECUPERAÇÃO (`/api/cron/send-blackout-winback`) lê, tanto para achar o
+// marcador de apagão quanto para achar as vítimas. Um marcador com nome próprio
+// seria a terceira vez que detecção e recuperação conhecem conjuntos diferentes
+// de sintomas — o defeito que o comentário de `BLACKOUT_MARKER_REASONS` existe
+// para impedir.
+//
+// ⚠️ CONSEQUÊNCIA ACEITA E DECLARADA: nesta classe de falha o mesmo evento
+// passa a ter DUAS linhas (a do cliente, `compose_not_ok`, e esta,
+// `creatomate_rejected`). Contagem por `reason` continua exata; só o total bruto
+// de `generation_stage_error` dobra para esta classe. Vale o preço porque a
+// linha do cliente só existe se a aba dele sobreviver ao POST — e a que carrega
+// o motivo do fornecedor é esta.
+//
+// DOIS `reason`, e a diferença NÃO é cosmética:
+//   · `creatomate_rejected`  — a pessoa PERDEU o vídeo agora (resposta 502).
+//     Este é o único que entra em `BLACKOUT_MARKER_REASONS`, porque o win-back
+//     existe para pedir desculpa a quem ficou sem nada.
+//   · `creatomate_unverified` — recusa ambígua com claim próprio: a resposta é
+//     `409 pending` e o cliente ainda vai repolar. Fica registrado e ALERTA o
+//     fundador (a detecção não pode depender do formato do apagão), mas não
+//     dispara win-back: quem repolou e terminou não perdeu nada, e marcá-lo como
+//     vítima transformaria um soluço de 1s do provedor em campanha de e-mail.
+// Cobertura conferida: uma recusa ambígua SEM claim próprio cai no `else` e sai
+// como 502 — ou seja, um apagão puramente ambíguo continua produzindo
+// marcadores terminais para quem não é dono do claim. O par não tem buraco.
+//
+// AWAIT, nunca `void`: esta escrita nasce dentro de um `catch` que responde na
+// linha seguinte, e lambda que responde pode ser congelada antes de a promessa
+// resolver. Um instrumento que só grava quando dá sorte é o defeito que ele
+// veio consertar (PROMPT-DIARIO, 07/08: "fallback nunca exercitado não é
+// fallback"). O custo é irrelevante: este caminho JÁ é o caminho do erro.
+async function logCreatomateRejection(
+  userId: string | null,
+  metadata: { terminal: boolean } & Record<string, unknown>,
+): Promise<void> {
+  return logComposeEvent(
+    'generation_stage_error',
+    metadata.terminal ? 'creatomate_rejected' : 'creatomate_unverified',
+    userId,
+    // `clips_ready` e não `composing`: é o MESMO instante que o cliente já
+    // carimba como `clips_ready`/`compose_not_ok`. Dois vocabulários para o
+    // mesmo momento fazem o join dar zero (lição 8 da sprint 21h de 08/08).
+    { stage: 'clips_ready', ...metadata },
+  )
 }
 // feature/ai-avatar — 'avatar' = premium talking-head render (VEED Fabric).
 // Checkpoint 1: no credit cost wired yet (billing lands in checkpoint 2).
@@ -1473,8 +1547,25 @@ export async function POST(req: NextRequest) {
       try {
         hollywoodRenderId = await submitCreatomateOnce(hollywoodSource, submissionKey)
       } catch (err) {
-        console.error('[compose] hollywood Creatomate submit failed:',
-          err instanceof Error ? err.message : String(err))
+        const hollywoodMsg = err instanceof Error ? err.message : String(err)
+        console.error('[compose] hollywood Creatomate submit failed:', hollywoodMsg)
+        // KINEO-CREATOMATE-BLACKOUT-2026-08-10 — mesmo instrumento do caminho
+        // padrão. Este `catch` é o par do de baixo: achar um defeito num deles e
+        // corrigir só um é a armadilha do "código copiado em N telas".
+        {
+          const providerStatus = err instanceof CreatomateSubmitError ? err.status : undefined
+          const terminal = !(err instanceof CreatomateSubmitError && err.ambiguous && ownsSubmissionClaim)
+          await logCreatomateRejection(authenticatedUserId, {
+            provider: 'creatomate',
+            provider_status: typeof providerStatus === 'number' ? providerStatus : null,
+            http_status: terminal ? 502 : 409,
+            ambiguous: err instanceof CreatomateSubmitError ? err.ambiguous : false,
+            terminal,
+            quality,
+            error: hollywoodMsg.slice(0, 300),
+          })
+          await alertCreatomateDown({ context: `compose hollywood quality=${quality}`, status: providerStatus, message: hollywoodMsg })
+        }
         if (err instanceof CreatomateSubmitError && err.ambiguous && ownsSubmissionClaim) {
           return NextResponse.json(
             { error: 'Render submission is still being verified.', pending: true, retry_after_ms: 3000 },
@@ -1946,6 +2037,28 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[compose] Creatomate submit failed:', msg)
+      // KINEO-CREATOMATE-BLACKOUT-2026-08-10 — telemetria + alarme ANTES do
+      // ramo de ambiguidade, de propósito. Se o Creatomate cair devolvendo 5xx
+      // (ambíguo), toda a coorte sai por `409 pending` e NUNCA chega no 502 lá
+      // embaixo: um detector pendurado só no 502 nasceria amarrado ao sintoma
+      // exato do incidente que o gerou e ficaria mudo no apagão seguinte
+      // (PROMPT-DIARIO, 05/08: "detector nasce amarrado ao SINTOMA"). O campo
+      // `terminal` guarda a diferença que importa — se a pessoa perdeu o vídeo
+      // agora ou se o cliente ainda vai repolar.
+      {
+        const providerStatus = err instanceof CreatomateSubmitError ? err.status : undefined
+        const terminal = !(err instanceof CreatomateSubmitError && err.ambiguous && ownsSubmissionClaim)
+        await logCreatomateRejection(authenticatedUserId, {
+          provider: 'creatomate',
+          provider_status: typeof providerStatus === 'number' ? providerStatus : null,
+          http_status: terminal ? 502 : 409,
+          ambiguous: err instanceof CreatomateSubmitError ? err.ambiguous : false,
+          terminal,
+          quality,
+          error: msg.slice(0, 300),
+        })
+        await alertCreatomateDown({ context: `compose quality=${quality}`, status: providerStatus, message: msg })
+      }
       if (err instanceof CreatomateSubmitError && err.ambiguous && ownsSubmissionClaim) {
         return NextResponse.json(
           { error: 'Render submission is still being verified.', pending: true, retry_after_ms: 3000 },

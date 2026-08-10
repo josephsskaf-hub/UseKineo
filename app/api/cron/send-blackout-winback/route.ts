@@ -57,7 +57,15 @@ const NON_PROVIDER_REASONS = new Set(['analyze_blocked_active_render_gate'])
 // generation down for everyone". Keep this list as the ONE place a new
 // provider-outage symptom gets registered: detection (lib/openaiAlert.ts) and
 // recovery (this cron) must never again know about different sets of symptoms.
-const BLACKOUT_MARKER_REASONS = ['openai_quota_dead', 'openai_hang']
+// KINEO-CREATOMATE-BLACKOUT-2026-08-10 — `creatomate_rejected` entra aqui no
+// MESMO commit que o cria (app/api/compose/route.ts). O apagão de 08–10/08 é a
+// prova de que a lista acima estava incompleta pelo pior motivo possível: os
+// dois símbolos registrados eram de OpenAI, e o Creatomate é o fornecedor que
+// entra em 100% dos renders — Fast e IA. Resultado medido: último vídeo
+// concluído 09/08 16:21Z, 55 recusas de 26 pessoas até 10/08 13:18Z, e este
+// cron devolvendo `no_blackout_in_window` o tempo inteiro. Detecção e
+// recuperação ficaram mudas juntas, de novo.
+const BLACKOUT_MARKER_REASONS = ['openai_quota_dead', 'openai_hang', 'creatomate_rejected']
 
 function isTestEmail(email: string): boolean {
   const e = email.toLowerCase()

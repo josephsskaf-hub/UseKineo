@@ -1,3 +1,58 @@
+# 🔴 GATE ATUAL — **10 COMMITS** (08/08 19h/21h + 10/08 madrugada/10h/11h)
+
+`origin/main` = **`6fcc83b`** — reconferido por `git ls-remote origin refs/heads/main`
+na sprint das 11h de 10/08 (mesmo valor desde 08/08: **o push ainda NAO rodou**).
+
+⚠️ A regra que vale e *tudo o que estiver a frente de `6fcc83b`* — a contagem
+envelhece a cada sprint, o SHA nao.
+
+## 🛑 URGENCIA NOVA E MAIOR QUE TODAS AS ANTERIORES: O PRODUTO ESTA PARADO
+
+Medido em 10/08 14:0x–14:15Z: **nenhum video concluido desde 09/08 16:21:08Z**
+(22h), 55 recusas HTTP 502 do `/api/compose` atingindo **22 pessoas**, ainda
+caindo as 14:15Z. **390 creditos queimados por 13 pessoas, 0 videos entregues.**
+**18 das 22 vitimas sao de PRIMEIRO DIA.** Causa: o **Creatomate** esta
+recusando todo render.
+
+O commit desta sprint (KINEO-CREATOMATE-BLACKOUT-2026-08-10) entrega as duas
+metades que faltavam **no unico fornecedor que entra em 100% dos renders**:
+`lib/creatomateAlert.ts` (nao existia; ha `openaiAlert` e `falAlert` desde
+julho) e `creatomate_rejected` dentro de `BLACKOUT_MARKER_REASONS`, para o
+win-back deixar de responder `no_blackout_in_window` durante um apagao real.
+Enquanto o push nao roda, **o proximo apagao tambem sera silencioso.**
+
+🔑 **GATE DO FUNDADOR, 5 MINUTOS, MAIOR RETORNO DO DIA:** abrir
+https://creatomate.com/dashboard e conferir plano / saldo / chave de API. O
+padrao (502 constante, sem intermitencia, comecando de uma hora para outra) e
+tipico de cota/plano/chave — mas e hipotese, e o dashboard fecha. Eu nao tenho
+acesso a conta nem a chave.
+
+## ⏳ O PRAZO DO GATE ANTERIOR CONTINUA VALENDO: push depois de 24/08 custa 4 last-calls
+
+Rodar `npm run prove:trial-clock` — ele sai com codigo 1 se o dia do deploy cair
+na faixa de 25 a 27/08 e nomeia as contas (`e6acebb8`, `ade5c987`, `6eb47386`,
+`c16336a8`).
+
+## O que este push tira do ar (5 urgencias)
+
+0. **Apagao silencioso de fornecedor** — sem alarme e sem win-back (acima).
+1. **Compra AVULSA resgatada com link de ASSINATURA**.
+2. **Clique MENSAL resgatado numa sessao ANUAL** — $4,90 prometidos contra $99,00, 20x.
+3. **`541f5bf`** — quem e rebaixado com 10+ creditos usados nao recebia nada por 5 dias.
+4. **`985368f`** — last-call atrasado em ate 7 dias para 10 de 10 pessoas ja rebaixadas.
+
+**Garantia:** o push nao cria commit. So faz `git push` — nao faz `git add`, nao
+faz `git reset`, nao escreve em arquivo nenhum. Nao ha como apagar trabalho.
+
+⚠️ **O indice do repo segue ENVENENADO** (reconfirmado 10/08 14:2xZ): ha delecao
+STAGED de docs. **Um `git commit` normal apaga tudo isso.** Receita obrigatoria:
+indice temporario (`git read-tree HEAD` em `$HOME`) + caminhos explicitos +
+`commit-tree` + escrita direta do ref.
+
+---
+
+## 🗄 HISTORICO — bloco da sprint 10h de 10/08
+
 # 🔴 GATE ATUAL — **8 COMMITS** (08/08 sprints 19h/21h + 10/08 madrugada + 10/08 10h)
 
 `origin/main` = **`6fcc83b`** — reconferido por `git ls-remote origin refs/heads/main`

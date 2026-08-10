@@ -1207,3 +1207,67 @@ escrever "porque é o mais valioso". A razão defensável é outra e é verific�
 custa horas de uma janela larga; adiar a perda pode **estourar a janela inteira**
 e o e-mail nunca mais sai. **Em fila com teto, ordene por prazo de expiração da
 oportunidade, não por opinião sobre valor.**
+
+---
+
+## Aprendizados — sprint 11h de 10/08/2026 (KINEO-CREATOMATE-BLACKOUT)
+
+### 1. O PLACAR PEGOU UM APAGÃO DE 22h QUE TRÊS SPRINTS NÃO VIRAM — PELO NÚMERO QUE FALTAVA, NÃO PELO QUE ESTAVA RUIM
+
+As duas sprints anteriores de hoje mediram trials, e-mails, canais e ofertas, e
+nenhuma perguntou **"quantos vídeos saíram?"**. O produto estava parado desde
+09/08 16:21Z. O sinal não foi um número feio: foi um **zero num lugar onde zero
+é impossível** — 15 cadastros, 87 trials ativos, `pricing_view` vivo, e nenhum
+vídeo. **Regra: a linha "vídeos concluídos HOJE" entra no placar de toda sprint,
+ao lado dos cadastros. É a única que mede se o produto existe.**
+
+### 2. UM FORNECEDOR NOVO GANHA ALARME NO DIA 1 — E O ALARME É POR *PARTICIPAÇÃO*, NÃO POR SOFISTICAÇÃO
+
+Existiam `openaiAlert` e `falAlert` desde julho, para os motores de IA. O
+Creatomate — que entra em **100%** dos renders, Fast e IA — não tinha nenhum.
+A intuição que produziu esse buraco é fácil de repetir: alarmamos o fornecedor
+*caro* e *novo*, não o fornecedor *banal* que está em todo caminho. **Ordene a
+cobertura de alarme por fração de requests que passam pelo fornecedor, nunca por
+quanto ele custa ou por quão moderno ele é.**
+
+### 3. "ESTA É A ÚNICA LISTA ONDE UM SINTOMA NOVO SE REGISTRA" NÃO SE CUMPRE SOZINHO
+
+`BLACKOUT_MARKER_REASONS` tinha um comentário exemplar dizendo exatamente isso —
+e mesmo assim ficou com dois símbolos, ambos de OpenAI, enquanto o apagão mais
+caro da história passava ao lado. **Comentário que nomeia um invariante é uma
+promessa; o que a cumpre é o commit que cria o sintoma TAMBÉM editar a lista.**
+Corolário operacional: ao criar um `reason` novo de falha de provedor, o mesmo
+commit toca detecção e recuperação, ou não sai.
+
+### 4. `http_status` NUM EVENTO DE ERRO PODE SER O **NOSSO** STATUS, NÃO O DO FORNECEDOR
+
+98 linhas de `compose_not_ok` gravaram fielmente `http_status: 502` durante 10
+dias. O 502 é o que a NOSSA rota devolveu; o status e a mensagem do Creatomate
+nunca saíram do `console.error`. Isso passa em qualquer revisão porque o campo
+existe, está preenchido e é verdadeiro. **Regra: em erro de integração, o evento
+carrega DOIS status com nomes distintos (`http_status` nosso e `provider_status`
+dele). Um campo só sempre vira o menos informativo dos dois.** Reforço: os logs
+de runtime da Vercel **não são plano B** — quatro janelas (12h, 3h, 90min,
+25min) deram timeout nesta conta.
+
+### 5. TROCAR `void` POR `await` NUM `catch` CONSERTA A TELEMETRIA E PODE QUEBRAR O PRODUTO
+
+`void` em lambda é telemetria que grava quando dá sorte (a instância congela ao
+responder), então `await` é o certo. Só que o mesmo `await` passou a valer para o
+e-mail de alarme — um `fetch` **sem timeout** dentro de uma rota com
+`maxDuration = 300`. O alarme criado para anunciar o incidente passaria a
+**prolongá-lo** em até 5 minutos de ampulheta. **Regra dura: todo `fetch` que
+entra num caminho de resposta ao usuário nasce com `AbortSignal.timeout`.** E é
+o 4º registro do padrão "a 2ª passada acha o defeito que a 1ª correção criou" —
+ele não é raro, é o modo normal de falha de uma correção grande.
+
+### 6. DETECTOR PENDURADO NO DESFECHO TERMINAL FICA CEGO PARA O APAGÃO DE OUTRO FORMATO
+
+A tentação era instrumentar só o `return 502`. Mas uma recusa **ambígua** do
+provedor sai como `409 pending`, e um apagão inteiramente ambíguo nunca chegaria
+ao 502 — o detector nasceria amarrado ao sintoma do incidente que o gerou.
+Instrumentar **antes** do ramo de ambiguidade custa uma linha. O par que resolve:
+um `reason` por desfecho (`_rejected` terminal × `_unverified` provisório), com
+**só o terminal** disparando a campanha de e-mail — senão um soluço de 1s do
+provedor vira disparo em massa. E a cobertura se **prova**: recusa ambígua sem
+claim próprio cai no `else` e sai como 502, logo o par não tem buraco.
