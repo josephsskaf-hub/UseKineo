@@ -2136,15 +2136,6 @@ export async function POST(req: NextRequest) {
       console.warn('[compose] post-submit poll warning:', msg)
     }
 
-    // KINEO-CREATOMATE-QUOTA-METER-2026-08-10 — medir DEPOIS da submissão dar
-    // certo, nunca antes. Duas razões, as duas pagas com incidente:
-    //   · no caminho de erro o compose já responde na linha seguinte, e uma
-    //     medição a mais ali só faria a pessoa esperar mais para ler "falhou";
-    //   · o medidor não pode ter poder de veto sobre um render. Ele conta o
-    //     que já saiu; se ele mesmo quebrar, o pior resultado possível é
-    //     voltarmos a não ter aviso — nunca um vídeo a menos.
-    // Throttle interno de 15 min por lambda, um e-mail por patamar por ciclo.
-    await checkCreatomateQuota(composeAdmin)
 
     // Push #355 — Link the broll_metrics row (created in generate-video-fast)
     // to this Creatomate render so compose/status can write render_time_ms.
@@ -2191,6 +2182,23 @@ export async function POST(req: NextRequest) {
         { status: 503 },
       )
     }
+
+    // KINEO-CREATOMATE-QUOTA-METER-2026-08-10 — o medidor fica AQUI, e a
+    // posição é o ponto inteiro. A primeira versão deste commit o colocou logo
+    // depois do submit, ANTES de `broll_metrics`, `recordRenderIntent` e
+    // `completeGenerationClaim` — a revisão adversarial derrubou: se a lambda
+    // morresse dentro do medidor, o claim ficaria em `pending:` e a pessoa
+    // passaria a receber "This render is already being submitted" com o render
+    // pago e sem `render_id` para pollar. Fail-closed, o modo de falha que o
+    // comentário de ordem 20 linhas acima existe para evitar — reintroduzido
+    // por uma linha de instrumentação.
+    //
+    // Aqui não há mais nada a perder: todas as escritas de recuperação já
+    // aconteceram e a única coisa depois disto é serializar a resposta. Ainda
+    // assim o medidor tem teto de 6s próprio, porque durante um incidente o
+    // Supabase é lento e o instrumento não pode virar latência para o usuário.
+    // Throttle de 15 min por lambda; um e-mail por patamar por ciclo.
+    await checkCreatomateQuota(composeAdmin)
 
     return NextResponse.json({
       render_id: renderId,

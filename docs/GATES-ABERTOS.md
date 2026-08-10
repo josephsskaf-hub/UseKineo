@@ -1325,7 +1325,7 @@ avisos de cartao sao do Render.com), nao e chave, nao e instabilidade.
 - Nao ha caminho autonomo: dinheiro e gate do fundador, e nao existe fallback
   de render sem reproduzir legenda e marca d'agua (guardrail).
 
-### GATE #2 — PUSH: agora sao 15 commits, e o script mudou
+### GATE #2 — PUSH: agora sao 16 commits, e o script mudou
 ⚠️ **Rode `scripts\67-PUSH.bat`, NAO o 66.** Apareceram tres `.lock` orfaos de
 08/08 no `.git` que o ambiente do Cowork nao consegue apagar
 (`Operation not permitted`, mount do OneDrive). Os 2 commits da sprint das 19h
@@ -1336,9 +1336,20 @@ duas vezes.
 ### GATE #3 — Resolucao do output (ficou BARATO de decidir)
 Continua sem resposta desde as 16h, mas deixou de exigir commit: agora sao as
 envs `KINEO_RENDER_WIDTH` / `_HEIGHT` / `_FPS` na Vercel.
-**Recomendacao:** `720 / 1280 / 24` — corta 64% da conta de render e faz o
-plano de 10K durar 27 dias. Manter 1080p30 significa pagar Growth 40K todo mes
-por pixels que o YouTube Shorts recomprime.
+**Recomendacao (numeros corrigidos apos a revisao adversarial — a primeira
+versao estava 11,5% otimista):**
+
+| perfil | autonomia real no 10K | Δ custo |
+|---|---|---|
+| 1080×1920@30 (hoje) | 8,6 dias | — |
+| 720×1280@30 | 19,4 dias | −56% |
+| 720×1280@24 | 24,3 dias | −64% |
+| 480×854@24 | 54,6 dias | −84% |
+
+⚠️ **Nenhum perfil com qualidade cobre um ciclo de 31 dias no plano de 10.000
+— nem o 720p24.** A escolha real e entre (a) pagar plano maior e manter 1080p,
+ou (b) 720p24 + plano maior menor. Manter 1080p30 no 10K significa apagao todo
+dia 9 do mes.
 
 ### GATE #4 — TAAFT $347: ADIADO pela 5ª sprint seguida
 Motivo continua sendo de produto, nao de funil: com o render parado, cada

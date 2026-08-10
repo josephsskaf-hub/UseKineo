@@ -1319,3 +1319,27 @@ claim próprio cai no `else` e sai como 502, logo o par não tem buraco.
 > credito) E e a saida mais cara para setembro (a queima e o nosso perfil de output, nao uma
 > constante da natureza). Reportar so uma das duas seria mentira por omissao nas duas
 > direcoes. **Quando duas recomendacoes se contradizem, quase sempre falta o eixo tempo.**
+>
+> **8. Misturar duas contabilidades e o erro mais caro que cometi hoje, e ele passou no teste.**
+> A tabela de decisao de resolucao usava a queima de 1.038 cr/dia (soma dos videos ENTREGUES)
+> contra um plano de 10.000 (numero REAL do painel, que inclui renders falhos e testes). As
+> duas pontas certas, bases diferentes: a tabela saiu 11,5% otimista e prometia 27 dias num
+> perfil que entrega 24,3. O fundador teria escolhido por ela e estourado no dia 24 de 31. E o
+> `prove` script **passava**, porque recalculava a tabela com a mesma omissao. **Regra: todo
+> numero que vai para uma tabela de decisao tem que ser amarrado a uma contagem medida do
+> mundo real.** A assercao que consertou foi "a linha do perfil de hoje tem que reproduzir os
+> 309 videos que o ciclo entregou" — essa nao tem como passar errada.
+>
+> **9. Instrumentacao no caminho quente e mudanca de risco, nao adicao neutra.** Pus o medidor
+> `await`ado depois do submit e antes das tres escritas de recuperacao. Nesse ponto o render ja
+> foi pago e o `render_id` ainda nao foi persistido: morrer ali deixa o claim em `pending:` e a
+> pessoa presa em "already being submitted". **Toda chamada nova em rota de request responde a
+> duas perguntas antes de entrar: (a) o que quebra se ela travar aqui? (b) qual e o teto de
+> tempo dela?** Se a resposta de (b) for "o do fetch padrao", nao ha teto.
+>
+> **10. Um remedio que desativa o instrumento que o recomendou.** O medidor recalculava o ciclo
+> inteiro com o perfil ATUAL, entao baixar a resolucao — a acao que o proprio e-mail dele
+> recomenda — fazia o percentual desabar retroativamente e o alarme seguinte nunca tocar.
+> **Sempre simular o estado do sistema DEPOIS de o usuario obedecer ao alerta.** Grandeza
+> acumulada nao pode ser recalculada com parametro do presente: ou carimba no evento, ou guarda
+> marca d'agua.

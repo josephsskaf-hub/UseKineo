@@ -42,6 +42,24 @@
 // ser o motivo de um vídeo não sair — seria a segunda vez que a instrumentação
 // causa o dano que veio medir.
 //
+// POR QUE EXISTE UM HIGH-WATER MARK (defeito pego na revisão adversarial desta
+// mesma sprint, antes do deploy):
+//
+//   A estimativa é recalculada do zero a cada leitura, multiplicando TODOS os
+//   segundos do ciclo pelo custo/segundo do perfil ATUAL. Isso quer dizer que,
+//   no minuto em que alguém baixa a resolução — que é literalmente a ação nº 2
+//   que este alarme recomenda por e-mail — o percentual DESABA
+//   retroativamente: 9.000 créditos já queimados em 1080p passam a ser
+//   contados como se tivessem sido feitos em 720p, o medidor lê 40% em vez de
+//   90%, o patamar de 95% nunca é cruzado e a cota estoura em silêncio.
+//
+//   O remédio recomendado desativava o instrumento. A correção certa de longo
+//   prazo é carimbar o custo de cada render na linha de `videos` no momento em
+//   que ele nasce (fila). A correção que cabe hoje é uma marca d'água por
+//   ciclo: o consumo do ciclo NUNCA decresce, então guardamos o maior valor já
+//   visto e reportamos `max(estimativa, marca)`. Um ciclo só volta a zero
+//   quando o ciclo vira de verdade.
+//
 // ⚠️ LIMITE CONHECIDO, DITO AQUI PARA NINGUÉM SE ILUDIR DEPOIS: como o gancho
 // vive no caminho de SUCESSO do compose, o patamar de 100% praticamente nunca
 // dispara por ele — quando a cota zera, nenhuma submissão dá certo e o gancho
@@ -69,6 +87,13 @@ const THRESHOLDS = [80, 95, 100] as const
 
 const CHECK_THROTTLE_MS = 15 * 60 * 1000
 const ALERT_EVENT = 'creatomate_quota_alert'
+// KINEO-QUOTA-HWM-2026-08-10 — marca d'água do ciclo. Ver o bloco
+// "POR QUE EXISTE UM HIGH-WATER MARK" abaixo: sem ela, seguir a recomendação
+// deste próprio alarme (baixar a resolução) CEGA o alarme.
+const HWM_EVENT = 'creatomate_quota_hwm'
+// Só grava marca nova quando o consumo sobe de verdade — evita uma linha a
+// cada 15 min por lambda.
+const HWM_MIN_INCREASE = 1.02
 
 function intFromEnv(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name]
@@ -184,43 +209,108 @@ let LAST_CHECK = 0
 // e-mail a cada 15 min pela mesma lambda.
 const ALERTED_IN_PROCESS = new Set<string>()
 
+// Teto de tempo do medidor dentro do caminho de request. Ver o comentário do
+// call site em app/api/compose/route.ts: as consultas ao Supabase não têm
+// AbortSignal próprio, e um Supabase lento acontece JUSTAMENTE durante
+// incidente — que é quando este código roda. Sem teto, o instrumento vira
+// latência para o usuário no pior momento possível.
+const CHECK_DEADLINE_MS = 6000
+
 /**
  * Mede e, se cruzou um patamar novo neste ciclo, alerta UMA vez.
- * Fire-and-forget. Nunca lança.
+ * Nunca lança e nunca demora mais que CHECK_DEADLINE_MS.
  */
 export async function checkCreatomateQuota(db: QuotaDb, now: Date = new Date()): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    await Promise.race([
+      runCheck(db, now),
+      new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(`[creatomate-quota] medição passou de ${CHECK_DEADLINE_MS}ms — seguindo sem ela`)
+          resolve()
+        }, CHECK_DEADLINE_MS)
+      }),
+    ])
+  } catch (e) {
+    console.warn('[creatomate-quota] checkCreatomateQuota lançou:', e instanceof Error ? e.message : String(e))
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+async function runCheck(db: QuotaDb, now: Date): Promise<void> {
   try {
     if (now.getTime() - LAST_CHECK < CHECK_THROTTLE_MS) return
     LAST_CHECK = now.getTime()
 
-    const q = await readQuota(db, now)
-    if (!q) return
+    const raw = await readQuota(db, now)
+    if (!raw) return
+
+    // UMA consulta serve às duas perguntas do ciclo: qual a marca d'água e
+    // quais patamares já foram alertados.
+    const { data: prior } = await db
+      .from('events')
+      .select('name, metadata')
+      .in('name', [ALERT_EVENT, HWM_EVENT])
+      .gte('created_at', raw.cycleStartIso)
+      .limit(200)
+
+    type PriorRow = { name: string; metadata: { threshold?: number; estimated_credits?: number } | null }
+    const rows = (prior ?? []) as PriorRow[]
+
+    let hwm = 0
+    let maxAlerted = 0
+    for (const r of rows) {
+      const c = Number(r?.metadata?.estimated_credits)
+      if (Number.isFinite(c) && c > hwm) hwm = c
+      if (r.name === ALERT_EVENT) {
+        const t = Number(r?.metadata?.threshold)
+        if (Number.isFinite(t) && t > maxAlerted) maxAlerted = t
+      }
+    }
+
+    // O consumo de um ciclo não decresce. Se a estimativa de agora for menor
+    // que a marca, quem mudou foi o perfil de output — não o gasto passado.
+    const q: QuotaReading =
+      hwm > raw.estimatedCredits
+        ? { ...raw, estimatedCredits: hwm, percentUsed: (hwm / raw.planCredits) * 100 }
+        : raw
+    if (hwm > raw.estimatedCredits) {
+      console.log(
+        `[creatomate-quota] estimativa (${raw.estimatedCredits.toFixed(0)}) abaixo da marca do ciclo ` +
+          `(${hwm.toFixed(0)}) — o perfil de output mudou no meio do ciclo; usando a marca`,
+      )
+    }
+
+    if (q.estimatedCredits > hwm * HWM_MIN_INCREASE) {
+      try {
+        await db.from('events').insert({
+          user_id: null,
+          name: HWM_EVENT,
+          path: '/api/compose',
+          metadata: {
+            cycle_start: q.cycleStartIso,
+            estimated_credits: Math.round(q.estimatedCredits),
+            percent_used: Number(q.percentUsed.toFixed(1)),
+            profile: renderProfile(),
+          },
+        })
+      } catch (e) {
+        console.warn('[creatomate-quota] marca d\'água falhou:', e instanceof Error ? e.message : String(e))
+      }
+    }
 
     const crossed = THRESHOLDS.filter((t) => q.percentUsed >= t).pop()
     if (!crossed) return
 
+    // Alarme nunca anda para trás: já tendo avisado 95%, não se manda um 80%
+    // depois. Sem esta linha, qualquer oscilação para baixo vira um e-mail que
+    // soa como boa notícia no meio de uma piora.
+    if (crossed <= maxAlerted) return
+
     const dedupeKey = `${q.cycleStartIso}:${crossed}`
     if (ALERTED_IN_PROCESS.has(dedupeKey)) return
-
-    // Dedupe durável: um evento por patamar por ciclo. UMA consulta — a versão
-    // anterior deste bloco fazia duas (uma para saber se havia algo, outra para
-    // ler o metadata), o que é um round-trip a mais no caminho quente para
-    // responder a mesma pergunta.
-    const { data: prior } = await db
-      .from('events')
-      .select('metadata')
-      .eq('name', ALERT_EVENT)
-      .gte('created_at', q.cycleStartIso)
-      .limit(50)
-
-    const already = (prior ?? []).some(
-      (r: { metadata: { threshold?: number } | null }) => Number(r?.metadata?.threshold) === crossed,
-    )
-    if (already) {
-      ALERTED_IN_PROCESS.add(dedupeKey)
-      return
-    }
-
     ALERTED_IN_PROCESS.add(dedupeKey)
     await sendQuotaAlert(q, crossed)
 
@@ -244,7 +334,7 @@ export async function checkCreatomateQuota(db: QuotaDb, now: Date = new Date()):
       console.warn('[creatomate-quota] marcador de dedupe falhou:', e instanceof Error ? e.message : String(e))
     }
   } catch (e) {
-    console.warn('[creatomate-quota] checkCreatomateQuota lançou:', e instanceof Error ? e.message : String(e))
+    console.warn('[creatomate-quota] runCheck lançou:', e instanceof Error ? e.message : String(e))
   }
 }
 
@@ -268,7 +358,7 @@ async function sendQuotaAlert(q: QuotaReading, threshold: number): Promise<void>
 
     await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(5000),
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         from,
@@ -288,8 +378,13 @@ async function sendQuotaAlert(q: QuotaReading, threshold: number): Promise<void>
           'DUAS AÇÕES POSSÍVEIS (a primeira custa dinheiro, a segunda não):\n' +
           '  1. Subir o plano em creatomate.com → Credit Usage → Subscription.\n' +
           '  2. Baixar o perfil de output pelas envs KINEO_RENDER_WIDTH / _HEIGHT / _FPS\n' +
-          '     na Vercel (720×1280@30 corta 56% da conta; 720×1280@24 corta 64%).\n' +
-          '     Não precisa de commit — só redeploy.\n\n' +
+          '     na Vercel. Não precisa de commit — só redeploy. Autonomia REAL de\n' +
+          '     cada perfil no plano de 10.000 (overhead de 11,5% já incluído):\n' +
+          '       720×1280@30 → 19,4 dias (−56%)\n' +
+          '       720×1280@24 → 24,3 dias (−64%)\n' +
+          '       480× 854@24 → 54,6 dias (−84%) — o ÚNICO que cobre um ciclo de 31.\n' +
+          '     Atenção: baixar o perfil NÃO devolve crédito já gasto. Com a cota em\n' +
+          '     100% nenhum perfil renderiza; aí a única saída é subir o plano.\n\n' +
           'A estimativa vem da nossa tabela `videos` com a fórmula pública do fornecedor,\n' +
           'multiplicada pelo fator de overhead medido (renders falhos e testes que a\n' +
           'nossa tabela não vê). Em 10/08 a estimativa deu 8.967 e o painel marcava\n' +

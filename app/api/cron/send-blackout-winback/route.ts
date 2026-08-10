@@ -141,7 +141,7 @@ function buildEmail(userId: string) {
 
 This is the Kineo team.
 
-Earlier today you tried to generate a video and it failed. That was NOT you and NOT your idea — our AI provider ran out of capacity on our side. The failure was ours.
+Recently you tried to generate a video and it failed. That was NOT you and NOT your idea — our AI provider ran out of capacity on our side. The failure was ours.
 
 It's fixed now, and we've verified videos are rendering again. Your free videos and credits were never touched by any of those failed attempts.
 
@@ -270,6 +270,14 @@ export async function GET(req: NextRequest) {
     .eq('name', 'generation_stage_error')
     .gte('created_at', windowStart)
     .lte('created_at', windowEnd)
+    // KINEO-WINBACK-WINDOW-TOO-SHORT-2026-08-10 — `order` EXPLÍCITO, e ele é
+    // parte da correção, não enfeite. Sem ORDER BY o PostgREST devolve ordem
+    // física (≈ inserção, mais antigos primeiro); com a janela de 6h isso nunca
+    // chegava perto do teto de 5.000, mas a janela nova é até 16× maior. Se o
+    // teto for atingido sem ordenação, quem cai fora são as vítimas RECENTES —
+    // exatamente as que o comportamento antigo pegava. A invariante "a coorte
+    // nunca encolhe" só é verdadeira com esta linha.
+    .order('created_at', { ascending: false })
     .limit(5000)
   if (errsError) {
     console.error('[blackout-winback] victims query error:', errsError.message)
@@ -301,19 +309,33 @@ export async function GET(req: NextRequest) {
   }
 
   // 5) Profiles (respect opt-out; paid users deliberately INCLUDED).
-  const { data: profiles, error: profilesError } = await admin
-    .from('profiles')
-    .select('id, email')
-    .in('id', Array.from(victimIds))
-    .eq('email_opted_out', false)
-  if (profilesError) {
-    console.error('[blackout-winback] profiles query error:', profilesError.message)
-    return NextResponse.json({ error: profilesError.message }, { status: 500 })
+  //
+  // KINEO-WINBACK-WINDOW-TOO-SHORT-2026-08-10 — EM LOTES, e isto é consequência
+  // direta da janela maior. `.in('id', [...])` vira query string num GET: cada
+  // UUID custa ~38 bytes, então perto de ~400 vítimas a URL passa de 16 KB, o
+  // gateway responde 414 e a rota inteira sai por 500 com ZERO e-mails — em
+  // toda execução, enquanto os marcadores estiverem na janela de 48h. A
+  // correção de uma consulta teria virado um apagão de recuperação.
+  const victimList = Array.from(victimIds)
+  const PROFILE_CHUNK = 200
+  const profiles: Array<{ id: string; email?: string | null }> = []
+  for (let i = 0; i < victimList.length; i += PROFILE_CHUNK) {
+    const chunk = victimList.slice(i, i + PROFILE_CHUNK)
+    const { data, error: profilesError } = await admin
+      .from('profiles')
+      .select('id, email')
+      .in('id', chunk)
+      .eq('email_opted_out', false)
+    if (profilesError) {
+      console.error('[blackout-winback] profiles query error:', profilesError.message)
+      return NextResponse.json({ error: profilesError.message }, { status: 500 })
+    }
+    profiles.push(...((data ?? []) as Array<{ id: string; email?: string | null }>))
   }
 
   let sent = 0
   let skipped = 0
-  for (const p of (profiles ?? []) as Array<{ id: string; email?: string | null }>) {
+  for (const p of profiles) {
     if (sent >= MAX_PER_RUN) break
     const email = p.email?.trim()
     if (!email || isTestEmail(email)) {

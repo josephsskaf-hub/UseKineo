@@ -169,8 +169,11 @@ ok(diasDeAviso >= 1, 'houve ao menos 1 dia inteiro de aviso antes do apagão', `
 console.log('\n5. ANTI-DRIFT — os literais não podem reaparecer nos call sites')
 for (const f of ['lib/compose.ts', 'app/api/render/route.ts']) {
   const src = read(f)
-  const temLiteral = /width:\s*1080,\s*\n\s*height:\s*1920,/.test(src)
-  ok(!temLiteral, `${f} não reintroduziu width/height literais`)
+  const temLiteral =
+    /width:\s*1080,\s*\n\s*height:\s*1920,/.test(src) ||
+    /frame_rate:\s*30\b/.test(src) ||
+    /width:\s*1080,\s*height:\s*1920/.test(src)
+  ok(!temLiteral, `${f} não reintroduziu width/height/frame_rate literais`)
   ok(src.includes('renderOutputSpec()'), `${f} usa renderOutputSpec()`)
 }
 ok(read('app/api/compose/route.ts').includes('checkCreatomateQuota('),
@@ -180,14 +183,22 @@ ok(read('app/api/compose/route.ts').includes('checkCreatomateQuota('),
 // Se a tabela que o fundador usa para decidir estiver errada, ele decide errado.
 console.log('\n6. TABELA DE CUSTO — a aritmética do cabeçalho de renderProfile.ts')
 const DUR_MEDIA = 46.7
-const QUEIMA_DIA = 1038 // créditos/dia medidos no ciclo de agosto
+// ⚠️ QUEIMA REAL, não a dos vídeos entregues. A primeira versão desta seção
+// usou 1038 (soma dos entregues) contra um plano de 10.000 (número REAL do
+// painel) — misturou as duas contabilidades e a tabela saiu 11,5% otimista,
+// prometendo 27 dias num perfil que entrega 24. A revisão adversarial pegou.
+// 1038 × OVERHEAD = 1157 cr/dia é o número que o painel confirmaria.
+const QUEIMA_DIA_ENTREGUE = 1038
+const QUEIMA_DIA = QUEIMA_DIA_ENTREGUE * OVERHEAD
 const base = credits(DEF_W, DEF_H, DEF_FPS, 1)
 const PERFIS = [
   [1080, 1920, 30], [1080, 1920, 24], [720, 1280, 30], [720, 1280, 24], [480, 854, 24],
 ]
 for (const [w, h, fps] of PERFIS) {
   const cps = credits(w, h, fps, 1)
-  const porVideo = cps * DUR_MEDIA
+  // Custo REAL por vídeo entregue: o fornecedor cobra também o que a nossa
+  // tabela não vê. Sem o fator aqui, a tabela conta vídeos que o plano não paga.
+  const porVideo = cps * DUR_MEDIA * OVERHEAD
   const autonomia = (PLAN_CREDITS / (QUEIMA_DIA * (cps / base)))
   const delta = (1 - cps / base) * 100
   const linha = `${w}×${h}@${fps}`.padEnd(15)
@@ -202,11 +213,24 @@ for (const [w, h, fps] of PERFIS) {
 }
 const c720_30 = credits(720, 1280, 30, 1)
 ok(near((1 - c720_30 / base) * 100, 56, 2), '720p30 corta ~56% da conta')
-ok(PLAN_CREDITS / (QUEIMA_DIA * (c720_30 / base)) > 21,
-  '720p30 cobre mais de 21 dias — ainda não é um ciclo de 31')
 const c720_24 = credits(720, 1280, 24, 1)
-ok(PLAN_CREDITS / (QUEIMA_DIA * (c720_24 / base)) >= 27,
-  '720p24 cobre ~27 dias — o primeiro perfil que chega perto de um ciclo')
+const c480_24 = credits(480, 854, 24, 1)
+const autonomia = (cps) => PLAN_CREDITS / (QUEIMA_DIA * (cps / base))
+// A ASSERÇÃO QUE PEGA O ERRO DE VOLTA: nenhum perfil com qualidade cobre o
+// ciclo. A versão anterior afirmava que o 720p24 cobria ~27 dias e passava —
+// porque repetia a mesma omissão do overhead que estava na tabela. Uma
+// asserção que confirma o bug em vez de pegá-lo é pior que asserção nenhuma.
+ok(autonomia(c720_24) < 31,
+  '720p24 NÃO cobre um ciclo de 31 dias', `${autonomia(c720_24).toFixed(1)} dias`)
+ok(autonomia(c480_24) > 31,
+  '480p24 é o único perfil que cobre um ciclo de 31 dias', `${autonomia(c480_24).toFixed(1)} dias`)
+// Amarra a tabela à realidade medida: 309 vídeos foi o que o ciclo de agosto
+// ENTREGOU antes de bater no teto. Se a linha do perfil de hoje não reproduzir
+// esse número, a contabilidade voltou a se misturar.
+const videosDoPerfilDeHoje = Math.round(PLAN_CREDITS / (base * DUR_MEDIA * OVERHEAD))
+ok(Math.abs(videosDoPerfilDeHoje - REAL.videos) <= 3,
+  'a tabela reproduz os 309 vídeos que o ciclo de agosto realmente entregou',
+  `${videosDoPerfilDeHoje} vs ${REAL.videos}`)
 
 // ═══ RESULTADO ═══════════════════════════════════════════════════════════════
 console.log(

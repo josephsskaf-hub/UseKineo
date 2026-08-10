@@ -3,7 +3,7 @@ setlocal
 cd /d "%~dp0.."
 
 echo ============================================================
-echo  67-PUSH  -  15 commits  (SUBSTITUI o 66-PUSH)
+echo  67-PUSH  -  16 commits  (SUBSTITUI o 66-PUSH)
 echo ============================================================
 echo.
 echo  Por que este e diferente do 66: apareceram TRES arquivos
@@ -17,7 +17,7 @@ echo.
 echo  E SEGURO RODAR DUAS VEZES. Se ja estiver tudo no lugar, ele
 echo  simplesmente nao acha o que fazer e sai.
 echo.
-echo  O QUE VAI SUBIR (15 commits):
+echo  O QUE VAI SUBIR (16 commits):
 echo    1. Apagao silencioso de fornecedor - sem alarme, sem win-back
 echo    2. Credito so voltava 3h depois quando o fornecedor recusava
 echo    3. Compra AVULSA resgatada com link de ASSINATURA
@@ -28,6 +28,8 @@ echo    7. Relogio do fim do trial andava para tras
 echo    8. NOVO: medidor de cota do Creatomate + alarme em 80%%
 echo    9. NOVO: perfil de render por env (resolucao vira 1 variavel)
 echo   10. NOVO: win-back alcancava 3 das 32 vitimas do apagao
+echo   11. NOVO: 3 defeitos graves do proprio codigo de hoje, pegos
+echo       na revisao adversarial ANTES do deploy
 echo    +  docs das sprints de 08/08 e 10/08
 echo.
 pause

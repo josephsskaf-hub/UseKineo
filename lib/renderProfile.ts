@@ -16,9 +16,18 @@
 //   video at 720p 25fps is about 14 credits"): 1280×720×25×60/1e8 = 13,82 ✅
 //
 //   Com o output de hoje (1080×1920 @ 30fps) cada SEGUNDO custa 0,62208
-//   crédito. O vídeo médio da casa tem 46,7s → 29 créditos → US$ 0,374 ao preço
-//   do Growth 10K (US$ 129 / 10.000). Queima medida no ciclo de agosto:
-//   1.038 créditos/dia → o plano de 10K dura 9,6 dias de 31.
+//   crédito. O vídeo médio da casa tem 46,7s → 29 créditos DE VÍDEO ENTREGUE.
+//
+//   ⚠️ 29 NÃO é o que o fornecedor cobra por vídeo, e confundir os dois foi um
+//   erro real desta sprint, pego na revisão adversarial. O painel marcou 10.000
+//   com 8.967 créditos de vídeos entregues: tudo que a nossa tabela não vê
+//   (renders que falharam depois de gastar pixels, jobs abandonados, a rota
+//   legada, testes) soma 11,5% por cima. O custo REAL por vídeo entregue é
+//   29,05 × 1,115 = **32,39 créditos**, e a queima real é 1.157 créditos/dia,
+//   não 1.038. A tabela abaixo usa os números REAIS — a primeira versão dela
+//   usava os de vídeo entregue e prometia 27 dias de autonomia num perfil que
+//   entrega 24. Tabela de decisão otimista é pior que tabela nenhuma: o
+//   fundador escolhe por ela e estoura de novo.
 //
 // O QUE ESTE MÓDULO MUDA — E O QUE ELE DELIBERADAMENTE NÃO MUDA:
 //
@@ -34,19 +43,26 @@
 //   "editar código" estava comprovadamente indisponível, e a via "mudar env"
 //   não estava.
 //
-// TABELA DE DECISÃO (mesma duração média de 46,7s, mesmo plano de 10.000):
+// TABELA DE DECISÃO (duração média 46,7s · plano 10.000 · overhead 1,115 já
+// aplicado, ou seja: números que o painel do fornecedor confirmaria):
 //
 //   perfil            cr/seg    cr/vídeo   vídeos/ciclo   autonomia   Δ custo
-//   1080×1920@30      0,62208     29,05        344         9,6 dias    —
-//   1080×1920@24      0,49766     23,24        430        12,0 dias    −20%
-//    720×1280@30      0,27648     12,91        774        21,7 dias    −56%
-//    720×1280@24      0,22118     10,33        968        27,1 dias    −64%
-//    480× 854@24      0,09838      4,59       2177        60,9 dias    −84%
+//   1080×1920@30      0,62208     32,39        309         8,6 dias    —
+//   1080×1920@24      0,49766     25,91        386        10,8 dias    −20%
+//    720×1280@30      0,27648     14,39        695        19,4 dias    −56%
+//    720×1280@24      0,22118     11,52        868        24,3 dias    −64%
+//    480× 854@24      0,09838      5,12       1953        54,6 dias    −84%
 //
-//   Só o 720p24 e o 480p24 cobrem um ciclo de 31 dias no plano atual. O
-//   480×854@24 é exatamente o free tier especificado na troca atômica do
-//   reverse trial — por isso aquele item não é só receita: é o que impede o
-//   próximo apagão.
+//   Conferência que dá confiança na linha de cima: 309 vídeos/ciclo é
+//   EXATAMENTE o número de vídeos que o ciclo de agosto entregou antes de bater
+//   no teto. A tabela reproduz a realidade medida, não uma projeção.
+//
+//   ⚠️ NENHUM perfil acima do 480×854@24 cobre um ciclo de 31 dias no plano de
+//   10.000. Nem o 720p24 (24,3 dias). Quem quiser 1080p tem que pagar plano
+//   maior — não existe resolução que faça o 10K durar o mês inteiro mantendo
+//   qualidade. O 480×854@24 é exatamente o free tier especificado na troca
+//   atômica do reverse trial: aquele item não é só receita, é o único perfil
+//   que fecha a conta de render.
 //
 // ⚠️ ESTE MÓDULO NUNCA LANÇA. Env inválida cai no default e loga. Um erro de
 // configuração não pode virar um render que não sai — foi assim que perdemos
