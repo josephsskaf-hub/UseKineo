@@ -1271,3 +1271,51 @@ um `reason` por desfecho (`_rejected` terminal × `_unverified` provisório), co
 **só o terminal** disparando a campanha de e-mail — senão um soluço de 1s do
 provedor vira disparo em massa. E a cobertura se **prova**: recusa ambígua sem
 claim próprio cai no `else` e sai como 502, logo o par não tem buraco.
+
+> ## MUDANCAS — 10/08/2026 (sprint 19h)
+>
+> **1. Inferencia boa nao dispensa a fonte quando a decisao custa dinheiro.** A sprint das
+> 16h provou por aritmetica que a cota tinha estourado (89,7%, batendo na hora exata) e
+> montou o pedido de upgrade em cima disso. Estava certa — mas o fundador ia gastar em cima
+> de uma conta minha. Um navegador conectado resolveu em 4 chamadas: "10.0K of 10.0K credits
+> used — 100%", textual no painel. **Regra: antes de pedir dinheiro ao fundador, ir na tela
+> do fornecedor.** O custo de conferir e sempre menor que o custo de estar errado.
+>
+> **2. Antes de construir instrumento, checar se o fornecedor ja tem.** Gastei uma chamada
+> em `GET /v1/renders` (404, nao ha endpoint de cota) ANTES de escrever o medidor. Se
+> houvesse endpoint, o medidor certo seria 10 linhas em vez de 300. Sem esse teste, teria
+> construido o caro sem saber que existia o barato.
+>
+> **3. O teste tem que ter direito de me contradizer.** `prove-creatomate-quota-meter.mjs`
+> falhou na primeira execucao: eu afirmei que o patamar de 100% cairia em 09/08 e a
+> estimativa fecha o ciclo em 99,99%. A tentacao e ajustar a assercao para verde. O certo
+> foi inverte-la e documentar POR QUE a diferenca existe — ela prova que o estimador e um
+> piso, e que esperar pelo 100% e esperar por um alarme que pode nunca tocar. **Assercao que
+> so sabe passar nao e teste, e enfeite.**
+>
+> **4. Constante calibrada num incidente e constante calibrada no PASSADO.** A janela de 6h
+> do win-back veio do apagao de 31/07 (4h33). No de 30h ela alcancava 3 das 32 vitimas. A
+> correcao nao foi "aumentar para 48h" — foi trocar a constante por uma MEDICAO ("desde o
+> ultimo video que deu certo"), que nao precisa de recalibracao na proxima escala. **Toda vez
+> que um numero magico for calibrado num incidente, perguntar que grandeza ele esta
+> aproximando — e medir essa grandeza.**
+>
+> **5. Quando o deploy esta travado, o trabalho que vale e o que muda o CUSTO de agir.** Com
+> 12 commits presos, a sprint das 16h concluiu (corretamente) que o commit nº 13 valia zero e
+> nao escreveu codigo. Duas sprints seguidas com esse raciocinio produzem zero. A saida nao e
+> escrever qualquer coisa: e escrever a coisa cuja entrega NAO depende do canal travado. O
+> perfil de render por env e isso — depois que ele existir, mudar resolucao vira 1 variavel na
+> Vercel e nunca mais depende de push.
+>
+> **6. `.git/*.lock` orfaos: o sandbox nao consegue apagar, o Windows consegue.** Tres locks
+> de 08/08 (`HEAD.lock`, `index.lock`, `refs/heads/main.lock`) com `Operation not permitted`
+> no mount do OneDrive. `git add` e `git commit` morrem. **Saida que funcionou:**
+> `GIT_INDEX_FILE=/tmp/...` + `read-tree HEAD` + `write-tree` + `commit-tree` + `update-ref`
+> numa ref NOVA (`refs/heads/sprint-19h`) — refs novas nao tem lock orfao. O `main` fica para
+> o .bat mover no Windows. **Nao gastar chamadas tentando `rm` de novo.**
+>
+> **7. Duas coisas opostas podem ser verdade, e a ordem e a resposta.** Subir o plano do
+> Creatomate e a unica saida hoje (cota em 100%: nenhum perfil mais barato renderiza com 0
+> credito) E e a saida mais cara para setembro (a queima e o nosso perfil de output, nao uma
+> constante da natureza). Reportar so uma das duas seria mentira por omissao nas duas
+> direcoes. **Quando duas recomendacoes se contradizem, quase sempre falta o eixo tempo.**

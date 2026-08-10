@@ -1305,3 +1305,43 @@ exatamente 7 arquivos, zero deleções:
 dar Return. Ele apaga os dois cadeados, move `main` para `85c2ac4`, roda `git reset` (sem
 `--hard`, não toca em arquivo do disco) e faz o push dos 9 commits. Não cria commit, não faz
 `git add`, não apaga arquivo do projeto.
+
+---
+
+## Atualizacao — 10/08/2026, sprint 19h
+
+### GATE #1 — CREATOMATE (o unico que impede o produto de existir)
+**Confirmado na fonte, nao mais por inferencia.** Painel do fornecedor as 22:0xZ:
+"Credit Usage — 10.0K of 10.0K credits used — **100%**". Nao e cobranca (os
+avisos de cartao sao do Render.com), nao e chave, nao e instabilidade.
+
+- Produto parado desde **09/08 16:21:08Z** — 30 horas na hora desta leitura.
+- Erros ainda chegando as **21:38Z**. 22 cadastros hoje, nenhum fez um video.
+- **Acao (30 segundos):** creatomate.com > Credit Usage > Subscription >
+  subir **Growth 10K → Growth 40K**. Unico tier que cobre 31 dias na queima de
+  hoje (10K=9,6 dias · 20K=19,3 · 30K=28,9 · 40K=38,5).
+- Alternativa: o rascunho para o Casper continua pronto no Gmail (ele resolveu
+  em 2h11 da ultima vez). **Nao foi enviado** — e clique do fundador.
+- Nao ha caminho autonomo: dinheiro e gate do fundador, e nao existe fallback
+  de render sem reproduzir legenda e marca d'agua (guardrail).
+
+### GATE #2 — PUSH: agora sao 15 commits, e o script mudou
+⚠️ **Rode `scripts\67-PUSH.bat`, NAO o 66.** Apareceram tres `.lock` orfaos de
+08/08 no `.git` que o ambiente do Cowork nao consegue apagar
+(`Operation not permitted`, mount do OneDrive). Os 2 commits da sprint das 19h
+foram criados por plumbing numa ref paralela **`refs/heads/sprint-19h`**; o
+`67-PUSH.bat` apaga os locks, faz o `main` avancar e empurra. Seguro rodar
+duas vezes.
+
+### GATE #3 — Resolucao do output (ficou BARATO de decidir)
+Continua sem resposta desde as 16h, mas deixou de exigir commit: agora sao as
+envs `KINEO_RENDER_WIDTH` / `_HEIGHT` / `_FPS` na Vercel.
+**Recomendacao:** `720 / 1280 / 24` — corta 64% da conta de render e faz o
+plano de 10K durar 27 dias. Manter 1080p30 significa pagar Growth 40K todo mes
+por pixels que o YouTube Shorts recomprime.
+
+### GATE #4 — TAAFT $347: ADIADO pela 5ª sprint seguida
+Motivo continua sendo de produto, nao de funil: com o render parado, cada
+visitante novo e um cadastro queimado. Os 30 cadastros do apagao sao a prova.
+Reabrir **depois** de: (a) Creatomate de volta, (b) QA do reverse trial, (c)
+flag ligada.
