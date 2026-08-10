@@ -1,28 +1,43 @@
-# 🔴 GATE ATUAL — **5 COMMITS** (08/08 sprints 19h/21h + 10/08)
+# 🔴 GATE ATUAL — **8 COMMITS** (08/08 sprints 19h/21h + 10/08 madrugada + 10/08 10h)
 
-`origin/main` = **`6fcc83b`** — conferido por `git ls-remote origin refs/heads/main`
-na sprint de 10/08 (mesmo valor de 08/08: **o push ainda NÃO rodou**).
-`HEAD` local = **`541f5bf`**.
+`origin/main` = **`6fcc83b`** — reconferido por `git ls-remote origin refs/heads/main`
+na sprint das 10h de 10/08 (mesmo valor desde 08/08: **o push ainda NÃO rodou**).
+`HEAD` local = **`5b1f4b0`**.
 
 ⚠️ A regra que vale é *tudo o que estiver à frente de `6fcc83b`* — a contagem
 envelhece a cada sprint, o SHA não.
 
-🛑 **O push continua tirando DOIS BUGS DE DINHEIRO do ar** (detalhados no bloco
-abaixo, ainda válidos). **E agora carrega uma terceira urgência com hora
-marcada:**
+## ⏳ ESTE GATE AGORA TEM PRAZO: **empurrar o push para depois de 24/08 custa 4 last-calls**
 
-**`541f5bf`** — `KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10`: quem é rebaixado
-tendo usado **10+ créditos** não recebia **NADA por 5 dias**, e o primeiro
-contato pós-morte era um cupom. São **7 pessoas e 153 créditos revogados em
-silêncio** até 12/08. **Os dois primeiros vencimentos da história são HOJE, às
-17:57Z e 18:22Z** — e a conta das 18:22Z (`e934461f`) é a **única da história
-que clicou em COMPRAR**. Sem o push, ela morre muda até 15/08.
-Prova: `tsc` do projeto inteiro `EXITCODE=0` **e falsificado**; comportamento
-das linhas reais simulado (a de 1 crédito segue recebendo extensão, zero
-regressão). Sem cupom, sem preço literal, sem migração, sem tocar em flag.
+O commit `985368f` (KINEO-TRIAL-CLOCK-NONMONOTONIC-2026-08-10) move as janelas de
+e-mail do trial **para trás**, o que é a correção — mas as janelas FECHADAS andam
+junto. Em 4 contas (`e6acebb8`, `ade5c987`, `6eb47386`, `c16336a8`) a janela D10
+nova (`down+15d`) fecha **antes** de a antiga (`ends+10d`) abrir: deployar entre
+**25/08 e 27/08** mataria o `expired_lastcall_d10` dessas contas em silêncio.
 
-⚠️ O push **não cria commit**: só faz `git push`. Não faz `git add`, não faz
-`git reset`, não escreve em arquivo nenhum — não há como apagar trabalho.
+Isto não precisa ser lembrado, precisa ser **rodado**: `npm run prove:trial-clock`
+sai com código 1 se o dia do deploy cair na faixa, e nomeia as contas.
+
+## O que este push tira do ar (4 urgências)
+
+1. **Compra AVULSA resgatada com link de ASSINATURA** (`?pack=…` usam o mesmo
+   hook, mas `/api/stripe/checkout/resume` só conhece assinatura).
+2. **Clique MENSAL resgatado numa sessão ANUAL** — $4,90 prometidos contra
+   $99,00, 20×.
+3. **`541f5bf`** — quem é rebaixado com 10+ créditos usados não recebia nada por
+   5 dias. Os dois primeiros vencimentos da história foram 10/08 17:57Z e 18:22Z.
+4. **`985368f`** — o last-call atrasado em até 7 dias para **10 de 10** pessoas
+   já rebaixadas (todas morreram por teto, nenhuma por relógio).
+
+**Garantia:** o push não cria commit. Só faz `git push` — não faz `git add`, não
+faz `git reset`, não escreve em arquivo nenhum. Não há como apagar trabalho.
+
+⚠️ **O índice do repo segue ENVENENADO** (reconfirmado em 10/08 13:5xZ): há
+deleção STAGED de `PROMPT-DIARIO.md`, `SPRINT-2026-08-08.md`,
+`SPRINT-2026-08-10.md`, `GATES-ABERTOS.md`, `ENGAGEMENT-LOG.md` e `65-PUSH.bat`.
+**Um `git commit` normal apaga tudo isso.** Os commits de 10/08 foram feitos por
+índice temporário (`git read-tree HEAD` em `$HOME` + caminhos explícitos +
+`commit-tree` + escrita direta do ref). Quem for commitar aqui: mesma receita.
 
 ---
 
