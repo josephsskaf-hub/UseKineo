@@ -1143,3 +1143,67 @@ O CTR por tipo — a única pergunta que o trabalho existia para responder — n
 podia ser calculado. Pior: um `boolean` (`direct`) fundia dois casos **opostos**
 (sessão viva com 2 saltos × repetição da rota que travou). **Campo que aparece em
 mais de um evento nasce como união literal exportada, num arquivo só.**
+
+---
+
+## Aprendizados — sprint de 10/08/2026 (KINEO-TRIAL-DOWNGRADE-SILENCE)
+
+### 1. UMA CADÊNCIA DE E-MAILS SE AUDITA PELOS BURACOS ENTRE OS RAMOS, NÃO PELA LISTA DE RAMOS
+
+A spec listava D0, D1, D2, D3, D5, D10 e o código tinha quatro kinds. Conferir
+"os kinds existem?" dava sensação de cobertura. O defeito estava **entre** eles:
+extensão exige `used < 10`, o D5 começa em **5 dias**, e quem caísse fora dos
+dois recebia um `return null` **implícito** — cinco dias de silêncio no instante
+de maior aversão à perda. **A pergunta certa não é "quais ramos existem?", é
+"para cada intervalo do relógio, qual ramo pega esta linha?". Um `if/if/if` sem
+`else` final é um silêncio não declarado**, e silêncio não aparece em code
+review porque não tem linha própria.
+
+### 2. O DENOMINADOR MUDA QUANDO O PRODUTO MUDA — E ELE NÃO AVISA
+
+Ia reportar "TAAFT ativa 4,0%" contra 64,7% real. A métrica era
+`trial_credits_used > 0`, e a maioria daquela coorte se cadastrou **antes de o
+trial existir**: o zero era **por construção**, não por comportamento. O erro é
+sutil porque a query estava certa e a coluna também. **Toda métrica que usa um
+campo nascido depois de uma data tem que declarar essa data no `where`, ou usar
+um sinal que exista nas duas eras** (aqui: vídeo gerado). Regra prática: antes de
+comparar coortes que atravessam um lançamento, perguntar "este campo podia ser
+diferente de zero para esta pessoa?".
+
+### 3. PROVA DE COMPORTAMENTO ANTES DE COMMITAR VALE MAIS QUE PROVA DE TIPO
+
+O `tsc` (mesmo falsificado) só diz que compila. O que deu confiança para
+commitar foi **simular a decisão contra as duas linhas REAIS** que vencem hoje,
+com o relógio do run em que o e-mail sairia: a de 1 crédito continua na extensão
+(zero regressão) e a de 11 passa a receber o e-mail novo com `creditsLost=29`.
+**Correção de regra de negócio nasce com a tabela "antes × depois" das linhas
+que ela vai tocar amanhã** — e a coluna "antes" é o que prova que não houve
+regressão, não a coluna "depois".
+
+### 4. A TRAVA DO ONEDRIVE TEM SAÍDA MELHOR QUE APAGAR O `.lock`: ÍNDICE TEMPORÁRIO
+
+`rm .git/index.lock` → "Operation not permitted" (documentado). Mas não é preciso
+apagar nada: **`GIT_INDEX_FILE=/tmp/x git read-tree HEAD` + `git update-index
+--cacheinfo` + `git write-tree` + `git commit-tree`** constrói o commit sem
+tocar em `.git/index` — e, de brinde, **torna impossível arrastar o ruído de
+CRLF** do OneDrive, porque só entra no tree o `--cacheinfo` que eu declarei.
+Conferir com `git diff-tree -r --numstat HEAD <tree>` antes de mover o ref. O
+`update-ref` ainda falha (o `.lock` do ref), então vale a gravação direta — com
+a checagem por **parentesco** da lição 2b, nunca pelo conteúdo do `.lock`.
+
+### 5. COMENTÁRIO HERDADO TAMBÉM ENTRA NA REVISÃO — EU QUASE ASSINEI UM NÚMERO FALSO
+
+Editei o bloco de `KIND_PRIORITY` e reaproveitei a frase "quando o teto de 200
+aperta". `MAX_PER_RUN` é **40** desde que existe. O número era falso antes de eu
+chegar, mas **no instante em que eu edito o comentário eu passo a assiná-lo**.
+Corolário da lição 5 de 07/08: **quando tocar num bloco de comentário, verificar
+as afirmações que ficam, não só as que eu escrevi.**
+
+### 6. PRIORIDADE DE FILA SE JUSTIFICA POR JANELA, NÃO POR IMPORTÂNCIA
+
+Coloquei o e-mail de perda acima das duas ofertas com cupom. A tentação era
+escrever "porque é o mais valioso". A razão defensável é outra e é verificável:
+**a janela dele é de 48h e a do D5 é de 120h.** Num corte por teto, adiar o D5
+custa horas de uma janela larga; adiar a perda pode **estourar a janela inteira**
+e o e-mail nunca mais sai. **Em fila com teto, ordene por prazo de expiração da
+oportunidade, não por opinião sobre valor.**

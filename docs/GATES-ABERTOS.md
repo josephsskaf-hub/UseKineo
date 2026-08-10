@@ -1,4 +1,34 @@
-# 🔴 GATE ATUAL — `scripts\63-PUSH.bat` — **4 COMMITS** (08/08, sprints 19h e 21h)
+# 🔴 GATE ATUAL — **5 COMMITS** (08/08 sprints 19h/21h + 10/08)
+
+`origin/main` = **`6fcc83b`** — conferido por `git ls-remote origin refs/heads/main`
+na sprint de 10/08 (mesmo valor de 08/08: **o push ainda NÃO rodou**).
+`HEAD` local = **`541f5bf`**.
+
+⚠️ A regra que vale é *tudo o que estiver à frente de `6fcc83b`* — a contagem
+envelhece a cada sprint, o SHA não.
+
+🛑 **O push continua tirando DOIS BUGS DE DINHEIRO do ar** (detalhados no bloco
+abaixo, ainda válidos). **E agora carrega uma terceira urgência com hora
+marcada:**
+
+**`541f5bf`** — `KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10`: quem é rebaixado
+tendo usado **10+ créditos** não recebia **NADA por 5 dias**, e o primeiro
+contato pós-morte era um cupom. São **7 pessoas e 153 créditos revogados em
+silêncio** até 12/08. **Os dois primeiros vencimentos da história são HOJE, às
+17:57Z e 18:22Z** — e a conta das 18:22Z (`e934461f`) é a **única da história
+que clicou em COMPRAR**. Sem o push, ela morre muda até 15/08.
+Prova: `tsc` do projeto inteiro `EXITCODE=0` **e falsificado**; comportamento
+das linhas reais simulado (a de 1 crédito segue recebendo extensão, zero
+regressão). Sem cupom, sem preço literal, sem migração, sem tocar em flag.
+
+⚠️ O push **não cria commit**: só faz `git push`. Não faz `git add`, não faz
+`git reset`, não escreve em arquivo nenhum — não há como apagar trabalho.
+
+---
+
+## 🗄 HISTÓRICO — bloco da sprint 21h de 08/08
+
+# GATE ANTERIOR — `scripts\63-PUSH.bat` — **4 COMMITS** (08/08, sprints 19h e 21h)
 
 `origin/main` = **`6fcc83b`** — conferido por `git ls-remote origin refs/heads/main`
 na sprint das 21h de 08/08. `HEAD` local = **`d122fa2`**.

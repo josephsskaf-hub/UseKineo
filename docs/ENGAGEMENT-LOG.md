@@ -130,3 +130,48 @@ da evidência que ele apresenta. Corrigido nas 3 superfícies (`/llms.txt`, `/ap
 site de terceiro = gate do fundador. TAAFT $347 (Ordem O) segue no **gate de tráfego pago**:
 0 conversões de trial, e agora com um canal orgânico de custo zero acelerando, encher o
 funil pago é ainda menos defensável. DMs do Blitz Tier A (Sanji/Adam/Steffen) não enviadas.
+
+---
+
+## 10/08 ~06:40Z — sprint madrugada (CEO)
+
+**Ronda de respostas: NÃO feita nesta sprint.** Os inbounds de 03/08 seguem sem
+resposta (**7 dias**): `akajitin@gmail.com` (rascunho `r-2585367767906864369` no
+Gmail, aguardando Send do fundador — e a oferta mudou de novo desde que ele foi
+escrito), `contact@rforrank.com` e `jwins774@gmail.com` (gate de tráfego pago).
+DMs do Blitz Tier A não enviadas. Envio de e-mail para fora continua sendo Send
+do fundador (PROMPT-DIARIO) — nenhum risco de resposta duplicada.
+
+### Aquisição desta sprint: o canal nº1 mudou de dono, e está medido
+
+Usei as colunas de PRIMEIRO TOQUE que **já existiam** em `profiles`
+(`signup_utm_source` / `signup_referrer`) — Regra Zero, nada construído.
+
+**`chatgpt` passou o `taaft` como maior canal EXTERNO de entrada:**
+08/08 → 7 × 2 · **09/08 → 13 × 4** · 10/08 parcial → 4 × 0.
+Contra 65 cadastros do TAAFT num único dia em 31/07: o canal de custo zero virou
+o principal enquanto o diretório secava.
+
+**⚠️ UM NÚMERO MEU DERRUBADO ANTES DE VIRAR RELATÓRIO.** A primeira query dizia
+"TAAFT ativa 4,0%". Falso: media `trial_credits_used > 0`, e a maioria dos 150
+do TAAFT se cadastrou **antes de o trial existir** — o zero era por construção,
+não por comportamento. Medindo por **vídeo gerado** (válido nas duas eras) e
+contando PESSOAS, últimos 9 dias:
+
+| fonte | pessoas | ativaram | % | pagaram |
+|---|---|---|---|---|
+| taaft | 150 | 97 | **64,7%** | **2** |
+| homepage (etiqueta interna) | 39 | 35 | 89,7% | 0 |
+| chatgpt | 35 | 17 | 48,6% | 0 |
+| (direct) | 25 | 8 | 32,0% | 0 |
+
+**A nuance que impede a conclusão errada:** o TAAFT é o **único canal que já
+produziu pagamento** (2). O `chatgpt` tem **0 pagamentos em 35 pessoas**.
+"ChatGPT é o nº1 em entrada" NÃO é "desligar o TAAFT" — é "a entrada mudou de
+dono e a saída ainda não seguiu". Próxima pergunta do canal: por que 48,6% de
+ativação não vira uma única compra.
+
+### Superfícies de máquina: conferidas por FETCH DO ARQUIVO SERVIDO
+`/llms.txt` e `/api/facts` estão **corretos e atuais** — o trial de 40 créditos
+na oração principal, `videosPer24h: null` + `freeVideosPerWindow: 1` em janela de
+720h. A correção de 08/08 segurou. **Nada refeito.**
