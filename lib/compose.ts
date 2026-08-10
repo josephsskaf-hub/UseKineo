@@ -9,6 +9,10 @@ import { toFile } from 'openai'
 import { createClient as createSupabaseClient, type SupabaseClient } from '@supabase/supabase-js'
 import { buildCaptionSegments, pickHighlightWord, OPENAI_TTS_TIMEOUT_MS, OPENAI_WHISPER_TIMEOUT_MS, type CaptionSegment } from '@/lib/openai'
 import { stripScriptMarkers } from '@/lib/scriptParser'
+// KINEO-RENDER-PROFILE-2026-08-10 — o bloco de output (width/height/fps) do
+// payload do Creatomate. Módulo puro, sem cliente e sem chave de API: seguro
+// para o caminho do compose-status (ver o NOTE do topo deste arquivo).
+import { renderOutputSpec } from '@/lib/renderProfile'
 // KINEO-CREDIT-STUCK-2026-08-08 — política única de 429 (fal + Creatomate).
 import { CREATOMATE_SUBMIT_RATE_LIMIT, rateLimitWaitMs, sleep } from '@/lib/rateLimit'
 import { selectPersonaForScript, describeVoiceSelection } from '@/lib/narration/niche-mapping'
@@ -2416,10 +2420,10 @@ export function buildCreatomateSource({
   }
 
   return {
-    output_format: 'mp4',
-    width: 1080,
-    height: 1920,
-    frame_rate: 30,
+    // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca
+    // de custo por env. Defaults idênticos: enquanto KINEO_RENDER_* não
+    // existir, este return é equivalente ao anterior.
+    ...renderOutputSpec(),
     duration: totalDuration,
     elements,
   }
@@ -2838,10 +2842,10 @@ export function buildHollywoodCreatomateSource({
   }
 
   return {
-    output_format: 'mp4',
-    width: 1080,
-    height: 1920,
-    frame_rate: 30,
+    // KINEO-RENDER-PROFILE-2026-08-10 — o literal 1080/1920/30 virou alavanca
+    // de custo por env. Defaults idênticos: enquanto KINEO_RENDER_* não
+    // existir, este return é equivalente ao anterior.
+    ...renderOutputSpec(),
     duration: totalDuration,
     elements,
   }

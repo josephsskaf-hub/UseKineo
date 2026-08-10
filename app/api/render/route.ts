@@ -8,6 +8,8 @@ import { debitVideoCredits } from '@/lib/credits/debit'
 // pelo servidor antes de o cliente poder pollar (ver GET /api/render/[id]).
 import { recordRenderIntent } from '@/lib/credits/renderIntent'
 import { stripScriptMarkers } from '@/lib/scriptParser'
+// KINEO-RENDER-PROFILE-2026-08-10 — resolução/fps do output vêm de UM lugar.
+import { renderOutputSpec } from '@/lib/renderProfile'
 // PUSH #95 — a Creatomate `shape` has NO geometry other than its `path`; with
 // no path it draws nothing and the API ignores it silently. Both shapes below
 // were inert until now. Single source of truth so the path is never retyped.
@@ -306,10 +308,9 @@ export async function POST(req: NextRequest) {
     })
 
     const source = {
-      output_format: 'mp4',
-      width: 1080,
-      height: 1920,
-      frame_rate: 30,
+      // KINEO-RENDER-PROFILE-2026-08-10 — ver lib/renderProfile.ts. Defaults
+      // idênticos ao literal que estava aqui.
+      ...renderOutputSpec(),
       duration: finalDur,
       elements,
     }

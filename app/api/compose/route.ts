@@ -40,6 +40,11 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 // KINEO-CREATOMATE-BLACKOUT-2026-08-10 — o Creatomate era o único fornecedor do
 // caminho de render sem alarme, e é o que entra em 100% dos vídeos.
 import { alertCreatomateDown } from '@/lib/creatomateAlert'
+// KINEO-CREATOMATE-QUOTA-METER-2026-08-10 — o alarme acima toca quando o
+// fornecedor JÁ recusou. Este mede o teto CHEGANDO: em 10/08 o painel marcava
+// "10.0K of 10.0K credits used" e o produto estava parado havia 30h. O teto de
+// cota é o único modo de falha do render que é 100% previsível.
+import { checkCreatomateQuota } from '@/lib/creatomateQuota'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { loadVerifiedCinematicClaim, type CinematicClaim } from '@/lib/cinematic/claim'
 // KINEO-COMPOSE-REJECT-NOREFUND-2026-08-10 — ver o cabeçalho do arquivo: numa
@@ -2130,6 +2135,16 @@ export async function POST(req: NextRequest) {
       const msg = err instanceof Error ? err.message : String(err)
       console.warn('[compose] post-submit poll warning:', msg)
     }
+
+    // KINEO-CREATOMATE-QUOTA-METER-2026-08-10 — medir DEPOIS da submissão dar
+    // certo, nunca antes. Duas razões, as duas pagas com incidente:
+    //   · no caminho de erro o compose já responde na linha seguinte, e uma
+    //     medição a mais ali só faria a pessoa esperar mais para ler "falhou";
+    //   · o medidor não pode ter poder de veto sobre um render. Ele conta o
+    //     que já saiu; se ele mesmo quebrar, o pior resultado possível é
+    //     voltarmos a não ter aviso — nunca um vídeo a menos.
+    // Throttle interno de 15 min por lambda, um e-mail por patamar por ciclo.
+    await checkCreatomateQuota(composeAdmin)
 
     // Push #355 — Link the broll_metrics row (created in generate-video-fast)
     // to this Creatomate render so compose/status can write render_time_ms.
