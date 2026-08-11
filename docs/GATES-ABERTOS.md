@@ -1,14 +1,101 @@
-# 🔴 GATE ATUAL — **12 COMMITS** (08/08 19h/21h + 10/08 madrugada/10h/11h/13h)
+# 🔴 GATE ATUAL — **7 COMMITS** (sprint 10h de 11/08)
+
+`origin/main` = **`4061731`** — reconferido por `git ls-remote origin refs/heads/main`
+em 11/08 ~13:2xZ. **O push RODOU depois de 08/08**: o bloco abaixo, que dizia
+`6fcc83b` e 16 commits, estava vencido em 3 pontos. Ponta local:
+`refs/heads/main` = **`eb408099`**.
+
+## ✅ TRÊS GATES DESTA LISTA CAÍRAM — MEDIDOS NA SPRINT 10h DE 11/08
+
+**1. O APAGÃO DO CREATOMATE ACABOU.** Renders normalizados desde **11/08
+02:00Z**, após ~34h parados (09/08 16:21Z → 11/08 02:00Z). 7 vídeos entregues
+nas últimas 24h, **100% de sucesso, zero falhas**. O gate nº1 abaixo ("O PRODUTO
+ESTÁ PARADO") não descreve mais a produção.
+⚠️ **O que NÃO caiu:** ninguém sabe POR QUE voltou (top-up? upgrade? reset do
+fornecedor?). A aritmética do plano continua projetando estouro em **01/09**.
+Sem a causa, "resolvido" é palpite — segue como a pergunta nº1 do fundador.
+
+**2. `origin/main` NÃO É MAIS `6fcc83b`.** É `4061731`. Todo o texto abaixo que
+conta commits a partir de `6fcc83b` superestima o gate. A regra continua sendo o
+SHA, não a contagem — mas o SHA mudou.
+
+**3. `/api/render/[id]` já estava fechado.** Confirmado de novo: `ec9f112` em
+produção desde 07/08. Era o "item 0 da Fase 2" citado no prompt diário —
+**já entregue**, não fazer de novo.
+
+---
+
+## 🆕 DÍVIDA ABERTA NESTA SPRINT — o A/B 3d×7d pode contar conversão a mais
+
+`KINEO-TRIAL-REVIVE-RACE-2026-08-11` tornou `downgraded` reversível num caso
+(estorno de falha de fornecedor com relógio vivo). Uma conta revivida que
+**depois converta** chega ao webhook como `active` e vira `converted` — e o
+painel `/admin/trial-cohort` bucketiza **puramente por `trial_status`**. Ela
+seria contada como conversão limpa do experimento, quando na verdade passou por
+um churn no meio.
+
+O evento `trial_cap_refunded` carrega `ab_cohort_note='revived_after_provider_failure'`
+para permitir excluí-la. **O join ainda não existe.**
+🛑 **Ler isto antes de citar qualquer taxa de conversão do A/B.** Hoje são 7
+contas num universo de 109 trials — não é ruído.
+
+## 🆕 DÍVIDA MENOR — as 7 ressuscitadas não foram avisadas
+
+Voltaram ao trial e não sabem. 4 delas leram "Here's what you just lost access
+to" antes do estorno. O claim de `downgraded_loss` foi reaberto (para o e-mail
+voltar a funcionar na morte real), mas **não existe mensagem corretiva**.
+`trial_extended` cobre outro caso e afirmaria coisa errada aqui.
+
+---
+
+## 🗄 HISTÓRICO — bloco da sprint 21h de 10/08 (VENCIDO em 3 pontos, ver acima)
+
+# 🔴 GATE ANTERIOR — **16 COMMITS** (atualizado na sprint 21h de 10/08)
 
 `origin/main` = **`6fcc83b`** — reconferido por `git ls-remote origin refs/heads/main`
-na sprint das 16h de 10/08 (mesmo valor desde 08/08: **o push ainda NAO rodou**).
+as 00:1xZ de 11/08 (mesmo valor desde 08/08: **o push ainda NAO rodou**).
+Ponta local: `refs/heads/sprint-19h` = **`4061731`**, 16 commits a frente.
 
 ⚠️ A regra que vale e *tudo o que estiver a frente de `6fcc83b`* — a contagem
 envelhece a cada sprint, o SHA nao.
 
-⚠️ **O script e o `scripts\66-PUSH.bat`.** O prompt diario ainda manda rodar
-`52-PUSH.bat` e o `65-PUSH.bat` tem cabecalho staled ("1 commit pronto"). O 66
-substitui os dois.
+⚠️ **O script e o `scripts\67-PUSH.bat`.** O prompt diario manda rodar
+`52-PUSH.bat`, o `65-PUSH.bat` tem cabecalho staled e o **`66-PUSH.bat` nao
+serve mais**: os commits das 19h estao em `refs/heads/sprint-19h` e ha 3 `.lock`
+orfaos no `.git` que so o Windows apaga. O 67 substitui todos. Seguro se rodado
+duas vezes.
+
+---
+
+## ✅ DOIS GATES DESTA LISTA CAIRAM — MEDIDOS NA SPRINT 21h DE 10/08
+
+**1. Os 390 creditos do apagao JA FORAM ESTORNADOS.** Nao ha decisao a tomar.
+Medido em `credit_debits` desde 09/08 16:21Z: **400 debitados, 390 estornados
+automaticamente, queima liquida real = 10 creditos**. Sai da lista.
+(O commit represado `3397d5c` corrige o *atraso* de 3h do estorno, nao a
+existencia dele.)
+
+**2. A compensacao de relogio das vitimas JA EXISTE EM PRODUCAO.** Quem expira
+com menos de 10 dos 40 creditos usados e nunca assinou recebe +3 dias e volta a
+`active` (`trial_extended=true`), via `app/api/cron/trial-lifecycle-emails/route.ts`,
+ja no `6fcc83b`. **Disparou pela primeira vez hoje as 18:55:24Z** (`5f0f607e`).
+As 21 vitimas em trial ativo sem video estao todas com `trial_credits_used = 0`
+(o estorno zerou) e portanto **todas se qualificam**. Nao construir nada aqui.
+
+---
+
+# 🚨 O QUE MUDOU O PESO DO GATE Nº1 (sprint 21h, 10/08)
+
+**A primeira conversao de trial da historia da empresa aconteceu hoje — e ela
+nunca recebeu um video.** `noelrss21@gmail.com` (`75f76a4c`): cadastro 10/08
+14:04Z em pleno apagao, trial 3d, assinatura Stripe ativa no plano `basic`,
+`trial_status='converted'`. **0 videos entregues, 12 erros de render na conta
+dela.**
+
+O gate do Creatomate deixou de ser "o produto esta parado" e passou a ser
+**"a unica cliente que o reverse trial converteu pagou por um produto que nunca
+funcionou para ela"**. Risco de reembolso/chargeback maximo, e e o unico ponto
+de dado positivo do A/B 3d x 7d.
 
 ---
 
