@@ -450,6 +450,8 @@ const NAV = [
   { label: 'Affiliates', href: '/admin/affiliates', key: 'affiliates' },
   // KINEO-TRIAL-ABUSE-PMP-2026-08-07 — painel read-only do reverse trial.
   { label: 'Trial', href: '/admin/trial-abuse', key: 'trial-abuse' },
+  // KINEO-TRIAL-COHORT-2026-08-11 — a coorte VIVA, segmentada por comportamento.
+  { label: 'Cohort', href: '/admin/trial-cohort', key: 'trial-cohort' },
 ]
 
 function AdminNav({ active }: { active: string }) {
@@ -480,6 +482,7 @@ const NAV_CARDS = [
   { href: '/admin/metrics', icon: '📊', title: 'Metrics', desc: 'Events, clicks, render health' },
   { href: '/admin/overview', icon: '🗂️', title: 'Server overview', desc: 'The #482 overview: retention, health, 14-day chart' },
   { href: '/admin/trial-abuse', icon: '🧪', title: 'Reverse trial', desc: 'Trials by status, credits granted vs used, fingerprint blocks' },
+  { href: '/admin/trial-cohort', icon: '⏳', title: 'Live trial cohort', desc: 'Active trials by behaviour, clock left, credits unspent' },
 ]
 
 function NavCards() {
