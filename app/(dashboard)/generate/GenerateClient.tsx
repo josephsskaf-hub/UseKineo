@@ -30,7 +30,20 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
-import { POST_TO_EARN_PITCH, type PostToEarnResult } from '@/lib/postToEarn'
+import {
+  POST_TO_EARN_PITCH,
+  // KINEO-DISTRIBUTION-LOOP-2026-08-11 — as duas frases que separam o caminho
+  // instantâneo (upload direto) do caminho revisado (link colado), e o título
+  // do handoff pós-download.
+  POST_TO_EARN_DIRECT_PITCH,
+  POST_TO_EARN_PASTE_NOTE,
+  POST_TO_EARN_HANDOFF_TITLE,
+  type PostToEarnResult,
+} from '@/lib/postToEarn'
+// KINEO-DISTRIBUTION-LOOP-2026-08-11 — kill-switch do handoff pós-download.
+// Ver o comentário longo em lib/flags.ts: com 'off' esta tela volta a ser
+// idêntica à de antes da sprint.
+import { POST_HANDOFF_ENABLED } from '@/lib/flags'
 import {
   CURRENCY_DISPLAY,
   TOPUP_CREDITS,
@@ -1260,6 +1273,48 @@ export default function GenerateClient({
   const [postedLinkError, setPostedLinkError] = useState<string | null>(null)
   const [postedReward, setPostedReward] = useState<PostToEarnResult | null>(null)
 
+  // ── KINEO-DISTRIBUTION-LOOP-2026-08-11 — o handoff pós-download ───────────
+  //
+  // O convite para postar existia, mas no lugar errado da página e no momento
+  // errado do dia. Estes três pedaços de estado são tudo que a correção usa:
+  //
+  //  · postLoopRef        — âncora na seção "postar" (bloco do YouTube + campo
+  //                         de colar link, que são vizinhos no DOM).
+  //  · postHandoffArmed   — vira `true` quando um download foi ENTREGUE de
+  //                         verdade (blob salvo ou aba aberta), nunca quando o
+  //                         popup foi bloqueado. É o sinal "o arquivo está com
+  //                         a pessoa AGORA".
+  //  · postHandoffScrolledRef / postInviteSeenRef / postPasteFocusedRef —
+  //                         guardas de "uma vez por render". Sem elas o scroll
+  //                         brigaria com a rolagem do usuário a cada
+  //                         re-render, e os eventos de impressão contariam
+  //                         re-renderizações em vez de pessoas (o mesmo erro
+  //                         que inflou `generate_arrived_server` 2,7x).
+  const postLoopRef = useRef<HTMLDivElement | null>(null)
+  const [postHandoffArmed, setPostHandoffArmed] = useState(false)
+  const postHandoffScrolledRef = useRef(false)
+  const postInviteSeenRef = useRef(false)
+  const postPasteFocusedRef = useRef(false)
+
+  /**
+   * Zera o handoff quando uma NOVA geração começa.
+   *
+   * Sem isto, quem faz dois vídeos na mesma aba recebe o handoff só no
+   * primeiro: as guardas de "uma vez" são refs, que sobrevivem à troca de
+   * vídeo porque o componente nunca desmonta. O segundo vídeo é justamente o
+   * caso em que a pessoa já provou que gosta do produto — perder o convite
+   * nele seria perder o usuário mais provável de postar.
+   *
+   * Fica junto dos três `setWatermarkedDownloadConfirmed(false)` que já
+   * existem: são exatamente os mesmos três pontos de "vida nova".
+   */
+  function resetPostLoopHandoff() {
+    setPostHandoffArmed(false)
+    postHandoffScrolledRef.current = false
+    postInviteSeenRef.current = false
+    postPasteFocusedRef.current = false
+  }
+
   async function submitPostedLink() {
     const url = postedLink.trim()
     if (!url || postedLinkState === 'saving' || postedLinkState === 'done') return
@@ -1278,13 +1333,26 @@ export default function GenerateClient({
         const reward = data.reward ?? null
         setPostedReward(reward)
         setPostedLinkState('done')
-        trackEvent('posted_short_submitted', { source: 'pasted' })
+        trackEvent('posted_short_submitted', { source: 'pasted', surface: 'done_screen' })
         // Instrumentação do loop de recompensa: o motivo é a métrica que
         // separa "trava pegou fraude" de "trava frustrou usuário honesto".
+        //
+        // KINEO-DISTRIBUTION-LOOP-2026-08-11 — o nome do evento MUDOU, e não
+        // por estética. `lib/postToEarnGrant.ts` já grava `post_to_earn_claimed`
+        // / `post_to_earn_pending` / `post_to_earn_rejected` no servidor, com
+        // await, para cada avaliação. Emitir os MESMOS nomes daqui faria cada
+        // claim virar duas linhas — a taxa de concessão passaria a depender de
+        // quantos clientes conseguiram completar o POST de analytics, que é
+        // exatamente o tipo de contagem dupla que faz uma métrica mentir sem
+        // avisar. O que o cliente sabe e o servidor não é outra coisa: que a
+        // pessoa VIU o desfecho na tela. É isso que este evento mede, e o
+        // `pending` deixa de ser reportado como recusa (ele não é).
         if (reward) {
-          trackEvent(reward.granted ? 'post_to_earn_claimed' : 'post_to_earn_rejected', {
+          trackEvent('post_to_earn_outcome_viewed', {
             reason: reward.reason,
+            outcome: reward.granted ? 'granted' : reward.pending ? 'pending' : 'rejected',
             credits: reward.credits,
+            surface: 'done_screen',
           })
         }
       } else {
@@ -4030,6 +4098,8 @@ export default function GenerateClient({
     setRenderId(null)
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
+    // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
+    resetPostLoopHandoff()
 
     // #383c — explicit choice drives whether we structure the text with the AI.
     //  • scriptMode 'ai'       → call /api/generate-script (DEFAULT)
@@ -4799,6 +4869,8 @@ export default function GenerateClient({
     setRenderId(null)
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
+    // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
+    resetPostLoopHandoff()
     postVideoOfferTrackedKeyRef.current = null
     // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o par do trial zera junto: sem
     // isto, o 2o video da mesma sessao herdaria a chave do 1o e a impressao
@@ -5496,6 +5568,33 @@ export default function GenerateClient({
     if (delivered && exportType === 'watermarked') {
       setWatermarkedDownloadConfirmed(true)
     }
+
+    // KINEO-DISTRIBUTION-LOOP-2026-08-11 — O MOMENTO. Até hoje o download
+    // terminava e a página não fazia NADA a respeito de postar: o convite
+    // ficava ~600 linhas de JSX abaixo, fora da tela, e o único lembrete
+    // chegava por e-mail dias depois (69 envios, zero colagens). Aqui o
+    // convite passa a existir no segundo em que o arquivo está na mão.
+    //
+    // Vale para QUALQUER download entregue, não só o com marca d'água: quem
+    // exporta limpo também alimenta `posted_shorts` e o /wall, e é o mesmo
+    // clique. `popup_blocked`/`unavailable` continuam (corretamente) fora —
+    // arrastar a tela de alguém que ficou SEM o arquivo é insulto.
+    //
+    // `!postHandoffArmed` na condição: quem clica em baixar duas vezes (o que
+    // acontece, sobretudo quando o primeiro clique cai no fallback de aba) não
+    // pode contar como duas exibições do convite. O denominador do degrau
+    // download→postagem tem que ser pessoas, não cliques.
+    if (delivered && !postHandoffArmed) {
+      setPostHandoffArmed(true)
+      trackEvent('post_invite_surfaced', {
+        trigger: 'download',
+        export_type: exportType,
+        outcome,
+        yt_connected: ytConnected === true,
+        surface: 'done_screen',
+        handoff_enabled: POST_HANDOFF_ENABLED,
+      })
+    }
   }
 
   // PUSH #23/#29 — every sharing surface uses the public /v/[id] landing,
@@ -5614,6 +5713,8 @@ export default function GenerateClient({
     setRenderId(null)
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
+    // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
+    resetPostLoopHandoff()
     setPublicVideoId(null)
     setSharedPublic(null)
     postVideoOfferTrackedKeyRef.current = null
@@ -5756,6 +5857,17 @@ export default function GenerateClient({
     if (ytUploading) return
     setYtUploading(true)
     setYtError(null)
+    // KINEO-DISTRIBUTION-LOOP-2026-08-11 — o caminho de 1 clique era 100% CEGO.
+    // `youtube_connect_started` existia (37 eventos, 12 pessoas), mas do clique
+    // em "Post to YouTube" até o Short publicado não havia UM evento: as duas
+    // únicas linhas `direct_upload` de `posted_shorts` foram descobertas no
+    // banco, não na instrumentação. Sem estes três eventos é impossível saber
+    // se o degrau perde gente por falta de convite ou por falha do upload.
+    trackEvent('youtube_upload_started', {
+      privacy: ytPrivacy,
+      surface: 'done_screen',
+      after_download: postHandoffArmed,
+    })
     try {
       const res = await fetch('/api/youtube/upload', {
         method: 'POST',
@@ -5771,12 +5883,96 @@ export default function GenerateClient({
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Upload failed')
       setYtResult(data)
+      const reward = (data as { reward?: PostToEarnResult | null } | null)?.reward ?? null
+      trackEvent('youtube_upload_succeeded', {
+        privacy: ytPrivacy,
+        surface: 'done_screen',
+        after_download: postHandoffArmed,
+        // O upload direto tem atribuição provada por construção, então o
+        // esperado aqui é SEMPRE `granted`. Se um dia aparecer outra coisa
+        // nesta série, a promessa "instantâneo" da tela quebrou.
+        reward_outcome: reward ? (reward.granted ? 'granted' : reward.pending ? 'pending' : reward.reason) : 'absent',
+      })
     } catch (err) {
-      setYtError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
+      const message = err instanceof Error ? err.message : 'Upload failed. Please try again.'
+      setYtError(message)
+      trackEvent('youtube_upload_failed', {
+        privacy: ytPrivacy,
+        surface: 'done_screen',
+        after_download: postHandoffArmed,
+        detail: message.slice(0, 160),
+      })
     } finally {
       setYtUploading(false)
     }
   }
+
+  // ── KINEO-DISTRIBUTION-LOOP-2026-08-11 — o scroll do handoff ──────────────
+  //
+  // Uma vez por render, e só quando a flag está ligada. Com a flag em 'off'
+  // este efeito faz exatamente nada e a página se comporta como antes.
+  //
+  // `block: 'center'` em vez de 'start': a seção "postar" tem o bloco do
+  // YouTube e o campo de colar link um embaixo do outro, e centralizar traz os
+  // dois para dentro da tela em qualquer altura de viewport. `behavior:
+  // 'smooth'` porque um salto seco depois de um download parece bug.
+  useEffect(() => {
+    if (!POST_HANDOFF_ENABLED) return
+    if (!postHandoffArmed) return
+    if (postHandoffScrolledRef.current) return
+    const node = postLoopRef.current
+    if (!node) return
+    postHandoffScrolledRef.current = true
+    // O download acabou de mexer no DOM (o <a>, o upsell da marca d'água); um
+    // frame de folga evita medir a posição antiga do elemento.
+    const timer = window.setTimeout(() => {
+      try {
+        node.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      } catch {
+        // Navegador sem suporte a scrollIntoView com opções: sem scroll, o
+        // resto do handoff (título e destaque) continua valendo.
+      }
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [postHandoffArmed])
+
+  // ── KINEO-DISTRIBUTION-LOOP-2026-08-11 — a impressão do convite ───────────
+  //
+  // O degrau mais importante do funil era o único sem NENHUM evento: não dava
+  // para saber se as 365 downloads viraram 1 colagem porque o convite não
+  // convence ou porque ninguém nunca chegou a vê-lo. Este observer responde
+  // essa pergunta e nada mais — não muda pixel algum, e por isso NÃO é gateado
+  // pela flag (ver lib/flags.ts).
+  //
+  // Dispara uma vez por render, com 50% do bloco visível, para não contar um
+  // pixel raspado no fim de uma rolagem rápida.
+  useEffect(() => {
+    if (phase !== 'done') return
+    if (postInviteSeenRef.current) return
+    const node = postLoopRef.current
+    if (!node) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          if (postInviteSeenRef.current) return
+          postInviteSeenRef.current = true
+          trackEvent('post_invite_viewed', {
+            surface: 'done_screen',
+            after_download: postHandoffArmed,
+            yt_connected: ytConnected === true,
+            handoff_enabled: POST_HANDOFF_ENABLED,
+          })
+          observer.disconnect()
+          return
+        }
+      },
+      { threshold: 0.5 },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [phase, postHandoffArmed, ytConnected])
 
   // Push #109 — auto-open the urgency modal exactly once when a free user
   // finishes a generation that drained their last credit. The ref keeps it
@@ -8899,16 +9095,48 @@ export default function GenerateClient({
                 {ytError && (
                   <p className="text-xs text-center mt-1" style={{ color: '#f87171' }}>{ytError}</p>
                 )}
+                {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — por que este botão e não
+                    o campo de colar link. Os dois caminhos pagam os mesmos 3
+                    créditos, mas só um deles paga NA HORA: no upload direto a
+                    autoria é provada por construção (nós renderizamos e nós
+                    publicamos), então `verifyKineoAttribution` devolve
+                    `verified: true` sem nenhuma chamada de rede. A tela nunca
+                    tinha dito isso, e a pessoa escolhia no escuro entre um
+                    clique e um formulário. Não aparece no ramo `ytResult` (já
+                    postou) nem no ramo de erro de conexão (lá a única frase
+                    honesta é a que já está lá). */}
+                {!ytResult && ytConnected !== 'error' && (
+                  <p
+                    className="text-xs text-center mt-1.5 font-bold"
+                    style={{ color: '#4ade80', lineHeight: 1.5 }}
+                  >
+                    {POST_TO_EARN_DIRECT_PITCH}
+                  </p>
+                )}
               </div>
 
               {/* KINEO-POSTED-SHORTS-2026-07-31 — a ponte "postou? cola o link".
                   Logo depois das ações de download/share: o pedido só faz
                   sentido depois que a pessoa levou o vídeo. Upload direto
                   (ytResult) já grava sozinho no servidor — aí este bloco some. */}
+              {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — este bloco é a ÂNCORA do
+                  handoff. O bloco do YouTube fica imediatamente acima dele no
+                  DOM, então centralizar este traz os dois caminhos (1 clique e
+                  colar link) para dentro da tela de uma vez. A borda só muda de
+                  cor quando o handoff foi armado E a flag está ligada — com a
+                  flag em 'off' o estilo é literalmente o de antes da sprint. */}
               {!ytResult && (
                 <div
+                  ref={postLoopRef}
                   className="rounded-2xl px-5 py-4 mt-6 w-full"
-                  style={{ maxWidth: 480, background: '#161618', border: '1px solid rgba(255,255,255,0.08)' }}
+                  style={{
+                    maxWidth: 480,
+                    background: '#161618',
+                    border:
+                      POST_HANDOFF_ENABLED && postHandoffArmed && postedLinkState !== 'done'
+                        ? '1px solid rgba(74,222,128,0.45)'
+                        : '1px solid rgba(255,255,255,0.08)',
+                  }}
                 >
                   {/* KINEO-WALL-2026-08-03 — o mesmo campo, agora com um destino
                       VISÍVEL: /wall. "Featured queue" era uma promessa vaga (fila
@@ -8953,12 +9181,32 @@ export default function GenerateClient({
                     </div>
                   ) : (
                     <>
+                      {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — o título fala do
+                          momento, não de uma hipótese. "Published it?" é uma
+                          pergunta para quem talvez já tenha postado; no segundo
+                          seguinte ao download a resposta é obviamente "não
+                          ainda", e a frase certa é a que diz o que fazer com o
+                          arquivo que acabou de chegar. Fora do handoff (ou com
+                          a flag em 'off') o texto original permanece. */}
                       <div className="text-sm font-black" style={{ color: '#f5f5f7' }}>
-                        Published it? Paste the link and get paid 🔗
+                        {POST_HANDOFF_ENABLED && postHandoffArmed
+                          ? POST_TO_EARN_HANDOFF_TITLE
+                          : 'Published it? Paste the link and get paid 🔗'}
                       </div>
                       {/* A regra ANTES de colar, não depois da recusa. */}
                       <p className="text-xs mt-1.5 font-bold" style={{ color: '#4ade80', lineHeight: 1.55 }}>
                         {POST_TO_EARN_PITCH}
+                      </p>
+                      {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — a verdade sobre
+                          ESTE caminho. Sem YOUTUBE_API_KEY no ambiente,
+                          `verifyKineoAttribution` devolve `no_youtube_api_key` e
+                          TODO link colado vira claim `pending`: nenhum é
+                          instantâneo hoje. A frase acima já admite as duas
+                          possibilidades; esta diz qual delas é a provável e por
+                          quê, para ninguém ficar esperando um crédito que só
+                          chega depois da revisão. */}
+                      <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
+                        {POST_TO_EARN_PASTE_NOTE}
                       </p>
                       <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
                         Each video counts once and has to be public. Your Short also joins the{' '}
@@ -8982,6 +9230,20 @@ export default function GenerateClient({
                               setPostedLinkState('idle')
                               setPostedLinkError(null)
                             }
+                          }}
+                          // KINEO-DISTRIBUTION-LOOP-2026-08-11 — entre "viu o
+                          // convite" e "enviou o link" havia um degrau invisível:
+                          // a pessoa que clica no campo e desiste no meio era
+                          // contada junto com quem nunca olhou. Uma vez por
+                          // render, e nada muda na tela.
+                          onFocus={() => {
+                            if (postPasteFocusedRef.current) return
+                            postPasteFocusedRef.current = true
+                            trackEvent('post_invite_paste_focused', {
+                              surface: 'done_screen',
+                              after_download: postHandoffArmed,
+                              yt_connected: ytConnected === true,
+                            })
                           }}
                           placeholder="https://youtube.com/shorts/…"
                           className="flex-1 rounded-xl px-3 py-2 text-xs"

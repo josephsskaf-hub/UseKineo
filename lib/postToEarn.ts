@@ -93,6 +93,31 @@ export type PostToEarnResult = {
  */
 export const POST_TO_EARN_PITCH = `Publish your Kineo Short with the credit link, paste the URL, get ${POST_TO_EARN_CREDITS} credits — up to ${POST_TO_EARN_MAX_PER_WINDOW} per week. Verified links are credited instantly; the rest are reviewed within ${POST_TO_EARN_PENDING_REVIEW_HOURS}h.`
 
+// ── KINEO-DISTRIBUTION-LOOP-2026-08-11 ──────────────────────────────────────
+// Os dois caminhos NÃO são equivalentes, e a tela nunca disse isso.
+//
+// `direct_upload` (o botão "Post to YouTube") tem atribuição provada por
+// construção — nós renderizamos e nós publicamos —, então `verifyKineoAttribution`
+// devolve `verified: true` sem UMA chamada de rede e o crédito cai na hora,
+// sempre. `pasted` depende de ler a descrição do vídeo pela YouTube Data API; e
+// enquanto `YOUTUBE_API_KEY` não existir no ambiente, `verifyKineoAttribution`
+// devolve `no_youtube_api_key` e o claim vai para `pending` — ou seja, HOJE
+// 100% dos links colados esperam revisão humana, nenhum é instantâneo.
+//
+// Esconder essa diferença faz duas coisas ruins de uma vez: manda a pessoa pelo
+// caminho lento sem ela saber, e transforma o "3 credits" numa promessa que o
+// sistema não cumpre naquele segundo. As duas frases abaixo dizem a verdade e,
+// como efeito colateral honesto, empurram para o caminho de 1 clique.
+
+/** O caminho instantâneo. Verdadeiro em qualquer configuração de ambiente. */
+export const POST_TO_EARN_DIRECT_PITCH = `Post it through Kineo and the ${POST_TO_EARN_CREDITS} credits are instant — we published it, so there is nothing left to verify.`
+
+/** O caminho colado. Diz o prazo ANTES de a pessoa colar, não depois. */
+export const POST_TO_EARN_PASTE_NOTE = `Pasted links need the Kineo credit link in the description. When we can't confirm it automatically, a human reviews it within ${POST_TO_EARN_PENDING_REVIEW_HOURS}h and the credits land then — not instantly.`
+
+/** Título da seção no segundo EXATO em que o arquivo terminou de baixar. */
+export const POST_TO_EARN_HANDOFF_TITLE = 'The file is yours. Now post it.'
+
 /**
  * Mensagem para cada desfecho.
  *

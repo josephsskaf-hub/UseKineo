@@ -24,8 +24,27 @@
 // consegui abrir no YouTube" são quatro situações diferentes e o usuário
 // precisa saber em qual está.
 
-import { useState } from 'react'
-import { POST_TO_EARN_PITCH, type PostToEarnResult } from '@/lib/postToEarn'
+// KINEO-DISTRIBUTION-LOOP-2026-08-11 — este componente era 100% CEGO.
+//
+// O /wall é o destino do e-mail `send-post-nudge` (69 envios, 69 pessoas, entre
+// 06/08 e 10/08) e o único lugar onde quem publicou no dia seguinte pode colar
+// o link. Mesmo assim ele não emitia UM evento: não dava para saber se os 69
+// e-mails geraram zero cliques, ou cliques que chegaram numa página que não
+// converteu, ou colagens que falharam. Três degraus diferentes, um único
+// número (zero) — e nenhuma forma de decidir qual consertar.
+//
+// Os quatro eventos abaixo separam esses degraus. Nenhum muda um pixel: é a
+// mesma tela, o mesmo endpoint, o mesmo texto.
+import { useEffect, useRef, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
+import {
+  POST_TO_EARN_PITCH,
+  // A verdade sobre o caminho colado (sem YOUTUBE_API_KEY, todo link vai para
+  // revisão humana). O /wall é o caminho colado por definição — não existe
+  // upload direto aqui —, então a nota vale ainda mais nesta tela.
+  POST_TO_EARN_PASTE_NOTE,
+  type PostToEarnResult,
+} from '@/lib/postToEarn'
 
 const BLUE = '#2997ff'
 const MUTED = '#86868b'
@@ -54,6 +73,25 @@ export default function WallSubmitLink() {
   // um crédito que talvez não exista.
   const [reward, setReward] = useState<PostToEarnResult | null>(null)
 
+  // KINEO-DISTRIBUTION-LOOP-2026-08-11 — impressão do convite, uma vez por
+  // montagem. `prefilled` diz se a pessoa chegou do e-mail/do login com o link
+  // já no campo: é a única forma de separar o tráfego do nudge do tráfego que
+  // abriu o /wall por conta própria, já que o e-mail carrega
+  // utm_campaign=post_nudge na URL mas nada disso era gravado.
+  const viewedRef = useRef(false)
+  const focusedRef = useRef(false)
+  useEffect(() => {
+    if (viewedRef.current) return
+    viewedRef.current = true
+    trackEvent('wall_paste_invite_viewed', {
+      surface: 'wall',
+      prefilled: url.trim().length > 0,
+    })
+    // Só na montagem, de propósito: `url` muda a cada tecla e o evento mede
+    // chegada, não digitação.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function submit() {
     const value = url.trim()
     if (!value || state === 'saving' || state === 'done') return
@@ -66,6 +104,10 @@ export default function WallSubmitLink() {
         body: JSON.stringify({ url: value }),
       })
       if (res.status === 401) {
+        // O degrau mais suspeito do /wall: quem vem do e-mail chega deslogado.
+        // Sem este evento, uma ida ao login que nunca volta é indistinguível de
+        // uma pessoa que nunca colou nada.
+        trackEvent('wall_paste_auth_required', { surface: 'wall' })
         // KINEO-POST-NUDGE-2026-08-05 — o link que a pessoa acabou de digitar
         // VIAJA com ela até o login e volta preenchido. Antes daqui o ramo
         // `unauthenticated` desmontava o input, e o valor sumia: ela cumpria
@@ -85,15 +127,32 @@ export default function WallSubmitLink() {
         | { ok?: boolean; error?: string; reward?: PostToEarnResult }
         | null
       if (res.ok && data?.ok) {
-        setReward(data.reward ?? null)
+        const outcome = data.reward ?? null
+        setReward(outcome)
         setState('done')
+        // Mesmo nome que o /generate usa para a colagem, com `surface`
+        // diferente: as duas telas alimentam a MESMA tabela e precisam ser
+        // comparáveis. O desfecho vai num evento separado (e com nome distinto
+        // dos que lib/postToEarnGrant.ts grava no servidor) para não contar
+        // cada claim duas vezes.
+        trackEvent('posted_short_submitted', { source: 'pasted', surface: 'wall' })
+        if (outcome) {
+          trackEvent('post_to_earn_outcome_viewed', {
+            reason: outcome.reason,
+            outcome: outcome.granted ? 'granted' : outcome.pending ? 'pending' : 'rejected',
+            credits: outcome.credits,
+            surface: 'wall',
+          })
+        }
         return
       }
       setState('error')
       setError(typeof data?.error === 'string' ? data.error : 'Could not save your link. Please try again.')
+      trackEvent('wall_paste_failed', { surface: 'wall', status: res.status })
     } catch {
       setState('error')
       setError('Could not save your link. Please try again.')
+      trackEvent('wall_paste_failed', { surface: 'wall', status: 0 })
     }
   }
 
@@ -147,6 +206,14 @@ export default function WallSubmitLink() {
           <p style={{ margin: '0 0 6px', fontSize: '0.82rem', color: GREEN, fontWeight: 700, lineHeight: 1.5 }}>
             {POST_TO_EARN_PITCH}
           </p>
+          {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — o prazo real, ANTES de colar.
+              O /wall só tem o caminho `pasted`, e enquanto YOUTUBE_API_KEY não
+              existir no ambiente NENHUM link colado é creditado na hora: todos
+              viram claim `pending`. A frase acima admite as duas hipóteses;
+              esta diz qual é a de hoje. */}
+          <p style={{ margin: '0 0 6px', fontSize: '0.78rem', color: MUTED, lineHeight: 1.5 }}>
+            {POST_TO_EARN_PASTE_NOTE}
+          </p>
           <p style={{ margin: '0 0 12px', fontSize: '0.78rem', color: MUTED, lineHeight: 1.5 }}>
             Each video counts once, and it has to be public. Only the video, its title and your channel name are shown — never your email.
           </p>
@@ -164,6 +231,11 @@ export default function WallSubmitLink() {
                   setState('idle')
                   setError(null)
                 }
+              }}
+              onFocus={() => {
+                if (focusedRef.current) return
+                focusedRef.current = true
+                trackEvent('wall_paste_focused', { surface: 'wall' })
               }}
               placeholder="https://youtube.com/shorts/…"
               style={{
