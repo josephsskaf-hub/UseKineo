@@ -44,6 +44,11 @@ import {
 // Ver o comentário longo em lib/flags.ts: com 'off' esta tela volta a ser
 // idêntica à de antes da sprint.
 import { POST_HANDOFF_ENABLED } from '@/lib/flags'
+// KINEO-FIRST-PAID-MINUTE-2026-08-11 — a chave e o TTL do handshake vivem num
+// módulo único (lib/firstWinHandshake.ts). Enquanto eram literais duplicados
+// aqui e em /checkout/success, renomear um dos lados desligava o recurso em
+// silêncio; agora quebra o build.
+import { peekFirstWinHandshake, clearFirstWinHandshake } from '@/lib/firstWinHandshake'
 import {
   CURRENCY_DISPLAY,
   TOPUP_CREDITS,
@@ -572,6 +577,36 @@ export default function GenerateClient({
   const activationAutostartSawProcessingRef = useRef(false)
   const activationAutostartPromptRef = useRef<string | null>(null)
   const activationAutostartContextRef = useRef<Record<string, unknown> | null>(null)
+  // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o autostart nasceu para ATIVAÇÃO DE
+  // FREE, e por isso as três guardas abaixo pulam qualquer conta paga. Depois
+  // disso a página /checkout/success passou a mandar o comprador para
+  // `/generate?create_intent=fast&...&utm_source=checkout_success&utm_medium=first_win`
+  // com o selo literal "starts automatically" — para uma conta que, por
+  // definição, acabou de virar paga. Resultado: a promessa era falsa para 100%
+  // dos pagantes e o "primeiro minuto pago" nunca existiu.
+  //
+  // Este ref marca APENAS a chegada vinda do checkout. Ele é lido pelas guardas
+  // 2 e 3, que rodam depois e cujos arrays de dependência não incluem
+  // `searchParams` (ler a URL lá seria valor obsoleto, não segurança).
+  //
+  // O que este ref NÃO relaxa — de propósito:
+  //  · `already_consumed` / `active_render_restored` / `generation_in_progress`
+  //  · `watermark_unlock_active`
+  //  · entitlement ainda desconhecido ('loading' | 'unavailable')
+  //  · o motor continua forçado em Fast (`setMode`/`setQuality` mais abaixo),
+  //    que é exatamente a trava que o Push #447 pediu ao remover o
+  //    auto-generate do Viral Now por queimar 30 créditos de AI Gen.
+  //
+  // Forjar as UTMs na URL não dá privilégio nenhum: a única guarda afrouxada é
+  // a de conta paga, e quem é free já passa por ela. Um pagante que forje
+  // dispara uma geração Fast nos próprios créditos, com o mesmo débito de
+  // ledger de um clique manual.
+  const activationAutostartFirstWinRef = useRef(false)
+  const activationAutostartWaitLoggedRef = useRef(false)
+  const activationAutostartWaitStartedRef = useRef<number | null>(null)
+  // Existe só para forçar a reentrada do effect enquanto ele espera o webhook
+  // (defeito D13). Nenhuma outra parte da tela lê este valor.
+  const [activationAutostartWaitTick, setActivationAutostartWaitTick] = useState(0)
   const [activationAutostartArmed, setActivationAutostartArmed] = useState(false)
   useEffect(() => {
     try {
@@ -2256,7 +2291,33 @@ export default function GenerateClient({
     if (searchParams.get('create_intent') !== 'fast') return
 
     const explicitPrompt = (searchParams.get('prompt') ?? '').trim().slice(0, 1000)
+    // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o par exato que /checkout/success
+    // escreve no href dos 3 cards (app/checkout/success/page.tsx). Exigir os
+    // DOIS campos evita que um utm_source=checkout_success solto numa campanha
+    // qualquer vire chave de autostart.
+    const looksLikeFirstWinArrival =
+      searchParams.get('utm_source') === 'checkout_success' &&
+      searchParams.get('utm_medium') === 'first_win'
+    // Defeito D8 da 2ª revisão adversarial: este effect pode ESPERAR o webhook
+    // da Stripe (ver o bloco de entitlement mais abaixo) e o TTL do handshake
+    // pode vencer no meio da espera. Reavaliar a autorização a cada run faria o
+    // comprador atravessar sozinho a fronteira pago→grátis e ser gerado como
+    // conta free — exatamente o que a espera existe para impedir. Por isso a
+    // observação é STICKY: vale a primeira vez que a autorização foi vista
+    // válida nesta montagem do componente.
+    if (
+      !activationAutostartFirstWinRef.current &&
+      looksLikeFirstWinArrival &&
+      peekFirstWinHandshake()
+    ) {
+      activationAutostartFirstWinRef.current = true
+    }
+    const isFirstWinFromCheckout = activationAutostartFirstWinRef.current
     const metadata: Record<string, unknown> = {
+      // Entra no payload de TODO evento deste rail (eligible/skipped/dispatched),
+      // que é como o "% de payment_success com vídeo" passa a ser medível sem
+      // criar evento novo.
+      first_win: isFirstWinFromCheckout,
       variant: ACTIVATION_AUTOSTART_VARIANT,
       engine: 'fast',
       prompt_length: explicitPrompt.length,
@@ -2276,6 +2337,12 @@ export default function GenerateClient({
 
     const consumeAndSkip = (reason: string) => {
       activationAutostartDecisionRef.current = true
+      // KINEO-FIRST-PAID-MINUTE-2026-08-11 — decisão tomada é decisão tomada:
+      // o handshake e o ref morrem em TODO caminho de saída, nunca só no de
+      // sucesso. Um `true` órfão aqui furaria a guarda de conta paga em
+      // silêncio no próximo rail que armasse este effect.
+      clearFirstWinHandshake()
+      activationAutostartFirstWinRef.current = false
       try {
         sessionStorage.setItem(activationAutostartSessionKey(explicitPrompt), `skipped:${reason}`)
       } catch {}
@@ -2306,6 +2373,72 @@ export default function GenerateClient({
     if (creditsLoading || planTier === null) return
     if (activationAccountStatus === 'loading') return
 
+    // Defeito D8 (2ª revisão) — chegada com a cara do checkout mas SEM
+    // autorização válida: handshake vencido, aba nova aberta pelo menu de
+    // contexto (que não dispara onClick), storage bloqueado, ou link colado por
+    // terceiro. Nunca cair no rail de conta GRÁTIS por omissão — é o caminho
+    // que trataria um comprador como free. Sair aqui deixa rastro no evento.
+    if (looksLikeFirstWinArrival && !isFirstWinFromCheckout) {
+      consumeAndSkip('first_win_handshake_missing')
+      return
+    }
+
+    const paidAccount =
+      activationAccountStatus === 'paid' ||
+      hasPaid ||
+      planTier !== 'free' ||
+      isStarter ||
+      isCreator ||
+      isStudio
+
+    // KINEO-FIRST-PAID-MINUTE-2026-08-11 — corrida com o webhook da Stripe
+    // (defeito D3 da revisão adversarial). A /checkout/success só habilita os
+    // cards depois que o saldo confirma o pagamento, mas o entitlement desta
+    // página é buscado de novo e pode chegar 'free' por alguns instantes.
+    //
+    // ESPERAR, e não pular: um comprador tratado como free cairia no ramo
+    // `isFirstVideo && isFreeTier` de /api/generate-video-fast, que dispara um
+    // hook extra de infraestrutura desenhado para conta grátis. A dependência
+    // do effect inclui activationAccountStatus/hasPaid/planTier, então a
+    // decisão se refaz sozinha quando o entitlement chega. Se nunca chegar,
+    // ninguém gera nada e sobra o fluxo manual — a falha segura.
+    if (isFirstWinFromCheckout && !paidAccount) {
+      // Defeito D13 da 3ª revisão — a espera precisa de TETO. `/checkout/success`
+      // não valida o `session_id`, então uma conta grátis que abra aquela URL
+      // (link, histórico, curiosidade) arma o handshake e chegaria aqui para
+      // esperar um pagamento que não existe: sem `eligible`, sem `skipped`, sem
+      // geração. O rail free, que funciona, morria em silêncio para ela. Mesmo
+      // destino do comprador cujo webhook falhou de vez.
+      //
+      // 15 segundos é folga larga para um webhook que normalmente já rodou
+      // antes do redirect. Passou disso, desiste com rastro e devolve a pessoa
+      // ao botão Generate manual.
+      if (activationAutostartWaitStartedRef.current === null) {
+        activationAutostartWaitStartedRef.current = Date.now()
+      }
+      if (Date.now() - activationAutostartWaitStartedRef.current > 15_000) {
+        consumeAndSkip('entitlement_not_paid_timeout')
+        return
+      }
+      // Sem este evento o comprador travado num webhook lento fica INVISÍVEL:
+      // não emite `eligible` nem `skipped`, e o denominador do "primeiro minuto
+      // pago" perde justamente os casos que interessam. Uma vez por montagem.
+      if (!activationAutostartWaitLoggedRef.current) {
+        activationAutostartWaitLoggedRef.current = true
+        void trackEvent('activation_autostart_waiting', {
+          ...metadata,
+          reason: 'entitlement_not_paid_yet',
+        })
+      }
+      // O effect só reavalia quando uma dependência muda. Se o entitlement
+      // nunca chegar, nada mudaria e o teto acima jamais seria lido — por isso
+      // este tick agenda a própria reentrada.
+      const waitTick = setTimeout(() => {
+        setActivationAutostartWaitTick((v) => v + 1)
+      }, 3_000)
+      return () => clearTimeout(waitTick)
+    }
+
     const storageKey = activationAutostartSessionKey(explicitPrompt)
     let consumedState: string | null = null
     try { consumedState = sessionStorage.getItem(storageKey) } catch {}
@@ -2317,9 +2450,23 @@ export default function GenerateClient({
     // first-video intent once, but only after confirming the account still has
     // zero videos. A second interrupted recovery falls back to the manual flow.
     if (consumedState !== null && recentVideos === null) return
+    //
+    // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D1 da revisão adversarial) —
+    // `!paidAccount` no ramo `dispatched:*`. A linha em `videos` só nasce no
+    // checkpoint do Compose, ou seja ~1 minuto DEPOIS do dispatch; nessa janela
+    // `recentVideos` ainda é `[]`. Um F5 aí — o momento de maior ansiedade de
+    // quem acabou de pagar — reentrava com `dispatched:*` + zero vídeos e,
+    // agora que conta paga não é mais pulada, re-armaria: dois generate-fast,
+    // dois compose, dois créditos do cliente. Antes desta sprint a guarda
+    // `paid_account` matava esse caminho por acidente; aqui ele é fechado de
+    // propósito. Recuperar uma geração já despachada de conta paga é decisão do
+    // botão manual, nunca do código — o custo do falso positivo é dinheiro
+    // alheio. O estado 'eligible' (armou e o browser saiu ANTES do dispatch)
+    // continua recuperável: lá nada foi gasto.
     const recoveryEligible =
       recentVideos?.length === 0 &&
-      (consumedState === 'eligible' || consumedState?.startsWith('dispatched:') === true)
+      (consumedState === 'eligible' ||
+        (consumedState?.startsWith('dispatched:') === true && !paidAccount))
 
     if (consumedState !== null && !recoveryEligible) {
       consumeAndSkip('already_consumed')
@@ -2352,17 +2499,23 @@ export default function GenerateClient({
       })
       return
     }
-    if (
-      activationAccountStatus === 'paid' ||
-      hasPaid ||
-      planTier !== 'free' ||
-      isStarter ||
-      isCreator ||
-      isStudio
-    ) {
+    // KINEO-FIRST-PAID-MINUTE-2026-08-11 — a única exceção: quem chega do
+    // checkout com o handshake válido. Fora dela, conta paga continua sendo
+    // pulada exatamente como sempre.
+    if (paidAccount && !isFirstWinFromCheckout) {
       consumeAndSkip('paid_account')
       return
     }
+    if (paidAccount) {
+      metadata.paid_autostart = true
+    }
+    // Defeito D7 da 2ª revisão: o handshake NÃO é consumido aqui, de propósito.
+    // Consumi-lo ao armar matava a recuperação do estado 'eligible' — quem dá
+    // F5 entre "armou" e "despachou" não gastou crédito nenhum, mas o refresh
+    // zera os refs do componente e a pessoa voltaria sem autorização, caindo em
+    // `paid_account`. Quem o encerra é a DECISÃO FINAL (consumeAndSkip /
+    // clearActivation) ou o TTL de 10 minutos. Quem já despachou não volta por
+    // aqui: o `already_consumed` acima não recupera dispatch de conta paga.
     void trackEvent('activation_autostart_eligible', metadata)
     activationAutostartContextRef.current = metadata
     activationAutostartPromptRef.current = explicitPrompt
@@ -2388,6 +2541,8 @@ export default function GenerateClient({
     isStudio,
     phase,
     recentVideos,
+    // Só serve para reentrar no teto da espera do "primeiro minuto pago" (D13).
+    activationAutostartWaitTick,
   ])
 
   // Commit Fast mode before analysis so a prior dashboard engine selection can
@@ -2406,6 +2561,8 @@ export default function GenerateClient({
       activationAutostartSawProcessingRef.current = false
       activationAutostartPromptRef.current = null
       activationAutostartContextRef.current = null
+      // KINEO-FIRST-PAID-MINUTE-2026-08-11 — ver o comentário em consumeAndSkip.
+      activationAutostartFirstWinRef.current = false
       void trackEvent('activation_autostart_skipped', { ...metadata, reason })
     }
 
@@ -2413,14 +2570,33 @@ export default function GenerateClient({
       skipBeforeAnalysis('prompt_missing_before_analysis')
       return
     }
-    if (
-      activationAccountStatus !== 'free' ||
-      hasPaid ||
-      planTier !== 'free' ||
-      isStarter ||
-      isCreator ||
-      isStudio
-    ) {
+    // KINEO-FIRST-PAID-MINUTE-2026-08-11 — na chegada do checkout, 'paid' é um
+    // entitlement RESOLVIDO e legítimo. O que continua barrando nos dois casos
+    // é o entitlement DESCONHECIDO ('loading' | 'unavailable') e o plano ainda
+    // não carregado — a guarda existe contra geração especulativa, não contra
+    // quem pagou.
+    const firstWinDispatch = activationAutostartFirstWinRef.current
+    // O ref só fica `true` para conta paga com handshake válido (guarda 1). O
+    // invariante que precisa continuar valendo aqui é "ainda é conta paga e o
+    // entitlement continua resolvido" — se ele regredir para 'free' no meio do
+    // caminho, o dispatch é abortado em vez de virar geração de conta grátis.
+    const stillPaidAndResolved =
+      planTier !== null &&
+      (activationAccountStatus === 'paid' ||
+        hasPaid ||
+        planTier !== 'free' ||
+        isStarter ||
+        isCreator ||
+        isStudio)
+    const blockedBeforeAnalysis = firstWinDispatch
+      ? !stillPaidAndResolved
+      : activationAccountStatus !== 'free' ||
+        hasPaid ||
+        planTier !== 'free' ||
+        isStarter ||
+        isCreator ||
+        isStudio
+    if (blockedBeforeAnalysis) {
       skipBeforeAnalysis('paid_or_unknown_before_analysis')
       return
     }
@@ -5432,6 +5608,15 @@ export default function GenerateClient({
       activationAutostartSawProcessingRef.current = false
       activationAutostartPromptRef.current = null
       activationAutostartContextRef.current = null
+      // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o ref E a chave morrem junto com o
+      // resto do estado do rail, inclusive no caminho de SUCESSO (este
+      // clearActivation() sem `reason` roda logo antes do dispatch, depois de a
+      // guarda já ter lido o ref). Assim nenhum autostart posterior herda a
+      // autorização. Defeito D14 da 3ª revisão: sem o clear da chave aqui, o
+      // comentário do ponto de armar afirmava um encerramento que só acontecia
+      // por acidente, quando o run seguinte calhava de cair em consumeAndSkip.
+      activationAutostartFirstWinRef.current = false
+      clearFirstWinHandshake()
       if (reason) {
         void trackEvent('activation_autostart_skipped', { ...metadata, reason })
       }
@@ -5451,14 +5636,31 @@ export default function GenerateClient({
     if (phase !== 'options' || !analysis) return
 
     if (activationPending) {
+      // KINEO-FIRST-PAID-MINUTE-2026-08-11 — mesma exceção da guarda anterior,
+      // e só ela. `mode !== 'fast'`, render retomado e geração em voo seguem
+      // abortando o dispatch inclusive para quem veio do checkout: o pagante
+      // ganha o primeiro vídeo automático, nunca um segundo por cima.
+      const firstWinReady = activationAutostartFirstWinRef.current
+      // Mesmo invariante da guarda anterior: continua paga e resolvida.
+      const stillPaidForDispatch =
+        planTier !== null &&
+        (activationAccountStatus === 'paid' ||
+          hasPaid ||
+          planTier !== 'free' ||
+          isStarter ||
+          isCreator ||
+          isStudio)
+      const planBlocksDispatch = firstWinReady
+        ? !stillPaidForDispatch
+        : activationAccountStatus !== 'free' ||
+          hasPaid ||
+          planTier !== 'free' ||
+          isStarter ||
+          isCreator ||
+          isStudio
       if (
         mode !== 'fast' ||
-        activationAccountStatus !== 'free' ||
-        hasPaid ||
-        planTier !== 'free' ||
-        isStarter ||
-        isCreator ||
-        isStudio ||
+        planBlocksDispatch ||
         resumedRenderRef.current ||
         generationInFlightRef.current
       ) {

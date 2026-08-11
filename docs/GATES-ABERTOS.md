@@ -1,9 +1,34 @@
-# 🔴 GATE ATUAL — **7 COMMITS** (sprint 10h de 11/08)
+# 🔴 GATE ATUAL — **13 COMMITS** (sprint 16h de 11/08)
 
 `origin/main` = **`4061731`** — reconferido por `git ls-remote origin refs/heads/main`
-em 11/08 ~13:2xZ. **O push RODOU depois de 08/08**: o bloco abaixo, que dizia
-`6fcc83b` e 16 commits, estava vencido em 3 pontos. Ponta local:
-`refs/heads/main` = **`eb408099`**.
+às 19:1xZ de 11/08. **Não mudou desde a sprint das 10h**: o push não rodou hoje.
+Ponta local `refs/heads/main` antes desta sprint: **`7c5b01f`** (12 commits);
+com o commit desta sprint, **13**.
+
+⚠️ A regra é *tudo o que estiver à frente de `4061731`*. A contagem envelhece a
+cada sprint, o SHA não.
+
+⚠️ **O script é o `scripts\68-PUSH.bat`** (o prompt diário ainda manda rodar o
+`52-PUSH.bat`, que está vencido). Ele apaga os 3 locks órfãos e dá `git push`;
+não cria commit e não faz `add`. Seguro se rodado duas vezes.
+
+## ✅ CAI NESTA SPRINT — o gate nº7 estava VENCIDO
+
+**A única conversão da história NÃO está sem vídeo.** `75f76a4c` tem **2 vídeos
+`completed`, com URL**, em 11/08 07:32Z e 13:43Z. O texto abaixo que fala em "12
+erros de render" e projeta risco de reembolso/chargeback por não-entrega
+descreve o mundo do apagão, não o de hoje. Sai da lista.
+
+## 🆕 ABERTO NESTA SPRINT — 26 pessoas quentes que ninguém avisou
+
+26 contas em trial ATIVO tentaram gerar, falharam, têm os **40 créditos
+intactos** (1.040 no total), estavam ativas nas últimas 48h e **nunca receberam
+uma mensagem**. 12 vencem em 72h. O cron `/api/cron/send-video-rescue` roda e
+funciona (377 envios, o último hoje às 14:01Z) — ele só não as enxerga, porque
+seu único sinal de "ativado" é *ter linha em `videos`*, e a linha só nasce no
+sucesso. Correção escrita linha a linha em `docs/COORTE-QUEBRADOS-2026-08-11.md`;
+**não implementada** porque manda e-mail para fora (gate do fundador) e porque a
+copy atual abriria com *"You made a Short 🎬"* para quem nunca fez um.
 
 ## ✅ TRÊS GATES DESTA LISTA CAÍRAM — MEDIDOS NA SPRINT 10h DE 11/08
 

@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { getViralNowTopics, type ViralTopic } from '@/lib/viralTopics'
+import { armFirstWinHandshake } from '@/lib/firstWinHandshake'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -108,10 +109,25 @@ export default function CheckoutSuccessPage() {
     const timers = delays.map((delay, i) =>
       setTimeout(async () => {
         try {
-          const res = await fetch('/api/credits', { cache: 'no-store' })
+          // Timeout explicito: sem ele um poll pendurado nunca resolve o
+          // `finally` e o estado de sincronizacao fica preso (defeito D11).
+          const res = await fetch('/api/credits', {
+            cache: 'no-store',
+            signal: AbortSignal.timeout(5_000),
+          })
           if (!res.ok || cancelled) return
           const data = (await res.json()) as { credits?: unknown }
-          if (!cancelled && typeof data.credits === 'number') setCredits(data.credits)
+          // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D6 da 2a revisao
+          // adversarial) - `syncing` desliga no PRIMEIRO poll que devolve
+          // numero, nao no ultimo timer. O `finally` de baixo so roda em
+          // t~20s, e esta pagina se auto-redireciona em t=15s: enquanto os
+          // cards do primeiro video dependiam de `!syncing`, eles NUNCA
+          // apareciam para ninguem. O caso comum e o webhook ja ter rodado
+          // antes do redirect, ou seja, resposta boa em t~0s.
+          if (!cancelled && typeof data.credits === 'number') {
+            setCredits(data.credits)
+            setSyncing(false)
+          }
         } catch {
           /* rede instavel - a proxima tentativa cobre */
         } finally {
@@ -123,6 +139,24 @@ export default function CheckoutSuccessPage() {
       cancelled = true
       timers.forEach(clearTimeout)
     }
+  }, [])
+
+  // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D11 da 3a revisao adversarial)
+  // - TETO DE `syncing` INDEPENDENTE DO FETCH.
+  //
+  // A 2a rodada tinha atrelado o countdown a `syncing` para dar ao comprador os
+  // 15 segundos INTEIROS com os cards na tela. O ataque seguinte mostrou o
+  // preco: o poll e `async` e o `fetch` nao tinha timeout, entao uma requisicao
+  // pendurada (rede movel, proxy) deixava `syncing` em `true` para sempre - sem
+  // cards E sem redirect. Trocar um beco sem saida por uma tela morta e piorar.
+  //
+  // Agora sao duas garantias separadas: o countdown volta a ser incondicional
+  // (o redirect de 15s NUNCA depende da rede) e `syncing` tem um teto proprio
+  // de 6s. No caminho comum o webhook ja rodou e o primeiro poll responde em
+  // ~0s; nos demais, os cards aparecem no maximo em 6s e sobram ~9s de escolha.
+  useEffect(() => {
+    const ceiling = setTimeout(() => setSyncing(false), 6_000)
+    return () => clearTimeout(ceiling)
   }, [])
 
   useEffect(() => {
@@ -225,7 +259,12 @@ export default function CheckoutSuccessPage() {
           Redirecting to the app in {countdown}…
         </p>
 
-        {topics.length > 0 && (
+        {/* KINEO-FIRST-PAID-MINUTE-2026-08-11 - os cards so aparecem depois que
+            /api/credits confirmou o pagamento. Antes disso o /generate ainda
+            enxerga a conta como gratuita por alguns instantes, e o primeiro
+            video do COMPRADOR sairia pelo caminho de conta free. Se o webhook
+            nunca chegar, sobra o redirect normal de 15s - a falha segura. */}
+        {topics.length > 0 && credits !== null && !syncing && (
           <div style={{ marginTop: 22, textAlign: 'left' }}>
             <p
               style={{
@@ -244,7 +283,30 @@ export default function CheckoutSuccessPage() {
                 <Link
                   key={t.id}
                   href={`/generate?create_intent=fast&prompt=${encodeURIComponent(t.prompt)}&utm_source=checkout_success&utm_medium=first_win`}
+                  // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D10, corrigido
+                  // pelo D12 da 3a revisao) - cobre o clique do BOTAO DO MEIO,
+                  // que abre em nova aba sem disparar `onClick`. O teste de
+                  // `button === 1` nao e detalhe: por spec, `auxclick` dispara
+                  // para qualquer botao nao-primario, inclusive o DIREITO. Sem
+                  // ele, abrir o menu de contexto e fecha-lo deixaria a
+                  // autorizacao armada por 10 minutos numa aba que nunca foi
+                  // para /generate - e uma autorizacao viva sem viagem e
+                  // exatamente o vetor que este handshake existe para fechar.
+                  //
+                  // "Abrir link em nova aba" pelo menu de contexto continua sem
+                  // disparar evento algum: ali o autostart nao arma, o
+                  // comprador cai no Generate manual e o rail registra
+                  // `first_win_handshake_missing`. Falha segura e VISIVEL.
+                  onAuxClick={(e) => {
+                    if (e.button === 1) armFirstWinHandshake()
+                  }}
                   onClick={() => {
+                    // O handshake que autoriza o autostart numa conta paga.
+                    // Mora no sessionStorage (same-origin, por aba) e NAO na
+                    // URL: as UTMs do href sao copiaveis e, sozinhas,
+                    // deixariam um link colado por terceiro disparar geracao no
+                    // saldo de um pagante logado. Ver lib/firstWinHandshake.ts.
+                    armFirstWinHandshake()
                     void trackEvent('checkout_success_topic_clicked', {
                       topic_id: t.id,
                       vertical: t.vertical,
@@ -269,7 +331,7 @@ export default function CheckoutSuccessPage() {
                       {t.title}
                     </span>
                     <span style={{ display: 'block', marginTop: 2, fontSize: '0.75rem', color: 'var(--muted2)' }}>
-                      {t.badge} · starts automatically
+                      {t.badge} · Fast video, starts automatically
                     </span>
                   </span>
                   <span aria-hidden="true" style={{ color: '#2997ff', fontWeight: 900 }}>→</span>
