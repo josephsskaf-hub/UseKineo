@@ -13,7 +13,9 @@ REM   esta em CRLF de proposito. Se der erro estranho, e o EOL - nao o git.
 REM
 REM ESTADO NESTE MOMENTO:
 REM   origin/main = 4061731  (conferido por git ls-remote em 11/08 ~19:1xZ)
-REM   HEAD local  = bde6de8  (13 commits a frente)
+REM   HEAD local  = ver o passo 2 abaixo. Um cabecalho nao consegue citar o
+REM   proprio commit sem virar mentira no commit seguinte, entao aqui nao ha
+REM   SHA local nenhum: o script IMPRIME a ponta antes de empurrar.
 REM   Locks orfaos presentes: .git\HEAD.lock, .git\index.lock,
 REM   .git\refs\heads\main.lock  - o sandbox Linux nao consegue apagar
 REM   (Operation not permitted). So o Windows apaga. Este script apaga.
@@ -57,6 +59,6 @@ echo === 5) Confirmacao (origin/main depois do push) ===
 git ls-remote origin refs/heads/main
 
 echo.
-echo Se a linha acima mostrar bde6de8..., o push FUNCIONOU.
+echo Se o SHA acima for igual ao HEAD local impresso no passo 2, o push FUNCIONOU.
 echo.
 pause
