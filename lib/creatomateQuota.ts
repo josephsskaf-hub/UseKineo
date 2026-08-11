@@ -77,13 +77,30 @@ import { creditsForSeconds, renderProfile, creditsPerSecond } from '@/lib/render
 // aqui que degrada com o tempo.
 const DEFAULT_OVERHEAD_FACTOR = 1.115
 
-const DEFAULT_PLAN_CREDITS = 10_000
-// O ciclo do Growth 10K vira no dia 1 (fatura de 01/08, renovação 01/09).
-const DEFAULT_CYCLE_DAY = 1
+// ⚠️ KINEO-SUPPLIER-ALARM-2026-08-11 — DEFAULTS CORRIGIDOS, e isto era um
+// FALSO POSITIVO VIVO, não cosmética.
+//
+// Depois do apagão de 09–11/08 o plano foi trocado: o ciclo atual tem **30.000
+// créditos e renova em 10/09**, ou seja começou em 10/08. Os defaults antigos
+// (10.000 créditos, virada no dia 1) somavam TODOS os vídeos desde 01/08 contra
+// um teto 3× menor — o medidor leria >100% de forma permanente e mandaria os
+// e-mails de 95% e 100% num ciclo que mal começou. Um alarme que grita num dia
+// saudável é como o fundador aprende a ignorar o alarme; era exatamente o risco
+// que este commit existe para eliminar.
+//
+// Conferência com o banco em 11/08: 2 vídeos completos e 90s desde 10/08 —
+// consistente com um ciclo recém-iniciado, e incompatível com o ciclo do dia 1.
+// As envs KINEO_CREATOMATE_PLAN_CREDITS / _CYCLE_DAY continuam mandando mais
+// que estes defaults, e é por elas que a próxima troca de plano se resolve sem
+// deploy.
+const DEFAULT_PLAN_CREDITS = 30_000
+const DEFAULT_CYCLE_DAY = 10
 
-// 80 = agir com folga · 95 = últimas horas · 100 = já parou (o alarme ainda
-// vale: distingue "teto" de "fornecedor fora", que têm ações opostas).
-const THRESHOLDS = [80, 95, 100] as const
+// 70 = a folga que o fundador pediu depois do segundo apagão (dias para agir,
+// não horas) · 80 = agir com folga · 95 = últimas horas · 100 = já parou (o
+// alarme ainda vale: distingue "teto" de "fornecedor fora", que têm ações
+// opostas).
+const THRESHOLDS = [70, 80, 95, 100] as const
 
 const CHECK_THROTTLE_MS = 15 * 60 * 1000
 const ALERT_EVENT = 'creatomate_quota_alert'
@@ -378,11 +395,19 @@ async function sendQuotaAlert(q: QuotaReading, threshold: number): Promise<void>
           'DUAS AÇÕES POSSÍVEIS (a primeira custa dinheiro, a segunda não):\n' +
           '  1. Subir o plano em creatomate.com → Credit Usage → Subscription.\n' +
           '  2. Baixar o perfil de output pelas envs KINEO_RENDER_WIDTH / _HEIGHT / _FPS\n' +
-          '     na Vercel. Não precisa de commit — só redeploy. Autonomia REAL de\n' +
-          '     cada perfil no plano de 10.000 (overhead de 11,5% já incluído):\n' +
-          '       720×1280@30 → 19,4 dias (−56%)\n' +
-          '       720×1280@24 → 24,3 dias (−64%)\n' +
-          '       480× 854@24 → 54,6 dias (−84%) — o ÚNICO que cobre um ciclo de 31.\n' +
+          '     na Vercel. Não precisa de commit — só redeploy. Redução de custo por\n' +
+          '     segundo em relação ao perfil atual de 1080×1920@30 (a tabela em dias\n' +
+          '     está no cabeçalho de lib/renderProfile.ts e vale para o plano de 10.000;\n' +
+          `     no plano atual de ${q.planCredits.toLocaleString('pt-BR')} créditos os DIAS escalam junto, os % não):\n` +
+          '       1080×1920@24 → −20%\n' +
+          '        720×1280@30 → −56%\n' +
+          '        720×1280@24 → −64%\n' +
+          '        480× 854@24 → −84%\n' +
+          `     No ritmo atual (${Math.round(q.creditsPerDay).toLocaleString('pt-BR')} cr/dia) isso significa,\n` +
+          `     respectivamente, ~${(q.daysOfRunwayLeft === Infinity ? 0 : q.daysOfRunwayLeft / 0.8).toFixed(0)}, ` +
+          `~${(q.daysOfRunwayLeft === Infinity ? 0 : q.daysOfRunwayLeft / 0.44).toFixed(0)}, ` +
+          `~${(q.daysOfRunwayLeft === Infinity ? 0 : q.daysOfRunwayLeft / 0.36).toFixed(0)} e ` +
+          `~${(q.daysOfRunwayLeft === Infinity ? 0 : q.daysOfRunwayLeft / 0.16).toFixed(0)} dias de autonomia.\n` +
           '     Atenção: baixar o perfil NÃO devolve crédito já gasto. Com a cota em\n' +
           '     100% nenhum perfil renderiza; aí a única saída é subir o plano.\n\n' +
           'A estimativa vem da nossa tabela `videos` com a fórmula pública do fornecedor,\n' +

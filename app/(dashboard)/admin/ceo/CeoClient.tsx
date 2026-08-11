@@ -452,6 +452,10 @@ const NAV = [
   { label: 'Trial', href: '/admin/trial-abuse', key: 'trial-abuse' },
   // KINEO-TRIAL-COHORT-2026-08-11 — a coorte VIVA, segmentada por comportamento.
   { label: 'Cohort', href: '/admin/trial-cohort', key: 'trial-cohort' },
+  // KINEO-SUPPLIER-ALARM-2026-08-11 — consumo, ritmo e data de estouro por
+  // fornecedor. Depois de dois apagões de saldo em 11 dias, esta é a tela que
+  // responde "dá para dormir?" sem abrir seis painéis de terceiros.
+  { label: 'Suppliers', href: '/admin/supplier-health', key: 'supplier-health' },
 ]
 
 function AdminNav({ active }: { active: string }) {
@@ -483,6 +487,7 @@ const NAV_CARDS = [
   { href: '/admin/overview', icon: '🗂️', title: 'Server overview', desc: 'The #482 overview: retention, health, 14-day chart' },
   { href: '/admin/trial-abuse', icon: '🧪', title: 'Reverse trial', desc: 'Trials by status, credits granted vs used, fingerprint blocks' },
   { href: '/admin/trial-cohort', icon: '⏳', title: 'Live trial cohort', desc: 'Active trials by behaviour, clock left, credits unspent' },
+  { href: '/admin/supplier-health', icon: '🛢️', title: 'Supplier health', desc: 'Cycle consumption, daily burn and projected run-out date per supplier' },
 ]
 
 function NavCards() {
