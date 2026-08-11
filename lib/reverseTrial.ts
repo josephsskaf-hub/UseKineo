@@ -287,7 +287,19 @@ export function trialNeedsDowngrade(
  */
 export const TRIAL_OPEN_STATUSES = ['active', 'expired'] as const
 
-/** Escritos pelo cron e nunca reprocessados — é o que o torna idempotente. */
+/**
+ * Escritos pelo cron e nunca reprocessados PELO CRON DE DOWNGRADE — é o que o
+ * torna idempotente. Esta constante responde exatamente uma pergunta: "o cron
+ * de downgrade deve pular esta linha?".
+ *
+ * ⚠️ "Terminal" AQUI NÃO SIGNIFICA "imutável em qualquer caminho".
+ * KINEO-TRIAL-REVIVE-RACE-2026-08-11 tornou 'downgraded' REVERSÍVEL por um
+ * caminho e só um: `recordReverseTrialRefundForRender`, quando um estorno de
+ * fornecedor derruba o consumo abaixo do teto com o relógio ainda vivo (e as
+ * quatro guardas de lá passam). Nada mudou para o cron — uma linha revivida
+ * volta a 'active' e é reavaliada normalmente por `trialNeedsDowngrade`.
+ * 'converted' segue terminal em TODOS os caminhos, sem exceção.
+ */
 export const TRIAL_TERMINAL_STATUSES = ['downgraded', 'converted'] as const
 
 /**
@@ -596,6 +608,22 @@ function adminClient(): SupabaseClient | null {
   }
   return createAdminClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
+    // KINEO-TRIAL-REVIVE-RACE-2026-08-11 — `cache: 'no-store'` é o MESMO
+    // override que o cron de downgrade ganhou depois do KINEO-DOWNGRADE-CRON-FIX
+    // de 07/08, e falta aqui pelo mesmo motivo pelo qual faltava lá: no Next
+    // 14.2.5 o Data Cache de fetch é opt-OUT, e o GET que este cliente emite
+    // (`profiles?id=eq.<uuid>&select=...`) é byte a byte idêntico entre
+    // chamadas — a assinatura exata daquele bug. Passou a importar de verdade
+    // porque a leitura de `video_credits`/`trial_credits_used` agora decide uma
+    // GUARDA DE DINHEIRO (`balance > 0`) e uma TRANSIÇÃO DE ESTADO, não só um
+    // contador; e o laço de 3 tentativas reemite o mesmo GET, então uma
+    // resposta cacheada faria as 3 verem o mesmo estado vencido.
+    // Os chamadores de /api/render/[id] e /api/generate-video-cinematic não
+    // declaram `dynamic`, então não dá para contar com force-dynamic.
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: 'no-store' }),
+    },
   })
 }
 
@@ -1140,8 +1168,66 @@ export async function recordReverseTrialDebitForRender(args: {
 // RESSUSCITAR O TRIAL: se o teto foi o que matou o trial e o estorno derruba o
 // consumo abaixo de 40 com o relógio ainda no futuro, o trial volta para
 // 'active'. Sem isto o estorno devolveria créditos INÚTEIS (entitlement no free
-// não roda os motores de IA) — o pior dos dois mundos. 'converted' (pagou) e
-// 'downgraded' (créditos já revogados) são terminais e NÃO são tocados.
+// não roda os motores de IA) — o pior dos dois mundos. 'converted' (pagou) é
+// terminal e NÃO é tocado.
+//
+// ═══ KINEO-TRIAL-REVIVE-RACE-2026-08-11 — A RESSURREIÇÃO ERA CÓDIGO MORTO ═══
+//
+// A versão anterior deste bloco só aceitava 'active' e 'expired', e justificava
+// excluir 'downgraded' com a frase "créditos já revogados". A PREMISSA É FALSA
+// EXATAMENTE NO CASO QUE ESTA FUNÇÃO EXISTE PARA ATENDER:
+//
+//   downgradeExpiredTrial() calcula `unspent = max(0, granted - used)` e
+//   `revoke = min(balance, unspent)`. Quem morre por TETO tem `used >= granted`
+//   por definição do teto → `unspent = 0` → **revoke = 0**. Quem morre por teto
+//   NÃO TEM UM ÚNICO CRÉDITO REVOGADO. A justificativa só vale para quem morre
+//   por RELÓGIO — e esse caso já é barrado pelo teste de `clockAlive`.
+//
+// E A CORRIDA É ESTRUTURALMENTE PERDIDA, não é azar: o cron trial-downgrade
+// roda de hora em hora (:55) e move 'expired' → 'downgraded' em ~1h; o
+// refund-sweep só varre débitos com mais de 2h e roda em :30. Na produção real
+// (7 casos medidos em 11/08, das 08/08 às 11/08) o rebaixamento chegou SEMPRE
+// entre 26 e 55 min após o último débito, e o estorno SEMPRE 2h35–3h36 depois
+// dele. Nenhuma vítima de falha de fornecedor chegou aqui como 'expired'.
+// Resultado: a ressurreição nunca disparou uma vez sequer em produção.
+//
+// O PREJUÍZO MEDIDO: 7 contas queimaram os 40 créditos inteiros do trial contra
+// renders que o Creatomate recusou no apagão de 09–11/08, tiveram os 40
+// créditos ESTORNADOS, e mesmo assim seguem 'downgraded' com
+// trial_credits_used = 40 — trial morto por um teto atingido com créditos que
+// já foram devolvidos. 6 delas nunca receberam UM vídeo.
+//
+// GUARDAS (a 1ª revisão adversarial desta mesma sprint reprovou a versão
+// anterior com veredito NÃO COMMITAR; 1, 4, 5 e 6 nasceram dela):
+//  1. NÃO RESSUSCITA PAGANTE — isPayingProfile(), a mesma função do cron. Um
+//     'downgraded' que comprou depois (webhook atrasado) voltaria a um
+//     entitlement de TRIAL, que é MENOR que o plano comprado. Rebaixar quem
+//     pagou é pior do que não ressuscitar ninguém.
+//  2. NÃO RESSUSCITA COM SALDO ZERO — `balance > 0`. Devolver 'active' a quem
+//     ficou sem saldo cria um TRIAL ZUMBI: a tela promete Creator e nenhum
+//     motor roda. Melhor seguir rebaixado e honesto.
+//  3. NÃO RESSUSCITA RELÓGIO VENCIDO — `clockAlive`. Prazo é prazo.
+//  4. NÃO RESSUSCITA QUEM TEVE CRÉDITO DE FATO REVOGADO — `granted - used > 0`
+//     lido DA LINHA. Não confie na aritmética "teto ⇒ revoke = 0": ela só vale
+//     enquanto TRIAL_GRANT_CREDITS == TRIAL_CREDIT_CAP, e baixar o teto está
+//     previsto. Ver a guarda 4 no corpo.
+//  5. LINHA TERMINAL: OU RESSUSCITA, OU NÃO ESCREVE NADA. O decremento de
+//     `trial_credits_used` é incondicional, e alargar o gate para 'downgraded'
+//     sem este early-return virava concessão de até 40 créditos por via
+//     indireta (o cron de e-mail deriva `restore` e `creditsLost` de
+//     `granted − used`). Era o defeito CRÍTICO da 1ª revisão.
+//  6. REABRE O CLAIM DE `downgraded_loss` — o e-mail de perda quase sempre já
+//     saiu quando o estorno chega, e o dedupe (PK user_id+email_kind) é
+//     permanente: sem reabrir, a conta ressuscitada morreria MUDA na morte
+//     real, justo o lead que já provou intenção.
+//  7. CAS em trial_status sempre, e em trial_credits_used TAMBÉM na 3ª
+//     tentativa quando ressuscita — a ressurreição nunca escreve por cima de
+//     uma transição nem contra um teto que subiu no meio do caminho.
+//
+// O QUE ESTA MUDANÇA NÃO FAZ, para o próximo leitor não procurar: não avisa a
+// pessoa de que o trial voltou (o `trial_extended` cobre outro caso e afirmaria
+// coisa errada aqui), e não desfaz o `downgraded_loss` que ela já leu. Dívida
+// registrada em GATES-ABERTOS.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type TrialRefundAccounting =
@@ -1184,7 +1270,7 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
     for (let attempt = 1; attempt <= 3; attempt += 1) {
       const { data: profile, error: readErr } = await db
         .from('profiles')
-        .select('trial_status, trial_ends_at, trial_credits_used')
+        .select('trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, plan, has_paid, video_credits, trial_downgraded_at')
         .eq('id', userId)
         .maybeSingle()
       if (readErr || !profile) {
@@ -1192,23 +1278,121 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
         return 'skipped'
       }
       const status = typeof profile.trial_status === 'string' ? profile.trial_status : ''
-      // Terminais: pagou, ou já teve o saldo revogado. Mexer no teto de quem
-      // saiu do trial não devolve nada a ninguém e reescreve estado fechado.
-      if (status !== 'active' && status !== 'expired') return 'not_counted'
+      // 'converted' é o ÚNICO terminal de verdade: quem pagou não tem teto de
+      // trial para receber de volta. 'downgraded' ENTRA aqui desde
+      // KINEO-TRIAL-REVIVE-RACE-2026-08-11 — ver o cabeçalho do bloco: o
+      // rebaixamento por TETO revoga zero crédito, e é o estado em que 100% das
+      // vítimas de falha de fornecedor chegam, porque o cron de downgrade (1h)
+      // sempre vence o refund-sweep (2h+).
+      if (status !== 'active' && status !== 'expired' && status !== 'downgraded') {
+        return 'not_counted'
+      }
 
       const used = typeof profile.trial_credits_used === 'number' ? profile.trial_credits_used : 0
       const newUsed = Math.max(used - cost, 0)
       const endsRaw = (profile as { trial_ends_at?: unknown }).trial_ends_at
       const ends = typeof endsRaw === 'string' ? Date.parse(endsRaw) : NaN
       const clockAlive = Number.isFinite(ends) && Date.now() < ends
+      // Guarda 1: quem paga nunca é ressuscitado para um entitlement MENOR.
+      const paying = isPayingProfile(profile as PayingProfileFields)
+      // Guarda 2: saldo real > 0. Ressuscitar sem crédito é um trial zumbi —
+      // a tela promete Creator e nenhum motor roda. (O estorno que chamou esta
+      // função já devolveu o dinheiro ANTES daqui: lib/credits/refund.ts só
+      // invoca a contabilidade depois de refund_render_credits > 0. Então a
+      // leitura acima já enxerga o saldo restituído.
+      // E o bucket é SEMPRE `video_credits`, nunca avatar: `trial_debit_ledger`
+      // só ganha linha por recordReverseTrialDebitForRender, chamado
+      // exclusivamente por debitVideoCredits → RPC debit_video_credits, que
+      // grava `kind='video'` literal. debit_avatar_credit é outro RPC e nunca
+      // cria linha no ledger — logo nenhum estorno de avatar chega até aqui.)
+      const rawBalance = (profile as { video_credits?: unknown }).video_credits
+      const balance =
+        typeof rawBalance === 'number' && Number.isFinite(rawBalance) ? rawBalance : 0
+      // Guarda 4 (REVISÃO ADVERSARIAL 11/08): "morreu por teto" tem que ser um
+      // FATO LIDO DA LINHA, não uma inferência da constante. O cabeçalho deste
+      // bloco dizia que teto ⇒ revoke = 0 "por definição"; isso só é verdade
+      // enquanto TRIAL_GRANT_CREDITS == TRIAL_CREDIT_CAP. No dia em que o teto
+      // baixar (40 → 20) com linhas antigas de granted=40, quem morre por teto
+      // passa a ter `unspent = granted − used > 0` e TEM crédito genuinamente
+      // revogado pelo cron — e ressuscitá-lo sem devolver nada cria exatamente
+      // o zumbi que a guarda 2 existe para impedir. `granted` mora na LINHA
+      // porque dinheiro que envelhece mora na linha, nunca na constante.
+      const grantedRaw = (profile as { trial_credits_granted?: unknown }).trial_credits_granted
+      const granted =
+        typeof grantedRaw === 'number' && Number.isFinite(grantedRaw) ? grantedRaw : 0
+      // ⚠️ `status === 'downgraded' &&` NÃO É DECORATIVO (2ª revisão, NOVO-4):
+      // numa linha 'expired' o cron AINDA NÃO REVOGOU NADA — ela morreu no teto
+      // e o downgrade só roda na hora seguinte. Sem este termo, a guarda
+      // afirmaria uma revogação que não aconteceu e negaria revive a quem o
+      // desenho original já salvava. Também é limite SUPERIOR, não medida: o
+      // cron revoga `min(saldo, unspent)`, então saldo 0 no rebaixamento dá
+      // revoke 0 com unspent > 0. Erra sempre para o lado FECHADO (nega revive
+      // a mais gente), nunca para o lado do vazamento.
+      const cronRevokedCredits = status === 'downgraded' && Math.max(0, granted - used) > 0
       // Só ressuscita quem o TETO matou: consumo real agora abaixo de 40 e
-      // prazo ainda válido. Relógio vencido continua 'expired', como deve.
-      const revive = status === 'expired' && newUsed < TRIAL_CREDIT_CAP && clockAlive
+      // prazo ainda válido. Relógio vencido continua morto, como deve.
+      const revive =
+        (status === 'expired' || status === 'downgraded') &&
+        newUsed < TRIAL_CREDIT_CAP &&
+        clockAlive &&
+        !paying &&
+        balance > 0 &&
+        !cronRevokedCredits
+
+      // ⚠️ REGRESSÃO QUE A REVISÃO ADVERSARIAL PEGOU (11/08), e que é o motivo
+      // deste early-return existir: alargar o gate para 'downgraded' fez o
+      // decremento de `trial_credits_used` — que é INCONDICIONAL — passar a
+      // atingir linhas terminais mesmo quando o revive é negado. Numa conta
+      // rebaixada pelo RELÓGIO isso é uma concessão de crédito por via
+      // indireta: `trial-lifecycle-emails` calcula `restore = granted − used`
+      // na extensão automática e `creditsLost = granted − used` no
+      // `downgraded_loss`. Baixar `used` de 12 para 2 num rebaixado por relógio
+      // faz o cron devolver 38 créditos que a pessoa nunca teve, reabrir o
+      // trial por uma porta SEM nenhuma das guardas acima, e ainda afirmar
+      // "38 unused trial credits — gone" para quem perdeu 28.
+      // Numa linha terminal, portanto: ou a escrita ressuscita, ou não escreve.
+      // ⚠️ A CONDIÇÃO É `status !== 'active'`, NÃO `=== 'downgraded'` (2ª
+      // revisão, NOVO-4): numa linha 'expired' com revive negado (ex.: por
+      // `paying`, de um pacote avulso que deixou `plan='free'`), decrementar
+      // `used` sem mudar o status cria um LIMBO PERMANENTE E MUDO —
+      // `trialNeedsDowngrade` passa a ver teto não atingido e relógio vivo, e o
+      // cron nunca mais toca a linha; `dueKind` no ramo expired resolve
+      // `endedAt === 0` e devolve null, então nenhum e-mail sai nunca mais.
+      // Só a linha 'active' pode receber decremento puro de contador.
+      if (status !== 'active' && !revive) {
+        console.log(
+          `[reverse-trial] refund em linha terminal SEM revive user=${userId.slice(0, 8)} ` +
+            `status=${status} used=${used} cost=${cost} clockAlive=${clockAlive} ` +
+            `paying=${paying} balance=${balance} cronRevoked=${cronRevokedCredits} — teto intocado`,
+        )
+        return 'not_counted'
+      }
+
       const patch: Record<string, unknown> = { trial_credits_used: newUsed }
-      if (revive) patch.trial_status = 'active'
+      if (revive) {
+        patch.trial_status = 'active'
+        // O carimbo do rebaixamento sai junto. ⚠️ A razão NÃO é a que estava
+        // escrita aqui antes ("senão o e-mail D3+ vai para trial vivo"): esse
+        // dano não existe, porque `dueKind` só lê `trial_downgraded_at` dentro
+        // do ramo `status === 'downgraded'`, e a linha revivida é 'active'. Quem
+        // protege o usuário é a mudança de status, não a limpeza da coluna.
+        // A razão verdadeira é higiene de estado: uma linha 'active' com
+        // carimbo de rebaixamento é uma contradição que a próxima pessoa a ler
+        // esta tabela vai interpretar errado. O valor antigo é preservado no
+        // evento abaixo, porque `trial_downgraded_at` é o ÚNICO registro
+        // persistente do primeiro rebaixamento e apagá-lo sem cópia destruiria
+        // a série "tempo até o rebaixamento" do experimento.
+        patch.trial_downgraded_at = null
+      }
 
       const query = db.from('profiles').update(patch).eq('id', userId).eq('trial_status', status)
-      const { data: updated, error: updateErr } = attempt < 3
+      // O CAS de contagem cai na 3ª tentativa APENAS quando a escrita é um
+      // decremento puro de contador (comportamento histórico). Quando ela
+      // ressuscita, o eixo `trial_credits_used` é obrigatório até o fim: sem
+      // ele, um débito concorrente que subiu `used` de 30 para 41 entre a
+      // leitura e a escrita faria a 3ª tentativa gravar 'active' contra alguém
+      // que, no instante da escrita, está ACIMA do teto.
+      const { data: updated, error: updateErr } = attempt < 3 || revive
         ? await query.eq('trial_credits_used', used).select('id')
         : await query.select('id')
       if (updateErr) {
@@ -1217,7 +1401,30 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
       }
       if (updated && updated.length > 0) {
         if (revive) {
-          console.log(`[reverse-trial] REVIVED user=${userId.slice(0, 8)} used=${newUsed}/${TRIAL_CREDIT_CAP} (refund render=${id})`)
+          console.log(`[reverse-trial] REVIVED user=${userId.slice(0, 8)} from=${status} used=${newUsed}/${TRIAL_CREDIT_CAP} (refund render=${id})`)
+          // ⚠️ REVISÃO ADVERSARIAL 11/08 — O DEDUPE DO E-MAIL DE PERDA É
+          // PERMANENTE, E ISSO EMUDECE O LEAD MAIS QUENTE DO FUNIL.
+          // Cronologia medida: rebaixamento 26–55 min após o último débito,
+          // estorno 2h35–3h36 depois. Entre os dois cabem 2 a 3 rodadas do cron
+          // horário de e-mail, todas dentro da janela de 48h — então o caminho
+          // NORMAL (não a borda) é a pessoa receber "Here's what you just lost
+          // access to" e o trial voltar a viver na mesma tarde.
+          // O claim em `trial_emails_log` tem PK (user_id, email_kind) e nunca
+          // expira. Sem este DELETE, quando o trial ressuscitado morrer DE
+          // VERDADE (relógio, dias depois), `alreadySent` filtra a linha e o
+          // e-mail de maior aversão à perda da vida do funil — o único que fala
+          // com quem já provou intenção — NUNCA SAI. A correção que existe para
+          // salvar estas contas as deixaria mudas na morte real.
+          // Só este kind: D5/D10/extensão continuam valendo o disparo único.
+          const { error: logErr } = await db
+            .from('trial_emails_log')
+            .delete()
+            .eq('user_id', userId)
+            .eq('email_kind', 'downgraded_loss')
+          if (logErr) {
+            // Não-fatal: a ressurreição já aconteceu e vale mais que o log.
+            console.error('[reverse-trial] revive: falha ao reabrir downgraded_loss:', logErr.message)
+          }
           await writeServerEvent({
             name: 'trial_cap_refunded',
             userId,
@@ -1227,6 +1434,28 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
               credits_used: newUsed,
               cap: TRIAL_CREDIT_CAP,
               revived: true,
+              // De QUAL estado veio. 'downgraded' é a prova de que a corrida
+              // contra o cron foi perdida e a correção de 11/08 pegou o caso;
+              // 'expired' significa que o estorno chegou antes do cron. A razão
+              // entre os dois é a única medida honesta de quantas vítimas o
+              // desenho anterior perdia em silêncio.
+              from_status: status,
+              // O carimbo que o patch apagou. `trial_downgraded_at` é o único
+              // registro persistente do primeiro rebaixamento — sem esta cópia,
+              // a série "tempo até o rebaixamento" do A/B perde a linha.
+              previous_downgraded_at:
+                typeof (profile as { trial_downgraded_at?: unknown }).trial_downgraded_at === 'string'
+                  ? (profile as { trial_downgraded_at?: string }).trial_downgraded_at
+                  : null,
+              // MARCA DO A/B (defeito 2 da revisão): `app/api/stripe/webhook`
+              // documenta que 'downgraded' é terminal e que reabri-lo
+              // "corromperia o braço do A/B que já contou aquele trial como
+              // churn". Uma linha revivida QUE DEPOIS CONVERTE seria contada
+              // como conversão limpa do trial pelo painel, que bucketiza por
+              // `trial_status`. Este evento é o que permite excluí-la: a
+              // conversão é real, mas passou por um churn no meio, e a métrica
+              // do experimento tem que saber disso. Ver GATES-ABERTOS.
+              ab_cohort_note: 'revived_after_provider_failure',
             },
           })
         }
@@ -1234,8 +1463,17 @@ export async function recordReverseTrialRefundForRender(renderId: string): Promi
       }
       // Perdeu a corrida (ou o status mudou) — relê e tenta de novo.
     }
-    // 3 tentativas sem escrever: o status saiu de 'active'/'expired' no meio do
-    // caminho (converted/downgraded). Não há teto para devolver.
+    // 3 tentativas sem escrever: o status saiu de 'active'/'expired'/'downgraded'
+    // no meio do caminho — na prática só 'converted' resta. Não há teto para
+    // devolver a quem pagou.
+    //
+    // ⚠️ ASSIMETRIA CONHECIDA E NÃO CORRIGIDA AQUI: o lado do DÉBITO
+    // (recordReverseTrialDebitForRender) reinsere a linha do ledger quando a
+    // escrita falha; este lado NÃO reinsere. Se a UPDATE falhar depois do
+    // DELETE ... RETURNING lá em cima, o custo some do ledger para sempre e o
+    // revive nunca acontece — silenciosamente. Fica assim de propósito por ora:
+    // reinserir sem transação abre a porta para contar o mesmo render duas
+    // vezes, que é o dano maior. Registrado em GATES-ABERTOS como dívida.
     return 'not_counted'
   } catch (e) {
     console.error('[reverse-trial] refund ledger accounting threw:', e instanceof Error ? e.message : String(e))

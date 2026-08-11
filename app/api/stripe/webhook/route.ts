@@ -315,6 +315,21 @@ async function recordBulkPurchase(
 //    NUNCA 'downgraded' (estado terminal escrito pelo cron; uma compra tardia é
 //    conversão dos e-mails D3+, não do trial — reabrir o estado corromperia o
 //    braço do A/B que já contou aquele trial como churn).
+//    ⚠️ ATUALIZADO POR KINEO-TRIAL-REVIVE-RACE-2026-08-11 — esta regra continua
+//    valendo AQUI, e a lista `.in(['active','expired'])` abaixo NÃO muda. Mas a
+//    frase "estado terminal" deixou de ser verdadeira em termos absolutos:
+//    recordReverseTrialRefundForRender (lib/reverseTrial.ts) agora reabre
+//    'downgraded' → 'active' num caso e só um — estorno de falha de FORNECEDOR
+//    que derruba o consumo abaixo do teto com o relógio vivo, atrás de 6
+//    guardas. Consequência para ESTE arquivo: uma conta revivida chega aqui
+//    como 'active' e é convertida normalmente, o que está certo do ponto de
+//    vista do produto (ela comprou de um trial vivo) mas NÃO do ponto de vista
+//    do A/B — ela passou por um churn no meio e o painel, que bucketiza por
+//    `trial_status`, a contaria como conversão limpa. O evento
+//    `trial_cap_refunded` carrega `ab_cohort_note='revived_after_provider_failure'`
+//    para permitir excluí-la; o painel /admin/trial-cohort ainda NÃO faz esse
+//    join. Dívida registrada em GATES-ABERTOS — ler antes de citar a taxa de
+//    conversão do experimento 3d×7d.
 // 2. BEST-EFFORT, nunca lança: roda DEPOIS do entitlement confirmado, e um
 //    carimbo de experimento não pode custar retry de webhook nem atrasar a
 //    resposta ao Stripe. Se falhar, o cron converte na rodada seguinte — a

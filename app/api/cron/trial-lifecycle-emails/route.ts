@@ -1012,6 +1012,11 @@ export async function GET(req: NextRequest) {
   let failed = 0
   let skippedClaimed = 0
   let skippedExtensionRace = 0
+  // KINEO-TRIAL-REVIVE-RACE-2026-08-11 — linhas cujo trial_status mudou entre a
+  // leitura da coorte e o envio (na prática: ressuscitadas por estorno). Se este
+  // contador começar a subir, é sinal de que o apagão de fornecedor está
+  // devolvendo trials em volume — vale olhar antes do relatório das 22h.
+  let skippedStatusChanged = 0
   let creditsRestored = 0
 
   for (const c of batch) {
@@ -1046,6 +1051,39 @@ export async function GET(req: NextRequest) {
       }
       creditsRestored += c.restore
       console.log(`[trial-lifecycle-emails] EXTENDED user=${c.id.slice(0, 8)} +${EXTENSION_DAYS}d restored=${c.restore}cr`)
+    }
+
+    // ── 4a-bis) RELEITURA DE STATUS ANTES DO CLAIM ─────────────────────────
+    // KINEO-TRIAL-REVIVE-RACE-2026-08-11 (2ª revisão adversarial, NOVO-3).
+    // A coorte é lida uma vez e o envio percorre até 40 linhas depois disso.
+    // Desde que o estorno de fornecedor pode RESSUSCITAR um trial rebaixado
+    // (ver recordReverseTrialRefundForRender), existe uma janela real entre a
+    // leitura e o envio. Sem esta releitura o dano é duplo e permanente:
+    //   1. sai "Here's what you just lost access to" para uma conta cujo trial
+    //      voltou a viver — afirmação falsa que o usuário confere em 1 clique;
+    //   2. o claim é gravado e é PERMANENTE, e a ressurreição já rodou o seu
+    //      DELETE deste mesmo kind ANTES do insert — então o e-mail da morte
+    //      REAL, dias depois, nunca mais sai. Some justamente o lead que já
+    //      provou intenção.
+    // Mesmo padrão de releitura que downgradeExpiredTrial usa antes de gravar.
+    const { data: fresh, error: freshErr } = await admin
+      .from('profiles')
+      .select('trial_status')
+      .eq('id', c.id)
+      .maybeSingle()
+    if (freshErr) {
+      console.error(`[trial-lifecycle-emails] releitura falhou para ${c.id.slice(0, 8)}:`, freshErr.message)
+      failed++
+      continue
+    }
+    const freshStatus = typeof fresh?.trial_status === 'string' ? fresh.trial_status : ''
+    if (freshStatus !== c.status) {
+      console.log(
+        `[trial-lifecycle-emails] STATUS MUDOU user=${c.id.slice(0, 8)} ` +
+          `coorte=${c.status} agora=${freshStatus} kind=${c.kind} — pulando sem claim`,
+      )
+      skippedStatusChanged++
+      continue
     }
 
     // ── 4b) Claim do e-mail ANTES do envio ──────────────────────────────────
@@ -1124,6 +1162,7 @@ export async function GET(req: NextRequest) {
     capped_out: Math.max(0, eligible.length - batch.length),
     skipped_claimed: skippedClaimed,
     skipped_extension_race: skippedExtensionRace,
+    skipped_status_changed: skippedStatusChanged,
     credits_restored: creditsRestored,
     suppressed_recent_lifecycle: suppression.suppressedCount,
     suppression_degraded: suppression.degraded,
