@@ -58,6 +58,87 @@ export const MIN_TRANSCRIPT_WORDS = 45
 /** Hard cap on sitemap entries. A sitemap file may not exceed 50,000 URLs. */
 export const SITEMAP_MAX_VIDEOS = 5000
 
+// ── Durabilidade da URL de reprodução ───────────────────────────────────────
+// KINEO-SEO-VIDEO-PAGES-2026-08-11 — o defeito mais caro encontrado nesta
+// auditoria, e o único que estava servindo lixo a QUEM CHEGAVA DA BUSCA.
+//
+// Medição do sitemap DE PRODUÇÃO em 11/08/2026 (HEAD em todas as 40 entradas
+// cujo `content_loc` não é o storage do Supabase):
+//     6 exemplos em www.usekineo.com/videos/*.mp4 ..... 200  (6/6 vivos)
+//    33 em f002.backblazeb2.com (bucket do Creatomate)  → 26 respondem 404
+//     1 em dnznrvs05pmza.cloudfront.net (Runway, `?_jwt=`) → 401 (assinatura
+//       expirada)
+// E, para contraste, HEAD nas 12 MAIS ANTIGAS + 4 mais novas hospedadas no
+// storage do Supabase: 16/16 responderam 200.
+//
+// Ou seja: 27 das 650 entradas do sitemap (4,2%) anunciavam ao Google um MP4
+// MORTO — e as mesmas 27 páginas continuavam indexáveis, renderizando um
+// `<video>` quebrado para qualquer humano que chegasse da busca. As únicas
+// backblaze ainda vivas eram de 03–06/08, o que mostra que a retenção do
+// bucket de entrega do Creatomate é de poucos dias: TODA URL backblaze morre,
+// só não morreu ainda.
+//
+// A regra abaixo é, portanto, sobre DURABILIDADE, não sobre conteúdo: uma
+// URL assinada (traz `_jwt`/`token`/`Expires`/assinatura) é temporária POR
+// DEFINIÇÃO, e um host de entrega de terceiro não é nosso para prometer. Só o
+// storage do Supabase (o destino canônico) e o próprio site são duráveis.
+//
+// Uma linha reprovada aqui continua RENDERIZANDO (o dono compartilhou o link),
+// apenas sai do índice e do sitemap — o mesmo tratamento de qualquer outra
+// reprovação. Consertar o pipeline para copiar todo render para o storage
+// próprio é o conserto de raiz e está registrado como follow-up no doc; ele
+// mexe no caminho de render e não cabe numa mudança de indexação.
+
+/** Query params que denunciam uma URL assinada e, portanto, expirável. */
+const SIGNED_URL_PARAM = /^(_jwt|token|expires|signature|sig|x-amz-signature|x-amz-credential|x-goog-signature)$/i
+
+/**
+ * Hosts cujo conteúdo consideramos permanente. Derivado do ambiente para que
+ * uma troca de projeto Supabase não exija editar este arquivo.
+ * Quando a env não existe (build sem credenciais), o allow-list de host é
+ * IGNORADO e só a checagem de URL assinada roda — fail-open de propósito:
+ * sem credenciais não há linha nenhuma para classificar, e um allow-list vazio
+ * reprovaria tudo.
+ */
+function durableHosts(): Set<string> | null {
+  const hosts = new Set<string>()
+  try {
+    hosts.add(new URL(PUBLIC_BASE_URL).host)
+  } catch {
+    /* impossível: PUBLIC_BASE_URL é uma constante literal */
+  }
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!supabaseUrl) return null
+  try {
+    hosts.add(new URL(supabaseUrl).host)
+  } catch {
+    return null
+  }
+  return hosts
+}
+
+/**
+ * True quando a URL de reprodução pode ser oferecida a um buscador: https, sem
+ * assinatura temporária e em um host durável.
+ */
+export function hasDurablePlayback(url: string | null | undefined): boolean {
+  const value = (url ?? '').toString().trim()
+  if (!value) return false
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    return false
+  }
+  if (parsed.protocol !== 'https:') return false
+  for (const key of parsed.searchParams.keys()) {
+    if (SIGNED_URL_PARAM.test(key)) return false
+  }
+  const hosts = durableHosts()
+  if (!hosts) return true
+  return hosts.has(parsed.host)
+}
+
 export type PublicVideoRow = {
   id: string
   title: string | null
@@ -127,6 +208,43 @@ export function hasViralMarkers(text: string): boolean {
   const hasMicroReward = /\b(MICRO REWARD|MICRO RECOMPENSA)\b/i.test(text)
   const hasPayoff = /\b(PAYOFF|PAGAMENTO|RECOMPENSA FINAL)\b/i.test(text)
   return hasHook && (hasMicroReward || hasPayoff)
+}
+
+// KINEO-SEO-VIDEO-PAGES-2026-08-11 ────────────────────────────────────────────
+/**
+ * A row whose `topic` is not a script at all but the GENERATOR'S OWN PROMPT,
+ * stored verbatim by `lib/seriesContinuation.ts`:
+ *   `Create the next episode in the same Short series about "<seed>". Keep the
+ *    topic and format recognizable, but use a completely new hook, new facts,
+ *    and a fresh payoff. Do not repeat the previous episode.`
+ *
+ * These are LONG and UNIQUE, so they sailed through the length gate below. The
+ * consequence, measured against the live sitemap on 2026-08-11: 3 of the 650
+ * entries carried an `<h1>` and a `<meta description>` that read
+ * `Keep the topic and format recognizable, but use a completely new hook…` —
+ * internal machinery published as the page's headline. The library
+ * (lib/scriptLibrary.ts) already refused to card them; the sitemap did not.
+ *
+ * It is now a hard gate failure, for two reasons:
+ *   1. There is no reading of "helpful content" under which a leaked system
+ *      prompt is the best answer to any query. Offering it to Google is exactly
+ *      the scaled-content signal the rest of this file exists to avoid.
+ *   2. `/api/cron/autopilot-generate` runs HOURLY and writes this shape, so the
+ *      count only ever grows. Gating at the source is the only fix that holds.
+ *
+ * The page still RENDERS for the owner who shared the link — as with every
+ * other gate failure, it is simply `noindex` and out of the sitemap.
+ *
+ * This regex is the canonical one: lib/scriptLibrary.ts imports it from here
+ * (it already imports this module, so the dependency direction is unchanged and
+ * there is no cycle).
+ */
+const PROMPT_SCAFFOLDING =
+  /(next episode in the same short series|keep the topic and format recognizable|completely new hook|do not repeat the previous episode)/i
+
+/** True when the text is the generator's own prompt rather than a script. */
+export function isPromptScaffolding(text: string | null | undefined): boolean {
+  return PROMPT_SCAFFOLDING.test((text ?? '').toString())
 }
 
 /**
@@ -384,6 +502,17 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
   else if (transcript.length < MIN_TRANSCRIPT_CHARS)
     gateFailure = `transcript too short (${transcript.length} chars)`
   else if (words < MIN_TRANSCRIPT_WORDS) gateFailure = `transcript too short (${words} words)`
+  // KINEO-SEO-VIDEO-PAGES-2026-08-11 — URL de reprodução expirável. Ver o bloco
+  // de comentário em `hasDurablePlayback` para a medição: 27 das 650 entradas
+  // do sitemap de produção apontavam para um MP4 que já respondia 404/401.
+  else if (!hasDurablePlayback(playbackUrl))
+    gateFailure = 'playback URL is not durable (signed or third-party delivery host)'
+  // KINEO-SEO-VIDEO-PAGES-2026-08-11 — the leaked series-continuation prompt.
+  // Tested against BOTH the derived title and the cleaned transcript: on the 3
+  // rows that reached the live sitemap the phrase had been promoted into the
+  // title, and on the other 10 it sat in the body.
+  else if (isPromptScaffolding(title) || isPromptScaffolding(transcript))
+    gateFailure = 'prompt scaffolding, not a script'
 
   return {
     id: row.id,
@@ -503,13 +632,36 @@ export async function listIndexablePublicVideos(
     if (error || !data) return []
 
     const seen = new Set<string>()
+    // KINEO-SEO-VIDEO-PAGES-2026-08-11 — a SECOND fingerprint, on the title.
+    // The transcript fingerprint above compares the first 400 characters, and
+    // that is not tight enough: measured on the live sitemap of 2026-08-11,
+    // 650 entries carried only 638 distinct `<video:title>` values and 643
+    // distinct descriptions. Twelve pairs shipped with a byte-identical H1 and
+    // meta description — the exact duplicate-title pattern Search Console flags
+    // and the reason two near-identical URLs split each other's signal. The
+    // older of each pair is dropped (rows arrive newest-first).
+    const seenTitles = new Set<string>()
     const out: PublicVideo[] = []
+    // KINEO-SEO-VIDEO-PAGES-2026-08-11 — alarme para o único jeito de a nova
+    // regra de durabilidade dar errado em silêncio. Ela deriva o host permitido
+    // de NEXT_PUBLIC_SUPABASE_URL; se algum dia as URLs de reprodução passarem
+    // a sair por outro host (um CDN na frente do storage, um domínio próprio),
+    // TODA linha reprovaria e o sitemap encolheria para os 4 exemplos sem que
+    // nada quebrasse visivelmente. Contar e gritar custa nada e transforma um
+    // colapso mudo em uma linha de log.
+    let nonDurable = 0
     for (const row of data as unknown as PublicVideoRow[]) {
       const v = toPublicVideo(row)
-      if (!v.isIndexable) continue
+      if (!v.isIndexable) {
+        if (v.gateFailure?.startsWith('playback URL is not durable')) nonDurable++
+        continue
+      }
       const fingerprint = v.transcript.toLowerCase().replace(/\s+/g, ' ').slice(0, 400)
       if (seen.has(fingerprint)) continue
+      const titleKey = v.title.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+      if (titleKey && seenTitles.has(titleKey)) continue
       seen.add(fingerprint)
+      if (titleKey) seenTitles.add(titleKey)
       out.push(v)
       if (out.length >= Math.min(limit, SITEMAP_MAX_VIDEOS)) {
         // Cap loudly rather than truncating in silence: a sitemap file may not
@@ -521,6 +673,16 @@ export async function listIndexablePublicVideos(
         )
         break
       }
+    }
+    // Baseline medido em 11/08/2026: 97 de 914 linhas completas (10,6%) tinham
+    // URL não durável. Passar de metade significa que a regra parou de separar
+    // exceções e começou a reprovar o caminho normal.
+    if (nonDurable > data.length / 2) {
+      // eslint-disable-next-line no-console
+      console.error(
+        `[video-sitemap] ${nonDurable} of ${data.length} rows rejected as non-durable playback — ` +
+          'check that NEXT_PUBLIC_SUPABASE_URL still matches the host serving the MP4s',
+      )
     }
     return out
   } catch {

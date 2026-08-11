@@ -10,21 +10,35 @@ function fail(message) {
 
 const submit = process.argv.includes('--submit')
 
-const sitemapResponse = await fetch(`${ORIGIN}/sitemap.xml`, {
-  headers: { 'user-agent': 'Kineo-IndexNow/1.0' },
-})
+// KINEO-SEO-VIDEO-PAGES-2026-08-11 — este script lia APENAS /sitemap.xml.
+// Medido em produção em 11/08/2026:
+//   /sitemap.xml ......... 164 URLs, ZERO delas `/v/…`
+//   /video-sitemap.xml ... 650 URLs, 644 delas `/v/…`
+// Ou seja: as 644 páginas públicas de vídeo — a maior superfície indexável do
+// produto — nunca entraram numa submissão IndexNow. Agora os DOIS sitemaps são
+// lidos e mesclados (a deduplicação abaixo cobre a sobreposição).
+//
+// O caminho AUTOMÁTICO para vídeos novos é o cron diário
+// `app/api/cron/submit-indexnow` (só a janela recente). Este script continua
+// existindo para o backfill manual e para uma auditoria completa da superfície.
+const SITEMAPS = ['/sitemap.xml', '/video-sitemap.xml']
 
-if (!sitemapResponse.ok) {
-  fail(`sitemap returned HTTP ${sitemapResponse.status}`)
+const collected = []
+for (const path of SITEMAPS) {
+  const response = await fetch(`${ORIGIN}${path}`, {
+    headers: { 'user-agent': 'Kineo-IndexNow/1.0' },
+  })
+  if (!response.ok) fail(`${path} returned HTTP ${response.status}`)
+  const xml = await response.text()
+  const found = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((match) => match[1].trim())
+  if (found.length === 0) fail(`${path} contains no URLs`)
+  collected.push(...found)
 }
 
-const sitemapXml = await sitemapResponse.text()
-const urlList = [...sitemapXml.matchAll(/<loc>([^<]+)<\/loc>/g)]
-  .map((match) => match[1].trim())
-  .filter((url, index, urls) => urls.indexOf(url) === index)
+const urlList = collected.filter((url, index, urls) => urls.indexOf(url) === index)
 
-if (urlList.length === 0) fail('sitemap contains no URLs')
-if (urlList.length > 10_000) fail('sitemap exceeds the IndexNow batch limit')
+if (urlList.length === 0) fail('sitemaps contain no URLs')
+if (urlList.length > 10_000) fail('sitemaps exceed the IndexNow batch limit')
 
 for (const rawUrl of urlList) {
   const url = new URL(rawUrl)

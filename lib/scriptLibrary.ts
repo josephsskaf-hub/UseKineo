@@ -41,6 +41,7 @@
 // reach a public excerpt.
 
 import {
+  isPromptScaffolding,
   listIndexablePublicVideos,
   PUBLIC_BASE_URL,
   type PublicVideo,
@@ -524,22 +525,22 @@ export function stripFootageResidue(text: string): string {
  * stored verbatim — "Create the next episode in the same Short series about …
  * Keep the topic and format recognizable, but use a completely new hook".
  *
- * These clear the length gate in lib/publicVideos.ts (they are long, and the
- * text IS unique) so they stay in the sitemap and still render at `/v/[id]` for
- * the owner who shared the link — that is publicVideos' call and this module
- * does not override it. But featuring a card headlined `Ke". Keep the topic and
- * format recognizable…` on a curated library page is a different question, and
- * the answer is no: the whole point of the library is that a human would want
- * to read it.
+ * These USED to clear the length gate in lib/publicVideos.ts (they are long,
+ * and the text IS unique), so they stayed in the sitemap; this module refused
+ * to card them, but that only cleaned the library, not the index. Featuring a
+ * card headlined `Ke". Keep the topic and format recognizable…` was obviously
+ * wrong — and so was letting Google read it as an `<h1>`.
+ *
+ * KINEO-SEO-VIDEO-PAGES-2026-08-11 — the rule moved UP into
+ * lib/publicVideos.ts, where it is now a hard gate failure: such a row renders
+ * `noindex` and never reaches the sitemap. The regex lives there (this module
+ * already imports that one, so the direction is unchanged and there is no
+ * cycle) and is re-exported here so the existing call sites keep working.
  *
  * Measured on production 2026-08-03: 9 of 729 completed rows match.
+ * Re-measured 2026-08-11: 13 of 914, of which 3 had reached the live sitemap.
  */
-const PROMPT_SCAFFOLDING =
-  /(next episode in the same short series|keep the topic and format recognizable|completely new hook)/i
-
-export function isPromptScaffolding(text: string): boolean {
-  return PROMPT_SCAFFOLDING.test(text)
-}
+export { isPromptScaffolding }
 
 /** A one- or two-sentence card excerpt, clipped on a word boundary. */
 export function excerptFor(v: PublicVideo, max = 190): string {
