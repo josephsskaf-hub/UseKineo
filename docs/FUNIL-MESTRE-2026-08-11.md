@@ -41,16 +41,16 @@ Excluindo `lib/internalAccounts.ts` (fundador + irmã + throwaways):
 -- base externa (o filtro usado em TODAS as tabelas deste doc)
 select count(*) total, count(*) filter (where has_paid) paid, count(*) filter (where is_pro) pro
 from profiles p
-where coalesce(p.email,'') not in ('josephsskaf@gmail.com','josephskaf@hotmail.com',
-        'victoriaskaf96@gmail.com','joseph+teste01@gmail.com','teste01@shortsforgeai.com')
+where coalesce(p.email,'') not in ('<conta interna>','<conta interna>',
+        '<conta interna>','<conta interna>','<conta interna>')
   and coalesce(p.email,'') not ilike 'josephsskaf%'  and coalesce(p.email,'') not ilike 'josephskaf%'
-  and coalesce(p.email,'') not ilike '%@shortsforgeai.com' and coalesce(p.email,'') not ilike 'test%'
-  and coalesce(p.email,'') not ilike '%mailinator%' and coalesce(p.email,'') not ilike '%@theresanaiforthat.com'
-  and coalesce(p.email,'') not ilike 'joseph+%@gmail.com';
+  and coalesce(p.email,'') not ilike '<conta interna>' and coalesce(p.email,'') not ilike 'test%'
+  and coalesce(p.email,'') not ilike '%mailinator%' and coalesce(p.email,'') not ilike '<conta interna>'
+  and coalesce(p.email,'') not ilike '<conta interna>';
 -- → 1044 / 7 / 5
 ```
 
-Os dois internos que apareciam como pagantes: `e92d81bf`/BR (fundador, 274 vídeos, 201 gerações)
+Os dois internos que apareciam como pagantes: `perfil e92d…` (fundador, 274 vídeos, 201 gerações)
 e `acffefe5`/(sem país) (`is_pro`, 31 vídeos, **0 eventos**). Ambos falseariam a leitura.
 
 **Dupla contagem checada e descartada:** `0` e-mails duplicados, `0` perfis sem e-mail,
@@ -217,7 +217,7 @@ São **58 pessoas** que apertaram o botão e não receberam nada em 30 dias, só
 | *só apagões* | *70* | *1,43%* |
 
 **Limpar o apagão faz a conversão CAIR, não subir.** A janela do apagão tem a maior taxa das
-cinco (1,43%) porque `75f76a4c`/ZA pagou **dentro** dele, com zero vídeo entregue e 18 falhas.
+cinco (1,43%) porque `perfil 75f7…` pagou **dentro** dele, com zero vídeo entregue e 18 falhas.
 Se o produto funcionando fosse o que faz pagar, esse número seria o menor. É o maior.
 **Esta é a linha mais importante do documento.**
 
@@ -296,20 +296,20 @@ Conversão a jusante medida na própria coorte D.
 
 ## 4. QUEM SÃO OS PAGANTES
 
-7 pagantes externos (`has_paid`), mais 1 `is_pro` sem `has_paid` (`0d73186d`/BR, 6 eventos,
+7 pagantes externos (`has_paid`), mais 1 `is_pro` sem `has_paid` (`perfil 0d73…`, 6 eventos,
 0 vídeos, `plan='free'` — **concessão manual, não receita**; fica fora das contas).
 
 ### 4.1 A tabela inteira
 
 | conta | país | origem | vídeos entregues **antes** de pagar | tempo até pagar | motor | baixou? | dias ativos | valor pago |
 |---|---|---|---:|---:|---|---|---:|---|
-| `614424df` | US | (nulo) | **2** | **22,8 min** | fast | **não, nunca** | 1 | *(pré-instr.)* |
-| `bb51a203` | AU | homepage | **0** (1º vídeo 7 min DEPOIS) | **5,0 min** | fast | sim, **depois** de pagar | 6 | **$9,90** |
-| `a0aee4b4` | US | taaft | **1** | **57,8 min** | fast | sim, **18h depois** de pagar | 5 | *(pré-instr.)* |
-| `a5737555` | IN | (nulo/google) | **1** | **41,4 h** | fast | **não, nunca** | 3 | *(pré-instr.)* |
-| `c91aecfe` | IT | taaft | **0** (nunca gerou nada) | **0,9 min** | — | não | 1 | **$4,90** |
-| `0e53e01c` | NG | taaft | **5** | **4,2 h** | fast | **sim, antes** de pagar | 1 | **$4,90** |
-| `75f76a4c` | ZA | sticky_cta | **0** (18 falhas, dentro do apagão) | **7,4 h** | fast | não | 2 | **$9,90** |
+| `perfil 6144…` | (país omitido) | (nulo) | **2** | **22,8 min** | fast | **não, nunca** | 1 | *(pré-instr.)* |
+| `perfil bb51…` | (país omitido) | homepage | **0** (1º vídeo 7 min DEPOIS) | **5,0 min** | fast | sim, **depois** de pagar | 6 | **$9,90** |
+| `perfil a0ae…` | (país omitido) | taaft | **1** | **57,8 min** | fast | sim, **18h depois** de pagar | 5 | *(pré-instr.)* |
+| `perfil a573…` | (país omitido) | (nulo/google) | **1** | **41,4 h** | fast | **não, nunca** | 3 | *(pré-instr.)* |
+| `perfil c91a…` | (país omitido) | taaft | **0** (nunca gerou nada) | **0,9 min** | — | não | 1 | **$4,90** |
+| `perfil 0e53…` | (país omitido) | taaft | **5** | **4,2 h** | fast | **sim, antes** de pagar | 1 | **$4,90** |
+| `perfil 75f7…` | (país omitido) | sticky_cta | **0** (18 falhas, dentro do apagão) | **7,4 h** | fast | não | 2 | **$9,90** |
 
 ```sql
 -- tempo até pagar e span de sessão, por pagante

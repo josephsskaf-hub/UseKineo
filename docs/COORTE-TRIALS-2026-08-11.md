@@ -312,10 +312,10 @@ from events where created_at > now() - interval '9 days' group by 1 order by 1;
 with ext as (
   select p.id, p.has_paid from profiles p
   where not (lower(p.email) like 'josephsskaf%' or lower(p.email) like 'josephskaf%'
-    or lower(p.email) like '%@shortsforgeai.com' or lower(p.email) like 'joseph+%@gmail.com'
-    or lower(p.email) like '%@theresanaiforthat.com' or lower(p.email) like 'test%'
+    or lower(p.email) like '<conta interna>' or lower(p.email) like '<conta interna>'
+    or lower(p.email) like '<conta interna>' or lower(p.email) like 'test%'
     or lower(p.email) like '%mailinator%' or lower(p.email) like 'smoketest%'
-    or lower(p.email) = 'victoriaskaf96@gmail.com')
+    or lower(p.email) = '<conta interna>')
 ),
 m as (select ext.id, ext.has_paid,
   (select count(*) from events e where e.user_id=ext.id and e.name='video_downloaded') dl,
