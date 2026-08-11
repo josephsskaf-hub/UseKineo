@@ -8,9 +8,11 @@ com o commit desta sprint, **13**.
 ⚠️ A regra é *tudo o que estiver à frente de `4061731`*. A contagem envelhece a
 cada sprint, o SHA não.
 
-⚠️ **O script é o `scripts\68-PUSH.bat`** (o prompt diário ainda manda rodar o
-`52-PUSH.bat`, que está vencido). Ele apaga os 3 locks órfãos e dá `git push`;
-não cria commit e não faz `add`. Seguro se rodado duas vezes.
+⚠️ **O script é o `scripts\69-PUSH.bat`.** O `68` e o `67` estão gravados em
+**LF** e por isso não rodam — `65` e `66` eram CRLF e o push andou depois deles;
+`67`/`68` são LF e `origin/main` não anda desde então. O `69` nasce em CRLF
+(conferido: 62/62 linhas com CR). Apaga os 3 locks órfãos e dá `git push`; não
+cria commit e não faz `add`. Seguro se rodado duas vezes.
 
 ## ✅ CAI NESTA SPRINT — o gate nº7 estava VENCIDO
 
