@@ -1,3 +1,48 @@
+## 11/08/2026 sprint 19h — ANALYTICS: o resgate de vídeo entra no funil (`video_rescue_sent`)
+
+Rotação de aquisição desta sprint: **Analytics**. `KINEO-RESCUE-EVENT-2026-08-11`.
+
+**Regra Zero primeiro, e ela corrigiu a própria entrega:** a sprint das 16h
+registrou que `send-video-rescue` "é o único cron de lifecycle que não deixa
+nenhum rastro no banco". **Falso** — ele já gravava `video_rescue_sent_at` em
+`profiles` desde sempre. O que faltava é outra coisa, e é a que importa: a
+coluna responde *"esta pessoa já recebeu?"* e nada mais. Ela não junta com o
+resto do funil, que vive em `events`.
+
+Consequência medida: **377 envios reais**, o último hoje às 14:01Z, e **zero
+linhas** comparáveis com `payment_success`. Ninguém consegue perguntar "dos que
+receberam o resgate, quantos voltaram e quantos compraram" — que é exatamente a
+pergunta que a **regra de morte dos 7 dias** exige para manter ou matar a
+alavanca. Uma alavanca imortal por falta de medição é o modo de falha mais caro
+do playbook, e esta estava nele há semanas.
+
+O evento carrega `hours_since_last_video`, que é o eixo que separa "voltou
+porque o e-mail chegou na hora certa" de "voltou de qualquer jeito". Escrito
+DEPOIS do carimbo de `video_rescue_sent_at`, de propósito: analytics nunca
+disputa prioridade com a garantia de não mandar o mesmo e-mail duas vezes.
+
+**Nenhuma mudança de público, de copy ou de cadência** — o gate de e-mail para
+fora continua sendo do fundador. O que muda é que na próxima leitura o resgate
+terá denominador.
+
+## 11/08/2026 sprint 19h — o A/B 3d×7d não decide nada, e a ativação decide
+
+`KINEO-AB-CENSORING-2026-08-11` (detalhe completo em `GATES-ABERTOS.md`).
+Números do experimento, contas internas fora, maturidade por âncora imutável:
+
+| braço | elegíveis | maturados | converteram | entregaram vídeo | ativação | estendidos |
+|---|---:|---:|---:|---:|---:|---:|
+| 3d | 57 | **21** | 1 | 29 | **50,9%** | **11** |
+| 7d | 59 | **0** | 0 | 33 | **55,9%** | 0 |
+
+Três coisas para a operação de aquisição:
+1. **Nenhuma decisão de duração de trial pode citar conversão.** 2.318 maturados
+   por braço para detectar o dobro; hoje um dos braços tem zero.
+2. **A ativação é o caminho curto** — 169 por braço, ~2 semanas. E ela está
+   apontando para o 7d (+5,0pp), o oposto do que a leitura antiga sugeria.
+3. **O 7d ainda não devolveu um único dado de fim de trial.** Qualquer relatório
+   que comparar os braços antes de ~17/08 está comparando um braço com nada.
+
 ## 03/08/2026 — tarde (sessão CEO, conta @Josephsskaf93)
 1. Reply SEM link → x.com/SergiuszBuilds/status/2084261015563198637 (criador com 40 views perguntando se continua com Shorts). Conselho: hook nos 1.5s, portar a lógica do slide 1, cadência 2 semanas.
 2. Reply COM link → thread @thesarmie x.com/thesarmie/status/2084306418002272512 (stack de tools grátis p/ faceless, 3.2K views/2h, comentários cheios de iniciantes). Link: usekineo.com/?utm_source=x&t=stack (URL fresca — ?utm_source=x puro já estava cacheado no X com card velho).
@@ -175,3 +220,41 @@ ativação não vira uma única compra.
 `/llms.txt` e `/api/facts` estão **corretos e atuais** — o trial de 40 créditos
 na oração principal, `videosPer24h: null` + `freeVideosPerWindow: 1` em janela de
 720h. A correção de 08/08 segurou. **Nada refeito.**
+
+---
+
+## 10/08 sprint 21h — PLACAR DE CAC POR CANAL construido (Ordem O destravada por medicao)
+
+Documento: `docs/CAC-POR-CANAL-2026-08-10.md`. Era o pre-requisito registrado em
+3 lugares para decidir o TAAFT $347.
+
+Funil por primeiro toque, 14 dias, internos fora:
+`taaft` 226 pessoas / 54,4% ativaram / 13 trials / **2 pagaram** ·
+`homepage` 43 / 81,4% / 33 / 0 · `chatgpt` 40 / 42,5% / 30 / **0** ·
+`(direct)` 25 / 32,0% / 18 / 0 · `sticky_cta` 1 / **1 conversao**.
+
+**VEREDITO: nao comprar o $347.** Payback em 1 mes exige ~1.577 cadastros
+incrementais (0,885% x US$24,90 = US$0,22 de receita por cadastro/mes); o canal
+faz 16,1/dia organico. Em 3 meses de retencao seriam ~525 — mas nao ha retencao
+medida (baseline: 0 assinaturas recorrentes na historia), entao a unica conta
+honesta e a de 1 mes.
+
+**ACHADO QUE VALE MAIS QUE A DECISAO:** rotulo de superficie interna
+(`homepage`, `sticky_cta`, `kineo_user`) sobrescreve a origem externa em
+`signup_utm_source`. **42 dos 47 perfis com rotulo interno tem
+`signup_referrer` NULO** — irrecuperavel. A unica conversao da historia esta
+nesse balde. **Nenhum investimento pago sera avaliavel depois enquanto isso nao
+for corrigido.** Correcao: so gravar `signup_utm_source` a partir de `utm_source`
+de URL externa, mandar rotulo de superficie para `signup_surface`, e gravar
+`signup_referrer` SEMPRE (hoje fica nulo quando ha utm).
+
+**Reordenacao do TAAFT:** o canal nao tem problema de volume, tem problema de
+conversao — 226 pessoas viraram 13 trials. Antes de qualquer dolar: (1) consertar
+o rotulo de origem; (2) o fundador fazer `Verify ownership` na ficha gratuita,
+que entregou 226 cadastros de graca estando desatualizada, com nota 3,0 e sem
+nenhuma mencao aos 40 creditos do trial.
+
+**Ronda de respostas: NAO feita, por decisao.** Com o render parado ha 31h50,
+nao se abre torneira de aquisicao. O rascunho do `akajitin` (o promotor do
+TAAFT) segue parado e deve ser reescrito com a oferta atual **depois** que o
+render voltar — manda-lo hoje seria pagar audiencia para ver erro 502.

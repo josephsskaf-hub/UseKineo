@@ -1,18 +1,24 @@
-# 🔴 GATE ATUAL — **13 COMMITS** (sprint 16h de 11/08)
+# 🟢 GATE QUASE ZERADO — **1 COMMIT** (sprint 19h de 11/08)
 
-`origin/main` = **`4061731`** — reconferido por `git ls-remote origin refs/heads/main`
-às 19:1xZ de 11/08. **Não mudou desde a sprint das 10h**: o push não rodou hoje.
-Ponta local `refs/heads/main` antes desta sprint: **`7c5b01f`** (12 commits);
-com o commit desta sprint, **13**.
+`origin/main` = **`d44e09d`** — medido por `git ls-remote origin refs/heads/main`
+às 22:5xZ de 11/08, não herdado de doc nenhum.
 
-⚠️ A regra é *tudo o que estiver à frente de `4061731`*. A contagem envelhece a
-cada sprint, o SHA não.
+## ✅ O PUSH ANDOU. O DIAGNÓSTICO DO CRLF ESTAVA CERTO E A CORREÇÃO FUNCIONOU.
 
-⚠️ **O script é o `scripts\69-PUSH.bat`.** O `68` e o `67` estão gravados em
-**LF** e por isso não rodam — `65` e `66` eram CRLF e o push andou depois deles;
-`67`/`68` são LF e `origin/main` não anda desde então. O `69` nasce em CRLF
-(conferido: 62/62 linhas com CR). Apaga os 3 locks órfãos e dá `git push`; não
-cria commit e não faz `add`. Seguro se rodado duas vezes.
+O bloco abaixo (sprint 16h) dizia **13 commits represados** e `origin/main` em
+`4061731`. **Os 13 subiram** — inclusive o `69-PUSH.bat`, que foi a correção.
+Confirmação da hipótese: `67` e `68` estavam gravados em **LF** e não rodavam;
+o `69` nasceu em **CRLF** e `origin/main` andou `4061731` → `d44e09d`.
+
+⚠️ **A regra que isto custou de novo:** *contar pelo SHA do remoto, nunca pelo
+doc da sprint anterior.* A contagem de commits envelhece entre uma sprint e a
+seguinte porque o push roda no meio — o `PROMPT-DIARIO` já registrava isso
+depois de dois relatórios abrirem com alerta vermelho de commits que já
+estavam em produção. Faltou pouco para o terceiro.
+
+**Pendente agora: só o commit desta sprint** (`KINEO-AB-CENSORING-2026-08-11`).
+Script vigente: **`scripts\69-PUSH.bat`** — apaga os 3 locks órfãos e dá
+`git push`; não cria commit, não faz `add`, seguro se rodado duas vezes.
 
 ## ✅ CAI NESTA SPRINT — o gate nº7 estava VENCIDO
 
@@ -52,7 +58,48 @@ produção desde 07/08. Era o "item 0 da Fase 2" citado no prompt diário —
 
 ---
 
-## 🆕 DÍVIDA ABERTA NESTA SPRINT — o A/B 3d×7d pode contar conversão a mais
+## ✅ PAGO NA SPRINT 19h DE 11/08 — e o defeito era MUITO maior que a dívida
+
+`KINEO-AB-CENSORING-2026-08-11`. A dívida abaixo dizia "falta um join". O que
+faltava era o denominador inteiro, e o painel do A/B nem era o nomeado nela
+(**é `/admin/trial-abuse`**, não `/admin/trial-cohort` — o registro apontou
+para a tela errada desde o começo).
+
+**A taxa impressa era `converted / total`, e `total` inclui quem ainda não
+chegou ao momento de decidir.** Medido em 11/08 com a âncora correta (cadastro
++ dias da variante): braço 3d **21 maturados**, braço 7d **0 maturados**. Zero.
+A tela mostrava "0 converted (0%)" para um braço em que nenhum trial havia
+sequer terminado. Três revisões adversariais, três reprovações — cada correção
+criou o defeito da seguinte:
+
+| rodada | o que derrubou |
+|---|---|
+| 1ª | dividir por status terminal é pior: `converted` é carimbado no ato do pagamento e `downgraded` só depois do relógio — o viés troca de direção |
+| 2ª | excluir os revividos seleciona a amostra pelo desfecho (variável pós-tratamento); e 150/braço tem poder de **10,6%** para detectar o dobro |
+| 3ª | `trial_ends_at` **também** anda para trás: a extensão automática o REESCREVE para `agora+3d`. Escondia 11 maturados, **só no braço 3d** — o mesmo viés da 1ª rodada em outra variável |
+
+O que ficou no ar: denominador por âncora imutável; contaminados dentro e
+marcados; contas internas fora; e nenhuma porcentagem impressa enquanto N e
+numerador não sustentarem uma.
+
+### 🔴 A DECISÃO QUE ISSO FORÇA — a conversão do A/B nunca vai ser legível
+Com base de 0,85%, detectar uma diferença de 2× pede **2.318 maturados por
+braço**. No volume atual (~30 trials/dia) isso é **fevereiro de 2027**. O
+mandato de "~150 por braço" está certo de instinto e apontado para a métrica
+errada: a **ativação** tem base ~53% e fica legível com **169 por braço**, ou
+seja **~2 semanas**. O painel agora diz isso na tela.
+
+### 🟡 DÍVIDA NOVA — a extensão automática está reescrevendo a variável sob teste
+11 contas do braço 3d viraram, na prática, **6d**; o braço 7d tem **0
+estendidos** (nenhum trial de 7d expirou ainda, e a extensão exige expiração).
+Não é um bug da extensão — é o experimento e o ciclo de vida se atropelando.
+Enquanto durar, "3d" significa "3d, dos quais 19% são 6d". Decisão do fundador:
+suspender a extensão durante o A/B, ou aceitar e ler os braços como
+intention-to-treat. **Não dá para as duas coisas.**
+
+---
+
+## 🗄 DÍVIDA ORIGINAL (texto de 11/08, mantido para histórico) — o A/B 3d×7d pode contar conversão a mais
 
 `KINEO-TRIAL-REVIVE-RACE-2026-08-11` tornou `downgraded` reversível num caso
 (estorno de falha de fornecedor com relógio vivo). Uma conta revivida que

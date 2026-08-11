@@ -327,9 +327,15 @@ async function recordBulkPurchase(
 //    do A/B — ela passou por um churn no meio e o painel, que bucketiza por
 //    `trial_status`, a contaria como conversão limpa. O evento
 //    `trial_cap_refunded` carrega `ab_cohort_note='revived_after_provider_failure'`
-//    para permitir excluí-la; o painel /admin/trial-cohort ainda NÃO faz esse
-//    join. Dívida registrada em GATES-ABERTOS — ler antes de citar a taxa de
-//    conversão do experimento 3d×7d.
+//    para permitir identificá-la.
+//    ✅ PAGO em KINEO-AB-CENSORING-2026-08-11. Duas correções ao texto acima:
+//    (a) o painel do A/B é **/admin/trial-abuse**, não /admin/trial-cohort —
+//    a dívida ficou registrada contra a tela errada desde o começo; (b) a
+//    revivida NÃO é excluída, e sim CONTADA e exibida: "foi revivida" é uma
+//    variável pós-tratamento e remover linhas por ela seleciona a amostra pelo
+//    desfecho. O que o painel passou a fazer é maior que o join: o denominador
+//    deixou de ser status (que anda para trás) e virou maturidade por âncora
+//    imutável. Ler o cabeçalho de lá antes de citar qualquer taxa do 3d×7d.
 // 2. BEST-EFFORT, nunca lança: roda DEPOIS do entitlement confirmado, e um
 //    carimbo de experimento não pode custar retry de webhook nem atrasar a
 //    resposta ao Stripe. Se falhar, o cron converte na rodada seguinte — a

@@ -4,6 +4,7 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
+import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-EMAIL-AUDIT-2026-07-31 — o e-mail prometia "25 more Shorts for $4.90";
 // o pack starter concede 30 créditos (lib/checkoutPricing.ts PACK_CREDITS).
 // Era o ÚNICO claim falso vivo nos 4 templates de lifecycle (a auditoria
@@ -252,6 +253,31 @@ export async function GET(req: NextRequest) {
       if (res.ok) {
         sent++
         await admin.from('profiles').update({ video_rescue_sent_at: new Date().toISOString() }).eq('id', u.id)
+        // KINEO-RESCUE-EVENT-2026-08-11 — o envio agora entra em `events`.
+        //
+        // REGRA ZERO: o rastro NÃO era zero, ao contrário do que a sprint das
+        // 16h registrou — `video_rescue_sent_at` já era gravado acima. O que
+        // faltava é outra coisa: a COLUNA responde "esta pessoa já recebeu?" e
+        // nada mais. Ela não junta com o resto do funil, que vive em `events`,
+        // então não dá para perguntar "dos que receberam, quantos voltaram e
+        // quantos compraram" — que é a única pergunta capaz de matar ou manter
+        // esta alavanca pela regra de morte dos 7 dias. 377 envios reais e
+        // nenhuma linha comparável com `payment_success`.
+        //
+        // Depois do UPDATE de propósito: o carimbo é o que impede reenvio, e
+        // analytics nunca pode disputar prioridade com a garantia de não
+        // mandar o mesmo e-mail duas vezes. `writeServerEvent` já engole o
+        // próprio erro e devolve boolean — não há caminho de throw daqui.
+        await writeServerEvent({
+          name: 'video_rescue_sent',
+          userId: u.id,
+          metadata: {
+            offer_credits: PACK_CREDITS,
+            // Horas desde o último vídeo entregue: é o eixo que separa "voltou
+            // porque o e-mail chegou na hora" de "voltou de qualquer jeito".
+            hours_since_last_video: latest > 0 ? Math.round((now - latest) / (60 * 60 * 1000)) : null,
+          },
+        })
         console.log(`[send-video-rescue] sent to ${email}`)
       } else {
         console.error(`[send-video-rescue] resend failed for ${email}:`, await res.text())

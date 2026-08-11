@@ -26,7 +26,17 @@ import Link from 'next/link'
 import type { CSSProperties } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { fetchAllRows, isAdminEmail, serviceClient } from '@/app/api/admin/_shared/db'
-import { REVERSE_TRIAL_ENABLED, TRIAL_CREDIT_CAP } from '@/lib/reverseTrial'
+import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
+import {
+  AB_MATURITY_GRACE_MS,
+  AB_MIN_ACTIVATION_PER_ARM,
+  AB_MIN_CONVERSIONS_PER_ARM,
+  AB_MIN_MATURED_PER_ARM,
+  REVERSE_TRIAL_ENABLED,
+  TRIAL_CREDIT_CAP,
+  TRIAL_VARIANT_DAYS,
+} from '@/lib/reverseTrial'
+import type { TrialVariant } from '@/lib/reverseTrial'
 import {
   trialFingerprintSaltConfigured,
   TRIAL_FINGERPRINT_MAX_ACTIVATIONS,
@@ -45,11 +55,15 @@ const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d'
 interface TrialProfileRow {
   id: string
   email: string | null
+  /** Início do trial. Medido: `trial_started_at − created_at` ≤ 0,01d em 117/117. */
+  created_at: string | null
   trial_status: string | null
   trial_variant: string | null
   trial_credits_granted: number | null
   trial_credits_used: number | null
   trial_ends_at: string | null
+  /** Idempotência da extensão automática de 3 dias (cron de lifecycle). */
+  trial_extended: boolean | null
 }
 
 interface FingerprintRow {
@@ -61,12 +75,63 @@ interface FingerprintRow {
 interface EventRow {
   name: string | null
   created_at: string | null
+  user_id: string | null
+  /** jsonb: forma não garantida pelo tipo — lido com narrowing, nunca com `as`. */
+  metadata: Record<string, unknown> | null
 }
 
+// ═══ KINEO-AB-CENSORING-2026-08-11 — O A/B ESTAVA SENDO LIDO DE QUATRO ═══
+// ═══ MANEIRAS ERRADAS AO MESMO TEMPO, E TRÊS DELAS FAVORECIAM O 3d      ═══
+//
+// A taxa impressa era `converted / total`. `total` inclui quem AINDA NÃO
+// CHEGOU no momento de decidir, e o braço de relógio mais longo sempre demora
+// mais para chegar lá. É censura de coorte aberta, e ela aponta sempre para o
+// mesmo lado: contra o tratamento mais lento.
+//
+// ⚠️ O REMÉDIO ÓBVIO — dividir pelos status terminais — FOI TENTADO E É PIOR.
+// Duas revisões adversariais independentes o derrubaram pelo mesmo motivo:
+//   · `converted` é carimbado NA HORA do pagamento (pode ser no dia 1);
+//     `downgraded` só pode existir depois do relógio da variante. Então o
+//     conjunto "terminal" do braço lento é ENRIQUECIDO de convertedores
+//     precoces enquanto seus rebaixados ainda não chegaram — o viés apenas
+//     troca de direção.
+//   · `TRIAL_TERMINAL_STATUSES` responde UMA pergunta ("o cron de downgrade
+//     deve pular esta linha?") e a própria docstring dela proíbe este uso:
+//     'downgraded' é REVERSÍVEL por dois caminhos vivos (estorno de falha de
+//     fornecedor e a extensão automática de 3 dias). Um denominador que anda
+//     para trás não é denominador.
+//
+// O denominador correto é MATURIDADE, não status: `trial_ends_at` já passou,
+// com folga para o cron. Ele não anda para trás e não depende de quem carimbou
+// o quê. Medido em 11/08: braço 3d 11 maturados · braço 7d **0 maturados**.
+// Zero. A tela estava imprimindo "0 converted (0%)" para um braço em que
+// nenhum trial tinha ainda chegado ao momento de decidir.
+//
+// AS QUATRO CORREÇÕES: (1) denominador = maturados; (2) contas internas fora
+// (havia 1, no braço sem conversão); (3) contaminados CONTADOS E MOSTRADOS —
+// não excluídos, porque revival e extensão são variáveis PÓS-tratamento e
+// remover linhas por elas seleciona a amostra pelo desfecho; (4) nenhuma
+// porcentagem sai enquanto N e numerador não sustentarem uma.
 interface VariantStat {
   variant: string
-  total: number
+  /** Externos (contas internas fora). O universo ITT do experimento. */
+  eligible: number
+  /** Início + dias da variante já passou, com folga do cron. O denominador. */
+  matured: number
+  /** Relógio ainda correndo. Ainda podem converter — fora dos dois lados. */
+  running: number
+  /** Sem data legível ou variante desconhecida: nem maturado nem correndo. */
+  unreadableClock: number
   converted: number
+  /** ≥1 vídeo entregue. O surrogado que tem potência estatística real. */
+  activated: number
+  /** Voltaram do rebaixamento por estorno de falha de fornecedor. */
+  revived: number
+  /** Ganharam +3 dias da extensão automática — a variável sob teste mudou. */
+  extended: number
+  excludedInternal: number
+  /** É um braço real do experimento (3d/7d)? Baldes '?' ou legados: false. */
+  isArm: boolean
 }
 
 interface AbuseData {
@@ -75,6 +140,19 @@ interface AbuseData {
   creditsGranted: number
   creditsUsed: number
   byVariant: VariantStat[]
+  /** Nenhuma taxa de CONVERSÃO sai enquanto isto for true. */
+  conversionUnreadable: boolean
+  /** Nenhuma taxa de ATIVAÇÃO (o surrogado) sai enquanto isto for true. */
+  activationUnreadable: boolean
+  /** A leitura de `videos` falhou: "0 entregaram vídeo" seria mentira. */
+  activationLookupSuspect: boolean
+  /**
+   * A leitura de `events` voltou vazia com trials existindo. `fetchAllRows`
+   * degrada para [] em erro de PostgREST, e nesse caso os contaminados
+   * apareceriam como ZERO — indistinguível de "não havia nenhum". Um painel que
+   * confunde as duas coisas mente exatamente onde promete honestidade.
+   */
+  contaminationLookupSuspect: boolean
   fingerprintTableMissing: boolean
   fpActivated30d: number
   fpBlocked30d: number
@@ -93,19 +171,66 @@ async function loadAbuse(): Promise<AbuseData | null> {
     fetchAllRows<TrialProfileRow>(
       admin,
       'profiles',
-      'id, email, trial_status, trial_variant, trial_credits_granted, trial_credits_used, trial_ends_at',
+      'id, email, created_at, trial_status, trial_variant, trial_credits_granted, trial_credits_used, trial_ends_at, trial_extended',
     ),
     // fetchAllRows já degrada para [] quando a query falha (loga um warn). Se a
     // migração ainda não rodou neste ambiente, o painel abre vazio em vez de
     // 500 — mas a linha "table missing" abaixo diz isso em voz alta.
     fetchAllRows<FingerprintRow>(admin, TRIAL_FINGERPRINT_TABLE, 'fingerprint_hash, outcome, created_at'),
-    fetchAllRows<EventRow>(admin, 'events', 'name, created_at', {
+    // `trial_cap_refunded` entra aqui (KINEO-AB-CENSORING-2026-08-11) porque é
+    // o único registro de que uma conta passou por um churn no meio do trial.
+    // `metadata` vem junto de propósito: hoje o evento SÓ é escrito no ramo
+    // `revive` de lib/reverseTrial, mas o contrato publicado em GATES-ABERTOS é
+    // a NOTA (`ab_cohort_note`), não o nome. Casar pelo nome amarraria esta
+    // tela a um detalhe de implementação que pode ganhar um segundo emissor.
+    fetchAllRows<EventRow>(admin, 'events', 'name, created_at, user_id, metadata', {
       column: 'name',
-      values: ['trial_blocked_fingerprint', 'trial_fingerprint_check_failed'],
+      values: ['trial_blocked_fingerprint', 'trial_fingerprint_check_failed', 'trial_cap_refunded'],
     }),
   ])
 
-  const since30 = Date.now() - TRIAL_FINGERPRINT_WINDOW_DAYS * DAY
+  // Contas que voltaram do rebaixamento por estorno de falha de fornecedor.
+  //
+  // ⚠️ ELAS FICAM NO DENOMINADOR, MARCADAS. Excluí-las era a primeira versão
+  // desta correção e foi derrubada na revisão: "foi revivido" é uma variável
+  // PÓS-tratamento, e remover linhas por ela seleciona a amostra pelo desfecho.
+  // Pior no caso concreto: o revival só alcança as vítimas do apagão que
+  // RECEBERAM estorno; as que bateram o teto e não receberam continuariam
+  // dentro. A regra tiraria uma parte das vítimas e manteria a outra.
+  const revivedUserIds = new Set<string>()
+  for (const e of events) {
+    if (e.name !== 'trial_cap_refunded') continue
+    const meta = e.metadata
+    if (!meta || typeof meta !== 'object') continue
+    const isRevival =
+      meta.ab_cohort_note === 'revived_after_provider_failure' || meta.revived === true
+    if (isRevival && e.user_id) revivedUserIds.add(e.user_id)
+  }
+
+  const now = Date.now()
+  const maturityCutoff = now - AB_MATURITY_GRACE_MS
+  const since30 = now - TRIAL_FINGERPRINT_WINDOW_DAYS * DAY
+
+  const trialIds = profiles.filter((p) => (p.trial_status ?? '').trim()).map((p) => p.id)
+
+  // O SURROGADO. "Ativado" = ≥1 vídeo ENTREGUE, que é a definição usada em todo
+  // o resto da operação (ENGAGEMENT-LOG). Não `trial_credits_used > 0`: a
+  // coorte quebrada de 11/08 prova que gastar crédito e receber vídeo são
+  // coisas diferentes — 26 contas gastaram tentativa e receberam zero.
+  //
+  // ⚠️ FILTRADO POR `status`, NÃO POR `user_id in (…)`. A primeira versão
+  // passava a lista de ids do trial, e o filtro `in` do PostgREST viaja na
+  // QUERY STRING de um GET: medido, o proxy devolve 414 acima de ~64 KB, ou
+  // seja ~1.650 ids. No ritmo atual (~30 trials/dia) isso chega em ~7 semanas —
+  // e `fetchAllRows` engole o erro e devolve `[]`, então a tela passaria a
+  // imprimir "ativação 0%" EM VERDE justamente quando o gate já tivesse aberto.
+  // Filtrar por status não cresce a URL e traz ~941 linhas, uma página só.
+  const videos = await fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id', {
+    column: 'status',
+    values: ['completed'],
+  })
+  const activatedUserIds = new Set<string>()
+  for (const v of videos) if (v.user_id) activatedUserIds.add(v.user_id)
 
   const byStatus: Record<string, number> = {}
   let creditsGranted = 0
@@ -118,12 +243,77 @@ async function loadAbuse(): Promise<AbuseData | null> {
     creditsGranted += typeof p.trial_credits_granted === 'number' ? p.trial_credits_granted : 0
     creditsUsed += typeof p.trial_credits_used === 'number' ? p.trial_credits_used : 0
     const variant = (p.trial_variant ?? '?').trim() || '?'
-    const stat = variantMap.get(variant) ?? { variant, total: 0, converted: 0 }
-    stat.total += 1
-    if (status === 'converted') stat.converted += 1
+    const stat =
+      variantMap.get(variant) ??
+      {
+        variant,
+        eligible: 0,
+        matured: 0,
+        running: 0,
+        unreadableClock: 0,
+        converted: 0,
+        activated: 0,
+        revived: 0,
+        extended: 0,
+        excludedInternal: 0,
+        isArm: Object.prototype.hasOwnProperty.call(TRIAL_VARIANT_DAYS, variant),
+      }
     variantMap.set(variant, stat)
+
+    // A ÚNICA exclusão, e ela é CONTADA: conta interna nunca foi do
+    // experimento. Um painel que descarta linhas sem dizer quantas é
+    // indistinguível de um painel com bug de query.
+    if (isInternalEmail(p.email)) {
+      stat.excludedInternal += 1
+      continue
+    }
+
+    stat.eligible += 1
+
+    // MATURIDADE POR ÂNCORA IMUTÁVEL: início do trial + dias da variante.
+    //
+    // ⚠️ NÃO É `trial_ends_at`, E ESSA FOI A ARMADILHA. A versão anterior desta
+    // correção usava a coluna direto, alegando que ela é monotônica. Não é: a
+    // extensão automática faz `trial_ends_at = now + 3d` — SOBRESCRITA, não
+    // soma — então uma linha já maturada volta para "correndo". Medido em
+    // 11/08: 11 linhas do braço 3d e ZERO do 7d (o 7d não tem como ter
+    // expirado ainda). O denominador do 3d encolhia 52%, num braço só, o que
+    // dobrava a taxa dele. É exatamente o viés que esta tela existe para
+    // remover, escondido numa variável diferente.
+    //
+    // `created_at` não é reescrito por caminho nenhum e é o início do trial na
+    // prática (medido: `trial_started_at − created_at` ≤ 0,01 dia em 117 de
+    // 117 linhas). Relógio ilegível NÃO conta como maturado — inflar o
+    // denominador da métrica que decide a duração do trial é o erro caro.
+    const startMs = p.created_at ? Date.parse(p.created_at) : NaN
+    const variantDays = TRIAL_VARIANT_DAYS[variant as TrialVariant]
+    const originalEndMs =
+      Number.isFinite(startMs) && typeof variantDays === 'number' ? startMs + variantDays * DAY : NaN
+    if (Number.isFinite(originalEndMs) && originalEndMs <= maturityCutoff) stat.matured += 1
+    else if (Number.isFinite(originalEndMs)) stat.running += 1
+    else stat.unreadableClock += 1
+
+    if (status === 'converted') stat.converted += 1
+    if (activatedUserIds.has(p.id)) stat.activated += 1
+    if (revivedUserIds.has(p.id)) stat.revived += 1
+    if (p.trial_extended === true) stat.extended += 1
   }
   const totalTrials = Object.values(byStatus).reduce((a, b) => a + b, 0)
+
+  // ⚠️ TRIPWIRES POR SONDA, NÃO POR "VEIO VAZIO". A primeira versão marcava
+  // suspeita quando `events` voltava com zero linhas — mas zero é o estado
+  // LEGÍTIMO aqui (o salt de fingerprint nunca foi configurado, então
+  // `trial_blocked_fingerprint` nunca existiu, e antes de 11/08 também não
+  // havia nenhum `trial_cap_refunded`). A faixa vermelha teria aparecido num
+  // painel saudável. `fetchAllRows` engole o erro do PostgREST e devolve [];
+  // quem distingue "falhou" de "vazio" é uma pergunta direta ao schema — o
+  // mesmo padrão que a sonda de `fingerprintTableMissing` abaixo já usava.
+  const [eventsProbe, videosProbe] = await Promise.all([
+    admin.from('events').select('id', { count: 'exact', head: true }),
+    admin.from('videos').select('id', { count: 'exact', head: true }),
+  ])
+  const contaminationLookupSuspect = Boolean(eventsProbe.error)
+  const activationLookupSuspect = Boolean(videosProbe.error) || (trialIds.length > 0 && videos.length === 0)
 
   // A tabela pode existir e estar legitimamente vazia (flag OFF, que é o estado
   // de produção hoje). "Vazia" e "ausente" só se distinguem por uma pergunta
@@ -172,12 +362,43 @@ async function loadAbuse(): Promise<AbuseData | null> {
     if (e.name === 'trial_fingerprint_check_failed') checkFailed30d += 1
   }
 
+  // Ordem FIXA pelo nome da variante. Ordenar por tamanho fazia os braços
+  // trocarem de lugar de um dia para o outro numa tela que se lê de relance.
+  const byVariant = [...variantMap.values()].sort((a, b) => a.variant.localeCompare(b.variant))
+
+  // Os gates olham SÓ os braços conhecidos. Um único perfil com `trial_variant`
+  // nulo cria um balde '?' que nunca alcança piso nenhum e travaria a tela para
+  // sempre — falha para o lado seguro, mas por um motivo que ninguém entenderia
+  // no dia em que disparasse. O mesmo `isArm` gateia a RENDERIZAÇÃO: sem isso o
+  // balde '?' imprimiria uma porcentagem sem passar por gate nenhum.
+  const arms = byVariant.filter((v) => v.isArm)
+
+  // O gate é sobre O MESMO DENOMINADOR QUE É IMPRESSO (maturados) e também
+  // sobre o NUMERADOR. Um N grande com 1 conversão não é experimento, é
+  // anedota com barra de erro. `arms.length < 2` cobre o array vazio, onde um
+  // `every` responderia "legível".
+  const conversionUnreadable =
+    arms.length < 2 ||
+    arms.some((v) => v.matured < AB_MIN_MATURED_PER_ARM || v.converted < AB_MIN_CONVERSIONS_PER_ARM)
+
+  // O surrogado usa TODOS os elegíveis: "entregou ≥1 vídeo" não espera o
+  // relógio vencer para ser observável.
+  const activationUnreadable =
+    arms.length < 2 || arms.some((v) => v.eligible < AB_MIN_ACTIVATION_PER_ARM)
+
   return {
     byStatus,
     totalTrials,
     creditsGranted,
     creditsUsed,
-    byVariant: [...variantMap.values()].sort((a, b) => b.total - a.total),
+    byVariant,
+    conversionUnreadable,
+    // Se a leitura de `videos` falhou, TODO braço tem 0 ativados e a tela
+    // imprimiria "ativação 0%" em verde para a métrica que o banner manda usar.
+    // Forçar ilegível é a única saída segura.
+    activationUnreadable: activationUnreadable || activationLookupSuspect,
+    activationLookupSuspect,
+    contaminationLookupSuspect,
     fingerprintTableMissing,
     fpActivated30d,
     fpBlocked30d,
@@ -300,6 +521,18 @@ export default async function AdminTrialAbusePage() {
         )}
       </section>
 
+      {/* KINEO-AB-CENSORING-2026-08-11 — os cards acima são BRUTOS de propósito
+          (é a contabilidade do brinde: crédito interno também custa dinheiro),
+          enquanto o bloco de A/B mais abaixo exclui contas internas. Sem esta
+          linha os dois "converted" da mesma tela divergiriam sem explicação. */}
+      {data.byVariant.length > 0 && (
+        <p className="text-[11px] -mt-3 mb-6" style={{ color: '#6e6e73' }}>
+          Contagens brutas: incluem contas internas. O bloco{' '}
+          <strong style={{ color: '#86868b' }}>A/B</strong> abaixo as exclui — os números divergem
+          por construção.
+        </p>
+      )}
+
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Stat label="trials, total" value={data.totalTrials} accent="#f5f5f7" />
         <Stat label="credits granted" value={data.creditsGranted} accent="#fbbf24" />
@@ -324,18 +557,102 @@ export default async function AdminTrialAbusePage() {
 
       {data.byVariant.length > 0 && (
         <section className="rounded-2xl p-4 mb-6" style={CARD}>
-          <h2 className="text-sm font-black mb-3" style={{ color: '#f5f5f7' }}>A/B · 3d vs 7d</h2>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex items-baseline justify-between gap-3 mb-1">
+            <h2 className="text-sm font-black" style={{ color: '#f5f5f7' }}>A/B · 3d vs 7d</h2>
+            <span className="text-[11px]" style={{ color: '#6e6e73' }}>{INTERNAL_ACCOUNTS_LABEL}</span>
+          </div>
+
+          {(data.contaminationLookupSuspect || data.activationLookupSuspect) && (
+            <div
+              className="rounded-xl p-3 mb-3 text-[12px]"
+              style={{ background: 'rgba(248,113,113,.14)', border: '1px solid rgba(248,113,113,.55)', color: '#f87171' }}
+            >
+              <strong>Uma das leituras falhou — os zeros abaixo são falta de dado.</strong>{' '}
+              {data.contaminationLookupSuspect && (
+                <>
+                  <code>events</code> não respondeu: &quot;revividos&quot; aparece como zero sem que isso
+                  signifique ausência de contaminação.{' '}
+                </>
+              )}
+              {data.activationLookupSuspect && (
+                <>
+                  <code>videos</code> não respondeu: &quot;entregaram vídeo&quot; aparece como zero e a
+                  taxa de ativação está forçada a ilegível.
+                </>
+              )}
+            </div>
+          )}
+
+          {/* KINEO-AB-CENSORING-2026-08-11 — a faixa vem ANTES dos números, não
+              depois. Um aviso embaixo de uma porcentagem chega tarde: quem lê
+              uma tela de admin lê o número primeiro e a nota de rodapé nunca. */}
+          {data.conversionUnreadable && (
+            <div
+              className="rounded-xl p-3 mb-3 text-[12px] leading-relaxed"
+              style={{ background: 'rgba(251,191,36,.10)', border: '1px solid rgba(251,191,36,.35)', color: '#fbbf24' }}
+            >
+              <strong>A CONVERSÃO deste experimento não é legível, e não vai ser tão cedo.</strong>{' '}
+              Com taxa base de ~1%, detectar uma diferença de 2× pede{' '}
+              {AB_MIN_MATURED_PER_ARM.toLocaleString('en-US')} trials <em>maturados</em> por braço e
+              pelo menos {AB_MIN_CONVERSIONS_PER_ARM} conversões em cada. Nenhuma porcentagem de
+              conversão é impressa até lá — de propósito.{' '}
+              {data.activationUnreadable ? (
+                <>
+                  <strong>A ativação, que é o caminho curto, também ainda não é legível:</strong>{' '}
+                  pede {AB_MIN_ACTIVATION_PER_ARM} elegíveis por braço. Não divida os números brutos
+                  abaixo na cabeça — é a mesma conta que este aviso existe para impedir.
+                </>
+              ) : (
+                <>
+                  <strong>Decida 3d×7d pela ATIVAÇÃO abaixo</strong>, que tem taxa base ~50× maior e
+                  por isso já é legível com {AB_MIN_ACTIVATION_PER_ARM} por braço.
+                </>
+              )}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2">
             {data.byVariant.map((v) => (
               <div key={v.variant} className="text-[12.5px]" style={{ color: '#86868b' }}>
-                <strong style={{ color: '#f5f5f7' }}>{v.variant}</strong> · {v.total} trials ·{' '}
-                {v.converted} converted{' '}
-                <span style={{ color: '#2997ff' }}>
-                  ({v.total > 0 ? Math.round((v.converted / v.total) * 100) : 0}%)
-                </span>
+                <strong style={{ color: '#f5f5f7' }}>{v.variant}</strong> · {v.eligible} elegíveis ·{' '}
+                <strong style={{ color: '#f5f5f7' }}>{v.matured}</strong> maturados ·{' '}
+                {v.running} com o relógio correndo · {v.converted} converteram ·{' '}
+                <strong style={{ color: '#f5f5f7' }}>{v.activated}</strong> entregaram vídeo
+                {v.unreadableClock > 0 && (
+                  <span style={{ color: '#f87171' }}> · {v.unreadableClock} sem relógio legível</span>
+                )}
+                {v.isArm && !data.conversionUnreadable && v.matured > 0 && (
+                  <span style={{ color: '#2997ff' }}>
+                    {' '}· conversão {v.converted}/{v.matured}
+                  </span>
+                )}
+                {v.isArm && !data.activationUnreadable && v.eligible > 0 && (
+                  <span style={{ color: '#34d399' }}>
+                    {' '}· ativação {Math.round((v.activated / v.eligible) * 100)}%
+                  </span>
+                )}
+                {(v.revived > 0 || v.extended > 0 || v.excludedInternal > 0) && (
+                  <span style={{ color: '#fbbf24' }}>
+                    {' '}· contaminados: {v.revived} revivido(s), {v.extended} estendido(s)
+                    {v.excludedInternal > 0 && ` · ${v.excludedInternal} interna(s) fora`}
+                  </span>
+                )}
               </div>
             ))}
           </div>
+
+          <p className="text-[11px] mt-3 leading-relaxed" style={{ color: '#6e6e73' }}>
+            <strong>Maturado</strong> = cadastro + os dias da variante já passaram (com folga para o
+            cron). Não é <code>trial_status</code> (a extensão e o estorno devolvem uma linha
+            rebaixada para <code>active</code>) e <strong>não é <code>trial_ends_at</code></strong>:
+            a extensão automática REAGENDA essa coluna para <code>agora + 3 dias</code>, o que faria
+            uma linha já maturada voltar a contar como &quot;correndo&quot; — e ela só alcança o braço
+            que já expirou alguém.{' '}
+            <strong>Contaminados ficam DENTRO do denominador</strong>, marcados: ser revivido ou
+            estendido é consequência do que aconteceu depois do sorteio, e tirar linhas por isso
+            escolheria a amostra pelo desfecho. A <strong>extensão de +3 dias muda a própria
+            variável sob teste</strong> — todo estendido do braço 3d passou a ser, na prática, 6d.
+          </p>
         </section>
       )}
 

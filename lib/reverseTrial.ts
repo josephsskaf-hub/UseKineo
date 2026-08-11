@@ -100,6 +100,60 @@ let missingSaltReported = false
 // para isso seria um segundo relógio para divergir do primeiro.
 export const TRIAL_VARIANT_DAYS: Record<TrialVariant, number> = { '3d': 3, '7d': 7 }
 
+// ═══ KINEO-AB-CENSORING-2026-08-11 — QUANDO O A/B 3d×7d PODE SER LIDO ═══
+//
+// Estes números moram aqui, e não no painel, pelo mesmo motivo que
+// TRIAL_CREDIT_CAP: um valor que decide a duração do trial não pode existir em
+// duas cópias que divergem.
+//
+// ⚠️ O MANDATO DIZ "~150 signups por braço". ISSO ESTÁ ERRADO POR ~15×, e a
+// aritmética abaixo é a prova — não uma opinião. Com α=0,05 bilateral, poder
+// 80% e taxa base medida de 0,85% (1 conversão em 117 trials):
+//
+//   detectar 1,0% → 1,5% (+50% rel.) ....... 7.750 por braço
+//   detectar 1,0% → 2,0% (o DOBRO) ......... 2.318 por braço
+//   detectar 1,0% → 3,0% (o TRIPLO) ..........  768 por braço
+//   detectar 1,0% → 5,0% (5×) ................  284 por braço
+//
+// Invertendo: com 150 por braço o efeito mínimo detectável é 7,5% — um lift de
+// 7,5×. O poder para detectar o DOBRO é 10,6%. E o número ESPERADO de
+// conversões em 150 trials a 1% é 1,5 por braço: em ~4 de 10 repetições um dos
+// braços fecha com zero e a tela imprime "0%" com cara de resultado.
+// Aplicar 150 aqui não seria obedecer o mandato — seria dar ao fundador um
+// número azul grande para decidir a duração do trial em cima de ruído.
+//
+// A saída NÃO é esperar até 2027. É decidir 3d×7d pelo SURROGADO (ativação),
+// onde a taxa base é ~53% e 169 por braço bastam. Ver AB_MIN_ACTIVATION_PER_ARM.
+
+/** Trials MATURADOS por braço para a taxa de conversão poder ser impressa. */
+export const AB_MIN_MATURED_PER_ARM = 2318
+
+/**
+ * Conversões por braço, além do N. Um denominador grande com numerador 1 não
+ * é um experimento — é uma anedota com barra de erro. Hoje o numerador do
+ * braço 3d é UMA linha, que converteu durante o apagão do fornecedor e está
+ * registrada em GATES-ABERTOS como risco de estorno: se ela reverter, o sinal
+ * do experimento inverte de sentido.
+ */
+export const AB_MIN_CONVERSIONS_PER_ARM = 10
+
+/**
+ * Piso do SURROGADO: % de trials que entregaram ≥1 vídeo. Taxa base medida
+ * ~53% (3d 50,9% · 7d 55,9%), e a 53% detectar +15pp com poder 80% pede 169
+ * por braço — alcançável em ~2 semanas no volume atual, contra ~fevereiro/2027
+ * para a conversão. É aqui que o "~150 por braço" do mandato é um bom número:
+ * ele estava certo de instinto, só estava apontado para a métrica errada.
+ */
+export const AB_MIN_ACTIVATION_PER_ARM = 169
+
+/**
+ * Folga antes de chamar um trial de "maturado". O relógio vence de forma
+ * PASSIVA e quem carimba o desfecho é um cron horário — sem folga, toda linha
+ * vencida na última hora seria contada como decidida antes de o sistema ter
+ * tido chance de decidir. 2h cobre o cron horário mais a extensão automática.
+ */
+export const AB_MATURITY_GRACE_MS = 2 * 60 * 60 * 1000
+
 // Anti-abuso mínimo desta fase: domínios descartáveis bloqueados na ativação.
 // Tokens sem ponto casam por substring do domínio (pega mailinator.com,
 // team.mailinator.net etc.); tokens com ponto casam o domínio exato ou
