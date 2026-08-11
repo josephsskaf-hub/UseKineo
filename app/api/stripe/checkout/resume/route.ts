@@ -361,8 +361,60 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return unavailableResponse(req, false, 'signed_out', { status: 401 })
   }
 
-  if (req.cookies.get(DISMISSED_COOKIE)?.value === '1') {
-    return unavailableResponse(req, go, 'dismissed')
+  // KINEO-RESUME-DISMISS-BLOCKS-GO-2026-08-11 — o cookie de dispensa governa a
+  // superficie PASSIVA (o banner que aparece sozinho), nao um clique explicito.
+  //
+  // O QUE ISTO CONSERTA HOJE, e so isto: a corrida entre abas. O banner so
+  // busca a oferta quando o `pathname` muda (CheckoutResumeBanner.tsx), entao
+  // uma aba que ja renderizou o banner continua com o botao na tela depois de
+  // a pessoa dispensar em OUTRA aba. Antes, esse clique respondia com um
+  // redirect para /pricing; agora ele e atendido. Fora dessa corrida a mudanca
+  // e quase inerte: os dois emissores de `?go=1` (CheckoutResumeBanner e
+  // CheckoutStalledCta) so aparecem depois de esta rota responder
+  // `available: true`, o que nao acontece com o cookie de dispensa vivo — e o
+  // card do StalledCta ainda guarda a URL capturada no clique, entao ele pode
+  // sobreviver a rota parar de responder true.
+  //
+  // O QUE ISTO NAO AUTORIZA: `app/api/cron/send-recovery/route.ts` aponta
+  // `?go=1` como o caminho certo para o e-mail de recuperacao, mas com duas
+  // precondicoes escritas la e que este commit NAO remove — "quando houver QA"
+  // do fluxo de pagamento, e decisao do fundador. Este commit so garante que,
+  // no dia em que esse link existir, ele nao vai encontrar a rota recusando
+  // quem clicou nele.
+  //
+  // O QUE A PESSOA PERDIA NO REDIRECT: a sessao salva, o promo privado (KINEO5),
+  // o `intent_campaign` e a periodicidade escolhida. NAO perdia o `intro` mensal
+  // de starter/basic — /pricing reaplica esse (PricingClient.tsx). Ou seja, o
+  // dano era perder a oferta especifica dela, nao ser cobrada a mais.
+  //
+  // EFEITO COLATERAL QUE E DECISAO DESTE COMMIT, nao heranca: no destino
+  // `internal_retry` o hop seguinte passa por `rememberRecurringCheckout`
+  // (app/api/stripe/checkout/route.ts), que APAGA este mesmo cookie. Antes deste
+  // commit esse caminho era inalcancavel para quem tinha dispensado, entao a
+  // dispensa era vitalicia dentro dos 7 dias. Agora, quem clica em "Resume
+  // checkout" tem a dispensa revogada e volta a ver o banner se abandonar de
+  // novo. Assumo como certo: clicar para retomar e intencao nova, e mais recente
+  // que o "x". Em `open_session` e `stripe_recovery` o cookie sobrevive.
+  //
+  // Tamanho da coorte (medido 11/08, `events`, contas internas fora): das 31
+  // pessoas com `checkout_started` em 30 dias e sem `payment_success`, 17
+  // emitiram `checkout_resume_banner_dismissed` alguma vez e 13 nos ultimos 7
+  // dias. O evento registra o clique no "x", nao o estado do cookie: cookie e
+  // por-navegador e o servidor nao consegue observa-lo. 13 e o teto da coorte,
+  // nao a contagem de cookies vivos.
+  //
+  // Guardas nao afrouxadas: posse da sessao, assinatura ativa e duplicidade de
+  // Customer sao verificadas DEPOIS deste ponto, igual para `go` e para o
+  // banner. A que faltava — a de especulacao — entra logo abaixo.
+  // NAO adicionei aqui uma guarda de prefetch/scanner, e a omissao e deliberada:
+  // esta rota nao cunha nada (todos os `checkout.sessions.create` moram em
+  // app/api/stripe/checkout/route.ts) e o hop que cunha ja barra especulacao na
+  // PRIMEIRA instrucao do GET dele. Alem disso `send-recovery` documenta que
+  // `isSpeculativeRequest()` NAO detecta scanner corporativo — seria uma guarda
+  // com justificativa falsa. Se um dia o custo das leituras Stripe deste hop
+  // pesar, a guarda certa cobre `go` e `!go` e nasce com evento proprio.
+  if (!go && req.cookies.get(DISMISSED_COOKIE)?.value === '1') {
+    return unavailableResponse(req, false, 'dismissed')
   }
 
   const { data: profile, error: profileError } = await supabase
