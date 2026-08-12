@@ -78,6 +78,7 @@ import {
 //         do free Fast já existe — isFreePlanFast abaixo). 480p PENDENTE: o
 //         builder Creatomate não tem knob de resolução (ver docs/SPRINT do dia).
 import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { RENDER_REJECTED_MESSAGE } from '@/lib/render/rejectionMessage'
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — BLOQUEADORES #1 e #2 DO QA DE 07/08.
 // Esta rota decide marca d'água, clamp de duração, cota do free tier e o 402 do
 // motor de AI — e até hoje NÃO SABIA que o reverse trial existe. Uma conta em
@@ -1595,7 +1596,7 @@ export async function POST(req: NextRequest) {
           composeQuality: quality,
         })
         return NextResponse.json({
-          error: 'Render service rejected the job. Please try again.' +
+          error: RENDER_REJECTED_MESSAGE +
             (hollywoodRefunded > 0 ? ` Your ${hollywoodRefunded} credits were automatically refunded.` : ''),
         }, { status: 502 })
       }
@@ -2121,7 +2122,7 @@ export async function POST(req: NextRequest) {
       // O DELETE é barato e garantido; o estorno vem depois e nunca lança.
       return NextResponse.json(
         {
-          error: 'Render service rejected the job. Please try again.' +
+          error: RENDER_REJECTED_MESSAGE +
             (refundedOnRejection > 0 ? ` Your ${refundedOnRejection} credits were automatically refunded.` : ''),
         },
         { status: 502 }

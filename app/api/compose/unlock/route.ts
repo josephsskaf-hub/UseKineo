@@ -30,6 +30,7 @@ import {
   verifyComposeClaim,
 } from '@/lib/composeClaim'
 import { createHash } from 'node:crypto'
+import { RENDER_REJECTED_MESSAGE } from '@/lib/render/rejectionMessage'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -530,7 +531,7 @@ export async function POST(req: NextRequest) {
         )
       }
       await releaseExplicitlyRejectedClaim()
-      return NextResponse.json({ error: 'Render service rejected the job. Please try again.' }, { status: 502 })
+      return NextResponse.json({ error: RENDER_REJECTED_MESSAGE }, { status: 502 })
     }
 
     // KINEO-CREDIT-INTENT-2026-07-11 — this is a Fast render for a user who just
