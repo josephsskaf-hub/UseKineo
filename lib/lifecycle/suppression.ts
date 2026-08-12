@@ -13,6 +13,14 @@
 //   admin/send-abandon-recovery  → profiles.abandon_emailed      (boolean, SEM data)
 //   admin/send-free-upsell       → profiles.free_upsell_emailed  (boolean, SEM data)
 //
+// Entraram depois, e o inventário acima ficou para trás por semanas (a lista
+// viva é PROFILE_TIMESTAMP_COLUMNS, mais abaixo — esta aqui é só narrativa):
+//   cron/send-cap-hit            → profiles.cap_hit_sent_at
+//   cron/send-video-ready        → profiles.video_ready_sent_at
+//   cron/send-credits-back       → profiles.credits_back_sent_at
+//   cron/send-post-nudge         → profiles.post_nudge_sent_at
+//   admin/send-stalled-rescue    → profiles.stalled_rescue_sent_at  (11/08)
+//
 // As coortes se cruzam de verdade. Exemplo conferido no código: send-free-upsell
 // filtra `free_ai_generate_used = true` e NÃO exclui quem clicou em checkout
 // (app/api/admin/send-free-upsell/route.ts:128-136), apesar de o comentário no
@@ -24,11 +32,16 @@
 // ─────────────────────
 // Dado um conjunto de user ids, devolve quem recebeu QUALQUER e-mail de ciclo
 // de vida nas últimas LIFECYCLE_SUPPRESSION_HOURS horas, tomando o MÁXIMO das
-// 6 colunas datadas de `profiles` (lista em PROFILE_TIMESTAMP_COLUMNS) mais
+// colunas datadas de `profiles` listadas em PROFILE_TIMESTAMP_COLUMNS (o
+// número delas cresce; contá-lo aqui é comentário que apodrece) mais
 // `checkout_abandoned.recovery_sent_at`. Um usuário suprimido não entra na coorte de nenhum
 // job naquela execução.
 //
-// SEM MIGRATION, SEM COLUNA NOVA. Só leitura das colunas que já existem.
+// LEITURA, NUNCA ESCRITA: este módulo só lê colunas que os jobs já mantêm.
+// (Até 11/08 a frase aqui era "SEM MIGRATION, SEM COLUNA NOVA". Deixou de ser
+// verdade quando `stalled_rescue_sent_at` nasceu — a campanha de stalled-rescue
+// carimbava um BOOLEAN, e boolean não entra na janela. Migração no repo:
+// supabase/migrations/20260811214500_stalled_rescue_sent_at.sql.)
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // DUAS PROPRIEDADES CONHECIDAS E ACEITAS (documentadas para ninguém "descobrir"
@@ -112,6 +125,17 @@ const PROFILE_TIMESTAMP_COLUMNS = [
   // nossos com minutos de diferença. Job novo que manda e-mail entra aqui no
   // mesmo commit em que nasce.
   'post_nudge_sent_at',
+  // KINEO-STALLED-RESCUE-ORPHAN-2026-08-11 — "você começou um vídeo e nunca
+  // saiu nenhum". admin/send-stalled-rescue → profiles.stalled_rescue_sent_at
+  //
+  // É o caso que a regra do parágrafo acima descreve, acontecido de verdade: a
+  // campanha nasceu em 26/07 e NÃO entrou nesta lista. Ficou 16 dias invisível
+  // para os outros sete jobs — só não queimou ninguém porque nunca chegou a
+  // rodar. A coluna vitalícia dela (`stalled_rescue_emailed`) é BOOLEANA e,
+  // pela propriedade nº1 documentada acima, boolean não carrega o "quando".
+  // Por isso existe esta coluna datada em paralelo: o boolean continua sendo a
+  // idempotência de "uma vez na vida", esta aqui é o que a janela de 24h lê.
+  'stalled_rescue_sent_at',
 ] as const
 
 export interface LifecycleSuppression {
