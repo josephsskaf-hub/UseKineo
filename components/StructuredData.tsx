@@ -171,6 +171,19 @@ const faqSchema = {
       },
     },
     {
+      // [KINEO-COMMERCIAL-LICENSE-2026-08-12] — espelha VERBATIM o novo Q&A
+      // visível no #faq de app/KineoLanding.tsx (e o mesmo texto no FAQ de
+      // /pricing, onde este schema também é servido pelo layout). Nenhuma
+      // frase vai além do que /terms concede: §2 uso comercial, §3 e §5
+      // propriedade do output, §5 a proibição de revender o Serviço.
+      '@type': 'Question',
+      name: 'Can I use the videos commercially, or for client work?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.',
+      },
+    },
+    {
       '@type': 'Question',
       name: 'How long does one video take?',
       acceptedAnswer: {

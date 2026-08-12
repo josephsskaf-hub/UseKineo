@@ -817,6 +817,12 @@ export default function KineoLanding({ initialUser }: Props) {
             {/* KINEO-CRO-2026-07-25 — objection-busting Q&As (also mirrored in components/StructuredData.tsx FAQPage schema). */}
             <div className="qa"><h3>Can I run a whole channel with the same host?</h3><p>Yes — that&rsquo;s the point. Keep the same voice, style and captions across every episode so your channel looks consistent, without filming a single frame.</p></div>
             <div className="qa"><h3>Can I monetize the videos?</h3><p>Yes. Every video is yours to keep, post and monetize — including the YouTube Partner Program, TikTok and Reels. No extra license needed.</p></div>
+            {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — "posso vender pro meu
+                cliente?" e uma pergunta DIFERENTE de "posso monetizar?" (a
+                de cima), e e a primeira que uma agencia faz. Texto identico
+                byte a byte ao FAQ de /pricing e ao FAQPage JSON-LD em
+                components/StructuredData.tsx — mudar nos tres ou em nenhum. */}
+            <div className="qa"><h3>Can I use the videos commercially, or for client work?</h3><p>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</p></div>
             <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
           </div>
         </div>

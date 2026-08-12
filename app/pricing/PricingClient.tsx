@@ -65,6 +65,21 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     a: `No. ${ft(OFFER, 'A new free account can create, watch, download and share up to 3 Fast videos with a watermark every 24 hours, with no card. Free access grants no credits and no premium AI Generated videos.', OFFER.copy.sentence + ' The residual free plan grants no credits and no premium AI Generated videos.')} Subscribe only when you want a clean, watermark-free MP4. Your first-month and renewal prices are shown in your local checkout currency above.`,
   },
   {
+    // [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a pergunta nº 1 de qualquer
+    // freelancer/agência, e até hoje sem resposta na página onde ela nasce.
+    // Cada frase abaixo tem lastro: "lawful, personal or commercial purposes"
+    // e "You retain ownership of the videos you generate" (/terms §2 e §3);
+    // "You may not copy, resell or redistribute the Service itself" (§5). A
+    // ressalva do stock NÃO vem dos nossos termos e sim da licença do provedor
+    // (Pixabay Content License, que proíbe redistribuir o clipe em si) — por
+    // isso está escrita como limite, nunca como promessa. Texto idêntico byte
+    // a byte ao do FAQ visível em app/KineoLanding.tsx e ao FAQPage JSON-LD em
+    // components/StructuredData.tsx: JSON-LD que não bate com a página é sinal
+    // de spam. Se mudar aqui, mudar nos três.
+    q: 'Can I use the videos commercially, or for client work?',
+    a: 'Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.',
+  },
+  {
     q: 'How fast are videos generated?',
     a: 'Each AI video renders in about 3–5 minutes. We use AI to write, voice, and edit everything automatically.',
   },
@@ -679,6 +694,24 @@ export default function PricingClient() {
             )
           })}
         </div>
+
+        {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
+            qualquer agência ("posso vender isso pro meu cliente?") não tinha
+            resposta em lugar nenhum desta página. A linha abaixo NÃO promete
+            nada além do que os /terms já concedem hoje: uso comercial (seção
+            2), propriedade do output (seções 3 e 5) — e diz o limite que a
+            MESMA seção 5 impõe (não revender o Serviço em si). Vale para todos
+            os planos, por isso vive abaixo da grade inteira e não dentro de um
+            card. Sem preço, sem desconto, sem entitlement: só licença. */}
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12.5px] font-semibold leading-relaxed text-[#86868b]">
+          <span aria-hidden="true" style={{ color: '#2997ff' }}>✓</span> Commercial use is included
+          on every plan: the videos you generate are yours to post, monetize or deliver to a client.
+          What you cannot resell is Kineo itself —{' '}
+          <Link href="/terms" className="font-bold text-[#2997ff] hover:underline">
+            see the terms
+          </Link>
+          .
+        </p>
 
         {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
             cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
