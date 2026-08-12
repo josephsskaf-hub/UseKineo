@@ -710,15 +710,23 @@ function dueKind(row: ProfileRow, now: number, videoCounts: Map<string, number> 
     // que a revogação COMPROVADAMENTE aconteceu (o cron carimba o status e o
     // saldo na MESMA escrita atômica). Em 'expired' o saldo ainda está lá, e o
     // e-mail se calaria sobre créditos em vez de mentir — por isso o `0`.
+    // ⚠️ KINEO-LOSS-NEVER-RAN-2026-08-12 — `videosMade` PRECISA descer em TODOS
+    // os retornos desta coorte, não só no da extensão. O `base` carrega 0, e 0
+    // é o valor que o `downgraded_loss` lê como "nunca gerou nada": deixar o
+    // default aqui mandaria a versão "você nunca rodou" para 100% da coorte,
+    // inclusive para quem fez 12 vídeos. É a mesma classe de erro do campo
+    // `creditsLost`, que existe justamente porque um default silencioso vira
+    // afirmação falsa no corpo do e-mail.
+    const postBase = { ...base, videosMade }
     if (sinceEnd < DOWNGRADED_LOSS_TO_MS) {
       const lost = status === 'downgraded' ? Math.max(0, granted - used) : 0
-      return { ...base, kind: 'downgraded_loss', creditsLost: lost }
+      return { ...postBase, kind: 'downgraded_loss', creditsLost: lost }
     }
     if (sinceEnd >= OFFER_D5_FROM_MS && sinceEnd < OFFER_D10_FROM_MS) {
-      return { ...base, kind: 'expired_offer_d5' }
+      return { ...postBase, kind: 'expired_offer_d5' }
     }
     if (sinceEnd >= OFFER_D10_FROM_MS && sinceEnd < OFFER_D10_TO_MS) {
-      return { ...base, kind: 'expired_lastcall_d10' }
+      return { ...postBase, kind: 'expired_lastcall_d10' }
     }
   }
 
@@ -1103,6 +1111,83 @@ usekineo.com`
       'The Creator AI engines are locked again',
       `You're back to ${freeResidual}`,
     ].filter((l): l is string => l !== null)
+
+    // ═══ KINEO-LOSS-NEVER-RAN-2026-08-12 — A LISTA DE PERDAS PARA QUEM NUNCA GANHOU ══
+    //
+    // Este e-mail dizia, para TODO mundo: "The videos you already made are
+    // yours — they stay in your account." Para quem nunca gerou um vídeo a
+    // frase é literalmente FALSA, e é o mesmo defeito que o `ending_soon`
+    // acabou de corrigir (KINEO-STALLED-ENDING-2026-08-12): pedir conversão a
+    // quem nunca viu o produto rodar.
+    //
+    // POR QUE AGORA: o commit da extensão invertida
+    // (KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12) TROUXE essa gente para cá. O
+    // critério antigo pescava justamente quem tinha 0 vídeo e o parava numa
+    // extensão de 3 dias; agora essas contas caem direto no `downgraded_loss`.
+    // Corrigir a extensão sem corrigir o destino dela seria mudar o endereço de
+    // um e-mail falso, não consertá-lo. Coorte que passa a chegar aqui: 51
+    // trials ativos com ZERO vídeo (medido hoje).
+    //
+    // O que muda para quem tem 0 vídeo:
+    //   · some a frase falsa sobre "os vídeos que você já fez";
+    //   · a AFIRMAÇÃO sobre o que a casa mandou é a única forma provada segura
+    //     (ENGAGEMENT-LOG 11/08): fala do RESULTADO, não de quais jobs
+    //     dispararam — verdadeira por construção da coorte (0 vídeos);
+    //   · o primeiro caminho oferecido deixa de ser /pricing e passa a ser o
+    //     trilho de 1 clique que JÁ EXISTE (`oneClickBlocks`, o mesmo do
+    //     d0_welcome e do ending_soon — nenhuma cópia nova). O free residual
+    //     do plano em que a pessoa acabou de cair cobre esse vídeo.
+    //   · /pricing CONTINUA no e-mail — só deixa de ser o único caminho.
+    // Quem tem 1+ vídeo recebe o e-mail de antes, byte a byte.
+    const neverRan = c.videosMade === 0
+    if (neverRan) {
+      // ⚠️ SEMENTE DIFERENTE, DE PROPÓSITO (2ª passada da revisão). `starterTopics`
+      // gira por FNV-1a do id, então `starterTopics(c.id)` devolveria os MESMOS
+      // três temas que o d0_welcome e o ending_soon já mandaram para esta
+      // pessoa. Ela não clicou nos dois primeiros; mostrar os mesmos três pela
+      // terceira vez é o pedido com o menor rendimento possível. O sufixo muda
+      // o offset da rotação sem tocar no pool nem na copy, e mantém a
+      // propriedade que a semente existe para ter: dado o id, ainda dá para
+      // reconstruir exatamente quais links a pessoa recebeu.
+      const lossTopics = starterTopics(`${c.id}:loss`)
+      // Pool vazio ⇒ nada de e-mail sem CTA: devolve o texto anterior intacto.
+      if (lossTopics.length > 0) {
+        const blocks = oneClickBlocks(lossTopics, 'trial_loss_stalled', attr)
+        const nrText = `Hey,
+
+Your Creator trial ended, and nothing we sent you actually put a finished video in your hands. Here's what closed with it:
+
+${bullets.map((b) => `- ${b}`).join('\n')}
+
+You can still make one on the free plan you're back on. Pick a topic and it starts writing and rendering by itself — no blank page to stare at:
+
+${blocks.text}
+
+If you'd rather have the Creator engines back: ${url}
+
+Kineo Team
+usekineo.com`
+        const nrHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial ended</strong>, and nothing we sent you actually put a finished video in your hands. Here's what closed with it:</p>
+  <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
+    ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
+  </ul>
+  <p style="margin:0 0 14px;">You can still make one on the <strong>free plan you're back on</strong>. Pick a topic and it starts writing and rendering by itself &mdash; no blank page to stare at:</p>
+  ${blocks.html}
+  <p style="margin:14px 0 18px;font-size:14px;color:#555;">If you'd rather have the Creator engines back, <a href="${attr(url)}" style="color:#2997ff;">see the plans</a>.</p>
+  ${sig}`)
+        // ⚠️ O ASSUNTO NÃO PROMETE COTA. A primeira versão era "Your free video
+        // is still waiting", que afirma que o slot free está disponível — e o
+        // slot é reservado ANTES do render (`reserveFreeFastPreviewSlot`), então
+        // um render que falhou consome a cota e NÃO deixa vídeo concluído.
+        // Existe, portanto, uma conta com 0 vídeos e 0 cota, para quem aquele
+        // assunto seria falso. Este afirma só o que o código garante: o link
+        // prefila e dispara sozinho.
+        return { subject: `Your first video is one click away`, text: `${nrText}${footerText}`, html: nrHtml }
+      }
+    }
+
     const text = `Hey,
 
 Your Creator trial ended. Here's what you just lost access to:
