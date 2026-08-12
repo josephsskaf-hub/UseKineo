@@ -57,7 +57,14 @@ const OFFER_D5_FROM = 5 * DAY
 const OFFER_D10_FROM = 10 * DAY
 const OFFER_D10_TO = 15 * DAY
 const EXTENSION_MAX_AGE = 7 * DAY
-const EXTENSION_MAX_CREDITS_USED = 10
+// KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — o critério da extensão deixou de
+// ser "usou POUCO crédito" e passou a ser "concluiu 3+ vídeos E ainda tem
+// crédito utilizável". `EXTENSION_MAX_CREDITS_USED` não existe mais no
+// route.ts; a seção 7 teria falhado (lerConst devolve null) — foi assim que
+// este script avisou da troca, que é para isso que ele existe.
+const EXTENSION_MIN_VIDEOS = 3
+const EXTENSION_MIN_USABLE_CREDITS = 1
+const TRIAL_CREDIT_CAP = 40
 
 const ROUTE = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -101,7 +108,24 @@ function endedAtDepois(row, now, status = 'downgraded') {
 function kindFor(row, endedAt, now) {
   if (endedAt === 0) return 'SEM RELOGIO'
   const sinceEnd = now - endedAt
-  if (!row.ext && row.used < EXTENSION_MAX_CREDITS_USED && sinceEnd < EXTENSION_MAX_AGE) return 'trial_extended'
+  // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — regra nova, espelhada.
+  // As 9 linhas desta fixture têm `used = 40`, ou seja capLeft = 0, e o gate de
+  // crédito utilizável (≥1) as reprova SOZINHO, sem precisar da contagem de
+  // vídeos que este script offline não tem. Sob a regra ANTIGA elas também
+  // eram reprovadas (40 >= 10) — por motivo diferente, mesmo resultado. Logo o
+  // ramo da extensão continua INERTE aqui e nenhuma conclusão das seções de
+  // relógio muda por causa desta troca. A seção 9 prova essa inércia.
+  const capLeft = Math.max(0, TRIAL_CREDIT_CAP - row.used)
+  const usableAfterExtension = Math.min(capLeft, (row.balance ?? 0) + Math.max(0, TRIAL_CREDIT_CAP - row.used))
+  const vids = row.vids ?? 0
+  if (
+    !row.ext &&
+    vids >= EXTENSION_MIN_VIDEOS &&
+    usableAfterExtension >= EXTENSION_MIN_USABLE_CREDITS &&
+    sinceEnd < EXTENSION_MAX_AGE
+  ) {
+    return 'trial_extended'
+  }
   if (sinceEnd < DOWNGRADED_LOSS_TO) return 'downgraded_loss'
   if (sinceEnd >= OFFER_D5_FROM && sinceEnd < OFFER_D10_FROM) return 'expired_offer_d5'
   if (sinceEnd >= OFFER_D10_FROM && sinceEnd < OFFER_D10_TO) return 'expired_lastcall_d10'
@@ -331,7 +355,8 @@ const ESPELHO = [
   ['OFFER_D10_FROM_MS', OFFER_D10_FROM],
   ['OFFER_D10_TO_MS', OFFER_D10_TO],
   ['EXTENSION_MAX_AGE_MS', EXTENSION_MAX_AGE],
-  ['EXTENSION_MAX_CREDITS_USED', EXTENSION_MAX_CREDITS_USED],
+  ['EXTENSION_MIN_VIDEOS', EXTENSION_MIN_VIDEOS],
+  ['EXTENSION_MIN_USABLE_CREDITS', EXTENSION_MIN_USABLE_CREDITS],
 ]
 for (const [nome, local] of ESPELHO) {
   const real = lerConst(nome)
@@ -360,6 +385,12 @@ console.log('\n═══ 8. O ARQUIVO AINDA CONTÉM A CORREÇÃO? ═══')
 const EXIGIDOS = [
   ["Math.min(endedByClock, endedByStamp)", 'o menor entre os dois carimbos'],
   ["status === 'downgraded' ? parseTime(row.trial_downgraded_at) : 0", 'a guarda de status no carimbo'],
+  // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — mesmo raciocínio da amarração
+  // acima, aplicado ao critério da extensão: constante certa no lugar certo não
+  // prova que a REGRA usa a constante. Um `EXTENSION_MIN_VIDEOS = 3` declarado
+  // e não lido passaria a seção 7 inteira.
+  ['videosMade >= EXTENSION_MIN_VIDEOS', 'a extensão condicionada a 3+ vídeos'],
+  ['usableAfterExtension >= EXTENSION_MIN_USABLE_CREDITS', 'a extensão condicionada a crédito utilizável'],
 ]
 for (const [trecho, oque] of EXIGIDOS) {
   const tem = SRC_LIMPO.includes(trecho)
@@ -372,6 +403,36 @@ const semEspaco = SRC_LIMPO.replace(/\s+/g, '')
 const ANTIGO = 'endsMs>0&&endsMs<=now?endsMs:downAt>0&&downAt<=now?downAt:0'
 console.log(`  ${semEspaco.includes(ANTIGO) ? 'VOLTOU' : 'ok    '} ternário não-monotônico ausente`)
 check(!semEspaco.includes(ANTIGO), '[8] o ternário não-monotônico VOLTOU ao route.ts')
+
+// KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — o critério invertido não pode
+// voltar. Ele mediu 0 vídeos e 0 conversões em 25 envios; se reaparecer num
+// merge, este script tem de gritar em vez de deixar passar em silêncio.
+const CRITERIO_INVERTIDO = 'used<EXTENSION_MAX_CREDITS_USED'
+console.log(`  ${semEspaco.includes(CRITERIO_INVERTIDO) ? 'VOLTOU' : 'ok    '} critério "usou pouco crédito" ausente`)
+check(
+  !semEspaco.includes(CRITERIO_INVERTIDO),
+  '[8] o critério invertido da extensão (used < EXTENSION_MAX_CREDITS_USED) VOLTOU ao route.ts',
+)
+
+console.log('\n═══ 9. A TROCA DO CRITÉRIO NÃO MEXEU EM NENHUMA CONCLUSÃO DE RELÓGIO ═══')
+//
+// A fixture morreu 100% no TETO (`used = 40` nas 9). Sob a regra ANTIGA a
+// extensão as reprovava por 40 >= 10; sob a NOVA, por capLeft = 0 < 1. Se o
+// ramo ficasse ATIVO em alguma linha, as seções 1-6 estariam medindo o relógio
+// de um kind diferente do que mediam antes, e a comparação seria inválida.
+// Provado, não assumido:
+let extensoesNaFixture = 0
+for (const row of ROWS) {
+  for (const h of [0, 1, 2, 3, 5, 7, 10, 14, 21]) {
+    const now = t(row.down) + h * DAY
+    if (kindFor(row, endedAtDepois(row, now), now) === 'trial_extended') extensoesNaFixture++
+  }
+}
+console.log(`  extensões disparadas na fixture (9 linhas × 9 instantes): ${extensoesNaFixture}`)
+check(
+  extensoesNaFixture === 0,
+  `[9] o ramo da extensão deixou de ser inerte nesta fixture (${extensoesNaFixture} disparos) — as seções de relógio precisam ser reavaliadas`,
+)
 
 console.log('')
 if (failures.length > 0) {

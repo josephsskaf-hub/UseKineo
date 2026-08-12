@@ -40,11 +40,16 @@ import { VIRAL_TOPICS_POOL } from '@/lib/viralTopics'
 //                        FUNDADOR: o desconto existe SÓ nestes dois e-mails,
 //                        NUNCA em superfície pública.
 //   expired_lastcall_d10 — 10 dias após o fim: última chamada do mesmo cupom.
-//   trial_extended     — expirou tendo usado <10 dos 40 créditos e nunca foi
-//                        estendido: "we extended your trial 3 more days" +
-//                        UPDATE real (trial_ends_at = now+3d, status volta a
-//                        'active', trial_extended = true). Idempotente por
+//   trial_extended     — KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12: expirou
+//                        tendo CONCLUÍDO 3+ vídeos, sem assinar, nunca
+//                        estendido, e com ≥1 crédito utilizável depois da
+//                        restauração. "+2 more days" + UPDATE real
+//                        (trial_ends_at = now+2d, status volta a 'active',
+//                        trial_extended = true). Idempotente por
 //                        trial_extended — UMA extensão por conta, para sempre.
+//                        O critério ANTERIOR era o oposto ("usou <10 dos 40
+//                        créditos") e mediu 0 vídeos e 0 conversões em 25
+//                        envios — ver o bloco de EXTENSION_MIN_VIDEOS.
 //
 // FLAG: KINEO_REVERSE_TRIAL_ENABLED, a MESMA do trial (não a de lifecycle).
 // Estes e-mails são parte da feature — com a flag OFF não existe linha com
@@ -156,6 +161,18 @@ const HOUR_MS = 60 * 60 * 1000
 const MAX_PER_RUN = 40
 /** PostgREST manda `in.(...)` na query string — fatiar para não estourar a URL. */
 const CHUNK_SIZE = 200
+/**
+ * KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — contagem de vídeos concluídos.
+ * 50 contas por requisição contra um teto de 1.000 linhas: saturar exigiria
+ * média de 20 vídeos concluídos por conta em trial (hoje a coorte inteira tem
+ * 121 vídeos para 122 contas). Se um dia saturar, o cron falha FECHADO em vez
+ * de subestimar — ver o bloco na leitura.
+ */
+const VIDEO_COUNT_USERS_PER_QUERY = 50
+/** Página de leitura. ABAIXO do `max-rows` do PostgREST — ver o laço. */
+const VIDEO_COUNT_PAGE = 500
+/** Teto de segurança por bloco: acima disto, fecha em vez de paginar sem fim. */
+const VIDEO_COUNT_HARD_CAP = 50_000
 
 /**
  * Janela do welcome. A spec diz "ativação <24h", e é isso que o cron diário
@@ -257,9 +274,48 @@ const OFFER_D10_TO_MS = 15 * DAY_MS
 
 /** Extensão: só faz sentido logo depois do fim — não ressuscitar linha velha. */
 const EXTENSION_MAX_AGE_MS = 7 * DAY_MS
-/** "Mal usou o trial" = menos de 10 dos 40 créditos. */
-const EXTENSION_MAX_CREDITS_USED = 10
-const EXTENSION_DAYS = 3
+/**
+ * ═══ KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — A EXTENSÃO PREMIAVA QUEM NÃO USOU ══
+ *
+ * O critério anterior era `trial_credits_used < 10` — literalmente "mal tocou
+ * no produto". MEDIDO em produção antes de trocar (não deduzido):
+ *
+ *   · 25 e-mails `trial_extended` enviados (o 3º kind mais enviado da casa);
+ *   · **0 de 25 geraram um vídeo depois da extensão**;
+ *   · **0 de 25 converteram**;
+ *   · média de créditos usados na coorte estendida: **2,6 de 40**;
+ *   · 10 dos 25 nunca tinham gerado UM vídeo na vida.
+ *
+ * E o efeito colateral é pior que a ineficácia. A extensão reescreve
+ * `trial_status` para 'active', então ela TIRA a pessoa da coorte
+ * expired/downgraded — a única que recebe `downgraded_loss` e o COMEBACK50 do
+ * D5/D10. Ou seja: o instrumento selecionava quem não usou o produto e o
+ * removia da única sequência que pede dinheiro. Hoje 24 dessas contas estão
+ * dentro do número "trials ativos" com saldo médio de **39,0 de 40** intactos.
+ *
+ * O critério novo é o da ordem do fundador (06/08): "+2 dias se 3+ vídeos e
+ * não assinou". Ele aponta para o lado oposto do funil — quem já provou o
+ * produto e ainda não pagou é o lead mais quente que existe, e é a essa pessoa
+ * que mais tempo faz diferença.
+ *
+ * ⚠️ TERCEIRA CONDIÇÃO, QUE NÃO ESTÁ NA ORDEM MAS É EXIGIDA PELA VERDADE DO
+ * E-MAIL: dias sem crédito não são extensão, são promessa falsa. Durante o
+ * trial o Fast custa 1 crédito de verdade (`compose/route.ts` #1252: o trial
+ * segue o caminho PAGO justamente para o render aparecer no teto de 40). Logo,
+ * quem gerou 3+ vídeos e queimou os 40 não ganha NADA com mais dias — e para
+ * essa pessoa o caminho certo já existe e é melhor: cai em `downgraded_loss`
+ * ("veja o que você perdeu") e depois no COMEBACK50. O pedido certo para quem
+ * esgotou o teto é o cartão, não o calendário. Por isso a extensão exige ≥1
+ * crédito utilizável DEPOIS da restauração.
+ *
+ * NENHUM TETO FOI TOCADO: a restauração continua sendo `granted − used`, ou
+ * seja ≤ 40 por construção, e o teto segue em 40 (guardrail do fundador).
+ */
+const EXTENSION_MIN_VIDEOS = 3
+/** Ordem do fundador: +2 dias (era 3 no critério antigo). */
+const EXTENSION_DAYS = 2
+/** Menos que isto e "mais dias" não compra nem um Fast — ver o bloco acima. */
+const EXTENSION_MIN_USABLE_CREDITS = 1
 
 /**
  * Cupom 50% off / 3 meses, criado na Stripe pela ORDEM I (COMEBACK50 — cupom E
@@ -379,6 +435,17 @@ interface Candidate {
    * hora da frase.
    */
   msLeft: number
+  /**
+   * KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — vídeos CONCLUÍDOS da conta
+   * (`videos.status = 'completed'`), contados uma vez por execução para a
+   * coorte pós-trial. É o único critério da extensão que fala do PRODUTO em
+   * vez de falar do saldo — e a copy do e-mail afirma este número, então ele
+   * não pode ser estimado a partir de créditos gastos (Fast custa 1, Creator
+   * custa 20: "créditos usados" não determina "vídeos feitos").
+   *
+   * Vale 0 para as coortes que não precisam dele (ninguém lê fora da extensão).
+   */
+  videosMade: number
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -402,9 +469,16 @@ function variantOf(raw: unknown): TrialVariant {
  * kind por conta por execução — as coortes são disjuntas por status, e os dois
  * cruzamentos possíveis são resolvidos por prioridade explícita:
  *   · trial recém-nascido da variante 3d: welcome (D0/D1) ganha de ending_soon;
- *   · expirado com <10 créditos usados: extensão ganha da oferta D5/D10.
+ *   · expirado com 3+ vídeos e crédito utilizável: extensão ganha da perda/D5.
+ *
+ * `videoCounts` — vídeos concluídos por conta, SÓ da coorte pós-trial. `null`
+ * significa "não consegui contar nesta execução" e é FALHA FECHADA: sem essa
+ * contagem não dá para provar os 3+ vídeos, e mandar `downgraded_loss` no
+ * lugar queimaria o claim permanente da PK por causa de um erro de leitura.
+ * A coorte pós-trial inteira espera o próximo run (o cron é HORÁRIO e a janela
+ * da perda é de 48h — adiar uma hora não custa e-mail nenhum).
  */
-function dueKind(row: ProfileRow, now: number): Candidate | null {
+function dueKind(row: ProfileRow, now: number, videoCounts: Map<string, number> | null): Candidate | null {
   const id = typeof row.id === 'string' ? row.id : ''
   const email = typeof row.email === 'string' ? row.email.trim() : ''
   if (!id || !email || isTestEmail(email)) return null
@@ -449,6 +523,8 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     // Preenchido de verdade só no ramo 'downgraded' — ver o comentário do campo.
     creditsLost: 0,
     msLeft: Math.max(0, endsMs - now),
+    // Preenchido de verdade só no ramo da extensão — ver o comentário do campo.
+    videosMade: 0,
   }
 
   if (status === 'active') {
@@ -457,7 +533,11 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     // dele). A assinatura é inconfundível: já estendido, ativo, e o novo prazo
     // cabe dentro dos 3 dias da extensão. Sem UPDATE novo — só o e-mail.
     if (extended && endsMs > now && endsMs - now <= EXTENSION_DAYS * DAY_MS) {
-      return { ...base, kind: 'trial_extended' }
+      // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — a copy nova AFIRMA o número
+      // de vídeos, então o retry também depende da contagem. Sem ela, adia (é
+      // um retry: o custo de esperar mais uma hora é zero).
+      if (videoCounts === null) return null
+      return { ...base, kind: 'trial_extended', videosMade: videoCounts.get(id) ?? 0 }
     }
     // 'active' no banco mas já vencido (relógio ou teto) = limbo pré-cron de
     // downgrade. Nenhum e-mail: "ends tomorrow" depois do fim é mentira, e a
@@ -578,7 +658,13 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
     if (endedAt === 0) return null
     const sinceEnd = now - endedAt
 
-    if (!extended && used < EXTENSION_MAX_CREDITS_USED && sinceEnd < EXTENSION_MAX_AGE_MS) {
+    // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — falha fechada: sem contagem
+    // de vídeos não se decide NADA sobre esta linha (nem a extensão, nem a
+    // perda, nem o D5). Ver o bloco do parâmetro `videoCounts`.
+    if (videoCounts === null) return null
+    const videosMade = videoCounts.get(id) ?? 0
+
+    if (!extended && videosMade >= EXTENSION_MIN_VIDEOS && sinceEnd < EXTENSION_MAX_AGE_MS) {
       const rawBalance = row.video_credits
       const balance = typeof rawBalance === 'number' && Number.isFinite(rawBalance) ? rawBalance : null
       // `granted` vem do escopo da função desde
@@ -592,7 +678,28 @@ function dueKind(row: ProfileRow, now: number): Candidate | null {
       // devolve 0 — mesma regra de dinheiro de downgradeExpiredTrial. Linha
       // 'expired' ainda tem o saldo: devolver seria conceder em dobro.
       const restore = status === 'downgraded' ? Math.max(0, granted - used) : 0
-      return { ...base, kind: 'trial_extended', needsExtensionUpdate: true, balance, restore }
+      // ⚠️ KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — o teste é sobre o saldo
+      // DEPOIS da restauração, e não sobre `creditsLeft`. Numa linha
+      // 'downgraded' o cron de downgrade já zerou `video_credits`, então
+      // `creditsLeft` (= min(capLeft, saldo)) vale 0 para TODA a coorte
+      // rebaixada — usá-lo aqui reprovaria justamente as contas que a extensão
+      // existe para servir. O crédito utilizável é o que a extensão vai
+      // escrever: saldo observado + restauração, limitado pelo teto de 40.
+      const usableAfterExtension = Math.min(capLeft, (balance ?? 0) + restore)
+      if (usableAfterExtension >= EXTENSION_MIN_USABLE_CREDITS) {
+        return {
+          ...base,
+          kind: 'trial_extended',
+          needsExtensionUpdate: true,
+          balance,
+          restore,
+          creditsLeft: usableAfterExtension,
+          videosMade,
+        }
+      }
+      // Esgotou o teto tendo feito 3+ vídeos: NÃO recebe dias que não pode
+      // gastar. Cai de propósito no `downgraded_loss` logo abaixo — é o lead
+      // mais quente do funil e o pedido certo para ele é o cartão.
     }
     // ═══ KINEO-TRIAL-DOWNGRADE-SILENCE-2026-08-10 — O E-MAIL DA PERDA ════════
     // Chega aqui quem NÃO foi estendido: ou já usou 10+ créditos, ou já gastou
@@ -1068,22 +1175,59 @@ usekineo.com`
   }
 
   // trial_extended
+  // ═══ KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — A COPY VIROU AO CONTRÁRIO ══
+  //
+  // O texto anterior abria com "Looks like you barely got a chance to try your
+  // Creator trial". Com o critério novo (3+ vídeos concluídos) essa frase é
+  // FALSA POR CONSTRUÇÃO para 100% de quem recebe — a pessoa não é quem mal
+  // tentou, é quem mais usou. Copy que sobrevive à troca do critério que a
+  // seleciona é copy que ninguém releu; ela entra na mesma revisão do código.
+  //
+  // As duas afirmações do e-mail são verificáveis pelo destinatário em um
+  // clique, e as duas vêm de número medido, não de adjetivo:
+  //   · `videosMade` — linhas em `videos` com status 'completed' (a mesma
+  //     contagem que autorizou a extensão);
+  //   · `creditsLeft` — aqui vale o saldo utilizável DEPOIS da restauração,
+  //     limitado pelo teto de 40 (ver `usableAfterExtension` em dueKind). Foi
+  //     conferido ≥1 antes de a extensão existir: este e-mail nunca promete
+  //     dias que não compram nada.
   const url = `${APP_URL}/generate?${utm('trial_extended')}`
+  // ⚠️ 3ª PASSADA DA REVISÃO ADVERSARIAL — ATRIBUIÇÃO FALSA, PEGA ANTES DO
+  // COMMIT. A frase era "You made N videos **on your Creator trial**". A
+  // contagem vem de `videos` INTEIRA, não da janela do trial: uma conta que já
+  // gerava no free tier antes de o reverse trial existir traz vídeos ANTERIORES
+  // ao trial, e a frase os creditaria ao trial. É afirmação que o destinatário
+  // confere em um clique no /history — a classe de erro que mais aparece neste
+  // repositório. Windowing por conta foi descartado por não ser recuperável no
+  // ramo de retry (a extensão reescreve `trial_ends_at` e apaga o início do
+  // ciclo). A frase abaixo afirma as duas coisas SEPARADAMENTE, e as duas são
+  // verdadeiras por construção: N vídeos na conta, e o trial acabou.
+  const madeLine =
+    c.videosMade > 0
+      ? `You made ${c.videosMade} video${c.videosMade === 1 ? '' : 's'} with Kineo — and your Creator trial has run out`
+      : `Your Creator trial has run out`
+  const creditLine =
+    c.creditsLeft === 1
+      ? `You have 1 credit left`
+      : `You have ${c.creditsLeft} credits left`
   const text = `Hey,
 
-Looks like you barely got a chance to try your Creator trial — so we extended it. You have ${EXTENSION_DAYS} more days, starting now.
+${madeLine}. So we put ${EXTENSION_DAYS} more days back on it, starting now.
 
-Your credits are back in your account. Type any topic, hit generate, and see what Creator can do: ${url}
+${creditLine}. Same engine, same clean exports, no card needed: ${url}
+
+This is a one-time extension — after it, Creator goes back to being a paid plan.
 
 Kineo Team
 usekineo.com`
   const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;">Looks like you barely got a chance to try your Creator trial &mdash; so <strong>we extended it. You have ${EXTENSION_DAYS} more days, starting now.</strong></p>
-  <p style="margin:0 0 14px;">Your credits are back in your account. Type any topic, hit generate, and see what Creator can do.</p>
-  ${cta(url, 'Use your trial')}
+  <p style="margin:0 0 14px;">${madeLine}. So <strong>we put ${EXTENSION_DAYS} more days back on it, starting now.</strong></p>
+  <p style="margin:0 0 14px;">${creditLine}. Same engine, same clean exports, no card needed.</p>
+  ${cta(url, 'Keep creating')}
+  <p style="margin:0 0 20px;font-size:13px;color:#64748b;">This is a one-time extension &mdash; after it, Creator goes back to being a paid plan.</p>
   ${sig}`)
-  return { subject: `We added ${EXTENSION_DAYS} more days to your Creator trial`, text: `${text}${footerText}`, html }
+  return { subject: `${EXTENSION_DAYS} more days on your Creator trial`, text: `${text}${footerText}`, html }
 }
 
 export async function GET(req: NextRequest) {
@@ -1132,14 +1276,107 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: rowsErr.message }, { status: 500 })
   }
 
+  // ── 1-bis) Vídeos CONCLUÍDOS por conta ────────────────────────────────────
+  // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — a extensão passou a ser
+  // decidida pelo PRODUTO (3+ vídeos), não pelo saldo, e nenhuma coluna de
+  // `profiles` responde isso: Fast custa 1 crédito e Creator custa 20, então
+  // `trial_credits_used` não determina quantos vídeos existem.
+  //
+  // Contagem em JS sobre os ids da coorte (dezenas de contas, não milhares) —
+  // PostgREST não faz group-by, e uma RPC nova seria superfície nova para uma
+  // soma. `.in()` em blocos de VIDEO_COUNT_USERS_PER_QUERY (50), MENOR que o
+  // CHUNK_SIZE de 200 usado no log: aqui cada conta traz N linhas, não 1, então
+  // o bloco tem de ser menor para a paginação abaixo ser rasa.
+  // (A 1ª versão deste comentário dizia "blocos de CHUNK_SIZE" e era falsa —
+  // número afirmado em comentário entra na revisão como código entra.)
+  //
+  // `null` = leitura falhou ⇒ FALHA FECHADA nos ramos que dependem dela (ver
+  // `dueKind`). Nunca vira 0 silencioso: 0 significaria "não fez nada" e
+  // reprovaria a extensão de quem fez, que é exatamente o defeito que este
+  // commit corrige.
+  const cohortIds = Array.from(
+    new Set(
+      ((rows ?? []) as ProfileRow[])
+        .map((r) => (typeof r.id === 'string' ? r.id : ''))
+        .filter((s): s is string => s.length > 0),
+    ),
+  )
+  const counts = new Map<string, number>()
+  let countsUsable = true
+  outer: for (const part of chunk(cohortIds, VIDEO_COUNT_USERS_PER_QUERY)) {
+    let from = 0
+    for (;;) {
+      const { data: vidRows, error: vidErr } = await admin
+        .from('videos')
+        .select('user_id')
+        .in('user_id', part)
+        .eq('status', 'completed')
+        // ⚠️ ORDENAÇÃO ESTÁVEL É REQUISITO DA PAGINAÇÃO, NÃO ENFEITE. Sem
+        // ORDER BY o Postgres não promete ordem alguma entre duas execuções da
+        // MESMA consulta, e `.range()` sobre ordem instável duplica linhas numa
+        // página e pula linhas na outra — o erro apareceria como contagem de
+        // vídeos errada, ou seja, exatamente na afirmação que o e-mail faz ao
+        // usuário. `videos.id` é uuid NOT NULL (chave), então a ordem é total.
+        // (Defeito criado pela 1ª correção desta leitura — a paginação — e
+        // pego na 2ª passada da revisão adversarial.)
+        .order('id', { ascending: true })
+        .range(from, from + VIDEO_COUNT_PAGE - 1)
+      if (vidErr) {
+        console.error('[trial-lifecycle-emails] video count query failed:', vidErr.message)
+        countsUsable = false
+        break outer
+      }
+      const got = (vidRows ?? []) as Array<Record<string, unknown>>
+      for (const v of got) {
+        if (typeof v.user_id === 'string') counts.set(v.user_id, (counts.get(v.user_id) ?? 0) + 1)
+      }
+      // ⚠️ PÁGINA CURTA É O ÚNICO SINAL DE FIM QUE O PostgREST DÁ — e é por
+      // isso que VIDEO_COUNT_PAGE fica ABAIXO do `max-rows` do servidor
+      // (default 1.000 no Supabase). Pedir MAIS do que o servidor entrega faria
+      // toda página parecer curta e o laço pararia na primeira, truncando em
+      // SILÊNCIO. Truncar aqui subestima, e subestimar reprova a extensão de
+      // quem fez os vídeos — exatamente o defeito que este commit corrige.
+      // (Foi por isso que a 1ª versão desta leitura, com `.limit(1000)` + teste
+      // `got.length >= 1000`, foi descartada: ela só detecta saturação se o teto
+      // do servidor for igual ao pedido, e não é uma garantia que o código
+      // controla.)
+      if (got.length < VIDEO_COUNT_PAGE) break
+      from += got.length
+      if (from >= VIDEO_COUNT_HARD_CAP) {
+        console.error(
+          `[trial-lifecycle-emails] video count exceeded ${VIDEO_COUNT_HARD_CAP} rows for ${part.length} users — failing closed`,
+        )
+        countsUsable = false
+        break outer
+      }
+    }
+  }
+  const videoCounts: Map<string, number> | null = countsUsable ? counts : null
+  if (videoCounts === null) {
+    // Observabilidade explícita. Sem esta linha (e sem o campo no JSON de
+    // resposta) uma falha PERSISTENTE da contagem silenciaria a coorte
+    // pós-trial inteira — extensão, perda, D5 e D10 — sem deixar rastro. É a
+    // classe de falha que este arquivo mais repete: supressão silenciosa que
+    // ninguém mede porque o cron continua devolvendo 200.
+    console.error('[trial-lifecycle-emails] VIDEO COUNTS UNAVAILABLE — post-trial cohort deferred this run')
+  }
+
   const candidates: Candidate[] = []
   for (const row of (rows ?? []) as ProfileRow[]) {
-    const c = dueKind(row, now)
+    const c = dueKind(row, now, videoCounts)
     if (c) candidates.push(c)
   }
 
   if (candidates.length === 0) {
-    return NextResponse.json({ sent: 0, cohort: (rows ?? []).length, eligible: 0, reason: 'nobody_due' })
+    return NextResponse.json({
+      sent: 0,
+      cohort: (rows ?? []).length,
+      eligible: 0,
+      reason: 'nobody_due',
+      // Sem este campo, "ninguém devido" e "não consegui olhar para a coorte
+      // pós-trial" seriam a MESMA resposta 200 — e a segunda é um incidente.
+      video_counts_degraded: videoCounts === null,
+    })
   }
 
   // ── 2) Idempotência: quem já recebeu este kind não entra nem no batch ──────
@@ -1186,6 +1423,9 @@ export async function GET(req: NextRequest) {
       suppression_degraded: suppression.degraded,
       capped_out: Math.max(0, eligible.length - batch.length),
       flag_enabled: REVERSE_TRIAL_ENABLED,
+      // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — true = a coorte pós-trial
+      // INTEIRA foi adiada nesta execução (ver a leitura de vídeos).
+      video_counts_degraded: videoCounts === null,
     })
   }
 
@@ -1347,5 +1587,9 @@ export async function GET(req: NextRequest) {
     credits_restored: creditsRestored,
     suppressed_recent_lifecycle: suppression.suppressedCount,
     suppression_degraded: suppression.degraded,
+    // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — mesma razão de
+    // `suppression_degraded` estar aqui: um 200 com a coorte pós-trial inteira
+    // adiada tem de ser distinguível de um 200 normal.
+    video_counts_degraded: videoCounts === null,
   })
 }
