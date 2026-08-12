@@ -389,3 +389,37 @@ clica converte 37,5% x 28,2% de quem pula. O bruto (44% x 66%) diz o oposto,
 por Simpson. `viral_onboarding_primary_clicked` e
 `first_video_started_from_viral_onboarding` sao o MESMO clique (104 x 104
 pessoas, 0,060s de intervalo medio) - nao contar como dois sinais.
+
+---
+
+## 12/08/2026 — sprint 19h — RONDA DE RESPOSTAS FEITA (última completa era 07/08)
+
+Caixa de entrada varrida (`in:inbox newer_than:7d`, promoções/social/updates fora).
+**3 respostas humanas, todas não lidas. Nenhuma resposta enviada — Send é gate do
+fundador.** Detalhe completo em `docs/LINKS-QUEBRADOS-GMAIL-2026-08-12.md`.
+
+| quem | quando | o que disse | estado / ação |
+|---|---|---|---|
+| `marc@lienard.us` | 11/08 12:41Z | *"I was going to leave a survey but the link you provided did not take me there"* | **ABERTO — resposta pronta no doc, falta Send.** Trial ATIVO, 1 vídeo, 1 de 40 créditos. **NÃO responder de novo sem checar se o fundador já mandou.** |
+| `matthewahawes@gmail.com` | 11/08 02:16Z | *"Please cancel the service"* | **FECHADO no banco:** `plan=free`, `has_paid=false`, sem assinatura Stripe, `email_opted_out` **já true**. Nada a cancelar. Falta só uma linha dizendo que nada foi cobrado. |
+| `aimalvabusiness@gmail.com` | 07/08 17:16Z | recusa do afiliado ("both are no", sem comissão em nenhum formato) | **MORTO. Sem follow-up, nunca.** |
+
+### Achado da ronda (não é resposta, é defeito)
+
+O blast **"Did Kineo work for you?"** de 10–11/08 saiu para **44 pessoas em bcc**
+com o link da review sendo o **wrapper do Gmail** colado como href
+(`google.com/url?q=…&ust=…&sa=E`) em vez da URL crua. O Marc é a prova de campo
+de que ele não resolve.
+
+**O mesmo defeito está no rascunho `r-2585367767906864369` para
+`akajitin@gmail.com`, que AINDA NÃO SAIU** — e ali o link quebrado é o de
+**cadastro no afiliado**, a ação inteira que o e-mail pede. Corrigir antes de
+enviar; URLs corretas no doc.
+
+**Regra nova:** URL crua digitada no corpo. Se o texto contiver
+`google.com/url?q=`, o e-mail não sai.
+
+### Não feito nesta ronda
+
+PH, X, Reddit, Fazier, TAAFT e Whop **não** foram varridos (exigem login em site
+de terceiro). Whop: Carlos/Eugene/adan seguem sem resposta desde 03/08.
