@@ -29,6 +29,27 @@
 // Custo de vídeo na primeira dobra: 247 KB (só example-turkmenistan.mp4),
 // contra 943 KB dos quatro MP4s do modelo anterior. Os seis posters somam
 // ~134 KB, e cinco deles são lazy.
+//
+// KINEO-UI-NORTH-STAR-2026-08-12 — "os vídeos ficam passando na tela".
+// O padrão Higgsfield (medido no HTML deles: <video loop muted playsinline
+// preload="none"> em TODO card) agora vale para os seis cards, SEM abrir mão
+// do orçamento acima:
+//   · o poster continua sendo o primeiro paint (LCP intacto — o <video> dos
+//     cards 1-5 só é montado depois do window load + requestIdleCallback);
+//   · preload="none" + poster: montar não baixa NADA; o download só começa
+//     quando o IntersectionObserver chama play() num card visível (≥35%).
+//     No celular o trilho mostra ~3 cards — só esses baixam;
+//   · pausa fora da viewport continua (mesmo observer de antes);
+//   · sem autoPlay attribute: quem dá play é o observer, então um card
+//     montado mas fora da tela fica em zero byte;
+//   · NotAllowedError (low power mode / autoplay bloqueado) desmonta o card
+//     de volta para poster + badge de play — nunca um retângulo morto;
+//   · prefers-reduced-motion, Save-Data e 2g: nada de autoplay — seis
+//     posters, hover ainda ativa (intenção explícita).
+// Peso medido: os 6 MP4s somam ~1,43 MB (135–314 KB cada, previews de 5s
+// 360x640 sem áudio). Desktop pós-idle: ok. Mobile: só o que intersecta.
+// CLS: zero — poster e vídeo são camadas absolute inset-0 no mesmo box de
+// aspect-ratio 9/16, e o poster do <video> é o MESMO jpg já em cache.
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
@@ -52,8 +73,43 @@ export default function HeroGallery() {
     return () => mql.removeEventListener('change', onChange)
   }, [])
 
-  // Um observer só, sobre os vídeos que existirem: fora da tela, pausa. Ele
-  // nunca MONTA nada — descer a página não baixa um byte a mais.
+  // KINEO-UI-NORTH-STAR-2026-08-12 — depois do load + idle, monta os seis
+  // <video>. Montar é grátis (preload="none"); o play/download é decisão do
+  // observer abaixo, card a card, só para quem está visível.
+  useEffect(() => {
+    if (reducedMotion) return
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }
+    const conn = nav.connection
+    // Economia de dados pedida explicitamente, ou rede 2g: fica no modelo
+    // poster-first + hover, que já funciona.
+    if (conn?.saveData || (conn?.effectiveType ?? '').includes('2g')) return
+
+    let idleId: number | undefined
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    const mountAll = () => setMounted(PUBLIC_EXAMPLES.map(() => true))
+    const schedule = () => {
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(mountAll, { timeout: 3000 })
+      } else {
+        timeoutId = setTimeout(mountAll, 1200)
+      }
+    }
+    if (document.readyState === 'complete') {
+      schedule()
+    } else {
+      window.addEventListener('load', schedule, { once: true })
+    }
+    return () => {
+      window.removeEventListener('load', schedule)
+      if (idleId !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId)
+      if (timeoutId !== undefined) clearTimeout(timeoutId)
+    }
+  }, [reducedMotion])
+
+  // Um observer só, sobre os vídeos que existirem: dentro da tela, play (é o
+  // play que dispara o download, por causa do preload="none"); fora, pausa.
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -61,8 +117,22 @@ export default function HeroGallery() {
           const video = entry.target as HTMLVideoElement
           if (entry.isIntersecting) {
             if (!reducedMotion) {
-              video.play().catch(() => {
-                // Autoplay pode ser negado (low power mode); o poster continua.
+              video.play().catch((err: unknown) => {
+                // Autoplay negado de verdade (low power mode, política do
+                // navegador): volta o card para poster + badge de play, que é
+                // um estado honesto e clicável. AbortError (pause() durante um
+                // play() pendente, ao rolar rápido) NÃO desmonta nada.
+                if ((err as { name?: string } | null)?.name === 'NotAllowedError') {
+                  const index = videoRefs.current.indexOf(video)
+                  if (index > 0) {
+                    setMounted((prev) => {
+                      if (!prev[index]) return prev
+                      const next = [...prev]
+                      next[index] = false
+                      return next
+                    })
+                  }
+                }
               })
             }
           } else {
@@ -120,9 +190,8 @@ export default function HeroGallery() {
                 poster={example.posterPath}
                 muted
                 loop
-                autoPlay
                 playsInline
-                preload="metadata"
+                preload="none"
               />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
