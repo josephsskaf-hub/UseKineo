@@ -258,3 +258,41 @@ nenhuma mencao aos 40 creditos do trial.
 nao se abre torneira de aquisicao. O rascunho do `akajitin` (o promotor do
 TAAFT) segue parado e deve ser reescrito com a oferta atual **depois** que o
 render voltar — manda-lo hoje seria pagar audiencia para ver erro 502.
+
+
+---
+
+## 11/08 sprint 21h - A CAMPANHA ORFA: 231 pessoas, e-mail pronto desde 26/07, zero envios
+
+`KINEO-STALLED-RESCUE-ORPHAN-2026-08-11` (commit `d60adde`).
+
+**NAO REFAZER: a campanha para "comecou e nunca completou" EXISTE.** Fica em
+`app/api/admin/send-stalled-rescue/route.ts`, nao em `cron/send-video-rescue`.
+Quem procurar de novo por "como falar com quem quebrou" vai achar o cron irmao,
+concluir que ele exige linha em `videos` e comecar a escrever do zero - foi
+exatamente o que a sprint das 16h ia fazer. A rota certa e admin-gated e nao
+tem cron, por isso nao aparece no `vercel.json`.
+
+Coorte medida em 11/08 (internos, descartaveis e opt-outs fora): **231**
+alcancaveis, **0** ja contactadas, **0** opt-outs. **37 em trial ATIVO** com
+**1.469 creditos vivos**, 16 vencendo em 72h. 13 estao tambem em
+`checkout_abandoned` e foram EXCLUIDAS (dono e o `send-recovery`).
+
+Estado: codigo corrigido e commitado, **nao disparado**. O primeiro lote e uma
+URL de um clique no relatorio do fundador (dry run + `?confirm=SEND&limit=50`).
+Idempotente: `stalled_rescue_emailed` + `stalled_rescue_sent_at`.
+
+**Achado transferivel para qualquer e-mail futuro:** a mesma frase de abertura
+foi reescrita 3x e ficou falsa 3x, sempre por afirmar algo sobre O QUE A CASA
+MANDOU - "you got no error" (falsa para ~58%), "we never once wrote to you"
+(falsa para 216 de 231, que receberam o activation nudge), "nothing we sent you
+acknowledged that" (falsa para 33, que receberam o `send-blackout-winback`, cujo
+texto diz *"The failure was ours"*). Toda afirmacao desse tipo exige enumerar
+corretamente TODOS os jobs de e-mail, e a lista muda toda semana. A frase que
+ficou afirma o RESULTADO e e verdadeira por construcao da coorte: *"nothing
+we've sent you since has actually put a finished video in your hands"*.
+
+Dividas registradas para nao serem redescobertas: `lib/internalAccounts.ts` nao
+cobre `@usekineo.com`; `send-blackout-winback` e cron de e-mail e NAO esta em
+`PROFILE_TIMESTAMP_COLUMNS`; `send-video-rescue` tem a mesma consulta de
+`checkout_abandoned` falhando ABERTA que foi corrigida aqui.

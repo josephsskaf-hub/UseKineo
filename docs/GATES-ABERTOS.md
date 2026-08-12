@@ -1,3 +1,38 @@
+# GATE: **2 COMMITS** represados (sprints 19h e 21h de 11/08)
+
+`origin/main` = **`d44e09d`** (medido por `git ls-remote`, sprint 19h).
+Local HEAD = **`d60adde`**.
+
+**PUSH PENDENTE - mande qualquer mensagem nesta conversa ou rode `scripts\69-PUSH.bat`**
+O 69 e o script vigente e nasceu em CRLF (por isso funciona). Ele nao cria
+commit, nao faz `add`, nao faz `reset`: apaga os 3 locks orfaos e da `git push`.
+Seguro rodar duas vezes.
+
+## NOVO NA SPRINT 21h - 231 pessoas esperando um e-mail que ja estava escrito
+
+`KINEO-STALLED-RESCUE-ORPHAN-2026-08-11`. A campanha `admin/send-stalled-rescue`
+existe desde 26/07, esta correta, e **nunca mandou um unico e-mail**
+(`stalled_rescue_emailed = true` em 0 de 1.080 perfis). Corrigida e commitada.
+
+**ACAO DO FUNDADOR, ~30 SEGUNDOS, DEPOIS DO PUSH:**
+- dry run (nao manda nada): `https://www.usekineo.com/api/admin/send-stalled-rescue`
+- primeiro lote: `https://www.usekineo.com/api/admin/send-stalled-rescue?confirm=SEND&limit=50`
+
+Coorte: **231** alcancaveis, 0 opt-outs, 0 ja contactadas; **37 em trial ATIVO
+com 1.469 creditos vivos**, 16 vencendo em 72h. E 22% de todos os cadastros da
+historia. Deixei FORA do `vercel.json` de proposito: campanha que nunca saiu uma
+vez nao estreia em automatico na voz pessoal do fundador.
+
+## FECHA NESTA SPRINT - a coorte "quebrada" de 26 pessoas (sprint 16h)
+
+O gate aberto as 16h falava de 26 pessoas em trial que quebraram e nunca foram
+avisadas, e dizia que a correcao "nao foi implementada de proposito". Ela foi
+implementada agora, por outro caminho e para um publico 9x maior: nao era
+preciso ramificar o `send-video-rescue` (que exige linha em `videos`), porque
+ja existia uma campanha desenhada exatamente para quem NAO tem essa linha.
+
+---
+
 # 🟢 GATE QUASE ZERADO — **1 COMMIT** (sprint 19h de 11/08)
 
 `origin/main` = **`d44e09d`** — medido por `git ls-remote origin refs/heads/main`
