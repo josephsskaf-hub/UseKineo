@@ -357,11 +357,72 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           })
         }}
         disabled={checkout.pending !== null}
-        className="mt-2 text-xs font-bold underline"
+        // ═══ KINEO-TRIAL-CTA-TAPTARGET-2026-08-12 ═══════════════════════════
+        // O QUE NÃO MUDOU, DE PROPÓSITO: continua um LINK sublinhado, sem
+        // fundo, sem gradiente, sem sombra. A decisão de manter este CTA
+        // visualmente SECUNDÁRIO está escrita no topo deste arquivo ("esta tela
+        // não é um segundo pedido de venda... por isso o CTA é secundário") e
+        // não é minha para reverter — reverter é decisão do fundador, com a
+        // medição no relatório. Peso visual: idêntico.
+        //
+        // O QUE MUDOU: o ALVO DE TOQUE. `text-xs` sem padding é uma caixa de
+        // ~16px de altura (Tailwind: font 12px / line-height 16px). O botão de
+        // DISPENSAR, 30 linhas acima neste mesmo componente, tem 44x44 — com o
+        // comentário que explica por quê, escrito depois de a revisão de 07/08
+        // pagar por um botão de 12x20 nesta mesma classe de tela. A regra foi
+        // aplicada ao botão de ir embora e não ao de comprar.
+        //
+        // 16px está abaixo do mínimo de 24x24 do WCAG 2.2 (2.5.8, nível AA) e
+        // muito abaixo dos 44x44 que este arquivo já pratica. Num produto cuja
+        // superfície é vertical/mobile, o pedido de venda ser o único controle
+        // não-tocável da tela é defeito, não sobriedade.
+        //
+        // Placar que motivou (medido 12/08 ~21:5xZ, contas internas FORA,
+        // impressões→cliques, por PESSOA):
+        //
+        //   · este banner ............ 99 → 1   (1,0%)   · dispensas: 17
+        //   · caixa pós-vídeo ........ 54 → 3   (5,6%)
+        //   · modal de downgrade ..... 12 → 3   (n<30: contagem crua, sem %)
+        //
+        // As TRÊS disparam o MESMO `checkout.launch('basic', '/api/stripe/
+        // checkout?tier=basic&intro=1')` — mesma oferta, mesmo tier, mesmo
+        // preço. Entre as duas com n publicável, a que tem botão de verdade
+        // clica 5,5x mais por impressão. O modal fica em contagem crua porque
+        // 12 impressões estão abaixo do piso de 30 desta casa para publicar
+        // percentual.
+        //
+        // ⚠️ ISTO NÃO É PROVA DE CAUSA. n=1 no numerador deste banner. É o
+        // único diferencial ESTRUTURAL entre as três telas e o conserto custa
+        // zero — e o botão de dispensar, que tem alvo de 44x44, foi tocado por
+        // 17 pessoas contra 1 do de comprar.
+        //
+        // O que dá peso ao 1: a cadeia inteira é do MESMO user_id (75f76a4c),
+        // conferida linha a linha em `events`, e é a única da história:
+        //
+        //   21:26:07.919  trial_active_banner_cta   ← este botão
+        //   21:26:08.903  checkout_started          ← sessão Stripe em 984 ms
+        //   21:26:40.573  payment_success
+        //   21:26:40.961  trial_converted
+        //
+        // 32,7 s do clique ao pago, sem uma única passagem por `/pricing`. A
+        // ÚNICA conversão trial→pago que este produto já teve nasceu neste
+        // link de 12px e pulou a página de preço inteira — enquanto todos os
+        // e-mails de ciclo de vida da casa apontam para `/pricing`.
+        className="mt-2 inline-flex items-center text-xs font-bold underline"
         style={{
           color: '#5cb3ff',
           cursor: checkout.pending !== null ? 'wait' : 'pointer',
           opacity: checkout.pending !== null ? 0.6 : 1,
+          // `minHeight` e não `height`: com rótulo longo em moeda local
+          // ("Keep Creator after the trial — R$ 99,90") a linha pode quebrar, e
+          // altura fixa cortaria o texto em vez de crescer.
+          minHeight: 44,
+          // Padding vertical só; o horizontal fica em 0 para o sublinhado
+          // continuar alinhado à esquerda com o texto acima — o alvo cresce
+          // sem que o bloco se desloque.
+          paddingTop: 6,
+          paddingBottom: 6,
+          textAlign: 'left',
         }}
       >
         {checkout.pending !== null
