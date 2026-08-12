@@ -752,7 +752,7 @@ function d0Seed(userId: string): number {
  * que a pessoa reconheça UM tema como "esse aí sou eu" — três variações de
  * dinheiro não dão essa chance.
  */
-function d0StarterTopics(userId: string): { title: string; label: string }[] {
+function starterTopics(userId: string): { title: string; label: string }[] {
   const bestByVertical = new Map<string, (typeof VIRAL_TOPICS_POOL)[number]>()
   for (const topic of VIRAL_TOPICS_POOL) {
     const current = bestByVertical.get(topic.vertical)
@@ -771,8 +771,30 @@ function d0StarterTopics(userId: string): { title: string; label: string }[] {
   return picked
 }
 
-function d0TopicUrl(title: string): string {
-  return `${APP_URL}/generate?prompt=${encodeURIComponent(title)}&create_intent=fast&${utm('trial_d0')}`
+function oneClickTopicUrl(title: string, campaign: string): string {
+  return `${APP_URL}/generate?prompt=${encodeURIComponent(title)}&create_intent=fast&${utm(campaign)}`
+}
+
+/**
+ * Blocos de 1 clique (texto + HTML) a partir de uma lista de temas. Extraído
+ * porque o d0_welcome e o ending_soon precisam do MESMO bloco: manter duas
+ * cópias era garantir que uma envelhecesse sozinha — o defeito de 05/08 com a
+ * lista local do isTestEmail().
+ */
+function oneClickBlocks(
+  topics: { title: string; label: string }[],
+  campaign: string,
+  attr: (url: string) => string,
+): { text: string; html: string } {
+  return {
+    text: topics.map((t) => `${t.label}\n${oneClickTopicUrl(t.title, campaign)}`).join('\n\n'),
+    html: topics
+      .map(
+        (t) =>
+          `<p style="margin:0 0 10px;"><a href="${attr(oneClickTopicUrl(t.title, campaign))}" style="display:block;background:#f5f7fa;border:1px solid #d9e1ec;border-left:4px solid #2997ff;color:#111;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 16px;border-radius:8px;">${t.label} &rarr;</a></p>`,
+      )
+      .join('\n  '),
+  }
 }
 
 function buildEmail(c: Candidate): { subject: string; text: string; html: string } {
@@ -818,8 +840,8 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
       : `You have ${c.creditsLeft} credits left`
     // KINEO-D0-ONE-CLICK-2026-08-12 — a frase deixa de mandar a pessoa DIGITAR
     // (a parede: 50 de 50 que não geraram também nunca tentaram) e passa a
-    // mandar ESCOLHER. Ver o bloco de comentário em d0StarterTopics().
-    const topics = d0StarterTopics(c.id)
+    // mandar ESCOLHER. Ver o bloco de comentário em starterTopics().
+    const topics = starterTopics(c.id)
     const bodyLine = first
       ? `The fastest way to see what that means is to not think about it. Pick one of these and the video starts writing and rendering by itself — about a minute, nothing to fill in:`
       : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Pick one and it starts by itself:`
@@ -832,16 +854,12 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
       : first
         ? `The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.`
         : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Type any topic, hit generate, and it's done in about a minute.`
+    const d0Blocks = oneClickBlocks(topics, 'trial_d0', attr)
     const topicsText = hasTopics
-      ? `\n${topics.map((t) => `${t.label}\n${d0TopicUrl(t.title)}`).join('\n\n')}\n\nOr start from your own topic: ${url}\n`
+      ? `\n${d0Blocks.text}\n\nOr start from your own topic: ${url}\n`
       : `\n${ctaLabel}: ${url}\n`
     const topicsHtml = hasTopics
-      ? `${topics
-          .map(
-            (t) =>
-              `<p style="margin:0 0 10px;"><a href="${attr(d0TopicUrl(t.title))}" style="display:block;background:#f5f7fa;border:1px solid #d9e1ec;border-left:4px solid #2997ff;color:#111;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 16px;border-radius:8px;">${t.label} &rarr;</a></p>`,
-          )
-          .join('\n  ')}
+      ? `${d0Blocks.html}
   <p style="margin:14px 0 20px;font-size:14px;color:#555;">Or <a href="${attr(url)}" style="color:#2997ff;">start from your own topic</a>.</p>`
       : cta(url, ctaLabel)
     const text = `Hey,
@@ -875,6 +893,58 @@ usekineo.com`
     // próprio e-mail. A linha vem de getFreeTierOffer() para não poder divergir
     // de novo quando o free tier mudar.
     const freeResidual = getFreeTierOffer().copy.residual
+
+    // ── KINEO-STALLED-ENDING-2026-08-12 ───────────────────────────────────────
+    // "If Kineo's been working for you, keep everything exactly as it is" +
+    // botão para /pricing. Para QUEM NUNCA GEROU NADA essa frase é literalmente
+    // falsa e o pedido é o errado: é pedir para comprar um produto que a pessoa
+    // nunca viu funcionar. Medido hoje (12/08): dos 98 trials ativos, 50 nunca
+    // geraram e 17 deles vencem em 48h com ~680 créditos parados. O d0_welcome
+    // NÃO alcança mais essas pessoas (claim permanente na PK de
+    // trial_emails_log — elas já receberam), então `ending_soon` é literalmente
+    // o último e-mail que ainda pode fazê-las ver o produto rodar uma vez.
+    //
+    // A conversão não é o próximo passo delas; a PRIMEIRA EXECUÇÃO é. Ninguém
+    // assina o que nunca viu funcionar, e a única conversão da história do
+    // produto veio de uma conta que tinha vídeo pronto.
+    //
+    // `creditsUsed <= 0` implica zero vídeo (gerar debita), que é a mesma
+    // inferência que o ramo `first` do d0_welcome já usa desde 07/08 — não é
+    // regra nova. O link para /pricing continua no e-mail, só deixa de ser o
+    // único caminho oferecido a quem ainda não tem o que avaliar.
+    const neverUsed = c.creditsUsed <= 0
+    const endTopics = starterTopics(c.id)
+    if (neverUsed && endTopics.length > 0) {
+      const blocks = oneClickBlocks(endTopics, 'trial_ending_stalled', attr)
+      const text = `Hey,
+
+Your Creator trial ends ${when}, and the ${c.creditsLeft} credits in your account expire with it.
+
+You haven't made a Short yet. That's the one thing worth doing before then — it takes about a minute, and you don't have to come up with a topic. Pick one and it starts writing and rendering by itself:
+
+${blocks.text}
+
+Or start from your own topic: ${APP_URL}/generate?${utm('trial_ending_stalled')}
+
+If you'd rather keep the Creator engines after that, the plans are here: ${url}
+
+Kineo Team
+usekineo.com`
+      const html = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial ends ${when}</strong>, and the ${c.creditsLeft} credits in your account expire with it.</p>
+  <p style="margin:0 0 14px;">You haven't made a Short yet. That's the one thing worth doing before then &mdash; it takes about a minute, and you don't have to come up with a topic. Pick one and it starts writing and rendering by itself:</p>
+  ${blocks.html}
+  <p style="margin:14px 0 18px;font-size:14px;color:#555;">Or <a href="${attr(`${APP_URL}/generate?${utm('trial_ending_stalled')}`)}" style="color:#2997ff;">start from your own topic</a>.</p>
+  <p style="margin:0 0 14px;font-size:14px;color:#555;">If you'd rather keep the Creator engines after that, <a href="${attr(url)}" style="color:#2997ff;">the plans are here</a>.</p>
+  ${sig}`)
+      return {
+        subject: `You still have ${c.creditsLeft} credits — they expire ${when}`,
+        text: `${text}${footerText}`,
+        html,
+      }
+    }
+
     const text = `Hey,
 
 Your Creator trial ends ${when}. After that you're back on the free plan, which means:
