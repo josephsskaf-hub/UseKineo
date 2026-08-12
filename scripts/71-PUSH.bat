@@ -15,7 +15,9 @@ REM   IMPRIME a ponta real antes de empurrar.
 REM
 REM ESTADO NESTE MOMENTO (conferido por git ls-remote em 12/08 ~10:0xZ):
 REM   origin/main = 5335ce5
-REM   HEAD local  = 1 commit a frente (UI 1 porcento numero 1, HeroGallery).
+REM   HEAD local  = a frente. Este cabecalho NAO diz quantos commits de
+REM   proposito: foi exatamente a mentira do 70 ("5 commits" quando havia 1).
+REM   O passo 3 imprime a lista real na hora em que voce roda.
 REM   Lock orfao presente: .git\index.lock (0 bytes). O sandbox Linux nao
 REM   consegue apagar (Operation not permitted). So o Windows apaga.
 REM   Este script apaga.
