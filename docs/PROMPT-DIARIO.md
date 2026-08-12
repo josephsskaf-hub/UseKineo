@@ -1343,3 +1343,67 @@ claim próprio cai no `else` e sai como 502, logo o par não tem buraco.
 > **Sempre simular o estado do sistema DEPOIS de o usuario obedecer ao alerta.** Grandeza
 > acumulada nao pode ser recalculada com parametro do presente: ou carimba no evento, ou guarda
 > marca d'agua.
+
+## Aprendizados — sprint 16h de 12/08/2026 (KINEO-FAILED-BY-US)
+
+### 1. DUAS FONTES QUE CONCORDAM PODEM SER A MESMA FONTE
+`videos` vazio **e** `trial_credits_used = 0` pareciam confirmação cruzada de
+"essa gente nunca tentou". São a mesma medida: **falha nossa não debita**, e um
+render que morre não escreve linha em `videos`. A concordância era estrutural,
+não empírica — e produziu o número que orientou o dia inteiro da empresa
+("50 nunca tentaram") quando 35 tinham tentado e 22 foram derrubados por nós.
+**Antes de tratar duas fontes como independentes, perguntar qual EVENTO escreve
+cada uma.** Se o mesmo evento escreve as duas, elas não se confirmam: elas se
+repetem. Corolário operacional: coorte definida por AUSÊNCIA (não gerou, não
+comprou, não usou) passa por `events` antes de virar decisão.
+
+### 2. DETECTOR DEPLOYADO DEPOIS DO INCIDENTE NÃO TEM COORTE — E O CRON FICA "SAUDÁVEL" PARA SEMPRE
+`send-blackout-winback` está correto, roda de 30 em 30 minutos e devolve 200.
+Também tem **0 envios desde 01/08**: ele exige marcador nas últimas 48h, e o
+símbolo que o apagão de 30h deveria ter escrito (`creatomate_rejected`) só
+nasceu no deploy **posterior** ao apagão. Um cron de recuperação que nunca
+encontra vítima é indistinguível de um cron sem vítimas. **Toda correção de
+detecção nasce com a pergunta: e as vítimas do incidente que a gerou, quem as
+alcança?** A resposta quase nunca é o próprio detector — a janela dele já
+fechou. Aqui foram os e-mails de ciclo de vida.
+
+### 3. A METADE HTML DE UM E-MAIL É UMA TERCEIRA TELA
+Corrigi a linha de crédito no corpo em texto e o `replace_all` não pegou a
+versão HTML (`&mdash;` no lugar do travessão). O e-mail sairia afirmando "0
+trial credits are still sitting in your account, untouched". **Corolário da
+regra dos pares: texto e HTML do mesmo e-mail são dois call sites do mesmo
+conteúdo.** Ao mudar uma frase, buscar as DUAS — e o mesmo vale para o assunto,
+que é o único texto que 100% da coorte lê.
+
+### 4. UTM DE UM RAMO NOVO NASCE EM UMA VARIÁVEL SÓ
+A 1ª versão do ramo reaproveitou `blocks` (montado com o campaign do ramo
+antigo) no texto e montou o HTML com o campaign novo. O mesmo e-mail sairia com
+duas origens, o CTR ficaria dividido entre dois nomes, e metade somaria no
+balde do ramo que ele substitui. **Campo que aparece em mais de uma superfície
+do mesmo artefato nasce de UMA variável** — 3ª vez que este padrão aparece
+(ver "três vocabulários para o mesmo campo", 08/08).
+
+### 5. COMENTÁRIO MEU QUE AFIRMA PARENTESCO ENTRE DUAS LISTAS É UM CONVITE A FUNDI-LAS
+Escrevi que `send-blackout-winback` "consome esta MESMA constante". Era falso —
+e o perigo não é a falsidade, é que a correção óbvia (fazer virar verdade)
+**quebraria uma decisão de segurança**: as duas listas diferem em
+`creatomate_unverified` porque lá o símbolo dispara campanha em massa e uma
+recusa ambígua de 1s não pode disparar isso. **Quando duas listas parecidas
+existem de propósito, o comentário tem de dizer POR QUE elas não podem se
+unir** — senão a próxima sprint "limpa a duplicação" e liga um disparo em massa
+num soluço de provedor.
+
+### 6. ALLOWLIST × DENYLIST SE DECIDE PELO CUSTO DO ERRO, NÃO PELA COBERTURA
+O predicado "a falha foi nossa" autoriza um pedido de desculpas. O erro caro
+não é deixar uma vítima de fora (ela recebe a copy anterior, que não afirma
+culpa de ninguém) — é dizer "a culpa foi nossa" para quem bateu num paywall.
+Logo: **allowlist, falhando fechado em símbolo desconhecido** — o oposto da
+regra de gate de feature, onde allowlist "erra do lado caro". A mesma estrutura
+de dados muda de lado conforme o que a decisão AFIRMA.
+
+### 7. O NÚMERO BRUTO PODE DIZER O CONTRÁRIO DO NÚMERO CONTROLADO (SIMPSON, NA PRÁTICA)
+O onboarding parecia ativamente prejudicial: quem clica conclui 44%, quem
+ignora conclui 66%. Controlando por `activation_autostart` (93,7% do grupo que
+"ignora" nunca precisou da tela), inverte: 37,5% × 21,4%. **Antes de matar ou
+premiar uma superfície por taxa comparada, perguntar quem chegou ao resultado
+POR OUTRO CAMINHO.** Custou 12 minutos de subagente e evitou matar a tela certa.

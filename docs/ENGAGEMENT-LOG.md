@@ -344,3 +344,48 @@ verdadeira por construcao da coorte.
 sprint) seria a mesma no `downgraded_loss` - a pessoa receberia os MESMOS 3
 temas em 3 e-mails seguidos. Resolvido aqui com sufixo `:loss` na semente, mas
 o `ending_soon` ainda repete os temas do `d0_welcome`. Vale o mesmo sufixo la.
+
+
+---
+
+## 12/08 sprint 16h - "NAO GASTOU CREDITO" NAO E "NAO TENTOU"
+
+`KINEO-FAILED-BY-US-2026-08-12` (commit `57ac670`) e
+`KINEO-REJECTION-COPY-2026-08-12` (commit `02e9a33`).
+
+**CORRECAO DE NUMERO PUBLICADO NOS DOCS DE HOJE. NAO REPETIR O ANTIGO.** A
+sprint das 10h escreveu "dos 50 trials sem video, 0 tentaram e falharam; 50
+nunca tentaram" e as 13h herdaram. Medido em `events`: dos 52 trials ativos com
+zero video, **52 abriram /generate, 43 clicaram analyze, 35 chamaram
+generate_started e 23 tem falha registrada** - 22 classificaveis como NOSSAS,
+21 exclusivamente dentro do apagao Creatomate de 09-10/08. Ate 8 tentativas por
+pessoa, zero sucessos, **zero creditos queimados**.
+
+**A CAUSA DO ERRO E TRANSFERIVEL, e e o aprendizado da sprint:** `videos` e
+`trial_credits_used` NAO sao duas fontes independentes que se confirmam. As
+duas medem a mesma coisa, porque **quando a falha e nossa o debito nao
+acontece**. Quem tentou 5 vezes e foi derrubado fica, nas duas tabelas,
+identico a quem nunca abriu o app. Toda coorte definida por AUSENCIA (nao
+gerou / nao comprou / nao usou) passa por `events` antes de virar decisao.
+
+**NAO REFAZER: send-blackout-winback nao alcancou ninguem, e nao adianta
+mexer nele para esta coorte.** 0 envios desde 01/08, medido. Ele exige marcador
+de apagao nas ultimas 48h e o simbolo `creatomate_rejected` so passou a ser
+escrito no deploy de 10/08, DEPOIS do fim do apagao. A janela dessas 23 pessoas
+fechou para sempre naquele cron - quem as alcanca sao `ending_soon` (12 delas;
+as outras 10 ja queimaram o claim permanente da PK) e `downgraded_loss` (as 23,
+ninguem recebeu ainda).
+
+**Divida NOVA registrada:** `app/api/compose/unlock/route.ts` responde 502 SEM
+disparar `alertCreatomateDown` - apagao que so atinja esse caminho e invisivel.
+E o ramo `neverUsed` do `ending_soon` (commit das 10h) imprime "the 0 credits
+in your account expire with it" se o saldo for 0; hoje sao 0 contas ativas
+nesse estado, e a guarda entrou SO na copy nova.
+
+**Ideia MEDIDA E MORTA (nao reabrir sem dado novo):** "o onboarding e
+instrumento cego, 60% saem sem evento". Nao e - 93,7% desse grupo tinha
+`activation_autostart` e nunca precisou da tela. Controlado por isso, quem
+clica converte 37,5% x 28,2% de quem pula. O bruto (44% x 66%) diz o oposto,
+por Simpson. `viral_onboarding_primary_clicked` e
+`first_video_started_from_viral_onboarding` sao o MESMO clique (104 x 104
+pessoas, 0,060s de intervalo medio) - nao contar como dois sinais.
