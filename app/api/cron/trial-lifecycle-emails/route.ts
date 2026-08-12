@@ -17,6 +17,11 @@ import {
   type TrialProfileFields,
   type TrialVariant,
 } from '@/lib/reverseTrial'
+// KINEO-D0-ONE-CLICK-2026-08-12 — fonte única dos temas de 1 clique do d0.
+// É o MESMO pool que /viral-now e /generate?viral_topic= já servem; nada é
+// duplicado aqui (a cópia local de lista com fonte única foi o defeito de
+// 05/08 com isTestEmail()).
+import { VIRAL_TOPICS_POOL } from '@/lib/viralTopics'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
 // [KINEO-TRIAL-EMAILS-2026-08-07]
@@ -686,6 +691,90 @@ function utm(campaign: string): string {
   return `utm_source=lifecycle&utm_medium=email&utm_campaign=${campaign}&intent_campaign=${campaign}`
 }
 
+// ── KINEO-D0-ONE-CLICK-2026-08-12 ──────────────────────────────────────────
+// POR QUE ISTO EXISTE (medido em produção hoje, 12/08 ~10:15Z):
+//   · 98 trials ativos; 50 deles (51%) NUNCA geraram um vídeo.
+//   · Desses 50, os 50 NUNCA TENTARAM — zero linhas em `videos`, nem falhas.
+//     Não é bug de render: é gente que chegou, ganhou 40 créditos e não clicou.
+//   · 1.990 créditos concedidos estão parados nessas contas. 17 expiram em 48h.
+//   · 44 dos 50 RECEBERAM o d0_welcome. O e-mail chegou. Ninguém agiu.
+//   · Efeito medido do d0_welcome em 93 envios (76 maduros >24h): 6 vídeos
+//     depois do envio = 6,5%. Entre os que nunca tinham gerado: 0.
+//
+// O e-mail não falhava por entrega nem por texto — falhava por DESTINO. O CTA
+// levava para `/generate` puro, que é uma caixa de texto vazia pedindo uma
+// ideia. Quem não tem ideia não digita: essa é a parede.
+//
+// REGRA ZERO — o trilho de 1 clique JÁ EXISTE e já é usado pelas 28 páginas de
+// SEO e pela /checkout/success: `/generate?prompt=<texto>&create_intent=fast`
+// prefila e dispara sozinho (GenerateClient, effect do `create_intent`). Nada
+// novo foi construído aqui; o d0_welcome era a única superfície de aquisição
+// que ainda não usava o trilho.
+//
+// DUAS RESTRIÇÕES QUE O CÓDIGO IMPÕE (conferidas, não supostas):
+//  1. `if (!explicitPrompt) consumeAndSkip('empty_prompt')` — o autostart exige
+//     `prompt=` COM texto. Mandar só `viral_topic=` geraria um clique que não
+//     faz nada, que é exatamente o modo de falha do item 7. Por isso os links
+//     carregam o prompt.
+//  2. `prompt` é cortado em 1000 chars (GenerateClient) / 2000 (page.tsx). Os
+//     prompts do VIRAL_TOPICS_POOL têm ~1.400 chars de roteiro estruturado e
+//     sairiam TRUNCADOS no meio de uma cena. Por isso o link leva o TÍTULO
+//     curto: o AUTO-STRUCTURE (/api/generate-script, v2.5) transforma tema
+//     livre em roteiro HOOK/MICRO REWARD antes do analyze-idea. Título curto é
+//     o formato que aquele trilho foi desenhado para receber.
+//  3. Sem `viral_topic=` de propósito: aquele parâmetro liga `fromViralNow`, que
+//     mexe em `setMode`. O trilho provado das 28 páginas é prompt+create_intent
+//     e só. Uma variável por vez.
+//
+// Os IDs do pool são estáveis (não rodam com a rotação de 4h de /viral-now),
+// então um e-mail aberto 3 dias depois continua clicando em algo que existe.
+const D0_TOPIC_COUNT = 3
+
+function d0Seed(userId: string): number {
+  // FNV-1a sobre o id da conta. NÃO é para sobreviver a reenvio: a idempotência
+  // é a PK(user_id, email_kind) de `trial_emails_log` (o claim é permanente,
+  // linha 55 e 128), então um segundo d0_welcome para a mesma conta não existe.
+  // É para o disparo ser REPRODUZÍVEL: dado um id, dá para recalcular
+  // exatamente quais 3 links aquela pessoa recebeu quando ela responder
+  // "cliquei e deu errado". Um Math.random() aqui tornaria o e-mail já enviado
+  // impossível de reconstruir.
+  let h = 0x811c9dc5
+  for (let i = 0; i < userId.length; i += 1) {
+    h ^= userId.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h >>> 0
+}
+
+/**
+ * Três temas de VERTICAIS DISTINTAS, os de maior viralScore de cada uma,
+ * girados pelo id da conta. Verticais distintas porque o objetivo do e-mail é
+ * que a pessoa reconheça UM tema como "esse aí sou eu" — três variações de
+ * dinheiro não dão essa chance.
+ */
+function d0StarterTopics(userId: string): { title: string; label: string }[] {
+  const bestByVertical = new Map<string, (typeof VIRAL_TOPICS_POOL)[number]>()
+  for (const topic of VIRAL_TOPICS_POOL) {
+    const current = bestByVertical.get(topic.vertical)
+    if (!current || topic.viralScore > current.viralScore) bestByVertical.set(topic.vertical, topic)
+  }
+  const champions = [...bestByVertical.values()].sort(
+    (a, b) => b.viralScore - a.viralScore || a.id.localeCompare(b.id),
+  )
+  if (champions.length === 0) return []
+  const offset = d0Seed(userId) % champions.length
+  const picked: { title: string; label: string }[] = []
+  for (let i = 0; i < champions.length && picked.length < D0_TOPIC_COUNT; i += 1) {
+    const topic = champions[(offset + i) % champions.length]
+    picked.push({ title: topic.title, label: `${topic.emoji} ${topic.title}` })
+  }
+  return picked
+}
+
+function d0TopicUrl(title: string): string {
+  return `${APP_URL}/generate?prompt=${encodeURIComponent(title)}&create_intent=fast&${utm('trial_d0')}`
+}
+
 function buildEmail(c: Candidate): { subject: string; text: string; html: string } {
   const footerText = emailFooterText(c.id)
   const footerHtml = emailFooterHtml(c.id)
@@ -727,25 +816,47 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
     const creditLine = first
       ? `${c.creditsLeft} credits are sitting in your account`
       : `You have ${c.creditsLeft} credits left`
+    // KINEO-D0-ONE-CLICK-2026-08-12 — a frase deixa de mandar a pessoa DIGITAR
+    // (a parede: 50 de 50 que não geraram também nunca tentaram) e passa a
+    // mandar ESCOLHER. Ver o bloco de comentário em d0StarterTopics().
+    const topics = d0StarterTopics(c.id)
     const bodyLine = first
-      ? `The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.`
-      : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Type any topic, hit generate, and it's done in about a minute.`
+      ? `The fastest way to see what that means is to not think about it. Pick one of these and the video starts writing and rendering by itself — about a minute, nothing to fill in:`
+      : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Pick one and it starts by itself:`
     const ctaLabel = first ? 'Make your first Short' : 'Make your next Short'
+    // Fallback: se o pool ficar vazio por qualquer motivo, o e-mail volta a ser
+    // exatamente o de antes em vez de sair sem CTA nenhum.
+    const hasTopics = topics.length > 0
+    const bodyLineSafe = hasTopics
+      ? bodyLine
+      : first
+        ? `The fastest way to see what that means: make one Short. Type any topic, hit generate, and it's done in about a minute.`
+        : `You've already put it to work once — the rest of the trial is for finding the format that sticks. Type any topic, hit generate, and it's done in about a minute.`
+    const topicsText = hasTopics
+      ? `\n${topics.map((t) => `${t.label}\n${d0TopicUrl(t.title)}`).join('\n\n')}\n\nOr start from your own topic: ${url}\n`
+      : `\n${ctaLabel}: ${url}\n`
+    const topicsHtml = hasTopics
+      ? `${topics
+          .map(
+            (t) =>
+              `<p style="margin:0 0 10px;"><a href="${attr(d0TopicUrl(t.title))}" style="display:block;background:#f5f7fa;border:1px solid #d9e1ec;border-left:4px solid #2997ff;color:#111;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 16px;border-radius:8px;">${t.label} &rarr;</a></p>`,
+          )
+          .join('\n  ')}
+  <p style="margin:14px 0 20px;font-size:14px;color:#555;">Or <a href="${attr(url)}" style="color:#2997ff;">start from your own topic</a>.</p>`
+      : cta(url, ctaLabel)
     const text = `Hey,
 
 Your Creator trial is live. ${creditLine} — every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.
 
-${bodyLine}
-
-${ctaLabel}: ${url}
-
+${bodyLineSafe}
+${topicsText}
 Kineo Team
 usekineo.com`
     const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.</p>
-  <p style="margin:0 0 14px;">${bodyLine}</p>
-  ${cta(url, ctaLabel)}
+  <p style="margin:0 0 14px;">${bodyLineSafe}</p>
+  ${topicsHtml}
   ${sig}`)
     return { subject: `Your Creator trial is live — ${c.creditsLeft} credits inside`, text: `${text}${footerText}`, html }
   }
