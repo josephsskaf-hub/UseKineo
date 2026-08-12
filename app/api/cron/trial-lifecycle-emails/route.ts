@@ -22,6 +22,7 @@ import {
 // duplicado aqui (a cópia local de lista com fonte única foi o defeito de
 // 05/08 com isTestEmail()).
 import { VIRAL_TOPICS_POOL } from '@/lib/viralTopics'
+import { OUR_FAILURE_EVENT_NAME, isOurFailure } from '@/lib/lifecycle/ourFailure'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
 // [KINEO-TRIAL-EMAILS-2026-08-07]
@@ -173,6 +174,18 @@ const VIDEO_COUNT_USERS_PER_QUERY = 50
 const VIDEO_COUNT_PAGE = 500
 /** Teto de segurança por bloco: acima disto, fecha em vez de paginar sem fim. */
 const VIDEO_COUNT_HARD_CAP = 50_000
+/**
+ * KINEO-FAILED-BY-US-2026-08-12 — leitura de "esta conta foi derrubada por
+ * NÓS". Mesmos parâmetros da contagem de vídeos (50 contas por requisição,
+ * página de 500, teto por bloco), e pela mesma razão: cada conta traz N linhas,
+ * não 1.
+ *
+ * A janela existe porque a pergunta tem prazo: o e-mail fala do trial DESTA
+ * pessoa, e uma falha de junho não explica um trial de agosto. 14 dias cobrem
+ * com folga o trial mais longo (7d) mais a coorte pós-fim que ainda recebe D5
+ * (5 dias) e D10 (10 dias).
+ */
+const OUR_FAILURE_LOOKBACK_MS = 14 * DAY_MS
 
 /**
  * Janela do welcome. A spec diz "ativação <24h", e é isso que o cron diário
@@ -446,6 +459,24 @@ interface Candidate {
    * Vale 0 para as coortes que não precisam dele (ninguém lê fora da extensão).
    */
   videosMade: number
+  /**
+   * KINEO-FAILED-BY-US-2026-08-12 — a conta tem, nos últimos 14 dias, pelo
+   * menos uma geração que falhou por causa NOSSA (ver `lib/lifecycle/
+   * ourFailure.ts` para a regra estreita que autoriza esta afirmação).
+   *
+   * Só duas superfícies leem: os ramos "nunca gerou nada" do `ending_soon` e do
+   * `downgraded_loss`. Fora deles não muda uma vírgula do e-mail.
+   *
+   * ⚠️ FALHA ABERTA, ao contrário de `videosMade` — e a diferença é o tipo de
+   * afirmação. `videosMade` vira NÚMERO impresso ("you made 4 videos"), então
+   * ler errado publica uma mentira e a coorte inteira espera. Este campo só
+   * ACRESCENTA um pedido de desculpas: `false` por leitura falha devolve a copy
+   * que já está no ar hoje, que não afirma culpa de ninguém. Silenciar o
+   * `ending_soon` da coorte inteira por causa de uma consulta auxiliar custaria
+   * o último e-mail que essas contas ainda recebem — janela de horas, não de
+   * dias. O degrade é observável no JSON de resposta (`our_failure_degraded`).
+   */
+  failedOnUs: boolean
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -478,7 +509,12 @@ function variantOf(raw: unknown): TrialVariant {
  * A coorte pós-trial inteira espera o próximo run (o cron é HORÁRIO e a janela
  * da perda é de 48h — adiar uma hora não custa e-mail nenhum).
  */
-function dueKind(row: ProfileRow, now: number, videoCounts: Map<string, number> | null): Candidate | null {
+function dueKind(
+  row: ProfileRow,
+  now: number,
+  videoCounts: Map<string, number> | null,
+  ourFailureIds: ReadonlySet<string>,
+): Candidate | null {
   const id = typeof row.id === 'string' ? row.id : ''
   const email = typeof row.email === 'string' ? row.email.trim() : ''
   if (!id || !email || isTestEmail(email)) return null
@@ -525,6 +561,24 @@ function dueKind(row: ProfileRow, now: number, videoCounts: Map<string, number> 
     msLeft: Math.max(0, endsMs - now),
     // Preenchido de verdade só no ramo da extensão — ver o comentário do campo.
     videosMade: 0,
+    // KINEO-FAILED-BY-US-2026-08-12 — vale para TODOS os kinds desde já (o
+    // conjunto vem pronto), mas só os dois ramos "nunca gerou nada" leem.
+    //
+    // ⚠️ A SEGUNDA CONDIÇÃO NÃO É REDUNDANTE, e ela é o achado da 2ª passada da
+    // revisão. A copy nova afirma "you tried and it NEVER finished" — falso
+    // para quem tem vídeo pronto. O ramo do `ending_soon` que hospeda a frase
+    // não filtra por vídeo: ele filtra por `creditsUsed <= 0`, apoiado no
+    // comentário "gerar debita, logo 0 usados ⇒ 0 vídeos". Isso é verdade
+    // enquanto o trial for concedido NO CADASTRO (medido hoje: 0 contas com 0
+    // créditos usados e vídeo pronto, em 51). No dia em que um usuário free
+    // ANTIGO ganhar um trial, ele terá vídeos e 0 créditos de trial usados — e
+    // a inferência vira mentira sem que uma linha mude. `videoCounts` cobre a
+    // coorte inteira (a leitura é sobre `cohortIds`, não só a pós-trial), então
+    // conferir custa um `get`. `null` (leitura falhou) mantém `true`: este
+    // campo falha ABERTO por decisão, e o pior caso do fail-open é a copy de
+    // hoje para alguém que talvez tenha um vídeo — não uma coorte silenciada.
+    failedOnUs:
+      ourFailureIds.has(id) && (videoCounts === null || (videoCounts.get(id) ?? 0) === 0),
   }
 
   if (status === 'active') {
@@ -1031,6 +1085,111 @@ usekineo.com`
     const endTopics = starterTopics(c.id)
     if (neverUsed && endTopics.length > 0) {
       const blocks = oneClickBlocks(endTopics, 'trial_ending_stalled', attr)
+
+      // ── KINEO-FAILED-BY-US-2026-08-12 ───────────────────────────────────────
+      // ESTE E-MAIL NÃO PODE DIZER A MESMA COISA PARA DUAS PESSOAS OPOSTAS.
+      //
+      // O ramo acima nasceu hoje de manhã em cima de um número medido —
+      // "50 dos 98 trials ativos nunca geraram um vídeo e ZERO deles tentou" —
+      // e o número estava certo nas fontes que ele usou (`videos` vazio,
+      // `trial_credits_used = 0`) e ERRADO no mundo: `events` mostra que 35
+      // dessas contas chamaram `generate_started` e **22 têm falha registrada
+      // como NOSSA**, 21 delas exclusivamente dentro do apagão de 30 horas de
+      // 09–10/08. As duas fontes concordavam porque falha nossa não debita.
+      //
+      // Para essas 22 pessoas — 11 das quais vencem nas próximas 24h — a frase
+      // "You haven't made a Short yet. That's the one thing worth doing" é o
+      // conselho de quem não olhou: elas tentaram, algumas cinco vezes, e a
+      // resposta que receberam na tela foi "Render service rejected the job.
+      // Please try again." Repetir "é só um minuto" para quem já gastou vários
+      // é pedir de novo a coisa que a casa quebrou, sem admitir que quebrou.
+      //
+      // A copy de desculpa é a mesma promessa do `send-blackout-winback`
+      // ("The failure was ours") — que para ESTA coorte nunca saiu: aquele cron
+      // só age enquanto houver marcador de apagão nas últimas 48h, e o símbolo
+      // `creatomate_rejected` só passou a ser escrito DEPOIS que o apagão
+      // acabou. Zero envios desde 01/08, medido. Este ramo é o que resta.
+      //
+      // O QUE CADA FRASE PODE AFIRMAR (a regra que este arquivo já pagou caro
+      // três vezes: afirmação factual sobre o usuário ou é conferida no banco,
+      // ou vira afirmação sobre a REGRA, que é sempre verdadeira):
+      //   · "não foi você" — verdadeira por construção da coorte (`failedOnUs`
+      //     exige 5xx nosso ou símbolo de apagão de fornecedor; paywall, gate e
+      //     entrada inválida ficam de fora — ver lib/lifecycle/ourFailure.ts);
+      //   · "nada foi cobrado" — NÃO é verdadeira por construção. É gated em
+      //     `creditsUsed <= 0`, que este ramo já provou linha acima. As 22 têm
+      //     todas 0 usados hoje, mas amanhã uma delas pode ter 1, e aí a frase
+      //     some sozinha em vez de mentir;
+      //   · NÃO dizemos "está consertado". Este cron não sabe se está — ele não
+      //     mede a saúde do render. Afirmar conserto é a única frase aqui que
+      //     pode ser desmentida pelo próximo clique da pessoa, e ela é
+      //     justamente a que não precisamos: o CTA já é o teste.
+      if (c.failedOnUs) {
+        // ⚠️ UM ÚNICO `oneClickBlocks` PARA AS DUAS METADES DO E-MAIL. A 1ª
+        // versão deste ramo reaproveitava `blocks.text` (montado com
+        // `trial_ending_stalled`) e montava o HTML com
+        // `trial_ending_failed_by_us`: o MESMO e-mail sairia com duas origens
+        // de UTM, e o CTR desta copy — a única pergunta que ela existe para
+        // responder — ficaria dividido entre dois nomes, com a metade texto
+        // somando no balde do ramo que ela substitui. Campo que aparece em mais
+        // de uma superfície nasce de UMA variável.
+        const fbuBlocks = oneClickBlocks(endTopics, 'trial_ending_failed_by_us', attr)
+        // ⚠️ A LINHA DE CRÉDITO É CONDICIONAL, e não por simetria: `creditsLeft`
+        // é `min(teto − usados, saldo real)`, então uma conta com concessão
+        // falha tem `usados = 0` (ela passa no `neverUsed` acima) e `saldo = 0`.
+        // Sem esta guarda o e-mail diria "0 trial credits are still sitting in
+        // your account, untouched" — absurdo escrito com convicção. Hoje não há
+        // nenhuma conta ATIVA nesse estado (medido: 0 de 106), e é exatamente
+        // por isso que a guarda entra agora: ela custa uma linha enquanto a
+        // coorte é zero e custa um e-mail ridículo no dia em que não for. O
+        // ramo `neverUsed` que já está no ar tem o MESMO buraco, registrado
+        // como dívida no doc da sprint em vez de corrigido aqui — mexer na copy
+        // que saiu hoje de manhã, sem coorte viva, é risco sem prêmio.
+        const fbuCreditsText =
+          c.creditsLeft > 0
+            ? `\n${c.creditsLeft} trial credits are still sitting in your account, untouched by those attempts. They expire ${when}, when the trial ends.\n`
+            : `\nYour trial ends ${when}.\n`
+        const fbuCreditsHtml =
+          c.creditsLeft > 0
+            ? `  <p style="margin:0 0 14px;">${c.creditsLeft} trial credits are still sitting in your account, <strong>untouched</strong> by those attempts. They expire ${when}, when the trial ends.</p>\n`
+            : `  <p style="margin:0 0 14px;">Your trial ends ${when}.</p>\n`
+        const fbuText = `Hey,
+
+You tried to make a Short on Kineo and it never finished. That wasn't you and it wasn't your topic — the failure was on our side.
+${fbuCreditsText}
+If you want to try again, pick a topic below — it starts writing and rendering by itself, no blank page:
+
+${fbuBlocks.text}
+
+Or start from your own topic: ${APP_URL}/generate?${utm('trial_ending_failed_by_us')}
+
+If you'd rather keep the Creator engines after that, the plans are here: ${url}
+
+Kineo Team
+usekineo.com`
+        const fbuHtml = wrap(`
+  <p style="margin:0 0 14px;">Hey,</p>
+  <p style="margin:0 0 14px;"><strong>You tried to make a Short on Kineo and it never finished.</strong> That wasn't you and it wasn't your topic &mdash; the failure was on our side.</p>
+${fbuCreditsHtml}  <p style="margin:0 0 14px;">If you want to try again, pick a topic below &mdash; it starts writing and rendering by itself, no blank page:</p>
+  ${fbuBlocks.html}
+  <p style="margin:14px 0 18px;font-size:14px;color:#555;">Or <a href="${attr(`${APP_URL}/generate?${utm('trial_ending_failed_by_us')}`)}" style="color:#2997ff;">start from your own topic</a>.</p>
+  <p style="margin:0 0 14px;font-size:14px;color:#555;">If you'd rather keep the Creator engines after that, <a href="${attr(url)}" style="color:#2997ff;">the plans are here</a>.</p>
+  ${sig}`)
+        return {
+          // O assunto NÃO promete conserto nem pede compra: diz de quem foi a
+          // culpa e o que ainda está lá. É a única coisa nova que esta pessoa
+          // não sabe. Gated no saldo pela mesma razão do corpo — assunto que
+          // anuncia "your 0 credits" é o pior lugar possível para essa frase,
+          // porque é o único texto que TODA a coorte lê.
+          subject:
+            c.creditsLeft > 0
+              ? `That one was on us — your ${c.creditsLeft} credits expire ${when}`
+              : `That one was on us — your trial ends ${when}`,
+          text: `${fbuText}${footerText}`,
+          html: fbuHtml,
+        }
+      }
+
       const text = `Hey,
 
 Your Creator trial ends ${when}, and the ${c.creditsLeft} credits in your account expire with it.
@@ -1152,13 +1311,36 @@ usekineo.com`
       const lossTopics = starterTopics(`${c.id}:loss`)
       // Pool vazio ⇒ nada de e-mail sem CTA: devolve o texto anterior intacto.
       if (lossTopics.length > 0) {
-        const blocks = oneClickBlocks(lossTopics, 'trial_loss_stalled', attr)
+        // ── KINEO-FAILED-BY-US-2026-08-12 ─────────────────────────────────────
+        // Mesma correção do `ending_soon`, um degrau depois no relógio, e aqui
+        // ela importa MAIS: o `ending_soon` ainda podia ser lido como convite;
+        // este e-mail é uma lista de perdas. Mandar "veja o que você perdeu"
+        // para quem nunca conseguiu rodar POR CULPA NOSSA, sem uma palavra
+        // sobre isso, é cobrar da pessoa o preço de um erro nosso — e é o
+        // e-mail que antecede o pedido de dinheiro (COMEBACK50 no D5).
+        //
+        // A frase de abertura que já existe ("nothing we sent you actually put
+        // a finished video in your hands") continua verdadeira e continua no
+        // lugar: ela fala do RESULTADO, a única forma que este arquivo já
+        // provou segura três vezes. O que entra é a atribuição — de quem foi a
+        // culpa — e ela só entra para quem `ourFailure.ts` classifica.
+        const blocks = oneClickBlocks(
+          lossTopics,
+          c.failedOnUs ? 'trial_loss_failed_by_us' : 'trial_loss_stalled',
+          attr,
+        )
+        const fbuLineText = c.failedOnUs
+          ? '\nThe attempts you did make never finished, and that was on our side, not yours.\n'
+          : ''
+        const fbuLineHtml = c.failedOnUs
+          ? `  <p style="margin:0 0 14px;">The attempts you did make never finished, and <strong>that was on our side</strong>, not yours.</p>\n`
+          : ''
         const nrText = `Hey,
 
 Your Creator trial ended, and nothing we sent you actually put a finished video in your hands. Here's what closed with it:
 
 ${bullets.map((b) => `- ${b}`).join('\n')}
-
+${fbuLineText}
 You can still make one on the free plan you're back on. Pick a topic and it starts writing and rendering by itself — no blank page to stare at:
 
 ${blocks.text}
@@ -1173,7 +1355,7 @@ usekineo.com`
   <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
     ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
-  <p style="margin:0 0 14px;">You can still make one on the <strong>free plan you're back on</strong>. Pick a topic and it starts writing and rendering by itself &mdash; no blank page to stare at:</p>
+${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <strong>free plan you're back on</strong>. Pick a topic and it starts writing and rendering by itself &mdash; no blank page to stare at:</p>
   ${blocks.html}
   <p style="margin:14px 0 18px;font-size:14px;color:#555;">If you'd rather have the Creator engines back, <a href="${attr(url)}" style="color:#2997ff;">see the plans</a>.</p>
   ${sig}`)
@@ -1446,9 +1628,64 @@ export async function GET(req: NextRequest) {
     console.error('[trial-lifecycle-emails] VIDEO COUNTS UNAVAILABLE — post-trial cohort deferred this run')
   }
 
+  // ── 1-ter) Quem foi derrubado por NÓS ─────────────────────────────────────
+  // KINEO-FAILED-BY-US-2026-08-12 — ver o cabeçalho de `lib/lifecycle/
+  // ourFailure.ts` para POR QUE esta leitura existe. Em uma linha: `videos` e
+  // `trial_credits_used` concordam em dizer "não fez nada" justamente porque
+  // falha nossa não debita, então a vítima de um apagão nosso é, nas duas
+  // fontes, idêntica a quem nunca abriu o app. `events` é a única que sabe.
+  //
+  // Mesma forma da contagem de vídeos (blocos de 50 contas, página de 500,
+  // `.order('id')` obrigatório) — e o ORDER BY aqui é ainda menos opcional:
+  // `events` recebe escrita o tempo todo, e `.range()` sobre ordem instável
+  // pularia linhas em silêncio. Diferença de contrato: aqui a falha é ABERTA
+  // (ver o comentário do campo `failedOnUs`).
+  const ourFailureIds = new Set<string>()
+  let ourFailureUsable = true
+  const failureSince = new Date(now - OUR_FAILURE_LOOKBACK_MS).toISOString()
+  outerFail: for (const part of chunk(cohortIds, VIDEO_COUNT_USERS_PER_QUERY)) {
+    let from = 0
+    for (;;) {
+      const { data: evRows, error: evErr } = await admin
+        .from('events')
+        .select('id, user_id, metadata')
+        .in('user_id', part)
+        .eq('name', OUR_FAILURE_EVENT_NAME)
+        .gte('created_at', failureSince)
+        .order('id', { ascending: true })
+        .range(from, from + VIDEO_COUNT_PAGE - 1)
+      if (evErr) {
+        console.error('[trial-lifecycle-emails] our-failure query failed:', evErr.message)
+        ourFailureUsable = false
+        break outerFail
+      }
+      const got = (evRows ?? []) as Array<{ user_id?: unknown; metadata?: unknown }>
+      for (const e of got) {
+        if (typeof e.user_id === 'string' && isOurFailure(e.metadata)) ourFailureIds.add(e.user_id)
+      }
+      if (got.length < VIDEO_COUNT_PAGE) break
+      from += got.length
+      if (from >= VIDEO_COUNT_HARD_CAP) {
+        console.error(
+          `[trial-lifecycle-emails] our-failure read exceeded ${VIDEO_COUNT_HARD_CAP} rows for ${part.length} users — giving up on this signal`,
+        )
+        ourFailureUsable = false
+        break outerFail
+      }
+    }
+  }
+  if (!ourFailureUsable) {
+    // ⚠️ O CONJUNTO PARCIAL É DESCARTADO INTEIRO, de propósito. Um `break` no
+    // meio da paginação deixa metade da coorte classificada e metade não — e a
+    // metade não lida vira "não foi vítima", que é a afirmação errada com cara
+    // de resposta. Ou o sinal vale para todo mundo, ou não vale para ninguém.
+    ourFailureIds.clear()
+    console.error('[trial-lifecycle-emails] OUR-FAILURE SIGNAL UNAVAILABLE — copy de desculpa suprimida neste run')
+  }
+
   const candidates: Candidate[] = []
   for (const row of (rows ?? []) as ProfileRow[]) {
-    const c = dueKind(row, now, videoCounts)
+    const c = dueKind(row, now, videoCounts, ourFailureIds)
     if (c) candidates.push(c)
   }
 
@@ -1461,6 +1698,11 @@ export async function GET(req: NextRequest) {
       // Sem este campo, "ninguém devido" e "não consegui olhar para a coorte
       // pós-trial" seriam a MESMA resposta 200 — e a segunda é um incidente.
       video_counts_degraded: videoCounts === null,
+      // KINEO-FAILED-BY-US-2026-08-12 — degrade observável e SEPARADO do de
+      // cima: este não adia ninguém, só apaga o pedido de desculpas. Sem campo
+      // próprio, um run que mandou a copy antiga por falha de leitura seria
+      // indistinguível de um run em que ninguém era vítima.
+      our_failure_degraded: !ourFailureUsable,
     })
   }
 
@@ -1511,6 +1753,11 @@ export async function GET(req: NextRequest) {
       // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — true = a coorte pós-trial
       // INTEIRA foi adiada nesta execução (ver a leitura de vídeos).
       video_counts_degraded: videoCounts === null,
+      // KINEO-FAILED-BY-US-2026-08-12 — degrade observável e SEPARADO do de
+      // cima: este não adia ninguém, só apaga o pedido de desculpas. Sem campo
+      // próprio, um run que mandou a copy antiga por falha de leitura seria
+      // indistinguível de um run em que ninguém era vítima.
+      our_failure_degraded: !ourFailureUsable,
     })
   }
 
@@ -1676,5 +1923,10 @@ export async function GET(req: NextRequest) {
     // `suppression_degraded` estar aqui: um 200 com a coorte pós-trial inteira
     // adiada tem de ser distinguível de um 200 normal.
     video_counts_degraded: videoCounts === null,
+    // KINEO-FAILED-BY-US-2026-08-12 — a resposta do caminho FELIZ é a que mais
+    // precisa deste campo: as outras duas já são caminhos anômalos. Aqui um 200
+    // com envios feitos e a atribuição de culpa suprimida por falha de leitura
+    // sairia idêntico a um 200 em que ninguém era vítima.
+    our_failure_degraded: !ourFailureUsable,
   })
 }
