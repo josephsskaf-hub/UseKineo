@@ -296,3 +296,51 @@ Dividas registradas para nao serem redescobertas: `lib/internalAccounts.ts` nao
 cobre `@usekineo.com`; `send-blackout-winback` e cron de e-mail e NAO esta em
 `PROFILE_TIMESTAMP_COLUMNS`; `send-video-rescue` tem a mesma consulta de
 `checkout_abandoned` falhando ABERTA que foi corrigida aqui.
+
+
+---
+
+## 12/08 sprint 13h - A EXTENSAO DE TRIAL PREMIAVA QUEM NAO USOU O PRODUTO
+
+`KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12` (commit `dcb1944`) e
+`KINEO-LOSS-NEVER-RAN-2026-08-12` (commit `ee01c20`).
+
+**NAO REFAZER: o criterio da extensao JA FOI corrigido.** Ele era
+`trial_credits_used < 10` em `app/api/cron/trial-lifecycle-emails/route.ts` e
+agora e `videosMade >= 3 && usableAfterExtension >= 1`. Quem for reabrir o
+assunto: a constante `EXTENSION_MAX_CREDITS_USED` **nao existe mais**, e
+`scripts/prove-trial-clock-monotonic.mjs` tem gate sintatico que falha se ela
+voltar.
+
+Placar do instrumento antes da troca (medido, nao deduzido): **25 envios de
+`trial_extended`, 0 vidoes gerados depois, 0 conversoes, media 2,6 creditos
+usados de 40, 10 dos 25 sem nenhum video na vida.** 24 dessas contas seguem
+dentro do numero "trials ativos" com saldo medio 39,0/40 - **o numero de trials
+ativos esta inflado por elas, e vai continuar inflado ate essas contas
+vencerem.**
+
+**Achado estrutural, transferivel:** a extensao reescreve `trial_status` para
+`'active'`, entao ela TIRA a pessoa da coorte `expired`/`downgraded`. Toda
+sequencia que pede dinheiro (`downgraded_loss`, `expired_offer_d5` COMEBACK50,
+`expired_lastcall_d10`) mora nessa coorte. Qualquer mecanismo futuro que
+"ressuscite" um trial tem esse mesmo efeito colateral e precisa ser avaliado
+por ele, nao so pela intencao.
+
+**Correcao de causalidade, para ninguem repetir a afirmacao errada:** o D5
+(COMEBACK50) tem 0 envios na historia, mas a causa e **calendario**. O fim de
+trial mais antigo da base e 09/08 e o D5 dele abre em 14/08. A extensao atrasa
+o D5 em +3d para a metade de baixo do funil - real, mas nao explica o zero.
+
+**Segunda divida paga na mesma sprint:** o `downgraded_loss` afirmava "The
+videos you already made are yours" para TODO mundo, inclusive para os 51 trials
+ativos com zero video que agora caem nele. Corrigido com o trilho de 1 clique
+que ja existia (`oneClickBlocks`). A frase segura sobre o que a casa mandou
+continua sendo a que fala do RESULTADO ("nothing we sent you actually put a
+finished video in your hands") - 3a vez que essa forma se prova a unica
+verdadeira por construcao da coorte.
+
+**Divida NOVA registrada, para nao ser redescoberta:** a semente de
+`starterTopics` e a mesma no `d0_welcome`, no `ending_soon` e (antes desta
+sprint) seria a mesma no `downgraded_loss` - a pessoa receberia os MESMOS 3
+temas em 3 e-mails seguidos. Resolvido aqui com sufixo `:loss` na semente, mas
+o `ending_soon` ainda repete os temas do `d0_welcome`. Vale o mesmo sufixo la.

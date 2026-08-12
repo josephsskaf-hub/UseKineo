@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================================
-REM 71-PUSH.bat  -  sprint 10h de 12/08/2026
+REM 71-PUSH.bat  -  sprints 10h + 13h de 12/08/2026
 REM
 REM RODE ESTE. NAO rode o 70-PUSH.bat que esta na raiz do repositorio.
 REM
@@ -28,6 +28,16 @@ REM     o primeiro e-mail de uma campanha que existe ha 16 dias.
 REM   - a linha de licenca comercial na pagina de preco: e a primeira
 REM     pergunta das 32 agencias da lista B2B.
 REM   - o handshake do primeiro minuto pago (lib/firstWinHandshake.ts).
+REM   - os 3 temas de 1 clique no d0_welcome e no ending_soon (sprint 10h).
+REM   - [sprint 13h] a extensao automatica do trial deixa de premiar quem NAO
+REM     usou o produto. O criterio era "usou menos de 10 dos 40 creditos";
+REM     mediu 25 envios, 0 videos depois e 0 conversoes, e ainda tirava a
+REM     pessoa da coorte que recebe o e-mail da perda e o COMEBACK50. Passa a
+REM     ser "3+ videos concluidos e ainda tem credito para gastar".
+REM   - [sprint 13h] o e-mail da perda para de dizer "os videos que voce ja
+REM     fez sao seus" para quem tem ZERO video, e passa a levar 3 temas de 1
+REM     clique em vez de so um link para /pricing. 51 trials ativos com zero
+REM     video caem nesse e-mail.
 REM
 REM GARANTIA: este script NAO cria commit, NAO faz git add, NAO faz git reset
 REM e NAO escreve em nenhum arquivo do projeto. So apaga locks orfaos do .git
