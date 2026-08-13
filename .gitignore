@@ -7,5 +7,13 @@ CORRIGIR-E-PUSH.bat
 RODAR-DEPLOY.bat
 CORRIGIR-E-PUSH.bat
 tsconfig.tsbuildinfo
+# KINEO-BROLL-GC-2026-08-13 — tsconfigs escopados de sprint.
+# A regra 3 do PROMPT-DIARIO manda checar tipos com um tsconfig que ESTENDE o do
+# projeto e escopa o `include` no arquivo alterado (o `tsc` do projeto inteiro
+# nao termina neste shell). Cada sprint cria o seu — e o OneDrive recusa o
+# unlink, entao nenhuma consegue apagar o proprio: eram 10 arquivos soltos na
+# raiz em 13/08. O padrao exige DOIS pontos, entao `tsconfig.json` (rastreado)
+# nao e alcancado; so `tsconfig.<nome>.json` e.
+tsconfig.*.json
 *.log
 .claude/
