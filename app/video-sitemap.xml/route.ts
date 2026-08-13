@@ -106,13 +106,45 @@ ${parts.join('\n')}
   </url>`
 }
 
+// KINEO-CRAWL-BUDGET-2026-08-12 — quantos `/v/[id]` este sitemap tem direito a
+// PEDIR que o Google rastreie. Lido da env a cada request (a rota já é
+// `force-dynamic`), então dobrar ou zerar a torneira é UMA variável na Vercel e
+// nunca mais depende de push.
+//
+// PADRÃO 0, e o motivo está medido no Search Console em 12/08/2026:
+//   · `sitemap.xml` pede 164 páginas · `video-sitemap.xml` pedia 602 — ou seja
+//     79% de tudo que a casa pede ao Google eram páginas de vídeo;
+//   · "Detectada, mas não indexada" = 704 URLs, primeira detecção 11/07/2026 —
+//     exatamente quando este sitemap passou a listar os `/v/[id]` reais;
+//   · filtro de desempenho em `*/v/*`, 28 dias: **0 impressões, 0 cliques**.
+//     Não é "ranqueia mal": o Google nunca rastreou (último rastreamento N/D);
+//   · e a fila de não-rastreados começa, em ordem alfabética, pelas 27 páginas
+//     `/alternatives/*` — conteúdo comercial que a casa escreveu à mão.
+// Regra de morte do PROMPT-DIARIO: 32 dias, zero no número que a alavanca
+// existe para mover. A alavanca é desligada, não apagada.
+//
+// IMPORTANTE — isto NÃO desindexa nada. Retira apenas o PEDIDO de rastreamento;
+// cada `/v/[id]` continua no ar e continua decidindo sozinho o próprio robots
+// (lib/publicVideos.ts). Religar = `KINEO_VIDEO_SITEMAP_MAX=600` na Vercel.
+function videoSitemapMax(): number {
+  const raw = process.env.KINEO_VIDEO_SITEMAP_MAX
+  if (!raw) return 0
+  const n = Number.parseInt(raw, 10)
+  // Env ilegível não vira "tudo ligado": falha fechada, no valor padrão.
+  if (!Number.isFinite(n) || n <= 0) return 0
+  return Math.min(n, SITEMAP_MAX_VIDEOS)
+}
+
 export async function GET() {
   // This route must NEVER throw: if Supabase is unreachable we still serve the
   // static PUBLIC_EXAMPLES portion so Google receives valid XML rather than a
   // 500, which would cost the sitemap its standing.
   let videoEntries: string[] = []
+  const maxVideos = videoSitemapMax()
   try {
-    const videos = await listIndexablePublicVideos(SITEMAP_MAX_VIDEOS)
+    // maxVideos = 0 → nem consulta o Supabase. `.limit(0)` é comportamento não
+    // especificado no PostgREST e não vale um round-trip para descobrir.
+    const videos = maxVideos > 0 ? await listIndexablePublicVideos(maxVideos) : []
     // KINEO-VIDEO-SITEMAP-FIX-2026-08-04 — a <video:video> needs at least one
     // of content_loc / player_loc. Now that player_loc is gone (it duplicated
     // <loc> and got 557 entries rejected), a row without playbackUrl would

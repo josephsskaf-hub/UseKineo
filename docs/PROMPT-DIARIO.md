@@ -1407,3 +1407,61 @@ ignora conclui 66%. Controlando por `activation_autostart` (93,7% do grupo que
 "ignora" nunca precisou da tela), inverte: 37,5% × 21,4%. **Antes de matar ou
 premiar uma superfície por taxa comparada, perguntar quem chegou ao resultado
 POR OUTRO CAMINHO.** Custou 12 minutos de subagente e evitou matar a tela certa.
+
+## Aprendizados — sprint 21h de 12/08/2026 (KINEO-CRAWL-BUDGET)
+
+### 1. FRENTE CEGA NÃO FICA PARADA — ELA PIORA NO ESCURO, E COM JUROS
+"Search Console cego" estava registrado desde 30/07 como gate nº 0, *"o item
+mais barato da lista inteira"*, e ficou 13 dias sem ser aberto porque todo dia
+havia algo mais urgente. O número que ele guardava saiu de **21 para 704** nesse
+intervalo. **O custo de uma frente cega não é o dado que falta: é que a
+armadilha escrita para ela continua valendo e ninguém sabe que já foi
+acionada.** Corolário operacional: métrica que só existe atrás de uma sessão
+logada de terceiro (GSC, painel de fornecedor, Stripe) tem que ser lida na
+PRIMEIRA sprint em que o canal estiver disponível — não na sprint em que o
+assunto dela for a prioridade. Hoje a extensão do Chrome estava conectada e
+custou **6 chamadas**.
+
+### 2. "A PÁGINA NÃO EXISTE" É A HIPÓTESE PREGUIÇOSA; "A PÁGINA ESTÁ NA PÁGINA 5" É O FATO
+Ao ver 5 variantes da mesma consulta com impressão e zero clique, a proposta que
+se forma sozinha é *escrever a página*. `app/how-much-do-youtube-shorts-pay/`
+**já existia** — 8ª vez que a Regra Zero mata uma "ideia nova" no grep. Mas a
+lição nova é a seguinte: **antes de propor conserto de CTR, olhar a POSIÇÃO.**
+0 clique em 224 impressões na posição **42,4** é o resultado esperado, não um
+defeito de copy. Título e meta description são alavanca de posição ≤10; abaixo
+disso são trabalho que a própria física do resultado garante que não rende.
+Métrica de CTR sem a posição ao lado é convite a otimizar o que não pode mexer.
+
+### 3. SUPERFÍCIE QUE CRESCE SOZINHA PRECISA DE TETO NA HORA EM QUE NASCE
+`video-sitemap.xml` nasceu correto e virou 79% de tudo que a casa pede ao Google
+sem nenhuma decisão intermediária — uma linha por vídeo concluído de usuário,
+logo o crescimento é o SUCESSO do produto. Ninguém aprovou "602"; aprovou-se
+"todos". **Toda superfície pública cujo tamanho é função de uma tabela que
+cresce nasce com um teto explícito e legível de fora** (env var), não com
+`SITEMAP_MAX_VIDEOS = 5000` enterrado numa lib. E o teto padrão é o valor
+CONSERVADOR: quem quiser mais liga, em vez de quem quiser menos ter que
+descobrir que existe.
+
+### 4. AO DESLIGAR ALAVANCA, SEPARAR O REVERSÍVEL DO IRREVERSÍVEL — E FAZER SÓ O PRIMEIRO
+Havia duas ações contra as 602 páginas: retirar do sitemap (retira o PEDIDO de
+rastreamento, reversível numa env) e pôr `noindex` (desindexa, e voltar atrás
+custa meses). A tentação é fazer as duas "para resolver de vez". **Uma variável
+por vez, e a variável é sempre a reversível** — se a hipótese estiver errada, o
+custo do erro tem que caber num `git revert` ou numa env, nunca num trimestre.
+
+### 5. A REGRA DE 30/07 SOBRE COMPUTER-USE ESTAVA INCOMPLETA, E A METADE QUE FALTAVA ERA A SAÍDA
+*"Computer-use não existe em execução agendada. Não gastar chamadas tentando."*
+Gastei uma chamada e o erro veio com a instrução: *"add the app to the scheduled
+task's settings"*. **Regra herdada que diz "não tente" merece UMA tentativa por
+mês, porque a mensagem de erro é documentação que a regra não tem.** O gate
+0-zero-A estava certo em 30/07 e ninguém executou; ele vale 14 commits parados
+por 24 h, todo dia.
+
+### 6. DUAS COISAS MEDIDAS NÃO PRECISAM QUE A TERCEIRA SEJA VERDADE
+"Os 602 `/v/` estão sufocando o rastreamento das 27 `/alternatives/*`" é a
+hipótese padrão de crawl budget — e é **inferência**, não algo que o GSC afirme.
+O que está medido é que os 602 entregaram 0 impressão em 32 dias. **A ação certa
+foi ancorada só no que estava medido**, de modo que ela continua correta se a
+inferência cair. Escrever no doc qual metade é medição e qual é hipótese, ANTES
+de o número voltar, é o que impede a sprint de daqui a 14 dias de ler o
+resultado de trás para frente.
