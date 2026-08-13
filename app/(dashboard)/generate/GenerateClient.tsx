@@ -63,6 +63,11 @@ import {
   // que a rota da Stripe cobra.
   INTRO_CREDITS,
   TIER_CREDITS,
+  // KINEO-TOPUP-CURRENCY-2026-08-12 — os dois botões de top-up desta mesma
+  // caixa continuavam com preço literal em dólar depois que as linhas de plano
+  // acima deles foram corrigidas em 06/08. Uma correção que para no meio da
+  // caixa deixa a caixa inconsistente, não corrigida.
+  TOPUP_PRICES,
   coercePriceRegion,
   formatCheckoutMoney,
   getIntroPrice,
@@ -6907,6 +6912,25 @@ export default function GenerateClient({
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .gv-card { animation: fadeUp 0.35s ease both; }
       `}</style>
+      {/* KINEO-HIGGSFIELD-20D dias 6-7 (13/08) — regra Higgsfield: nunca
+          spinner, sempre a forma do que vem; e o momento de maior dopamina
+          (video pronto) ganha a cerimonia da landing. Bloco GLOBAL de
+          proposito: .gv-stage/.gv-status vivem dentro de componentes filhos
+          (PipelineStages, RenderHeader) que o style jsx escopado nao alcanca. */}
+      <style jsx global>{`
+        @keyframes gvFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes gvShimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        @keyframes gvPop { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+        @keyframes gvGlow { 0%, 100% { box-shadow: 0 18px 60px rgba(41,151,255,.22); } 50% { box-shadow: 0 18px 95px rgba(41,151,255,.5); } }
+        @keyframes gvCheck { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+        .gv-sk { background: linear-gradient(100deg, rgba(255,255,255,.045) 40%, rgba(255,255,255,.11) 50%, rgba(255,255,255,.045) 60%); background-size: 200% 100%; animation: gvShimmer 1.4s linear infinite; }
+        .gv-stage { transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
+        .gv-status { animation: gvFadeUp 0.3s ease both; }
+        .gv-done-frame { animation: gvPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both, gvGlow 1.8s ease 0.45s 1; }
+        @media (prefers-reduced-motion: reduce) {
+          .gv-sk, .gv-done-frame, .gv-status { animation: none; }
+        }
+      `}</style>
 
       {/* KINEO-OFFER290-2026-07-07 — first-purchase $2.90 urgency banner (24h
           countdown, 1 per account). Renders nothing until OFFER_290_ENABLED is
@@ -7941,18 +7965,25 @@ export default function GenerateClient({
           subsequent screens focused on the active generation. */}
       {showStep1 && <PricingCards intentCampaign={intentCampaign} />}
 
+      {/* Dias 6 (13/08) — analyzing/scripting mostram a FORMA do que vem
+          (mini 9:16 + linhas de script em shimmer), nunca um spinner solto. */}
       {phase === 'scripting' && (
         <section
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6 flex items-center gap-4"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          <Spinner />
-          <div>
+          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 10, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="font-black text-base" style={{ color: 'var(--text)' }}>
               Writing your viral script…
             </div>
             <div className="text-sm" style={{ color: 'var(--muted2)' }}>
               Structuring hook, facts, escalation, and payoff for your topic.
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="gv-sk" style={{ height: 9, width: '92%', borderRadius: 5 }} />
+              <div className="gv-sk" style={{ height: 9, width: '78%', borderRadius: 5, animationDelay: '120ms' }} />
+              <div className="gv-sk" style={{ height: 9, width: '58%', borderRadius: 5, animationDelay: '240ms' }} />
             </div>
           </div>
         </section>
@@ -7963,13 +7994,18 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6 flex items-center gap-4"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          <Spinner />
-          <div>
+          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 10, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div className="font-black text-base" style={{ color: 'var(--text)' }}>
               Analyzing your video concept…
             </div>
             <div className="text-sm" style={{ color: 'var(--muted2)' }}>
               Detecting niche, drafting a title, and outlining the scenes.
+            </div>
+            <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="gv-sk" style={{ height: 9, width: '86%', borderRadius: 5 }} />
+              <div className="gv-sk" style={{ height: 9, width: '70%', borderRadius: 5, animationDelay: '120ms' }} />
+              <div className="gv-sk" style={{ height: 9, width: '52%', borderRadius: 5, animationDelay: '240ms' }} />
             </div>
           </div>
         </section>
@@ -8052,7 +8088,9 @@ export default function GenerateClient({
               height: 32,
               borderRadius: '50%',
               border: '3px solid rgba(41,151,255,0.2)',
-              borderTopColor: 'rgb(16,185,129)',
+              // Dia 6 (13/08): era verde rgb(16,185,129) — unica cor fora da
+              // marca no fluxo inteiro. Agora azul, como todo o resto.
+              borderTopColor: '#5cb3ff',
               animation: 'spin 0.8s linear infinite',
               flexShrink: 0,
             }}
@@ -8468,6 +8506,19 @@ export default function GenerateClient({
               style={{ background: '#131316', border: '1px solid var(--border)' }}
             >
               <div className="text-center">
+                {/* Dia 7 (13/08) — cerimonia: check que se desenha + a moldura
+                    abaixo entra em pop com um pulso de glow azul, 1x so. */}
+                <svg width="34" height="34" viewBox="0 0 20 20" fill="none" aria-hidden="true" style={{ display: 'block', margin: '0 auto 10px' }}>
+                  <circle cx="10" cy="10" r="9" stroke="#2997ff" strokeWidth="1.6" />
+                  <path
+                    d="M6 10.4l2.7 2.7 5.2-5.8"
+                    stroke="#2997ff"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ strokeDasharray: 24, animation: 'gvCheck 400ms 200ms cubic-bezier(.16,1,.3,1) both' }}
+                  />
+                </svg>
                 <h2 className="font-black tracking-tight" style={{ fontSize: '1.5rem', color: 'var(--text)', lineHeight: 1.2 }}>
                   Your video is ready
                 </h2>
@@ -8521,7 +8572,7 @@ export default function GenerateClient({
                   object-fit: cover fills the frame so the vertical Short
                   never shows black pillarbox bars. */}
               <div
-                className="rounded-2xl overflow-hidden mt-6"
+                className="gv-done-frame rounded-2xl overflow-hidden mt-6"
                 style={{
                   width: 'min(460px, 90vw)',
                   maxHeight: '78vh',
@@ -10335,7 +10386,7 @@ function PipelineStages({
         return (
           <li
             key={i}
-            className="rounded-lg px-3 py-2 flex items-center gap-3"
+            className="gv-stage rounded-lg px-3 py-2 flex items-center gap-3"
             style={{ background: bg, border: ring }}
           >
             <span
@@ -11133,7 +11184,9 @@ function RenderHeader({ progress, message }: { progress: number; message: string
       </div>
       {/* Text */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4, lineHeight: 1.3 }}>
+        {/* Dia 6 (13/08): key={message} remonta o div quando o texto muda —
+            cada etapa entra em fadeUp em vez de trocar num corte seco. */}
+        <div key={message} className="gv-status" style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4, lineHeight: 1.3 }}>
           {message}
         </div>
         <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -11705,7 +11758,7 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
         return (
           <li
             key={i}
-            className="rounded-lg px-3 py-2 flex items-center gap-3"
+            className="gv-stage rounded-lg px-3 py-2 flex items-center gap-3"
             style={{ background: bg, border: ring }}
           >
             <span
@@ -11756,7 +11809,7 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
       })}
       {isRendering && (
         <li
-          className="rounded-lg px-3 py-2 flex items-center gap-3"
+          className="gv-stage rounded-lg px-3 py-2 flex items-center gap-3"
           style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(92,179,255,.45)' }}
         >
           <span
@@ -11940,13 +11993,22 @@ function UpgradeModal({
     //     de FALHA DE DEBITO, nunca neste 402 de plano. Depois do Stripe o
     //     usuario volta com o formulario zerado.
     //   · o comentario original dizia "nenhum preco no texto, os precos vivem
-    //     nas linhas de plano abaixo, em UMA fonte por moeda". A segunda metade
-    //     e FALSA NO ARQUIVO ONDE ESTAVA ESCRITA: as linhas de plano deste modal
-    //     usam `PLAN_LIST` de lib/pricing.ts, cujos priceLabel sao literais USD
-    //     ('$9.90', '$24.90', '$37.90'). O defeito e PRE-EXISTENTE, mas esta
-    //     razao AMPLIA o alcance dele: a coorte que perde o trial inclui BR e IN
-    //     por construcao. Registrado como GATE bloqueador do QA da flag no
-    //     relatorio da sprint — nada disso existe em producao com a flag OFF.
+    //     nas linhas de plano abaixo, em UMA fonte por moeda".
+    //
+    // ⚠️ KINEO-TOPUP-CURRENCY-2026-08-12 — O PARAGRAFO QUE ESTAVA AQUI FICOU
+    // FALSO E CONTINUOU SENDO LIDO COMO GATE ABERTO. Ele afirmava que as linhas
+    // de plano deste modal usam `PLAN_LIST` de lib/pricing.ts com priceLabel
+    // literal em dolar, e registrava isso como "GATE bloqueador do QA da flag".
+    // Isso deixou de ser verdade no MESMO DIA em que foi escrito: o
+    // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 trocou a linha de preco por
+    // `formatCheckoutMoney(currency, getTierPrice(tier, currency, region))`
+    // (procure por esse trecho ~130 linhas abaixo). `PLAN_LIST` ainda e a fonte
+    // de NOME, ordem e `recommended` — nao de preco.
+    //
+    // Um comentario que declara aberto um gate ja pago custa duas vezes: a
+    // sprint seguinte refaz o trabalho, ou o relatorio segura a flag por um
+    // motivo que nao existe mais. O que sobrou de literal em dolar nesta caixa
+    // eram os dois botoes de top-up, corrigidos neste commit.
     trial_ended: {
       title: 'That was part of your trial ⏳',
       sub: 'Your trial gave you the AI engine. Reactivate it with any paid plan below. Cancel anytime · 7-day money-back.',
@@ -12133,17 +12195,28 @@ function UpgradeModal({
                 // 40/120. Copiar número de preço à mão é exatamente a causa-raiz
                 // dos três defeitos de precificação que acabamos de consertar.
                 // AI video = 20 créditos (o motor de IA mais barato).
+                // KINEO-TOPUP-CURRENCY-2026-08-12 — `price` era '$5.90' /
+                // '$12.90' DIGITADO À MÃO, doze pixels abaixo de linhas de
+                // plano que já imprimiam R$/₹ pela moeda do comprador. A mesma
+                // caixa mostrava DUAS MOEDAS, e a de baixo era falsa: a rota
+                // cobra R$ 29,90 / R$ 64,90 no Brasil e ₹ 499 / ₹ 1.099 na
+                // Índia. Agora vem de TOPUP_PRICES, a tabela que a rota lê.
+                //
+                // `currency` nulo (o /api/geo ainda não respondeu) segura o
+                // preço num traço em vez de escrever dólar e trocar o número na
+                // cara do comprador — a MESMA regra já aplicada às linhas de
+                // plano acima, ao PricingCards e ao TrialDowngradeModal.
                 {
                   id: 'topup40',
                   label: `+${TOPUP_CREDITS.topup40} credits`,
                   sub: `${Math.floor(TOPUP_CREDITS.topup40 / 20)} AI video`,
-                  price: '$5.90',
+                  price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup40[currency]) : '—',
                 },
                 {
                   id: 'topup120',
                   label: `+${TOPUP_CREDITS.topup120} credits`,
                   sub: `${Math.floor(TOPUP_CREDITS.topup120 / 20)} AI videos`,
-                  price: '$12.90',
+                  price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup120[currency]) : '—',
                 },
               ].map((t) => (
                 <button
