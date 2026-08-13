@@ -274,11 +274,45 @@ export default function PricingClient() {
   // (components/ExitIntentOffer.tsx): Starter Pack rescue offer, once per
   // session, desktop mouseleave + mobile inactivity/scroll-up triggers.
 
+  // ═══ KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 ══════════════════════════════
+  //
+  // Quem chega aqui com `?promo=` veio de um e-mail de win-back que prometeu um
+  // desconto de VÁRIOS meses. A letra miúda desta página afirma o contrário —
+  // "first month is discounted … both renew at the full monthly price in 30
+  // days" — e afirma também um grant menor no 1º mês. As DUAS são falsas para
+  // essa pessoa, e são verificáveis por ela na tela seguinte:
+  //
+  //   · duração — `/api/stripe/checkout` resolve o `?promo=` ANTES do intro
+  //     (`intro && !resolvedPromo`, linha ~1010): o cupom do e-mail vence, e a
+  //     duração dele é a do cupom, não os 30 dias do intro;
+  //   · créditos — `plan_credits` só cai para `INTRO_CREDITS[tier]` DENTRO do
+  //     bloco do intro (linha ~1051). Sem intro, quem assina Creator com promo
+  //     recebe os 150 do plano no mês 1, não os 50 que esta linha promete.
+  //
+  // Ou seja: a página SUBVENDE exatamente a oferta que o e-mail acabou de
+  // fazer, para a única coorte com intenção comprovada (a de trial expirado,
+  // que gastou 18,8 dos 40 créditos e converteu 1 em 32).
+  //
+  // A correção é DEIXAR DE AFIRMAR, não afirmar outra coisa: nenhum percentual,
+  // nenhum nome de cupom e nenhuma duração entram na página — a ordem do
+  // fundador (06/08) é que o 50% off existe SÓ dentro dos e-mails D5/D10, nunca
+  // em superfície pública. A linha neutra que fica no lugar é verdadeira para
+  // qualquer código, inclusive um inválido, porque quem exibe o valor final é o
+  // Stripe. Ver PROMPT-DIARIO 06/08 §3: afirmação sobre estado nunca é impressa
+  // incondicionalmente.
+  //
+  // Lido em `useEffect` (e não no render) de propósito: `window.location` no
+  // corpo do componente é hydration mismatch, e `useSearchParams()` exigiria
+  // Suspense em volta desta página.
+  const [arrivedWithPromo, setArrivedWithPromo] = useState(false)
+
   // KINEO-PRICING-VIEW-2026-07-15 — admin/funnel and admin/metrics already
   // query this event; the pricing page simply never emitted it before.
   useEffect(() => {
-    const intentCampaign = new URLSearchParams(window.location.search).get('intent_campaign')
+    const params = new URLSearchParams(window.location.search)
+    const intentCampaign = params.get('intent_campaign')
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
+    setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
     void trackEvent('pricing_view', intentCampaign ? { source: intentCampaign } : undefined)
   }, [])
 
@@ -717,13 +751,29 @@ export default function PricingClient() {
             cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação
             obrigatória (renovação + grant menor no 1º mês, proteção contra
             chargeback) sem poluir a decisão. */}
-        {billing === 'monthly' && (
+        {/* KINEO-PROMO-CONTRADICTS-PAGE-2026-08-13 — ver o bloco de comentário
+            em `arrivedWithPromo`. Com um `?promo=` na URL o intro não é o que
+            se aplica, então esta letra miúda deixa de ser divulgação e vira
+            afirmação falsa sobre duração E sobre créditos do 1º mês. */}
+        {billing === 'monthly' && !arrivedWithPromo && (
           <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[#86868b]">
             First month is discounted on Starter and Creator; both renew at the full
             monthly price in 30 days — cancel anytime. The discounted first month
             includes {INTRO_CREDITS.starter} credits on Starter and {INTRO_CREDITS.basic} on
             Creator; from month two you get the plan&apos;s full monthly credits
             ({TIER_CREDITS.starter} and {TIER_CREDITS.basic}).
+          </p>
+        )}
+        {billing === 'monthly' && arrivedWithPromo && (
+          <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[#86868b]">
+            {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
+                sobre o RESULTADO, falsa se o código estiver expirado ou não
+                cobrir o plano clicado. A frase abaixo afirma só o que ESTE
+                sistema faz (encaminhar o código) e devolve a verificação para
+                onde ela é sempre verdadeira: o total do Stripe antes do
+                pagamento. Nenhuma promessa que dependa do Stripe aceitar. */}
+            Your code goes to checkout automatically — you&apos;ll see the exact amount
+            before you pay. Cancel anytime.
           </p>
         )}
 

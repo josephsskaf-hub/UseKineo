@@ -1465,3 +1465,50 @@ foi ancorada só no que estava medido**, de modo que ela continua correta se a
 inferência cair. Escrever no doc qual metade é medição e qual é hipótese, ANTES
 de o número voltar, é o que impede a sprint de daqui a 14 dias de ler o
 resultado de trás para frente.
+
+## Aprendizados — sprint 19h de 13/08/2026 (KINEO-PROMO-CONTRADICTS-PAGE)
+
+### 1. A PÁGINA DE DESTINO DE UM E-MAIL É PARTE DO E-MAIL, E NINGUÉM A REVISA
+Este projeto já revisa copy de e-mail com o mesmo rigor de código (05/08, 07/08,
+12/08) — e revisa o e-mail INTEIRO: assunto, texto e HTML. O que nunca entrou na
+revisão foi **a tela do outro lado do CTA**. O `expired_offer_d5` promete "50%
+off por 3 meses" e abre um `/pricing` cuja letra miúda afirma "renews at the full
+monthly price **in 30 days**" e "o 1º mês inclui **50** créditos" — as duas falsas
+para quem chega com `?promo=`, as duas verificáveis na tela seguinte, e nenhuma
+delas escrita por quem escreveu o e-mail. **Regra nova: toda campanha nasce com o
+par (copy do e-mail + o que a URL de destino AFIRMA com aquele parâmetro na URL).**
+Um e-mail que passa em revisão pode mentir por meio da página que ele abre.
+
+### 2. TEXTO ESCRITO PARA O CAMINHO PADRÃO VIRA FALSIDADE QUANDO NASCE UM 2º CAMINHO
+A letra miúda do intro estava **certa** no dia em que foi escrita: existia um só
+caminho de desconto. No dia em que o `?promo=` passou a vencer o intro no
+checkout (trava de 04/08, correta e ainda no lugar), a MESMA frase virou mentira
+para um subconjunto de visitantes — sem que ninguém tocasse nela. É a irmã da
+lição de 04/08 ("comentário com justificativa numérica envelhece e vira bug"),
+agora em copy de produção: **ao mudar uma PRECEDÊNCIA no código, grepar o que as
+telas afirmam sobre a coisa que perdeu a precedência.**
+
+### 3. A CORREÇÃO CERTA FOI DEIXAR DE AFIRMAR — E ELA JÁ ESTAVA DECIDIDA NO REPO
+A tentação era anunciar o desconto na página (violaria a ordem do fundador) ou
+descrever a oferta em outras palavras (voltaria a afirmar coisa que depende da
+Stripe aceitar). A saída é **suprimir a afirmação** e devolver a verificação para
+onde ela é sempre verdadeira — o total do Stripe antes do pagamento. E a Regra
+Zero pagou de novo: `components/ExitIntentOffer.tsx` **já** se cala quando há
+`?promo=` na URL, com comentário explicando por quê. O repositório já tratava
+"chegou com código" como estado próprio; a letra miúda era o par que ficou de
+fora. **Antes de inventar a política, procurar quem no repo já a aplicou.**
+
+### 4. ZERO EM CAMPANHA COM PRAZO SE CONFERE PELO RELÓGIO DA COORTE, NÃO PELO CRON
+`expired_offer_d5` e `expired_lastcall_d10` têm **0 envios na história** e não é
+bug: `OFFER_D5_FROM_MS` são 5 dias após o fim do trial, e o primeiro trial só
+encerrou em 09/08. O zero é o valor correto. **Toda campanha com janela relativa
+precisa que o relatório calcule a DATA DO PRIMEIRO DEVIDO antes de chamar o zero
+de defeito** — e, quando o número aparece, ele vem com a rampa (aqui: 2 pessoas
+em 14/08 e 29 em 18/08), que é o que transforma "está zerado" em prazo.
+
+### 5. A 2ª PASSADA CONTINUA ACHANDO O DEFEITO DA PRÓPRIA CORREÇÃO — 100% DE APROVEITAMENTO
+A 1ª versão da linha nova dizia *"your code **is applied** at checkout"*:
+afirmação sobre um RESULTADO que depende de a Stripe aceitar o cupom — e não há,
+em execução agendada, como conferir o painel da Stripe. Virou afirmação sobre a
+REGRA (*"goes to checkout"*), verdadeira mesmo com código expirado. O `tsc`
+estava verde nas duas versões.

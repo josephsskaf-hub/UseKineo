@@ -1720,3 +1720,43 @@ Motivo continua sendo de produto, nao de funil: com o render parado, cada
 visitante novo e um cadastro queimado. Os 30 cadastros do apagao sao a prova.
 Reabrir **depois** de: (a) Creatomate de volta, (b) QA do reverse trial, (c)
 flag ligada.
+
+---
+
+## Atualizacao — 13/08/2026, sprint 19h
+
+### GATE #A — PUSH COM PRAZO: 14/08 16:30Z
+`origin/main = f0f63c7` (medido por `git ls-remote`; `list_deployments` confirma
+que producao serve esse commit de 11:08). O `git push` do sandbox continua
+morrendo em `could not read Username` e `request_access` de computer-use
+continua recusando em execucao agendada.
+
+**O que mudou hoje: este gate deixou de ser "quando der" e ganhou hora.** No cron
+de **14/08 16:30Z** dispara pela primeira vez na historia o `expired_offer_d5` —
+o unico e-mail da casa que carrega o cupom COMEBACK50. A rampa e 2 pessoas em
+14/08 e **29 ate 18/08**. Represado no push estao, entre outras coisas:
+
+- a correcao da `/pricing` que impede a pagina de contradizer esse mesmo e-mail
+  (sprint 19h, este commit);
+- `ce2689b` — o resgate do voiceover, cujo sintoma (`voiceover_script is
+  required.`) ainda apareceu em producao as 08:30Z de hoje;
+- a campanha `stalled-rescue` de 25/dia (sprint 13h), que e quem alcanca as 231
+  pessoas que apertaram gerar e nao receberam video.
+
+**Acao: rodar `scripts\74-PUSH.bat` (ou mandar qualquer mensagem na conversa)
+antes das 16:30Z de 14/08.**
+
+### GATE #B — CONVERSAO DO TRIAL ABAIXO DO GUARDRAIL (decisao do fundador)
+1 conversao em 32 trials encerrados = **3,1%**, contra o piso de 5% escrito no
+proprio prompt. 145 trials concedidos, **914 creditos de trial consumidos**, 1
+assinatura. A coorte que morreu e a que MAIS usou (18,8 dos 40 creditos, 17 de
+31 com video). Nao ha acao autonoma aqui que nao passe por preco ou desconto —
+ambos gate do fundador. O que a operacao pode fazer sem ele ja esta feito: o D5
+existe, dispara amanha, e a pagina de destino parou de contradize-lo.
+
+### GATE #C — PRECO EXIBIDO PARA VISITANTE COM `?promo=` (nao tocado de proposito)
+Os cards da `/pricing` mostram o preco de INTRO para quem chega com `?promo=`, e
+nao e o que essa pessoa vai pagar (o cupom vence o intro no checkout). Mudar
+preco exibido e gate do fundador e a regra da casa e uma variavel por vez —
+ficou registrado como o proximo passo desta frente SE o D5 mostrar clique sem
+compra.
