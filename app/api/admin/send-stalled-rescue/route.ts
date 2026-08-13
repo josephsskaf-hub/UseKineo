@@ -626,9 +626,68 @@ export async function GET(req: NextRequest) {
     // seria descartado de qualquer jeito. Falha FECHADA — se a consulta cair,
     // `degraded` fica true e ninguém é considerado enviável, o que é o
     // comportamento certo: silêncio é reversível, e-mail duplicado não é.
-    const suppression = await loadLifecycleSuppression(admin, candidates.map((c) => c.id))
-    const recipients = candidates.filter((r) => !suppression.isSuppressed(r.id))
-    const suppressedCount = candidates.length - recipients.length
+    // KINEO-STALLED-RESCUE-RAMP-2026-08-13 — JANELA DE LEITURA DE 4h, E ELA É
+    // O QUE FAZ A RAMPA FUNCIONAR EM VEZ DE GIRAR NO VAZIO.
+    //
+    // Com a janela histórica de 24h a rampa cairia na MESMA armadilha que a
+    // sprint das 11h de hoje encontrou no send-recovery, e pela mesma razão
+    // estrutural: quem está em trial ATIVO — o único grupo desta coorte com
+    // relógio correndo, e o primeiro da fila pela ordenação acima — é
+    // exatamente quem recebe e-mail de ciclo de vida todo dia (`d0_welcome`,
+    // `ending_soon`, `cap_hit`). Medido no banco em 13/08, sem herdar de doc:
+    //
+    //   janela de 24h → 22 dos 231 bloqueados, e **10 dos 28 em trial (36%)**
+    //   janela de  4h →  3 dos 231 bloqueados, e **0 dos 28 em trial**
+    //
+    // Um lote diário de 25 que perde um terço do grupo prioritário todo dia é
+    // uma campanha que atende preferencialmente quem NÃO tem prazo.
+    //
+    // É seguro aqui pelo mesmo invariante que tornou seguro lá, e por nenhum
+    // outro: o carimbo deste job é VITALÍCIO. `stalled_rescue_emailed` é
+    // boolean e a coorte filtra `.eq(FLAG_COLUMN, false)` (linha 481) — **1
+    // e-mail por pessoa, para sempre.** Janela curta não pode gerar repetição;
+    // no máximo dois e-mails nossos no mesmo dia para alguém cuja geração
+    // quebrou, que é precisamente a pessoa que merece ser interrompida.
+    //
+    // O 3º parâmetro é OPCIONAL e nasceu em `be56e3c` para o send-recovery: os
+    // outros chamadores de `loadLifecycleSuppression` continuam em 24h, byte a
+    // byte. E a direção de SAÍDA não muda — `stalled_rescue_sent_at` segue em
+    // `PROFILE_TIMESTAMP_COLUMNS`, então este envio continua calando os outros
+    // jobs pelas 24h normais.
+    const RESCUE_SUPPRESSION_HOURS = 4
+    const suppression = await loadLifecycleSuppression(
+      admin,
+      candidates.map((c) => c.id),
+      RESCUE_SUPPRESSION_HOURS,
+    )
+    const recipientsUnordered = candidates.filter((r) => !suppression.isSuppressed(r.id))
+    const suppressedCount = candidates.length - recipientsUnordered.length
+
+    // KINEO-STALLED-RESCUE-RAMP-2026-08-13 — PRIORIDADE POR RELÓGIO.
+    //
+    // Enquanto o lote era uma URL de um clique com `limit=50`, a ordem da lista
+    // não importava muito: dois cliques cobriam a coorte inteira. A partir do
+    // cron em rampa (25/dia, ver app/api/cron/send-stalled-rescue/route.ts) ela
+    // passa a decidir QUEM É ATENDIDO ANTES DE PERDER O QUE TEM. A coorte tem
+    // 231 pessoas e a ordem natural das linhas é de `created_at`: sem esta
+    // ordenação, as 28 que estão em trial ATIVO com 1.120 créditos vivos —
+    // as únicas cujo e-mail ainda pode virar um vídeo NESTA semana — cairiam
+    // aleatoriamente no meio de uma fila de 9 dias, e boa parte delas receberia
+    // "vamos consertar seu vídeo" DEPOIS de o trial já ter virado abóbora.
+    // O e-mail chegaria correto e inútil.
+    //
+    // Duas chaves, nesta ordem:
+    //   1. quem tem trial vivo primeiro (o único grupo com prazo);
+    //   2. entre esses, quem termina ANTES (o relógio mais curto ganha).
+    // Quem não tem trial mantém a ordem relativa de origem (sort estável no
+    // V8 desde o Node 11) — não há critério melhor para eles, e inventar um
+    // seria ruído.
+    const recipients = [...recipientsUnordered].sort((a, b) => {
+      const at = a.trial, bt = b.trial
+      if (!!at !== !!bt) return at ? -1 : 1
+      if (at && bt) return at.endsAt.getTime() - bt.endsAt.getTime()
+      return 0
+    })
 
     const confirm = req.nextUrl.searchParams.get('confirm') === 'SEND'
     const limitParam = Number(req.nextUrl.searchParams.get('limit'))
@@ -648,6 +707,10 @@ export async function GET(req: NextRequest) {
         // alguém conclui que a coorte encolheu.
         skipped_in_checkout_recovery: excludedByCheckoutRecovery,
         suppressed_recent_lifecycle: suppressedCount,
+        // Com DUAS janelas em uso no repo (24h no resto, 4h aqui), um payload
+        // que só diz "suppressed" manda a próxima investigação para o lugar
+        // errado — lição literal da sprint das 11h de hoje.
+        suppression_window_hours: RESCUE_SUPPRESSION_HOURS,
         suppression_degraded: suppression.degraded,
         remaining_unemailed: recipients.length,
         // Quantos receberiam o parágrafo de trial (créditos vivos + prazo).

@@ -203,6 +203,50 @@ export async function GET(req: NextRequest) {
       continue
     }
 
+    // KINEO-NUDGE-WRONG-EMAIL-2026-08-13 — QUEM JÁ TENTOU NÃO RECEBE
+    // "VENHA FAZER SEU PRIMEIRO VÍDEO".
+    //
+    // Medido no banco em 13/08 (não herdado de doc): **227 pessoas receberam
+    // este e-mail DEPOIS de já terem apertado o botão de gerar.** Delas, 9
+    // (4,0%) produziram um vídeo em seguida. As outras 218 tinham acabado de
+    // ver uma geração morrer e receberam, 1 a 6 horas depois, um convite
+    // animado para começar — escrito na premissa de que nunca tinham tentado.
+    //
+    // Para quem está do outro lado isso é pior do que silêncio: prova que a
+    // casa não percebeu. E a coorte inteira do stalled-rescue (231 pessoas,
+    // `app/api/admin/send-stalled-rescue`) é feita exatamente destas pessoas —
+    // 219 delas já tinham este carimbo quando eu medi.
+    //
+    // O e-mail certo para elas existe, está revisado e agora tem cron próprio
+    // (`app/api/cron/send-stalled-rescue`, rampa diária). O único conserto que
+    // falta é este: parar de gastar o primeiro contato com a mensagem errada.
+    //
+    // CARIMBA COM O SENTINELA, e a escolha é o ponto todo:
+    //   · sem carimbo, a linha voltaria a cada execução horária dentro da
+    //     janela de 1–6h, gastando consulta e sem nunca mandar nada;
+    //   · com carimbo NORMAL, a supressão cruzada de 24h leria a data e
+    //     silenciaria o stalled-rescue por um dia inteiro — eu teria calado o
+    //     e-mail certo com o registro de ter recusado o errado, que é o mesmo
+    //     modo de falha que a sprint das 11h de hoje encontrou no send-recovery;
+    //   · com o SENTINELA (KINEO-SKIP-STAMP-2026-08-05), a linha fica resolvida
+    //     para este job e **continua elegível hoje mesmo** para o rescue.
+    const { count: attempts } = await admin
+      .from('events')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', u.id)
+      // As DUAS grafias que este banco dispara juntas. Conferir só uma
+      // encobriria metade da coorte — a mesma armadilha documentada no
+      // docblock de send-stalled-rescue.
+      .in('name', ['generate_started', 'video_generation_started'])
+    if ((attempts ?? 0) > 0) {
+      skipped++
+      await admin
+        .from('profiles')
+        .update({ activation_nudge_sent_at: LIFECYCLE_SKIP_STAMP })
+        .eq('id', u.id)
+      continue
+    }
+
     const { text, html } = buildEmail(u.id)
     try {
       const res = await fetch('https://api.resend.com/emails', {
