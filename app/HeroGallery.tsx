@@ -180,7 +180,21 @@ export default function HeroGallery() {
               }, '/')
             }}
           >
-            {showVideo ? (
+            {/* KINEO-HIGGSFIELD-20D dia 2 (13/08) — o poster e camada
+                PERMANENTE (e continua o LCP); o <video> monta por cima com
+                opacity:0 e so aparece em crossfade --dur-base quando o evento
+                `playing` dispara. Antes a troca img→video era seca; agora nada
+                pisca. Se o autoplay for negado, o video desmonta e o poster ja
+                esta embaixo — nunca um retangulo morto. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="hvid"
+              src={example.posterPath}
+              alt=""
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+            />
+            {showVideo && (
               <video
                 ref={(el) => {
                   videoRefs.current[index] = el
@@ -192,15 +206,7 @@ export default function HeroGallery() {
                 loop
                 playsInline
                 preload="none"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                className="hvid"
-                src={example.posterPath}
-                alt=""
-                loading={index === 0 ? 'eager' : 'lazy'}
-                decoding="async"
+                onPlaying={(e) => e.currentTarget.classList.add('hv-on')}
               />
             )}
             {!showVideo && (

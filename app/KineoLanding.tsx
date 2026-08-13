@@ -29,7 +29,7 @@ const KLP_CSS = `
    promessa ou copy mudou; só tipografia, espaçamento, profundidade e cor.
    Tokens novos (--r-*, --sh-*, --blue-soft) centralizam raio/sombra/glow para
    que card, plano, FAQ e botao parem de cada um inventar o proprio acabamento. */
-.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-lg:22px;--r-md:18px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
+.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-lg:22px;--r-md:18px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
 .klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
@@ -188,8 +188,30 @@ const KLP_CSS = `
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
 .klp .gallery-cap{max-width:760px;margin-left:auto;margin-right:auto;line-height:1.65}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
-.klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform var(--dur-base) var(--ease-swift),opacity var(--dur-base) var(--ease-swift)}
 .klp .vcard .hvid{border-radius:18px}
+/* KINEO-HIGGSFIELD-20D dias 2-4 (13/08). Dia 2: o <video> nasce invisivel por
+   cima do poster (que agora e camada permanente) e entra em crossfade
+   --dur-base no evento playing — nada "pisca". Dia 4: hover da zoom 1.04 no
+   CONTEUDO (img ou video), dentro da moldura com overflow:hidden — a
+   microinteracao assinatura do Higgsfield: o conteudo responde, nao so a
+   moldura. */
+.klp .vcard video.hvid{opacity:0}
+.klp .vcard video.hvid.hv-on{opacity:1}
+.klp .vcard:hover .hvid,.klp .vcard:focus-within .hvid{transform:scale(1.04)}
+/* Dia 3: entrada em cascata da galeria — fade-up 400ms com 60ms de degrau por
+   card, so opacity/transform (CLS zero), fill backwards (o delay segura o
+   estado inicial). So roda para quem aceita movimento; reduced-motion ve os
+   seis posters parados, como sempre. */
+@media (prefers-reduced-motion: no-preference){
+.klp .hero-gallery .vcard{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
+.klp .hero-gallery .vcard:nth-child(2){animation-delay:60ms}
+.klp .hero-gallery .vcard:nth-child(3){animation-delay:120ms}
+.klp .hero-gallery .vcard:nth-child(4){animation-delay:180ms}
+.klp .hero-gallery .vcard:nth-child(5){animation-delay:240ms}
+.klp .hero-gallery .vcard:nth-child(6){animation-delay:300ms}
+@keyframes hgIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+}
 @media(max-width:820px){.klp .tools{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.klp .tools{grid-template-columns:1fr}}
 /* Empilhado, a fita "Most popular" (top:-12px) invadiria o card de cima com

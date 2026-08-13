@@ -121,17 +121,19 @@ Resultado visivel: primeira dobra indistinguivel em vida da do Higgsfield.
    continua o primeiro paint. Porque: E o elemento que o fundador apontou.
    Mitigado: preload="none", download so no intersect (≥35%), Save-Data/2g/reduced-motion
    ficam no poster, NotAllowedError volta ao poster+badge. Rollback: app/HeroGallery.tsx.
-2. **Crossfade poster→video.** Antes: troca seca img→video → depois: opacity 0→1 em
-   `--dur-base` no evento `playing`. Porque: no Higgsfield nada "pisca". Risco quase
-   zero (CSS); rollback: remover classe.
-3. **Entrada em cascata da galeria.** Antes: 6 cards aparecem de uma vez → depois:
-   fade-up `--dur-slow` com delay 60ms/card, so opacity/transform (CLS zero),
-   desligado em reduced-motion. Porque: a primeira dobra deles e coreografada.
-   Rollback: remover keyframes.
-4. **Hover de video com zoom sutil.** Antes: card da lift mas video estatico →
-   depois: `.vcard:hover .hvid{transform:scale(1.04)}` com `--ease-swift`. Porque:
-   microinteracao assinatura (o conteudo responde, nao so a moldura). vcard ja tem
-   overflow:hidden. Rollback: 1 regra CSS.
+2. ✅ **FEITO 13/08 — Crossfade poster→video.** Poster virou camada permanente;
+   o <video> monta com opacity:0 e entra em crossfade `--dur-base` no evento
+   `playing`. Nada pisca; NotAllowedError desmonta o video e o poster ja esta
+   embaixo. Rollback: app/HeroGallery.tsx + 2 regras CSS.
+3. ✅ **FEITO 13/08 — Entrada em cascata da galeria.** fade-up `--dur-slow` +
+   `--ease-out-expo`, delay 60ms/card (nth-child 2-6), fill backwards, so
+   opacity/transform (CLS zero), dentro de `prefers-reduced-motion:
+   no-preference`. Rollback: remover bloco @media/keyframes hgIn.
+4. ✅ **FEITO 13/08 — Hover de video com zoom sutil.**
+   `.vcard:hover/.focus-within .hvid{transform:scale(1.04)}` com transicao
+   `--dur-base`/`--ease-swift` no .hvid; overflow:hidden ja segura. Tokens
+   `--dur-fast/base/slow` + `--ease-swift/out-expo` entraram no bloco de vars
+   do .klp (primeiro uso real do lib/uiTokens.ts em CSS). Rollback: 1 regra.
 5. **Fade-up nas secoes ao rolar.** Antes: secoes ja estao la → depois: `.sec-h`/grids
    entram fade-up 1x (IntersectionObserver; estado inicial VISIVEL — animacao e
    progressive enhancement). Porque: ritmo vertical coreografado. Rollback: remover classe.
@@ -245,3 +247,7 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   semanas com destino + tokens extraidos do CSS real do Higgsfield (10 bundles) +
   auditoria numerica do Kineo (15 raios px / 21 cinzas / 14 duracoes) + criado
   lib/uiTokens.ts. Baseline curl registrado; Lighthouse ficou como pendencia (quota PSI).
+- **13/08 (manha, pedido direto do fundador)** — Dias 2, 3 e 4 ✅ num pacote so:
+  crossfade poster→video no `playing`, cascata 60ms/card na galeria, hover zoom
+  1.04 no conteudo. Tokens --dur-*/--ease-* estreiam no .klp. tsc limpo.
+  Semana 1 agora so deve o dia 5 (fade-up das secoes) — fica para a sprint das 14h.
