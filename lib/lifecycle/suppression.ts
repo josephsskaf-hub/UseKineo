@@ -89,6 +89,52 @@ export const LIFECYCLE_SUPPRESSION_HOURS = 24
 
 const SUPPRESSION_WINDOW_MS = LIFECYCLE_SUPPRESSION_HOURS * 60 * 60 * 1000
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-RECOVERY-STARVATION-2026-08-13 — a janela deixa de ser uma constante
+// global, porque UMA janela para todos os jobs faz o e-mail mais quente da casa
+// perder para o mais frio.
+//
+// MEDIDO em produção hoje, 9 de 9 casos explicados, zero resíduo: TODA linha de
+// `checkout_abandoned` presa com `recovery_sent_at IS NULL` (7 pessoas, 29h a
+// 137h paradas) tem pelo menos uma colisão de e-mail de ciclo de vida DENTRO da
+// janela de elegibilidade de 48h do send-recovery. Os e-mails que ganharam a
+// colisão: `post_nudge`, `activation_nudge`, `video_ready`, `cap_hit`,
+// `d0_welcome`, `ending_soon`. O que perdeu: o único e-mail da casa endereçado a
+// alguém que ABRIU UM CHECKOUT DA STRIPE com o cartão na mão.
+//
+// A COLISÃO NÃO É AZAR — É ANTICORRELAÇÃO DE DESENHO, e é isto que torna o
+// defeito estrutural em vez de eventual. Quem abandona um checkout é, por
+// definição, alguém ATIVO: acabou de receber um vídeo (`video_ready`), bateu no
+// teto (`cap_hit`) ou está no meio do trial (`d0_welcome`/`ending_soon`). **A
+// mesma atividade que faz a pessoa chegar perto de comprar é a que dispara o
+// e-mail que cala a recuperação.** Quanto melhor o funil ficar, mais leads
+// quentes esta trava vai queimar.
+//
+// E o dano é PERMANENTE, não um atraso: a janela de elegibilidade do
+// send-recovery era de 48h e a supressão dura 24h. Duas colisões fecham a
+// janela, a linha nunca mais é reconsiderada e o lead morre em silêncio — sem
+// log de erro, sem carimbo, sem nada em que tropeçar.
+//
+// A CORREÇÃO NÃO MEXE NA SEMÂNTICA DE NINGUÉM. `windowHours` é OPCIONAL e o
+// default continua sendo as 24h de sempre: os 11 outros chamadores não mudam de
+// comportamento em um único bit. Só o send-recovery passa uma janela menor, e
+// ele é o único que pode: o carimbo dele é VITALÍCIO (1 e-mail por pessoa, para
+// sempre), então encurtar a janela não cria repetição — cria no máximo dois
+// e-mails nossos no mesmo dia, para alguém que tentou pagar.
+//
+// Por que 4h e não 0: a razão de existir deste módulo é não mandar dois e-mails
+// "com minutos de diferença" (o caso do send-free-upsell, no topo do arquivo).
+// 4h preserva essa proteção inteira e destrói a inanição: nenhum job de nudge
+// consegue cobrir 48h de janela com bloqueios de 4h.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Janela curta, para jobs cujo carimbo é VITALÍCIO e cuja coorte é um sinal de
+ * compra. Ver o bloco acima antes de usar em qualquer job novo: janela curta
+ * num job que reenvia é como se queima domínio.
+ */
+export const HOT_LEAD_SUPPRESSION_HOURS = 4
+
 /**
  * PostgREST manda `in.(...)` na query string. Com milhares de UUIDs a URL
  * estoura (send-video-rescue carrega até 5000 perfis de uma vez), então as
@@ -164,10 +210,16 @@ function parseTime(raw: unknown): number {
  *
  * @param admin  cliente Supabase com service role (os jobs já criam um).
  * @param userIds ids candidatos do job que está chamando.
+ * @param windowHours janela de supressão em horas. OPCIONAL — default 24, que é
+ *   o comportamento histórico de todos os chamadores. Só passe outro valor com
+ *   o bloco KINEO-RECOVERY-STARVATION-2026-08-13 lido: janela curta em job que
+ *   REENVIA é como se queima domínio. Valor inválido (0, negativo, NaN) cai no
+ *   default de 24h em vez de virar "supressão desligada" por acidente.
  */
 export async function loadLifecycleSuppression(
   admin: SupabaseClient,
   userIds: string[],
+  windowHours: number = LIFECYCLE_SUPPRESSION_HOURS,
 ): Promise<LifecycleSuppression> {
   const ids = Array.from(new Set(userIds.filter((id): id is string => typeof id === 'string' && id.length > 0)))
 
@@ -175,7 +227,15 @@ export async function loadLifecycleSuppression(
     return { isSuppressed: () => false, suppressedCount: 0, degraded: false }
   }
 
-  const cutoff = Date.now() - SUPPRESSION_WINDOW_MS
+  // Falha SEGURA para o lado de suprimir mais, nunca menos: qualquer coisa que
+  // não seja um número finito e positivo vira a janela histórica de 24h. Um
+  // `windowHours` vindo de env mal lida não pode virar "supressão desligada".
+  const effectiveWindowMs =
+    Number.isFinite(windowHours) && windowHours > 0
+      ? windowHours * 60 * 60 * 1000
+      : SUPPRESSION_WINDOW_MS
+
+  const cutoff = Date.now() - effectiveWindowMs
   const lastEmailAt = new Map<string, number>()
 
   const bump = (userId: unknown, when: number) => {
@@ -257,7 +317,10 @@ export async function loadLifecycleSuppression(
 
   if (suppressed.size > 0) {
     console.log(
-      `[lifecycle-suppression] ${suppressed.size}/${ids.length} suprimido(s) — e-mail de ciclo de vida nas últimas ${LIFECYCLE_SUPPRESSION_HOURS}h`,
+      // A janela é impressa a partir do valor EFETIVO, não da constante: com
+      // duas janelas em uso, um log que sempre diz "24h" mentiria para metade
+      // das execuções e mandaria a próxima investigação para o lugar errado.
+      `[lifecycle-suppression] ${suppressed.size}/${ids.length} suprimido(s) — e-mail de ciclo de vida nas últimas ${Math.round(effectiveWindowMs / 3_600_000)}h`,
     )
   }
 

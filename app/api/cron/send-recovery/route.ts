@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
-import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { loadLifecycleSuppression, HOT_LEAD_SUPPRESSION_HOURS } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { PLANS } from '@/lib/pricing'
 
@@ -32,6 +32,72 @@ const LIFECYCLE_EMAILS_ENABLED = process.env.KINEO_LIFECYCLE_EMAILS_ENABLED === 
 // hello@ (friendlier, commercial); support@ stays for support-only matters.
 const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
 const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial', 'creator', 'creator_trial', 'studio', 'studio_trial'])
+
+// ═══ KINEO-RECOVERY-STARVATION-2026-08-13 — O LEAD MAIS QUENTE DA CASA ═══
+// ═══ MORRIA DE FOME, CALADO, E O SILÊNCIO ERA O SINTOMA                 ═══
+//
+// MEDIDO hoje em produção (contas internas fora), 9 de 9 casos explicados e
+// ZERO resíduo — toda linha presa tem colisão, e nenhuma colisão faltou:
+//
+//   7 pessoas · 9 linhas de `checkout_abandoned` com `recovery_sent_at IS NULL`
+//   paradas de 29h a 137h. Todas: plan='free', email_opted_out=false,
+//   has_paid=false, e-mail válido, não-teste. Ou seja: NENHUM dos desvios
+//   legítimos deste arquivo se aplica a elas. São destinatários perfeitos que
+//   simplesmente nunca receberam nada.
+//
+// A taxa de envio conta a história sozinha:
+//   31/07 → 09/08 ....... ~97% das linhas recuperadas (13/13, 7/7, 5/5, 3/3…)
+//   10/08 ............... 3 de 4
+//   11/08 ............... 1 de 4
+//   12/08 ............... 2 de 4
+//   13/08 ............... 0 de 4
+// O corte é 10/08 — exatamente quando os e-mails do trial entraram em volume
+// (`d0_welcome` desde 08/08, `ending_soon` 09/08, `downgraded_loss` 11/08).
+//
+// A MECÂNICA, e por que ela DESTRÓI em vez de atrasar:
+//   1. a linha só NASCE quando a sessão Stripe expira (~24h depois do clique);
+//   2. a janela de elegibilidade era de 48h a partir daí;
+//   3. qualquer um dos 9 jobs de ciclo de vida que mande e-mail nesse intervalo
+//      cala este job por 24h (a supressão NÃO carimba — a linha "continua
+//      elegível na próxima execução", que é verdade e é justamente a armadilha);
+//   4. DUAS colisões cobrem as 48h, a janela fecha, e a linha nunca mais é
+//      lida. Sem erro, sem carimbo, sem log. O lead morre em silêncio.
+//
+// E A COLISÃO É ANTICORRELAÇÃO DE DESENHO, NÃO AZAR — é isto que faz o defeito
+// piorar conforme o produto melhora. Quem abandona checkout é, por definição,
+// alguém ATIVO: acabou de receber um vídeo (`video_ready`), bateu no teto
+// (`cap_hit`), está no meio do trial (`d0_welcome`/`ending_soon`) ou baixou sem
+// postar (`post_nudge`). **A mesma atividade que leva a pessoa até o checkout é
+// a que dispara o e-mail que cala a recuperação dela.** Foram exatamente esses
+// seis os vencedores das 9 colisões medidas.
+//
+// DUAS MUDANÇAS, e nenhuma delas toca preço, oferta ou o texto do e-mail:
+//
+//  1. JANELA DE ELEGIBILIDADE 48h → 7 DIAS. Colisão passa a ADIAR em vez de
+//     DESCARTAR. Esta sozinha resolve os 9 casos e é a que importa: a janela de
+//     48h era estreita demais para um job que pode ser calado por 24h de cada
+//     vez. O comentário original justificava as 48h com "a fresh deploy never
+//     blasts the historical backlog" — a proteção real contra isso é o teto por
+//     execução abaixo, não a janela, porque o carimbo aqui é VITALÍCIO.
+//
+//  2. SUPRESSÃO DE 24h → 4h **SÓ PARA ESTE JOB**. Este é o único e-mail da casa
+//     endereçado a quem abriu um checkout da Stripe com o cartão na mão; ele não
+//     pode perder a vez para um "your video is ready". Encurtar é seguro AQUI e
+//     em quase nenhum outro lugar, porque o carimbo deste job é vitalício (1 por
+//     pessoa, para sempre): janela curta não gera repetição, no máximo dois
+//     e-mails nossos no mesmo dia para alguém tentando comprar. As 4h preservam
+//     inteira a razão de existir da supressão — não mandar dois e-mails com
+//     minutos de diferença. Os outros 11 chamadores continuam em 24h: o
+//     parâmetro é opcional e o default não mudou.
+//
+// TETO POR EXECUÇÃO: a janela de 7 dias faz a PRIMEIRA execução após o deploy
+// encontrar o represamento inteiro de uma vez (hoje: 7 pessoas). São todos leads
+// legítimos e o carimbo é vitalício, então não há repetição possível — mas um
+// job que pode mandar N e-mails de uma vez precisa de um N máximo escrito, e não
+// de uma janela estreita fazendo esse papel por acidente. As linhas que sobram
+// do teto ficam para a execução seguinte (2h depois), na ordem em que estão.
+const RECOVERY_WINDOW_HOURS = 7 * 24
+const MAX_EMAILS_PER_RUN = 25
 
 // ═══ KINEO-RECOVERY-WRONG-PLAN-2026-08-11 — O E-MAIL NOMEAVA UM PLANO QUE NÃO EXISTE ═══
 //
@@ -337,8 +403,8 @@ export async function GET(req: NextRequest) {
     global: { fetch: freshFetch },
   })
 
-  // Sessions expired in the last 48h, never recovered.
-  const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  // Sessions expired in the last RECOVERY_WINDOW_HOURS, never recovered.
+  const since = new Date(Date.now() - RECOVERY_WINDOW_HOURS * 60 * 60 * 1000).toISOString()
   const { data: rows, error } = await admin
     .from('checkout_abandoned')
     .select('id, user_id, tier, expired_at')
@@ -385,13 +451,27 @@ export async function GET(req: NextRequest) {
   // jobs de ciclo de vida. Este é o job mais agressivo da casa (a cada 2h), e
   // era o único cujo carimbo mora fora de `profiles` — logo, o mais provável de
   // atropelar os outros. Falha FECHADA (ver lib/lifecycle/suppression.ts).
-  const suppression = await loadLifecycleSuppression(admin, userIds)
+  // KINEO-RECOVERY-STARVATION-2026-08-13 — 4h em vez de 24h, SÓ aqui. Ver o
+  // bloco no topo deste arquivo: carimbo vitalício + coorte que é sinal de
+  // compra = o único job da casa que pode encurtar a janela sem risco de
+  // repetição. Os outros 11 chamadores usam o default e não mudam.
+  const suppression = await loadLifecycleSuppression(admin, userIds, HOT_LEAD_SUPPRESSION_HOURS)
 
   let sent = 0
   let skipped = 0
   let suppressed = 0
+  // Linhas elegíveis que ficaram para a próxima execução por causa do teto —
+  // reportado para que "sent" menor que "total" nunca precise ser adivinhado.
+  let deferredByCap = 0
 
   for (const [userId, cand] of byUser) {
+    // Teto por execução. Vem ANTES de qualquer desvio para que um lote grande
+    // não seja consumido por `continue`s e o teto vire letra morta: o que
+    // interessa limitar é E-MAIL ENVIADO, e é `sent` que ele compara.
+    if (sent >= MAX_EMAILS_PER_RUN) {
+      deferredByCap++
+      continue
+    }
     // Suprimido = recebeu outro e-mail de ciclo de vida nas últimas 24h.
     // NÃO carimba `recovery_sent_at`: a linha continua elegível na próxima
     // execução, depois que a janela passar. Carimbar aqui seria descartar o
@@ -480,5 +560,12 @@ export async function GET(req: NextRequest) {
     total: byUser.size,
     suppressed_recent_lifecycle: suppressed,
     suppression_degraded: suppression.degraded,
+    // KINEO-RECOVERY-STARVATION-2026-08-13 — os dois campos que tornam a
+    // inanição VISÍVEL na próxima vez. `suppressed` já existia e não bastava:
+    // ele conta quem foi calado NESTA execução, sem dizer com que janela nem
+    // por quanto tempo a linha já vinha esperando.
+    window_hours: RECOVERY_WINDOW_HOURS,
+    suppression_window_hours: HOT_LEAD_SUPPRESSION_HOURS,
+    deferred_by_cap: deferredByCap,
   })
 }
