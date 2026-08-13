@@ -1512,3 +1512,19 @@ afirmação sobre um RESULTADO que depende de a Stripe aceitar o cupom — e nã
 em execução agendada, como conferir o painel da Stripe. Virou afirmação sobre a
 REGRA (*"goes to checkout"*), verdadeira mesmo com código expirado. O `tsc`
 estava verde nas duas versões.
+
+### 6. CORRECAO A UMA REGRA EM VIGOR: `git status` MENTE COM O INDEX ENVENENADO
+A regra 1 de 08/08 manda fechar toda sprint com `git status` — e hoje ela quase
+produziu o alarme oposto ao que existe para evitar. O `git status` desta arvore
+listou **11 arquivos de codigo como `??` (nao rastreados)**, entre eles
+`app/chatgpt-to-youtube-shorts/`, `app/api/cron/send-stalled-rescue/` e
+`app/RevealOnScroll.tsx` — todos **commitados hoje mesmo**. A causa e o index
+travado de 08/08 (o `.git/index.lock` que o OneDrive nao deixa apagar): commits
+feitos por plumbing (`GIT_INDEX_FILE` alternativo) nunca chegam aquele index,
+entao ele continua descrevendo a arvore de 08/08. Ler aquele `??` como "escrito
+e nunca commitado" — o defeito que mordeu 3x esta semana — teria mandado a
+sprint recommitar 11 caminhos ja entregues.
+**A checagem certa, enquanto o lock existir, e contra a ARVORE, nunca contra o
+index:** `git ls-tree -r --name-only main -- <caminho>`. E o corolario geral:
+quando o mecanismo de contorno de um lock e plumbing, TODA ferramenta que le o
+index (status, diff sem `--cached` contra HEAD, add) fica cega junto.
