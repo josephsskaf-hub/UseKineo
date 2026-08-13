@@ -100,6 +100,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // money-intent page: "make money clipping with AI" connects the pay-per-view
     // clipping economy to the pipeline. 0.9 like the other money pages.
     { path: '/make-money-clipping-with-ai', priority: 0.9, freq: 'weekly' },
+    // KINEO-CHATGPT-INTENT-2026-08-10 (docs/SPRINT-2026-08-10.md, seção 3) —
+    // `chatgpt` passou o `taaft` como maior canal EXTERNO de entrada (09/08:
+    // 13 x 4), medido nas colunas de primeiro toque de `profiles`. Todo o
+    // cluster existente fala com quem BUSCA um gerador; ninguém falava com
+    // quem chega de dentro do ChatGPT já com um roteiro na mão. 0.9 como as
+    // outras cabeças de cluster de intenção (/youtube-shorts-from-topic,
+    // /text-to-video-shorts), não 0.8, porque é entrada de canal nº1.
+    { path: '/chatgpt-to-youtube-shorts', priority: 0.9, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
