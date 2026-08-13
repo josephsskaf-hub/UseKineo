@@ -1,3 +1,53 @@
+# GATE 13/08 (sprint 13h) — HÁ COMMITS PRESOS, E O NOVO É O E-MAIL DE 231 PESSOAS QUE NUNCA CONSEGUIRAM UM VÍDEO
+
+`origin/main` = **`f0f63c7`** (medido por `git ls-remote` na hora, não herdado
+de doc). O `main` local está à frente disso pelas sprints de 11h e 13h. **Número
+de commits de propósito não escrito aqui** — é a lição do `74-PUSH`: contagem
+fixa envelhece entre escrever e clicar. Quem quiser o número exato:
+`git log origin/main..HEAD --oneline`.
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\74-PUSH.bat`**
+CRLF (por isso funciona). Não cria commit, não faz `add`, não faz `reset`: apaga
+os 3 locks órfãos e dá `git push`. Seguro rodar duas vezes.
+
+## 🔴 O QUE ESTE PUSH DESTRAVA (além dos 7 do checkout, que continuam presos)
+
+**231 pessoas apertaram "gerar", não saiu vídeo, e 219 delas receberam de nós um
+e-mail dizendo "venha fazer seu primeiro vídeo"** — de 1 a 6 horas depois da
+tentativa que quebrou. A campanha certa para essa gente existe desde 26/07, foi
+revisada duas vezes, e tem **0 envios em 18 dias**: ficou esperando um clique.
+
+| medida (13/08, medido no banco) | valor |
+|---|---:|
+| coorte "tentou e nunca completou" | **231** |
+| e-mails de resgate já enviados | **0** |
+| receberam o e-mail ERRADO (activation nudge) | **219** |
+| em trial ATIVO, com créditos parados | **28 / 1.120 cr** |
+| cadastros de 10 dias que apertaram gerar e ficaram sem nada | **51 de 200** |
+
+Entregue: cron em **rampa de 25/dia** (`/api/cron/send-stalled-rescue`), fila
+ordenada por relógio de trial, **supressão de 4h só neste job** (com 24h a rampa
+perderia 10 dos 28 em trial todo dia — anticorrelação, mesmo padrão das 11h), e
+o activation nudge parou de gastar o primeiro contato com a mensagem errada.
+
+**Conferir depois do push:** `https://www.usekineo.com/api/admin/send-stalled-rescue`
+(sem parâmetros = dry run) tem que mostrar `remaining_unemailed` caindo 25/dia.
+Parado em 231 = o cron novo não pegou. É a única peça que não pôde ser testada
+sem produção.
+
+## 🟡 O TOPO DO FUNIL CAIU 6,8× — E NÃO É O FUNIL
+
+603 sessões em 08/08 → **89 hoje**. Cadastros 36 → **11**. A conversão
+sessão→cadastro ficou em ~8% o tempo todo: **é tráfego.** O pico do TAAFT
+decaiu como todo diretório decai. Nota lateral que não decai: `chatgpt.com` é o
+2º maior referenciador externo e hoje empatou com o TAAFT (3 × 4).
+
+## 🔒 GATE TAAFT $347 — continua fechado, agora com número
+
+**1 em cada 4 cadastros aperta gerar e não recebe vídeo.** Pagar por tráfego
+antes de tapar isso é encher um balde com o furo já medido.
+
+---
 # GATE 13/08 (sprint 11h) — 1 COMMIT PRESO, E ELE É O E-MAIL DE QUEM TENTOU PAGAR
 
 `origin/main` = **`f0f63c7`** · `main` local = **`be56e3c`** (medido por
