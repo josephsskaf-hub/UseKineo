@@ -32,6 +32,31 @@ function fmt(n: number): string {
 
 export default function LiveStatsBadge({ style }: { style?: React.CSSProperties }) {
   const [label, setLabel] = useState<string | null>(null)
+  // KINEO-HIGGSFIELD-20D dia 17 (13/08) — count-up 600ms 1x com o numero
+  // REAL (a regra de honestidade acima continua intacta: numero fake nunca;
+  // o que anima e a contagem ate o valor verdadeiro). reduced-motion pula
+  // direto para o valor final.
+  const [counts, setCounts] = useState<{ videos: number; weekly: number; accounts: number } | null>(null)
+  const [t, setT] = useState(1)
+
+  useEffect(() => {
+    if (!counts) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setT(1)
+      return
+    }
+    let start: number | undefined
+    let raf = 0
+    const step = (ts: number) => {
+      if (start === undefined) start = ts
+      const p = Math.min(1, (ts - start) / 600)
+      setT(1 - Math.pow(1 - p, 3)) // ease-out cubic
+      if (p < 1) raf = requestAnimationFrame(step)
+    }
+    setT(0)
+    raf = requestAnimationFrame(step)
+    return () => cancelAnimationFrame(raf)
+  }, [counts])
 
   useEffect(() => {
     let cancelled = false
@@ -55,7 +80,10 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
           parts.push(`${fmt(accounts)} accounts joined`)
         }
 
-        if (parts.length > 0) setLabel(parts.join(' · '))
+        if (parts.length > 0) {
+          setLabel(parts.join(' · '))
+          setCounts({ videos, weekly, accounts })
+        }
       })
       .catch(() => {
         // Silent by design — no badge is better than a broken or fake one.
@@ -67,6 +95,21 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
   }, [])
 
   if (!label) return null
+
+  // Reconstroi o label com os numeros animados (mesmas regras de exibicao do
+  // fetch acima). Quando t chega a 1, o texto e IDENTICO ao label estatico.
+  const animatedLabel = (() => {
+    if (!counts || t >= 1) return label
+    const parts: string[] = []
+    if (counts.videos >= MIN_TOTAL_VIDEOS) {
+      parts.push(`${fmt(Math.round(counts.videos * t))} Shorts created`)
+      if (counts.weekly >= MIN_WEEKLY) parts.push(`${fmt(Math.round(counts.weekly * t))} this week`)
+      if (counts.accounts >= MIN_CREATORS) parts.push(`${fmt(Math.round(counts.accounts * t))} accounts joined`)
+    } else if (counts.accounts >= MIN_CREATORS) {
+      parts.push(`${fmt(Math.round(counts.accounts * t))} accounts joined`)
+    }
+    return parts.join(' · ')
+  })()
 
   return (
     <span
@@ -92,7 +135,7 @@ export default function LiveStatsBadge({ style }: { style?: React.CSSProperties 
           animation: 'kineoLivePulse 2s ease-out infinite',
         }}
       />
-      {label}
+      {animatedLabel}
       <style
         dangerouslySetInnerHTML={{
           __html:

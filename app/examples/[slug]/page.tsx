@@ -73,7 +73,12 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
       </header>
 
       <section className="mx-auto grid max-w-6xl gap-10 px-5 py-10 lg:grid-cols-[minmax(300px,430px)_1fr] lg:items-center lg:py-16">
-        <div className="mx-auto w-full max-w-[430px] overflow-hidden rounded-[30px] border border-white/15 bg-black shadow-2xl shadow-cyan-950/20" style={{ aspectRatio: '9 / 16' }}>
+        {/* KINEO-HIGGSFIELD-20D dia 19 (13/08) — palco: a mesma moldura com
+            glow azul do momento "video pronto" do /generate. */}
+        <div
+          className="mx-auto w-full max-w-[430px] overflow-hidden rounded-[30px] bg-black"
+          style={{ aspectRatio: '9 / 16', border: '1px solid rgba(41,151,255,.45)', boxShadow: '0 18px 60px rgba(41,151,255,.22)' }}
+        >
           <ExampleVideoPlayer
             slug={example.slug}
             title={example.title}

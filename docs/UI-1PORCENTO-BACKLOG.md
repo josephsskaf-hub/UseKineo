@@ -175,34 +175,39 @@ Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
 12. **Cinzas e timings → tokens.** Antes: 21 tons no KLP + 14 duracoes → depois: os 9
     tons e 3 duracoes/2 easings da tabela, com find&replace auditado (nenhuma mudanca
     visual percebida a olho — e consolidacao, nao redesign). Rollback: git revert.
-13. **Focus-visible consistente em tudo.** Antes: .btn tem, cards parcial → depois:
-    anel `--accent` padrao em todo interativo, todas as paginas. Porque: acabamento
-    de verdade inclui teclado. Rollback: CSS.
-14. **Nav com estado ativo.** Antes: links sem indicacao → depois: realce animado da
-    secao visivel (IntersectionObserver, nunca scroll listener). Porque: a nav deles
-    responde ao contexto. Rollback: remover observer.
-15. **Posters .jpg → .webp.** Antes: ~134 KB jpg → depois: ~90 KB webp (`<picture>`
-    com fallback). Porque: Higgsfield serve webp. Risco: nenhum com fallback.
-    Rollback: trocar extensao.
+13. ✅ **FEITO 13/08 (auditoria) — Focus-visible consistente.** Ja coberto:
+    globals.css tem :focus-visible global (anel azul .7, offset 2) desde o UI
+    Polish v1.3, valendo para landing e dashboard; .btn da landing tem o
+    proprio anel. Nenhum outline:none suprimindo (auditado por grep).
+14. ✅ **FEITO 13/08 — Nav com estado ativo.** RevealOnScroll ganhou um 2o
+    observer: "Pricing" acende (cor + risco azul ::after) quando #pricing esta
+    na janela util (rootMargin -35%/-45%). Unica ancora da nav; se a nav
+    ganhar mais ancoras, generalizar o seletor. Rollback: remover observer.
+15. ✅ **FEITO 13/08 — Posters .jpg → .webp.** 10 posters convertidos (208→167KB,
+    -20%). DECISAO IMPORTANTE: posterPath alimenta OG images, JSON-LD e
+    video-sitemap em 15+ paginas — la o .jpg FICA (preview social nao aceita
+    webp confiavelmente). Superficies visuais (HeroGallery, grade e palco do
+    /examples) usam posterWebpPath() de lib/publicExamples. Rollback: helper.
 
 ### SEMANA 4 — dias 16-20: "O ACABAMENTO QUE NINGUEM NOTA MAS TODOS SENTEM"
 Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no teste.
 
-16. **Empty states com personalidade.** Antes: "No videos yet" seco → depois:
-    ilustracao SVG no traco do toolkit + CTA (/history, dashboard). Porque: acabamento
-    e o que acontece nos cantos vazios. Rollback: texto antigo.
-17. **Micro-brilhos: sheen no CTA + count-up no LiveStatsBadge.** Antes: botao branco
-    estatico, numero estatico → depois: brilho diagonal 1x no load/hover (CSS only) e
-    count-up 600ms 1x com numero real. Porque: o CTA deles tem vida sem gritar; prova
-    social viva. Risco: cafona se repetir — 1x so. Rollback: 2 classes.
+16. ✅ **FEITO 13/08 — Empty state do /history com personalidade.** Saiu o
+    fundo navy legado rgba(11,17,32) + emoji; entrou superficie #131316 +
+    ilustracao SVG da marca (3 molduras 9:16 em cascata, play azul). CTA
+    intacto. Dashboard empty state fica para sprint. Rollback: bloco antigo.
+17. ✅ **FEITO 13/08 — Micro-brilhos.** Sheen diagonal azul-suave no .btn-w:
+    1x apos load (delay .9s) + 1x por hover, CSS puro, reduced-motion off.
+    LiveStatsBadge: count-up 600ms ease-out ate os numeros REAIS (regra de
+    honestidade intacta — anima a contagem, nunca o valor). Rollback: 2 blocos.
 18. **Transicao landing → /signup.** Antes: navegacao seca → depois: fade curto (View
     Transitions API, fallback nulo = comportamento atual). Porque: continuidade de
     mundo. Rollback: remover meta.
-19. **/examples vivo + palco no /examples/[slug].** Antes: posters estaticos e player
-    simples → depois: mesmo motor do HeroGallery (extrair hook `useViewportVideo`) na
-    grade, e pagina de detalhe com video centrado + glow + prompt original ("veja como
-    foi feito"). Porque: catalogo vivo (item 8) + eles vendem o processo. Risco: escopo
-    — manter 1 pagina. Rollback: layout antigo.
+19. ✅ **FEITO 13/08 — /examples vivo + palco.** Grade: ExampleLiveMedia
+    (client) com as MESMAS regras da galeria da home (poster-first, monta no
+    intersect, preload none, pausa fora, crossfade no playing, Save-Data/2g/
+    reduced-motion → poster). Palco do [slug]: moldura com glow azul identica
+    ao momento "video pronto" do /generate. Rollback: <img> antigo no page.
 20. **AUDITORIA FINAL LADO A LADO.** Screenshot da home Kineo x home Higgsfield na
     mesma janela; rodar o checklist "Como saberemos" abaixo, item por item, com numeros
     (grep de raios/cinzas/duracoes + Lighthouse vs baseline); registrar no Diario o que

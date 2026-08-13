@@ -435,11 +435,24 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             </span>
           </h1>
         </header>
+        {/* KINEO-HIGGSFIELD-20D dia 16 (13/08) — empty state com identidade:
+            sai o fundo navy legado + emoji, entra a superficie padrao
+            (#131316) e uma ilustracao no traco da marca (tres molduras 9:16
+            em cascata, play azul na frente). Acabamento e o que acontece nos
+            cantos vazios. */}
         <div
           className="rounded-2xl p-10 sm:p-16 text-center"
-          style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.07)', backdropFilter: 'blur(12px)' }}
+          style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          <div className="text-5xl mb-4">🎬</div>
+          <svg width="120" height="96" viewBox="0 0 120 96" fill="none" aria-hidden="true" style={{ display: 'block', margin: '0 auto 18px' }}>
+            <rect x="14" y="14" width="38" height="66" rx="8" stroke="rgba(255,255,255,.14)" strokeWidth="1.5" transform="rotate(-6 33 47)" />
+            <rect x="38" y="8" width="40" height="70" rx="8" stroke="rgba(255,255,255,.24)" strokeWidth="1.5" transform="rotate(-2 58 43)" />
+            <rect x="64" y="6" width="42" height="74" rx="9" fill="rgba(41,151,255,.07)" stroke="rgba(41,151,255,.55)" strokeWidth="1.5" />
+            <circle cx="85" cy="43" r="13" fill="rgba(41,151,255,.16)" stroke="#2997ff" strokeWidth="1.5" />
+            <path d="M81.5 37.5v11l9-5.5z" fill="#2997ff" />
+            <rect x="70" y="64" width="30" height="4" rx="2" fill="rgba(255,255,255,.16)" />
+            <rect x="70" y="71" width="20" height="4" rx="2" fill="rgba(255,255,255,.09)" />
+          </svg>
           <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}>No videos yet</h2>
           <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
             Generate your first AI Short and it’ll appear here automatically.

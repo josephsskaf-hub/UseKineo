@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import ExampleLiveMedia from './ExampleLiveMedia'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -53,11 +54,11 @@ export default function ExamplesPage() {
               className="group overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] transition hover:-translate-y-1 hover:border-cyan-300/50"
             >
               <div className="relative aspect-[9/16] overflow-hidden bg-black">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={example.posterPath}
-                  alt=""
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]"
+                {/* KINEO-HIGGSFIELD-20D dia 19 (13/08) — catalogo vivo: o
+                    card toca em viewport, mesmas regras da galeria da home. */}
+                <ExampleLiveMedia
+                  videoPath={example.videoPath}
+                  posterPath={posterWebpPath(example.posterPath)}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10" />
                 <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-wider backdrop-blur">

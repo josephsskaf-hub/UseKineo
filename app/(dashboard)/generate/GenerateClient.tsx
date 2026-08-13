@@ -1251,10 +1251,6 @@ export default function GenerateClient({
   // button, which writes the flag so we never show it again.
   const [showWelcome, setShowWelcome] = useState(false)
 
-  // Push #098 — 4-step generation progress text shown below the spinner
-  // while the pipeline is running. Auto-advances on a setInterval driven
-  // by elapsed seconds since the phase entered the loading bucket.
-  const [progressStep, setProgressStep] = useState<number>(0)
 
   // Push #048 — Visual History. List of the user's recent videos fetched
   // from /api/videos. Empty array = empty state; null only during initial
@@ -2664,31 +2660,10 @@ export default function GenerateClient({
     return () => clearInterval(interval)
   }, [mode, phase])
 
-  // Push #098 — generic 4-step generation progress indicator. Time-based
-  // so it stays useful even when the backend phase doesn't change for a
-  // while (the Pexels + TTS fast pipeline can sit in one phase for 30s+).
-  //   0-8s   : ✍️ Writing your script...
-  //   8-20s  : 🎙️ Generating voiceover...
-  //   20-40s : 🎬 Finding footage...
-  //   40s+   : ⚡ Rendering your Short...
-  useEffect(() => {
-    const isGenerating =
-      phase === 'generating' || phase === 'fal_polling' || phase === 'avatar_polling' || phase === 'clips_ready' || phase === 'composing'
-    if (!isGenerating) {
-      setProgressStep(0)
-      return
-    }
-    setProgressStep(0)
-    const startedAt = Date.now()
-    const interval = setInterval(() => {
-      const elapsedSec = (Date.now() - startedAt) / 1000
-      if (elapsedSec >= 40) setProgressStep(3)
-      else if (elapsedSec >= 20) setProgressStep(2)
-      else if (elapsedSec >= 8) setProgressStep(1)
-      else setProgressStep(0)
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [phase])
+  // KINEO-HIGGSFIELD-20D higiene (13/08) — o antigo indicador de 4 passos do
+  // Push #098 (progressStep + GenerationProgressSteps) era codigo morto: o
+  // componente nunca era renderizado, mas o setInterval de 1s rodava a cada
+  // geracao a toa. Removidos os dois; o timer tambem.
 
   // Push #098 — welcome banner gating. Only shown on first visit when the
   // user still has >=1 credit and hasn't dismissed it. localStorage write
@@ -6901,6 +6876,34 @@ export default function GenerateClient({
     return 0
   })()
 
+  // KINEO-HIGGSFIELD-20D B8 (13/08) — a % EXIBIDA nunca pula nem congela.
+  // headlineProgress anda em degraus por fase (40 fixo no avatar, 72 fixo no
+  // clips_ready); displayProgress persegue o alvo em passos proporcionais e,
+  // quando o alvo esta parado, avanca de leve ate um teto honesto (alvo+8,
+  // nunca >95) — o usuario sente movimento sem a barra mentir a fase. Se um
+  // novo render comeca (alvo despenca), encaixa no alvo real na hora.
+  const [displayProgress, setDisplayProgress] = useState(0)
+  useEffect(() => {
+    if (phase === 'idle') {
+      setDisplayProgress(0)
+      return
+    }
+    if (phase === 'done') {
+      setDisplayProgress(100)
+      return
+    }
+    const id = setInterval(() => {
+      setDisplayProgress((prev) => {
+        const target = headlineProgress
+        if (prev > target + 25) return target // novo render — encaixa no real
+        if (prev < target) return Math.min(target, prev + Math.max(1, (target - prev) * 0.25))
+        const cap = Math.min(95, target + 8)
+        return prev < cap ? Math.round((prev + 0.25) * 4) / 4 : prev
+      })
+    }, 600)
+    return () => clearInterval(id)
+  }, [phase, headlineProgress])
+
   return (
     // KINEO-CONTENT-REDESIGN-2026-07-10 (Joseph) — the "miolo": wider canvas
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
@@ -8359,7 +8362,7 @@ export default function GenerateClient({
               {/* PUSH #71 — show the real API phase instead of rotating
                   cosmetic steps after that work has already finished. */}
               <RenderHeader
-                progress={headlineProgress}
+                progress={Math.round(displayProgress)}
                 message={statusMessage}
               />
 
@@ -10062,8 +10065,16 @@ function RecentVideosSection({ videos }: { videos: RecentVideo[] | null }) {
         <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted)' }}>
           Recent Videos
         </div>
-        <div className="text-xs" style={{ color: 'var(--muted)' }}>
-          Loading your library…
+        {/* B9 (13/08) — regra do dia 6 em toda pagina interna: a biblioteca
+            carrega mostrando a FORMA dos videos (mini 9:16 em shimmer). */}
+        <div style={{ display: 'flex', gap: 10 }}>
+          {[0, 1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="gv-sk"
+              style={{ width: 64, aspectRatio: '9 / 16', borderRadius: 10, border: '1px solid rgba(255,255,255,.06)', animationDelay: `${i * 120}ms` }}
+            />
+          ))}
         </div>
       </section>
     )
@@ -12543,69 +12554,3 @@ function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialL
   )
 }
 
-// ─── Push #098 — 4-step generation progress text ────────────────────────────
-// Sits below the spinner. Active step is bold green; completed steps stay
-// visible in muted green; upcoming steps are dimmed. The step index is
-// time-driven (see useEffect in the parent) so the user always feels
-// forward motion even when the API phase doesn't change for a while.
-function GenerationProgressSteps({ step }: { step: number }) {
-  const items = [
-    { icon: '✍️', label: 'Writing your script...' },
-    { icon: '🎙️', label: 'Synthesizing narration...' },
-    { icon: '🎬', label: 'Composing your scenes...' },
-    { icon: '⚡', label: 'Rendering your Short...' },
-  ]
-  return (
-    <ol
-      style={{
-        marginTop: 14,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        listStyle: 'none',
-        padding: 0,
-      }}
-    >
-      {items.map((it, i) => {
-        const isActive = i === step
-        const isDone = i < step
-        const color = isActive ? '#5cb3ff' : isDone ? '#5cb3ff' : 'var(--muted)'
-        return (
-          <li
-            key={i}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              opacity: isActive || isDone ? 1 : 0.55,
-            }}
-          >
-            <span
-              aria-hidden="true"
-              style={{ fontSize: '1.1rem', width: 22, textAlign: 'center' }}
-            >
-              {it.icon}
-            </span>
-            <span
-              style={{
-                fontSize: '0.88rem',
-                fontWeight: isActive ? 800 : isDone ? 600 : 500,
-                color,
-              }}
-            >
-              {it.label}
-            </span>
-            {isDone && (
-              <span
-                aria-hidden="true"
-                style={{ marginLeft: 'auto', color: '#5cb3ff', fontSize: '0.85rem' }}
-              >
-                ✓
-              </span>
-            )}
-          </li>
-        )
-      })}
-    </ol>
-  )
-}

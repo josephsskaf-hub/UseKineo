@@ -37,5 +37,22 @@ export default function RevealOnScroll() {
     })
     return () => io.disconnect()
   }, [])
+
+  // KINEO-HIGGSFIELD-20D dia 14 (13/08) — nav com estado ativo: o link
+  // "Pricing" acende quando a secao #pricing esta na janela util da tela
+  // (IntersectionObserver com rootMargin, nunca scroll listener).
+  useEffect(() => {
+    const pricing = document.querySelector('.klp #pricing')
+    const link = document.querySelector('.klp .nav-links a[href="#pricing"]')
+    if (!pricing || !link) return
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        link.classList.toggle('nav-on', entry.isIntersecting)
+      },
+      { rootMargin: '-35% 0px -45% 0px' },
+    )
+    io.observe(pricing)
+    return () => io.disconnect()
+  }, [])
   return null
 }

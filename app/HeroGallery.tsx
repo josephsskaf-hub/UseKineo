@@ -52,7 +52,7 @@
 // aspect-ratio 9/16, e o poster do <video> é o MESMO jpg já em cache.
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
-import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { trackEvent } from '@/lib/analytics'
 
 const GALLERY_SOURCE = 'hero_showcase_row'
@@ -189,7 +189,7 @@ export default function HeroGallery() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               className="hvid"
-              src={example.posterPath}
+              src={posterWebpPath(example.posterPath)}
               alt=""
               loading={index === 0 ? 'eager' : 'lazy'}
               decoding="async"
@@ -201,7 +201,7 @@ export default function HeroGallery() {
                 }}
                 className="hvid"
                 src={example.videoPath}
-                poster={example.posterPath}
+                poster={posterWebpPath(example.posterPath)}
                 muted
                 loop
                 playsInline

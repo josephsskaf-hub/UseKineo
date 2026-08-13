@@ -15,6 +15,15 @@ export interface PublicExample {
 // outputDurationSeconds. These are founder-owned samples, never customer
 // uploads. Keep this allow-list explicit so a private render cannot
 // accidentally become indexable.
+// KINEO-HIGGSFIELD-20D dia 15 (13/08) — todo poster tem uma versao .webp
+// gerada ao lado do .jpg (20% menor). As SUPERFICIES VISUAIS (galeria da home,
+// grade do /examples) usam .webp; OG images, JSON-LD e video-sitemap CONTINUAM
+// no .jpg de proposito — plataformas de preview social nao aceitam webp de
+// forma confiavel. Nao trocar posterPath nesses lugares.
+export function posterWebpPath(posterPath: string): string {
+  return posterPath.replace(/\.jpg$/, '.webp')
+}
+
 export const PUBLIC_EXAMPLES: readonly PublicExample[] = [
   {
     slug: 'turkmenistan-door-to-hell',
