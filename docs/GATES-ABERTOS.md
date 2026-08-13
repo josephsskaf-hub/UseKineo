@@ -1,10 +1,57 @@
-# GATE 13/08 (sprint 10h) — COMMITS REPRESADOS + UMA CORREÇÃO DE NÚMERO MEU
+# GATE 13/08 (sprint 11h) — 1 COMMIT PRESO, E ELE É O E-MAIL DE QUEM TENTOU PAGAR
 
-`origin/main` = **`9f3c4f5`** (medido por `git ls-remote`, não herdado de doc).
+`origin/main` = **`f0f63c7`** · `main` local = **`be56e3c`** (medido por
+`git ls-remote` na hora, não herdado de doc). **O 73-PUSH RODOU** — a leva de UI
+da manhã e a sprint das 10h já estão no ar. Falta **1 commit**.
 
-**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\73-PUSH.bat`**
-O 73 nasceu em CRLF (por isso funciona). Não cria commit, não faz `add`, não faz
-`reset`: apaga os 3 locks órfãos e dá `git push`. Seguro rodar duas vezes.
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\74-PUSH.bat`**
+CRLF (por isso funciona). Não cria commit, não faz `add`, não faz `reset`: apaga
+os 3 locks órfãos e dá `git push`. Seguro rodar duas vezes.
+
+## 🔴 O QUE ESTE PUSH DESTRAVA — 7 pessoas que tentaram pagar e ninguém falou com elas
+
+**7 pessoas abriram um checkout da Stripe e ficaram de 29h a 137h sem receber
+nenhum e-mail.** Todas `plan='free'`, sem opt-out, e-mail válido, não-teste:
+destinatários perfeitos. Sem erro, sem carimbo, sem log — o lead morria calado.
+
+| dia | recuperados / abandonos |
+|---|---|
+| 31/07 → 09/08 | ~97% |
+| 11/08 | 1 de 4 |
+| **13/08** | **0 de 4** |
+
+**Causa (9 de 9 casos explicados, zero resíduo):** qualquer e-mail de ciclo de
+vida cala o de recuperação por 24h, e a janela dele era de **48h**. Duas colisões
+fecham a janela e a linha **nunca mais é lida**.
+
+**E a colisão é anticorrelação de desenho, não azar:** quem abandona checkout é
+quem acabou de receber um vídeo (`video_ready`), bateu no teto (`cap_hit`) ou
+está no meio do trial (`d0_welcome`/`ending_soon`). **A mesma atividade que leva
+a pessoa ao checkout dispara o e-mail que cala a cobrança dela.**
+
+Corrigido em `be56e3c`: janela **7 dias** (colisão adia, não descarta) +
+supressão de **4h só neste job** (os outros 11 chamadores não mudam um bit) +
+teto de 25 por execução. **Simulado: 6 dos 9 saem na 1ª execução, os outros 3 em
+horas.** O cron roda a cada 2h — nada a fazer depois do push.
+
+**De carona:** 3 correções de 11/08 estavam escritas na árvore e **nunca
+commitadas** (2 dias fora de produção). A maior: **59% dos e-mails de recuperação
+nomeavam um plano que não existe** — "Basic" em vez de Creator, "Pro" em vez de
+Studio.
+
+## 🟡 DECISÃO SUA (nova, 11h) — o teto de 40 é uma mesada de 36 MINUTOS
+
+Quem bate no teto leva **0,6 h** (braço 3d) e **1,6 h** (braço 7d) para gastar os
+40 créditos. Para os ~13% mais engajados o trial acaba **antes do primeiro dia**.
+
+E esse grupo é o melhor sinal de compra da casa: **abre checkout 2,5× mais**
+(29,4% × 11,6% de quem viu o relógio acabar) — **e nenhum deles pagou.**
+
+Consequência: **o A/B 3d × 7d só mede quem NÃO esgota crédito.** Não mexi em
+nada — teto é gate seu, e o mandato diz 40, fechado.
+
+---
+# GATE 13/08 (sprint 10h) — HISTÓRICO, JÁ NO AR
 
 ## ⚠️ CORREÇÃO — O STORAGE **NÃO** É EMERGÊNCIA. EU MEDI ERRADO.
 
