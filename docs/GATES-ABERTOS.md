@@ -35,6 +35,13 @@ o activation nudge parou de gastar o primeiro contato com a mensagem errada.
 Parado em 231 = o cron novo não pegou. É a única peça que não pôde ser testada
 sem produção.
 
+## 🎁 CARONA — 3 dias fora de produção, e é a página do canal que não decai
+
+`app/chatgpt-to-youtube-shorts/page.tsx` (617 linhas) + a entrada dela no
+`sitemap.ts` estavam **escritas desde 10/08 e nunca commitadas**. Feitas porque
+o ChatGPT tinha passado o TAAFT como maior canal externo — e hoje o TAAFT caiu
+5× enquanto o ChatGPT não caiu. `tsc` limpo, sobe como está.
+
 ## 🟡 O TOPO DO FUNIL CAIU 6,8× — E NÃO É O FUNIL
 
 603 sessões em 08/08 → **89 hoje**. Cadastros 36 → **11**. A conversão
