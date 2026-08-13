@@ -7,41 +7,53 @@ REM LF, e o historico bate sem excecao (65, 66, 69, 72 = CRLF, rodaram;
 REM 67, 68, 70, 71 = LF, nao andaram).
 REM
 REM ESTADO (conferido por git ls-remote na hora, nao herdado de doc):
-REM   origin/main = 9f3c4f5  (as 3 levas da manha JA SUBIRAM - o push
-REM   deixou de ser gate diario, primeira vez em duas semanas)
-REM   main local  = 1 commit a frente.
+REM   origin/main = 9f3c4f5  (as 3 levas da manha JA SUBIRAM - o push deixou
+REM   de ser gate diario, primeira vez em duas semanas)
+REM   main local  = a frente. O passo 2 imprime a lista real na hora.
 REM
-REM O QUE ESTE PUSH DESTRAVA:
-REM   METADE DA COTA DE STORAGE E LIXO DE UM BUG JA MORTO.
-REM   O Supabase Storage esta em 91,92 de 100 GB (91,9%), com ~3 a 5 dias de
-REM   folga. Se bater 100 GB com o Spend Cap LIGADO, upload FALHA - e isso e o
-REM   apagao do Creatomate de 09/08 outra vez, so que na porta de entrada.
+REM ----------------------------------------------------------------------------
+REM LEIA ISTO: A EMERGENCIA DE STORAGE QUE EU ANUNCIEI NAO EXISTE.
 REM
-REM   A causa nao e vídeo de cliente. O bucket `broll` sozinho e 62,05 GB
-REM   (67,5% de tudo); `renders`, que e o produto entregue, e 24,99 GB.
-REM   Dentro do broll, 46,33 GB em 2.734 objetos sao ORFAOS: nenhum codigo
-REM   consegue le-los. Metade da cota da empresa e sobra de um bug.
+REM   Eu tratei o Storage como incendio a sprint inteira (91,9%, "2,6 dias da
+REM   parede"). ESTAVA ERRADO. O painel oficial de Billing diz 46% - voce mesmo
+REM   conferiu, e a sessao paralela corrigiu as 10:15.
 REM
-REM   E o bug JA MORREU. safeVaultScore entrou em 08/08 e a serie de orfaos
-REM   novos por dia prova sozinha: 07/08 = 185, 08/08 = 79, 09/08 = 2,
-REM   13/08 = 0. Bloco estatico, fossil, nao vazamento.
+REM     soma de storage.objects ..... 91,92 GB   (o que eu medi)
+REM     painel de Billing ........... 46,20 GB   (o que se cobra)
+REM     razao ....................... 0,503
 REM
-REM   A limpeza estava escrita desde 08/08 e parada por UMA coisa: o script
-REM   pede SUPABASE_SERVICE_ROLE_KEY e o .env.local desta maquina tem
-REM   placeholder. A PRODUCAO tem a chave. Este commit vira a limpeza numa URL.
+REM   Sao ~35 dias de folga. NAO precisa abrir o Spend Cap, NAO precisa apagar
+REM   nada hoje.
 REM
-REM DEPOIS QUE ESTE PUSH RODAR E A VERCEL FICAR VERDE, 3 URLs (nesta ordem):
-REM   1) so mede, nao escreve nada:
-REM      https://www.usekineo.com/api/admin/broll-gc
-REM   2) primeiro lote de verdade (libera ~3,4 GB):
-REM      https://www.usekineo.com/api/admin/broll-gc?confirm=DELETE-ORPHANS^&limit=200
-REM   3) repetir com limit=1000 ate `orfaos_restantes` chegar a 0.
+REM O QUE ESTE PUSH DESTRAVA, ENTAO:
+REM   1. A CORRECAO DO ALARME. O vigia de storage que escrevi nesta sprint
+REM      alarmava por percentual cru e teria disparado VERMELHO DE 95% na
+REM      estreia, num projeto em 46% - te mandando correr apagar arquivo por um
+REM      problema inexistente. Agora ele calibra pelo painel, mostra os dois
+REM      numeros, se declara estimativa, e e recalibravel por env sem deploy.
+REM      Simulado: com os numeros de hoje ele fica EM SILENCIO.
 REM
-REM   ANTES DA 2, 30 SEGUNDOS QUE VALEM MAIS QUE TUDO:
-REM   supabase.com -> projeto -> Billing -> Spend Cap.
-REM   Se estiver ON, bater 100 GB DERRUBA upload (apagao). Se estiver OFF, o
-REM   excedente e cobrado a US$ 0,0213/GB - centavos, e nao ha emergencia.
-REM   Esse unico botao decide se isto e incendio ou troco.
+REM   2. O QUE A CORRECAO NAO DERRUBA: metade de tudo que a casa armazena sao
+REM      arquivos que NENHUM codigo consegue ler - 2.734 orfaos no bucket
+REM      `broll`, sobra de um bug corrigido em 08/08 (orfaos novos por dia:
+REM      185 -> 79 -> 2 -> 0). Os videos dos clientes sao a MENOR parte. Isso e
+REM      desperdicio com ou sem pressa. A limpeza estava escrita desde 08/08 e
+REM      parada porque o script pedia uma chave que so a producao tem; agora e
+REM      uma URL.
+REM
+REM   3. O quarto fornecedor entra no vigia horario (Storage), com patamar,
+REM      projecao e dedupe no banco.
+REM
+REM DEPOIS DO PUSH E DO BUILD VERDE, QUANDO VOCE QUISER (sem pressa):
+REM   so mede, nao escreve nada:
+REM     https://www.usekineo.com/api/admin/broll-gc
+REM   apaga em lote, com manifesto gravado ANTES do remove:
+REM     https://www.usekineo.com/api/admin/broll-gc?confirm=DELETE-ORPHANS^&limit=200
+REM
+REM   NOTA sobre a sua ordem de 08/08 ("nao apagar, mover para trash/ primeiro"):
+REM   mover NAO libera espaco. O Supabase cobra por BYTES, nao por caminhos, e
+REM   trash/ fica no mesmo bucket. O modo confirm=TRASH existe e responde
+REM   quota_freed_gb: 0 na cara de quem clicar, em vez de fingir que resolveu.
 REM
 REM Este script NAO cria commit, NAO faz add, NAO faz reset.
 REM Ele apaga os 3 locks orfaos do OneDrive e da git push. Seguro rodar 2x.
