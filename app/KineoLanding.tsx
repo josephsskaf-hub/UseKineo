@@ -491,7 +491,12 @@ export default function KineoLanding({ initialUser }: Props) {
   return (
     <>
     <main className="klp">
-      <style dangerouslySetInnerHTML={{ __html: KLP_CSS }} />
+      {/* KINEO-HIGGSFIELD-20D (13/08): os comentarios do KLP_CSS sao a memoria
+          institucional deste arquivo, mas estavam sendo ENVIADOS a cada
+          visitante — 16,5KB (9%) do HTML da home. Ficam no fonte, saem do
+          fio. O replace so remove blocos completos, nao toca em url() nem em
+          seletores. */}
+      <style dangerouslySetInnerHTML={{ __html: KLP_CSS.replace(/\/\*[\s\S]*?\*\//g, '') }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
