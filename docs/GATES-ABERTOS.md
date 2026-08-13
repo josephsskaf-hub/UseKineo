@@ -1,3 +1,61 @@
+# 🔴 GATE 13/08 — STORAGE A 2,6 DIAS DA PAREDE + 2 COMMITS REPRESADOS
+
+`origin/main` = **`9f3c4f5`** (medido por `git ls-remote`, sprint 10h de 13/08).
+Local HEAD = **`ba8d03e`**.
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\73-PUSH.bat`**
+O 73 é o script vigente e nasceu em CRLF (por isso funciona). Não cria commit,
+não faz `add`, não faz `reset`: apaga os 3 locks órfãos e dá `git push`.
+Seguro rodar duas vezes.
+
+## AÇÃO DO FUNDADOR Nº 1 — 30 SEGUNDOS, ANTES DE TUDO
+
+**supabase.com → projeto → Billing → Spend Cap.**
+- **LIGADO** → bater 100 GB faz o **upload FALHAR**. Todo vídeo gerado passa por
+  um upload ⇒ apagão igual ao do Creatomate de 09/08 (33h), só que na porta de
+  entrada do funil.
+- **DESLIGADO** → excedente a US$ 0,0213/GB. Centavos. Sem emergência.
+
+Esse único botão decide se este gate é incêndio ou troco. **Ninguém sabe qual é
+hoje** — a API de gestão não expõe o Spend Cap e execução agendada não tem
+navegador aprovado.
+
+## AÇÃO Nº 2 — DEPOIS DO PUSH E DO BUILD VERDE
+
+Storage: **91,92 de 100 GB**, crescendo **3,07 GB/dia**, folga **8,08 GB** ⇒
+**2,6 dias**. **46,33 GB (50,4% da cota) são órfãos inalcançáveis** do bucket
+`broll` — sobra de um bug corrigido em 08/08, não vídeo de cliente
+(`renders` = 24,99 GB).
+
+```
+1) só mede, não escreve nada:
+   https://www.usekineo.com/api/admin/broll-gc
+2) primeiro lote (~3,4 GB):
+   https://www.usekineo.com/api/admin/broll-gc?confirm=DELETE-ORPHANS&limit=200
+3) repetir com limit=1000 até `orfaos_restantes` = 0  → leva a casa a ~45%
+```
+
+## DECISÃO SUA — a ordem de 08/08 não resolve o problema de hoje
+
+Você mandou **"NÃO APAGAR. Mover para `trash/` primeiro."** Isso foi dito quando
+o doc registrava *"excedente hoje: 0"* e o problema era segurança da limpeza.
+**A cota do Supabase conta BYTES, não caminhos:** mover dentro do mesmo bucket
+libera **0,00 GB**. O modo `confirm=TRASH` existe e responde `quota_freed_gb: 0`
+explicitamente. A reversibilidade do delete é o manifesto (`broll_gc_manifest`,
+gravado ANTES do remove) — um órfão, por definição, não tem ponteiro para
+restaurar.
+
+## ✅ CAI NESTA SPRINT
+
+- **Achado de segurança do advisor:** `trial_revive_backfill_20260811` estava
+  exposta via PostgREST com RLS **desligada**. Ligada nesta sprint; conferido
+  que nada no código nem nas 3 funções `revive_*` depende dela.
+- **O push deixou de ser gate diário** (as 3 levas da manhã subiram sozinhas) —
+  mas `request_access` de computer-use **continua recusando** em execução
+  agendada, então a sprint ainda não empurra sozinha.
+
+---
+
 # GATE: **2 COMMITS** represados (sprints 19h e 21h de 11/08)
 
 `origin/main` = **`d44e09d`** (medido por `git ls-remote`, sprint 19h).
