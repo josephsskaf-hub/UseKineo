@@ -117,7 +117,7 @@ export default function NotFound() {
               justify-content: center;
               min-height: 48px;
               padding: 12px 22px;
-              border-radius: 12px;
+              border-radius: var(--r-sm);
               font-size: 0.95rem;
               font-weight: 800;
               text-decoration: none;

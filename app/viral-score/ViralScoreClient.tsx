@@ -146,26 +146,26 @@ const CSS = `
 .vs-wrap h1{font-size:30px;line-height:1.15;text-align:center;letter-spacing:-.6px;margin:0 0 8px}
 .vs-wrap h1 span{background:linear-gradient(120deg,#57b0ff,#a98bff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .vs-brand{display:flex;align-items:center;gap:9px;justify-content:center;margin-bottom:20px}
-.vs-logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#2997ff,#7c5cff);display:flex;align-items:center;justify-content:center;font-weight:900}
+.vs-logo{width:30px;height:30px;border-radius:var(--r-xs);background:linear-gradient(135deg,#2997ff,#7c5cff);display:flex;align-items:center;justify-content:center;font-weight:900}
 .vs-brand b{font-size:18px}
 .vs-sub{text-align:center;color:#9aa3b7;font-size:15px;margin:0 0 22px}
-.vs-card{background:#12141c;border:1px solid #232838;border-radius:16px;padding:18px}
+.vs-card{background:#12141c;border:1px solid #232838;border-radius:var(--r-md);padding:18px}
 .vs-card label{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#9aa3b7;margin-bottom:8px}
-.vs-card textarea{width:100%;min-height:104px;resize:vertical;background:#171a24;border:1px solid #232838;border-radius:11px;color:#eef1f7;padding:13px 14px;font-size:15px;font-family:inherit;outline:none}
+.vs-card textarea{width:100%;min-height:104px;resize:vertical;background:#171a24;border:1px solid #232838;border-radius:var(--r-xs);color:#eef1f7;padding:13px 14px;font-size:15px;font-family:inherit;outline:none}
 .vs-card textarea:focus{border-color:#2997ff}
 .vs-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.vs-go,.vs-ghost{cursor:pointer;border:none;font-family:inherit;font-weight:800;border-radius:11px;transition:.15s}
+.vs-go,.vs-ghost{cursor:pointer;border:none;font-family:inherit;font-weight:800;border-radius:var(--r-sm);transition:.15s}
 .vs-go{flex:1;min-width:180px;background:linear-gradient(135deg,#2997ff,#4f7bff);color:#fff;padding:14px 18px;font-size:15px}
 .vs-go:disabled{opacity:.6;cursor:default}
 .vs-ghost{background:transparent;border:1px solid #232838;color:#9aa3b7;padding:14px 16px;font-size:14px}
 .vs-chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
-.vs-chip{font-size:12.5px;color:#9aa3b7;background:#171a24;border:1px solid #232838;border-radius:999px;padding:6px 11px;cursor:pointer}
+.vs-chip{font-size:12.5px;color:#9aa3b7;background:#171a24;border:1px solid #232838;border-radius:var(--r-pill);padding:6px 11px;cursor:pointer}
 .vs-chip:hover{color:#eef1f7;border-color:#2997ff}
 .vs-err{color:#f5a623;font-size:13.5px;margin:12px 0 0}
 .vs-result{margin-top:18px}
 .vs-top{display:flex;align-items:center;gap:18px}
-.vs-dial{width:104px;height:104px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative}
-.vs-dial::after{content:"";position:absolute;inset:9px;border-radius:50%;background:#12141c}
+.vs-dial{width:104px;height:104px;border-radius:var(--r-pill);flex:0 0 auto;display:flex;align-items:center;justify-content:center;position:relative}
+.vs-dial::after{content:"";position:absolute;inset:9px;border-radius:var(--r-pill);background:#12141c}
 .vs-dial b{position:relative;font-size:30px;z-index:1}
 .vs-dial small{position:relative;z-index:1;color:#9aa3b7;font-weight:600;font-size:12px}
 .vs-verdict{font-size:22px;font-weight:900;letter-spacing:-.3px}
@@ -173,16 +173,16 @@ const CSS = `
 .vs-bars{margin-top:18px;display:grid;gap:11px}
 .vs-bl{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px}
 .vs-bl span:last-child{color:#9aa3b7}
-.vs-track{height:8px;background:#1e2230;border-radius:6px;overflow:hidden}
-.vs-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#2997ff,#57b0ff)}
-.vs-tips{margin-top:16px;background:#171a24;border:1px solid #232838;border-radius:12px;padding:14px}
+.vs-track{height:8px;background:#1e2230;border-radius:var(--r-xs);overflow:hidden}
+.vs-fill{height:100%;border-radius:var(--r-xs);background:linear-gradient(90deg,#2997ff,#57b0ff)}
+.vs-tips{margin-top:16px;background:#171a24;border:1px solid #232838;border-radius:var(--r-sm);padding:14px}
 .vs-tips h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#9aa3b7;margin:0 0 9px}
 .vs-tips ul{margin:0;padding:0}
 .vs-tips li{list-style:none;font-size:14px;padding:6px 0 6px 24px;position:relative;color:#d7dcea}
 .vs-tips li::before{content:"→";position:absolute;left:0;color:#57b0ff;font-weight:800}
-.vs-cta{margin-top:18px;background:linear-gradient(135deg,#12203a,#171a24);border:1px solid #26406b;border-radius:14px;padding:18px;text-align:center}
+.vs-cta{margin-top:18px;background:linear-gradient(135deg,#12203a,#171a24);border:1px solid #26406b;border-radius:var(--r-sm);padding:18px;text-align:center}
 .vs-cta p{color:#9aa3b7;font-size:14px;margin:0 0 12px}
 .vs-cta b{color:#eef1f7}
-.vs-cta a{display:inline-block;background:linear-gradient(135deg,#2997ff,#4f7bff);color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:11px}
+.vs-cta a{display:inline-block;background:linear-gradient(135deg,#2997ff,#4f7bff);color:#fff;text-decoration:none;font-weight:800;padding:13px 26px;border-radius:var(--r-sm)}
 .vs-foot{text-align:center;color:#9aa3b7;font-size:12.5px;margin-top:22px}
 `

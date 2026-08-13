@@ -390,7 +390,11 @@ export default function AvatarUpload({ value, onChange, disabled, credits = null
           }
           .sfa-entry::before {
             content: '';
-            position: absolute; inset: 0; border-radius: 16px; padding: 1.5px;
+            /* KINEO-UI-DIARIO-2026-08-13: era 16px hardcoded — um numero magico que
+               duplicava o rounded-2xl do proprio .sfa-entry e sairia de sincronia na
+               primeira vez que alguem trocasse a classe. O valor inherit e o padrao que a
+               casa ja usa em .btn-ripple::after e .gradient-border::before. */
+            position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
             background: linear-gradient(135deg, rgba(139,92,246,0.7), rgba(20,184,166,0.5), rgba(139,92,246,0.7));
             background-size: 200% 200%;
             -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);

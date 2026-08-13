@@ -168,7 +168,7 @@ Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
 ### SEMANA 3 — dias 11-15: "CONSISTENCIA TOTAL" (os tokens em TODAS as paginas)
 Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
 
-11. 🟡 **PARCIAL 13/08 (landing ✅) — Raios orfaos → escala unica.** Antes: 15 px
+11. ✅ **FEITO 13/08 (landing 14h + resto 18h) — Raios orfaos → escala unica.** Antes: 15 px
     soltos + 6 rounded-* → depois: todo raio vem de --r-xs/sm/md/lg/pill (mapa:
     6/8/11/12→xs, 13/14→sm, 16/18→md, 20/24/30→lg, 980/999/9999/50%→pill).
     Porque: item 5 do sistema deles. Fazer por pagina, screenshot antes/depois.
@@ -182,10 +182,31 @@ Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
     matematicamente identicos no render (raio clampado). **Excecao documentada:**
     os 3 `border-radius:0` da tabela comparativa ficam — sao reset, nao raio.
     Medido no ar com a folha injetada: CLS 0, nenhum retangulo mudou de tamanho.
-    **FALTA (proximas sprints):** `app/viral-score/ViralScoreClient.tsx` (12) e
-    `app/globals.css` (12). **NAO TOCAR:** os `border-radius` das rotas
+    **COMPLETADO 13/08 (sprint 18h):** a escala subiu para `:root` em
+    `app/globals.css` (5 linhas, valores IDENTICOS aos do `.klp` — nao ha
+    divergencia possivel) e com ela cairam os 25 raios orfaos que sobravam fora
+    da landing: `globals.css` (11), `app/viral-score/ViralScoreClient.tsx` (12),
+    `components/AvatarUpload.tsx` (1) e `app/not-found.tsx` (1). Papeis fixados
+    e agora escritos no proprio `:root`: **xs = inputs/badges/chrome pequeno ·
+    sm = botoes e paineis internos · md = cards e containers · lg = superficies
+    grandes · pill = circulos e pills.** Onde o mapa px→token do dia 11 brigava
+    com o papel (11px e 12px em BOTAO cairiam em `xs`/8px), **o papel venceu** —
+    botao vai para `--r-sm`, o que por acaso tambem e o delta menor (11→13 em vez
+    de 11→8). `components/AvatarUpload.tsx` nao virou token e sim
+    `border-radius: inherit`: os 16px de `.sfa-entry::before` eram uma copia do
+    `rounded-2xl` do proprio elemento e sairiam de sincronia na primeira troca de
+    classe — `inherit` e o padrao que a casa ja usa em `.btn-ripple::after` e
+    `.gradient-border::before`.
+    **NAO TOCAR:** os `border-radius` das rotas
     `app/api/**` sao HTML de e-mail — cliente de e-mail nao resolve `var()`,
-    tokenizar la quebraria o layout dos e-mails. Rollback: git revert.
+    tokenizar la quebraria o layout dos e-mails.
+    **EXCECOES DOCUMENTADAS (o grep do dia 20 vai encontrar exatamente estas 4):**
+    os 3 `border-radius:0` da tabela comparativa do KineoLanding (sao reset, nao
+    raio) e o `border-radius:2px` do `::-webkit-scrollbar-thumb` no globals.css —
+    custom properties nao resolvem de forma confiavel dentro dos pseudo-elementos
+    `::-webkit-scrollbar-*` em todo Chromium; se `var()` falhasse ali o raio
+    cairia para 0 e a barra ficaria quadrada. O thumb tem 4px de largura, 2px ja
+    e o maximo por clamp: risco real, ganho zero. Rollback: git revert.
 12. **Cinzas e timings → tokens.** Antes: 21 tons no KLP + 14 duracoes → depois: os 9
     tons e 3 duracoes/2 easings da tabela, com find&replace auditado (nenhuma mudanca
     visual percebida a olho — e consolidacao, nao redesign). Rollback: git revert.
@@ -247,6 +268,46 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     e o azul da marca aparece em **12 elementos** na primeira dobra (link do
     breadcrumb + kicker + pill do filtro + CTA + painel de baixo) — o oposto do
     "1 acento usado raro" do item 3 do sistema deles. Rollback: git revert.
+
+22. **NOVO (13/08, sprint 18h) — A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS
+    ARQUIVOS: ESTA NO `html{font-size:14px}`.** Achado olhando `/pricing` com
+    olhos de Higgsfield e medido no DOM de producao. A pagina inteira usa **4
+    raios — 9999 / 14 / 10.5 / 7px — e nenhum deles existe na escala de tokens**
+    (8/13/18/22/999). Nao e desleixo de quem escreveu a pagina: sao
+    `rounded-full`, `rounded-2xl`, `rounded-xl` e `rounded-lg` do Tailwind, que
+    valem 1rem / 0.75rem / 0.5rem. E `app/globals.css` da, na MESMA regra,
+    `font-size:14px` para `html, body` — entao **1rem = 14px e a escala inteira
+    do Tailwind (raio, espacamento, tipografia) roda a 87,5%**. Medido no ar:
+    `rounded-md 5.25px · rounded-lg 7px · rounded-xl 10.5px · rounded-2xl 14px ·
+    rounded-3xl 21px`. Consequencia para o roadmap: o item 11 pode tokenizar
+    arquivo por arquivo para sempre e **as 557 ocorrencias de `rounded-*`
+    (`rounded-*`) nunca vao convergir** — elas nao
+    passam por `border-radius:` nenhum, passam pelo config.
+    Contagem no HEAD de 13/08: **557 ocorrencias** (244 `rounded-xl` + 172
+    `rounded-2xl` + 113 `rounded-lg` + 17 `rounded-md` + 11 `rounded-3xl`), mais
+    113 `rounded-full` que ja concordam com `--r-pill`. Antes: duas escalas
+    incomensuraveis (tokens em px absolutos, Tailwind em rem de 14px). Depois:
+    `borderRadius` declarado em `tailwind.config.js` apontando para os tokens
+    (`lg: 'var(--r-xs)'`, `xl`/`2xl`: `'var(--r-sm)'`, `3xl: 'var(--r-lg)'`), um
+    arquivo, alcance total. Deltas: 2xl 14→13 e 3xl 21→22 sao invisiveis; o
+    balde grande e `rounded-xl` 10.5→13 (+2,5px em 244 usos) — **este exige
+    screenshot antes/depois em /pricing, /history e dashboard antes de commitar,
+    e e por isso que vira item proprio e nao um apendice do dia 11.**
+    **NAO mexer no `font-size:14px` do `html`** nesta sprint nem em nenhuma
+    outra sem item dedicado: subir para 16px re-escalaria espacamento e
+    tipografia do app inteiro de uma vez — e o oposto de "1 item isolado com
+    rollback trivial".
+    Anotados junto, para nao virarem item novo depois: `/pricing` tem **0
+    `<video>` e 0 `<img>`** — a unica pagina do funil onde o dinheiro e decidido
+    nao mostra **nenhuma prova**, enquanto no Higgsfield a prova em video esta
+    dentro de cada card (itens 1, 7 e 8 do sistema deles); o azul da marca
+    aparece em **23 elementos acima da dobra** (pior que os 12 do /wall — item
+    21); e a pagina roda **so em Inter**, sem Space Grotesk em nenhum titulo,
+    o que contraria o teste 5 do dia 20 (2 familias com papel documentado).
+    Fora de escopo de UI, so registrado para o fundador olhar: o `<h1>` do
+    /pricing e um **preco em BRL** ("R$ 24,90/mo") — se for geolocalizacao,
+    esta certo; se nao, um visitante americano ve real na primeira linha.
+    Sprint de UI nao toca preco nem copy de oferta, entao nada foi feito.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -290,6 +351,28 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### FECHAMENTO DO DIA — 13/08 (3 linhas, escritas pela sprint das 18h)
+
+1. **Dia 11 fechado.** A escala unica de raios saiu de dentro da landing e virou
+   lei do site: subiu para `:root` e apagou os 25 ultimos valores orfaos
+   (globals.css, /viral-score, AvatarUpload, 404). Restam 4 excecoes, todas
+   documentadas e proposital. **Semana 3 agora so deve o dia 12.**
+2. **O que a auditoria achou e voce precisa saber: nada disso esta no ar.**
+   `origin/main` continua em `f0f63c7`; **10 commits esperam push**, e um deles
+   nao e UI — e `ce2689b`, o resgate do voiceover que impede o `/api/compose`
+   de morrer depois de ja ter gasto roteiro e B-roll. Medido no DOM, nao
+   deduzido do git: em producao `--r-xs/--r-sm/--r-pill` ainda respondem
+   MISSING e `.final` ainda tem 30px. **O push e seu — e hoje ele vale mais que
+   o de costume.**
+3. **O achado do dia veio de /pricing e nao e sobre /pricing.** A pagina que
+   decide o dinheiro nao tem **nenhum** video nem imagem, e usa 4 raios que nao
+   existem na nossa escala — porque `html{font-size:14px}` faz o Tailwind
+   inteiro rodar a 87,5% (1rem = 14px). Tokenizar arquivo por arquivo jamais
+   alcancaria isso: sao 557 classes `rounded-*` que passam pelo config, nao por
+   `border-radius:`. Virou o **item 22**.
+
+---
 
 - **12/08** — Dia 1 ✅ (galeria viva, commit c932c11). Roadmap reestruturado em 4
   semanas com destino + tokens extraidos do CSS real do Higgsfield (10 bundles) +
@@ -361,3 +444,67 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 
   **Proximo em ordem:** terminar o dia 11 em `viral-score` + `globals.css`, e o
   dia 12 (cinzas e timings → tokens).
+
+- **13/08 (sprint 18h) — Dia 11 FECHADO + a auditoria que mudou o assunto.**
+
+  **1. Auditoria do item das 14h: ele nao esta em producao.** Nao herdada de
+  doc — medida no DOM de `https://www.usekineo.com/` as 18h. `--r-xs`,
+  `--r-sm` e `--r-pill` respondem **MISSING** no `.klp`; `.final` continua
+  **30px** e `.tico` **14px** — exatamente os valores de ANTES do commit
+  `955cb28`. `git ls-remote` confirma: `origin/main` = **`f0f63c7`**, e ha
+  **10 commits locais sem push**. O item das 14h portanto **nao pode ter
+  regredido nada**, porque nao rodou para ninguem; e o que mais pesa nessa fila
+  nem e de UI: `ce2689b` conserta o saneador que apaga o roteiro do ChatGPT e
+  mata o `/api/compose` **depois** de o video ja ter custado. Registrado no
+  fechamento do dia porque o push e do fundador.
+  **Saude do que ESTA no ar (build `dpl_BW3im…`), tudo verde:** **CLS = 0** por
+  PerformanceObserver, composer **667x432 exato** com raio 22px, **6/6 videos
+  com `preload="none"`**, **6/6 posters em .webp**, `.nav-on` presente, 12
+  elementos `.rv` no lugar, **zero erro de console**, HTML da home **168.866 B**
+  (11 KB abaixo do guard-rail de 180 KB). Nada regrediu.
+
+  **2. Item da sprint: dia 11, o resto do site.** A escala de raios subiu do
+  bloco `.klp` para `:root` em `app/globals.css` (5 linhas, valores identicos —
+  nao ha divergencia possivel entre os dois lugares) e com isso **25 raios
+  orfaos viraram token**: `globals.css` (11), `ViralScoreClient` (12),
+  `AvatarUpload` (1, virou `inherit`), `not-found` (1). Sobram **4 excecoes,
+  todas documentadas** no item 11 — os 3 `border-radius:0` da tabela (reset, nao
+  raio) e o `2px` do `::-webkit-scrollbar-thumb`.
+  **Verificacao alem do tsc:** o antes→depois foi medido **na producao ao vivo**
+  em `/viral-score`, reescrevendo as proprias declaracoes via CSSOM e lendo
+  `getComputedStyle` elemento a elemento: `.vs-card` 16→18, `textarea` 11→8,
+  `.vs-dial` 50%→999, `.vs-track`/`.vs-fill` 6→8 (ambos ja clampados em 4px pela
+  altura de 8px: **render identico**), `.vs-tips` 12→13, `.vs-cta` 14→13,
+  `.vs-cta a` 11→13. **CLS = 0 e nenhuma caixa mudou de tamanho** — border-radius
+  e paint, nunca layout. `tsc --noEmit` **EXIT=0 e falsificado** (erro proposital
+  `const CSS: number` → acusou `TS2322` na linha 144 → restaurado, md5 conferido
+  igual, EXIT=0).
+  **A revisao adversarial pegou 2 defeitos meus, os dois antes do commit:**
+  (a) o comentario que escrevi em `AvatarUpload.tsx` usava crases em volta da
+  palavra `inherit` — **dentro de um template literal do styled-jsx**, o que
+  fechou a string e quebrou o arquivo; o tsc acusou 15 erros e o comentario foi
+  reescrito sem crases. (b) eu havia tokenizado o `::-webkit-scrollbar-thumb`;
+  custom properties nao resolvem de forma confiavel nesses pseudo-elementos em
+  todo Chromium e um `var()` que falha ali derruba o raio para 0 — revertido
+  para `2px` com a razao escrita no proprio CSS.
+  **Anomalia deixada em aberto, de proposito:** em `/viral-score` na producao,
+  `.vs-go`/`.vs-ghost` **continuam computando 11px** mesmo com a regra reescrita,
+  com folha injetada depois no documento e ate com `style` inline de valor
+  literal — e `el.matches('.vs-go, .vs-ghost')` chegou a responder `false` para o
+  proprio botao. Nao encontrei `!important` nem segunda folha. Isso **nao afeta
+  o commit** (a edicao troca a declaracao no lugar, sem disputa de cascata, e
+  raio nao move layout), mas merece um olho humano com o DevTools aberto antes
+  de virar teoria. Registrado aqui em vez de virar uma explicacao bonita e falsa.
+
+  **3. Realimentacao do backlog: item 22 (/pricing → tailwind.config.js).**
+  A pagina onde o dinheiro e decidido tem **0 `<video>` e 0 `<img>`** e usa 4
+  raios — 9999/14/10.5/7px — **nenhum deles da nossa escala**. A causa nao esta
+  em nenhum arquivo de pagina: `globals.css` da `font-size:14px` para
+  `html, body` na mesma regra, entao **1rem = 14px e o Tailwind inteiro roda a
+  87,5%** (medido no ar: `rounded-lg 7px`, `rounded-xl 10.5px`,
+  `rounded-2xl 14px`, `rounded-3xl 21px`). Enquanto isso nao for endereçado no
+  config, o dia 11 pode tokenizar arquivo por arquivo para sempre que as **557
+  classes `rounded-*`** nunca convergem. Detalhe, mapa e o aviso de NAO mexer no
+  `font-size:14px` sem item proprio estao no item 22.
+
+  **Proximo em ordem:** dia 12 (cinzas e timings → tokens).
