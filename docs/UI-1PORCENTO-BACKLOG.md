@@ -168,10 +168,24 @@ Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
 ### SEMANA 3 — dias 11-15: "CONSISTENCIA TOTAL" (os tokens em TODAS as paginas)
 Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
 
-11. **Raios orfaos → escala unica.** Antes: 15 px soltos + 6 rounded-* → depois: todo
-    raio vem de --r-xs/sm/md/lg/pill (mapa de conversao: 6/8/11/12→xs, 13/14→sm,
-    16/18→md, 20/24/30→lg, 980/9999→pill; rounded-xl(12px)→sm etc.). Porque: item 5 do
-    sistema deles. Fazer por pagina, screenshot antes/depois. Rollback: git revert.
+11. 🟡 **PARCIAL 13/08 (landing ✅) — Raios orfaos → escala unica.** Antes: 15 px
+    soltos + 6 rounded-* → depois: todo raio vem de --r-xs/sm/md/lg/pill (mapa:
+    6/8/11/12→xs, 13/14→sm, 16/18→md, 20/24/30→lg, 980/999/9999/50%→pill).
+    Porque: item 5 do sistema deles. Fazer por pagina, screenshot antes/depois.
+    **FEITO na home (app/KineoLanding.tsx): 18 valores px orfaos → 0.** Tokens
+    que faltavam (`--r-xs:8px`, `--r-sm:13px`, `--r-pill:999px`) entraram no
+    bloco de vars do `.klp`, ao lado dos `--r-md/--r-lg` que ja existiam.
+    Diff: 16 linhas. So 3 mudancas sao visiveis a olho e todas aproximam a
+    pagina da propria escala: `.final` 30→22px (agora igual a `.plan`, `.step`
+    e ao composer), `.tico` 14→13px, `.composer` mobile 20→22px (mobile passa a
+    concordar com o desktop). `.btn` 980→999px e `.ck` 50%→999px sao
+    matematicamente identicos no render (raio clampado). **Excecao documentada:**
+    os 3 `border-radius:0` da tabela comparativa ficam — sao reset, nao raio.
+    Medido no ar com a folha injetada: CLS 0, nenhum retangulo mudou de tamanho.
+    **FALTA (proximas sprints):** `app/viral-score/ViralScoreClient.tsx` (12) e
+    `app/globals.css` (12). **NAO TOCAR:** os `border-radius` das rotas
+    `app/api/**` sao HTML de e-mail — cliente de e-mail nao resolve `var()`,
+    tokenizar la quebraria o layout dos e-mails. Rollback: git revert.
 12. **Cinzas e timings → tokens.** Antes: 21 tons no KLP + 14 duracoes → depois: os 9
     tons e 3 duracoes/2 easings da tabela, com find&replace auditado (nenhuma mudanca
     visual percebida a olho — e consolidacao, nao redesign). Rollback: git revert.
@@ -213,6 +227,26 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     (grep de raios/cinzas/duracoes + Lighthouse vs baseline); registrar no Diario o que
     passou e o que vira backlog v2. Sem codigo novo neste dia — so medicao e correcao fina.
 
+21. **NOVO (13/08, sprint 14h) — /wall: a pagina que existe para PROVAR mostra um
+    retangulo preto.** Achado olhando a Wall of Proof com olhos de Higgsfield.
+    Antes: o card usa a thumb do YouTube (`i.ytimg.com/vi/<id>/hqdefault.jpg`,
+    **480x360 = 16:9**) dentro de uma moldura **9:16 de 163x291** com
+    `object-fit:cover`. O corte guarda so a tira vertical central — e no unico
+    card publicado hoje essa tira e quase toda preta. Resultado: o mural da
+    prova social entrega um quadrado vazio no lugar do video. Depois: (a) o
+    frame vira 16:9 OU o `cover` ganha um backdrop borrado da propria thumb
+    (a solucao do YouTube para o mesmo problema), (b) tentar `maxresdefault`
+    com fallback para `hqdefault` no `onError` — `maxres` costuma trazer o
+    frame de capa em vez do letterbox, (c) gradiente inferior de legibilidade
+    (item 6 do sistema deles) sob o titulo. Porque: e a unica pagina do site
+    cujo trabalho e ser prova, e hoje ela nao prova nada.
+    Anotados junto, para nao virarem item novo depois: o texto diz **"3 Shorts
+    published ... last 7 days" e so 1 card renderiza** (checar se o filtro de
+    7 dias esta contando errado — pode ser bug de dados, nao de UI); a pagina
+    usa **6 raios distintos** (999/18/14/12/10/8) e nunca passou pelos tokens;
+    e o azul da marca aparece em **12 elementos** na primeira dobra (link do
+    breadcrumb + kicker + pill do filtro + CTA + painel de baixo) — o oposto do
+    "1 acento usado raro" do item 3 do sistema deles. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -284,3 +318,46 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   legado inalcancavel, NAO tocar. Verificacao: tsc ok; build local inviavel no
   mount (OneDrive) — validacao final e o build do Vercel, com rollback pronto.
   Sprints 14h/18h: proximo em ordem e o dia 11 (raios orfaos → escala unica).
+- **13/08 (sprint 14h) — Dia 11 na home ✅ + auditoria do anterior EM PRODUCAO.**
+
+  **1. Auditoria de f0f63c7 (dias 13-17+19) no ar.** Nao herdada de doc: medida
+  no HTML e no DOM de `https://www.usekineo.com/` as 14h. `origin/main` =
+  `f0f63c7` por `git ls-remote`; o deploy trocou **durante** a auditoria
+  (`dpl_B4hPY…` → `dpl_BW3im…`), entao a primeira leitura era do build antigo —
+  a segunda e a valida. **No ar agora:** `.nav-on` presente (dia 14), **os 6
+  posters servidos em .webp** (dia 15: 21+28+12+21+20+13 = **115 KB**, contra
+  ~134 KB de .jpg no baseline), 12 elementos com `.rv` esperando o observer
+  (dia 5). **Nada regrediu:** **CLS = 0** medido com PerformanceObserver;
+  **composer 667x432 exato** e raio 22px; `preload="none"` nos 6 videos;
+  **zero erro de console**; HTML da home **169.516 B**, 10 KB abaixo do
+  guard-rail de 180 KB. Com scroll real, a galeria toca sozinha — dias 1-4
+  vivos. Efeito nos eventos (13/08): `homepage_view` 43,
+  `home_prompt_first_viewed` 43 (**100% de quem abre a home chega a caixa**),
+  `video_ready_viewed` 12 sobre 13 `generate_completed`.
+  **2 achados que NAO viram correcao hoje, mas ficam registrados:**
+  (a) num monitor 1080p (viewport 911px) a galeria comeca em **y=926px** — o
+  elemento que o fundador apontou como a alma da home fica inteiro **abaixo da
+  dobra**, e so aparece com scroll; (b) sob automacao os 6 `<video>` ficaram em
+  `readyState 0 / networkState 2` por ~7s (poster no lugar do video) — pode ser
+  so o throttle de aba nao-focada do Chrome, mas 6 MP4s de ~250 KB disparando
+  juntos merece um olho humano antes de virar item.
+
+  **2. Item da sprint: dia 11 na home.** `app/KineoLanding.tsx`: **18
+  `border-radius` px orfaos → 0**, tudo em `--r-xs/sm/md/lg/pill`. Detalhes,
+  mapa e excecoes no item 11 acima. Verificacao alem do tsc: a folha nova foi
+  **injetada na producao ao vivo** e o antes→depois medido elemento a elemento
+  (`.final` 30→22, `.tico` 14→13, `.btn` 980→999 e `.ck` 50%→999 identicos no
+  render) com **CLS 0** e nenhuma caixa mudando de tamanho — border-radius e
+  paint, nao layout. `tsc --noEmit` escopado **EXIT=0 e falsificado** (erro
+  proposital → `TS2322` na linha 28 → restaurado, md5 conferido, EXIT=0). EOL
+  LF conferido no HEAD e na arvore.
+
+  **3. Realimentacao do backlog: item 21 (/wall).** A pagina cujo unico trabalho
+  e servir de prova social mostra **um retangulo preto** onde deveria estar o
+  video: ela enfia a thumb 16:9 do YouTube (480x360) numa moldura 9:16 de
+  163x291 com `object-fit:cover`, e sobra so a tira vertical central. Junto
+  vao: "3 Shorts published" com **1 card na tela**, 6 raios distintos e o azul
+  da marca em 12 elementos na primeira dobra. Detalhe completo no item 21.
+
+  **Proximo em ordem:** terminar o dia 11 em `viral-score` + `globals.css`, e o
+  dia 12 (cinzas e timings → tokens).

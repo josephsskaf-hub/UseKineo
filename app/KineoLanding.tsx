@@ -30,11 +30,11 @@ const KLP_CSS = `
    promessa ou copy mudou; só tipografia, espaçamento, profundidade e cor.
    Tokens novos (--r-*, --sh-*, --blue-soft) centralizam raio/sombra/glow para
    que card, plano, FAQ e botao parem de cada um inventar o proprio acabamento. */
-.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-lg:22px;--r-md:18px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
+.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-xs:8px;--r-sm:13px;--r-md:18px;--r-lg:22px;--r-pill:999px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
 .klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
-.klp .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:650;font-size:16px;letter-spacing:-.01em;padding:14px 30px;border-radius:980px;cursor:pointer;transition:transform var(--dur-fast) var(--ease-swift),background var(--dur-fast) ease,box-shadow var(--dur-fast) ease;border:1px solid transparent}
+.klp .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:650;font-size:16px;letter-spacing:-.01em;padding:14px 30px;border-radius:var(--r-pill);cursor:pointer;transition:transform var(--dur-fast) var(--ease-swift),background var(--dur-fast) ease,box-shadow var(--dur-fast) ease;border:1px solid transparent}
 .klp .btn-w{background:var(--txt);color:#000;box-shadow:var(--sh-cta);position:relative;overflow:hidden}
 /* Dia 17 (13/08): sheen — um brilho diagonal atravessa o CTA branco UMA vez
    apos o load e a cada hover. CSS puro, sem repetir sozinho (cafona se
@@ -57,19 +57,19 @@ const KLP_CSS = `
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
-.klp .logo .mk{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#17171a,#161618);border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
+.klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,#17171a,#161618);border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
 .klp .nav-links{display:flex;gap:32px;font-size:14px;color:var(--muted);font-weight:500}
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
 .klp .nav-links a.nav-on{color:var(--txt)}
-.klp .nav-links a.nav-on::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;border-radius:2px;background:var(--blue)}
+.klp .nav-links a.nav-on::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;border-radius:var(--r-pill);background:var(--blue)}
 .klp .nav-right{display:flex;align-items:center;gap:14px}
 .klp .nav-toggle-wrap{display:none}
 .klp .nav-toggle-input{position:absolute;inset:0;width:44px;height:44px;opacity:0;margin:0;cursor:pointer;z-index:2}
 .klp .nav-toggle-btn{display:flex;flex-direction:column;gap:5px;pointer-events:none}
-.klp .nav-toggle-btn .bar{display:block;width:20px;height:2px;background:var(--txt);border-radius:2px;transition:var(--dur-fast)}
+.klp .nav-toggle-btn .bar{display:block;width:20px;height:2px;background:var(--txt);border-radius:var(--r-pill);transition:var(--dur-fast)}
 .klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(1){transform:translateY(7px) rotate(45deg)}
 .klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(2){opacity:0}
 .klp .nav-toggle-input:checked~.nav-toggle-btn .bar:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
@@ -100,7 +100,7 @@ const KLP_CSS = `
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:18px;line-height:1.55;font-family:inherit;padding:6px 2px}
 .klp .composer .ci::placeholder{color:var(--muted2)}
-.klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:13px}
+.klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:var(--r-sm)}
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
 .klp .composer-head span{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap}
@@ -117,7 +117,7 @@ const KLP_CSS = `
 /* "Step 1/2/3" era texto cinza solto de 14px, do mesmo peso do corpo — nao
    marcava sequencia nenhuma. Virou um selo numerado, que e o que a palavra
    "step" promete. Mesmo texto. */
-.klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:999px;font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
+.klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--r-pill);font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
 .klp .step h3{margin-top:18px;font-size:1.32rem;font-weight:650;letter-spacing:-.022em;line-height:1.2}
 .klp .step p{margin-top:11px;color:var(--muted);font-size:.99rem;line-height:1.62}
 .klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-base) ease,box-shadow var(--dur-base) ease}
@@ -156,7 +156,7 @@ const KLP_CSS = `
    fita flutuante na borda de cima, que e como um plano recomendado se anuncia.
    Mesmo texto, so reposicionado. */
 .klp .plan.pop{padding-top:40px}
-.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:999px;padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
+.klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:var(--r-pill);padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
 .klp .plan .nm{margin-top:12px;font-size:1.34rem;font-weight:650;letter-spacing:-.018em}
 .klp .plan.pop .nm{margin-top:0}
 .klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:720;letter-spacing:-.035em;line-height:1}
@@ -167,11 +167,11 @@ const KLP_CSS = `
 .klp .plan ul{list-style:none;margin:24px 0 26px;padding-top:22px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:13px}
 .klp .plan li{display:flex;gap:11px;font-size:14.5px;line-height:1.5;color:var(--muted)}
 .klp .plan li b{color:var(--txt);font-weight:650}
-.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:50%;background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
+.klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
 .klp .snote{margin:30px auto 0;max-width:560px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:20px 24px;font-size:14.5px;line-height:1.6;color:var(--muted);box-shadow:var(--sh-card)}
 .klp .snote b{color:var(--txt);font-weight:650}
-.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:30px;padding:88px 24px;background:linear-gradient(180deg,#19191c 0%,#131315 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
+.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,#19191c 0%,#131315 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
 .klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
 .klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
@@ -186,7 +186,7 @@ const KLP_CSS = `
    "clipart", nao como produto. Agora sao 8 SVGs inline no MESMO grid de
    24x24, mesma espessura de traco (1.6), todos herdando currentColor, dentro
    de uma placa de 46px identica. Sem biblioteca, sem fonte, sem dependencia. */
-.klp .tico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:var(--blue);background:linear-gradient(180deg,rgba(41,151,255,.14),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);flex:none;transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
+.klp .tico{width:46px;height:46px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--blue);background:linear-gradient(180deg,rgba(41,151,255,.14),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);flex:none;transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .tcard:hover .tico,.klp .tcard:focus-within .tico{transform:translateY(-1px) scale(1.04);border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px -8px rgba(41,151,255,.6)}
 .klp .tico svg{display:block}
 .klp .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -196,7 +196,7 @@ const KLP_CSS = `
 .klp .tcard p{font-size:.93rem;color:var(--muted);line-height:1.58;margin-top:6px}
 .klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap var(--dur-fast) ease}
 .klp .tcard:hover .tlink{gap:9px}
-.klp .badge{display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:999px}
+.klp .badge{display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
 .klp .pricing-more{margin-top:24px;text-align:center;font-size:13.5px}
 .klp .final h2{letter-spacing:-.03em;text-wrap:balance}
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
@@ -207,7 +207,7 @@ const KLP_CSS = `
 .klp .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
 .klp .rv.rv-in{opacity:1;transform:none}
 .klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform var(--dur-base) var(--ease-swift),opacity var(--dur-base) var(--ease-swift)}
-.klp .vcard .hvid{border-radius:18px}
+.klp .vcard .hvid{border-radius:var(--r-md)}
 /* KINEO-HIGGSFIELD-20D dias 2-4 (13/08). Dia 2: o <video> nasce invisivel por
    cima do poster (que agora e camada permanente) e entra em crossfade
    --dur-base no evento playing — nada "pisca". Dia 4: hover da zoom 1.04 no
@@ -240,7 +240,7 @@ const KLP_CSS = `
 .klp .nav-links{display:none}
 .klp section{padding:72px 0}
 .klp .sec-h{margin-bottom:40px}
-.klp .final{padding:60px 20px;border-radius:24px}
+.klp .final{padding:60px 20px;border-radius:var(--r-lg)}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
 .klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:#0a0a0c;border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
 .klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
@@ -365,12 +365,12 @@ const KLP_CSS = `
 .klp .hero-center h1{font-size:clamp(2.5rem,11.2vw,3.4rem);line-height:1.0;letter-spacing:-.042em}
 .klp .hero-center .sub{font-size:1.02rem;margin-top:16px;max-width:34ch}
 .klp .hero-gallery{gap:10px;margin-top:30px}
-.klp .composer{padding:18px;border-radius:20px}
+.klp .composer{padding:18px;border-radius:var(--r-lg)}
 .klp .composer .cbtn{padding:15px 24px;font-size:16px;min-height:52px}
 .klp .step,.klp .plan{padding:26px 22px}
 .klp .plan.pop{padding-top:38px}
 .klp .tcard{padding:22px 20px}
-.klp .tico{width:42px;height:42px;border-radius:13px}
+.klp .tico{width:42px;height:42px;border-radius:var(--r-sm)}
 .klp .plan .pr{font-size:2.5rem}
 .klp .snote{padding:18px 20px;font-size:14px}
 }
