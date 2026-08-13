@@ -8,7 +8,11 @@ REM nao andaram).
 REM
 REM ESTADO (git ls-remote na hora, nao herdado de doc):
 REM   origin/main = f0f63c7   (o 73-PUSH rodou; a leva de UI da manha subiu)
-REM   main local  = be56e3c   -> 1 COMMIT SO para subir. O passo 2 lista na hora.
+REM   main local  = a frente (codigo + docs + este bat). NAO conto commits
+REM                  aqui de proposito: um cabecalho com numero fixo envelhece
+REM                  entre a escrita e o clique, e cabecalho que anuncia numero
+REM                  errado foi a licao da sprint das 10h de HOJE. O passo 2
+REM                  imprime a lista real na hora - essa e a fonte.
 REM
 REM ----------------------------------------------------------------------------
 REM O QUE ESTE PUSH DESTRAVA: o e-mail que pergunta "por que voce nao pagou?"
@@ -63,6 +67,7 @@ echo Remoto depois do push:
 git ls-remote origin refs/heads/main
 echo ============================================================
 echo.
-echo Esperado: be56e3c... Se apareceu isso ou "Everything up-to-date", deu certo.
+echo Deu certo se o SHA acima for igual ao ultimo da lista do passo 2,
+echo ou se apareceu "Everything up-to-date".
 echo.
 pause
