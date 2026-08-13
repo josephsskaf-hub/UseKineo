@@ -142,12 +142,17 @@ Resultado visivel: primeira dobra indistinguivel em vida da do Higgsfield.
 ### SEMANA 2 — dias 6-10: "O PRODUTO GANHA O BRILHO"
 Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
 
-6. **Skeleton loaders no /generate.** Antes: spinner generico → depois: skeleton com
-   shimmer no formato do resultado (card 9:16 + linhas de script). Porque: Higgsfield
-   nunca mostra spinner — mostra a forma do que vem. Rollback: voltar ao spinner.
-7. **Cerimonia do video pronto.** Antes: player cru → depois: moldura 9:16 com glow
-   #2997ff + fade-in + confete discreto 1x. Porque: o momento de maior dopamina merece
-   o acabamento da landing. Risco: exagero — manter sutil. Rollback: componente isolado.
+6. ✅ **FEITO 13/08 — Skeleton loaders no /generate.** analyzing/scripting agora
+   mostram mini 9:16 + 3 linhas de script em shimmer (a forma do que vem);
+   spinner verde do broll (unica cor fora da marca) virou azul; os <li> das
+   listas de etapas (PipelineStages + FastPipelineStages + linha de render)
+   ganharam transition .25s — fim do corte seco; statusMessage do RenderHeader
+   entra em fadeUp via key={message}. Bloco <style jsx global> proposital
+   (componentes filhos ficam fora do escopo do style jsx). Rollback: git revert.
+7. ✅ **FEITO 13/08 — Cerimonia do video pronto.** "Your video is ready" ganhou
+   check que se desenha (stroke-dashoffset) e a moldura 9:16 entra em pop
+   (out-expo .45s) com UM pulso de glow azul — sem confete, sutil como manda o
+   risco anotado. reduced-motion desliga tudo. Rollback: 2 classes + svg.
 8. ✅ **FEITO 13/08 — Skeleton no /history.** app/(dashboard)/history/loading.tsx:
    a rota abre com header + grade 9:16 em shimmer (mesma grade do
    HistoryClient), troca sem salto de layout. Rollback: deletar o arquivo.
@@ -264,3 +269,13 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   (/generate skeleton + cerimonia do video pronto) — GenerateClient tem 12,5k
   linhas, tratar em sprint dedicada com teste manual. Sprints 14h/18h: proximo
   em ordem e o dia 6.
+- **13/08 (3a leva, "melhorar home ate a criacao do video")** — Dias 6 e 7 ✅
+  (commit 86aae4f): SEMANA 2 COMPLETA em um dia. Mapa do GenerateClient feito
+  por agente antes de tocar (phase em :978, flags 6856-6869, done 8470+).
+  Achados registrados para sprints futuras: FullscreenLoader e
+  GenerationProgressSteps+progressStep sao DEAD CODE (o 2o com setInterval
+  rodando a toa — candidato a limpeza); headlineProgress tem degraus fixos
+  (40/72/75) — suavizar exigiria logica, nao CSS; /video (VideoClient) e
+  legado inalcancavel, NAO tocar. Verificacao: tsc ok; build local inviavel no
+  mount (OneDrive) — validacao final e o build do Vercel, com rollback pronto.
+  Sprints 14h/18h: proximo em ordem e o dia 11 (raios orfaos → escala unica).
