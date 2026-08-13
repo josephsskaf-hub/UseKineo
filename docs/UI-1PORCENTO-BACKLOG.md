@@ -1,174 +1,247 @@
-# UI 1% AO DIA — Backlog Higgsfield-grade [KINEO-UI-NORTH-STAR-2026-08-12]
+# ROADMAP HIGGSFIELD 20 DIAS — UI 1% ao dia com destino [KINEO-HIGGSFIELD-20D-2026-08-12]
 
-Pedido do fundador: o Kineo com o acabamento do https://higgsfield.ai/ — em especial
-"esses vídeos que ficam passando na tela". Método: **1 item por sprint**, nunca um
-redesign. Cada item é isolado, tem antes→depois, o porquê emprestado do Higgsfield,
-e rollback.
+Pedido do fundador, literal: "usa o https://higgsfield.ai/ como referencia, eu acho
+ele muito bonito, quero daqui 20 dias estar proximo da arquitetura e do design deles."
+Este doc deixou de ser "20 retoques soltos": agora e um roadmap de 4 semanas cujo
+dia 20 tem um teste objetivo — **o Kineo parece da mesma familia visual do
+Higgsfield, mantendo a identidade Kineo** (o azul #2997ff, o dark #000, as provas
+reais). Metodo continua: **1 dia = 1 sprint = 1 item isolado com rollback**. As
+sprints agendadas (14h e 18h) consomem os dias EM ORDEM e marcam ✅ com data.
 
-## O sistema do Higgsfield (dissecado em 12/08, HTML real de 6,3 MB via curl)
+## REGRAS INVIOLAVEIS (nenhum dia deste roadmap pode tocar nisso)
 
-O HTML vem renderizado (Next/SSR) — deu para ler os elementos de verdade:
-
-1. **Vídeo em loop mudo em TODO card**: `<video loop muted playsinline
-   disablePictureInPicture preload="none">`, MP4 curto por card servido de CDN
-   própria (`cdn.higgsfield.ai/card/*.mp4`), poster `.webp` nos banners. É o item
-   que mais explica o "parece caro": a página inteira se move sem pedir nada.
-2. **preload="none" em 100% dos vídeos** (7 de 7 medidos): quem decide baixar é o
-   JS quando o card entra na tela — o peso segue o olhar, não o pageload.
-3. **Paleta quase monocromática**: preto profundo + branco; cor só em badges
-   ("New", "30% OFF"). O conteúdo (vídeo) é a única coisa colorida.
-4. **Tipografia contida**: sans neutra via Google Fonts, títulos curtos com
-   tracking negativo, quase nenhum parágrafo — o vídeo é a copy.
-5. **Raios grandes e consistentes**: `rounded-3xl` (24px) e `rounded-[20px]`
-   repetidos em card, banner e vídeo — nenhum raio "solto".
-6. **Texto sobre vídeo com gradiente inferior** — título sempre legível sobre
-   qualquer frame (o Kineo já faz isso no `.vcard::after`).
-7. **Primeira dobra = carrossel de banners em vídeo full-bleed** + nav enxuta com
-   um único CTA persistente (Sign up). Zero explicação antes da prova.
-8. **Densidade de grade**: fileiras de muitos cards (presets, comunidade), cada um
-   com CTA próprio ("Generate") — o catálogo é a landing.
-9. **Microinterações discretas**: hover com leve scale/brightness no vídeo,
-   transições curtas; profundidade por sombra e overlay, não por bordas grossas.
-10. **Prova social integrada aos cards** (autor "by Higgsfield Studio", "Public",
-    contadores) em vez de seção separada de depoimentos.
-
-## Auditoria honesta do Kineo (KineoLanding/KLP_CSS + HeroGallery + HomeTopicForm)
-
-**Já no nível Higgsfield:** dark real (#000) com paleta disciplinada (1 azul de
-marca); tokens de raio/sombra (`--r-*`, `--sh-*`); gradiente de legibilidade no
-vcard; hover com lift+glow em card/plan/tcard; `prefers-reduced-motion` respeitado;
-posters lazy; 6 provas reais na 1ª dobra (Higgsfield-style, e são exports do
-próprio produto — mais honesto que o deles).
-
-**Perto:** vídeos existiam mas só o card 0 tocava (resolvido no item #1, 12/08);
-raios têm 2-3 valores fora dos tokens (13px cbtn, 18px hvid vs --r-md 18/--r-lg 22
-— o hvid combina, o cbtn não); transições existem mas nada "entra" animado.
-
-**Longe:** páginas internas (/generate, vídeo pronto, /history) não têm o brilho
-da landing — spinners genéricos, sem skeleton, sem cerimônia no vídeo pronto;
-posters em .jpg (Higgsfield usa .webp); zero animação de entrada/scroll.
-
-**NÃO MEXER (decisões do fundador):** caixa do composer 667×432 (medida em
-06/08); espaçamentos do hero em clamp() por vh (08/08); "Start free" → /signup;
-preço/copy/oferta — nada disso entra neste backlog.
+- Caixa do composer **667x432** (decisao do fundador, medida em 06/08).
+- Espacamentos do hero em **clamp() por vh** (08/08) — nao reescrever.
+- CTA "Start free" → **/signup** — destino e texto nao mudam.
+- **LCP intocado**: poster continua sendo o primeiro paint; video nunca vira LCP.
+- **prefers-reduced-motion e Save-Data** respeitados em TODA animacao nova.
+- Sprint de UI **nunca** toca preco, oferta, copy de venda ou logica de credito.
+- Performance da home nao pode regredir vs baseline (secao "Baseline" abaixo).
 
 ---
 
-## Os 20 (ordem = prioridade; 1-5 são impacto máximo por esforço)
+## O KINEO DO DIA 20 (o destino — concreto e verificavel)
 
-Formato: **antes → depois** · porquê (Higgsfield) · risco/rollback.
+- **Home**: todo card de video visivel toca sozinho em viewport (hoje: so a galeria
+  hero); poster→video em crossfade 250ms, nada "pisca"; galeria entra em cascata
+  60ms/card; hover da um zoom 1.04 no video dentro da moldura; secoes abaixo da
+  dobra entram em fade-up 1x. Zero spinner na home.
+- **/generate**: enquanto gera, um skeleton 9:16 com shimmer no formato exato do
+  resultado (nunca spinner); etapas trocam com transicao, nao com salto.
+- **Video pronto**: moldura 9:16 com glow azul #2997ff + fade-in — o momento de
+  maior dopamina tem a cerimonia da landing; download/copy confirmam com toast.
+- **/pricing e /signup**: mesmos tokens (raios, sombras, focus ring azul), fundo e
+  cards identicos aos da home; navegacao landing→/signup com fade curto.
+- **/history**: skeleton de grade 9:16 no load; empty state com ilustracao + CTA.
+- **Disciplina medivel em todas as paginas**: raios saem de UMA escala de 5 tokens
+  (8/13/18/22/pill) — hoje ha 15 valores px soltos + 6 classes rounded-* misturadas;
+  cinzas reduzidos a 9 tons documentados — hoje so o KLP_CSS tem 21 tons quase-neutros;
+  timings reduzidos a 3 duracoes + 2 easings — hoje ha 14 duracoes distintas.
+- **Tipografia**: 2 familias (Inter para UI, Space Grotesk para display) — que ja
+  estao no layout.tsx via next/font — usadas com papel documentado, sem excecao.
 
-1. **✅ FEITO 12/08 — Galeria viva: os 6 cards tocam sozinhos em viewport.**
-   Antes: só o card 0 tocava; os outros 5 eram poster + hover → depois: os seis
-   loopam mudos quando visíveis, poster continua sendo o primeiro paint.
-   Porquê: é O elemento que o fundador apontou no Higgsfield. Risco: peso em
-   mobile — mitigado (preload="none", download só do que intersecta, Save-Data/2g
-   e reduced-motion ficam no poster, NotAllowedError volta ao poster+badge).
-   Rollback: reverter app/HeroGallery.tsx (1 arquivo).
+## O SISTEMA DO HIGGSFIELD (dissecado 12/08: HTML 6,3MB + 10 bundles CSS reais)
 
-2. **Crossfade poster→vídeo.** Antes: troca seca img→video no primeiro frame →
-   depois: vídeo entra com opacity 0→1 em ~250ms sobre o poster. Porquê: no
-   Higgsfield nenhum elemento "pisca" — tudo desliza. Risco: quase zero (CSS +
-   evento `playing`); rollback: remover a classe.
+Os 10 elementos (resumo do estudo de 12/08, confirmado no CSS de producao):
+1. Video em loop mudo em todo card (`preload="none"`, MP4 curto de CDN, poster webp).
+2. preload="none" em 100% — o peso segue o olhar, nao o pageload.
+3. Paleta quase monocromatica: pretos profundos, cor so em badge/acento.
+4. Tipografia contida: sans neutra, titulos curtos, tracking negativo.
+5. Raios grandes e consistentes, todos de uma escala unica.
+6. Texto sobre video sempre com gradiente inferior de legibilidade.
+7. Primeira dobra = prova em video full-bleed + nav enxuta com 1 CTA.
+8. Grade densa: o catalogo e a landing, CTA por card.
+9. Microinteracoes discretas: hover scale/brightness, transicoes curtas (200ms domina).
+10. Prova social dentro dos cards, nao em secao separada.
 
-3. **Entrada em cascata da galeria.** Antes: os 6 cards aparecem de uma vez →
-   depois: fade-up 300ms com delay de 60ms por card no primeiro paint (CSS
-   `animation-delay`, desligado em reduced-motion). Porquê: o Higgsfield sente
-   "coreografado" já na primeira dobra. Risco: CLS se mal feito — usar só
-   opacity/transform; rollback: remover keyframes.
+**Tokens REAIS extraidos dos bundles CSS deles (assets.higgsfield.ai, 12/08):**
+- Fontes: `--hf-type-family-primary` = Inter Display/Inter; `secondary` = Inter;
+  `grotesk` = **Space Grotesk**; mono = Space Mono. (O Kineo ja carrega Inter +
+  Space Grotesk no layout.tsx — mesmo DNA tipografico. Nao ha o que trocar, so disciplinar.)
+- Raios: escala unica `--hf-radius-*`: 0 / 2 / 4 / 6 / 8 / 10 / 12 / **16 / 20 / 24px** / full.
+- Cores: `--color-black-1 #0b0b0b`, `--color-black-2 #131313`, superficies de card
+  #1c1e21 / #202326 / #23252a, badge-gray #424242, **1 acento** (lime #d1fe17) usado
+  raro. Texto: white + neutral-*.
+- Timings: `duration-200` domina (61 ocorrencias vs 8 de 300); `ease-out` domina (47x);
+  easings nomeados: swift `cubic-bezier(.2,0,0,1)`, out-expo `cubic-bezier(.16,1,.3,1)`,
+  emphasized `cubic-bezier(.32,.72,0,1)`, spring `cubic-bezier(.34,1.56,.64,1)`.
+  Duracoes de UI ficam em 120–350ms; so ambiente (glows de fundo) passa de 1s.
 
-4. **Hover de vídeo com zoom sutil.** Antes: card dá lift mas o vídeo é estático
-   dentro → depois: `.vcard:hover .hvid{transform:scale(1.04)}` com transition.
-   Porquê: microinteração assinatura de galeria premium (o conteúdo responde,
-   não só a moldura). Risco: overflow — o vcard já tem overflow:hidden;
-   rollback: 1 regra CSS.
+## TOKENS DO KINEO (adaptar, nao copiar — disciplina deles, identidade nossa)
 
-5. **Skeleton loaders no /generate.** Antes: spinner genérico enquanto gera →
-   depois: skeleton com shimmer no formato do resultado (card 9:16 + linhas de
-   script). Porquê: Higgsfield nunca mostra spinner — mostra a forma do que vem.
-   Risco: só visual; rollback: voltar ao spinner.
+Fonte da verdade em codigo: **`lib/uiTokens.ts`** (criado 12/08). O KLP_CSS ja tem
+`--r-md/--r-lg/--sh-card/--sh-cta`; a escala abaixo COMPLETA esses tokens, nao os substitui.
 
-6. **Cerimônia do vídeo pronto.** Antes: player cru quando o Short fica pronto →
-   depois: moldura 9:16 com glow azul da marca + fade-in + confete discreto na
-   primeira vez. Porquê: o momento de maior dopamina do produto merece o
-   acabamento da landing. Risco: exagero — manter sutil; rollback: componente
-   isolado.
+| Token | Valor | Origem/uso |
+|---|---|---|
+| `--r-xs` | 8px | inputs pequenos, badges (absorve 6/8/11/12px soltos) |
+| `--r-sm` | 13px | botoes (cbtn ja usa 13 — vira token) |
+| `--r-md` | 18px | JA EXISTE — cards internos, hvid |
+| `--r-lg` | 22px | JA EXISTE — vcard, plan, tcard (Higgsfield usa 20/24; 22 e nosso) |
+| `--r-pill` | 999px | pills e CTAs redondos (absorve 980/9999px) |
+| `--bg` | #000 | fundo global (identidade Kineo; Higgsfield usa #0b0b0b) |
+| `--surface-1` | #141416 | cards escuros (absorve 131315/161618/17171a/191919/19191c) |
+| `--surface-2` | #1d1d1f | cards elevados/hover (absorve 1a1a1d/212124/26262a) |
+| `--border` | #2a2a2d | bordas 1px (absorve 3a3a3d; 4d4d50 so em hover) |
+| `--text-1` | #f5f5f7 | titulos |
+| `--text-2` | #c7c7cd | corpo (absorve c9c9cf) |
+| `--text-3` | #86868b | muted (absorve a1a1a8/a1a1a6/8f8f96) |
+| `--accent` | #2997ff | O azul Kineo = o papel do lime deles: raro e so em acao/foco |
+| `--accent-soft` | #8cc6ff | hover/glow do acento |
+| `--dur-fast` | 150ms | micro (hover, focus) — deles: 120-180 |
+| `--dur-base` | 250ms | padrao (crossfade, cards) — deles: 200-260 |
+| `--dur-slow` | 400ms | entradas/cascata — deles: 300-350 |
+| `--ease-swift` | cubic-bezier(.2,0,0,1) | padrao de TUDO (emprestado deles) |
+| `--ease-out-expo` | cubic-bezier(.16,1,.3,1) | entradas em viewport |
+| tipografia | Inter (UI) + Space Grotesk (display) | ja em layout.tsx via next/font |
 
-7. **Posters .jpg → .webp.** Antes: ~134 KB de jpg → depois: ~90 KB de webp
-   (mesmos frames, `<picture>` com fallback). Porquê: Higgsfield serve poster
-   .webp. Risco: nenhum com fallback; rollback: trocar extensão de volta.
+**Onde o Kineo viola a propria disciplina HOJE (medido 12/08, app/ + components/):**
+- **Raios: 15 valores px distintos** hardcoded (2,6,8,11,12,13,14,16,18,20,24,30,980,999,9999)
+  MAIS 6 classes Tailwind (`rounded-xl` 244x, `rounded-2xl` 171x, `rounded-lg` 113x,
+  `rounded-full` 116x, `rounded-md` 17x, `rounded-3xl` 11x) = duas linguagens de raio ao
+  mesmo tempo. Higgsfield: 1 escala.
+- **Cinzas: 21 tons quase-neutros so no KLP_CSS** (de #0c0c0e a #f5f5f7) para ~6 papeis
+  reais. Meta: 9 tons documentados na tabela acima.
+- **Timings: 14 duracoes distintas** (de .12s a 1s + 600/700ms) sem easing padrao.
+  Meta: 3 duracoes + 2 easings.
+- Posters em .jpg (eles: .webp); paginas internas com spinner (eles: nunca).
 
-8. **Unificar raios órfãos nos tokens.** Antes: cbtn 13px, mobile menu etc. fora
-   de --r-md/--r-lg → depois: todo raio vem de token (criar --r-sm:13px se
-   preciso). Porquê: consistência de raio é o item 5 do sistema deles. Risco:
-   zero; rollback: git revert.
+---
 
-9. **Autoplay em viewport também em /examples.** Antes: página de exemplos com
-   posters estáticos → depois: mesmo motor do HeroGallery (extrair hook
-   `useViewportVideo`). Porquê: catálogo vivo = item 8 do Higgsfield. Risco: já
-   mitigado no item 1; rollback: voltar a poster.
+## AS 4 SEMANAS (cada uma termina com algo que o fundador VE)
 
-10. **Nav com estado ativo.** Antes: links da nav sem indicação de seção →
-    depois: underline/realce animado do link da seção visível (scroll-spy leve).
-    Porquê: nav do Higgsfield responde ao contexto. Risco: jank — usar
-    IntersectionObserver, não scroll listener; rollback: remover observer.
+Formato de cada dia: **antes → depois** · porque (Higgsfield) · risco/rollback.
+1 dia = 1 sprint. Sprint que sobrar tempo pode adiantar o dia seguinte, nunca pular.
 
-11. **Sheen no CTA primário.** Antes: botão branco estático → depois: brilho
-    diagonal que passa 1x no load e no hover (CSS only). Porquê: o CTA deles tem
-    vida sem gritar. Risco: cafona se repetir — 1x só; rollback: 1 classe.
+### SEMANA 1 — dias 1-5: "A HOME VIVA"
+Resultado visivel: primeira dobra indistinguivel em vida da do Higgsfield.
 
-12. **Fade-up nas seções ao rolar.** Antes: seções abaixo da dobra já estão lá →
-    depois: cada `.sec-h`/grid entra com fade-up 1x (IntersectionObserver +
-    classe, reduced-motion off). Porquê: ritmo vertical coreografado. Risco:
-    conteúdo invisível se JS falhar — estado inicial visível, animação é
-    progressive enhancement; rollback: remover classe.
+1. ✅ **FEITO 12/08 — Galeria viva: os 6 cards tocam sozinhos em viewport.**
+   Antes: so o card 0 tocava → depois: os seis loopam mudos quando visiveis, poster
+   continua o primeiro paint. Porque: E o elemento que o fundador apontou.
+   Mitigado: preload="none", download so no intersect (≥35%), Save-Data/2g/reduced-motion
+   ficam no poster, NotAllowedError volta ao poster+badge. Rollback: app/HeroGallery.tsx.
+2. **Crossfade poster→video.** Antes: troca seca img→video → depois: opacity 0→1 em
+   `--dur-base` no evento `playing`. Porque: no Higgsfield nada "pisca". Risco quase
+   zero (CSS); rollback: remover classe.
+3. **Entrada em cascata da galeria.** Antes: 6 cards aparecem de uma vez → depois:
+   fade-up `--dur-slow` com delay 60ms/card, so opacity/transform (CLS zero),
+   desligado em reduced-motion. Porque: a primeira dobra deles e coreografada.
+   Rollback: remover keyframes.
+4. **Hover de video com zoom sutil.** Antes: card da lift mas video estatico →
+   depois: `.vcard:hover .hvid{transform:scale(1.04)}` com `--ease-swift`. Porque:
+   microinteracao assinatura (o conteudo responde, nao so a moldura). vcard ja tem
+   overflow:hidden. Rollback: 1 regra CSS.
+5. **Fade-up nas secoes ao rolar.** Antes: secoes ja estao la → depois: `.sec-h`/grids
+   entram fade-up 1x (IntersectionObserver; estado inicial VISIVEL — animacao e
+   progressive enhancement). Porque: ritmo vertical coreografado. Rollback: remover classe.
 
-13. **Skeleton no /history.** Antes: spinner ao carregar My Videos → depois:
-    grade de cards 9:16 em shimmer. Porquê: mesma regra do item 5 em toda página
-    interna. Risco: zero; rollback: trivial.
+### SEMANA 2 — dias 6-10: "O PRODUTO GANHA O BRILHO"
+Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
 
-14. **Hover-preview nos cards do dashboard/viral-now.** Antes: cards estáticos →
-    depois: leve scale + sombra no hover, consistente com a landing (mesmos
-    tokens --sh-*). Porquê: o app interno deve parecer o site. Risco: tocar
-    DashboardClient E ViralNowClient (regra dos pares!); rollback: CSS only.
+6. **Skeleton loaders no /generate.** Antes: spinner generico → depois: skeleton com
+   shimmer no formato do resultado (card 9:16 + linhas de script). Porque: Higgsfield
+   nunca mostra spinner — mostra a forma do que vem. Rollback: voltar ao spinner.
+7. **Cerimonia do video pronto.** Antes: player cru → depois: moldura 9:16 com glow
+   #2997ff + fade-in + confete discreto 1x. Porque: o momento de maior dopamina merece
+   o acabamento da landing. Risco: exagero — manter sutil. Rollback: componente isolado.
+8. **Skeleton no /history.** Antes: spinner no My Videos → depois: grade de cards 9:16
+   em shimmer. Porque: mesma regra do dia 6 em toda pagina interna. Rollback: trivial.
+9. **Toast animado de download/copy.** Antes: feedback nenhum ou alert → depois: toast
+   slide-in com check animado (`--dur-fast`). Porque: microconfirmacoes = polish sentido.
+   Rollback: remover componente.
+10. **Hover-preview nos cards do dashboard/viral-now.** Antes: cards estaticos →
+    depois: scale+sombra `--sh-card` no hover, igual a landing. ⚠️ Tocar DashboardClient
+    E ViralNowClient (regra dos pares!). Rollback: CSS only.
 
-15. **Empty states com personalidade.** Antes: "No videos yet" seco → depois:
-    ilustração SVG no traço dos 8 ícones do toolkit + CTA. Porquê: acabamento é
-    o que acontece nos cantos vazios. Risco: zero; rollback: texto antigo.
+### SEMANA 3 — dias 11-15: "CONSISTENCIA TOTAL" (os tokens em TODAS as paginas)
+Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
 
-16. **Toast animado de download/copy.** Antes: feedback nenhum ou alert →
-    depois: toast slide-in com check animado. Porquê: microconfirmações = polish
-    sentido, não visto. Risco: zero; rollback: remover componente.
+11. **Raios orfaos → escala unica.** Antes: 15 px soltos + 6 rounded-* → depois: todo
+    raio vem de --r-xs/sm/md/lg/pill (mapa de conversao: 6/8/11/12→xs, 13/14→sm,
+    16/18→md, 20/24/30→lg, 980/9999→pill; rounded-xl(12px)→sm etc.). Porque: item 5 do
+    sistema deles. Fazer por pagina, screenshot antes/depois. Rollback: git revert.
+12. **Cinzas e timings → tokens.** Antes: 21 tons no KLP + 14 duracoes → depois: os 9
+    tons e 3 duracoes/2 easings da tabela, com find&replace auditado (nenhuma mudanca
+    visual percebida a olho — e consolidacao, nao redesign). Rollback: git revert.
+13. **Focus-visible consistente em tudo.** Antes: .btn tem, cards parcial → depois:
+    anel `--accent` padrao em todo interativo, todas as paginas. Porque: acabamento
+    de verdade inclui teclado. Rollback: CSS.
+14. **Nav com estado ativo.** Antes: links sem indicacao → depois: realce animado da
+    secao visivel (IntersectionObserver, nunca scroll listener). Porque: a nav deles
+    responde ao contexto. Rollback: remover observer.
+15. **Posters .jpg → .webp.** Antes: ~134 KB jpg → depois: ~90 KB webp (`<picture>`
+    com fallback). Porque: Higgsfield serve webp. Risco: nenhum com fallback.
+    Rollback: trocar extensao.
 
-17. **Focus-visible consistente em tudo.** Antes: .btn tem, cards têm parcial →
-    depois: anel azul padrão da marca em todo interativo. Porquê: acabamento de
-    verdade inclui teclado. Risco: zero; rollback: CSS.
+### SEMANA 4 — dias 16-20: "O ACABAMENTO QUE NINGUEM NOTA MAS TODOS SENTEM"
+Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no teste.
 
-18. **Contadores que sobem no LiveStatsBadge.** Antes: número estático →
-    depois: count-up 600ms na primeira visualização. Porquê: prova social viva
-    (item 10 deles). Risco: parecer fake — animar 1x, número real; rollback:
-    remover animação.
+16. **Empty states com personalidade.** Antes: "No videos yet" seco → depois:
+    ilustracao SVG no traco do toolkit + CTA (/history, dashboard). Porque: acabamento
+    e o que acontece nos cantos vazios. Rollback: texto antigo.
+17. **Micro-brilhos: sheen no CTA + count-up no LiveStatsBadge.** Antes: botao branco
+    estatico, numero estatico → depois: brilho diagonal 1x no load/hover (CSS only) e
+    count-up 600ms 1x com numero real. Porque: o CTA deles tem vida sem gritar; prova
+    social viva. Risco: cafona se repetir — 1x so. Rollback: 2 classes.
+18. **Transicao landing → /signup.** Antes: navegacao seca → depois: fade curto (View
+    Transitions API, fallback nulo = comportamento atual). Porque: continuidade de
+    mundo. Rollback: remover meta.
+19. **/examples vivo + palco no /examples/[slug].** Antes: posters estaticos e player
+    simples → depois: mesmo motor do HeroGallery (extrair hook `useViewportVideo`) na
+    grade, e pagina de detalhe com video centrado + glow + prompt original ("veja como
+    foi feito"). Porque: catalogo vivo (item 8) + eles vendem o processo. Risco: escopo
+    — manter 1 pagina. Rollback: layout antigo.
+20. **AUDITORIA FINAL LADO A LADO.** Screenshot da home Kineo x home Higgsfield na
+    mesma janela; rodar o checklist "Como saberemos" abaixo, item por item, com numeros
+    (grep de raios/cinzas/duracoes + Lighthouse vs baseline); registrar no Diario o que
+    passou e o que vira backlog v2. Sem codigo novo neste dia — so medicao e correcao fina.
 
-19. **Transição entre landing → /signup.** Antes: navegação seca → depois: fade
-    curto de saída/entrada (View Transitions API com fallback nulo). Porquê:
-    continuidade de mundo, sensação de app. Risco: suporte parcial — fallback é
-    o comportamento atual; rollback: remover meta.
+---
 
-20. **Página /examples/[slug] com palco.** Antes: player simples → depois: vídeo
-    centrado com glow, prompt original ao lado ("veja como foi feito") no estilo
-    "Explore the inside of every project" do Higgsfield. Porquê: eles vendem o
-    processo, não só o output. Risco: escopo — manter 1 página; rollback:
-    layout antigo.
+## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
 
-## Prova de peso do item 1 (medido em 12/08)
+1. Screenshot home Kineo x Higgsfield lado a lado: ambas tem video vivo na dobra,
+   texto-sobre-video com gradiente, grade densa com CTA por card.
+2. `grep 'border-radius:[0-9]' app components` (fora de tokens/globals) retorna **0**
+   valores px orfaos; toda UI usa --r-xs/sm/md/lg/pill ou classes mapeadas.
+3. Cinzas quase-neutros em uso: **≤9 tons**, todos os 9 da tabela (grep de hex).
+4. Duracoes de transicao em uso: **≤3** (--dur-fast/base/slow) + 2 easings nomeados.
+5. **2 familias tipograficas** carregadas e usadas (Inter UI, Space Grotesk display) —
+   nenhum font-family orfao fora delas + mono de codigo.
+6. Nenhuma pagina do funil (home, /generate, video pronto, /pricing, /signup,
+   /history) mostra spinner generico — skeleton ou shimmer em 100% dos loadings.
+7. Todo card de video do site (home, /examples, dashboard) toca em viewport com
+   preload="none" e volta ao poster em Save-Data/reduced-motion.
+8. Todo elemento interativo tem focus-visible com anel #2997ff (tab pela home inteira
+   sem perder o foco de vista).
+9. O momento "video pronto" tem cerimonia (glow+fade) e o download confirma com toast.
+10. **Lighthouse mobile da home ≥ baseline registrado** (abaixo); LCP continua sendo o
+    poster/texto da dobra, nunca um <video>.
 
-- MP4s dos 6 cards (previews 5s, 360x640, sem áudio): 135–314 KB cada,
-  **1,43 MB total**; posters ~134 KB.
-- LCP intacto: poster continua sendo o primeiro paint; os `<video>` dos cards
-  1-5 só montam após `window load` + `requestIdleCallback`, e com
-  `preload="none"` montar não baixa nada — o download começa no `play()` do
-  IntersectionObserver, card a card, só ≥35% visível.
-- Mobile: o trilho mostra ~3 cards → só esses baixam (~700 KB pós-idle);
-  Save-Data e 2g não fazem autoplay nenhum.
-- CLS: zero — poster e vídeo são camadas `absolute inset-0` no mesmo box
-  `aspect-ratio:9/16`, e o poster do `<video>` é o mesmo jpg já em cache.
+## BASELINE DE PERFORMANCE (registrado 12/08 — a regra e NAO CAIR)
+
+- Producao (https://shortsforgeai.com/, 12/08, curl da sandbox): **TTFB 0,36–0,54s**,
+  HTML da home **180 KB** (179.850 B), HTTP 200. MP4s da galeria: 1,43 MB total,
+  lazy (so no intersect); posters ~134 KB.
+- **Lighthouse: PENDENCIA da proxima sprint** — a API keyless do PageSpeed estourou a
+  quota hoje (`Quota exceeded ... pagespeedonline.googleapis.com`). Proxima sprint DEVE
+  rodar PSI (mobile, performance) contra https://shortsforgeai.com/ e gravar aqui:
+  score ___, LCP ___, TBT ___, CLS ___. Ate la, o guard-rail e: HTML da home ≤180 KB,
+  TTFB ≤0,6s, e nenhum asset novo no critical path.
+
+## PROVA DE PESO DO DIA 1 (medido 12/08)
+
+- MP4s dos 6 cards (5s, 360x640, sem audio): 135–314 KB cada, **1,43 MB total**.
+- LCP intacto: poster e o primeiro paint; <video> dos cards 1-5 montam pos
+  window.load + requestIdleCallback; preload="none" → download so no play() do
+  IntersectionObserver, card a card, ≥35% visivel.
+- Mobile: trilho mostra ~3 cards → ~700 KB pos-idle; Save-Data/2g sem autoplay.
+- CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
+
+## DIARIO
+
+- **12/08** — Dia 1 ✅ (galeria viva, commit c932c11). Roadmap reestruturado em 4
+  semanas com destino + tokens extraidos do CSS real do Higgsfield (10 bundles) +
+  auditoria numerica do Kineo (15 raios px / 21 cinzas / 14 duracoes) + criado
+  lib/uiTokens.ts. Baseline curl registrado; Lighthouse ficou como pendencia (quota PSI).
