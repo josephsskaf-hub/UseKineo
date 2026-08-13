@@ -16,6 +16,17 @@
 
 **Ação recomendada:** nenhuma urgente após correção pelo painel (46%). Fundador confirmou visualmente o painel em 13/08. Manter vigilância diária: se o painel passar de 70%, limpar o bucket `broll` (62 GB medidos no banco) antes de pensar em plano.
 
+**Discrepância banco × painel — explicada e tratada em código (sprint 10h, 13/08).**
+Razão medida: **46,20 ÷ 91,92 = 0,503** — o banco lê ~2x o cobrado. A pista já
+estava no repo: a §4 de `docs/BROLL-ORPHANS-2026-08-08.md` provou que
+`storage.objects` é o **ÍNDICE** do arquivo, não a fonte da verdade dele (os
+bytes vivem no S3, resolvidos por `bucket/name/version`), então índice e bytes
+podem divergir. Hipótese não confirmada: linhas de índice cujos bytes não estão
+mais no S3. **O alarme novo (`lib/supplier/storageCapacity.ts`) já nasce
+calibrado por essa razão**, mostra os dois números em todo alerta e é
+recalibrável pela env `KINEO_STORAGE_BILLED_RATIO` sem deploy. Regra que fica:
+*medida de fonte não-oficial vira ESTIMATIVA declarada, nunca veredito.*
+
 **Não consegui medir:** saldo fal.ai, saldo OpenAI, envios Resend fora do trial ledger (fontes sem API/da parte não logada). E-mail de alerta via Resend **não enviado**: RESEND_API_KEY local é placeholder (7 chars) — alerta entregue via notificação da tarefa + rascunho no Gmail.
 
 **Achado de segurança (advisor Supabase):** tabela `public.trial_revive_backfill_20260811` está com **RLS desligado** — legível/gravável por qualquer um com a anon key. Corrigir com `ALTER TABLE public.trial_revive_backfill_20260811 ENABLE ROW LEVEL SECURITY;` (e policies, ou dropar se era só backfill).

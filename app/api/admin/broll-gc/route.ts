@@ -16,15 +16,27 @@
 // "preencher um .env e rodar um script node" para "abrir uma URL".
 //
 // ─────────────────────────────────────────────────────────────────────────────
-// O NÚMERO QUE TORNOU ISTO URGENTE (medido em 13/08, não herdado de doc)
+// OS NÚMEROS (medidos em 13/08, não herdados de doc) — E A CORREÇÃO QUE ELES
+// LEVARAM NO MESMO DIA
 //
-//   Supabase Storage: 91,92 GB de 100 GB  →  91,9%.  Folga: ~3 a 5 dias.
-//   bucket `broll`: 62,05 GB  =  67,5% de TUDO que a conta armazena.
-//   destes, ÓRFÃOS: 46,33 GB em 2.734 objetos  =  50,4% da cota inteira.
-//   `renders` (o produto entregue ao cliente): 24,99 GB.
+// Soma de `storage.objects`, por bucket:
+//   `broll`: 62,05 GB = 67,5% de tudo · destes, ÓRFÃOS: 46,33 GB em 2.734
+//   objetos · `renders` (o produto entregue ao cliente): 24,99 GB.
+//   TOTAL somado no banco: 91,92 GB.
 //
-// Metade da cota da empresa é ocupada por arquivos que NENHUM código consegue
-// ler. Não é "vídeo antigo de usuário" — é sobra de um bug já corrigido.
+// ⚠️ ESSE TOTAL NÃO É O COBRADO. No mesmo dia o fundador conferiu o painel
+// oficial de Billing: **46,2 GB (46%)**. A soma do banco lê ~2x (razão 0,503).
+// A primeira versão deste arquivo dizia "91,9% da cota, 3 a 5 dias da parede" e
+// tratava a limpeza como emergência. **Não é emergência** — são ~35 dias de
+// folga no ritmo atual. O tratamento completo da calibração está em
+// `lib/supplier/storageCapacity.ts`.
+//
+// O QUE A CORREÇÃO **NÃO** DERRUBA, e é por isso que esta rota continua de pé:
+// as PROPORÇÕES vêm todas da mesma fonte e não dependem da escala. Órfão
+// continua sendo órfão. Seja qual for o fator, **metade do que a casa armazena
+// são arquivos que NENHUM código consegue ler** — e os vídeos dos clientes são
+// a menor parte. Isso é desperdício com ou sem urgência; o que mudou é o prazo,
+// não o diagnóstico.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // O BUG QUE OS CRIOU JÁ MORREU — E OS DADOS PROVAM SOZINHOS

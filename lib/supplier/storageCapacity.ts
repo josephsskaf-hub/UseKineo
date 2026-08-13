@@ -4,18 +4,29 @@
 // POR QUE ESTE ARQUIVO EXISTE
 //
 // `supplier-watch` roda de hora em hora e vigia Creatomate, OpenAI e fal.ai.
-// Ele NÃO vigiava o Storage. Resultado medido em 13/08: **91,92 GB de 100 GB
-// (91,9%)**, com ~3 a 5 dias de folga — e o alarme que soou foi um ser humano
-// abrindo o check-up manual. Não havia nenhum caminho automático que fosse
-// gritar antes da parede.
+// Ele NÃO vigiava o Storage — e o Storage é o único fornecedor cuja falha é
+// BINÁRIA em vez de cara.
 //
-// A parede importa porque ela não é cara, é BINÁRIA. Se o Spend Cap do projeto
-// estiver LIGADO, bater 100 GB faz o upload FALHAR — e todo vídeo gerado passa
-// por um upload. É o apagão do Creatomate de 09/08 (33 horas sem renderizar um
-// vídeo) reencenado na porta de entrada do funil. Se o Spend Cap estiver
-// DESLIGADO, o excedente custa US$ 0,0213/GB — centavos, e não há emergência.
-// O MESMO NÚMERO é incêndio ou troco dependendo de um botão, e por isso os dois
-// textos de alerta daqui mandam conferir esse botão ANTES de qualquer coisa.
+// A parede: se o Spend Cap do projeto estiver LIGADO, bater 100 GB faz o upload
+// FALHAR — e todo vídeo gerado passa por um upload. É o apagão do Creatomate de
+// 09/08 (33 horas sem renderizar um vídeo) reencenado na porta de entrada do
+// funil. Se o Spend Cap estiver DESLIGADO, o excedente custa US$ 0,0213/GB —
+// centavos. O MESMO NÚMERO é incêndio ou troco dependendo de um botão, e por
+// isso os dois textos de alerta mandam conferir esse botão.
+//
+// ⚠️ COMO ESTE ARQUIVO QUASE NASCEU MENTINDO — vale mais que o resto do módulo.
+//
+// A primeira versão media pela soma de `storage.objects` e alarmava pelo
+// percentual cru. Naquele número o projeto estava em "91,9% e 2,6 dias da
+// parede", e este módulo teria disparado um VERMELHO de 95% na estreia. No mesmo
+// dia, o fundador conferiu o painel oficial de Billing: **46%**. A soma do banco
+// lê quase 2x o cobrado (ver bloco CALIBRAÇÃO abaixo).
+//
+// Não havia emergência nenhuma. O alarme teria mandado o dono correr para
+// apagar arquivo por causa de um problema que não existe — e um alarme que
+// grita errado na estreia não é um alarme, é uma coisa que se aprende a ignorar.
+// Daí a regra que este arquivo passa a carregar: **medida de fonte não-oficial
+// vira ESTIMATIVA declarada, nunca veredito.**
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // DUAS PERGUNTAS DIFERENTES, E A SEGUNDA CHEGA PRIMEIRO
@@ -27,10 +38,9 @@
 //   PROJEÇÃO — "no ritmo dos últimos 7 dias, em quantos dias eu bato 100%?"
 //              Acende mesmo com o percentual ainda baixo.
 //
-// Com os números de hoje (91,9% e ~3,1 GB/dia) as duas acendem juntas. Mas em
-// 06/08 o total era ~82,5 GB — patamar de 80% recém-cruzado, nada de dramático —
-// e a projeção já entregaria "17,5 GB de folga ÷ 3,1 GB/dia = 5,6 dias". Era o
-// aviso útil, e ele não existia.
+// Com os números calibrados de 13/08 (~46% e ~1,5 GB/dia) NENHUMA das duas
+// acende, que é o resultado correto. A projeção existe para o dia em que o
+// ritmo mudar — ela é o aviso que chega antes, e não existia.
 //
 // ─────────────────────────────────────────────────────────────────────────────
 // O QUE ESTE MÓDULO NÃO FAZ, DE PROPÓSITO
@@ -44,6 +54,43 @@ import { notifyFounder } from '@/lib/supplier/notify'
 
 /** Cota do plano Pro, confirmada via API de gestão em 08/08/2026. */
 export const STORAGE_QUOTA_GB = 100
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ⚠️ CALIBRAÇÃO — LEIA ANTES DE MEXER EM QUALQUER NÚMERO DAQUI
+//
+// `sum(storage.objects.metadata->>'size')` NÃO É O NÚMERO COBRADO, e a diferença
+// é de quase 2x. Medido em 13/08/2026, no mesmo dia, nas duas fontes:
+//
+//     soma de storage.objects ....... 91,92 GB   (o que esta base devolve)
+//     painel oficial de Billing ..... 46,20 GB   (o que a Supabase cobra)
+//     razão ......................... 0,503
+//
+// O fundador conferiu o painel visualmente. A fonte oficial é o painel; a soma
+// do banco é um **limite superior**. (Hipótese não confirmada para a diferença:
+// linhas de índice cujos bytes não estão — ou não estão mais — no S3. A §4 de
+// docs/BROLL-ORPHANS-2026-08-08.md já tinha provado que `storage.objects` é o
+// ÍNDICE do arquivo e não a fonte da verdade dele. Investigar sem pressa.)
+//
+// ISTO QUASE VIROU UMA FÁBRICA DE E-MAIL: a primeira versão deste módulo
+// disparava patamar por percentual cru. Com 91,92 GB ele teria acendido o
+// vermelho de 95% HOJE, num projeto que está em 46%. Um alarme que grita errado
+// na estreia não é um alarme — é uma coisa que o dono aprende a ignorar.
+//
+// Por isso: os patamares avaliam o valor CALIBRADO, os dois números aparecem em
+// todo alerta, e o texto sempre manda conferir o painel antes de agir.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Razão painel/banco. Sobrescrevível por env sem deploy quando uma leitura nova
+ * do painel discordar. Falha SEGURA: valor ausente/ilegível/fora de (0,1] cai
+ * no calibrado de 13/08 em vez de virar 1,0 (que traria o falso alarme de volta).
+ */
+export function billedRatio(): number {
+  const raw = Number(process.env.KINEO_STORAGE_BILLED_RATIO)
+  if (Number.isFinite(raw) && raw > 0 && raw <= 1) return raw
+  return 0.503
+}
+
 /** Patamares anunciados. Um aviso por patamar — nunca repete o mesmo. */
 const THRESHOLDS = [80, 90, 95, 100] as const
 /** Abaixo disto a projeção não fala: ruído de dia parado vira falso alarme. */
@@ -64,7 +111,12 @@ export interface BucketUsage {
 }
 
 export interface StorageCapacity {
+  /** Estimativa CALIBRADA para o painel de Billing. É o número que decide alarme. */
   totalGb: number
+  /** Soma crua de `storage.objects` — limite superior, quase 2x o cobrado. */
+  rawDbGb: number
+  /** Razão aplicada (painel ÷ banco). */
+  ratio: number
   quotaGb: number
   percentUsed: number
   freeGb: number
@@ -103,7 +155,11 @@ export async function readStorageCapacity(
       }))
       .sort((a, b) => b.gb - a.gb)
 
-    const totalGb = buckets.reduce((s, b) => s + b.gb, 0)
+    const rawDbGb = buckets.reduce((s, b) => s + b.gb, 0)
+    const ratio = billedRatio()
+    // Tudo daqui para baixo trabalha no espaço CALIBRADO — inclusive o ritmo,
+    // senão a projeção herdaria o mesmo fator ~2 e mentiria na mesma proporção.
+    const totalGb = rawDbGb * ratio
     const percentUsed = (totalGb / STORAGE_QUOTA_GB) * 100
     const freeGb = STORAGE_QUOTA_GB - totalGb
 
@@ -113,7 +169,8 @@ export async function readStorageCapacity(
     const { data: growth, error: gErr } = await admin.rpc('storage_growth_7d')
     if (!gErr && growth != null) {
       const g = Number(Array.isArray(growth) ? (growth[0]?.gb_7d ?? 0) : growth)
-      if (Number.isFinite(g) && g > 0) gbPerDay = g / 7
+      // `ratio` também aqui: o crescimento vem da mesma fonte inflada.
+      if (Number.isFinite(g) && g > 0) gbPerDay = (g * ratio) / 7
     }
 
     const daysToFull =
@@ -124,10 +181,11 @@ export async function readStorageCapacity(
           : null
 
     const headline =
-      `${totalGb.toFixed(2)} GB de ${STORAGE_QUOTA_GB} GB (${percentUsed.toFixed(1)}%)` +
-      (daysToFull !== null ? ` · ~${daysToFull.toFixed(1)} dias de folga` : '')
+      `~${totalGb.toFixed(1)} GB de ${STORAGE_QUOTA_GB} GB (${percentUsed.toFixed(1)}%, estimado)` +
+      ` · soma crua do banco ${rawDbGb.toFixed(1)} GB` +
+      (daysToFull !== null ? ` · ~${daysToFull.toFixed(0)} dias de folga` : '')
 
-    return { totalGb, quotaGb: STORAGE_QUOTA_GB, percentUsed, freeGb, buckets, gbPerDay, daysToFull, headline }
+    return { totalGb, rawDbGb, ratio, quotaGb: STORAGE_QUOTA_GB, percentUsed, freeGb, buckets, gbPerDay, daysToFull, headline }
   } catch (e) {
     console.warn('[storage-watch] readStorageCapacity lançou:', e instanceof Error ? e.message : String(e))
     return null
@@ -141,9 +199,21 @@ function bucketLines(buckets: BucketUsage[]): string {
     .join('\n')
 }
 
+/**
+ * Bloco comum: este alerta é ESTIMATIVA. Vem primeiro de propósito — em 13/08 a
+ * soma do banco disse 91,9 GB e o painel dizia 46,2 GB, e um alerta que não
+ * abrisse admitindo isso teria mandado o dono limpar um problema inexistente.
+ */
+const ESTIMATE_BLOCK =
+  'ESTE NUMERO E ESTIMATIVA, NAO A FATURA. A fonte oficial e o painel de Billing.\n' +
+  'A soma de storage.objects leu ~2x o cobrado em 13/08 (91,9 GB no banco vs\n' +
+  '46,2 GB no painel), entao o alerta aplica uma razao de calibracao. Confira o\n' +
+  'painel ANTES de apagar qualquer coisa; se ele discordar, ajuste a env\n' +
+  'KINEO_STORAGE_BILLED_RATIO na Vercel (sem deploy) e o alarme se recalibra.\n'
+
 /** Bloco comum aos dois alertas: o botão que decide se isto é incêndio ou troco. */
 const SPEND_CAP_BLOCK =
-  'ANTES DE QUALQUER COISA, 30 SEGUNDOS QUE MUDAM O TAMANHO DO PROBLEMA:\n' +
+  'SE O PAINEL CONFIRMAR QUE ESTA PERTO DO TETO, 30 SEGUNDOS QUE MUDAM O TAMANHO DO PROBLEMA:\n' +
   '  supabase.com -> projeto -> Billing -> Spend Cap.\n' +
   '  · LIGADO  = bater 100 GB faz o UPLOAD FALHAR. Todo video gerado passa por\n' +
   '    um upload, entao isso e apagao — o de 09/08 durou 33h.\n' +
@@ -187,6 +257,8 @@ export async function maybeAlertStorageThreshold(
         threshold_key: key,
         threshold: level,
         total_gb: Number(cap.totalGb.toFixed(2)),
+        raw_db_gb: Number(cap.rawDbGb.toFixed(2)),
+        ratio: cap.ratio,
         percent_used: Number(cap.percentUsed.toFixed(1)),
         free_gb: Number(cap.freeGb.toFixed(2)),
         gb_per_day: cap.gbPerDay === null ? null : Number(cap.gbPerDay.toFixed(2)),
@@ -203,9 +275,11 @@ export async function maybeAlertStorageThreshold(
 
     const icon = level >= 95 ? '🔴' : level >= 90 ? '🟠' : '🟡'
     const notified = await notifyFounder(
-      `${icon} Kineo: Supabase Storage em ${cap.percentUsed.toFixed(1)}% (${level}% cruzado)`,
+      `${icon} Kineo: Supabase Storage ~${cap.percentUsed.toFixed(0)}% estimado (patamar ${level}% cruzado) — confirmar no painel`,
       `${cap.headline}\n\n` +
-        `POR BUCKET:\n${bucketLines(cap.buckets)}\n\n` +
+        `POR BUCKET (soma crua do banco):\n${bucketLines(cap.buckets)}\n\n` +
+        ESTIMATE_BLOCK +
+        '\n' +
         SPEND_CAP_BLOCK +
         '\n' +
         CLEANUP_BLOCK +
@@ -247,6 +321,8 @@ export async function maybeAlertStorageProjection(
       metadata: {
         projection_key: key,
         total_gb: Number(cap.totalGb.toFixed(2)),
+        raw_db_gb: Number(cap.rawDbGb.toFixed(2)),
+        ratio: cap.ratio,
         percent_used: Number(cap.percentUsed.toFixed(1)),
         free_gb: Number(cap.freeGb.toFixed(2)),
         gb_per_day: cap.gbPerDay === null ? null : Number(cap.gbPerDay.toFixed(2)),
@@ -261,12 +337,14 @@ export async function maybeAlertStorageProjection(
     }
 
     const notified = await notifyFounder(
-      `⚠️ Kineo: no ritmo atual o Storage bate 100% em ~${cap.daysToFull.toFixed(1)} dias`,
+      `⚠️ Kineo: no ritmo atual o Storage bate 100% em ~${cap.daysToFull.toFixed(0)} dias (estimado) — confirmar no painel`,
       `A cota nao acabou — mas o ritmo diz quando acaba.\n\n` +
         `${cap.headline}\n` +
         `  livre ............. ${cap.freeGb.toFixed(2)} GB\n` +
         `  crescimento 7d .... ${cap.gbPerDay?.toFixed(2) ?? '?'} GB/dia\n\n` +
-        `POR BUCKET:\n${bucketLines(cap.buckets)}\n\n` +
+        `POR BUCKET (soma crua do banco):\n${bucketLines(cap.buckets)}\n\n` +
+        ESTIMATE_BLOCK +
+        '\n' +
         SPEND_CAP_BLOCK +
         '\n' +
         CLEANUP_BLOCK +

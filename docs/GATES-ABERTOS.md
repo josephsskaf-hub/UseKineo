@@ -1,55 +1,61 @@
-# 🔴 GATE 13/08 — STORAGE A 2,6 DIAS DA PAREDE + 2 COMMITS REPRESADOS
+# GATE 13/08 (sprint 10h) — COMMITS REPRESADOS + UMA CORREÇÃO DE NÚMERO MEU
 
-`origin/main` = **`9f3c4f5`** (medido por `git ls-remote`, sprint 10h de 13/08).
-Local HEAD = **`ba8d03e`**.
+`origin/main` = **`9f3c4f5`** (medido por `git ls-remote`, não herdado de doc).
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\73-PUSH.bat`**
-O 73 é o script vigente e nasceu em CRLF (por isso funciona). Não cria commit,
-não faz `add`, não faz `reset`: apaga os 3 locks órfãos e dá `git push`.
-Seguro rodar duas vezes.
+O 73 nasceu em CRLF (por isso funciona). Não cria commit, não faz `add`, não faz
+`reset`: apaga os 3 locks órfãos e dá `git push`. Seguro rodar duas vezes.
 
-## AÇÃO DO FUNDADOR Nº 1 — 30 SEGUNDOS, ANTES DE TUDO
+## ⚠️ CORREÇÃO — O STORAGE **NÃO** É EMERGÊNCIA. EU MEDI ERRADO.
 
-**supabase.com → projeto → Billing → Spend Cap.**
-- **LIGADO** → bater 100 GB faz o **upload FALHAR**. Todo vídeo gerado passa por
-  um upload ⇒ apagão igual ao do Creatomate de 09/08 (33h), só que na porta de
-  entrada do funil.
-- **DESLIGADO** → excedente a US$ 0,0213/GB. Centavos. Sem emergência.
+O check-up das 09:14 e a primeira metade desta sprint trataram o Storage como
+🔴 **91,9%, "2,6 a 5 dias da parede"**. O commit `e042081` (sessão paralela,
+10:15) corrigiu com a fonte oficial, conferida visualmente pelo fundador:
 
-Esse único botão decide se este gate é incêndio ou troco. **Ninguém sabe qual é
-hoje** — a API de gestão não expõe o Spend Cap e execução agendada não tem
-navegador aprovado.
+| | GB |
+|---|---:|
+| soma de `storage.objects` (o que eu medi) | 91,92 |
+| **painel oficial de Billing (o que se cobra)** | **46,20** |
+| razão | 0,503 |
 
-## AÇÃO Nº 2 — DEPOIS DO PUSH E DO BUILD VERDE
+`storage.objects` lê **quase 2x** o cobrado — coerente com a §4 de
+`docs/BROLL-ORPHANS-2026-08-08.md`, que já provara que essa tabela é o ÍNDICE do
+arquivo e não a fonte da verdade dele. **~35 dias de folga. Sem ação urgente.**
 
-Storage: **91,92 de 100 GB**, crescendo **3,07 GB/dia**, folga **8,08 GB** ⇒
-**2,6 dias**. **46,33 GB (50,4% da cota) são órfãos inalcançáveis** do bucket
-`broll` — sobra de um bug corrigido em 08/08, não vídeo de cliente
-(`renders` = 24,99 GB).
+**O que isso quase custou:** o alarme de storage escrito nesta sprint alarmava
+por percentual cru e teria disparado **vermelho de 95% na estreia**, num projeto
+em 46%. Corrigido ANTES do deploy: passa a calibrar pelo painel, mostra os dois
+números, declara-se estimativa e é recalibrável pela env
+`KINEO_STORAGE_BILLED_RATIO` sem deploy. Simulado: hoje fica em silêncio.
+
+**Regra nova:** *medida de fonte não-oficial vira ESTIMATIVA declarada, nunca
+veredito.* Havendo painel de faturamento, ele é a fonte e o banco é indício.
+
+## O QUE CONTINUA VALENDO (não depende da escala)
+
+**Metade de tudo que a casa armazena são arquivos que nenhum código consegue
+ler:** 2.734 órfãos no bucket `broll`, sobra de um bug corrigido em 08/08
+(órfãos novos por dia: 185 → 79 → 2 → **0**). Vídeos de cliente (`renders`) são
+a menor parte. Limpeza disponível, **sem pressa**, depois do push:
 
 ```
-1) só mede, não escreve nada:
-   https://www.usekineo.com/api/admin/broll-gc
-2) primeiro lote (~3,4 GB):
-   https://www.usekineo.com/api/admin/broll-gc?confirm=DELETE-ORPHANS&limit=200
-3) repetir com limit=1000 até `orfaos_restantes` = 0  → leva a casa a ~45%
+1) só mede:  https://www.usekineo.com/api/admin/broll-gc
+2) lote:     https://www.usekineo.com/api/admin/broll-gc?confirm=DELETE-ORPHANS&limit=200
 ```
 
-## DECISÃO SUA — a ordem de 08/08 não resolve o problema de hoje
+## DECISÃO SUA — a ordem de 08/08 não faz o que se espera dela
 
-Você mandou **"NÃO APAGAR. Mover para `trash/` primeiro."** Isso foi dito quando
-o doc registrava *"excedente hoje: 0"* e o problema era segurança da limpeza.
-**A cota do Supabase conta BYTES, não caminhos:** mover dentro do mesmo bucket
-libera **0,00 GB**. O modo `confirm=TRASH` existe e responde `quota_freed_gb: 0`
-explicitamente. A reversibilidade do delete é o manifesto (`broll_gc_manifest`,
-gravado ANTES do remove) — um órfão, por definição, não tem ponteiro para
-restaurar.
+**"NÃO APAGAR. Mover para `trash/` primeiro."** A cota do Supabase conta
+**BYTES, não caminhos**: mover dentro do mesmo bucket libera **0,00 GB**. O modo
+`confirm=TRASH` existe e responde `quota_freed_gb: 0` explicitamente. A
+reversibilidade do delete é o manifesto (`broll_gc_manifest`, gravado ANTES do
+remove) — um órfão, por definição, não tem ponteiro para restaurar.
 
 ## ✅ CAI NESTA SPRINT
 
 - **Achado de segurança do advisor:** `trial_revive_backfill_20260811` estava
-  exposta via PostgREST com RLS **desligada**. Ligada nesta sprint; conferido
-  que nada no código nem nas 3 funções `revive_*` depende dela.
+  exposta via PostgREST com RLS **desligada**. Ligada; conferido que nada no
+  código nem nas 3 funções `revive_*` depende dela.
 - **O push deixou de ser gate diário** (as 3 levas da manhã subiram sozinhas) —
   mas `request_access` de computer-use **continua recusando** em execução
   agendada, então a sprint ainda não empurra sozinha.
