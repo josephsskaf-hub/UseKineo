@@ -49,6 +49,11 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { readGenerationHealth, describeRules, type GenerationHealth } from '@/lib/supplier/generationHealth'
 import { readSupplierBurn, type SupplierBurnRow } from '@/lib/supplier/burn'
 import { checkCreatomateQuota } from '@/lib/creatomateQuota'
+import {
+  readStorageCapacity,
+  maybeAlertStorageThreshold,
+  maybeAlertStorageProjection,
+} from '@/lib/supplier/storageCapacity'
 import { notifyFounder } from '@/lib/supplier/notify'
 
 export const dynamic = 'force-dynamic'
@@ -269,9 +274,33 @@ export async function GET(req: NextRequest) {
   await checkCreatomateQuota(admin, now)
   const projected = await maybeAlertProjection(admin, burn, now)
 
+  // KINEO-STORAGE-WATCH-2026-08-13 — CAMADA 2, QUARTO FORNECEDOR.
+  //
+  // Este cron vigiava Creatomate, OpenAI e fal.ai. O Supabase Storage estava
+  // fora, e em 13/08 ele chegou a 91,9% de 100 GB com ~3 a 5 dias de folga sem
+  // um único alarme — quem achou foi um humano abrindo o check-up manual.
+  //
+  // Storage cheio não é uma conta mais cara, é uma PAREDE: com Spend Cap ligado
+  // o upload falha, e todo vídeo gerado passa por um upload. Seria o apagão de
+  // 09/08 outra vez, só que na porta de entrada do funil em vez do render.
+  //
+  // Roda ANTES do `if (!health)`: a capacidade é legível mesmo quando a saúde
+  // da geração não é, e "não consegui medir a saúde" é justamente o estado em
+  // que ninguém mais vai olhar o storage.
+  const storage = await readStorageCapacity(admin)
+  let storageThreshold: number | null = null
+  let storageProjected = false
+  if (storage) {
+    storageThreshold = await maybeAlertStorageThreshold(admin, storage)
+    storageProjected = await maybeAlertStorageProjection(admin, storage, now)
+  }
+  const storageOut = storage
+    ? { headline: storage.headline, percent_used: Number(storage.percentUsed.toFixed(1)), threshold_alerted: storageThreshold, projection_alerted: storageProjected }
+    : { headline: null, unreadable: true }
+
   if (!health) {
     // Não medir NÃO é sinal de saúde. Sai em silêncio e diz por quê.
-    return NextResponse.json({ ok: false, reason: 'health_unreadable', burn: burn.length, projected })
+    return NextResponse.json({ ok: false, reason: 'health_unreadable', burn: burn.length, projected, storage: storageOut })
   }
 
   const { data: priorRaw } = await admin
@@ -308,7 +337,7 @@ export async function GET(req: NextRequest) {
   // o horário verdadeiro em que o produto voltou.
   if (!health.unhealthy) {
     if (!incidentOpen) {
-      return NextResponse.json({ ok: true, healthy: true, headline: health.headline, burn: burn.length, projected })
+      return NextResponse.json({ ok: true, healthy: true, headline: health.headline, burn: burn.length, projected, storage: storageOut })
     }
     // ⚠️ SÓ ENCERRA COM PROVA POSITIVA DE ENTREGA. Ver o comentário de
     // `hasFreshDelivery` em lib/supplier/generationHealth.ts: sem esta linha,
