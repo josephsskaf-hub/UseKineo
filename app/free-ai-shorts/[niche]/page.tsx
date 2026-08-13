@@ -33,6 +33,40 @@ const NICHES: Record<string, Niche> = {
       'The $850,000 mistake most people make in their 30s',
     ],
   },
+  // KINEO-SEO-FAITH-2026-08-13 — a 29ª página, e a ÚNICA das 29 escolhida pelo
+  // que os usuários JÁ FAZEM em vez de por palavra-chave.
+  //
+  // Levantamento de 21 dias em `videos.topic` (13/08): entre os assuntos mais
+  // repetidos do produto, **faith/devocional é o gênero que mais aparece** —
+  // "God knows you're tired", Psalm 34:18, Luke 1:37, "Comment AMEN", e um
+  // usuário rodando uma série chamada *Faith Boost Daily*. São contas com
+  // cadência, não curiosos: o mesmo perfil volta e gera episódio atrás de
+  // episódio.
+  //
+  // E a casa não tinha uma palavra sobre isso em lugar nenhum: as verticais
+  // declaradas no CLAUDE.md são billionaire / mystery / countries / finance /
+  // quick learning, e as 28 páginas programáticas anteriores cobriam de
+  // `gaming` a `cars` sem tocar em fé. Estávamos vendendo para quem imaginamos
+  // e sendo usados por quem apareceu.
+  //
+  // Por que isto é aquisição e não enfeite: os dois maiores nichos faceless do
+  // YouTube US são finance e devocional, e o segundo tem a cadência mais alta
+  // (post diário, às vezes 2x/dia) — exatamente o comportamento que consome
+  // crédito e sustenta assinatura. Ideias e H1 usam a linguagem do formato
+  // ("daily devotional", "Bible verse", "comment AMEN"), não a nossa.
+  faith: {
+    label: 'Faith & Devotional',
+    h1: 'Free AI Faith & Devotional Shorts Generator',
+    intro:
+      'Turn a Bible verse or a devotional thought into a ready-to-post YouTube Short usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — faceless, and consistent enough to post every single day.',
+    ideas: [
+      'The verse for anyone who is tired of pretending they are fine',
+      'What Psalm 34:18 actually promises the brokenhearted',
+      '3 minutes of scripture for when the answer is still no',
+      'A morning devotional for the day you almost gave up',
+      'Why "nothing is impossible with God" is not a slogan — Luke 1:37 in context',
+    ],
+  },
   mystery: {
     label: 'Mystery & Unsolved',
     h1: 'Free AI Mystery Shorts Generator',

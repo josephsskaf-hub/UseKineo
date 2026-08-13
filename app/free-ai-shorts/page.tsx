@@ -30,6 +30,12 @@ const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 
 const NICHE_CARDS: Record<string, { label: string; title: string; example: string }> = {
   money: { label: 'Money & Finance', title: 'Money & Finance Shorts', example: 'The money habit most millionaires share' },
+  // KINEO-SEO-FAITH-2026-08-13 — o card é obrigatório, não opcional: o hub
+  // renderiza `NICHE_SLUGS.filter((slug) => NICHE_CARDS[slug])`, então uma
+  // página sem card entra no sitemap e no rodapé de interlinking mas fica
+  // FORA da única página que o Google trata como índice do conjunto. Seria uma
+  // página órfã por esquecimento de um objeto.
+  faith: { label: 'Faith & Devotional', title: 'Faith & Devotional Shorts', example: 'The verse for anyone tired of pretending they are fine' },
   mystery: { label: 'Mystery & Unsolved', title: 'Mystery Shorts', example: 'The disappearance nobody solved in 70 years' },
   history: { label: 'History', title: 'History Shorts', example: 'The war that lasted only 38 minutes' },
   motivation: { label: 'Motivation & Mindset', title: 'Motivation Shorts', example: 'Why discipline beats motivation every time' },
