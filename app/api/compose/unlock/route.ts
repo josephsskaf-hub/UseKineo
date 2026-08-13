@@ -14,7 +14,7 @@ import {
   uploadVoiceoverToSupabase,
   type WhisperWord,
 } from '@/lib/compose'
-import { stripScriptMarkers } from '@/lib/scriptParser'
+import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
 // clean re-render so /api/compose/status bills it from the server-side intent
@@ -139,7 +139,19 @@ export async function POST(req: NextRequest) {
     const clipUrls = Array.isArray(body.clip_urls)
       ? body.clip_urls.filter((u) => typeof u === 'string' && u.trim().length > 0)
       : []
-    const voiceoverScript = stripScriptMarkers(body.voiceover_script ?? '')
+    // KINEO-VOICEOVER-SALVAGE-2026-08-13 — mesma junta do `/api/compose` (ver o
+    // bloco longo lá), e aqui ela é PIOR: este é o caminho pós-pagamento. Um
+    // roteiro em bullets do ChatGPT saía vazio do saneamento e a pessoa que
+    // acabou de passar o cartão ficava sem a entrega. Mesma ordem de resgate:
+    // saneamento normal → tolerante → `topic`.
+    const rawVoiceover = (body.voiceover_script ?? '').toString()
+    let voiceoverScript = stripScriptMarkers(rawVoiceover)
+    if (!voiceoverScript && rawVoiceover.trim()) {
+      voiceoverScript = salvageScriptNarration(rawVoiceover)
+    }
+    if (!voiceoverScript) {
+      voiceoverScript = stripScriptMarkers((body.topic ?? '').toString())
+    }
 
     // ── 1) Verify the Stripe Checkout Session (webhook-independent) ──────────
     let paidOk = false

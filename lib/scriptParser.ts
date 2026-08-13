@@ -205,21 +205,53 @@ function isDroppableLine(line: string): boolean {
 const INLINE_STAGE_PREFIX =
   /^\s*(?:HOOK|GANCHO|INTRO|OUTRO|CTA|PAYOFF|PAGAMENTO|ESCALATION|ESCALADA|RHYTHM|RITMO|MICRO\s+(?:REWARD|RECOMPENSA)(?:\s*\d+)?|BEAT(?:\s*\d+)?|SCENE(?:\s*\d+)?|CENA(?:\s*\d+)?|FACT(?:\s*\d+)?|FATO(?:\s*\d+)?|PART(?:\s*\d+)?|STEP(?:\s*\d+)?)\s*(?:\([^)]*\))?\s*[:\-–—]\s*/
 
-function cleanNarration(raw: string): string {
+// KINEO-VOICEOVER-SALVAGE-2026-08-13 — as três regras que NUNCA são fala,
+// contra as regras que são apenas FORMATAÇÃO. `isDroppableLine` mistura as
+// duas: `speed: 1.1` nunca é narração, mas `- The ocean is deeper than you
+// think` é narração com um traço na frente. No modo tolerante só estas três
+// derrubam a linha inteira; o resto é DESEMBRULHADO, não apagado.
+function isNeverSpeechLine(line: string): boolean {
+  if (DIRECTIVE_LINE.test(line)) return true
+  if (FORMAT_SPEC_LINE.test(line)) return true
+  return DASH_ONLY_LINE.test(line.trim())
+}
+
+// Uma linha que é SÓ o rótulo do beat ("HOOK", "— CTA —", "SCENE 2"). No modo
+// tolerante ela continua saindo: salvar palavras não pode virar o TTS lendo
+// "hook" em voz alta. É o mesmo vocabulário do INLINE_STAGE_PREFIX, ancorado
+// na linha inteira em vez do início dela.
+const BARE_STAGE_LINE =
+  /^(?:HOOK|GANCHO|INTRO|OUTRO|CTA|PAYOFF|PAGAMENTO|ESCALATION|ESCALADA|RHYTHM|RITMO|MICRO\s+(?:REWARD|RECOMPENSA)(?:\s*\d+)?|BEAT(?:\s*\d+)?|SCENE(?:\s*\d+)?|CENA(?:\s*\d+)?|FACT(?:\s*\d+)?|FATO(?:\s*\d+)?|PART(?:\s*\d+)?|STEP(?:\s*\d+)?)\s*[:.\-–—]?$/i
+
+/** Tira a decoração da linha e devolve as PALAVRAS: "## Hook" → "Hook",
+ *  "— CTA —" → "CTA", "- Fact one" → "Fact one", "* Fact one" → "Fact one". */
+function unwrapLineDecoration(line: string): string {
+  let t = line.trim()
+  t = t.replace(/^#{1,6}\s*/, '')
+  const fenced = FENCED_LINE.exec(t)
+  if (fenced) t = fenced[1].trim()
+  t = t.replace(/^[-*•]\s+/, '')
+  return t
+}
+
+function cleanNarration(raw: string, lenient = false): string {
   const kept: string[] = []
   let inMetadataSection = false
   for (const line of raw.split(/\r?\n/)) {
     const section = sectionHeaderName(line)
     if (section !== null) {
       // Named header: drop the header line, switch mode based on its kind.
+      // Vale nos DOIS modos: "— VOICE (ElevenLabs) —" é nota de produção, e
+      // salvar palavras nunca pode virar o TTS lendo instrução de edição.
       inMetadataSection = isNonNarrationSection(section)
       continue
     }
     if (inMetadataSection) continue
-    if (isDroppableLine(line)) continue
+    if (lenient ? isNeverSpeechLine(line) : isDroppableLine(line)) continue
     // Inline stage prefix ("HOOK: ...") — strip the label, keep the speech.
-    const stripped = line.replace(INLINE_STAGE_PREFIX, '')
+    const stripped = (lenient ? unwrapLineDecoration(line) : line).replace(INLINE_STAGE_PREFIX, '')
     if (!stripped.trim()) continue
+    if (lenient && BARE_STAGE_LINE.test(stripped.trim())) continue
     kept.push(stripped)
   }
   return kept
@@ -248,6 +280,38 @@ function cleanNarration(raw: string): string {
  */
 export function stripScriptMarkers(raw: string): string {
   return cleanNarration((raw ?? '').toString())
+}
+
+/**
+ * KINEO-VOICEOVER-SALVAGE-2026-08-13 — resgate para o caso em que o
+ * saneamento come 100% de um roteiro que TINHA texto.
+ *
+ * O DEFEITO, medido em produção (13/08, usuário vindo de `chatgpt.com`,
+ * 3min40 entre o cadastro e o erro): o cliente garante que `voiceover_script`
+ * chega NÃO-VAZIO (KINEO-VOICEOVER-FALLBACK-2026-06-30, três níveis de
+ * fallback), e o servidor decide o 400 DEPOIS de sanear. Entre as duas coisas
+ * está `cleanNarration`, que derruba a LINHA INTEIRA em `- bullet`, `## header`
+ * e linha toda em MAIÚSCULAS. Ou seja: o formato padrão de saída do ChatGPT —
+ * cabeçalho markdown + bullets — é apagado por completo, sobra string vazia, e
+ * `/api/compose` responde `voiceover_script is required.` na cara do usuário,
+ * no estágio `clips_ready`: depois do roteiro, depois do B-roll, depois de todo
+ * o custo. Justamente no único canal de aquisição que não decai, e para o qual
+ * a casa publicou uma landing page convidando essas pessoas.
+ *
+ * A correção NÃO afrouxa o saneamento: `stripScriptMarkers` continua idêntica e
+ * é sempre tentada primeiro, então todo roteiro que já funcionava segue byte a
+ * byte igual. O modo tolerante só existe para o caso "sobrou zero":
+ *   - continua derrubando o que NUNCA é fala (`speed:`/`duration:`/`9:16`,
+ *     separadores) e as seções de metadados (VOICE/EDITING/NOTES/LEGEND);
+ *   - continua derrubando a linha que é só o rótulo do beat ("HOOK", "CTA");
+ *   - mas DESEMBRULHA `-`, `*`, `#` e cercas de travessão em vez de apagar a
+ *     linha, e mantém as palavras.
+ *
+ * Devolve '' quando realmente não sobrou nada — aí o chamador decide (o
+ * `/api/compose` cai no `topic` do usuário antes de negar).
+ */
+export function salvageScriptNarration(raw: string): string {
+  return cleanNarration((raw ?? '').toString(), true)
 }
 
 /**

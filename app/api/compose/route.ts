@@ -28,7 +28,7 @@ import {
 // Kineo-AudioCache-2026 — the model id that WILL be used for this tier keeps
 // the cache key correct across the OpenAI vs ElevenLabs providers.
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
-import { stripScriptMarkers } from '@/lib/scriptParser'
+import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
 import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
 import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
@@ -473,7 +473,59 @@ export async function POST(req: NextRequest) {
     // (generateTTS) and rendered as caption text (buildCreatomateSource).
     // Idempotent: verbatim scripts are already clean; raw-prompt fallbacks are
     // cleaned here.
-    const voiceoverScript = stripScriptMarkers(body.voiceover_script ?? '')
+    // KINEO-VOICEOVER-SALVAGE-2026-08-13 — o 400 mais caro da casa.
+    //
+    // Medido em produção: um cadastro novo vindo de `chatgpt.com` (13/08
+    // 08:25Z) colou o próprio roteiro, chegou a `clips_ready` — roteiro pronto,
+    // B-roll pago e baixado — e levou `voiceover_script is required.` na tela
+    // 3min40 depois de se cadastrar. Tentou de novo, levou o mesmo erro, abriu
+    // a página de preços e nunca mais voltou. Zero vídeos.
+    //
+    // A causa é uma junta entre duas defesas corretas: o cliente garante texto
+    // NÃO-VAZIO ANTES do saneamento (KINEO-VOICEOVER-FALLBACK-2026-06-30) e o
+    // servidor decide o 400 DEPOIS dele. `cleanNarration` derruba a linha
+    // inteira em `- bullet`, `## header` e MAIÚSCULAS — que é, literalmente, o
+    // formato em que o ChatGPT escreve roteiro. O texto some por completo e a
+    // pessoa recebe uma mensagem de erro de desenvolvedor.
+    //
+    // Ordem de resgate, do mais fiel ao mais bruto — cada degrau só existe
+    // porque o anterior devolveu string vazia:
+    //   1. saneamento normal (idêntico ao de sempre — nada regride);
+    //   2. saneamento tolerante: desembrulha `-`/`#`/cercas e mantém as
+    //      palavras, mas ainda derruba `speed:`, specs de formato, seções de
+    //      metadados e a linha que é só "HOOK";
+    //   3. o `topic` do próprio usuário, saneado.
+    // Só depois dos três o 400 continua sendo a resposta certa: aí realmente
+    // não havia nada para narrar.
+    const rawVoiceover = (body.voiceover_script ?? '').toString()
+    let voiceoverScript = stripScriptMarkers(rawVoiceover)
+    let voiceoverRecovery: 'none' | 'lenient' | 'topic' = 'none'
+    if (!voiceoverScript && rawVoiceover.trim()) {
+      const salvaged = salvageScriptNarration(rawVoiceover)
+      if (salvaged) {
+        voiceoverScript = salvaged
+        voiceoverRecovery = 'lenient'
+      }
+    }
+    if (!voiceoverScript) {
+      const fromTopic = stripScriptMarkers((body.topic ?? '').toString())
+      if (fromTopic) {
+        voiceoverScript = fromTopic
+        voiceoverRecovery = 'topic'
+      }
+    }
+    if (voiceoverRecovery !== 'none') {
+      // Sem este log o conserto é invisível: o sucesso dele é a AUSÊNCIA de um
+      // evento. Aqui fica quantas vezes por dia o saneamento comeu um roteiro
+      // inteiro — e, se `topic` virar o degrau comum, é sinal de que o modo
+      // tolerante ainda está apertado demais.
+      console.log('[compose] voiceover recovered', JSON.stringify({
+        via: voiceoverRecovery,
+        raw_len: rawVoiceover.trim().length,
+        out_len: voiceoverScript.length,
+        user: authenticatedUserId,
+      }))
+    }
     if (!voiceoverScript) {
       return NextResponse.json({ error: 'voiceover_script is required.' }, { status: 400 })
     }
