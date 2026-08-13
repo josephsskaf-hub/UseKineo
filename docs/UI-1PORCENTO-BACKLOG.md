@@ -134,9 +134,10 @@ Resultado visivel: primeira dobra indistinguivel em vida da do Higgsfield.
    `--dur-base`/`--ease-swift` no .hvid; overflow:hidden ja segura. Tokens
    `--dur-fast/base/slow` + `--ease-swift/out-expo` entraram no bloco de vars
    do .klp (primeiro uso real do lib/uiTokens.ts em CSS). Rollback: 1 regra.
-5. **Fade-up nas secoes ao rolar.** Antes: secoes ja estao la → depois: `.sec-h`/grids
-   entram fade-up 1x (IntersectionObserver; estado inicial VISIVEL — animacao e
-   progressive enhancement). Porque: ritmo vertical coreografado. Rollback: remover classe.
+5. ✅ **FEITO 13/08 — Fade-up nas secoes ao rolar.** app/RevealOnScroll.tsx: JS
+   aplica .rv so ao que esta ABAIXO da dobra no mount; observer revela 1x
+   (.rv-in). Sem JS/reduced-motion: tudo visivel desde o inicio. **SEMANA 1
+   COMPLETA.** Rollback: remover <RevealOnScroll /> + 2 regras CSS.
 
 ### SEMANA 2 — dias 6-10: "O PRODUTO GANHA O BRILHO"
 Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
@@ -147,14 +148,17 @@ Resultado visivel: /generate e o video pronto parecem a landing, nao um admin.
 7. **Cerimonia do video pronto.** Antes: player cru → depois: moldura 9:16 com glow
    #2997ff + fade-in + confete discreto 1x. Porque: o momento de maior dopamina merece
    o acabamento da landing. Risco: exagero — manter sutil. Rollback: componente isolado.
-8. **Skeleton no /history.** Antes: spinner no My Videos → depois: grade de cards 9:16
-   em shimmer. Porque: mesma regra do dia 6 em toda pagina interna. Rollback: trivial.
-9. **Toast animado de download/copy.** Antes: feedback nenhum ou alert → depois: toast
-   slide-in com check animado (`--dur-fast`). Porque: microconfirmacoes = polish sentido.
-   Rollback: remover componente.
-10. **Hover-preview nos cards do dashboard/viral-now.** Antes: cards estaticos →
-    depois: scale+sombra `--sh-card` no hover, igual a landing. ⚠️ Tocar DashboardClient
-    E ViralNowClient (regra dos pares!). Rollback: CSS only.
+8. ✅ **FEITO 13/08 — Skeleton no /history.** app/(dashboard)/history/loading.tsx:
+   a rota abre com header + grade 9:16 em shimmer (mesma grade do
+   HistoryClient), troca sem salto de layout. Rollback: deletar o arquivo.
+9. ✅ **FEITO 13/08 — Toast animado de download/copy.** HistoryClient: toast
+   slide-in (out-expo 250ms) com check desenhado em stroke-dashoffset;
+   download E copy confirmam; um por vez, some em 2.2s. Rollback: showToast +
+   JSX do fim.
+10. ✅ **FEITO 13/08 — Hover-preview nos cards do dashboard/viral-now.** Lift
+    da landing (translateY -4px + sombra, curva swift .25s) nos cards virais
+    do DashboardClient E do ViralNowClient (regra dos pares cumprida).
+    Rollback: reverter os 2 handlers.
 
 ### SEMANA 3 — dias 11-15: "CONSISTENCIA TOTAL" (os tokens em TODAS as paginas)
 Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
@@ -251,3 +255,12 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   crossfade poster→video no `playing`, cascata 60ms/card na galeria, hover zoom
   1.04 no conteudo. Tokens --dur-*/--ease-* estreiam no .klp. tsc limpo.
   Semana 1 agora so deve o dia 5 (fade-up das secoes) — fica para a sprint das 14h.
+- **13/08 (2a leva, "vamos adiantar o roadmap")** — Dias 5, 8, 9 e 10 ✅:
+  SEMANA 1 COMPLETA + metade da semana 2. Fade-up das secoes (RevealOnScroll,
+  progressive enhancement de verdade), skeleton 9:16 no /history (loading.tsx),
+  toast de download/copy com check animado, lift nos cards virais (pares
+  Dashboard+ViralNow). BONUS da manha: comentarios do KLP_CSS fora do fio
+  (home 183→166KB, 13KB abaixo do baseline). Faltam da semana 2: dias 6 e 7
+  (/generate skeleton + cerimonia do video pronto) — GenerateClient tem 12,5k
+  linhas, tratar em sprint dedicada com teste manual. Sprints 14h/18h: proximo
+  em ordem e o dia 6.

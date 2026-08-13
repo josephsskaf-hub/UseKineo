@@ -268,6 +268,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         surface: 'history',
         videoId: video.id,
       })
+      showToast('Download started')
     } finally {
       setDownloadingId(null)
     }
@@ -394,8 +395,21 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       .then(() => {
         setCopiedKey(key)
         setTimeout(() => setCopiedKey((k) => (k === key ? null : k)), 1600)
+        showToast('Copied to clipboard')
       })
       .catch(() => {/* clipboard denied — nothing useful to do */})
+  }
+
+  // KINEO-HIGGSFIELD-20D dia 9 (13/08) — microconfirmacao: download e copy
+  // agora respondem com um toast slide-in com check, em vez de silencio (o
+  // botao ja mudava, mas o olho esta no video, nao no botao). Um por vez,
+  // some sozinho em 2.2s. Rollback: remover showToast + o JSX do fim.
+  const [toast, setToast] = useState<string | null>(null)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  function showToast(msg: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setToast(msg)
+    toastTimer.current = setTimeout(() => setToast(null), 2200)
   }
 
   /* ── Empty state ── */
@@ -1252,6 +1266,45 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           </div>
         )
       })()}
+      {/* Dia 9 — toast de confirmacao (download/copy) */}
+      {toast && (
+        <div
+          role="status"
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            left: '50%',
+            zIndex: 90,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 9,
+            padding: '11px 18px',
+            borderRadius: 999,
+            background: 'rgba(20,20,22,.92)',
+            border: '1px solid rgba(41,151,255,.35)',
+            boxShadow: '0 12px 40px rgba(0,0,0,.55)',
+            color: '#f5f5f7',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            backdropFilter: 'blur(10px)',
+            animation: 'ktoast-in 250ms cubic-bezier(.16,1,.3,1) both',
+          }}
+        >
+          <style>{'@keyframes ktoast-in{from{opacity:0;transform:translate(-50%,14px)}to{opacity:1;transform:translate(-50%,0)}}@keyframes ktoast-check{from{stroke-dashoffset:20}to{stroke-dashoffset:0}}'}</style>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <circle cx="8" cy="8" r="7" stroke="#2997ff" strokeWidth="1.5" />
+            <path
+              d="M4.8 8.2l2.2 2.2 4.2-4.6"
+              stroke="#2997ff"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{ strokeDasharray: 20, animation: 'ktoast-check 300ms 120ms cubic-bezier(.16,1,.3,1) both' }}
+            />
+          </svg>
+          {toast}
+        </div>
+      )}
     </div>
   )
 }

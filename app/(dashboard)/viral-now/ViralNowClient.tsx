@@ -84,16 +84,20 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
       display: 'flex',
       flexDirection: 'column',
       gap: 10,
-      transition: 'border-color 0.2s, transform 0.15s',
+      // KINEO-HIGGSFIELD-20D dia 10 (13/08) — mesmo lift da landing e do
+      // DashboardClient (par obrigatorio): transform + sombra, curva swift.
+      transition: 'transform .25s cubic-bezier(.2,0,0,1), border-color .25s ease, box-shadow .25s ease',
       cursor: 'default',
     }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLDivElement).style.borderColor = vertColor
-        ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)'
+        ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-4px)'
+        ;(e.currentTarget as HTMLDivElement).style.boxShadow = '0 16px 34px rgba(0,0,0,.4)'
       }}
       onMouseLeave={e => {
         (e.currentTarget as HTMLDivElement).style.borderColor = 'var(--border)'
         ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
+        ;(e.currentTarget as HTMLDivElement).style.boxShadow = 'none'
       }}
     >
       {/* Top row */}

@@ -288,21 +288,28 @@ export default function DashboardClient({
                     key={topic.slot}
                     type="button"
                     onClick={() => router.push(url)}
-                    className="text-left rounded-[16px] px-4 py-4 transition-all"
+                    className="text-left rounded-[16px] px-4 py-4"
                     style={{
                       background: c.bg,
                       border: `1px solid ${c.border}`,
                       boxShadow: `0 0 24px ${c.pill}`,
                       cursor: 'pointer',
                       width: '100%',
+                      // KINEO-HIGGSFIELD-20D dia 10 (13/08) — cards do dashboard
+                      // ganham o lift da landing (transform + sombra, curva swift).
+                      // ⚠️ Par: ViralNowClient.tsx recebeu o mesmo tratamento.
+                      transition:
+                        'transform .25s cubic-bezier(.2,0,0,1), border-color .25s ease, box-shadow .25s ease',
                     }}
                     onMouseEnter={e => {
                       ;(e.currentTarget as HTMLElement).style.borderColor = c.hover
-                      ;(e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${c.pill}`
+                      ;(e.currentTarget as HTMLElement).style.boxShadow = `0 0 32px ${c.pill}, 0 16px 34px rgba(0,0,0,.4)`
+                      ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'
                     }}
                     onMouseLeave={e => {
                       ;(e.currentTarget as HTMLElement).style.borderColor = c.border
                       ;(e.currentTarget as HTMLElement).style.boxShadow = `0 0 24px ${c.pill}`
+                      ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
                     }}
                   >
                     {/* Pill label */}

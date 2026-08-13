@@ -13,6 +13,7 @@ import HomeTopicForm from './HomeTopicForm'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
+import RevealOnScroll from './RevealOnScroll'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -188,6 +189,10 @@ const KLP_CSS = `
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
 .klp .gallery-cap{max-width:760px;margin-left:auto;margin-right:auto;line-height:1.65}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
+/* Dia 5 (13/08): fade-up das secoes ao rolar. .rv so e aplicada por JS (o
+   RevealOnScroll) a secoes abaixo da dobra — sem JS nada fica escondido. */
+.klp .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
+.klp .rv.rv-in{opacity:1;transform:none}
 .klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform var(--dur-base) var(--ease-swift),opacity var(--dur-base) var(--ease-swift)}
 .klp .vcard .hvid{border-radius:18px}
 /* KINEO-HIGGSFIELD-20D dias 2-4 (13/08). Dia 2: o <video> nasce invisivel por
@@ -498,6 +503,7 @@ export default function KineoLanding({ initialUser }: Props) {
           seletores. */}
       <style dangerouslySetInnerHTML={{ __html: KLP_CSS.replace(/\/\*[\s\S]*?\*\//g, '') }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
+      <RevealOnScroll />
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />
