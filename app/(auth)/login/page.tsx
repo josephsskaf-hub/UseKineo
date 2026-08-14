@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import Footer from '@/components/Footer'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
 import { trackSignupSource } from '@/lib/analytics'
@@ -37,6 +36,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  // ONDA3 #15 (14/08) — true ate o getSession() resolver: quem JA esta logado
+  // nao ve mais o formulario "Welcome back" piscar antes do redirect.
+  const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
   // KINEO-CHECKOUT-RESUME-2026-07-07 — read once on mount (client-only param).
   const [checkoutResume, setCheckoutResume] = useState(false)
@@ -55,8 +57,12 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled || !session) return
-      window.location.replace(getRedirect())
+      if (cancelled) return
+      if (session) {
+        window.location.replace(getRedirect())
+        return
+      }
+      setCheckingSession(false)
     })
     return () => {
       cancelled = true
@@ -98,6 +104,18 @@ export default function LoginPage() {
     // Hard navigate so the Next.js middleware sees the freshly-set Supabase
     // auth cookies on the next request.
     window.location.assign(destination)
+  }
+
+  // ONDA3 #15 (14/08) — enquanto checa a sessao, um palco neutro (mesmo fundo,
+  // nada de formulario piscando para quem vai ser redirecionado).
+  if (checkingSession) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ background: 'var(--bg)' }}
+        aria-busy="true"
+      />
+    )
   }
 
   return (
@@ -516,7 +534,8 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* ONDA3 #17 (14/08) — Footer de marketing removido da tela de auth:
+          2 campos e 1 objetivo, sem 278 linhas de links de distracao. */}
     </>
   )
 }

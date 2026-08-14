@@ -2020,13 +2020,11 @@ export default function GenerateClient({
     const isNewUser = searchParams?.get('signup') === '1' || searchParams?.get('welcome') === '1'
     if (!isNewUser) return
     setShowFirstShortNudge(true)
-    try {
-      const pending = sessionStorage.getItem('pendingVideoPrompt')
-      if (pending && pending.trim()) return // a forwarded idea wins
-    } catch {
-      /* ignore */
-    }
-    setPrompt((p) => (p && p.trim() ? p : randomTopic()))
+    // ONDA3 #19 (14/08) — este effect NAO semeia mais o prompt: havia dois
+    // seeders independentes (este com randomTopic e o de VIRAL_STARTER_TOPICS
+    // com guard sf_welcomed) disputando o mesmo estado no mount, com pools
+    // diferentes — o topico que o novato via era resultado de uma corrida.
+    // Fonte unica: VIRAL_STARTER_TOPICS.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -7267,7 +7265,10 @@ export default function GenerateClient({
         />
       )}
 
-      {showStep1 && showWelcome && (
+      {/* ONDA3 #20 (14/08) — gate unico de boas-vindas: o WelcomeBanner nao
+          concorre mais com o overlay NicheOnboarding na mesma tela; um novato
+          ve UMA superficie de welcome por vez. */}
+      {showStep1 && showWelcome && !showNicheOnboarding && (
         <WelcomeBanner onDismiss={dismissWelcome} trialLive={trialActive || trialPhase === 'active'} />
       )}
 

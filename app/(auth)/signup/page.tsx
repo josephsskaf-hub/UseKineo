@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import Footer from '@/components/Footer'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
 import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/analytics'
@@ -819,7 +818,8 @@ export default function SignupPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      {/* ONDA3 #17 (14/08) — Footer de marketing removido da tela de auth:
+          2 campos e 1 objetivo, sem 278 linhas de links de distracao. */}
     </>
   )
 }
