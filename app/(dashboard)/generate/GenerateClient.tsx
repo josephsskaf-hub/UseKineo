@@ -1153,6 +1153,11 @@ export default function GenerateClient({
   // delas nunca contaria, mesmo sendo mutuamente exclusivas hoje.
   const trialPostVideoOfferRef = useRef<HTMLDivElement | null>(null)
   const trialPostVideoOfferTrackedKeyRef = useRef<string | null>(null)
+  // KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — chave da AUSÊNCIA de oferta. Ref
+  // próprio pelo mesmo motivo dos dois pares acima: esta medida é o complemento
+  // deles (dispara exatamente quando nenhum dos dois é elegível), e dividir a
+  // chave faria a ausência calar a impressão, ou o contrário.
+  const postVideoNoOfferTrackedKeyRef = useRef<string | null>(null)
 
   // Push #045A — transient "Copied!" feedback on the Copy URL button in the
   // result section. Cleared automatically after ~2s.
@@ -3457,6 +3462,122 @@ export default function GenerateClient({
     observer.observe(element)
     return () => observer.disconnect()
   }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign])
+
+  // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
+  // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
+  //
+  // O QUE FOI MEDIDO (banco, 13/08): 110 pessoas baixaram um vídeo pronto e 41
+  // delas não viram NENHUMA oferta depois disso — nem a caixa de $4.90
+  // (`post_video_offer_viewed`), nem a de assinatura (`trial_post_video_offer_
+  // viewed`), nem `/pricing`. Baixar é a prova de valor mais forte que o
+  // produto tem, e para 37% de quem baixou a casa não fez pedido nenhum.
+  //
+  // POR QUE UM EVENTO E NÃO UMA CAIXA NOVA: as duas ofertas são mutuamente
+  // exclusivas por desenho ("One screen, one offer" — a decisão que matou o
+  // `PostVideoPaywall`, ver o comentário no import), e o bloco de
+  // `trialPostVideoPhase` diz com todas as letras que pôr duas superfícies
+  // pedindo cartão na mesma tela É o defeito. Então esta mudança NÃO acrescenta
+  // superfície, não toca em checkout e não muda um pixel: ela só passa a
+  // registrar QUAL porta fechou. Os 41 saem de inferência entre duas tabelas
+  // (que não sabe distinguir "não viu" de "viu e ignorou") e viram uma linha
+  // com a razão dentro.
+  //
+  // ⚠️ O DEFEITO QUE A PRIMEIRA VERSÃO DESTA MUDANÇA CRIAVA: ausência afirmada
+  // cedo demais é FALSA. Ao chegar em `done`, `trialUi` (fetch do /api/credits)
+  // e `planTier` ainda não resolveram — disparar na hora carimbaria "sem
+  // oferta" em quem vê a oferta ~100ms depois, que é a mesma corrida que já
+  // obrigou os campos `*_at_impression` do efeito acima a carregarem a ressalva
+  // no NOME. Aqui não dá para pôr a ressalva no nome (o evento inteiro é a
+  // afirmação), então ela vira desenho: a ausência só é afirmada depois de a
+  // tela ficar PARADA por `SETTLE_MS`. Qualquer mudança nas dependências limpa
+  // o timer e reavalia; se uma oferta ficar elegível, o `return` acontece antes
+  // de armar e o evento nunca sai. É auto-corretivo, não é uma aposta no tempo.
+  useEffect(() => {
+    // Quanto tempo a tela precisa ficar parada antes de "sem oferta" ser uma
+    // afirmação honesta. 4s é folgado de propósito: errar para o lado de NÃO
+    // reportar deixa o número menor que a verdade, e um número menor que a
+    // verdade não faz ninguém construir a coisa errada.
+    const SETTLE_MS = 4000
+
+    if (phase !== 'done' || !finalVideoUrl) return
+    // Sobre quem paga esta medida não afirma nada — a ausência de oferta é o
+    // comportamento CORRETO ali, e contá-la envenenaria o denominador.
+    if (hasPaid || isStarter || isCreator || isStudio) return
+    // ⚠️ REVISÃO ADVERSARIAL, PASSADA 2, DEFEITO CRIADO PELA PASSADA 1. Eu tinha
+    // deixado `wmUnlocking` só dentro do espelho de `exportChoiceRendered` — que
+    // é onde ele mora no original — e o efeito colateral é o INVERSO do que esta
+    // medida existe para achar: `wmUnlocking === true` é a pessoa NO MEIO do
+    // desbloqueio da marca d'água, ou seja, com o pedido já aceito e em curso.
+    // Pelo espelho, ela reprovaria em `exportChoiceRendered` e (não sendo trial)
+    // sairia carimbada "ninguém pediu nada a esta pessoa" — a afirmação mais
+    // falsa possível sobre ela. Os 4s de espera não salvam: o desbloqueio é uma
+    // ida ao servidor e pode passar disso. Pedido em curso não é ausência de
+    // pedido; sai da coorte inteira, antes de qualquer espelho.
+    if (wmUnlocking) return
+
+    const offerKey = publicVideoId || finalVideoUrl
+    if (!offerKey || postVideoNoOfferTrackedKeyRef.current === offerKey) return
+
+    // ⚠️ ESPELHOS DAS DUAS CONDIÇÕES DE RENDER, REESCRITOS INLINE (TDZ — os
+    // `const` originais moram ~3.000 linhas abaixo; ver a nota do efeito
+    // acima). E o espelho é do RENDER, não da IMPRESSÃO: `showPostVideoExport
+    // Choice` (:6542+) NÃO exige `postVideoCurrency`, enquanto a elegibilidade
+    // da impressão exige. Medir ausência contra a condição da impressão
+    // contaria como "sem oferta" uma tela que tem a caixa na frente da pessoa,
+    // só não contada. A pergunta aqui é o que a PESSOA viu.
+    const exportChoiceRendered =
+      planTier === 'free' && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
+    const trialOfferRendered =
+      typeof trialUi?.cap === 'number' && trialUi.cap > 0 &&
+      ((trialActive === true && trialUi?.phase === 'active') ||
+       (trialUi?.phase === 'ending' &&
+        typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0))
+    if (exportChoiceRendered || trialOfferRendered) return
+
+    const timer = setTimeout(() => {
+      // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1, DEFEITO MEU: `lastFastRenderRef` é
+      // REF, não estado — ele não está (nem pode estar) no array de
+      // dependências, então o `return` lá em cima só enxergou o valor que ele
+      // tinha quando o efeito rodou. Se o ref for preenchido DENTRO da janela
+      // de 4s, a caixa de $4.90 fica de pé e este evento afirmaria ausência
+      // sobre uma tela que tem oferta. O estado (planTier, trialUi, …) reavalia
+      // sozinho pelo array; o ref só reavalia aqui. Reler no instante do
+      // disparo é o que torna a janela de espera uma verificação, e não uma
+      // aposta.
+      if (planTier === 'free' && !trialActive && !wmUnlocking && lastFastRenderRef.current) return
+      postVideoNoOfferTrackedKeyRef.current = offerKey
+      void trackEvent('post_video_no_offer', {
+        settle_ms: SETTLE_MS,
+        // A RAZÃO, campo a campo. Sem isto o evento diz "ninguém pediu" e não
+        // diz a quem entregar a correção: `plan_tier: null` é crédito não
+        // resolvido (bug de leitura), `trial_phase: 'downgraded'` é escolha de
+        // desenho, `fast_render: false` é a caixa de $4.90 que só existe para
+        // render Fast, e os quatro pedem times diferentes.
+        plan_tier: planTier ?? null,
+        trial_active: trialActive === true,
+        trial_phase: trialUi?.phase ?? null,
+        trial_cap: trialUi?.cap ?? null,
+        trial_credits_granted: trialUi?.creditsGranted ?? null,
+        fast_render: Boolean(lastFastRenderRef.current),
+        // (PASSADA 2 — havia aqui um campo `wm_unlocking`. Ele saiu junto com a
+        // guarda nova lá em cima: `wmUnlocking` agora exclui a pessoa da coorte,
+        // então o campo valeria `false` em 100% dos eventos. Campo constante em
+        // payload não é dado, é ruído que a análise de amanhã vai cruzar com
+        // alguma coisa e concluir bobagem.)
+        // Frescor da leitura do trial NO INSTANTE do disparo — mesma prova que
+        // o efeito acima usa. `false` aqui significa que os 4s passaram e o
+        // /api/credits ainda não tinha respondido: a ausência é real para a
+        // pessoa, mas a CAUSA é lentidão de leitura, não regra de negócio.
+        trial_ui_fresh:
+          trialUiFetchedAtRef.current !== null &&
+          trialDoneAtRef.current !== null &&
+          trialUiFetchedAtRef.current >= trialDoneAtRef.current,
+        currency_resolved: Boolean(postVideoCurrency),
+        ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+      })
+    }, SETTLE_MS)
+    return () => clearTimeout(timer)
+  }, [phase, finalVideoUrl, publicVideoId, planTier, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, wmUnlocking, postVideoCurrency, intentCampaign])
 
   // ────────────────────────────────────────────────────────────────────────
   // PHASE: clips_ready  →  fire /api/compose once, then transition to composing
