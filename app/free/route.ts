@@ -57,7 +57,13 @@ const COOKIE_MAX_AGE = 90 * 24 * 60 * 60 // 90 days, in seconds — matches /a/[
 
 // Kept in one place so the burned frame, this redirect and any future report
 // can never drift apart.
-const TARGET = '/?utm_source=watermark&utm_medium=video&utm_campaign=free_fast'
+// AQUISICAO T2 (14/08) — quem digita usekineo.com/free ACABOU DE VER um video
+// nosso: e o trafego de maior intencao da casa. A home converteu esse trafego
+// pior que as paginas-ferramenta (medicao 14/08: ferramentas 41-67% de clique
+// para o produto, artigos/home genericos ~0%). O destino vira a ferramenta
+// "faca o seu gratis" — mesma UTM, mesmo cookie first-touch, so a pontaria
+// mudou. A URL queimada nos videos continua /free e nunca muda.
+const TARGET = '/free-ai-shorts-generator?utm_source=watermark&utm_medium=video&utm_campaign=free_fast'
 
 /** Teto do tempo que a medição pode roubar do redirect. Estourou, o visitante
  *  vai embora para o produto e o evento se perde — nessa ordem de prioridade. */

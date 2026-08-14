@@ -8,6 +8,8 @@
 import type { Metadata } from 'next'
 import FreeScriptClient from './FreeScriptClient'
 import Footer from '@/components/Footer'
+import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -51,6 +53,27 @@ export default function FreeScriptGeneratorPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(TOOL_JSON_LD) }}
       />
       <FreeScriptClient />
+      {/* AQUISICAO T3 (14/08) — prova viva na melhor porta da casa (67% de
+          clique para o produto): quem acabou de gerar um roteiro ve TRES
+          exports reais tocando — a distancia entre o texto que recebeu e o
+          video pronto fica visivel antes do signup. Aditivo: nada do tool
+          acima mudou. */}
+      <section style={{ maxWidth: 1080, margin: '0 auto', padding: '8px 20px 56px', background: '#000' }}>
+        <p style={{ margin: '0 0 4px', color: '#2997ff', fontSize: 12, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center' }}>
+          Real Kineo output
+        </p>
+        <p style={{ margin: '0 0 16px', color: '#a1a1a8', fontSize: 14, textAlign: 'center' }}>
+          Scripts like yours became these finished Shorts.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          {PUBLIC_EXAMPLES.slice(0, 3).map((ex) => (
+            <a key={ex.slug} href={`/examples/${ex.slug}`} style={{ position: 'relative', aspectRatio: '9 / 16', borderRadius: 18, overflow: 'hidden', background: '#000', border: '1px solid #2a2a2d', display: 'block' }}>
+              <ExampleLiveMedia videoPath={ex.videoPath} posterPath={posterWebpPath(ex.posterPath)} />
+              <span style={{ position: 'absolute', left: 10, bottom: 10, right: 10, zIndex: 1, fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,.7)' }}>{ex.shortTitle}</span>
+            </a>
+          ))}
+        </div>
+      </section>
       <Footer />
     </>
   )

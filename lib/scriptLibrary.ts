@@ -40,6 +40,7 @@
 // the primary defence: it exists so a future un-bracketed directive can never
 // reach a public excerpt.
 
+import { unstable_cache } from 'next/cache'
 import {
   isPromptScaffolding,
   listIndexablePublicVideos,
@@ -615,7 +616,7 @@ const MEMO_TTL_MS = 60_000
 export function getScriptLibrary(): Promise<ScriptLibrary> {
   const now = Date.now()
   if (memo && now - memo.at < MEMO_TTL_MS) return memo.value
-  const value = buildScriptLibrary().catch((err) => {
+  const value = buildScriptLibraryCached().catch((err: unknown) => {
     // A rejected promise must not be memoised, or one blip poisons the TTL.
     memo = null
     throw err
@@ -623,6 +624,17 @@ export function getScriptLibrary(): Promise<ScriptLibrary> {
   memo = { at: now, value }
   return value
 }
+
+// AQUISICAO T4 (14/08) — o memo acima e por INSTANCIA de lambda: o primeiro
+// acesso de um /v/[id] recem-compartilhado e o crawler do WhatsApp, batendo
+// numa lambda fria, e pagava a varredura completa (ate 2.400 linhas + regex)
+// dentro do request — estourou o tempo do scraper, o link circula SEM preview.
+// unstable_cache poe a biblioteca no data cache do Next, compartilhado entre
+// instancias e deploys: a varredura roda no maximo 1x/hora no cluster inteiro.
+// ScriptLibrary e 100% JSON-serializavel (conferido: strings/numeros/bools).
+const buildScriptLibraryCached = unstable_cache(buildScriptLibrary, ['script-library-v1'], {
+  revalidate: 3600,
+})
 
 async function buildScriptLibrary(): Promise<ScriptLibrary> {
   const videos = await listIndexablePublicVideos(LIBRARY_FETCH_LIMIT)

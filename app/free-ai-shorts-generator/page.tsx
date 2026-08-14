@@ -5,7 +5,8 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
-import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -157,6 +158,24 @@ export default function FreeAiShortsGeneratorPage() {
             <p style={{ ...p, marginTop: 12 }}>{FEATURED_EXAMPLE.description}</p>
             <p style={{ ...p, fontSize: 14 }}>This preview demonstrates the output format, not views or revenue performance.</p>
           </div>
+        </section>
+
+        {/* AQUISICAO T3 (14/08) — prova viva: esta e a pagina que recebe o
+            trafego da marca d'agua e converte 41%. Tres exports reais tocando
+            em viewport (mesmo motor da home, poster-first, preload none) dao a
+            quem chegou do Google a prova em movimento antes do pedido. */}
+        <section style={{ marginTop: 26 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {PUBLIC_EXAMPLES.slice(2, 5).map((ex) => (
+              <a key={ex.slug} href={`/examples/${ex.slug}`} style={{ position: 'relative', aspectRatio: '9 / 16', borderRadius: 18, overflow: 'hidden', background: '#000', border: '1px solid #2a2a2d', display: 'block' }}>
+                <ExampleLiveMedia videoPath={ex.videoPath} posterPath={posterWebpPath(ex.posterPath)} />
+                <span style={{ position: 'absolute', left: 10, bottom: 10, right: 10, zIndex: 1, fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 8px rgba(0,0,0,.7)' }}>{ex.shortTitle}</span>
+              </a>
+            ))}
+          </div>
+          <p style={{ ...p, marginTop: 10, fontSize: 13, textAlign: 'center' }}>
+            <a href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>See all real examples →</a>
+          </p>
         </section>
 
         <h2 style={h2}>What the free test includes</h2>
