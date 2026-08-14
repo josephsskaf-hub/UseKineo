@@ -197,8 +197,22 @@ export async function sweepStuckRenderDebits(): Promise<{
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Um render cinematográfico realista (submissão + clipes no fal + compose)
-// termina em minutos. 3h é ~30x a margem: nada que ainda esteja vivo é tocado.
-const CINEMATIC_ABANDON_CUTOFF_MS = 3 * 60 * 60 * 1000
+// termina em minutos.
+//
+// KINEO-RENDER-FANTASMA-2026-08-14 — as 3h eram margem escolhida no escuro, e a
+// margem tinha dono: quem pagava por ela era a pessoa com 20 dos 40 créditos do
+// trial presos. Agora existe a medição. Sobre TODOS os débitos `cinematic-%`
+// entregues em 30 dias (50 rendes, os três motores juntos, e este corte não
+// filtra por valor — por isso a conta é feita no pior de todos, não só no de
+// 20cr): 20cr → p95 7,4 min, máx 14,3 · 90cr → máx 8,9 · 150cr → máx 6,5.
+// O pior caso da casa inteira é 14,3 min. 45 min continua sendo 3,1x isso, ou
+// seja segue sem tocar em NADA que já tenha dado certo alguma vez — mas o cron
+// roda de hora em hora (:30), então o estorno passa a cair entre 45 e 105 min
+// em vez dos 185–230 min medidos nos 7 renders travados de 11–14/08.
+// A regra de decisão não mudou: o sweep continua falhando FECHADO em qualquer
+// ambiguidade (claim não `settled`, vídeo entregue, erro de leitura) — o que
+// mudou é só quanto tempo o crédito da pessoa fica refém antes da pergunta.
+const CINEMATIC_ABANDON_CUTOFF_MS = 45 * 60 * 1000
 
 function metadataOf(row: { metadata?: unknown } | null): Record<string, unknown> {
   return row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
@@ -215,8 +229,12 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
   delivered: number
   refunded: number
   creditsReturned: number
+  // KINEO-RENDER-FANTASMA-2026-08-14 — claim de compose sem render_id: nem
+  // entregue nem abandono provado. Contado à parte justamente para que ficar
+  // preso aqui seja VISÍVEL na resposta do cron, e não vire um silêncio novo.
+  ambiguous: number
 }> {
-  const result = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
+  const result = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0, ambiguous: 0 }
   const db = adminClient()
   if (!db) return result
   const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -300,6 +318,27 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
         result.delivered += 1
         continue
       }
+    } else if (composeRow) {
+      // KINEO-RENDER-FANTASMA-2026-08-14 — buraco achado pela revisão adversarial
+      // ao encurtar o corte de 3h para 45 min. O passo 2 diz que a AUSÊNCIA do
+      // claim de compose prova não-entrega; o que estava escrito no código era
+      // outra coisa. A linha do compose nasce com status 'pending' e SEM
+      // render_id (é gravada ANTES do POST na Creatomate, justamente para provar
+      // "chegou no compose") e só recebe o render_id no UPDATE de conclusão. Se
+      // a invocação morre no meio, sobra uma linha pending sem render_id — e o
+      // `if (composeRenderId)` acima pulava o teste de entrega inteiro, jogando
+      // esse caso no mesmo balde de "nunca chegou no compose". São duas coisas
+      // diferentes: uma é abandono provado, a outra é AMBIGUIDADE, e a regra
+      // desta varredura é falhar FECHADO em ambiguidade, como ela já faz nos
+      // três erros de leitura acima. Com o corte a 45 min esse caso passa a ser
+      // alcançável muito mais cedo, então a guarda deixa de ser teórica.
+      // O crédito não fica preso: o próximo ciclo reavalia de hora em hora, e
+      // quando o claim resolver de um jeito ou de outro o caso sai daqui.
+      console.warn(
+        `[refund/cinematic-sweep] compose claim sem render_id (ambiguo, nao estornado) gen=${generationId} ref=${billingReference}`,
+      )
+      result.ambiguous += 1
+      continue
     }
 
     // 4) Never delivered. Give the money back, then record the audit trail.

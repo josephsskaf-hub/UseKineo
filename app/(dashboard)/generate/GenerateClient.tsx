@@ -210,6 +210,31 @@ const DURATION_OPTIONS: { value: Duration; label: string }[] = [
 const POLL_GENERATING_MS = 4000
 const POLL_COMPOSING_MS = 5000
 const MAX_TRANSIENT_POLL_ERRORS = 4
+
+// KINEO-RENDER-FANTASMA-2026-08-14 — o loop de fal_polling era LITERALMENTE
+// infinito (o próprio código dizia "this retry is unbounded", duas vezes) e só
+// 502 encerrava. Medido em produção, sobre TODOS os débitos `cinematic-%` que
+// entregaram em 30 dias (50 rendes, três motores): p95 7,4 min, máximo 14,3 min.
+//
+// A REVISÃO ADVERSARIAL DERRUBOU A MINHA PRIMEIRA VERSÃO, que era 25 min, e o
+// motivo é o que decide este número: ESTE loop é o ÚNICO motor do handoff
+// fal → compose. Não existe webhook do fal, não existe cron que avance o
+// pipeline, e o estágio de clipes nem chega a ser gravado no snapshot de resume
+// (ActiveRenderSnapshot.stage não tem 'fal_polling'). Ou seja: parar de pedir é
+// a mesma coisa que JOGAR FORA um vídeo que ainda venha a ficar pronto — e
+// junto com ele o dinheiro já gasto no fal. Aos 25 min eu trocaria "spinner
+// eterno" por "descarta em silêncio um vídeo pronto", que é uma regressão, não
+// um conserto.
+//
+// O prazo certo é o único ponto em que desistir não destrói nada NOVO: depois
+// que o render passa a ser elegível para o sweep do servidor
+// (CINEMATIC_ABANDON_CUTOFF_MS = 45 min em lib/credits/refund.ts), quem condena
+// o vídeo é o servidor, não este timer — a entrega tardia já cai no guard
+// `cinematic_claim_released` de /api/compose/status e não vira `videos` de
+// qualquer jeito. Então 50 min: sempre DEPOIS do servidor, nunca antes.
+// Na prática quase ninguém chega aqui: assim que o sweep estorna e libera o
+// claim, o próximo poll recebe 404 e o ramo abaixo já conta a verdade em 6s.
+const FAL_POLL_DEADLINE_MS = 50 * 60 * 1000
 const ACTIVE_RENDER_STORAGE_KEY = 'kineo_active_render_v1'
 const ACTIVE_RENDER_TTL_MS = 2 * 60 * 60 * 1000
 
@@ -2842,6 +2867,29 @@ export default function GenerateClient({
     if (falRequestIds.length === 0) return
     if (!generationId) return
     let cancelled = false
+    const pollStartedAt = Date.now()
+
+    // KINEO-RENDER-FANTASMA-2026-08-14 — todo reagendamento passa por aqui, e é
+    // aqui que o loop finalmente tem fim. Os três `setTimeout(pollFal, …)` que
+    // existiam (não-ok, ainda-não-terminou, e o catch) reagendavam sem NENHUM
+    // limite de idade: um render morto girava até a aba fechar.
+    function scheduleNextPoll(delayMs: number) {
+      if (cancelled) return
+      if (Date.now() - pollStartedAt >= FAL_POLL_DEADLINE_MS) {
+        // Passou do prazo em que qualquer geração desta casa já teria terminado.
+        // A pessoa recebe a verdade em vez de um spinner: os créditos voltam
+        // sozinhos, ela não precisa pedir nada nem gastar de novo para descobrir.
+        setError(
+          'This generation stopped responding and we ended it here instead of leaving you waiting. Your credits are being returned automatically — nothing was lost. You can start a new video whenever you want.',
+        )
+        trackGenerationFailure('fal_polling', 'fal_poll_deadline_exceeded', {
+          detail: `${Math.round((Date.now() - pollStartedAt) / 1000)}s`,
+        })
+        setPhase('failed')
+        return
+      }
+      pollTimerRef.current = setTimeout(pollFal, delayMs)
+    }
 
     async function pollFal() {
       try {
@@ -2861,15 +2909,34 @@ export default function GenerateClient({
             setPhase('failed')
             return
           }
+          // KINEO-RENDER-FANTASMA-2026-08-14 — 404 é TERMINAL, não transitório.
+          // A rota devolve 404 em exatamente um caso além do inexistente: o
+          // claim está `released`, que é o estado que o cron de estorno grava
+          // DEPOIS de devolver os créditos. Quer dizer que o 404 era a única
+          // notícia boa do fluxo — "seu dinheiro voltou" — e o cliente a tratava
+          // como erro transitório e voltava a girar a cada 6s, para sempre. Um
+          // claim ainda em formação devolve 409 (pending), tratado no retry
+          // abaixo, e uma falha de leitura devolve 503: nenhum dos dois cai aqui.
+          if (res.status === 404) {
+            setError(
+              'This generation was closed and your credits were already returned — you were not charged for it. You can start a new video whenever you want.',
+            )
+            trackGenerationFailure('fal_polling', 'fal_poll_claim_released', {
+              httpStatus: 404,
+            })
+            setPhase('failed')
+            return
+          }
           // Retry on other errors
           // PUSH #96 — this retry is unbounded. Report once when the transient
           // budget is spent so a permanently stuck clip queue is visible.
+          // 14/08: deixou de ser sem limite — scheduleNextPoll aplica o prazo.
           if (++falPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
             trackGenerationFailure('fal_polling', 'fal_poll_retries_exhausted', {
               httpStatus: res.status,
             })
           }
-          pollTimerRef.current = setTimeout(pollFal, 6000)
+          scheduleNextPoll(6000)
           return
         }
         falPollErrorsRef.current = 0
@@ -2918,18 +2985,19 @@ export default function GenerateClient({
           return
         }
 
-        // Not all done yet — keep polling
-        pollTimerRef.current = setTimeout(pollFal, 6000)
+        // Not all done yet — keep polling (dentro do prazo)
+        scheduleNextPoll(6000)
       } catch (err) {
         if (cancelled) return
         console.error('[generate] fal poll error:', err)
         // PUSH #96 — same unbounded retry as the non-OK branch above.
+        // 14/08: deixou de ser sem limite — scheduleNextPoll aplica o prazo.
         if (++falPollErrorsRef.current === MAX_TRANSIENT_POLL_ERRORS + 1) {
           trackGenerationFailure('fal_polling', 'fal_poll_threw_retries_exhausted', {
             detail: err instanceof Error ? err.name : 'unknown',
           })
         }
-        pollTimerRef.current = setTimeout(pollFal, 8000)
+        scheduleNextPoll(8000)
       }
     }
 

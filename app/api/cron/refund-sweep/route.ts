@@ -33,8 +33,13 @@
 // um Seedance preso (20 cr) é METADE do que a empresa comprou por $347.
 //
 // POR QUE DE HORA EM HORA E NÃO A CADA 5 MIN: os cutoffs internos das varreduras
-// (2h para render comum, 3h para cinematográfico) já garantem que nada VIVO é
-// tocado — varrer mais rápido que isso não devolve nada mais cedo, só gasta.
+// (2h para render comum, 45 min para cinematográfico desde 14/08 — antes 3h,
+// encurtado contra a curva de entrega medida: 50 rendes entregues em 30 dias,
+// p95 7,4 min e máximo 14,3 min, então 45 min ainda é 3,1x o pior caso já visto)
+// já garantem que nada VIVO é tocado — varrer mais rápido que isso não devolve
+// nada mais cedo, só gasta. A cadência de hora em hora passou a IMPORTAR mais
+// com o corte menor: ela é que define o pior caso real do estorno, agora entre
+// 45 e 105 min (era 185–230 min medidos nos 7 renders travados de 11–14/08).
 // De hora em hora é o menor intervalo que ainda reduz o pior caso de 24h para
 // ~1h acima do cutoff, e é a mesma cadência que send-activation-nudge,
 // send-post-nudge e trial-downgrade já rodam sem problema.
