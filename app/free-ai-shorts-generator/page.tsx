@@ -7,6 +7,7 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
+import ExitIntentOffer from '@/components/ExitIntentOffer'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -177,6 +178,10 @@ export default function FreeAiShortsGeneratorPage() {
             <a href="/examples" style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>See all real examples →</a>
           </p>
         </section>
+        {/* AQUISICAO T9 (14/08) — exit-intent na porta que mais recebe SEO:
+            quem vai embora sem agir leva a oferta de CADASTRO (variant free),
+            nao tabela de preco. Mesmo componente da home. */}
+        <ExitIntentOffer variant="free" />
 
         <h2 style={h2}>What the free test includes</h2>
         <div style={{ display: 'grid', gap: 12 }}>

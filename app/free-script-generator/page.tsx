@@ -10,6 +10,7 @@ import FreeScriptClient from './FreeScriptClient'
 import Footer from '@/components/Footer'
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
+import ExitIntentOffer from '@/components/ExitIntentOffer'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -74,6 +75,8 @@ export default function FreeScriptGeneratorPage() {
           ))}
         </div>
       </section>
+      {/* AQUISICAO T9 (14/08) — exit-intent de cadastro na melhor porta. */}
+      <ExitIntentOffer variant="free" />
       <Footer />
     </>
   )

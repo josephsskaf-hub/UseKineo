@@ -1,0 +1,263 @@
+// KINEO-HOTLEADS-2026-08-14 — one-off hot-lead blast (admin/cron-gated).
+//
+// Pedido literal do fundador (14/08): "usa os nossos hot leads, dá uma olhada
+// na nossa data e vamos mandar um email pra eles".
+//
+// TRÊS SEGMENTOS que NENHUM job de lifecycle cobre hoje (conferido contra o
+// inventário em lib/lifecycle/suppression.ts):
+//   burned  → queimou os 40 créditos do trial até o fim e não comprou.
+//             O sinal de intenção mais forte do funil (12 contas na coorte
+//             fechada, 0 conversões — medição da sprint de 13h de 14/08).
+//   stalled → saldo 1–19: explorou o produto, o motor de IA custa 20, e a
+//             conta ENCALHOU com créditos que não compram nada do que quer.
+//   power   → 10+ vídeos completos no plano free: usa em volume de operador,
+//             nunca pagou. Pitch é o plano anual (economia real), não pressão.
+//
+// PADRÃO DA CASA (copiado de send-abandon-recovery):
+//   GET sem params                    → DRY RUN (contagens + amostra mascarada)
+//   GET ?confirm=SEND&segment=X&limit=N → envia, com pacing e flag idempotente
+// Auth: cookie de admin OU Authorization: Bearer CRON_SECRET.
+//
+// IDEMPOTÊNCIA SEM MIGRAÇÃO: um evento `hotlead_emailed_v1` por usuário
+// (name + user_id na tabela events). Quem já tem o evento nunca recebe de
+// novo, de nenhum segmento. Supressão de lifecycle (loadLifecycleSuppression)
+// é respeitada: quem levou QUALQUER e-mail da régua nos últimos 3 dias fica
+// de fora desta leva — hot lead não é desculpa para spam.
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+
+export const maxDuration = 300
+export const dynamic = 'force-dynamic'
+
+const ADMIN_EMAILS = new Set([
+  'josephsskaf@gmail.com',
+  'josephskaf@gmail.com',
+  'joseph-test@shortsforgeai.com',
+])
+
+const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
+const REPLY_TO = 'hello@usekineo.com'
+const FLAG_EVENT = 'hotlead_emailed_v1'
+const TRIAL_START = '2026-08-07'
+const PAID_PLANS = new Set(['starter', 'starter_trial', 'basic', 'basic_trial', 'pro', 'pro_trial'])
+
+const DISPOSABLE_DOMAINS = new Set([
+  'yopmail.com', 'gmeenramy.com', 'kinws.com', 'doefy.com', 'x-box.in',
+  'mailinator.com', 'guerrillamail.com', 'sharklasers.com', 'tempmail.com',
+  '10minutemail.com', 'trashmail.com', 'getnada.com', 'dispostable.com',
+  'maildrop.cc', 'mohmal.com', 'temp-mail.org', 'fakeinbox.com',
+])
+
+function isInternal(email: string): boolean {
+  if (ADMIN_EMAILS.has(email)) return true
+  if (email.startsWith('josephsskaf') || email.startsWith('josephskaf')) return true
+  if (email.startsWith('joseph+') || email.startsWith('joseph-')) return true
+  if (email === 'victoriaskaf96@gmail.com') return true
+  if (email === 'ramonwilliamson@gmail.com') return true
+  const dom = email.split('@')[1] ?? ''
+  return dom === 'shortsforgeai.com' || dom === 'usekineo.com' || dom === 'theresanaiforthat.com'
+}
+
+function isValidExternalEmail(email: string): boolean {
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return false
+  if (email.includes('example.com') || email.startsWith('test@') || email.startsWith('smoketest')) return false
+  const dom = email.split('@')[1] ?? ''
+  if (DISPOSABLE_DOMAINS.has(dom)) return false
+  if (isInternal(email)) return false
+  return true
+}
+
+type Segment = 'burned' | 'stalled' | 'power'
+
+type Lead = { id: string; email: string; videos: number; credits: number }
+
+// ── Copy (playbook EMAIL-HOT-LEAD.md: e-mail de gente, curto, 1 pergunta,
+//    resposta cai na caixa do Joseph) ───────────────────────────────────────
+function subjectFor(seg: Segment): string {
+  if (seg === 'burned') return 'You used every single credit — quick question'
+  if (seg === 'stalled') return 'Your Kineo credits are still sitting there'
+  return 'You make more videos than most paid users'
+}
+
+function bodyFor(seg: Segment, lead: Lead, userId: string): string {
+  const open = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">`
+  const sig = `<p>— Joseph, founder<br/>Kineo · https://usekineo.com</p></div>${emailFooterHtml(userId)}`
+  if (seg === 'burned') {
+    return `${open}
+<p>Hey — Joseph here, founder of Kineo.</p>
+<p>You did something almost nobody does: you used your trial credits down to zero. That tells me the videos were worth making — and that something stopped you at the paying part.</p>
+<p>I'd genuinely like to know what it was. Price? A missing feature? Output quality on a specific niche?</p>
+<p>If it helps: the Creator plan is <b>$9.90 for the first month</b> (150 credits, clean exports, every engine except Studio).</p>
+<p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=basic&intent_campaign=hotlead_burned" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Keep making videos &rarr;</a></p>
+<p>And if it was something else — just hit reply. It comes straight to me, and I answer everything myself.</p>
+${sig}`
+  }
+  if (seg === 'stalled') {
+    return `${open}
+<p>Hey — Joseph here, founder of Kineo.</p>
+<p>You still have <b>${lead.credits} credits</b> sitting in your account. They don't expire this week, but I noticed you stopped — and when someone makes a video and then goes quiet, it's usually because something got in the way.</p>
+<p>Was it the output? The credit math? Something confusing in the flow? Whatever it was, reply and tell me — I read every answer myself and I'd rather fix your reason than send you a coupon.</p>
+<p>If you just want more room to create: the first month of Starter is <b>$4.90</b>.</p>
+<p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=starter&intent_campaign=hotlead_stalled" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">See plans &rarr;</a></p>
+${sig}`
+  }
+  return `${open}
+<p>Hey — Joseph here, founder of Kineo.</p>
+<p>You've generated <b>${lead.videos} videos</b> with Kineo. That's more output than most of our paying users — you're running this like an operation, not a toy.</p>
+<p>At that volume the math changes: on the annual Creator plan a finished video costs you about <b>11 cents</b>. If you're posting regularly or delivering to anyone else, that's margin.</p>
+<p style="margin:22px 0"><a href="https://usekineo.com/pricing?intent_campaign=hotlead_power" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">See the annual math &rarr;</a></p>
+<p>And a real question: what would make Kineo indispensable for how you work? Reply — it comes straight to me.</p>
+${sig}`
+}
+
+function adminClient() {
+  return createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.SUPABASE_SERVICE_ROLE_KEY as string,
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  )
+}
+
+async function authorized(req: NextRequest): Promise<boolean> {
+  const bearer = req.headers.get('authorization')
+  if (bearer && process.env.CRON_SECRET && bearer === `Bearer ${process.env.CRON_SECRET}`) return true
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return Boolean(user?.email && ADMIN_EMAILS.has(user.email))
+  } catch {
+    return false
+  }
+}
+
+async function collectSegments(): Promise<Record<Segment, Lead[]>> {
+  const db = adminClient()
+
+  // Perfis free com e-mail (uma leitura, filtros em memória — a base é ~1.1k).
+  const { data: profiles } = await db
+    .from('profiles')
+    .select('id, email, plan, video_credits, created_at')
+    .limit(3000)
+
+  // Vídeos completos por usuário.
+  const { data: vids } = await db
+    .from('videos')
+    .select('user_id, status')
+    .eq('status', 'completed')
+    .limit(20000)
+  const videoCount = new Map<string, number>()
+  for (const v of vids ?? []) {
+    videoCount.set(v.user_id, (videoCount.get(v.user_id) ?? 0) + 1)
+  }
+
+  // Já emailados por esta rota (flag idempotente).
+  const { data: flagged } = await db
+    .from('events')
+    .select('user_id')
+    .eq('name', FLAG_EVENT)
+    .limit(5000)
+  const alreadySent = new Set((flagged ?? []).map((e) => e.user_id))
+
+  // Supressão de lifecycle: quem levou e-mail da régua há menos de 72h sai.
+  const candidateIds = (profiles ?? []).map((p) => p.id as string)
+  const suppression = await loadLifecycleSuppression(db, candidateIds, 72).catch(() => null)
+
+  const out: Record<Segment, Lead[]> = { burned: [], stalled: [], power: [] }
+  for (const p of profiles ?? []) {
+    const email = (p.email ?? '').toString().trim().toLowerCase()
+    if (!isValidExternalEmail(email)) continue
+    if (PAID_PLANS.has((p.plan ?? '').toString())) continue
+    if (alreadySent.has(p.id)) continue
+    if (suppression && suppression.isSuppressed?.(p.id)) continue
+    const videos = videoCount.get(p.id) ?? 0
+    const credits = Number(p.video_credits ?? 0)
+    const lead: Lead = { id: p.id, email, videos, credits }
+    const inTrialEra = (p.created_at ?? '') >= TRIAL_START
+    if (inTrialEra && credits === 0 && videos >= 2) out.burned.push(lead)
+    else if (inTrialEra && credits >= 1 && credits <= 19 && videos >= 1) out.stalled.push(lead)
+    else if (videos >= 10) out.power.push(lead)
+  }
+  return out
+}
+
+function mask(email: string): string {
+  const [u, d] = email.split('@')
+  return `${u.slice(0, 2)}***@${d}`
+}
+
+export async function GET(req: NextRequest) {
+  if (!(await authorized(req))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const segments = await collectSegments()
+  const url = req.nextUrl
+  const confirm = url.searchParams.get('confirm') === 'SEND'
+  const segParam = url.searchParams.get('segment') as Segment | null
+  const limit = Math.min(Number(url.searchParams.get('limit') ?? 25), 40)
+
+  if (!confirm) {
+    return NextResponse.json({
+      dryRun: true,
+      counts: {
+        burned: segments.burned.length,
+        stalled: segments.stalled.length,
+        power: segments.power.length,
+      },
+      sample: {
+        burned: segments.burned.slice(0, 3).map((l) => mask(l.email)),
+        stalled: segments.stalled.slice(0, 3).map((l) => ({ e: mask(l.email), credits: l.credits })),
+        power: segments.power.slice(0, 3).map((l) => ({ e: mask(l.email), videos: l.videos })),
+      },
+      how: 'GET ?confirm=SEND&segment=burned|stalled|power&limit=N',
+    })
+  }
+
+  if (!segParam || !(segParam in segments)) {
+    return NextResponse.json({ error: 'segment obrigatório: burned|stalled|power' }, { status: 400 })
+  }
+
+  const resendKey = process.env.RESEND_API_KEY
+  if (!resendKey) return NextResponse.json({ error: 'RESEND_API_KEY ausente' }, { status: 500 })
+
+  const db = adminClient()
+  const leads = segments[segParam].slice(0, limit)
+  let sent = 0
+  const failures: string[] = []
+
+  for (const lead of leads) {
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: FROM_EMAIL,
+          to: lead.email,
+          reply_to: REPLY_TO,
+          subject: subjectFor(segParam),
+          html: bodyFor(segParam, lead, lead.id),
+          headers: unsubscribeHeaders(lead.id),
+        }),
+      })
+      if (!res.ok) {
+        failures.push(`${mask(lead.email)}: ${res.status}`)
+        continue
+      }
+      // Flag SÓ depois do envio bem-sucedido (mesma regra do abandon-recovery).
+      await db.from('events').insert({
+        user_id: lead.id,
+        name: FLAG_EVENT,
+        metadata: { segment: segParam },
+        path: '/api/admin/send-hotlead-blast',
+      })
+      sent += 1
+      // Pacing: gentil com o Resend e com a reputação do domínio.
+      await new Promise((r) => setTimeout(r, 600))
+    } catch (err) {
+      failures.push(`${mask(lead.email)}: ${err instanceof Error ? err.message : 'erro'}`)
+    }
+  }
+
+  return NextResponse.json({ segment: segParam, attempted: leads.length, sent, failures })
+}

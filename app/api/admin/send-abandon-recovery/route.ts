@@ -47,6 +47,15 @@ const CHECKOUT_EVENTS = [
   'basic_checkout_clicked',
   'pro_checkout_clicked',
   'starter_pack_checkout_clicked',
+  // AQUISICAO T1 (14/08) — os nomes NOVOS do funil de checkout (medidos no
+  // banco em 12-14/08: checkout_started 3-4/dia, checkout_cta_clicked,
+  // inline_pricing_checkout_clicked) nao estavam na lista: o blast diario de
+  // recuperacao estava CEGO para todo abandono recente. Com eles aqui, o cron
+  // de 10:00 UTC passa a pegar todos os abandonos, para sempre.
+  'checkout_started',
+  'checkout_cta_clicked',
+  'inline_pricing_checkout_clicked',
+  'checkout_attempted',
 ]
 
 // Ramon already bought — never email him a recovery offer.
