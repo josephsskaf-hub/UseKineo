@@ -7,6 +7,8 @@
 // Every figure is clearly labelled an estimate — real RPM varies widely.
 
 import { useMemo, useState } from 'react'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { toolActivationHref } from '@/lib/toolActivationHref'
 
 const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
 const ACCENT = '#2997ff'
@@ -28,20 +30,24 @@ type NicheId =
   | 'history'
   | 'entertainment'
 
-type Niche = { id: NicheId; label: string; rpm: number }
+// KINEO-FERRAMENTAS-ORFAS-2026-08-14 — `topicSeed` é a ponte entre esta
+// ferramenta e o produto. A calculadora não produz um roteiro, produz um NÚMERO,
+// e um número não cabe num prompt. Mas o nicho que a pessoa escolheu cabe: ela
+// declarou em qual assunto quer ganhar dinheiro, e é isso que a porta carrega
+// para o /generate. O seed é um tema concreto do nicho — nunca "faça um vídeo
+// sobre finanças", que devolveria o trabalho de decidir para quem acabou de
+// dizer o que queria.
+type Niche = { id: NicheId; label: string; rpm: number; topicSeed: string }
 
 const NICHES: Niche[] = [
-  { id: 'finance', label: 'Finance & business', rpm: 0.2 },
-  { id: 'tech', label: 'Tech & software', rpm: 0.12 },
-  { id: 'health', label: 'Health & fitness', rpm: 0.09 },
-  { id: 'education', label: 'Education & facts', rpm: 0.07 },
-  { id: 'motivation', label: 'Motivation & self-improvement', rpm: 0.05 },
-  { id: 'history', label: 'History & geography', rpm: 0.05 },
-  { id: 'entertainment', label: 'Entertainment, gaming & animals', rpm: 0.03 },
+  { id: 'finance', label: 'Finance & business', rpm: 0.2, topicSeed: '5 money habits that quietly make you rich before 30' },
+  { id: 'tech', label: 'Tech & software', rpm: 0.12, topicSeed: 'The free AI tool that replaced an entire job in 2026' },
+  { id: 'health', label: 'Health & fitness', rpm: 0.09, topicSeed: 'The 10-minute morning habit that beats an hour at the gym' },
+  { id: 'education', label: 'Education & facts', rpm: 0.07, topicSeed: 'The island humans are forbidden to enter' },
+  { id: 'motivation', label: 'Motivation & self-improvement', rpm: 0.05, topicSeed: 'The 2-minute rule that ends procrastination for good' },
+  { id: 'history', label: 'History & geography', rpm: 0.05, topicSeed: 'The country that pays you $2,000 a month just to move there' },
+  { id: 'entertainment', label: 'Entertainment, gaming & animals', rpm: 0.03, topicSeed: 'The animal that is technically immortal' },
 ]
-
-const CTA_URL =
-  'https://www.usekineo.com/free-ai-shorts-generator?utm_source=money-calc&utm_medium=tool&utm_campaign=seo-sprint'
 
 const usd = (n: number) =>
   n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -54,6 +60,10 @@ export default function CalculatorClient() {
   const [nicheId, setNicheId] = useState<NicheId>('finance')
 
   const niche = NICHES.find((n) => n.id === nicheId) ?? NICHES[0]
+  // O número que a pessoa DIGITOU, devolvido para ela na porta. Guardado contra
+  // entrada vazia/negativa/NaN porque o input é livre e a copy não pode dizer
+  // "os NaN Shorts".
+  const shortsNeeded = Math.max(0, Math.round(Number(shortsPerWeek) || 0))
 
   const result = useMemo(() => {
     const views = Math.max(0, Number(viewsPerShort) || 0)
@@ -220,8 +230,21 @@ export default function CalculatorClient() {
           earnings are usually lower than raw view counts suggest.
         </p>
 
-        <a
-          href={CTA_URL}
+        {/* KINEO-FERRAMENTAS-ORFAS-2026-08-14 — a porta.
+            Antes: <a> cru, URL absoluta, destino = OUTRA página de SEO
+            (/free-ai-shorts-generator), sem organic_cta_clicked. A pessoa
+            acabava de ver quanto poderia ganhar e era mandada para mais um
+            artigo. Agora: <Link> instrumentado para o produto, carregando o
+            nicho que ela mesma escolheu, e a copy nomeia o número DELA — o
+            pedido é o próximo passo do que ela acabou de fazer, não uma oferta
+            nova. Uma oferta só por tela: nenhum link para preço aqui. */}
+        <OrganicCtaLink
+          href={toolActivationHref({
+            prompt: niche.topicSeed,
+            campaign: 'acq5_money_calculator',
+          })}
+          source="acq5_money_calculator"
+          placement="result"
           style={{
             display: 'inline-block',
             background: ACCENT,
@@ -233,8 +256,21 @@ export default function CalculatorClient() {
             textDecoration: 'none',
           }}
         >
-          Make the Shorts that earn this — free →
-        </a>
+          {shortsNeeded > 0
+            ? `Make the first of those ${intFmt(shortsNeeded)} Shorts — free →`
+            : 'Make your first Short — free →'}
+        </OrganicCtaLink>
+        <p style={{ color: MUTED, fontSize: '0.82rem', lineHeight: 1.55, margin: '12px 0 0' }}>
+          {shortsNeeded > 0 ? (
+            <>
+              {usd(result.monthlyMid)}/month needs {intFmt(shortsNeeded)} Shorts posted every week.
+              That is the actual job. Kineo makes them from a topic — voiceover, footage and
+              captions, ready to post.
+            </>
+          ) : (
+            <>Kineo makes finished 9:16 Shorts from a topic — voiceover, footage and captions.</>
+          )}
+        </p>
       </div>
     </section>
   )

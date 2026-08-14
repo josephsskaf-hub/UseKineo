@@ -4,6 +4,8 @@
 // engine at /api/public/viral-score and funnels to signup with a strong CTA.
 import { useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { toolActivationHref } from '@/lib/toolActivationHref'
 
 type Result = {
   overall: number
@@ -67,7 +69,11 @@ export default function ViralScoreClient() {
     ? [['Hook strength', res.hook], ['Trend fit', res.trend], ['Retention', res.retention], ['Shareability', res.share]]
     : []
   const color = res ? verdictColor(res.overall) : '#2997ff'
-  const ctaHref = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=push22_viral_score&prompt=${encodeURIComponent(idea.trim().slice(0, 120))}`
+  // ctaHref removido em KINEO-FERRAMENTAS-ORFAS-2026-08-14 — a montagem do href
+  // passou para toolActivationHref(), fonte única das três ferramentas. O corte
+  // antigo em 120 caracteres também morreu: ele truncava a ideia da pessoa no
+  // meio de uma frase antes de ela chegar ao /generate (o limite agora é 600,
+  // e o /signup já corta em 1000 por conta própria).
 
   return (
     <div className="vs-wrap">
@@ -131,7 +137,24 @@ export default function ViralScoreClient() {
           </div>
           <div className="vs-cta">
             <p>You&apos;ve got the idea. <b>Kineo turns it into a finished, faceless Short in a few minutes</b> — AI scenes, voiceover, captions and music, done for you.</p>
-            <a href={ctaHref} onClick={() => { void trackEvent('organic_cta_clicked', { source: 'push22_viral_score', placement: 'result' }) }}>Make a Fast video from this idea →</a>
+            {/* KINEO-FERRAMENTAS-ORFAS-2026-08-14 — esta era a MENOS quebrada
+                das três órfãs (já emitia organic_cta_clicked e já carregava a
+                ideia), e por isso o conserto é pequeno e vale registrar por
+                escrito: era <a> cru (recarga completa do App Router) e mandava
+                a ideia por `?prompt=` solto, que o /signup trata como PREFILL —
+                a pessoa chegava ao /generate com o campo preenchido e um botão
+                ainda por apertar. O padrão da melhor porta da casa
+                (/free-script-generator, 67%) usa `redirect` + `autoanalyze`: a
+                análise já começa sozinha. Um passo a menos entre a prova e o
+                primeiro vídeo. Sem create_intent — analisar não gasta crédito,
+                renderizar gasta. */}
+            <OrganicCtaLink
+              href={toolActivationHref({ prompt: idea, campaign: 'push22_viral_score' })}
+              source="push22_viral_score"
+              placement="result"
+            >
+              Make a Fast video from this idea →
+            </OrganicCtaLink>
           </div>
         </div>
       )}

@@ -5,6 +5,8 @@
 // runners-up, each with a niche-tagged CTA into the free generator funnel.
 
 import { useMemo, useState } from 'react'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { toolActivationHref } from '@/lib/toolActivationHref'
 
 const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
 const ACCENT = '#2997ff'
@@ -305,8 +307,13 @@ const QUESTIONS: Question[] = [
   },
 ]
 
-const CTA_URL =
-  'https://www.usekineo.com/free-ai-shorts-generator?utm_source=niche-picker&utm_medium=tool&utm_campaign=acq5'
+// KINEO-FERRAMENTAS-ORFAS-2026-08-14 — CTA_URL morreu aqui. Ele era uma URL
+// ABSOLUTA para OUTRA página de SEO (/free-ai-shorts-generator), sem
+// organic_cta_clicked: o quiz fazia a pessoa responder 5 perguntas, entregava o
+// nicho dela — e mandava para mais um artigo, sem levar nada do que ela
+// acabou de descobrir e sem deixar rastro no placar. A porta agora é
+// toolActivationHref(): /signup → /generate já com um TEMA CONCRETO do nicho
+// dela dentro. Ver lib/toolActivationHref.ts para os quatro defeitos nomeados.
 
 function rankNiches(answers: number[]): NicheId[] {
   const totals: Record<NicheId, number> = Object.fromEntries(
@@ -488,13 +495,31 @@ export default function QuizClient() {
         <p style={{ color: MUTED, fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
           Example video topics
         </p>
+        {/* KINEO-FERRAMENTAS-ORFAS-2026-08-14 — os temas de exemplo eram texto
+            morto: a página escrevia três ideias prontas e não deixava a pessoa
+            fazer nada com nenhuma. Cada um vira uma porta que carrega A PRÓPRIA
+            frase para o /generate. Não são três ofertas na mesma tela — é UMA
+            oferta com três entradas, e a escolha do tema é trabalho da pessoa,
+            que é exatamente o que o /free-script-generator (67%) faz de
+            diferente das 8 páginas de artigo que somam 316 sessões e 0 cliques. */}
         <ul style={{ margin: '0 0 18px', paddingLeft: 18, color: '#d2d2d7', lineHeight: 1.7, fontSize: '0.92rem' }}>
           {n.topics.map((t, i) => (
-            <li key={i}>{t}</li>
+            <li key={i}>
+              <OrganicCtaLink
+                href={toolActivationHref({ prompt: t, campaign: 'acq5_niche_picker' })}
+                source="acq5_niche_picker"
+                placement={isTop ? 'topic_top' : 'topic_runnerup'}
+                style={{ color: '#d2d2d7', textDecoration: 'none', borderBottom: '1px dashed rgba(41,151,255,0.45)' }}
+              >
+                {t}
+              </OrganicCtaLink>
+            </li>
           ))}
         </ul>
-        <a
-          href={CTA_URL}
+        <OrganicCtaLink
+          href={toolActivationHref({ prompt: n.topics[0], campaign: 'acq5_niche_picker' })}
+          source="acq5_niche_picker"
+          placement={isTop ? 'result_top' : 'result_runnerup'}
           style={{
             display: 'inline-block',
             background: isTop ? ACCENT : '#1d1d20',
@@ -508,11 +533,9 @@ export default function QuizClient() {
           }}
         >
           Generate your first {n.ctaLabel} Short free →
-        </a>
-        <p style={{ margin: '12px 0 0', fontSize: '0.85rem' }}>
-          <a href={`/free-ai-shorts/${n.slug}`} style={{ color: MUTED, textDecoration: 'underline' }}>
-            See the free {n.ctaLabel} Shorts generator page
-          </a>
+        </OrganicCtaLink>
+        <p style={{ margin: '12px 0 0', fontSize: '0.85rem', color: MUTED }}>
+          Tap any topic above to start with that one.
         </p>
       </div>
     )
