@@ -1528,3 +1528,88 @@ sprint recommitar 11 caminhos ja entregues.
 index:** `git ls-tree -r --name-only main -- <caminho>`. E o corolario geral:
 quando o mecanismo de contorno de um lock e plumbing, TODA ferramenta que le o
 index (status, diff sem `--cached` contra HEAD, add) fica cega junto.
+
+## Aprendizados — sprint 21h de 13/08/2026 (KINEO-DOWNLOAD-WITHOUT-ASK)
+
+### 1. MEDIR A AUSENCIA DE UMA COISA E MAIS DIFICIL QUE MEDIR A PRESENCA DELA, E O ERRO E SEMPRE O MESMO: AFIRMAR CEDO DEMAIS
+Impressao tem elemento e observer: a coisa apareceu, conta-se. Ausencia nao tem
+elemento nenhum para observar — ela e uma afirmacao sobre o que NAO existe na
+tela, e no instante em que a tela monta quase nada existe ainda. Numa tela cujo
+conteudo depende de leitura assincrona (`/api/credits`, plano, moeda), disparar
+"nao havia oferta" na chegada carimba de falso todo mundo que ve a oferta
+100ms depois.
+**A regra:** ausencia so vira evento depois de a tela ficar PARADA. Timer de
+settle no efeito, com o array de dependencias limpando o timer a cada mudanca —
+se a coisa aparecer dentro da janela, o `return` acontece antes de armar e o
+evento nunca sai. E auto-corretivo, nao e aposta no relogio. E errar para o lado
+de NAO reportar: numero menor que a verdade nao faz ninguem construir a coisa
+errada; numero maior faz.
+
+### 2. NUM EFEITO QUE ESPERA, REF NAO PODE SER LIDO SO NA ENTRADA
+Estado reavalia sozinho pelo array de dependencias. Ref nao esta (nem pode
+estar) no array — o valor lido na entrada do efeito e o unico que o `return`
+enxergou. Se o ref for preenchido DENTRO da janela de espera, a decisao ja foi
+tomada com dado velho e a espera vira decoracao. **Todo ref que participa da
+condicao precisa ser RELIDO dentro do callback do timer.** E o que transforma a
+janela de espera em verificacao.
+
+### 3. ESPELHAR A CONDICAO DO RENDER, NUNCA A DA IMPRESSAO
+Quando se reescreve inline (TDZ) a condicao de uma superficie para medir se ela
+apareceu, existem DUAS condicoes parecidas no repo e elas divergem de proposito:
+a de RENDER (o que a pessoa ve) e a de IMPRESSAO (o que e contavel — costuma
+exigir mais coisas, tipo moeda resolvida). Espelhar a da impressao para medir
+ausencia conta como "sem oferta" uma tela que tem a caixa na frente da pessoa,
+so nao contada. **A pergunta e sempre o que a PESSOA viu.**
+
+### 4. ESTADO "PEDIDO EM CURSO" NAO E "AUSENCIA DE PEDIDO" — E A PASSADA 2 QUE ACHOU ISSO
+Defeito criado pela passada 1: uma flag transitoria (`wmUnlocking` = desbloqueio
+da marca d'agua em andamento) estava so dentro do espelho de uma das ofertas,
+que e onde ela mora no original. Efeito colateral INVERTIDO: a pessoa que esta
+NO MEIO de pagar reprovava no espelho e saia carimbada "ninguem pediu nada a
+ela" — a afirmacao mais falsa possivel sobre ela. Toda flag de "acao em curso"
+sai da coorte inteira, na guarda de entrada, ANTES de qualquer espelho.
+
+### 5. CAMPO CONSTANTE EM PAYLOAD NAO E DADO, E RUIDO
+Corolario direto do item 4: com a guarda nova, o campo `wm_unlocking` valeria
+`false` em 100% dos eventos. Campo que nunca varia nao informa nada e a analise
+de amanha vai cruza-lo com alguma coisa e concluir bobagem. **Guarda nova na
+entrada obriga a revisar os campos do payload que existiam para medir aquilo.**
+
+### 6. "NAO CONVENCE" E "NAO PERGUNTA" PRODUZEM O MESMO NUMERO DE CONVERSAO — E PEDEM CONSERTOS OPOSTOS
+Tres sprints leram 3% de conversao como "o trial nao convence". O banco disse
+outra coisa: 110 pessoas gostaram o bastante para BAIXAR o arquivo e 41 delas
+nunca viram um preco em lugar nenhum. Entre as que viram, 17% foram ao checkout.
+**Antes de mexer em preco, oferta ou copy, contar quantas vezes a pergunta foi
+FEITA.** O denominador de uma taxa de conversao raramente e "todo mundo que
+podia comprar" — e quase sempre "todo mundo a quem foi pedido", e a diferenca
+entre os dois e a alavanca mais barata que existe.
+
+### 7. INSTRUMENTAR E ENTREGA QUANDO A CORRECAO TEM MAIS DE UMA PORTA
+As 41 pessoas caem por quatro condicoes diferentes (`plan_tier` null, fase do
+trial, render nao-Fast, leitura lenta) e cada uma pede um conserto diferente.
+Construir a caixa hoje seria adivinhar qual. **Instrumentar custa 1 sprint e
+elimina 3 de adivinhacao** — e, no caso, respeitou de quebra dois guardrails
+(a decisao "One screen, one offer" e o "nunca deploy sem QA do fluxo de
+pagamento", que uma caixa de checkout nova teria encostado).
+
+### 8. GATE PODE FECHAR SOZINHO — CONFERIR ANTES DE LEVAR AO FUNDADOR
+O gate #7 (extensao automatica reescrevendo a variavel do A/B) estava na mesa do
+fundador desde 11/08. A auditoria de hoje mostrou que a correcao de 12/08 pegou
+em producao (27 extensoes erradas ate 12/08, 0 em 13/08): a contaminacao esta
+CONGELADA em 29 contas conhecidas e le-se como intention-to-treat. **Extensao da
+Regra Zero: antes de PEDIR decisao, verificar se a decisao ainda e necessaria.**
+Gate aberto envelhece; o mundo se move debaixo dele.
+
+### 9. ADENDO A REGRA DE 19H DE HOJE: `git diff HEAD --numstat` MENTE NA DIRECAO DA DELECAO
+A sprint 19h descobriu que `git status` lista como `??` arquivos ja commitados.
+Hoje o mesmo lock produziu a mentira mais assustadora da familia: depois de
+APENDAR 84 linhas num doc, `git diff HEAD --numstat` respondeu **`0 258`** — zero
+adicoes e a delecao do arquivo inteiro. Quem ler isso as 22h conclui que acabou
+de destruir o relatorio do dia e desfaz trabalho bom.
+**O antidoto e barato e serve para qualquer checagem de tamanho de diff:** rodar
+a checagem sob um index limpo, descartavel, montado do HEAD na hora —
+`export GIT_INDEX_FILE=$HOME/idx_check_<nome>; git read-tree HEAD; git diff-files --numstat -- <caminho>`.
+Com o index limpo o mesmo comando respondeu `84 0`, que e a verdade. O `.git/index`
+travado desde 08/08 nao descreve mais nada: qualquer numero que saia dele —
+adicao, delecao ou rastreamento — precisa ser confirmado contra a ARVORE ou
+contra um index recem-lido.

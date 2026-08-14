@@ -1,3 +1,89 @@
+# GATE 13/08 (sprint 21h — a última do dia) — O PUSH AGORA TEM PRAZO: 14/08 16:30Z
+
+`origin/main` = **`f0f63c7`** (medido por `git ls-remote` na hora, não herdado de
+doc). O `main` local está à frente pelas sprints de 11h, 13h, 16h, 19h e 21h.
+**Número de commits de propósito não escrito aqui** — contagem fixa envelhece
+entre escrever e clicar (lição do `74-PUSH`). Quem quiser:
+`git log origin/main..HEAD --oneline`.
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\75-PUSH.bat`**
+CRLF (por isso funciona). Não cria commit, não faz `add`, não faz `reset`: apaga
+os 3 locks órfãos e dá `git push`. Seguro rodar duas vezes. O `74-PUSH` também
+serve — é genérico e empurra o mesmo `main`.
+
+⏰ **O PRAZO É REAL.** Às **14/08 16:30Z** o `expired_offer_d5` dispara pela
+primeira vez na história — é o único e-mail da casa que carrega o COMEBACK50, e
+ele abre o `/pricing`. A correção da letra miúda dessa página (sprint 19h) está
+NESTE lote. Sem push, 2 pessoas recebem um cupom e abrem uma página que diz o
+contrário do e-mail. Rampa: 2 em 14/08, 2 em 15/08, 29 até 18/08.
+
+## 🔴 110 PESSOAS BAIXARAM O VÍDEO. 41 NUNCA VIRAM UM PREÇO.
+
+Baixar o arquivo é a prova de valor mais forte que o produto produz. Para **37%
+dessa gente a casa não fez pedido nenhum** — nem a caixa de $4.90, nem a de
+assinatura, nem `/pricing`, em momento nenhum.
+
+| medida (13/08, medida no banco) | valor |
+|---|---:|
+| baixaram um vídeo pronto | **110** |
+| viram alguma oferta depois | 69 |
+| **não viram nada** | **41 (37%)** |
+| foram ao checkout depois de baixar | 12 |
+| pagaram | 4 |
+| entre quem VIU oferta: checkout | **17%** |
+
+Entregue: `post_video_no_offer` (`d271ba5`) — a ausência de oferta virou evento
+com a causa dentro (`plan_tier`, `trial_phase`, `fast_render`, frescor da leitura
+do trial), e não uma caixa nova adivinhada. **Nenhuma superfície nova, nenhum
+toque em checkout, nenhum pixel mudado** — a decisão "One screen, one offer"
+segue de pé e o guardrail de QA de pagamento não foi encostado. Em 24h de
+produção o número 41 deixa de ser inferência entre duas tabelas e passa a dizer
+qual das quatro portas fechou.
+
+**Conferir depois do push:** distribuição de `post_video_no_offer` por razão. A
+fatia com `plan_tier: null` é bug de leitura de crédito — conserto de uma linha.
+
+## 🟢 UM GATE SE FECHOU SOZINHO — #7 (extensão × A/B) SAIU DA MESA DO FUNDADOR
+
+A extensão automática de trial estava estendendo exatamente quem não devia. Por
+dia de envio do `trial_extended`:
+
+| dia | estendidas | com 3+ vídeos | **com ZERO vídeos** | média de vídeos |
+|---|---:|---:|---:|---:|
+| 11/08 | 10 | 1 | **4** | 1,30 |
+| 12/08 | 16 | 1 | **7** | 0,75 |
+| **13/08** | **3** | **2** | **0** | **2,67** |
+
+`KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12` **funciona em produção** — medido,
+não deduzido. A contaminação do A/B está **congelada em 29 contas conhecidas** e
+parou de crescer: lê-se como intention-to-treat e **não é preciso mexer no
+experimento**. Decisão que estava aberta desde 11/08, encerrada sem custo.
+
+⚠️ **Resíduo que muda todo denominador:** dos 113 trials "ativos", **29 estão de
+pé por extensão que a regra de hoje não daria** (11 nunca geraram nada). Trials
+ativos por mérito: **84**.
+
+## 🟡 ZERO PAGAMENTOS HÁ 3 DIAS — E ISSO AINDA NÃO É INCIDENTE
+
+Último `payment_success`: 10/08 21:26Z. Foram **7 aberturas de checkout** nesses
+3 dias, contra taxa histórica de ~10% (4 pagos em 41 aberturas na vida do
+produto). Sete tentativas a 10% dão **48% de chance de zero por puro acaso** —
+"zero pagamentos" só é notícia com o denominador. **Vira incidente em 12
+aberturas sem pagamento**, e aí é aberto sem perguntar.
+
+## 🟢 A QUEDA DE 6,8× NO TOPO DO FUNIL PAROU (um dia, ainda não é recuperação)
+
+Sessões 113 → **125**. Cadastros 13 → **16**. Vídeos concluídos 17 → **19**.
+Primeiro dia em que os três sobem juntos desde 09/08. Saúde de geração: **1
+falha em 17 tentativas** (contra 23 em 25 no dia 10/08). Precisa de um segundo
+dia para virar afirmação.
+
+## 🔒 GATE TAAFT $347 — continua fechado, agora com o número novo
+
+37% de quem baixa um vídeo não recebe pedido nenhum. Pagar por tráfego antes de
+tapar isso é encher balde com o furo já medido — pela 9ª sprint consecutiva.
+
+---
 # GATE 13/08 (sprint 13h) — HÁ COMMITS PRESOS, E O NOVO É O E-MAIL DE 231 PESSOAS QUE NUNCA CONSEGUIRAM UM VÍDEO
 
 `origin/main` = **`f0f63c7`** (medido por `git ls-remote` na hora, não herdado
