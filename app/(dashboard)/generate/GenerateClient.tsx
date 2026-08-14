@@ -1216,7 +1216,9 @@ export default function GenerateClient({
   // credits but picked a plan-gated engine (e.g. Cinematic/Kling on Starter).
   // KINEO-TRIAL-PAYWALL-2026-08-06 — 'trial_ended' entra como quarta razao:
   // quem PERDEU o acesso precisa de uma headline diferente de quem nunca teve.
-  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage'>('credits')
+  // KINEO-TRIAL-STALL-2026-08-14 — 'trial_stalled' (saldo que não compra o
+  // motor) e 'trial_spent' (trial gasto até o fim) entram na união.
+  const [upgradeReason, setUpgradeReason] = useState<'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'>('credits')
   const [upgradeLoading, setUpgradeLoading] = useState(false)
 
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — every checkout CTA on this screen used
@@ -5336,10 +5338,22 @@ export default function GenerateClient({
           // upsell='creator', mas so o primeiro fala com alguem que ja teve o
           // motor e o perdeu. Valor desconhecido cai no comportamento antigo,
           // entao servidor e cliente fora de sincronia nunca quebram a tela.
-          const gateReason: 'credits' | 'studio' | 'creator' | 'trial_ended' =
+          // KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) — os dois estados de
+          // FIM DE SALDO DENTRO do trial passam a ter headline própria. Antes
+          // os dois caíam no default 'credits', cuja headline é "You're out of
+          // credits 🎉" — falsa para quem tem 18 créditos e não pode comprar
+          // nada com eles, e fria para quem gastou os 40 (a coorte de MAIOR
+          // intenção do funil: 12 de 45 chegaram ao fundo, 0 compraram).
+          // A ordem importa: `reason` é mais específico que `upsell`, e os
+          // valores novos chegam com upsell='creator' junto.
+          const gateReason: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' =
             data?.reason === 'trial_ended'
               ? 'trial_ended'
-              : data?.upsell === 'studio' ? 'studio' : data?.upsell === 'creator' ? 'creator' : 'credits'
+              : data?.reason === 'trial_credits_stalled'
+                ? 'trial_stalled'
+                : data?.reason === 'trial_credits_spent'
+                  ? 'trial_spent'
+                  : data?.upsell === 'studio' ? 'studio' : data?.upsell === 'creator' ? 'creator' : 'credits'
           setError(typeof data?.error === 'string' ? data.error : `This needs more credits. You have ${data?.balance ?? 0}.`)
           if (data?.resume_same_generation === true && data?.generationId === cinematicGenerationId) {
             preserveGenerationAttemptRef.current = true
@@ -6111,12 +6125,70 @@ export default function GenerateClient({
   // Push #109 — free users at 0 credits get the urgency modal (with the
   // 10-min countdown); everyone else keeps the standard out-of-credits
   // modal.
-  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage' = 'credits') {
+  function openOutOfCreditsModal(reason: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage' = 'credits') {
     // #380 — unified: every out-of-credits moment now opens the 3-plan upgrade
     // modal (Spark/Basic/Pro) so the user picks a plan at peak intent.
     // KINEO-PLAN-GATE-MODAL — carry the reason so the headline is accurate.
-    setUpgradeReason(reason)
+    //
+    // ═══ KINEO-TRIAL-STALL-2026-08-14 — O BURACO QUE A 2ª PASSADA ACHOU ═════
+    // A correção de servidor desta sprint (402 com reason='trial_credits_spent')
+    // NUNCA ALCANÇARIA quem tem saldo ZERO, e é justamente a coorte que ela
+    // existe para servir. Motivo: `outOfCredits()` é `credits > 0 ? false :
+    // true`, então em 0 o clique é barrado AQUI, no cliente, e a request nem
+    // sai. Só quem tem saldo PARCIAL (o encalhe, 1–19) chega ao servidor.
+    // Ou seja: metade da correção morreria num `if` do cliente escrito muito
+    // antes, e o `tsc` verde não diria nada. Corrigido no MESMO commit —
+    // servidor e cliente têm de concordar sobre o que é fim de trial.
+    //
+    // ⚠️ E A 2ª PASSADA DERRUBOU A PRIMEIRA VERSÃO DESTE BLOCO, por DOIS
+    // defeitos que o `tsc` verde não mostra:
+    //
+    //  (a) EU TINHA ESCRITO `phase === 'active'` PARA O CASO DE SALDO ZERO, E
+    //      ESSE PAR NÃO EXISTE. `isTrialActive()` já devolve false quando
+    //      `trialCapReached` (usado >= 40) na MESMA request — quem gastou os
+    //      40 sai de 'active' na hora, para 'ending' (status ainda 'active')
+    //      ou 'downgraded'. As 12 pessoas da coorte fechada que queimaram o
+    //      trial inteiro estão TODAS em 'ending'/'downgraded'. A condição que
+    //      eu tinha escrito era dead code apontando para a coorte que a
+    //      correção existe para servir.
+    //
+    //  (b) `cap > 0` NÃO É a guarda de "só fala de PERDA quem RECEBEU": `cap`
+    //      é a constante TRIAL_CREDIT_CAP e vale 40 para todo mundo, inclusive
+    //      para quem nunca teve trial. A guarda certa é `creditsGranted > 0`,
+    //      exatamente como as outras 6 leituras de trial desta tela já fazem.
+    //
+    // E O ACHADO MAIOR, que veio junto: para essas 12 pessoas o servidor NUNCA
+    // é chamado. `outOfCredits()` barra o clique no cliente em saldo 0, então
+    // a copy contextual de `trial_ended` — escrita, revisada e paga em
+    // 06/08 — estava INALCANÇÁVEL pela porta principal, e elas viam
+    // "You're out of credits 🎉". Não é copy nova que faltava: é a copy que já
+    // existia nunca ter chegado à tela.
+    const trialGranted =
+      typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0
+    const trialReasonHere: 'trial_spent' | 'trial_ended' | null =
+      reason !== 'credits' || !trialGranted
+        ? null
+        : trialUi?.phase === 'ending' || trialUi?.phase === 'downgraded'
+          ? 'trial_ended'
+          : trialActive === true && trialUi?.phase === 'active'
+            ? 'trial_spent'
+            : null
+    const resolvedReason = trialReasonHere ?? reason
+    setUpgradeReason(resolvedReason)
     setShowUpgradeModal(true)
+    // A CAIXA QUE PEDE DINHEIRO PRECISA APARECER NO PLACAR. Sem isto, o
+    // bloqueio de saldo zero segue sendo o caso que NÃO passa pelo servidor
+    // (ver o comentário acima) e continuaria invisível exatamente como as
+    // recusas do motor de IA estavam até hoje. `void`: é telemetria de UI, a
+    // aba não vai a lugar nenhum na linha seguinte — o modal abre.
+    void trackEvent('upgrade_modal_opened', {
+      reason: resolvedReason,
+      requested_reason: reason,
+      surface: 'generate',
+      trial_active: trialActive === true,
+      trial_phase: trialUi?.phase ?? 'none',
+      credits: credits ?? null,
+    })
   }
 
   function handleAnalyzeGuarded() {
@@ -12111,7 +12183,7 @@ function UpgradeModal({
   loading: boolean
   onUpgrade: (tier: 'starter' | 'basic' | 'pro') => void
   onClose: () => void
-  reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'footage'
+  reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'
   isSubscriber?: boolean
   /** Inline English error from the parent's plan-row launcher. */
   checkoutError?: string | null
@@ -12241,6 +12313,31 @@ function UpgradeModal({
     trial_ended: {
       title: 'That was part of your trial ⏳',
       sub: 'Your trial gave you the AI engine. Reactivate it with any paid plan below. Cancel anytime · 7-day money-back.',
+    },
+    // ═══ KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) ══════════════════════
+    // Os DOIS finais de saldo DENTRO do trial. Antes os dois liam
+    // "You're out of credits 🎉", e o 🎉 numa recusa de compra já era
+    // estranho; para quem tem 18 créditos a frase é literalmente FALSA.
+    //
+    // `trial_stalled` é o ENCALHE e é o estado mais mal resolvido do produto:
+    // a pessoa TEM crédito e não pode gastar. O título não pode fingir que ela
+    // está sem nada — tem de nomear o descompasso, que é a coisa verdadeira e
+    // também a mais persuasiva. Nada de "you're stuck"/"you're blocked": a
+    // culpa é do desenho do trial, não dela (mesma lição da copy de erro de
+    // fornecedor, 14/08 — copy que culpa o usuário se retroalimenta).
+    trial_stalled: {
+      title: 'Not enough left for one more AI video',
+      sub: 'Your trial credits are running out mid-idea. Any plan below tops you back up and keeps the AI engine on. Cancel anytime · 7-day money-back.',
+    },
+    // `trial_spent` fala com quem foi ATÉ O FIM dos 40 — 12 das 45 pessoas da
+    // coorte fechada, o sinal de intenção mais forte que este funil produz, e
+    // ZERO delas comprou. A copy trata isso como o que é: prova de que o
+    // produto serviu, não como uma parede. Nenhum número de crédito é
+    // redigitado aqui — a concessão real vai na frase do servidor, que lê
+    // trial_credits_granted do perfil.
+    trial_spent: {
+      title: 'You used your whole trial 🎬',
+      sub: 'You went through every trial credit — that is exactly what it was for. Pick a plan below to keep the AI engine and the same pipeline running. Cancel anytime · 7-day money-back.',
     },
   }
   const head = HEAD[reason] ?? HEAD.credits

@@ -524,6 +524,53 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
   }
 }
 
+// ═══ KINEO-TRIAL-STALL-2026-08-14 ═══════════════════════════════════════════
+// A ROTA DO MOTOR DE 20 CRÉDITOS NÃO TINHA UMA ÚNICA LINHA DE TELEMETRIA DE
+// RECUSA. Medido hoje: `compose_refused` tem 39 linhas em 45 dias e TODAS as 39
+// são `free_fast_limit`. Zero `insufficient_credits_ai` — não porque a recusa
+// não aconteça, mas porque quem recusa o AI Generated é ESTA rota, e
+// `logComposeRefusal` mora em /api/compose. A operação vinha deduzindo o
+// encalhe do trial por aritmética sobre `credit_debits` (sprint das 13h)
+// porque não existe evento nenhum para ele.
+//
+// NOME DE EVENTO REUSADO DE PROPÓSITO (`compose_refused`, não um nome novo):
+// mesma decisão de KINEO-EXAMPLES-PROVA-SEM-PORTA — a recusa entra no placar
+// que a operação JÁ lê em vez de viver num evento só dela. O `path` distingue
+// a origem, e o `reason` continua sendo a chave de agrupamento.
+//
+// AWAIT, nunca `void`: a linha seguinte responde 402 e uma lambda que responde
+// pode ser congelada antes da promessa resolver — instrumento que só grava
+// quando dá sorte não é instrumento. O custo é irrelevante num caminho que já
+// é o caminho do erro, e o try/catch garante que a telemetria nunca vire a
+// causa de uma recusa virar 500.
+async function logCinematicRefusal(
+  reason: string,
+  userId: string | null,
+  metadata: Record<string, unknown> = {},
+): Promise<void> {
+  try {
+    if (!userId) return
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) return
+    const db = createAdminClient(url, key, { auth: { persistSession: false } })
+    await db.from('events').insert({
+      user_id: userId,
+      name: 'compose_refused',
+      path: '/api/generate-video-cinematic',
+      // `reason` DEPOIS do spread, sempre: `...metadata` por último é colisão
+      // silenciosa (lição de 08/08 — um `reason` já foi sobrescrito neste
+      // repositório e o evento gravou outra coisa por meses).
+      metadata: { ...metadata, reason },
+    })
+  } catch (err) {
+    console.warn(
+      '[cinematic] refusal telemetry failed (ignorado):',
+      err instanceof Error ? err.message : String(err),
+    )
+  }
+}
+
 export async function POST(req: NextRequest) {
   let activeBirthClaim: {
     db: SupabaseClient
@@ -763,12 +810,82 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // ═══ KINEO-TRIAL-STALL-2026-08-14 (fase 2, item 3) ═══════════════════════
+    // ESTE ERA O ÚNICO DOS QUATRO 402 DESTA ROTA SEM TRATAMENTO CONTEXTUAL E
+    // SEM UMA LINHA DE TELEMETRIA — e é o que pega a coorte MAIS ENGAJADA.
+    //
+    // O QUE A MEDIÇÃO DE HOJE DIZ (produção, coorte fechada de 45 trials
+    // resolvidos, não estimativa): 12 pessoas queimaram os 40 créditos até o
+    // fim e ZERO comprou. Elas não desistiram do produto — elas chegaram ao
+    // fundo dele. E o que a tela dizia para as 12, na hora exata em que
+    // pediram mais um vídeo, era `This needs 20 credits. You have 0.`: um
+    // extrato bancário, sem uma oferta, sem um preço, sem um link.
+    //
+    // Os três 402 ACIMA deste (motores Studio, plano sem IA, trial vencido)
+    // receberam `reason`, `upsell` e copy que nomeia a perda em
+    // KINEO-TRIAL-PAYWALL-2026-08-06. Este ficou de fora, e o cliente, sem
+    // `reason`, cai no default `'credits'`, cuja headline é
+    // "You're out of credits 🎉" — literalmente falsa para quem tem 18.
+    //
+    // ⚠️ POR QUE `trialActive && !isPaidUser` E NÃO SÓ `trialActive`: um
+    // assinante NUNCA pode ler "add a plan". `isTrialActive()` deve ser false
+    // para quem converteu, mas a copy de venda não é lugar para depender de
+    // uma segunda função estar certa — a guarda é local e barata.
+    //
+    // ⚠️ `creditsGranted > 0` PELO MESMO MOTIVO DO GATE ACIMA: só fala de
+    // PERDA quem comprovadamente RECEBEU. Perfil com trial ativo e concessão
+    // ilegível cai na frase genérica, que continua verdadeira.
+    //
+    // NENHUM PREÇO NESTA STRING, de propósito: o preço vive nas linhas de
+    // plano do modal, derivadas de lib/checkoutPricing por moeda e região.
+    // Escrever dólar aqui seria a segunda fonte de preço que a ordem do
+    // fundador proíbe.
     if (balance < cost) {
+      const trialBuyer = trialActive && !isPaidUser && trialUi.creditsGranted > 0
+      // DOIS estados, e a diferença NÃO é cosmética — eles pedem frases
+      // opostas: quem tem 18 créditos não está "sem créditos", está com um
+      // saldo que não compra nada do que veio comprar (o ENCALHE); quem tem 0
+      // gastou o trial inteiro e é o sinal de intenção mais forte do funil.
+      //
+      // ⚠️ ONDE CADA UM REALMENTE ACONTECE (2ª passada — a 1ª versão deste
+      // comentário vendia o `spent` como o caso principal desta rota, e é o
+      // contrário): `isTrialActive()` já devolve false quando `trialCapReached`
+      // (usado >= 40), então quem queimou o trial inteiro NÃO chega aqui com
+      // `trialActive` true — ele cai no gate de plano logo acima, como
+      // `trial_ended`, e na prática nem isso, porque o cliente barra o clique
+      // antes (corrigido no MESMO commit, em openOutOfCreditsModal).
+      // Nesta rota o caso VIVO é o `stalled`: saldo parcial, trial ainda de pé.
+      // O `spent` fica como caminho de defesa para o resíduo real de saldo 0
+      // com `usado < 40` (estorno de render falho devolve crédito e abate o
+      // consumo — a coorte de 13/08 tem linhas assim).
+      const stallReason = trialBuyer
+        ? (balance > 0 ? 'trial_credits_stalled' : 'trial_credits_spent')
+        : 'insufficient_credits'
+      await logCinematicRefusal(stallReason, user.id, {
+        needed: cost,
+        balance,
+        engine: wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
+        trial_phase: trialUi.phase,
+        trial_credits_granted: trialUi.creditsGranted,
+        is_paid: isPaidUser,
+      })
       return NextResponse.json(
         {
-          error: `This needs ${cost} credits. You have ${balance}.`,
+          error:
+            stallReason === 'trial_credits_stalled'
+              ? `Your trial has ${balance} credit${balance === 1 ? '' : 's'} left and an AI video needs ${cost}. Add a plan to keep the AI engine.`
+              : stallReason === 'trial_credits_spent'
+                ? `You've used all ${trialUi.creditsGranted} credits from your trial. Add a plan to keep making AI videos.`
+                : `This needs ${cost} credits. You have ${balance}.`,
           needed: cost,
           balance,
+          reason: stallReason,
+          // `upsell` só viaja para quem realmente precisa comprar um PLANO. Um
+          // assinante sem saldo precisa de créditos, não de outro plano, e
+          // mandar `upsell` abriria a headline errada para ele.
+          upsell: trialBuyer ? 'creator' : undefined,
+          trialCreditsGranted: trialBuyer ? trialUi.creditsGranted : undefined,
+          trialCreditsUsed: trialBuyer ? trialUi.creditsUsedForDisplay : undefined,
         },
         { status: 402 }
       )
