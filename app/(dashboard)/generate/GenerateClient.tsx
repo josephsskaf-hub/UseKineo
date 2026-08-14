@@ -7234,7 +7234,7 @@ export default function GenerateClient({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold text-sm px-4 py-2 rounded-lg"
-                style={{ background: '#22c55e', color: '#06220f' }}
+                style={{ background: '#2997ff', color: '#fff' }}
               >
                 Watch now
               </a>
@@ -7562,7 +7562,7 @@ export default function GenerateClient({
                   style={{
                     background:
                       pickedNiche === t.key
-                        ? 'linear-gradient(135deg, #2997ff, #2997ff)'
+                        ? '#2997ff'
                         : 'rgba(255,255,255,0.04)',
                     border: `1px solid ${
                       pickedNiche === t.key ? 'rgba(41,151,255,0.75)' : 'var(--border)'
@@ -7646,6 +7646,17 @@ export default function GenerateClient({
               color: 'var(--text)',
               outline: 'none',
               resize: 'none',
+              // ONDA5 #1 (14/08) — o campo mais importante da tela ganha
+              // estado de foco: anel azul suave, transicao swift.
+              transition: 'border-color 150ms cubic-bezier(.2,0,0,1), box-shadow 150ms cubic-bezier(.2,0,0,1)',
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(41,151,255,.55)'
+              e.currentTarget.style.boxShadow = '0 0 0 3px rgba(41,151,255,.12)'
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'var(--border)'
+              e.currentTarget.style.boxShadow = 'none'
             }}
           />
 
@@ -7743,7 +7754,7 @@ export default function GenerateClient({
                         type="button"
                         onClick={() => setSelectedFootageIds((cur) => (on ? cur.filter((x) => x !== f.id) : [...cur, f.id]))}
                         title={on ? 'Click to exclude from this video' : 'Click to use in this video'}
-                        style={{ borderRadius: 10, padding: 2, border: on ? '2px solid #2997ff' : '2px solid var(--border)', background: 'rgba(0,0,0,0.3)', cursor: 'pointer', position: 'relative' }}
+                        style={{ borderRadius: 13, padding: 2, border: on ? '2px solid #2997ff' : '2px solid var(--border)', background: 'rgba(0,0,0,0.3)', cursor: 'pointer', position: 'relative' }}
                       >
                         {f.kind === 'video' ? (
                           <video src={f.url} muted playsInline style={{ width: 74, height: 46, objectFit: 'cover', borderRadius: 8, opacity: on ? 1 : 0.5 }} />
@@ -7991,7 +8002,7 @@ export default function GenerateClient({
                     border: duration === opt.value ? '1px solid rgba(41,151,255,.65)' : '1px solid var(--border)',
                     color: duration === opt.value ? '#FFFFFF' : 'var(--muted)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    transition: 'all 150ms cubic-bezier(.2,0,0,1)',
                   }}
                 >
                   {opt.label}
@@ -8038,8 +8049,8 @@ export default function GenerateClient({
                 </p>
               )}
               {credits !== null && credits > 0 && credits < 5 && (
-                <p className="text-xs mt-1" style={{ color: '#fbbf24', fontWeight: 700 }}>
-                  Only {credits} left. <a href={withIntentCampaign('/pricing')} style={{ color: '#fbbf24', textDecoration: 'underline' }}>Top up →</a>
+                <p className="text-xs mt-1" style={{ color: '#f0b429', fontWeight: 700 }}>
+                  Only {credits} left. <a href={withIntentCampaign('/pricing')} style={{ color: '#f0b429', textDecoration: 'underline' }}>Top up →</a>
                 </p>
               )}
             </div>
@@ -8054,7 +8065,7 @@ export default function GenerateClient({
                 background:
                   phase === 'analyzing' || !prompt.trim()
                     ? 'rgba(255,255,255,.04)'
-                    : 'linear-gradient(135deg, #2997ff, #2997ff)',
+                    : '#2997ff',
                 border: 'none',
                 cursor: phase === 'analyzing' || !prompt.trim() ? 'not-allowed' : 'pointer',
                 color: phase === 'analyzing' || !prompt.trim() ? 'var(--muted)' : '#FFFFFF',
@@ -8063,6 +8074,20 @@ export default function GenerateClient({
                     ? 'none'
                     : '0 10px 34px rgba(41, 151, 255,.45)',
                 minHeight: 52,
+                // ONDA5 #2 (14/08) — o CTA do produto ganha vida: hover com
+                // lift e glow, curva swift (era um gradiente no-op estatico).
+                transition: 'transform 150ms cubic-bezier(.2,0,0,1), box-shadow 250ms cubic-bezier(.2,0,0,1), background 150ms ease',
+              }}
+              onMouseEnter={(e) => {
+                if (phase === 'analyzing' || !prompt.trim()) return
+                e.currentTarget.style.background = '#3aa2ff'
+                e.currentTarget.style.transform = 'translateY(-1px)'
+                e.currentTarget.style.boxShadow = '0 14px 40px rgba(41,151,255,.55)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = phase === 'analyzing' || !prompt.trim() ? 'rgba(255,255,255,.04)' : '#2997ff'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = phase === 'analyzing' || !prompt.trim() ? 'none' : '0 10px 34px rgba(41, 151, 255,.45)'
               }}
             >
               {phase === 'analyzing' ? (
@@ -8097,7 +8122,7 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6 flex items-center gap-4"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 10, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
+          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 13, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="font-black text-base" style={{ color: 'var(--text)' }}>
               Writing your viral script…
@@ -8119,7 +8144,7 @@ export default function GenerateClient({
           className="gv-card rounded-2xl p-5 sm:p-6 mb-6 flex items-center gap-4"
           style={{ background: '#131316', border: '1px solid var(--border)' }}
         >
-          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 10, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
+          <div className="gv-sk" style={{ width: 54, aspectRatio: '9 / 16', borderRadius: 13, flexShrink: 0, border: '1px solid rgba(255,255,255,.06)' }} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="font-black text-base" style={{ color: 'var(--text)' }}>
               Analyzing your video concept…
@@ -8153,11 +8178,15 @@ export default function GenerateClient({
             readOnly
             className="w-full rounded-xl px-4 py-4 text-sm leading-relaxed min-h-[280px] sm:min-h-[380px] mb-4"
             style={{
-              background: 'rgba(0,0,0,.3)',
+              // ONDA5 #4 (14/08) — o campo e readOnly: para de IMITAR um input
+              // editavel (mesmo fundo/cursor do Step 1 prometia edicao que nao
+              // existe). Fundo de leitura, cursor default, sem resize.
+              background: 'rgba(255,255,255,.03)',
               border: '1px solid var(--border)',
               color: 'var(--text)',
               outline: 'none',
-              resize: 'vertical',
+              resize: 'none',
+              cursor: 'default',
               fontFamily: 'inherit',
               fontSize: 13,
               lineHeight: 1.7,
@@ -8175,11 +8204,12 @@ export default function GenerateClient({
               onClick={outOfCredits() ? () => openOutOfCreditsModal('credits') : handleConfirmScript}
               className="rounded-xl px-6 py-3 font-black text-sm"
               style={{
-                background: 'linear-gradient(135deg, #2997ff, #2997ff)',
+                // ONDA5 #5 (14/08) — mesmo peso do CTA gemeo do Step 1.
+                background: '#2997ff',
                 color: '#fff',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: '0 4px 16px rgba(41,151,255,.35)',
+                boxShadow: '0 10px 34px rgba(41,151,255,.45)',
               }}
             >
               Looks good — create my Short
@@ -8401,7 +8431,8 @@ export default function GenerateClient({
                 disabled={isProcessingPhase(phase)}
                 className="rounded-xl px-6 py-3 text-sm font-black flex items-center gap-2"
                 style={{
-                  background: isProcessingPhase(phase) ? '#1E3A8A' : '#2997ff',
+                  // ONDA5 #5 (14/08) — era navy #1E3A8A fora da paleta
+                  background: '#2997ff',
                   color: '#FFFFFF',
                   border: 'none',
                   cursor: isProcessingPhase(phase) ? 'not-allowed' : 'pointer',
@@ -8437,7 +8468,7 @@ export default function GenerateClient({
                 zIndex: 60,
                 maxWidth: 'min(520px, 92vw)',
                 padding: '12px 18px',
-                borderRadius: 14,
+                borderRadius: 18,
                 background: wmUnlockError ? 'rgba(30,20,20,0.96)' : '#131316',
                 border: `1px solid ${wmUnlockError ? 'rgba(248,113,113,.5)' : 'rgba(41,151,255,.5)'}`,
                 boxShadow: '0 12px 40px rgba(0,0,0,.45)',
@@ -8591,7 +8622,7 @@ export default function GenerateClient({
                 onClick={handleGenerateGuarded}
                 className="rounded-xl px-5 py-2.5 text-sm font-bold text-white mt-2"
                 style={{
-                  background: 'linear-gradient(135deg, #2997ff, #2997ff)',
+                  background: '#2997ff',
                   border: 'none',
                   cursor: 'pointer',
                 }}
@@ -8782,7 +8813,7 @@ export default function GenerateClient({
                         onClick={() => { setPlayerFailed(false); playerRetryAttemptRef.current = 0 }}
                         style={{
                           marginTop: '4px',
-                          background: 'linear-gradient(135deg, #2997ff, #2997ff)',
+                          background: '#2997ff',
                           border: 'none',
                           color: '#fff',
                           fontWeight: 700,
@@ -8959,7 +8990,7 @@ export default function GenerateClient({
                         ? 'rgba(34,197,94,.10)'
                         : 'linear-gradient(135deg, #22C55E, #15803D)',
                       border: watermarkedDownloadConfirmed ? '1px solid rgba(34,197,94,.35)' : 'none',
-                      color: watermarkedDownloadConfirmed ? '#4ade80' : '#fff',
+                      color: watermarkedDownloadConfirmed ? '#5cb3ff' : '#fff',
                       textDecoration: 'none',
                       boxShadow: watermarkedDownloadConfirmed ? 'none' : '0 8px 24px rgba(34,197,94,.30)',
                     }}
@@ -9265,7 +9296,7 @@ export default function GenerateClient({
                   <div className="text-center">
                     <div
                       className="text-[10px] font-black uppercase tracking-[.18em]"
-                      style={{ color: '#4ade80' }}
+                      style={{ color: '#5cb3ff' }}
                     >
                       {shareReferralCode
                         ? 'Give 30 credits · Get 30 credits'
@@ -9383,7 +9414,7 @@ export default function GenerateClient({
                         o claim foi para revisão: silêncio quando não houve nem
                         um nem outro é honesto (não prometemos nada aqui). */}
                     {ytResult.reward?.granted && (
-                      <p className="text-xs mt-2 text-center font-black" style={{ color: '#4ade80' }}>
+                      <p className="text-xs mt-2 text-center font-black" style={{ color: '#5cb3ff' }}>
                         +{ytResult.reward.credits} credits added for publishing it 🎉
                       </p>
                     )}
@@ -9402,7 +9433,7 @@ export default function GenerateClient({
                     style={{
                       background: 'rgba(255,255,255,.04)',
                       border: '1px solid rgba(255,255,255,.12)',
-                      color: '#94a3b8',
+                      color: 'var(--muted2)',
                     }}
                   >
                     We couldn&apos;t check your YouTube connection. Refresh in a moment.
@@ -9444,7 +9475,7 @@ export default function GenerateClient({
                       style={{
                         background: 'rgba(255,255,255,.04)',
                         border: '1px solid rgba(255,255,255,.12)',
-                        color: '#cbd5e1',
+                        color: '#a1a1a8',
                         cursor: ytUploading ? 'not-allowed' : 'pointer',
                       }}
                     >
@@ -9486,7 +9517,7 @@ export default function GenerateClient({
                 {!ytResult && ytConnected !== 'error' && (
                   <p
                     className="text-xs text-center mt-1.5 font-bold"
-                    style={{ color: '#4ade80', lineHeight: 1.5 }}
+                    style={{ color: '#5cb3ff', lineHeight: 1.5 }}
                   >
                     {POST_TO_EARN_DIRECT_PITCH}
                   </p>
@@ -9531,7 +9562,7 @@ export default function GenerateClient({
                     <div>
                       <div
                         className="text-sm font-black"
-                        style={{ color: postedReward?.granted ? '#4ade80' : '#f5f5f7' }}
+                        style={{ color: postedReward?.granted ? '#5cb3ff' : '#f5f5f7' }}
                       >
                         {postedReward?.granted
                           ? `🎉 +${postedReward.credits} credits — you're on the wall.`
@@ -9572,7 +9603,7 @@ export default function GenerateClient({
                           : 'Published it? Paste the link and get paid 🔗'}
                       </div>
                       {/* A regra ANTES de colar, não depois da recusa. */}
-                      <p className="text-xs mt-1.5 font-bold" style={{ color: '#4ade80', lineHeight: 1.55 }}>
+                      <p className="text-xs mt-1.5 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.55 }}>
                         {POST_TO_EARN_PITCH}
                       </p>
                       {/* KINEO-DISTRIBUTION-LOOP-2026-08-11 — a verdade sobre
@@ -9753,7 +9784,7 @@ export default function GenerateClient({
                               : '1px solid rgba(41,151,255,.45)',
                           color: copiedSection === 'next-steps-desc' ? '#5cb3ff' : '#2997ff',
                           cursor: 'pointer',
-                          transition: 'all 0.15s',
+                          transition: 'all 150ms cubic-bezier(.2,0,0,1)',
                         }}
                       >
                         {copiedSection === 'next-steps-desc' ? '✓ Copied' : '📋 Copy description'}
@@ -10194,7 +10225,7 @@ function RecentVideosSection({ videos }: { videos: RecentVideo[] | null }) {
             <div
               key={i}
               className="gv-sk"
-              style={{ width: 64, aspectRatio: '9 / 16', borderRadius: 10, border: '1px solid rgba(255,255,255,.06)', animationDelay: `${i * 120}ms` }}
+              style={{ width: 64, aspectRatio: '9 / 16', borderRadius: 13, border: '1px solid rgba(255,255,255,.06)', animationDelay: `${i * 120}ms` }}
             />
           ))}
         </div>
@@ -10892,8 +10923,8 @@ function ShortPackageSection({
           style={{
             background:
               copiedSection === 'package'
-                ? 'linear-gradient(135deg, #2997ff, #2997ff)'
-                : 'linear-gradient(135deg, #2997ff, #2997ff)',
+                ? '#2997ff'
+                : '#2997ff',
             border: 'none',
             cursor: 'pointer',
             boxShadow: '0 6px 22px rgba(41,151,255,.32)',
@@ -10935,7 +10966,7 @@ function ShortPackageSection({
                     border: isCopied ? '1px solid rgba(41,151,255,.45)' : '1px solid var(--border)',
                     color: isCopied ? '#5cb3ff' : 'var(--muted2)',
                     cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    transition: 'all 150ms cubic-bezier(.2,0,0,1)',
                   }}
                 >
                   {isCopied ? '✓ Copied' : 'Copy'}
@@ -10998,8 +11029,8 @@ function UpsellSection({
     <section
       className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
       style={{
-        background: 'linear-gradient(135deg, rgba(41,151,255,.04), rgba(41,151,255,.04))',
-        border: '1px solid rgba(255,255,255,.08)',
+        background: '#131316',
+        border: '1px solid var(--border)',
       }}
     >
       {/* Celebration line */}
@@ -11034,7 +11065,7 @@ function UpsellSection({
         style={{
           border: '1px solid rgba(41,151,255,.3)',
           background: 'rgba(41,151,255,.05)',
-          borderRadius: 14,
+          borderRadius: 18,
           padding: '16px 20px',
           marginBottom: 14,
         }}
@@ -11085,7 +11116,7 @@ function UpsellSection({
           style={{
             width: '100%',
             padding: '12px',
-            borderRadius: 10,
+            borderRadius: 13,
             background: upgradeLoading ? 'rgba(41,151,255,.5)' : '#2997ff',
             color: '#ffffff',
             fontWeight: 800,
@@ -11103,7 +11134,7 @@ function UpsellSection({
             style={{
               marginTop: 10,
               padding: '10px 12px',
-              borderRadius: 10,
+              borderRadius: 13,
               background: 'rgba(255,107,107,.08)',
               border: '1px solid rgba(255,107,107,.35)',
               color: '#f5f5f7',
@@ -11135,9 +11166,9 @@ function UpsellSection({
         style={{
           width: '100%',
           padding: '12px',
-          borderRadius: 10,
+          borderRadius: 13,
           background: 'rgba(255,255,255,.04)',
-          border: '1px solid rgba(255,255,255,.10)',
+          border: '1px solid var(--border)',
           color: 'var(--text)',
           fontWeight: 700,
           fontSize: '0.9rem',
@@ -11698,7 +11729,7 @@ function ModeSelector({
               background: mode === 'cinematic' ? 'rgba(41,151,255,.10)' : 'rgba(255,255,255,.03)',
               border: mode === 'cinematic' ? '1.5px solid rgba(41,151,255,.55)' : '1.5px solid var(--border)',
               cursor: 'pointer',
-              transition: 'all 0.15s',
+              transition: 'all 150ms cubic-bezier(.2,0,0,1)',
               boxShadow: mode === 'cinematic' ? '0 0 28px rgba(41,151,255,.15)' : 'none',
             }}
           >
@@ -11764,9 +11795,9 @@ function ModeSelector({
                 <span
                   className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: 'rgba(251,191,36,.15)',
-                    color: '#fbbf24',
-                    border: '1px solid rgba(251,191,36,.3)',
+                    background: 'rgba(240,180,41,.15)',
+                    color: '#f0b429',
+                    border: '1px solid rgba(240,180,41,.3)',
                   }}
                 >
                   Resets monthly
@@ -11795,7 +11826,7 @@ function ModeSelector({
               <div className="ml-auto">
                 <span
                   style={{
-                    background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                    background: '#2997ff',
                     color: '#fff',
                     fontSize: '0.62rem',
                     fontWeight: 900,
@@ -12187,7 +12218,7 @@ function UpgradeModal({
         >
           {head.title}
         </h2>
-        <p style={{ fontSize: '0.92rem', color: '#cbd5e1', lineHeight: 1.5, margin: 0, marginBottom: 14 }}>
+        <p style={{ fontSize: '0.92rem', color: '#a1a1a8', lineHeight: 1.5, margin: 0, marginBottom: 14 }}>
           {head.sub}
         </p>
 
@@ -12219,7 +12250,7 @@ function UpgradeModal({
                   width: '100%',
                   textAlign: 'left',
                   padding: '14px 16px',
-                  borderRadius: 14,
+                  borderRadius: 18,
                   cursor: loading ? 'not-allowed' : 'pointer',
                   background: recommended ? 'rgba(41,151,255,0.10)' : 'rgba(255,255,255,0.04)',
                   border: recommended ? '1.5px solid rgba(41,151,255,0.6)' : '1px solid rgba(255,255,255,0.12)',
@@ -12275,12 +12306,12 @@ function UpgradeModal({
                   style={{
                     flexShrink: 0,
                     padding: '8px 14px',
-                    borderRadius: 10,
+                    borderRadius: 13,
                     fontSize: '0.8rem',
                     fontWeight: 900,
                     color: '#fff',
                     background: recommended
-                      ? 'linear-gradient(135deg, #2997ff, #2997ff)'
+                      ? '#2997ff'
                       : 'rgba(255,255,255,0.10)',
                   }}
                 >
@@ -12557,7 +12588,7 @@ function UrgencyModal({
         <p
           style={{
             fontSize: '0.92rem',
-            color: '#cbd5e1',
+            color: '#a1a1a8',
             lineHeight: 1.55,
             margin: 0,
             marginBottom: 22,
@@ -12576,7 +12607,7 @@ function UrgencyModal({
             border: 'none',
             background: loading
               ? 'rgba(41,151,255,0.5)'
-              : 'linear-gradient(135deg, #2997ff, #2997ff)',
+              : '#2997ff',
             color: '#fff',
             fontSize: '1rem',
             fontWeight: 900,

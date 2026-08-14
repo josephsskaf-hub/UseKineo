@@ -146,8 +146,8 @@ export default function VideoRatingAsk({
       className="relative rounded-2xl px-5 py-4 mt-6 w-full"
       style={{
         maxWidth: 480,
-        background: '#161618',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: '#131316',
+        border: '1px solid var(--border)',
       }}
     >
       {/* × explícito = "não quero responder": grava a flag terminal. */}
@@ -204,7 +204,7 @@ export default function VideoRatingAsk({
                     minHeight: 44,
                     fontSize: '1.6rem',
                     lineHeight: 1,
-                    color: lit ? '#f5b301' : '#3a3a3d',
+                    color: lit ? '#f0b429' : '#3a3a3d',
                     transition: 'color .12s ease, transform .12s ease',
                     transform: lit ? 'scale(1.06)' : 'none',
                   }}
@@ -241,7 +241,7 @@ export default function VideoRatingAsk({
               style={{
                 background: '#2997ff',
                 border: '1px solid #2997ff',
-                color: '#0b0b0d',
+                color: '#fff',
                 textDecoration: 'none',
               }}
             >

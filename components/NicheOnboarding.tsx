@@ -140,7 +140,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           maxWidth: 520,
           margin: 'auto',
           padding: 'clamp(22px, 5vw, 34px)',
-          borderRadius: 24,
+          borderRadius: 22,
           border: '1px solid #2a2a2d',
           background: '#131316',
           boxShadow: '0 24px 80px rgba(0,0,0,0.55)',
@@ -153,7 +153,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
         <h1 id="first-video-title" style={{ margin: '0 0 10px', color: '#f5f5f7', fontSize: 'clamp(1.55rem, 6vw, 2.15rem)', lineHeight: 1.1, letterSpacing: '-0.035em' }}>
           Start with one ready-to-make idea.
         </h1>
-        <p style={{ margin: '0 0 20px', color: '#a1a1a6', fontSize: '0.94rem', lineHeight: 1.55 }}>
+        <p style={{ margin: '0 0 20px', color: '#a1a1a8', fontSize: '0.94rem', lineHeight: 1.55 }}>
           Kineo builds the script, voiceover, footage and captions. <FreeTierCopy legacy="Free access includes up to 3 watermarked Fast videos every 24 hours, with no card." onKey="sentence" />
         </p>
 
@@ -161,7 +161,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           <div style={{ marginBottom: 7, color: '#f5f5f7', fontSize: '1.05rem', fontWeight: 850, lineHeight: 1.3 }}>
             {FIRST_VIDEO.topic}
           </div>
-          <div style={{ color: '#a1a1a6', fontSize: '0.82rem', fontStyle: 'italic', lineHeight: 1.45 }}>
+          <div style={{ color: '#a1a1a8', fontSize: '0.82rem', fontStyle: 'italic', lineHeight: 1.45 }}>
             “{FIRST_VIDEO.hook}”
           </div>
         </div>
@@ -213,7 +213,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
             border: 0,
             borderRadius: 999,
             background: 'transparent',
-            color: '#a1a1a6',
+            color: '#a1a1a8',
             cursor: 'pointer',
             fontSize: '0.9rem',
             fontWeight: 650,

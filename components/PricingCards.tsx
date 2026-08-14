@@ -484,12 +484,14 @@ function PlanCard({
   }
   function border(): string {
     if (isSelected) return '2px solid #2997ff'
-    if (highlight) return '2px solid #48484a'
+    // ONDA5 #10 (14/08) — o recomendado era cinza #48484a: nao parecia
+    // recomendado. Agora e a mesma linguagem do /pricing: borda azul + glow.
+    if (highlight) return '2px solid #2997ff'
     return '1px solid #2a2a2d'
   }
   function shadow(): string {
     if (isSelected) return '0 0 28px rgba(41,151,255,0.18)'
-    if (highlight) return 'none'
+    if (highlight) return '0 0 0 1px rgba(41,151,255,.35), 0 24px 60px -24px rgba(41,151,255,.5)'
     return 'none'
   }
 
@@ -534,8 +536,10 @@ function PlanCard({
     >
       {badge && !isSelected && (
         <div
-          className="absolute top-4 right-4 px-2.5 py-1 rounded-full text-xs font-black"
-          style={{ background: '#2997ff', color: '#fff' }}
+          // ONDA5 #10 (14/08) — pill flutuante no topo, igual ao /pricing
+          // (antes ficava DENTRO do card, canto direito).
+          className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-xs font-black whitespace-nowrap"
+          style={{ background: '#2997ff', color: '#fff', boxShadow: '0 6px 20px -6px rgba(41,151,255,.85)' }}
         >
           {badge}
         </div>

@@ -86,13 +86,13 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
     <div
       className="gv-card rounded-2xl p-5 mb-6"
       style={{
-        background: 'rgba(124,92,255,.06)',
-        border: '1px solid rgba(124,92,255,.25)',
+        background: 'rgba(41,151,255,.06)',
+        border: '1px solid rgba(41,151,255,.25)',
       }}
     >
       <div className="mb-1 flex items-center gap-2">
         <span style={{ fontSize: 18, lineHeight: 1 }}>🗓️</span>
-        <div className="font-black text-sm" style={{ color: '#b39dff' }}>
+        <div className="font-black text-sm" style={{ color: '#5cb3ff' }}>
           Your next 3 Shorts
         </div>
       </div>
@@ -161,8 +161,8 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
                 minHeight: 104,
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(124,92,255,.55)'
-                e.currentTarget.style.background = 'rgba(124,92,255,.10)'
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.55)'
+                e.currentTarget.style.background = 'rgba(41,151,255,.10)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = 'rgba(255,255,255,.10)'
@@ -174,8 +174,8 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
                   className="mb-2 inline-block rounded-full px-2 py-[3px] text-[9px] font-black uppercase"
                   style={{
                     letterSpacing: '.09em',
-                    background: 'rgba(124,92,255,.18)',
-                    color: '#b39dff',
+                    background: 'rgba(41,151,255,.18)',
+                    color: '#5cb3ff',
                   }}
                 >
                   {idea.angle}
