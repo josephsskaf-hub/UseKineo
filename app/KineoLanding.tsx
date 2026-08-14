@@ -73,13 +73,13 @@ html{scroll-behavior:smooth}
 /* O gradiente antigo comecava a apagar em 35% e terminava em #a1a1a6, o que
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
-.klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 64%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
-.klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
+.klp .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
-.klp .nav-links{display:flex;gap:32px;font-size:14px;color:var(--muted);font-weight:500}
+.klp .nav-links{display:flex;gap:26px;font-size:13.5px;color:var(--muted);font-weight:550}
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */
@@ -107,7 +107,7 @@ html{scroll-behavior:smooth}
    paleta — o unico tom solto do hero. Trocado pelo azul da marca, em duas
    camadas (uma quente e larga, uma fria e concentrada) para dar profundidade
    em vez de uma mancha chapada. */
-.klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 45%,rgba(41,151,255,.16),transparent 62%),radial-gradient(ellipse at 50% 30%,rgba(255,255,255,.06),transparent 58%);pointer-events:none}
+.klp .hero .glow{position:absolute;width:980px;height:600px;left:50%;top:-180px;transform:translateX(-50%);background:radial-gradient(ellipse at 50% 40%,rgba(41,151,255,.13),transparent 64%),radial-gradient(ellipse at 50% 26%,rgba(255,255,255,.05),transparent 60%);pointer-events:none}
 /* KINEO-HERO-FIRSTFOLD-2026-08-07 — 22px fixos viram clamp por altura de tela.
    A FONTE nao muda (o fundador aprovou a escala tipografica); so o respiro. */
 .klp .hero-center .sub{font-size:clamp(1.08rem,2.1vw,1.3rem);color:var(--muted);max-width:544px;margin:clamp(10px,1.5vh,22px) 0 0;line-height:1.52;letter-spacing:-.005em;text-wrap:balance}
@@ -133,19 +133,23 @@ html{scroll-behavior:smooth}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
+.klp #compare::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 .klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
-.klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:620;letter-spacing:-.03em;line-height:1.06;text-wrap:balance}
+.klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:600;letter-spacing:-.026em;line-height:1.08;text-wrap:balance;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
 .klp .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
 /* ONDA7: conector visual entre os passos — a sequencia vira um caminho, nao 3 caixas soltas. */
-@media(min-width:781px){.klp .step{position:relative}.klp .step:not(:last-child)::after{content:'→';position:absolute;top:50%;right:-17px;transform:translateY(-50%);color:var(--muted2);font-size:15px;pointer-events:none}}
+.klp .steps{counter-reset:kstep}
+.klp .step{position:relative;counter-increment:kstep;overflow:hidden}
+.klp .step::before{content:counter(kstep);position:absolute;right:14px;top:2px;font-size:112px;font-weight:700;line-height:1;color:rgba(255,255,255,.035);font-family:var(--font-display),var(--font-inter),'Inter',sans-serif;pointer-events:none}
+@media(min-width:781px){.klp .step:not(:last-child)::after{content:'→';position:absolute;top:50%;right:-17px;transform:translateY(-50%);color:var(--muted2);font-size:15px;pointer-events:none}}
 .klp .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .step:hover{border-color:rgba(41,151,255,.35);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
 /* "Step 1/2/3" era texto cinza solto de 14px, do mesmo peso do corpo — nao
    marcava sequencia nenhuma. Virou um selo numerado, que e o que a palavra
    "step" promete. Mesmo texto. */
 .klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--r-pill);font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
-.klp .step h3{margin-top:18px;font-size:1.32rem;font-weight:650;letter-spacing:-.022em;line-height:1.2}
+.klp .step h3{margin-top:18px;font-size:1.28rem;font-weight:600;letter-spacing:-.018em;line-height:1.22;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .step p{margin-top:11px;color:var(--muted);font-size:.99rem;line-height:1.62}
 .klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,var(--s3),var(--s0) 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-base) ease,box-shadow var(--dur-base) ease}
 .klp .vcard:hover,.klp .vcard:focus-visible,.klp .vcard:focus-within{border-color:rgba(41,151,255,.4);transform:translateY(-5px);box-shadow:var(--sh-card-h),0 0 0 1px rgba(41,151,255,.18)}
@@ -166,6 +170,7 @@ html{scroll-behavior:smooth}
 .klp .cmp thead th.us{color:var(--txt);border-top-left-radius:var(--r-sm);border-top-right-radius:var(--r-sm);box-shadow:inset 1px 1px 0 rgba(41,151,255,.3),inset -1px 0 0 rgba(41,151,255,.3)}
 .klp .cmp tbody tr:last-child td.us{border-bottom-left-radius:var(--r-sm);border-bottom-right-radius:var(--r-sm);box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px -1px 0 rgba(41,151,255,.22)}
 .klp .cmp td.us{color:var(--txt);font-weight:700}
+.klp .cmp tbody tr:nth-child(even) td{background:rgba(255,255,255,.012)}
 .klp .cmp tbody tr:hover td{background:rgba(255,255,255,.018)}
 .klp .cmp tbody tr:hover td:first-child{background:var(--s3)}
 .klp .cmp .no{color:var(--muted2)}
@@ -173,7 +178,7 @@ html{scroll-behavior:smooth}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 .klp .plan{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-4px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 18px 44px -18px rgba(41,151,255,.32)}
-.klp .plan.pop{background:linear-gradient(180deg,var(--s3) 0%,var(--card2) 100%);border-color:var(--line3);box-shadow:var(--sh-card-h)}
+.klp .plan.pop{background:linear-gradient(180deg,var(--s3) 0%,var(--card2) 100%);border-color:rgba(41,151,255,.55);box-shadow:0 0 0 1px rgba(41,151,255,.25),var(--sh-card-h)}
 .klp .plan.pop:hover,.klp .plan.pop:focus-visible,.klp .plan.pop:focus-within{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan{position:relative}
 .klp .plan .pt{font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
@@ -183,9 +188,9 @@ html{scroll-behavior:smooth}
    Mesmo texto, so reposicionado. */
 .klp .plan.pop{padding-top:40px}
 .klp .plan.pop .pt{position:absolute;top:-12px;left:50%;transform:translateX(-50%);white-space:nowrap;color:#fff;background:var(--blue);border-radius:var(--r-pill);padding:6px 15px;font-size:10.5px;letter-spacing:.1em;box-shadow:0 6px 20px -6px rgba(41,151,255,.85)}
-.klp .plan .nm{margin-top:12px;font-size:1.34rem;font-weight:650;letter-spacing:-.018em}
+.klp .plan .nm{margin-top:12px;font-size:1.34rem;font-weight:600;letter-spacing:-.014em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .plan.pop .nm{margin-top:0}
-.klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:720;letter-spacing:-.035em;line-height:1}
+.klp .plan .pr{margin-top:8px;font-size:2.75rem;font-weight:600;letter-spacing:-.03em;line-height:1;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .plan .pr span{font-size:1rem;font-weight:500;color:var(--muted);letter-spacing:0}
 .klp .plan .pr-then{margin-top:7px;font-size:.85rem;font-weight:550;color:var(--muted2)}
 /* Linha fina separando "quanto custa" de "o que vem" — antes as duas
@@ -198,8 +203,9 @@ html{scroll-behavior:smooth}
 .klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
 .klp .snote b{color:var(--txt);font-weight:650}
 .klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
+.klp .final::before{content:'';position:absolute;inset:-40px;background:url('/videos/example-turkmenistan.webp') center 30%/cover no-repeat;opacity:.07;filter:blur(26px) saturate(1.2);pointer-events:none}
 .klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
-.klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em}
+.klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.024em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
 .klp .final .fcta{display:flex;justify-content:center;margin-top:30px}
 .klp .taaft-badge{margin:0 auto 18px;opacity:.8;line-height:0}
@@ -212,13 +218,13 @@ html{scroll-behavior:smooth}
    "clipart", nao como produto. Agora sao 8 SVGs inline no MESMO grid de
    24x24, mesma espessura de traco (1.6), todos herdando currentColor, dentro
    de uma placa de 46px identica. Sem biblioteca, sem fonte, sem dependencia. */
-.klp .tico{width:46px;height:46px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--blue);background:linear-gradient(180deg,rgba(41,151,255,.14),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);flex:none;transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
+.klp .tico{width:52px;height:52px;border-radius:var(--r-sm);display:grid;place-items:center;color:var(--blue);background:linear-gradient(180deg,rgba(41,151,255,.14),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);flex:none;transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .tcard:hover .tico,.klp .tcard:focus-within .tico{transform:translateY(-1px) scale(1.04);border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px -8px rgba(41,151,255,.6)}
 .klp .tico svg{display:block}
 .klp .tools{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .klp .tcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:26px 22px;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease;display:flex;flex-direction:column;gap:6px}
 .klp .tcard:hover,.klp .tcard:focus-visible,.klp .tcard:focus-within{border-color:rgba(41,151,255,.38);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
-.klp .tcard h3{font-size:1.06rem;font-weight:650;letter-spacing:-.015em;margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.klp .tcard h3{font-size:1.06rem;font-weight:650;letter-spacing:-.015em;margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif;font-weight:600}
 .klp .tcard p{font-size:.93rem;color:var(--muted);line-height:1.58;margin-top:6px}
 .klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap var(--dur-fast) ease}
 .klp .tcard:hover .tlink{gap:9px}
@@ -311,7 +317,7 @@ html{scroll-behavior:smooth}
    largura interna do .wrap, então nada estoura na horizontal) e o h1 recebe a
    medida de leitura antiga de volta, já que é ele quem precisava dela. */
 .klp .hero-center{position:relative;z-index:1;text-align:center;max-width:1024px;margin:0 auto}
-.klp .hero-center h1{margin:0 auto;max-width:780px;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance}
+.klp .hero-center h1{margin:0 auto;max-width:780px;font-size:clamp(3.1rem,7.6vw,6rem);font-weight:640;line-height:.99;letter-spacing:-.045em;text-wrap:balance;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif;font-weight:600;letter-spacing:-.028em}
 .klp .hero-center .sub{margin-left:auto;margin-right:auto}
 @media(max-width:780px){.klp .hero-center h1{font-size:clamp(2.35rem,8.4vw,3.7rem);line-height:1.02;letter-spacing:-.038em}.klp .hero-center .sub{font-size:1.06rem;max-width:38ch}}
 /* KINEO-HERO-FIRSTFOLD-2026-08-07 — 44px fixos entre o subtitulo e a caixa.
@@ -380,9 +386,9 @@ html{scroll-behavior:smooth}
 /* ONDA6 (14/08): 12 cards sempre abertos em coluna unica eram ~1400px de cinza identico — 2 colunas cortam a altura pela metade sem tocar em texto. */
 @media(min-width:900px){.klp .faq{max-width:960px;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 .klp .qa{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:24px 26px;box-shadow:var(--sh-card);transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
-.klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2);box-shadow:var(--sh-card-h)}
+.klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:rgba(41,151,255,.3);box-shadow:var(--sh-card-h)}
 .klp .qa h3{font-size:1.04rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
-.klp .qa p{margin-top:9px;color:var(--muted);font-size:.99rem;line-height:1.62}
+.klp .qa p{margin-top:10px;color:var(--muted);font-size:.96rem;line-height:1.65}
 /* MOBILE DO HERO — o publico chega no celular e o produto e vertical.
    O h1 ganha a maior parte do ganho: menos padding morto em cima, tracking
    mais fechado no tamanho grande, e a .sub travada em medida de leitura. */
@@ -685,7 +691,12 @@ export default function KineoLanding({ initialUser }: Props) {
               Os três links internos continuam todos aqui — são distribuição
               orgânica, não enfeite. */}
           <p className="gallery-cap">Real Kineo exports, not mockups — each one started from a single topic.<span style={{ display: 'block', marginTop: 8 }}><Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/niche-picker" className="link">Find your faceless niche →</Link></span></p>
-          <div className="platforms">Built for <b>YouTube Shorts</b> · <b>TikTok</b> · <b>Reels</b></div>
+          <div className="platforms" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <span style={{ opacity: .75 }}>Built for</span>
+            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.9 4.8 12 4.8 12 4.8s-5.9 0-7.6.4a2.8 2.8 0 0 0-2 2A29 29 0 0 0 2 12a29 29 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.7.4 7.6.4 7.6.4s5.9 0 7.6-.4a2.8 2.8 0 0 0 2-2A29 29 0 0 0 22 12a29 29 0 0 0-.4-4.8zM9.8 15.3V8.7L15.9 12l-6.1 3.3z"/></svg>YouTube Shorts</b>
+            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.3 7.3a5.6 5.6 0 0 1-3.4-1.1A5.6 5.6 0 0 1 13.7 2h-3.2v13.7a3.3 3.3 0 1 1-2.3-3.1V9.3a6.5 6.5 0 1 0 4.7 6.2V8.9a8.7 8.7 0 0 0 4.6 1.3h1.6V7.3h-.8z"/></svg>TikTok</b>
+            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>Reels</b>
+          </div>
         </div>
       </header>
 
