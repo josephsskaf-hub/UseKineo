@@ -520,9 +520,14 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
     playbackUrl,
     posterUrl: row.thumbnail_url || row.thumb_url || null,
     pageUrl: `${PUBLIC_BASE_URL}/v/${row.id}`,
-    // No row has a stored thumbnail, so the generated OG card is the thumbnail.
-    // Verified live: 200 / image/png / 1200x630 (Google requires ≥160x90).
-    thumbnailUrl: `${PUBLIC_BASE_URL}/v/${row.id}/opengraph-image`,
+    // ONDA4 #8 (14/08) — o comentario antigo dizia "no row has a stored
+    // thumbnail", mas lib/renderAssets.ts persiste um JPG real do frame desde
+    // entao. O preview do WhatsApp agora usa o FRAME DO VIDEO quando existe;
+    // o card OG gerado (200 / image/png / 1200x630) vira o fallback.
+    thumbnailUrl:
+      (row.thumbnail_url ?? '').toString().trim() ||
+      (row.thumb_url ?? '').toString().trim() ||
+      `${PUBLIC_BASE_URL}/v/${row.id}/opengraph-image`,
     paragraphs,
     transcript,
     isStructuredScript: hasViralMarkers((row.topic ?? '').toString()),
@@ -541,8 +546,11 @@ export function toPublicVideo(row: PublicVideoRow): PublicVideo {
 
 /** A short, unique meta description built from the page's own prose. */
 export function metaDescriptionFor(v: PublicVideo): string {
+  // ONDA4 #10 (14/08) — mesmo filtro do titulo: se o transcript comeca com a
+  // INSTRUCAO do gerador ("Create a viral YouTube Shorts video…"), isso nao
+  // pode virar a descricao do preview no WhatsApp.
   const body = v.transcript.trim()
-  if (body.length >= 80) {
+  if (body.length >= 80 && !META_INSTRUCTION.test(body.slice(0, 160))) {
     const cut = body.slice(0, 155)
     return (cut.length < body.length ? cut.replace(/\s+\S*$/, '') + '…' : cut)
   }

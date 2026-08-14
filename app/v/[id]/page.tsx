@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import PublicVideoCtaLink from '@/components/PublicVideoCtaLink'
+import ShareVideoButton from './ShareVideoButton'
 import {
   getPublicVideoResult,
   metaDescriptionFor,
@@ -55,7 +56,15 @@ function signupHrefFor(v: PublicVideo | null): string {
   // Remix the idea, not the entire stored script: seeding the whole script
   // would create a duplicate instead of a fresh episode.
   const prompt = v ? v.title.trim().slice(0, 160) : ''
-  if (prompt) query.set('prompt', prompt)
+  if (prompt) {
+    query.set('prompt', prompt)
+    // ONDA4 #1 (14/08) — com create_intent=fast o signup empurra o visitante
+    // DIRETO para a geracao com o topico semeado (mesmo caminho rapido do CTA
+    // secundario). Sem isso, o botao mais clicado da pagina caia num signup
+    // generico.
+    query.set('create_intent', 'fast')
+  }
+  query.set('intent_campaign', 'public_video_remix')
   return `/signup?${query.toString()}`
 }
 
@@ -81,7 +90,14 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title,
       description: desc,
-      videos: v?.playbackUrl ? [{ url: v.playbackUrl }] : undefined,
+      // ONDA4 #11/#12 (14/08) — Next SUBSTITUI (nao mescla) o openGraph do
+      // root layout: sem siteName/url aqui o card sai sem a marca. E sem
+      // type/width/height no video, Telegram/X nao montam o player inline.
+      siteName: 'Kineo',
+      url: `/v/${params.id}`,
+      videos: v?.playbackUrl
+        ? [{ url: v.playbackUrl, type: 'video/mp4', width: 1080, height: 1920 }]
+        : undefined,
       type: 'video.other',
     },
     twitter: { card: 'summary_large_image', title, description: desc },
@@ -169,8 +185,8 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         minHeight: '100vh',
         background: '#000',
         color: '#f5f5f7',
-        padding: '24px 16px 56px',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
+        padding: '24px 16px 120px',
+        fontFamily: 'var(--font-inter), system-ui, -apple-system, sans-serif',
       }}
     >
       {v?.isIndexable && (
@@ -219,11 +235,17 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         </p>
 
         <div style={{ maxWidth: 380 }}>
+          {/* ONDA4 #17 (14/08) — quem vem de link social espera reproducao
+              imediata: autoplay mudo em loop, controles na mao para o som.
+              preload continua metadata: o peso so desce quando visivel. */}
           {ready ? (
             <video
               src={v!.playbackUrl!}
               poster={v!.posterUrl ?? undefined}
               controls
+              autoPlay
+              muted
+              loop
               playsInline
               preload="metadata"
               style={{
@@ -249,9 +271,29 @@ export default async function PublicVideoPage({ params }: { params: { id: string
                 textAlign: 'center',
                 padding: 20,
                 color: MUTED,
+                flexDirection: 'column',
+                gap: 14,
               }}
             >
-              This video isn&apos;t available right now.
+              {/* ONDA4 #7 (14/08) — ~10% dos links caem aqui (URL expirada).
+                  O beco sem saida agora tem a unica porta que importa. */}
+              <span>This preview expired.</span>
+              <PublicVideoCtaLink
+                href={signupHref}
+                videoId={params.id}
+                style={{
+                  display: 'inline-block',
+                  background: BLUE,
+                  color: '#000',
+                  fontWeight: 900,
+                  padding: '11px 20px',
+                  borderRadius: 12,
+                  textDecoration: 'none',
+                  fontSize: '0.9rem',
+                }}
+              >
+                Make yours — free →
+              </PublicVideoCtaLink>
             </div>
           )}
         </div>
@@ -265,9 +307,14 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             border: '1px solid rgba(41,151,255,0.3)',
           }}
         >
-          <p style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>Made in a few minutes with AI 🤯</p>
+          {/* ONDA4 #3 (14/08) — o pitch implicito vira explicito: sem camera,
+              sem edicao, minutos. E o convite e "voce tambem consegue". */}
+          <p style={{ margin: 0, fontWeight: 800, fontSize: '1rem' }}>
+            No camera. No editing. Made with AI in minutes.
+          </p>
           <p style={{ margin: '6px 0 14px', color: '#CBD5E1', fontSize: '0.9rem', lineHeight: 1.5 }}>
-            Use this idea as your starting point. {ft(OFFER, 'Create, share and download up to 3 watermarked Fast videos every 24 hours — upgrade only when you want a clean export.', OFFER.copy.headline + ' Upgrade only when you want more.')}
+            This Short was generated from a single topic — script, voiceover, captions and footage.{' '}
+            {ft(OFFER, 'Create, share and download up to 3 watermarked Fast videos every 24 hours — upgrade only when you want a clean export.', OFFER.copy.headline + ' Upgrade only when you want more.')}
           </p>
           <PublicVideoCtaLink
             href={signupHref}
@@ -285,6 +332,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           >
             Make one like this →
           </PublicVideoCtaLink>
+          <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
         </div>
 
         {v && v.paragraphs.length > 0 && (
@@ -457,6 +505,45 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             </li>
           </ul>
         </section>
+      </div>
+
+      {/* ONDA4 #2 (14/08) — no mobile o CTA nascia fora da tela (player 9:16
+          empurra tudo para baixo). Barra fixa: a porta de entrada acompanha o
+          visitante a pagina inteira. */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 40,
+          padding: '10px 14px calc(10px + env(safe-area-inset-bottom))',
+          background: 'rgba(0,0,0,0.82)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          borderTop: '1px solid rgba(41,151,255,0.25)',
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <PublicVideoCtaLink
+          href={signupHref}
+          videoId={params.id}
+          style={{
+            display: 'block',
+            width: 'min(420px, 100%)',
+            textAlign: 'center',
+            background: BLUE,
+            color: '#000',
+            fontWeight: 900,
+            padding: '13px 26px',
+            borderRadius: 999,
+            textDecoration: 'none',
+            fontSize: '1rem',
+          }}
+        >
+          Make one like this — free →
+        </PublicVideoCtaLink>
       </div>
     </main>
   )

@@ -25,6 +25,9 @@ const HIDDEN_PATHS = [
   '/auth',
   '/checkout/success',
   '/checkout/cancelled',
+  // ONDA4 #16 (14/08) — /v/[id] e pagina de aquisicao para anonimo em 4G:
+  // nada de fetch de resume nem banner de compra la.
+  '/v',
 ]
 
 function shouldHide(pathname: string): boolean {

@@ -42,6 +42,10 @@ import { clearStalledCheckout, useStalledCheckout, type StalledCheckoutKind } fr
 
 export default function CheckoutStalledCta() {
   const stalled = useStalledCheckout()
+  // ONDA4 #16 (14/08) — mesmo racional do CheckoutResumeBanner: /v/[id] e
+  // superficie de aquisicao anonima, nao de resgate de checkout.
+  const onPublicVideoPage =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/v/')
   const shownKeyRef = useRef<string | null>(null)
   // Tipo do link NO MOMENTO DA IMPRESSÃO. Sem ele, um card impresso como
   // `server_retry` e promovido a `stripe_direct` antes do clique daria 1
@@ -78,7 +82,7 @@ export default function CheckoutStalledCta() {
     }
   }, [stalled])
 
-  if (!stalled) return null
+  if (!stalled || onPublicVideoPage) return null
 
   const detail = stalled.planLabel && stalled.priceLabel
     ? `${stalled.planLabel} · first charge ${stalled.priceLabel}. You have not been charged yet.`
