@@ -92,7 +92,7 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
     >
       <div className="mb-1 flex items-center gap-2">
         <span style={{ fontSize: 18, lineHeight: 1 }}>🗓️</span>
-        <div className="font-black text-sm" style={{ color: '#5cb3ff' }}>
+        <div className="text-sm" style={{ color: '#5cb3ff', fontWeight: 700 }}>
           Your next 3 Shorts
         </div>
       </div>

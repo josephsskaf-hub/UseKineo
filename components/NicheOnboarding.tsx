@@ -174,12 +174,13 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
             minHeight: 52,
             padding: '14px 18px',
             border: 0,
-            borderRadius: 999,
-            background: '#f5f5f7',
-            color: '#000',
+            borderRadius: 13,
+            background: '#2997ff',
+            color: '#fff',
             cursor: 'pointer',
             fontSize: '0.98rem',
-            fontWeight: 900,
+            fontWeight: 800,
+            boxShadow: '0 10px 34px rgba(41,151,255,.45)',
           }}
         >
           {/* KINEO-PRELAUNCH-PATH-2026-08-08 — este e o PRIMEIRO botao que uma

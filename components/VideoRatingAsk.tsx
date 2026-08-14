@@ -177,7 +177,7 @@ export default function VideoRatingAsk({
 
       {rating === null && (
         <>
-          <div className="text-sm font-black" style={{ color: '#f5f5f7', paddingRight: 24 }}>
+          <div className="text-sm font-bold" style={{ color: '#f5f5f7', paddingRight: 24 }}>
             How did this Short turn out?
           </div>
           <p className="text-xs mt-1" style={{ color: '#86868b', lineHeight: 1.5 }}>
@@ -223,7 +223,7 @@ export default function VideoRatingAsk({
           que prova (ou mata) esta mudança. */}
       {happy && (
         <>
-          <div className="text-sm font-black" style={{ color: '#f5f5f7', paddingRight: 24 }}>
+          <div className="text-sm font-bold" style={{ color: '#f5f5f7', paddingRight: 24 }}>
             Thank you — that helps.
           </div>
           <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>
@@ -255,7 +255,7 @@ export default function VideoRatingAsk({
           volta daqui é o diagnóstico de gerar→baixar que a empresa nunca teve. */}
       {rating !== null && rating <= 3 && (
         <>
-          <div className="text-sm font-black" style={{ color: '#f5f5f7', paddingRight: 24 }}>
+          <div className="text-sm font-bold" style={{ color: '#f5f5f7', paddingRight: 24 }}>
             {reasonSent ? 'Got it — thank you.' : 'What let it down?'}
           </div>
           <p className="text-xs mt-1.5" style={{ color: '#86868b', lineHeight: 1.55 }}>

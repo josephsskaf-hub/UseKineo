@@ -1527,7 +1527,7 @@ export default function GenerateClient({
   }, [])
 
   // While the resume card is visible: tick the elapsed label every second and
-  // re-probe every 10s so the card flips to "Your video is ready 🎉" by itself
+  // re-probe every 10s so the card flips to "Your video is ready" by itself
   // the moment the render lands — the user is never left blind again.
   useEffect(() => {
     if (isProcessingPhase(phase) || phase === 'done' || phase === 'failed') return
@@ -7022,7 +7022,7 @@ export default function GenerateClient({
       case 'composing':
         return 'Rendering final video…'
       case 'done':
-        return '✅ Your Short is ready'
+        return 'Your Short is ready'
       case 'failed':
         return 'Generation failed'
       default:
@@ -7073,11 +7073,12 @@ export default function GenerateClient({
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
     // and ONE accent color — every legacy green/navy token was swapped for the
     // brand blue so the page reads like the homepage.
-    <main className="px-4 sm:px-6 lg:px-10 py-10 max-w-5xl mx-auto">
+    <main className="px-4 sm:px-6 lg:px-10 py-10 max-w-5xl mx-auto relative">
       <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .gv-card { animation: fadeUp 0.35s ease both; }
+        main::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 320px; background: radial-gradient(60% 100% at 50% 0%, rgba(41,151,255,.06), transparent); pointer-events: none; }
       `}</style>
       {/* KINEO-HIGGSFIELD-20D dias 6-7 (13/08) — regra Higgsfield: nunca
           spinner, sempre a forma do que vem; e o momento de maior dopamina
@@ -7150,9 +7151,28 @@ export default function GenerateClient({
               >
                 {showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
               </span>
+              {/* R4 (14/08): stepper — a posicao no fluxo vira 4 segmentos
+                  visiveis, nao so um rotulo de texto. */}
+              <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
+                {[0, 1, 2, 3].map((i) => {
+                  const idx = showStep1 ? 0 : showScriptPreview ? 1 : (showBrollPlanning || showVisualDirector || showStep2) ? 2 : 3
+                  return (
+                    <span
+                      key={i}
+                      style={{
+                        width: i === idx ? 18 : 8,
+                        height: 4,
+                        borderRadius: 999,
+                        background: i <= idx ? '#2997ff' : 'rgba(255,255,255,.12)',
+                        transition: 'all 250ms cubic-bezier(.2,0,0,1)',
+                      }}
+                    />
+                  )
+                })}
+              </span>
             </div>
-            <h1 className="font-black text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text)' }}>
-              {showStep1 ? 'Create your Short' : showScriptPreview ? '✍️ Your Script is Ready' : showBrollPlanning ? '🎬 Planning Visuals…' : showVisualDirector ? '🎬 Visual Director' : '🎬 Generate a Real AI Short'}
+            <h1 className="font-black text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text)', fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600, letterSpacing: '-.02em' }}>
+              {showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
               {showStep1 && 'One idea in. A ready-to-post Short out — usually in 3–7 minutes.'}
@@ -7266,7 +7286,7 @@ export default function GenerateClient({
         >
           <div>
             <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>
-              🎉 Your video is ready{serverActiveRender.title ? ` — ${serverActiveRender.title}` : ''}
+              Your video is ready{serverActiveRender.title ? ` — ${serverActiveRender.title}` : ''}
             </div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
               It finished rendering while you were away and is saved in My Videos.
@@ -7911,7 +7931,7 @@ export default function GenerateClient({
                 }}
               >
                 <div className="text-sm font-bold" style={{ color: scriptMode === 'verbatim' ? '#5cb3ff' : 'var(--text)' }}>
-                  📝 Use my script as is
+                  Use my script as is
                 </div>
                 <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
                   Your words, narrated exactly as written. No rewrites.
@@ -7924,7 +7944,7 @@ export default function GenerateClient({
               blank-page freeze. Tapping one fills the textarea above. */}
           <div className="mt-3">
             <div className="text-xs font-semibold mb-2" style={{ color: 'var(--muted2)' }}>
-              ✨ Need a spark? Tap one
+              Need a spark? Tap one
             </div>
             <div className="flex flex-wrap gap-2">
               {/* #383e — prefer fresh cron trends for this niche; fall back to the
@@ -8627,7 +8647,7 @@ export default function GenerateClient({
                     className="text-xs font-black uppercase tracking-widest cursor-pointer"
                     style={{ color: 'var(--muted2)' }}
                   >
-                    🎬 Scene prompts
+                    Scene prompts
                   </summary>
                   <ol
                     className="mt-2 text-xs space-y-1.5"
@@ -8720,7 +8740,7 @@ export default function GenerateClient({
                     style={{ strokeDasharray: 24, animation: 'gvCheck 400ms 200ms cubic-bezier(.16,1,.3,1) both' }}
                   />
                 </svg>
-                <h2 className="font-black tracking-tight" style={{ fontSize: '1.5rem', color: 'var(--text)', lineHeight: 1.2 }}>
+                <h2 className="tracking-tight" style={{ fontSize: '1.5rem', color: 'var(--text)', lineHeight: 1.2, fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600 }}>
                   Your video is ready
                 </h2>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
@@ -11343,7 +11363,7 @@ function ProgressBar({ progress }: { progress: number }) {
         style={{
           width: `${Math.min(100, Math.max(0, progress))}%`,
           background: 'linear-gradient(90deg, rgba(41,151,255,.85), rgba(41,151,255,1))',
-          transition: 'width 600ms ease',
+          transition: 'width 400ms cubic-bezier(.2,0,0,1)',
         }}
       />
     </div>
@@ -11380,13 +11400,13 @@ function RenderHeader({ progress, message }: { progress: number; message: string
             strokeWidth="5"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${gap}`}
-            style={{ transition: 'stroke-dasharray 700ms ease' }}
+            style={{ transition: 'stroke-dasharray 500ms cubic-bezier(.2,0,0,1)' }}
           />
         </svg>
         <div style={{
           position: 'absolute', inset: 0, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 800, color: '#5cb3ff',
+          fontSize: 13, fontWeight: 700, color: '#5cb3ff', fontFamily: 'var(--font-display), var(--font-inter), sans-serif',
         }}>
           {pct}%
         </div>
@@ -11395,7 +11415,7 @@ function RenderHeader({ progress, message }: { progress: number; message: string
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Dia 6 (13/08): key={message} remonta o div quando o texto muda —
             cada etapa entra em fadeUp em vez de trocar num corte seco. */}
-        <div key={message} className="gv-status" style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text)', marginBottom: 4, lineHeight: 1.3 }}>
+        <div key={message} className="gv-status" style={{ fontSize: '0.95rem', fontWeight: 650, color: 'var(--text)', marginBottom: 4, lineHeight: 1.3, letterSpacing: '-.01em' }}>
           {message}
         </div>
         <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -12027,16 +12047,16 @@ function FastPipelineStages({ step, phase, startedAt }: { step: number; phase: P
               width: 22,
               height: 22,
               borderRadius: '50%',
-              background: 'transparent',
-              border: '2px solid rgba(92,179,255,.55)',
-              borderTopColor: '#5cb3ff',
-              animation: 'spin 0.9s linear infinite',
+              background: 'rgba(41,151,255,.14)',
+              border: '1px solid rgba(92,179,255,.5)',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
-          />
+          >
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#5cb3ff', animation: 'pulse 1.4s ease-in-out infinite' }} />
+          </span>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div className="text-sm font-bold" style={{ color: '#5cb3ff', lineHeight: 1.2 }}>
               Rendering — this usually takes 3-7 minutes
@@ -12705,11 +12725,11 @@ function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialL
   return (
     <div
       role="status"
-      className="rounded-xl px-4 py-3 mb-6 flex items-center gap-3"
+      className="rounded-[18px] px-4 py-3 mb-6 flex items-center gap-3"
       style={{
         background: 'rgba(41,151,255,0.10)',
         border: '1px solid rgba(41,151,255,0.35)',
-        color: '#5cb3ff',
+        color: 'var(--text)',
       }}
     >
       <span style={{ flex: 1, fontSize: '0.9rem', fontWeight: 700, lineHeight: 1.4 }}>
