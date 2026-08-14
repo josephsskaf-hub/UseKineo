@@ -1,7 +1,41 @@
-# GATE 14/08 (sprint 16h) — DOIS ITENS DA FILA ESTAO VENCIDOS, E UM TERCEIRO MUDOU DE TAMANHO
+# GATE 14/08 (sprint 19h) — O CULPADO DOS 23% ESTAVA ERRADO, E TRES LOOPS IRMAOS SEGUEM INFINITOS
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
-*(script desta sprint: `scripts\76-PUSH.bat`; contagem real: `git log origin/main..main`)*
+*(script desta sprint: `scripts\77-PUSH.bat`; contagem real: `git log origin/main..main`)*
+
+## 🟡 TRES LOOPS DE POLLING SEGUEM SEM PRAZO (a sprint das 19h consertou so um)
+
+`generating` (2753), `avatar_polling` (3002) e `composing` (3860) em
+`GenerateClient.tsx` tem o defeito IDENTICO ao que `0ab61e3` corrigiu em
+`fal_polling`: gastam o orcamento de `MAX_TRANSIENT_POLL_ERRORS`, gravam UM
+evento e continuam reagendando para sempre. O defeito esta auto-documentado no
+comentario PUSH #96 de cada um deles — um dos comentarios ate diz que `composing`
+tem "21 all-time contra done 19, e nenhum dos dois que faltam produziu
+generate_failed". Nao foram tocados de proposito (uma variavel por vez).
+
+## 🟡 A CALCULADORA DE CUSTO ESTA NA PAGINA ERRADA
+
+As DUAS unicas conversoes medidas de `/cheapest-ai-shorts-maker` (as duas
+terminaram em video gerado) vieram de gente **ja logada, chegando de `/pricing`
+por link interno** — nao da busca. A pagina esta funcionando como resposta a
+objecao de PRECO no checkout, e nao como landing de SEO. Levar a calculadora para
+perto do checkout e a entrega que isso pede.
+
+## 🟡 O SWEEP GUARDA OS `fal_request_ids` E NUNCA OS USA
+
+O claim guarda os ids do fal, mas `sweepAbandonedCinematicDebits` so ESTORNA —
+nunca tenta RECUPERAR o render. Recuperar entregaria o VIDEO em vez de devolver o
+credito, o que e estritamente melhor para conversao: hoje o melhor desfecho
+possivel de um render travado e a pessoa nao perder dinheiro, quando podia ser a
+pessoa receber o que veio buscar.
+
+## ⚠️ CORRECAO AO GATE DE ONTEM: `analyze_threw` NAO E A FALHA VIVA DO MOTOR DE 20cr
+
+O gate da sprint das 16h aponta `analyze_threw` como a falha viva por tras dos
+23%. **Nao e, e a refutacao e de uma linha: `analyze` roda ANTES de qualquer
+debito, entao nao pode explicar UM estorno.** Os 7 estornos de 11–14/08 sao 7 de
+7 por abandono (cron), 185–230 min depois. `analyze_threw` continua sendo um
+ponto cego real de instrumentacao — mas de OUTRA coisa.
 
 ## 🔴 REMOVER O `/api/render/[id]` DO PROMPT-MESTRE — CUSTA UMA SPRINT POR DIA
 
