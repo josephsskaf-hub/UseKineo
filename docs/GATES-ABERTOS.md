@@ -1,3 +1,62 @@
+# GATE 14/08 (sprint 10h) — O PRAZO DAS 16:30Z ESTA COBERTO
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
+Contagem de commits de proposito NAO escrita aqui (numero fixo envelhece entre
+escrever e clicar — licao do `74-PUSH`): `git log origin/main..HEAD --oneline`.
+
+✅ **O prazo de 14/08 16:30Z do gate anterior NAO corre mais risco.** Medido no
+painel da Vercel nesta sprint: producao esta em `2499311` (deploy READY, ~09:22Z
+de hoje), que ja **contem** a correcao da letra miuda do `/pricing` (sprint 19h de
+13/08). Quem receber o COMEBACK50 hoje abre uma pagina que concorda com o e-mail.
+O que segue represado e o trabalho de HOJE, que nao tem prazo externo.
+
+## 🔴 O FUSIVEL DA SEMANA E A OPENAI — E DINHEIRO E MAO DO FUNDADOR
+
+| fornecedor | saldo | auto-recarga | folga | zera |
+|---|---:|---|---:|---|
+| **OpenAI** | **US$3,07** | **OFF** | **1,6 dia** | 15–16/08 |
+| **fal.ai** | US$36,61 | **OFF** | 3,0 dias | ~17/08 |
+
+A OpenAI esta no estagio `scripting` de **TODO** video: saldo zero = produto
+parado inteiro. E a MESMA configuracao do incidente de 31/07 (116 falhas).
+
+**Acao do fundador (nao fiz, nao posso):** OpenAI US$50 + **ligar auto-reload**;
+fal.ai US$200 ou **ligar auto top-up** (gatilho $50 / recarga $100).
+
+**O que a engenharia ja fez para o apagao nao virar incidente de confianca**
+(`KINEO-OPENAI-429-BLINDSPOT-2026-08-14`, nesta sprint): todo 429 agora e tratado
+como capacidade e mostra a frase honesta em vez de *"Failed to plan scenes. Please
+try a different prompt."* — a copy que culpava o usuario e gerou 5+ tentativas
+cegas por pessoa em 31/07, cada uma outra chamada contra a conta que ja estava
+morrendo. As 3 rotas que chamam `generateScenes` (incluindo a legada
+`/api/generate-video`, que era 100% cega) passaram a alertar e a gravar evento; o
+alerta ao fundador ganhou um `kind: 'rate_limit'` proprio para nunca dizer "sem
+creditos" sobre um rate limit.
+
+**Ligar as duas auto-recargas aposenta a classe inteira de falha** dos 3
+incidentes (31/07 OpenAI, 09/08 Creatomate, agora). Os US$250 nao sao gasto novo:
+e o mesmo dinheiro, pago antes do apagao em vez de depois.
+
+## 🟡 O TRAFEGO DE SEO EXISTE E NAO ENCONTRA O PRODUTO
+
+Medido nesta sprint, 30 dias, por pagina de ENTRADA: **847 sessoes de SEO → 16
+videos (1,9%)**, contra **15,4%** de quem entra pela home. Somando examples e
+compartilhamentos `/v/`, sao **1.243 sessoes que produziram 19 videos**.
+
+A causa nao e copy: e **ausencia de porta**. `/how-much-do-youtube-shorts-pay`
+nao tinha NENHUM link para signup ou generate em 442 linhas, e o bloco "Keep
+going" mandava o leitor para outras 4 paginas de SEO que linkam entre si — um
+circuito fechado. `/state-of-ai-shorts-2026` tinha CTA, e ele apontava para outra
+pagina de SEO, sem evento nenhum. As duas ja foram corrigidas.
+
+**Conferir depois do push:** `organic_cta_clicked` com `source` em
+`seo_shorts_pay` e `seo_state_of_ai_shorts`. Se repetirem o padrao do
+`/free-script-generator` (6 cliques em 9 sessoes, a melhor pagina da casa), a
+porta vai para as ~45 paginas restantes de uma vez — e isso vale mais que
+qualquer pagina nova.
+
+---
+
 # GATE 13/08 (sprint 21h — a última do dia) — O PUSH AGORA TEM PRAZO: 14/08 16:30Z
 
 `origin/main` = **`f0f63c7`** (medido por `git ls-remote` na hora, não herdado de

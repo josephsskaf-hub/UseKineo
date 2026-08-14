@@ -1613,3 +1613,77 @@ Com o index limpo o mesmo comando respondeu `84 0`, que e a verdade. O `.git/ind
 travado desde 08/08 nao descreve mais nada: qualquer numero que saia dele —
 adicao, delecao ou rastreamento — precisa ser confirmado contra a ARVORE ou
 contra um index recem-lido.
+
+## Aprendizados — sprint 10h de 14/08/2026 (KINEO-OPENAI-429-BLINDSPOT / KINEO-SEO-SEM-PORTA)
+
+### 1. CONTAR EVENTOS QUANDO A PERGUNTA É SOBRE PESSOAS INVERTE O SINAL
+A primeira leitura de download desta sprint foi: "70% das tentativas falham, a
+regressao comecou em 11/08". Os dois numeros vinham de `count(*)` sobre
+`video_download_failed`. Reagrupando por `(pessoa, video)` a perda virou ~40% e
+a "regressao" sumiu: UMA pessoa, as 08:53, gerou 10 dos eventos do dia no MESMO
+video — 4 falhas, 5 popups barrados e 2 links manuais, tudo para um arquivo so.
+Quem espera um download lento **toca de novo**, e retentativa impaciente e o
+comportamento esperado, nao um caso extra. **Toda metrica de sofrimento
+(falha, erro, retry, bloqueio) precisa de `count(distinct pessoa)` ou de um
+`group by` que colapse a sessao — o `count(*)` mede a IMPACIENCIA, nao o
+alcance.** E a impaciencia e maior justamente onde o produto esta pior, entao o
+erro sempre exagera no ponto que mais chama atencao.
+
+### 2. ALARGAR UM DETECTOR MUDA DUAS AUDIENCIAS, E ELAS QUEREM COISAS OPOSTAS
+`looksOpenAiQuotaDead` passou a aceitar todo 429 — decisao certa para o USUARIO
+(rate limit e saldo zero sao a mesma coisa na tela dele: capacidade) e defeito
+grave para o FUNDADOR, porque o mesmo booleano disparava um e-mail com o assunto
+"OpenAI SEM CREDITOS" e um link para a pagina de cobranca. Mandar o fundador
+recarregar uma conta que nao precisa e o caminho mais curto para ele aprender a
+ignorar o alarme — e justamente nesta semana (saldo real US$3,07) o alarme
+precisa ser crivel. **Quando um predicado serve mensagem-ao-usuario E
+alerta-ao-operador, ele tem de se dividir: a mensagem ao usuario pode ser larga,
+a afirmacao ao operador tem de ser estreita.** A 2a passada achou isto; a 1a
+tinha ficado verde no `tsc` com o e-mail mentindo.
+
+### 3. A COPY QUE CULPA O USUARIO SE RETROALIMENTA
+*"Failed to plan scenes. Please try a different prompt."* nao e so falta de
+educacao: ela faz quem escreveu um prompt BOM acreditar que escreveu um ruim,
+reescrever e tentar de novo — 5+ tentativas cegas por pessoa em 31/07, cada uma
+outra chamada contra a mesma OpenAI que acabou de falhar. **Numa falha de
+fornecedor, a copy que culpa o usuario multiplica a carga sobre o fornecedor
+quebrado.** O default certo para o erro nao-classificado e o oposto: assumir a
+culpa, dizer que nada foi cobrado, e mandar repetir o MESMO pedido. Sugerir
+mudar o texto so como segunda opcao, nunca como diagnostico.
+
+### 4. INTERLINKING DE SEO PODE SER UM CIRCUITO FECHADO — E ELE PARECE SAUDAVEL
+As 49 paginas de SEO trouxeram 847 sessoes em 30 dias e 16 videos (1,9%), contra
+15,4% de quem entra pela home. A causa nao era copy nem conversao: em
+`/how-much-do-youtube-shorts-pay` o grep por CTA nas 442 linhas voltou **vazio**,
+e o bloco "Keep going" do rodape linkava para outras QUATRO paginas de SEO, que
+linkam entre si. O leitor circula pelo conteudo e nunca encontra o produto.
+Pior: em `/state-of-ai-shorts-2026` o CTA EXISTIA e apontava para outra pagina de
+SEO — uma saida que parece saida. **Auditar interlinking exige perguntar, de cada
+pagina, "existe aresta para o PRODUTO?", nao "existe aresta?".** Um grafo denso e
+bem interligado com zero arestas de saida e indistinguivel, em qualquer relatorio
+de SEO, de um grafo saudavel.
+
+### 5. ANTES DE ESCREVER O ATIVO Nº 50, MEDIR OS 49
+A tarefa de aquisicao da rotacao era "1 pagina programatica nova". Medir primeiro
+custou 3 queries e mostrou que a pagina nova nasceria no balde de 1,9% enquanto
+o padrao que CONVERTE ja existia na casa e estava na pagina errada:
+`/free-script-generator` faz 6 cliques de CTA em 9 sessoes (67%) e recebe 9
+sessoes por mes. **Quando a rotacao pede "mais um X", a primeira pergunta e o
+desempenho dos X que existem** — o resultado quase nunca e "faca mais um", e sim
+"mova o que funciona para onde ja tem trafego".
+
+### 6. ZERO EVENTOS DE UMA INSTRUMENTACAO RECEM-DEPLOYADA NAO E DEFEITO (2ª OCORRENCIA)
+`post_video_no_offer` marcava 0 em 100% dos dias e o GATES mandava conferir a
+distribuicao. O commit entrou em producao as ~09:22Z de HOJE. O zero e o valor
+correto e a leitura util e amanha. Mesma familia do item 4 de 13/08 (campanha com
+janela relativa): **antes de chamar um zero de bug, achar a hora em que a coisa
+passou a poder acontecer** — para telemetria isso e a hora do DEPLOY, que nao e a
+hora do commit e muito menos a data do doc.
+
+### 7. UM VAO NO GRAFICO SO E INCIDENTE CONTRA O VAO DE ONTEM
+`analyze_idea_clicked` ficou 3h em zero logo depois de 5 deploys de producao — a
+leitura obvia era "o deploy quebrou o botao gerar". O mesmo recorte de ontem tinha
+um vao de 5h no mesmo horario, e a janela suspeita tinha 2 page views em 11
+sessoes: nao ha denominador para afirmar nada. **Suspeita de regressao pos-deploy
+precisa do MESMO recorte no dia anterior antes de virar alarme** — senao todo
+periodo de madrugada/tarde vazia vira incidente e a sprint queima em fantasma.

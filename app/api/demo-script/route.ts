@@ -10,7 +10,7 @@
 //   • output is the DEMO script only — no TTS, no footage, no render
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted } from '@/lib/openaiAlert'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, openAiAlertKind } from '@/lib/openaiAlert'
 import { fallbackDemoScript } from '@/lib/demoFallback'
 
 export const maxDuration = 30
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       // bank instead of a capacity error. Render stays honest; the demo
       // never 503s again.
       if (looksOpenAiQuotaDead(err)) {
-        await alertOpenAiExhausted('/api/demo-script (landing demo)')
+        await alertOpenAiExhausted('/api/demo-script (landing demo)', openAiAlertKind(err))
         return NextResponse.json({ script: fallbackDemoScript(topic), fallback: true })
       }
       throw err

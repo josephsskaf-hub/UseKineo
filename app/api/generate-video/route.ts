@@ -8,6 +8,14 @@ import {
   startRunwayTask,
 } from '@/lib/runway'
 import { fetchUserPlan } from '@/lib/plan'
+import { writeServerEvent } from '@/lib/serverEvents'
+import {
+  looksOpenAiQuotaDead,
+  looksOpenAiHanging,
+  alertOpenAiExhausted,
+  openAiAlertKind,
+  ENGINE_CAPACITY_MESSAGE,
+} from '@/lib/openaiAlert'
 
 export const maxDuration = 60
 
@@ -205,8 +213,50 @@ export async function POST(req: NextRequest) {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[generate-video] scene generation failed:', msg)
+      // ── KINEO-OPENAI-429-BLINDSPOT-2026-08-14 (regra dos pares) ───────────
+      // Esta rota é o TERCEIRO caminho que chama `generateScenes`, e era o
+      // único dos três totalmente cego: sem detector de quota, sem alerta ao
+      // fundador, sem evento — um 429 saía daqui como 500 genérico com a copy
+      // que culpa o prompt. Ela é legada mas NÃO é inalcançável: o cliente
+      // ainda chama `/api/generate-video` em GenerateClient.tsx:5656.
+      //
+      // Achada só porque a correção da copy irmã em generate-video-fast
+      // disparou o grep obrigatório por pares do CLAUDE.md. Sem esse passo, a
+      // casa teria dois caminhos honestos e um mentindo — que é exatamente o
+      // drift que a regra existe para impedir.
+      if (looksOpenAiQuotaDead(err) || looksOpenAiHanging(err)) {
+        const kind = looksOpenAiHanging(err) ? 'hang' : openAiAlertKind(err)
+        await alertOpenAiExhausted('/api/generate-video (scene generation)', kind)
+        void writeServerEvent({
+          name: 'generation_stage_error',
+          metadata: {
+            stage: 'scripting',
+            reason: kind === 'hang' ? 'openai_hang' : 'openai_quota_dead',
+            http_status: 503,
+            route: '/api/generate-video',
+          },
+        })
+        return NextResponse.json(
+          { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
+          { status: 503 },
+        )
+      }
+      void writeServerEvent({
+        name: 'generation_stage_error',
+        metadata: {
+          stage: 'scripting',
+          reason: 'scene_generation_failed',
+          http_status: 500,
+          route: '/api/generate-video',
+        },
+      })
+      // Mesma copy da irmã em generate-video-fast: a falha é nossa, nada foi
+      // cobrado, repetir o MESMO pedido é a ação certa.
       return NextResponse.json(
-        { error: 'Failed to plan scenes. Please try a different prompt.' },
+        {
+          error:
+            'We could not plan the scenes for this video — that is on us, not your idea. Nothing was charged. Please try again in a moment; if it keeps failing, try rewording your idea.',
+        },
         { status: 500 }
       )
     }

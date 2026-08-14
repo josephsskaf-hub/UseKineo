@@ -3,7 +3,7 @@
 // gpt-4o-mini + token cap, topic capped at 200 chars, per-IP 12/day limit.
 import { NextRequest, NextResponse } from 'next/server'
 import { openai } from '@/lib/openai'
-import { looksOpenAiQuotaDead, alertOpenAiExhausted } from '@/lib/openaiAlert'
+import { looksOpenAiQuotaDead, alertOpenAiExhausted, openAiAlertKind } from '@/lib/openaiAlert'
 import { fallbackDemoHooks } from '@/lib/demoFallback'
 
 export const maxDuration = 30
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
       // quota-dead pages the founder but the lead-magnet page keeps working
       // from the curated static bank instead of erroring the visitor out.
       if (looksOpenAiQuotaDead(err)) {
-        await alertOpenAiExhausted('/api/demo-hooks (free hook generator)')
+        await alertOpenAiExhausted('/api/demo-hooks (free hook generator)', openAiAlertKind(err))
         return NextResponse.json({ hooks: fallbackDemoHooks(topic), fallback: true })
       }
       throw err

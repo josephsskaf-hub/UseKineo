@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
+import { writeServerEvent } from '@/lib/serverEvents'
 import {
   looksOpenAiQuotaDead,
   looksOpenAiHanging,
   alertOpenAiExhausted,
+  openAiAlertKind,
   ENGINE_CAPACITY_MESSAGE,
 } from '@/lib/openaiAlert'
 
@@ -264,7 +266,25 @@ export async function POST(req: NextRequest) {
     // KINEO-OPENAI-QUOTA-2026-07-31 — out-of-credits must never be a mute 500:
     // page the founder and tell the user the truth (503 + honest copy).
     if (looksOpenAiQuotaDead(err)) {
-      await alertOpenAiExhausted('/api/generate-script')
+      await alertOpenAiExhausted('/api/generate-script', openAiAlertKind(err))
+      // KINEO-OPENAI-429-BLINDSPOT-2026-08-14 — esta rota pagava o founder e
+      // devolvia a copy honesta, mas NÃO deixava rastro no banco. A falha de
+      // quota aqui só existia como `console.error` (que ninguém lê depois) e
+      // como o evento genérico do cliente `generate_script_not_ok`, que carrega
+      // o status 503 e nada mais. Resultado: no dia seguinte a um apagão, a
+      // pergunta "quantas gerações a OpenAI derrubou?" não tinha resposta neste
+      // estágio — só em generate-video-fast, que já grava `openai_quota_dead`.
+      // Mesmo nome de evento e mesmo campo `reason` das outras rotas, para a
+      // query do check-up somar os dois estágios sem caso especial.
+      void writeServerEvent({
+        name: 'generation_stage_error',
+        metadata: {
+          stage: 'scripting',
+          reason: 'openai_quota_dead',
+          http_status: 503,
+          route: '/api/generate-script',
+        },
+      })
       return NextResponse.json(
         { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
         { status: 503 },

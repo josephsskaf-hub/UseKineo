@@ -4420,6 +4420,51 @@ export default function GenerateClient({
           // spike in unstructured scripts (the #310 fast-path input) cannot be
           // told apart from healthy traffic.
           trackGenerationFailure('scripting', 'generate_script_not_ok', { httpStatus: sgRes.status })
+
+          // ── KINEO-OPENAI-429-BLINDSPOT-2026-08-14 ────────────────────────
+          // A queda-livre para o prompt cru (logo abaixo) é a decisão CERTA
+          // para quase toda falha: auto-structure é melhoria, não requisito, e
+          // degradar em silêncio é melhor que travar. Existe UMA exceção, e
+          // ela é o motivo deste bloco.
+          //
+          // `engine_capacity` significa que a OpenAI recusou a chamada — sem
+          // saldo ou em rate limit. O estágio SEGUINTE (generate-video-fast →
+          // generateScenes) chama a MESMA OpenAI, com a mesma chave, no mesmo
+          // segundo. Ele vai falhar também, com certeza, e só depois de mais
+          // ~35s de spinner. Cair para o prompt cru aqui não é "degradar": é
+          // gastar 35 segundos do usuário para chegar exatamente à mesma
+          // mensagem, tendo disparado mais uma chamada contra uma conta que
+          // já disse não.
+          //
+          // Então: só neste código, paramos AGORA e mostramos a mensagem
+          // honesta de capacidade — a mesma frase que o estágio seguinte
+          // mostraria. Nenhum outro status muda de comportamento; qualquer
+          // outra falha continua caindo para o prompt cru, como sempre.
+          //
+          // NÃO cobra nada: no modo Fast o débito só acontece na ENTREGA
+          // (app/api/compose/status/[renderId] — o render terminou), então
+          // parar aqui é literalmente antes de qualquer cobrança. A frase
+          // "Your free videos and credits are untouched" é verdadeira.
+          let capacityDown = false
+          try {
+            const sgErr = await sgRes.clone().json()
+            capacityDown = sgErr?.code === 'engine_capacity'
+            if (capacityDown && typeof sgErr?.error === 'string' && sgErr.error.trim()) {
+              // A copy vem do SERVIDOR (ENGINE_CAPACITY_MESSAGE, fonte única em
+              // lib/openaiAlert.ts) para as duas telas nunca divergirem.
+              setError(sgErr.error)
+            }
+          } catch {
+            // Body não-JSON: não dá para afirmar capacidade. Segue degradado.
+            capacityDown = false
+          }
+          if (capacityDown) {
+            trackGenerationFailure('scripting', 'openai_capacity_stop_early', {
+              httpStatus: sgRes.status,
+            })
+            setPhase('failed')
+            return
+          }
         }
         // If generate-script fails for any reason, we fall through with the
         // original raw prompt — degraded but not broken.

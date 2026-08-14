@@ -16,12 +16,39 @@ import OpenAI from 'openai'
 export const ENGINE_CAPACITY_MESSAGE =
   'Kineo is at full capacity right now — the team was automatically alerted and is adding capacity. Your free videos and credits are untouched. Please try again in a little while.'
 
+// KINEO-OPENAI-429-BLINDSPOT-2026-08-14 — o detector só via METADE dos 429.
+//
+// Medido no check-up de fornecedores de 14/08 (painel oficial): saldo OpenAI
+// US$3,07, auto-reload DESLIGADO, queima US$1,93/dia = 1,6 dia. A OpenAI está
+// no estágio `scripting` de TODO vídeo. É a MESMA configuração do incidente de
+// 31/07 (116 falhas, 3h de produto morto durante a maior onda do TAAFT).
+//
+// A auditoria desta sprint achou o furo: a versão anterior desta função exigia
+// que a palavra `credit|quota|billing` aparecesse no corpo do 429. A OpenAI
+// devolve `rate_limit_exceeded` SEM nenhuma dessas palavras — e é exatamente
+// isso que ela devolve quando a conta está no fim (o rate limit de uma conta
+// sem saldo colapsa antes de o `insufficient_quota` aparecer). Esse 429 caía
+// fora do detector, não acendia o alarme, não mandava e-mail, e o usuário via:
+//
+//     "Failed to plan scenes. Please try a different prompt."
+//
+// que é a copy TÓXICA: ela culpa o prompt do usuário por uma falha nossa de
+// saldo, e foi ela que produziu as 5+ tentativas cegas por pessoa em 31/07.
+// Cada uma dessas tentativas cegas é 1 chamada gpt-4o a mais contra a conta
+// que está morrendo — o erro se retroalimentava.
+//
+// A REGRA NOVA, e ela é deliberadamente mais larga: **todo 429 da OpenAI é
+// tratado como capacidade.** Errar para este lado é barato (a pessoa lê
+// "estamos no limite, volte já já", que é verdade em rate limit também) e
+// errar para o outro é caro (a pessoa é culpada por um problema nosso e
+// retenta às cegas). Um 429 nunca é culpa do prompt.
 export function looksOpenAiQuotaDead(e: unknown): boolean {
   const err = e as { status?: number; message?: string; code?: string } | null
   if (!err) return false
   const blob = `${err.message ?? ''} ${err.code ?? ''}`.toLowerCase()
-  if (/insufficient_quota|no credits remaining/.test(blob)) return true
-  return err.status === 429 && /credit|quota|billing/.test(blob)
+  if (/insufficient_quota|no credits remaining|rate_limit_exceeded/.test(blob)) return true
+  // Todo 429 conta, com ou sem palavra-chave no corpo. Ver bloco acima.
+  return err.status === 429
 }
 
 // KINEO-OPENAI-HANG-2026-08-05 — the OTHER way OpenAI takes the product down.
@@ -79,7 +106,37 @@ export function looksOpenAiHanging(e: unknown): boolean {
 // and that is the dangerous ordering: quota is the actionable one (a 2-minute
 // top-up), and it would be suppressed by an alert whose whole message is
 // "topping up fixes nothing."
-const LAST_OPENAI_ALERT: Record<'quota' | 'hang', number> = { quota: 0, hang: 0 }
+const LAST_OPENAI_ALERT: Record<'quota' | 'hang' | 'rate_limit', number> = {
+  quota: 0,
+  hang: 0,
+  rate_limit: 0,
+}
+
+// KINEO-OPENAI-429-BLINDSPOT-2026-08-14 — o par obrigatório do alargamento.
+//
+// `looksOpenAiQuotaDead` passou a aceitar TODO 429 de propósito: para o
+// USUÁRIO, rate limit e saldo zero são a mesma coisa (capacidade), e a frase
+// honesta serve para os dois. Para o FUNDADOR não são: uma manda recarregar,
+// a outra diz que recarregar não resolve nada. O bloco de `kind` logo abaixo
+// existe justamente porque "um alerta que prescreve a ação errada custa mais
+// tempo que nenhum alerta" — e o alargamento, sozinho, faria todo pico de
+// tráfego mandar um e-mail com o assunto "OpenAI SEM CRÉDITOS" e um link para
+// a página de cobrança. Cobrar do fundador uma recarga que não era necessária
+// é o caminho mais curto para ele aprender a ignorar o alarme, e é justamente
+// nesta semana (saldo real US$3,07) que o alarme precisa ser crível.
+//
+// Regra: a mensagem ao usuário é larga, a afirmação ao fundador é estreita.
+// Só chamamos de "sem créditos" o que a OpenAI declarou como falta de crédito.
+export function openAiAlertKind(e: unknown): 'quota' | 'rate_limit' {
+  const err = e as { message?: string; code?: string } | null
+  const blob = `${err?.message ?? ''} ${err?.code ?? ''}`.toLowerCase()
+  if (/insufficient_quota|no credits remaining|billing/.test(blob)) return 'quota'
+  if (/rate_limit_exceeded|rate limit/.test(blob)) return 'rate_limit'
+  // 429 sem nenhuma pista no corpo: nesta conta, com auto-reload DESLIGADO e
+  // 1,6 dia de saldo, o palpite útil é saldo. Errar para 'quota' faz o fundador
+  // OLHAR o painel de cobrança; errar para 'rate_limit' faz ele não olhar.
+  return 'quota'
+}
 
 /**
  * Page the founder when OpenAI takes generation down.
@@ -93,7 +150,7 @@ const LAST_OPENAI_ALERT: Record<'quota' | 'hang', number> = { quota: 0, hang: 0 
  */
 export async function alertOpenAiExhausted(
   context: string,
-  kind: 'quota' | 'hang' = 'quota',
+  kind: 'quota' | 'hang' | 'rate_limit' = 'quota',
 ): Promise<void> {
   try {
     const key = process.env.RESEND_API_KEY
@@ -106,10 +163,21 @@ export async function alertOpenAiExhausted(
     const subject =
       kind === 'hang'
         ? '🚨 Kineo: OpenAI NÃO ESTÁ RESPONDENDO — geração de vídeo travando (créditos OK)'
-        : '🚨 Kineo: OpenAI SEM CRÉDITOS — toda a geração de vídeo está parada'
+        : kind === 'rate_limit'
+          ? '⚠️ Kineo: OpenAI em RATE LIMIT — geração falhando (NÃO é falta de crédito)'
+          : '🚨 Kineo: OpenAI SEM CRÉDITOS — toda a geração de vídeo está parada'
 
     const body =
-      kind === 'hang'
+      kind === 'rate_limit'
+        ? `A OpenAI está devolvendo 429 de RATE LIMIT — ela recusou a chamada por VELOCIDADE, não por saldo. Recarregar crédito NÃO resolve isto.\n\n` +
+          `Sintoma para o usuário: o vídeo não sai. Ele já vê a mensagem honesta de capacidade (503), não mais "tente um prompt diferente" — essa copy culpava o usuário por um problema nosso e produziu 5+ tentativas cegas por pessoa em 31/07.\n\n` +
+          `Contexto: ${context}\n` +
+          `Hora: ${new Date().toISOString()}\n\n` +
+          `⚠️ ATENÇÃO em 14/08/2026: o saldo REAL da conta é US$3,07 com auto-reload DESLIGADO. Rate limit e saldo baixo são coisas diferentes, mas nesta semana valem a mesma visita ao painel:\n` +
+          `https://platform.openai.com/settings/organization/limits/ (rate limits)\n` +
+          `https://platform.openai.com/settings/organization/billing/ (saldo — e LIGAR o auto-reload)\n\n` +
+          `Este alerta repete no máximo a cada 30 min por instância.`
+        : kind === 'hang'
         ? `As chamadas para a OpenAI estão ESTOURANDO O TEMPO (não é falta de crédito — recarregar NÃO resolve).\n\n` +
           `Sintoma para o usuário: o vídeo fica "gerando" e morre. Foi exatamente isso que aconteceu em 05/08, quando um cadastro novo vindo do TAAFT tentou 4 vezes em 20 minutos e falhou nas 4.\n\n` +
           `Contexto: ${context}\n` +
@@ -132,7 +200,9 @@ export async function alertOpenAiExhausted(
     console.error(
       kind === 'hang'
         ? '[openai-alert] OPENAI HANGING/TIMEOUT — founder alerted'
-        : '[openai-alert] OPENAI QUOTA EXHAUSTED — founder alerted',
+        : kind === 'rate_limit'
+          ? '[openai-alert] OPENAI RATE LIMITED — founder alerted'
+          : '[openai-alert] OPENAI QUOTA EXHAUSTED — founder alerted',
     )
   } catch (e) {
     console.error('[openai-alert] alert email failed:', e instanceof Error ? e.message : String(e))

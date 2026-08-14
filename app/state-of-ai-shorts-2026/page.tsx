@@ -26,6 +26,7 @@ import {
   STUDY_REVALIDATE_SECONDS,
 } from '@/lib/studyStats'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -397,8 +398,32 @@ export default async function StateOfAiShortsPage() {
             Pick one of the top-3 niches above and generate your first faceless Short. Expect
             about {s.medianMinutes} minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
-          <a
-            href="https://www.usekineo.com/free-ai-shorts-generator?utm_source=state-of-ai-shorts&utm_medium=study&utm_campaign=acq5"
+          {/* ── KINEO-SEO-SEM-PORTA-2026-08-14 ────────────────────────────────
+              MEDIDO (30 dias): 28 sessões nesta página e UM único tipo de
+              evento no banco, `landing_session_started`. O CTA abaixo existia,
+              mas tinha três defeitos que juntos o tornavam invisível e inútil:
+
+               1. ERA UM `<a>` CRU — nenhum `organic_cta_clicked`. Por isso o
+                  banco não sabia dizer se ninguém clicava ou se todo mundo
+                  clicava: a única leitura possível era o silêncio.
+               2. APONTAVA PARA OUTRA PÁGINA DE SEO (`/free-ai-shorts-
+                  generator`), não para o produto. O "Generate a free Short →"
+                  parecia a saída do labirinto e devolvia o leitor ao labirinto.
+                  Somado ao bloco de interlinking, o visitante de SEO circulava
+                  entre páginas de conteúdo sem nunca encontrar o app — 847
+                  sessões de SEO em 30 dias produziram 16 vídeos (1,9%), contra
+                  15,4% de quem entra pela home.
+               3. ERA URL ABSOLUTA (`https://www.usekineo.com/...`) dentro do
+                  próprio site: recarga completa de página em vez de navegação
+                  do App Router.
+
+              Agora vai para signup → /generate, pelo componente da casa, com o
+              MESMO par utm de antes preservado para não quebrar a atribuição
+              histórica da campanha `acq5`. */}
+          <OrganicCtaLink
+            href="/signup?next=%2Fgenerate&utm_source=state-of-ai-shorts&utm_medium=study&utm_campaign=acq5"
+            source="seo_state_of_ai_shorts"
+            placement="study_cta"
             style={{
               display: 'inline-block',
               background: ACCENT,
@@ -411,7 +436,7 @@ export default async function StateOfAiShortsPage() {
             }}
           >
             Generate a free Short →
-          </a>
+          </OrganicCtaLink>
         </section>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>Methodology</h2>

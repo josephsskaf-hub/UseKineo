@@ -21,6 +21,7 @@ import {
   looksOpenAiQuotaDead,
   looksOpenAiHanging,
   alertOpenAiExhausted,
+  openAiAlertKind,
   ENGINE_CAPACITY_MESSAGE,
 } from '@/lib/openaiAlert'
 // PUSH #96 — single source of truth for the people/lifestyle vocabulary.
@@ -485,7 +486,7 @@ export async function POST(req: NextRequest) {
         // founder, record a distinct reason, answer 503 with honest copy —
         // GenerateClient already displays this error string verbatim.
         if (looksOpenAiQuotaDead(err)) {
-          await alertOpenAiExhausted('/api/generate-video-fast (scene generation)')
+          await alertOpenAiExhausted('/api/generate-video-fast (scene generation)', openAiAlertKind(err))
           recordFastFailure('scripting', 'openai_quota_dead', 503, user.id, {
             error_name: err instanceof Error ? err.name : 'unknown',
             clip_count: clipCount,
@@ -518,8 +519,30 @@ export async function POST(req: NextRequest) {
           error_name: err instanceof Error ? err.name : 'unknown',
           clip_count: clipCount,
         })
+        // KINEO-OPENAI-429-BLINDSPOT-2026-08-14 — a copy antiga aqui era
+        // "Failed to plan scenes. Please try a different prompt."
+        //
+        // Este é o catch RESIDUAL: quota e hang já saíram acima com a mensagem
+        // honesta de capacidade. Sobra aqui o erro que NÃO sabemos classificar
+        // — e era justamente sobre esse desconhecido que a frase antiga fazia
+        // uma afirmação confiante e falsa: culpava o PROMPT da pessoa.
+        //
+        // Duas consequências medidas em 31/07: (1) quem escreveu um prompt bom
+        // acredita que escreveu um prompt ruim e reescreve — 5+ tentativas
+        // cegas por pessoa, cada uma outra chamada contra a mesma OpenAI que
+        // acabou de falhar; (2) o funil registra "usuário desistiu do prompt"
+        // onde o que houve foi falha nossa.
+        //
+        // A frase nova não sabe mais do que sabemos: diz que a falha é nossa,
+        // que nada foi cobrado (verdade — no Fast o débito só ocorre na
+        // entrega, em compose/status/[renderId]) e que repetir o MESMO pedido
+        // é a ação certa. Só sugerimos mudar o texto como segunda opção, sem
+        // afirmar que ele é o culpado.
         return NextResponse.json(
-          { error: 'Failed to plan scenes. Please try a different prompt.' },
+          {
+            error:
+              'We could not plan the scenes for this video — that is on us, not your idea. Nothing was charged. Please try again in a moment; if it keeps failing, try rewording your idea.',
+          },
           { status: 500 }
         )
       }

@@ -8,6 +8,33 @@
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
+
+// ── KINEO-SEO-SEM-PORTA-2026-08-14 ──────────────────────────────────────────
+// MEDIDO no banco (30 dias, eventos por página de entrada): esta página teve
+// 27 sessões e emitiu UM ÚNICO tipo de evento — `landing_session_started`.
+// Nada mais. A causa não era falta de instrumentação: era falta de SAÍDA.
+// O grep por `href="/signup"`, `href="/generate"` e por qualquer CTA nas 442
+// linhas do arquivo voltou VAZIO.
+//
+// A seção "Keep going" no fim linkava para outras QUATRO páginas de SEO, que
+// por sua vez linkam entre si. O interlinking existia e funcionava — só que
+// como um circuito FECHADO: o visitante circula pelo labirinto de conteúdo e
+// nunca encontra o produto. É a lição de 13/08 ("110 baixaram, 41 nunca viram
+// um preço") aplicada um degrau antes: aqui a pergunta não foi feita nem uma
+// vez. Uma taxa de conversão de 0% e uma oferta que nunca aparece produzem o
+// mesmo número e pedem consertos opostos.
+//
+// Somadas, esta página e /state-of-ai-shorts-2026 receberam 55 sessões em 30
+// dias sem nenhuma porta para o produto. O padrão que CONVERTE já existe na
+// casa: /free-script-generator fez 6 cliques de CTA em 9 sessões usando
+// exatamente o componente abaixo. Não falta página nova — falta a porta nas
+// que já têm tráfego.
+//
+// `OrganicCtaLink` é client component; o resto da página segue server e
+// `force-static` continua valendo (só este nó hidrata).
+const CTA_CAMPAIGN = 'seo_shorts_pay'
+const CTA_HREF = '/signup?next=%2Fgenerate&utm_source=seo&utm_campaign=shorts_pay'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -398,6 +425,43 @@ export default function HowMuchDoYouTubeShortsPayPage() {
               </p>
             </section>
           ))}
+        </div>
+
+        {/* KINEO-SEO-SEM-PORTA-2026-08-14 — a porta que faltava. Fica ANTES do
+            "Keep going" de propósito: aquele bloco é o circuito fechado que
+            mandava o leitor para mais quatro páginas de SEO. A oferta tem de
+            aparecer antes do desvio, não depois dele. */}
+        <div style={{ ...CARD, padding: 22, margin: '0 0 32px' }}>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
+            The payout math only starts once you post
+          </h2>
+          <p style={{ color: MUTED, lineHeight: 1.7, fontSize: '0.95rem', margin: '0 0 16px' }}>
+            Every number on this page assumes one thing: that you publish enough Shorts
+            for the RPM to matter. That is the part most channels never get past. Kineo
+            turns a topic into a finished vertical Short — AI voiceover, matched footage
+            and captions — usually in a few minutes, so volume stops being the bottleneck.
+          </p>
+          <OrganicCtaLink
+            href={CTA_HREF}
+            source={CTA_CAMPAIGN}
+            placement="after_payout_table"
+            style={{
+              display: 'inline-block',
+              background: ACCENT,
+              color: '#000',
+              fontWeight: 800,
+              padding: '13px 26px',
+              borderRadius: 10,
+              textDecoration: 'none',
+            }}
+          >
+            {/* Sem promessa de QUANTIDADE de propósito. A oferta do free tier
+                ("3 free Shorts every 24h" hoje, "1 Fast/mês" com a flag ON)
+                tem de trocar atomicamente em todas as superfícies; um CTA que
+                não cita número nenhum é verdadeiro nos dois mundos e não vira
+                mais uma superfície para a troca lembrar de visitar. */}
+            Turn a topic into a Short →
+          </OrganicCtaLink>
         </div>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>

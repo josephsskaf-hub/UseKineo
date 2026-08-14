@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
+import { writeServerEvent } from '@/lib/serverEvents'
+import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
 
 export const maxDuration = 60
 
@@ -984,6 +986,35 @@ Return ONLY the JSON object — no markdown, no commentary.`
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error('[analyze-idea] OpenAI failed:', msg)
+      // KINEO-OPENAI-429-BLINDSPOT-2026-08-14 — a degradação aqui é a decisão
+      // CERTA (brief estático é melhor que 500 na cara do usuário) e NÃO muda.
+      // O que muda é que ela deixa de ser invisível.
+      //
+      // Este era o ponto mais cego dos três estágios que usam OpenAI: a rota
+      // responde 200 com um brief genérico, então nem o cliente nem o banco
+      // registravam qualquer coisa. Num apagão de saldo, os vídeos continuavam
+      // saindo — todos com o MESMO brief estático, ou seja, sem a análise que
+      // diferencia um vídeo do outro — e nenhum instrumento nosso acusava.
+      // "Está tudo verde e o produto piorou" é o pior estado possível.
+      //
+      // O motivo entra separado de `openai_quota_dead`: um brief de fallback
+      // não é uma geração perdida (o vídeo sai), então somá-lo às falhas de
+      // scripting inflaria a contagem de apagão. Estágio próprio, nome próprio.
+      void writeServerEvent({
+        name: 'generation_stage_error',
+        metadata: {
+          stage: 'analyzing',
+          reason: looksOpenAiQuotaDead(err)
+            ? 'openai_quota_dead_degraded'
+            : 'analyze_openai_failed_degraded',
+          // 200 de propósito: o usuário NÃO viu erro, e o campo tem de dizer
+          // isso. Marcar 500 aqui faria a próxima leitura contar como falha
+          // uma geração que foi entregue.
+          http_status: 200,
+          degraded: true,
+          detail: msg.slice(0, 120),
+        },
+      })
       brief = fallback
     }
 
