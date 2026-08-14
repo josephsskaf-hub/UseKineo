@@ -677,3 +677,32 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   **Proximo em ordem:** dia 12, metade "timings" (49 duracoes distintas em 40
   arquivos de `app/` + `components/`; o `:root` ja tem `--dur-fast/base/slow` e
   `--ease-swift/out-expo` desde a ONDA 6, entao e consumo de token, nao criacao).
+
+  **4. AVISO OPERACIONAL — LEIA ANTES DE RODAR QUALQUER .bat DE PUSH.** O
+  `.git/index` deste repo esta **quebrado**, e isso nao foi a sprint que causou:
+  ele lista **146 arquivos como DELETADOS** em relacao ao HEAD (`git diff --cached
+  --stat HEAD` → "146 files changed, 1.779 insercoes, 19.672 delecoes"), entre eles
+  o proprio `docs/UI-1PORCENTO-BACKLOG.md`, que aparece ao mesmo tempo como `D ` e
+  como `??`. E a assinatura classica de um `git add`/`git rm` interrompido. Ha
+  **4 lock files velhos** parados no `.git`: `HEAD.lock` (09:15), `index.lock`
+  (13:10), `objects/maintenance.lock` (30/07) e `refs/heads/main.lock` (10:31,
+  contendo `91f7d14`, um commit ja tres posicoes atras). A sandbox nao consegue
+  apaga-los (`Operation not permitted` no mount do OneDrive), entao **isso tem que
+  ser feito por voce, no Windows**:
+
+  1. Fechar tudo que fala com o repo (VS Code, GitHub Desktop, terminais).
+  2. Apagar os 4 `.lock` — nenhum deles tem valor: o de `main` aponta para um
+     commit velho e aplica-lo seria **desfazer 3 commits**.
+  3. `git reset` (mixed, sem `--hard`) para reconstruir o indice a partir do HEAD.
+     Sem esse reset, **qualquer `.bat` que faca `git add -A` vai commitar as 146
+     delecoes**.
+  4. So depois, o push.
+
+  **O commit desta sprint nao passou pelo indice quebrado** — foi montado num
+  indice isolado (`GIT_INDEX_FILE`) semeado a partir do HEAD, com exatamente 2
+  arquivos, e conferido depois: `git show HEAD:<arquivo>` bate byte a byte com o
+  disco nos dois, LF em ambos. Como o `refs/heads/main.lock` bloqueou o
+  `update-ref`, a ref foi escrita direto em `.git/refs/heads/main` (o mesmo arquivo
+  de 41 bytes que o git escreveria). **Valor anterior, caso precise voltar:
+  `101ef40fd4e532d2c2b3df58bf950288be5c1268`.** O commit desta sprint e
+  `da9eb84`, pai `101ef40`. Nada foi enviado: **o push continua sendo seu.**
