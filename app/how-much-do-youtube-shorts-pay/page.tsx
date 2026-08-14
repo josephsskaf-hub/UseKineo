@@ -9,6 +9,10 @@
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — ver o bloco de comentário no corpo.
+// A calculadora não é duplicada: é O MESMO componente que /shorts-money-calculator
+// renderiza, importado. Uma cópia teria duas RPMs para manter e elas divergiriam.
+import CalculatorClient from '@/app/shorts-money-calculator/CalculatorClient'
 
 // ── KINEO-SEO-SEM-PORTA-2026-08-14 ──────────────────────────────────────────
 // MEDIDO no banco (30 dias, eventos por página de entrada): esta página teve
@@ -354,6 +358,52 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           most Shorts creators end up larger than ad-share revenue.
         </p>
 
+        {/* ═══ KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 ═══════════════════════════
+            A CALCULADORA VEM ATÉ O TRÁFEGO, EM VEZ DE ESPERAR UM LINK.
+
+            O que a medição diz, e é o motivo desta mudança existir:
+              · esta página          → 27 sessões / 30 dias, 0 cliques de CTA
+              · /shorts-money-calculator → **0 sessões / 30 dias**
+
+            O bloco "Keep going" abaixo LINKA para a calculadora há semanas e
+            entregou zero visitas. Ou seja: o problema nunca foi a casa não ter
+            a ferramenta certa para esta página — é a ferramenta estar em OUTRA
+            URL, e um link no rodapé de um artigo não move ninguém.
+
+            E o formato importa, não o link: as duas únicas páginas de SEO que
+            convertem nesta casa são FERRAMENTAS (67% e 41%); TODA página de
+            artigo acima de 10 sessões converte 0% (8 páginas, 316 sessões,
+            zero cliques). A variável medida é a pessoa FAZER alguma coisa
+            antes de qualquer pedido — e é isso, não mais um botão, que entra
+            aqui.
+
+            POSIÇÃO ESCOLHIDA: logo depois da tabela de payout, que é onde a
+            pergunta do leitor deixa de ser "quanto paga?" e vira "quanto EU
+            ganharia?". A porta da calculadora já nasce carregando o nicho que
+            ele escolheu (toolActivationHref, 13h de hoje) — não é um anúncio,
+            é a continuação do que ele acabou de fazer.
+
+            ⚠️ O CARD DE CTA ESTÁTICO LÁ EMBAIXO **NÃO** FOI REMOVIDO, embora
+            fosse tentador: ele entrou em produção HOJE às ~09:22Z e ainda não
+            teve um dia de leitura. Matá-lo agora destruiria a medição em curso
+            e mexeria em duas variáveis no mesmo diff. Ele fica longe daqui, no
+            fecho da página, e a comparação entre os dois formatos NESTA MESMA
+            página passa a ser possível pela primeira vez.
+
+            Client island: o resto da página segue server e `force-static`
+            continua valendo (só este nó hidrata), exatamente como
+            OrganicCtaLink já fazia. */}
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
+          What would <em>you</em> earn?
+        </h2>
+        <p style={{ color: MUTED, lineHeight: 1.7, fontSize: '0.95rem', margin: '0 0 16px' }}>
+          The table above is the typical range. Put your own numbers in and the
+          estimate below updates for your views, your posting rate and your niche.
+        </p>
+        <div style={{ margin: '0 0 36px' }}>
+          <CalculatorClient />
+        </div>
+
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
           What actually moves your Shorts RPM
         </h2>
@@ -474,12 +524,13 @@ export default function HowMuchDoYouTubeShortsPayPage() {
             </a>{' '}
             — which niches actually pay the most per 1,000 views.
           </li>
-          <li>
-            <a href="/shorts-money-calculator" style={{ color: ACCENT, textDecoration: 'none' }}>
-              Shorts money calculator
-            </a>{' '}
-            — plug in your own views and RPM for a custom estimate.
-          </li>
+          {/* KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — o item "Shorts money
+              calculator" SAIU daqui porque a calculadora agora está NESTA
+              página, acima. Mandar quem acabou de usá-la para uma URL que
+              renderiza a mesma coisa é o circuito fechado que a sprint das 10h
+              nomeou, só que agora com uma volta a mais. O link entregou 0
+              sessões em 30 dias — não se está perdendo tráfego, está se
+              deixando de perder o leitor. */}
           <li>
             <a href="/best-ai-shorts-generators" style={{ color: ACCENT, textDecoration: 'none' }}>
               Best AI Shorts generators

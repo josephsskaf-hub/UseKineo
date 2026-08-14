@@ -8,6 +8,9 @@
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — ver o bloco no corpo. Client island;
+// o resto da página segue server e `force-static` continua valendo.
+import CalculatorClient from '@/app/shorts-money-calculator/CalculatorClient'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -289,13 +292,29 @@ export default function ShortsRpmByNichePage() {
           advertisers YouTube serves. See{' '}
           <a href="/how-much-do-youtube-shorts-pay" style={{ color: ACCENT, textDecoration: 'none' }}>
             how much YouTube Shorts pay
-          </a>{' '}
-          and run your own scenario in the{' '}
-          <a href="/shorts-money-calculator" style={{ color: ACCENT, textDecoration: 'none' }}>
-            Shorts money calculator
           </a>
           .
         </p>
+
+        {/* ═══ KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 ═══════════════════════════
+            Esta página é uma TABELA DE RPM POR NICHO e a calculadora da casa
+            tem um SELETOR DE NICHO que aplica exatamente essas bandas. Era o
+            par mais óbvio do site e estava resolvido com a frase "run your own
+            scenario in the Shorts money calculator" — um link que, somado ao
+            link igual em /how-much-do-youtube-shorts-pay, entregou **0 sessões
+            em 30 dias** para aquela URL.
+            A frase saiu (era o convite para sair da página), a ferramenta
+            entrou. Mesmo componente importado, nunca uma cópia. */}
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
+          Run the numbers for your niche
+        </h2>
+        <p style={{ color: MUTED, lineHeight: 1.7, fontSize: '0.95rem', margin: '0 0 16px' }}>
+          Pick your niche below and add your own views and posting rate — the
+          estimate uses the same RPM bands as the table above.
+        </p>
+        <div style={{ margin: '0 0 36px' }}>
+          <CalculatorClient />
+        </div>
 
         <section style={{ ...CARD, padding: '20px 20px', margin: '0 0 48px', borderColor: ACCENT }}>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
