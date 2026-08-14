@@ -30,6 +30,8 @@ const KLP_CSS = `
    promessa ou copy mudou; só tipografia, espaçamento, profundidade e cor.
    Tokens novos (--r-*, --sh-*, --blue-soft) centralizam raio/sombra/glow para
    que card, plano, FAQ e botao parem de cada um inventar o proprio acabamento. */
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 .klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-xs:8px;--r-sm:13px;--r-md:18px;--r-lg:22px;--r-pill:999px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
@@ -54,6 +56,7 @@ const KLP_CSS = `
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
 .klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,#c7c7cd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
@@ -109,11 +112,17 @@ const KLP_CSS = `
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
 .klp section[id],.klp [id^="try-"]{scroll-margin-top:78px}
 .klp .sec-h{text-align:center;max-width:660px;margin:0 auto 60px}
+/* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
+.klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
+.klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:#f5f5f7!important}
+.klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
 .klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:620;letter-spacing:-.03em;line-height:1.06;text-wrap:balance}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
 .klp .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+/* ONDA7: conector visual entre os passos — a sequencia vira um caminho, nao 3 caixas soltas. */
+@media(min-width:781px){.klp .step{position:relative}.klp .step:not(:last-child)::after{content:'→';position:absolute;top:50%;right:-17px;transform:translateY(-50%);color:var(--muted2);font-size:15px;pointer-events:none}}
 .klp .step{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
-.klp .step:hover{border-color:var(--line2);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
+.klp .step:hover{border-color:rgba(41,151,255,.35);transform:translateY(-3px);box-shadow:var(--sh-card-h)}
 /* "Step 1/2/3" era texto cinza solto de 14px, do mesmo peso do corpo — nao
    marcava sequencia nenhuma. Virou um selo numerado, que e o que a palavra
    "step" promete. Mesmo texto. */
@@ -143,7 +152,6 @@ const KLP_CSS = `
 .klp .cmp tbody tr:hover td:first-child{background:#212124}
 .klp .cmp .no{color:var(--muted2)}
 .klp .cmp tr:last-child td{border-bottom:none}
-.klp .cmp-hint{display:none}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 .klp .plan{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-4px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 18px 44px -18px rgba(41,151,255,.32)}
@@ -169,7 +177,7 @@ const KLP_CSS = `
 .klp .plan li b{color:var(--txt);font-weight:650}
 .klp .plan li .ck{color:var(--blue);flex:none;display:grid;place-items:center;width:19px;height:19px;margin-top:1px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);font-size:11px;font-weight:800}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
-.klp .snote{margin:30px auto 0;max-width:560px;text-align:center;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:20px 24px;font-size:14.5px;line-height:1.6;color:var(--muted);box-shadow:var(--sh-card)}
+.klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
 .klp .snote b{color:var(--txt);font-weight:650}
 .klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,#19191c 0%,#131315 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
 .klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
@@ -259,7 +267,7 @@ const KLP_CSS = `
    texto novo foi escrito). A linha do Kineo fica destacada em azul dentro de
    cada card, entao a resposta "e o Kineo, faz?" aparece sem nenhum arraste.
    Nenhuma palavra da tabela mudou; so a forma. */
-.klp .cmp-hint{display:none}
+/* ONDA7 (14/08): .cmp-hint removido — nunca renderizava (display:none sem override) e o mobile usa cards, nao swipe. */
 .klp .cmp{background:transparent;border:none;border-radius:0;overflow:visible;box-shadow:none}
 .klp .cmp table,.klp .cmp tbody,.klp .cmp tr,.klp .cmp td{display:block;width:100%;min-width:0}
 .klp .cmp thead{display:none}
@@ -355,7 +363,7 @@ const KLP_CSS = `
 @media(min-width:900px){.klp .faq{max-width:960px;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 .klp .qa{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:24px 26px;box-shadow:var(--sh-card);transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2);box-shadow:var(--sh-card-h)}
-.klp .qa h3{font-size:1.1rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
+.klp .qa h3{font-size:1.04rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
 .klp .qa p{margin-top:9px;color:var(--muted);font-size:.99rem;line-height:1.62}
 /* MOBILE DO HERO — o publico chega no celular e o produto e vertical.
    O h1 ganha a maior parte do ganho: menos padding morto em cima, tracking
@@ -599,7 +607,7 @@ export default function KineoLanding({ initialUser }: Props) {
                   na mesma frase, e o link é a única coisa clicável ali. */}
               {!isSignedIn && (
                 <>
-                  ✓ No credit card&nbsp;&nbsp;·&nbsp;&nbsp;✓ {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;&nbsp;·&nbsp;&nbsp;✓ Cancel anytime
+                  ✓ No credit card&nbsp;·&nbsp;✓ {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;·&nbsp;✓ Cancel anytime
                   <br />
                 </>
               )}
@@ -639,7 +647,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <span
                 style={{ color: '#c9c9cf', fontWeight: 700, border: '1px solid #2a2a2d', borderRadius: 999, padding: '5px 11px' }}
               >
-                <span aria-hidden="true">🏆 </span>#2 Product of the Day on Fazier
+                #2 Product of the Day on Fazier
               </span>
               <a
                 href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"
@@ -658,7 +666,7 @@ export default function KineoLanding({ initialUser }: Props) {
               informação que a fileira sozinha não dá: que aquilo é export real.
               Os três links internos continuam todos aqui — são distribuição
               orgânica, não enfeite. */}
-          <p className="gallery-cap">Real Kineo exports, not mockups — each one started from a single topic. <Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link> · <Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link> · <Link href="/niche-picker" className="link">Find your faceless niche →</Link></p>
+          <p className="gallery-cap">Real Kineo exports, not mockups — each one started from a single topic.<span style={{ display: 'block', marginTop: 8 }}><Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/niche-picker" className="link">Find your faceless niche →</Link></span></p>
           <div className="platforms">Built for <b>YouTube Shorts</b> · <b>TikTok</b> · <b>Reels</b></div>
         </div>
       </header>
@@ -666,9 +674,9 @@ export default function KineoLanding({ initialUser }: Props) {
       {/* KINEO-CRO-2026-07-25 — explicit 3-step process (the page jumped from hero to comparison). Reuses .steps/.step CSS. */}
       <section id="how">
         <div className="wrap">
-          <div className="sec-h"><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow">How it works</span><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
           <div className="steps">
-            <div className="step"><div className="n">Step 1</div><h3>Type a topic</h3><p>One line — &ldquo;5 mysteries of the deep sea&rdquo; — or paste your own script. Pick a niche and go.</p></div>
+            <div className="step"><div className="n">Step 1</div><h3>Type a topic</h3><p>One line — &ldquo;the island too dangerous to visit&rdquo; — or paste your own script. Pick a niche and go.</p></div>
             <div className="step"><div className="n">Step 2</div><h3>Kineo builds it</h3><p>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</p></div>
             <div className="step"><div className="n">Step 3</div><h3>Download &amp; post</h3><p>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</p></div>
           </div>
@@ -678,6 +686,7 @@ export default function KineoLanding({ initialUser }: Props) {
       <section id="compare">
         <div className="wrap">
           <div className="sec-h">
+            <span className="sec-eyebrow">Why Kineo</span>
             <h2>One idea in. A finished Short out.</h2>
             <p>
               Most tools re-clip a long video you already filmed. Kineo builds it from scratch.{' '}
@@ -691,7 +700,6 @@ export default function KineoLanding({ initialUser }: Props) {
               </OrganicCtaLink>
             </p>
           </div>
-          <p className="cmp-hint">Swipe to compare →</p>
           <div className="cmp"><table>
             <thead><tr><th></th><th className="us">Kineo</th><th>OpusClip</th><th>HeyGen</th><th>Submagic</th></tr></thead>
             {/* KINEO-HOME-POLISH-R2-2026-07-27 — data-label espelha o <th> da
@@ -699,7 +707,7 @@ export default function KineoLanding({ initialUser }: Props) {
                 virar o rotulo de cada linha do card, o que substitui o scroll
                 horizontal. Nenhum valor da tabela mudou. */}
             <tbody>
-              <tr><td>Generates the Short from just an idea</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">~</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Generates the Short from just an idea</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">partial</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td>Writes the script for you</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td>AI voiceover included</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">—</td><td data-label="HeyGen">✓</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td>Finds and matches footage</td><td className="us" data-label="Kineo">✓</td><td className="no" data-label="OpusClip">your upload</td><td className="no" data-label="HeyGen">avatar only</td><td className="no" data-label="Submagic">your upload</td></tr>
@@ -715,6 +723,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <tr><td>Starting price</td><td className="us" data-label="Kineo">$4.90 first month</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
+          <p style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--muted2)' }}>✓ included&nbsp;&nbsp;·&nbsp;&nbsp;— not available</p>
           <div style={{ marginTop: 20, textAlign: 'center' }}>
             <OrganicCtaLink
               href="/alternatives"
@@ -732,7 +741,7 @@ export default function KineoLanding({ initialUser }: Props) {
         <div className="wrap">
           {/* KINEO-SHOWCASE-2026-07-10 — toolkit expanded to 8 cards (2 rows):
               the 4 new avatar-suite features on top, evergreen tools below. */}
-          <div className="sec-h"><h2>One idea — or a whole toolkit.</h2><p>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow">The toolkit</span><h2>One idea — or a whole toolkit.</h2><p>Talking presenters, reusable characters, transparent clips, product ads — plus everything to find and ride a trend.</p></div>
           <div className="tools">
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.presenter}</span>
@@ -742,19 +751,19 @@ export default function KineoLanding({ initialUser }: Props) {
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.lock}</span>
-              <h3>Character Lock <span className="badge">New</span></h3>
+              <h3>Character Lock</h3>
               <p>Save a character once — the exact same face in every video and thumbnail you make.</p>
               <span className="tlink">Lock a character →</span>
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.transparent}</span>
-              <h3>Transparent Clips <span className="badge">New</span></h3>
+              <h3>Transparent Clips</h3>
               <p>Presenter gestures — wave, point, present — as WebM with a real transparent background.</p>
               <span className="tlink">Make a clip →</span>
             </Link>
             <Link href="/avatar" className="tcard">
               <span className="tico">{TOOL_ICONS.product}</span>
-              <h3>UGC Product Ads <span className="badge">New</span></h3>
+              <h3>UGC Product Ads</h3>
               <p>Paste any product — get a 15-30s creator-style ad, scripted and spoken for you.</p>
               <span className="tlink">Make an ad →</span>
             </Link>
@@ -788,7 +797,7 @@ export default function KineoLanding({ initialUser }: Props) {
 
       <section id="pricing">
         <div className="wrap">
-          <div className="sec-h"><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
+          <div className="sec-h"><span className="sec-eyebrow">Pricing</span><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
           <div className="price">
             {/* Signed-in buyers go straight to Stripe. Signed-out buyers go to
                 signup with the complete checkout destination encoded, which
@@ -807,7 +816,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="pr">$4.90<span>/mo</span></div>
               <div className="pr-then">then $9.90/mo</div>
               {/* KINEO-SHOWCASE-2026-07-10 — V3C: 25 credits, Fast = 1 credit. */}
-              <ul><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li><li><span className="ck">✓</span> 25 credits/month (Fast = 1 cr)</li><li><span className="ck">✓</span> AI script + neural voiceover + captions</li><li><span className="ck">✓</span> Watermark-free MP4</li></ul>
+              <ul><li><span className="ck">✓</span> 25 credits/month (Fast = 1 cr)</li><li><span className="ck">✓</span> AI script + neural voiceover + captions</li><li><span className="ck">✓</span> Watermark-free MP4</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
               <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}>Start — $4.90 first month</a>
             </div>
             <div className="plan pop">
@@ -815,7 +824,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="pr">$9.90<span>/mo</span></div>
               <div className="pr-then">then $24.90/mo</div>
               {/* KINEO-PRICING-V3B-2026-07-10 — $24.90/150cr, 1 Hollywood film/mo included */}
-              <ul><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li><li><span className="ck">✓</span> 1 Hollywood film/mo included · 150 credits</li><li><span className="ck">✓</span> Every scene generated by AI</li><li><span className="ck">✓</span> Script + voiceover + captions</li></ul>
+              <ul><li><span className="ck">✓</span> 1 Hollywood film/mo included · 150 credits</li><li><span className="ck">✓</span> Every scene generated by AI</li><li><span className="ck">✓</span> Script + voiceover + captions</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
               <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}>Go Creator — $9.90 first month</a>
             </div>
             <div className="plan">
@@ -832,7 +841,7 @@ export default function KineoLanding({ initialUser }: Props) {
           <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 40 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
-            🔒 Secure checkout powered by Stripe&nbsp;&nbsp;·&nbsp;&nbsp;Cancel in one click&nbsp;&nbsp;·&nbsp;&nbsp;Credits refunded automatically if a render fails
+            Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails
           </p>
           <div className="pricing-more" style={{ display: 'flex', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
             <Link className="link" href="/pricing">Full pricing, FAQ &amp; plan comparison →</Link>
@@ -845,7 +854,7 @@ export default function KineoLanding({ initialUser }: Props) {
 
       <section id="faq">
         <div className="wrap">
-          <div className="sec-h"><h2>Questions, answered.</h2></div>
+          <div className="sec-h"><span className="sec-eyebrow">FAQ</span><h2>Common questions</h2></div>
           <div className="faq">
             {/* KINEO-PRELAUNCH-PATH-2026-08-08 — as duas respostas abaixo eram
                 literais fixos e contradiziam a resposta "Is there a watermark?"
@@ -886,7 +895,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="fcta"><Link className="btn btn-w" href="#try-kineo">Choose my topic — free</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}>✓ No credit card &nbsp;·&nbsp; ✓ 3 free videos every 24h &nbsp;·&nbsp; ✓ Cancel anytime</p>
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}>✓ No credit card&nbsp;·&nbsp;✓ 3 free videos every 24h&nbsp;·&nbsp;✓ Cancel anytime</p>
             </div>
           </div>
         </div>
