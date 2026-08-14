@@ -1,3 +1,56 @@
+## 14/08 sprint 11h — UM EVENTO PODE EXISTIR, ESTAR CERTO, E MESMO ASSIM SER INVISIVEL
+
+`KINEO-EXAMPLES-PROVA-SEM-PORTA-2026-08-14` (commit `f54a419`).
+Rotacao de aquisicao desta sprint: **Funil (melhoria de conversao) + Analytics**.
+
+**REGRA NOVA, e ela e transferivel para toda a base:** um evento gravado sem
+`session_id` nao existe para a operacao. `example_video_play` (162 linhas) e
+`example_watch_cta_click` (16) estavam no banco desde 21/07, corretos, com
+metadata rica — e 100% deles sem sessao, porque os componentes postavam com um
+`fetch` cru em `/api/events` em vez de `trackEvent` (o unico caminho que anexa
+`session_id` + UTMs de first-touch). Como TODO funil da casa agrupa por sessao,
+`/examples/*` apareceu em todos os documentos como "187 sessoes -> 1 video",
+quando o que estava la era **82% de play — a maior taxa de engajamento organico
+que esta casa tem em qualquer superficie.**
+
+E a regra 3 do PROMPT-DIARIO ("zero sobre nada nao e evidencia de nada") por um
+caminho novo: **o denominador estava certo e o numerador estava desconectado
+dele.** Antes de chamar uma superficie de morta, conferir a ORFANDADE dos eventos
+dela: `count(*) filter (where session_id is null)` sobre o total.
+
+**Corolario que evita o erro simetrico — orfandade NEM SEMPRE e defeito.** A
+varredura achou 15 nomes 100% orfaos e a maioria e legitima:
+`trial_lifecycle_email_sent`, `trial_credits_granted`, `trial_downgraded`,
+`credits_back_sent`, `post_nudge_sent`, `blackout_winback_sent`, `trial_expired`
+sao de servidor/cron — nao existe sessao de navegador para anexar e o `user_id`
+ja os torna analisaveis. **Orfao so e bug quando o evento nasce de um CLIQUE.**
+(`auth_callback_completed`, 407 linhas, e caso de fronteira: roda antes de o
+cliente montar. Divida conhecida, nao regressao.)
+
+**Segundo aprendizado, sobre PLANO e nao sobre codigo.** As 10h propuseram levar
+a porta as ~45 paginas de artigo de SEO *depois* de medir as duas paginas novas.
+A medicao ja estava no banco: 13 paginas tem porta instrumentada ha semanas, e
+**toda pagina acima de 10 sessoes converte 0% (8 maiores = 316 sessoes, zero
+cliques)**, enquanto as duas que convertem (67% e 41%) sao FERRAMENTAS. Antes de
+esperar dado novo, checar se o dado velho ja responde — Regra Zero aplicada a
+MEDICAO, nao so a construcao.
+
+**Hipotese concorrente testada e insuficiente (registrar, para nao ser reaberta
+como se fosse novidade):** "as paginas de exemplo ranqueiam pelo TOPICO do video,
+entao o trafego e turista". Provavelmente verdade para `/examples/japan-*` e
+`/examples/runit-*` (137 das 187 sessoes). **Mas nao explica
+`/cheapest-ai-shorts-maker`:** consulta de fundo de funil pura, DUAS portas
+instrumentadas com a copy certa, mesmo `OrganicCtaLink` que fez 284 cliques na
+home nos mesmos 30 dias — 41 sessoes, zero cliques. Uma hipotese que explica o
+caso facil e falha no caso decisivo nao substitui a conclusao.
+
+**Divida NOVA registrada:** `shorts-money-calculator` (449 linhas),
+`niche-picker` (789) e `viral-score` (221) sao ferramentas COMPLETAS, do formato
+que converte 41-67%, e **nenhuma tem uma unica saida para o produto**. Conectar as
+tres e mais barato que escrever qualquer pagina de SEO nova.
+
+---
+
 ## 11/08/2026 sprint 19h — ANALYTICS: o resgate de vídeo entra no funil (`video_rescue_sent`)
 
 Rotação de aquisição desta sprint: **Analytics**. `KINEO-RESCUE-EVENT-2026-08-11`.

@@ -1,3 +1,75 @@
+# GATE 14/08 (sprint 11h) — O PLANO DE SEO DAS 10H ESTA REVOGADO POR MEDICAO
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
+Contagem de commits de proposito NAO escrita aqui: `git log origin/main..HEAD --oneline`.
+O prazo de 16:30Z segue COBERTO (producao em `2499311` desde ~09:22Z, ja com a
+correcao da letra miuda do `/pricing`). O que segue represado e o trabalho de hoje.
+
+## 🔴 NAO LEVAR A PORTA AS ~45 PAGINAS DE ARTIGO DE SEO
+
+A sprint das 10h propos exatamente isso, condicionado a medir as duas paginas
+novas. **A medicao ja existia no banco e diz o contrario** — 13 paginas tem porta
+instrumentada ha semanas. Sessoes de entrada x sessoes com `organic_cta_clicked`,
+30 dias:
+
+| pagina | formato | sessoes | com clique | % |
+|---|---|---:|---:|---:|
+| `/free-script-generator` | **ferramenta** | 9 | 6 | **67%** |
+| `/free-ai-shorts-generator` | **ferramenta** | 17 | 7 | **41%** |
+| `/examples/japan-autonomous-ai` | prova em video | **73** | 0 | **0%** |
+| `/examples/runit-island-nuclear-dome` | prova em video | **64** | 0 | **0%** |
+| `/cheapest-ai-shorts-maker` | artigo | **41** | 0 | **0%** |
+| `/state-of-ai-shorts-2026` | artigo | 28 | 0 | 0% |
+| `/how-much-do-youtube-shorts-pay` | artigo | 27 | 0 | 0% |
+| `/youtube-shorts-from-topic` | artigo | 15 | 0 | 0% |
+
+**Toda pagina acima de 10 sessoes converte 0%. As 8 maiores somam 316 sessoes e
+ZERO cliques.** A hipotese obvia (turismo de topico nas paginas de exemplo) e boa
+e nao basta: `/cheapest-ai-shorts-maker` e consulta de fundo de funil pura, tem
+DUAS portas instrumentadas com a copy certa, usa o MESMO `OrganicCtaLink` que
+produziu 284 cliques na home nos mesmos 30 dias — e deu zero em 41 sessoes.
+
+**Ter porta nao e a variavel. O que separa 67% de 0% e a pagina deixar a pessoa
+FAZER alguma coisa antes de pedir qualquer coisa.** As duas que funcionam sao
+ferramentas: a pessoa digita um tema, recebe um script de graca, e a porta aparece
+carregando o trabalho DELA ("Create this Short from my script").
+
+**IRONIA CARA:** a casa ja construiu tres ferramentas —
+`shorts-money-calculator` (449 linhas), `niche-picker` (789) e `viral-score` (221) —
+e **nenhuma das tres tem uma unica saida para o produto.** 1.459 linhas do formato
+que comprovadamente converte 41-67%, desconectadas. Conectar as tres e mais barato
+que qualquer pagina nova e e a proxima entrega de aquisicao.
+
+Honestidade do n: 67% vem de 9 sessoes e 41% de 17 — pequenos. O lado ZERO e que
+e robusto, e e ele que sustenta a decisao de NAO replicar o formato de artigo.
+
+## 🟡 A SUPERFICIE DE MAIOR ENGAJAMENTO DA CASA ESTAVA INVISIVEL
+
+`/examples/*`: 187 sessoes, **153 plays (82%)**, 16 cliques (10 deles para
+`/pricing`), 0 signups. Os 169 eventos de play/clique nasceram com `session_id`
+NULL (`fetch` cru em vez de `trackEvent`), e como todo funil da casa agrupa por
+sessao, todo documento ate hoje leu a pagina como morta. Corrigido em
+`KINEO-EXAMPLES-PROVA-SEM-PORTA-2026-08-14` (`f54a419`): telemetria pela via da
+casa, porta dentro do quadro 9:16 no `onEnded` (os CTAs ficavam abaixo da dobra no
+celular), evento novo `example_preview_ended`, e uma oferta so por tela — o preco
+virou link, porque 10 dos 16 cliques mandavam quem acabou de ver a prova para uma
+tabela de precos antes do primeiro video.
+
+**Conferir depois do push:** `example_preview_ended` vs `example_watch_cta_click`
+com `placement='preview_ended'`. Se a porta no fim da previa continuar dando zero
+sobre ~150 plays/mes, a hipotese do turismo de topico se confirma e a decisao
+passa a ser PARAR de investir nessas paginas — o que tambem e resultado.
+
+## 🟡 TRIAL -> PAGO PRECISA DE COORTE FECHADA ANTES DE VIRAR DECISAO
+
+Estoque hoje: **115 trials ativos, 1 convertido**. Isso esta abaixo do gatilho de
+5% do mandato, mas o numero NAO e conclusivo: `converted` e escrito pelo webhook
+do Stripe e "ativo" inclui trial comecado hoje. Medir pela coorte de quem JA
+venceu, sem contas internas, com as tres definicoes de pagante juntas (regra 4 do
+PROMPT-DIARIO). Primeira entrega da proxima sprint. Nao usar o numero acima.
+
+---
+
 # GATE 14/08 (sprint 10h) — O PRAZO DAS 16:30Z ESTA COBERTO
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
