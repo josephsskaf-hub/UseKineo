@@ -247,6 +247,50 @@ export default function ShortCostCalculator() {
         </p>
       </div>
 
+      {/*
+        KINEO-PAGINA-INVISIVEL-2026-08-14 — esta página é a de MAIOR intenção de
+        compra do site orgânico ("cheapest ai shorts maker" é consulta de quem
+        está escolhendo onde pagar) e o placar da operação a lia como 0%: 51
+        sessões, 0 clique. As duas coisas por trás desse zero:
+
+        (1) O placar não estava cego, estava lendo OUTRO evento. Esta ferramenta
+            grava `short_cost_calculator_cta_clicked` e o placar da casa conta
+            `organic_cta_clicked` — o mesmo defeito que as 11h acharam em
+            /examples, na página onde ele custa mais caro. Os números reais dos
+            30 dias: 51 de 51 sessões VÊEM a calculadora, 8 MEXEM nela (30
+            interações) e 3 clicam para sair. Não é uma página morta, é a mais
+            engajada do orgânico — e a operação decidia sobre ela achando que
+            era zero. Agora os dois eventos saem juntos: o específico continua
+            para quem estuda a ferramenta, e o `organic_cta_clicked` põe a
+            página no placar que já existe, sem inventar métrica nova.
+
+        (2) Nesse mesmo placar aparece o que de fato deu zero: os dois
+            OrganicCtaLink estáticos desta página (`push22_cheapest`, hero e
+            fecho) têm 0 clique em 51 sessões, medidos, contra 3 da ferramenta.
+            Então a lei das 11h ("ferramenta converte, texto não") não tinha
+            exceção aqui — faltava a ferramenta ser contada.
+
+        O DESTINO DOS BOTÕES NÃO MUDA, E ISSO É UMA DECISÃO, NÃO UMA OMISSÃO.
+        Eu tinha reescrito o botão principal: `#try-costed-workflow` é uma ÂNCORA
+        NA PRÓPRIA PÁGINA, e "quem acabou de calcular o custo recebe uma ROLAGEM"
+        parecia o mesmo circuito fechado que as 10h acharam. Fui olhar as 3
+        sessões que clicaram, uma por uma, antes de trocar — e elas dizem o
+        contrário: DUAS das três seguiram a âncora até o TopicGeneratorForm,
+        enviaram um tópico e terminaram com VÍDEO GERADO (`video_generation_completed`,
+        01/08 07:07Z e 12:02Z). A âncora não é circuito fechado: é a porta que
+        mais converte nesta casa, 2 vídeos em 3 cliques.
+
+        E o motivo de trocá-la ser ativamente destrutivo: DUAS dessas três
+        sessões já estavam LOGADAS e chegaram aqui de /pricing por link interno
+        (`cost_calculator_internal_clicked`), não pela busca. Mandar essa gente
+        para /signup seria mandar quem já tem conta para uma tela de criar conta,
+        matando o único caminho medido que produz vídeo. Esta página não é só
+        uma landing de SEO — ela é, de fato, a resposta à objeção de preço de
+        quem já hesitou no checkout, e é assim que precisa ser tratada.
+
+        Nenhum preço, moeda ou rota de checkout tocados — os valores seguem
+        vindo de checkoutPricing via /api/geo, como já vinham.
+      */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 18 }}>
         <Link
           href="#try-costed-workflow"
@@ -260,6 +304,11 @@ export default function ShortCostCalculator() {
               display_currency: currency ?? 'resolving',
               internal_source: currentInternalSource(),
               intent_campaign: 'push77_short_cost_calculator',
+            })
+            void trackEvent('organic_cta_clicked', {
+              source: 'push77_short_cost_calculator',
+              placement: 'result',
+              destination: '/cheapest-ai-shorts-maker#try-costed-workflow',
             })
           }}
           style={{ padding: '13px 22px', borderRadius: 980, background: '#f5f5f7', color: '#000', textDecoration: 'none', fontWeight: 900 }}
@@ -278,6 +327,11 @@ export default function ShortCostCalculator() {
               display_currency: currency ?? 'resolving',
               internal_source: currentInternalSource(),
               intent_campaign: 'push77_short_cost_calculator',
+            })
+            void trackEvent('organic_cta_clicked', {
+              source: 'push77_short_cost_calculator',
+              placement: 'result_pricing',
+              destination: '/pricing',
             })
           }}
           style={{ padding: '13px 20px', borderRadius: 980, border: '1px solid #48484a', color: '#f5f5f7', textDecoration: 'none', fontWeight: 800 }}
