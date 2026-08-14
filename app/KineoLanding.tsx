@@ -68,7 +68,8 @@ html{scroll-behavior:smooth}
 .klp .btn-w:active{transform:translateY(0) scale(.985);box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 6px 16px -10px rgba(255,255,255,.3)}
 .klp .btn:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .klp .btn[disabled]{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
-.klp .link{color:var(--blue);font-weight:600;font-size:16px;display:inline-flex;align-items:center;gap:4px}
+.klp .link{color:var(--blue);font-weight:600;font-size:16px;display:inline-flex;align-items:center;gap:4px;background:linear-gradient(currentColor,currentColor) 0 100%/0 1px no-repeat;transition:background-size var(--dur-base) var(--ease-swift)}
+.klp .link:hover{background-size:100% 1px}
 .klp .link:hover{text-decoration:underline}
 /* O gradiente antigo comecava a apagar em 35% e terminava em #a1a1a6, o que
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
@@ -116,12 +117,14 @@ html{scroll-behavior:smooth}
    removidos (decisão do fundador após ver no ar), então o shell é uma coluna em
    todas as larguras e o card ocupa a largura toda do shell no desktop. */
 .klp .composer-shell{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:30px;width:100%}
+.klp .composer:focus-within{border-color:rgba(41,151,255,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px rgba(41,151,255,.14)}
 .klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:820px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow var(--dur-base) ease,border-color var(--dur-base) ease}
 .klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:18px;line-height:1.55;font-family:inherit;padding:6px 2px}
 .klp .composer .ci::placeholder{color:var(--muted2)}
-.klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:var(--r-sm)}
+.klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:var(--r-sm);transition:transform var(--dur-fast) var(--ease-swift),box-shadow var(--dur-base) ease}
+.klp .composer .cbtn:hover{transform:translateY(-1px)}
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
 .klp .composer-head span{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.28);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
@@ -157,7 +160,7 @@ html{scroll-behavior:smooth}
    some assim que passa um frame claro. */
 .klp .vcard::after{content:'';position:absolute;left:0;right:0;bottom:0;height:58%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.72));pointer-events:none;z-index:1}
 .klp .vcard .vt{position:relative;z-index:2}
-.klp .vcard .vt{font-size:14px;font-weight:700;line-height:1.25;color:#fff}
+.klp .vcard .vt{font-size:14px;font-weight:700;line-height:1.25;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.6)}
 .klp .cmp{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow-x:auto;position:relative;box-shadow:var(--sh-card)}
 .klp .cmp table{width:100%;min-width:560px;border-collapse:collapse;font-size:14.5px}
 .klp .cmp th,.klp .cmp td{padding:15px 18px;text-align:center;border-bottom:1px solid rgba(255,255,255,.055)}
@@ -204,7 +207,7 @@ html{scroll-behavior:smooth}
 .klp .snote b{color:var(--txt);font-weight:650}
 .klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
 .klp .final::before{content:'';position:absolute;inset:-40px;background:url('/videos/example-turkmenistan.webp') center 30%/cover no-repeat;opacity:.07;filter:blur(26px) saturate(1.2);pointer-events:none}
-.klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
+.klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%);opacity:.75}
 .klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.024em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
 .klp .final .fcta{display:flex;justify-content:center;margin-top:30px}
@@ -228,7 +231,8 @@ html{scroll-behavior:smooth}
 .klp .tcard p{font-size:.93rem;color:var(--muted);line-height:1.58;margin-top:6px}
 .klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap var(--dur-fast) ease}
 .klp .tcard:hover .tlink{gap:9px}
-.klp .badge{display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
+@keyframes badgeIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.klp .badge{animation:badgeIn .4s var(--ease-out-expo) .3s both;display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
 .klp .pricing-more{margin-top:20px;text-align:center;font-size:12.5px;color:var(--muted2)}
 .klp .final h2{letter-spacing:-.03em;text-wrap:balance;font-weight:640}
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
@@ -236,6 +240,20 @@ html{scroll-behavior:smooth}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
 /* Dia 5 (13/08): fade-up das secoes ao rolar. .rv so e aplicada por JS (o
    RevealOnScroll) a secoes abaixo da dobra — sem JS nada fica escondido. */
+/* R3 (14/08): cascata interna — o RevealOnScroll ja observa .tools/.steps/.price; os FILHOS entram em degrau quando o bloco revela. Sem JS novo. */
+.klp .steps.rv .step,.klp .tools.rv .tcard,.klp .price.rv .plan{opacity:0;transform:translateY(14px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
+.klp .steps.rv-in .step,.klp .tools.rv-in .tcard,.klp .price.rv-in .plan{opacity:1;transform:none}
+.klp .steps.rv-in .step:nth-child(2){transition-delay:70ms}
+.klp .steps.rv-in .step:nth-child(3){transition-delay:140ms}
+.klp .price.rv-in .plan:nth-child(2){transition-delay:80ms}
+.klp .price.rv-in .plan:nth-child(3){transition-delay:160ms}
+.klp .tools.rv-in .tcard:nth-child(2){transition-delay:40ms}
+.klp .tools.rv-in .tcard:nth-child(3){transition-delay:80ms}
+.klp .tools.rv-in .tcard:nth-child(4){transition-delay:120ms}
+.klp .tools.rv-in .tcard:nth-child(5){transition-delay:160ms}
+.klp .tools.rv-in .tcard:nth-child(6){transition-delay:200ms}
+.klp .tools.rv-in .tcard:nth-child(7){transition-delay:240ms}
+.klp .tools.rv-in .tcard:nth-child(8){transition-delay:280ms}
 .klp .rv{opacity:0;transform:translateY(18px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
 .klp .rv.rv-in{opacity:1;transform:none}
 .klp .hvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform var(--dur-base) var(--ease-swift),opacity var(--dur-base) var(--ease-swift)}
@@ -631,7 +649,7 @@ export default function KineoLanding({ initialUser }: Props) {
                   na mesma frase, e o link é a única coisa clicável ali. */}
               {!isSignedIn && (
                 <>
-                  ✓ No credit card&nbsp;·&nbsp;✓ {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;·&nbsp;✓ Cancel anytime
+                  <span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime
                   <br />
                 </>
               )}
@@ -924,7 +942,7 @@ export default function KineoLanding({ initialUser }: Props) {
               <div className="fcta"><Link className="btn btn-w" href="#try-kineo">Choose my topic — free</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}>✓ No credit card&nbsp;·&nbsp;✓ 3 free videos every 24h&nbsp;·&nbsp;✓ Cancel anytime</p>
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> 3 free videos every 24h&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime</p>
             </div>
           </div>
         </div>
