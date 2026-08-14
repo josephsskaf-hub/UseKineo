@@ -1,3 +1,53 @@
+# GATE 14/08 (sprint 16h) — DOIS ITENS DA FILA ESTAO VENCIDOS, E UM TERCEIRO MUDOU DE TAMANHO
+
+**PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
+*(script desta sprint: `scripts\76-PUSH.bat`; contagem real: `git log origin/main..main`)*
+
+## 🔴 REMOVER O `/api/render/[id]` DO PROMPT-MESTRE — CUSTA UMA SPRINT POR DIA
+
+O "achado de seguranca `/api/render/[id]`, item 0 da fase 2, prioridade acima de
+tudo" **esta fechado desde `ec9f112`, 07/08**. Conferido no arquivo HOJE: a
+guarda de posse `getRenderIntent('legacy-<id>')` esta la, com fail-closed (404 em
+ausencia E em mismatch). O `SPRINT-2026-08-11` ja tinha registrado isso em 11/08
+e o item **voltou como prioridade #1 na sprint das 13h de 14/08**, porque o
+prompt-mestre o reinjeta a cada execucao. **Uma linha do fundador resolve.**
+Extensao da licao de 13/08 ("gate pode fechar sozinho"): item de fila tambem
+envelhece, e um item de fila IMORTAL e pior que um gate aberto.
+
+## 🟡 O "PAYWALL DO ENCALHE" SERVIA 2 PESSOAS EM 45 — O ESCOPO CERTO ERA OUTRO
+
+A sprint das 13h pediu paywall contextual para o encalhe (saldo 1-19). Medida a
+coorte fechada antes de construir: o encalhe e **2 de 45**. Os baldes reais sao
+**12 que zeraram os 40** (0 compraram) e **24 que nunca gastaram mais de 2
+creditos** (53%). A entrega de 16h (`cba327f`) cobre os 12 — que, descobriu-se,
+nem chegavam ao servidor — e os 9 encalhados de hoje. **Os 24 seguem sem dono e
+sao o maior balde do funil.**
+
+## 🟡 1 EM 5 VIDEOS DE IA FALHA, E NAO E MAIS O APAGAO
+
+11-14/08 (janela toda posterior a volta do Creatomate): **7 estornos em 34
+debitos de 20cr = 20,6%**, atingindo **6 de 24 pessoas (25%)**. As duas leituras
+batem, entao nao e impaciencia. A pista da sprint das 13h (`compose_not_ok`,
+"Render service rejected the job") **e assinatura do apagao e venceu** —
+`compose_not_ok` nao aparece desde 13/08 08:30. A falha viva chama `analyze_threw`
+(6 pessoas, ultima hoje 18:56Z) e **nao grava `httpStatus` nem `message`**: nao da
+para dizer pelo banco se e a OpenAI (saldo US$3,07, auto-reload OFF). Mesmo ponto
+cego que as 10h fecharam no detector do SERVIDOR, ainda aberto no evento do
+CLIENTE.
+
+## 🟡 LINK PARA FERRAMENTA TAMBEM NAO E A VARIAVEL
+
+`/shorts-money-calculator`: **0 sessoes em 30 dias**, com DUAS paginas linkando
+para ela em corpo e rodape. O gate das 11h provou que "ter porta" nao separa 67%
+de 0%; isto prova o corolario. A ferramenta foi para DENTRO das paginas com
+trafego (`93b5a6a`). **Conferir depois do push:** `organic_cta_clicked` com
+`source='acq5_money_calculator'` agrupado por `path` — se as duas paginas com a
+calculadora embutida continuarem em 0% sobre ~32 sessoes/mes, a hipotese do
+turismo de topico se confirma para as paginas de artigo e a decisao passa a ser
+PARAR de investir nelas, o que tambem e resultado.
+
+---
+
 # GATE 14/08 (sprint 11h) — O PLANO DE SEO DAS 10H ESTA REVOGADO POR MEDICAO
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
