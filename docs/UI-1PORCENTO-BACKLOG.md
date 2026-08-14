@@ -210,6 +210,31 @@ Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
 12. **Cinzas e timings → tokens.** Antes: 21 tons no KLP + 14 duracoes → depois: os 9
     tons e 3 duracoes/2 easings da tabela, com find&replace auditado (nenhuma mudanca
     visual percebida a olho — e consolidacao, nao redesign). Rollback: git revert.
+    ✅ **METADE "CINZAS" FEITA 14/08 (sprint 14h) na landing.** `app/KineoLanding.tsx`:
+    **21 tons quase-neutros → 10**, e — o que importa mais que a contagem — **todos os
+    10 agora sao declarados numa linha so** (o bloco de vars do `.klp`); nao sobrou
+    UM hex neutro solto dentro de regra ou de `style` inline. Tokens novos: `--s0`
+    (#0c0c0e, poco/overlay, absorve #0a0a0c), `--s3` (#26262a, realce), `--line3`
+    (#4d4d50, borda de enfase), `--txt2` (#c7c7cd, absorve #c9c9cf). `--card` desceu
+    de #161618 para **#141416** (o valor da tabela) e absorveu #131315 e #17171a;
+    `--card2` #1d1d1f absorveu #191919, #19191c e #1a1a1d; `--s3` absorveu #212124;
+    `--line` #26262a absorveu os 4 `#2a2a2d` que os `style` inline do rodape tinham
+    inventado; `--muted2` #8f8f96 absorveu os 2 `#86868b` dos mesmos inlines.
+    **Regra que a sprint seguiu e que o dia 20 vai cobrar:** so colapsar o que nao se
+    ve. Toda colagem de SUPERFICIE ficou em **delta <= 6/255 por canal**; a unica de
+    TEXTO (#86868b → #8f8f96) sobe 11/255, isto e **clareia** — nenhum texto do site
+    ficou mais escuro do que estava.
+    **As 2 que faltam para a meta de 9 tons, e por que NAO foram feitas:** `--line3`
+    (#4d4d50) esta 19/255 acima de `--line2` e e a borda do plano **Most Popular** —
+    colapsar apaga uma enfase de venda; `--muted2` (#8f8f96) esta 18/255 abaixo de
+    `--muted` — colapsar escurece texto de rodape. As duas **se veem**, entao sao
+    decisao do fundador e nao consolidacao. Ficam nomeadas para o dia 20.
+    **Bonus que a auditoria do dia 11 obrigou:** os 3 `borderRadius: 999` em `style`
+    inline do mesmo arquivo viraram `var(--r-pill)` — render identico (999px), e o
+    grep do dia 20 agora acha zero. Ver a emenda ao item 22 sobre por que o grep de
+    `border-radius:` nao os via.
+    **Falta a metade "timings"** (49 duracoes distintas em app/+components/, 40
+    arquivos) — proxima sprint.
 13. ✅ **FEITO 13/08 (auditoria) — Focus-visible consistente.** Ja coberto:
     globals.css tem :focus-visible global (anel azul .7, offset 2) desde o UI
     Polish v1.3, valendo para landing e dashboard; .btn da landing tem o
@@ -308,6 +333,69 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     /pricing e um **preco em BRL** ("R$ 24,90/mo") — se for geolocalizacao,
     esta certo; se nao, um visitante americano ve real na primeira linha.
     Sprint de UI nao toca preco nem copy de oferta, entao nada foi feito.
+
+    **EMENDA 14/08 (sprint 14h) — nao sao DUAS linguagens de raio, sao TRES, e a
+    terceira e a maior.** Alem dos tokens em px e das 557 classes `rounded-*` do
+    Tailwind a 87,5%, existe **`borderRadius:` em `style` inline de JSX: 614
+    ocorrencias com valor numerico em `app/` + `components/`**. Nenhuma delas passa
+    por `border-radius:` (o grep do teste 2 do dia 20) nem pelo `tailwind.config.js`
+    (a correcao proposta neste item 22) — sao propriedades de objeto JavaScript que
+    o React serializa direto no atributo `style`, que e o lugar de MAIOR
+    especificidade do documento. Consequencia pratica: **o teste 2 do dia 20, como
+    esta escrito, pode retornar 0 com o site inteiro fora da escala.** O teste
+    precisa virar tres greps, nao um. Os 3 casos do `KineoLanding` ja foram
+    corrigidos hoje junto do item 12 (999 → `var(--r-pill)`, render identico);
+    sobram ~611, e eles NAO cabem numa sprint — viram varredura por pagina depois
+    que o config do item 22 estiver de pe (senao a gente tokeniza duas vezes).
+
+    **EMENDA 14/08 — a "anomalia deixada em aberto" de 13/08 esta explicada, e nao
+    era do `/viral-score`.** Ficou registrado ontem que reescrever regras na
+    producao nao mudava o computado de `.vs-go`/`.vs-ghost`. A causa foi medida
+    hoje: **a folha do `.klp` nao esta no `<head>` — esta dentro do `<main>`**
+    (`<style dangerouslySetInnerHTML>` no fim do `KineoLanding`, 24.944 bytes no ar).
+    Como a landing e as telas com `styled-jsx` injetam estilo no BODY, qualquer
+    `<style>` de teste anexado ao `<head>` perde o desempate da cascata por ordem
+    de documento, mesmo com a mesma especificidade — e a medicao le o valor antigo
+    e parece que "nada acontece". **Metodo da casa, a partir de agora: folha de
+    teste vai em `document.body.appendChild`, nunca no head.** Verificado hoje: a
+    mesma injecao que nao mudou nada no head mudou tudo no body (numeros na secao
+    do Diario). Nao havia `!important` nem segunda folha; era ordem de documento.
+
+23. **NOVO (14/08, sprint 14h) — /history: a pagina onde o cliente ve o proprio
+    trabalho abre 100 videos de uma vez, nenhum com poster, 91 fora da tela.**
+    Achado na rotacao, medido no DOM de producao com sessao real (570 creditos, a
+    conta do fundador). Numeros: **100 `<video>`, `preload="metadata"` em 100/100,
+    `poster` em 0/100, 91 abaixo da dobra, `readyState 0` e `networkState 2`
+    (NETWORK_LOADING) em 100/100** dois segundos depois do load.
+    Antes: abrir "My Videos" dispara **100 requisicoes de metadata simultaneas**
+    para MP4s do storage — 91 delas por videos que a pessoa nunca vai ver naquela
+    tela — e, como **nenhum card tem `poster`**, o retangulo 168x299 so deixa de
+    ser **preto** quando o metadata do proprio MP4 chega. E o mesmo pecado do
+    `/wall` (item 21: a pagina que existe para provar mostra um quadrado vazio),
+    so que aqui e pior: e a prova do trabalho que o cliente ja pagou.
+    Depois: (a) `preload="none"` nos 100 e montagem no `IntersectionObserver`, as
+    MESMAS regras que a galeria da home ja usa desde o dia 1 (poster-first, pausa
+    fora da tela, Save-Data/2g/reduced-motion → poster); (b) **`poster` obrigatorio
+    no card** — a coluna `thumbnail_url` ja existe (commit #320) e nao esta sendo
+    usada como poster do `<video>`; enquanto ela for nula, gradiente da marca no
+    lugar do preto, nunca um buraco; (c) paginacao/virtualizacao acima de ~24
+    cards.
+    Porque: e o item 2 do sistema deles ("preload='none' em 100% — o peso segue o
+    olhar, nao o pageload") e o teste 7 do dia 20, que hoje **falha em 100 de 100
+    elementos numa pagina so**. E porque o skeleton do dia 8 (`loading.tsx`) esta
+    consertando o sintoma errado: ele cobre bonito o carregamento da ROTA e depois
+    entrega 100 retangulos pretos esperando metadata.
+    Anotados junto, para nao virarem item novo depois: `/history` usa **14 raios
+    distintos** e os cinco mais frequentes — `6px` (400x), `7px` (101x), `12px`
+    (100x), `50%` (100x), `4px` (100x) — **nao existem na escala de tokens**
+    (8/13/18/22/999), o que confirma o item 22 numa segunda pagina; e a pagina roda
+    **so em Inter em 2.181 de 2.181 elementos**, zero Space Grotesk, igual ao
+    `/pricing` e ao `/generate` (medido hoje: 488/488 em Inter). Isso ja e um
+    padrao e nao um caso: **o produto inteiro e monofonte e a segunda familia so
+    aparece em 8 arquivos, dos quais so 2 sao do dashboard** (`/animate` e
+    `/avatar`) — a casa paga o peso de carregar Space Grotesk em toda pagina e nao
+    recebe identidade nenhuma em troca dentro do produto. Candidato natural a item
+    24 quando a rotacao voltar. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -508,3 +596,84 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   `font-size:14px` sem item proprio estao no item 22.
 
   **Proximo em ordem:** dia 12 (cinzas e timings → tokens).
+
+- **14/08 (sprint 14h) — Dia 12 (metade "cinzas") na landing ✅ + a auditoria que
+  finalmente pode dizer "esta no ar".**
+
+  **1. Auditoria do item anterior EM PRODUCAO — e desta vez ele RODOU.** As duas
+  sprints de 13/08 fecharam com o mesmo aviso: `origin/main` = `f0f63c7`, nada de
+  UI tinha saido do laptop. Hoje `git ls-remote` responde **`2499311`** e o dia 11
+  esta no ar: medido no DOM de `https://www.usekineo.com/`, `--r-xs/--r-sm/--r-md/
+  --r-lg/--r-pill` respondem **8/13/18/22/999px tanto no `:root` quanto no `.klp`**
+  (ontem eram MISSING), `.final` = **22px** (era 30) e `.tico` = **13px** (era 14).
+  E o fundador nao subiu so isso: vieram junto as **ONDAS 2 a 7** (`152b8c0`,
+  `6c1ae7f`, `efeab12`, `0d90204`, `0dd28cf`, `2499311`), que entre outras coisas
+  promoveram `--sh-*`, `--dur-*` e `--ease-*` do `.klp` para o `:root` — ou seja
+  **metade da infraestrutura do dia 12 ja chegou antes desta sprint**.
+  **Nada regrediu, e cada numero foi lido, nao herdado:** **CLS = 0** por
+  `PerformanceObserver`, composer **667x432 exato** com raio 22px, **6/6 videos com
+  `preload="none"`**, **6/6 posters em .webp**, **12 elementos `.rv`** no lugar,
+  **zero erro de console**. HTML da home **171.324 B** — subiu 2,5 KB desde ontem
+  (168.866 B), efeito das ONDAS 6/7, e ainda **8,7 KB abaixo do guard-rail de
+  180 KB**. Efeito nos eventos nao foi medido nesta sprint: o deploy de todas as
+  ondas e de hoje, entao ainda nao ha antes/depois honesto para ler. Fica para a
+  sprint das 18h.
+  **O achado velho que segue de pe e nao virou item porque nao e conserto de uma
+  linha:** num monitor 1080p (viewport 911px) o primeiro card da galeria comeca em
+  **y=926px** — a galeria viva, que e a alma da home segundo o fundador, continua
+  inteira **abaixo da dobra**.
+
+  **2. Item da sprint: dia 12, metade "cinzas", na landing.** `KineoLanding.tsx`:
+  **21 tons quase-neutros → 10**, e nenhum hex neutro sobrou solto — os 10 vivem
+  todos no bloco de vars do `.klp`. Mapa, tokens novos (`--s0/--s3/--line3/--txt2`)
+  e as 2 colagens recusadas de proposito estao no item 12 acima.
+  **Verificacao alem do tsc — e o metodo mudou hoje:** a rampa nova foi injetada
+  **na producao ao vivo** e o antes→depois lido com `getComputedStyle` elemento a
+  elemento. `.composer` topo `rgb(25,25,25)` → `rgb(29,29,31)` (delta 4/4/6) e base
+  **inalterada**; `.final` `(25,25,28)`→`(29,29,31)` e `(19,19,21)`→`(20,20,22)`;
+  `.plan.pop` `(33,33,36)`→`(38,38,42)` e `(26,26,29)`→`(29,29,31)`, **borda
+  identica**; `.logo .mk` `(23,23,26)`→`(29,29,31)`; **`.vcard` ficou byte a byte
+  identica**. **Maior delta do site inteiro: 6/255 num canal.** **CLS = 0** e
+  **toda caixa medida ficou IGUAL** — 667x432, 1024x424, 181x321, 329x494 — porque
+  cor e paint, nunca layout. `tsc --noEmit` **EXIT=0 e falsificado** (erro
+  proposital → **TS2322 na linha 28** → restaurado, md5 `f56a2b01…` conferido
+  igual, EXIT=0). EOL **LF conferido no HEAD e na arvore** (0 CRLF nos dois).
+  **A primeira injecao nao mudou NADA — e esse fracasso e o achado do dia.** Anexei
+  a folha de teste no `<head>` e o computado nao se moveu; foi exatamente o que
+  aconteceu ontem no `/viral-score` e ficou registrado como "anomalia". A causa
+  esta medida: **a folha do `.klp` nao esta no `<head>`, esta dentro do `<main>`**
+  (24.944 bytes num `<style>` no fim do componente). Estilo no body ganha do estilo
+  no head por ordem de documento com a mesma especificidade — a medicao lia o valor
+  antigo e parecia que a regra nao existia. Repetida a injecao em
+  `document.body.appendChild`, tudo respondeu. **Virou metodo da casa** (emenda no
+  item 22): folha de teste vai no body. A anomalia de ontem esta fechada e nao era
+  do `/viral-score`.
+  **A revisao adversarial (2 passadas, a 2a cacando defeito meu) achou 3 coisas:**
+  (a) `--card` e redefinido dentro do `.klp` e mudou de valor — se algum componente
+  filho da landing lesse `var(--card)`, herdaria o tom novo; auditado por grep,
+  **so `AuthModal` e `PreviewModal` usam `var(--card)` e nenhum dos dois e filho do
+  `.klp`** (a lista de componentes dentro do `<main className="klp">` foi extraida
+  do JSX). (b) O comentario novo de 16 linhas vive **dentro do template literal do
+  `KLP_CSS`** — foi escrito sem crase e sem `*/` interno de proposito, e o tsc
+  limpo prova que a string continua fechada (foi assim que o `AvatarUpload` quebrou
+  ontem); ele tambem nao pesa no fio, porque o render ja remove comentarios com
+  `replace(/\/\*[\s\S]*?\*\//g,'')`. (c) O `borderRadius: 999` inline virou
+  `var(--r-pill)` e nao `999px` — checado que os 3 elementos sao filhos do
+  `<main className="klp">`, senao o `var()` cairia para 0 e as pilulas do rodape
+  viravam retangulos.
+
+  **3. Realimentacao do backlog: item 23 (/history) + 2 emendas ao item 22.**
+  Na rotacao, `/history` — a pagina onde o cliente ve o proprio trabalho — abre
+  **100 `<video>` com `preload="metadata"`, 0 com `poster`, 91 fora da tela**,
+  todos em `networkState 2` dois segundos depois do load: 100 requisicoes de
+  metadata simultaneas e um retangulo **preto** em cada card ate o MP4 responder.
+  E o item 21 (`/wall`) de novo, na pagina de quem ja pagou. Detalhe no item 23.
+  As emendas ao item 22 sao as duas descobertas de metodo do dia: **existe uma
+  TERCEIRA linguagem de raio — 614 `borderRadius:` numericos em `style` inline de
+  JSX**, que nao passam por `border-radius:` nem pelo `tailwind.config.js`, ou
+  seja **o teste 2 do dia 20 pode dar 0 com o site inteiro fora da escala**; e a
+  regra da folha de teste no body.
+
+  **Proximo em ordem:** dia 12, metade "timings" (49 duracoes distintas em 40
+  arquivos de `app/` + `components/`; o `:root` ja tem `--dur-fast/base/slow` e
+  `--ease-swift/out-expo` desde a ONDA 6, entao e consumo de token, nao criacao).

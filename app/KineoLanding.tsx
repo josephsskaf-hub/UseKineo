@@ -32,7 +32,25 @@ const KLP_CSS = `
    que card, plano, FAQ e botao parem de cada um inventar o proprio acabamento. */
 html{scroll-behavior:smooth}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-.klp{--bg:#000;--card:#161618;--card2:#1d1d1f;--line:#26262a;--line2:#3a3a3d;--txt:#f5f5f7;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-xs:8px;--r-sm:13px;--r-md:18px;--r-lg:22px;--r-pill:999px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:#000;color:#f5f5f7;font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
+/* KINEO-UI-DIARIO-2026-08-14 — dia 12 do roadmap Higgsfield (metade "cinzas"),
+   na landing. A escala de raios ja e unica desde o dia 11; a de CINZA nao era:
+   este arquivo tinha 21 tons quase-neutros distintos para ~6 papeis reais, e a
+   maioria nascia solta dentro de um gradiente ou de um style inline, sem passar
+   por nenhuma das vars que a propria .klp ja declarava. A rampa abaixo fecha o
+   conjunto em 4 superficies + 3 tracos + 4 textos. Toda colagem de SUPERFICIE
+   tem delta <= 6/255 por canal; a unica colagem de TEXTO (#86868b do rodape ->
+   --muted2 #8f8f96) sobe 11/255, ou seja CLAREIA — nenhum texto ficou mais
+   escuro. E consolidacao, nao redesign: nada muda a olho.
+   Papeis: s0 = poco (fundo de wash, overlay) · card = superficie base ·
+   card2 = superficie elevada · s3 = realce (mesmo tom do traco --line de
+   proposito: 1px dele le como hairline, uma area dele le como degrau) ·
+   line/line2/line3 = traco quieto / forte / de enfase ·
+   txt > txt2 > muted > muted2 = a rampa de texto, do titulo ao rodape.
+   NAO colapsadas de proposito, porque a diferenca SE VE e exigiria decisao do
+   fundador, nao consolidacao: --line3 (#4d4d50, a borda do plano Most Popular,
+   19/255 acima de --line2) e --muted2 (#8f8f96, 18/255 abaixo de --muted).
+   Sao exatamente as 2 que faltam para a meta de 9 tons do dia 20. */
+.klp{--bg:#000;--s0:#0c0c0e;--card:#141416;--card2:#1d1d1f;--s3:#26262a;--line:#26262a;--line2:#3a3a3d;--line3:#4d4d50;--txt:#f5f5f7;--txt2:#c7c7cd;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-xs:8px;--r-sm:13px;--r-md:18px;--r-lg:22px;--r-pill:999px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:var(--bg);color:var(--txt);font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
 .klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
@@ -55,12 +73,12 @@ html{scroll-behavior:smooth}
 /* O gradiente antigo comecava a apagar em 35% e terminava em #a1a1a6, o que
    deixava a segunda linha do h1 visivelmente lavada. Agora fica solido ate
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
-.klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,#c7c7cd 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 58%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.01em}
-.klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,#17171a,#161618);border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
+.klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
 .klp .nav-links{display:flex;gap:32px;font-size:14px;color:var(--muted);font-weight:500}
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
@@ -98,7 +116,7 @@ html{scroll-behavior:smooth}
    removidos (decisão do fundador após ver no ar), então o shell é uma coluna em
    todas as larguras e o card ocupa a largura toda do shell no desktop. */
 .klp .composer-shell{display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:30px;width:100%}
-.klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#191919 0%,#141416 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:820px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow var(--dur-base) ease,border-color var(--dur-base) ease}
+.klp .composer{display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line2);border-radius:var(--r-lg);padding:26px;width:100%;max-width:820px;min-height:300px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 26px 64px -30px rgba(0,0,0,1),0 0 0 1px rgba(41,151,255,.08);transition:box-shadow var(--dur-base) ease,border-color var(--dur-base) ease}
 .klp .composer:focus-within{border-color:rgba(41,151,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 26px 64px -30px rgba(0,0,0,1),0 0 0 3px var(--blue-soft)}
 .klp #try-kineo{scroll-margin-top:82px}
 .klp .composer .ci{flex:1;width:100%;min-height:170px;resize:none;background:transparent;border:none;outline:none;color:var(--txt);font-size:18px;line-height:1.55;font-family:inherit;padding:6px 2px}
@@ -114,7 +132,7 @@ html{scroll-behavior:smooth}
 .klp .sec-h{text-align:center;max-width:660px;margin:0 auto 60px}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
-.klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:#f5f5f7!important}
+.klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
 .klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
 .klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:620;letter-spacing:-.03em;line-height:1.06;text-wrap:balance}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
@@ -129,7 +147,7 @@ html{scroll-behavior:smooth}
 .klp .step .n{display:inline-flex;align-items:center;height:26px;padding:0 11px;border-radius:var(--r-pill);font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:var(--blue);background:rgba(41,151,255,.11);border:1px solid rgba(41,151,255,.26)}
 .klp .step h3{margin-top:18px;font-size:1.32rem;font-weight:650;letter-spacing:-.022em;line-height:1.2}
 .klp .step p{margin-top:11px;color:var(--muted);font-size:.99rem;line-height:1.62}
-.klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,#26262a,#0c0c0e 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-base) ease,box-shadow var(--dur-base) ease}
+.klp .vcard{aspect-ratio:9/16;border-radius:var(--r-md);background:radial-gradient(120% 80% at 50% 0%,var(--s3),var(--s0) 72%);border:1px solid var(--line);position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:15px;box-shadow:var(--sh-card);transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-base) ease,box-shadow var(--dur-base) ease}
 .klp .vcard:hover,.klp .vcard:focus-visible,.klp .vcard:focus-within{border-color:rgba(41,151,255,.4);transform:translateY(-5px);box-shadow:var(--sh-card-h),0 0 0 1px rgba(41,151,255,.18)}
 /* O texto do card fica sobre video em movimento — sem esta camada o titulo
    some assim que passa um frame claro. */
@@ -149,13 +167,13 @@ html{scroll-behavior:smooth}
 .klp .cmp tbody tr:last-child td.us{border-bottom-left-radius:var(--r-sm);border-bottom-right-radius:var(--r-sm);box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px -1px 0 rgba(41,151,255,.22)}
 .klp .cmp td.us{color:var(--txt);font-weight:700}
 .klp .cmp tbody tr:hover td{background:rgba(255,255,255,.018)}
-.klp .cmp tbody tr:hover td:first-child{background:#212124}
+.klp .cmp tbody tr:hover td:first-child{background:var(--s3)}
 .klp .cmp .no{color:var(--muted2)}
 .klp .cmp tr:last-child td{border-bottom:none}
 .klp .price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;align-items:stretch}
 .klp .plan{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);padding:32px 28px;display:flex;flex-direction:column;box-shadow:var(--sh-card);transition:transform var(--dur-fast) var(--ease-swift),border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .plan:hover,.klp .plan:focus-visible,.klp .plan:focus-within{transform:translateY(-4px);border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 18px 44px -18px rgba(41,151,255,.32)}
-.klp .plan.pop{background:linear-gradient(180deg,#212124 0%,#1a1a1d 100%);border-color:#4d4d50;box-shadow:var(--sh-card-h)}
+.klp .plan.pop{background:linear-gradient(180deg,var(--s3) 0%,var(--card2) 100%);border-color:var(--line3);box-shadow:var(--sh-card-h)}
 .klp .plan.pop:hover,.klp .plan.pop:focus-visible,.klp .plan.pop:focus-within{border-color:var(--blue);box-shadow:0 0 0 1.5px var(--blue),0 12px 34px rgba(41,151,255,.16)}
 .klp .plan{position:relative}
 .klp .plan .pt{font-size:11px;font-weight:750;letter-spacing:.07em;text-transform:uppercase;color:var(--muted2)}
@@ -179,7 +197,7 @@ html{scroll-behavior:smooth}
 .klp .plan .btn{justify-content:center;margin-top:auto;width:100%}
 .klp .snote{margin:26px auto 0;max-width:600px;text-align:center;font-size:14.5px;line-height:1.6;color:var(--muted)}
 .klp .snote b{color:var(--txt);font-weight:650}
-.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,#19191c 0%,#131315 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
+.klp .final{position:relative;text-align:center;overflow:hidden;border-radius:var(--r-lg);padding:88px 24px;background:linear-gradient(180deg,var(--card2) 0%,var(--card) 100%);border:1px solid var(--line);box-shadow:var(--sh-card-h)}
 .klp .final .glow{position:absolute;width:720px;height:400px;left:50%;top:-140px;transform:translateX(-50%);background:radial-gradient(ellipse at center,rgba(41,151,255,.18),transparent 66%)}
 .klp .final h2{font-size:clamp(2rem,4.4vw,3rem);font-weight:600;letter-spacing:-.025em}
 .klp .final p{margin-top:14px;color:var(--muted);font-size:1.15rem}
@@ -250,7 +268,7 @@ html{scroll-behavior:smooth}
 .klp .sec-h{margin-bottom:40px}
 .klp .final{padding:60px 20px;border-radius:var(--r-lg)}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
-.klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:#0a0a0c;border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
+.klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:var(--s0);border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
 .klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
 .klp .nav-mobile-menu a:last-child{border-bottom:none}
 .klp .nav-mobile-menu a:hover,.klp .nav-mobile-menu a:focus-visible{color:var(--blue)}
@@ -641,11 +659,11 @@ export default function KineoLanding({ initialUser }: Props) {
                 gap: 10,
                 flexWrap: 'wrap',
                 fontSize: 12,
-                color: '#86868b',
+                color: 'var(--muted2)',
               }}
             >
               <span
-                style={{ color: '#c9c9cf', fontWeight: 700, border: '1px solid #2a2a2d', borderRadius: 999, padding: '5px 11px' }}
+                style={{ color: 'var(--txt2)', fontWeight: 700, border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '5px 11px' }}
               >
                 #2 Product of the Day on Fazier
               </span>
@@ -653,7 +671,7 @@ export default function KineoLanding({ initialUser }: Props) {
                 href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"
                 target="_blank"
                 rel="nofollow noreferrer"
-                style={{ color: '#c9c9cf', fontWeight: 700, textDecoration: 'none', border: '1px solid #2a2a2d', borderRadius: 999, padding: '5px 11px' }}
+                style={{ color: 'var(--txt2)', fontWeight: 700, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '5px 11px' }}
               >
                 Featured on There&apos;s An AI For That
               </a>
@@ -902,7 +920,7 @@ export default function KineoLanding({ initialUser }: Props) {
       </section>
 
       {/* Marker: KINEO-TAAFT-BADGE-2026-07-01 (verification embed — homepage only) */}
-      <div className="wrap" style={{ paddingTop: 28, paddingBottom: 28, textAlign: 'center', borderTop: '1px solid #2a2a2d' }}>
+      <div className="wrap" style={{ paddingTop: 28, paddingBottom: 28, textAlign: 'center', borderTop: '1px solid var(--line)' }}>
         <div className="taaft-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18, flexWrap: 'wrap' }}>
           <a href={"https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"} target="_blank" rel="nofollow noreferrer">
             <img width={200} height={42} loading="lazy" decoding="async" src={"https://media.theresanaiforthat.com/featured-on-taaft.png?width=600"} alt="Featured on There's An AI For That" />
@@ -920,7 +938,7 @@ export default function KineoLanding({ initialUser }: Props) {
             href="https://fazier.com"
             target="_blank"
             rel="noreferrer"
-            style={{ color: '#86868b', fontSize: 12.5, fontWeight: 700, textDecoration: 'none', border: '1px solid #2a2a2d', borderRadius: 999, padding: '8px 14px' }}
+            style={{ color: 'var(--muted2)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '8px 14px' }}
           >
             Launched on Fazier
           </a>
