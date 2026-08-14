@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from './ExampleLiveMedia'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -28,9 +29,14 @@ export default function ExamplesPage() {
           <Link href="/" className="font-display text-lg font-semibold tracking-[-.02em] tracking-tight">Kineo</Link>
           <nav className="flex items-center gap-4 text-sm font-bold text-white/70">
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
-            <Link href="/signup?utm_source=examples&amp;utm_medium=proof&amp;utm_campaign=push31" className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white">
+            <OrganicCtaLink
+              href="/signup?utm_source=examples&utm_medium=proof&utm_campaign=push31"
+              source="examples_index"
+              placement="header"
+              className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
+            >
               Start free
-            </Link>
+            </OrganicCtaLink>
           </nav>
         </div>
       </header>
@@ -83,12 +89,14 @@ export default function ExamplesPage() {
             <h2 className="text-xl font-semibold tracking-[-.02em]">Bring your own topic.</h2>
             <p className="mt-1 text-sm leading-6 text-white/60">{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</p>
           </div>
-          <Link
-            href="/generate?utm_source=examples&amp;utm_medium=proof&amp;utm_campaign=push31"
+          <OrganicCtaLink
+            href="/generate?utm_source=examples&utm_medium=proof&utm_campaign=push31"
+            source="examples_index"
+            placement="footer_band"
             className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold tracking-[-.02em] text-black transition hover:bg-white sm:mt-0"
           >
             Create a Fast video →
-          </Link>
+          </OrganicCtaLink>
         </div>
       </section>
     </main>
