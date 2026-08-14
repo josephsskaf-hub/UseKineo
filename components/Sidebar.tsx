@@ -124,8 +124,11 @@ function NavItem({
 
   function handleClick(e: React.MouseEvent) {
     if (active) {
+      // ONDA2 #24 (13/08) — clicar no item JA ativo nao dispara mais
+      // router.refresh(): em /generate isso re-renderizava o server no meio
+      // de um formulario preenchido/render em andamento. Um toque acidental
+      // na nav nao pode custar o trabalho do usuario.
       e.preventDefault()
-      router.refresh()
     }
     onClick?.()
   }

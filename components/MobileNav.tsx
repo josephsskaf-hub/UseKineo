@@ -81,8 +81,15 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
   },
 ]
 
-export default function MobileNav() {
+// ONDA2 #21/#23 (13/08) — paridade com o Sidebar (regra dos pares):
+// deslogado nao ve "Invite & Earn"/"Affiliate" (no desktop ja era assim — no
+// celular era parede de login); e a logica de "ativo" e a MESMA do Sidebar
+// (exact ou prefixo com '/'), nao um startsWith cru.
+export default function MobileNav({ isLoggedIn = true }: { isLoggedIn?: boolean }) {
   const pathname = usePathname()
+  const items = NAV_ITEMS.filter(
+    (item) => isLoggedIn || !['/referral', '/affiliate'].includes(item.href),
+  )
 
   return (
     <nav
@@ -96,10 +103,10 @@ export default function MobileNav() {
       }}
     >
       <div className="flex items-stretch" style={{ height: 62 }}>
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active = item.exact
             ? pathname === item.href
-            : pathname.startsWith(item.href)
+            : pathname === item.href || pathname.startsWith(item.href + '/')
 
           return (
             <Link

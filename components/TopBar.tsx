@@ -132,6 +132,7 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
   const [credits, setCredits] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [errored, setErrored] = useState(false)
+  const [anon, setAnon] = useState(false)
   const mountedRef = useRef(true)
 
   useEffect(() => {
@@ -145,7 +146,11 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     try {
       const res = await fetch('/api/credits', { cache: 'no-store' })
       if (res.status === 401) {
-        if (mountedRef.current) setErrored(true)
+        // ONDA2 #18 (13/08) — 401 = visitante sem sessao, NAO erro. O
+        // (dashboard) e publico e /generate recebe trafego de anuncio
+        // deslogado: esse trafego via um chip "— ↻" com tooltip de erro como
+        // primeira impressao. Anonimo nao tem saldo para mostrar: some o chip.
+        if (mountedRef.current) setAnon(true)
         return
       }
       const data = await res.json()
@@ -222,7 +227,11 @@ function CreditsBadge({ isPro }: { isPro: boolean }) {
     )
   }
 
-  // Error (401 / network hiccup) — never hide the balance slot; show a
+  // ONDA2 #18 (13/08) — sem sessao nao ha saldo: nada a mostrar nem a
+  // "retentar". O estado de erro abaixo volta a ser so para erro DE VERDADE.
+  if (anon) return null
+
+  // Error (network hiccup) — never hide the balance slot; show a
   // retry affordance instead of vanishing at the exact moment the user is
   // deciding whether to spend credits.
   if (errored || credits === null) {

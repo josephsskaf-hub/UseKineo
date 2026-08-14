@@ -124,7 +124,7 @@ export default function DashboardShell({
             folga. `md:pb-0` inalterado: no desktop a MobileNav e md:hidden e
             nada muda. */}
         <main className="flex-1 overflow-y-auto pb-28 md:pb-0">{children}</main>
-        <MobileNav />
+        <MobileNav isLoggedIn={isLoggedIn} />
       </div>
     </div>
   )
