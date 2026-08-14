@@ -100,6 +100,9 @@ export default function SignupPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  // ONDA1 #14 (13/08) — true enquanto o auto-OAuth do fluxo de checkout esta
+  // redirecionando para o Google; mostra um interstitial em vez do formulario.
+  const [autoOauthInFlight, setAutoOauthInFlight] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   // KINEO-CHECKOUT-RESUME-2026-07-07 — query string forwarded to /login so a
@@ -177,9 +180,12 @@ export default function SignupPage() {
     const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextDestination)}`
     try { sessionStorage.setItem('kineo_checkout_google_autostart', '1') } catch { /* ignore */ }
     try { trackCheckoutAuthStep('method_selected', 'signup_page', nextDestination, 'google') } catch { /* ignore */ }
+    // ONDA1 #14 (13/08) — avisa ANTES de sequestrar para o Google: overlay
+    // explicando o passo, em vez de pintar o formulario e sumir com a tela.
+    setAutoOauthInFlight(true)
     void supabase.auth
       .signInWithOAuth({ provider: 'google', options: { redirectTo: callback } })
-      .catch(() => { /* stay on the form as a fallback */ })
+      .catch(() => { setAutoOauthInFlight(false) /* stay on the form as a fallback */ })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -758,6 +764,20 @@ export default function SignupPage() {
                     </div>
                   )}
 
+                  {/* ONDA1 #14 (13/08) — interstitial do auto-OAuth: quem veio
+                      do checkout ve o que esta acontecendo em vez de um
+                      formulario que some sozinho para o seletor do Google. */}
+                  {autoOauthInFlight && (
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(8,8,11,.96)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                      <div style={{ background: '#131316', border: '1px solid rgba(41,151,255,.35)', borderRadius: 18, padding: '28px 26px', maxWidth: 380, textAlign: 'center', boxShadow: '0 18px 60px rgba(0,0,0,.6)' }}>
+                        <div style={{ fontSize: '1.6rem', marginBottom: 10 }} aria-hidden="true">🔐</div>
+                        <div style={{ fontWeight: 800, color: '#f5f5f7', marginBottom: 6 }}>Taking you to Google sign-in…</div>
+                        <div style={{ fontSize: '0.85rem', color: '#a1a1a8', lineHeight: 1.5 }}>
+                          One tap and we&apos;ll bring you straight back to secure checkout.
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={loading}
@@ -770,7 +790,13 @@ export default function SignupPage() {
                       cursor: loading ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    {loading ? 'Creating account...' : '⚡ Create Free Account'}
+                    {/* ONDA1 #13 (13/08) — quem chegou aqui escolhendo um plano
+                        PAGO nao pode ler "Free Account" no botao. */}
+                    {loading
+                      ? 'Creating account...'
+                      : isCheckoutResume
+                        ? 'Continue to secure checkout →'
+                        : '⚡ Create Free Account'}
                   </button>
                 </form>
 

@@ -315,8 +315,10 @@ export default function LoginPage() {
                   fontWeight: 600,
                 }}
               >
-                🔒 Your session expired — sign in and we&apos;ll take you straight
-                back to secure checkout to finish your purchase.
+                {/* ONDA1 #16 (13/08) — sem acusar "session expired" (falso para
+                    quem nunca teve sessao): so o proximo passo, direto. */}
+                🔒 Sign in and we&apos;ll take you straight back to secure
+                checkout to finish your purchase.
               </div>
             )}
 

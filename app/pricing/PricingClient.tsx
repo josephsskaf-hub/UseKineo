@@ -14,6 +14,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { createClient } from '@/lib/supabase/client'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
@@ -211,6 +212,23 @@ export default function PricingClient() {
   // happens into a visible English error instead of silence.
   const checkout = useCheckoutLaunch('pricing_page')
   const purchasing = checkout.pending
+
+  // ONDA1 #7 (13/08) — o botao de compra fala a verdade: sem sessao, o rotulo
+  // avisa que o proximo passo e criar conta ("Sign up & continue"), em vez de
+  // prometer checkout e entregar o seletor do Google sem aviso.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        if (!cancelled) setSignedIn(Boolean(data.session))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const checkoutError = checkout.error
   const setCheckoutError = checkout.setError
   // Push #171 — show a friendly "already subscribed" info banner instead of
@@ -559,7 +577,7 @@ export default function PricingClient() {
         <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[#86868b]">
           {displayCurrency
             ? `Prices shown in ${currencyConfig.label}. Secure checkout uses the same currency.`
-            : 'Loading your local checkout currency…'}
+            : 'Prices in USD — switches to your local currency automatically at checkout.'}
         </p>
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER cleanup. Three stacked
@@ -639,11 +657,9 @@ export default function PricingClient() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
                   <span className="text-[2.4rem] font-black leading-none tracking-tight text-[#f5f5f7]">
-                    {!displayCurrency
-                      ? '—'
-                      : billing === 'annual'
-                        ? annualPrices[p.tier as PaidTier].perMonth
-                        : p.price}
+                    {billing === 'annual'
+                      ? annualPrices[p.tier as PaidTier].perMonth
+                      : p.price}
                   </span>
                 </div>
                 <div className="mt-1 text-[12.5px] font-semibold text-[#2997ff]">
@@ -690,11 +706,11 @@ export default function PricingClient() {
                     to /signup. */}
                 <button
                   type="button"
-                  disabled={purchasing !== null}
+                  disabled={purchasing === p.tier}
                   onClick={() => handleBuy(p.tier as PaidTier)}
                   className="mt-auto block w-full rounded-xl bg-[#2997ff] px-4 py-3 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
-                  {purchasing === p.tier ? 'Loading…' : `${ctaLabel} →`}
+                  {purchasing === p.tier ? 'Opening secure checkout…' : signedIn === false ? 'Sign up & continue →' : `${ctaLabel} →`}
                 </button>
                 {/* PAYPAL-2026-07-06 — alternate rail for international buyers
                     (US audit 06/07: USD abandoners want a no-card option).
@@ -728,6 +744,14 @@ export default function PricingClient() {
             )
           })}
         </div>
+
+        {/* ONDA1 #11 (13/08) — o erro de checkout aparece ONDE a pessoa esta
+            olhando (logo abaixo dos planos), nao 250 linhas depois. */}
+        {checkoutError && (
+          <p role="alert" className="mx-auto mt-4 max-w-2xl text-center text-[13px] font-semibold text-[#f87171]">
+            {checkoutError}
+          </p>
+        )}
 
         {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
             qualquer agência ("posso vender isso pro meu cliente?") não tinha
@@ -865,11 +889,11 @@ export default function PricingClient() {
                 </ul>
                 <button
                   type="button"
-                  disabled={purchasing !== null}
+                  disabled={purchasing === 'autopilot'}
                   onClick={() => handleBuy('autopilot')}
                   className="mt-6 block w-full rounded-xl bg-[#2997ff] px-4 py-3.5 text-center text-[14px] font-extrabold text-white shadow-[0_8px_24px_rgba(41,151,255,.35)] transition hover:bg-[#1f86ee] hover:shadow-[0_10px_30px_rgba(41,151,255,.45)] disabled:opacity-60"
                 >
-                  {purchasing === 'autopilot' ? 'Loading…' : 'Start Autopilot →'}
+                  {purchasing === 'autopilot' ? 'Opening secure checkout…' : 'Start Autopilot →'}
                 </button>
                 <p className="mt-2 text-center text-[12px] font-semibold text-[#86868b]">
                   🔒 Secure Stripe checkout · billed by Kineo · cancel anytime · 7-day money-back
@@ -924,12 +948,12 @@ export default function PricingClient() {
                 <div className="md:w-[230px]">
                   <button
                     type="button"
-                    disabled={purchasing !== null}
+                    disabled={purchasing === 'autopilot_pilot'}
                     onClick={handleBuyAutopilotPilot}
                     className="block w-full rounded-xl border border-[#2997ff] px-4 py-3 text-center text-[13.5px] font-extrabold text-[#2997ff] transition hover:bg-[#2997ff] hover:text-white disabled:opacity-60"
                   >
                     {purchasing === 'autopilot_pilot'
-                      ? 'Loading…'
+                      ? 'Opening secure checkout…'
                       : `Start the ${AUTOPILOT_PILOT_DAYS}-day pilot →`}
                   </button>
                   <p className="mt-2 text-center text-[11.5px] font-semibold text-[#86868b]">
@@ -947,13 +971,6 @@ export default function PricingClient() {
 
         {/* KINEO-2026-07-06 — Pix/Mercado Pago (BR) section removed at Joseph's request. */}
 
-        {/* Push #114 — surface any checkout error inline so users aren't
-            stranded silently when the API rejects the request. */}
-        {checkoutError && (
-          <p className="mx-auto mt-4 max-w-2xl text-center text-[13px] font-semibold text-[#f87171]">
-            {checkoutError}
-          </p>
-        )}
 
         {/* Push #171 — "already subscribed" info banner. Shown instead of
             the old silent redirect so users understand their plan is active. */}
@@ -1298,7 +1315,7 @@ export default function PricingClient() {
               ("Most Popular" = Creator). Studio goes neutral. */}
           <button
             type="button"
-            disabled={purchasing !== null}
+            disabled={purchasing === 'starter'}
             onClick={() => handleBuy('starter')}
             style={{
               flex: 1,
@@ -1314,12 +1331,12 @@ export default function PricingClient() {
             }}
           >
             {purchasing === 'starter'
-              ? 'Loading…'
-              : `Starter ${displayCurrency ? entryPriceLabel('starter') : ''}`}
+              ? 'Opening secure checkout…'
+              : `Starter ${entryPriceLabel('starter')}`}
           </button>
           <button
             type="button"
-            disabled={purchasing !== null}
+            disabled={purchasing === 'basic'}
             onClick={() => handleBuy('basic')}
             style={{
               flex: 1,
@@ -1336,12 +1353,12 @@ export default function PricingClient() {
             }}
           >
             {purchasing === 'basic'
-              ? 'Loading…'
-              : `Creator ${displayCurrency ? entryPriceLabel('basic') : ''} 🔥`}
+              ? 'Opening secure checkout…'
+              : `Creator ${entryPriceLabel('basic')} 🔥`}
           </button>
           <button
             type="button"
-            disabled={purchasing !== null}
+            disabled={purchasing === 'pro'}
             onClick={() => handleBuy('pro')}
             style={{
               flex: 1,
@@ -1357,8 +1374,8 @@ export default function PricingClient() {
             }}
           >
             {purchasing === 'pro'
-              ? 'Loading…'
-              : `Studio ${displayCurrency ? formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion)) : ''}`}
+              ? 'Opening secure checkout…'
+              : `Studio ${formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion))}`}
           </button>
         </div>
       )}
