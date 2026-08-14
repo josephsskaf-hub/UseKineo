@@ -103,7 +103,7 @@ const KLP_CSS = `
 .klp .composer .cbtn{align-self:flex-end;white-space:nowrap;padding:14px 28px;font-size:15.5px;border-radius:var(--r-sm)}
 .klp .composer-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
-.klp .composer-head span{font-size:12px;font-weight:700;color:var(--blue);white-space:nowrap}
+.klp .composer-head span{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.28);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
 .klp section{padding:112px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
@@ -136,8 +136,8 @@ const KLP_CSS = `
    as pontas arredondadas no topo e na base, em vez de um cinza quase invisivel
    em rgba(255,255,255,.04) que nao dizia qual coluna importa. */
 .klp .cmp thead th.us,.klp .cmp td.us{background:linear-gradient(180deg,rgba(41,151,255,.13),rgba(41,151,255,.07));box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px 0 0 rgba(41,151,255,.22)}
-.klp .cmp thead th.us{color:var(--txt);border-top-left-radius:12px;border-top-right-radius:12px;box-shadow:inset 1px 1px 0 rgba(41,151,255,.3),inset -1px 0 0 rgba(41,151,255,.3)}
-.klp .cmp tbody tr:last-child td.us{border-bottom-left-radius:12px;border-bottom-right-radius:12px;box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px -1px 0 rgba(41,151,255,.22)}
+.klp .cmp thead th.us{color:var(--txt);border-top-left-radius:var(--r-sm);border-top-right-radius:var(--r-sm);box-shadow:inset 1px 1px 0 rgba(41,151,255,.3),inset -1px 0 0 rgba(41,151,255,.3)}
+.klp .cmp tbody tr:last-child td.us{border-bottom-left-radius:var(--r-sm);border-bottom-right-radius:var(--r-sm);box-shadow:inset 1px 0 0 rgba(41,151,255,.22),inset -1px -1px 0 rgba(41,151,255,.22)}
 .klp .cmp td.us{color:var(--txt);font-weight:700}
 .klp .cmp tbody tr:hover td{background:rgba(255,255,255,.018)}
 .klp .cmp tbody tr:hover td:first-child{background:#212124}
@@ -197,8 +197,8 @@ const KLP_CSS = `
 .klp .tcard .tlink{margin-top:auto;padding-top:16px;color:var(--blue);font-size:.87rem;font-weight:650;display:inline-flex;align-items:center;gap:5px;transition:gap var(--dur-fast) ease}
 .klp .tcard:hover .tlink{gap:9px}
 .klp .badge{display:inline-flex;align-items:center;height:19px;font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:.09em;color:var(--blue);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);padding:0 7px;border-radius:var(--r-pill)}
-.klp .pricing-more{margin-top:24px;text-align:center;font-size:13.5px}
-.klp .final h2{letter-spacing:-.03em;text-wrap:balance}
+.klp .pricing-more{margin-top:20px;text-align:center;font-size:12.5px;color:var(--muted2)}
+.klp .final h2{letter-spacing:-.03em;text-wrap:balance;font-weight:640}
 .klp .final p{max-width:520px;margin-left:auto;margin-right:auto;text-wrap:balance}
 .klp .gallery-cap{max-width:760px;margin-left:auto;margin-right:auto;line-height:1.65}
 .klp .nav-cta{display:flex;align-items:center;gap:10px}
@@ -351,6 +351,8 @@ const KLP_CSS = `
 .klp .platforms{position:relative;z-index:1;margin:22px auto 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;color:var(--muted2);text-transform:uppercase}
 .klp .platforms b{color:var(--muted);font-weight:700}
 .klp .faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+/* ONDA6 (14/08): 12 cards sempre abertos em coluna unica eram ~1400px de cinza identico — 2 colunas cortam a altura pela metade sem tocar em texto. */
+@media(min-width:900px){.klp .faq{max-width:960px;display:grid;grid-template-columns:1fr 1fr;align-items:start}}
 .klp .qa{background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:24px 26px;box-shadow:var(--sh-card);transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) ease}
 .klp .qa:hover,.klp .qa:focus-visible,.klp .qa:focus-within{border-color:var(--line2);box-shadow:var(--sh-card-h)}
 .klp .qa h3{font-size:1.1rem;font-weight:650;letter-spacing:-.018em;line-height:1.35}
@@ -882,6 +884,9 @@ export default function KineoLanding({ initialUser }: Props) {
               <h2 className="gtxt">Type a topic. Get a finished Short.</h2>
               <p>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
               <div className="fcta"><Link className="btn btn-w" href="#try-kineo">Choose my topic — free</Link></div>
+              {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
+                  risco do hero: fecha a pagina com a mesma forca que abre. */}
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}>✓ No credit card &nbsp;·&nbsp; ✓ 3 free videos every 24h &nbsp;·&nbsp; ✓ Cancel anytime</p>
             </div>
           </div>
         </div>

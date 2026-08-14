@@ -349,7 +349,7 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
               <div
                 style={{
                   border: '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 14,
+                  borderRadius: 13,
                   padding: 16,
                   background: 'rgba(255,255,255,0.02)',
                   fontSize: 13,
@@ -363,7 +363,7 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
               <div
                 style={{
                   border: '1px solid rgba(41,151,255,0.25)',
-                  borderRadius: 14,
+                  borderRadius: 13,
                   padding: 18,
                   background: 'rgba(41,151,255,0.06)',
                   textAlign: 'left',

@@ -635,24 +635,32 @@ export default function PricingClient() {
                     flag instead of the blue "Best Value" pill. Popular
                     takes precedence when both are set so we don't paint
                     two stacked badges. */}
+                {/* ONDA6 #9 (14/08) — hierarquia estava INVERTIDA: o selo mais
+                    importante (Most Popular) era translucido e o secundario
+                    (Best Value) era azul solido. Trocados; emoji fora (nenhum
+                    selo da landing tem emoji). */}
                 {p.popular ? (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                    Most Popular
+                  </div>
+                ) : p.highlight ? (
                   <div
                     className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[.12em]"
                     style={{
                       background: 'rgba(41,151,255,.15)',
                       border: '1px solid rgba(41,151,255,.4)',
                       color: '#2997ff',
-                      boxShadow: '0 4px 18px rgba(41,151,255,.25)',
                     }}
                   >
-                    🔥 Most Popular
-                  </div>
-                ) : p.highlight ? (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_4px_18px_rgba(41,151,255,.45)]">
                     Best Value
                   </div>
                 ) : null}
                 <div className="text-[11px] font-extrabold uppercase tracking-[.14em] text-[#86868b]">
+                  {p.name}
+                </div>
+                {/* ONDA6 #10 (14/08) — o card abria direto no preco; agora tem
+                    o nome grande como na landing (.nm). */}
+                <div className="mt-1.5 text-[1.34rem] font-semibold tracking-[-.018em] text-[#f5f5f7]">
                   {p.name}
                 </div>
                 <div className="mt-2 flex items-baseline gap-1.5">
@@ -696,7 +704,7 @@ export default function PricingClient() {
                   </div>
                 ) : null}
                 {'outcome' in p && p.outcome ? (
-                  <p className="mt-1.5 mb-6 text-[13px] leading-relaxed text-[#c9ccd2]">
+                  <p className="mt-1.5 mb-6 text-[13px] leading-relaxed text-[#a1a1a8]">
                     {p.outcome}
                   </p>
                 ) : null}

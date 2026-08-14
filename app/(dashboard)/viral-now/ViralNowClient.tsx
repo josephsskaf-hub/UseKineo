@@ -8,28 +8,29 @@ import { trackEvent } from '@/lib/analytics'
 
 // ── Vertical color map ───────────────────────────────────────────────────────
 const VERTICAL_COLORS: Record<string, string> = {
-  billionaire: '#f59e0b',
-  money:       '#8b5cf6',
-  mystery:     '#8b5cf6',
-  country:     '#8b5cf6',
-  learning:    '#06b6d4',
-  ai:          '#14b8a6',
-  psychology:  '#ec4899',
-  history:     '#d97706',
-  science:     '#14b8a6',
-  health:      '#22c55e',
-  space:       '#0ea5e9',
-  nature:      '#4ade80',
-  technology:  '#a78bfa',
-  crime:       '#f87171',
+  billionaire: '#2997ff',
+  money:       '#2997ff',
+  mystery:     '#2997ff',
+  country:     '#2997ff',
+  learning:    '#2997ff',
+  ai:          '#2997ff',
+  psychology:  '#2997ff',
+  history:     '#2997ff',
+  science:     '#2997ff',
+  health:      '#2997ff',
+  space:       '#2997ff',
+  nature:      '#2997ff',
+  technology:  '#2997ff',
+  crime:       '#2997ff',
 }
 
 // ── Badge styles ─────────────────────────────────────────────────────────────
+// ONDA6 (14/08) — 1 acento so, como manda a marca: badges todas em azul.
 const BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-  'Hot':           { bg: 'rgba(239,68,68,0.18)',   color: '#ef4444' },
-  'Trending':      { bg: 'rgba(249,115,22,0.18)',  color: '#f97316' },
-  'High Retention':{ bg: 'rgba(139,92,246,0.18)',  color: '#8b5cf6' },
-  'Viral':         { bg: 'rgba(139,92,246,0.18)',  color: '#8b5cf6' },
+  'Hot':           { bg: 'rgba(41,151,255,0.13)', color: '#2997ff' },
+  'Trending':      { bg: 'rgba(41,151,255,0.13)', color: '#2997ff' },
+  'High Retention':{ bg: 'rgba(41,151,255,0.13)', color: '#2997ff' },
+  'Viral':         { bg: 'rgba(41,151,255,0.13)', color: '#2997ff' },
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ function SkeletonCard() {
     <div style={{
       background: 'var(--card)',
       border: '1px solid var(--border)',
-      borderRadius: 14,
+      borderRadius: 18,
       padding: '18px 16px',
       display: 'flex',
       flexDirection: 'column',
@@ -72,14 +73,14 @@ function SkeletonCard() {
 
 // ── Topic card ────────────────────────────────────────────────────────────────
 function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: ViralTopic) => void }) {
-  const vertColor = VERTICAL_COLORS[topic.vertical] ?? '#14b8a6'
+  const vertColor = VERTICAL_COLORS[topic.vertical] ?? '#2997ff'
   const badge = BADGE_STYLES[topic.badge] ?? BADGE_STYLES['Trending']
 
   return (
     <div id={`topic-${topic.id}`} style={{
       background: 'var(--card)',
       border: `1px solid var(--border)`,
-      borderRadius: 14,
+      borderRadius: 18,
       padding: '18px 16px',
       display: 'flex',
       flexDirection: 'column',
@@ -120,7 +121,7 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
         <span style={{
           fontSize: '0.75rem',
           fontWeight: 700,
-          color: 'var(--muted2, #9ca3af)',
+          color: 'var(--muted2)',
         }}>
           🔥 {topic.viralScore}
         </span>
@@ -142,9 +143,9 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
       <p style={{
         margin: 0,
         fontSize: '1.05rem',
-        fontWeight: 900,
+        fontWeight: 650,
         lineHeight: 1.25,
-        color: 'var(--foreground)',
+        color: 'var(--text)',
         letterSpacing: '-0.01em',
       }}>
         {topic.title}
@@ -155,7 +156,7 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
         margin: 0,
         fontSize: '0.8rem',
         fontStyle: 'italic',
-        color: 'var(--muted2, #9ca3af)',
+        color: 'var(--muted2)',
         lineHeight: 1.45,
         display: '-webkit-box',
         WebkitLineClamp: 2,
@@ -169,7 +170,7 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
       <p style={{
         margin: 0,
         fontSize: '0.72rem',
-        color: 'var(--muted, #6b7280)',
+        color: 'var(--muted)',
         lineHeight: 1.4,
         display: '-webkit-box',
         WebkitLineClamp: 1,
@@ -186,10 +187,10 @@ function TopicCard({ topic, onGenerate }: { topic: ViralTopic; onGenerate: (t: V
           marginTop: 'auto',
           padding: '10px 0',
           width: '100%',
-          borderRadius: 9,
+          borderRadius: 13,
           border: 'none',
-          background: `linear-gradient(90deg, ${vertColor}, #ef4444)`,
-          color: '#fff',
+          background: '#f5f5f7',
+          color: '#000',
           fontWeight: 700,
           fontSize: '0.82rem',
           letterSpacing: '0.01em',
@@ -305,8 +306,8 @@ export default function ViralNowClient({
           <h1 style={{
             margin: 0,
             fontSize: '1.6rem',
-            fontWeight: 900,
-            color: 'var(--foreground)',
+            fontWeight: 650,
+            color: 'var(--text)',
             letterSpacing: '-0.02em',
           }}>
             🔥 Viral Now: Trending YouTube Shorts Ideas
@@ -327,10 +328,10 @@ export default function ViralNowClient({
         <p style={{
           margin: 0,
           fontSize: '0.82rem',
-          color: 'var(--muted, #6b7280)',
+          color: 'var(--muted)',
         }}>
           8 ready-to-create ideas &middot; Refreshes in{' '}
-          <span style={{ color: 'var(--foreground)', fontWeight: 600 }}>
+          <span style={{ color: 'var(--text)', fontWeight: 600 }}>
             {countdown || '…'}
           </span>
         </p>
@@ -338,7 +339,7 @@ export default function ViralNowClient({
           margin: '10px 0 0',
           maxWidth: 680,
           fontSize: '0.92rem',
-          color: 'var(--muted2, #9ca3af)',
+          color: 'var(--muted2)',
           lineHeight: 1.5,
         }}>
           Pick a trending topic and create a free watermarked faceless Short—no card required.
@@ -383,7 +384,7 @@ export default function ViralNowClient({
         marginTop: 32,
         textAlign: 'center',
         fontSize: '0.72rem',
-        color: 'var(--muted, #6b7280)',
+        color: 'var(--muted)',
       }}>
         {topics.length} topics &middot; Refreshes every 4 hours &middot; Powered by Kineo
       </p>

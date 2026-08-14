@@ -525,20 +525,20 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           style={{
             background: showRepeatCreatorOffer
-              ? 'linear-gradient(135deg, rgba(34,197,94,.15), rgba(41,151,255,.05))'
+              ? 'linear-gradient(135deg, rgba(41,151,255,.15), rgba(41,151,255,.05))'
               : 'linear-gradient(135deg, rgba(41,151,255,.14), rgba(41,151,255,.04))',
             border: showRepeatCreatorOffer
-              ? '1px solid rgba(34,197,94,.45)'
+              ? '1px solid rgba(41,151,255,.45)'
               : '1px solid rgba(41,151,255,.42)',
             boxShadow: showRepeatCreatorOffer
-              ? '0 10px 32px rgba(34,197,94,.10)'
+              ? '0 10px 32px rgba(41,151,255,.10)'
               : '0 10px 32px rgba(41,151,255,.10)',
           }}
         >
           <div style={{ minWidth: 0 }}>
             <div
               className="font-black uppercase tracking-[.16em] mb-1.5"
-              style={{ fontSize: '0.62rem', color: showRepeatCreatorOffer ? '#4ade80' : '#5cb3ff' }}
+              style={{ fontSize: '0.62rem', color: showRepeatCreatorOffer ? '#5cb3ff' : '#5cb3ff' }}
             >
               {showRepeatCreatorOffer
                 ? `${completedVideos.length} Shorts complete · repeat creator`
@@ -576,11 +576,11 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                 disabled={checkout.pending !== null}
                 className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
                 style={{
-                  background: 'linear-gradient(135deg, #16a34a, #22c55e)',
+                  background: '#2997ff',
                   border: 'none',
                   cursor: checkout.pending ? 'wait' : 'pointer',
                   opacity: checkout.pending ? 0.7 : 1,
-                  boxShadow: '0 6px 22px rgba(34,197,94,.30)',
+                  boxShadow: '0 6px 22px rgba(41,151,255,.30)',
                 }}
               >
                 {checkout.pending === 'history_repeat_offer'
@@ -690,7 +690,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       {/* Stats */}
       <div
         className="inline-flex items-center gap-px mb-6 rounded-2xl overflow-hidden"
-        style={{ background: 'rgba(11,17,32,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: '#161618', border: '1px solid rgba(255,255,255,0.07)' }}
       >
         {[
           { val: String(videos.length), label: 'Videos' },
@@ -735,7 +735,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               <div
                 key={video.id}
                 style={{
-                  background: 'rgba(11,17,32,0.9)',
+                  background: '#161618',
                   border: `1px solid ${isProcessing ? 'rgba(255,255,255,0.08)' : 'rgba(239,68,68,0.25)'}`,
                   borderRadius: 12,
                   overflow: 'hidden',
@@ -750,7 +750,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     paddingTop: '177.78%',
                     overflow: 'hidden',
                     background: isProcessing
-                      ? 'linear-gradient(135deg, rgba(41,151,255,.10), rgba(11,17,32,1))'
+                      ? 'linear-gradient(135deg, rgba(41,151,255,.10), #161618)'
                       : 'rgba(239,68,68,0.06)',
                   }}
                 >
@@ -835,7 +835,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             <div
               key={video.id}
               style={{
-                background: 'rgba(11,17,32,0.9)',
+                background: '#161618',
                 border: '1px solid rgba(255,255,255,0.08)',
                 borderRadius: 12,
                 overflow: 'hidden',
@@ -862,7 +862,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'rgba(11,17,32,0.95)',
+                        background: '#161618',
                         gap: 10,
                         padding: 16,
                       }}
@@ -1130,8 +1130,8 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                           style={{
                             padding: '2px 7px',
                             borderRadius: 5,
-                            background: copiedKey === key ? 'rgba(34,197,94,0.15)' : 'rgba(255,255,255,0.05)',
-                            border: `1px solid ${copiedKey === key ? 'rgba(34,197,94,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                            background: copiedKey === key ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.05)',
+                            border: `1px solid ${copiedKey === key ? 'rgba(41,151,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
                             color: copiedKey === key ? '#4ADE80' : 'var(--muted)',
                             fontSize: '0.55rem',
                             fontWeight: 700,
@@ -1177,7 +1177,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                           borderRadius: 7,
                           border: 'none',
                           background: copiedKey === `${video.id}-all`
-                            ? 'linear-gradient(135deg,#16a34a,#22c55e)'
+                            ? '#2997ff'
                             : '#2997ff',
                           color: '#fff',
                           fontSize: '0.62rem',
@@ -1208,7 +1208,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.86)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           >
             <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 92vw)', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(5,150,105,0.25)' }}>
+              <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.25)' }}>
                 <video
                   src={v.video_url}
                   controls
@@ -1223,7 +1223,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               <button
                 onClick={() => handleDownload(v)}
                 disabled={downloadingId === v.id}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', cursor: downloadingId === v.id ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: '#fff', fontWeight: 800, fontSize: '0.95rem', boxShadow: '0 8px 28px rgba(34,197,94,0.35)' }}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '14px', borderRadius: 14, border: 'none', cursor: downloadingId === v.id ? 'wait' : 'pointer', background: '#2997ff', color: '#fff', fontWeight: 800, fontSize: '0.95rem', boxShadow: '0 8px 28px rgba(41,151,255,0.35)' }}
               >
                 {downloadingId === v.id
                   ? 'Downloading…'
