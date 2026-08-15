@@ -131,6 +131,66 @@ export function getEngineWall(): Promise<WallVideo[]> {
   return buildWall(PER_ENGINE)
 }
 
+// KINEO-BEST20-2026-08-15 — /examples: "os 20 melhores que a gente tem"
+// (pedido do fundador). Lista EXPLICITA, na ordem de exibicao: os 16 curados
+// do hero + 3 melhores Fast + o Avatar. Intercala motores, premium primeiro.
+const EXAMPLES_BEST: string[] = [
+  'f32ea301-a239-4d2c-a516-388796aa63da', // KLING 3 — lava aerea do Turkmenistan
+  'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', // VEO 3.1 — tenda de Dyatlov
+  'c4e4fbab-0978-4daa-9fcf-119096370210', // KLING 2.5 — Roma com moedas
+  '86653d2d-8d31-4937-8d98-e56c50706fd2', // SEEDANCE — cratera de fogo
+  'c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', // KINEO 1 — montanhas com nuvens
+  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', // KLING 3 — historiador medieval
+  '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', // VEO 3.1 — racks vermelhos
+  '26d25419-6719-47ab-b24b-df214e007fbd', // KLING 2.5 — montanha de 1922
+  'e9406197-e67c-47ff-9bb6-e3682a47c6e4', // SEEDANCE — ilha de 63 anos
+  'cc1dcb36-b627-412b-9cf1-461f9bcdf592', // KINEO 1 — Dubai dourada
+  'e31129fa-bc50-4557-8889-0d50e630d5f1', // KLING 3 — golden hour Manhattan
+  'dc0fe3a6-f34d-40cb-91f4-da15841a2970', // VEO 3.1 — floresta enevoada
+  'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', // KLING 2.5 — chute de 50m
+  '95a680f5-0cf1-44b4-aeb9-3a888b314661', // SEEDANCE — tornado no mar
+  '107dd757-6454-4af9-9b3e-b07fb8656f2a', // KINEO 1 — praca aerea
+  '8a61d9fe-0878-4d8c-8746-7d769575ce4a', // KLING 3 — estudio futurista
+  '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', // VEO 3.1 — cratera nuclear
+  '8b38c8d1-764c-4bff-94ee-f1b2721c7551', // KLING 2.5 — DNA
+  '87488144-105b-4b02-b284-f6915dfa4501', // SEEDANCE — alce
+  'c21c2456-98dc-4061-bee5-2f02a5180295', // AVATAR — close Made with Kineo
+]
+
+export async function getExamplesBest(): Promise<WallVideo[]> {
+  try {
+    const db = createAdminClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+      process.env.SUPABASE_SERVICE_ROLE_KEY as string,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    )
+    const { data } = await db
+      .from('videos')
+      .select('id, video_url, topic, quality_mode, created_at')
+      .eq('status', 'completed')
+      .in('id', EXAMPLES_BEST)
+    const byId = new Map((data ?? []).map((r) => [r.id as string, r]))
+    const out: WallVideo[] = []
+    for (const id of EXAMPLES_BEST) {
+      const row = byId.get(id)
+      if (!row || !row.video_url) continue
+      const engine = row.quality_mode === 'avatar' ? 'presenter' : (row.quality_mode as string)
+      const title = cleanTitleLine((row.topic ?? '').toString()) || `${ENGINE_BADGES[engine] ?? 'AI'} — real Kineo render`
+      out.push({
+        id,
+        title: title.length > 70 ? `${title.slice(0, 67)}…` : title,
+        videoUrl: row.video_url as string,
+        previewUrl: PREVIEWS.has(id) ? `/previews/${id}.mp4` : undefined,
+        engine,
+        badge: ENGINE_BADGES[engine] ?? 'AI',
+      })
+    }
+    return out
+  } catch {
+    return []
+  }
+}
+
 // KINEO-TRENDING-2026-08-15 — fileira "Trending now" da home: os renders
 // REAIS mais recentes do acervo (qualquer motor), com titulo + selo. Muda
 // sozinha conforme usuarios geram — a home vira catalogo vivo. Mesmas regras

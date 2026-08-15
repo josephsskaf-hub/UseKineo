@@ -1,9 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
-import ExampleLiveMedia from './ExampleLiveMedia'
 import WallMedia from '@/components/WallMedia'
-import { getEngineShowcase } from '@/lib/engineWall'
+import { getExamplesBest } from '@/lib/engineWall'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
@@ -24,7 +22,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ExamplesPage() {
-  const showcase = await getEngineShowcase()
+  const best = await getExamplesBest()
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10">
@@ -51,37 +49,27 @@ export default async function ExamplesPage() {
             Watch what Kineo actually makes.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg">
-            These are five-second preview cuts from longer Kineo exports—not stock mockups and not performance claims. Open one to watch, inspect the format and remix the prompt.
+            The 20 best renders in the building — hand-picked from real user output across every engine. The badge on each card is the exact model that made it. Open one to watch and remix the format.
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {PUBLIC_EXAMPLES.map((example) => (
+        {/* KINEO-BEST20-2026-08-15 — pedido do fundador: "os 20 melhores que a
+            gente tem". Grade unica, curada a dedo (mesma curadoria do hero +
+            Fast + Avatar), selo do motor real em cada card. */}
+        <div className="mt-12 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {best.map((v) => (
             <Link
-              key={example.slug}
-              href={`/examples/${example.slug}`}
-              className="group overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.035] transition hover:-translate-y-1 hover:border-[#2997ff]/60"
+              key={v.id}
+              href={`/v/${v.id}`}
+              className="group relative block overflow-hidden rounded-[18px] border border-white/10 bg-black transition hover:-translate-y-1 hover:border-[#2997ff]/60"
+              style={{ aspectRatio: '9 / 16' }}
             >
-              <div className="relative aspect-[9/16] overflow-hidden bg-black">
-                {/* KINEO-HIGGSFIELD-20D dia 19 (13/08) — catalogo vivo: o
-                    card toca em viewport, mesmas regras da galeria da home. */}
-                <ExampleLiveMedia
-                  videoPath={example.videoPath}
-                  posterPath={posterWebpPath(example.posterPath)}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/10" />
-                <span className="absolute left-4 top-4 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-[10px] font-semibold tracking-[-.02em] uppercase tracking-wider backdrop-blur">
-                  Real output preview
-                </span>
-                <span className="absolute left-1/2 top-1/2 grid h-14 w-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white text-lg text-black shadow-2xl transition group-hover:scale-110" aria-hidden>
-                  ▶
-                </span>
-                <div className="absolute inset-x-4 bottom-4">
-                  <p className="text-lg font-semibold tracking-[-.02em] leading-tight">{example.shortTitle}</p>
-                  <p className="mt-1 text-xs font-semibold text-white/65">
-                    5s preview · {example.outputDurationSeconds}s export
-                  </p>
-                </div>
+              <WallMedia src={v.videoUrl} />
+              <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
+                {v.badge}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-2.5 pt-8">
+                <p className="text-[11.5px] font-semibold leading-tight">{v.title}</p>
               </div>
             </Link>
           ))}
@@ -91,36 +79,7 @@ export default async function ExamplesPage() {
             10 locais curados acima + os renders REAIS do banco por motor
             abaixo, cada um com o selo do modelo que o gerou (mesma honestidade
             da Engine Wall da home). */}
-        {showcase.length >= 6 && (
-          <div className="mt-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2997ff]">Straight from the engines</p>
-            <h2 className="mt-3 font-display text-2xl font-semibold tracking-[-.02em] sm:text-3xl">
-              Real renders, engine by engine.
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
-              Every card below came out of a user account. The badge is the exact model that made it — Google&rsquo;s Veo 3, Kling, the Hollywood pipeline, Seedance and the AI Presenter.
-            </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              {showcase.map((v) => (
-                <Link
-                  key={v.id}
-                  href={`/v/${v.id}`}
-                  className="group relative block overflow-hidden rounded-[18px] border border-white/10 bg-black transition hover:-translate-y-1 hover:border-[#2997ff]/60"
-                  style={{ aspectRatio: '9 / 16' }}
-                >
-                  <WallMedia src={v.videoUrl} />
-                  <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
-                    {v.badge}
-                  </span>
-                  <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-2.5 pt-8">
-                    <p className="text-[11.5px] font-semibold leading-tight">{v.title}</p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
+        
         <div className="mt-12 rounded-[22px] border border-[#2997ff]/25 bg-[#2997ff]/[0.06] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <h2 className="text-xl font-semibold tracking-[-.02em]">Bring your own topic.</h2>
