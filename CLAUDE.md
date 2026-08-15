@@ -66,6 +66,7 @@
 - Pasta local: C:\Users\josep\OneDrive\Área de Trabalho\Usekineo
 - Email: josephsskaf@gmail.com
 - Push para GitHub: criar .bat e rodar via computer use
+- **REGRA FIXA (fundador 15/08): a cada rodada de trabalho pronta pra subir, criar um N-PUSH.bat NOVO** (numero sequencial em scripts/, formato: `@echo off` + `call "%~dp01-PUSH.bat"`, CRLF) e avisar o fundador do numero — assim ele sempre sabe qual e o mais recente
 
 ## Rodar localmente (dev)
 1. `npm install` (só na primeira vez / quando o package.json mudar)
