@@ -50,6 +50,11 @@
 - Idioma: Inglês
 - Escolher sempre os temas com maior potencial viral (baseado nos Shorts que já performaram bem)
 
+## ⚠ REGRA FIXA — scripts de vídeo (fundador 15/08)
+**Sempre que o fundador pedir uma script de vídeo, entregar JUNTO as configurações de geração** — motor, duração, character, "Use my script as is" vs "Let AI structure", e custo em créditos. Nunca mandar script solta.
+- Script escrita por mim/por ele → sempre "Use my script as is" (narração verbatim)
+- Ideia solta de 1 linha → "Let AI structure my text"
+
 ## Workflow de vídeos diários
 1. Verificar no YouTube Studio quais Shorts tiveram mais views/engajamento
 2. Escolher 5 temas similares aos que viralizaram
