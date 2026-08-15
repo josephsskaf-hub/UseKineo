@@ -262,6 +262,75 @@ const ACTIVE_RENDER_GATE_MAX_AGE_MS = FAL_POLL_DEADLINE_MS
 // justificativa numérica envelhece.
 const COMPOSE_POLL_DEADLINE_MS = 45 * 60 * 1000
 
+// KINEO-GENERATING-SEM-PRAZO-2026-08-15 — o estágio `generating` era o 3º da
+// fila de "loops que giram para sempre". MEDIDO ANTES DE ESCREVER: o loop que a
+// fila nomeava (o poll de /api/generate-video/status, logo abaixo do effect de
+// `generating`) é o caminho LEGACY do Runway e está MORTO em produção — nunca
+// gravou um único `generation_poll_retry`/`generation_poll_degraded` com
+// stage='generating' na história do banco, e nenhum reason `legacy_*` jamais
+// apareceu. Pôr prazo nele seria correção que só protege o inexistente.
+//
+// O que gira de verdade neste estágio são os DOIS caminhos de dispatch:
+//  1. `while (true)` do /api/generate-video-cinematic, que reconecta a cada
+//     3s/10s no throw e no 409/503 `pending` e NÃO TEM TETO NENHUM (o contador
+//     `reconnectAttempt` só escolhe o intervalo, nunca encerra). É o único
+//     laço infinito literal que sobrou no arquivo.
+//  2. O `await fetch` dos dois dispatches, que nasceu sem `AbortSignal.timeout`
+//     — se a lambda morre sem responder, a promise NUNCA resolve: não há
+//     retry, não há erro, não há evento, não há mudança de fase. A pessoa fica
+//     na barra de progresso até fechar a aba.
+//
+// Tamanho do balde (30 dias, contas internas fora): 93 tentativas de 71 PESSOAS
+// chegaram a `generating` e sumiram sem NENHUM estágio seguinte e sem NENHUM
+// `generation_stage_error` — 88 delas em Fast. É o maior sumiço silencioso já
+// medido no funil (o de `composing`, consertado às 13h, tinha 3 pessoas).
+//
+// PRAZO SÓ ONDE FALTA PRAZO. O laço do Fast já é limitado (`fastDispatchRetries`
+// para em 2), então um prazo de parede ali seria correção que só protege o
+// inexistente — o buraco do Fast é o `fetch` sem teto, e é ele que ganha teto
+// abaixo. O do cinematic é ilimitado de verdade e ganha prazo de parede.
+//
+// 45 min NÃO é cópia dos 45 min de `composing` — é o mesmo NÚMERO por um motivo
+// diferente e conferido: no cinematic existe claim vivo no servidor
+// (`cinematic_submission_claim`), e vale a regra que o prazo do fal já segue —
+// o cliente NUNCA condena antes do servidor. 45 min é exatamente o instante em
+// que o próprio servidor declara o render abandonado e estorna
+// (CINEMATIC_ABANDON_CUTOFF_MS, lib/credits/refund.ts). Quando aquele número
+// mudar, este muda junto; comentário com justificativa numérica envelhece.
+const GENERATING_CINEMATIC_DEADLINE_MS = 45 * 60 * 1000
+
+// Teto de cada CHAMADA de dispatch — a dívida da regra "todo fetch que entra num
+// caminho de resposta ao usuário nasce com AbortSignal.timeout". Sem isto, uma
+// lambda que morre sem responder deixa o `await fetch` pendurado para sempre: o
+// retry limitado do Fast nunca chega a rodar e o estágio inteiro fica cego.
+// Dimensionado pelo `maxDuration` da PRÓPRIA rota + margem de rede
+// (generate-video-fast declara 120s; generate-video-cinematic declara 60s), com
+// folga sobre o pior caso REAL medido de uma chamada legítima. Com o teto, o
+// pendurado vira `TimeoutError`, cai no retry que já existe e, se insistir, sai
+// como falha NOMEADA com `elapsed_ms` — em vez de silêncio.
+// Referência da medição (30 dias): 647 tentativas que SAÍRAM de `generating`
+// para o estágio seguinte levaram p50 27,2s, p90 46,1s, p95 62,5s, p99 240,8s e
+// MÁXIMO 601,4s de estágio inteiro (plano de b-roll + dispatch + retries) —
+// nenhuma CHAMADA isolada pode passar do maxDuration da rota.
+const FAST_DISPATCH_TIMEOUT_MS = 150 * 1000
+const CINEMATIC_DISPATCH_TIMEOUT_MS = 90 * 1000
+
+// Achado da 2ª passada da revisão adversarial: `AbortSignal.timeout` só existe a
+// partir de Chrome 103 / Firefox 100 / Safari 16. Num navegador mais velho a
+// expressão estoura SÍNCRONA dentro do `try` do dispatch — ou seja, a correção
+// que existe para acabar com o silêncio faria TODA geração falhar exatamente nos
+// aparelhos mais frágeis. `signal: undefined` é válido em `RequestInit`, então a
+// degradação certa é voltar ao comportamento de hoje (sem teto) em vez de
+// derrubar o caminho quente. Ponto único: os dois dispatches passam por aqui.
+function dispatchTimeoutSignal(ms: number): AbortSignal | undefined {
+  try {
+    if (typeof AbortSignal === 'undefined' || typeof AbortSignal.timeout !== 'function') return undefined
+    return AbortSignal.timeout(ms)
+  } catch {
+    return undefined
+  }
+}
+
 // KINEO-RESUME-RENDER-2026-08-04 — server-truth resume. The localStorage
 // snapshot above is only the fast-path: it dies with cleared storage or a
 // different browser, and the restore gate can wedge on flaky auth while the
@@ -5523,18 +5592,55 @@ export default function GenerateClient({
         let res: Response
         let data: Record<string, unknown>
         let reconnectAttempt = 0
+        // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — TODA reconexão deste laço passa
+        // por `reconnectOrGiveUp` e é aqui que ele acaba. Eram DOIS `continue`
+        // soltos (o do throw e o do 409/503 `pending`) dentro de um `while (true)`
+        // sem teto nenhum: `reconnectAttempt` só escolhia entre 3s e 10s e nunca
+        // encerrava nada. Mesmo portão único que `scheduleNextComposePoll` (13h de
+        // hoje) e que o prazo do `fal_polling` (0ab61e3) já usam.
+        const cinematicDispatchStartedAt = Date.now()
+        // Devolve true quando ainda pode reconectar; quando o prazo vence, conta a
+        // verdade e devolve false.
+        async function reconnectOrGiveUp(delayMs: number): Promise<boolean> {
+          const waited = Date.now() - cinematicDispatchStartedAt
+          if (waited >= GENERATING_CINEMATIC_DEADLINE_MS) {
+            // A limpeza do snapshot é parte da SAÍDA: sem ela um F5 devolve a
+            // mesma tela e o laço recomeça. Neste ponto o sweep do servidor já
+            // estornou o claim (45 min = CINEMATIC_ABANDON_CUTOFF_MS), então não
+            // se perde handle de nada vivo.
+            resumedRenderRef.current = false
+            try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
+            // Afirmação sobre a REGRA, não sobre o que o banco registrou desta
+            // pessoa: o claim cinematic é estornado pelo sweep de 45 min, então
+            // ninguém fica pagando por um vídeo que não recebeu.
+            setError(
+              'We stopped waiting on this submission — it has been running far longer than any video that has ever started here. You are not left paying for a video you did not receive: any credits taken for it are returned automatically. You can start a new one whenever you want.',
+            )
+            trackGenerationFailure('generating', 'cinematic_reconnect_deadline_exceeded', {
+              detail: `${Math.round(waited / 1000)}s`,
+              elapsedMs: waited,
+            })
+            setPhase('failed')
+            return false
+          }
+          setError('Your AI scenes are safe. Reconnecting to the same submission…')
+          await new Promise((resolve) => setTimeout(resolve, delayMs))
+          return true
+        }
         while (true) {
           try {
             res = await fetch('/api/generate-video-cinematic', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(cinematicPayload),
+              // Sem teto, uma lambda que morre sem responder deixa este `await`
+              // pendurado para sempre — e nem o laço nem a instrumentação rodam.
+              signal: dispatchTimeoutSignal(CINEMATIC_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => ({})) as Record<string, unknown>
           } catch {
             reconnectAttempt += 1
-            setError('Your AI scenes are safe. Reconnecting to the same submission…')
-            await new Promise((resolve) => setTimeout(resolve, reconnectAttempt <= 4 ? 3000 : 10000))
+            if (!(await reconnectOrGiveUp(reconnectAttempt <= 4 ? 3000 : 10000))) return
             continue
           }
           if ((res.status === 409 || res.status === 503) && data.pending === true) {
@@ -5542,8 +5648,7 @@ export default function GenerateClient({
             const retryAfter = typeof data.retry_after_ms === 'number'
               ? Math.max(1000, Math.min(10000, data.retry_after_ms))
               : reconnectAttempt <= 4 ? 3000 : 10000
-            setError('Your AI scenes are safe. Reconnecting to the same submission…')
-            await new Promise((resolve) => setTimeout(resolve, retryAfter))
+            if (!(await reconnectOrGiveUp(retryAfter))) return
             continue
           }
           break
@@ -5646,6 +5751,11 @@ export default function GenerateClient({
 
     if (mode === 'fast' || mode === 'creator') {
       falUsedRef.current = false
+      // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — declarado FORA do `try` de
+      // propósito: o `catch` de `fast_threw` está fora dele e precisa do relógio
+      // para gravar `elapsed_ms`. Uma const declarada dentro do bloco não existe
+      // no catch, e o `tsc` não avisa de nada disso em tempo de execução.
+      const fastBranchStartedAt = Date.now()
       try {
         // Phase 3 — if a BrollPlan is available, pass the pexelsQuery values
         // per scene so generate-video-fast can use more specific Pexels searches.
@@ -5704,6 +5814,9 @@ export default function GenerateClient({
         let res!: Response
         let data: Record<string, unknown> | null = null
         let fastDispatchRetries = 0
+        // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — o laço abaixo já para em 2
+        // retries, mas até aqui NADA limitava o tempo de cada chamada: uma lambda
+        // morta deixava o `await` pendurado e o retry nunca chegava a rodar.
         for (;;) {
           let parseFailed = false
           try {
@@ -5711,6 +5824,7 @@ export default function GenerateClient({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ prompt: trimmed, duration, language, brollQueries, brollScenes, brollDegraded: plan?.degraded }),
+              signal: dispatchTimeoutSignal(FAST_DISPATCH_TIMEOUT_MS),
             })
             data = await res.json().catch(() => { parseFailed = true; return null }) as Record<string, unknown> | null
           } catch (err) {
@@ -5904,8 +6018,14 @@ export default function GenerateClient({
       } catch (err: unknown) {
         console.error('[generate] fast-mode threw:', err)
         setError(GENERIC_ERROR)
+        // KINEO-GENERATING-SEM-PRAZO-2026-08-15 — `fast_threw` era o coador de
+        // TUDO neste ramo e chegava sem relógio. Com `elapsed_ms` ele passa a
+        // separar três coisas que hoje chegam idênticas: página arrancada (~1s),
+        // rede/fornecedor (dezenas de s) e lambda pendurada até o teto novo
+        // (`TimeoutError`, ~150s por chamada). `err.name` vai no mesmo evento.
         trackGenerationFailure('generating', 'fast_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
+          elapsedMs: Date.now() - fastBranchStartedAt,
         })
         setPhase('failed')
       }

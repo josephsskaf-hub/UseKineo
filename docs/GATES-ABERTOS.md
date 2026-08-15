@@ -1,3 +1,108 @@
+# GATE 15/08 (sprint 16h) — `generating` FECHADO PELO LADO CERTO, E O GATE DAS 3 FERRAMENTAS MORREU NO DENOMINADOR
+
+## 🟢 FECHADO — PRAZO DE MORTE NO ESTAGIO `generating` (2 de 3)
+
+⚠️ **A ORDEM APONTAVA UM LOOP MORTO.** O gate mandava por prazo no poll de
+`/api/generate-video/status`. Medido antes de escrever:
+
+```sql
+select name, metadata->>'stage', count(*) from events
+where name in ('generation_poll_retry','generation_poll_degraded') group by 1,2;
+-- UNICA linha: generation_poll_retry / stage='composing' / n=13
+```
+E zero `generation_stage_error` com reason `legacy_*` na historia do banco.
+Aquele loop e o caminho LEGACY do Runway e **nunca gravou um evento**. Nao foi
+tocado — seria *"correcao que so protege o inexistente"*.
+
+**O que gira de verdade no estagio, e foi fechado:**
+1. `while (true)` do dispatch `/api/generate-video-cinematic` **sem teto nenhum**
+   (`reconnectAttempt` so escolhia 3s/10s). Portao unico novo
+   `reconnectOrGiveUp`; reason **`cinematic_reconnect_deadline_exceeded`**;
+   prazo **45 min = CINEMATIC_ABANDON_CUTOFF_MS** (o cliente nunca condena antes
+   do servidor — mesmo numero de `composing` por motivo DIFERENTE e conferido).
+2. Os dois `await fetch` de dispatch **sem `AbortSignal.timeout`**: lambda morta
+   deixava a promise pendurada para sempre. Teto pelo `maxDuration` da propria
+   rota + margem — Fast 120s→**150s**, cinematic 60s→**90s**.
+3. `fast_threw` ganhou `elapsed_ms`.
+
+**Balde medido (30 dias, contas internas fora): 93 tentativas de 71 PESSOAS**
+chegaram a `generating` e sumiram sem estagio seguinte e sem NENHUM
+`generation_stage_error`. 88 em Fast. O de `composing` tinha 3.
+Distribuicao que calibra: 647 tentativas que sairam do estagio, p50 27,2s,
+p90 46,1s, p95 62,5s, p99 240,8s, **max 601,4s (10,0 min)**.
+
+**Achado da 2ª passada adversarial (nao repetir o erro):** `AbortSignal.timeout`
+so existe de Chrome 103 / Firefox 100 / Safari 16 em diante. Sem guarda, a
+expressao estoura SINCRONA dentro do `try` e derruba TODA geracao nos aparelhos
+mais velhos. Ponto unico `dispatchTimeoutSignal()` degrada para `undefined`.
+
+## 🔴 ABERTO — `avatar_polling` e o ULTIMO loop sem prazo
+Ordem mantida: um por vez. Mesmo portao unico, prazo medido do mesmo jeito.
+
+## 🟢 ENCERRADO POR IMPOSSIBILIDADE DE AMOSTRA — `organic_cta_clicked` das 3 ferramentas
+
+O gate pedia medir a taxa e matar as paginas se ficassem em 0% sobre ~32
+sessoes/mes. **A medicao inverte o gate.** Sessoes na VIDA INTEIRA:
+
+| pagina | sessoes | pessoas | `organic_cta_clicked` |
+|---|---|---|---|
+| `/cheapest-ai-shorts-maker` | 42 | 42 | 0 |
+| `/niche-picker` | **3** | 3 | 0 |
+| `/viral-score` | **1** | 1 | 0 |
+| `/shorts-money-calculator` | **0 — nunca apareceu** | 0 | 0 |
+
+**O problema nunca foi a porta de saida: e que ninguem chega.** 4 visitantes
+somados. Nenhuma decisao de conversao sai de n=4 (piso de publicacao e n≥30).
+**Quem ler o zero como "as ferramentas nao convertem" vai matar 1.459 linhas
+pelo motivo errado.** O que falta ali e TRAFEGO, e trafego e gate do fundador.
+
+Duas Regras Zero registradas nesta medicao:
+- As tres paginas **JA emitem** `organic_cta_clicked` — via `OrganicCtaLink`,
+  que dispara o evento dentro do componente. Grep na pagina e cego. **Nao
+  "consertar o instrumento": ele existe e esta certo.**
+- `metadata::text like '%acq5_%'` casa `utm_campaign='acq5'` do estudo
+  `state-of-ai-shorts`, que nao tem relacao com as ferramentas. **Prefixo nao e
+  identidade.**
+
+## 🟢 MEDIDO — A MAQUINA QUE FUNCIONA (contraste que decide investimento)
+
+| maquina | pessoas | ativacao (≥1 video) | abriu checkout | pagou |
+|---|---|---|---|---|
+| **home one-click starters** (`push69`) | **278** | **189 = 68%** | 19 (6,8%) | 1 |
+| as 3 ferramentas somadas | 4 | — | 0 | 0 |
+
+68% contra a base de ~53%. **69× o trafego das tres ferramentas somadas.**
+Proximo passo proposto: enxertar o starter de um clique nas paginas de artigo
+que JA recebem gente (mecanismo certo + trafego que ja existe), em vez de
+construir a 4ª ferramenta ou a 46ª pagina.
+
+## 🔴 COORTE DE MAIOR INTENCAO — 46 abriram checkout, 4 pagaram, 14 sem video
+
+Medida por `events` (ultimo estagio), nao por ausencia em `videos`.
+⚠️ `videos` e `stage='done'` deram o MESMO conjunto de 14 (0 discordantes) —
+**isso nao e confirmacao cruzada**, as duas linhas sao escritas pelo mesmo
+navegador no mesmo polling. Sao a mesma fonte se repetindo.
+
+- **9 de 14 derrubados por falha NOSSA com reason nomeado** (`generate_script_threw` ×3,
+  `compose_not_ok` ×2, `fast_dispatch_not_ok`+`openai_quota_dead` ×2,
+  `fast_threw`, `analyze_threw`).
+- **2 chegaram a `composing` e nunca receberam `done`, sem UM erro** — vitimas do
+  laco que as 13h consertaram; **uma delas e de HOJE**, ou seja o conserto ainda
+  nao deployado tem coorte viva esperando.
+- 3 nunca tocaram no gerador.
+
+**11 dos 14 clientes de maior intencao da base nao receberam video por culpa da
+casa.**
+
+## 🔴 PUSH
+Entrada da sprint 16h: `git ls-remote origin refs/heads/main` = `2580091`,
+`HEAD` = `57f52d3` → **2 commits represados** (prazo do `composing` das 13h + UI
+das 14h). Com o desta sprint, **3**. Script mais recente: **`scripts\103-PUSH.bat`**.
+⚠️ Consequencia de cronograma: a leitura de `elapsed_ms` agendada para "24h
+depois do deploy" **ainda nao comecou a contar** — a hora que vale e a do DEPLOY.
+
+---
+
 # GATE 15/08 (sprint 13h) — `composing` GANHOU PRAZO (1 de 3). E DOIS GATES CAROS FECHARAM SOZINHOS
 
 ## 🟢 FECHADO — FUSIVEL OPENAI / fal.ai (o pedido de 1 linha do fundador, 7o dia)
