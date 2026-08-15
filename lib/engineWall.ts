@@ -138,6 +138,30 @@ export function getEngineWall(): Promise<WallVideo[]> {
   return buildWall(PER_ENGINE)
 }
 
+// KINEO-ENGINE-SEO-2026-08-15 — renders REAIS de UM motor só, para as páginas
+// /ai-video-generator/[engine]. É o que nenhum concorrente do cluster
+// "free AI video generator — Veo/Kling/Seedance" tem: eles mostram demo reel
+// próprio, nós mostramos Shorts 9:16 terminados de usuários reais naquele
+// motor, com link para a página pública do vídeo.
+//
+// Implementado sobre o MESMO buildWall (curados primeiro, recentes depois,
+// EXCLUDED e dedupe de título valendo): zerar o cap dos outros motores faz o
+// laço `for (const engine of ENGINE_ORDER)` sair na primeira comparação
+// (`0 >= 0`), então nenhum motor alheio entra. Nenhum call site existente muda.
+export function getEngineRenders(engine: string, limit = 8): Promise<WallVideo[]> {
+  const caps: Record<string, number> = {
+    fast: 0,
+    cinematic_ai: 0,
+    cinematic_kling: 0,
+    cinematic_veo: 0,
+    cinematic_hollywood: 0,
+    presenter: 0,
+  }
+  if (!(engine in caps)) return Promise.resolve([])
+  caps[engine] = limit
+  return buildWall(caps)
+}
+
 // KINEO-BEST20-2026-08-15 — /examples: "os 20 melhores que a gente tem"
 // (pedido do fundador). Lista EXPLICITA, na ordem de exibicao: os 16 curados
 // do hero + 3 melhores Fast + o Avatar. Intercala motores, premium primeiro.
@@ -212,7 +236,11 @@ const TRENDING_CAPS: Record<string, number> = {
 }
 
 export async function getTrending(): Promise<WallVideo[]> {
-  const wall = await buildWall(TRENDING_CAPS, true)
+  // Filtro anti-prompt (medido no mobile 15/08): renders cujo "titulo" e o
+  // PROMPT do usuario ("Use the uploaded clear person photo as the ONLY...")
+  // vazavam pra vitrine. Instrucao tecnica nao e titulo de video.
+  const PROMPTY = /upload|use the|create (a|an) |generate|prompt|9:16|vertical video|target length/i
+  const wall = (await buildWall(TRENDING_CAPS, true)).filter((v) => !PROMPTY.test(v.title))
   // Ordena por "mais interessante primeiro": intercala motores para a fileira
   // nao abrir com 4 do mesmo motor.
   const byEngine = new Map<string, WallVideo[]>()
