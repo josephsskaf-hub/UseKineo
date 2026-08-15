@@ -161,9 +161,12 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
     .limit(5000)
   const alreadySent = new Set((flagged ?? []).map((e) => e.user_id))
 
-  // Supressão de lifecycle: quem levou e-mail da régua há menos de 72h sai.
+  // Supressão de lifecycle no PADRÃO DA CASA (24h): ninguém recebe dois
+  // e-mails no mesmo dia — mas a régua de ontem não bloqueia o hot lead de
+  // hoje. (Medido 14/08: com 72h a supressão comia 13 dos 14 queimados,
+  // porque a régua diária toca quase toda a base free.)
   const candidateIds = (profiles ?? []).map((p) => p.id as string)
-  const suppression = await loadLifecycleSuppression(db, candidateIds, 72).catch(() => null)
+  const suppression = await loadLifecycleSuppression(db, candidateIds, 24).catch(() => null)
 
   const out: Record<Segment, Lead[]> = { burned: [], stalled: [], power: [] }
   for (const p of profiles ?? []) {
