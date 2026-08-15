@@ -77,7 +77,8 @@ const CURATED: Record<string, string[]> = {
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   //   SEEDANCE (recurado 15/08 f): abre com a ILHA PROIBIDA (pedido do fundador — render e Seedance, nao Veo; selo fica honesto), janela 40-48s (canoa + ilha aerea) + cratera + tornado + ilha de 63 anos
-  cinematic_ai: ['a88b7564-3592-4b12-9560-1646ea998e78', '86653d2d-8d31-4937-8d98-e56c50706fd2', '95a680f5-0cf1-44b4-aeb9-3a888b314661', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4'],
+  //   SEEDANCE (recurado 15/08 g — os 4 favoritos do fundador, todos renders Seedance): ONDA da ilha proibida (North Sentinel) + JAPAO AI aereo noturno + ilha proibida aerea + cratera de fogo
+  cinematic_ai: ['75728dfb-3b29-47fa-aea8-b806d549a2b9', 'd8157290-65db-4d1d-b914-268d54f92087', 'a88b7564-3592-4b12-9560-1646ea998e78', '86653d2d-8d31-4937-8d98-e56c50706fd2'],
   //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
   fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
@@ -97,6 +98,7 @@ const PREVIEWS = new Set<string>([
   'c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551',
   '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9',
   '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501', 'a88b7564-3592-4b12-9560-1646ea998e78',
+  '75728dfb-3b29-47fa-aea8-b806d549a2b9', 'd8157290-65db-4d1d-b914-268d54f92087',
 ])
 
 const EXCLUDED = new Set<string>([
