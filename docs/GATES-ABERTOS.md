@@ -1,7 +1,33 @@
-# GATE 14/08 (sprint 19h) — O CULPADO DOS 23% ESTAVA ERRADO, E TRES LOOPS IRMAOS SEGUEM INFINITOS
+# GATE 15/08 (sprint 11h) — OS TRES LOOPS DE POLLING DEIXARAM DE SER TEORIA: TEM 8 VITIMAS NOMEADAS EM TRIAL ATIVO
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
-*(script desta sprint: `scripts\77-PUSH.bat`; contagem real: `git log origin/main..main`)*
+*(script desta sprint: `scripts\88-PUSH.bat`; contagem real: `git log origin/main..main`)*
+
+## 🔴 PROMOVIDO A PRIORIDADE DE ENGENHARIA: PRAZO DE MORTE NOS TRES LOOPS
+
+O gate de 14/08 abaixo descreve `generating`, `avatar_polling` e `composing` em
+`GenerateClient.tsx` como o defeito IDENTICO ao que `0ab61e3` corrigiu em
+`fal_polling`: gastam o orcamento de `MAX_TRANSIENT_POLL_ERRORS`, gravam UM
+evento e reagendam para sempre. Era descricao de codigo, sem vitima.
+
+**Medido em 15/08 (sprint 11h):** dos 42 trials ATIVOS sem nenhum video, **16
+apertaram gerar e sumiram sem UM erro registrado**, e o ultimo estagio alcancado
+por **8 delas** e exatamente `composing` (3), `generating` (3) ou `fal_polling`
+(2). Outras 6 param em `options` e 2 em `script_preview`.
+
+Ordem para a proxima sprint: **um loop por vez, comecando por `composing`** —
+deadline de relogio de parede que grava `generation_stage_error` com reason
+nomeado e leva a pessoa para uma tela com saida. Nao mexer nos tres juntos (uma
+variavel por vez).
+
+**Contexto que multiplica a urgencia:** 42 de 106 trials ativos (40%) estao sem
+um unico video, e em 29 deles a causa NAO e desinteresse — eles apertaram o
+botao. Isso explica a conversao trial->pago de 1,7% melhor do que qualquer
+ajuste de copy.
+
+---
+
+# GATE 14/08 (sprint 19h) — O CULPADO DOS 23% ESTAVA ERRADO, E TRES LOOPS IRMAOS SEGUEM INFINITOS
 
 ## 🟡 TRES LOOPS DE POLLING SEGUEM SEM PRAZO (a sprint das 19h consertou so um)
 
