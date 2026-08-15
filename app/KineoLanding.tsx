@@ -14,6 +14,7 @@ import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import RevealOnScroll from './RevealOnScroll'
+import LiveStatsBand from '@/components/LiveStatsBand'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -139,6 +140,29 @@ html{scroll-behavior:smooth}
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
 .klp #compare::before,.klp #toolkit::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+/* KINEO-CONCORRENTES-2026-08-15 — 4 blocos da analise de concorrentes:
+   statband (numeros reais), niches (29 paginas viram chips), sv (mini-visual
+   por passo), fnote (nota do fundador — o toque humano que nenhum template tem). */
+.klp .statband{display:flex;justify-content:center;gap:clamp(28px,6vw,84px);flex-wrap:wrap;margin:64px auto 0;padding-top:44px;border-top:1px solid var(--line)}
+.klp .statband-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.klp .statband-n{font-family:var(--font-display),var(--font-inter),sans-serif;font-weight:600;font-size:clamp(1.9rem,4vw,2.6rem);letter-spacing:-.02em;color:var(--txt)}
+.klp .statband-l{font-size:12.5px;color:var(--muted2);letter-spacing:.02em}
+.klp .niches{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:820px;margin:0 auto}
+.klp .niches a{display:inline-flex;align-items:center;padding:9px 16px;border-radius:var(--r-pill);border:1px solid var(--line);background:var(--card);color:var(--txt2);font-size:13.5px;font-weight:600;transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
+.klp .niches a:hover{border-color:rgba(41,151,255,.5);color:var(--txt);transform:translateY(-1px)}
+.klp .sv{height:72px;border-radius:var(--r-sm);border:1px solid var(--line);background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.klp .sv1 span{font-size:12.5px;color:var(--muted);font-style:italic;padding:0 14px;text-align:center}
+.klp .sv2{flex-direction:column;gap:6px;padding:0 18px}
+.klp .sv2 i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(41,151,255,.35),rgba(255,255,255,.10));width:100%}
+.klp .sv2 i:nth-child(2){width:78%}
+.klp .sv2 i:nth-child(3){width:56%}
+.klp .sv3{background:url('/videos/example-sentinel.webp') center/cover}
+.klp .sv3::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.25)}
+.klp .sv3 b{position:relative;z-index:1;width:26px;height:26px;border-radius:50%;background:rgba(41,151,255,.9);display:grid;place-items:center;color:#fff;font-size:10px}
+.klp .fnote{max-width:640px;margin:0 auto;text-align:center}
+.klp .fnote p{font-size:1.08rem;line-height:1.7;color:var(--txt2)}
+.klp .fnote .sig{margin-top:14px;font-size:13px;color:var(--muted2)}
+.klp .fnote .sig b{color:var(--txt);font-weight:650}
 .klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
 .klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:600;letter-spacing:-.026em;line-height:1.08;text-wrap:balance;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
@@ -735,9 +759,9 @@ export default function KineoLanding({ initialUser }: Props) {
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow">How it works</span><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
           <div className="steps">
-            <div className="step"><div className="n">Step 1</div><h3>Type a topic</h3><p>One line — &ldquo;the island too dangerous to visit&rdquo; — or paste your own script. Pick a niche and go.</p></div>
-            <div className="step"><div className="n">Step 2</div><h3>Kineo builds it</h3><p>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</p></div>
-            <div className="step"><div className="n">Step 3</div><h3>Download &amp; post</h3><p>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</p></div>
+            <div className="step"><div className="n">Step 1</div><div className="sv sv1"><span>&ldquo;the island too dangerous to visit&rdquo;</span></div><h3>Type a topic</h3><p>One line — &ldquo;the island too dangerous to visit&rdquo; — or paste your own script. Pick a niche and go.</p></div>
+            <div className="step"><div className="n">Step 2</div><div className="sv sv2" aria-hidden="true"><i></i><i></i><i></i></div><h3>Kineo builds it</h3><p>AI writes a retention-structured script, records the voiceover, matches the footage and burns in captions — a finished 9:16 video.</p></div>
+            <div className="step"><div className="n">Step 3</div><div className="sv sv3" aria-hidden="true"><b>▶</b></div><h3>Download &amp; post</h3><p>Grab the clean MP4 and post to YouTube Shorts, TikTok or Reels. It&rsquo;s yours to keep and monetize.</p></div>
           </div>
         </div>
       </section>
@@ -793,6 +817,7 @@ export default function KineoLanding({ initialUser }: Props) {
               Compare Kineo with 27 AI video tools →
             </OrganicCtaLink>
           </div>
+          <LiveStatsBand />
         </div>
       </section>
 
@@ -854,6 +879,28 @@ export default function KineoLanding({ initialUser }: Props) {
         </div>
       </section>
 
+      <section id="niches">
+        <div className="wrap">
+          <div className="sec-h"><span className="sec-eyebrow">Pick a lane</span><h2>Start with a niche that already works.</h2><p>Every niche below has its own generator page, tuned prompts and real examples.</p></div>
+          <div className="niches">
+            <Link href="/free-ai-shorts/mystery">Mystery</Link>
+            <Link href="/free-ai-shorts/money">Money</Link>
+            <Link href="/free-ai-shorts/truecrime">True Crime</Link>
+            <Link href="/free-ai-shorts/luxury">Billionaires</Link>
+            <Link href="/free-ai-shorts/history">History</Link>
+            <Link href="/free-ai-shorts/facts">Facts</Link>
+            <Link href="/free-ai-shorts/ai">AI</Link>
+            <Link href="/free-ai-shorts/space">Space</Link>
+            <Link href="/free-ai-shorts/psychology">Psychology</Link>
+            <Link href="/free-ai-shorts/motivation">Motivation</Link>
+            <Link href="/free-ai-shorts/horror">Horror</Link>
+            <Link href="/free-ai-shorts/geography">Geography</Link>
+            <Link href="/free-ai-shorts/stoicism">Stoicism</Link>
+            <Link href="/niche-picker">Not sure? Take the quiz →</Link>
+          </div>
+        </div>
+      </section>
+
       <section id="pricing">
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow">Pricing</span><h2>Simple pricing. Try Fast free first.</h2><p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)} Paid plans unlock clean MP4s.</p></div>
@@ -907,6 +954,16 @@ export default function KineoLanding({ initialUser }: Props) {
             <CostCalculatorLink className="link" placement="home_pricing" >Calculate your cost per Short →</CostCalculatorLink>
             <Link className="link" href="/how-much-do-youtube-shorts-pay">How much do Shorts pay? →</Link>
             <Link className="link" href="/youtube-shorts-rpm-by-niche">Highest-RPM niches →</Link>
+          </div>
+        </div>
+      </section>
+
+      <section id="from-the-founder">
+        <div className="wrap">
+          <div className="fnote">
+            <span className="sec-eyebrow" style={{ marginBottom: 18 }}>From the founder</span>
+            <p>&ldquo;I built Kineo because making faceless Shorts took a whole toolchain — a script tool, a voice tool, an editor, stock sites. It should take one idea and a few minutes. Every video this thing renders gets me closer to that. If something gets in your way, email me: it lands in my inbox, not a ticket queue.&rdquo;</p>
+            <div className="sig"><b>Joseph</b> — founder, Kineo &nbsp;·&nbsp; hello@usekineo.com</div>
           </div>
         </div>
       </section>
