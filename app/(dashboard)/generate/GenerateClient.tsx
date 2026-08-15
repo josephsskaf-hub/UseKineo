@@ -237,6 +237,12 @@ const MAX_TRANSIENT_POLL_ERRORS = 4
 const FAL_POLL_DEADLINE_MS = 50 * 60 * 1000
 const ACTIVE_RENDER_STORAGE_KEY = 'kineo_active_render_v1'
 const ACTIVE_RENDER_TTL_MS = 2 * 60 * 60 * 1000
+// KINEO-PORTA-TRANCADA-2026-08-14 — idade a partir da qual o SNAPSHOT deixa de
+// ser motivo para trancar a página. Amarrado ao prazo do poll de propósito: é o
+// instante em que esta casa declara o render morto (e o sweep de 45 min já
+// estornou e liberou o claim antes disso). O TTL de 2h acima segue intocado —
+// ele rege o restore effect, que é o único ponteiro local de um render em voo.
+const ACTIVE_RENDER_GATE_MAX_AGE_MS = FAL_POLL_DEADLINE_MS
 
 // KINEO-RESUME-RENDER-2026-08-04 — server-truth resume. The localStorage
 // snapshot above is only the fast-path: it dies with cleared storage or a
@@ -4118,7 +4124,29 @@ export default function GenerateClient({
   // per-stage payload shape: a malformed payload is unusable but we would
   // rather keep the pointer than risk discarding a paid render on a rule the
   // effect evaluates with the verified user id, which we do not have here.
-  function classifyStoredActiveRender(): 'absent' | 'stale' | 'live' {
+  // KINEO-PORTA-TRANCADA-2026-08-14 — o portão sobreviveu ao que ele guardava.
+  // A sprint das 19h de hoje matou o render fantasma: o cliente desiste em
+  // FAL_POLL_DEADLINE_MS (50 min) e o sweep do servidor condena e ESTORNA em
+  // CINEMATIC_ABANDON_CUTOFF_MS (45 min), liberando o claim. Mas o snapshot que
+  // tranca a página inteira continuou valendo ACTIVE_RENDER_TTL_MS = 2 HORAS.
+  // Resultado: passados os 50 min a casa já devolveu o dinheiro e já soltou o
+  // claim, e a pessoa segue mais ~70 min sem conseguir nem ANALISAR uma ideia
+  // nova, lendo "Still checking for an in-progress render" — uma frase que a
+  // essa altura é falsa, porque não há mais nada para checar.
+  // Depois do prazo o snapshot é `expired`: provado morto pelo relógio da
+  // própria casa, e portanto não há render vivo que uma análise nova possa
+  // atropelar. O portão abre.
+  // Adversarial 1/2 — NÃO baixar o ACTIVE_RENDER_TTL_MS global: ele também rege
+  // o restore effect, e este loop é o único motor do handoff fal→compose (sem
+  // webhook do fal, sem cron que avance o pipeline). Encurtar o TTL global
+  // apagaria o único ponteiro local de um render em estágio de clipes — a mesma
+  // regressão que a revisão das 19h derrubou. O prazo novo vale SÓ para a
+  // decisão do portão.
+  // Adversarial 2/2 — e, como em 07/08, abrir o portão NÃO apaga o snapshot: um
+  // snapshot expirado é inerte, e mantê-lo preserva o único ponteiro local de um
+  // render pago. Quem confirma render de verdade em voo antes de gastar crédito
+  // continua sendo a sonda de servidor `/api/compose/active` no handleGenerate.
+  function classifyStoredActiveRender(): 'absent' | 'stale' | 'expired' | 'live' {
     let raw: string | null = null
     try {
       raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
@@ -4133,6 +4161,7 @@ export default function GenerateClient({
       const startedAt = Number(stored.startedAt)
       const age = Date.now() - startedAt
       if (!Number.isFinite(startedAt) || age < 0 || age > ACTIVE_RENDER_TTL_MS) return 'stale'
+      if (age > ACTIVE_RENDER_GATE_MAX_AGE_MS) return 'expired'
       return 'live'
     } catch {
       // Unparseable JSON: the effect removes this snapshot too (see the
@@ -4191,7 +4220,7 @@ export default function GenerateClient({
     // even ours. Opening the gate is enough — an expired snapshot is inert, and
     // keeping it preserves the only local pointer to a paid render.
     const stored = classifyStoredActiveRender()
-    if (stored === 'absent' || stored === 'stale') {
+    if (stored === 'absent' || stored === 'stale' || stored === 'expired') {
       activeRenderRestoreResolvedRef.current = true
       setActiveRenderRestoreResolved(true)
       void trackEvent('active_render_gate_forced_open', {
@@ -4259,10 +4288,16 @@ export default function GenerateClient({
   // already-established `generation_stage_error` name directly from any exit
   // path, using the same stage vocabulary as `generation_stage_reached`.
   // It never throws and never carries the prompt, an email or a key.
+  // KINEO-ANALYZE-CEGO-2026-08-14 — dois campos novos, ambos opcionais, para o
+  // banco parar de guardar só o NOME da classe do erro. `message` é o texto da
+  // exceção (nunca o prompt, nunca e-mail, nunca chave) e `responded` diz se o
+  // servidor chegou a responder — é ele que separa falha de rede/fornecedor de
+  // bug nosso pós-resposta. `httpStatus` passa a aceitar null explicitamente
+  // porque "não houve status" é a informação, não a ausência dela.
   function trackGenerationFailure(
     stage: Phase,
     reason: string,
-    extra?: { httpStatus?: number; detail?: string },
+    extra?: { httpStatus?: number | null; detail?: string; message?: string; responded?: boolean },
   ) {
     try {
       void trackEvent('generation_stage_error', {
@@ -4281,6 +4316,8 @@ export default function GenerateClient({
         reason,
         http_status: typeof extra?.httpStatus === 'number' ? extra.httpStatus : null,
         error: extra?.detail ? extra.detail.slice(0, 180) : null,
+        message: extra?.message ? extra.message.slice(0, 200) : null,
+        responded: typeof extra?.responded === 'boolean' ? extra.responded : null,
       })
     } catch {
       // Analytics must never break a generation attempt.
@@ -4540,8 +4577,12 @@ export default function GenerateClient({
         // original raw prompt — degraded but not broken.
       } catch (err) {
         // Non-blocking — proceed with rawSource if the extra step throws.
+        // KINEO-ANALYZE-CEGO-2026-08-14 — mesmo ponto cego, mesmo remédio: 10
+        // pessoas em 14 dias, a última hoje 14:47Z, e o banco só sabia
+        // 'TypeError'. Esta é a etapa que chama a OpenAI em TODO vídeo.
         trackGenerationFailure('scripting', 'generate_script_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
+          message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
         })
       }
 
@@ -4563,6 +4604,18 @@ export default function GenerateClient({
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 50000)
+    // KINEO-ANALYZE-CEGO-2026-08-14 — dívida nomeada em 16h e 19h de hoje e não
+    // executada nas duas. `analyze_threw` é a falha VIVA do funil (18 pessoas em
+    // 14 dias, a última hoje 18:56Z) e gravava só `detail: 'TypeError'`, o que
+    // não distingue os dois diagnósticos OPOSTOS que produzem esse mesmo nome:
+    //  (a) o `fetch` estourou → nunca houve resposta, nem status — rede, ou a
+    //      OpenAI derrubando a rota (saldo US$3,07, auto-reload OFF há 3 dias);
+    //  (b) o servidor respondeu 200 e o parsing DAQUI quebrou — e aí a OpenAI é
+    //      inocente e estamos perdendo gente para um bug de cliente.
+    // Sem status e sem mensagem não dá para escolher, e foi por isso que três
+    // sprints seguidas escreveram "não dá para dizer pelo banco".
+    let analyzeHttpStatus: number | null = null
+    let analyzeResponded = false
     try {
       const res = await fetch('/api/analyze-idea', {
         method: 'POST',
@@ -4575,6 +4628,10 @@ export default function GenerateClient({
         body: JSON.stringify({ prompt: source, duration, language, scriptMode }),
         signal: controller.signal,
       })
+      // KINEO-ANALYZE-CEGO-2026-08-14 — a partir daqui o servidor respondeu, e
+      // qualquer throw posterior é NOSSO, não da rede nem do fornecedor.
+      analyzeResponded = true
+      analyzeHttpStatus = res.status
       if (res.status === 401) {
         // PUSH #96 — an expired session silently bounces the user to /login.
         // It never reached the funnel, so it looked like abandonment.
@@ -4758,7 +4815,17 @@ export default function GenerateClient({
       trackGenerationFailure(
         'analyzing',
         err instanceof Error && err.name === 'AbortError' ? 'analyze_timeout_50s' : 'analyze_threw',
-        { detail: err instanceof Error ? err.name : 'unknown' },
+        {
+          detail: err instanceof Error ? err.name : 'unknown',
+          // KINEO-ANALYZE-CEGO-2026-08-14 — os três campos que faltavam para o
+          // banco conseguir responder "de quem é a culpa". `responded=false`
+          // com status null é rede/fornecedor; `responded=true` com status 200
+          // é bug nosso depois da resposta. A mensagem é o texto da exceção
+          // (nossa, não do usuário) e vai truncada por higiene de payload.
+          httpStatus: analyzeHttpStatus,
+          responded: analyzeResponded,
+          message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+        },
       )
       setPhase('idle')
     } finally {
