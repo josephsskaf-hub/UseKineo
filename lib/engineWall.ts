@@ -71,7 +71,8 @@ const CURATED: Record<string, string[]> = {
   //   KLING 3 (recurado 15/08 d): a lava SAI daqui — duplicava com a cratera de
   //   fogo do 1o card (Seedance); fica historiador (banda de corte subiu pro
   //   rosto inteiro) + golden hour + estudio futurista
-  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
+  //   KLING 3 (recurado 15/08 e): abre com o UGC de moletom (escolha do fundador: 'nem ta parecendo AI') + historiador (rua torta cortada, comeca no 20s) + golden hour + estudio
+  cinematic_hollywood: ['216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   cinematic_ai: ['86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501'],
@@ -92,7 +93,7 @@ const ALL_CURATED = new Set(Object.values(CURATED).flat())
 const PREVIEWS = new Set<string>([
   'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
   'c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551',
-  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da',
+  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9',
   '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501',
 ])
 
@@ -116,9 +117,7 @@ const SHOWCASE_CAPS: Record<string, number> = {
 const HERO_CAPS: Record<string, number> = {
   cinematic_veo: 4,
   cinematic_kling: 4,
-  // 3, nao 4: com cap 4 o preenchimento automatico puxaria um talking-head
-  // nao-curado pra vaga que a lava deixou (a lava saiu — duplicava o 1o card).
-  cinematic_hollywood: 3,
+  cinematic_hollywood: 4,
   cinematic_ai: 4,
   fast: 4,
   presenter: 1,
