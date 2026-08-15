@@ -147,10 +147,10 @@ html{scroll-behavior:smooth}
 .klp .composer-head label{font-size:15px;font-weight:700;color:var(--txt)}
 .klp .composer-head span{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.28);color:var(--blue);font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
 .klp .composer-proof{font-size:12px;line-height:1.45;color:var(--muted2);text-align:right}
-.klp section{padding:112px 0}
+.klp section{padding:34px 0}
 /* Sticky nav is 62px — keep in-page anchor targets from landing underneath it. */
 .klp section[id],.klp [id^="try-"]{scroll-margin-top:78px}
-.klp .sec-h{text-align:center;max-width:660px;margin:0 auto 60px}
+.klp .sec-h{text-align:center;max-width:660px;margin:0 auto 26px}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
@@ -205,7 +205,7 @@ html{scroll-behavior:smooth}
 .klp .bento.rv-in>*:nth-child(5){transition-delay:210ms}
 .klp .bento.rv-in>*:nth-child(6){transition-delay:260ms}
 .klp .bento.rv-in>*:nth-child(7){transition-delay:310ms}
-.klp .statband{display:flex;justify-content:center;gap:clamp(28px,6vw,84px);flex-wrap:wrap;margin:64px auto 0;padding-top:44px;border-top:1px solid var(--line)}
+.klp .statband{display:flex;justify-content:center;gap:clamp(28px,6vw,84px);flex-wrap:wrap;margin:28px auto 0;padding-top:22px;border-top:1px solid var(--line)}
 .klp .statband-item{display:flex;flex-direction:column;align-items:center;gap:4px}
 .klp .statband-n{font-family:var(--font-display),var(--font-inter),sans-serif;font-weight:600;font-size:clamp(1.9rem,4vw,2.6rem);letter-spacing:-.02em;color:var(--txt)}
 .klp .statband-l{font-size:12.5px;color:var(--muted2);letter-spacing:.02em}
@@ -376,7 +376,7 @@ html{scroll-behavior:smooth}
 @media(max-width:780px){
 .klp .steps{grid-template-columns:1fr}
 .klp .nav-links{display:none}
-.klp section{padding:72px 0}
+.klp section{padding:26px 0}
 .klp .sec-h{margin-bottom:40px}
 .klp .final{padding:60px 20px;border-radius:var(--r-lg)}
 .klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
