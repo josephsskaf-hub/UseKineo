@@ -3860,7 +3860,18 @@ export default function GenerateClient({
           console.error('[generate] compose error:', data?.error)
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
-          trackGenerationFailure('clips_ready', 'compose_not_ok', { httpStatus: res.status })
+          // KINEO-STAGE-ERROR-DETAIL-2026-08-15 — a MENSAGEM do servidor estava
+          // sendo mostrada na tela (linha acima) e JOGADA FORA no evento. Medido
+          // hoje: dos 42 trials ativos sem vídeo, 11 têm `compose_not_ok` e TODOS
+          // os 19 eventos chegam com o campo `error` VAZIO — a instrumentação
+          // sabia dizer "não foi analyze_threw" e não sabia dizer o que foi.
+          // `trackGenerationFailure` já aceita `detail` e já trunca em 180 chars;
+          // só ninguém passava. Zero mudança de comportamento: mesmo setError,
+          // mesma fase, mesmo retorno.
+          trackGenerationFailure('clips_ready', 'compose_not_ok', {
+            httpStatus: res.status,
+            detail: typeof data?.error === 'string' ? data.error : undefined,
+          })
           setPhase('failed')
           return
         }
@@ -5521,7 +5532,11 @@ export default function GenerateClient({
         }
         if (!res.ok) {
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
-          trackGenerationFailure('generating', 'cinematic_dispatch_not_ok', { httpStatus: res.status })
+          // KINEO-STAGE-ERROR-DETAIL-2026-08-15 — mesma dívida do compose_not_ok.
+          trackGenerationFailure('generating', 'cinematic_dispatch_not_ok', {
+            httpStatus: res.status,
+            detail: typeof data?.error === 'string' ? data.error : undefined,
+          })
           setPhase('failed'); return
         }
         if (data.generationId !== cinematicGenerationId) {
@@ -5667,7 +5682,13 @@ export default function GenerateClient({
         if (!res.ok) {
           console.error('[generate] fast-mode error:', data?.error)
           setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
-          trackGenerationFailure('generating', 'fast_dispatch_not_ok', { httpStatus: res.status })
+          // KINEO-STAGE-ERROR-DETAIL-2026-08-15 — mesma dívida do compose_not_ok.
+          // Fast é o motor padrão e o único grátis: é o dispatch de maior volume
+          // do funil e era o que menos dizia por que falhou.
+          trackGenerationFailure('generating', 'fast_dispatch_not_ok', {
+            httpStatus: res.status,
+            detail: typeof data?.error === 'string' ? data.error : undefined,
+          })
           setPhase('failed')
           return
         }

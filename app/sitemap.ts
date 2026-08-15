@@ -4,6 +4,8 @@ import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { CANONICAL_SLUGS } from '@/lib/comparisons'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
+// KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
+import { ENGINE_SLUGS } from './ai-video-generator/[engine]/page'
 
 // #458 — SEO: sitemap so Google can discover and index every public page.
 // The site had none, so search engines were barely crawling it — free organic
@@ -32,7 +34,10 @@ const BASE = 'https://www.usekineo.com'
 // 1 session and zero).
 // KINEO-G1-2026-08-03 — advanced from 2026-07-29: new money-intent page
 // (/make-money-clipping-with-ai) added to the cluster; paired with IndexNow.
-const LAST_MODIFIED = new Date('2026-08-03T12:00:00.000Z')
+// KINEO-ENGINE-SEO-2026-08-15 — advanced from 2026-08-03: the cluster gained
+// six pages (/ai-video-generator hub + 5 engine pages). Same test the comment
+// above sets — the cluster materially changed, so the old date is now a lie.
+const LAST_MODIFIED = new Date('2026-08-15T13:00:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -111,9 +116,19 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // outras cabeças de cluster de intenção (/youtube-shorts-from-topic,
     // /text-to-video-shorts), não 0.8, porque é entrada de canal nº1.
     { path: '/chatgpt-to-youtube-shorts', priority: 0.9, freq: 'weekly' },
+    // KINEO-ENGINE-SEO-2026-08-15 (docs/SPRINT-2026-08-15-10H.md, seção 5) —
+    // desde 15/08 a home vende pelos NOMES dos motores e o site não tinha uma
+    // única página mirando esses nomes, que são o cluster mais disputado da
+    // categoria ("free AI video generator — Veo / Kling / Seedance"). O hub em
+    // 0.9 como as outras cabeças de cluster de intenção; as 5 páginas de motor
+    // são acrescentadas logo abaixo em 0.9 (são elas que casam com a busca).
+    { path: '/ai-video-generator', priority: 0.9, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
+  for (const slug of ENGINE_SLUGS) {
+    routes.push({ path: `/ai-video-generator/${slug}`, priority: 0.9, freq: 'weekly' })
+  }
   const staticEntries = routes.map((r) => ({
     url: `${BASE}${r.path}`,
     lastModified: LAST_MODIFIED,
