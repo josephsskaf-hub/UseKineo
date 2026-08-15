@@ -39,7 +39,9 @@ const ENGINE_BADGES: Record<string, string> = {
 
 // Ordem de exibição: os motores-troféu primeiro (é o que o Higgsfield faz —
 // Veo/Kling na frente), Fast fecha provando o dia a dia.
-const ENGINE_ORDER = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast', 'presenter']
+// Ordem por QUALIDADE crescente (fundador 15/08): comeca no Kineo 1 (motor
+// proprio) e termina no Kling 3 (o mais premium).
+const ENGINE_ORDER = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'presenter']
 const PER_ENGINE: Record<string, number> = {
   cinematic_veo: 2,
   cinematic_kling: 2,
@@ -67,7 +69,8 @@ const CURATED: Record<string, string[]> = {
   //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
   fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
-  presenter: ['b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
+  //   AVATAR: o close 'Made with Kineo' (render do modo avatar) + o plano aberto
+  presenter: ['c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
 }
 
 // NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
@@ -122,7 +125,7 @@ async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
       .from('videos')
       .select('id, video_url, topic, quality_mode, created_at')
       .eq('status', 'completed')
-      .in('quality_mode', ENGINE_ORDER)
+      .in('quality_mode', [...ENGINE_ORDER, 'avatar'])
       .ilike('video_url', '%supabase%')
       .order('created_at', { ascending: false })
       // 1000, nao 400: Kling (6) e Hollywood (9) sao os renders mais ANTIGOS
@@ -167,7 +170,9 @@ async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
       }
       // 2º: completa a vaga com o automático (recentes primeiro).
       for (const row of data ?? []) {
-        if (row.quality_mode !== engine) continue
+        // 'avatar' e o mesmo produto do presenter (modo novo) — mesma vitrine.
+        const mode = row.quality_mode === 'avatar' ? 'presenter' : row.quality_mode
+        if (mode !== engine) continue
         if ((used[engine] ?? 0) >= (caps[engine] ?? 1)) break
         if (out.some((v) => v.id === row.id)) continue
         pushRow(row, engine)

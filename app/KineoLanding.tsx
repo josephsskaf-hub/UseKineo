@@ -121,7 +121,7 @@ html{scroll-behavior:smooth}
    monitores altos (cap 88px) e comprime onde falta espaco (piso 22px).
    Medido, nao chutado — ver a conta completa no corpo do commit. */
 .klp .hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.klp .hero{position:relative;padding:clamp(22px,3.6vh,88px) 0 clamp(56px,7.5vh,92px);overflow:hidden}
+.klp .hero{position:relative;padding:clamp(16px,2.4vh,40px) 0 0;overflow:hidden}
 /* rgba(120,140,175) era um azul-acinzentado que nao existe em lugar nenhum da
    paleta — o unico tom solto do hero. Trocado pelo azul da marca, em duas
    camadas (uma quente e larga, uma fria e concentrada) para dar profundidade
@@ -170,7 +170,7 @@ html{scroll-behavior:smooth}
 .klp .ftr:hover .ftr-media{border-color:rgba(41,151,255,.5);transform:translateY(-2px)}
 .klp .ftr h3{margin-top:12px;font-size:13.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .ftr p{margin-top:4px;font-size:13px;color:var(--muted2);line-height:1.45}
-.klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:122px;gap:12px;margin-top:34px}
+.klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:122px;gap:12px;margin-top:12px}
 .klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(41,151,255,.28);background:radial-gradient(120% 90% at 15% 10%,rgba(41,151,255,.28),transparent 55%),radial-gradient(100% 80% at 85% 95%,rgba(41,151,255,.12),transparent 60%),linear-gradient(160deg,#0b1830 0%,#0a0f1c 45%,#0c0c0e 100%);display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
 .klp .bento .promo::before{content:'';position:absolute;left:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(41,151,255,.35),transparent 70%);filter:blur(30px);pointer-events:none}
 .klp .bento .promo>*{position:relative;z-index:1}
@@ -754,7 +754,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
             {(() => {
-              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast']
+              const order = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
               return order.map((eng, i) => {
                 const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
                 if (vids.length === 0) return null
@@ -769,7 +769,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
           featured row (cards largos, titulo caps abaixo da midia) + bento dos
           motores (promo + 6 tiles). Videos e selos 100% reais do banco. */}
       {engineWall.length >= 4 && (
-        <section id="engines" style={{ paddingTop: 72 }}>
+        <section id="engines" style={{ paddingTop: 0 }}>
           <div className="ew-wrap">
             {(() => {
               const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
@@ -784,6 +784,16 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
                 <Link className="btn btn-w" href="/signup?src=engine_bento">Start free</Link>
               </div>
+              <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
+                {tileVid('fast')}
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+                </span>
+                <span className="tbody">
+                  <h3>Kineo 1</h3>
+                  <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
+                </span>
+              </Link>
               <Link href="/generate?engine=seedance&intent_campaign=engine_tile" className="tile hot">
                 {tileVid('cinematic_ai')}
                 <span className="trow">
@@ -795,17 +805,6 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <p>The workhorse AI video engine</p>
                 </span>
               </Link>
-              <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
-                {tileVid('cinematic_veo')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
-                  <span className="tb">Studio</span>
-                </span>
-                <span className="tbody">
-                  <h3>Veo 3.1</h3>
-                  <p>Google&rsquo;s flagship, on Studio</p>
-                </span>
-              </Link>
               <Link href="/generate?engine=kling&intent_campaign=engine_tile" className="tile">
                 {tileVid('cinematic_kling')}
                 <span className="trow">
@@ -815,6 +814,17 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Kling 2.5</h3>
                   <p>Cinematic motion &amp; camera</p>
+                </span>
+              </Link>
+              <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
+                {tileVid('cinematic_veo')}
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
+                  <span className="tb">Studio</span>
+                </span>
+                <span className="tbody">
+                  <h3>Veo 3.1</h3>
+                  <p>Google&rsquo;s flagship, on Studio</p>
                 </span>
               </Link>
               <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
@@ -837,16 +847,6 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Avatar</h3>
                   <p>Talking video from one photo</p>
-                </span>
-              </Link>
-              <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
-                {tileVid('fast')}
-                <span className="trow">
-                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
-                </span>
-                <span className="tbody">
-                  <h3>Kineo 1</h3>
-                  <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
                 </span>
               </Link>
             </div>
