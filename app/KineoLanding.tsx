@@ -453,9 +453,7 @@ html{scroll-behavior:smooth}
    continuam ganhando por ordem — mobile/tablet nao herdam este clamp. */
 .klp .hero-gallery::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
-.klp .show-head{position:relative;z-index:1;text-align:center;max-width:820px;margin:0 auto}
-.klp .show-head h1{font-size:clamp(2.1rem,4.6vw,3.4rem);font-weight:600;line-height:1.04;letter-spacing:-.03em;text-wrap:balance;font-family:var(--font-display),var(--font-inter),sans-serif}
-.klp .show-head p{margin:14px auto 0;font-size:clamp(1rem,1.6vw,1.12rem);color:var(--muted);max-width:56ch;line-height:1.55}
+.klp .sr-h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(18px,3vh,40px);grid-template-columns:repeat(5,1fr)}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block}
@@ -720,15 +718,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <div className="show-head">
-            {/* KINEO-SHOWCASE-HOME-2026-08-15 — decisao do fundador: home vira
-                vitrine estilo Higgsfield. O composer SAIU da home (escolha
-                explicita dele em 15/08, opcao "Tirar da home de vez") — quem
-                cria clica num motor e cai no /generate. O h1 segue sendo o
-                unico h1 da pagina (SEO). */}
-            <h1 className="gtxt">Real AI Shorts,<br />straight from the engines.</h1>
-            <p>Every card below is a real render from a Kineo engine — no mockups. Click one to start creating with that engine selected.</p>
-          </div>
+          <h1 className="sr-h1">Kineo — real AI Shorts, straight from the engines</h1>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
