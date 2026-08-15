@@ -43,6 +43,9 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
   const [slotVids, setSlotVids] = useState<(WallVideo | null)[]>([videos[0] ?? null, videos[1] ?? null])
   const [started, setStarted] = useState(false)
   const boxRef = useRef<HTMLAnchorElement | null>(null)
+  // Em qual `active` a transicao ja foi disparada (evita disparo duplo
+  // entre onTimeUpdate e onEnded).
+  const firedRef = useRef(-1)
   const refA = useRef<HTMLVideoElement | null>(null)
   const refB = useRef<HTMLVideoElement | null>(null)
 
@@ -88,7 +91,7 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
           ns[oldSlot] = videos[(active + 1) % len]
           return ns
         })
-      }, 480)
+      }, 800)
       return () => window.clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -116,7 +119,17 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
         preload="auto"
         loop={len === 1}
         onPlaying={(e) => { if (isCur) e.currentTarget.classList.add('hv-on') }}
-        onEnded={() => { if (isCur) advance() }}
+        // CORTE NATURAL (fundador 15/08): a troca dispara ~0.45s ANTES do fim —
+        // o proximo entra em crossfade enquanto este AINDA esta em movimento,
+        // sem frame congelado. onEnded fica de reserva.
+        onTimeUpdate={(e) => {
+          const el = e.currentTarget
+          if (isCur && len > 1 && el.duration && el.duration - el.currentTime <= 0.45 && firedRef.current !== active) {
+            firedRef.current = active
+            advance()
+          }
+        }}
+        onEnded={() => { if (isCur && firedRef.current !== active) { firedRef.current = active; advance() } }}
         // Blindagem: preview 404 -> tenta o render integral; senao, pula.
         onError={(e) => {
           const el = e.currentTarget
