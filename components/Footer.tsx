@@ -68,6 +68,12 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/faceless-video-generator', label: 'Faceless video generator' },
       { href: '/youtube-shorts-from-topic', label: 'YouTube Shorts from a topic' },
       { href: '/text-to-video-shorts', label: 'Text to video Shorts' },
+      // KINEO-CHATGPT-INTENT-2026-08-10 — o rodapé é o que impede a página de
+      // nascer órfã (mesma lógica do bloco no topo deste grupo): 26 páginas
+      // públicas renderizam este Footer, então a nova entra com 26 links
+      // internos em vez de 0. O canal `chatgpt` virou o maior de entrada
+      // externa em 09/08 e não havia superfície falando com ele.
+      { href: '/chatgpt-to-youtube-shorts', label: 'ChatGPT script to YouTube Short' },
       { href: '/cheapest-ai-shorts-maker', label: 'Cheapest AI Shorts maker', costCalculator: true },
       { href: '/ai-shorts-without-filming', label: 'Shorts without filming' },
       { href: '/faceless-channel-ideas', label: 'Faceless channel ideas (2026)' },
@@ -187,12 +193,16 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
       {/* Internal navigation — improves crawl depth + accessibility */}
       <nav
         aria-label="Footer"
+        // KINEO-FOOTER-ALIGN-2026-08-15 — era flex-wrap com maxWidth 720: as 4
+        // colunas nao cabiam, a COMPARE caia pra segunda linha centralizada e o
+        // rodape parecia quebrado (print do fundador). Grid de colunas iguais,
+        // topo alinhado; auto-fit empilha sozinho no mobile.
         style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: '28px 48px',
-          maxWidth: 720,
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+          alignItems: 'start',
+          gap: '28px 40px',
+          maxWidth: 1060,
           margin: '0 auto 24px',
           textAlign: 'left',
         }}
