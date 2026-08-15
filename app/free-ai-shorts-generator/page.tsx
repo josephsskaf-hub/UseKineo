@@ -57,7 +57,14 @@ export const metadata: Metadata = {
   title: 'Free AI Shorts Generator - Create Faceless Shorts With No Card | Kineo',
   description:
     'Use Kineo as a free AI Shorts generator. Type one idea and create a faceless YouTube Short with script, AI voiceover, visuals, captions, and MP4 export. No card for the Fast test.',
-  alternates: { canonical: `${BASE}/free-ai-shorts-generator` },
+  alternates: {
+    canonical: `${BASE}/free-ai-shorts-generator`,
+    languages: {
+      en: `${BASE}/free-ai-shorts-generator`,
+      'pt-BR': `${BASE}/gerador-de-shorts-gratis`,
+      es: `${BASE}/generador-de-shorts-gratis`,
+    },
+  },
   openGraph: {
     title: 'Free AI Shorts Generator - Kineo',
     description:

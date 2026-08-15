@@ -62,6 +62,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/ai-shorts-without-filming', priority: 0.8, freq: 'weekly' },
     { path: '/faceless-channel-ideas', priority: 0.8, freq: 'weekly' },
     { path: '/free-ai-shorts-generator', priority: 0.9, freq: 'weekly' },
+    // AQUISICAO 5 (14/08) — portas PT/ES da mesma ferramenta [KINEO-PORTAS-INTL-2026-08-14]
+    { path: '/gerador-de-shorts-gratis', priority: 0.9, freq: 'weekly' },
+    { path: '/generador-de-shorts-gratis', priority: 0.9, freq: 'weekly' },
     { path: '/faceless-video-generator', priority: 0.9, freq: 'weekly' },
     { path: '/free-ai-shorts', priority: 0.8, freq: 'weekly' },
     { path: '/alternatives', priority: 0.8, freq: 'weekly' },
