@@ -4,6 +4,44 @@
 # do medidor oficial (lib/creatomateQuota.ts): px×fps×segundos/1e8 × overhead 1,115.
 # Vereditos: VERDE >14 dias de folga · AMARELO 7–14 dias ou tendência de estouro · VERMELHO <7 dias ou falhando.
 
+## 15/08/2026 — 🔴🔴 A PROTEÇÃO NÃO PEGOU. Os dois vermelhos continuam vermelhos.
+
+**Este é o primeiro check-up que existe para verificar a decisão do fundador de 14/08
+(ligar auto-reload da OpenAI e auto top-up do fal). Fui conferir nos painéis: NENHUMA
+das duas está protegendo a empresa hoje.** Uma não foi salva, a outra está configurada
+e não disparou. Nenhuma recarga foi comprada — o saldo dos dois caiu mais um dia.
+
+| Fornecedor | Veredito | Medida (fonte: painel oficial lido hoje) | Conta |
+|---|---|---|---|
+| **OpenAI** | 🔴 **VERMELHO — 0,8 DIA** | **Saldo $1,56** (ontem $3,07 = −$1,51/24h). **Auto-reload aparece CONFIGURADO: "quando o saldo chegar a $10, recarregar para $25, limite mensal $100"** | 1,56 ÷ 1,51 = **0,8 dia → zera hoje/amanhã**. **E aqui está o problema real: o saldo está ABAIXO do gatilho de $10 há mais de 24h e a recarga NÃO disparou.** Ou o cartão está recusando, ou o limite mensal de $100 já foi atingido, ou a configuração não foi salva de fato. Sem banner de erro no painel. OpenAI está no `scripting` de TODO vídeo → saldo zero = produto parado inteiro (incidente 31/07, 116 falhas). **Ação: comprar $50 manualmente AGORA e abrir "Manage auto-reload" para conferir cartão + limite mensal. Decidir HOJE, 15/08.** |
+| **fal.ai** | 🔴 **VERMELHO — 2,4 DIAS** | **Saldo $25,74** (ontem $36,61 = **−$10,87/24h**) · mês $182,49 (ontem $171,61) · **Auto top-up: "Disabled"** | 25,74 ÷ 10,87 = **2,4 dias → zera 17–18/08**. **O auto top-up que o fundador ligou em 14/08 aparece DESABILITADO no painel — não foi salvo.** Última compra de crédito: **11/08, $40** — nada em 12, 13, 14 nem 15. O alerta por e-mail do fal segue em $10 = menos de 1 dia de aviso. **Ação: comprar $200 (≈66 vídeos Seedance) e ligar auto top-up (gatilho $50 / recarga $100), conferindo que o botão "Enable auto top-up" foi de fato salvo. Decidir até 17/08.** |
+| Creatomate | 🟢 VERDE — ~59 dias | **Painel oficial: 2,6K de 30,0K (9%)** | Ritmo 464 cr/dia no ciclo (24h: 583). Renova 10/09 (26 dias); projeção do ciclo ≈ 14.700 → sobra ~51%. **Minha estimativa pelo banco deu 2.778 vs 2,6K do painel — 4ª validação seguida do fator 1,115.** |
+| Supabase Storage | 🟢 VERDE — ~66 dias | Banco bruto **94,86 GB** (7.777 obj.) × 0,503 calibrado = **~47,7 GB de 100 GB (ESTIMATIVA)** | Ontem 93,28 bruto → +1,58 GB/dia bruto ≈ 0,79 GB/dia cobrado. Folga ~52 GB. Maior bucket segue `broll` — alvo do GC se apertar. |
+| Resend | 🟢 VERDE (piso) | **48 e-mails** no ledger de trial em 24h, de 100/dia. 14 cadastros em 24h | **Não consegui medir o total real:** só `trial_emails_log` é mensurável; os crons send-video-ready/recovery/reminders não registram. Painel exige login. Total real entre 48 e ~100. |
+
+**Saúde do produto agora (para calibrar a urgência):** 20 renders em 24h (16 fast + 4 cinematic_ai, 95 créditos), 18 vídeos concluídos, **11 erros de geração em 48h e ZERO por quota/saldo**. Os motivos são `analyze_threw`/`generate_script_threw` com `TypeError: Failed to fetch` (aborto de rede do cliente), `analyze_blocked_active_render_gate` e `compose_daily_free_limit` — todos esperados. **O produto está de pé. É exatamente por isso que este aviso vale: ainda dá tempo.**
+
+**Ação recomendada (ordem de urgência):**
+1. **HOJE, 15/08 — OpenAI $50 manual.** Não espere o auto-reload: ele já teve 24h para disparar e não disparou.
+2. **Ainda hoje — abrir "Manage auto-reload" da OpenAI e confirmar cartão válido e limite mensal não estourado.** Se o limite de $100/mês foi atingido, é ele que está bloqueando a recarga.
+3. **Até 17/08 — fal.ai $200 e ligar o auto top-up de novo, conferindo que salvou.**
+4. Dinheiro é sempre a mão do fundador — não comprei nada.
+
+**O insight deste check-up (e é diferente do de ontem):** ontem a conclusão foi "liga as
+auto-recargas que essa classe de falha acaba". Hoje o painel mostra que **ligar não é o
+mesmo que estar ligado** — uma das duas não salvou e a outra está configurada e não
+dispara. Uma proteção que ninguém confere é uma proteção que a empresa *acredita* ter,
+e acreditar ter é pior do que saber que não tem: some a vigilância e o saldo continua
+caindo. **Por isso a verificação diária da configuração — não só do saldo — passa a ser
+item fixo deste check-up.** O custo dessa verificação é uma leitura de painel por dia;
+o custo de não fazer foram 33 horas fora do ar em 09–11/08.
+
+**Não consegui medir:** total de envios do Resend fora do ledger de trial (painel exige
+login, crons sem ledger); e a causa exata do auto-reload da OpenAI não disparar (o painel
+não mostra o motivo sem abrir o modal de gestão, que é área de cartão de crédito — não entro).
+
+---
+
 ## 14/08/2026 — 🔴🔴 DOIS VERMELHOS, e o pior deles é NOVO
 
 **Mudança de método a partir de hoje: os painéis oficiais foram lidos direto no navegador
