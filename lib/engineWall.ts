@@ -53,15 +53,15 @@ const PER_ENGINE: Record<string, number> = {
 //   HOLLYWOOD: o historiador na vila medieval à noite (fotorrealismo de época)
 const CURATED: Record<string, string[]> = {
   //   VEO 3: tenda de Dyatlov + floresta enevoada + cratera nuclear no Pacifico
-  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba'],
+  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4'],
   //   KLING: ruinas de Roma com moedas + montanha dourada de 1922 + chute de 50m no estadio
-  cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a'],
+  cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551'],
   //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
-  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e5388a6d-22a6-491d-9bc9-c1b4a00371b6', 'f32ea301-a239-4d2c-a516-388796aa63da'],
+  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e5388a6d-22a6-491d-9bc9-c1b4a00371b6', 'f32ea301-a239-4d2c-a516-388796aa63da', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
-  cinematic_ai: ['2460ea18-586c-4364-8ad4-254c20662854', 'e06bb4ed-d57b-440a-b978-6660418966fd', '789160b5-a78b-4912-a058-680e083a58e8'],
+  cinematic_ai: ['2460ea18-586c-4364-8ad4-254c20662854', 'e06bb4ed-d57b-440a-b978-6660418966fd', '789160b5-a78b-4912-a058-680e083a58e8', '4ca48262-ebd3-4f1e-86f5-86eb70998c0d'],
   //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
-  fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a'],
+  fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
   presenter: ['b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
 }
@@ -87,12 +87,12 @@ const SHOWCASE_CAPS: Record<string, number> = {
 // Hero da home: 6 cards-carrossel, ate 3 videos POR MOTOR (pedido do
 // fundador 15/08: "tres videos em cada, ficam passando").
 const HERO_CAPS: Record<string, number> = {
-  cinematic_veo: 3,
-  cinematic_kling: 3,
-  cinematic_hollywood: 3,
-  cinematic_ai: 3,
-  fast: 3,
-  presenter: 3,
+  cinematic_veo: 4,
+  cinematic_kling: 4,
+  cinematic_hollywood: 4,
+  cinematic_ai: 4,
+  fast: 4,
+  presenter: 1,
 }
 
 export function getEngineHero(): Promise<WallVideo[]> {

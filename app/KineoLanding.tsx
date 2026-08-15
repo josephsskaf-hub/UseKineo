@@ -456,7 +456,7 @@ html{scroll-behavior:smooth}
 .klp .show-head{position:relative;z-index:1;text-align:center;max-width:820px;margin:0 auto}
 .klp .show-head h1{font-size:clamp(2.1rem,4.6vw,3.4rem);font-weight:600;line-height:1.04;letter-spacing:-.03em;text-wrap:balance;font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .show-head p{margin:14px auto 0;font-size:clamp(1rem,1.6vw,1.12rem);color:var(--muted);max-width:56ch;line-height:1.55}
-.klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(18px,3vh,40px)}
+.klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(18px,3vh,40px);grid-template-columns:repeat(5,1fr)}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block}
 .klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
@@ -466,6 +466,7 @@ html{scroll-behavior:smooth}
 .klp .hero-ftr .ftr:nth-child(2){animation-delay:60ms}
 .klp .hero-ftr .ftr:nth-child(3){animation-delay:120ms}
 .klp .hero-ftr .ftr:nth-child(4){animation-delay:180ms}
+.klp .hero-ftr .ftr:nth-child(5){animation-delay:240ms}
 }
 
 
@@ -732,9 +733,9 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
             {(() => {
-              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai']
+              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast']
               return order.map((eng, i) => {
-                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
+                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 4)
                 if (vids.length === 0) return null
                 return <EngineCycleCard key={eng} videos={vids} index={i} />
               })
