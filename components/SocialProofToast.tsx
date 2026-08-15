@@ -106,8 +106,8 @@ export default function SocialProofToast() {
           from { opacity: 1; transform: translateY(0); }
           to   { opacity: 0; transform: translateY(8px); }
         }
-        .sp-toast-enter { animation: spToastIn 0.35s cubic-bezier(0.22,1,0.36,1) both; }
-        .sp-toast-exit  { animation: spToastOut 0.4s ease both; }
+        .sp-toast-enter { animation: spToastIn var(--dur-slow) var(--ease-out-expo) both; }
+        .sp-toast-exit  { animation: spToastOut var(--dur-slow) var(--ease-swift) both; }
       `}</style>
       <div
         role="status"

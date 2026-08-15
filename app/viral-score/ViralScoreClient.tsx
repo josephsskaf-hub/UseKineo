@@ -177,7 +177,7 @@ const CSS = `
 .vs-card textarea{width:100%;min-height:104px;resize:vertical;background:#171a24;border:1px solid #232838;border-radius:var(--r-xs);color:#eef1f7;padding:13px 14px;font-size:15px;font-family:inherit;outline:none}
 .vs-card textarea:focus{border-color:#2997ff}
 .vs-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-.vs-go,.vs-ghost{cursor:pointer;border:none;font-family:inherit;font-weight:800;border-radius:var(--r-sm);transition:.15s}
+.vs-go,.vs-ghost{cursor:pointer;border:none;font-family:inherit;font-weight:800;border-radius:var(--r-sm);transition:var(--dur-fast) var(--ease-swift)}
 .vs-go{flex:1;min-width:180px;background:linear-gradient(135deg,#2997ff,#4f7bff);color:#fff;padding:14px 18px;font-size:15px}
 .vs-go:disabled{opacity:.6;cursor:default}
 .vs-ghost{background:transparent;border:1px solid #232838;color:#9aa3b7;padding:14px 16px;font-size:14px}

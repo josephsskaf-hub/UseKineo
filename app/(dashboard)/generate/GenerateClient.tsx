@@ -7395,7 +7395,7 @@ export default function GenerateClient({
       <style jsx>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        .gv-card { animation: fadeUp 0.35s ease both; }
+        .gv-card { animation: fadeUp var(--dur-slow) var(--ease-out-expo) both; }
         main::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 320px; background: radial-gradient(60% 100% at 50% 0%, rgba(41,151,255,.06), transparent); pointer-events: none; }
       `}</style>
       {/* KINEO-HIGGSFIELD-20D dias 6-7 (13/08) — regra Higgsfield: nunca
@@ -7410,9 +7410,9 @@ export default function GenerateClient({
         @keyframes gvGlow { 0%, 100% { box-shadow: 0 18px 60px rgba(41,151,255,.22); } 50% { box-shadow: 0 18px 95px rgba(41,151,255,.5); } }
         @keyframes gvCheck { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
         .gv-sk { background: linear-gradient(100deg, rgba(255,255,255,.045) 40%, rgba(255,255,255,.11) 50%, rgba(255,255,255,.045) 60%); background-size: 200% 100%; animation: gvShimmer 1.4s linear infinite; }
-        .gv-stage { transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease; }
-        .gv-status { animation: gvFadeUp 0.3s ease both; }
-        .gv-done-frame { animation: gvPop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both, gvGlow 1.8s ease 0.45s 1; }
+        .gv-stage { transition: background var(--dur-base) var(--ease-swift), border-color var(--dur-base) var(--ease-swift), color var(--dur-base) var(--ease-swift); }
+        .gv-status { animation: gvFadeUp var(--dur-base) var(--ease-out-expo) both; }
+        .gv-done-frame { animation: gvPop var(--dur-slow) var(--ease-out-expo) both, gvGlow 1.8s ease var(--dur-slow) 1; }
         @media (prefers-reduced-motion: reduce) {
           .gv-sk, .gv-done-frame, .gv-status { animation: none; }
         }

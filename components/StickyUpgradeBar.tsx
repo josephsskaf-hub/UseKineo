@@ -27,7 +27,7 @@ export default function StickyUpgradeBar({ isPro }: StickyUpgradeBarProps) {
           from { opacity: 0; transform: translateY(100%); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .sub-bar { animation: subSlideUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+        .sub-bar { animation: subSlideUp var(--dur-slow) var(--ease-out-expo) both; }
       `}</style>
 
       {/* Mobile: fixed above the bottom-nav (bottom-16 = 64px). Desktop: hidden. */}

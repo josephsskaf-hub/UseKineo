@@ -10,7 +10,16 @@ sprints agendadas (14h e 18h) consomem os dias EM ORDEM e marcam ✅ com data.
 
 ## REGRAS INVIOLAVEIS (nenhum dia deste roadmap pode tocar nisso)
 
-- Caixa do composer **667x432** (decisao do fundador, medida em 06/08).
+- ~~Caixa do composer **667x432** (decisao do fundador, medida em 06/08).~~
+  **APOSENTADA EM 15/08 — o elemento nao existe mais.** O fundador extinguiu o
+  composer da home no mesmo dia (a home virou vitrine de motores; ver o bloco
+  SYNC 15/08 do `CLAUDE.md`). Medido no DOM de producao nesta sprint:
+  `document.querySelector('.composer')` responde **null**. Esta regra ficou
+  duas sprints "passando" num teste sobre um elemento deletado — fica riscada
+  aqui em vez de continuar sendo verificada. O que herda a protecao dela e a
+  **fileira dos 4 cards de motor** (media 500x280, `EngineCycleCard` com
+  double-buffer): sprint de UI nao mexe em tamanho de card nem na curadoria de
+  `lib/engineWall.ts` sem ordem do fundador.
 - Espacamentos do hero em **clamp() por vh** (08/08) — nao reescrever.
 - CTA "Start free" → **/signup** — destino e texto nao mudam.
 - **LCP intocado**: poster continua sendo o primeiro paint; video nunca vira LCP.
@@ -233,8 +242,52 @@ Resultado visivel: home, /generate, /pricing, /signup, /history — mesma pele.
     inline do mesmo arquivo viraram `var(--r-pill)` — render identico (999px), e o
     grep do dia 20 agora acha zero. Ver a emenda ao item 22 sobre por que o grep de
     `border-radius:` nao os via.
-    **Falta a metade "timings"** (49 duracoes distintas em app/+components/, 40
-    arquivos) — proxima sprint.
+    ✅ **METADE "TIMINGS" FECHADA 15/08 (sprint 14h).** Escopo: `app/globals.css`
+    (a folha que TODA pagina do dashboard carrega) + os `styled-jsx` das 8
+    superficies do funil — `/generate` (bloco `.gv-*`), `/templates`,
+    `/account`, `/thumbnail-generator`, `/viral-score`, `SocialProofToast`,
+    `StickyUpgradeBar`, `StickyFreeShortCTA`. **9 duracoes de UI distintas
+    (.15/.18/.2/.22/.25/.3/.35/.4/.45s) viraram 3** (`--dur-fast/base/slow`) e
+    **4 curvas viraram 2** (`--ease-swift` para interacao, `--ease-out-expo`
+    para entrada). Medido em producao ANTES da mudanca, no DOM de `/generate`:
+    5 duracoes distintas em uso na mesma pagina (0.15/0.18/0.2/0.25/0.3).
+    **A regra virou DETERMINISTICA e esta escrita no proprio `globals.css`:**
+    `<=0.2s → fast · 0.22–0.3s → base · >=0.35s → slow`. Ela substituiu o
+    julgamento "por papel" de proposito, porque papel ja tinha produzido
+    divergencia (ver o resgate abaixo). Consequencia numerica: **nenhuma
+    duracao anda mais de 50ms** — 3 das 9 ficam byte a byte identicas
+    (.15/.25/.4), as outras 6 andam 30 ou 50ms. Teto que fica valendo: se um
+    valor so couber com delta >50ms, **nao e consolidacao, e redesign** — vira
+    decisao do fundador, nao de sprint.
+    **O que NAO foi tokenizado, de proposito:** loop e ambiente — `spin`
+    .65s/1.1s, `pulse` 2s, `btn-pulse` 2.8s, `shimmer` 3.5s, `floatY` 6s,
+    `auroraDrift` 16s, `progress` 1.4s, `gvShimmer` 1.4s, `gvGlow` 1.8s,
+    `ring-fill` 1s, `pulse-ring` 3s, os `sfa*` do avatar e o `sfaBorder` 4s.
+    Higgsfield limita a ESCALA DE UI a 120–350ms e manda ambiente passar de 1s:
+    tokenizar um giro de spinner em 250ms transformaria a taxa de rotacao numa
+    decisao de UI, que nao e o que estes tokens governam. O `0.01ms !important`
+    do `prefers-reduced-motion` tambem fica literal — e o desligador.
+    **Um acoplamento que a tokenizacao consertou de graca:** `.gv-done-frame`
+    era `gvPop 0.45s ... , gvGlow 1.8s ease 0.45s 1` — o ATRASO do glow era uma
+    copia manual da DURACAO do pop, e sairia de sincronia na primeira vez que
+    alguem mexesse num sem lembrar do outro. Os dois agora leem `--dur-slow`:
+    o glow nao pode mais descolar do pop.
+    **RESGATE — 10 substituicoes de 14/08 estavam no disco e NUNCA foram
+    commitadas.** `app/globals.css` ja tinha `fadeIn`, `resultsReveal`,
+    `slideInRight`, `fadeInUp`, `ripple`, `.btn-ripple` e os 3 blocos de
+    `transition` tokenizados, mais um comentario assinado
+    `KINEO-UI-DIARIO-2026-08-14` — e o `git show HEAD:app/globals.css` nao
+    tinha nada disso. A sprint das 18h de 14/08 fez o trabalho, nao commitou e
+    nao escreveu o Diario (por isso o dia 14 aparece so com a entrada das 14h).
+    O trabalho foi conferido linha a linha e entrou neste commit.
+    **E o resgate revelou o defeito que fez a regra virar deterministica:** a
+    varredura de 14/08 mandou `0.2s → --dur-base` em 3 declaracoes; a de hoje
+    manda `0.2s → --dur-fast`. As duas cabem no teto de 50ms, entao nenhuma
+    e "errada" — mas **um sistema de token em que o mesmo valor de origem cai
+    em dois tokens diferentes nao e um sistema.** As 3 foram alinhadas para
+    `fast` pela regra nova, e o `ease-out` solto do `.btn-ripple` (uma terceira
+    curva) virou `--ease-out-expo`. **Nao sobrou UM literal de duracao de UI em
+    `globals.css`** — o grep so acha os 11 loops de ambiente listados acima.
 13. ✅ **FEITO 13/08 (auditoria) — Focus-visible consistente.** Ja coberto:
     globals.css tem :focus-visible global (anel azul .7, offset 2) desde o UI
     Polish v1.3, valendo para landing e dashboard; .btn da landing tem o
@@ -396,6 +449,55 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     `/avatar`) — a casa paga o peso de carregar Space Grotesk em toda pagina e nao
     recebe identidade nenhuma em troca dentro do produto. Candidato natural a item
     24 quando a rotacao voltar. Rollback: git revert.
+
+24. **NOVO (15/08, sprint 14h) — EXISTE UMA QUARTA LINGUAGEM DE TIMING, ELA TEM
+    274 OCORRENCIAS, E O DIA 12 IA FECHAR SEM VE-LA.** Achado na rotacao
+    (`/signup`, a pagina para onde aponta o unico CTA que este roadmap protege)
+    e confirmado por grep no repo inteiro. O `/signup` **nao tem um unico
+    `transition:` em CSS** — ele anima com **classes Tailwind**:
+    `transition-all`, `transition-colors`, `duration-*`, `ease-*`.
+    Contagem no HEAD de 15/08, em `app/` + `components/`: **274 ocorrencias de
+    `transition*`** (89 `transition-all`, 14 `transition-colors`, 3
+    `transition-transform`, 2 `transition-opacity`) em **27 arquivos**, mais
+    **15 `duration-*`** (7x `duration-300`, 7x `duration-200`, 1x
+    `duration-700`) e **58 classes de curva** (22 `ease-out`, 18 `ease-in-out`,
+    18 `ease-in`). E `tailwind.config.js` **nao declara `transitionDuration`
+    nem `transitionTimingFunction`** — so tem `theme.extend` vazio desses dois.
+    Consequencia: essas 274 animacoes rodam no **default do Tailwind — 150ms e
+    `cubic-bezier(0.4,0,0.2,1)`** — e nenhuma delas passa por `--dur-*` nem por
+    `--ease-*`. Duas coisas seguem disso, e as duas sao ruins:
+    (a) os 150ms **coincidem** com `--dur-fast` hoje, o que esconde o problema:
+    no dia em que alguem mudar `--dur-fast`, 274 lugares silenciosamente
+    continuam em 150ms e a UI racha em duas velocidades;
+    (b) `cubic-bezier(0.4,0,0.2,1)` e uma **terceira curva**, que nao esta em
+    nenhum arquivo e por isso **nao aparece em grep nenhum** — ou seja **o
+    teste 4 do dia 20 ("<=3 duracoes + 2 easings nomeados") pode dar verde com
+    o produto inteiro rodando numa curva que nao e nossa.**
+    E o item 22 outra vez, com outra propriedade: la o raio tinha uma segunda
+    lingua no `font-size:14px` do `html` e uma terceira em `style` inline; aqui
+    o timing tem uma quarta no config. Antes: quatro linguas de duracao
+    (tokens, literais em CSS, `transitionDuration` inline em JSX, classes
+    Tailwind). Depois: `transitionDuration` e `transitionTimingFunction`
+    declarados em `tailwind.config.js` apontando para os tokens
+    (`DEFAULT: 'var(--dur-fast)'`, `200`/`300`: `'var(--dur-base)'`,
+    `700`: `'var(--dur-slow)'`; `DEFAULT: 'var(--ease-swift)'`,
+    `out: 'var(--ease-out-expo)'`) — **um arquivo, alcance total**, exatamente
+    a forma da correcao proposta no item 22. Deltas: `duration-200` 200→250 e
+    `duration-300` 300→250 cabem no teto de 50ms; o balde grande e o **DEFAULT
+    (150→150, zero delta)**, o que torna esta a mudanca de maior alcance e
+    menor risco visual do roadmap inteiro. A troca que SE VE e a curva
+    (`cubic-bezier(.4,0,.2,1)` → `--ease-swift`) em 274 elementos: **exige
+    screenshot antes/depois em `/signup`, `/generate` e dashboard antes de
+    commitar**, e por isso e item proprio e nao apendice do dia 12.
+    Anotados junto, para nao virarem item novo depois: `/signup` tem **0
+    `<video>` e 0 `<img>`** — igual ao `/pricing` (item 22), e pior de
+    significado, porque **e o destino do unico CTA que este roadmap declara
+    inviolavel** ("Start free → /signup"): a pessoa atravessa uma home feita
+    inteira de prova em video e cai numa tela sem nenhuma; e `/signup` roda
+    **so em Inter, zero Space Grotesk**, o que fecha a terceira confirmacao do
+    padrao monofonte (com `/pricing` e `/history` do item 23) e promove aquilo
+    de "candidato a item" para fato do produto — medido hoje no `/generate`:
+    **557 de 558 elementos em Inter, 1 em Space Grotesk.** Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -596,6 +698,132 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   `font-size:14px` sem item proprio estao no item 22.
 
   **Proximo em ordem:** dia 12 (cinzas e timings → tokens).
+
+- **15/08 (sprint 14h) — Dia 12 FECHADO (metade "timings") + a auditoria que
+  aposentou uma regra inviolavel do proprio roadmap.**
+
+  **1. Auditoria do item anterior EM PRODUCAO — o dia 12 (cinzas) esta no ar e
+  nada regrediu.** Lido no DOM de `https://www.usekineo.com/`, nao herdado de
+  doc: os **10 tons vivem no `.klp`** com os valores exatos do commit de 14/08
+  (`--card #141416`, `--card2 #1d1d1f`, `--s0 #0c0c0e`, `--s3 #26262a`,
+  `--line #26262a`, `--line3 #4d4d50`, `--txt2 #c7c7cd`, `--muted2 #8f8f96`) e
+  os raios/timings respondem no `:root` (8/13/18/22/999px, 150/250/400ms).
+  **CLS = 0** por `PerformanceObserver`, **zero erro de console**, **Start free
+  → /signup** intacto, e o **poster continua sendo o primeiro paint**: os 4
+  cards saem do servidor como `<img class="ec-poster" loading="eager"
+  fetchPriority="high">` com `<link rel="preload" as="image">` no `<head>`, e
+  os `<video>` so montam no cliente. LCP intocado.
+
+  **E o achado velho de dois dias MORREU — de graca.** Em 13/08 e 14/08 ficou
+  registrado que num monitor 1080p (viewport 911px) o primeiro card da galeria
+  comecava em **y=926px**, inteiro abaixo da dobra. Medido hoje no mesmo
+  viewport: **y=164px**. A vitrine de motores do fundador resolveu, sem sprint
+  de UI, o unico defeito estrutural que este roadmap vinha anotando e nao
+  conseguia consertar com uma linha.
+
+  **Tres coisas que a reescrita da home mudou e que o roadmap nao pode continuar
+  fingindo que nao viu:**
+  (a) **A primeira regra inviolavel deste doc protege um elemento deletado.**
+  `document.querySelector('.composer')` responde **null** — o fundador extinguiu
+  o composer. A regra "caixa 667x432 nao muda" ficou duas sprints passando num
+  teste sobre nada. Foi **riscada** na secao de regras, com a fileira dos 4
+  cards herdando a protecao no lugar dela.
+  (b) **`preload="none"` acabou na home: sao 8 `<video>` com `preload="auto"`.**
+  Isso reprova o item 2 do sistema Higgsfield e o **teste 7 do dia 20** — mas
+  **nao e regressao e nao vai ser "consertado"**: e a correcao deliberada do
+  fundador (commit `a2e3843`) para o "parece que esta travando" que ele reportou,
+  e os clipes cairam de varios MB para ~300 KB justamente para caber nessa
+  escolha. **Nao e defeito, e um contrato que mudou** — o teste 7 e que precisa
+  ser reescrito pelo fundador antes do dia 20, senao a auditoria final vai
+  reprovar uma decisao dele.
+  (c) **O guard-rail de peso furou: HTML da home = 248.194 B contra o teto de
+  180 KB** — +68 KB. Causa medida, nao suposta: **payload RSC (`__next_f`) =
+  153.469 B** e a folha de estilo unica **45.220 B** (era ~25 KB em 14/08).
+  **TTFB continua dentro** (0,40–0,57s em 3 medicoes quentes; a primeira, fria,
+  deu 1,33s). Nada disso foi causado por sprint de UI — e o preco da vitrine, e
+  a vitrine bateu recorde de checkout no mesmo dia. **Fica como numero na mesa
+  do fundador, nao como conserto de sprint:** ou o teto de 180 KB sobe com a
+  decisao registrada, ou alguem paga os 68 KB. Sprint de UI nao decide isso
+  sozinha.
+
+  **2. Item da sprint: dia 12, metade "timings" — FECHADO.** 9 duracoes de UI
+  distintas → 3 tokens; 4 curvas → 2. Escopo, regra deterministica
+  (`<=0.2s→fast · 0.22–0.3s→base · >=0.35s→slow`), teto de 50ms, a lista do que
+  fica literal de proposito e o acoplamento `gvPop`/`gvGlow` que a tokenizacao
+  consertou estao todos no item 12 acima. **Evidencia de antes:** no DOM de
+  producao de `/generate`, **5 duracoes distintas conviviam na mesma pagina**
+  (0.15/0.18/0.2/0.25/0.3s).
+
+  **O commit resgata 10 substituicoes de 14/08 que estavam so no disco.**
+  `git show HEAD:app/globals.css` nao tinha nada do que o arquivo ja mostrava —
+  a sprint das 18h de 14/08 tokenizou a folha, assinou o comentario
+  `KINEO-UI-DIARIO-2026-08-14`, **nao commitou e nao escreveu o Diario**. Por
+  isso o dia 14 aparece so com a entrada das 14h. Conferido linha a linha e
+  incluido aqui.
+
+  **Verificacao alem do tsc — as tres formas de risco foram provadas NA
+  PRODUCAO AO VIVO, com a folha injetada no `body`** (metodo da casa desde
+  14/08; no `head` a medicao mente porque a folha do `.klp` vive dentro do
+  `<main>`):
+  · `transition: var(--dur-fast) var(--ease-swift)` **sem propriedade** (a forma
+  do `.vs-go`, a mais arriscada porque o shorthand tem que decidir sozinho o que
+  e duracao e o que e curva): antes `0.15s / ease / all` → depois
+  `0.15s / cubic-bezier(0.2, 0, 0, 1) / all`. **Duracao byte a byte identica**,
+  so a curva mudou.
+  · `transition: all var(--dur-fast) var(--ease-swift)` → `0.15s / swift / all`.
+  · a `animation` **dupla com dois `var()`** (a forma do `.gv-done-frame`)
+  resolveu em `duration 0.4s, 1.8s · delay 0s, 0.4s · ease out-expo, ease ·
+  fill both, none` — exatamente a semantica pretendida, com o glow disparando no
+  fim do pop.
+  `tsc --noEmit` **EXIT=0 e falsificado**: erro proposital
+  (`const __KINEO_FALSIFY__: number = 'nao sou numero'`) no `GenerateClient` →
+  acusou **TS2322 na linha 6** → restaurado, **md5 `a2bbe701…` conferido
+  identico**, EXIT=0 com zero erros. **EOL conferido no HEAD arquivo por
+  arquivo** (`git show HEAD:<f> | grep -c $'\r'` contra o disco): 8 arquivos em
+  LF e o `ThumbnailGeneratorClient` em CRLF nos dois lados — todos batem.
+
+  **A revisao adversarial (2 passadas, a 2a cacando defeito meu) pegou 3 coisas,
+  e a primeira quase entrou no commit:**
+  (a) **`git diff` estava mentindo, e por um motivo que vale para toda sprint
+  futura deste repo.** O primeiro `--stat` acusou **560 linhas mudadas no
+  `TemplatesClient` onde eu mudei 3**, 330 no `SocialProofToast`, 234 no
+  `StickyUpgradeBar`. Nao era erro meu: **o `.git/index` esta quebrado** (o
+  mesmo defeito de 146 arquivos-fantasma registrado em 14/08), e `git diff`
+  compara contra o INDICE. Medindo contra o HEAD de verdade
+  (`git show HEAD:<f> | diff - <f>`) o diff virou **exatamente as minhas
+  linhas**. **Regra nova da casa: enquanto o indice estiver quebrado, `git diff`
+  nao serve para auditar mudanca — use `git show HEAD:<arquivo> | diff -`.**
+  (b) No caminho, o diff honesto denunciou que **3 arquivos estavam em CRLF no
+  disco e em LF no HEAD** (`TemplatesClient`, `SocialProofToast`,
+  `StickyUpgradeBar`) — desvio anterior a esta sprint, provavelmente de alguma
+  gravacao pelo Windows. Commitar assim reescreveria os 3 arquivos inteiros. Os
+  tres foram devolvidos para LF, e **o proprio diff virou a prova**: depois da
+  conversao, a comparacao com o HEAD mostra so as 6, 4 e 2 linhas minhas.
+  (c) O resgate de 14/08 divergia do mapa de hoje no valor `0.2s` (base la,
+  fast aqui). Os dois cabem no teto de 50ms, entao ninguem estava "errado" — mas
+  **e exatamente o tipo de divergencia que o dia 12 existe para matar**. Foi o
+  que fez a regra deixar de ser "por papel" e virar **aritmetica**, escrita
+  dentro do `globals.css` para qualquer um re-derivar sem opinar.
+
+  **3. Realimentacao do backlog: item 24 (a quarta linguagem de timing).**
+  A rotacao caiu no `/signup` — e o `/signup` **nao tem um unico `transition:`
+  em CSS**: ele anima por **classe Tailwind**. No repo inteiro sao **274
+  ocorrencias de `transition*` em 27 arquivos**, mais 15 `duration-*` e 58
+  classes de curva, e o `tailwind.config.js` **nao declara `transitionDuration`
+  nem `transitionTimingFunction`** — tudo roda no default (150ms +
+  `cubic-bezier(0.4,0,0.2,1)`). Os 150ms coincidem com `--dur-fast` **hoje**, o
+  que esconde o problema; e a curva default e uma **terceira curva que nao
+  aparece em grep nenhum**, ou seja **o teste 4 do dia 20 pode dar verde com o
+  produto inteiro rodando numa curva que nao e nossa**. E o item 22 de novo,
+  com outra propriedade, e a correcao tem a mesma forma: um arquivo, alcance
+  total. Detalhe no item 24. Junto foram anotados: `/signup` com **0 video e 0
+  imagem** sendo o destino do unico CTA que este roadmap protege, e a terceira
+  confirmacao do padrao monofonte (`/generate` hoje: **557 de 558 elementos em
+  Inter, 1 em Space Grotesk**).
+
+  **Proximo em ordem:** dia 18 (transicao landing → /signup) — os dias 11 a 17
+  e o 19 estao fechados; sobram o 18 e a auditoria final do dia 20, com os
+  itens 21-24 na fila atras deles.
 
 - **14/08 (sprint 14h) — Dia 12 (metade "cinzas") na landing ✅ + a auditoria que
   finalmente pode dizer "esta no ar".**

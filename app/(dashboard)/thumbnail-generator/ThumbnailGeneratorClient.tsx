@@ -419,7 +419,7 @@ export default function ThumbnailGeneratorClient({
     <div style={{ padding: '28px 28px 48px', maxWidth: 1100, margin: '0 auto' }}>
       <style>{`
         .thumb-style-btn {
-          transition: all 0.18s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .thumb-style-btn:hover {
           transform: translateY(-2px);
@@ -427,7 +427,7 @@ export default function ThumbnailGeneratorClient({
           box-shadow: 0 6px 24px rgba(41,151,255,.15) !important;
         }
         .thumb-generate-btn {
-          transition: all 0.2s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .thumb-generate-btn:not(:disabled):hover {
           transform: translateY(-2px);
@@ -435,7 +435,7 @@ export default function ThumbnailGeneratorClient({
           filter: brightness(1.08);
         }
         .thumb-var-btn {
-          transition: all 0.15s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .thumb-var-btn:hover {
           transform: translateY(-1px);

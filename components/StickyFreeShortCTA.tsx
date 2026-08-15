@@ -89,7 +89,7 @@ export default function StickyFreeShortCTA({
     <>
       <style>{`
         @keyframes sfaCtaUp { from { opacity: 0; transform: translateY(120%); } to { opacity: 1; transform: translateY(0); } }
-        .sfa-cta { animation: sfaCtaUp 0.45s cubic-bezier(0.22,1,0.36,1) both; }
+        .sfa-cta { animation: sfaCtaUp var(--dur-slow) var(--ease-out-expo) both; }
         @media (prefers-reduced-motion: reduce) {
           .sfa-cta { animation: none; }
         }

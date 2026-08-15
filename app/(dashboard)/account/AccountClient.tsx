@@ -205,16 +205,16 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
     <div className="px-4 sm:px-6 py-7 pb-20">
       <style>{`
         .acc-tab {
-          transition: all 0.15s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .acc-tab:hover {
           color: var(--text) !important;
         }
         .acc-card {
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          transition: border-color var(--dur-fast) var(--ease-swift), box-shadow var(--dur-fast) var(--ease-swift);
         }
         .acc-row-btn {
-          transition: all 0.15s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .acc-row-btn:hover {
           background: rgba(41,151,255,.12) !important;

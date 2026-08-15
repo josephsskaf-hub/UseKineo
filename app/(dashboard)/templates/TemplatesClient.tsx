@@ -93,13 +93,13 @@ export default function TemplatesClient() {
     <div className="px-4 sm:px-6 py-7 pb-20 max-w-6xl mx-auto">
       <style>{`
         .tmpl-card {
-          transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease, background 0.22s ease;
+          transition: transform var(--dur-base) var(--ease-swift), box-shadow var(--dur-base) var(--ease-swift), border-color var(--dur-base) var(--ease-swift), background var(--dur-base) var(--ease-swift);
         }
         .tmpl-card:hover {
           transform: translateY(-4px);
         }
         .tmpl-btn {
-          transition: all 0.18s ease;
+          transition: all var(--dur-fast) var(--ease-swift);
         }
         .tmpl-btn:hover {
           transform: translateY(-1px);
@@ -107,7 +107,7 @@ export default function TemplatesClient() {
           box-shadow: 0 8px 32px rgba(41,151,255,.35) !important;
         }
         .tmpl-emoji-box {
-          transition: box-shadow 0.22s ease, transform 0.22s ease;
+          transition: box-shadow var(--dur-base) var(--ease-swift), transform var(--dur-base) var(--ease-swift);
         }
         .tmpl-card:hover .tmpl-emoji-box {
           transform: scale(1.06);
