@@ -1193,8 +1193,18 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               </div>
               <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?src=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
-                  risco do hero: fecha a pagina com a mesma forca que abre. */}
-              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> 3 free videos every 24h&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime</p>
+                  risco do hero: fecha a pagina com a mesma forca que abre.
+                  KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da
+                  troca atomica. O commit 15e4154 (07/08) embrulhou em ft() as
+                  ~45 frases que prometem o free tier; a ONDA 7 (2499311, 14/08)
+                  criou ESTA depois e em literal cru. Com a flag ON — o estado de
+                  producao — a home fechava prometendo "3 free videos every 24h"
+                  a 10cm do FAQ que diz "1 watermarked Fast video per month" e do
+                  bloco de pricing que diz "full Creator trial: 40 credits". Uma
+                  varredura no repo inteiro (app/ components/ lib/) confirma que
+                  era a UNICA ocorrencia crua: todas as outras ja passam por ft().
+                  Com a flag OFF o texto volta byte a byte ao literal anterior. */}
+              <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> {ft(OFFER, '3 free videos every 24h', OFFER.copy.chip)}&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime</p>
             </div>
           </div>
         </div>
