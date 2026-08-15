@@ -57,20 +57,22 @@ export default async function ExamplesPage() {
             gente tem". Grade unica, curada a dedo (mesma curadoria do hero +
             Fast + Avatar), selo do motor real em cada card. */}
         <div className="mt-12 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* Modelo aprovado pelo fundador (print 15/08): card menor, video
+              LIMPO (as legendas queimadas do proprio render sao a info) e o
+              titulo em texto ABAIXO da midia, dentro do card. */}
           {best.map((v) => (
             <Link
               key={v.id}
               href={`/v/${v.id}`}
-              className="group relative block overflow-hidden rounded-[18px] border border-white/10 bg-black transition hover:-translate-y-1 hover:border-[#2997ff]/60"
-              style={{ aspectRatio: '9 / 16' }}
+              className="group block overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] transition hover:-translate-y-1 hover:border-[#2997ff]/60"
             >
-              <WallMedia src={v.videoUrl} />
-              <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
-                {v.badge}
-              </span>
-              <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-2.5 pt-8">
-                <p className="text-[11.5px] font-semibold leading-tight">{v.title}</p>
+              <div className="relative aspect-[9/16] overflow-hidden bg-black">
+                <WallMedia src={v.videoUrl} />
+                <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
+                  {v.badge}
+                </span>
               </div>
+              <p className="p-2.5 text-[11.5px] font-semibold leading-snug text-white/85">{v.title}</p>
             </Link>
           ))}
         </div>
