@@ -88,6 +88,19 @@ html{scroll-behavior:smooth}
    da secao visivel (hoje so #pricing tem ancora na nav). */
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
 .klp .nav-links a .badge{height:15px;font-size:8.5px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
+.klp .nd{position:relative;display:inline-flex}
+.klp .nd-car{font-size:8px;margin-left:5px;opacity:.6;vertical-align:1px}
+.klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift);z-index:60}
+.klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;transform:translate(-50%,4px)}
+.klp .nd-menu{display:flex}
+.klp .nd-menu>*{display:block}
+.klp .nd-menu{flex-direction:column;min-width:172px;background:transparent}
+.klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:rgba(17,17,21,.97);border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.5);z-index:-1}
+.klp .nd-menu a{padding:9px 14px;border-radius:9px;font-size:13px;white-space:nowrap;margin:0 5px}
+.klp .nd-menu a:first-child{margin-top:17px}
+.klp .nd-menu a:last-child{margin-bottom:5px}
+.klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
+
 .klp .nav-links a.nav-on{color:var(--txt)}
 .klp .nav-links a.nav-on::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;border-radius:var(--r-pill);background:var(--blue)}
 .klp .nav-right{display:flex;align-items:center;gap:14px}
@@ -686,12 +699,26 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
         </Link>
         <div className="nav-links">
             <Link href="/examples">Explore</Link>
-            <Link href="/generate">Video</Link>
-            <Link href="/avatar">Presenter <span className="badge">New</span></Link>
-            <Link href="/thumbnail-generator">Thumbnails</Link>
-            <Link href="/animate">Animate</Link>
-            <Link href="/viral-now">Viral Now</Link>
-            <Link href="/scripts">Scripts</Link>
+            {/* KINEO-NAV-DROPDOWN-2026-08-15 — menus de categoria estilo
+                Higgsfield: Image e Video abrem submenu no hover/focus (CSS
+                puro, sem JS). O clique no proprio rotulo leva ao destino
+                principal da categoria. */}
+            <span className="nd">
+              <Link href="/thumbnail-generator">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu">
+                <Link href="/thumbnail-generator">Thumbnails</Link>
+              </span>
+            </span>
+            <span className="nd">
+              <Link href="/generate">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu">
+                <Link href="/generate">Generate</Link>
+                <Link href="/viral-now">Viral Now</Link>
+                <Link href="/scripts">Scripts</Link>
+                <Link href="/animate">Animate</Link>
+              </span>
+            </span>
+            <Link href="/avatar">Avatar</Link>
             <a href="#pricing">Pricing</a>
           </div>
         <div className="nav-right">
@@ -703,12 +730,12 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
-              <Link href="/generate">Video</Link>
-              <Link href="/avatar">Presenter</Link>
-              <Link href="/thumbnail-generator">Thumbnails</Link>
-              <Link href="/animate">Animate</Link>
+              <Link href="/generate">Generate video</Link>
               <Link href="/viral-now">Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
+              <Link href="/animate">Animate</Link>
+              <Link href="/thumbnail-generator">Thumbnails</Link>
+              <Link href="/avatar">Avatar</Link>
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
