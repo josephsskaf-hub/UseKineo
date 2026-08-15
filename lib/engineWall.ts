@@ -63,7 +63,8 @@ const PER_ENGINE: Record<string, number> = {
 const CURATED: Record<string, string[]> = {
   //   VEO 3: tenda de Dyatlov + floresta enevoada + cratera nuclear no Pacifico
   //   VEO 3.1 (recurado 15/08 f): a tenda SAIU (fundador nao gostou) — racks vermelhos abrem, floresta enevoada e cratera nuclear fecham
-  cinematic_veo: ['98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba'],
+  //   VEO 3.1 (recurado 15/08 h — URGENTE, garimpado nas janelas escondidas dos 5 renders): DOMO NUCLEAR de Runit na ilha (23.5-30s) + racks vermelhos (0.5-5.5, cena unica) + homem com lanterna na neblina (31-36) + rua noir chuvosa com cartazes (29-34.5)
+  cinematic_veo: ['9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', 'b9572715-484e-4471-bc03-f4321fa8ec01'],
   //   KLING: ruinas de Roma com moedas + montanha dourada de 1922 + chute de 50m no estadio
   cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551'],
   //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
@@ -94,7 +95,7 @@ const ALL_CURATED = new Set(Object.values(CURATED).flat())
 // Clipes leves gerados em public/previews/{id}.mp4 (8s, 640px, crop 500:280).
 // So os 16 do hero — o resto da parede segue com o render integral.
 const PREVIEWS = new Set<string>([
-  'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
+  'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', 'b9572715-484e-4471-bc03-f4321fa8ec01',
   'c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551',
   '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9',
   '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501', 'a88b7564-3592-4b12-9560-1646ea998e78',
@@ -119,8 +120,7 @@ const SHOWCASE_CAPS: Record<string, number> = {
 // Hero da home: 6 cards-carrossel, ate 3 videos POR MOTOR (pedido do
 // fundador 15/08: "tres videos em cada, ficam passando").
 const HERO_CAPS: Record<string, number> = {
-  // 3: so os curados — cap maior puxaria a tenda (rejeitada) de volta por auto-fill.
-  cinematic_veo: 3,
+  cinematic_veo: 4,
   cinematic_kling: 4,
   cinematic_hollywood: 4,
   cinematic_ai: 4,
