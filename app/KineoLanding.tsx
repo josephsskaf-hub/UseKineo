@@ -5,10 +5,8 @@ import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
-import LiveStatsBadge from '@/components/LiveStatsBadge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
-import HomeTopicForm from './HomeTopicForm'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
@@ -455,19 +453,20 @@ html{scroll-behavior:smooth}
    continuam ganhando por ordem — mobile/tablet nao herdam este clamp. */
 .klp .hero-gallery::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
-.klp .hero-engines{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:clamp(112px,15vh,148px);gap:12px;margin:clamp(15px,2.2vh,44px) auto 0}
-.klp .hero-engines::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
-.klp .ec-tile .tvid video{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
-.klp .ec-tile .tvid video.hv-on{opacity:1}
+.klp .show-head{position:relative;z-index:1;text-align:center;max-width:820px;margin:0 auto}
+.klp .show-head h1{font-size:clamp(2.1rem,4.6vw,3.4rem);font-weight:600;line-height:1.04;letter-spacing:-.03em;text-wrap:balance;font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .show-head p{margin:14px auto 0;font-size:clamp(1rem,1.6vw,1.12rem);color:var(--muted);max-width:56ch;line-height:1.55}
+.klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(18px,3vh,40px)}
+.klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
+.klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
+.klp .ec-ftr .ftr-media video.hv-on{opacity:1}
 @media (prefers-reduced-motion: no-preference){
-.klp .hero-engines>*{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
-.klp .hero-engines>*:nth-child(2){animation-delay:60ms}
-.klp .hero-engines>*:nth-child(3){animation-delay:120ms}
-.klp .hero-engines>*:nth-child(4){animation-delay:180ms}
-.klp .hero-engines>*:nth-child(5){animation-delay:240ms}
-.klp .hero-engines>*:nth-child(6){animation-delay:300ms}
+.klp .hero-ftr .ftr{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
+.klp .hero-ftr .ftr:nth-child(2){animation-delay:60ms}
+.klp .hero-ftr .ftr:nth-child(3){animation-delay:120ms}
+.klp .hero-ftr .ftr:nth-child(4){animation-delay:180ms}
 }
-@media(max-width:700px){.klp .hero-engines{grid-template-columns:1fr 1fr;grid-auto-rows:112px;gap:10px}}
+
 
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
 .klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
@@ -719,108 +718,20 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
       <header className="hero">
         <div className="glow" />
         <div className="wrap">
-          <div className="hero-center">
-            {/* KINEO-SPRINT-OFFER-2026-07-14 — hero now sells the recurring
-                FORMAT (a show with one consistent AI host), not a one-off
-                "type an idea" novelty. Same h1/.sub classes, text only —
-                the .sub rule was widened to .hero-center in the CSS above.
-                Line lengths kept ≤ ~15 chars so the h1 never wraps to a 3rd
-                line at the clamp's 5.8rem max inside the 760px container. */}
-            <h1 className="gtxt">Launch your<br />AI Shorts show.</h1>
-            <p className="sub">Same face, same voice, same style — every episode. Script, voice, captions and scenes in a few minutes.</p>
-            <HomeTopicForm isSignedIn={isSignedIn} />
-            {/* KINEO-CRO-2026-07-25 — risk-reversal line directly under the primary CTA. */}
-            {/* KINEO-HOME-POLISH-2026-07-27 — mesma copy, so respiro e leitura:
-                a linha colava no botao e herdava o corpo de 16px, competindo
-                com a .sub logo acima. */}
-            <p
-              className="trust"
-              style={{
-                textAlign: 'center',
-                // KINEO-HERO-FIRSTFOLD-2026-08-07 — respiro proporcional a
-                // altura da tela em vez de 20px fixos. Mesma copy, mesmo corpo.
-                marginTop: 'clamp(8px,1.3vh,20px)',
-                fontSize: 13.5,
-                lineHeight: 1.7,
-                color: 'var(--muted2)',
-                maxWidth: 620,
-                marginLeft: 'auto',
-                marginRight: 'auto',
-              }}
-            >
-              {/* KINEO-HERO-DECLUTTER-2026-07-30 — dois defeitos consertados aqui.
-                  (1) Havia um "·" solto no fim da lista, antes do link: o separador
-                      era digitado depois de cada item em vez de ENTRE eles, então o
-                      último item ficava com um ponto órfão pendurado. Visível na
-                      página em produção.
-                  (2) Estas três garantias são copy de AQUISIÇÃO — "no credit card",
-                      "cancel anytime" — e apareciam também para quem já tem conta e
-                      já pagou. Quem está logado não precisa ser convencido a se
-                      cadastrar; para ele isto é só ruído entre o botão e a galeria.
-                      Agora só o link de exemplos sobrevive ao login.
-                  A lista também deixou de dividir a linha com o link: eram 4 blocos
-                  na mesma frase, e o link é a única coisa clicável ali. */}
-              {!isSignedIn && (
-                <>
-                  <span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> {ft(OFFER, '3 free videos every 24h', 'Creator trial: 40 free credits')}&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime
-                  <br />
-                </>
-              )}
-              <Link href="/examples" className="link" style={{ fontSize: 'inherit' }}>Prefer to look first? See real examples →</Link>
-            </p>
-            {/* PROVA-SOCIAL-REAL-2026-07-02 — real DB counts; renders nothing if numbers are low/unavailable */}
-            {/* KINEO-HERO-FIRSTFOLD-2026-08-07 — marginTop 18 -> clamp por vh. */}
-            <div style={{ marginTop: 'clamp(6px,1.1vh,18px)', display: 'flex', justifyContent: 'center', minHeight: 22 }}>
-              <LiveStatsBadge />
-            </div>
-            {/* KINEO-PROOF-ABOVE-FOLD-2026-08-07 — a empresa ganhou #2 Produto
-                do Dia no Fazier (04/08) e leva ~1.000 cliques/semana do TAAFT, e
-                as duas provas só existiam DEPOIS do CTA final (linha ~840, sob
-                um borderTop): quem converte nunca chegava lá.
-                Texto, nunca o embed com <script> deles: a restrição do
-                KINEO-FAZIER-2026-07-31 vale mais ainda na dobra.
-                Revisão adversarial: o Fazier é <span>, NÃO link. "#2 Product of
-                the Day" é um ranking DIÁRIO de 04/08 — um link para
-                fazier.com em 07/08 mostra outro produto e desmente a própria
-                prova no clique. O backlink dofollow que o tier grátis exige
-                continua sendo o do rodapé, que segue "Launched on Fazier"
-                (neutro, não precisa de comprovação e não duplica a frase).
-                Nenhum número de tração aqui: o LiveStatsBadge logo acima já é a
-                fonte medida, e "947 perfis" inclui contas internas. */}
-            <div
-              style={{
-                marginTop: 'clamp(6px,1.1vh,14px)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: 10,
-                flexWrap: 'wrap',
-                fontSize: 12,
-                color: 'var(--muted2)',
-              }}
-            >
-              <span
-                style={{ color: 'var(--muted2)', fontWeight: 600, fontSize: 11.5, border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '4px 10px' }}
-              >
-                #2 Product of the Day on Fazier
-              </span>
-              <a
-                href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"
-                target="_blank"
-                rel="nofollow noreferrer"
-                style={{ color: 'var(--muted2)', fontWeight: 600, fontSize: 11.5, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '4px 10px' }}
-              >
-                Featured on There&apos;s An AI For That
-              </a>
-            </div>
+          <div className="show-head">
+            {/* KINEO-SHOWCASE-HOME-2026-08-15 — decisao do fundador: home vira
+                vitrine estilo Higgsfield. O composer SAIU da home (escolha
+                explicita dele em 15/08, opcao "Tirar da home de vez") — quem
+                cria clica num motor e cai no /generate. O h1 segue sendo o
+                unico h1 da pagina (SEO). */}
+            <h1 className="gtxt">Real AI Shorts,<br />straight from the engines.</h1>
+            <p>Every card below is a real render from a Kineo engine — no mockups. Click one to start creating with that engine selected.</p>
           </div>
-          {/* KINEO-HERO-ENGINES-2026-08-15 v3 — o hero usa os TILES do bento
-              "Pick your engine" (pedido do fundador: "aqueles que a gente
-              tinha deixado bonito"), cada um com ate 3 videos CURADOS daquele
-              motor passando atras. Mesma ordem do bento: Seedance primeiro. */}
-          <div id="samples" className="hero-engines" aria-label="Kineo engines">
+          {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
+              motor em caps abaixo da midia. 3 videos curados por motor passando. */}
+          <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
             {(() => {
-              const order = ['cinematic_ai', 'cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'presenter', 'fast']
+              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai']
               return order.map((eng, i) => {
                 const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
                 if (vids.length === 0) return null
@@ -828,7 +739,6 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               })
             })()}
           </div>
-          <div className="scroll-cue" aria-hidden="true" />
           {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
               palavra, o que a seção "From idea to posted Short in 3 steps" diz
               logo abaixo ("script, voice, footage and captions"). Fica só a
