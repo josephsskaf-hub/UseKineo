@@ -457,6 +457,12 @@ html{scroll-behavior:smooth}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
 .klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
+.klp .ec-card{padding:13px}
+.klp .ec-chip{position:absolute;top:11px;left:11px;z-index:2;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:3px 9px;backdrop-filter:blur(6px)}
+.klp .ec-name{display:block;font-family:var(--font-display),-apple-system,sans-serif;font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.1}
+.klp .ec-desc{display:block;margin-top:4px;font-size:11px;font-weight:550;line-height:1.35;color:rgba(255,255,255,.74);text-shadow:0 1px 6px rgba(0,0,0,.55)}
+.klp .hero-gallery .ec-name{font-size:17px}
+
 .klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
 .klp .gallery-cap{position:relative;z-index:1;margin-top:18px;text-align:center;font-size:12.5px;color:var(--muted2)}
 /* Amplitude real: acima de 1240px sobram ≥80px de cada lado do .wrap (1080),

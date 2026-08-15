@@ -52,10 +52,27 @@ const PER_ENGINE: Record<string, number> = {
 //   KLING: as ruínas de Roma com moedas de ouro + a montanha dourada de 1922
 //   HOLLYWOOD: o historiador na vila medieval à noite (fotorrealismo de época)
 const CURATED: Record<string, string[]> = {
-  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970'],
-  cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd'],
-  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c'],
+  //   VEO 3: tenda de Dyatlov + floresta enevoada + cratera nuclear no Pacifico
+  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba'],
+  //   KLING: ruinas de Roma com moedas + montanha dourada de 1922 + chute de 50m no estadio
+  cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a'],
+  //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
+  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e5388a6d-22a6-491d-9bc9-c1b4a00371b6', 'f32ea301-a239-4d2c-a516-388796aa63da'],
+  //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
+  cinematic_ai: ['2460ea18-586c-4364-8ad4-254c20662854', 'e06bb4ed-d57b-440a-b978-6660418966fd', '789160b5-a78b-4912-a058-680e083a58e8'],
+  //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
+  fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a'],
+  //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
+  presenter: ['b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
 }
+
+// NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
+// uniforme e patrocinadores visiveis). Risco juridico de imagem — a landing
+// nao pode carregar isso, mesmo sendo render legitimo de usuario.
+const EXCLUDED = new Set<string>([
+  'fe2c5b2c-e468-497b-b0b3-8d9d9a961fb8',
+  '2f846d74-77d8-42b1-a152-50823a7cea41',
+])
 
 // /examples pede uma amostra maior por motor que a home.
 const SHOWCASE_CAPS: Record<string, number> = {
@@ -117,8 +134,11 @@ async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
     const seenTitles = new Set<string>()
 
     const pushRow = (row: NonNullable<typeof data>[number], engine: string): boolean => {
-      const title = cleanTitleLine((row.topic ?? '').toString())
-      if (!title || !row.video_url) return false
+      if (EXCLUDED.has(row.id as string)) return false
+      // Renders sem topico (ex.: presenter antigo) ganham titulo generico em
+      // vez de serem descartados — era isso que sumia com o card Presenter.
+      const title = cleanTitleLine((row.topic ?? '').toString()) || `${ENGINE_BADGES[engine] ?? 'AI'} — real Kineo render`
+      if (!row.video_url) return false
       // Dedupe de título (dois "They call him..." lado a lado é vitrine preguiçosa).
       const key = title.slice(0, 40).toLowerCase()
       if (seenTitles.has(key)) return false
