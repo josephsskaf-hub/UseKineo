@@ -157,22 +157,25 @@ html{scroll-behavior:smooth}
 .klp .ftr:hover .ftr-media{border-color:rgba(41,151,255,.5);transform:translateY(-2px)}
 .klp .ftr h3{margin-top:12px;font-size:13.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .ftr p{margin-top:4px;font-size:13px;color:var(--muted2);line-height:1.45}
-.klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:150px;gap:12px;margin-top:34px}
-.klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#0c0c0e url('/videos/example-cities.webp') center/cover;display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
-.klp .bento .promo::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.88) 30%,rgba(0,0,0,.45))}
+.klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:122px;gap:12px;margin-top:34px}
+.klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(41,151,255,.28);background:radial-gradient(120% 90% at 15% 10%,rgba(41,151,255,.28),transparent 55%),radial-gradient(100% 80% at 85% 95%,rgba(41,151,255,.12),transparent 60%),linear-gradient(160deg,#0b1830 0%,#0a0f1c 45%,#0c0c0e 100%);display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
+.klp .bento .promo::before{content:'';position:absolute;left:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(41,151,255,.35),transparent 70%);filter:blur(30px);pointer-events:none}
 .klp .bento .promo>*{position:relative;z-index:1}
 .klp .bento .promo h3{font-size:clamp(1.3rem,2.4vw,1.8rem);font-weight:650;letter-spacing:-.01em;line-height:1.12;text-transform:uppercase;font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .bento .promo p{margin-top:10px;font-size:.95rem;color:var(--txt2);max-width:34ch}
 .klp .bento .promo .btn{margin-top:20px;align-self:flex-start;padding:12px 24px;font-size:14.5px}
-.klp .tile{position:relative;border-radius:var(--r-md);border:1px solid var(--line);background:var(--card);padding:16px 18px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
+.klp .tile{position:relative;border-radius:var(--r-md);border:1px solid var(--line);background:linear-gradient(160deg,var(--card2) 0%,var(--card) 60%);padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
+.klp .tile .trow{display:flex;align-items:center;justify-content:space-between}
+.klp .tile .tbody{display:flex;flex-direction:column;gap:2px}
 .klp .tile:hover{border-color:rgba(41,151,255,.5);background:var(--card2);transform:translateY(-2px)}
-.klp .tile .tic{position:absolute;top:14px;left:16px;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:750;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .tile .tic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);transition:box-shadow var(--dur-fast) ease,border-color var(--dur-fast) ease}
+.klp .tile:hover .tic{border-color:rgba(41,151,255,.6);box-shadow:0 0 14px rgba(41,151,255,.35)}
 .klp .tile h3{font-size:1.02rem;font-weight:650;letter-spacing:-.01em;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .tile p{font-size:12.5px;color:var(--muted2);line-height:1.4}
-.klp .tile .tb{position:absolute;top:14px;right:14px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);color:var(--blue)}
+.klp .tile .tb{font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);color:var(--blue)}
 .klp .tile.hot{background:linear-gradient(135deg,#0b2a52 0%,#123a6e 45%,var(--card) 100%);border-color:rgba(41,151,255,.5)}
 .klp .tile.hot:hover{background:linear-gradient(135deg,#0d3160 0%,#164382 45%,var(--card2) 100%)}
-@media(max-width:1000px){.klp .ftr-row{grid-template-columns:repeat(2,1fr)}.klp .bento{grid-template-columns:1fr 1fr;grid-auto-rows:140px}.klp .bento .promo{grid-column:span 2;grid-row:span 1;min-height:200px}}
+@media(max-width:1000px){.klp .ftr-row{grid-template-columns:repeat(2,1fr)}.klp .bento{grid-template-columns:1fr 1fr;grid-auto-rows:118px}.klp .bento .promo{grid-column:span 2;grid-row:span 1;min-height:200px}}
 @media(max-width:560px){.klp .ftr-row{grid-template-columns:1fr 1fr;gap:10px}.klp .bento{grid-template-columns:1fr 1fr;gap:10px}}
 .klp .ftr-row.rv .ftr,.klp .bento.rv>*{opacity:0;transform:translateY(14px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
 .klp .ftr-row.rv-in .ftr,.klp .bento.rv-in>*{opacity:1;transform:none}
@@ -838,39 +841,63 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <Link className="btn btn-w" href="/signup?src=engine_bento">Start free</Link>
               </div>
               <Link href="/generate" className="tile hot">
-                <span className="tic">S</span>
-                <span className="tb">Popular</span>
-                <h3>Seedance</h3>
-                <p>The workhorse AI video engine</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
+                  <span className="tb">Popular</span>
+                </span>
+                <span className="tbody">
+                  <h3>Seedance</h3>
+                  <p>The workhorse AI video engine</p>
+                </span>
               </Link>
               <Link href="/pricing" className="tile">
-                <span className="tic">V</span>
-                <span className="tb">Studio</span>
-                <h3>Veo 3</h3>
-                <p>Google&rsquo;s flagship, on Studio</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
+                  <span className="tb">Studio</span>
+                </span>
+                <span className="tbody">
+                  <h3>Veo 3</h3>
+                  <p>Google&rsquo;s flagship, on Studio</p>
+                </span>
               </Link>
               <Link href="/pricing" className="tile">
-                <span className="tic">K</span>
-                <span className="tb">Studio</span>
-                <h3>Kling</h3>
-                <p>Cinematic motion &amp; camera</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
+                  <span className="tb">Studio</span>
+                </span>
+                <span className="tbody">
+                  <h3>Kling</h3>
+                  <p>Cinematic motion &amp; camera</p>
+                </span>
               </Link>
               <Link href="/pricing" className="tile">
-                <span className="tic">H</span>
-                <span className="tb">Studio</span>
-                <h3>Hollywood</h3>
-                <p>Multi-scene film pipeline</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
+                  <span className="tb">Studio</span>
+                </span>
+                <span className="tbody">
+                  <h3>Hollywood</h3>
+                  <p>Multi-scene film pipeline</p>
+                </span>
               </Link>
               <Link href="/avatar" className="tile">
-                <span className="tic">P</span>
-                <span className="tb">New</span>
-                <h3>AI Presenter</h3>
-                <p>Talking video from one photo</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-3.9 3.1-7 7-7 1.6 0 3.1.5 4.3 1.4"/><path d="M18 8c1 1.2 1 3 0 4.2M21 6c2 2.4 2 6 0 8.4"/></svg></span>
+                  <span className="tb">New</span>
+                </span>
+                <span className="tbody">
+                  <h3>AI Presenter</h3>
+                  <p>Talking video from one photo</p>
+                </span>
               </Link>
               <Link href="/generate" className="tile">
-                <span className="tic">F</span>
-                <h3>Fast</h3>
-                <p>Stock + captions in 3&ndash;7 min</p>
+                <span className="trow">
+                  <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+                </span>
+                <span className="tbody">
+                  <h3>Fast</h3>
+                  <p>Stock + captions in 3&ndash;7 min</p>
+                </span>
               </Link>
             </div>
           </div>
