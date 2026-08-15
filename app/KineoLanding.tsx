@@ -756,7 +756,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
             {(() => {
               const order = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
               return order.map((eng, i) => {
-                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
+                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 4)
                 if (vids.length === 0) return null
                 return <EngineCycleCard key={eng} videos={vids} index={i} />
               })

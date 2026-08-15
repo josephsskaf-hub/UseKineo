@@ -94,11 +94,11 @@ const SHOWCASE_CAPS: Record<string, number> = {
 // Hero da home: 6 cards-carrossel, ate 3 videos POR MOTOR (pedido do
 // fundador 15/08: "tres videos em cada, ficam passando").
 const HERO_CAPS: Record<string, number> = {
-  cinematic_veo: 3,
-  cinematic_kling: 3,
-  cinematic_hollywood: 3,
-  cinematic_ai: 3,
-  fast: 3,
+  cinematic_veo: 4,
+  cinematic_kling: 4,
+  cinematic_hollywood: 4,
+  cinematic_ai: 4,
+  fast: 4,
   presenter: 1,
 }
 
