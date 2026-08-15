@@ -76,6 +76,7 @@ html{scroll-behavior:smooth}
    58% e para em #c7c7cd — mesma sensacao, muito mais presenca. */
 .klp .gtxt{background:linear-gradient(180deg,#fff 0%,#fff 64%,var(--txt2) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .klp section[id],.klp #pricing,.klp #how,.klp #toolkit,.klp #faq,.klp #compare{scroll-margin-top:78px}
+.klp .progress{position:fixed;top:0;left:0;height:2px;width:calc(var(--scroll-p,0)*100%);background:var(--blue);z-index:60;pointer-events:none;transition:width 80ms linear}
 .klp nav{position:sticky;top:0;z-index:50;background:rgba(0,0,0,.7);backdrop-filter:blur(20px);border-bottom:1px solid var(--line)}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
@@ -103,6 +104,7 @@ html{scroll-behavior:smooth}
    gastos em vazio antes de qualquer palavra. O clamp mantem o respiro em
    monitores altos (cap 88px) e comprime onde falta espaco (piso 22px).
    Medido, nao chutado — ver a conta completa no corpo do commit. */
+.klp .hero::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .klp .hero{position:relative;padding:clamp(22px,3.6vh,88px) 0 clamp(56px,7.5vh,92px);overflow:hidden}
 /* rgba(120,140,175) era um azul-acinzentado que nao existe em lugar nenhum da
    paleta — o unico tom solto do hero. Trocado pelo azul da marca, em duas
@@ -136,7 +138,7 @@ html{scroll-behavior:smooth}
 /* ONDA7 (14/08): eyebrow de secao — o rotulo pequeno acima do h2 da estrutura de leitura (padrao Higgsfield) sem pedir um pixel a mais. */
 .klp .hero a[target]{transition:border-color var(--dur-fast) ease,color var(--dur-fast) ease}
 .klp .hero a[target]:hover{border-color:rgba(41,151,255,.5)!important;color:var(--txt)!important}
-.klp #compare::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
+.klp #compare::before,.klp #toolkit::before,.klp #pricing::before,.klp #faq::before{content:'';display:block;width:min(560px,72%);height:1px;margin:0 auto clamp(48px,7vh,84px);background:linear-gradient(90deg,transparent,var(--line2),transparent)}
 .klp .sec-eyebrow{display:block;margin-bottom:14px;font-size:11.5px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--blue)}
 .klp .sec-h h2{font-size:clamp(2.05rem,4.4vw,3.05rem);font-weight:600;letter-spacing:-.026em;line-height:1.08;text-wrap:balance;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .sec-h p{margin-top:18px;color:var(--muted);font-size:1.12rem;line-height:1.55;text-wrap:balance}
@@ -377,6 +379,7 @@ html{scroll-behavior:smooth}
 /* KINEO-HERO-FIRSTFOLD-2026-08-07 — margem superior da fileira em clamp por vh.
    Os overrides de <=900px (34px) e <=560px (30px) vem DEPOIS no arquivo e
    continuam ganhando por ordem — mobile/tablet nao herdam este clamp. */
+.klp .hero-gallery::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
 .klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
@@ -389,7 +392,7 @@ html{scroll-behavior:smooth}
    SAIU deste bloco — o card agora é 667px fixo e centrado, alargar o shell
    não fazia mais nada por ele. */
 @media(min-width:1240px){
-.klp .hero-gallery{max-width:none;margin-left:-60px;margin-right:-60px}
+.klp .hero-gallery{max-width:none;margin-left:-72px;margin-right:-72px;gap:11px}
 }
 @media(max-width:900px){
 .klp .hero-gallery{display:flex;gap:10px;margin-top:34px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}
@@ -398,6 +401,13 @@ html{scroll-behavior:smooth}
 /* O lift de -5px do hover seria cortado pelo overflow-y:hidden do trilho. */
 .klp .hero-gallery .vcard:hover,.klp .hero-gallery .vcard:focus-within{transform:none}
 }
+@media (prefers-reduced-motion: no-preference){
+.klp .scroll-cue{position:relative;z-index:1;width:22px;height:34px;margin:26px auto 0;border:1.5px solid var(--line2);border-radius:12px;opacity:.7;transition:opacity var(--dur-base) ease}
+.klp .scroll-cue::before{content:'';position:absolute;left:50%;top:7px;width:3px;height:7px;margin-left:-1.5px;border-radius:2px;background:var(--blue);animation:cueDrop 1.8s var(--ease-out-expo) infinite}
+@keyframes cueDrop{0%{transform:translateY(0);opacity:1}70%{transform:translateY(12px);opacity:0}100%{transform:translateY(0);opacity:0}}
+.klp.scrolled .scroll-cue{opacity:0}
+}
+@media (prefers-reduced-motion: reduce){.klp .scroll-cue{display:none}}
 .klp .platforms{position:relative;z-index:1;margin:22px auto 0;text-align:center;font-size:12px;font-weight:600;letter-spacing:.09em;color:var(--muted2);text-transform:uppercase}
 .klp .platforms b{color:var(--muted);font-weight:700}
 .klp .faq{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -573,6 +583,7 @@ export default function KineoLanding({ initialUser }: Props) {
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />
 
+      <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">
         <Link href="/" className="logo">
           <div className="mk">
@@ -687,7 +698,7 @@ export default function KineoLanding({ initialUser }: Props) {
               }}
             >
               <span
-                style={{ color: 'var(--txt2)', fontWeight: 700, border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '5px 11px' }}
+                style={{ color: 'var(--muted2)', fontWeight: 600, fontSize: 11.5, border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '4px 10px' }}
               >
                 #2 Product of the Day on Fazier
               </span>
@@ -695,13 +706,14 @@ export default function KineoLanding({ initialUser }: Props) {
                 href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043"
                 target="_blank"
                 rel="nofollow noreferrer"
-                style={{ color: 'var(--txt2)', fontWeight: 700, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '5px 11px' }}
+                style={{ color: 'var(--muted2)', fontWeight: 600, fontSize: 11.5, textDecoration: 'none', border: '1px solid var(--line)', borderRadius: 'var(--r-pill)', padding: '4px 10px' }}
               >
                 Featured on There&apos;s An AI For That
               </a>
             </div>
           </div>
           <HeroGallery />
+          <div className="scroll-cue" aria-hidden="true" />
           {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
               palavra, o que a seção "From idea to posted Short in 3 steps" diz
               logo abaixo ("script, voice, footage and captions"). Fica só a

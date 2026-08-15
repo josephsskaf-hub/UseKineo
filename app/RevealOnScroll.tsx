@@ -38,6 +38,30 @@ export default function RevealOnScroll() {
     return () => io.disconnect()
   }, [])
 
+  // ONDA HERO (15/08) — dois sinais de scroll baratos, um rAF só:
+  // (a) --scroll-p alimenta a barra de progresso de 2px do topo;
+  // (b) .scrolled no .klp apaga o scroll-cue apos o primeiro rolar.
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>('.klp')
+    if (!root) return
+    let ticking = false
+    const onScroll = () => {
+      if (ticking) return
+      ticking = true
+      requestAnimationFrame(() => {
+        ticking = false
+        const doc = document.documentElement
+        const max = doc.scrollHeight - doc.clientHeight
+        const p = max > 0 ? Math.min(1, doc.scrollTop / max) : 0
+        root.style.setProperty('--scroll-p', p.toFixed(4))
+        if (doc.scrollTop > 40) root.classList.add('scrolled')
+      })
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   // KINEO-HIGGSFIELD-20D dia 14 (13/08) — nav com estado ativo: o link
   // "Pricing" acende quando a secao #pricing esta na janela util da tela
   // (IntersectionObserver com rootMargin, nunca scroll listener).
