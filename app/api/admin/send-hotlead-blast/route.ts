@@ -262,8 +262,56 @@ export async function GET(req: NextRequest) {
     })
   }
 
+  // AQUISICAO 4 (14/08) — segment=auto: drena os segmentos em ordem de
+  // temperatura (burned > stalled > watermark > power > paying) dentro de um
+  // orcamento unico. E o modo do cron diario: a flag idempotente garante que
+  // cada pessoa recebe no maximo 1 e-mail desta rota NA VIDA.
+  const AUTO_ORDER: Segment[] = ['burned', 'stalled', 'watermark', 'power', 'paying']
+  if (segParam === ('auto' as Segment)) {
+    const budget = Math.min(Number(url.searchParams.get('limit') ?? 25), 40)
+    const picked: Lead[] = []
+    const perSeg: Record<string, number> = {}
+    for (const seg of AUTO_ORDER) {
+      for (const lead of segments[seg]) {
+        if (picked.length >= budget) break
+        picked.push(Object.assign(lead, { __seg: seg }) as Lead)
+        perSeg[seg] = (perSeg[seg] ?? 0) + 1
+      }
+      if (picked.length >= budget) break
+    }
+    const resendKeyAuto = process.env.RESEND_API_KEY
+    if (!resendKeyAuto) return NextResponse.json({ error: 'RESEND_API_KEY ausente' }, { status: 500 })
+    const dbAuto = adminClient()
+    let sentAuto = 0
+    const failuresAuto: string[] = []
+    for (const lead of picked) {
+      const seg = (lead as Lead & { __seg: Segment }).__seg
+      try {
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${resendKeyAuto}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: FROM_EMAIL,
+            to: lead.email,
+            reply_to: REPLY_TO,
+            subject: subjectFor(seg),
+            html: bodyFor(seg, lead, lead.id),
+            headers: unsubscribeHeaders(lead.id),
+          }),
+        })
+        if (!res.ok) { failuresAuto.push(`${mask(lead.email)}: ${res.status}`); continue }
+        await dbAuto.from('events').insert({ user_id: lead.id, name: FLAG_EVENT, metadata: { segment: seg }, path: '/api/admin/send-hotlead-blast' })
+        sentAuto += 1
+        await new Promise((r) => setTimeout(r, 600))
+      } catch (err) {
+        failuresAuto.push(`${mask(lead.email)}: ${err instanceof Error ? err.message : 'erro'}`)
+      }
+    }
+    return NextResponse.json({ segment: 'auto', perSegment: perSeg, attempted: picked.length, sent: sentAuto, failures: failuresAuto })
+  }
+
   if (!segParam || !(segParam in segments)) {
-    return NextResponse.json({ error: 'segment obrigatório: burned|stalled|power|watermark|paying' }, { status: 400 })
+    return NextResponse.json({ error: 'segment obrigatório: burned|stalled|power|watermark|paying|auto' }, { status: 400 })
   }
 
   const resendKey = process.env.RESEND_API_KEY

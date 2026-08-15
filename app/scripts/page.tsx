@@ -17,6 +17,7 @@
 //
 // ISR, not force-dynamic: rendered once an hour, so a crawl never touches
 // Supabase and the page is served from the edge cache.
+import ExitIntentOffer from '@/components/ExitIntentOffer'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
@@ -361,6 +362,8 @@ export default async function ScriptsHubPage() {
         </nav>
       </div>
       <Footer />
+          {/* AQUISICAO 4 (14/08) — exit-intent de cadastro no hub de scripts. */}
+      <ExitIntentOffer variant="free" />
     </main>
   )
 }

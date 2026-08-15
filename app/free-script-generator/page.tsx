@@ -24,6 +24,10 @@ export const metadata: Metadata = {
       'Type a topic, get a viral faceless Short script (hook → facts → payoff) free, instantly. Then make it a finished video, usually in 3–7 minutes.',
     url: 'https://www.usekineo.com/free-script-generator',
     type: 'website',
+    // AQUISICAO 4 (14/08) — a melhor porta da casa nao tinha og:image: o
+    // compartilhamento saia sem card. Poster real de um export (jpg de
+    // proposito — preview social nao aceita webp confiavelmente).
+    images: [{ url: '/videos/example-turkmenistan.jpg', width: 360, height: 640 }],
   },
 }
 

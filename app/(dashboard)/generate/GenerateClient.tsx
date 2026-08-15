@@ -1895,7 +1895,11 @@ export default function GenerateClient({
   // Clipboard require a live click gesture; awaiting a network request inside
   // handleSharePublic can consume that gesture and make both APIs fail.
   useEffect(() => {
-    if ((phase !== 'composing' && phase !== 'done') || shareReferralCode) return
+    // AQUISICAO 4 (14/08) — o fetch esperava composing/done: quem copiava o
+    // link ANTES do fetch resolver compartilhava SEM ref e a atribuicao era
+    // perdida para sempre (evento referral_attached:false confirmava). Agora
+    // busca no MOUNT — o codigo esta pronto muito antes do primeiro share.
+    if (shareReferralCode) return
     let cancelled = false
     fetch('/api/referral', { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
@@ -1908,7 +1912,7 @@ export default function GenerateClient({
         // Sharing without a referral code still works and keeps UTM attribution.
       })
     return () => { cancelled = true }
-  }, [phase, shareReferralCode])
+  }, [shareReferralCode])
 
   // Count a post-render referral card only when it is genuinely visible. Keep
   // the legacy prompt event for the existing funnel and emit a granular event
