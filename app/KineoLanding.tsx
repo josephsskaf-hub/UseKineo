@@ -754,7 +754,9 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
             {(() => {
-              const order = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
+              // Hero = so os 4 premium (fundador 15/08): Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3.
+              // O Kineo 1 mora no bento de escolha logo abaixo.
+              const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
               return order.map((eng, i) => {
                 const vids = engineWall.filter((v) => v.engine === eng).slice(0, 4)
                 if (vids.length === 0) return null
