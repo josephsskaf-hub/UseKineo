@@ -13,8 +13,17 @@ import {
   publishAnimateJob,
   releaseAnimateClaim,
 } from '@/lib/animate/claim'
+import { writeServerEvent } from '@/lib/serverEvents'
 
 export const ANIMATE_COST = 5
+
+// KINEO-ANIMATE-ORFAO-2026-08-15 — mesmo corte do irmão (sweepStaleAnimateClaims)
+// e da varredura genérica: 2h. Não é um número novo e não é ele que condena
+// nada — quem condena é o estado terminal do provedor. O corte só decide a
+// partir de quando vale a pena perguntar, então errar para o generoso é grátis.
+const PUBLISHED_ANIMATE_CUTOFF_MS = 2 * 60 * 60 * 1000
+// Piso de idade — ver GUARDA-CORPO Nº 2 dentro de sweepPublishedAnimateJobs.
+const PUBLISHED_ANIMATE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 export class AnimateServiceError extends Error {
   readonly status: number
@@ -168,10 +177,197 @@ export async function refundAnimateCreditsConfirmed(args: {
 }
 
 /**
+ * KINEO-ANIMATE-ORFAO-2026-08-15 — o IRMÃO QUE FALTAVA de
+ * sweepStaleAnimateClaims(). Medido nesta sprint, não inferido.
+ *
+ * O DEFEITO, em três lugares independentes do código:
+ *   1. `sweepStuckRenderDebits()` exclui `animate-%` DE PROPÓSITO (e está
+ *      certo: clipes Animate nunca persistem em `videos`, então "sem linha em
+ *      videos" é o estado NORMAL de sucesso). O comentário de lá delega:
+ *      *"Their failures are refunded live by /api/avatar-status instead."*
+ *   2. `sweepStaleAnimateClaims()` (logo abaixo) só alcança o débito cujo job
+ *      NUNCA foi publicado no provedor — `if (!jobLoad.ok || jobLoad.job)
+ *      continue`. No instante em que `animate_job_submitted` é gravado, ele
+ *      pula aquela linha para sempre. O próprio docstring dele declara o
+ *      escopo: *"before a signed provider mapping is published"*.
+ *   3. Logo, para um job PUBLICADO que falha, o único ator do sistema inteiro
+ *      capaz de estornar é `/api/avatar-status` — e ele só roda **se a aba do
+ *      cliente continuar aberta e continuar perguntando**.
+ *
+ * Fechar a aba, portanto, deixa o crédito preso para sempre — sem nenhum ator
+ * restante. É EXATAMENTE o buraco que KINEO-CREDIT-INTEGRITY-2026-08-05 já
+ * reconheceu e fechou para os motores cinematográficos
+ * (`sweepAbandonedCinematicDebits`, cujo comentário no cron diz literalmente
+ * *"só tinham refund AO VIVO (dependente da aba do usuário continuar
+ * aberta)"*). Animate nunca ganhou o mesmo tratamento. Isto é a simetria.
+ *
+ * O TAMANHO MEDIDO (produção, 15/08): **14 jobs publicados · 4 pessoas · 70
+ * créditos · `refunded_at IS NULL` em 14 de 14 · 0 contas internas.** Animate é
+ * o ÚNICO motor da casa com 100% de clientes externos reais. E como não existe
+ * nenhum evento terminal (`animate_job_submitted` e `animate_submission_claim`
+ * são os únicos eventos `animate*` do banco), hoje é IMPOSSÍVEL distinguir
+ * "14 clientes satisfeitos" de "70 créditos presos" — as duas hipóteses
+ * produzem exatamente o mesmo rastro. Esta varredura é o que passa a separar
+ * as duas, gravando o evento terminal que nunca existiu.
+ *
+ * REGRA DE DECISÃO — falha FECHADA em toda ambiguidade:
+ *   · quem decide é o PROVEDOR, não o relógio. O corte de 2h (idêntico ao do
+ *     irmão) só define quando vale a pena PERGUNTAR; nada é condenado por
+ *     tempo. Um corte generoso, portanto, não custa nada.
+ *   · `checkAvatarJob` devolve `processing` em exceção de transporte (rede,
+ *     429, 5xx) — nunca `failed`. Só um estado terminal explícito da fila
+ *     estorna.
+ *   · sem `FAL_KEY` a função sai ANTES do laço: `configureFal()` falso faz
+ *     `checkAvatarJob` devolver `failed` para TUDO, o que estornaria a base
+ *     inteira por env faltando. Este é o guarda-corpo mais importante daqui.
+ *   · o estorno reusa `reconcileAnimateCreditRefund` — o MESMO caminho
+ *     idempotente do vivo (`UPDATE ... WHERE refunded_at IS NULL`), então
+ *     rodar junto com a aba do cliente nunca estorna em dobro.
+ *   · `done` NUNCA estorna: só conta e grava o evento terminal.
+ */
+export async function sweepPublishedAnimateJobs(): Promise<{
+  scanned: number
+  delivered: number
+  refunded: number
+  creditsReturned: number
+  /** Provedor ainda trabalhando ou ilegível: fica para a hora seguinte. */
+  ambiguous: number
+}> {
+  const result = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0, ambiguous: 0 }
+  // GUARDA-CORPO Nº 1 (ver docstring): sem chave do provedor, checkAvatarJob
+  // devolve `failed` para todo mundo. Sair aqui é a diferença entre "não
+  // varreu" e "estornou a base inteira porque uma env sumiu".
+  if (!process.env.FAL_KEY) return result
+  const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!adminUrl || !adminKey) return result
+  const admin = createAdminClient(adminUrl, adminKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+
+  const cutoff = new Date(Date.now() - PUBLISHED_ANIMATE_CUTOFF_MS).toISOString()
+  // GUARDA-CORPO Nº 2 — achado da revisão adversarial desta sprint, contra a
+  // PRIMEIRA versão desta própria função. Débito Animate BEM-SUCEDIDO fica com
+  // `refunded_at NULL` para sempre (é o estado normal de sucesso, por isso a
+  // varredura genérica exclui `animate-%`). Sem piso de idade, esta função
+  // voltaria a perguntar ao provedor sobre CADA sucesso histórico A CADA HORA,
+  // para sempre — custo que só cresce. E há um risco pior junto: resultado
+  // velho purgado da fila do fal pode voltar como estado não mapeado, que
+  // `checkAvatarJob` traduz para `failed` — ou seja, estornaríamos um clipe que
+  // a pessoa recebeu. 7 dias cobre com folga os 14 jobs vivos (o mais velho tem
+  // 8 dias) e fecha as duas pontas.
+  const floor = new Date(Date.now() - PUBLISHED_ANIMATE_MAX_AGE_MS).toISOString()
+  const { data: debits, error } = await admin
+    .from('credit_debits')
+    .select('render_id,user_id,amount,created_at')
+    .eq('kind', 'video')
+    .like('render_id', 'animate-%')
+    .is('refunded_at', null)
+    .lt('created_at', cutoff)
+    .gt('created_at', floor)
+    // Mesma ordenação do irmão e pelo mesmo motivo: débitos Animate
+    // BEM-SUCEDIDOS ficam para sempre com refunded_at NULL, então varrer do
+    // mais antigo primeiro deixaria sucessos históricos entupirem a janela.
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) {
+    console.error('[animate/published-sweep] debit lookup failed:', error.message)
+    return result
+  }
+
+  for (const row of debits ?? []) {
+    const billingReference = typeof row.render_id === 'string' ? row.render_id : ''
+    const userId = typeof row.user_id === 'string' ? row.user_id : ''
+    if (!userId || !/^animate-[a-f0-9-]{36}$/i.test(billingReference)) continue
+    result.scanned += 1
+
+    // Só jobs PUBLICADOS — o inverso exato da linha que o irmão usa para
+    // pular. Sem mapeamento assinado, a linha é problema dele, não daqui.
+    const jobLoad = await loadVerifiedAnimateJobByBilling({ userId, billingReference })
+    if (!jobLoad.ok || !jobLoad.job) continue
+    const requestId = jobLoad.job.requestId
+    if (!requestId) continue
+
+    // GUARDA-CORPO Nº 3 (mesma revisão adversarial): o que faz esta varredura
+    // CONVERGIR. Um `delivered` não muda o débito de estado nenhum — sem esta
+    // checagem o mesmo job entregue seria reperguntado ao provedor em toda
+    // rodada dentro da janela de 7 dias (168 chamadas pagas por clipe feliz).
+    // Com ela, cada job custa no máximo uma resolução.
+    const { data: settled, error: settledError } = await admin
+      .from('events')
+      .select('id')
+      .eq('name', 'animate_job_settled')
+      .eq('user_id', userId)
+      .contains('metadata', { billing_reference: billingReference })
+      .limit(1)
+    // Falha FECHADA: sem conseguir ler, não pergunta e não estorna nesta rodada.
+    if (settledError) {
+      console.warn(`[animate/published-sweep] settled lookup failed ref=${billingReference}:`, settledError.message)
+      continue
+    }
+    if (settled?.length) continue
+
+    const state = await checkAvatarJob(requestId, 'animate')
+
+    if (state.status === 'done') {
+      // Sucesso: o crédito está corretamente gasto e NÃO se toca nele. O que
+      // muda é só o silêncio — este é o evento terminal que nunca existiu.
+      result.delivered += 1
+      await writeServerEvent({
+        name: 'animate_job_settled',
+        userId,
+        metadata: {
+          outcome: 'delivered',
+          billing_reference: billingReference,
+          request_id: requestId,
+          settled_by: 'published_sweep',
+          age_ms: Math.max(0, Date.now() - Date.parse(String(row.created_at))),
+        },
+      })
+      continue
+    }
+
+    if (state.status !== 'failed') {
+      // pending / processing — inclusive toda exceção de transporte, que
+      // checkAvatarJob mapeia para `processing` de propósito. Fica vivo.
+      result.ambiguous += 1
+      continue
+    }
+
+    const refund = await reconcileAnimateCreditRefund({ userId, billingReference })
+    if (refund.state !== 'refunded') {
+      // `unconfirmed`/`missing` — falha FECHADA, tenta de novo na hora que vem.
+      result.ambiguous += 1
+      continue
+    }
+    result.refunded += 1
+    result.creditsReturned += refund.amount
+    await writeServerEvent({
+      name: 'animate_job_settled',
+      userId,
+      metadata: {
+        outcome: 'refunded',
+        billing_reference: billingReference,
+        request_id: requestId,
+        credits: refund.amount,
+        settled_by: 'published_sweep',
+        age_ms: Math.max(0, Date.now() - Date.parse(String(row.created_at))),
+      },
+    })
+  }
+
+  return result
+}
+
+/**
  * Daily backstop for callers that disappear after a debit but before a signed
  * provider mapping is published. Normal retries reconcile in ~90 seconds; this
  * sweep guarantees that closing a tab or abandoning an API process cannot keep
  * credits reserved forever.
+ *
+ * ⚠️ ESCOPO (não alargar sem ler sweepPublishedAnimateJobs acima): esta função
+ * para no job PUBLICADO de propósito — a linha `if (!jobLoad.ok ||
+ * jobLoad.job) continue`. Quem cuida do publicado é a varredura irmã.
  */
 export async function sweepStaleAnimateClaims(): Promise<{
   scanned: number

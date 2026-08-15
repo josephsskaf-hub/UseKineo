@@ -6,6 +6,11 @@
 // costs ANIMATE_COST video_credits (debited upfront, atomic RPC).
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
+
+// KINEO-ANIMATE-ORFAO-2026-08-15 — ver o comentário grande em poll().
+const ANIMATE_POLL_DEADLINE_MS = 30 * 60 * 1000
+const ANIMATE_MAX_TRANSIENT_POLL_ERRORS = 4
 
 type Phase = 'idle' | 'uploading' | 'submitting' | 'animating' | 'done' | 'failed'
 
@@ -84,6 +89,11 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   const submissionRef = useRef<{ fingerprint: string; key: string } | null>(null)
   const retryTimerRef = useRef<number | null>(null)
   const pollTimerRef = useRef<number | null>(null)
+  // KINEO-ANIMATE-ORFAO-2026-08-15 — relógio, orçamento de erro transitório e
+  // guarda anti-duplicata do evento terminal.
+  const pollStartedAtRef = useRef(0)
+  const pollErrorsRef = useRef(0)
+  const terminalReportedRef = useRef(false)
 
   useEffect(() => {
     cancelledRef.current = false
@@ -323,11 +333,55 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
       prompt: prompt.trim(),
       duration,
     }
+    // KINEO-ANIMATE-ORFAO-2026-08-15 — zerar o relógio, o orçamento de erro e a
+    // guarda do evento terminal A CADA nova animação. Sem isto o 2º clipe da
+    // mesma aba herdaria o relógio do 1º (podendo nascer já vencido) e a guarda
+    // já gasta faria o desfecho dele nunca ser reportado — que é exatamente o
+    // silêncio que este commit existe para acabar. O caso é real: a pessoa que
+    // mais usou o Animate fez 7 tentativas em 25 minutos na mesma sessão.
+    pollStartedAtRef.current = 0
+    pollErrorsRef.current = 0
+    terminalReportedRef.current = false
     writeStoredSubmission(stored)
     void submitStoredSubmission(stored)
   }
 
+  // KINEO-ANIMATE-ORFAO-2026-08-15 — este laço não tinha prazo, não tinha teto
+  // de erro e não emitia UM evento. O `catch` era literalmente
+  // `setTimeout(poll, 7000)` mudo, então um /api/avatar-status 5xx-ando girava
+  // para sempre sem nunca aparecer em lugar nenhum. Pior: no banco inteiro só
+  // existiam `animate_submission_claim` e `animate_job_submitted` — nenhum
+  // evento TERMINAL — de modo que a operação não conseguia distinguir cliente
+  // satisfeito de crédito preso. As três coisas são fechadas aqui; o resgate de
+  // quem fechou a aba (que este código, por definição, não alcança) é a
+  // varredura sweepPublishedAnimateJobs no cron horário.
+  function reportAnimateOutcome(outcome: string, extra: Record<string, unknown> = {}) {
+    if (terminalReportedRef.current) return
+    terminalReportedRef.current = true
+    void trackEvent('animate_job_settled', {
+      outcome,
+      settled_by: 'client_poll',
+      elapsed_ms: Math.max(0, Date.now() - (pollStartedAtRef.current || Date.now())),
+      ...extra,
+    })
+  }
+
   async function poll(requestId: string) {
+    if (!pollStartedAtRef.current) pollStartedAtRef.current = Date.now()
+    // Prazo de parede. O provedor entrega clipes de 5-10s em 1-3 min (a própria
+    // copy da tela promete isso); 30 min é ~10x o teto prometido, então não
+    // condena nada que ainda pudesse dar certo. E o servidor NÃO condena antes:
+    // sweepPublishedAnimateJobs só olha aos 120 min, ou seja a ordem
+    // "o cliente nunca condena antes do servidor" é respeitada ao contrário de
+    // propósito aqui — quem condena primeiro é a TELA, e ela só para de mentir
+    // para o usuário; o dinheiro continua sendo decidido pelo provedor, no cron.
+    if (Date.now() - pollStartedAtRef.current >= ANIMATE_POLL_DEADLINE_MS) {
+      reportAnimateOutcome('client_deadline_exceeded', { request_id: requestId })
+      setError('This animation is taking far longer than usual. If it was charged and never arrived, your credits are returned automatically within the hour — you can safely start another one.')
+      setPhase('failed')
+      void refreshCredits()
+      return
+    }
     try {
       const res = await fetch(`/api/avatar-status?request_id=${encodeURIComponent(requestId)}&engine=animate`, { cache: 'no-store' })
       const data = await res.json()
@@ -341,6 +395,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
       if (res.status === 404) {
         submissionRef.current = null
         clearStoredSubmission(userId)
+        reportAnimateOutcome('not_found', { request_id: requestId, http_status: 404 })
         setError('This animation could not be found for the current account.')
         setPhase('failed')
         return
@@ -348,6 +403,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
       if (data.status === 'done' && typeof data.video_url === 'string') {
         submissionRef.current = null
         clearStoredSubmission(userId)
+        reportAnimateOutcome('delivered', { request_id: requestId })
         setResultUrl(data.video_url)
         setPhase('done')
         return
@@ -355,18 +411,32 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
       if (data.status === 'failed') {
         submissionRef.current = null
         clearStoredSubmission(userId)
+        reportAnimateOutcome('provider_failed', {
+          request_id: requestId,
+          credits_refunded: typeof data?.creditsRefunded === 'number' ? data.creditsRefunded : null,
+        })
         setError(typeof data?.error === 'string' ? data.error : 'Animation failed. Your credits were automatically restored.')
         setPhase('failed')
         void refreshCredits()
         return
       }
+      pollErrorsRef.current = 0
       if (!cancelledRef.current) {
         pollTimerRef.current = window.setTimeout(() => void poll(requestId), 5000)
       }
-    } catch {
-      if (!cancelledRef.current) {
-        pollTimerRef.current = window.setTimeout(() => void poll(requestId), 7000)
+    } catch (err) {
+      if (cancelledRef.current) return
+      // Um relatório só, quando o orçamento transitório acaba — o laço CONTINUA
+      // (a rede volta e o clipe já está pago), mas para de ser invisível. Quem
+      // encerra de vez é o prazo lá em cima.
+      if (++pollErrorsRef.current === ANIMATE_MAX_TRANSIENT_POLL_ERRORS + 1) {
+        void trackEvent('animate_poll_retries_exhausted', {
+          request_id: requestId,
+          detail: err instanceof Error ? err.name : 'unknown',
+          elapsed_ms: Math.max(0, Date.now() - (pollStartedAtRef.current || Date.now())),
+        })
       }
+      pollTimerRef.current = window.setTimeout(() => void poll(requestId), 7000)
     }
   }
 

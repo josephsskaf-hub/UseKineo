@@ -61,7 +61,7 @@
 // :50 post-nudge, :55 trial-downgrade, :00 autopilot).
 import { NextRequest, NextResponse } from 'next/server'
 import { sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
-import { sweepStaleAnimateClaims } from '@/lib/animate/service'
+import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
 
 export const dynamic = 'force-dynamic'
 // As duas varreduras fazem até 200 + 1000 leituras e um RPC por linha elegível.
@@ -87,9 +87,21 @@ export async function GET(req: NextRequest) {
   // SUBMIT e só tinham refund AO VIVO (dependente da aba do usuário continuar
   // aberta). Esta terceira varredura fecha o buraco.
   const cinematic = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0 }
+  // KINEO-ANIMATE-ORFAO-2026-08-15 — a QUARTA varredura, pelo mesmo motivo que
+  // criou a terceira, e para o motor que ficou de fora dela. `animate` acima só
+  // alcança o débito cujo job NUNCA foi publicado no provedor; depois de
+  // publicado, o único ator do sistema capaz de estornar era
+  // /api/avatar-status — ou seja, a aba do cliente continuar aberta.
+  // Medido em produção hoje: 14 jobs publicados · 4 pessoas · 70 créditos ·
+  // 14 de 14 com refunded_at NULL · 0 contas internas. E como não existia
+  // NENHUM evento terminal de Animate, "14 clientes felizes" e "70 créditos
+  // presos" deixavam rastro idêntico. Esta varredura pergunta ao provedor e
+  // grava `animate_job_settled` nos DOIS desfechos, então o próximo relatório
+  // consegue separar os dois casos.
+  const animatePublished = { scanned: 0, delivered: 0, refunded: 0, creditsReturned: 0, ambiguous: 0 }
   const errors: string[] = []
 
-  // As duas varreduras são independentes: uma falhar não pode impedir a outra
+  // As varreduras são independentes: uma falhar não pode impedir a outra
   // de devolver crédito.
   try {
     Object.assign(renders, await sweepStuckRenderDebits())
@@ -115,9 +127,17 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] abandoned-cinematic sweep failed:', msg)
   }
 
-  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, errors }))
+  try {
+    Object.assign(animatePublished, await sweepPublishedAnimateJobs())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`published_animate: ${msg}`)
+    console.error('[cron/refund-sweep] published-animate sweep failed:', msg)
+  }
+
+  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.
-  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, errors })
+  return NextResponse.json({ ok: errors.length === 0, renders, animate, cinematic, animatePublished, errors })
 }

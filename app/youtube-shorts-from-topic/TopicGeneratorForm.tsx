@@ -52,6 +52,28 @@ export default function TopicGeneratorForm({
     }
     void trackEvent('organic_topic_example_started', metadata)
     void trackEvent('organic_topic_submitted', metadata)
+    // KINEO-STARTER-EM-ARTIGO-2026-08-15 — este componente é a máquina de
+    // ativação de 68% (push69/push70) e, até hoje, era INVISÍVEL para a única
+    // métrica pela qual a casa julga página orgânica. O gate de 14/08 comparou
+    // 13 páginas por `organic_cta_clicked` e leu `/cheapest-ai-shorts-maker`
+    // como "0 cliques em 41 sessões" — mas aquela página TEM este starter
+    // desde #78, e ele emitia `organic_topic_example_started` /
+    // `organic_topic_submitted`, nunca `organic_cta_clicked`. O zero media o
+    // instrumento, não a porta. Agora um clique no starter aparece na MESMA
+    // consulta que a home, com `destination` no formato de OrganicCtaLink
+    // (components/OrganicCtaLink.tsx:33-38) para que os dois sejam somáveis.
+    // `keepalive: true` em trackEvent (lib/analytics.ts:428) é o que faz este
+    // evento sobreviver ao window.location.assign logo abaixo.
+    //
+    // `mirrors` NÃO é enfeite: um clique agora escreve DUAS linhas, e
+    // app/api/admin/funnel/route.ts conta LINHAS em `ctaClicks`. A chave é o
+    // que faz o painel do fundador ignorar o espelho em vez de dobrar o número
+    // em 17 páginas. Consulta ad-hoc por `organic_cta_clicked` continua exata.
+    void trackEvent('organic_cta_clicked', {
+      ...metadata,
+      destination: '/signup',
+      mirrors: 'organic_topic_submitted',
+    })
     const params = new URLSearchParams({
       prompt: example,
       create_intent: 'fast',
@@ -78,11 +100,21 @@ export default function TopicGeneratorForm({
         method="get"
         onSubmit={() => {
           rememberSignupCampaign(campaign)
-          void trackEvent('organic_topic_submitted', {
+          const submitMetadata = {
             source,
             placement: 'hero_form',
             topic_length: topic.trim().length,
             ...(language ? { language } : {}),
+          }
+          void trackEvent('organic_topic_submitted', submitMetadata)
+          // Mesma razão do starter acima: digitar o próprio tema e apertar o
+          // botão é a saída para o produto, e precisa aparecer na consulta que
+          // decide se uma página orgânica vive ou morre. `mirrors` pelo mesmo
+          // motivo de sempre — o painel conta linhas.
+          void trackEvent('organic_cta_clicked', {
+            ...submitMetadata,
+            destination: '/signup',
+            mirrors: 'organic_topic_submitted',
           })
         }}
       >

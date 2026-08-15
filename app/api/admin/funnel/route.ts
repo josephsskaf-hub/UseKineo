@@ -878,8 +878,21 @@ export async function GET(req: Request) {
     // PUSH #32 — a completed topic form is a stronger organic intent action
     // than a generic CTA click. Count both paths so the Search Console-led
     // experiment is visible without changing the established dashboard shape.
+    // KINEO-STARTER-EM-ARTIGO-2026-08-15 — `ctaClicks` abaixo é CONTAGEM DE
+    // LINHAS, não de pessoas. A partir desta sprint o `TopicGeneratorForm`
+    // emite `organic_cta_clicked` ALÉM de `organic_topic_submitted` no MESMO
+    // clique, para que o starter apareça na consulta ad-hoc por
+    // `organic_cta_clicked` que decide se uma página orgânica vive ou morre
+    // (o gate de 14/08 leu "0 cliques em 41 sessões" em /cheapest-ai-shorts-maker
+    // usando essa consulta — e aquela página TEM o starter desde #78; o zero
+    // media o instrumento). Sem o filtro abaixo, UMA ação viraria DUAS linhas e
+    // este painel dobraria `ctaClicks`/`ctaRate` em 17 páginas da noite para o
+    // dia — um número inflado que ninguém pediu e que pareceria resultado.
+    // O evento espelho se declara com `metadata.mirrors`; nenhuma linha
+    // histórica tem essa chave, então o passado não muda de valor.
     const organicCtaRows = organicEventRows.filter((event) =>
-      event.name === 'organic_cta_clicked' || event.name === 'organic_topic_submitted' ||
+      (event.name === 'organic_cta_clicked' && !event.metadata?.mirrors) ||
+      event.name === 'organic_topic_submitted' ||
       event.name === 'viral_now_topic_clicked'
     )
     const viralNowEventRows = organicEventRows.filter((event) => {

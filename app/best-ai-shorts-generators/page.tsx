@@ -13,6 +13,9 @@
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
+// uma cópia. Ver o bloco no corpo. Client island; `force-static` segue valendo.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -490,21 +493,38 @@ export default function BestAiShortsGeneratorsPage() {
             script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
             it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', 'every new account gets a full Creator trial: 40 credits, every engine except Studio, no credit card.')}
           </p>
-          <a
-            href={CTA_URL}
-            style={{
-              display: 'inline-block',
-              background: ACCENT,
-              color: '#000',
-              fontWeight: 700,
-              padding: '12px 22px',
-              borderRadius: 10,
-              textDecoration: 'none',
-              fontSize: '0.95rem',
+          {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
+              CRU para `/free-ai-shorts-generator`: nenhum `organic_cta_clicked`
+              (o banco não distinguia "ninguém clica" de "não há instrumento") e
+              destino em OUTRA página de SEO, o circuito fechado de 14/08.
+
+              O parágrafo acima acabou de afirmar, sobre 11 concorrentes, que a
+              diferença desta ferramenta é COMEÇAR DE UM TÓPICO E NADA MAIS.
+              Provar isso com um link para outro artigo era a contradição mais
+              cara da página. Agora a própria frase é executável: o leitor digita
+              o tópico ali e o argumento vira demonstração.
+
+              Medido em 15/08 16h: artigo COM porta = 316 sessões / 0 cliques;
+              one-click starters da home = 278 pessoas / 68% de ativação. Mesmo
+              componente da home/#70, nunca uma cópia. `CTA_URL` continua vivo no
+              bloco "Keep reading" — lá ele é leitura, não é a oferta. */}
+          <TopicGeneratorForm
+            campaign="starter_best_generators"
+            source="starter_best_generators"
+            formId="roundup-start-a-short"
+            examples={[
+              'The invention that was laughed at before it changed everything',
+              'The place on Earth with rules no other country has',
+              'The historical mistake that is still costing us today',
+            ]}
+            copy={{
+              label: 'Try the from-scratch claim — type a topic, get a Short',
+              placeholder: 'Type one topic — nothing else needed, no footage, no script',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'Example topics to test it with',
+              note: 'Nothing but a topic goes in. Your topic stays attached through signup. No card required for the free Fast workflow.',
             }}
-          >
-            Generate a free Short →
-          </a>
+          />
         </section>
 
         {/* FAQ */}

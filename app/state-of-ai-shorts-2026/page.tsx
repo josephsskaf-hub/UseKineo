@@ -26,7 +26,10 @@ import {
   STUDY_REVALIDATE_SECONDS,
 } from '@/lib/studyStats'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
-import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente que a home e as 13
+// páginas de intenção usam, nunca uma cópia. Ver o bloco de comentário no corpo.
+// Client island; o resto da página segue server e a revalidação diária vale.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -394,49 +397,51 @@ export default async function StateOfAiShortsPage() {
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
             Test the data yourself — free
           </h2>
-          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
-            Pick one of the top-3 niches above and generate your first faceless Short. Expect
+          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
+            Pick one of the top-3 niches above — or type your own topic. Expect
             about {s.medianMinutes} minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
-          {/* ── KINEO-SEO-SEM-PORTA-2026-08-14 ────────────────────────────────
-              MEDIDO (30 dias): 28 sessões nesta página e UM único tipo de
-              evento no banco, `landing_session_started`. O CTA abaixo existia,
-              mas tinha três defeitos que juntos o tornavam invisível e inútil:
+          {/* ── KINEO-STARTER-EM-ARTIGO-2026-08-15 ────────────────────────────
+              A sprint de 14/08 pôs uma PORTA aqui (o `OrganicCtaLink` que
+              ocupava este lugar, "Generate a free Short →", source
+              `seo_state_of_ai_shorts`, placement `study_cta`). Ela consertou os
+              três defeitos certos — mas a medição seguinte, de 15/08 16h,
+              mostrou que ter porta não é a variável:
 
-               1. ERA UM `<a>` CRU — nenhum `organic_cta_clicked`. Por isso o
-                  banco não sabia dizer se ninguém clicava ou se todo mundo
-                  clicava: a única leitura possível era o silêncio.
-               2. APONTAVA PARA OUTRA PÁGINA DE SEO (`/free-ai-shorts-
-                  generator`), não para o produto. O "Generate a free Short →"
-                  parecia a saída do labirinto e devolvia o leitor ao labirinto.
-                  Somado ao bloco de interlinking, o visitante de SEO circulava
-                  entre páginas de conteúdo sem nunca encontrar o app — 847
-                  sessões de SEO em 30 dias produziram 16 vídeos (1,9%), contra
-                  15,4% de quem entra pela home.
-               3. ERA URL ABSOLUTA (`https://www.usekineo.com/...`) dentro do
-                  próprio site: recarga completa de página em vez de navegação
-                  do App Router.
+                | superfície                      | pessoas | ativação |
+                | home one-click starters (#69)   |   278   |   68%    |
+                | páginas de artigo COM porta     |   316 sessões | 0 cliques |
 
-              Agora vai para signup → /generate, pelo componente da casa, com o
-              MESMO par utm de antes preservado para não quebrar a atribuição
-              histórica da campanha `acq5`. */}
-          <OrganicCtaLink
-            href="/signup?next=%2Fgenerate&utm_source=state-of-ai-shorts&utm_medium=study&utm_campaign=acq5"
-            source="seo_state_of_ai_shorts"
-            placement="study_cta"
-            style={{
-              display: 'inline-block',
-              background: ACCENT,
-              color: '#000',
-              fontWeight: 700,
-              padding: '12px 22px',
-              borderRadius: 10,
-              textDecoration: 'none',
-              fontSize: '0.95rem',
+              O que separa 68% de 0% é a página deixar a pessoa FAZER alguma
+              coisa antes de pedir qualquer coisa. Uma porta pergunta; um
+              starter já começa. Então a porta virou o starter — o MESMO
+              componente da home/#70 (`TopicGeneratorForm`), com os três nichos
+              que ESTA página acabou de rankear como exemplos, para que o
+              primeiro clique carregue o tema do próprio leitor.
+
+              UMA variável trocada, e só uma: destino, utm e create_intent=fast
+              são os de sempre. A porta antiga NÃO fica ao lado — duas ofertas
+              na mesma tela é o defeito que /examples pagou em 14/08 (10 dos 16
+              cliques iam para /pricing antes do primeiro vídeo). O histórico de
+              `seo_state_of_ai_shorts` continua no banco; o depois se lê pelo
+              `source` novo abaixo. */}
+          <TopicGeneratorForm
+            campaign="starter_state_of_ai_shorts"
+            source="starter_state_of_ai_shorts"
+            formId="study-start-a-short"
+            examples={[
+              'The animal with a survival trick science still cannot explain',
+              'The country almost nobody is allowed to enter',
+              'The empire that collapsed in a single generation',
+            ]}
+            copy={{
+              label: 'Start with one of the top niches — or your own topic',
+              placeholder: 'Type one topic — e.g. the animal that outlived the dinosaurs',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'Top-ranked niches from this study',
+              note: `Median finish time in the data above is ${s.medianMinutes} minutes. Your topic stays attached through signup. No card required for the free Fast workflow.`,
             }}
-          >
-            Generate a free Short →
-          </OrganicCtaLink>
+          />
         </section>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>Methodology</h2>

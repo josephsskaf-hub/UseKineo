@@ -2256,3 +2256,45 @@ nao e o que essa pessoa vai pagar (o cupom vence o intro no checkout). Mudar
 preco exibido e gate do fundador e a regra da casa e uma variavel por vez —
 ficou registrado como o proximo passo desta frente SE o D5 mostrar clique sem
 compra.
+
+---
+
+## Atualizacao — 15/08/2026, sprint 19h
+
+### GATE #A — PUSH: 5 commits represados (13h, 14h, 16h, 18h, 19h)
+`git ls-remote origin refs/heads/main = 2580091`. Nenhum dos tres prazos de morte
+construidos hoje (composing 13h, generating 16h, animate 19h) esta em producao, e
+nenhum enxerto de aquisicao tambem. **Rodar `scripts\105-PUSH.bat`** (ou mandar
+qualquer mensagem na conversa). Contar SEMPRE pelo SHA do remoto, nunca por doc.
+
+### GATE #B — ANIMATE: 70 creditos de 4 clientes externos em estado INDECIDIVEL
+Medido nesta sprint: 14 jobs publicados, 4 pessoas, 0 contas internas, 14 de 14
+com `refunded_at IS NULL`. Nao existe **nenhum** evento terminal de Animate e
+`avatar_jobs` nao guarda status — entao "14 clientes satisfeitos" e "70 creditos
+presos" tem rastro identico hoje.
+
+- **Nao e gate do fundador e nao pede decisao dele.** O commit desta sprint cria
+  `animate_job_settled` e liga `sweepPublishedAnimateJobs` no cron horario.
+- **A leitura que decide vem 1h DEPOIS DO DEPLOY** (nao do commit):
+  `select metadata->>'outcome', count(*) from events where name='animate_job_settled' group by 1`.
+- Se aparecer `outcome='refunded'`, houve dinheiro preso e ele ja voltou sozinho.
+  Se aparecer so `delivered`, os 14 eram clientes felizes e o alarme morre com o
+  denominador — que e exatamente o que a instrumentacao existe para permitir.
+
+### GATE #C — `AvatarStudioClient.pollAvatar`: o gemeo identico NAO tocado
+Mesmo `catch { setTimeout(poll, 7000) }`, mesma ausencia de prazo, mesma
+dependencia da aba aberta. Deixado de fora DE PROPOSITO: um por vez, e 14 dos 17
+jobs dele sao internos (sem coorte externa que prove dano). Aplicar o mesmo
+portao depois que o GATE #B for lido.
+
+### GATE #D — a tabela das 8 paginas de SEO esta CONTAMINADA (corrige 14/08 e 16/08)
+`/cheapest-ai-shorts-maker` foi reportado como "0 cliques em 41-42 sessoes" e usado
+como evidencia de porta ruim. **Aquela pagina tem o starter desde o push #78** —
+ela emite `organic_topic_example_started`/`organic_topic_submitted` e nunca
+`organic_cta_clicked`, que era o evento contado. **O zero media o instrumento.**
+A conclusao "ninguem chega" (4 visitantes na vida) segue valida; a conclusao sobre
+CONVERSAO daquela tabela nao pode ser citada.
+
+⚠️ **Descontinuidade a partir deste deploy:** as 13 paginas que ja tinham o starter
+passam a emitir `organic_cta_clicked` tambem. **Um salto nessa linha e o
+instrumento nascendo, nao conversao nova.** Nao comemorar.

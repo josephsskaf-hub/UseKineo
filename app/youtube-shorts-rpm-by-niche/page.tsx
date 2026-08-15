@@ -4,13 +4,19 @@
 // pages at /free-ai-shorts/<slug>. RPM numbers here are ESTIMATED typical
 // ranges built from public creator knowledge (advertiser demand per niche),
 // NOT guarantees and NOT Kineo platform data — labeled as such on the page.
-// Server component, zero client JS, dark theme matching state-of-ai-shorts-2026.
+// Server component, dark theme matching state-of-ai-shorts-2026. O "zero client
+// JS" deste cabeçalho deixou de ser verdade em 14/08 (CalculatorClient) e em
+// 15/08 (TopicGeneratorForm): são DUAS ilhas de cliente; o resto segue server e
+// `force-static`. Cabeçalho que mente é a próxima decisão errada de alguém.
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — ver o bloco no corpo. Client island;
 // o resto da página segue server e `force-static` continua valendo.
 import CalculatorClient from '@/app/shorts-money-calculator/CalculatorClient'
+// KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
+// uma cópia. Ver o bloco no corpo. Client island; `force-static` segue valendo.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -320,25 +326,43 @@ export default function ShortsRpmByNichePage() {
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
             Start in a high-RPM niche — free
           </h2>
-          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
+          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
             Pick a niche from the ranking above and generate your first faceless
             Short in about 3–7 minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no credit card.', OFFER.copy.headline)}
           </p>
-          <a
-            href="/free-ai-shorts-generator?utm_source=rpm-hub&utm_medium=seo&utm_campaign=seo-sprint"
-            style={{
-              display: 'inline-block',
-              background: ACCENT,
-              color: '#000',
-              fontWeight: 700,
-              padding: '12px 22px',
-              borderRadius: 10,
-              textDecoration: 'none',
-              fontSize: '0.95rem',
+          {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a>` CRU para
+              `/free-ai-shorts-generator?utm_source=rpm-hub&…`. Dois defeitos, os
+              mesmos que 14/08 já nomeou uma página adiante:
+
+                1. `<a>` cru = ZERO `organic_cta_clicked`. A única leitura
+                   possível era o silêncio: o banco não sabia dizer se ninguém
+                   clicava ou se o instrumento não existia.
+                2. Apontava para OUTRA PÁGINA DE SEO. "Generate a free Short →"
+                   parecia a saída do labirinto e devolvia o leitor ao labirinto.
+
+              E, medido em 15/08 16h, consertar só isso não bastaria: as páginas
+              de artigo que JÁ ganharam porta instrumentada somam 316 sessões e
+              0 cliques, enquanto os one-click starters da home levaram 278
+              pessoas a 68% de ativação. A porta pergunta; o starter começa.
+              Mesmo componente da home/#70, com temas dos nichos que ESTA tabela
+              coloca no topo do RPM. */}
+          <TopicGeneratorForm
+            campaign="starter_rpm_by_niche"
+            source="starter_rpm_by_niche"
+            formId="rpm-start-a-short"
+            examples={[
+              'The tax rule high earners use that almost nobody knows about',
+              'The software subscription quietly billing millions of people',
+              'Why buying a first home got harder in exactly ten years',
+            ]}
+            copy={{
+              label: 'Start in a top-RPM niche — free, no card',
+              placeholder: 'Type one topic in your niche — e.g. the fee eating your index fund',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'Topics from the highest-RPM niches above',
+              note: 'Your topic stays attached through signup. No card required for the free Fast workflow.',
             }}
-          >
-            Generate a free Short →
-          </a>
+          />
         </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>

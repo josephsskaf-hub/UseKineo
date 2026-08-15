@@ -1,6 +1,8 @@
 // SEO — /how-much-do-youtube-shorts-pay: money-intent page targeting
 // "how much do youtube shorts pay" and long-tails ("per 1000 views",
-// "for 1 million views", "shorts CPM/RPM"). Server component, zero client JS,
+// "for 1 million views", "shorts CPM/RPM"). Server component — o "zero client
+// JS" que este cabeçalho dizia caiu em 14/08 (CalculatorClient) e em 15/08
+// (TopicGeneratorForm): DUAS ilhas de cliente, resto server e `force-static`.
 // dark theme matching /state-of-ai-shorts-2026 and /facts. Every payout figure
 // is labelled as an ESTIMATED TYPICAL RANGE, never a guarantee — Shorts payouts
 // vary widely by niche and geography. FAQPage + BreadcrumbList JSON-LD mirror
@@ -9,6 +11,10 @@
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
+// uma cópia. Ver o bloco de comentário no corpo. Client island; o resto da
+// página segue server e `force-static` continua valendo.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 // KINEO-FERRAMENTA-NA-PAGINA-2026-08-14 — ver o bloco de comentário no corpo.
 // A calculadora não é duplicada: é O MESMO componente que /shorts-money-calculator
 // renderiza, importado. Uma cópia teria duas RPMs para manter e elas divergiriam.
@@ -35,10 +41,17 @@ import CalculatorClient from '@/app/shorts-money-calculator/CalculatorClient'
 // exatamente o componente abaixo. Não falta página nova — falta a porta nas
 // que já têm tráfego.
 //
-// `OrganicCtaLink` é client component; o resto da página segue server e
-// `force-static` continua valendo (só este nó hidrata).
-const CTA_CAMPAIGN = 'seo_shorts_pay'
-const CTA_HREF = '/signup?next=%2Fgenerate&utm_source=seo&utm_campaign=shorts_pay'
+// KINEO-STARTER-EM-ARTIGO-2026-08-15 — `CTA_CAMPAIGN`/`CTA_HREF`
+// (`seo_shorts_pay` → `/signup?next=/generate&utm_source=seo&utm_campaign=shorts_pay`)
+// saíram daqui junto com a porta que os usava. O starter carrega a mesma
+// intenção com create_intent=fast e o tema do leitor junto; deixar as duas
+// constantes órfãs no topo seria a próxima leitura errada de quem chegar aqui.
+//
+// UM nome para o `source` e UM para o id da âncora, porque os dois aparecem em
+// lugares diferentes do arquivo e duas cópias divergem (foi assim que o estudo
+// vivo envelheceu: número chumbado em dois lugares).
+const STARTER_SOURCE = 'starter_shorts_pay'
+const PAYOUT_STARTER_ID = 'payout-start-a-short'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -446,8 +459,20 @@ export default function HowMuchDoYouTubeShortsPayPage() {
             Kineo turns one typed idea into a finished faceless Short — script, AI
             voiceover, visuals and captions — in about 3–7 minutes. {ft(OFFER, 'Generate up to 3 watermarked videos every 24 hours with no credit card, in a high-RPM niche of your choice.', OFFER.copy.headline + ' Pick a high-RPM niche of your choice.')}
           </p>
-          <a
-            href="/free-ai-shorts-generator?utm_source=payout-page&utm_medium=seo&utm_campaign=seo-sprint"
+          {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — este `<a>` era CRU e apontava
+              para `/free-ai-shorts-generator`: zero `organic_cta_clicked` e
+              destino em OUTRA página de SEO. Sozinho ele já era o circuito
+              fechado de 14/08; com o starter agora no fim da página, ele virava
+              pior que isso — uma porta INVISÍVEL que tirava o leitor daqui
+              antes do starter e não registrava nada, contaminando a leitura de
+              `starter_shorts_pay` com uma fuga que o banco não veria.
+              Agora é âncora para o starter DESTA página, pelo componente da
+              casa (mesmo padrão de FORM_ANCHOR em /faceless-video-generator).
+              `placement` separa a âncora do starter em si. */}
+          <OrganicCtaLink
+            href={`#${PAYOUT_STARTER_ID}`}
+            source={STARTER_SOURCE}
+            placement="anchor_mid_page"
             style={{
               display: 'inline-block',
               background: ACCENT,
@@ -460,7 +485,7 @@ export default function HowMuchDoYouTubeShortsPayPage() {
             }}
           >
             Generate a free Short →
-          </a>
+          </OrganicCtaLink>
         </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>
@@ -485,33 +510,46 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
             The payout math only starts once you post
           </h2>
-          <p style={{ color: MUTED, lineHeight: 1.7, fontSize: '0.95rem', margin: '0 0 16px' }}>
+          <p style={{ color: MUTED, lineHeight: 1.7, fontSize: '0.95rem', margin: '0 0 4px' }}>
             Every number on this page assumes one thing: that you publish enough Shorts
             for the RPM to matter. That is the part most channels never get past. Kineo
             turns a topic into a finished vertical Short — AI voiceover, matched footage
             and captions — usually in a few minutes, so volume stops being the bottleneck.
           </p>
-          <OrganicCtaLink
-            href={CTA_HREF}
-            source={CTA_CAMPAIGN}
-            placement="after_payout_table"
-            style={{
-              display: 'inline-block',
-              background: ACCENT,
-              color: '#000',
-              fontWeight: 800,
-              padding: '13px 26px',
-              borderRadius: 10,
-              textDecoration: 'none',
+          {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia a porta de 14/08
+              (`OrganicCtaLink`, source `seo_shorts_pay`, placement
+              `after_payout_table`, texto "Turn a topic into a Short →").
+              Ela consertou a ausência de saída. A medição de 15/08 16h mostrou
+              que a saída não era a variável: 316 sessões de artigo COM porta
+              instrumentada = 0 cliques, contra 278 pessoas e 68% de ativação nos
+              one-click starters da home. O que a home faz e o artigo não fazia é
+              deixar a pessoa APERTAR UM BOTÃO e ver o próprio tema virar vídeo
+              antes de pedir qualquer coisa.
+
+              Então a porta virou o starter — o MESMO componente da home/#70,
+              nunca uma cópia — com três temas de nicho ALTO RPM, que é
+              exatamente a intenção de quem chega a esta URL. Uma variável
+              trocada; destino, `create_intent=fast` e a herança de campanha
+              seguem os de sempre. A promessa de QUANTIDADE continua fora do
+              botão de propósito: a troca do free tier (`lib/freeTierOffer`) não
+              ganha mais uma superfície para lembrar de visitar. */}
+          <TopicGeneratorForm
+            campaign={STARTER_SOURCE}
+            source={STARTER_SOURCE}
+            formId={PAYOUT_STARTER_ID}
+            examples={[
+              'The compound interest mistake that costs 20 years of savings',
+              'How much a small YouTube channel really earns in year one',
+              'The one expense quietly eating a third of your paycheck',
+            ]}
+            copy={{
+              label: 'Start a high-RPM Short — free, no card',
+              placeholder: 'Type one topic — e.g. why your savings account is losing money',
+              submit: 'Turn this topic into a Short →',
+              examplesLabel: 'High-RPM topic starters',
+              note: 'Your topic stays attached through signup. No card required for the free Fast workflow.',
             }}
-          >
-            {/* Sem promessa de QUANTIDADE de propósito. A oferta do free tier
-                ("3 free Shorts every 24h" hoje, "1 Fast/mês" com a flag ON)
-                tem de trocar atomicamente em todas as superfícies; um CTA que
-                não cita número nenhum é verdadeiro nos dois mundos e não vira
-                mais uma superfície para a troca lembrar de visitar. */}
-            Turn a topic into a Short →
-          </OrganicCtaLink>
+          />
         </div>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>
