@@ -95,7 +95,8 @@ html{scroll-behavior:smooth}
 .klp .nd-menu{display:flex}
 .klp .nd-menu>*{display:block}
 .klp .nd-menu{flex-direction:column;min-width:172px;background:transparent}
-.klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:rgba(17,17,21,.97);border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.5);z-index:-1}
+.klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:#111115;border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.klp .nd-menu a{position:relative;z-index:1}
 .klp .nd-menu a{padding:9px 14px;border-radius:9px;font-size:13px;white-space:nowrap;margin:0 5px}
 .klp .nd-menu a:first-child{margin-top:17px}
 .klp .nd-menu a:last-child{margin-bottom:5px}
