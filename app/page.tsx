@@ -4,6 +4,11 @@ import KineoLanding from './KineoLanding'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
 
 export const metadata: Metadata = {
+  // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
+  // a vitrine de motores. Antes vendiam o composer, que saiu da home.
+  title: 'Kineo — AI Shorts Engines: Veo 3.1, Kling 3, Seedance | Faceless YouTube Shorts',
+  description:
+    'Pick an engine — Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5 or Kineo 1 — type a topic and get a finished faceless YouTube Short with script, voice and captions. Real renders on every card.',
   alternates: { canonical: 'https://www.usekineo.com/' },
 }
 
