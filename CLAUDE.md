@@ -1,4 +1,22 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
+# ⚡ SYNC 15/08 (sessão CEO) — LEIAM ANTES DE MEXER NA HOME/EXAMPLES:
+# - HOME VIROU VITRINE DE MOTORES (sem composer! decisão do fundador): 4 cards
+#   500x280 full-bleed (Seedance 1.5/Kling 2.5/Veo 3.1/Kling 3) com 4 clipes
+#   curados cada, girando sozinhos em crossfade — componente EngineCycleCard
+#   (double-buffer, NÃO simplificar) + lib/engineWall.ts (CURATED/PREVIEWS/
+#   EXCLUDED são curadoria manual do fundador — NÃO tocar sem ordem dele)
+# - Clipes leves em public/previews/{id}.mp4 (8s 640px crop 500:280) e posters
+#   em public/posters — regenerar via ffmpeg se trocar curadoria
+# - NOMES REAIS dos motores no site: Veo 3.1, Kling 2.5, Kling 3 (ex-Hollywood),
+#   Seedance 1.5, Kineo 1 (ex-Fast), Avatar (ex-AI Presenter) — manter em TODOS os pares
+# - /examples = grade fixa dos 20 melhores (EXAMPLES_BEST) · Trending na home
+#   tem filtro anti-prompt · nav tem dropdowns Image/Video (CSS puro)
+# - Página inteira full-width (.wrap sem max-width) · seções compactas (34px)
+# - Placar 15/08: 14 eventos checkout (recorde; antes 2-4/dia) — vitrine converte
+# - PRÓXIMO: fundador vai refazer /generate com seletor 720/1080p + 15/45/60s +
+#   motores novos — LER docs/PLANO-GENERATION-V4.md e docs/PRECOS-MOTORES-V4.md
+#   antes de qualquer mudança em generate/engineCost/analyze-idea
+
 # App versão atual: v3.0 ✅ (Phase 1 B-roll Intelligence COMPLETE)
 # v3.0 DONE — Phase 1: B-roll Intelligence System fully connected
 # #346: generate-video-fast now reads brollQueries from BrollPlan → exact Pexels queries per scene
