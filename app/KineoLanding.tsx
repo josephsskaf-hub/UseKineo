@@ -15,8 +15,8 @@ import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
-import EngineWallCard from '@/components/EngineWallCard'
 import type { WallVideo } from '@/lib/engineWall'
+import WallMedia from '@/components/WallMedia'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -145,32 +145,46 @@ html{scroll-behavior:smooth}
 /* KINEO-CONCORRENTES-2026-08-15 — 4 blocos da analise de concorrentes:
    statband (numeros reais), niches (29 paginas viram chips), sv (mini-visual
    por passo), fnote (nota do fundador — o toque humano que nenhum template tem). */
-/* KINEO-ENGINE-WALL-2026-08-15 — a parede de motores: o catalogo e a landing.
-   Full-bleed, grade densa, selo do MODELO real por card (Veo/Kling/Hollywood/
-   Seedance/Fast), gradiente de legibilidade, CTA no hover. Mobile: trilho. */
+/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout REAL da home do Higgsfield
+   (print do fundador): fileira de cards LARGOS com titulo caps ABAIXO da
+   midia + bento dos motores (promo grande a esquerda, 6 tiles a direita com
+   icone, nome, frase e badge). Nossos videos e motores reais. */
 @keyframes ewsh{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.klp .ew-head{display:flex;align-items:end;justify-content:space-between;gap:18px;max-width:1080px;margin:0 auto 26px;padding:0 28px;flex-wrap:wrap}
-.klp .ew-head h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:600;letter-spacing:-.024em;line-height:1.1;font-family:var(--font-display),var(--font-inter),sans-serif}
-.klp .ew-head p{margin-top:8px;color:var(--muted);font-size:1rem;max-width:520px}
-.klp .ew-wall{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100vw;margin-left:calc(50% - 50vw);padding:0 12px}
-.klp .ew-card{position:relative;aspect-ratio:9/16;border-radius:var(--r-md);overflow:hidden;display:block;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;transition:border-color var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
-.klp .ew-card:hover{border-color:rgba(41,151,255,.5);transform:translateY(-3px)}
-.klp .ew-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.klp .ew-card::after{content:'';position:absolute;left:0;right:0;bottom:0;height:52%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.78));pointer-events:none;z-index:1}
-.klp .ew-badge{position:absolute;top:10px;left:10px;z-index:2;font-size:10.5px;font-weight:750;letter-spacing:.09em;padding:4px 9px;border-radius:6px;background:rgba(12,12,14,.72);border:1px solid rgba(255,255,255,.16);color:var(--txt);backdrop-filter:blur(8px);font-family:var(--font-display),var(--font-inter),sans-serif}
-.klp .ew-title{position:absolute;left:12px;right:12px;bottom:12px;z-index:2;font-size:13px;font-weight:650;color:#fff;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.7)}
-.klp .ew-cta{position:absolute;right:10px;top:10px;z-index:2;font-size:11px;font-weight:750;color:#fff;background:rgba(41,151,255,.92);padding:5px 10px;border-radius:var(--r-pill);opacity:0;transform:translateY(-4px);transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
-.klp .ew-card:hover .ew-cta{opacity:1;transform:none}
-@media(max-width:900px){.klp .ew-wall{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}.klp .ew-wall::-webkit-scrollbar{display:none}.klp .ew-card{flex:0 0 46%;max-width:210px;scroll-snap-align:start}.klp .ew-card:hover{transform:none}}
-.klp .ew-wall.rv .ew-card{opacity:0;transform:translateY(14px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
-.klp .ew-wall.rv-in .ew-card{opacity:1;transform:none}
-.klp .ew-wall.rv-in .ew-card:nth-child(2){transition-delay:50ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(3){transition-delay:100ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(4){transition-delay:150ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(5){transition-delay:200ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(6){transition-delay:250ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(7){transition-delay:300ms}
-.klp .ew-wall.rv-in .ew-card:nth-child(8){transition-delay:350ms}
+.klp .ew-wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.klp .ftr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.klp .ftr{display:block}
+.klp .ftr-media{position:relative;aspect-ratio:16/10;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;transition:border-color var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
+.klp .ftr:hover .ftr-media{border-color:rgba(41,151,255,.5);transform:translateY(-2px)}
+.klp .ftr h3{margin-top:12px;font-size:13.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .ftr p{margin-top:4px;font-size:13px;color:var(--muted2);line-height:1.45}
+.klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:150px;gap:12px;margin-top:34px}
+.klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#0c0c0e url('/videos/example-shutdown.webp') center/cover;display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
+.klp .bento .promo::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.88) 30%,rgba(0,0,0,.45))}
+.klp .bento .promo>*{position:relative;z-index:1}
+.klp .bento .promo h3{font-size:clamp(1.3rem,2.4vw,1.8rem);font-weight:650;letter-spacing:-.01em;line-height:1.12;text-transform:uppercase;font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .bento .promo p{margin-top:10px;font-size:.95rem;color:var(--txt2);max-width:34ch}
+.klp .bento .promo .btn{margin-top:20px;align-self:flex-start;padding:12px 24px;font-size:14.5px}
+.klp .tile{position:relative;border-radius:var(--r-md);border:1px solid var(--line);background:var(--card);padding:16px 18px;display:flex;flex-direction:column;justify-content:flex-end;gap:3px;overflow:hidden;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
+.klp .tile:hover{border-color:rgba(41,151,255,.5);background:var(--card2);transform:translateY(-2px)}
+.klp .tile .tic{position:absolute;top:14px;left:16px;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:13px;font-weight:750;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .tile h3{font-size:1.02rem;font-weight:650;letter-spacing:-.01em;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .tile p{font-size:12.5px;color:var(--muted2);line-height:1.4}
+.klp .tile .tb{position:absolute;top:14px;right:14px;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:var(--r-pill);background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.32);color:var(--blue)}
+.klp .tile.hot{background:linear-gradient(135deg,#0b2a52 0%,#123a6e 45%,var(--card) 100%);border-color:rgba(41,151,255,.5)}
+.klp .tile.hot:hover{background:linear-gradient(135deg,#0d3160 0%,#164382 45%,var(--card2) 100%)}
+@media(max-width:1000px){.klp .ftr-row{grid-template-columns:repeat(2,1fr)}.klp .bento{grid-template-columns:1fr 1fr;grid-auto-rows:140px}.klp .bento .promo{grid-column:span 2;grid-row:span 1;min-height:200px}}
+@media(max-width:560px){.klp .ftr-row{grid-template-columns:1fr 1fr;gap:10px}.klp .bento{grid-template-columns:1fr 1fr;gap:10px}}
+.klp .ftr-row.rv .ftr,.klp .bento.rv>*{opacity:0;transform:translateY(14px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
+.klp .ftr-row.rv-in .ftr,.klp .bento.rv-in>*{opacity:1;transform:none}
+.klp .ftr-row.rv-in .ftr:nth-child(2){transition-delay:60ms}
+.klp .ftr-row.rv-in .ftr:nth-child(3){transition-delay:120ms}
+.klp .ftr-row.rv-in .ftr:nth-child(4){transition-delay:180ms}
+.klp .bento.rv-in>*:nth-child(2){transition-delay:60ms}
+.klp .bento.rv-in>*:nth-child(3){transition-delay:110ms}
+.klp .bento.rv-in>*:nth-child(4){transition-delay:160ms}
+.klp .bento.rv-in>*:nth-child(5){transition-delay:210ms}
+.klp .bento.rv-in>*:nth-child(6){transition-delay:260ms}
+.klp .bento.rv-in>*:nth-child(7){transition-delay:310ms}
 .klp .statband{display:flex;justify-content:center;gap:clamp(28px,6vw,84px);flex-wrap:wrap;margin:64px auto 0;padding-top:44px;border-top:1px solid var(--line)}
 .klp .statband-item{display:flex;flex-direction:column;align-items:center;gap:4px}
 .klp .statband-n{font-family:var(--font-display),var(--font-inter),sans-serif;font-weight:600;font-size:clamp(1.9rem,4vw,2.6rem);letter-spacing:-.02em;color:var(--txt)}
@@ -782,28 +796,87 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
         </div>
       </header>
 
-      {/* KINEO-ENGINE-WALL-2026-08-15 — o catalogo e a landing (padrao
-          Higgsfield que o fundador pediu): videos REAIS do banco, selo do
-          motor REAL que gerou cada um. So renderiza com 4+ cards. */}
+      {/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout do print do fundador:
+          featured row (cards largos, titulo caps abaixo da midia) + bento dos
+          motores (promo + 6 tiles). Videos e selos 100% reais do banco. */}
       {engineWall.length >= 4 && (
         <section id="engines" style={{ paddingTop: 72 }}>
-          <div className="ew-head">
-            <div>
-              <span className="sec-eyebrow">The engines</span>
-              <h2>Every engine. One line of text.</h2>
-              <p>Real renders from real accounts — each card shows the exact model that made it.</p>
+          <div className="ew-wrap">
+            <div className="ftr-row">
+              {(() => {
+                const pick = (eng: string) => engineWall.find((v) => v.engine === eng)
+                const subs: Record<string, string> = {
+                  cinematic_veo: "Google's flagship video model — a real render from a user account.",
+                  cinematic_kling: 'Cinematic motion and camera work, straight from one prompt.',
+                  cinematic_hollywood: 'The multi-scene film pipeline, scored and cut.',
+                  cinematic_ai: 'The workhorse engine behind most AI renders here.',
+                }
+                const titles: Record<string, string> = {
+                  cinematic_veo: 'VEO 3 in Kineo',
+                  cinematic_kling: 'Kling Cinematic',
+                  cinematic_hollywood: 'Hollywood Pipeline',
+                  cinematic_ai: 'Seedance Engine',
+                }
+                return ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai'].map((eng) => {
+                  const v = pick(eng)
+                  if (!v) return null
+                  return (
+                    <Link key={v.id} href={`/v/${v.id}`} className="ftr">
+                      <div className="ftr-media"><WallMedia src={v.videoUrl} /></div>
+                      <h3>{titles[eng]}</h3>
+                      <p>{subs[eng]}</p>
+                    </Link>
+                  )
+                })
+              })()}
             </div>
-            <a href="#pricing" className="link" style={{ whiteSpace: 'nowrap' }}>Engine pricing →</a>
-          </div>
-          <div className="ew-wall">
-            {engineWall.slice(0, 8).map((v) => (
-              <EngineWallCard key={v.id} video={v} />
-            ))}
+
+            <div className="bento">
+              <div className="promo">
+                <h3>Start with the full toolkit</h3>
+                <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
+                <Link className="btn btn-w" href="/signup?src=engine_bento">Start free</Link>
+              </div>
+              <Link href="/generate" className="tile hot">
+                <span className="tic">S</span>
+                <span className="tb">Popular</span>
+                <h3>Seedance</h3>
+                <p>The workhorse AI video engine</p>
+              </Link>
+              <Link href="/pricing" className="tile">
+                <span className="tic">V</span>
+                <span className="tb">Studio</span>
+                <h3>Veo 3</h3>
+                <p>Google&rsquo;s flagship, on Studio</p>
+              </Link>
+              <Link href="/pricing" className="tile">
+                <span className="tic">K</span>
+                <span className="tb">Studio</span>
+                <h3>Kling</h3>
+                <p>Cinematic motion &amp; camera</p>
+              </Link>
+              <Link href="/pricing" className="tile">
+                <span className="tic">H</span>
+                <span className="tb">Studio</span>
+                <h3>Hollywood</h3>
+                <p>Multi-scene film pipeline</p>
+              </Link>
+              <Link href="/avatar" className="tile">
+                <span className="tic">P</span>
+                <span className="tb">New</span>
+                <h3>AI Presenter</h3>
+                <p>Talking video from one photo</p>
+              </Link>
+              <Link href="/generate" className="tile">
+                <span className="tic">F</span>
+                <h3>Fast</h3>
+                <p>Stock + captions in 3&ndash;7 min</p>
+              </Link>
+            </div>
           </div>
         </section>
       )}
 
-      {/* KINEO-CRO-2026-07-25 — explicit 3-step process (the page jumped from hero to comparison). Reuses .steps/.step CSS. */}
       <section id="how">
         <div className="wrap">
           <div className="sec-h"><span className="sec-eyebrow">How it works</span><h2>From idea to posted Short in 3 steps.</h2><p>No filming, no editing, no timeline. Type once — Kineo does the rest.</p></div>
