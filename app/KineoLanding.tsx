@@ -458,6 +458,7 @@ html{scroll-behavior:smooth}
 .klp .show-head p{margin:14px auto 0;font-size:clamp(1rem,1.6vw,1.12rem);color:var(--muted);max-width:56ch;line-height:1.55}
 .klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(18px,3vh,40px)}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
+.klp .ec-ftr .ftr-media{display:block}
 .klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
 .klp .ec-ftr .ftr-media video.hv-on{opacity:1}
 @media (prefers-reduced-motion: no-preference){
