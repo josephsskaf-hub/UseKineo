@@ -14,6 +14,7 @@ import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
 import type { WallVideo } from '@/lib/engineWall'
 import WallMedia from '@/components/WallMedia'
+import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
@@ -471,11 +472,39 @@ html{scroll-behavior:smooth}
 .klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(14px,2.2vh,30px);display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px}
 .klp .hero-ftr::-webkit-scrollbar{display:none}
 .klp .hero-ftr .ftr{flex:1 0 clamp(280px,calc((100vw - 106px)/4),560px);scroll-snap-align:start}
-@media(max-width:700px){.klp .hero-ftr .ftr{flex:0 0 78%}}
+@media(max-width:700px){.klp .hero-ftr{display:grid;grid-template-columns:1fr 1fr;gap:10px;overflow:visible}.klp .hero-ftr .ftr{flex:none;width:100%}.klp .hero-ftr .ftr h3{font-size:12px}.klp .hero-ftr .ftr p{font-size:11px}}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block;aspect-ratio:500/280}
 .klp .ec-ftr .ftr-media video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
 .klp .ec-ftr .ftr-media video.hv-on{opacity:1}
+.klp .ec-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.klp .ec-chip{position:absolute;top:10px;left:10px;z-index:2;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);border-radius:var(--r-pill);padding:4px 10px;backdrop-filter:blur(6px)}
+.klp .ec-dots{position:absolute;top:14px;right:12px;z-index:2;display:flex;gap:4px}
+.klp .ec-dots i{width:14px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.35);transition:background var(--dur-fast) ease}
+.klp .ec-dots i.on{background:#fff}
+.klp .ec-go{position:absolute;right:10px;bottom:10px;z-index:2;font-size:12px;font-weight:700;color:#000;background:#fff;border-radius:var(--r-pill);padding:7px 14px;opacity:0;transform:translateY(4px);transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
+.klp .ec-ftr:hover .ec-go,.klp .ec-ftr:focus-visible .ec-go{opacity:1;transform:none}
+.klp .proofline{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-bottom:10px;font-size:12px;color:var(--muted2)}
+.klp .pl-badge{font-weight:600;font-size:11.5px;border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 10px;color:var(--muted2);text-decoration:none}
+a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
+.klp .tr-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.klp .tr-all{font-size:13.5px;font-weight:650}
+.klp .tr-row{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;scrollbar-width:none;padding-bottom:6px}
+.klp .tr-row::-webkit-scrollbar{display:none}
+.klp .tr-card{position:relative;flex:0 0 clamp(150px,13vw,200px);aspect-ratio:9/16;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:var(--card2);scroll-snap-align:start;transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-fast) ease}
+.klp .tr-card:hover{transform:translateY(-3px);border-color:rgba(41,151,255,.5)}
+.klp .tr-badge{position:absolute;top:8px;left:8px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:3px 7px;backdrop-filter:blur(4px)}
+.klp .tr-title{position:absolute;inset-inline:0;bottom:0;z-index:2;padding:26px 10px 10px;font-size:11.5px;font-weight:650;line-height:1.3;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent)}
+.klp .tcredits{margin-top:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--blue);text-transform:uppercase}
+.klp .bento .promo{overflow:hidden}
+.klp .pstack{position:absolute;right:-14px;bottom:-20px;display:flex;gap:8px;transform:rotate(-8deg);opacity:.9}
+.klp .pstack img{width:74px;aspect-ratio:9/14;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.klp .pstack img:nth-child(2){transform:translateY(10px)}
+.klp .pstack img:nth-child(3){transform:translateY(22px)}
+@media(max-width:1000px){.klp .pstack{display:none}}
+.klp .fchips{margin-top:20px;display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+.klp .fchips a{font-size:13px;font-weight:650;color:var(--txt);border:1px solid var(--line);border-radius:var(--r-pill);padding:8px 16px;background:rgba(255,255,255,.04);transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease}
+.klp .fchips a:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.1)}
 @media (prefers-reduced-motion: no-preference){
 .klp .hero-ftr .ftr{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
 .klp .hero-ftr .ftr:nth-child(2){animation-delay:60ms}
@@ -667,7 +696,7 @@ function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string 
   return `/signup?reason=checkout&redirect=${encodeURIComponent(resumePath)}`
 }
 
-export default function KineoLanding({ initialUser, engineWall = [] }: Props & { engineWall?: WallVideo[] }) {
+export default function KineoLanding({ initialUser, engineWall = [], trending = [] }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
@@ -764,6 +793,13 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               })
             })()}
           </div>
+          {/* #3 (aprovado 15/08) — a prova real de volta: numeros medidos do
+              banco + os dois selos de lancamento, numa linha fina. */}
+          <div className="proofline">
+            <LiveStatsBadge />
+            <span className="pl-badge">#2 Product of the Day on Fazier</span>
+            <a href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043" target="_blank" rel="nofollow noreferrer" className="pl-badge">Featured on There&apos;s An AI For That</a>
+          </div>
                   </div>
       </header>
 
@@ -785,6 +821,11 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <h3>Start with the full toolkit</h3>
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
                 <Link className="btn btn-w" href="/signup?src=engine_bento">Start free</Link>
+                <span className="pstack" aria-hidden="true">
+                  <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
+                  <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />
+                  <img src="/posters/hero-kling3.webp" alt="" loading="lazy" />
+                </span>
               </div>
               <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
@@ -794,6 +835,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Kineo 1</h3>
                   <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
+                  <span className="tcredits">Free &middot; watermark</span>
                 </span>
               </Link>
               <Link href="/generate?engine=seedance&intent_campaign=engine_tile" className="tile hot">
@@ -805,6 +847,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Seedance 1.5</h3>
                   <p>The workhorse AI video engine</p>
+                  <span className="tcredits">20 credits / video</span>
                 </span>
               </Link>
               <Link href="/generate?engine=kling&intent_campaign=engine_tile" className="tile">
@@ -816,6 +859,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Kling 2.5</h3>
                   <p>Cinematic motion &amp; camera</p>
+                  <span className="tcredits">50 credits / video</span>
                 </span>
               </Link>
               <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
@@ -827,6 +871,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Veo 3.1</h3>
                   <p>Google&rsquo;s flagship, on Studio</p>
+                  <span className="tcredits">90 credits / video</span>
                 </span>
               </Link>
               <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
@@ -838,6 +883,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Kling 3</h3>
                   <p>Film scenes, native voice &amp; lip sync</p>
+                  <span className="tcredits">150 credits / video</span>
                 </span>
               </Link>
               <Link href="/avatar" className="tile">
@@ -849,11 +895,35 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 <span className="tbody">
                   <h3>Avatar</h3>
                   <p>Talking video from one photo</p>
+                  <span className="tcredits">from 70 credits</span>
                 </span>
               </Link>
             </div>
               )
             })()}
+          </div>
+        </section>
+      )}
+
+      {/* #4 (aprovado 15/08) — TRENDING NOW: os renders reais mais recentes
+          que NAO estao no hero (skipCurated), com titulo + selo do motor.
+          Muda sozinha conforme usuarios geram. */}
+      {trending.length >= 6 && (
+        <section id="trending" style={{ paddingTop: 10 }}>
+          <div className="ew-wrap">
+            <div className="tr-head">
+              <span className="sec-eyebrow">Trending now</span>
+              <Link href="/examples" className="link tr-all">Explore all →</Link>
+            </div>
+            <div className="tr-row">
+              {trending.map((v) => (
+                <Link key={v.id} href={`/v/${v.id}`} className="tr-card">
+                  <span className="tr-media"><WallMedia src={v.videoUrl} /></span>
+                  <span className="tr-badge">{v.badge}</span>
+                  <span className="tr-title">{v.title}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </section>
       )}
@@ -1109,9 +1179,19 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
           <div className="final">
             <div className="glow" />
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <h2 className="gtxt">Type a topic. Get a finished Short.</h2>
+              <h2 className="gtxt">Pick your engine. Ship a Short today.</h2>
               <p>{ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
-              <div className="fcta"><Link className="btn btn-w" href="#try-kineo">Choose my topic — free</Link></div>
+              {/* #10 (aprovado 15/08) — fechamento no estilo vitrine: os 5
+                  motores clicaveis + Start free. O href antigo #try-kineo
+                  apontava para o composer, que nao existe mais. */}
+              <div className="fchips">
+                <Link href="/generate?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
+                <Link href="/generate?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
+                <Link href="/generate?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
+                <Link href="/generate?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
+                <Link href="/generate?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
+              </div>
+              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?src=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre. */}
               <p style={{ marginTop: 16, fontSize: '13.5px', color: 'var(--muted2)' }}><span style={{ color: 'var(--blue)' }}>✓</span> No credit card&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> 3 free videos every 24h&nbsp;·&nbsp;<span style={{ color: 'var(--blue)' }}>✓</span> Cancel anytime</p>
@@ -1145,7 +1225,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
           </a>
         </div>
       </div>
-      <StickyFreeShortCTA />
+      {/* #5 (aprovado 15/08) — a barra ja existia; agora so para deslogados e com utm da home. */}
+      {!isSignedIn && <StickyFreeShortCTA href="/signup?utm_source=home_sticky_cta" />}
       {/* KINEO-CRO-2026-07-25 — recover exiting logged-out visitors (was only on /pricing). */}
       {/* KINEO-EXIT-VARIANT-2026-08-03 — na home o exit-intent vende o GRÁTIS
           (cadastro), não deals: visitante que nunca gerou vídeo não deve levar

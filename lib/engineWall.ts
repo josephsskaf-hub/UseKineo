@@ -76,6 +76,8 @@ const CURATED: Record<string, string[]> = {
 // NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
 // uniforme e patrocinadores visiveis). Risco juridico de imagem — a landing
 // nao pode carregar isso, mesmo sendo render legitimo de usuario.
+const ALL_CURATED = new Set(Object.values(CURATED).flat())
+
 const EXCLUDED = new Set<string>([
   'fe2c5b2c-e468-497b-b0b3-8d9d9a961fb8',
   '2f846d74-77d8-42b1-a152-50823a7cea41',
@@ -114,7 +116,45 @@ export function getEngineWall(): Promise<WallVideo[]> {
   return buildWall(PER_ENGINE)
 }
 
-async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
+// KINEO-TRENDING-2026-08-15 — fileira "Trending now" da home: os renders
+// REAIS mais recentes do acervo (qualquer motor), com titulo + selo. Muda
+// sozinha conforme usuarios geram — a home vira catalogo vivo. Mesmas regras
+// da parede (dedupe, EXCLUDED, URL duravel); caps generosos, recentes vencem.
+const TRENDING_CAPS: Record<string, number> = {
+  cinematic_veo: 3,
+  cinematic_kling: 3,
+  cinematic_hollywood: 3,
+  cinematic_ai: 4,
+  fast: 4,
+  presenter: 1,
+}
+
+export async function getTrending(): Promise<WallVideo[]> {
+  const wall = await buildWall(TRENDING_CAPS, true)
+  // Ordena por "mais interessante primeiro": intercala motores para a fileira
+  // nao abrir com 4 do mesmo motor.
+  const byEngine = new Map<string, WallVideo[]>()
+  for (const v of wall) {
+    const arr = byEngine.get(v.engine) ?? []
+    arr.push(v)
+    byEngine.set(v.engine, arr)
+  }
+  const out: WallVideo[] = []
+  let added = true
+  while (added && out.length < 14) {
+    added = false
+    for (const engine of ENGINE_ORDER) {
+      const arr = byEngine.get(engine)
+      if (arr && arr.length > 0) {
+        out.push(arr.shift() as WallVideo)
+        added = true
+      }
+    }
+  }
+  return out
+}
+
+async function buildWall(caps: Record<string, number>, skipCurated = false): Promise<WallVideo[]> {
   try {
     const db = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -162,8 +202,9 @@ async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
     }
 
     for (const engine of ENGINE_ORDER) {
-      // 1º: os curados, na ordem da curadoria.
-      for (const id of CURATED[engine] ?? []) {
+      // 1º: os curados, na ordem da curadoria (trending pula: e a fileira dos
+      // NAO-curados recentes — nunca repete o hero).
+      for (const id of skipCurated ? [] : CURATED[engine] ?? []) {
         if ((used[engine] ?? 0) >= (caps[engine] ?? 1)) break
         const row = byId.get(id)
         if (row) pushRow(row, engine)
@@ -173,6 +214,7 @@ async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
         // 'avatar' e o mesmo produto do presenter (modo novo) — mesma vitrine.
         const mode = row.quality_mode === 'avatar' ? 'presenter' : row.quality_mode
         if (mode !== engine) continue
+        if (skipCurated && ALL_CURATED.has(row.id as string)) continue
         if ((used[engine] ?? 0) >= (caps[engine] ?? 1)) break
         if (out.some((v) => v.id === row.id)) continue
         pushRow(row, engine)

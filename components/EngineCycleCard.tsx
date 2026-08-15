@@ -15,6 +15,15 @@ import type { WallVideo } from '@/lib/engineWall'
 // KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (fonte:
 // generate-video-cinematic/route.ts). Hollywood roda Kling 3 Pro; o Fast e o
 // motor PROPRIO do Kineo, batizado Kineo 1. Pares: bento em KineoLanding.tsx.
+// Posters estaticos (public/posters) = LCP instantaneo: o frame do video
+// curado aparece no HTML servido, o video faz crossfade por cima ao chegar.
+const POSTER: Record<string, string> = {
+  cinematic_ai: '/posters/hero-seedance.webp',
+  cinematic_kling: '/posters/hero-kling25.webp',
+  cinematic_veo: '/posters/hero-veo31.webp',
+  cinematic_hollywood: '/posters/hero-kling3.webp',
+}
+
 const META: Record<string, { name: string; desc: string; href: string }> = {
   cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/generate?engine=veo&intent_campaign=hero_engine' },
   cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/generate?engine=kling&intent_campaign=hero_engine' },
@@ -72,6 +81,10 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
       aria-label={`${meta.name} — ${meta.desc}. Open the generator with this engine selected.`}
     >
       <span className="ftr-media">
+        {POSTER[v.engine] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={POSTER[v.engine]} alt="" className="ec-poster" loading="eager" fetchPriority={index === 0 ? 'high' : 'auto'} />
+        )}
         {started && (
           <video
             key={v.id}
@@ -85,6 +98,15 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
             onEnded={() => setIdx((i) => (i + 1) % videos.length)}
           />
         )}
+        <span className="ec-chip">{meta.name}</span>
+        {videos.length > 1 && (
+          <span className="ec-dots" aria-hidden="true">
+            {videos.map((vv, i) => (
+              <i key={vv.id} className={i === idx % videos.length ? 'on' : ''} />
+            ))}
+          </span>
+        )}
+        <span className="ec-go">Generate →</span>
       </span>
       <h3>{meta.name}</h3>
       <p>{meta.desc}</p>
