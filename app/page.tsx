@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
+import { getEngineWall } from '@/lib/engineWall'
 
 export const metadata: Metadata = {
   alternates: { canonical: 'https://www.usekineo.com/' },
@@ -68,6 +69,8 @@ export default async function HomePage() {
     isPro = data?.is_pro ?? false
   }
 
+  const engineWall = await getEngineWall()
+
   return (
     <>
       <script
@@ -76,6 +79,7 @@ export default async function HomePage() {
       />
       <KineoLanding
         initialUser={user ? { id: user.id } : null}
+        engineWall={engineWall}
         initialEmail={email}
         initialIsPro={isPro}
       />

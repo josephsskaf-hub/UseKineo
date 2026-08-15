@@ -15,6 +15,8 @@ import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
 import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
+import EngineWallCard from '@/components/EngineWallCard'
+import type { WallVideo } from '@/lib/engineWall'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -143,6 +145,32 @@ html{scroll-behavior:smooth}
 /* KINEO-CONCORRENTES-2026-08-15 — 4 blocos da analise de concorrentes:
    statband (numeros reais), niches (29 paginas viram chips), sv (mini-visual
    por passo), fnote (nota do fundador — o toque humano que nenhum template tem). */
+/* KINEO-ENGINE-WALL-2026-08-15 — a parede de motores: o catalogo e a landing.
+   Full-bleed, grade densa, selo do MODELO real por card (Veo/Kling/Hollywood/
+   Seedance/Fast), gradiente de legibilidade, CTA no hover. Mobile: trilho. */
+@keyframes ewsh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.klp .ew-head{display:flex;align-items:end;justify-content:space-between;gap:18px;max-width:1080px;margin:0 auto 26px;padding:0 28px;flex-wrap:wrap}
+.klp .ew-head h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:600;letter-spacing:-.024em;line-height:1.1;font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .ew-head p{margin-top:8px;color:var(--muted);font-size:1rem;max-width:520px}
+.klp .ew-wall{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;width:100vw;margin-left:calc(50% - 50vw);padding:0 12px}
+.klp .ew-card{position:relative;aspect-ratio:9/16;border-radius:var(--r-md);overflow:hidden;display:block;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;transition:border-color var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
+.klp .ew-card:hover{border-color:rgba(41,151,255,.5);transform:translateY(-3px)}
+.klp .ew-card video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.klp .ew-card::after{content:'';position:absolute;left:0;right:0;bottom:0;height:52%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.78));pointer-events:none;z-index:1}
+.klp .ew-badge{position:absolute;top:10px;left:10px;z-index:2;font-size:10.5px;font-weight:750;letter-spacing:.09em;padding:4px 9px;border-radius:6px;background:rgba(12,12,14,.72);border:1px solid rgba(255,255,255,.16);color:var(--txt);backdrop-filter:blur(8px);font-family:var(--font-display),var(--font-inter),sans-serif}
+.klp .ew-title{position:absolute;left:12px;right:12px;bottom:12px;z-index:2;font-size:13px;font-weight:650;color:#fff;line-height:1.3;text-shadow:0 1px 8px rgba(0,0,0,.7)}
+.klp .ew-cta{position:absolute;right:10px;top:10px;z-index:2;font-size:11px;font-weight:750;color:#fff;background:rgba(41,151,255,.92);padding:5px 10px;border-radius:var(--r-pill);opacity:0;transform:translateY(-4px);transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
+.klp .ew-card:hover .ew-cta{opacity:1;transform:none}
+@media(max-width:900px){.klp .ew-wall{display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:6px}.klp .ew-wall::-webkit-scrollbar{display:none}.klp .ew-card{flex:0 0 46%;max-width:210px;scroll-snap-align:start}.klp .ew-card:hover{transform:none}}
+.klp .ew-wall.rv .ew-card{opacity:0;transform:translateY(14px);transition:opacity var(--dur-slow) var(--ease-out-expo),transform var(--dur-slow) var(--ease-out-expo)}
+.klp .ew-wall.rv-in .ew-card{opacity:1;transform:none}
+.klp .ew-wall.rv-in .ew-card:nth-child(2){transition-delay:50ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(3){transition-delay:100ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(4){transition-delay:150ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(5){transition-delay:200ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(6){transition-delay:250ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(7){transition-delay:300ms}
+.klp .ew-wall.rv-in .ew-card:nth-child(8){transition-delay:350ms}
 .klp .statband{display:flex;justify-content:center;gap:clamp(28px,6vw,84px);flex-wrap:wrap;margin:64px auto 0;padding-top:44px;border-top:1px solid var(--line)}
 .klp .statband-item{display:flex;flex-direction:column;align-items:center;gap:4px}
 .klp .statband-n{font-family:var(--font-display),var(--font-inter),sans-serif;font-weight:600;font-size:clamp(1.9rem,4vw,2.6rem);letter-spacing:-.02em;color:var(--txt)}
@@ -586,7 +614,7 @@ function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string 
   return `/signup?reason=checkout&redirect=${encodeURIComponent(resumePath)}`
 }
 
-export default function KineoLanding({ initialUser }: Props) {
+export default function KineoLanding({ initialUser, engineWall = [] }: Props & { engineWall?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
@@ -753,6 +781,27 @@ export default function KineoLanding({ initialUser }: Props) {
           </div>
         </div>
       </header>
+
+      {/* KINEO-ENGINE-WALL-2026-08-15 — o catalogo e a landing (padrao
+          Higgsfield que o fundador pediu): videos REAIS do banco, selo do
+          motor REAL que gerou cada um. So renderiza com 4+ cards. */}
+      {engineWall.length >= 4 && (
+        <section id="engines" style={{ paddingTop: 72 }}>
+          <div className="ew-head">
+            <div>
+              <span className="sec-eyebrow">The engines</span>
+              <h2>Every engine. One line of text.</h2>
+              <p>Real renders from real accounts — each card shows the exact model that made it.</p>
+            </div>
+            <a href="#pricing" className="link" style={{ whiteSpace: 'nowrap' }}>Engine pricing →</a>
+          </div>
+          <div className="ew-wall">
+            {engineWall.slice(0, 8).map((v) => (
+              <EngineWallCard key={v.id} video={v} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* KINEO-CRO-2026-07-25 — explicit 3-step process (the page jumped from hero to comparison). Reuses .steps/.step CSS. */}
       <section id="how">

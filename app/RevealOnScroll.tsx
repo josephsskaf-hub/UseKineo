@@ -10,7 +10,7 @@
 import { useEffect } from 'react'
 
 const SELECTORS =
-  '.klp .sec-h, .klp .steps, .klp .cmp, .klp .tools, .klp .price, .klp .snote, .klp .faq, .klp .final'
+  '.klp .sec-h, .klp .steps, .klp .cmp, .klp .tools, .klp .price, .klp .snote, .klp .faq, .klp .final, .klp .ew-wall, .klp .niches, .klp .fnote'
 
 export default function RevealOnScroll() {
   useEffect(() => {
