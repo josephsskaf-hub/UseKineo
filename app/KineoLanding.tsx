@@ -470,7 +470,7 @@ html{scroll-behavior:smooth}
 .klp .sr-h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(14px,2.2vh,30px);display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px}
 .klp .hero-ftr::-webkit-scrollbar{display:none}
-.klp .hero-ftr .ftr{flex:0 0 clamp(300px,calc((100vw - 106px)/4),560px);scroll-snap-align:start}
+.klp .hero-ftr .ftr{flex:1 0 clamp(280px,calc((100vw - 106px)/4),560px);scroll-snap-align:start}
 @media(max-width:700px){.klp .hero-ftr .ftr{flex:0 0 78%}}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block;aspect-ratio:500/280}
