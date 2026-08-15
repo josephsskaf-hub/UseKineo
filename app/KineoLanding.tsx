@@ -82,7 +82,7 @@ html{scroll-behavior:smooth}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
-.klp .nav-links{display:flex;gap:22px;font-size:13.5px;color:var(--muted);font-weight:550;align-items:center}
+.klp .nav-links{display:flex;gap:26px;font-size:15px;color:var(--muted);font-weight:550;align-items:center}
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */
@@ -97,7 +97,7 @@ html{scroll-behavior:smooth}
 .klp .nd-menu{flex-direction:column;min-width:172px;background:transparent}
 .klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:#111115;border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.55)}
 .klp .nd-menu a{position:relative;z-index:1}
-.klp .nd-menu a{padding:9px 14px;border-radius:9px;font-size:13px;white-space:nowrap;margin:0 5px}
+.klp .nd-menu a{padding:10px 15px;border-radius:9px;font-size:14px;white-space:nowrap;margin:0 5px}
 .klp .nd-menu a:first-child{margin-top:17px}
 .klp .nd-menu a:last-child{margin-bottom:5px}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
