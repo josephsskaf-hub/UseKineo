@@ -455,13 +455,22 @@ html{scroll-behavior:smooth}
    continuam ganhando por ordem — mobile/tablet nao herdam este clamp. */
 .klp .hero-gallery::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
+.klp .hero-engines{position:relative;z-index:1;display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:clamp(112px,15vh,148px);gap:12px;margin:clamp(15px,2.2vh,44px) auto 0}
+.klp .hero-engines::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
+.klp .ec-tile .tvid video{width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity var(--dur-slow) ease}
+.klp .ec-tile .tvid video.hv-on{opacity:1}
+@media (prefers-reduced-motion: no-preference){
+.klp .hero-engines>*{animation:hgIn var(--dur-slow) var(--ease-out-expo) backwards}
+.klp .hero-engines>*:nth-child(2){animation-delay:60ms}
+.klp .hero-engines>*:nth-child(3){animation-delay:120ms}
+.klp .hero-engines>*:nth-child(4){animation-delay:180ms}
+.klp .hero-engines>*:nth-child(5){animation-delay:240ms}
+.klp .hero-engines>*:nth-child(6){animation-delay:300ms}
+}
+@media(max-width:700px){.klp .hero-engines{grid-template-columns:1fr 1fr;grid-auto-rows:112px;gap:10px}}
+
 .klp .hero-gallery .vcard{aspect-ratio:9/16;padding:11px}
 .klp .hero-gallery .vcard .vt{font-size:12px;letter-spacing:-.01em}
-.klp .ec-card{padding:13px}
-.klp .ec-chip{position:absolute;top:11px;left:11px;z-index:2;font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.85);background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:3px 9px;backdrop-filter:blur(6px)}
-.klp .ec-name{display:block;font-family:var(--font-display),-apple-system,sans-serif;font-size:19px;font-weight:650;letter-spacing:-.02em;line-height:1.1}
-.klp .ec-desc{display:block;margin-top:4px;font-size:11px;font-weight:550;line-height:1.35;color:rgba(255,255,255,.74);text-shadow:0 1px 6px rgba(0,0,0,.55)}
-.klp .hero-gallery .ec-name{font-size:17px}
 
 .klp .hero-gallery .vcard .hvid-play span{width:32px;height:32px;font-size:12px}
 .klp .gallery-cap{position:relative;z-index:1;margin-top:18px;text-align:center;font-size:12.5px;color:var(--muted2)}
@@ -805,12 +814,13 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               </a>
             </div>
           </div>
-          {/* KINEO-HERO-ENGINES-2026-08-15 — os 6 do hero agora sao os
-              MOTORES: cada card e um carrossel de ate 3 videos reais daquele
-              motor, com o selo em cima (pedido literal do fundador). */}
-          <div id="samples" className="hero-gallery" aria-label="Real renders by engine">
+          {/* KINEO-HERO-ENGINES-2026-08-15 v3 — o hero usa os TILES do bento
+              "Pick your engine" (pedido do fundador: "aqueles que a gente
+              tinha deixado bonito"), cada um com ate 3 videos CURADOS daquele
+              motor passando atras. Mesma ordem do bento: Seedance primeiro. */}
+          <div id="samples" className="hero-engines" aria-label="Kineo engines">
             {(() => {
-              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'presenter', 'fast']
+              const order = ['cinematic_ai', 'cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'presenter', 'fast']
               return order.map((eng, i) => {
                 const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
                 if (vids.length === 0) return null
