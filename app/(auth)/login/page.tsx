@@ -153,7 +153,7 @@ export default function LoginPage() {
         />
 
         <div
-          className="w-full max-w-4xl relative z-10 rounded-2xl overflow-hidden grid md:grid-cols-2"
+          className="page-enter w-full max-w-4xl relative z-10 rounded-2xl overflow-hidden grid md:grid-cols-2"
           style={{
             background: '#161618',
             border: '1px solid #2a2a2d',

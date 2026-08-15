@@ -313,9 +313,36 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     1x apos load (delay .9s) + 1x por hover, CSS puro, reduced-motion off.
     LiveStatsBadge: count-up 600ms ease-out ate os numeros REAIS (regra de
     honestidade intacta — anima a contagem, nunca o valor). Rollback: 2 blocos.
-18. **Transicao landing → /signup.** Antes: navegacao seca → depois: fade curto (View
-    Transitions API, fallback nulo = comportamento atual). Porque: continuidade de
-    mundo. Rollback: remover meta.
+18. ✅ **FEITO 15/08 (sprint 18h) — Transicao landing → /signup.** Antes: navegacao
+    seca → depois: fade curto (`--dur-base` + `--ease-out-expo`) no cartao de auth
+    do `/signup` **e do `/login`** (regra dos pares). Porque: continuidade de mundo.
+    **Nao foi a View Transitions API, e a razao esta MEDIDA, nao suposta.** Em
+    producao, o clique em "Start free" e uma navegacao **SOFT**: um marcador posto
+    em `window` sobrevive a navegacao e `performance.timeOrigin` nao muda — e
+    `next/link` trocando a arvore no mesmo documento. A forma CSS da API
+    (`@view-transition { navigation: auto }`) so vale para navegacao
+    **cross-document**, e o Next **14.2.5** deste repo nao tem o
+    `experimental.viewTransition` do 15: a regra seria **CSS morto**. Embrulhar o
+    `router.push` em `document.startViewTransition` tambem nao serve — em React 18
+    a troca de DOM nao acontece dentro do callback, e a transicao segura o snapshot
+    ate o timeout (o risco e uma tela CONGELADA, nao um fade). A entrada no destino
+    cobre os **dois** caminhos que a API nao cobre juntos: soft nav vindo da home e
+    **carga fria** vinda de anuncio/SEO/`/start`.
+    **O mecanismo ja existia e nunca tinha sido ligado:** `.page-enter` esta em
+    `app/globals.css` desde o UI Polish, ja tokenizado (`--dur-base` +
+    `--ease-out-expo`), com **ZERO call sites em `app/` + `components/`**. O item 18
+    virou, na pratica, *ligar o fio que a casa ja tinha soldado* — diff de 3 linhas.
+    **E ligar como estava escrito teria quebrado o checkout.** `.page-enter` usava
+    `forwards`; com fill-forwards o transform final fica `translateY(0px)` em vez de
+    `none`, e **transform computado cria bloco de contencao para descendentes
+    `position: fixed`**. O `/signup` tem, DENTRO deste cartao
+    (`app/(auth)/signup/page.tsx:770`), o interstitial `fixed inset-0 z-60` do
+    **auto-OAuth de quem veio do checkout** — ele passaria a cobrir so o cartao.
+    Provado na producao ao vivo com as duas variantes lado a lado: com `forwards`
+    o filho `fixed inset-0` mede **400x200** (o tamanho do pai); sem fill mede
+    **1916x911** (a viewport). A palavra `forwards` foi removida — sem fill o estado
+    final e o natural do elemento (`opacity 1`, `transform none`), que e exatamente
+    o desejado. Rollback: tirar `page-enter` dos 2 className.
 19. ✅ **FEITO 13/08 — /examples vivo + palco.** Grade: ExampleLiveMedia
     (client) com as MESMAS regras da galeria da home (poster-first, monta no
     intersect, preload none, pausa fora, crossfade no playing, Save-Data/2g/
@@ -498,6 +525,49 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     padrao monofonte (com `/pricing` e `/history` do item 23) e promove aquilo
     de "candidato a item" para fato do produto — medido hoje no `/generate`:
     **557 de 558 elementos em Inter, 1 em Space Grotesk.** Rollback: git revert.
+
+25. **NOVO (15/08, sprint 18h) — /wall: a pagina da prova ABRE VAZIA, e imprime
+    "3 Shorts" em cima do vazio.** Achado na rotacao (`/wall`), medido no DOM de
+    producao hoje. **Nao e o item 21 de novo — o item 21 envelheceu e esta errado
+    em dois pontos**, e o defeito real e mais grave e mais barato de consertar.
+    O que a pessoa ve ao digitar `/wall`: a aba padrao e **"This week"**, que
+    renderiza **"No Shorts on the board this week — yet."** — **0 cards, 0 `<img>`,
+    0 `<video>` na pagina inteira** — e **na linha imediatamente acima** o contador
+    diz **"3 Shorts published by Kineo users · showing the last 7 days"**. Em
+    `?range=all` os 3 cards existem de verdade (144 / 25 / 13 views, **182 no
+    total**) e tem **9 e 10 dias de idade** — ou seja o filtro de 7 dias esta
+    contando certo e a semana esta mesmo vazia; **o defeito e o produto escolher
+    como aba padrao justamente a que ele sabe estar vazia, e ainda assim imprimir o
+    numero da OUTRA aba em cima dela.** Para um visitante de primeira vez isso nao
+    le como "pagina nova", le como **numero que nao se sustenta** — e o paragrafo
+    de baixo ainda promete "Nothing is seeded, nothing is staged". A unica pagina
+    do site cujo trabalho e ser prova esta, por padrao, provando o contrario.
+    Depois: (a) a aba padrao passa a ser a que TEM conteudo (ou "This week" cai
+    para "All time" quando a semana volta vazia); (b) **o contador conta o que a
+    aba mostra** — "3 Shorts" so aparece onde os 3 aparecem; (c) o empty state da
+    semana, quando existir estoque all-time, mostra os cards all-time em vez de um
+    paragrafo.
+    **As duas correcoes ao item 21 (13/08), porque quem for executa-lo vai
+    tropecar nelas:** (1) o `src` **nao e mais `hqdefault` 480x360** — hoje e
+    `https://i.ytimg.com/vi/<id>/maxresdefault.jpg`, servido e decodificado em
+    **1280x720** nos 3 cards (`naturalWidth` medido). A metade (b) daquele item ja
+    esta feita. Consequencia: **o diagnostico "retangulo preto" morreu junto** —
+    `maxresdefault` nao tem tarja, entao o `object-fit: cover` numa moldura
+    **163x291** ja nao corta barras pretas, corta **imagem util**: de 1280px de
+    largura sobrevivem ~405px, isto e **~32% do quadro** — o card mostra uma tira
+    central de um enquadramento 16:9 que ninguem compos para 9:16. O conserto certo
+    e o (a) do item 21 (moldura 16:9 **ou** backdrop borrado da propria thumb), nao
+    o (b). (2) **O comentario do codigo esta mentindo sobre o proprio `src`**:
+    `app/wall/page.tsx:186-192` ainda explica em 6 linhas o crop de "hqdefault.jpg
+    e 480x360 com o quadro vertical CENTRALIZADO entre barras pretas" — texto que
+    descreve uma URL que o arquivo nao usa mais. Quem ler o comentario vai
+    "consertar" um problema que nao existe.
+    Anotados junto, para nao virarem item novo depois: `/wall` roda **55 de 123
+    elementos em `system-ui`** — nao e o padrao monofonte dos itens 23/24 ("so
+    Inter"), e pior: **45% da pagina nem chega em Inter**, cai na fonte do sistema
+    operacional, enquanto a casa paga o peso de Inter **e** Space Grotesk em toda
+    rota; e o azul da marca subiu de **12 elementos (13/08) para 14**, contra o "1
+    acento usado raro" do item 3 do sistema deles. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -541,6 +611,32 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### FECHAMENTO DO DIA — 15/08 (3 linhas, escritas pela sprint das 18h)
+
+1. **O dia 18 fechou o roadmap ate o dia 19: so falta a auditoria final (dia 20).**
+   A transicao landing → /signup existe agora — e o mecanismo ja estava pronto na
+   casa havia semanas, so nunca tinha sido ligado (`.page-enter`, tokenizado, com
+   **zero call sites**). Nao foi a View Transitions API porque **medi** que o
+   clique em "Start free" e navegacao soft: a API CSS so vale cross-document e o
+   Next 14.2.5 nao tem a versao do 15. E **ligar a classe como ela estava
+   escreveria um bug no seu checkout**: com `forwards`, o transform que sobra
+   prende o interstitial do auto-OAuth dentro do cartao (medido: `fixed inset-0`
+   virando **400x200** em vez de **1916x911**). Uma palavra removida resolveu.
+2. **O que voce precisa saber: as duas sprints de hoje nao estao no ar.**
+   `origin/main` = `2580091`; o dia 12 (timings) de 14h e este dia 18 esperam
+   push. Medido no CSS de producao, nao deduzido do git: a folha servida tem
+   **0 ocorrencias de `var(--dur-` e 0 de `var(--ease-`**. Nada regrediu no que
+   ja esta no ar (CLS **0**, zero erro de console, tokens de raio/cinza/timing
+   respondendo, galeria a **y=165**, TTFB quente 0,41–0,48s). **O push e seu.**
+3. **O achado do dia: `/wall` abre vazia e imprime "3 Shorts" em cima do vazio.**
+   A aba padrao e "This week", que hoje tem **0 cards**; os 3 Shorts reais tem 9 e
+   10 dias e so aparecem em `?range=all`. A pagina cujo unico trabalho e provar
+   esta, por padrao, exibindo um numero que ela mesma nao mostra. De brinde, o
+   item 21 envelheceu: o `src` ja virou `maxresdefault` (1280x720) e o comentario
+   do codigo ainda descreve o `hqdefault` com tarjas pretas. Virou o **item 25**.
+
+---
 
 ### FECHAMENTO DO DIA — 13/08 (3 linhas, escritas pela sprint das 18h)
 
@@ -698,6 +794,102 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
   `font-size:14px` sem item proprio estao no item 22.
 
   **Proximo em ordem:** dia 12 (cinzas e timings → tokens).
+
+- **15/08 (sprint 18h) — Dia 18 ✅ (o fio que a casa ja tinha soldado e nunca
+  ligou) + a auditoria que diz onde o dia 12 esta: no laptop.**
+
+  **1. Auditoria do item anterior EM PRODUCAO — o dia 12 (timings) NAO esta no
+  ar, e isso foi medido no CSS servido, nao deduzido do git.** Baixei
+  `/_next/static/css/54b8e544a9d65c55.css` (58.330 B) direto da producao e
+  contei: **0 ocorrencias de `var(--dur-`** e **0 de `var(--ease-`**. A folha no
+  ar ainda tem os literais (`.15s`, `.25s`, `.35s`, `.65s`, `1.1s`…). Confere com
+  `git ls-remote origin main` = **`2580091`**, enquanto o HEAD local esta em
+  `1d39d4f`: os commits `703625a` (sprint 13h), `57f52d3` (dia 12, timings) e
+  `1d39d4f` (sprint 16h) **esperam push**. Com o desta sprint, sao **4** — e
+  **2 deles nao sao de UI**: `703625a` e `1d39d4f` sao os prazos de morte dos
+  loops `composing` e `generating`, que seguram cliente em trial parado numa
+  tela que gira. **`scripts/104-PUSH.bat`** e o mais recente.
+  **Nada regrediu no que ESTA no ar** — cada numero lido, nenhum herdado de doc:
+  **CLS = 0** por `PerformanceObserver`; **zero erro de console**; os 5 raios e
+  os 5 tokens de tempo respondem no `:root` (`8/13/18/22/999px`,
+  `150/250/400ms`, `swift` e `out-expo`); os 8 cinzas do dia 12 respondem no
+  `.klp` com os valores exatos do commit de 14/08; **`.composer` = null**
+  (regra aposentada, como registrado as 14h); os **4 `.ec-poster`** no lugar e o
+  primeiro deles a **y=165px** (era 164 as 14h — a vitrine continua acima da
+  dobra); **`Start free` → `/signup`** intacto. Peso e velocidade estaveis: HTML
+  da home **248.128 B** (identico as 14h; segue **68 KB acima do teto de 180 KB**,
+  que continua sendo decisao do fundador e nao conserto de sprint), folha unica
+  **45.220 B**, payload RSC **153.052 B**, **TTFB 0,41 / 0,48 / 1,18s** (a de
+  1,18s foi a primeira, fria). Os 8 `<video>` seguem em `preload="auto"` — a
+  escolha deliberada do fundador registrada as 14h, nao regressao.
+
+  **2. Item da sprint: dia 18 — a transicao landing → /signup.** Detalhe completo,
+  com a medicao que descartou a View Transitions API e a prova do bug do
+  `forwards`, esta no item 18 acima. Em uma frase: **`.page-enter` ja existia em
+  `app/globals.css`, ja tokenizado, com zero call sites** — o dia 18 foi ligar o
+  fio, nao construi-lo. Diff: **3 linhas em 3 arquivos** (a classe nos cartoes de
+  auth do `/signup` e do `/login` — regra dos pares — e a remocao de uma palavra
+  na regra).
+
+  **Verificacao alem do tsc, na PRODUCAO AO VIVO** (metodo da casa: folha de teste
+  no `body`, nunca no `head`): montei as duas variantes de `.page-enter` lado a
+  lado, cada uma com um filho `position: fixed; inset: 0`, e forcei o fim das
+  animacoes pela Web Animations API (`getAnimations().finish()`) em vez de esperar
+  o relogio — **a aba do automador esta `visibilityState: "hidden"` e o Chrome
+  NAO avanca animacao CSS em aba oculta**; a primeira medicao ficou 700ms parada
+  no frame inicial e quase virou "a animacao nao roda". Resultado com o relogio
+  fora do caminho: **`forwards` → `transform: matrix(1,0,0,1,0,0)` e o filho
+  `fixed` medindo 400x200 (o pai); sem fill → `transform: none` e o mesmo filho
+  medindo 1916x911 (a viewport)**. Tokens resolvendo certo no mesmo teste:
+  `animation-duration 0.25s`, `timing-function cubic-bezier(0.16, 1, 0.3, 1)`.
+  `tsc --noEmit` **EXIT=0 e falsificado**: erro proposital
+  (`const __KINEO_FALSIFY__: number = 'nao sou numero'`) na linha 1 do
+  `app/(auth)/login/page.tsx` → acusou **TS2322 (1,7)** → restaurado, **md5
+  `40df8ca7…` e `acd8e9db…` conferidos identicos** nos dois arquivos tocados,
+  EXIT=0. **EOL LF conferido no HEAD arquivo por arquivo** (`git show HEAD:<f> |
+  grep -c $'\r'` contra o disco): 0 CR nos dois lados em `globals.css`,
+  `signup/page.tsx` e `login/page.tsx`.
+
+  **A revisao adversarial (2 passadas, a 2a cacando defeito meu) pegou 3 coisas:**
+  (a) **o `forwards`** — descrito acima; sem essa passada o commit teria ido com
+  ele, porque a regra estava assim escrita ha meses e "so faltava usar".
+  (b) **O `/login` nao estava no enunciado do item 18 e entrou mesmo assim.** A
+  regra dos pares do `CLAUDE.md` existe para isto: "Log in" e "Start free" saem da
+  mesma nav da home, e sem o par o site teria fade num destino e corte seco no
+  outro. Conferido que o cartao dos dois arquivos e **o mesmo `className` byte a
+  byte** (`w-full max-w-4xl relative z-10 rounded-2xl overflow-hidden grid
+  md:grid-cols-2`, `login:156` e `signup:346`) — mesma mudanca, mesmo risco.
+  (c) **Uma medicao minha estava errada e o `/wall` quase virou item com um fato
+  falso.** Na primeira leitura os 3 `<img>` do `/wall` responderam
+  `currentSrc: ""` e `naturalWidth 0`, e eu ia registrar "os cards tem `src`
+  vazio". Era artefato: `loading="lazy"` **em aba oculta nao dispara o
+  download**. Forcei `loading='eager'` e os 3 responderam
+  `maxresdefault.jpg`, **1280x720, `complete: true`**. O item 25 foi escrito com
+  o numero certo — e o numero certo aponta para um defeito diferente (e o
+  enquadramento, nao a URL).
+
+  **3. Realimentacao do backlog: item 25 (/wall).** A rotacao caiu no `/wall`, e
+  ele nao repete o item 21 — **envelheceu por cima dele**. Por padrao a pagina
+  abre em "This week" com **0 cards** e o contador logo acima diz **"3 Shorts
+  published"**; os 3 existem, tem 9 e 10 dias, e so aparecem em `?range=all`
+  (144+25+13 = 182 views). A pagina que existe para provar abre provando o
+  contrario. Junto: o `src` ja migrou para `maxresdefault` (1280x720) — metade do
+  item 21 esta feita e o diagnostico "retangulo preto" morreu, porque agora o
+  `cover` numa moldura 163x291 joga fora **~68% do quadro** em vez de tarjas; e o
+  comentario de 6 linhas em `app/wall/page.tsx:186-192` **ainda descreve o
+  `hqdefault` com barras pretas**, ou seja o codigo explica uma URL que ele nao
+  usa mais. Anotados: **55 de 123 elementos em `system-ui`** (45% da pagina nem
+  chega em Inter) e o azul da marca subindo de 12 para **14** elementos.
+
+  **Proximo em ordem:** **dia 20 — a auditoria final lado a lado**, unico dia do
+  roadmap ainda aberto (11 a 19 fechados). Atras dele, a fila 21-25. Antes de
+  rodar o dia 20 vale lembrar o que as sprints 22, 24 e 25 ja provaram: **os
+  testes 2, 4 e 7 do checklist, como estao escritos, podem dar verde com o
+  produto fora da escala** — o teste 2 nao ve os ~611 `borderRadius` inline nem
+  as 557 classes `rounded-*`, o teste 4 nao ve a curva default do Tailwind em 274
+  elementos, e o teste 7 hoje reprova uma decisao deliberada do fundador
+  (`preload="auto"` na vitrine). **O dia 20 comeca reescrevendo o proprio
+  checklist, ou mede a coisa errada com muita precisao.**
 
 - **15/08 (sprint 14h) — Dia 12 FECHADO (metade "timings") + a auditoria que
   aposentou uma regra inviolavel do proprio roadmap.**

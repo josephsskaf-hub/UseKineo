@@ -519,8 +519,35 @@ body::after {
 }
 
 /* Smooth page transitions */
+/* KINEO-UI-DIARIO-2026-08-15 (dia 18 do roadmap Higgsfield — "transicao
+   landing -> /signup"). Esta classe existia desde o UI Polish e tinha ZERO
+   call sites no repo inteiro: o mecanismo do dia 18 ja estava construido e
+   nunca foi ligado. Ela agora veste o cartao de auth do /signup e do /login
+   (o par), que sao o destino do unico CTA que este roadmap declara
+   inviolavel ("Start free -> /signup").
+
+   POR QUE NAO E A VIEW TRANSITIONS API, como o item 18 supunha: medido em
+   producao nesta sprint, o clique em "Start free" e uma navegacao SOFT
+   (next/link -> mesmo documento; marcador em window sobrevive e
+   performance.timeOrigin nao muda). A forma CSS da API
+   (`@view-transition { navigation: auto }`) so vale para navegacao
+   CROSS-document, e o Next 14.2.5 nao tem o `experimental.viewTransition`
+   do 15 — ou seja, escrever a regra aqui seria CSS morto. Envolver o
+   router.push em document.startViewTransition tambem nao serve: em React 18
+   a troca de DOM nao acontece dentro do callback, e a transicao congela o
+   snapshot ate o timeout. A entrada no destino cobre os DOIS caminhos (soft
+   nav vindo da home E carga fria vinda de anuncio/SEO), que a API nao cobre.
+
+   SEM `forwards` DE PROPOSITO: com fill-forwards o transform final fica
+   `translateY(0px)` em vez de `none`, e um transform computado cria bloco
+   de contencao para descendentes `position: fixed` — o /signup tem um
+   overlay `fixed inset-0 z-60` DENTRO deste cartao (page.tsx:770), que
+   passaria a cobrir so o cartao em vez da tela. Sem fill, o estado final e
+   o natural do elemento (opacity 1, transform none), que e exatamente o que
+   se quer. O `prefers-reduced-motion: reduce` global (linha ~577) ja
+   desliga isto em 0.01ms, terminando no mesmo estado natural. */
 .page-enter {
-  animation: fadeIn var(--dur-base) var(--ease-out-expo) forwards;
+  animation: fadeIn var(--dur-base) var(--ease-out-expo);
 }
 
 /* Mobile bottom CTA safe area */
