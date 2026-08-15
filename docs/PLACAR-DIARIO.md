@@ -55,3 +55,4 @@ Colunas:
   é se enganar.
 - Quando o fundador pedir os números: rodar a query do dia, adicionar a linha,
   responder com a tabela e UMA linha de leitura (o que mudou e por quê).
+| 15/08 | 6 signups | 10 videos | 0 falhas | 14 checkouts | dia da VITRINE: home vira showcase de motores, 20 melhores no /examples, previews sem travar |
