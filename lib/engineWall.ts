@@ -57,7 +57,10 @@ export async function getEngineWall(): Promise<WallVideo[]> {
       .in('quality_mode', ENGINE_ORDER)
       .ilike('video_url', '%supabase%')
       .order('created_at', { ascending: false })
-      .limit(400)
+      // 1000, nao 400: Kling (6) e Hollywood (9) sao os renders mais ANTIGOS
+      // do acervo — um limite curto em ordem desc cortava exatamente os
+      // trofeus que a fileira existe para mostrar.
+      .limit(1000)
 
     const out: WallVideo[] = []
     const used: Record<string, number> = {}
