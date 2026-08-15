@@ -158,7 +158,7 @@ html{scroll-behavior:smooth}
 .klp .ftr h3{margin-top:12px;font-size:13.5px;font-weight:750;letter-spacing:.04em;text-transform:uppercase;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .ftr p{margin-top:4px;font-size:13px;color:var(--muted2);line-height:1.45}
 .klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:150px;gap:12px;margin-top:34px}
-.klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#0c0c0e url('/videos/example-shutdown.webp') center/cover;display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
+.klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:#0c0c0e url('/videos/example-cities.webp') center/cover;display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
 .klp .bento .promo::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.88) 30%,rgba(0,0,0,.45))}
 .klp .bento .promo>*{position:relative;z-index:1}
 .klp .bento .promo h3{font-size:clamp(1.3rem,2.4vw,1.8rem);font-weight:650;letter-spacing:-.01em;line-height:1.12;text-transform:uppercase;font-family:var(--font-display),var(--font-inter),sans-serif}
