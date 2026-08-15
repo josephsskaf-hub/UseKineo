@@ -67,7 +67,8 @@ const CURATED: Record<string, string[]> = {
   cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551'],
   //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
   //   KLING 3 (recurado 15/08 b): historiador medieval + mulher no carro + reporter golden hour + campo em chamas
-  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'ccc0a437-4e35-4185-8b19-999fa0cad9c1', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da'],
+  //   KLING 3 (recurado 15/08 c — previews cortados na JANELA cinematica de cada filme): lava aerea do Turkmenistan + historiador com livro antigo + golden hour de Manhattan + estudio futurista
+  cinematic_hollywood: ['f32ea301-a239-4d2c-a516-388796aa63da', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   cinematic_ai: ['86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501'],
@@ -88,7 +89,7 @@ const ALL_CURATED = new Set(Object.values(CURATED).flat())
 const PREVIEWS = new Set<string>([
   'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
   'c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551',
-  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'ccc0a437-4e35-4185-8b19-999fa0cad9c1', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da',
+  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da',
   '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501',
 ])
 
