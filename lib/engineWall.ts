@@ -67,6 +67,21 @@ const SHOWCASE_CAPS: Record<string, number> = {
   presenter: 2,
 }
 
+// Hero da home: 6 cards-carrossel, ate 3 videos POR MOTOR (pedido do
+// fundador 15/08: "tres videos em cada, ficam passando").
+const HERO_CAPS: Record<string, number> = {
+  cinematic_veo: 3,
+  cinematic_kling: 3,
+  cinematic_hollywood: 3,
+  cinematic_ai: 3,
+  fast: 3,
+  presenter: 3,
+}
+
+export function getEngineHero(): Promise<WallVideo[]> {
+  return buildWall(HERO_CAPS)
+}
+
 export function getEngineShowcase(): Promise<WallVideo[]> {
   return buildWall(SHOWCASE_CAPS)
 }

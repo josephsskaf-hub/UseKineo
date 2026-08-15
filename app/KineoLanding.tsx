@@ -3,7 +3,6 @@
 // Marker: KINEO-LANDING-V3-2026-06-30
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
-import HeroGallery from './HeroGallery'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
@@ -17,6 +16,7 @@ import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
 import type { WallVideo } from '@/lib/engineWall'
 import WallMedia from '@/components/WallMedia'
+import EngineCycleCard from '@/components/EngineCycleCard'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -785,7 +785,19 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               </a>
             </div>
           </div>
-          <HeroGallery />
+          {/* KINEO-HERO-ENGINES-2026-08-15 — os 6 do hero agora sao os
+              MOTORES: cada card e um carrossel de ate 3 videos reais daquele
+              motor, com o selo em cima (pedido literal do fundador). */}
+          <div id="samples" className="hero-gallery" aria-label="Real renders by engine">
+            {(() => {
+              const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'presenter', 'fast']
+              return order.map((eng, i) => {
+                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
+                if (vids.length === 0) return null
+                return <EngineCycleCard key={eng} videos={vids} index={i} />
+              })
+            })()}
+          </div>
           <div className="scroll-cue" aria-hidden="true" />
           {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
               palavra, o que a seção "From idea to posted Short in 3 steps" diz
@@ -809,35 +821,11 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
       {engineWall.length >= 4 && (
         <section id="engines" style={{ paddingTop: 72 }}>
           <div className="ew-wrap">
-            <div className="ftr-row">
-              {(() => {
-                const pick = (eng: string) => engineWall.find((v) => v.engine === eng)
-                const subs: Record<string, string> = {
-                  cinematic_veo: "Google's flagship video model — a real render from a user account.",
-                  cinematic_kling: 'Cinematic motion and camera work, straight from one prompt.',
-                  cinematic_hollywood: 'The multi-scene film pipeline, scored and cut.',
-                  cinematic_ai: 'The workhorse engine behind most AI renders here.',
-                }
-                const titles: Record<string, string> = {
-                  cinematic_veo: 'VEO 3 in Kineo',
-                  cinematic_kling: 'Kling Cinematic',
-                  cinematic_hollywood: 'Hollywood Pipeline',
-                  cinematic_ai: 'Seedance Engine',
-                }
-                return ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai'].map((eng) => {
-                  const v = pick(eng)
-                  if (!v) return null
-                  return (
-                    <Link key={v.id} href={`/v/${v.id}`} className="ftr">
-                      <div className="ftr-media"><WallMedia src={v.videoUrl} /></div>
-                      <h3>{titles[eng]}</h3>
-                      <p>{subs[eng]}</p>
-                    </Link>
-                  )
-                })
-              })()}
+            <div className="sec-h" style={{ marginBottom: 34 }}>
+              <span className="sec-eyebrow">The engines</span>
+              <h2>Pick your engine.</h2>
+              <p>One line of text in — the engine you choose decides how it looks. Click any tile to start creating with it selected.</p>
             </div>
-
             {(() => {
               const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
               const tileVid = (eng: string) => {
