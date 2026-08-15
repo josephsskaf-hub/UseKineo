@@ -244,6 +244,24 @@ const ACTIVE_RENDER_TTL_MS = 2 * 60 * 60 * 1000
 // ele rege o restore effect, que é o único ponteiro local de um render em voo.
 const ACTIVE_RENDER_GATE_MAX_AGE_MS = FAL_POLL_DEADLINE_MS
 
+// KINEO-COMPOSE-SEM-PRAZO-2026-08-15 — o loop de `composing` era o ÚLTIMO dos
+// três que reagendavam para sempre (`fal_polling` ganhou prazo em 0ab61e3;
+// `generating` e `avatar_polling` seguem na fila, um por vez, por ordem).
+// Sem prazo, o loop gastava os 4 retries de MAX_TRANSIENT_POLL_ERRORS, gravava
+// UM `poll_retries_exhausted` e depois voltava a cada 15s até a aba fechar: a
+// pessoa via "ainda renderizando, reconectando" para sempre e o funil nunca
+// registrava a morte. Medido em 15/08 nos trials ativos SEM vídeo: 3 pessoas
+// param exatamente aqui.
+//
+// 45 min é medido, não escolhido: em 30 dias, 452 renders que CHEGARAM ao fim
+// levaram p50 167s, p90 269s, p99 1.099s e MÁXIMO 1.426s (23,8 min). 45 min é
+// 1,9× o pior caso que já terminou. E é o mesmo instante em que o servidor
+// declara o render abandonado (CINEMATIC_ABANDON_CUTOFF_MS, lib/credits/refund),
+// ou seja: o cliente nunca condena um render ANTES do servidor — a regra que o
+// prazo do fal já seguia. Quando este número mudar, remedir; comentário com
+// justificativa numérica envelhece.
+const COMPOSE_POLL_DEADLINE_MS = 45 * 60 * 1000
+
 // KINEO-RESUME-RENDER-2026-08-04 — server-truth resume. The localStorage
 // snapshot above is only the fast-path: it dies with cleared storage or a
 // different browser, and the restore gate can wedge on flaky auth while the
@@ -3933,6 +3951,38 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase !== 'composing' || !renderId) return
     let cancelled = false
+    const pollStartedAt = Date.now()
+
+    // KINEO-COMPOSE-SEM-PRAZO-2026-08-15 — TODO reagendamento deste loop passa
+    // por aqui, e é aqui que ele acaba. Eram três `setTimeout(poll, …)` soltos
+    // (o normal, o retry transitório e o degradado de 15s) e NENHUM tinha
+    // limite de idade. O degradado é o pior: ele roda depois de a instrumentação
+    // já ter desistido, então o loop girava eternamente sem gravar mais nada.
+    function scheduleNextComposePoll(delayMs: number) {
+      if (cancelled) return
+      const waited = Date.now() - pollStartedAt
+      if (waited >= COMPOSE_POLL_DEADLINE_MS) {
+        // A pessoa recebe a verdade em vez de um spinner. Limpar o snapshot é
+        // parte da SAÍDA: sem isso, um F5 devolve a mesma tela de composing e o
+        // loop recomeça. A janela de resume do servidor (15 min) já venceu há
+        // muito neste ponto, então não se perde handle de nada vivo.
+        resumedRenderRef.current = false
+        try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
+        // Afirmação sobre a REGRA (sempre verdadeira), não sobre o que o banco
+        // registrou desta pessoa: no Fast o débito só acontece na ENTREGA, e no
+        // cinematic o sweep de 45 min estorna o claim. Em nenhum dos dois a
+        // pessoa fica pagando por um vídeo que não recebeu.
+        setError(
+          'We stopped waiting on this render — it has been running far longer than any video that has ever finished here. You are not left paying for a video you did not receive: any credits taken for it are returned automatically. You can start a new one whenever you want.',
+        )
+        trackGenerationFailure('composing', 'compose_poll_deadline_exceeded', {
+          detail: `${Math.round(waited / 1000)}s`,
+        })
+        setPhase('failed')
+        return
+      }
+      pollTimerRef.current = setTimeout(poll, delayMs)
+    }
 
     async function poll() {
       try {
@@ -4061,7 +4111,7 @@ export default function GenerateClient({
         }
 
         setRenderProgress(typeof data.progress === 'number' ? data.progress : 0)
-        pollTimerRef.current = setTimeout(poll, POLL_COMPOSING_MS)
+        scheduleNextComposePoll(POLL_COMPOSING_MS)
       } catch (err) {
         if (cancelled) return
         console.error('[generate] composing poll error:', err)
@@ -4073,7 +4123,7 @@ export default function GenerateClient({
             render_id: renderId,
             retry,
           })
-          pollTimerRef.current = setTimeout(poll, POLL_COMPOSING_MS * Math.min(retry, 2))
+          scheduleNextComposePoll(POLL_COMPOSING_MS * Math.min(retry, 2))
           return
         }
         if (retry === MAX_TRANSIENT_POLL_ERRORS + 1) {
@@ -4091,7 +4141,7 @@ export default function GenerateClient({
           })
         }
         setError("Your video is still rendering. We are reconnecting automatically — you can close this tab, we'll email you when it's ready.")
-        pollTimerRef.current = setTimeout(poll, 15000)
+        scheduleNextComposePoll(15000)
       }
     }
 
@@ -4330,7 +4380,7 @@ export default function GenerateClient({
   function trackGenerationFailure(
     stage: Phase,
     reason: string,
-    extra?: { httpStatus?: number | null; detail?: string; message?: string; responded?: boolean },
+    extra?: { httpStatus?: number | null; detail?: string; message?: string; responded?: boolean; elapsedMs?: number },
   ) {
     try {
       void trackEvent('generation_stage_error', {
@@ -4351,6 +4401,18 @@ export default function GenerateClient({
         error: extra?.detail ? extra.detail.slice(0, 180) : null,
         message: extra?.message ? extra.message.slice(0, 200) : null,
         responded: typeof extra?.responded === 'boolean' ? extra.responded : null,
+        // KINEO-FETCH-ARRANCADO-2026-08-15 — quanto tempo o fetch ficou no ar
+        // antes de estourar. É o campo que separa dois diagnósticos OPOSTOS que
+        // hoje chegam com o MESMO nome, `http_status: null` e `TypeError`:
+        //  · ~1s  → a página foi embora por baixo do fetch (redirect do checkout
+        //           do Stripe, ou a pessoa voltando à home e reenviando o tema).
+        //           Nada nosso caiu; o funil só perdeu a pessoa de vista.
+        //  · >10s → aí sim é rede, fornecedor ou lambda morta.
+        // Medido hoje: os dois casos de trial ativo que morreram em `scripting`
+        // estouraram em 0,95s e 1,04s — e um deles tinha uma sessão de checkout
+        // do Stripe ABERTA 1,5s antes. Sem este campo, `generate_script_threw`
+        // seria lido (e caçado) como apagão da OpenAI por semanas.
+        elapsed_ms: typeof extra?.elapsedMs === 'number' ? Math.round(extra.elapsedMs) : null,
       })
     } catch {
       // Analytics must never break a generation attempt.
@@ -4541,6 +4603,8 @@ export default function GenerateClient({
     } else if (needsStructuring) {
       // Push #311 — show scripting phase so the user knows something is happening
       setPhase('scripting')
+      // KINEO-FETCH-ARRANCADO-2026-08-15 — relógio do fetch, lido só no catch.
+      const sgStartedAt = Date.now()
       try {
         const sgRes = await fetch('/api/generate-script', {
           method: 'POST',
@@ -4616,6 +4680,7 @@ export default function GenerateClient({
         trackGenerationFailure('scripting', 'generate_script_threw', {
           detail: err instanceof Error ? err.name : 'unknown',
           message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+          elapsedMs: Date.now() - sgStartedAt,
         })
       }
 
@@ -4637,6 +4702,8 @@ export default function GenerateClient({
 
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 50000)
+    // KINEO-FETCH-ARRANCADO-2026-08-15 — relógio do fetch, lido só no catch.
+    const analyzeStartedAt = Date.now()
     // KINEO-ANALYZE-CEGO-2026-08-14 — dívida nomeada em 16h e 19h de hoje e não
     // executada nas duas. `analyze_threw` é a falha VIVA do funil (18 pessoas em
     // 14 dias, a última hoje 18:56Z) e gravava só `detail: 'TypeError'`, o que
@@ -4858,6 +4925,7 @@ export default function GenerateClient({
           httpStatus: analyzeHttpStatus,
           responded: analyzeResponded,
           message: err instanceof Error ? err.message.slice(0, 200) : String(err).slice(0, 200),
+          elapsedMs: Date.now() - analyzeStartedAt,
         },
       )
       setPhase('idle')

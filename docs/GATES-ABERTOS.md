@@ -1,3 +1,67 @@
+# GATE 15/08 (sprint 13h) — `composing` GANHOU PRAZO (1 de 3). E DOIS GATES CAROS FECHARAM SOZINHOS
+
+## 🟢 FECHADO — FUSIVEL OPENAI / fal.ai (o pedido de 1 linha do fundador, 7o dia)
+
+**AS DUAS AUTO-RECARGAS DISPARARAM EM 15/08.** Evidencia = recibos do
+faturamento dos proprios fornecedores (fonte oficial), lidos na ronda de
+respostas desta sprint:
+- OpenAI, `noreply@tm.openai.com`, **15/08 12:29Z**: *"We charged $15.00 to fund
+  your OpenAI API credit balance"* — **2 minutos depois** do alerta automatico
+  das 12:27 que afirmava que ela nao tinha pegado. Mesmo dia: organizacao movida
+  de **Usage Tier 1 para Tier 2**.
+- fal.ai, fatura Orb `#BCOUKU-00038`, **15/08 16:01Z, US$40,00 pagos**.
+
+**PARAR de abrir relatorio com este alerta.** Manter so o alerta padrao se o
+saldo cair (<US$20 no fal). Render.com segue com cartao recusado (15/08 16:03Z)
+mas **isso ja estava diagnosticado em `SPRINT-2026-08-10`**: e host legado, nao
+e producao, nao e o Creatomate. Nao virar alarme.
+
+## 🟢 VENCIDO — "AS 3 FERRAMENTAS ORFAS NAO TEM SAIDA PARA O PRODUTO"
+
+A entrada mais abaixo neste doc diz que `shorts-money-calculator`,
+`niche-picker` e `viral-score` sao **"1.459 linhas do formato que converte, sem
+uma unica saida para o produto"** e chama conecta-las de "proxima entrega de
+aquisicao". **ESTA VENCIDA.** Conferido no codigo em 15/08: as tres chamam
+`toolActivationHref({ prompt, campaign })`, emitem `organic_cta_clicked` e
+levam um TEMA CONCRETO como semente para `/signup` -> `/generate`, com campanhas
+`acq5_money_calculator`, `acq5_niche_picker` e `push22_viral_score`.
+**Nao reconstruir.** O que falta ali e MEDIR o `organic_cta_clicked` por
+`source`, que ja e outro item deste doc.
+
+## 🔴 SEGUE ABERTO — PRAZO DE MORTE: FALTAM `generating` E `avatar_polling`
+
+`composing` foi fechado nesta sprint (portao unico `scheduleNextComposePoll`,
+prazo **45 min** medido: 1,9x o render mais lento que ja terminou em 30 dias —
+452 renders, p50 167s, p90 269s, p99 1.099s, max 1.426s — e nunca antes do
+`CINEMATIC_ABANDON_CUTOFF_MS` do servidor). Reason novo:
+`compose_poll_deadline_exceeded`.
+
+**Ordem mantida: um por vez. Proximo e `generating`.** `avatar_polling` depois.
+
+## 🟡 GATE NOVO — OS DOIS PRAZOS DE MORTE NAO CONTAM COMO "FALHA NOSSA"
+
+`lib/lifecycle/ourFailure.ts` so devolve `true` para os 4 reasons de
+`PROVIDER_OUTAGE_REASONS` ou para `http_status >= 500`. Os dois prazos de morte
+(`fal_poll_deadline_exceeded`, de 14/08, e `compose_poll_deadline_exceeded`, de
+hoje) tem `http_status: null` e **nao estao na lista** — ou seja, quem esperou
+45-50 minutos e nao recebeu video nenhum recebe o e-mail de ciclo de vida **sem
+o paragrafo em que a casa assume a culpa**.
+
+**Nao corrigi de proposito:** o precedente de 14/08 tambem esta de fora, entao
+adicionar so o meu criaria inconsistencia, e mexer nos dois e mudar um caminho
+de e-mail que eu nao medi nesta sprint (uma variavel por vez). Decisao para uma
+sprint de e-mail, com a medicao junto.
+
+## 🟢 MORTO — O GATE DE RENDER ATIVO QUE TRANCAVA GENTE FORA
+
+`analyze_blocked_active_render_gate` e o 2o maior sintoma vivo por PESSOAS nos
+ultimos 14 dias (115 eventos, 15 pessoas) e por isso parece urgente. **E
+historico:** `KINEO-PORTA-TRANCADA-2026-08-14` ja consertou, o ultimo bloqueio e
+de 14/08 16:47Z e a pessoa fez **4 videos depois dele**. Nao reabrir sem dado
+novo posterior a 14/08.
+
+---
+
 # GATE 15/08 (sprint 11h) — OS TRES LOOPS DE POLLING DEIXARAM DE SER TEORIA: TEM 8 VITIMAS NOMEADAS EM TRIAL ATIVO
 
 **PUSH PENDENTE — mande qualquer mensagem nesta conversa ou rode `scripts\52-PUSH.bat`**
