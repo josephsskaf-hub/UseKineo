@@ -84,11 +84,12 @@ html{scroll-behavior:smooth}
 .klp .nav-in{display:flex;align-items:center;justify-content:space-between;height:62px}
 .klp .logo{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),'Inter',sans-serif}
 .klp .logo .mk{width:28px;height:28px;border-radius:var(--r-xs);background:linear-gradient(135deg,var(--card2),var(--card));border:1px solid rgba(41,151,255,.45);box-shadow:0 0 14px rgba(41,151,255,.4),0 0 6px rgba(41,151,255,.25);display:grid;place-items:center;font-size:14px}
-.klp .nav-links{display:flex;gap:26px;font-size:13.5px;color:var(--muted);font-weight:550}
+.klp .nav-links{display:flex;gap:22px;font-size:13.5px;color:var(--muted);font-weight:550;align-items:center}
 .klp .nav-links a:hover{color:var(--txt)}
 /* Dia 14 (13/08): estado ativo da nav — o RevealOnScroll poe .nav-on no link
    da secao visivel (hoje so #pricing tem ancora na nav). */
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
+.klp .nav-links a .badge{height:15px;font-size:8.5px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
 .klp .nav-links a.nav-on{color:var(--txt)}
 .klp .nav-links a.nav-on::after{content:'';position:absolute;left:0;right:0;bottom:-8px;height:2px;border-radius:var(--r-pill);background:var(--blue)}
 .klp .nav-right{display:flex;align-items:center;gap:14px}
@@ -666,7 +667,16 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
           </div>
           Kineo
         </Link>
-        <div className="nav-links"><Link href="/generate">Video Generation</Link><Link href="/avatar">AI Avatar</Link><Link href="/examples">Explore</Link><a href="#pricing">Pricing</a></div>
+        <div className="nav-links">
+            <Link href="/examples">Explore</Link>
+            <Link href="/generate">Video</Link>
+            <Link href="/avatar">Presenter <span className="badge">New</span></Link>
+            <Link href="/thumbnail-generator">Thumbnails</Link>
+            <Link href="/animate">Animate</Link>
+            <Link href="/viral-now">Viral Now</Link>
+            <Link href="/scripts">Scripts</Link>
+            <a href="#pricing">Pricing</a>
+          </div>
         <div className="nav-right">
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
@@ -675,9 +685,13 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
-              <Link href="/generate">Video Generation</Link>
-              <Link href="/avatar">AI Avatar</Link>
               <Link href="/examples">Explore</Link>
+              <Link href="/generate">Video</Link>
+              <Link href="/avatar">Presenter</Link>
+              <Link href="/thumbnail-generator">Thumbnails</Link>
+              <Link href="/animate">Animate</Link>
+              <Link href="/viral-now">Viral Now</Link>
+              <Link href="/scripts">Scripts</Link>
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
