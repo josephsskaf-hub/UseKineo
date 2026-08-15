@@ -68,7 +68,10 @@ const CURATED: Record<string, string[]> = {
   //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
   //   KLING 3 (recurado 15/08 b): historiador medieval + mulher no carro + reporter golden hour + campo em chamas
   //   KLING 3 (recurado 15/08 c — previews cortados na JANELA cinematica de cada filme): lava aerea do Turkmenistan + historiador com livro antigo + golden hour de Manhattan + estudio futurista
-  cinematic_hollywood: ['f32ea301-a239-4d2c-a516-388796aa63da', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
+  //   KLING 3 (recurado 15/08 d): a lava SAI daqui — duplicava com a cratera de
+  //   fogo do 1o card (Seedance); fica historiador (banda de corte subiu pro
+  //   rosto inteiro) + golden hour + estudio futurista
+  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   cinematic_ai: ['86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501'],
@@ -113,7 +116,9 @@ const SHOWCASE_CAPS: Record<string, number> = {
 const HERO_CAPS: Record<string, number> = {
   cinematic_veo: 4,
   cinematic_kling: 4,
-  cinematic_hollywood: 4,
+  // 3, nao 4: com cap 4 o preenchimento automatico puxaria um talking-head
+  // nao-curado pra vaga que a lava deixou (a lava saiu — duplicava o 1o card).
+  cinematic_hollywood: 3,
   cinematic_ai: 4,
   fast: 4,
   presenter: 1,
