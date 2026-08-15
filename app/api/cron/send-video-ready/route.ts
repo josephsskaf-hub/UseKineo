@@ -60,6 +60,7 @@ function isAuthorized(req: NextRequest): boolean {
 }
 
 interface ReadyVideo {
+  id: string | null
   title: string | null
   thumb: string | null
 }
@@ -74,6 +75,9 @@ function buildEmail(userId: string, video: ReadyVideo) {
 ${titleLine}
 
 It's saved in your library — watch it and grab the download here: ${url}
+${video.id ? `
+Proud of it? It has a public page you can send to anyone: ${APP_URL}/v/${video.id}?utm_source=kineo_user&utm_medium=video_share&utm_campaign=video_ready_email
+` : ''}
 
 It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.
 
@@ -89,6 +93,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">${title ? `<strong>&ldquo;${title}&rdquo;</strong> is done rendering and waiting for you.` : '<strong>Your video is done rendering</strong> and waiting for you.'}</p>
   ${thumbHtml}
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Watch &amp; download &rarr;</a></p>
+  ${video.id ? `<p style="margin:0 0 14px;color:#475569;font-size:14px;">Proud of it? It has a <a href="${APP_URL}/v/${video.id}?utm_source=kineo_user&utm_medium=video_share&utm_campaign=video_ready_email" style="color:#2997ff;">public page</a> you can send to anyone — no login needed to watch.</p>` : ''}
   <p style="margin:0 0 14px;">It only took a few minutes to render, so if you closed the tab, no harm done. Everything you generate stays in your library.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
@@ -130,7 +135,7 @@ export async function GET(req: NextRequest) {
   // Completed videos in the 30min-24h window (small volume: dozens/day).
   const { data: readyVideos, error: videosErr } = await admin
     .from('videos')
-    .select('user_id, title, topic, thumbnail_url, thumb_url, created_at')
+    .select('id, user_id, title, topic, thumbnail_url, thumb_url, created_at')
     .eq('status', 'completed')
     .gte('created_at', oldest)
     .lte('created_at', newest)
@@ -150,6 +155,7 @@ export async function GET(req: NextRequest) {
     const existing = perUser.get(id)
     if (!existing) {
       perUser.set(id, {
+        id: (row.id as string | null) ?? null,
         title: (row.title as string | null) ?? (row.topic as string | null),
         thumb: (row.thumb_url as string | null) ?? (row.thumbnail_url as string | null),
         earliest: row.created_at as string,

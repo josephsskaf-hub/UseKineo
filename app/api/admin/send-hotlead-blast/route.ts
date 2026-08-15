@@ -70,7 +70,7 @@ function isValidExternalEmail(email: string): boolean {
   return true
 }
 
-type Segment = 'burned' | 'stalled' | 'power'
+type Segment = 'burned' | 'stalled' | 'power' | 'watermark' | 'paying'
 
 type Lead = { id: string; email: string; videos: number; credits: number }
 
@@ -79,6 +79,8 @@ type Lead = { id: string; email: string; videos: number; credits: number }
 function subjectFor(seg: Segment): string {
   if (seg === 'burned') return 'You used every single credit — quick question'
   if (seg === 'stalled') return 'Your Kineo credits are still sitting there'
+  if (seg === 'watermark') return 'That watermark comes off, by the way'
+  if (seg === 'paying') return 'Want 40% of every referral, forever?'
   return 'You make more videos than most paid users'
 }
 
@@ -102,6 +104,24 @@ ${sig}`
 <p>Was it the output? The credit math? Something confusing in the flow? Whatever it was, reply and tell me — I read every answer myself and I'd rather fix your reason than send you a coupon.</p>
 <p>If you just want more room to create: the first month of Starter is <b>$4.90</b>.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=starter&intent_campaign=hotlead_stalled" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">See plans &rarr;</a></p>
+${sig}`
+  }
+  if (seg === 'watermark') {
+    return `${open}
+<p>Hey — Joseph here, founder of Kineo.</p>
+<p>You downloaded your video — that's the whole point, so thank you for actually using the thing.</p>
+<p>One thing a lot of people miss: the watermark isn't permanent. Any paid plan exports <b>clean, watermark-free MP4s</b> — and the first month of Starter is <b>$4.90</b>.</p>
+<p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=starter&intent_campaign=hotlead_watermark" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Export clean videos &rarr;</a></p>
+<p>And if the watermark never bothered you — even better. Reply and tell me what WOULD make you upgrade someday. It comes straight to me.</p>
+${sig}`
+  }
+  if (seg === 'paying') {
+    return `${open}
+<p>Hey — Joseph here, founder of Kineo.</p>
+<p>You're one of the first paying customers we've ever had, and I don't take that lightly. So before I tell anyone else: our affiliate program pays <b>40% of every payment, recurring</b> — for anyone you send our way.</p>
+<p>You already know what the product does. If one creator friend signs up on Creator, that's real money every month, forever.</p>
+<p style="margin:22px 0"><a href="https://usekineo.com/affiliate?intent_campaign=hotlead_paying" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get your link &rarr;</a></p>
+<p>And as always — anything broken, anything missing, reply here. Founding customers get founder answers.</p>
 ${sig}`
   }
   return `${open}
@@ -153,6 +173,23 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
     videoCount.set(v.user_id, (videoCount.get(v.user_id) ?? 0) + 1)
   }
 
+  // AQUISICAO 3 (14/08) — sinais de evento para os segmentos novos:
+  // quem baixou video (video_downloaded) e quem alguma vez viu /pricing.
+  const { data: dls } = await db
+    .from('events')
+    .select('user_id')
+    .eq('name', 'video_downloaded')
+    .not('user_id', 'is', null)
+    .limit(10000)
+  const downloaded = new Set((dls ?? []).map((e) => e.user_id as string))
+  const { data: pv } = await db
+    .from('events')
+    .select('user_id')
+    .like('path', '/pricing%')
+    .not('user_id', 'is', null)
+    .limit(20000)
+  const sawPricing = new Set((pv ?? []).map((e) => e.user_id as string))
+
   // Já emailados por esta rota (flag idempotente).
   const { data: flagged } = await db
     .from('events')
@@ -168,20 +205,26 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
   const candidateIds = (profiles ?? []).map((p) => p.id as string)
   const suppression = await loadLifecycleSuppression(db, candidateIds, 24).catch(() => null)
 
-  const out: Record<Segment, Lead[]> = { burned: [], stalled: [], power: [] }
+  const out: Record<Segment, Lead[]> = { burned: [], stalled: [], power: [], watermark: [], paying: [] }
   for (const p of profiles ?? []) {
     const email = (p.email ?? '').toString().trim().toLowerCase()
     if (!isValidExternalEmail(email)) continue
-    if (PAID_PLANS.has((p.plan ?? '').toString())) continue
     if (alreadySent.has(p.id)) continue
     if (suppression && suppression.isSuppressed?.(p.id)) continue
     const videos = videoCount.get(p.id) ?? 0
     const credits = Number(p.video_credits ?? 0)
     const lead: Lead = { id: p.id, email, videos, credits }
+    const isPaying = PAID_PLANS.has((p.plan ?? '').toString())
+    if (isPaying) {
+      // Unico segmento de pagantes: convite de afiliado 40%.
+      out.paying.push(lead)
+      continue
+    }
     const inTrialEra = (p.created_at ?? '') >= TRIAL_START
     if (inTrialEra && credits === 0 && videos >= 2) out.burned.push(lead)
     else if (inTrialEra && credits >= 1 && credits <= 19 && videos >= 1) out.stalled.push(lead)
     else if (videos >= 10) out.power.push(lead)
+    else if (downloaded.has(p.id) && !sawPricing.has(p.id)) out.watermark.push(lead)
   }
   return out
 }
@@ -207,18 +250,20 @@ export async function GET(req: NextRequest) {
         burned: segments.burned.length,
         stalled: segments.stalled.length,
         power: segments.power.length,
+        watermark: segments.watermark.length,
+        paying: segments.paying.length,
       },
       sample: {
         burned: segments.burned.slice(0, 3).map((l) => mask(l.email)),
         stalled: segments.stalled.slice(0, 3).map((l) => ({ e: mask(l.email), credits: l.credits })),
         power: segments.power.slice(0, 3).map((l) => ({ e: mask(l.email), videos: l.videos })),
       },
-      how: 'GET ?confirm=SEND&segment=burned|stalled|power&limit=N',
+      how: 'GET ?confirm=SEND&segment=burned|stalled|power|watermark|paying&limit=N',
     })
   }
 
   if (!segParam || !(segParam in segments)) {
-    return NextResponse.json({ error: 'segment obrigatório: burned|stalled|power' }, { status: 400 })
+    return NextResponse.json({ error: 'segment obrigatório: burned|stalled|power|watermark|paying' }, { status: 400 })
   }
 
   const resendKey = process.env.RESEND_API_KEY
