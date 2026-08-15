@@ -753,6 +753,24 @@ export default function GenerateClient({
   // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
   const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood'>('seedance')
+
+  // KINEO-ENGINE-DEEPLINK-2026-08-15 — o "depois do clique" do padrao
+  // Higgsfield: os cards de motor da home aterrissam AQUI com o motor JA
+  // selecionado (?engine=fast|seedance|kling|veo|hollywood). Quem clicou em
+  // "Veo 3" entra criando com o Veo 3, nao numa pagina generica.
+  useEffect(() => {
+    const engine = (searchParams.get('engine') ?? '').toLowerCase()
+    if (!engine) return
+    if (engine === 'fast') {
+      setMode('fast')
+      return
+    }
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood'].includes(engine)) {
+      setMode('cinematic_ai')
+      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user
   // can lock into Hollywood renders (same face across every video). Loaded
   // lazily the first time the hollywood engine is selected.

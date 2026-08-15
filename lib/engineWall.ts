@@ -30,17 +30,19 @@ const ENGINE_BADGES: Record<string, string> = {
   cinematic_ai: 'SEEDANCE',
   basic_ai: 'AI',
   fast: 'FAST',
+  presenter: 'PRESENTER',
 }
 
 // Ordem de exibição: os motores-troféu primeiro (é o que o Higgsfield faz —
 // Veo/Kling na frente), Fast fecha provando o dia a dia.
-const ENGINE_ORDER = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast']
+const ENGINE_ORDER = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast', 'presenter']
 const PER_ENGINE: Record<string, number> = {
   cinematic_veo: 2,
   cinematic_kling: 2,
   cinematic_hollywood: 1,
   cinematic_ai: 2,
   fast: 1,
+  presenter: 1,
 }
 
 // CURADORIA 15/08 (fundador: "os melhores vídeos, fiéis a cada motor") — eu

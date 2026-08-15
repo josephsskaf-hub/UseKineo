@@ -164,6 +164,10 @@ html{scroll-behavior:smooth}
 .klp .bento .promo h3{font-size:clamp(1.3rem,2.4vw,1.8rem);font-weight:650;letter-spacing:-.01em;line-height:1.12;text-transform:uppercase;font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .bento .promo p{margin-top:10px;font-size:.95rem;color:var(--txt2);max-width:34ch}
 .klp .bento .promo .btn{margin-top:20px;align-self:flex-start;padding:12px 24px;font-size:14.5px}
+.klp .tile .tvid{position:absolute;inset:0;z-index:0;opacity:.45}
+.klp .tile::before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,10,13,.5) 0%,rgba(10,10,13,.9) 100%);z-index:1;pointer-events:none}
+.klp .tile .trow,.klp .tile .tbody{position:relative;z-index:2}
+.klp .tile:hover .tvid{opacity:.65}
 .klp .tile{position:relative;border-radius:var(--r-md);border:1px solid var(--line);background:linear-gradient(160deg,var(--card2) 0%,var(--card) 60%);padding:14px 16px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
 .klp .tile .trow{display:flex;align-items:center;justify-content:space-between}
 .klp .tile .tbody{display:flex;flex-direction:column;gap:2px}
@@ -834,13 +838,21 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               })()}
             </div>
 
+            {(() => {
+              const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
+              const tileVid = (eng: string) => {
+                const v = wallByEngine(eng)
+                return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.videoUrl} /></span> : null
+              }
+              return (
             <div className="bento">
               <div className="promo">
                 <h3>Start with the full toolkit</h3>
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
                 <Link className="btn btn-w" href="/signup?src=engine_bento">Start free</Link>
               </div>
-              <Link href="/generate" className="tile hot">
+              <Link href="/generate?engine=seedance&intent_campaign=engine_tile" className="tile hot">
+                {tileVid('cinematic_ai')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
                   <span className="tb">Popular</span>
@@ -850,7 +862,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <p>The workhorse AI video engine</p>
                 </span>
               </Link>
-              <Link href="/pricing" className="tile">
+              <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
+                {tileVid('cinematic_veo')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
                   <span className="tb">Studio</span>
@@ -860,7 +873,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <p>Google&rsquo;s flagship, on Studio</p>
                 </span>
               </Link>
-              <Link href="/pricing" className="tile">
+              <Link href="/generate?engine=kling&intent_campaign=engine_tile" className="tile">
+                {tileVid('cinematic_kling')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
                   <span className="tb">Studio</span>
@@ -870,7 +884,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <p>Cinematic motion &amp; camera</p>
                 </span>
               </Link>
-              <Link href="/pricing" className="tile">
+              <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
+                {tileVid('cinematic_hollywood')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
                   <span className="tb">Studio</span>
@@ -881,6 +896,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 </span>
               </Link>
               <Link href="/avatar" className="tile">
+                {tileVid('presenter')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="10" cy="8" r="4"/><path d="M3 21c0-3.9 3.1-7 7-7 1.6 0 3.1.5 4.3 1.4"/><path d="M18 8c1 1.2 1 3 0 4.2M21 6c2 2.4 2 6 0 8.4"/></svg></span>
                   <span className="tb">New</span>
@@ -890,7 +906,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <p>Talking video from one photo</p>
                 </span>
               </Link>
-              <Link href="/generate" className="tile">
+              <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
+                {tileVid('fast')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
                 </span>
@@ -900,6 +917,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                 </span>
               </Link>
             </div>
+              )
+            })()}
           </div>
         </section>
       )}
