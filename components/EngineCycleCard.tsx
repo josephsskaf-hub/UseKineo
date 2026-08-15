@@ -37,6 +37,10 @@ const srcOf = (v: WallVideo) => v.previewUrl ?? v.videoUrl
 export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVideo[]; index?: number }) {
   // `active` = indice do video corrente. Slot corrente = active % 2.
   const [active, setActive] = useState(0)
+  // FIX 15/08 (fundador viu o proximo video vazando no fim do anterior): o
+  // src de cada slot agora e ESTADO proprio — o slot que sai mantem o
+  // conteudo antigo durante o fade e so recebe o proximo clipe DEPOIS.
+  const [slotVids, setSlotVids] = useState<(WallVideo | null)[]>([videos[0] ?? null, videos[1] ?? null])
   const [started, setStarted] = useState(false)
   const boxRef = useRef<HTMLAnchorElement | null>(null)
   const refA = useRef<HTMLVideoElement | null>(null)
@@ -68,13 +72,26 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
   // hv-on sai -> transition de opacidade) e pausa depois do crossfade.
   useEffect(() => {
     if (!started) return
+    const len = videos.length
     const cur = (active % 2 === 0 ? refA : refB).current
     const old = (active % 2 === 0 ? refB : refA).current
     cur?.play().catch(() => {})
-    if (old) {
-      const timer = window.setTimeout(() => { old.classList.remove('hv-on'); old.pause() }, 450)
+    if (old && len > 1) {
+      // O slot antigo segura o conteudo ate o crossfade acabar; SO ENTAO
+      // recebe o proximo clipe pra pre-carregar (invisivel, opacity 0).
+      const oldSlot = active % 2 === 0 ? 1 : 0
+      const timer = window.setTimeout(() => {
+        old.classList.remove('hv-on')
+        old.pause()
+        setSlotVids((sv) => {
+          const ns = [...sv]
+          ns[oldSlot] = videos[(active + 1) % len]
+          return ns
+        })
+      }, 480)
       return () => window.clearTimeout(timer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, started])
 
   if (videos.length === 0) return null
@@ -85,15 +102,13 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
 
   const advance = () => { if (len > 1) setActive((a) => a + 1) }
 
-  // Slot s (0=A,1=B): corrente mostra videos[active], o outro pre-carrega o proximo.
-  const slotVideo = (s: number): WallVideo => videos[(active + (s === active % 2 ? 0 : 1)) % len]
-
   const renderSlot = (s: number) => {
-    const sv = slotVideo(s)
+    const sv = slotVids[s]
+    if (!sv) return null
     const isCur = s === active % 2
     return (
       <video
-        key={`slot${s}`}
+        key={`slot${s}-${sv.id}`}
         ref={s === 0 ? refA : refB}
         src={srcOf(sv)}
         muted
