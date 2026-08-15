@@ -54,7 +54,7 @@ html{scroll-behavior:smooth}
 .klp{--bg:#000;--s0:#0c0c0e;--card:#141416;--card2:#1d1d1f;--s3:#26262a;--line:#26262a;--line2:#3a3a3d;--line3:#4d4d50;--txt:#f5f5f7;--txt2:#c7c7cd;--muted:#a1a1a8;--muted2:#8f8f96;--blue:#2997ff;--blue-soft:rgba(41,151,255,.16);--r-xs:8px;--r-sm:13px;--r-md:18px;--r-lg:22px;--r-pill:999px;--sh-card:inset 0 1px 0 rgba(255,255,255,.045),0 18px 44px -30px rgba(0,0,0,.95);--sh-card-h:inset 0 1px 0 rgba(255,255,255,.07),0 26px 60px -30px rgba(0,0,0,1);--sh-cta:0 1px 0 rgba(255,255,255,.5) inset,0 10px 28px -12px rgba(255,255,255,.32);--dur-fast:150ms;--dur-base:250ms;--dur-slow:400ms;--ease-swift:cubic-bezier(.2,0,0,1);--ease-out-expo:cubic-bezier(.16,1,.3,1);background:var(--bg);color:var(--txt);font-family:var(--font-inter),'Inter',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;min-height:100vh}
 .klp *{box-sizing:border-box;margin:0;padding:0}
 .klp a{text-decoration:none;color:inherit}
-.klp .wrap{max-width:1080px;margin:0 auto;padding:0 28px}
+.klp .wrap{max-width:none;margin:0 auto;padding:0 32px}
 .klp .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-weight:650;font-size:16px;letter-spacing:-.01em;padding:14px 30px;border-radius:var(--r-pill);cursor:pointer;transition:transform var(--dur-fast) var(--ease-swift),background var(--dur-fast) ease,box-shadow var(--dur-fast) ease;border:1px solid transparent}
 .klp .btn-w{background:var(--txt);color:#000;box-shadow:var(--sh-cta);position:relative;overflow:hidden}
 /* Dia 17 (13/08): sheen — um brilho diagonal atravessa o CTA branco UMA vez
@@ -163,7 +163,7 @@ html{scroll-behavior:smooth}
    midia + bento dos motores (promo grande a esquerda, 6 tiles a direita com
    icone, nome, frase e badge). Nossos videos e motores reais. */
 @keyframes ewsh{0%{background-position:200% 0}100%{background-position:-200% 0}}
-.klp .ew-wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.klp .ew-wrap{max-width:none;margin:0 auto;padding:0 32px}
 .klp .ftr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .klp .ftr{display:block}
 .klp .ftr-media{position:relative;aspect-ratio:16/10;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;transition:border-color var(--dur-fast) ease,transform var(--dur-base) var(--ease-swift)}
@@ -468,9 +468,9 @@ html{scroll-behavior:smooth}
 .klp .hero-gallery::before{content:'';position:absolute;left:50%;bottom:-60px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .hero-gallery{position:relative;z-index:1;display:grid;grid-template-columns:repeat(6,1fr);gap:12px;max-width:100%;margin:clamp(15px,2.2vh,44px) auto 0}
 .klp .sr-h1{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
-.klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(14px,2.2vh,30px);margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);padding-left:18px;padding-right:18px;display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px}
+.klp .hero-ftr{position:relative;z-index:1;margin-top:clamp(14px,2.2vh,30px);display:flex;gap:14px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:8px}
 .klp .hero-ftr::-webkit-scrollbar{display:none}
-.klp .hero-ftr .ftr{flex:0 0 clamp(300px,calc((100vw - 78px)/4),500px);scroll-snap-align:start}
+.klp .hero-ftr .ftr{flex:0 0 clamp(300px,calc((100vw - 106px)/4),560px);scroll-snap-align:start}
 @media(max-width:700px){.klp .hero-ftr .ftr{flex:0 0 78%}}
 .klp .hero-ftr::after{content:'';position:absolute;left:50%;bottom:-70px;transform:translateX(-50%);width:min(900px,90%);height:260px;background:radial-gradient(ellipse at 50% 100%,rgba(41,151,255,.10),transparent 70%);pointer-events:none;z-index:0}
 .klp .ec-ftr .ftr-media{display:block;aspect-ratio:500/280}
