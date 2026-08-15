@@ -18,6 +18,9 @@ export type WallVideo = {
   id: string
   title: string
   videoUrl: string
+  /** Clipe curto (8s, 640px, ~300KB) em public/previews — os cards do hero
+   *  usam ele em vez do render inteiro: e o que mata o travamento. */
+  previewUrl?: string
   engine: string
   /** Rótulo curto do selo, estilo Higgsfield: caps, seco. */
   badge: string
@@ -59,13 +62,15 @@ const PER_ENGINE: Record<string, number> = {
 //   HOLLYWOOD: o historiador na vila medieval à noite (fotorrealismo de época)
 const CURATED: Record<string, string[]> = {
   //   VEO 3: tenda de Dyatlov + floresta enevoada + cratera nuclear no Pacifico
-  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4'],
+  cinematic_veo: ['e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba'],
   //   KLING: ruinas de Roma com moedas + montanha dourada de 1922 + chute de 50m no estadio
   cinematic_kling: ['c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551'],
   //   HOLLYWOOD: historiador medieval + reporter de trench coat em Manhattan + o campo em chamas de 50 anos
-  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e5388a6d-22a6-491d-9bc9-c1b4a00371b6', 'f32ea301-a239-4d2c-a516-388796aa63da', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
+  //   KLING 3 (recurado 15/08 b): historiador medieval + mulher no carro + reporter golden hour + campo em chamas
+  cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'ccc0a437-4e35-4185-8b19-999fa0cad9c1', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
-  cinematic_ai: ['2460ea18-586c-4364-8ad4-254c20662854', 'e06bb4ed-d57b-440a-b978-6660418966fd', '789160b5-a78b-4912-a058-680e083a58e8', '4ca48262-ebd3-4f1e-86f5-86eb70998c0d'],
+  //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
+  cinematic_ai: ['86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501'],
   //   FAST: montanhas com nuvens + Dubai dourada + praca aerea
   fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
@@ -77,6 +82,15 @@ const CURATED: Record<string, string[]> = {
 // uniforme e patrocinadores visiveis). Risco juridico de imagem — a landing
 // nao pode carregar isso, mesmo sendo render legitimo de usuario.
 const ALL_CURATED = new Set(Object.values(CURATED).flat())
+
+// Clipes leves gerados em public/previews/{id}.mp4 (8s, 640px, crop 500:280).
+// So os 16 do hero — o resto da parede segue com o render integral.
+const PREVIEWS = new Set<string>([
+  'e6cdf301-9668-4700-8f6a-c1de6b8c4dbe', '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba',
+  'c4e4fbab-0978-4daa-9fcf-119096370210', '26d25419-6719-47ab-b24b-df214e007fbd', 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', '8b38c8d1-764c-4bff-94ee-f1b2721c7551',
+  '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'ccc0a437-4e35-4185-8b19-999fa0cad9c1', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da',
+  '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501',
+])
 
 const EXCLUDED = new Set<string>([
   'fe2c5b2c-e468-497b-b0b3-8d9d9a961fb8',
@@ -194,6 +208,7 @@ async function buildWall(caps: Record<string, number>, skipCurated = false): Pro
         id: row.id as string,
         title: title.length > 70 ? `${title.slice(0, 67)}…` : title,
         videoUrl: row.video_url as string,
+        previewUrl: PREVIEWS.has(row.id as string) ? `/previews/${row.id}.mp4` : undefined,
         engine,
         badge: ENGINE_BADGES[engine] ?? 'AI',
       })

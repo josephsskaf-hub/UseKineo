@@ -89,15 +89,21 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
           <video
             key={v.id}
             ref={vidRef}
-            src={v.videoUrl}
+            src={v.previewUrl ?? v.videoUrl}
             muted
             playsInline
-            preload="metadata"
+            preload="auto"
             onPlaying={(e) => e.currentTarget.classList.add('hv-on')}
             loop={videos.length === 1}
             onEnded={() => setIdx((i) => (i + 1) % videos.length)}
           />
         )}
+        {/* Prefetch invisivel do PROXIMO clipe: quando o atual acaba, o
+            seguinte ja esta no cache — zero travada na troca. */}
+        {started && videos.length > 1 && (() => {
+          const nx = videos[(idx + 1) % videos.length]
+          return <video key={`pre-${nx.id}`} src={nx.previewUrl ?? nx.videoUrl} muted playsInline preload="auto" style={{ display: 'none' }} />
+        })()}
         <span className="ec-chip">{meta.name}</span>
         {videos.length > 1 && (
           <span className="ec-dots" aria-hidden="true">
