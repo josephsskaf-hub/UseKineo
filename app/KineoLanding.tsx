@@ -741,20 +741,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
               })
             })()}
           </div>
-          {/* KINEO-HERO-SHOWCASE-2026-08-05 — a segunda frase repetia, palavra por
-              palavra, o que a seção "From idea to posted Short in 3 steps" diz
-              logo abaixo ("script, voice, footage and captions"). Fica só a
-              informação que a fileira sozinha não dá: que aquilo é export real.
-              Os três links internos continuam todos aqui — são distribuição
-              orgânica, não enfeite. */}
-          <p className="gallery-cap">Real Kineo exports, not mockups — each one started from a single topic.<span style={{ display: 'block', marginTop: 8 }}><Link href="/free-ai-shorts-generator" className="link">Try the free AI Shorts generator →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/text-to-video-shorts" className="link">Text-to-video workflow →</Link>&nbsp;&nbsp;·&nbsp;&nbsp;<Link href="/niche-picker" className="link">Find your faceless niche →</Link></span></p>
-          <div className="platforms" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <span style={{ opacity: .75 }}>Built for</span>
-            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.6 7.2a2.8 2.8 0 0 0-2-2C17.9 4.8 12 4.8 12 4.8s-5.9 0-7.6.4a2.8 2.8 0 0 0-2 2A29 29 0 0 0 2 12a29 29 0 0 0 .4 4.8 2.8 2.8 0 0 0 2 2c1.7.4 7.6.4 7.6.4s5.9 0 7.6-.4a2.8 2.8 0 0 0 2-2A29 29 0 0 0 22 12a29 29 0 0 0-.4-4.8zM9.8 15.3V8.7L15.9 12l-6.1 3.3z"/></svg>YouTube Shorts</b>
-            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.3 7.3a5.6 5.6 0 0 1-3.4-1.1A5.6 5.6 0 0 1 13.7 2h-3.2v13.7a3.3 3.3 0 1 1-2.3-3.1V9.3a6.5 6.5 0 1 0 4.7 6.2V8.9a8.7 8.7 0 0 0 4.6 1.3h1.6V7.3h-.8z"/></svg>TikTok</b>
-            <b style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg>Reels</b>
-          </div>
-        </div>
+                  </div>
       </header>
 
       {/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout do print do fundador:
