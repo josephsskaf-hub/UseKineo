@@ -96,6 +96,18 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
             onPlaying={(e) => e.currentTarget.classList.add('hv-on')}
             loop={videos.length === 1}
             onEnded={() => setIdx((i) => (i + 1) % videos.length)}
+            // Blindagem: se um clipe falhar (404/rede), o carrossel NUNCA
+            // congela — tenta o render integral e, se ja era ele, pula pro
+            // proximo video.
+            onError={(e) => {
+              const el = e.currentTarget
+              if (v.previewUrl && el.src.includes('/previews/')) {
+                el.src = v.videoUrl
+                el.play().catch(() => {})
+              } else if (videos.length > 1) {
+                setIdx((i) => (i + 1) % videos.length)
+              }
+            }}
           />
         )}
         {/* Prefetch invisivel do PROXIMO clipe: quando o atual acaba, o
