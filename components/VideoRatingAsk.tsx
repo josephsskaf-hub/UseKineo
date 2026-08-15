@@ -38,6 +38,7 @@
 // para null em QUALQUER falha — storage bloqueado, fetch morto, valor
 // desconhecido — para nunca quebrar a tela de sucesso.
 import { useEffect, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 // #rw_cont deixa a pessoa direto no formulário de avaliação da nossa página no
 // TAAFT — sem caçar, o que mantém a promessa de "30 segundos" honesta.
@@ -58,22 +59,13 @@ const REASONS: { id: string; label: string }[] = [
   { id: 'other', label: 'Something else' },
 ]
 
-// Mesmo fire-and-forget do trackEvent do GenerateClient: as duas chaves
-// (`event_name` e `name`) para o schema duplo da rota, keepalive para o evento
-// sobreviver à aba abrindo, erro engolido para analytics nunca afetar a UI.
+// KINEO-ORFAOS-CLIQUE-2026-08-14 — mesma família de helpers copiados, mesmo
+// defeito: `fetch` cru sem `session_id`, 20 eventos 100% órfãos. Esta é a voz
+// do cliente logo depois do vídeo (nota + motivo da nota) e não dava para
+// cruzar com a sessão que gerou o vídeo. `trackEvent` resolve na origem.
 function track(name: string, metadata: Record<string, unknown> = {}): void {
   try {
-    void fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name: name,
-        name,
-        metadata: { source: 'post_video_success', ...metadata },
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-      }),
-      keepalive: true,
-    }).catch(() => {})
+    void trackEvent(name, { source: 'post_video_success', ...metadata })
   } catch {
     // ignore — tracking nunca pode estourar dentro da tela de sucesso
   }

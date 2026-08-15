@@ -20,26 +20,21 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 
-// Same fire-and-forget /api/events pattern as components/TaaftReviewAsk.tsx:62-78
-// — both `event_name` and `name` keys for the route's dual schema
-// (app/api/events/route.ts:49-55), keepalive so an event survives navigation,
-// errors swallowed so analytics can never break the dashboard. None of these
-// names are in SERVER_ONLY_EVENTS (app/api/events/route.ts:16-33), so the
-// browser sink accepts them.
+// KINEO-ORFAOS-CLIQUE-2026-08-14 — este helper era `fetch('/api/events')` cru,
+// sem `session_id`, e os quatro helpers desta família nasceram um do outro por
+// cópia (o de AutopilotClient diz, no próprio comentário, "mesmo padrão de
+// app/(dashboard)/affiliate/page.tsx"). O efeito é o mesmo de 25/07 no
+// PostVideoPaywall e o mesmo que as 11h de hoje acharam em /examples: TODO
+// funil da operação agrupa por sessão, então estes eventos existem no banco e
+// não existem em nenhuma leitura — a superfície aparece como morta e é
+// despriorizada. Medido: 22 eventos e 8 pessoas em /affiliate, 100% órfãos, o
+// último hoje 18:55Z. `trackEvent` anexa `session_id` (o MESMO id que o route
+// handler lê do cookie) mais UTMs de first-touch. Nenhum nome de evento muda.
 function trackAffiliateEvent(name: string, metadata?: Record<string, unknown>): void {
   try {
-    void fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name: name,
-        name,
-        metadata: { source: 'affiliate_dashboard', ...(metadata ?? {}) },
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-      }),
-      keepalive: true,
-    }).catch(() => {})
+    void trackEvent(name, { source: 'affiliate_dashboard', ...(metadata ?? {}) })
   } catch {
     // ignore — tracking must never throw into the affiliate dashboard
   }

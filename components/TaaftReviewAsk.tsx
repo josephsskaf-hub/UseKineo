@@ -33,6 +33,7 @@
 //      clicked or dismissed) and fewer than 3 lifetime shows in this browser
 //   4. renderCount >= 1 — the ask belongs to the delivery moment
 import { useEffect, useState } from 'react'
+import { trackEvent } from '@/lib/analytics'
 
 // #rw_cont anchor drops the visitor directly at the review form on our
 // TAAFT listing — no scrolling/hunting, keeps the "30 seconds" promise true.
@@ -60,23 +61,14 @@ function fetchSignupSource(): Promise<string | null> {
   return signupSourcePromise
 }
 
-// Same fire-and-forget /api/events pattern as GenerateClient's trackEvent —
-// both `event_name` and `name` keys for the route's dual schema, keepalive
-// so the 'clicked' event survives the tab opening, errors swallowed so
-// analytics can never affect the UI.
+// KINEO-ORFAOS-CLIQUE-2026-08-14 — o maior órfão de clique da casa: 129 eventos
+// e 88 PESSOAS, 100% sem `session_id`. É o pedido de review no TAAFT, ou seja, a
+// engrenagem de prova social do diretório onde o fundador considera gastar $347
+// — e era impossível dizer de que origem vinha quem aceita fazer review.
+// `trackEvent` anexa session_id + UTMs de first-touch. Nenhum nome muda.
 function trackReviewAskEvent(name: string): void {
   try {
-    void fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name: name,
-        name,
-        metadata: { source: 'post_video_success' },
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-      }),
-      keepalive: true,
-    }).catch(() => {})
+    void trackEvent(name, { source: 'post_video_success' })
   } catch {
     // ignore — tracking must never throw into the success screen
   }

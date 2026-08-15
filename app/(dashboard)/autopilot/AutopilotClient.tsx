@@ -33,6 +33,7 @@ import { useSearchParams } from 'next/navigation'
 // para 2 das 3 moedas — quem mostra preço é /pricing, que resolve a moeda.
 import { PLANS } from '@/lib/pricing'
 import { AUTOPILOT_PILOT_PLAN } from '@/lib/autopilot/config'
+import { trackEvent } from '@/lib/analytics'
 
 const CYAN = '#2997ff'
 const TEXT = '#F1F5F9'
@@ -40,22 +41,15 @@ const MUTED = '#86868b'
 const CARD = '#161618'
 const BORDER = '1px solid rgba(255,255,255,0.08)'
 
-// Mesmo padrão fire-and-forget de app/(dashboard)/affiliate/page.tsx: os dois
-// nomes de campo (o sink aceita `name` e `event_name`), keepalive para o evento
-// sobreviver à navegação, erro engolido — telemetria nunca quebra a página.
+// KINEO-ORFAOS-CLIQUE-2026-08-14 — era `fetch('/api/events')` cru, sem
+// `session_id`, herdado por cópia de app/(dashboard)/affiliate/page.tsx (o
+// comentário antigo dizia isso com todas as letras). Custo medido: 54 eventos e
+// 26 pessoas em /autopilot, 100% órfãos — e entre eles `autopilot_upgrade_clicked`,
+// ou seja, uma superfície de UPGRADE invisível para todo funil por sessão da
+// casa. `trackEvent` anexa session_id + UTMs de first-touch; nenhum nome muda.
 function track(name: string, metadata?: Record<string, unknown>): void {
   try {
-    void fetch('/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        event_name: name,
-        name,
-        metadata: { source: 'autopilot_page', ...(metadata ?? {}) },
-        path: typeof window !== 'undefined' ? window.location?.pathname : undefined,
-      }),
-      keepalive: true,
-    }).catch(() => {})
+    void trackEvent(name, { source: 'autopilot_page', ...(metadata ?? {}) })
   } catch {
     /* ignore */
   }
