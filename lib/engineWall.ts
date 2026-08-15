@@ -23,14 +23,18 @@ export type WallVideo = {
   badge: string
 }
 
+// KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (medidos em
+// app/api/generate-video-cinematic/route.ts): Hollywood roda Kling 3 Pro,
+// Kling e o 2.5 Turbo, Veo e o 3.1, Seedance e o 1.5 Pro. O Fast e o motor
+// PROPRIO do Kineo — batizado Kineo 1 (decisao do fundador 15/08).
 const ENGINE_BADGES: Record<string, string> = {
-  cinematic_veo: 'VEO 3',
-  cinematic_kling: 'KLING',
-  cinematic_hollywood: 'HOLLYWOOD',
-  cinematic_ai: 'SEEDANCE',
+  cinematic_veo: 'VEO 3.1',
+  cinematic_kling: 'KLING 2.5',
+  cinematic_hollywood: 'KLING 3',
+  cinematic_ai: 'SEEDANCE 1.5',
   basic_ai: 'AI',
-  fast: 'FAST',
-  presenter: 'PRESENTER',
+  fast: 'KINEO 1',
+  presenter: 'AVATAR',
 }
 
 // Ordem de exibição: os motores-troféu primeiro (é o que o Higgsfield faz —
@@ -87,11 +91,11 @@ const SHOWCASE_CAPS: Record<string, number> = {
 // Hero da home: 6 cards-carrossel, ate 3 videos POR MOTOR (pedido do
 // fundador 15/08: "tres videos em cada, ficam passando").
 const HERO_CAPS: Record<string, number> = {
-  cinematic_veo: 4,
-  cinematic_kling: 4,
-  cinematic_hollywood: 4,
-  cinematic_ai: 4,
-  fast: 4,
+  cinematic_veo: 3,
+  cinematic_kling: 3,
+  cinematic_hollywood: 3,
+  cinematic_ai: 3,
+  fast: 3,
   presenter: 1,
 }
 

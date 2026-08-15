@@ -755,7 +755,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
             {(() => {
               const order = ['cinematic_veo', 'cinematic_kling', 'cinematic_hollywood', 'cinematic_ai', 'fast']
               return order.map((eng, i) => {
-                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 4)
+                const vids = engineWall.filter((v) => v.engine === eng).slice(0, 3)
                 if (vids.length === 0) return null
                 return <EngineCycleCard key={eng} videos={vids} index={i} />
               })
@@ -790,7 +790,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tb">Popular</span>
                 </span>
                 <span className="tbody">
-                  <h3>Seedance</h3>
+                  <h3>Seedance 1.5</h3>
                   <p>The workhorse AI video engine</p>
                 </span>
               </Link>
@@ -801,7 +801,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tb">Studio</span>
                 </span>
                 <span className="tbody">
-                  <h3>Veo 3</h3>
+                  <h3>Veo 3.1</h3>
                   <p>Google&rsquo;s flagship, on Studio</p>
                 </span>
               </Link>
@@ -812,7 +812,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tb">Studio</span>
                 </span>
                 <span className="tbody">
-                  <h3>Kling</h3>
+                  <h3>Kling 2.5</h3>
                   <p>Cinematic motion &amp; camera</p>
                 </span>
               </Link>
@@ -823,8 +823,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tb">Studio</span>
                 </span>
                 <span className="tbody">
-                  <h3>Hollywood</h3>
-                  <p>Multi-scene film pipeline</p>
+                  <h3>Kling 3</h3>
+                  <p>Film scenes, native voice &amp; lip sync</p>
                 </span>
               </Link>
               <Link href="/avatar" className="tile">
@@ -834,7 +834,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tb">New</span>
                 </span>
                 <span className="tbody">
-                  <h3>AI Presenter</h3>
+                  <h3>Avatar</h3>
                   <p>Talking video from one photo</p>
                 </span>
               </Link>
@@ -844,8 +844,8 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
                 </span>
                 <span className="tbody">
-                  <h3>Fast</h3>
-                  <p>Stock + captions in 3&ndash;7 min</p>
+                  <h3>Kineo 1</h3>
+                  <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
                 </span>
               </Link>
             </div>
