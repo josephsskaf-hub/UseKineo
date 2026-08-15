@@ -57,7 +57,25 @@ const CURATED: Record<string, string[]> = {
   cinematic_hollywood: ['956187b7-08d2-4c54-ac99-fa8508a9ed5c'],
 }
 
-export async function getEngineWall(): Promise<WallVideo[]> {
+// /examples pede uma amostra maior por motor que a home.
+const SHOWCASE_CAPS: Record<string, number> = {
+  cinematic_veo: 3,
+  cinematic_kling: 3,
+  cinematic_hollywood: 3,
+  cinematic_ai: 4,
+  fast: 0, // os Fast do /examples sao os 10 locais curados (PUBLIC_EXAMPLES)
+  presenter: 2,
+}
+
+export function getEngineShowcase(): Promise<WallVideo[]> {
+  return buildWall(SHOWCASE_CAPS)
+}
+
+export function getEngineWall(): Promise<WallVideo[]> {
+  return buildWall(PER_ENGINE)
+}
+
+async function buildWall(caps: Record<string, number>): Promise<WallVideo[]> {
   try {
     const db = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -104,14 +122,14 @@ export async function getEngineWall(): Promise<WallVideo[]> {
     for (const engine of ENGINE_ORDER) {
       // 1º: os curados, na ordem da curadoria.
       for (const id of CURATED[engine] ?? []) {
-        if ((used[engine] ?? 0) >= (PER_ENGINE[engine] ?? 1)) break
+        if ((used[engine] ?? 0) >= (caps[engine] ?? 1)) break
         const row = byId.get(id)
         if (row) pushRow(row, engine)
       }
       // 2º: completa a vaga com o automático (recentes primeiro).
       for (const row of data ?? []) {
         if (row.quality_mode !== engine) continue
-        if ((used[engine] ?? 0) >= (PER_ENGINE[engine] ?? 1)) break
+        if ((used[engine] ?? 0) >= (caps[engine] ?? 1)) break
         if (out.some((v) => v.id === row.id)) continue
         pushRow(row, engine)
       }

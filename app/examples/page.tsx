@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from './ExampleLiveMedia'
+import WallMedia from '@/components/WallMedia'
+import { getEngineShowcase } from '@/lib/engineWall'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
@@ -21,7 +23,8 @@ export const metadata: Metadata = {
   },
 }
 
-export default function ExamplesPage() {
+export default async function ExamplesPage() {
+  const showcase = await getEngineShowcase()
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10">
@@ -83,6 +86,40 @@ export default function ExamplesPage() {
             </Link>
           ))}
         </div>
+
+        {/* KINEO-EXPLORE-2026-08-15 — pedido do fundador: 20+ exemplos.
+            10 locais curados acima + os renders REAIS do banco por motor
+            abaixo, cada um com o selo do modelo que o gerou (mesma honestidade
+            da Engine Wall da home). */}
+        {showcase.length >= 6 && (
+          <div className="mt-16">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#2997ff]">Straight from the engines</p>
+            <h2 className="mt-3 font-display text-2xl font-semibold tracking-[-.02em] sm:text-3xl">
+              Real renders, engine by engine.
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/60">
+              Every card below came out of a user account. The badge is the exact model that made it — Google&rsquo;s Veo 3, Kling, the Hollywood pipeline, Seedance and the AI Presenter.
+            </p>
+            <div className="mt-8 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              {showcase.map((v) => (
+                <Link
+                  key={v.id}
+                  href={`/v/${v.id}`}
+                  className="group relative block overflow-hidden rounded-[18px] border border-white/10 bg-black transition hover:-translate-y-1 hover:border-[#2997ff]/60"
+                  style={{ aspectRatio: '9 / 16' }}
+                >
+                  <WallMedia src={v.videoUrl} />
+                  <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
+                    {v.badge}
+                  </span>
+                  <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 to-transparent p-2.5 pt-8">
+                    <p className="text-[11.5px] font-semibold leading-tight">{v.title}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-12 rounded-[22px] border border-[#2997ff]/25 bg-[#2997ff]/[0.06] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>

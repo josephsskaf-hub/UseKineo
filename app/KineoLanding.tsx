@@ -666,7 +666,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
           </div>
           Kineo
         </Link>
-        <div className="nav-links"><Link href="/generate">Video Generation</Link><Link href="/avatar">AI Avatar</Link><Link href="/examples">Examples</Link><a href="#pricing">Pricing</a></div>
+        <div className="nav-links"><Link href="/generate">Video Generation</Link><Link href="/avatar">AI Avatar</Link><Link href="/examples">Explore</Link><a href="#pricing">Pricing</a></div>
         <div className="nav-right">
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
@@ -677,7 +677,7 @@ export default function KineoLanding({ initialUser, engineWall = [] }: Props & {
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/generate">Video Generation</Link>
               <Link href="/avatar">AI Avatar</Link>
-              <Link href="/examples">Examples</Link>
+              <Link href="/examples">Explore</Link>
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
