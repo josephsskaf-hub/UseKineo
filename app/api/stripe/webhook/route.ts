@@ -970,6 +970,247 @@ export async function POST(req: NextRequest) {
         } catch (abanCatch) {
           console.warn('[stripe webhook] checkout_abandoned insert threw:', abanCatch)
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // KINEO-PAREDE-CHECKOUT-2026-08-16 — a expiração também vira EVENTO.
+        // ═══════════════════════════════════════════════════════════════════
+        // POR QUE: `checkout_abandoned` é o livro-caixa VERDADEIRO de quem
+        // chegou na página de pagamento (o webhook escreve, o servidor da
+        // Stripe manda), e `events` só conhecia `checkout_started`, que é
+        // emitido pelo BROWSER. As duas contagens divergem por ~2x: para INR,
+        // `events` conhecia 11 pessoas em 42 dias e o livro-caixa conhece 27.
+        // Todo funil da operação foi lido em `events`, logo todo funil
+        // SUBCONTOU o abandono de checkout. Este evento fecha o par
+        // `checkout_started` → `checkout_session_expired` dentro da MESMA
+        // tabela, para que a taxa de fechamento exista sem ninguém
+        // reconstruir coorte na mão em duas fontes.
+        //
+        // ⚠️ DESCONTINUIDADE: esta linha nasce hoje. Um salto em
+        // `checkout_session_expired` a partir deste deploy é o INSTRUMENTO
+        // nascendo, não abandono novo. O histórico verdadeiro está em
+        // `checkout_abandoned` desde 25/05/2026 e continua lá.
+        //
+        // SERVER_ONLY (app/api/events/route.ts): se o sink do browser pudesse
+        // cunhar isto, um burst forjado faria a parede do checkout parecer
+        // maior do que é e mandaria a operação consertar o lugar errado.
+        let expiredWritten = false
+        try {
+          expiredWritten = await writeServerEvent({
+            name: 'checkout_session_expired',
+            userId: abandonedUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              stripe_session_id: expiredSession.id,
+              tier: abandonedTier,
+              billing: expiredSession.metadata?.billing ?? null,
+              pack: expiredSession.metadata?.pack ?? null,
+              checkout_origin: expiredSession.metadata?.checkout_origin ?? null,
+              intro: expiredSession.metadata?.intro === '1',
+              currency: expiredSession.currency ?? null,
+              amount_total: expiredSession.amount_total ?? null,
+              checkout_mode: expiredSession.mode ?? null,
+              // `payment_status` separa duas mortes MUITO diferentes:
+              // 'unpaid' = nunca digitou cartão; 'no_payment_required' = sessão
+              // de valor zero. Sem isto, "expirou" mistura quem desistiu com
+              // quem tentou e foi recusado.
+              payment_status: expiredSession.payment_status ?? null,
+              customer_country:
+                expiredSession.customer_details?.address?.country ?? null,
+            },
+          })
+          // A linha de `checkout_abandoned` tem FK em auth.users: uma conta
+          // apagada derruba o INSERT inteiro e leva junto a MOEDA, que é a
+          // única coisa que esta instrumentação existe para contar. Se o
+          // evento não entrou com dono, ele entra sem dono. Perder o nome é
+          // barato; perder o denominador corrompe o funil.
+          if (!expiredWritten) {
+            await writeServerEvent({
+              name: 'checkout_session_expired',
+              userId: null,
+              path: '/api/stripe/webhook',
+              metadata: {
+                source: 'stripe_webhook',
+                stripe_event_id: event.id,
+                stripe_session_id: expiredSession.id,
+                orphaned_user: true,
+                tier: abandonedTier,
+                currency: expiredSession.currency ?? null,
+                amount_total: expiredSession.amount_total ?? null,
+                payment_status: expiredSession.payment_status ?? null,
+              },
+            })
+          }
+        } catch (expiredEventThrown) {
+          console.warn('[stripe webhook] checkout_session_expired event threw:', expiredEventThrown)
+        }
+        break
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // KINEO-PAREDE-CHECKOUT-2026-08-16 — O EVENTO QUE RESPONDE "POR QUÊ".
+      // ═════════════════════════════════════════════════════════════════════
+      // Medido em 16/08: 84 pessoas externas abriram uma sessão de checkout ao
+      // vivo e foram embora; a empresa tem 7 pagantes na vida inteira. Dessas
+      // 84, 27 (32%) são INR — e o histórico de `payment_success` é 100% USD:
+      // nunca entrou uma rupia.
+      //
+      // O problema é que HOJE não dá para distinguir as duas causas, que pedem
+      // remédios opostos:
+      //   (a) o cartão foi RECUSADO  → é defeito técnico/regulatório nosso
+      //       (RBI e-mandate: conta Stripe fora da Índia precisa registrar
+      //        mandato para cobrança recorrente em cartão indiano — sem ele a
+      //        cobrança off-session é recusada);
+      //   (b) a pessoa MUDOU DE IDEIA → é preço/oferta.
+      // Os dois deixam exatamente o mesmo rastro: `checkout_started` e silêncio.
+      // Toda coorte definida por AUSÊNCIA passa por `events` antes de virar
+      // decisão — e esta não tinha por onde passar.
+      //
+      // Estes dois casos são ADITIVOS: nenhum caminho existente é tocado,
+      // nenhum crédito é concedido ou revogado, nenhum plano muda. É leitura
+      // pura. Seguro para o dia do TAAFT.
+      //
+      // ⚠️ AÇÃO DE 30 SEGUNDOS DO FUNDADOR (está em docs/PAREDE-DO-CHECKOUT-
+      // 2026-08-16.md): o endpoint de webhook na Stripe precisa estar inscrito
+      // em `payment_intent.payment_failed` e `charge.failed`. Se não estiver,
+      // este código é inerte — não quebra nada, apenas nunca roda. `stripe_events`
+      // recebe 2-8 eventos/dia, compatível com uma lista curta de inscrição.
+      case 'payment_intent.payment_failed': {
+        const failedIntent = event.data.object as Stripe.PaymentIntent
+        const lastError = failedIntent.last_payment_error ?? null
+        const intentCustomerId =
+          typeof failedIntent.customer === 'string'
+            ? failedIntent.customer
+            : failedIntent.customer?.id ?? null
+        // `invoice` saiu do tipo público do PaymentIntent em versões recentes
+        // da API mas continua vindo no payload das cobranças de fatura — ler
+        // por acesso indexado mantém o discriminador sem `any` solto.
+        const intentInvoiceRaw = (failedIntent as unknown as { invoice?: string | { id?: string } | null }).invoice
+        const intentInvoiceId =
+          typeof intentInvoiceRaw === 'string'
+            ? intentInvoiceRaw
+            : intentInvoiceRaw?.id ?? null
+
+        let failedUserId: string | null =
+          failedIntent.metadata?.supabase_user_id ?? null
+        if (!failedUserId && intentCustomerId) {
+          try {
+            const { data: byCustomer } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('stripe_customer_id', intentCustomerId)
+              .limit(1)
+            failedUserId = byCustomer?.[0]?.id ?? null
+          } catch (lookupThrown) {
+            console.warn('[stripe webhook] payment_failed customer lookup threw:', lookupThrown)
+          }
+        }
+
+        try {
+          await writeServerEvent({
+            name: 'checkout_payment_failed',
+            userId: failedUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              object: 'payment_intent',
+              stripe_payment_intent_id: failedIntent.id,
+              stripe_customer_id: intentCustomerId,
+              currency: failedIntent.currency ?? null,
+              amount: failedIntent.amount ?? null,
+              // SEM ISTO A MÉTRICA MENTE EM 30 DIAS. Uma recusa de RENOVAÇÃO
+              // (cartão de assinante que venceu) não é a parede do checkout —
+              // é churn, e cai no mesmo evento. `invoice` presente ⇒ cobrança
+              // de fatura ⇒ renovação; ausente ⇒ primeira compra. Quem ler
+              // este evento SEMPRE filtra por `is_renewal=false` para medir a
+              // parede, e por `true` para medir churn involuntário.
+              is_renewal: Boolean(intentInvoiceId),
+              stripe_invoice_id: intentInvoiceId,
+              // O par que decide entre (a) e (b): `decline_code` é o veredito
+              // do EMISSOR do cartão. 'transaction_not_allowed' /
+              // 'do_not_honor' em cartão indiano é a assinatura do mandato RBI.
+              error_code: lastError?.code ?? null,
+              decline_code: lastError?.decline_code ?? null,
+              error_type: lastError?.type ?? null,
+              error_message: lastError?.message ?? null,
+              card_country: lastError?.payment_method?.card?.country ?? null,
+              card_brand: lastError?.payment_method?.card?.brand ?? null,
+              card_funding: lastError?.payment_method?.card?.funding ?? null,
+              payment_method_type: lastError?.payment_method?.type ?? null,
+            },
+          })
+        } catch (failedEventThrown) {
+          console.warn('[stripe webhook] checkout_payment_failed (intent) threw:', failedEventThrown)
+        }
+        break
+      }
+
+      case 'charge.failed': {
+        // `charge.failed` traz o `outcome` (network_status / seller_message),
+        // que o PaymentIntent não expõe. Os dois eventos chegam para a mesma
+        // recusa; guardar os dois é de propósito — `outcome.network_status`
+        // separa "o emissor recusou" de "a Stripe bloqueou antes de tentar",
+        // e essa diferença muda quem tem de consertar.
+        const failedCharge = event.data.object as Stripe.Charge
+        const chargeCustomerId =
+          typeof failedCharge.customer === 'string'
+            ? failedCharge.customer
+            : failedCharge.customer?.id ?? null
+
+        const chargeInvoiceRaw = (failedCharge as unknown as { invoice?: string | { id?: string } | null }).invoice
+        const chargeInvoiceId =
+          typeof chargeInvoiceRaw === 'string'
+            ? chargeInvoiceRaw
+            : chargeInvoiceRaw?.id ?? null
+
+        let chargeUserId: string | null = failedCharge.metadata?.supabase_user_id ?? null
+        if (!chargeUserId && chargeCustomerId) {
+          try {
+            const { data: byCustomer } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('stripe_customer_id', chargeCustomerId)
+              .limit(1)
+            chargeUserId = byCustomer?.[0]?.id ?? null
+          } catch (lookupThrown) {
+            console.warn('[stripe webhook] charge.failed customer lookup threw:', lookupThrown)
+          }
+        }
+
+        try {
+          await writeServerEvent({
+            name: 'checkout_payment_failed',
+            userId: chargeUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              object: 'charge',
+              stripe_charge_id: failedCharge.id,
+              stripe_customer_id: chargeCustomerId,
+              currency: failedCharge.currency ?? null,
+              amount: failedCharge.amount ?? null,
+              // Ver a nota em payment_intent.payment_failed: renovação recusada
+              // é CHURN, não parede de checkout. Sempre filtrar por este campo.
+              is_renewal: Boolean(chargeInvoiceId),
+              stripe_invoice_id: chargeInvoiceId,
+              error_code: failedCharge.failure_code ?? null,
+              error_message: failedCharge.failure_message ?? null,
+              decline_code: failedCharge.outcome?.reason ?? null,
+              network_status: failedCharge.outcome?.network_status ?? null,
+              seller_message: failedCharge.outcome?.seller_message ?? null,
+              risk_level: failedCharge.outcome?.risk_level ?? null,
+              card_country: failedCharge.payment_method_details?.card?.country ?? null,
+              card_brand: failedCharge.payment_method_details?.card?.brand ?? null,
+              card_funding: failedCharge.payment_method_details?.card?.funding ?? null,
+              payment_method_type: failedCharge.payment_method_details?.type ?? null,
+            },
+          })
+        } catch (chargeEventThrown) {
+          console.warn('[stripe webhook] checkout_payment_failed (charge) threw:', chargeEventThrown)
+        }
         break
       }
 

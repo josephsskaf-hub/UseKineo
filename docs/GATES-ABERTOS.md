@@ -2298,3 +2298,43 @@ CONVERSAO daquela tabela nao pode ser citada.
 ⚠️ **Descontinuidade a partir deste deploy:** as 13 paginas que ja tinham o starter
 passam a emitir `organic_cta_clicked` tambem. **Um salto nessa linha e o
 instrumento nascendo, nao conversao nova.** Nao comemorar.
+
+---
+
+## Atualizacao — 16/08/2026, sprint 11h
+
+### GATE #B (Animate) — ✅ FECHADO. Alarme morto com o denominador.
+Leitura pos-deploy: `animate_job_settled` = **11 linhas, 3 pessoas, 100%
+`outcome='delivered'`, 0 `refunded`**. Os 70 creditos dos 4 clientes externos
+NUNCA estiveram presos — eram entregas reais. Era exatamente para isso que o
+evento foi criado: "14 clientes felizes" e "70 creditos presos" tinham rastro
+identico e agora nao tem mais. Nao reabrir sem dado novo.
+
+### GATE #C (AvatarStudioClient.pollAvatar) — segue aberto, menos urgente
+O gemeo dele acabou de provar entrega. Aplicar o mesmo portao quando sobrar
+espaco na fila; nao e prioridade contra a parede do checkout.
+
+### GATE #E — NOVO — STRIPE: 2 CAIXAS DE SELECAO (acao de 30s do fundador)
+O commit desta sprint criou `checkout_payment_failed`, que so existe se o
+endpoint de webhook da Stripe estiver inscrito em **`payment_intent.payment_failed`**
+e **`charge.failed`**. `stripe_events` recebe 2-8 eventos/dia, compativel com
+lista curta de inscricao — ou seja, provavelmente NAO estao marcados hoje.
+**Sem essa marcacao o codigo e inerte** (nao quebra nada, so nunca roda) e a
+pergunta "por que 84 pessoas nao pagaram" continua sem resposta possivel.
+Painel Stripe -> Developers -> Webhooks -> endpoint do Kineo.
+
+### GATE #F — NOVO — INDIA: 32% DA PAREDE, 0% DA RECEITA (gate de dinheiro)
+27 das 84 pessoas que abandonaram o checkout sao INR; nunca entrou uma rupia na
+historia da empresa. Tres caminhos, TODOS mexem em dinheiro e sao decisao do
+fundador (`docs/PAREDE-DO-CHECKOUT-2026-08-16.md` secao 5.2): (A) habilitar
+India recurring/e-mandate na Stripe, (B) rotear INR para SKU de compra unica
+(packs/top-ups ja existem em INR e nao dependem de mandato recorrente),
+(C) tirar INR da vitrine e cobrar em USD. **Nao executar nada disto sem ordem
+explicita, e so depois do GATE #E dar dado real.**
+
+### CORRECAO QUE ATINGE TODOS OS DOCS DE FUNIL
+`checkout_abandoned` (webhook, desde 25/05) e o livro-caixa VERDADEIRO de quem
+chegou na pagina de pagamento. `checkout_started` e do BROWSER e **subconta
+~2x** (INR: 11 pessoas em `events` contra 27 no livro-caixa). Qualquer frase do
+tipo "poucos chegam a pagar" escrita antes de hoje esta subcontada. Nao usar
+`checkout_started` como denominador de fechamento.
