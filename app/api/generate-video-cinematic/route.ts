@@ -1831,7 +1831,16 @@ export async function POST(req: NextRequest) {
         let sceneEngine: string = hs.type
         let id: string | null = null
 
-        if (anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
+        // KINEO-HOLLYWOOD-VOICEFIX-2026-08-16 — DESLIGADO por padrao (flag).
+        // O host path fazia TTS (persona por hash do script, gênero aleatorio)
+        // por cima do ROSTO do personagem via Avatar: cai numa voz feminina e
+        // o homem da ancora "fala" com voz de mulher (bug flagrado pelo
+        // fundador no render Flannan Isles). Ate o gênero da voz ser resolvido
+        // a partir do characterSheet (Projeto Piso), cenas de dialogo voltam ao
+        // caminho O3 NATIVO: o personagem fala com a PROPRIA voz, labios e voz
+        // sempre do mesmo dono. Narracao TTS segue apenas nas cenas sem gente
+        // (estilo documentario: narrador + personagem sao pessoas diferentes).
+        if (process.env.KINEO_HOLLYWOOD_HOST_TTS === 'on' && anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
           try {
             const speechBuf = await synthesizeHostSpeech({
               text: hs.dialogueLine,
