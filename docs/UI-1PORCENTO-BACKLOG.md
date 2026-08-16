@@ -568,6 +568,49 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     operacional, enquanto a casa paga o peso de Inter **e** Space Grotesk em toda
     rota; e o azul da marca subiu de **12 elementos (13/08) para 14**, contra o "1
     acento usado raro" do item 3 do sistema deles. Rollback: git revert.
+
+26. **NOVO (16/08, sprint 14h) — /generate: O ACENTO VIROU RUIDO. 89 ELEMENTOS
+    USAM O AZUL DA MARCA NA PAGINA ONDE A INTENCAO DE COMPRA NASCE.** Achado na
+    rotacao (`/generate`) e medido no DOM de producao hoje, elemento por elemento,
+    separando por propriedade: **47 em `color`, 59 em `background`, 38 em `border`,
+    10 em `box-shadow`** — 89 elementos distintos numa pagina de **605**, isto e
+    **1 em cada 7 elementos da tela carrega o acento**. Acima da dobra sao **21**.
+    Para comparar com o que este doc ja mediu: `/wall` tem 14 (item 25), `/pricing`
+    tem 23 (item 22) — **`/generate` tem quase 4x o pior caso registrado ate hoje.**
+    Porque isso importa mais aqui do que nas outras duas: o item 3 do sistema do
+    Higgsfield e "**1 acento usado raro**" (o lime deles aparece em badge e botao,
+    nada mais) e a razao nao e estetica, e funcional — **quando tudo e destaque,
+    nada e destaque**, e a pagina perde a capacidade de dizer "clique AQUI". E
+    `/generate` e, pela medicao de aquisicao da sprint das 13h de hoje, **onde a
+    intencao de compra nasce**: 17 pessoas em `generate_step_1` contra 8 na pagina
+    de precos. A tela que mais precisa de UM ponto focal e a que tem 89.
+    Os dois piores ofensores, medidos: **duas `div.fixed.rounded-full` de 600x600 e
+    500x500 com fundo azul** (glows de ambiente presos no viewport) — sozinhas elas
+    banham a tela inteira no acento antes de qualquer conteudo aparecer.
+    Antes: 89 elementos com o acento, 21 acima da dobra, 2 glows fixos de 600x600 e
+    500x500. Depois: acento reservado a **acao e foco** (CTA primario, estado ativo,
+    focus ring) — alvo <= 12 acima da dobra; os glows de ambiente saem do azul e vao
+    para neutro quente ou perdem opacidade ate nao competirem com o CTA; badge e
+    chip passam a usar `--surface-2` + `--text-2`, como o badge-gray #424242 deles.
+    **Fazer com screenshot antes/depois obrigatorio e um elemento por vez** — esta e
+    a unica categoria de mudanca deste roadmap que altera a APARENCIA e nao so a
+    disciplina, entao ela e proposta ao fundador antes de virar commit.
+    Anotados junto, para nao virarem item novo depois: `/generate` tem **16 raios
+    distintos** e os mais frequentes fora da escala sao `10.5px` (23x), `7px` (15x)
+    e `9999px` (18x) — ou seja **a pagina inteira e Tailwind a 87,5%**, terceira
+    confirmacao do item 22 (com `/pricing` e `/history`); e a fonte fecha o padrao
+    monofonte pela quarta vez: **604 de 605 elementos em Inter, 1 em Space Grotesk**.
+    Rollback: git revert.
+
+    **EMENDA AO ITEM 23 (medida hoje, 16/08) — a doenca do `/history` esta tambem
+    no `/generate`, e o item 23 precisa cobrir as duas paginas.** Medido no DOM de
+    producao: `/generate` tem **11 `<video>`, `preload="metadata"` em 11/11 e
+    `poster` em 0/11**. E exatamente o quadro do item 23 (100 videos la), em escala
+    menor e em lugar pior: **a pagina de trabalho do cliente tambem abre com
+    retangulos pretos esperando metadata**. Nao vira item 26-bis: quem executar o
+    item 23 executa a MESMA correcao (`preload="none"` + montagem no
+    IntersectionObserver + `poster` obrigatorio) nas duas paginas, senao a casa
+    conserta metade do problema e fecha o item.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -611,6 +654,113 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### 16/08 (sprint 14h) — DIA 20 (auditoria final) + a descoberta de que ITEM FECHADO NAO FICA FECHADO
+
+**1. Auditoria do item anterior (dia 18) EM PRODUCAO: PASSOU, e passou inteiro.**
+Medido no ar as 14h, nao deduzido do git. O que a sprint das 18h de 15/08 escreveu
+esta servido: a regra em producao e literalmente
+`.page-enter{animation:fadeIn var(--dur-base) var(--ease-out-expo)}` — **sem
+`forwards`**, que era a palavra cuja remocao impediu o transform residual de
+prender o interstitial de auto-OAuth do checkout dentro do cartao. O `/signup`
+servido traz a classe (1 ocorrencia no HTML do servidor). **E o dia 12 subiu
+junto:** a folha de producao, que em 15/08 tinha **0** ocorrencias de `var(--dur-`,
+hoje tem **77 `var(--dur-)`, 44 `var(--ease-)` e 49 `var(--r-)`** — os tokens de
+raio, cinza e timing estao todos respondendo no `:root` do ar
+(`--dur-fast 150ms · --dur-base 250ms · --dur-slow 400ms · --r-xs 8px ·
+--r-sm 13px · --r-md 18px · --r-lg 22px · --r-pill 999px`). **Nada regrediu:**
+CLS **0** medido com PerformanceObserver, zero erro de console, CLS/altura dos
+cards intactos.
+**Uma nuance que vale registrar e nao e defeito:** o `/login` (o par do `/signup`)
+tem a classe no codigo mas **0 ocorrencias no HTML servido** — a pagina inteira e
+client-rendered (o HTML do servidor nao tem nem o campo de senha). A transicao
+roda no mount, so nao no primeiro paint. O par foi cumprido; o caminho e outro.
+
+**2. O ITEM DA SPRINT — dia 20, a auditoria final, com os 10 testes rodados e
+numerados. E o resultado nao e o que o roadmap esperava.**
+
+| # | teste | resultado |
+|---|---|---|
+| 2 | raios orfaos | **FALHOU** — 15 em `KineoLanding` (eram 3 excecoes) + 648 `borderRadius` inline + 655 classes `rounded-*` |
+| 3 | <=9 cinzas | **FALHOU** — 13 tons quase-neutros no `KineoLanding` (eram 10) |
+| 4 | <=3 duracoes | **passa no CSS, FALHA no Tailwind** — 0 literais de duracao em CSS; 15 `duration-*` + 40 `ease-*` + 108 `transition-*` fora dos tokens |
+| 5 | 2 familias | passa com 1 orfao (`-apple-system` — e o `system-ui` do `/wall`, item 25) |
+| 6 | zero spinner | **passa** — `/generate` tem **0** elementos com animacao de giro |
+| 7 | video poster-first | **FALHOU** — `/generate` 11/11 `preload="metadata"`, 0 poster (ver emenda ao item 23) |
+| 8 | focus-visible | passa (auditado 13/08, sem `outline:none` novo) |
+| 9 | cerimonia do video pronto | passa (dia 7 no ar) |
+| 10 | CLS / LCP | **passa** — CLS 0; poster da vitrine e camada `<img>` `loading="eager"`, o `<video>` entra por cima |
+
+**O achado que vale o dia: os itens 11 e 12 foram fechados em 13 e 14/08 DENTRO do
+`app/KineoLanding.tsx` e a reconstrucao da home em 15/08 os reabriu no mesmo
+arquivo, sem que nada acusasse.** A contagem de `border-radius:` numerico naquele
+arquivo, commit a commit de 15/08: **3 (so as excecoes documentadas) → 11 → 14 →
+15**. Os 12 raios novos entraram junto da vitrine de motores (`.ec-dots`,
+`.tr-nav`, `.tr-badge`, `.nd-menu`, `.pstack`, `.sv2`, `.sv3`, `.tile .tic`,
+`.promo`). O mesmo vale para os cinzas: `#a1a1a8`, `#a1a1a6`, `#86868b`,
+`#3a3a3d` e `#111115` voltaram ao arquivo de onde tinham sido removidos.
+**Nao e culpa de quem reconstruiu a home — e a prova de que este roadmap nao tem
+guarda-costas: um item so fica fechado enquanto ninguem escreve CSS novo.**
+
+**A "correcao fina" que o dia 20 autoriza foi feita, e so ela:** os **10 raios
+orfaos vivos** do `KineoLanding` viraram token — diff de **10 linhas, 1 para 1**,
+nenhuma outra propriedade tocada.
+
+| seletor | antes | depois | delta real |
+|---|---|---|---|
+| `.nd-menu::before` | 13px | `--r-sm` | **0** (13px) |
+| `.nd-menu a` | 9px | `--r-xs` | -1px |
+| `.bento .promo::before` | 50% | `--r-pill` | **0** — medido 220x220, quadrado |
+| `.tile .tic` | 8px | `--r-xs` | **0** |
+| `.sv2 i` | 3px | `--r-pill` | **0** — 500x6, o raio ja era metade da altura |
+| `.sv3 b` | 50% | `--r-pill` | **0** — 26x26 |
+| `.tr-nav` | 50% | `--r-pill` | **0** — 38x38 |
+| `.ec-dots i` | 2px | `--r-pill` | **0** — 14x2,5; o clamp devolve 1,25px nos dois |
+| `.tr-badge` | 6px | `--r-xs` | +2px |
+| `.pstack img` | 10px | `--r-xs` | -2px |
+
+**Sete das dez sao byte a byte identicas no render**, e as tres que andam andam
+**<=2px**. Os `50%` so viraram `--r-pill` **depois de medir que os tres elementos
+sao quadrados perfeitos** — em elemento retangular `50%` e elipse e `999px` e
+capsula, entao a conversao que o item 11 fez "por mapa" aqui foi feita por regua.
+Prova em producao pelo metodo da casa (folha de teste no **body**, nunca no head —
+emenda do item 22): com as 10 regras injetadas, os computados trocam como previsto
+e **nenhum retangulo mudou de tamanho** (`162x41`, `30x30`, `500x6`, `26x26`,
+`38x38`, `14x3`, `56x22`, `89x124` iguais antes e depois) — CLS impossivel.
+**O que NAO foi tocado, de proposito:** os 3 `border-radius:0` da tabela
+comparativa (reset, excecao ja documentada no item 11) e os 2 raios de
+`.scroll-cue` / `.scroll-cue::before` — **porque descobri que `.scroll-cue` e CSS
+MORTO**: as 4 regras + o keyframe `cueDrop` existem no `KLP_CSS` e **nenhum
+elemento no JSX usa a classe** (so um comentario no `RevealOnScroll.tsx` a cita).
+Tokenizar codigo morto e maquiar; apagar CSS morto e outra mudanca, entao fica
+registrado aqui e nao entra neste commit.
+**Rigor:** `tsc --noEmit` **EXIT=0**, e falsificado — com um erro proposital
+(`const __kineo_probe: number = 'nao e number'`) o tsc acusou
+`app/KineoLanding.tsx(714,7): error TS2322` e **EXIT=2**; arquivo restaurado e
+conferido byte a byte contra o backup. EOL: LF no disco e LF no HEAD, **0 CRLF**.
+**Revisao adversarial (2 passadas, a 2a cacando defeito meu):** (a) `var()` dentro
+de `::before` — custom property herda para pseudo-elemento, e foi **medido** (o
+`::before` do `.nd-menu` devolveu 13px com o token); (b) todos os 10 seletores sao
+`.klp <algo>`, entao os tokens do bloco de vars do `.klp` alcancam todos — nao ha
+o risco do `var()` cair para 0 que quase quebrou as pilulas do rodape em 14/08;
+(c) z-index/modais/LCP/autoplay: **intocados** — o commit so muda `border-radius`,
+nao ha uma unica outra propriedade no diff.
+
+**3. Realimentacao do backlog: item 26 (`/generate`) + emenda ao item 23.**
+Na rotacao, `/generate` — a pagina onde a medicao de aquisicao de hoje diz que a
+intencao de compra NASCE (17 pessoas em `generate_step_1` contra 8 no `/pricing`) —
+usa o azul da marca em **89 de 605 elementos** (47 texto, 59 fundo, 38 borda, 10
+sombra; 21 acima da dobra), contra 23 do `/pricing` e 14 do `/wall`: **quase 4x o
+pior caso ja registrado neste doc**, e o oposto exato do "1 acento usado raro".
+Detalhe no item 26. A emenda ao item 23 e que **o `/generate` tem a mesma doenca do
+`/history`**: 11 `<video>`, `preload="metadata"` em 11/11, `poster` em 0/11.
+
+**4. Situacao do push:** `origin/main` = `315c442`; **2 commits locais esperam
+push** (as sprints de analytics das 11h e 13h de hoje) **+ este da UI**. As sprints
+de UI de 15/08 ja estao no ar — foi assim que a auditoria acima pode ser feita.
+**O push continua sendo seu.**
+
+---
 
 ### FECHAMENTO DO DIA — 15/08 (3 linhas, escritas pela sprint das 18h)
 
