@@ -80,6 +80,18 @@
 4. Configurar: 1 legenda + shortsforgeai.com no último segundo
 5. Usuário baixa e sobe no YouTube
 
+## ⚠ REGRA FIXA — pensar junto, não só executar (fundador 16/08)
+**Toda entrega vem com o raciocínio estratégico junto** — o "porquê" de produto/marca/receita, não só o "o quê". O fundador quer as sacadas explicitadas pra pensar e progredir junto.
+
+### Log de sacadas (princípios que já viraram decisão)
+- **"Studio", não "Generate"**: formulário → sala de direção. Cliente que se sente diretor paga mais. E o nome da página fala a língua do tier premium (Studio) — upsell vira geografia, não venda.
+- **Motor = câmera; nós = diretor** (40/60): o modelo terceiro decide ~40% do resultado; prompt de cena, âncoras, seed, negative, voz, legendas e ritmo são nossos. Investir nos 60%.
+- **Fixo onde precisa ser instantâneo, IA onde precisa ser fresco, IA pesada só onde gera dinheiro** (arquitetura de custo/latência das sugestões).
+- **Piso de qualidade é engenharia, não compra**: DNA cinematográfico, image-first, quality gate com re-render. Nada de infra nova.
+- **Selo honesto é ativo de marca**: badge do motor = motor real, sempre. Vitrine mente → produto morre.
+- **Mais motores = upside quase puro** (pay-per-use, zero fixo), COM piso de qualidade curado e hierarquia na escolha (senão vira paralisia).
+- **Upgrade grátis existe**: fal cobra igual 720/1080 no Veo Fast — sempre checar o schema do fornecedor antes de assumir custo.
+
 ## Informações do projeto
 - **Marca (UI):** Kineo / Kineo AI — nome exibido no site
 - **Produto/domínio (produção):** shortsforgeai.com (NÃO mudou — env, CTA nos vídeos e Stripe ainda usam esse domínio)
