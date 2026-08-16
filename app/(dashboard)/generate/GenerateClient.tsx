@@ -8153,7 +8153,14 @@ export default function GenerateClient({
               // helper line no longer makes sense — clear the breadcrumb.
               if (fromHome) setFromHome(false)
             }}
-            placeholder={'What’s your Short about? Try "the Bermuda Triangle mystery" or "how Bezos starts his day"'}
+            // KINEO-NICHE-PLACEHOLDER-2026-08-16 — o clique na categoria so
+            // trocava os chips ABAIXO da dobra; a caixa parecia morta (bug
+            // reportado pelo fundador). Agora o placeholder reage na hora com
+            // 2 exemplos do proprio nicho escolhido.
+            placeholder={(() => {
+              const ex = NICHE_EXAMPLES[pickedNiche] ?? NICHE_EXAMPLES.billionaire
+              return `What’s your Short about? Try "${ex[0]}" or "${ex[1] ?? ex[0]}"`
+            })()}
             maxLength={5000}
             disabled={phase === 'analyzing'}
             // PUSH #38 keeps the first-video box compact so its free CTA stays
