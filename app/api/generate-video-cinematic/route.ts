@@ -543,6 +543,119 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
 // quando dá sorte não é instrumento. O custo é irrelevante num caminho que já
 // é o caminho do erro, e o try/catch garante que a telemetria nunca vire a
 // causa de uma recusa virar 500.
+// ═══ KINEO-TRIAL-STALL-FALSO-2026-08-15 ═══════════════════════════════════
+// POR QUE ESTA FUNÇÃO EXISTE — um caso REAL, medido, com carimbo de hora.
+//
+// O paywall `trial_credits_stalled` (KINEO-TRIAL-STALL-2026-08-14) DISPAROU
+// PELA PRIMEIRA VEZ NA HISTÓRIA DO BANCO em 15/08 — e a estreia dele foi um
+// FALSO POSITIVO. 5 eventos, 1 pessoa, uma sessão só:
+//
+//   16:41:04  credit_debits: −20 (render `cinematic-b911…`)  saldo 39 → 19
+//   16:42:37  compose_refused balance=19 needed=20 → "Your trial has 19
+//             credits left and an AI video needs 20. Add a plan…" + modal
+//   …×5 até 16:45:58 (a pessoa insistiu 5 vezes)
+//   17:30:57  refunded_at gravado — o crédito VOLTOU, 49 min depois
+//
+// Ou seja: durante 49 minutos a conta tinha 39 créditos e um render morto
+// segurando 20 deles, e a tela vendeu um plano usando o número temporário
+// como se fosse o fim do trial. A pessoa JÁ TINHA clicado em checkout às
+// 16:15 e abandonado; recebeu mais 5 pedidos de compra baseados numa conta
+// que o próprio sistema sabia que ia se desfazer sozinha.
+//
+// O saldo NÃO está errado — 19 é mesmo o que dá para gastar naquele segundo,
+// e por isso a recusa continua sendo 402. O que está errado é o DIAGNÓSTICO:
+// isto não é "seu trial acabou", é "o seu outro vídeo está segurando".
+//
+// ⚠️ A ARMADILHA QUE A 1ª PASSADA CAIU, registrada para nunca mais:
+// `refunded_at IS NULL` NÃO significa "em voo". Um render BEM-SUCEDIDO fica
+// `refunded_at NULL` PARA SEMPRE (o débito de 1 crédito das 16:08 desta mesma
+// conta está assim, e entregou vídeo). Usar só esse predicado prometeria a
+// volta de um crédito que a pessoa GASTOU de verdade — mentira pior do que a
+// que estamos consertando, porque essa nunca se resolve sozinha.
+//
+// ⚠️ A SEGUNDA ARMADILHA: `trial_credits_used` também não serve de sinal. Ele
+// acompanha o DÉBITO, não a entrega (lib/reverseTrial:22 soma no débito e o
+// estorno subtrai), então às 16:42 ele valia 21 e só voltou a 1 às 17:30 —
+// `granted − used` daria os mesmos 19 e não veria nada.
+//
+// O TESTE QUE DECIDE é o da ENTREGA, por TEMPO e não por render_id: um débito
+// de cinematic nasce com um id (`cinematic-…`) e o vídeo final é composto com
+// OUTRO id (é por isso que sweepStuckRenderDebits exclui `cinematic-%` e
+// delega para sweepAbandonedCinematicDebits). Logo "existe linha em `videos`
+// com esse render_id" é inútil aqui. "A conta ganhou ALGUM vídeo depois deste
+// débito" é o teste certo e é uma consulta indexada por (user_id, created_at).
+//
+// JANELA: CINEMATIC_ABANDON_CUTOFF_MS (45 min) + 60 min de folga, porque a
+// varredura é HORÁRIA — 105 min é o pior caso real de um crédito preso. Um
+// débito mais velho que isso não desculpa nada e cai no fluxo antigo.
+//
+// FAIL-CLOSED em tudo: qualquer erro de leitura devolve 0 e o comportamento
+// volta a ser exatamente o de antes. Esta função NUNCA libera geração, NUNCA
+// devolve crédito e NUNCA muda preço — ela só decide QUAL FRASE o usuário lê.
+const HELD_CREDIT_LOOKBACK_MS = 45 * 60 * 1000 + 60 * 60 * 1000
+async function creditsHeldByUnsettledRender(userId: string): Promise<number> {
+  try {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) return 0
+    const db = createAdminClient(url, key, { auth: { persistSession: false } })
+    const since = new Date(Date.now() - HELD_CREDIT_LOOKBACK_MS).toISOString()
+
+    const { data: debits, error } = await db
+      .from('credit_debits')
+      .select('amount, created_at')
+      .eq('user_id', userId)
+      .eq('kind', 'video')
+      .is('refunded_at', null)
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(5)
+    if (error || !debits || debits.length === 0) return 0
+
+    // O débito mais ANTIGO da janela define o corte: se a conta não recebeu
+    // NENHUM vídeo desde então, nenhum destes débitos entregou.
+    const oldest = debits[debits.length - 1]
+    const { data: delivered, error: vidErr } = await db
+      .from('videos')
+      .select('created_at')
+      .eq('user_id', userId)
+      .gte('created_at', String(oldest.created_at))
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (vidErr) return 0 // fail-closed: sem prova de não-entrega, não afirma nada
+
+    // ⚠️ 2ª passada: comparar os instantes como NÚMERO, nunca como string.
+    // ISO lexicográfico só coincide com a ordem cronológica quando os dois
+    // lados têm exatamente o mesmo formato (mesmo offset, mesmas casas de
+    // fração) — um "Z" contra um "+00:00", ou 6 casas contra 3, inverte a
+    // comparação em silêncio e o `tsc` fica verde.
+    //
+    // ⚠️ E O SENTIDO DA FALHA IMPORTA (2ª passada, contra a minha própria
+    // linha anterior): um `created_at` ilegível NÃO pode ser tratado como
+    // "não entregue", porque isso SOMA no `held` e a soma é o que gera a
+    // promessa de crédito de volta. Débito que não dá para datar é PULADO —
+    // no máximo a pessoa lê a frase antiga, nunca uma promessa inventada.
+    const lastVideoMs =
+      delivered && delivered.length > 0 ? Date.parse(String(delivered[0].created_at)) : NaN
+    let held = 0
+    for (const d of debits) {
+      const debitMs = Date.parse(String(d.created_at))
+      if (!Number.isFinite(debitMs)) continue
+      // Entregou = existe vídeo com created_at >= o deste débito.
+      if (Number.isFinite(lastVideoMs) && lastVideoMs >= debitMs) continue
+      const amount = typeof d.amount === 'number' ? d.amount : Number(d.amount)
+      if (Number.isFinite(amount) && amount > 0) held += amount
+    }
+    return held
+  } catch (err) {
+    console.warn(
+      '[cinematic] held-credit lookup failed (ignorado):',
+      err instanceof Error ? err.message : String(err),
+    )
+    return 0
+  }
+}
+
 async function logCinematicRefusal(
   reason: string,
   userId: string | null,
@@ -858,12 +971,29 @@ export async function POST(req: NextRequest) {
       // O `spent` fica como caminho de defesa para o resíduo real de saldo 0
       // com `usado < 40` (estorno de render falho devolve crédito e abate o
       // consumo — a coorte de 13/08 tem linhas assim).
-      const stallReason = trialBuyer
-        ? (balance > 0 ? 'trial_credits_stalled' : 'trial_credits_spent')
-        : 'insufficient_credits'
+      // ═══ KINEO-TRIAL-STALL-FALSO-2026-08-15 ═══════════════════════════════
+      // ANTES de chamar qualquer coisa de "fim de trial", perguntar se o
+      // buraco é explicado por um render que ainda não se resolveu. Só entra
+      // quando o crédito preso REALMENTE fecha a conta (`balance + held >=
+      // cost`): se mesmo com ele de volta não daria, a pessoa está sem saldo
+      // de verdade e merece a frase antiga, não uma desculpa.
+      //
+      // Vale para TODO MUNDO, não só trial (`insufficient_credits` também
+      // mentia — "This needs 20 credits. You have 19." é um extrato, não uma
+      // explicação), mas a mentira cara era a do trial, que vinha com pedido
+      // de dinheiro em cima.
+      const heldByUnsettled = await creditsHeldByUnsettledRender(user.id)
+      const heldExplainsGap = heldByUnsettled > 0 && balance + heldByUnsettled >= cost
+
+      const stallReason = heldExplainsGap
+        ? 'credits_held_by_render'
+        : trialBuyer
+          ? (balance > 0 ? 'trial_credits_stalled' : 'trial_credits_spent')
+          : 'insufficient_credits'
       await logCinematicRefusal(stallReason, user.id, {
         needed: cost,
         balance,
+        held_by_unsettled_render: heldByUnsettled,
         engine: wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
@@ -872,20 +1002,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            stallReason === 'trial_credits_stalled'
-              ? `Your trial has ${balance} credit${balance === 1 ? '' : 's'} left and an AI video needs ${cost}. Add a plan to keep the AI engine.`
-              : stallReason === 'trial_credits_spent'
-                ? `You've used all ${trialUi.creditsGranted} credits from your trial. Add a plan to keep making AI videos.`
-                : `This needs ${cost} credits. You have ${balance}.`,
+            stallReason === 'credits_held_by_render'
+              // NENHUMA PROMESSA DE PRAZO EXATO e NENHUM PREÇO. "within the
+              // hour" é o que a varredura horária garante; dizer "5 minutos"
+              // seria inventar. E a última frase é a que importa: a pessoa
+              // precisa saber que o trial NÃO acabou.
+              ? `A video you already started is still holding ${heldByUnsettled} credit${heldByUnsettled === 1 ? '' : 's'}. If it doesn't finish, they come back automatically within the hour — your trial is still running.`
+              : stallReason === 'trial_credits_stalled'
+                ? `Your trial has ${balance} credit${balance === 1 ? '' : 's'} left and an AI video needs ${cost}. Add a plan to keep the AI engine.`
+                : stallReason === 'trial_credits_spent'
+                  ? `You've used all ${trialUi.creditsGranted} credits from your trial. Add a plan to keep making AI videos.`
+                  : `This needs ${cost} credits. You have ${balance}.`,
           needed: cost,
           balance,
+          held: heldExplainsGap ? heldByUnsettled : undefined,
           reason: stallReason,
           // `upsell` só viaja para quem realmente precisa comprar um PLANO. Um
           // assinante sem saldo precisa de créditos, não de outro plano, e
           // mandar `upsell` abriria a headline errada para ele.
-          upsell: trialBuyer ? 'creator' : undefined,
-          trialCreditsGranted: trialBuyer ? trialUi.creditsGranted : undefined,
-          trialCreditsUsed: trialBuyer ? trialUi.creditsUsedForDisplay : undefined,
+          // `heldExplainsGap` DERRUBA o upsell mesmo para quem é trialBuyer:
+          // este 402 não é um momento de venda, é um aviso de estado. Sem
+          // `upsell` o cliente não abre a caixa de planos (ver GenerateClient,
+          // mesmo marcador) — que é o ponto inteiro desta correção.
+          upsell: trialBuyer && !heldExplainsGap ? 'creator' : undefined,
+          trialCreditsGranted: trialBuyer && !heldExplainsGap ? trialUi.creditsGranted : undefined,
+          trialCreditsUsed: trialBuyer && !heldExplainsGap ? trialUi.creditsUsedForDisplay : undefined,
         },
         { status: 402 }
       )

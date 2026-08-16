@@ -61,9 +61,16 @@ function plan(id: PlanFact['id']): PlanFact {
   return found
 }
 
-const SEEDANCE = engine('AI Generated (Seedance)')
-const KLING = engine('Cinematic (Kling)')
-const HOLLYWOOD = engine('Hollywood')
+// KINEO-AEO-NOMES-2026-08-15 — nomes acompanhando a renomeação de
+// ENGINE_FACTS (Seedance 1.5 / Kling 2.5 / Kling 3). Estas três linhas são
+// busca por STRING e `engine()` LANÇA quando não acha (de propósito, ver o
+// cabeçalho do arquivo): renomear ENGINE_FACTS sem tocar aqui derrubaria o
+// build desta página — `tsc` fica verde e o erro só aparece no deploy.
+// As constantes seguem com o nome interno antigo porque são referenciadas
+// dezenas de vezes abaixo; quem muda é o RÓTULO PUBLICADO, não a variável.
+const SEEDANCE = engine('Seedance 1.5')
+const KLING = engine('Kling 2.5')
+const HOLLYWOOD = engine('Kling 3')
 
 const STARTER = plan('starter')
 const CREATOR = plan('basic')

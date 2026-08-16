@@ -5699,6 +5699,25 @@ export default function GenerateClient({
           if (data?.resume_same_generation === true && data?.generationId === cinematicGenerationId) {
             preserveGenerationAttemptRef.current = true
           }
+          // ═══ KINEO-TRIAL-STALL-FALSO-2026-08-15 ═══════════════════════════
+          // O ÚNICO 402 DESTA TELA QUE NÃO ABRE A CAIXA DE PLANOS, de
+          // propósito. `credits_held_by_render` diz que o saldo que falta está
+          // preso num render que ainda não se resolveu e volta sozinho — pedir
+          // dinheiro em cima disso foi exatamente o erro que o servidor acabou
+          // de parar de cometer (5 pedidos de compra a uma pessoa em 3 min,
+          // 15/08). Abrir o modal aqui reintroduziria o defeito pelo cliente,
+          // que é como metade da correção de 14/08 quase morreu.
+          //
+          // O `else` continua chamando com o MESMO `gateReason` de antes:
+          // valor desconhecido de `reason` cai em 'credits' e nada muda, então
+          // servidor velho + cliente novo (e o inverso) seguem funcionando.
+          if (data?.reason === 'credits_held_by_render') {
+            trackGenerationFailure('generating', 'cinematic_gate_credits_held', {
+              httpStatus: 402,
+              detail: typeof data?.held === 'number' ? `held=${data.held}` : undefined,
+            })
+            setPhase('failed'); return
+          }
           openOutOfCreditsModal(gateReason)
           trackGenerationFailure('generating', `cinematic_gate_${gateReason}`, { httpStatus: 402 })
           setPhase('failed'); return
