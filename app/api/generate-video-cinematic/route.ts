@@ -267,7 +267,11 @@ function buildFalInput(
         prompt,
         aspect_ratio: '9:16',
         duration: '8s',
-        resolution: '720p',
+        // KINEO-VEO-1080-2026-08-16 — schema oficial fal veo3.1/fast: enum
+        // 720p|1080p|4k e o PRECO E O MESMO em 720p e 1080p ($0.10/s
+        // silencioso; 4k que dobra). Upgrade de qualidade gratis, ligado
+        // antes do TAAFT (decisao do fundador 16/08). Creditos inalterados.
+        resolution: '1080p',
         generate_audio: true,
         negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
       }
@@ -276,9 +280,10 @@ function buildFalInput(
       prompt,
       aspect_ratio: '9:16',
       duration: '8s',
-      // KINEO-VEO-720-2026-07-06 — Veo 3.1 Fast at 720p (~$0.10-0.15/s) instead of
-      // 1080p to keep Studio margin healthy; 9:16 phone Short = imperceptible.
-      resolution: '720p',
+      // KINEO-VEO-720-2026-07-06 — era 720p por margem. KINEO-VEO-1080-2026-08-16:
+      // fal cobra IGUAL em 720p e 1080p no veo3.1/fast (schema oficial conferido)
+      // — Full HD ligado sem custo extra, antes do TAAFT.
+      resolution: '1080p',
       generate_audio: false,
       negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
