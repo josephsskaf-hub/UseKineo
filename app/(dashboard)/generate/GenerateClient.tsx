@@ -1156,6 +1156,15 @@ export default function GenerateClient({
   // so the user gets an explicit escape instead of a dead button. Until today
   // the only way out of this state was an undocumented `?wm_unlock=1` URL.
   const [activeRenderGateBlocked, setActiveRenderGateBlocked] = useState(false)
+  // KINEO-GATE-SERVER-IDLE-2026-08-16 — espelho em ref do estado acima, lido
+  // SO para escolher a frase do erro. `setError` roda no mesmo tick em que o
+  // portao decide, e o valor de `activeRenderGateBlocked` naquele instante
+  // ainda e o do render anterior — a copy sairia errada em 100% das vezes.
+  const activeRenderGateBlockedRef = useRef(false)
+  function markActiveRenderGateBlocked(blocked: boolean) {
+    activeRenderGateBlockedRef.current = blocked
+    setActiveRenderGateBlocked(blocked)
+  }
   // PUSH #96 — counts restore retries across effect re-runs so the auth retry
   // above can never loop forever.
   const restoreRetryRef = useRef(0)
@@ -1165,6 +1174,14 @@ export default function GenerateClient({
   // guard in handleGenerate. The tick re-renders the "elapsed" label.
   const [serverActiveRender, setServerActiveRender] = useState<ServerActiveRenderProbe | null>(null)
   const serverActiveRenderRef = useRef<ServerActiveRenderProbe | null>(null)
+  // KINEO-GATE-SERVER-IDLE-2026-08-16 — `refreshServerActiveRender()` devolve
+  // `null` para DUAS coisas OPOSTAS: "o servidor respondeu e nao ha render
+  // nenhum" e "nao consegui perguntar" (fetch morto, !res.ok, JSON podre). Usar
+  // o retorno como prova seria repetir o erro do `looksOpenAiQuotaDead` (um
+  // predicado servindo duas audiencias). Este ref carrega a afirmacao ESTREITA
+  // e so ela: `true` apenas quando a sonda respondeu 200, o corpo foi lido e o
+  // estado NAO e 'rendering'. Qualquer falha o zera — silencio nunca vira prova.
+  const serverProbeProvesIdleRef = useRef(false)
   const [serverActiveRenderTick, setServerActiveRenderTick] = useState(() => Date.now())
   // #360 — synchronous re-entry guard against double-submit. Catches the
   // sub-render race the disabled button can't: two clicks before React
@@ -4344,7 +4361,7 @@ export default function GenerateClient({
     // an unrelated later error and invites the user to discard a live render.
     if (activeRenderRestoreResolvedRef.current) {
       if (!resumedRenderRef.current) {
-        setActiveRenderGateBlocked(false)
+        markActiveRenderGateBlocked(false)
         return true
       }
       return false
@@ -4353,7 +4370,7 @@ export default function GenerateClient({
       await new Promise((resolve) => setTimeout(resolve, 100))
       if (resumedRenderRef.current) return false
       if (activeRenderRestoreResolvedRef.current) {
-        setActiveRenderGateBlocked(false)
+        markActiveRenderGateBlocked(false)
         return true
       }
     }
@@ -4396,13 +4413,67 @@ export default function GenerateClient({
         retries: restoreRetryRef.current,
         snapshot: stored,
       })
-      setActiveRenderGateBlocked(false)
+      markActiveRenderGateBlocked(false)
       return true
+    }
+    // KINEO-GATE-SERVER-IDLE-2026-08-16 — os dois fail-opens anteriores (31/07
+    // e 07/08) perguntam a MESMA testemunha: o localStorage. Ambos abrem quando
+    // o snapshot esta `absent`/`stale`/`expired`. Nenhum cobre o caso que
+    // custou o cliente de maior intencao do dia do TAAFT: snapshot RECENTE e
+    // portanto `live`, e do outro lado NADA — nenhuma linha em `render_jobs`,
+    // nenhuma em `credit_debits`, nenhuma em `videos`, na conta inteira.
+    //
+    // 6819371a, 16/08 (utm_source=taaft): cadastrou 16:30:04, despachou o
+    // primeiro video 16:30:32, e as 16:31:10 o `generation_checkpoint_saved`
+    // gravou um snapshot `stage:'submitting'` SEM renderId. O compose nunca
+    // fechou. Cinco minutos depois o portao leu esse checkpoint como "render
+    // pago em voo" e bateu 19 vezes em 2min30 — e no meio da sequencia, as
+    // 16:36:48, ele ABRIU O CHECKOUT DA STRIPE. Voltou, continuou bloqueado,
+    // desistiu. O snapshot que existe para RECUPERAR a pessoa foi o que
+    // trancou o produto na cara dela.
+    //
+    // O ponto nao obvio: `submitting` sem renderId nao aponta para nada. Ele
+    // prova que um compose foi TENTADO, nunca que existe render vivo — e credito
+    // so e debitado no servidor, depois. Entao aqui perguntamos a testemunha
+    // certa. `/api/compose/active` e a MESMA fonte que o lock do compose usa,
+    // logo este portao nunca fica mais frouxo que a guarda do dinheiro: se a
+    // sonda diz que nada esta renderizando, o proprio handleGenerate ja deixaria
+    // passar. Cobre tambem TODO caminho em que o efeito de restore pendura
+    // (`!user`, efeito cancelado, chave de storage divergente), porque nao
+    // depende de descobrir QUAL deles pendurou.
+    //
+    // Adversarial 1/2 — so abrimos com renderId AUSENTE. Snapshot `rendering`
+    // com renderId aponta para algo que existiu; ali a sonda pode estar atras
+    // do banco e o portao continua fechado, como hoje.
+    // Adversarial 2/2 — `generationInFlightRef` fecha a janela de corrida do
+    // compose aceito-mas-ainda-sem-linha: se ESTA aba tem despacho no ar, nao
+    // abrimos. Aba morta (o caso real, recarga de pagina) nao tem.
+    let snapshotHasRenderId = true
+    try {
+      const raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
+      const parsed = raw ? JSON.parse(raw) as Partial<ActiveRenderSnapshot> : null
+      snapshotHasRenderId = Boolean(typeof parsed?.renderId === 'string' && parsed.renderId.trim())
+    } catch {
+      snapshotHasRenderId = true
+    }
+    if (!snapshotHasRenderId && !generationInFlightRef.current) {
+      await refreshServerActiveRender()
+      if (serverProbeProvesIdleRef.current) {
+        activeRenderRestoreResolvedRef.current = true
+        setActiveRenderRestoreResolved(true)
+        void trackEvent('active_render_gate_forced_open', {
+          attempt_id: generationAttemptRef.current,
+          retries: restoreRetryRef.current,
+          snapshot: 'live_server_idle',
+        })
+        markActiveRenderGateBlocked(false)
+        return true
+      }
     }
     // Snapshot exists and we could not prove it stale — it may point at a real
     // paid render, so we keep the gate closed but stop pretending this is a
     // transient "try again in a moment". Surface the manual escape.
-    setActiveRenderGateBlocked(true)
+    markActiveRenderGateBlocked(true)
     return false
   }
 
@@ -4427,7 +4498,7 @@ export default function GenerateClient({
       probe?.state === 'rendering' &&
       Date.now() - probe.startedAtMs < SERVER_ACTIVE_RENDER_WINDOW_MS
     ) {
-      setActiveRenderGateBlocked(false)
+      markActiveRenderGateBlocked(false)
       setError('Good news — a render really is still running on our side. It will appear here on its own; reload if you do not see it in a minute.')
       void trackEvent('active_render_gate_discard_refused', {
         attempt_id: generationAttemptRef.current,
@@ -4439,7 +4510,7 @@ export default function GenerateClient({
     resumedRenderRef.current = false
     activeRenderRestoreResolvedRef.current = true
     setActiveRenderRestoreResolved(true)
-    setActiveRenderGateBlocked(false)
+    markActiveRenderGateBlocked(false)
     setError(null)
     void trackEvent('active_render_gate_discarded_by_user', {
       attempt_id: generationAttemptRef.current,
@@ -4512,9 +4583,14 @@ export default function GenerateClient({
   async function refreshServerActiveRender(): Promise<ServerActiveRenderProbe | null> {
     try {
       const res = await fetch('/api/compose/active', { cache: 'no-store' })
-      if (!res.ok) return null
+      // KINEO-GATE-SERVER-IDLE-2026-08-16 — 401/500/rede caida NAO sao "idle".
+      // A pior hipotese desta sessao e justamente a sessao do cliente quebrada,
+      // e ela devolve 401 aqui: tratar 401 como prova de ociosidade abriria o
+      // portao pelo motivo errado. So um 200 lido ate o fim afirma alguma coisa.
+      if (!res.ok) { serverProbeProvesIdleRef.current = false; return null }
       const data = await res.json().catch(() => null) as Record<string, unknown> | null
-      if (!data) return null
+      if (!data) { serverProbeProvesIdleRef.current = false; return null }
+      serverProbeProvesIdleRef.current = data.state !== 'rendering'
       let probe: ServerActiveRenderProbe | null = null
       if (data.state === 'rendering') {
         const startedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
@@ -4551,6 +4627,7 @@ export default function GenerateClient({
       setServerActiveRenderTick(Date.now())
       return probe
     } catch {
+      serverProbeProvesIdleRef.current = false
       return null
     }
   }
@@ -4618,7 +4695,15 @@ export default function GenerateClient({
       // gate state so the next occurrence identifies its exact path.
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
-        : 'Still checking for an in-progress render. Please try again in a moment.')
+        : activeRenderGateBlockedRef.current
+          // KINEO-GATE-SERVER-IDLE-2026-08-16 — quando o portao ja se
+          // declarou BLOQUEADO, "try again in a moment" e falso: esperar
+          // nao resolve, so o botao vermelho logo abaixo resolve. Era esta
+          // frase que competia com o escape manual do 07/08 e ganhava — o
+          // cliente do TAAFT bateu 19 vezes e nunca clicou no botao. Regra
+          // do PROMPT-DIARIO: copy que manda repetir multiplica a carga.
+          ? 'We could not confirm a render in progress. Use the red button below to start a new video — your credits and finished videos are safe.'
+          : 'Still checking for an in-progress render. Please try again in a moment.')
       // KINEO-RESUME-RENDER-2026-08-04 — the banner above used to be a dead
       // end. Ask the server what is actually happening; the answer renders the
       // resume card ("rendering — check progress" / "ready 🎉") above the form.
@@ -5406,7 +5491,15 @@ export default function GenerateClient({
       // handleAnalyze) + gate state in the event for diagnosis.
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
-        : 'Still checking for an in-progress render. Please try again in a moment.')
+        : activeRenderGateBlockedRef.current
+          // KINEO-GATE-SERVER-IDLE-2026-08-16 — quando o portao ja se
+          // declarou BLOQUEADO, "try again in a moment" e falso: esperar
+          // nao resolve, so o botao vermelho logo abaixo resolve. Era esta
+          // frase que competia com o escape manual do 07/08 e ganhava — o
+          // cliente do TAAFT bateu 19 vezes e nunca clicou no botao. Regra
+          // do PROMPT-DIARIO: copy que manda repetir multiplica a carga.
+          ? 'We could not confirm a render in progress. Use the red button below to start a new video — your credits and finished videos are safe.'
+          : 'Still checking for an in-progress render. Please try again in a moment.')
       // KINEO-RESUME-RENDER-2026-08-04 — same dead-end fix as handleAnalyze:
       // surface the real render state (resume card) instead of only the banner.
       void refreshServerActiveRender()
