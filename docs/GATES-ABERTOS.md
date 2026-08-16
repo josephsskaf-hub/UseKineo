@@ -2338,3 +2338,49 @@ chegou na pagina de pagamento. `checkout_started` e do BROWSER e **subconta
 ~2x** (INR: 11 pessoas em `events` contra 27 no livro-caixa). Qualquer frase do
 tipo "poucos chegam a pagar" escrita antes de hoje esta subcontada. Nao usar
 `checkout_started` como denominador de fechamento.
+
+---
+
+## Atualizacao — 16/08/2026, sprint 13h
+
+### GATE #G — NOVO — A GUARDA ANTI-SCANNER DO CHECKOUT NUNCA DISPAROU
+`checkout_prefetch_blocked` = **0 linhas em 30 dias**. No mesmo intervalo, 33
+requisicoes com `user_id` E `session_id` nulos entraram como `checkout_attempted`
+/`checkout_auth_required`, em rajadas de 8ms-3s, UMA POR TIER — assinatura de
+scanner de link. `isSpeculativeRequest()` so reconhece quem se ANUNCIA; Outlook
+Safe Links / Proofpoint / Mimecast nao anunciam.
+**Efeito:** o denominador de entrada do funil (`checkout_attempted` = 133) e
+**25% robo**. `/admin/funnel` ja se protege (`checkoutActorKey`), mas TODA query
+SQL avulsa de sprint le 133.
+**Subiu nesta sprint:** `checkout_bot_suspected` (SERVER_ONLY), que OBSERVA e
+**nao barra**. `ua_match` e `ua_absent` gravados separados de proposito.
+**Como fechar:** depois de ~1 semana, se `ua_absent` NUNCA aparecer junto de
+`payment_success`, o bloqueio pode ligar SO para `ua_match`. Se aparecer, o ramo
+`ua_absent` esta proibido de bloquear para sempre — e o gate morre com a prova.
+⚠️ NUNCA bloquear os dois ramos juntos: UA vazio pode ser comprador real atras
+de proxy corporativo, e o falso positivo aqui e a venda perdida.
+
+### CORRECAO — A PAREDE DO CHECKOUT E 46 PESSOAS, NAO 84
+84 era contagem de SESSOES com contas internas dentro. Externas, 30 dias:
+**46 pessoas · 44 ainda sem pagar · 44 ja receberam o e-mail de resgate ·
+USD 35 · INR 11 · BRL 0.**
+**A coorte BRL da parede era o fundador testando** — nenhum brasileiro externo
+abandonou checkout em 30 dias. Nao citar "abandono no Brasil" de doc anterior.
+GATE #F (India) sobrevive com denominador menor: 11 pessoas, 0 rupias.
+
+### RECEITA DE ATRIBUICAO (nao precisa de codigo — nao reimplementar)
+`checkout_attempted` nao carrega `utm_source` nem `surface`. Parece buraco de
+instrumentacao; **nao e**. O cookie `kineo_event_session_id` ja e espelhado no
+evento server-side: juntar por `session_id` com o primeiro evento da mesma
+sessao que tenha utm devolve o canal. Resultado (30d, 50 pessoas na Stripe):
+taaft 15 · chatgpt.com 8 · viral_now 5 · homepage 5 · lifecycle 2 · sem utm 16.
+
+### GATE #H — NOVO — O E-MAIL DE RESGATE NAO TEM BOTAO DE COMPRA
+Alcanca 44 pessoas vivas e nao converte porque **nao tem link de compra** — os
+diretos foram retirados no PUSH #97 (scanner mintava sessao Stripe). Quando
+tinha, cobrava 2,0x (starter) e 2,5x (basic) o preco do botao do site, porque o
+link do e-mail nao anexava `&intro=1` — 170 dos 244 envios da historia.
+O caminho certo JA EXISTE e nao e rota de mint: `/api/stripe/checkout/resume?go=1`
+(resolve a sessao original, propaga `intro` e promo).
+**Bloqueado por guardrail, nao por engenharia:** e fluxo de pagamento e exige QA
+do fundador. Nao commitar sem ordem explicita dele.

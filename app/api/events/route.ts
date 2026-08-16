@@ -36,6 +36,14 @@ const SERVER_ONLY_EVENTS = new Set([
   // scanner hit. If the browser sink could mint it, a forged burst would make
   // a real Session-minting incident look like harmless prefetch noise.
   'checkout_prefetch_blocked',
+  // KINEO-SCANNER-DENOMINADOR-2026-08-16 — escrito SÓ por recordBotSuspicion()
+  // em app/api/stripe/checkout/route.ts. Server-only pelo mesmo motivo do
+  // irmão acima, e com um agravante: este evento existe para DECIDIR se um dia
+  // barramos requisições na caixa registradora. Se o sink do browser pudesse
+  // cunhá-lo, qualquer um forjaria um burst de `ua_absent` acompanhado de
+  // compra e provaria, com dado do nosso próprio banco, que o ramo perigoso é
+  // seguro de bloquear — o caminho mais curto para nos fazer barrar clientes.
+  'checkout_bot_suspected',
   'auth_callback_completed',
   'auth_callback_failed',
   'email_signup_completed',
