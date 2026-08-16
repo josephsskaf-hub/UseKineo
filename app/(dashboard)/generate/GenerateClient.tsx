@@ -1072,6 +1072,22 @@ export default function GenerateClient({
   // on open). Falls back to the fixed NICHE_EXAMPLES when the table is empty, so
   // a card is NEVER blank. Per-vertical latest run handles cron-failure fallback.
   const [nicheTrends, setNicheTrends] = useState<Record<string, string[]>>({})
+  // KINEO-CHIP-SHUFFLE-2026-08-16 — dois acessos no mesmo dia mostravam os
+  // chips na MESMA ordem (cron renova 1x/dia). Ordem agora embaralha por
+  // visita (seed fixa no mount -> estavel durante a visita, diferente na
+  // proxima). Muda so a ordem, nunca o conteudo.
+  const chipSeedRef = useRef(Math.random())
+  const sparkChips = useMemo(() => {
+    const base = (nicheTrends[pickedNiche]?.length ? nicheTrends[pickedNiche] : NICHE_EXAMPLES[pickedNiche]) ?? NICHE_EXAMPLES.billionaire
+    const seed = chipSeedRef.current
+    const h = (txt: string) => {
+      let x = Math.floor(seed * 1e9)
+      for (let i = 0; i < txt.length; i++) x = (x * 31 + txt.charCodeAt(i)) % 99991
+      return x
+    }
+    return base.slice().sort((x, y) => h(x) - h(y))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pickedNiche, nicheTrends])
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -8413,7 +8429,7 @@ export default function GenerateClient({
             <div className="flex flex-wrap gap-2">
               {/* #383e — prefer fresh cron trends for this niche; fall back to the
                   fixed examples so a card is never empty. */}
-              {((nicheTrends[pickedNiche]?.length ? nicheTrends[pickedNiche] : NICHE_EXAMPLES[pickedNiche]) ?? NICHE_EXAMPLES.billionaire).map((ex) => (
+              {sparkChips.map((ex) => (
                 <button
                   key={ex}
                   type="button"

@@ -105,14 +105,15 @@ export async function GET(req: NextRequest) {
   )
 
   const runAt = new Date().toISOString()
-  const todayStart = new Date()
-  todayStart.setUTCHours(0, 0, 0, 0)
+  // KINEO-TRENDS-MEMORY-2026-08-16 — a memoria anti-repeticao cobria so o
+  // MESMO dia; a Bermuda de ontem voltava hoje (o GPT adora os hits dele —
+  // reclamacao do fundador). Janela agora e de 7 dias.
+  const memoryStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
 
-  // Anti-repetition: load topics already generated TODAY, grouped by vertical.
   const { data: earlier } = await supabase
     .from('niche_trends')
     .select('vertical, topic')
-    .gte('run_at', todayStart.toISOString())
+    .gte('run_at', memoryStart.toISOString())
   const avoidByVertical: Record<string, string[]> = {}
   for (const row of earlier ?? []) {
     ;(avoidByVertical[row.vertical] ??= []).push(row.topic)
@@ -142,9 +143,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Optional housekeeping: keep the table small — delete rows older than 3 days.
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-  await supabase.from('niche_trends').delete().lt('run_at', threeDaysAgo)
+  // Housekeeping: 8 dias (1 a mais que a janela de memoria de 7 dias, senao
+  // a memoria leria uma tabela ja podada).
+  const cutoff = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString()
+  await supabase.from('niche_trends').delete().lt('run_at', cutoff)
 
   console.log('[refresh-niche-trends] run', runAt, 'inserted', rows.length, 'results', results)
   return NextResponse.json({ ok: true, run_at: runAt, inserted: rows.length, results })
