@@ -353,8 +353,24 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     (grep de raios/cinzas/duracoes + Lighthouse vs baseline); registrar no Diario o que
     passou e o que vira backlog v2. Sem codigo novo neste dia — so medicao e correcao fina.
 
-21. **NOVO (13/08, sprint 14h) — /wall: a pagina que existe para PROVAR mostra um
-    retangulo preto.** Achado olhando a Wall of Proof com olhos de Higgsfield.
+21. ✅ **FEITO 16/08 (sprint 18h) — MAS PELO MOTIVO CONTRARIO AO QUE ESTE ITEM E A
+    EMENDA DO ITEM 25 DIZIAM: o crop nunca foi o defeito.** Medido hoje: o YouTube
+    entrega a thumb de Short **pillarboxed em toda resolucao** (faixas de brilho dos 3
+    `maxresdefault` 1280x720: so as faixas 7-12 de 20 tem imagem = banda central de
+    ~30%, e 720x9/16 = 405px = 31,6%), entao `object-fit: cover` numa moldura 9:16
+    conserva o Short **inteiro** — em `hqdefault` e em `maxresdefault`. O `cover` ficou
+    como estava. O defeito real: a thumbnail do unico card da aba padrao responde
+    **404 em todas as 6 resolucoes** e o `i.ytimg.com` devolve, junto do 404, um **JPEG
+    cinza 120x90 valido que dispara `load` e nao `error`** — logo a parte (b) deste item
+    (fallback no `onError`) nao teria feito nada. Entrou `components/wall/WallThumb.tsx`
+    detectando `naturalWidth <= 120` (no `onLoad` **e** no mount, porque com SSR a
+    imagem pode ficar `complete` antes da hidratacao) com fallback da marca, mais o
+    gradiente inferior de legibilidade da parte (c), mais a morte do comentario que
+    descrevia uma URL que o arquivo nao usa (correcao 2 do item 25). Detalhamento
+    completo e as 4 medicoes no Diario de 16/08 (sprint 18h). Rollback: 2 arquivos.
+    **Texto original, preservado porque a leitura errada e o ensinamento:**
+    /wall: a pagina que existe para PROVAR mostra um
+    retangulo preto. Achado olhando a Wall of Proof com olhos de Higgsfield.
     Antes: o card usa a thumb do YouTube (`i.ytimg.com/vi/<id>/hqdefault.jpg`,
     **480x360 = 16:9**) dentro de uma moldura **9:16 de 163x291** com
     `object-fit:cover`. O corte guarda so a tira vertical central — e no unico
@@ -611,6 +627,57 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     item 23 executa a MESMA correcao (`preload="none"` + montagem no
     IntersectionObserver + `poster` obrigatorio) nas duas paginas, senao a casa
     conserta metade do problema e fecha o item.
+
+27. **NOVO (16/08, sprint 18h) — A TELA DO VIDEO PRONTO E O UNICO MOMENTO DE
+    DOPAMINA DO PRODUTO, E ELA COMECA COM UM RETANGULO PRETO DE 460x818.** Achado na
+    rotacao (depois do `/generate` vem a tela do video pronto) e medido no codigo de
+    `app/(dashboard)/generate/GenerateClient.tsx` (13.372 linhas; o bloco
+    `phase === 'done'` comeca na linha 9297). A moldura do resultado tem
+    `aspectRatio 9/16`, `width: min(460px, 90vw)`, `background: '#000'` e dentro dela
+    um `<video autoPlay preload="metadata">` **sem `poster`**. Entre o momento em que
+    o cartao aparece e o primeiro byte do MP4 chegar do CDN, a pessoa olha para um
+    **retangulo preto** — e o comentario do `Push #095` no proprio arquivo admite que
+    o Backblaze devolve **503 enquanto o MP4 novo propaga**, ou seja o caso lento nao
+    e hipotese, e o caso conhecido. **A casa ja resolveu isso em toda outra
+    superficie**: a galeria da home, `/examples` (item 19) e o item 23 dizem
+    "poster-first, o poster e o primeiro paint". A unica tela onde o cliente ve o
+    trabalho que acabou de pagar e a que nao tem poster.
+    Contagem no HEAD de 16/08 nesse arquivo: **9 `<video>`, `poster=` em 0/9,
+    `preload="none"` em 0/9**, 1 `autoPlay`, e **1 unica** mencao a
+    `Save-Data`/`prefers-reduced-motion` em 13.372 linhas.
+    **Nuance que explica a divergencia entre o grep e o DOM, e que vale para o teste 7
+    do dia 20:** a auditoria das 14h mediu **11 `<video>` com `preload="metadata"`
+    11/11** no DOM, mas o grep acha `preload="metadata"` **2 vezes** no arquivo — porque
+    **`metadata` e o default do browser**, entao os 7 tags que nao declaram `preload`
+    nenhum reportam `"metadata"` no DOM. **O grep do teste 7 pode dar verde com o
+    produto inteiro baixando metadata.** O teste precisa ser lido no DOM, nunca no
+    repo — mesma familia do item 22 (o raio que nao passa por `border-radius:`) e do
+    item 24 (a curva que nao esta em arquivo nenhum).
+    Antes: moldura preta ate o CDN responder, sem poster, sem skeleton, com autoplay
+    incondicional. Depois: (a) **`poster` do proprio video** — a coluna
+    `thumbnail_url` existe desde o commit #320 e ja e usada como fundo do botao de play
+    do `/history`, entao o asset ja esta pago; enquanto ela for nula, o **shimmer 9:16
+    do dia 8** no lugar do preto (o roadmap ja manda "skeleton, nunca spinner" — aqui
+    nao ha nem um nem outro, ha vazio); (b) `autoPlay` guardado por **Save-Data/2g**,
+    que e a unica regra do roadmap escrita como inviolavel e que nao esta sendo
+    cumprida justamente onde o arquivo pesa ~28MB.
+    Porque: e o item 9 do teste do dia 20 ("o momento video pronto tem cerimonia") —
+    a cerimonia do dia 7 (o check que se desenha + o pulso de glow azul) esta la e
+    **funciona**, e ela e disparada em cima de um buraco preto. A casa construiu a
+    festa e esqueceu de acender a luz.
+    Anotados junto, para nao virarem item novo depois: o bloco do `done` usa
+    **6 classes `rounded-*`** (3 `rounded-2xl` + 3 `rounded-xl`), quarta confirmacao do
+    item 22; e o **azul aparece 14 vezes so nesse bloco** (o arquivo inteiro tem **215**
+    ocorrencias de `#2997ff`/`41,151,255`) — mas aqui, ao contrario do item 26, **a
+    maior parte e a cerimonia protegida do dia 7 e NAO deve sair**; quem executar o
+    item 26 precisa tratar o bloco `phase === 'done'` como excecao declarada.
+    **Fora de escopo de UI, so registrado para o fundador olhar:** entre o titulo
+    "Your video is ready" e o player existe um paragrafo de **creditos e plano**
+    ("You have X credits left — about N more AI videos... Free Fast includes up to 3
+    watermarked previews per 24 hours"). Sprint de UI nao toca copy de oferta, entao
+    **nada foi feito** — mas o registro fica: no unico segundo em que o produto
+    entrega o que prometeu, a linha imediatamente acima da prova fala de quanto ainda
+    resta na carteira. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -654,6 +721,155 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### FECHAMENTO DO DIA — 16/08 (3 linhas, escritas pela sprint das 18h)
+
+1. **Nada do dia 16/08 esta no ar.** `origin/main` esta em `315c442` e o HEAD local
+   tem **4 commits a frente** — as sprints das 11h, 13h, 14h (UI) e 16h estao paradas
+   na sua maquina, e entre elas esta o **fail-open do portao do render fantasma**, o
+   que derrubou 42% dos 42 cadastros do TAAFT hoje. O push e seu: `scripts/114-PUSH.bat`.
+2. **A auditoria do item das 14h nao pode ser feita em producao — por causa do item 1.**
+   Foi feita na arvore (raios tokenizados presentes, LF, `tsc` verde) e o que ESTA no ar
+   foi re-medido e nao regrediu: `/wall` com **CLS 0**, zero erro de console.
+3. **A sprint das 18h fechou o item 21 (/wall) — e o item 21 e o 25 estavam errados os
+   dois.** O crop nunca foi o defeito; a thumbnail do unico card da aba padrao esta
+   **morta (404 em todas as 6 resolucoes)** e o YouTube devolve, junto do 404, um **JPEG
+   cinza 120x90 valido** que dispara `load` e nao `error` — a pagina que existe para
+   PROVAR pinta um retangulo de nada, e o conserto obvio (`onError`) nao pegaria isso.
+
+### 16/08 (sprint 18h) — ITEM 21 FECHADO PELO MOTIVO ERRADO DUAS VEZES: NAO E O CROP, E UMA THUMBNAIL MORTA QUE DISPARA `load`
+
+**1. Auditoria do item anterior (sprint 14h, os 10 raios orfaos) — NAO E AUDITAVEL EM
+PRODUCAO, e a razao e o achado da auditoria.** `git rev-list --count origin/main..HEAD`
+= **4**. O `origin/main` esta em `315c442` (ANTI-REPETICAO) e nao contem nenhuma das
+quatro sprints de hoje: 11h (`1259f48`), 13h (`3cce3f6`), **UI 14h (`e4d58f4`)** e 16h
+(`26197ab`). A regra do ciclo manda auditar EM PRODUCAO antes do proximo item; com o
+push parado, isso e impossivel por construcao, e fingir que passou seria pior do que
+registrar. Duas coisas foram feitas no lugar:
+- **Auditoria na arvore:** os 10 raios do dia 20 estao no HEAD, `tsc` escopado EXIT=0,
+  EOL LF conferido, nenhum arquivo do commit das 14h foi tocado depois.
+- **Re-medicao do que ESTA no ar** (para provar que nada regrediu no que os usuarios
+  veem hoje): `/wall` em `www.usekineo.com` responde **HTTP 200**, **CLS 0**, **zero
+  erro de console**. A producao mudou de dominio no caminho e vale registrar:
+  `shortsforgeai.com` agora responde **308 → `www.usekineo.com`**.
+- **Consequencia para o roadmap, nao para esta sprint:** a auditoria em producao so
+  volta a ser possivel depois do push. Se o dia 17 abrir com `origin/main..HEAD` ainda
+  > 0, a sprint das 14h deve auditar a arvore de novo e dizer isso na primeira linha,
+  em vez de medir o ar e achar que esta medindo o proprio trabalho.
+
+**2. O ITEM DA SPRINT — item 21 (/wall), e as duas versoes dele estavam erradas.**
+
+O item 21 (13/08) dizia: o card do mural mostra um retangulo quase todo preto porque
+`hqdefault` e 480x360 e o `object-fit: cover` numa moldura 9:16 guarda so uma tira
+central. A emenda do item 25 (15/08) dizia o contrario: o `src` virou `maxresdefault`
+1280x720, entao o `cover` **corta imagem util** — "de 1280px sobrevivem ~405px, ~32% do
+quadro". **As duas leituras foram falsificadas hoje, com medicao, e nas duas o culpado
+apontado era o crop.**
+
+**Medicao A — o mural serve as DUAS urls ao mesmo tempo.** `?range=all` em producao:
+3 cards em `maxresdefault` (vindos de `row.thumbnail_url`) e 1 em `hqdefault` (o
+fallback de `youtubeThumbUrl()`, `lib/wallOfProof.ts:97`). Uma unica regra de `cover`
+governando duas geometrias — era esse o motivo de cada sprint ver uma coisa.
+
+**Medicao B — o `cover` esta CERTO nas duas, e os "405px" do item 25 sao o quadro
+inteiro.** Baixei os 3 `maxresdefault` e medi o brilho em 20 faixas verticais de 5% da
+largura: as faixas **0-6 e 13-19 sao escuras** e so as **7-12** carregam imagem — banda
+central de ~30% da largura. E **720 x 9/16 = 405px de 1280 = 31,6%**. O YouTube entrega
+a thumbnail de Short **pillarboxed em toda resolucao**; o `cover` numa moldura 9:16
+descarta exatamente as barras e conserva o Short inteiro — em `hqdefault` (202,5px de
+480) e em `maxresdefault` (405px de 1280) igualmente. **Os "~405px que sobram" que a
+emenda leu como perda de 68% sao o quadro util completo.** Trocar por `contain` +
+backdrop borrado — a correcao que o item 21 pedia — mostraria as **barras do YouTube**
+dentro da nossa moldura e encolheria o Short de 163x291 para uma tira de 163x92. **Nao
+foi feito, de proposito.**
+
+**Medicao C — o defeito real, e ele e pior.** O unico card que a aba padrao
+("This week") renderiza hoje e `aSrIVAc81MM`, e **todas as 6 resolucoes de thumbnail
+dele respondem HTTP 404**: `maxresdefault`, `hq720`, `sddefault`, `mqdefault`,
+`hqdefault`, `default`. Medido no DOM de producao com o browser: `naturalWidth` **0x0**
+na moldura de 163x291 — **1 de 1 card visivel na aba padrao nao pinta um pixel.** A
+pagina cujo trabalho e provar entrega, hoje, **100% de nada**.
+
+**Medicao D — e por que o conserto obvio nao teria funcionado.** O `i.ytimg.com` nao
+devolve corpo vazio no 404: devolve um **JPEG cinza de 120x90 perfeitamente valido**.
+Testei os 4 srcs do mural no browser da producao, um `new Image()` por url:
+
+| src | evento | naturalWidth |
+|---|---|---|
+| `aSrIVAc81MM/hqdefault` | **`load`** | **120x90** |
+| `FPXfh0CaB4I/maxresdefault` | `load` | 1280x720 |
+| `HJ1TtTy_7pw/maxresdefault` | `load` | 1280x720 |
+| `fM_DhxZn7Lc/maxresdefault` | `load` | 1280x720 |
+
+**A thumbnail morta dispara `load`, nunca `error`.** Qualquer conserto baseado em
+`onError` — que e o primeiro que qualquer um escreve, e que o proprio item 21 propunha
+na sua parte (b) — **nao faria absolutamente nada aqui**. O discriminador honesto e o
+TAMANHO: o placeholder de ausencia tem sempre 120x90, e a menor thumbnail real do
+YouTube (`mqdefault`) tem 320px. Por isso o teste e `naturalWidth <= 120`.
+
+**A mudanca (diff isolado, rollback trivial):**
+- **`components/wall/WallThumb.tsx` (novo, client)** — o mesmo `<img>` de antes, com
+  deteccao da thumbnail morta por `naturalWidth <= 120` no `onLoad` **e** no mount
+  (com SSR a imagem pode ficar `complete` ANTES da hidratacao e nenhum dos dois eventos
+  chega a disparar — e a unica razao do `useEffect`), mais `onError` como rede de
+  seguranca do caminho que o browser realmente trata como erro. No lugar do buraco entra
+  o fallback da marca: gradiente `#1d1d1f → #141416` (as superficies `--surface-1/2` da
+  tabela de tokens deste doc) com um glifo de play em SVG. **Sem animacao nenhuma** —
+  camada estatica, entao nao ha o que respeitar em `prefers-reduced-motion` nem em
+  `Save-Data`, e nao ha CLS possivel (`position:absolute; inset:0` dentro da mesma caixa
+  `aspect-ratio` de sempre).
+- **`app/wall/page.tsx`** — troca do `<img>` pelo `<WallThumb>`, mais o **gradiente
+  inferior de legibilidade** (item 6 do sistema deles, a parte (c) do item 21): as duas
+  pastilhas (#rank e views) ja tinham fundo proprio, o gradiente e o que impede que
+  flutuem sobre um frame claro. `pointer-events:none` porque o card inteiro e o link.
+- **O comentario mentiroso do item 25 (correcao 2) morreu junto.** As 6 linhas de
+  `app/wall/page.tsx:186-192` explicavam o crop de "hqdefault 480x360" numa pagina que
+  serve as duas urls; foram substituidas pela medicao de hoje, com os dois numeros
+  (202,5 de 480 e 405 de 1280) escritos, para que a proxima sprint nao "conserte" o crop
+  de novo.
+
+**Revisao adversarial, 2a passada cacando defeito na propria mudanca:**
+1. **Falso positivo:** `default.jpg` e uma resolucao REAL do YouTube e tambem tem 120x90
+   — se um dia `row.thumbnail_url` apontar para ela, o card cai no fallback. Aceito e
+   documentado: 120px esticado numa moldura de 163px ja seria inutilizavel, o fallback e
+   melhor do que a versao borrada. `youtubeThumbUrl()` devolve `hqdefault` e o banco so
+   tem `maxresdefault`, entao hoje o risco e zero.
+2. **Hidratacao:** `'use client'` nao tira o elemento do HTML do servidor — o `<img>` dos
+   cards saudaveis sai identico ao de hoje. O `missing` so muda depois da hidratacao;
+   nao ha mismatch, ha transicao de estado.
+3. **Bundle:** `/wall` **ja** e uma rota com componente client (`WallSubmitLink`), entao
+   o runtime do React ja era servido ali. Nenhuma linha nova de baseline.
+4. **z-index / modais:** nenhum `z-index` introduzido. Tudo vive dentro do
+   `overflow:hidden` do card; nada `fixed`, nada em portal — o defeito do dia 18
+   (`forwards` prendendo o interstitial) nao tem como se repetir aqui.
+5. **Ordem de pintura:** o gradiente entra ANTES das duas pastilhas no JSX, entao elas
+   pintam por cima sem precisar de `z-index`; o `#rank` fica no topo-esquerdo e o
+   gradiente so comeca a 42% do fundo — nao se tocam.
+6. **Acessibilidade:** o fallback leva `role="img"` + `aria-label` com o mesmo texto do
+   `alt`, entao o nome acessivel do card nao se perde quando a imagem some.
+7. **A ambiguidade que a mudanca torna irrelevante:** o `<img>` da pagina foi medido no
+   ar com `complete:false / 0x0` (lazy, em voo) enquanto o `new Image()` do mesmo src
+   terminou em `load / 120x90`. Nao importa qual dos dois estados o browser do visitante
+   alcance — **os dois caminhos (`onError` e `naturalWidth<=120`) caem no mesmo
+   fallback**, entao o conserto nao depende de resolver essa duvida.
+
+**O que NAO foi feito e por que:** o item 25 (aba padrao vazia + contador que conta a
+outra aba) continua aberto — hoje o contador imprime **"4 Shorts published by Kineo
+users · showing the last 7 days"** com **1 card** na tela (era 3 contra 0 em 15/08; a
+distancia aumentou). E um item proprio, com regra de negocio (qual aba abre), e a regra
+da casa e um item por sprint. Os raios de `/wall` (6 valores fora da escala) continuam
+com o item 22. **Nada de preco, oferta, credito ou entitlement foi tocado.**
+
+**Rigor:** `tsc` escopado **EXIT=0 e FALSIFICADO** (`useState<number>(false)` proposital
+→ **4x TS2345, EXIT=2** → restaurado e conferido por **md5** nos dois arquivos → EXIT=0).
+EOL **LF** conferido no HEAD e na arvore (0 CR nos dois arquivos). Indice isolado
+(`GIT_INDEX_FILE`), **sem `add -A`**, **sem push**. O `tsconfig.uisprint.json` do teste
+nao pode ser apagado pela sandbox (OneDrive devolve `Operation not permitted`) mas ja
+cai na linha 22 do `.gitignore` (`tsconfig.*.json`) — **nao entra no commit**; apague
+quando quiser.
+
+**3. Item novo no fim do backlog: item 27** (rotacao: depois do `/generate` vem a **tela
+do video pronto**).
 
 ### 16/08 (sprint 14h) — DIA 20 (auditoria final) + a descoberta de que ITEM FECHADO NAO FICA FECHADO
 

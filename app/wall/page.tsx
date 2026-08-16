@@ -24,6 +24,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { unstable_cache } from 'next/cache'
 import WallSubmitLink from '@/components/wall/WallSubmitLink'
+import WallThumb from '@/components/wall/WallThumb'
 import {
   getWallData,
   formatViews,
@@ -183,21 +184,34 @@ function ShortCard({ short, rank }: { short: WallShort; rank: number }) {
             border: '1px solid rgba(255,255,255,0.1)',
           }}
         >
-          {/* hqdefault.jpg é 480x360 com o quadro vertical CENTRALIZADO entre
-              barras pretas. Um crop 9:16 centrado corta exatamente as barras
-              (360 x 9/16 = 202,5px de 480), então o card mostra o Short e não
-              um retângulo com tarjas. `unoptimized`/<img> de propósito: o host
-              i.ytimg.com não está em next.config images.remotePatterns e
-              adicionar um domínio ao pipeline de otimização por causa de uma
-              thumbnail não se paga. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* KINEO-UI-DIARIO-2026-08-16 — o <img> saiu daqui para WallThumb, que
+              detecta a thumbnail MORTA (i.ytimg.com responde 404 com um JPEG
+              cinza de 120x90 válido, então `onError` não pega) e põe o fallback
+              da marca no lugar do buraco. O crop continua `cover` e a razão está
+              medida no cabeçalho daquele arquivo: o YouTube entrega a thumb de
+              Short pillarboxed em TODA resolução, então `cover` numa moldura 9:16
+              conserva o quadro vertical inteiro — em `hqdefault` (202,5px de 480)
+              e em `maxresdefault` (405px de 1280) igualmente. O comentário antigo
+              descrevia só o hqdefault e o mural serve as duas URLs ao mesmo tempo.
+              <img> cru de propósito: i.ytimg.com não está em
+              next.config images.remotePatterns e adicionar um domínio ao pipeline
+              de otimização por causa de uma thumbnail não se paga. */}
+          <WallThumb
             src={short.thumbnailUrl}
             alt={short.title ?? `YouTube Short by ${short.author}`}
-            loading="lazy"
-            width={480}
-            height={360}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+          />
+          {/* Item 6 do sistema do Higgsfield: texto sobre vídeo sempre com
+              gradiente inferior de legibilidade. As duas pastilhas abaixo já
+              tinham fundo próprio; o gradiente é o que impede que elas flutuem
+              sobre um frame claro. pointer-events:none — o card inteiro é o link. */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 42%)',
+            }}
           />
           <span
             aria-hidden="true"
