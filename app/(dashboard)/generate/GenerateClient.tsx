@@ -13165,10 +13165,14 @@ function UpgradeModal({
             get one-click top-ups (buy more AI videos) instead of a dead-end.
             KINEO-SPRINT-OFFER-2026-07-14 — non-subscribers take the intro month
             on the plan rows above (the old pack escape button is gone). */}
-        {isSubscriber && (
+        {/* KINEO-TOPUP100-2026-08-17 — o pop-up de creditos zerados agora
+            mostra a escadinha pra TODOS (era so assinante): o momento em que
+            a fome bate e o momento de vender. 100cr e o destaque; 120 vira
+            decoy (+\$2 compra +35cr). */}
+        {(
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#86868b', textAlign: 'center' }}>
-              Out of credits mid-month? Top up instantly — expires at renewal:
+              {isSubscriber ? 'Out of credits mid-month? Top up instantly — expires at renewal:' : 'Need more videos right now? One-time credit packs:'}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
@@ -13200,6 +13204,12 @@ function UpgradeModal({
                   label: `+${TOPUP_CREDITS.topup120} credits`,
                   sub: `${Math.floor(TOPUP_CREDITS.topup120 / 20)} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup120[currency]) : '—',
+                },
+                {
+                  id: 'topup100',
+                  label: `+${TOPUP_CREDITS.topup100} credits`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / 20)} AI videos ⭐ best value`,
+                  price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup100[currency]) : '—',
                 },
               ].map((t) => (
                 <button

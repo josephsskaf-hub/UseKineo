@@ -391,6 +391,12 @@ export const PACK_CREDITS = {
 export const TOPUP_CREDITS = {
   topup40: 30,
   topup120: 65,
+  // KINEO-TOPUP100-2026-08-17 (aprovado): o pacote-ancora — 100 creditos
+  // (5 AI videos) por \$14.90 = \$0.149/cr. Efeito Goldilocks: o topup120
+  // (65cr por \$12.90) vira decoy; +\$2 compra +35cr. Margem ~80% (COGS
+  // ~\$0.03/cr). Segue 43% acima do \$/cr do Creator — nunca canibaliza a
+  // assinatura.
+  topup100: 100,
 } as const
 
 export type TopupId = keyof typeof TOPUP_CREDITS
@@ -784,6 +790,7 @@ export function checkPricingInvariants(): string[] {
   claim(490, 'pack:starter')
   claim(290, 'pack:starter290')
   claim(TOPUP_USD_PRICES.topup40, 'topup40')
+  claim(TOPUP_USD_PRICES.topup100, 'topup100')
   claim(TOPUP_USD_PRICES.topup120, 'topup120')
   claim(AUTOPILOT_PILOT_PRICES.usd, 'pilot:autopilot')
   for (const id of BULK_PACK_IDS) claim(BULK_PACKS[id].usdMinor, `bulk:${id}`)
@@ -898,12 +905,14 @@ export function checkPricingInvariants(): string[] {
 // importa em vez de declarar.
 export const TOPUP_PRICES: Record<TopupId, Record<CheckoutCurrency, number>> = {
   topup40: { usd: 590, brl: 2990, inr: 49900 },
+  topup100: { usd: 1490, brl: 7490, inr: 124900 },
   topup120: { usd: 1290, brl: 6490, inr: 109900 },
 }
 
 /** USD list price of each top-up SKU, in cents. Derivado de TOPUP_PRICES. */
 export const TOPUP_USD_PRICES: Record<TopupId, number> = {
   topup40: TOPUP_PRICES.topup40.usd,
+  topup100: TOPUP_PRICES.topup100.usd,
   topup120: TOPUP_PRICES.topup120.usd,
 }
 

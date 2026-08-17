@@ -10,6 +10,10 @@
 // sages.us, etc.). Keep additions lowercase and bare (no leading "@").
 
 export const DISPOSABLE_DOMAINS: Set<string> = new Set([
+  // KINEO-FARM-2026-08-17 — dominios flagrados queimando trial em producao
+  // (80 creditos em contas descartaveis no dia 13/08).
+  'tabeebee.com',
+  'skyprofy.com',
   // seen in this app
   'yopmail.com',
   'mailinator.com',

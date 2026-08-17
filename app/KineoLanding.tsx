@@ -1190,7 +1190,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 40 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
+          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 50 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails

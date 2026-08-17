@@ -79,7 +79,12 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
  * ADENDO A1 (06/08): 60 → 40 — pior caso ~$4,1/trial; Hollywood segue
  * inalcançável por design.
  */
-export const TRIAL_CREDIT_CAP = 40
+// KINEO-TRIAL-50-2026-08-17 (aprovado pelo fundador: 'se so muda 1 dolar,
+// pode mudar pra 50') — 40 → 50: o trial prometia 'every engine except
+// Studio' mas 40 creditos NAO compravam um Kling 2.5 (50). Agora o menu do
+// trial e honesto: 2 Seedance OU 1 Kling 2.5. Custo extra por usuario que
+// escolher o premium: <\$1.
+export const TRIAL_CREDIT_CAP = 50
 
 /**
  * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):
