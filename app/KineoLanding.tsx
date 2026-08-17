@@ -91,9 +91,18 @@ html{scroll-behavior:smooth}
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
 .klp .nav-links a .badge{height:15px;font-size:8.5px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
 .klp .nd{position:relative;display:inline-flex}
+/* KINEO-NAV-HOVER-2026-08-17 (fundador: "o sub menu desaparece antes de eu
+   clicar") — dois defeitos: (1) o dropdown abria deslocado 4px pra baixo,
+   criando um VAO MORTO entre o titulo e o menu onde o hover morria no
+   caminho do mouse; (2) o fechamento era instantaneo — 1px fora e sumia.
+   Cura: ::after cria uma PONTE invisivel cobrindo o vao (e um respiro
+   lateral pro trajeto diagonal), o menu abre colado (translateY 0) e o
+   fechamento ganha 0.25s de tolerancia (delay so na SAIDA; abrir segue
+   imediato). */
+.klp .nd::after{content:'';position:absolute;left:-14px;right:-14px;top:100%;height:16px}
 .klp .nd-car{font-size:8px;margin-left:5px;opacity:.6;vertical-align:1px}
-.klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift);z-index:60}
-.klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;transform:translate(-50%,4px)}
+.klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease .25s,transform var(--dur-fast) var(--ease-swift) .25s,visibility 0s linear .45s;visibility:hidden;z-index:60}
+.klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0);transition-delay:0s,0s,0s}
 .klp .nd-menu{display:flex}
 .klp .nd-menu>*{display:block}
 .klp .nd-menu{flex-direction:column;min-width:172px;background:transparent}
