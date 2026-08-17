@@ -5,6 +5,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+// KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
+// guardadas (mesmo padrão do cinematic-clip-status).
+import { createHash } from 'crypto'
+import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
@@ -1689,6 +1693,90 @@ export async function POST(req: NextRequest) {
       const hollywoodVertical =
         typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
 
+      // ── KINEO-SALVAGE-2026-08-17 — RETOMADA DE RENDER ────────────────────
+      // Madrugada de 17/08: um render morreu com 4/6 cenas PRONTAS e pagas no
+      // fal (~$8) e o Retry recomeçava do zero — replanejava, re-pagava e
+      // re-esperava as 4 cenas que JÁ EXISTIAM. Agora todo submit Hollywood
+      // grava plano+ids em hollywood_resume (chave: user+fingerprint do
+      // pedido); um novo pedido IGUAL dentro de 2h reaproveita as cenas
+      // completas/na fila e re-submete só as falhadas — planner e âncoras
+      // nem rodam. Fail-open total: qualquer erro aqui cai no caminho normal.
+      const salvageDb = (() => {
+        try {
+          const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+          const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+          if (!url || !key) return null
+          return createAdminClient(url, key, { auth: { persistSession: false } })
+        } catch { return null }
+      })()
+      const salvageFp = createHash('md5')
+        .update(`${user.id}|hollywood|${Math.round(duration || 60)}|${prompt.trim().toLowerCase()}`)
+        .digest('hex')
+      if (salvageDb) {
+        try {
+          const { data: sv } = await salvageDb
+            .from('hollywood_resume')
+            .select('response, request_ids, models, created_at')
+            .eq('user_id', user.id)
+            .eq('fingerprint', salvageFp)
+            .maybeSingle()
+          if (sv && Date.now() - new Date(sv.created_at as string).getTime() < 2 * 60 * 60 * 1000) {
+            const storedResp = sv.response as Record<string, unknown>
+            const storedIds = (sv.request_ids as (string | null)[]) ?? []
+            const storedModels = (sv.models as string[]) ?? []
+            const sPrompts = (storedResp.scene_prompts as string[]) ?? []
+            const sAnchors = (storedResp.scene_anchor_urls as (string | null)[]) ?? []
+            const sSeconds = (storedResp.scene_seconds as number[]) ?? []
+            if (storedIds.length > 0 && storedIds.length === storedModels.length) {
+              const falKey = process.env.FAL_KEY
+              if (falKey) fal.config({ credentials: falKey })
+              const freshIds: (string | null)[] = []
+              let reused = 0
+              let resubmitted = 0
+              for (let i = 0; i < storedIds.length; i++) {
+                let keep: string | null = null
+                const rid = storedIds[i]
+                if (rid && falKey) {
+                  try {
+                    const st = (await fal.queue.status(storedModels[i], { requestId: rid })) as { status?: string }
+                    if (st.status === 'COMPLETED' || st.status === 'IN_PROGRESS' || st.status === 'IN_QUEUE') {
+                      keep = rid
+                      reused++
+                    }
+                  } catch { /* status irrecuperável → re-submete abaixo */ }
+                }
+                if (!keep && sPrompts[i]) {
+                  try {
+                    keep = await submitToFal(sPrompts[i], storedModels[i], false, true, sSeconds[i], sAnchors[i] ?? undefined)
+                    if (keep) { resubmitted++; providerSubmissionMayExist = true }
+                  } catch { keep = null }
+                }
+                freshIds.push(keep)
+              }
+              const okSec = sSeconds.reduce((a, s, i) => a + (freshIds[i] ? (s || 0) : 0), 0)
+              const totSec = sSeconds.reduce((a, s) => a + (s || 0), 0) || 1
+              if (freshIds.some(Boolean) && okSec >= totSec * 0.6) {
+                if (reused > 0) providerSubmissionMayExist = true
+                console.log(
+                  `[cinematic] SALVAGE: ${reused} cenas reaproveitadas + ${resubmitted} re-submetidas (fp=${salvageFp.slice(0, 8)}) — planner/âncoras pulados`,
+                )
+                const patched: Record<string, unknown> = {
+                  ...storedResp,
+                  generationId,
+                  fal_request_ids: freshIds,
+                  fal_models: storedModels,
+                  fal_model: storedModels[0] ?? HOLLYWOOD_MODELS.dialogue,
+                }
+                return publishCinematicResponse(patched, freshIds, storedModels)
+              }
+              console.warn('[cinematic] SALVAGE inviável (cenas insuficientes) — replanejando do zero')
+            }
+          }
+        } catch (e) {
+          console.warn('[cinematic] salvage lookup falhou (caminho normal):', e instanceof Error ? e.message : String(e))
+        }
+      }
+
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
@@ -1793,7 +1881,12 @@ export async function POST(req: NextRequest) {
         // usam o tamanho REAL do audio (sempre um pouco menor que o planejado).
         // O plano agora mira 100% do alvo pra que o encolhimento natural do
         // compose aterrisse em 55-60s, nao em 46.
-        const capFor = (t: string) => (t === 'cinematic' ? 8 : 15)
+        // KINEO-QUEUE-LATENCY-2026-08-17 — teto de apoio 15→12s. Medido na
+        // madrugada: os clipes de 14-15s foram os que entupiram a fila do
+        // Kling (fila cresce mais que linear com a duracao). 12s mantem o
+        // orcamento de 60s com uma cena a mais quando preciso — mais cortes,
+        // mais ritmo, fila 3-4x mais rapida.
+        const capFor = (t: string) => (t === 'cinematic' ? 8 : 12)
         let guard = 60
         while (total < target && guard-- > 0) {
           const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc.type))
@@ -2167,6 +2260,23 @@ export async function POST(req: NextRequest) {
         quality: 'cinematic_hollywood',
         verbatim,
         speed: parsedScript.speed,
+      }
+      // KINEO-SALVAGE-2026-08-17 — grava o snapshot completo pro retry
+      // reaproveitar (best-effort: falha aqui nunca afeta o render).
+      if (salvageDb) {
+        try {
+          await salvageDb.from('hollywood_resume').upsert({
+            user_id: user.id,
+            fingerprint: salvageFp,
+            generation_id: generationId,
+            response,
+            request_ids: hRequestIds,
+            models: hModels,
+            created_at: new Date().toISOString(),
+          })
+        } catch (e) {
+          console.warn('[cinematic] salvage persist falhou:', e instanceof Error ? e.message : String(e))
+        }
       }
       return publishCinematicResponse(response, hRequestIds, hModels)
     }
