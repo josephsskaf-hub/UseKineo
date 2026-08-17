@@ -126,6 +126,9 @@ const PREVIEWS = new Set<string>([
   // 17/08 d — telegrafo explodindo sob o raio (Carrington) + floresta em circulo (Tunguska), 1000px.
   'bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0',
   '99818ab0-0960-4089-a784-12b241736868',
+  // 17/08 e — tile Avatar do bento: o render 9:16 inteiro ficava desenquadrado
+  // no tile largo; preview 500:280 com o ROSTO centralizado (banda 36%, 1000px).
+  'c21c2456-98dc-4061-bee5-2f02a5180295',
 ])
 
 const EXCLUDED = new Set<string>([
