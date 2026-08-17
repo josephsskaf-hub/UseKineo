@@ -30,8 +30,8 @@ import {
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
-import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
-import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
+import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
+import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
@@ -2051,9 +2051,14 @@ export async function POST(req: NextRequest) {
     // Push #293/#488 — fetch background music. Best-effort: never block the
     // render. Seeded with the voiceover upload URL (unique per render) so the
     // track is deterministic per render but rotates across renders.
+    // KINEO-MUSIC-MOOD-2026-08-17 — o nicho do script (a MESMA detecção que
+    // escolhe a persona de voz) agora escolhe o balde de trilha: mistério
+    // recebe suspense, dinheiro recebe phonk, história recebe orquestral.
+    // Fim da roleta cega ao tema flagrada pelo fundador no Farol de Flannan.
     let musicUrl: string | null = null
     try {
-      musicUrl = await getBackgroundMusicUrl(voiceoverUrl)
+      const musicMood = resolveMusicMood(detectNiche(scaledScript, vertical))
+      musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
     } catch (err) {
       console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
     }

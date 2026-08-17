@@ -71,6 +71,72 @@ const FALLBACK_TRACKS = [
   `${SUPABASE_MUSIC_BASE}/orchestral-trap.mp3`,
 ]
 
+// ---------------------------------------------------------------------------
+// KINEO-MUSIC-MOOD-2026-08-17 — trilha combinando com o TEMA do vídeo.
+//
+// Flagrante do fundador 17/08: um vídeo de mistério (Farol de Flannan, Veo)
+// recebeu uma faixa phonk/trap — a rotação era determinística mas CEGA ao
+// tema. O render de Seedance da MESMA história caiu por sorte na faixa de
+// suspense e "saiu perfeito". Sorte não é sistema: agora o nicho do script
+// (detectNiche — a mesma inteligência que escolhe a VOZ) escolhe primeiro o
+// BALDE de humor, e a rotação determinística continua, só que dentro do balde
+// certo. Todo mistério recebe trilha de mistério, sempre.
+//
+// Os baldes reutilizam APENAS as 8 faixas vetadas à mão (lição de 09/07: CC0
+// aleatório é roleta de qualidade). Expandir o catálogo = baixar + ouvir +
+// aprovar com o fundador antes de entrar aqui.
+// ---------------------------------------------------------------------------
+export type MusicMood = 'suspense' | 'epic' | 'hustle' | 'dark'
+
+const MOOD_TRACKS: Record<MusicMood, string[]> = {
+  // Mistério / conspiração / dark history — tensão e suspense, zero batida festiva.
+  suspense: [
+    `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
+    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
+    `${SUPABASE_MUSIC_BASE}/voodoo-tribal.mp3`,
+  ],
+  // História / geografia / ciência — peso cinematográfico, orquestral.
+  epic: [
+    `${SUPABASE_MUSIC_BASE}/orchestral-trap.mp3`,
+    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
+    `${SUPABASE_MUSIC_BASE}/voodoo-tribal.mp3`,
+  ],
+  // Dinheiro / billionaire / luxo / tech — a batida phonk/trap que JÁ era a
+  // identidade do canal de finanças; aqui ela é acerto, não acidente.
+  hustle: [
+    `${SUPABASE_MUSIC_BASE}/phonk-song.mp3`,
+    `${SUPABASE_MUSIC_BASE}/dark-trap-time.mp3`,
+    `${SUPABASE_MUSIC_BASE}/dark-beat-loop.mp3`,
+  ],
+  // Sem sinal de tema — catálogo completo (comportamento antigo).
+  dark: FALLBACK_TRACKS,
+}
+
+// ContentNiche (lib/narration/niche-mapping) → balde de humor. Espelha o
+// agrupamento das personas de voz: quem narra com voz de suspense ganha
+// trilha de suspense.
+const NICHE_TO_MOOD: Record<string, MusicMood> = {
+  mystery: 'suspense',
+  conspiracy: 'suspense',
+  dark_history: 'suspense',
+  history: 'epic',
+  geography: 'epic',
+  travel: 'epic',
+  science: 'epic',
+  finance: 'hustle',
+  billionaire: 'hustle',
+  money: 'hustle',
+  luxury: 'hustle',
+  ai: 'hustle',
+  technology: 'hustle',
+  // learning / curiosities / facts → sem mapeamento → 'dark' (catálogo cheio)
+}
+
+export function resolveMusicMood(niche: string | null | undefined): MusicMood {
+  if (!niche) return 'dark'
+  return NICHE_TO_MOOD[niche.toLowerCase()] ?? 'dark'
+}
+
 type OpenverseHit = {
   url?: string
   duration?: number // milliseconds
@@ -148,7 +214,7 @@ async function fetchTrackFromOpenverse(seed?: string): Promise<string | null> {
 // track choice is deterministic per render but rotates across renders.
 // Never returns null in practice: LAYER 2 is self-hosted and always resolves.
 // ---------------------------------------------------------------------------
-export async function getBackgroundMusicUrl(seed?: string): Promise<string | null> {
+export async function getBackgroundMusicUrl(seed?: string, mood?: MusicMood): Promise<string | null> {
   // KINEO-MUSIC-CURATED-2026-07-09 — Openverse (LAYER 1) DISABLED by default.
   // Real-world failure 09/07: a random Openverse "phonk/dark beat" hit turned
   // out to be a track that flips into upbeat club music mid-file — the loop
@@ -161,9 +227,11 @@ export async function getBackgroundMusicUrl(seed?: string): Promise<string | nul
     if (fromApi) return fromApi
   }
 
-  // LAYER 2 (now primary) — curated self-hosted CC0 tracks (deterministic rotation)
-  const fallback = FALLBACK_TRACKS[pickIndex(FALLBACK_TRACKS.length, seed, 'fallback')]
-  console.log(`[music] Using curated self-hosted CC0 track: ${fallback}`)
+  // LAYER 2 (now primary) — curated self-hosted CC0 tracks, mood-matched
+  // (KINEO-MUSIC-MOOD-2026-08-17) + deterministic rotation dentro do balde.
+  const pool = MOOD_TRACKS[mood ?? 'dark'] ?? FALLBACK_TRACKS
+  const fallback = pool[pickIndex(pool.length, seed, 'fallback')]
+  console.log(`[music] Using curated self-hosted CC0 track (mood=${mood ?? 'dark'}): ${fallback}`)
   return fallback
 
   // LAYER 3 (no music) is the caller's try/catch in /api/compose — it logs
