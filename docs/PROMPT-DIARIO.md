@@ -1,5 +1,43 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇA — 17/08/2026 (sprint 10h) — UMA regra, e ela é uma perna nova da regra 1
+>
+> **MÓDULO NOVO FECHA COM DUAS PROVAS: `grep -c` do próprio import E
+> `git show HEAD:<arquivo>`. Nunca o `ls` do disco, e NUNCA o `tsc`.**
+>
+> A sprint das 11h de 17/08 entregou `lib/email/quota.ts` (260 linhas, gate de
+> cota do Resend com reserva de prioridade) + a migração
+> `20260817130000_email_send_log.sql`, e marcou a tarefa como concluída. Às 13:50Z
+> **nada disso funcionava, por três motivos independentes**:
+> 1. `to_regclass('public.email_send_log')` = **null** — a tabela nunca existiu em
+>    produção. Sem ela o gate cai em `degraded_open` e **libera tudo, sempre**;
+> 2. a migração **não compila**: `create index ((sent_at::date), priority)` →
+>    `42P17 functions in index expression must be marked IMMUTABLE` (cast de
+>    `timestamptz` para `date` depende do `TimeZone`, logo é STABLE). Quem
+>    tentasse aplicar também teria falhado;
+> 3. **zero call sites** — `grep -rln "email/quota"` devolvia só o próprio
+>    arquivo. O gate era indistinguível, em produção, de um arquivo inexistente.
+>
+> E o `.sql` estava **untracked**. E o próprio `lib/email/quota.ts` **também
+> estava untracked** — isso só apareceu porque, ao conferir o commit por
+> CONTEÚDO (regra 2), `git show HEAD:lib/email/quota.ts` respondeu
+> **"exists on disk, but not in HEAD"**. Sem essa conferência, o commit que ligou
+> os três remetentes teria ido para produção com
+> `Module not found: Can't resolve '@/lib/email/quota'` em 3 arquivos.
+>
+> **O detalhe que faz esta regra existir: o `tsc --noEmit` escopado PASSOU (exit
+> 0) com o módulo untracked.** O `tsc` lê o **disco**, não a árvore do git. Um
+> `tsc` verde sobre arquivo não versionado é um falso positivo perfeito — local
+> compila, deploy quebra. É a regra 3 (prova em segundos) e a regra 1
+> ("escrevi" ≠ "entreguei") colidindo: a prova rápida que adotamos não cobre a
+> pergunta "isto existe para o build da Vercel?".
+>
+> **Checklist de fechamento de módulo novo, os quatro juntos:**
+> `git status --porcelain -- lib/ app/ | grep '^??'` (nada meu ali) ·
+> `git grep -l "<modulo>" HEAD -- app/` (>0 arquivos) ·
+> `git show HEAD:<arquivo>` (não erra) ·
+> e para migração, `to_regclass` no banco — **nunca** a existência do `.sql`.
+
 > ## MUDANÇAS — 08/08/2026 (sprint 13h) — duas regras, ambas sobre ENTREGA
 >
 > **1. "Escrevi a correção" não é "entreguei a correção". Fechar toda sprint com
