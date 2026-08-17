@@ -19,6 +19,19 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     label: 'Studio',
     exact: false,
   },
+  // KINEO-IMAGES-PROD-2026-08-17 — par do Sidebar: Kineo Images no mobile.
+  {
+    href: '/images',
+    icon: (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="3" />
+        <circle cx="9" cy="10" r="1.6" />
+        <path d="m3.5 17 5-5 4 4 3-3 5 5" />
+      </svg>
+    ),
+    label: 'Images',
+    exact: false,
+  },
   {
     href: '/viral-now',
     icon: (

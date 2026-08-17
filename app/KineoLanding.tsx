@@ -782,11 +782,28 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             {/* KINEO-NAV-IMAGE-2026-08-17 (aprovado): Animate a Photo muda de
                 Video pra ca — a porta de entrada dele e uma IMAGEM. O menu
                 deixa de ser dropdown de item unico. */}
+            {/* KINEO-IMAGES-PROD-2026-08-17 (fundador: "pode subir pra
+                producao... dentro do menu de imagens vai ter todos os motores
+                de imagem"): Image vira mega-menu igual ao Video — catalogo de
+                motores com preco | ferramentas. Porta principal: /images. */}
             <span className="nd">
-              <Link href="/thumbnail-generator">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu">
-                <Link href="/thumbnail-generator">Thumbnails</Link>
-                <Link href="/animate">Animate a Photo</Link>
+              <Link href="/images">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><b>FLUX Schnell</b><i>Instant drafts · 1 credit</i></Link>
+                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><b>FLUX Dev</b><i>Photorealistic · 2 credits</i></Link>
+                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><b>Seedream 5.0 Pro</b><i>Deep understanding · 3 credits</i></Link>
+                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><b>Grok Imagine 2.0</b><em className="nm-chip">NEW</em><i>By xAI · 3 credits</i></Link>
+                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><b>Recraft V3</b><i>Perfect text · 4 credits</i></Link>
+                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><b>Nano Banana Pro</b><em className="nm-chip">STUDIO</em><i>Google’s best · 5 credits</i></Link>
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/images"><b>Create Image</b><em className="nm-chip">NEW</em></Link>
+                  <Link href="/thumbnail-generator">Thumbnails</Link>
+                  <Link href="/animate">Animate a Photo</Link>
+                </span>
               </span>
             </span>
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
@@ -824,6 +841,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
               <Link href="/studio">Studio — generate video</Link>
+              <Link href="/images">Images — create image</Link>
               <Link href="/viral-now">Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
               <Link href="/animate">Animate</Link>
