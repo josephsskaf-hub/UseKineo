@@ -77,11 +77,11 @@ const CURATED: Record<string, string[]> = {
   //   KLING 3 (recurado 17/08 — fundador): 4o spot vira o NARRADOR DO KRAKATOA
   //   (render dele desta noite, ondas quebrando atras, janela 44.5-52.5 do
   //   payoff — 'a pessoa que fala entra bem em cena'); estudio futurista sai.
-  //   KLING 3 (17/08 b — 'me surpreende'): 5a vaga = MEGATSUNAMI DE LITUYA BAY
-  //   1958 (garimpado do acervo, nunca exibido) — deslizamento explodindo na
-  //   baia do Alasca, janela 8-16s, karaoke '90 MILLION TONS'/'524' visivel.
-  //   O hero mostra os 4 primeiros; o 5o e EXCLUSIVO do tile do bento
-  //   (tileVidLast em KineoLanding) — zero repeticao na pagina.
+  //   KLING 3 (17/08 b — 'me surpreende'): 5a vaga = render de LITUYA BAY 1958
+  //   (garimpado do acervo, nunca exibido) — o PESCADOR-TESTEMUNHA no barco no
+  //   fiorde do Alasca, janela 0.4-5.8s, banda 32% (rosto cheio, SEM legenda —
+  //   fundador vetou legenda no tile). O hero mostra os 4 primeiros; o 5o e
+  //   EXCLUSIVO do tile do bento (tileVidLast) — zero repeticao na pagina.
   cinematic_hollywood: ['216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '501d1ef7-5df5-4462-9341-c58ea01f0042', 'e487a011-8781-482f-913e-445ef5ad22bf'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
@@ -113,7 +113,7 @@ const PREVIEWS = new Set<string>([
   '75728dfb-3b29-47fa-aea8-b806d549a2b9', 'd8157290-65db-4d1d-b914-268d54f92087',
   // 17/08 — narrador do Krakatoa (payoff 44.5-52.5s): 4o spot do Kling 3 + tile Avatar do bento.
   '501d1ef7-5df5-4462-9341-c58ea01f0042',
-  // 17/08 — megatsunami de Lituya Bay (janela 8-16s, banda 75%): tile Kling 3 do bento.
+  // 17/08 — Lituya Bay, pescador-testemunha (0.4-5.8s, banda 32%, sem legenda): tile Kling 3 do bento.
   'e487a011-8781-482f-913e-445ef5ad22bf',
 ])
 
