@@ -1601,6 +1601,12 @@ export default function GenerateClient({
   // non-hollywood generation, which keeps the classic single-model poll intact.
   const falModelsRef = useRef<string[]>([])
   const sceneEnginesRef = useRef<string[]>([])
+  // KINEO-HOLLYWOOD-RETRY-2026-08-16 — prompt + ancora por cena (vindos do
+  // servidor) pra re-submeter UMA vez cenas que falharem no fornecedor, e a
+  // trava de "ja tentei" (1 rodada de retry por geracao).
+  const scenePromptsRef = useRef<string[]>([])
+  const sceneAnchorsRef = useRef<(string | null)[]>([])
+  const hollyRetriedRef = useRef(false)
   const sceneNarrationsRef = useRef<(string | null)[]>([])
   const sceneSecondsRef = useRef<number[]>([])
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
@@ -3095,6 +3101,51 @@ export default function GenerateClient({
         setGenerateProgress(total > 0 ? Math.round((done / total) * 85) : 0)
 
         if (data.allDone) {
+          // KINEO-HOLLYWOOD-RETRY-2026-08-16 — antes de aceitar um video
+          // CURTO (cenas dropadas = o bug dos 34s/60s), re-submete UMA vez
+          // cada cena que falhou no fornecedor e volta a esperar. So Hollywood
+          // (ha prompts/ancoras por cena) e so uma rodada por geracao.
+          const failedIdx: number[] = (data.clips ?? [])
+            .map((c: { status: string }, i: number) => (c.status === 'failed' ? i : -1))
+            .filter((i: number) => i >= 0)
+          if (
+            failedIdx.length > 0 &&
+            scenePromptsRef.current.length > 0 &&
+            !hollyRetriedRef.current &&
+            !cancelled
+          ) {
+            hollyRetriedRef.current = true
+            const nextIds = [...falRequestIds]
+            let changed = false
+            for (const fi of failedIdx) {
+              const p = scenePromptsRef.current[fi]
+              if (!p || p.length < 20) continue
+              try {
+                const rr = await fetch('/api/retry-hollywood-scene', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    prompt: p,
+                    anchorUrl: sceneAnchorsRef.current[fi] ?? null,
+                    seconds: sceneSecondsRef.current[fi] ?? 10,
+                    model: falModelsRef.current[fi] ?? undefined,
+                  }),
+                })
+                const rj = await rr.json().catch(() => ({}))
+                if (rr.ok && typeof rj.requestId === 'string') {
+                  nextIds[fi] = rj.requestId
+                  changed = true
+                  console.log(`[generate] hollywood scene ${fi + 1} re-submitted (retry) → ${rj.requestId}`)
+                }
+              } catch {
+                // retry e melhor-esforco: falhou, a cena segue dropada como antes
+              }
+            }
+            if (changed) {
+              setFalRequestIds(nextIds) // reinicia o polling com os ids novos
+              return
+            }
+          }
           // Collect all successful clip URLs
           const urls: string[] = (data.clips ?? [])
             .filter((c: { status: string; url: string | null }) => c.status === 'done' && c.url)
@@ -5853,6 +5904,9 @@ export default function GenerateClient({
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
         sceneEnginesRef.current = Array.isArray(data.scene_engines) ? data.scene_engines.filter((e: unknown): e is string => typeof e === 'string') : []
+        scenePromptsRef.current = Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x: unknown) => (typeof x === 'string' ? x : '')) : []
+        sceneAnchorsRef.current = Array.isArray(data.scene_anchor_urls) ? data.scene_anchor_urls.map((x: unknown) => (typeof x === 'string' ? x : null)) : []
+        hollyRetriedRef.current = false
         sceneNarrationsRef.current = Array.isArray(data.scene_narrations) ? data.scene_narrations.map((n: unknown) => (typeof n === 'string' ? n : null)) : []
         sceneSecondsRef.current = Array.isArray(data.scene_seconds) ? data.scene_seconds.map((s: unknown) => (typeof s === 'number' ? s : 10)) : []
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real dialogue line per scene.

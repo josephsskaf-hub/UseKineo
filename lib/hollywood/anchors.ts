@@ -26,7 +26,10 @@
 import { fal } from '@fal-ai/client'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 
-const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/schnell'
+// KINEO-ANCHOR-DEV-2026-08-16 — schnell (tier rapido/barato) era a causa do
+// rosto artificial flagrado pelo fundador; dev custa centavos a mais e muda o
+// jogo em pele/textura. Motor de 150cr merece a melhor ancora.
+const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/dev'
 
 // KINEO-HOLLYWOOD-30-2026-07-10 — approximate cost of the 2 anchor images
 // (flux/schnell is ~pennies; logged conservatively as a flat $0.10 so the
@@ -127,7 +130,10 @@ export async function generateHollywoodAnchors(args: {
 
     const portraitPrompt =
       `${character}. Standing in: ${environment}. Cinematography: ${style}. ` +
-      `vertical 9:16 portrait, medium shot, looking directly at the camera, photorealistic, ` +
+      `vertical 9:16 portrait, medium shot, looking directly at the camera. ` +
+      `Shot on 85mm portrait lens, natural window light, real human skin with visible pores and fine texture, ` +
+      `subtle facial asymmetry and imperfections, filmic color, shallow depth of field, ` +
+      `photorealistic like a still from an A24 film — NOT smooth CGI skin, no beauty filter, ` +
       `sharp focus on the face, no text, no watermark, no logo`
     const stillPrompt =
       `${environment}. Cinematography: ${style}. ` +

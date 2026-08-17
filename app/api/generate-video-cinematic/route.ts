@@ -1994,6 +1994,13 @@ export async function POST(req: NextRequest) {
         // audio seconds) | 'dialogue' | 'cinematic' | 'support'. Compose keys
         // volume/narration/caption/duration decisions off this.
         scene_engines: hEngines,
+        // KINEO-HOLLYWOOD-RETRY-2026-08-16 — o client precisa do prompt e da
+        // âncora de cada cena pra re-submeter UMA vez as que falharem no
+        // fornecedor (conserto do vídeo curto de 34s).
+        scene_prompts: plan.scenes.map((s) => s.prompt + eraSuffix),
+        scene_anchor_urls: plan.scenes.map((s) =>
+          anchors ? (s.type === 'dialogue' ? anchors.portraitUrl : anchors.environmentUrl) : null,
+        ),
         scene_narrations: hNarrations, // TTS text per scene (null = native audio only)
         // For host scenes these are the MEASURED TTS seconds (0.1s precision),
         // overwritten in the submit loop — not the planner's 5|10 estimate.
