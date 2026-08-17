@@ -8,6 +8,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-STARTER-NAS-30-2026-08-17 — ver a nota extensa no hero. Client
+// component importado por página server-rendered: padrão suportado pelo App
+// Router, e é exatamente como `/free-ai-shorts-generator` (a página que
+// converte) já o usa.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
@@ -533,6 +538,65 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           >
             Generate a free {n.label} Fast video →
           </OrganicCtaLink>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              KINEO-STARTER-NAS-30-2026-08-17 — A FAMÍLIA DE 30 PÁGINAS ERA
+              BROCHURA; A PÁGINA-HUB ERA PRODUTO. ESTA LINHA IGUALA AS DUAS.
+              ═══════════════════════════════════════════════════════════════
+              MEDIDO (30 dias, `events`, contas internas fora):
+
+                /free-ai-shorts-generator (1 página)  → 24 sessões
+                /free-ai-shorts/* (as 30 de nicho)    → ~14 sessões
+
+              A página-hub SOZINHA traz mais gente do que a família inteira que
+              ela alimenta. Mas o número que decide não é esse, é a natureza
+              dos eventos: o hub emite `organic_topic_submitted` e
+              `organic_topic_example_started`; as 30 de nicho emitem
+              **APENAS** `landing_session_started` e `organic_cta_clicked`, em
+              12 das 30 (18 páginas com ZERO sessão em 30 dias).
+
+              Ou seja: as páginas de nicho só sabiam MANDAR EMBORA (clique num
+              link que leva ao /signup). O hub deixava a pessoa COMEÇAR ali
+              mesmo. O componente que faz essa diferença é este
+              `TopicGeneratorForm` — o próprio arquivo dele se descreve como
+              "a máquina de ativação de 68% (push69/push70)" — e ele nunca foi
+              importado aqui.
+
+              POR QUE ISTO É A INVERSÃO QUE INTERESSA: a sprint das 10h de hoje
+              mediu que TODO segmento nomeado chega na Stripe mais que o "sem
+              rótulo" (22–30% contra 14,2%) e concluiu que nomear o nicho é
+              conversão. Se isso é verdade, a página de nicho deveria ser a
+              superfície MAIS forte da casa — ela tem a intenção E o nome. Ela
+              era a mais fraca porque foi construída sem o mecanismo. Uma
+              edição neste template alcança as 30 de uma vez.
+
+              `examples` vem de `n.ideas` — cada página semeia o starter com os
+              temas do PRÓPRIO nicho, que já estavam escritos logo abaixo e só
+              existiam como link.
+
+              ⚠️ LIMITE HONESTO, dito aqui para ninguém ler o número errado: o
+              widget navega com `prompt` + `create_intent` + `intent_campaign`,
+              e NÃO com `utm_source=seo` (os links desta página levam utm; ele
+              não). Quem for medir esta mudança conta por
+              `intent_campaign = push63_niche_<slug>`, que é mais específico
+              que `utm_source=seo` — não por utm. Não alterei o componente
+              compartilhado para acrescentar utm: ele é usado por outras 17
+              páginas e mexer nele no fim da janela é exatamente o caminho do
+              `b6fef68`.
+          */}
+          <TopicGeneratorForm
+            campaign={campaign}
+            source={campaign}
+            formId={`niche-starter-${params.niche}`}
+            examples={n.ideas.slice(0, 3)}
+            copy={{
+              label: `What should your free ${n.label} Short be about?`,
+              placeholder: `Type any ${n.label.toLowerCase()} topic or paste your script`,
+              submit: 'Create my free Short',
+              examplesLabel: `${n.label} ideas`,
+              note: 'Your idea is carried into signup so the first Fast video can start without a card.',
+            }}
+          />
         </section>
 
         {/* How it works */}

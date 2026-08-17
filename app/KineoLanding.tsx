@@ -804,7 +804,6 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
-                  <Link href="/studio"><b>Studio</b><em className="nm-chip">NEW</em></Link>
                   <Link href="/generate">Generate a Short</Link>
                   <Link href="/viral-now">🔥 Viral Now</Link>
                   <Link href="/scripts">Scripts</Link>

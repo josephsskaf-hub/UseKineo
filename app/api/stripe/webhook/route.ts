@@ -1018,6 +1018,76 @@ export async function POST(req: NextRequest) {
               payment_status: expiredSession.payment_status ?? null,
               customer_country:
                 expiredSession.customer_details?.address?.country ?? null,
+              // ═══════════════════════════════════════════════════════════
+              // KINEO-PAIS-DA-PAREDE-2026-08-17 — o campo acima é null SEMPRE
+              // nesta parede, e isso foi MEDIDO, não suposto: as 10 primeiras
+              // leituras do instrumento (17/08, 04:10Z–14:10Z) trouxeram
+              // `customer_country: null` nas 10. A Stripe só preenche
+              // `customer_details.address` quando a pessoa DIGITA o endereço,
+              // e a parede é precisamente o lugar onde ninguém digita nada.
+              //
+              // `ip_country` vem da metadata que a rota de checkout carimba na
+              // CRIAÇÃO da sessão (x-vercel-ip-country — o mesmo header que
+              // resolve moeda e região). Ele existe para toda sessão criada
+              // após o deploy de 17/08, inclusive as que morrem sem um
+              // caractere digitado.
+              //
+              // Os dois campos ficam LADO A LADO de propósito: são coisas
+              // diferentes e vão discordar. `customer_country` é declaração do
+              // comprador (raro, mas verdadeiro); `ip_country` é inferência de
+              // rede (sempre presente, e uma VPN mente). Colapsar os dois num
+              // campo só apagaria essa diferença exatamente quando ela importa.
+              //
+              // ⚠️ DESCONTINUIDADE: sessões criadas ANTES deste deploy não têm
+              // a metadata e continuarão com `ip_country: null` até expirarem
+              // (janela de 2h). Um null depois de 17/08 + 2h é defeito; antes
+              // disso é só idade.
+              ip_country: expiredSession.metadata?.ip_country ?? null,
+              // ═══════════════════════════════════════════════════════════
+              // KINEO-SEGUNDA-TENTATIVA-2026-08-17 — O ATIVO QUE ESTÁVAMOS
+              // JOGANDO FORA (leitura pura; NENHUM e-mail muda aqui).
+              // ═══════════════════════════════════════════════════════════
+              // Medição de 17/08 (30 dias, contas internas fora): 84% das
+              // pessoas tocam a Stripe UMA vez e somem; quem tenta de novo
+              // converte ~3x mais e responde por metade dos pagantes do mês.
+              // A alavanca não é a página de pagamento — é fazer existir uma
+              // SEGUNDA TENTATIVA.
+              //
+              // `after_expiration.recovery.enabled` está ligado desde
+              // 03/08 (rota de checkout, linha ~1003), o que significa que a
+              // Stripe MINTA uma URL de retomada para CADA sessão que expira.
+              // `grep -rn "recovered_url\|recovery.url"` em app/ e lib/
+              // devolvia zero: nunca foi lida por ninguém. Toda expiração
+              // desde 03/08 gerou esse ativo e o descartou.
+              //
+              // Isso importa porque `KINEO-RECOVERY-NO-MINT-LINK-2026-08-11`
+              // (cron send-recovery) documentou as DUAS armadilhas que
+              // impediam um link de retomada no e-mail — preço (um link
+              // `/api/stripe/checkout?tier=X` sem `intro=1` cobra 2,0–2,5x o
+              // que a pessoa viu) e scanner corporativo (Outlook Safe Links
+              // MINTA sessão a cada GET, sujando `checkout_attempted`). A URL
+              // da própria Stripe **não tem nenhuma das duas**: ela É a sessão
+              // original, com o preço original, e não cria sessão nova.
+              //
+              // ⚠️ POR QUE UM BOOLEANO E NÃO A URL: essa URL é uma credencial
+              // de pagamento viva. `events` hoje bloqueia leitura anônima
+              // (policy `no_public_read`, qual=false), mas guardar link de
+              // pagamento em repouso o faz vazar para todo export de
+              // analytics futuro, e essa é uma decisão de segurança que
+              // ninguém pediu. O booleano responde à única pergunta que a
+              // decisão precisa ("o ativo existe e quanto dura?"); quando o
+              // fundador liberar o GATE #H, o remetente busca a URL fresca na
+              // Stripe pelo `stripe_session_id`, que já está aqui do lado.
+              //
+              // NÃO ligo o link no e-mail nesta sprint DE PROPÓSITO: mexer em
+              // e-mail do fluxo de pagamento é GATE #H do fundador, e o autor
+              // de 11/08 já tinha parado exatamente aqui. Isto carrega a arma;
+              // o gatilho continua sendo dele.
+              recovery_url_available: Boolean(
+                expiredSession.after_expiration?.recovery?.url,
+              ),
+              recovery_url_expires_at:
+                expiredSession.after_expiration?.recovery?.expires_at ?? null,
             },
           })
           // A linha de `checkout_abandoned` tem FK em auth.users: uma conta
@@ -1039,6 +1109,12 @@ export async function POST(req: NextRequest) {
                 currency: expiredSession.currency ?? null,
                 amount_total: expiredSession.amount_total ?? null,
                 payment_status: expiredSession.payment_status ?? null,
+                // KINEO-PAIS-DA-PAREDE-2026-08-17 — mesma razão pela qual a
+                // moeda sobrevive a este ramo: o país é DENOMINADOR, não
+                // adorno. Uma conta apagada é justamente o caso em que o
+                // perfil não pode mais informar a região depois; se o país
+                // não vier aqui, ele não vem de lugar nenhum.
+                ip_country: expiredSession.metadata?.ip_country ?? null,
               },
             })
           }

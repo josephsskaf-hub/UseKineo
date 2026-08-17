@@ -1035,6 +1035,36 @@ async function buildAndRedirect(
       // engano quando alguém for auditar a receita meses depois.
       price_region: region,
       plan_credits: String(plan.credits),
+      // ═══════════════════════════════════════════════════════════════════
+      // KINEO-PAIS-DA-PAREDE-2026-08-17 — O PAÍS TEM DE VIAJAR NA METADATA.
+      // ═══════════════════════════════════════════════════════════════════
+      // O evento `checkout_session_expired` (KINEO-PAREDE-CHECKOUT-2026-08-16)
+      // nasceu para responder "quem está morrendo na parede do checkout, e de
+      // onde?". Ele lê o país em `session.customer_details.address.country` —
+      // que a Stripe só preenche quando a pessoa DIGITA o endereço. Como a
+      // parede é exatamente o lugar onde ninguém digita nada, o campo veio
+      // **null nas 10 primeiras leituras** (17/08, 04:10Z–14:10Z): o
+      // instrumento construído para responder a pergunta não a responde.
+      //
+      // Nós JÁ sabemos o país no instante da criação — é o mesmo
+      // `x-vercel-ip-country` que resolve a moeda e a região logo acima.
+      // Carimbado aqui, ele sobrevive à expiração (a metadata da sessão volta
+      // inteira no `checkout.session.expired`) e passa a existir para o
+      // caso que importa: a hipótese da Índia (27 das 84 pessoas da parede
+      // são INR e o histórico de `payment_success` é 100% USD).
+      //
+      // ⚠️ DE PROPÓSITO FORA DA `checkoutIdempotencyKeyFor`: a assinatura de
+      // idempotência já contém `user_id` e `currency`, então duas pessoas
+      // nunca compartilham chave e a mesma pessoa não troca de país dentro da
+      // janela de 5 minutos. Incluir o campo ali invalidaria todas as chaves
+      // em voo no deploy sem comprar nada.
+      //
+      // ⚠️ É O PAÍS DO IP, NÃO O DO CARTÃO. Uma VPN mente; o do cartão só
+      // existe depois do pagamento (e aí a venda já aconteceu). Para a
+      // pergunta "quem chega e não paga", o IP é a única fonte que existe
+      // ANTES da parede — mas quem for decidir algo grande com isto lê
+      // `payment_status` junto.
+      ip_country: country,
       checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
       checkout_recovery: checkoutRecovery ? '1' : '0',
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
