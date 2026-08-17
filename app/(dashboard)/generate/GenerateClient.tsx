@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+// KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
+import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
@@ -2383,7 +2385,14 @@ export default function GenerateClient({
               searchParams?.get('create_intent') !== 'fast' &&
               typeof data.credits === 'number' &&
               data.credits >= creditCostFor('cinematic_ai')
-            if (fromViralNow) { setMode('fast') }
+            // KINEO-URL-ENGINE-WINS-2026-08-17 — flagrado pelo fundador no
+            // teste do Studio: escolheu Kling 2.5 e esta rotina de DEFAULTS
+            // por plano atropelou pra Fast. Default e pra chegada de mao
+            // vazia; ?engine= explicito na URL SEMPRE vence.
+            const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood'].includes(urlEnginePick)
+            if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
+            else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
             // Fix 03/07 — Studio also defaults to Seedance (40cr): Kling (60cr) kept
@@ -5381,6 +5390,18 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase !== 'options' || studioOneClickFiredRef.current) return
     if (searchParams?.get('studio') !== '1') return
+    // KINEO-URL-ENGINE-WINS-2026-08-17 (cinto de seguranca): antes de
+    // disparar, garante que motor e duracao SAO os da URL do Studio — se
+    // qualquer efeito tardio tiver mexido, corrige e espera o proximo
+    // render do React (deps incluem mode/aiEngine/duration).
+    const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
+    if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
+    if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
+      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
+      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
+    }
+    const uDur = Number(searchParams?.get('duration') ?? '')
+    if ((uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
       if (!raw) return
@@ -5393,7 +5414,7 @@ export default function GenerateClient({
       // sem token valido → comportamento classico (usuario clica Generate)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase])
+  }, [phase, mode, aiEngine, duration])
 
   // KINEO-GENERATE-VIRA-MAQUINA-2026-08-17 (fundador: 'nao faz sentido a
   // pessoa olhar para as 2 telas'): /generate deixa de ser sala de comando —
@@ -7745,6 +7766,29 @@ export default function GenerateClient({
     }, 600)
     return () => clearInterval(id)
   }, [phase, headlineProgress])
+
+  // KINEO-STUDIO-CORTINA-2026-08-17 (fundador: 'ainda esta passando pela
+  // pagina generation') — chegada do Studio NUNCA ve o painel antigo: nas
+  // fases pre-render (analise rodando / options por milissegundos antes do
+  // one-click disparar), uma tela minima do kit segura a cena. Com erro, o
+  // painel classico volta (mensagens/retry moram la).
+  if (
+    searchParams?.get('studio') === '1' &&
+    (phase === 'idle' || phase === 'analyzing' || phase === 'scripting' || phase === 'options') &&
+    !error
+  ) {
+    return (
+      <div className="stu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '72vh', textAlign: 'center' }}>
+        <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+        <h1 style={{ margin: '0 auto 6px' }}>Studio</h1>
+        <p className="sub" style={{ marginBottom: 22 }}>
+          {phase === 'options' ? 'Starting your render…' : 'Directing your film — writing the script and planning every scene…'}
+        </p>
+        <div className="spinner-sm" style={{ position: 'relative' }}><div className="spinner-sm-inner" /></div>
+      </div>
+    )
+  }
+
 
   return (
     // KINEO-CONTENT-REDESIGN-2026-07-10 (Joseph) — the "miolo": wider canvas
