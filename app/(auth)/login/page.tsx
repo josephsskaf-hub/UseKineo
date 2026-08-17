@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
@@ -25,6 +25,71 @@ function getRedirect(): string {
 function isCheckoutResume(): boolean {
   if (typeof window === 'undefined') return false
   return new URLSearchParams(window.location.search).get('reason') === 'checkout'
+}
+
+// KINEO-LOGIN-REEL-2026-08-17 — [STAGE] tela de login estilo split-screen
+// (referencia do fundador: InVideo; "a nossa e do lado direito, e em azul,
+// nao vamos nos descaracterizar"): vitrine com os 3 renders com mais efeitos
+// da curadoria Kling 3 girando em crossfade — Carrington (faiscas/aurora),
+// Tunguska (anel de explosao), Lituya (mega-onda). Selo honesto: motor real.
+const LOGIN_REEL = [
+  { id: 'bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0', label: 'Kling 3' },
+  { id: '99818ab0-0960-4089-a784-12b241736868', label: 'Kling 3' },
+  { id: 'e487a011-8781-482f-913e-445ef5ad22bf', label: 'Kling 3' },
+]
+
+function LoginReel() {
+  const [idx, setIdx] = useState(0)
+  const refs = useRef<(HTMLVideoElement | null)[]>([])
+  useEffect(() => {
+    refs.current[0]?.play().catch(() => {})
+    const t = setInterval(() => setIdx((i) => (i + 1) % LOGIN_REEL.length), 8000)
+    return () => clearInterval(t)
+  }, [])
+  useEffect(() => {
+    refs.current.forEach((v, i) => {
+      if (!v) return
+      if (i === idx) v.play().catch(() => {})
+      else v.pause()
+    })
+  }, [idx])
+  return (
+    <div
+      className="relative w-full rounded-2xl overflow-hidden"
+      style={{
+        maxWidth: 780,
+        aspectRatio: '500 / 280',
+        border: '1px solid rgba(41,151,255,.22)',
+        boxShadow: '0 30px 90px rgba(0,0,0,.6), 0 0 60px rgba(41,151,255,.10)',
+        background: '#0a0a0c',
+      }}
+    >
+      {LOGIN_REEL.map((v, i) => (
+        <video
+          key={v.id}
+          ref={(el) => { refs.current[i] = el }}
+          src={`/previews/${v.id}.mp4`}
+          muted
+          loop
+          playsInline
+          preload={i === 0 ? 'auto' : 'metadata'}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: i === idx ? 1 : 0, transition: 'opacity 1.1s ease' }}
+        />
+      ))}
+      <span
+        className="absolute bottom-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full"
+        style={{
+          background: 'rgba(0,0,0,.55)',
+          border: '1px solid rgba(41,151,255,.4)',
+          color: '#7cc0ff',
+          backdropFilter: 'blur(6px)',
+        }}
+      >
+        {LOGIN_REEL[idx].label} · rendered in Kineo
+      </span>
+    </div>
+  )
 }
 
 export default function LoginPage() {
@@ -120,162 +185,57 @@ export default function LoginPage() {
 
   return (
     <>
-      <div
-        className="min-h-screen flex items-center justify-center p-4 relative"
-        style={{ background: 'var(--bg)' }}
-      >
-        {/* Glow orbs — subtle Kineo blue */}
-        <div
-          className="fixed rounded-full pointer-events-none"
-          style={{
-            width: 600,
-            height: 600,
-            background: '#2997ff',
-            top: -200,
-            right: -150,
-            opacity: 0.08,
-            filter: 'blur(90px)',
-            zIndex: 0,
-          }}
-        />
-        <div
-          className="fixed rounded-full pointer-events-none"
-          style={{
-            width: 500,
-            height: 500,
-            background: '#2997ff',
-            bottom: -150,
-            left: 300,
-            opacity: 0.06,
-            filter: 'blur(90px)',
-            zIndex: 0,
-          }}
-        />
-
-        <div
-          className="page-enter w-full max-w-4xl relative z-10 rounded-2xl overflow-hidden grid md:grid-cols-2"
-          style={{
-            background: '#161618',
-            border: '1px solid #2a2a2d',
-            boxShadow: '0 0 80px rgba(41,151,255,.08)',
-          }}
-        >
-          {/* LEFT — value prop panel (desktop only) */}
+      <div className="min-h-screen flex relative" style={{ background: '#050506' }}>
+        {/* LEFT — vitrine de renders (desktop) */}
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-10 py-12 gap-8">
           <div
-            className="hidden md:flex flex-col justify-between p-10 relative overflow-hidden"
-            style={{
-              background:
-                'radial-gradient(circle at top left, rgba(41,151,255,0.18), transparent 55%), linear-gradient(135deg, #0c0c0e 0%, #000000 50%, #0c0c0e 100%)',
-            }}
-          >
-            {/* Dot pattern overlay */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage:
-                  'radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)',
-                backgroundSize: '22px 22px',
-                opacity: 0.06,
-              }}
-            />
-
-            <div className="relative z-10">
-              <Link
-                href="/"
-                className="flex items-center gap-3 mb-10"
-                style={{ textDecoration: 'none' }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                  style={{
-                    background: '#2997ff',
-                    boxShadow: '0 0 24px rgba(41,151,255,.45)',
-                  }}
-                >
-                  ⚡
-                </div>
-                <div>
-                  <div
-                    className="font-black text-sm tracking-tight"
-                    style={{ color: '#f5f5f7' }}
-                  >
-                    Kineo
-                  </div>
-                  <div
-                    className="text-xs font-bold tracking-widest px-1.5 py-0.5 rounded w-fit mt-1"
-                    style={{
-                      background: 'rgba(41,151,255,.15)',
-                      border: '1px solid rgba(41,151,255,.3)',
-                      color: '#2997ff',
-                      fontSize: '0.52rem',
-                    }}
-                  >
-                    AI
-                  </div>
-                </div>
-              </Link>
-
-              <h2
-                className="text-2xl font-black tracking-tight mb-2"
-                style={{ color: 'var(--text)' }}
-              >
-                Turn ideas into viral Shorts.
-              </h2>
-              <p className="text-sm mb-8" style={{ color: 'var(--muted2)' }}>
-                AI script, footage, voiceover — usually done in 3–7 minutes.
-              </p>
-
-              <ul className="flex flex-col gap-4">
-                {[
-                  'AI writes the script for you',
-                  'Stock footage + voiceover included',
-                  ft(OFFER, 'New free accounts: 3 watermarked Fast videos / 24h', 'New accounts: full Creator trial — 40 credits'),
-                ].map((line) => (
-                  <li
-                    key={line}
-                    className="flex items-start gap-3 text-sm"
-                    style={{ color: 'var(--text2)' }}
-                  >
-                    <span
-                      className="mt-0.5 w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: 'rgba(41,151,255,.18)',
-                        border: '1px solid rgba(41,151,255,.35)',
-                        color: '#2997ff',
-                        fontSize: '0.7rem',
-                        fontWeight: 800,
-                      }}
-                    >
-                      ✓
-                    </span>
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div
-              className="relative z-10 mt-10 rounded-xl p-4"
-              style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <p
-                className="text-sm font-semibold mb-1"
-                style={{ color: 'var(--text2)' }}
-              >
-                7-day money-back guarantee
-              </p>
-              <p className="text-xs" style={{ color: 'var(--muted2)' }}>
-                Free downloads include a watermark. Paid plans unlock clean MP4s.
-              </p>
-            </div>
+            className="absolute rounded-full pointer-events-none"
+            style={{ width: 700, height: 700, background: '#2997ff', top: -260, left: -180, opacity: 0.10, filter: 'blur(100px)' }}
+          />
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{ width: 520, height: 520, background: '#2997ff', bottom: -200, right: -120, opacity: 0.07, filter: 'blur(100px)' }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 pointer-events-none"
+            style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)', backgroundSize: '22px 22px', opacity: 0.05 }}
+          />
+          <div className="relative z-10 text-center" style={{ maxWidth: 640 }}>
+            <h2 className="text-3xl font-black tracking-tight mb-2" style={{ color: '#f5f5f7', letterSpacing: '-0.02em' }}>
+              Type an idea. Watch it become a film.
+            </h2>
+            <p className="text-sm" style={{ color: 'var(--muted2)' }}>
+              Real renders from Kineo engines — voice, score and captions included.
+            </p>
           </div>
+          <div className="relative z-10 w-full flex justify-center">
+            <LoginReel />
+          </div>
+          <ul className="relative z-10 flex items-center gap-6 flex-wrap justify-center">
+            {[
+              'AI writes the script',
+              'Cinematic engines',
+              ft(OFFER, '3 free videos / 24h', 'Free trial — 50 credits'),
+            ].map((line) => (
+              <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
+                <span
+                  className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(41,151,255,.18)', border: '1px solid rgba(41,151,255,.35)', color: '#2997ff', fontSize: '0.6rem', fontWeight: 800 }}
+                >
+                  ✓
+                </span>
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
 
-          {/* RIGHT — form panel */}
-          <div className="p-8 md:p-10 animate-fade-in-up">
+        {/* RIGHT — form panel (fundador: "a nossa e do lado direito") */}
+        <div
+          className="w-full md:w-[440px] flex-shrink-0 flex flex-col justify-center p-8 md:p-10 animate-fade-in-up relative z-10 min-h-screen"
+          style={{ background: '#0e0e10', borderLeft: '1px solid #1d1d20' }}
+        >
             <Link
               href="/"
               className="inline-block text-xs font-bold mb-4"
@@ -288,10 +248,10 @@ export default function LoginPage() {
               ← Back to Home
             </Link>
 
-            {/* Mobile-only logo (desktop sees logo in left panel) */}
+            {/* Logo — o painel esquerdo agora e vitrine pura, o logo mora aqui */}
             <Link
               href="/"
-              className="md:hidden flex items-center justify-center gap-3 mb-6"
+              className="flex items-center gap-3 mb-6"
               style={{ textDecoration: 'none' }}
             >
               <div
@@ -531,7 +491,6 @@ export default function LoginPage() {
                 Sign up free
               </Link>
             </p>
-          </div>
         </div>
       </div>
       {/* ONDA3 #17 (14/08) — Footer de marketing removido da tela de auth:
