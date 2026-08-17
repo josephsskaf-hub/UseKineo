@@ -1,5 +1,43 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇA — 17/08/2026 (sprint 11h) — 3ª PERNA DA REGRA 1: A CADEIA TEM **QUATRO** ELOS
+>
+> **disco → índice/HEAD → REMOTO → PRODUÇÃO.** `git log origin/main..HEAD` prova
+> o 3º elo e **não diz absolutamente nada** sobre o 4º.
+>
+> Às 14:25Z de 17/08, com o `140-PUSH` já rodado e o GitHub em `38e9b1b`, a
+> **produção rodava `e0d3276` — 5 commits atrás**, incluindo o gate de cota de
+> e-mail, um **fix de build** e a 30ª página SEO. Causa medida pelos carimbos:
+> `e0d3276` foi empurrado 14:00:53Z e deployado 14:20:10Z (**19 min de fila de
+> build da Vercel**); os 5 seguintes, empurrados ~14:18Z, às 14:31Z ainda não
+> tinham registro de deploy criado. **Não era pipeline quebrado — era fila.**
+>
+> **O que isso quase causou:** `email_send_log` estava em **0 linhas** com **48
+> e-mails enviados no dia**, os últimos às 14:20 e 14:25Z. A leitura ingênua
+> ("o gate ficou inerte pela 3ª vez") teria feito alguém **reescrever um gate
+> correto**. O gate não estava inerte: não estava **rodando**. E esse zero era
+> exatamente "a métrica de amanhã" que a sprint anterior tinha nomeado.
+>
+> **Fechamento obrigatório de toda sprint que liga um fio novo:**
+> 1. SHA do último deploy `READY` **em produção** (`list_deployments`), comparado
+>    a `git ls-remote origin refs/heads/main`;
+> 2. se o efeito for observável de fora (página, rota), **uma busca na web aberta
+>    contra a URL de produção** — a única prova que não depende de painel nosso.
+>    Foi assim que a 30ª página foi pega: `/free-ai-shorts/faith` respondia com
+>    **29** irmãs no rodapé e `localbusiness` fora, e a URL dela vinha vazia.
+>
+> **Corolário para leitura de métrica:** antes de concluir qualquer coisa de um
+> número baixo, conferir se o código que produz aquele número **está no ar**.
+> *Zero sobre código não deployado não é evidência de nada* — é a regra 3 de
+> 08/08 aplicada ao 4º elo.
+>
+> **Corolário de EOL (mesma sprint):** `lib/analytics.ts` estava **misto** no HEAD
+> (195 CRLF + 148 LF) e LF puro no disco → diff aparentando **480 linhas** para uma
+> mudança de **89 inserções e 1 deleção**. Antes de commitar arquivo com diff
+> desproporcional, reconstruir preservando o EOL original de cada linha intocada
+> (difflib por opcodes) e conferir o conteúdo byte a byte. Diff inflado é onde um
+> revert silencioso se esconde — lição do `b6fef68`.
+
 > ## MUDANÇA — 17/08/2026 (sprint 10h) — UMA regra, e ela é uma perna nova da regra 1
 >
 > **MÓDULO NOVO FECHA COM DUAS PROVAS: `grep -c` do próprio import E
