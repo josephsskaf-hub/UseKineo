@@ -629,19 +629,27 @@ export default function Sidebar({
               <div
                 role="menu"
                 style={{
-                  // KINEO-NAV-REDESIGN-2026-07-10 — quiet, professional menu
-                  // (neutral border, soft shadow) + Sign out lives HERE now,
-                  // so the user row below stays a single clean control.
-                  position: 'absolute',
-                  bottom: 'calc(100% - 6px)',
-                  left: 12,
-                  right: 12,
+                  // KINEO-NAV-REDESIGN-2026-07-10 — quiet, professional menu.
+                  // KINEO-POPUP-GRANDE-2026-08-17 (fundador: 'aumenta, esta
+                  // muito pequeno'): o popup deixa de caber na largura da
+                  // sidebar e vira um PAINEL fixo (~460px), com o bloco de
+                  // Library/storage em destaque e itens maiores.
+                  // KINEO-POPUP-950-2026-08-17 (fundador: 'fiz as contas —
+                  // 950 por 430'): painel de 2 colunas — Library/storage
+                  // ocupa a esquerda inteira, menu na coluna direita.
+                  position: 'fixed',
+                  bottom: 74,
+                  left: 14,
+                  width: 'min(950px, calc(100vw - 28px))',
+                  height: 430,
                   zIndex: 61,
                   background: '#161618',
                   border: '1px solid rgba(255,255,255,0.10)',
-                  borderRadius: 14,
-                  boxShadow: '0 16px 40px rgba(0,0,0,0.55)',
-                  padding: 6,
+                  borderRadius: 20,
+                  boxShadow: '0 24px 70px rgba(0,0,0,0.65), 0 0 0 1px rgba(41,151,255,0.08)',
+                  padding: 16,
+                  display: 'flex',
+                  gap: 14,
                 }}
               >
                 {/* KINEO-STORAGE-METER-2026-08-17 — bloco Library + storage no
@@ -651,27 +659,35 @@ export default function Sidebar({
                   href="/library"
                   onClick={() => { setSettingsOpen(false); onClose?.() }}
                   style={{
-                    display: 'block', padding: '10px 10px 11px', borderRadius: 10,
-                    textDecoration: 'none', background: 'rgba(41,151,255,0.06)',
-                    border: '1px solid rgba(41,151,255,0.18)', marginBottom: 6,
+                    flex: '1 1 auto', display: 'flex', flexDirection: 'column',
+                    padding: '18px 20px', borderRadius: 16,
+                    textDecoration: 'none', background: 'rgba(41,151,255,0.07)',
+                    border: '1px solid rgba(41,151,255,0.22)',
                   }}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '1.05rem', fontWeight: 800, color: 'var(--text)' }}>
                     <span>🗂 Library</span>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#7cc0ff' }}>
-                      {storageInfo ? `${storageInfo.videos} videos · ${storageInfo.images} images · ${storageInfo.audios} audio` : '…'}
-                    </span>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#7cc0ff' }}>open →</span>
+                  </span>
+                  {/* stats grandes — a estante em números */}
+                  <span style={{ display: 'flex', gap: 40, marginTop: 26, marginBottom: 'auto' }}>
+                    {([['Videos', storageInfo?.videos], ['Images', storageInfo?.images], ['Audio', storageInfo?.audios]] as const).map(([lbl, n]) => (
+                      <span key={lbl} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', lineHeight: 1 }}>{typeof n === 'number' ? n : '…'}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted2, #86868b)' }}>{lbl}</span>
+                      </span>
+                    ))}
                   </span>
                   {storageInfo && (
                     <>
-                      <span aria-hidden="true" style={{ display: 'block', height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', marginTop: 8, overflow: 'hidden' }}>
+                      <span aria-hidden="true" style={{ display: 'block', height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.08)', marginTop: 10, overflow: 'hidden' }}>
                         <span style={{
                           display: 'block', height: '100%', borderRadius: 99,
                           width: storageInfo.limit ? `${Math.min(100, Math.round((storageInfo.total / storageInfo.limit) * 100))}%` : '100%',
                           background: storageInfo.limit && storageInfo.total / storageInfo.limit > 0.85 ? '#f59e0b' : '#2997ff',
                         }} />
                       </span>
-                      <span style={{ display: 'block', marginTop: 5, fontSize: '0.64rem', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--muted2, #86868b)' }}>
+                      <span style={{ display: 'block', marginTop: 7, fontSize: '0.76rem', fontWeight: 600, letterSpacing: '0.03em', color: 'var(--muted2, #86868b)' }}>
                         {storageInfo.limit
                           ? `${storageInfo.total} of ${storageInfo.limit} projects · ${storageInfo.retention}`
                           : `${storageInfo.total} projects · unlimited · ${storageInfo.retention}`}
@@ -679,6 +695,7 @@ export default function Sidebar({
                     </>
                   )}
                 </Link>
+                <div style={{ width: 300, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {/* Settings v3 (12/06) — menu mirrors the real account tabs:
                     Profile · Billing · Usage. "Members" (placeholder) is gone
                     and "Manage Account" became Billing. Refined line icons. */}
@@ -718,23 +735,27 @@ export default function Sidebar({
                     href={`/account?tab=${item.tab}`}
                     onClick={() => { setSettingsOpen(false); onClose?.() }}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '9px 10px', borderRadius: 8,
-                      fontSize: '0.8rem', fontWeight: 600,
+                      // KINEO-POPUP-950-2026-08-17 — empilhados na coluna direita
+                      display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 11,
+                      width: '100%',
+                      padding: '14px 14px', borderRadius: 12,
+                      fontSize: '0.88rem', fontWeight: 700,
                       color: 'var(--text2)', textDecoration: 'none',
-                      transition: 'background 0.12s ease',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                      transition: 'background 0.12s ease, border-color 0.12s ease',
                     }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(41,151,255,0.14)' }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
+                    onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(41,151,255,0.14)'; el.style.borderColor = 'rgba(41,151,255,0.4)' }}
+                    onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.background = 'rgba(255,255,255,0.03)'; el.style.borderColor = 'rgba(255,255,255,0.06)' }}
                   >
-                    <span style={{ width: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</span>
                     <span>{item.label}</span>
                   </Link>
                 ))}
                 {/* KINEO-NAV-REDESIGN-2026-07-10 — Sign out moved INTO the
                     menu (the old door-emoji button next to the profile row
                     read cheap and crowded the footer). */}
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '5px 8px' }} />
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: 'auto 8px 5px' }} />
                 <button
                   onClick={() => { setSettingsOpen(false); handleSignOut() }}
                   role="menuitem"
@@ -757,6 +778,7 @@ export default function Sidebar({
                   </span>
                   <span>Sign out</span>
                 </button>
+                </div>
               </div>
             </>
           )}
