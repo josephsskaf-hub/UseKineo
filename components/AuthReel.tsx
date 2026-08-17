@@ -17,17 +17,24 @@ const REEL = [
 export default function AuthReel() {
   const [idx, setIdx] = useState(0)
   const refs = useRef<(HTMLVideoElement | null)[]>([])
+  // KINEO-REEL-ENDED-2026-08-17 (fundador: 'esta repetindo duas vezes cada
+  // cena'): o timer fixo de 8s fazia clipes curtos (4.5s/3.3s) LOOPAREM ate
+  // o timer vencer. Agora cada clipe avanca quando TERMINA (onEnded, sem
+  // loop) — cada cena passa exatamente uma vez. Timer de 15s so como
+  // seguranca se um video travar no load.
   useEffect(() => {
     refs.current[0]?.play().catch(() => {})
-    const t = setInterval(() => setIdx((i) => (i + 1) % REEL.length), 8000)
-    return () => clearInterval(t)
   }, [])
   useEffect(() => {
     refs.current.forEach((v, i) => {
       if (!v) return
-      if (i === idx) v.play().catch(() => {})
-      else v.pause()
+      if (i === idx) {
+        v.currentTime = 0
+        v.play().catch(() => {})
+      } else v.pause()
     })
+    const safety = setTimeout(() => setIdx((i) => (i + 1) % REEL.length), 15000)
+    return () => clearTimeout(safety)
   }, [idx])
   return (
     <div
@@ -46,8 +53,8 @@ export default function AuthReel() {
           ref={(el) => { refs.current[i] = el }}
           src={v.src}
           muted
-          loop
           playsInline
+          onEnded={() => setIdx((i2) => (i2 + 1) % REEL.length)}
           preload={i === 0 ? 'auto' : 'metadata'}
           className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: i === idx ? 1 : 0, transition: 'opacity 1.1s ease' }}
