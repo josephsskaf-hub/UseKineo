@@ -1708,6 +1708,52 @@ export async function POST(req: NextRequest) {
         )
       }
 
+      // KINEO-SCENEVARIETY-2026-08-17 — fundador (render Krakatoa): "a mesma
+      // cena do mar se repetiu por varias vezes". Nao confiamos so na regra
+      // nova do planner: aqui a SOMA e conferida em codigo — Jaccard de tokens
+      // entre prompts nao-dialogo (sem as sheets, que repetem por design). Um
+      // par >55% igual = replaneja UMA vez nomeando o par. Ainda igual apos o
+      // replan → segue (logado), nunca mata o render.
+      {
+        const sim = (a: string, b: string): number => {
+          const strip = (p: string) => p
+            .replace(plan.characterSheet ?? '', ' ')
+            .replace(plan.environmentSheet ?? '', ' ')
+            .toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+          const tok = (p: string) => new Set(strip(p).split(/\s+/).filter((w) => w.length > 3))
+          const A = tok(a), B = tok(b)
+          if (A.size === 0 || B.size === 0) return 0
+          let inter = 0
+          for (const w of A) if (B.has(w)) inter++
+          return inter / (A.size + B.size - inter)
+        }
+        const dupPair = (pl: typeof plan): [number, number] | null => {
+          const br = pl.scenes.map((sc, idx) => ({ sc, idx })).filter((x) => x.sc.type !== 'dialogue')
+          for (let a = 0; a < br.length; a++)
+            for (let b = a + 1; b < br.length; b++)
+              if (sim(br[a].sc.prompt, br[b].sc.prompt) > 0.55) return [br[a].idx + 1, br[b].idx + 1]
+          return null
+        }
+        const dup = dupPair(plan)
+        if (dup) {
+          console.warn(`[cinematic] hollywood scenes ${dup[0]} and ${dup[1]} are near-identical — replanning once for subject variety`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: duration,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `scenes ${dup[0]} and ${dup[1]} show the SAME visual subject. Every non-dialogue scene must depict a DIFFERENT primary subject from the story (different event, place, era or moment) — and the environmentSheet must appear ONLY in scenes set in the narrator's own location.`,
+            })
+            if (!dupPair(replanned)) plan = replanned
+            else console.warn('[cinematic] hollywood variety replan still repetitive — keeping best effort')
+          } catch (e) {
+            console.warn('[cinematic] hollywood variety replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
+          }
+        }
+      }
+
       // KINEO-DURATIONFIX-2026-08-17 — dois renders do fundador sairam com
       // EXATOS 34s num pedido de 60s: o GPT-planejador ignora o alvo e ninguem
       // conferia a SOMA. Agora: (1) soma curta → replaneja UMA vez com o
@@ -1953,17 +1999,33 @@ export async function POST(req: NextRequest) {
         if (!id) {
           // v3.0 path — byte-identical to before v3.5 (and the per-scene
           // fallback when the host path above failed).
+          // KINEO-SPECTACLE-2026-08-17 (fundador: "a mesma cena do mar se
+          // repetiu varias vezes") — a RAIZ da repeticao: TODA cena nao-dialogo
+          // era semeada com a MESMA imagem-ancora de ambiente (i2v), entao
+          // todo b-roll nascia da mesma foto. A ancora de ambiente agora so
+          // vale quando o PROPRIO planner colocou o environmentSheet no prompt
+          // da cena (= a cena se passa no mundo do narrador); b-roll de outros
+          // lugares/eventos vai de t2v e ganha visual proprio.
+          const envSig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
+          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)
           const anchorUrl = anchors
             ? hs.type === 'dialogue'
               ? anchors.portraitUrl
-              : anchors.environmentUrl
+              : inNarratorWorld ? anchors.environmentUrl : undefined
             : undefined
+          if (!anchorUrl) sceneModel = HOLLYWOOD_MODELS[hs.type]
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
           // viu DUAS vezes). Nao confiamos so no planner: o sufixo vai sempre.
           const mouthSuffix = hs.type !== 'dialogue' ? ' If any person is visible: mouth closed, not speaking, no lip movement, no talking.' : ''
-          const scenePrompt = hs.prompt + eraSuffix + mouthSuffix
+          // KINEO-SPECTACLE-2026-08-17 (fundador: "nao estava muito nitida,
+          // sem efeitos") — DNA de nitidez/escala em todo b-roll, em CODIGO
+          // (nao dependemos do planner escrever bonito).
+          const spectacleSuffix = hs.type !== 'dialogue'
+            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur.'
+            : ''
+          const scenePrompt = hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           try {
             id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, anchorUrl)
           } catch (e) {
@@ -2058,9 +2120,15 @@ export async function POST(req: NextRequest) {
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
         scene_prompts: plan.scenes.map((s) => s.prompt + eraSuffix),
-        scene_anchor_urls: plan.scenes.map((s) =>
-          anchors ? (s.type === 'dialogue' ? anchors.portraitUrl : anchors.environmentUrl) : null,
-        ),
+        // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
+        // só pra cena que o planner situou no mundo do narrador (environmentSheet
+        // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.
+        scene_anchor_urls: plan.scenes.map((s) => {
+          if (!anchors) return null
+          if (s.type === 'dialogue') return anchors.portraitUrl
+          const sig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
+          return sig.length > 8 && s.prompt.toLowerCase().includes(sig) ? anchors.environmentUrl : null
+        }),
         scene_narrations: hNarrations, // TTS text per scene (null = native audio only)
         // For host scenes these are the MEASURED TTS seconds (0.1s precision),
         // overwritten in the submit loop — not the planner's 5|10 estimate.
