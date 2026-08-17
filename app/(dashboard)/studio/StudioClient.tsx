@@ -17,22 +17,24 @@ import { useRouter } from 'next/navigation'
 
 type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood'
 
+// KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
+// precisam saber a quantidade de clips'): a ficha tecnica interna
+// (segundos por clipe) saiu da vitrine; todo entregavel final e 1080x1920
+// (verificado por ffprobe), entao a spec visivel e uma so: 1080p.
 const ENGINES: {
   key: EngineKey
   name: string
   tag?: string
   desc: string
   res: string
-  clip: string
   credits: string
   supportsRef: boolean
-  supports1080: 'yes' | 'always' | 'fase2'
 }[] = [
-  { key: 'fast', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', clip: '35–60s direct', credits: 'Free', supportsRef: false, supports1080: 'always' },
-  { key: 'seedance', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', clip: '4–12s/clip', credits: '20 cr', supportsRef: false, supports1080: 'always' },
-  { key: 'kling', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: 'HD native', clip: '5–10s/clip', credits: '50 cr', supportsRef: false, supports1080: 'always' },
-  { key: 'veo', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', clip: '4–8s/clip', credits: '90 cr', supportsRef: false, supports1080: 'always' },
-  { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p native', clip: '3–15s/clip', credits: '150 cr', supportsRef: true, supports1080: 'always' },
+  { key: 'fast', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: 'Free', supportsRef: false },
+  { key: 'seedance', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
+  { key: 'kling', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
+  { key: 'veo', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
+  { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
 ]
 
 const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
@@ -125,7 +127,7 @@ export default function StudioClient() {
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
               <span className="mdlname">
                 <b>{eng.name}</b>
-                <i>{eng.res} · {eng.clip} ▾</i>
+                <i>{eng.res} ▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -137,7 +139,7 @@ export default function StudioClient() {
                       <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
                       <i>{e.credits}</i>
                     </span>
-                    <span className="sp">{e.res} · {e.clip}</span>
+                    <span className="sp">{e.res}</span>
                     <span className="d">{e.desc}</span>
                   </button>
                 ))}
