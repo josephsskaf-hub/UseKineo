@@ -1721,6 +1721,27 @@ export async function POST(req: NextRequest) {
             .eq('fingerprint', salvageFp)
             .maybeSingle()
           if (sv && Date.now() - new Date(sv.created_at as string).getTime() < 2 * 60 * 60 * 1000) {
+            // KINEO-SALVAGE-SCOPE-2026-08-17 — flagrado pelo fundador no 1o
+            // uso real: ele RE-GEROU um pedido identico apos um render
+            // COMPLETO e a retomada devolveu as cenas velhas (86% em 1min,
+            // "ja tinha renderizado as cenas?"). Retomada existe SO pra
+            // falha: se ja existe video COMPLETO deste user com este mesmo
+            // prompt desde o snapshot, o pedido novo e um refazer — snapshot
+            // e descartado e o caminho normal (plano fresco) assume.
+            const { data: doneVid } = await salvageDb
+              .from('videos')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('status', 'completed')
+              .gte('created_at', sv.created_at as string)
+              .ilike('topic', `${prompt.trim().slice(0, 60).replace(/[%_]/g, '')}%`)
+              .limit(1)
+              .maybeSingle()
+            if (doneVid) {
+              console.log('[cinematic] SALVAGE descartado: render anterior deste pedido ja COMPLETOU — refazer = plano fresco')
+              await salvageDb.from('hollywood_resume').delete().eq('user_id', user.id).eq('fingerprint', salvageFp)
+              throw new Error('__salvage_skip__')
+            }
             const storedResp = sv.response as Record<string, unknown>
             const storedIds = (sv.request_ids as (string | null)[]) ?? []
             const storedModels = (sv.models as string[]) ?? []
@@ -1773,7 +1794,12 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (e) {
-          console.warn('[cinematic] salvage lookup falhou (caminho normal):', e instanceof Error ? e.message : String(e))
+          const msg = e instanceof Error ? e.message : String(e)
+          // '__salvage_skip__' = descarte intencional (render anterior ja
+          // completou) — segue pro plano fresco sem alarde.
+          if (msg !== '__salvage_skip__') {
+            console.warn('[cinematic] salvage lookup falhou (caminho normal):', msg)
+          }
         }
       }
 
