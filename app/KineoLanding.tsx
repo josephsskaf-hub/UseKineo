@@ -17,6 +17,8 @@ import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
+// KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
+import NavEngineItem from '@/components/NavEngineItem'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -123,6 +125,14 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25}
 .klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px}
 .klp .nd-mega .nm-col a b{font-weight:600}
+/* KINEO-NAV-MEGA-PREVIEW-2026-08-17 — mini-clipe flutuando a direita do menu
+   no hover do motor (preview de 8s ja existente; preload none = zero custo
+   ate o primeiro hover). */
+.klp .nd-mega .nvp{position:absolute;left:calc(100% - 2px);top:12px;width:268px;height:150px;border-radius:12px;overflow:hidden;border:1px solid var(--line);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .18s ease}
+.klp .nd-mega .nvp video{width:100%;height:100%;object-fit:cover;display:block}
+.klp .nd-mega .nm-col a:hover .nvp{opacity:1}
+/* Chip de tier (STUDIO) — ensina a hierarquia sem uma palavra. */
+.klp .nm-chip{display:inline-block;margin-left:7px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:99px;background:rgba(41,151,255,.16);color:#7cc0ff;vertical-align:1px}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
 
 .klp .nav-links a.nav-on{color:var(--txt)}
@@ -769,10 +779,14 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 Higgsfield: Image e Video abrem submenu no hover/focus (CSS
                 puro, sem JS). O clique no proprio rotulo leva ao destino
                 principal da categoria. */}
+            {/* KINEO-NAV-IMAGE-2026-08-17 (aprovado): Animate a Photo muda de
+                Video pra ca — a porta de entrada dele e uma IMAGEM. O menu
+                deixa de ser dropdown de item unico. */}
             <span className="nd">
               <Link href="/thumbnail-generator">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu">
                 <Link href="/thumbnail-generator">Thumbnails</Link>
+                <Link href="/animate">Animate a Photo</Link>
               </span>
             </span>
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
@@ -782,18 +796,17 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <Link href="/generate?engine=fast&intent_campaign=nav_mega"><b>Kineo 1</b><i>Kineo&rsquo;s own engine &middot; Free</i></Link>
-                  <Link href="/generate?engine=seedance&intent_campaign=nav_mega"><b>Seedance 1.5</b><i>The workhorse &middot; 20 credits</i></Link>
-                  <Link href="/generate?engine=kling&intent_campaign=nav_mega"><b>Kling 2.5</b><i>Cinematic motion &middot; 50 credits</i></Link>
-                  <Link href="/generate?engine=veo&intent_campaign=nav_mega"><b>Veo 3.1</b><i>Google&rsquo;s flagship &middot; 90 credits</i></Link>
-                  <Link href="/generate?engine=hollywood&intent_campaign=nav_mega"><b>Kling 3</b><i>Film scenes &amp; native voice &middot; 150</i></Link>
+                  <NavEngineItem href="/generate?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine · Free" />
+                  <NavEngineItem href="/generate?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse · 20 credits" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem href="/generate?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion · 50 credits" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                  <NavEngineItem href="/generate?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship · 90 credits" chip="STUDIO" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  <NavEngineItem href="/generate?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice · 150" chip="STUDIO" preview="/previews/bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0.mp4" />
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
                   <Link href="/generate">Generate a Short</Link>
                   <Link href="/viral-now">🔥 Viral Now</Link>
                   <Link href="/scripts">Scripts</Link>
-                  <Link href="/animate">Animate a Photo</Link>
                   <Link href="/examples">Examples</Link>
                 </span>
               </span>
