@@ -23,6 +23,9 @@ interface Video {
   quality_mode: string | null
   credits_used: number | null
   created_at: string
+  // KINEO-ENHANCE-VISIVEL-2026-08-17 (fundador: "como eu sei que virou HD?")
+  enhanced_url?: string | null
+  enhance_request_id?: string | null
 }
 
 function isWatermarkedFastAsset(video: Video): boolean {
@@ -266,7 +269,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       : `shortsforge-${video.id.slice(0, 8)}.mp4`
     try {
       await downloadVideoFile({
-        url: video.video_url,
+        url: enhUrls[video.id] ?? video.video_url,
         filename,
         exportType: isWatermarkedFastAsset(video) ? 'watermarked' : 'clean',
         surface: 'history',
@@ -277,6 +280,51 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       setDownloadingId(null)
     }
   }
+
+  // KINEO-ENHANCE-VISIVEL-2026-08-17 (fundador: "cliquei no HD mas como sei
+  // que virou?"): o estado agora NASCE do banco — video ja enhanced chega
+  // 'done' com selo, video com job em andamento chega 'processing' e retoma
+  // o polling sozinho, mesmo depois de refresh/fechar a aba.
+  useEffect(() => {
+    const done: Record<string, string> = {}
+    const status: Record<string, 'processing' | 'done' | 'failed'> = {}
+    const pending: string[] = []
+    for (const v of videos) {
+      if (v.enhanced_url) {
+        done[v.id] = v.enhanced_url
+        status[v.id] = 'done'
+      } else if (v.enhance_request_id) {
+        status[v.id] = 'processing'
+        pending.push(v.id)
+      }
+    }
+    if (Object.keys(status).length) {
+      setEnhUrls((m) => ({ ...done, ...m }))
+      setEnhStatus((m) => ({ ...status, ...m }))
+    }
+    pending.forEach((id) => {
+      const poll = async () => {
+        try {
+          const r = await fetch(`/api/enhance?videoId=${id}`)
+          const d = await r.json()
+          if (d.status === 'done' && d.url) {
+            setEnhUrls((m) => ({ ...m, [id]: d.url }))
+            setEnhStatus((m) => ({ ...m, [id]: 'done' }))
+            return
+          }
+          if (d.status === 'failed') {
+            setEnhStatus((m) => ({ ...m, [id]: 'failed' }))
+            return
+          }
+          setTimeout(poll, 7000)
+        } catch {
+          setTimeout(poll, 9000)
+        }
+      }
+      poll()
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // KINEO-ENHANCE-2026-08-17 — dispara o Topaz e faz polling ate o resultado.
   async function handleEnhance(video: Video) {
@@ -953,14 +1001,36 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                         background: '#000',
                       }}
                     >
-                      {/* Video preview — first frame shown via preload="metadata" */}
+                      {/* Video preview — first frame shown via preload="metadata".
+                          KINEO-ENHANCE-VISIVEL-2026-08-17: com HD pronto, o
+                          card passa a tocar a VERSAO ENHANCED + selo HD. */}
                       <video
-                        src={video.video_url}
+                        src={enhUrls[video.id] ?? video.video_url}
                         muted
                         playsInline
                         preload="metadata"
                         style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                       />
+                      {enhStatus[video.id] === 'done' && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 8,
+                            right: 8,
+                            zIndex: 2,
+                            fontSize: '0.55rem',
+                            fontWeight: 800,
+                            letterSpacing: '0.06em',
+                            padding: '2px 7px',
+                            borderRadius: 99,
+                            background: 'rgba(52,211,153,0.15)',
+                            border: '1px solid rgba(52,211,153,0.45)',
+                            color: '#34d399',
+                          }}
+                        >
+                          ✨ HD
+                        </span>
+                      )}
                       {/* Dark overlay so play button is always visible */}
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', pointerEvents: 'none' }} />
                       {/* Play button */}
@@ -1295,7 +1365,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 92vw)', display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 16, overflow: 'hidden', background: '#000', border: '1px solid rgba(41,151,255,0.4)', boxShadow: '0 18px 60px rgba(41,151,255,0.25)' }}>
                 <video
-                  src={v.video_url}
+                  src={enhUrls[v.id] ?? v.video_url}
                   controls
                   autoPlay
                   playsInline

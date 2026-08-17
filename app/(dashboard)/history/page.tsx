@@ -20,7 +20,7 @@ export default async function MyVideosPage() {
   // ate their credit. HistoryClient renders each status distinctly.
   const { data: videos } = await supabase
     .from('videos')
-    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at')
+    .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(100)

@@ -485,6 +485,8 @@ export default function Sidebar({
           <NavItem href="/viral-now" icon={NAV_ICONS.viral} label="Viral Now" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/channel" icon={NAV_ICONS.channel} label="Channel Builder" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/history" icon={NAV_ICONS.videos} label="My Videos" exact={false} pathname={pathname} onClick={onClose} />
+          {/* KINEO-LIBRARY-2026-08-17 — estante unica: videos+imagens+audios */}
+          <NavItem href="/library" icon={NAV_ICONS.thumbnails} label="Library" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
           {isLoggedIn && (
             <>
               <NavItem href="/referral" icon={NAV_ICONS.referral} label="Invite & Earn" exact={false} pathname={pathname} onClick={onClose} />
