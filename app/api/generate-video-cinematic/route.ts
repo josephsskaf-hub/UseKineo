@@ -2062,7 +2062,23 @@ export async function POST(req: NextRequest) {
       }
 
       const hValid = hRequestIds.filter((id): id is string => id !== null)
-      if (hValid.length === 0) {
+      // KINEO-FAILFAST-2026-08-17 — o render do fundador saiu com 10s de um
+      // alvo de 60s e COBROU 150cr: o saldo do fal estourou NO MEIO da fila
+      // (1/7 cenas entrou, seis 403 "Exhausted balance") e o pipeline compôs
+      // "o que sobrou". O guard antigo só abortava com ZERO cenas — 1/7
+      // passava. Piso novo por SEGUNDOS: se as cenas aceitas não cobrem 60%
+      // do plano, o render já nasceu condenado — aborta AQUI, estorna
+      // automaticamente e alerta o fundador se for saldo. O custo das cenas
+      // parciais já na fila é nosso (centavos), nunca do cliente.
+      const hPlannedSec = plan.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+      const hSubmittedSec = plan.scenes.reduce(
+        (acc, sc, i) => acc + (hRequestIds[i] ? (sc.seconds || 0) : 0),
+        0,
+      )
+      if (hValid.length === 0 || hSubmittedSec < hPlannedSec * 0.6) {
+        console.error(
+          `[cinematic] hollywood FAILFAST: only ${hValid.length}/${plan.scenes.length} scenes (${hSubmittedSec}s of ${hPlannedSec}s planned) — aborting with refund${FAL_EXHAUSTED ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
+        )
         const released = await releaseBirthClaim(FAL_EXHAUSTED ? 'provider_balance_rejected' : 'provider_rejected')
         if (!released) {
           return NextResponse.json(
@@ -2071,17 +2087,17 @@ export async function POST(req: NextRequest) {
           )
         }
         if (FAL_EXHAUSTED) {
-          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood`)
+          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood submitted=${hValid.length}/${plan.scenes.length}`)
           return NextResponse.json(
             {
               queued: true,
-              error: "We're experiencing high demand right now. Nothing started and your credits were refunded automatically.",
+              error: "We're experiencing high demand right now. Nothing was charged — your credits were refunded automatically. Please try again in a few minutes.",
             },
             { status: 503 },
           )
         }
         return NextResponse.json(
-          { error: 'Could not submit clips to AI generator. Please try again.' },
+          { error: 'Could not start enough scenes for a full video. Nothing was charged — please try again.' },
           { status: 502 },
         )
       }
@@ -2370,7 +2386,16 @@ export async function POST(req: NextRequest) {
     // Do not silently downgrade Kling to Seedance after the signed cost/engine
     // claim is born. A rejected premium submit is retriable and never charged.
 
-    if (validIds.length === 0) {
+    // KINEO-FAILFAST-2026-08-17 — mesmo piso do Hollywood no caminho classico:
+    // menos da METADE das cenas aceitas (ex.: saldo do fal estourando no meio
+    // da fila) = render condenado a sair curto. Aborta com estorno em vez de
+    // compor um toco e cobrar o cliente.
+    if (validIds.length === 0 || validIds.length < Math.ceil(scenes.length * 0.5)) {
+      if (validIds.length > 0) {
+        console.error(
+          `[cinematic] classic FAILFAST: only ${validIds.length}/${scenes.length} scenes submitted — aborting with refund${FAL_EXHAUSTED ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
+        )
+      }
       const released = await releaseBirthClaim(FAL_EXHAUSTED ? 'provider_balance_rejected' : 'provider_rejected')
       if (!released) {
         return NextResponse.json(

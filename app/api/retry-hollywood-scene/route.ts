@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { fal } from '@fal-ai/client'
+import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
 
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL } from '@/lib/hollywood/router'
 
@@ -59,7 +60,14 @@ export async function POST(req: NextRequest) {
     console.log(`[retry-hollywood-scene] user=${user.id.slice(0, 8)} model=${model} resubmitted → ${request_id}`)
     return NextResponse.json({ requestId: request_id, model })
   } catch (e) {
-    console.error('[retry-hollywood-scene] submit failed:', e instanceof Error ? e.message : String(e))
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('[retry-hollywood-scene] submit failed:', msg)
+    // KINEO-FAILFAST-2026-08-17 — na noite do saldo estourado esta rota
+    // devolveu seis 502 "Forbidden" em silencio. Se a cara do erro e saldo,
+    // o fundador e alertado por email na hora (throttle de 30min na lib).
+    if (looksExhausted({ status: (e as { status?: number })?.status, message: msg })) {
+      await alertFalExhausted(`retry-hollywood-scene user=${user.id.slice(0, 8)} model=${model}`)
+    }
     return NextResponse.json({ error: 'Retry submit failed' }, { status: 502 })
   }
 }
