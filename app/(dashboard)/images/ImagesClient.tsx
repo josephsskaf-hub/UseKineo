@@ -58,6 +58,27 @@ export default function ImagesClient() {
     }
   }
 
+  // KINEO-IMAGES-DL-2026-08-17 (fundador: 'assim e o melhor modelo de
+  // entrega?' — nao): o link cru abria o PNG no dominio do fal. Agora o
+  // Download busca o blob e salva direto como kineo-image-N.png, sem sair do
+  // site. Fallback: se o CORS do CDN negar, abre em nova aba como antes.
+  async function downloadImage(url: string, idx: number) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `kineo-image-${items.length - idx}.png`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    } catch {
+      window.open(url, '_blank', 'noopener')
+    }
+  }
+
   async function upscale(idx: number) {
     const item = items[idx]
     if (!item || item.upscaling || item.upscaled) return
@@ -157,7 +178,7 @@ export default function ImagesClient() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={it.upscaled ?? it.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
                     <div className="row" style={{ marginTop: 9 }}>
-                      <a className="pill" style={{ textDecoration: 'none' }} href={it.upscaled ?? it.url} target="_blank" rel="noreferrer">⬇ Download</a>
+                      <button type="button" className="pill" onClick={() => downloadImage(it.upscaled ?? it.url, i)}>⬇ Download</button>
                       <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
                         {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : '✨ Upscale 2x · 1 cr'}
                       </button>
