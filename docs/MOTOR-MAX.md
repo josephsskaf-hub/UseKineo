@@ -27,3 +27,23 @@
 
 ## Regra permanente
 Todo motor novo entra SO depois de: llms.txt lido + tabela como esta + A/B.
+
+## ADENDO 17/08 (tarde) — candidatos da arena de agosto/2026 (schemas oficiais conferidos)
+
+### MiniMax H3 (`minimax/h3/text-to-video` + `/image-to-video`) — ★ A PECHINCHA DE ELITE
+- Arena: nº 2 do mundo (1242 Elo), 3 pontos do líder.
+- Preço: $0.05/s @480p · $0.08/s @768p · **$0.13/s @2K** · $0.16/s @4K.
+  → 2K mais BARATO que o Kling 3 ($0.168/s) e que o Veo fast ($0.15/s).
+- t2v: duration 5-15 (int), 7 aspect ratios, `enable_prompt_expansion` (default true — DESLIGAR: nosso prompt já é dirigido).
+- i2v: primeira imagem E/OU last frame (transição entre 2 imagens!) — aspect segue a imagem → image-first trava 9:16 igual fizemos no Kling.
+- 2K/4K são upscale de base 768p (nativo = 480/768).
+- VEREDITO: candidato nº 1 a motor novo ("MiniMax 2K") e a substituto do slot 'cinematic' do Hollywood. Pay-per-use, upside quase puro.
+
+### Seedance 2.5 (`bytedance/seedance-2.5/*`) — ⚠️ NÃO é upgrade de slug, é OUTRO PRODUTO
+- Single-shot NATIVO de até 30s, coerente, com áudio + FALA LIP-SYNCED inclusos no preço.
+- Preço: **~$0.47/s @720p** (~$14 por clipe de 30s) — 20x o custo/s do 1.5. 
+- VEREDITO: caríssimo pro motor-workhorse (fica no 1.5). MAS: 2 clipes de 30s com fala nativa = filme de 60s em 2 requests — é um HOLLYWOOD ALTERNATIVO de arquitetura radicalmente simples, viável só com preço premium próprio (~$28 de insumo → precificar 400cr+?). Guardar pra tier "Kineo Max".
+
+### Sora 2 — ☠️ REMOVER: app fechou em abril/26, API desliga em 24/09/2026. O bloqueio antigo virou acerto; limpar o slug do código.
+
+### Gemini Omni Flash — nº 1 da arena a ¼ do custo dos flagships; verificar disponibilidade no fal/Google API (não visto no fal hoje).

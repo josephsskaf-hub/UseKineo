@@ -123,7 +123,13 @@ const HOLLYWOOD_CREDIT_COST = 150
 // detailed error log. With balance topped up, re-enabling Seedance: better
 // visual quality, ~48% cheaper than Wan ($0.13 vs $0.25/clip @720p no audio),
 // faster (~30-45s/clip). Same { video: { url } } output. Fallback = Wan.
-const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+// KINEO-SEEDANCE-SLUG-2026-08-17 — alavanca de upgrade sem deploy de codigo:
+// o Seedance 2.5 (rei do i2v na arena de ago/2026, clipes nativos de 30s) ja
+// esta no fal. Pra testar em stage/preview: setar KINEO_SEEDANCE_SLUG no env
+// do Vercel (ex.: 'fal-ai/bytedance/seedance-2.5/text-to-video' — validar o
+// slug exato e o schema ANTES no llms.txt do modelo; docs/MOTOR-MAX.md).
+// Sem a env, producao segue byte-identica no 1.5.
+const SEEDANCE_MODEL = process.env.KINEO_SEEDANCE_SLUG || 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 // Push #401 — premium engine for the Pro plan. Kling 2.5 Turbo Pro is more
 // cinematic (motion/physics/prompt adherence) than Seedance. Same { video: { url } }
 // output shape. Kling has no `resolution`/`generate_audio` params and is silent
@@ -358,12 +364,17 @@ function buildFalInput(
       generate_audio: true,
     }
   }
-  // Seedance (default). KINEO-SEEDANCE-720-CREATOR-2026-07-06: resolution follows
-  // the plan — Studio (hd=true) = 1080p premium, Creator/credit-payers = 720p.
+  // Seedance (default). KINEO-SEEDANCE-720-CREATOR-2026-07-06: resolution seguia
+  // o plano — Studio 1080p, Creator 720p (margem).
+  // KINEO-1080-GERAL-2026-08-17 (fundador: "qualidade e muito importante para a
+  // nossa porta" — aprovado): 1080p PRA TODOS. Custo fal por video Seedance
+  // sobe ~2x (preco por token ∝ pixels), a margem no Creator estreita mas segue
+  // positiva; o pricing novo (matriz V4, pendente de aprovacao) reequilibra.
+  // A porta mostra Full HD → o produto entrega Full HD, em todo plano.
   return {
     prompt,
     aspect_ratio: '9:16',
-    resolution: hd ? '1080p' : '720p',
+    resolution: '1080p',
     // KINEO-MOTORMAX-2026-08-16 — duracao exata 4-12 (schema): sem dead air e
     // ~20% mais barata quando a cena planejada e de 8s (preco por token).
     duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
