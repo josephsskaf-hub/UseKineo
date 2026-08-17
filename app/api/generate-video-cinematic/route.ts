@@ -258,7 +258,7 @@ function buildFalInput(
       aspect_ratio: '9:16',
       generate_audio: true,
       cfg_scale: 0.6,
-      negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
+      negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
     }
   }
   if (model === SORA_MODEL) {
@@ -286,7 +286,7 @@ function buildFalInput(
         // antes do TAAFT (decisao do fundador 16/08). Creditos inalterados.
         resolution: '1080p',
         generate_audio: true,
-        negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
+        negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
       }
     }
     return {
@@ -2155,8 +2155,13 @@ export async function POST(req: NextRequest) {
           // KINEO-SPECTACLE-2026-08-17 (fundador: "nao estava muito nitida,
           // sem efeitos") — DNA de nitidez/escala em todo b-roll, em CODIGO
           // (nao dependemos do planner escrever bonito).
+          // KINEO-UPRIGHT-2026-08-17 (fundador: "teve uma cena deitada") — um
+          // clipe da manha veio com o horizonte NA VERTICAL: em prompt de
+          // "wide establishing" o modelo as vezes pinta a paisagem de lado
+          // dentro do quadro 9:16. Ordem explicita de composicao vertical +
+          // horizonte nivelado em toda cena nao-dialogo.
           const spectacleSuffix = hs.type !== 'dialogue'
-            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur.'
+            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur. Upright vertical composition: the horizon runs HORIZONTALLY across the frame, never sideways, never rotated.'
             : ''
           const scenePrompt = hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           try {
