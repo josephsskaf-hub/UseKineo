@@ -147,6 +147,10 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // from My Videos any time — not just once on the result page.
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  // KINEO-ENHANCE-2026-08-17 — pos-producao Topaz por video (10cr): status e
+  // URL final por id. 'processing' vira polling de 6s ate done/failed.
+  const [enhStatus, setEnhStatus] = useState<Record<string, 'processing' | 'done' | 'failed'>>({})
+  const [enhUrls, setEnhUrls] = useState<Record<string, string>>({})
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — the Starter upsell was a bare
   // window.location.href: no latch (repeat taps = repeat Stripe sessions), no
   // pending state and no error if the redirect never landed.
@@ -271,6 +275,63 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       showToast('Download started')
     } finally {
       setDownloadingId(null)
+    }
+  }
+
+  // KINEO-ENHANCE-2026-08-17 — dispara o Topaz e faz polling ate o resultado.
+  async function handleEnhance(video: Video) {
+    const cur = enhStatus[video.id]
+    if (cur === 'processing') return
+    if (cur === 'done' && enhUrls[video.id]) {
+      await downloadVideoFile({
+        url: enhUrls[video.id],
+        filename: `kineo-enhanced-${video.id.slice(0, 8)}.mp4`,
+        exportType: 'clean',
+        surface: 'history',
+        videoId: video.id,
+      })
+      showToast('Enhanced download started')
+      return
+    }
+    setEnhStatus((m) => ({ ...m, [video.id]: 'processing' }))
+    try {
+      const res = await fetch('/api/enhance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ videoId: video.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? 'Enhance failed.')
+      if (data.status === 'done' && data.url) {
+        setEnhUrls((m) => ({ ...m, [video.id]: data.url }))
+        setEnhStatus((m) => ({ ...m, [video.id]: 'done' }))
+        showToast('✨ Enhanced — click HD to download')
+        return
+      }
+      const poll = async () => {
+        try {
+          const r = await fetch(`/api/enhance?videoId=${video.id}`)
+          const d = await r.json()
+          if (d.status === 'done' && d.url) {
+            setEnhUrls((m) => ({ ...m, [video.id]: d.url }))
+            setEnhStatus((m) => ({ ...m, [video.id]: 'done' }))
+            showToast('✨ Enhanced — click HD to download')
+            return
+          }
+          if (d.status === 'failed') {
+            setEnhStatus((m) => ({ ...m, [video.id]: 'failed' }))
+            showToast(d.error ?? 'Enhance failed — credits refunded')
+            return
+          }
+          setTimeout(poll, 6000)
+        } catch {
+          setTimeout(poll, 8000)
+        }
+      }
+      setTimeout(poll, 8000)
+    } catch (e) {
+      setEnhStatus((m) => ({ ...m, [video.id]: 'failed' }))
+      showToast(e instanceof Error ? e.message : 'Enhance failed.')
     }
   }
 
@@ -997,6 +1058,30 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     }}
                   >
                     {downloadingId === video.id ? '…' : isWatermarkedFastAsset(video) ? '⬇ WM' : '⬇'}
+                  </button>
+                  {/* KINEO-ENHANCE-2026-08-17 — Topaz film polish, 10 cr */}
+                  <button
+                    onClick={() => handleEnhance(video)}
+                    disabled={enhStatus[video.id] === 'processing'}
+                    title="Enhance — Topaz film polish (sharper, cleaner, film grain) · 10 credits"
+                    aria-label="Enhance video · 10 credits"
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 3,
+                      padding: '5px 4px',
+                      borderRadius: 6,
+                      background: enhStatus[video.id] === 'done' ? 'rgba(52,211,153,0.10)' : 'rgba(41,151,255,0.08)',
+                      border: enhStatus[video.id] === 'done' ? '1px solid rgba(52,211,153,0.35)' : '1px solid rgba(41,151,255,0.2)',
+                      color: enhStatus[video.id] === 'done' ? '#34d399' : '#2997ff',
+                      fontSize: '0.6rem',
+                      fontWeight: 700,
+                      cursor: enhStatus[video.id] === 'processing' ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {enhStatus[video.id] === 'processing' ? '✨…' : enhStatus[video.id] === 'done' ? '✨ HD ✓' : '✨ HD'}
                   </button>
 
                   {/* #459 — share the public /v/[id] page */}

@@ -32,6 +32,17 @@ const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolea
     label: 'Images',
     exact: false,
   },
+  // KINEO-AUDIO-2026-08-17 — par do Sidebar: Kineo Audio no mobile.
+  {
+    href: '/audio',
+    icon: (
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+      </svg>
+    ),
+    label: 'Audio',
+    exact: false,
+  },
   {
     href: '/viral-now',
     icon: (

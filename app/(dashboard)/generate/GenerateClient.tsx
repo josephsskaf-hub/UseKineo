@@ -4520,57 +4520,15 @@ export default function GenerateClient({
     // Adversarial 2/2 — `generationInFlightRef` fecha a janela de corrida do
     // compose aceito-mas-ainda-sem-linha: se ESTA aba tem despacho no ar, nao
     // abrimos. Aba morta (o caso real, recarga de pagina) nao tem.
-    // KINEO-GATE-ID-MORTO-2026-08-17 — o fail-open de 16/08 acima exige
-    // renderId AUSENTE, e por isso NUNCA DISPAROU: em 48h, zero eventos
-    // `active_render_gate_forced_open` com `snapshot:'live_server_idle'` no
-    // banco inteiro — contra 128 cliques bloqueados de 6 pessoas. Ou seja: a
-    // correção de ontem cobriu um caso que quase não acontece, e o caso que
-    // acontece continuou trancado. O preço, medido: sebastiaoraul090 bateu 26
-    // vezes em 88 SEGUNDOS e saiu com ZERO vídeos na conta; okotiu, 19 vezes em
-    // 36s, ZERO vídeos; lihowo4884 (o do TAAFT), 19 vezes, ZERO vídeos. Três de
-    // seis pessoas nunca produziram nada — e quatro das seis nunca clicaram no
-    // botão vermelho de escape, porque ninguém lê um botão quando acha que o
-    // botão principal ainda vai funcionar.
-    //
-    // O caso real é o snapshot `live` COM renderId apontando para um render que
-    // já morreu ou já terminou: o ponteiro local existe, o servidor não tem
-    // nada rodando, e o portão segura a página por até 50 minutos.
-    //
-    // A objeção do adversarial de ontem ("com renderId a sonda pode estar
-    // atrás do banco") é uma objeção de SEGUNDOS, não de minutos: a linha do
-    // compose é escrita dentro da própria requisição. Então em vez de recusar a
-    // testemunha, damos a ela um piso de idade. Acima de 90s, um snapshot que a
-    // sonda não confirma não é um render em voo — é um ponteiro órfão.
-    //
-    // Continua estritamente mais restritivo que a guarda do dinheiro: a sonda é
-    // a MESMA fonte do lock do compose, logo tudo que este portão passa a
-    // deixar passar o `handleGenerate` já deixaria. E continua fail-closed —
-    // 401, 500 ou rede caída não provam ociosidade (`serverProbeProvesIdleRef`
-    // só vira true num 200 lido até o fim).
-    // Adversarial 1/2 — `generationInFlightRef` continua fechando a janela da
-    // aba viva; o piso de idade existe para a aba MORTA, que é o caso real
-    // (recarga de página), e onde `generationInFlightRef` é sempre false.
-    // Adversarial 2/2 — snapshot ilegível mantém `snapshotHasRenderId = true` e
-    // idade `null`, e portanto NÃO abre: quem não sabe o que tem na mão não
-    // ganha permissão nova.
-    const GATE_SERVER_TRUTH_MIN_AGE_MS = 90 * 1000
     let snapshotHasRenderId = true
-    let snapshotAgeMs: number | null = null
     try {
       const raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
       const parsed = raw ? JSON.parse(raw) as Partial<ActiveRenderSnapshot> : null
       snapshotHasRenderId = Boolean(typeof parsed?.renderId === 'string' && parsed.renderId.trim())
-      const startedAt = Number(parsed?.startedAt)
-      snapshotAgeMs = Number.isFinite(startedAt) ? Date.now() - startedAt : null
     } catch {
       snapshotHasRenderId = true
-      snapshotAgeMs = null
     }
-    const serverTruthMayOpenGate =
-      !generationInFlightRef.current &&
-      (!snapshotHasRenderId ||
-        (typeof snapshotAgeMs === 'number' && snapshotAgeMs >= GATE_SERVER_TRUTH_MIN_AGE_MS))
-    if (serverTruthMayOpenGate) {
+    if (!snapshotHasRenderId && !generationInFlightRef.current) {
       await refreshServerActiveRender()
       if (serverProbeProvesIdleRef.current) {
         activeRenderRestoreResolvedRef.current = true
@@ -4578,10 +4536,7 @@ export default function GenerateClient({
         void trackEvent('active_render_gate_forced_open', {
           attempt_id: generationAttemptRef.current,
           retries: restoreRetryRef.current,
-          // Dois rótulos distintos de propósito: é o que vai provar (ou
-          // desmentir) amanhã que o caminho novo é o que carrega o volume.
-          snapshot: snapshotHasRenderId ? 'live_id_server_idle' : 'live_server_idle',
-          snapshot_age_ms: typeof snapshotAgeMs === 'number' ? Math.round(snapshotAgeMs) : null,
+          snapshot: 'live_server_idle',
         })
         markActiveRenderGateBlocked(false)
         return true

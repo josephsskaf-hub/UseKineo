@@ -806,6 +806,26 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 </span>
               </span>
             </span>
+            {/* KINEO-AUDIO-2026-08-17 ([STAGE] fundador: "quero o menu de
+                audio conectando: imagem - audio - videos"): mega-menu Audio
+                entre Image e Video, mesmo padrao de catalogo com preco. */}
+            <span className="nd">
+              <Link href="/audio">Audio<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><b>MiniMax Speech HD</b><i>High-fidelity narration · 2 cr/1k</i></Link>
+                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><b>Eleven v3</b><em className="nm-chip">STUDIO</em><i>Emotion &amp; delivery tags · 2 cr/1k</i></Link>
+                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><b>Dia Dialogue</b><em className="nm-chip">NEW</em><i>Two-speaker scenes · 1 cr/1k</i></Link>
+                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><b>Kokoro</b><i>Instant narration · 1 cr/1k</i></Link>
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/audio"><b>Text to Speech</b><em className="nm-chip">NEW</em></Link>
+                  <Link href="/avatar">Talking Avatar</Link>
+                </span>
+              </span>
+            </span>
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
                 (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
             <span className="nd">
@@ -842,6 +862,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <Link href="/examples">Explore</Link>
               <Link href="/studio">Studio — generate video</Link>
               <Link href="/images">Images — create image</Link>
+              <Link href="/audio">Audio — text to speech</Link>
               <Link href="/viral-now">Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
               <Link href="/animate">Animate</Link>
