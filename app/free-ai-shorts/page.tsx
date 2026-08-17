@@ -10,17 +10,45 @@ const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
-export const metadata: Metadata = {
-  title: 'Free AI Shorts Generator by Niche — 28 Faceless Formats | Kineo',
-  description:
-    `Pick a niche and turn one idea into a complete faceless Short with script, voice, footage and captions. ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
-  alternates: { canonical: 'https://www.usekineo.com/free-ai-shorts' },
-  openGraph: {
-    title: 'Free AI Shorts Generator by Niche | Kineo',
-    description: `14 faceless Shorts formats with ready-to-use ideas. ${ft(OFFER, 'Up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
-    url: 'https://www.usekineo.com/free-ai-shorts',
-    type: 'website',
-  },
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ORFA-LOCALBUSINESS-2026-08-17 — A PÁGINA MENTIA A PRÓPRIA CONTAGEM EM
+// TRÊS NÚMEROS DIFERENTES, E UM DELES É O QUE O GOOGLE MOSTRA.
+// ═══════════════════════════════════════════════════════════════════════════
+// Lido na produção em 17/08, na MESMA resposta HTML:
+//   <title> ............... "— 28 Faceless Formats"
+//   og:description ........ "14 faceless Shorts formats"
+//   H1 de apoio ........... "Choose one of 14 repeatable faceless formats"
+//   <h2> .................. "14 formats with ideas ready to generate"
+//   cards realmente na tela: 29
+// Três afirmações, nenhuma verdadeira. O `<title>` é a linha que aparece no
+// resultado de busca, então a família inteira se anunciava com um número
+// errado no único lugar que o comprador lê antes de clicar.
+//
+// A causa é a de sempre nesta casa: número digitado à mão ao lado de uma lista
+// que cresce. `faith` (29ª) e `localbusiness` (30ª) entraram sem que ninguém
+// lembrasse dos quatro literais. Agora os quatro DERIVAM da mesma expressão
+// que renderiza os cards, então a próxima página conserta os textos sozinha.
+//
+// `metadata` virou `generateMetadata()` de propósito: o objeto literal era
+// avaliado na carga do módulo, ANTES de `NICHE_CARDS` existir (TDZ) — ler a
+// contagem de lá teria estourado no build. A função roda depois.
+// (as duas constantes vivem LOGO ABAIXO de NICHE_CARDS, não aqui — ver a nota
+// de TDZ acima; declará-las neste ponto reproduziria exatamente o erro que
+// este bloco existe para evitar.)
+
+export function generateMetadata(): Metadata {
+  return {
+    title: `Free AI Shorts Generator by Niche — ${HUB_NICHE_COUNT} Faceless Formats | Kineo`,
+    description:
+      `Pick a niche and turn one idea into a complete faceless Short with script, voice, footage and captions. ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
+    alternates: { canonical: 'https://www.usekineo.com/free-ai-shorts' },
+    openGraph: {
+      title: 'Free AI Shorts Generator by Niche | Kineo',
+      description: `${HUB_NICHE_COUNT} faceless Shorts formats with ready-to-use ideas. ${ft(OFFER, 'Up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}`,
+      url: 'https://www.usekineo.com/free-ai-shorts',
+      type: 'website',
+    },
+  }
 }
 
 const HUB_CAMPAIGN = 'push63_niche_activation_hub'
@@ -63,7 +91,35 @@ const NICHE_CARDS: Record<string, { label: string; title: string; example: strin
   movies: { label: 'Movie & Film Facts', title: 'Movie Shorts', example: 'The movie scene that was completely unscripted' },
   food: { label: 'Food & Cooking Facts', title: 'Food Shorts', example: 'The food that never actually expires' },
   travel: { label: 'Travel & Places', title: 'Travel Shorts', example: 'The place tourists are banned from entering' },
+  // KINEO-ORFA-LOCALBUSINESS-2026-08-17 — A 30ª PÁGINA ERA ÓRFÃ, E O AVISO
+  // ESTAVA ESCRITO AQUI EM CIMA DESDE 13/08.
+  //
+  // A sprint das 10h de hoje criou `localbusiness` em NICHES (a página existe,
+  // entra no sitemap e no rodapé de interlinking das 29 irmãs) e NÃO criou o
+  // card — que é outro objeto, neste outro arquivo. O comentário de
+  // KINEO-SEO-FAITH-2026-08-13, doze linhas acima, descreve o defeito palavra
+  // por palavra: "página sem card ... fica FORA da única página que o Google
+  // trata como índice do conjunto. Seria uma página órfã por esquecimento de
+  // um objeto."
+  //
+  // Provado de fora, não deduzido: `www.usekineo.com/free-ai-shorts` renderiza
+  // 29 cards e `localbusiness` não está entre eles.
+  //
+  // A lição de processo, e ela é maior que a página: "interlinking e sitemap
+  // fecham sozinhos" era VERDADE (os dois derivam de NICHE_SLUGS) e ainda
+  // assim a página nasceu invisível — porque a peça que NÃO deriva de
+  // NICHE_SLUGS é justamente a única que o índice do Google lê. Derivação
+  // automática em 2 de 3 lugares dá a sensação de cobertura total.
+  localbusiness: { label: 'Local Business', title: 'Local Business Video Ads', example: 'The 30-second ad that fills your calendar next week' },
 }
+
+// KINEO-ORFA-LOCALBUSINESS-2026-08-17 — fonte ÚNICA da contagem do hub: a
+// mesma expressão que decide quais cards aparecem decide todos os números que
+// a página afirma sobre si mesma (<title>, og:description, subtítulo e <h2>).
+// Enquanto os quatro eram literais, a página anunciava 28 no Google, 14 no
+// texto e mostrava 29.
+const HUB_NICHE_SLUGS = NICHE_SLUGS.filter((slug) => NICHE_CARDS[slug])
+const HUB_NICHE_COUNT = HUB_NICHE_SLUGS.length
 
 const FAQ = [
   {
@@ -107,7 +163,7 @@ export default function FreeAiShortsHubPage() {
             Pick a niche. Turn one idea into a finished Short.
           </h1>
           <p style={{ fontSize: '1.05rem', color: '#86868b', lineHeight: 1.65, margin: '16px auto 0', maxWidth: 680 }}>
-            Choose one of 14 repeatable faceless formats. Kineo writes the hook and script, records the AI voice, matches footage to every line and adds captions — ready for Shorts, TikTok or Reels.
+            Choose one of {HUB_NICHE_COUNT} repeatable faceless formats. Kineo writes the hook and script, records the AI voice, matches footage to every line and adds captions — ready for Shorts, TikTok or Reels.
           </p>
           <OrganicCtaLink
             href={SIGNUP_URL}
@@ -124,10 +180,10 @@ export default function FreeAiShortsHubPage() {
 
         <section style={{ marginTop: 48 }}>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 900, textAlign: 'center', margin: '0 0 20px' }}>
-            14 formats with ideas ready to generate
+            {HUB_NICHE_COUNT} formats with ideas ready to generate
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 14 }}>
-            {NICHE_SLUGS.filter((slug) => NICHE_CARDS[slug]).map((slug) => {
+            {HUB_NICHE_SLUGS.map((slug) => {
               const niche = NICHE_CARDS[slug]
               return (
                 <Link key={slug} href={`/free-ai-shorts/${slug}`} style={{ ...CARD, display: 'block', borderRadius: 16, padding: '18px 20px', textDecoration: 'none', color: 'inherit' }}>

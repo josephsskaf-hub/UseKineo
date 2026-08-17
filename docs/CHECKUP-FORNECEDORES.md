@@ -3,6 +3,113 @@
 # Método: consumo real medido no Supabase (cqqukkvjjrguayiyjvhh). Creatomate pela fórmula
 # do medidor oficial (lib/creatomateQuota.ts): px×fps×segundos/1e8 × overhead 1,115.
 # Vereditos: VERDE >14 dias de folga · AMARELO 7–14 dias ou tendência de estouro · VERMELHO <7 dias ou falhando.
+#
+# ⚠ DECISÃO FECHADA DO FUNDADOR (16/08/2026) — NÃO REPROPOR:
+# **E-mail de alerta está CANCELADO.** Nem nos amarelos, nem nos vermelhos. O canal oficial
+# e único é a ENTREGA DIÁRIA AQUI NO CHAT, 1x por dia, SEMPRE COM A TABELA — mesmo que esteja
+# tudo verde (não existe mais "se tudo verde, não incomodar": o fundador quer ver a tabela
+# todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
+# em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
+
+## 17/08/2026 — 🔴🔴🔴 O MELHOR DIA DA HISTÓRIA está queimando os fornecedores em ritmo de HORAS
+
+**97 cadastros em 24h (recorde absoluto; o antigo era 69), 89 vídeos entregues, 61 pessoas
+gerando, 30 delas com IA. A vitrine de 15/08 converteu — e é exatamente por isso que hoje é
+o check-up mais urgente desde que ele existe: TRÊS fornecedores entram em vermelho ao mesmo
+tempo, e dois deles zeram em horas, não dias. E as duas auto-recargas que salvariam o dia
+aparecem DESLIGADAS nos painéis — inclusive a do fal, que ontem este check-up deu como
+"provada". Foi um erro de leitura: a tabela de Credit activity hoje mostra uma compra
+(Purchase) de $40 datada de 14/08 que ontem ainda não aparecia — os $40 eram compra manual
+chegando com atraso na tabela, não top-up automático. Retrato corrigido: NENHUMA proteção
+automática está ativa em NENHUM fornecedor.**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **fal.ai** | 🔴 **VERMELHO — HORAS de saldo · auto top-up OFF** | **Painel oficial: saldo $27,67** (ontem $54,13) · **uso do mês $320,56** (ontem $194,10 = **−$126,46 em 24h**, 10× a média) · **Auto top-up: "Off"/"Disabled"** · última entrada: Purchase $40 em 14/08 | 27,67 ÷ 126/dia = **~5 HORAS no ritmo do pico** (1,5 dia na média mensal $18,86 do próprio fal). 41 renders de IA em 24h (35 Seedance + 4 Hollywood + 2 Veo). Já há sintoma: 2 `fal_poll_deadline_exceeded` hoje 04:27–04:54Z. **Ação: HOJE, agora — comprar $200 e ligar auto top-up gatilho $50 / recarga $100, conferindo que o botão salvou (é a 3ª vez que "ligado" não persiste).** |
+| **OpenAI** | 🔴 **VERMELHO — 1,4 dia · auto-reload OFF (banner do painel)** | **Painel oficial: saldo $8,86** (ontem $15,19 = −$6,33/24h, 4,6× o ritmo) · banner literal: **"Auto-reload is OFF"** + botão "Enable auto-reload" | 8,86 ÷ 6,33 = **1,4 dia → zera 18–19/08**. O teste que este check-up esperava para 19–20/08 já aconteceu: **o saldo cruzou o gatilho de $10 e NADA disparou — porque a recarga está OFF**, não configurada-e-falhando. OpenAI está no `scripting` de TODO vídeo (incidente 31/07: 116 falhas). **Ação: HOJE — comprar $50 e clicar "Enable auto-reload", conferindo que salvou.** |
+| **Resend** | 🔴 **VERMELHO — estouro projetado HOJE** | **Ledger `trial_emails_log`: 72 e-mails em 24h (PISO; crons video-ready/recovery/reminders não registram)** · quebra: `downgraded_loss` 29 · `d0_welcome` 25 · `ending_soon` 9 · `expired_offer_d5` 8 · `trial_extended` 1 | 2º dia seguido acima de 70% do limite free (100/dia) com medição incompleta — e a onda de 97 cadastros ainda vai empurrar os `d0_welcome` de hoje (só 25 dos 97 saíram). **No ritmo de hoje o teto estoura DENTRO do dia, e e-mail que morre no Resend é justamente o de conversão — falha silenciosa, sem erro, sem gráfico.** **Ação: HOJE — subir para o plano pago do Resend (entrada ~US$20/mês; conferir preço no painel).** |
+| **Creatomate** | 🟡 **AMARELO — 8 dias no ritmo do pico** | **Painel oficial: 6.0K de 30.0K (20%)** — ontem 3.0K = **3.000 cr em 24h** (estimativa pelo banco: 2.996 — **6ª validação seguida do fator 1,115**) | (30.000−6.000) ÷ 3.000 = **8 dias → estouro ~25/08, 16 dias ANTES da renovação (10/09)** se o pico virar o novo normal. Na média 7d (883/dia) ainda caberia (27 dias). **Ação: decidir até 20/08 — se o ritmo ≥2K/dia segurar por mais 2 dias, subir o plano ANTES do dia 25 (o incidente de 09/08 foi exatamente isso: cota estourada no meio do ciclo, 33h fora do ar).** |
+| **Supabase Storage** | 🟡 **AMARELO — ~7 dias no ritmo do pico** | Banco bruto **108,34 GB** (8.477 obj.) × 0,503 calibrado = **~54,5 GB de 100 GB (ESTIMATIVA)** | Ontem 95,73 bruto → **+12,6 GB brutos em 24h** ≈ +6,3 GB cobrados/dia no pico (14× o ritmo de ontem). Folga ~45 GB ≈ **7 dias se o pico durar** (~2 meses se normalizar). Maior bucket: `broll` **71,69 GB** (4.014 obj.). **Ação $0: rodar o GC do bucket broll esta semana — é o único fornecedor que dá pra aliviar sem cartão.** |
+
+**Saúde do produto (o contraste que define a urgência):** o produto está PERFEITO — 89 vídeos
+em 24h, 86 `generate_completed`, **ZERO falhas por quota ou saldo**. As 138 `generation_stage_error`
+de 24h são quase todas gate de concorrência (100 `analyze_blocked_active_render_gate`, de apenas
+4 usuários gerando em rajada) — sintoma de USO PESADO, não de defeito. Os únicos eventos com cheiro
+de fornecedor são 2 `fal_poll_deadline_exceeded` na madrugada. **É a foto exata de "antes do
+sintoma": a demanda chegou, os tanques é que estão acabando.**
+
+**Ação recomendada (tudo com data, nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **HOJE, primeiro — fal.ai:** $200 + auto top-up $50/$100 **conferindo que salvou**. Zera em horas.
+2. **HOJE — OpenAI:** $50 + "Enable auto-reload" (o banner diz OFF). Zera amanhã.
+3. **HOJE — Resend:** plano pago (~$20/mês). Estouro silencioso projetado para dentro do dia.
+4. **Até 20/08 — Creatomate:** se o ritmo segurar, subir plano antes de ~25/08.
+5. **Esta semana, $0 — Storage:** GC do bucket `broll` (71,7 GB).
+
+**O insight deste check-up:** todos os buffers da empresa foram dimensionados para o tráfego
+de $12/dia — gatilho de $20 no fal era 1,6 dia de aviso; virou **4 horas** da noite pro dia.
+**Buffer de fornecedor não é um número, é um número × o tráfego** — e o tráfego acabou de mudar
+de década. A regra que fica: toda vez que o produto bater recorde de cadastros, os gatilhos de
+recarga têm que ser re-dimensionados NO MESMO DIA, porque o recorde é exatamente o dia em que
+os fornecedores morrem mais rápido — e morrer no recorde custa o recorde. (E a correção honesta:
+o "top-up provado" de ontem era uma compra manual atrasada na tabela — evidência de disparo
+agora exige a linha "Auto top-up" no Credit activity, não aritmética de saldo.)
+
+**Não consegui medir:** total real de envios do Resend (painel exige login; crons fora do
+ledger); se o Resend JÁ estourou ontem (o ledger não registra recusa); e o preço exato do
+plano pago do Resend.
+
+---
+
+## 16/08/2026 — 🟡 A proteção PEGOU no fal, e o OpenAI foi salvo NA MÃO (não pelo auto-reload)
+
+**Os dois vermelhos de ontem saíram do vermelho — mas por motivos diferentes, e a diferença
+é a coisa mais importante deste check-up.** No fal, o auto top-up disparou sozinho (provado
+pelo saldo). Na OpenAI, quem salvou foi o cartão do fundador às 09:29 de ontem — o auto-reload
+continua **configurado e nunca visto disparar**. Um novo amarelo apareceu do lado que ninguém
+estava olhando: **Resend**.
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **fal.ai** | 🟡 **AMARELO — 4,5 dias de saldo, mas com recarga automática PROVADA** | **Painel oficial: saldo $54,13** (ontem $25,74) · **Auto top-up: Enabled — "$40 quando o saldo chegar a $20", cartão 8677** · uso do mês $194,10 (ontem $182,49) · média do próprio fal **$12,13/dia** | **O auto top-up funcionou — e dá pra provar:** 25,74 − 11,61 de consumo (194,10−182,49) = $14,13; o saldo está em $54,13, ou seja **entraram exatamente $40** no meio do caminho. Isso é a recarga automática disparando pela primeira vez. (A tabela "Credit activity" **não** registra o top-up automático — última linha ainda é 11/08, $40. Anotado: aquela tabela não serve de prova, o saldo serve.) Saldo bruto = 54,13 ÷ 12,13 = **4,5 dias**. **Por que amarelo e não verde:** o gatilho está em **$20 = 1,6 dia de aviso** e a recarga de **$40 = 3,3 dias**. Funciona, mas não sobra nada pra uma recusa de cartão. **Ação (não urgente, $0 de custo): mudar o gatilho para $50 e a recarga para $100** — mesma despesa por mês, só antecipada, e a folga vira 4 dias em vez de 1,6. |
+| **OpenAI** | 🟡 **AMARELO — 11,1 dias · proteção AINDA NÃO PROVADA** | **Painel oficial: saldo $15,19** (ontem $1,56) · **Auto-reload: ON — "quando chegar a $10, recarregar para $25, limite mensal $100"** · **Billing history: fatura de $15,00 em 15/08 09:29** | 15,19 ÷ 1,37/dia (queda medida em 24h) = **11,1 dias → zera ~27/08**. **O ponto que importa: aquele $15,00 é compra manual, não o auto-reload.** O auto-reload recarregaria **para $25** (cobrança de ~$23,44 a partir de $1,56) — a fatura é de $15,00 exatos, valor de botão "Buy credits". Ou seja: ontem o saldo passou **mais de 24h abaixo do gatilho de $10 sem a recarga disparar**, e quem consertou foi a mão do fundador. **A proteção segue sem uma única evidência de que funciona.** Faturas de agosto: $10 (05/08) + $15 (15/08) = **$25 dos $100 de limite mensal — não é o limite que está travando**. **Ação: nenhuma compra hoje. O teste de verdade acontece sozinho quando o saldo cruzar $10, por volta de 19–20/08 — este check-up vai conferir naquele dia. Se não disparar de novo, o auto-reload da OpenAI é decorativo e a conta volta a ser manual todo mês.** |
+| **Resend** | 🟡 **AMARELO — 74 de 100/dia (74%)** | **Ledger `trial_emails_log`: 74 e-mails em 24h** (ontem 48 = **+54%**). Quebra: `downgraded_loss` 36 · `ending_soon` 22 · `d0_welcome` 13 · `expired_offer_d5` 3 | **Este é o piso, não o total** — os crons send-video-ready/recovery/reminders não escrevem no ledger, então o número real está entre 74 e o teto. **74% do limite diário do plano free com medição incompleta = amarelo pela regra dos 70.** O que empurrou foi a leva de **36 `downgraded_loss`** (campanha, não tráfego orgânico): qualquer nova leva desse tamanho **estoura 100 no mesmo dia** e o Resend simplesmente para de entregar — sem erro visível pro usuário, e os e-mails que morrem primeiro são justamente os de conversão. **Ação: decidir até 18/08** — ou (a) subir para o plano pago do Resend (a faixa de entrada fica na casa de ~US$20/mês; **conferir o valor no painel, não consegui ler o preço daqui**), ou (b) $0: espalhar as campanhas em lotes de ≤30/dia e escrever os envios dos outros crons no ledger, que é o que falta pra este número deixar de ser um chute. |
+| Creatomate | 🟢 VERDE — ~58 dias | **Painel oficial: 3.0K de 30.0K (10%)** | Ritmo 462 cr/dia no ciclo (24h estimadas: 406). Renova 10/09 (25 dias); projeção do ciclo ≈ **14.550 → sobra ~51%**. **Estimativa pelo banco deu 3.184 vs 3.0K do painel — 5ª validação seguida do fator 1,115.** O medidor está confiável; segue sendo a única cota que dá pra prever sem abrir painel. |
+| Supabase Storage | 🟢 VERDE — ~110 dias | Banco bruto **95,73 GB** (7.854 obj.) × 0,503 calibrado = **~48,2 GB de 100 GB (ESTIMATIVA)** | Ontem 94,86 bruto → **+0,87 GB/dia** bruto ≈ 0,44 GB/dia cobrado (metade do ritmo de ontem, 1,58). Folga ~52 GB. Maior bucket: `broll` **64,40 GB** (3.870 obj.) — alvo do GC se apertar. |
+
+**Saúde do produto (para calibrar a urgência):** 13 renders em 24h (9 fast + 3 cinematic_ai + 1 cinematic_hollywood), **12 vídeos concluídos, 12 de 12 com sucesso**, 8 cadastros. **20 `generation_stage_error` em 48h e ZERO por quota ou saldo de fornecedor.** Os motivos são todos de produto: 15 de "trial has 19 credits left and an AI video needs 20" (**e isso é UM único usuário tentando 10 vezes** — conferi: 10 eventos, 1 user distinto em 7 dias; não é padrão, é uma pessoa insistindo), 5 `cinematic_gate_trial_stalled`, 1 `broll_plan_threw_autopilot`. **Nenhum fornecedor derrubou nada nas últimas 48h.**
+
+**Ação recomendada (nenhuma é urgente hoje — pela primeira vez em 3 dias):**
+1. **Até 18/08 — Resend:** decidir entre plano pago e lotes de ≤30/dia. É o único item com data.
+2. **19–20/08 — OpenAI:** este check-up confere sozinho se o auto-reload dispara quando o saldo cruzar $10. **Não comprar nada antes disso — o teste vale mais que os $50.**
+3. **Quando der (custo $0) — fal.ai:** gatilho $20→$50 e recarga $40→$100.
+4. Dinheiro é sempre a mão do fundador — não comprei nada.
+
+**O insight deste check-up:** ontem a lição foi "ligar não é o mesmo que estar ligado". Hoje o
+painel mostra a versão mais fina disso: **das duas proteções, uma disparou e a outra foi
+substituída por um humano — e as duas parecem idênticas no painel.** Nos dois casos a tela diz
+"ON"; só o extrato do saldo separa a que funciona da que não funciona. Isso muda o que este
+check-up mede: **não basta ler a configuração, tem que ler a EVIDÊNCIA de disparo** (saldo que
+sobe sem fatura = automático; fatura de valor redondo = mão humana). Fica como item fixo. E fica
+a decisão de não comprar OpenAI hoje: com 11 dias de saldo, **deixar o gatilho ser cruzado é a
+única forma barata de descobrir se a proteção existe** — testar agora custa $0 e um dia de
+atenção; descobrir em setembro, com o saldo em $1, custa outro apagão.
+
+**O amarelo novo veio do lado errado do mapa.** Os três incidentes da empresa (OpenAI 31/07,
+Creatomate 09/08, fal 13–15/08) foram todos de **geração de vídeo**, e é pra lá que toda a
+vigilância olha. O Resend não gera nada — ele só avisa. Mas o que ele entrega é
+`ending_soon`, `expired_offer_d5`, `downgraded_loss`: **é literalmente o cano da conversão**.
+Um teto estourado ali não derruba o produto, não gera erro, não aparece em nenhum gráfico —
+só faz a receita cair sem motivo aparente. **É a falha mais barata de prevenir e a mais cara
+de diagnosticar depois**, porque não deixa rastro. Por isso ele entra em amarelo a 74% em vez
+de esperar os 100.
+
+**Não consegui medir:** (a) total real de envios do Resend — o painel exige login e eu não faço
+login; os crons fora do ledger de trial seguem invisíveis; (b) o preço exato do plano pago do
+Resend (a página de preços está fora do que posso buscar daqui); (c) por que o auto-reload da
+OpenAI não disparou em 15/08 — o motivo só aparece dentro de "Manage auto-reload", que é área
+de cartão de crédito, e eu não entro.
+
+---
 
 ## 15/08/2026 — 🔴🔴 A PROTEÇÃO NÃO PEGOU. Os dois vermelhos continuam vermelhos.
 

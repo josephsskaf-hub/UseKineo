@@ -7,6 +7,8 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
+// KINEO-STUDIO-KIT-2026-08-17 — Animate veste o design system aprovado do /studio.
+import { STUDIO_KIT_CSS } from '@/components/studioKit'
 
 // KINEO-ANIMATE-ORFAO-2026-08-15 — ver o comentário grande em poll().
 const ANIMATE_POLL_DEADLINE_MS = 30 * 60 * 1000
@@ -441,30 +443,22 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   }
 
   return (
-    <div className="px-4 sm:px-6 py-7 pb-20">
-      <div className="mb-7">
-        <div className="font-black uppercase tracking-[.18em] mb-2" style={{ fontSize: '0.65rem', color: '#2997ff' }}>
-          Animate
-        </div>
-        <h1 className="font-display font-bold tracking-tight" style={{ fontSize: 'clamp(1.55rem, 4vw, 2rem)', color: 'var(--text)', lineHeight: 1.1 }}>
-          One photo. <span className="grad-text">Suddenly alive.</span>
-        </h1>
-        <p className="text-sm mt-1.5" style={{ color: 'var(--muted2)' }}>
-          People, pets, products, old family pictures — upload a photo or paste a public image link and watch it move.
-        </p>
-      </div>
+    <div className="stu">
+      <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+      <h1>One photo. Suddenly alive.</h1>
+      <p className="sub">People, pets, products, old family pictures — upload a photo or paste a public image link and watch it move.</p>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start" style={{ maxWidth: 1060 }}>
         <div className="flex flex-col gap-5">
-          <section className="neon-card p-5">
-            <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}>1 · The photo</h2>
+          <section className="card">
+            <div className="lab"><span className="n">1</span>The photo</div>
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
                 onClick={() => inputRef.current?.click()}
                 disabled={busy}
-                className="rounded-xl px-4 py-2.5 text-sm font-bold sm:flex-none"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border2)', color: 'var(--text2)', cursor: busy ? 'not-allowed' : 'pointer' }}
+                className="pill sm:flex-none"
+                style={{ cursor: busy ? 'not-allowed' : 'pointer' }}
               >
                 {photoUrl ? '🖼️ Choose a different photo' : '🖼️ Upload a photo'}
               </button>
@@ -476,8 +470,8 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                 maxLength={2048}
                 placeholder="or paste a public image link (.jpg or .png)"
                 aria-label="Public image URL"
-                className="min-w-0 flex-1 rounded-xl px-3.5 py-2.5 text-sm"
-                style={{ background: 'rgba(0,0,0,.3)', border: '1px solid var(--border2)', color: 'var(--text)', outline: 'none' }}
+                className="min-w-0 flex-1 text-sm"
+                style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', outline: 'none', borderRadius: 12, padding: '9px 14px' }}
               />
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={(e) => handleFile(e.target.files?.[0] ?? null)} />
@@ -485,8 +479,8 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
             {error && <p className="text-xs mt-3 font-semibold rounded-lg px-3 py-2" style={{ color: '#fca5a5', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }} role="alert">⚠️ {error}</p>}
           </section>
 
-          <section className="neon-card p-5">
-            <h2 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'var(--muted2)' }}>2 · The motion</h2>
+          <section className="card">
+            <div className="lab"><span className="n">2</span>The motion</div>
             <div className="flex flex-wrap gap-2 mb-3">
               {MOTION_PRESETS.map((p) => (
                 <button
@@ -494,13 +488,8 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                   type="button"
                   disabled={busy}
                   onClick={() => setPrompt(p.prompt)}
-                  className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
-                  style={{
-                    background: prompt === p.prompt ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: prompt === p.prompt ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)',
-                    color: prompt === p.prompt ? '#2997ff' : 'var(--muted2)',
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                  }}
+                  className={`pill${prompt === p.prompt ? ' on' : ''}`}
+                  style={{ cursor: busy ? 'not-allowed' : 'pointer', fontSize: 12, padding: '7px 12px' }}
                 >
                   {p.label}
                 </button>
@@ -512,8 +501,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
               disabled={busy}
               maxLength={500}
               rows={3}
-              className="w-full rounded-xl px-3.5 py-3 text-sm leading-relaxed resize-none"
-              style={{ background: 'rgba(0,0,0,.3)', border: '1px solid var(--border)', color: 'var(--text)', outline: 'none' }}
+              style={{ resize: 'none', fontSize: 14 }}
             />
             <div className="flex gap-2 mt-3">
               {(['5', '10'] as const).map((d) => (
@@ -522,13 +510,8 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
                   type="button"
                   disabled={busy}
                   onClick={() => setDuration(d)}
-                  className="rounded-lg px-3 py-1.5 text-[12px] font-bold"
-                  style={{
-                    background: duration === d ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: duration === d ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)',
-                    color: duration === d ? '#2997ff' : 'var(--muted2)',
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                  }}
+                  className={`pill${duration === d ? ' on' : ''}`}
+                  style={{ cursor: busy ? 'not-allowed' : 'pointer' }}
                 >
                   {d}s
                 </button>
@@ -536,25 +519,25 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
             </div>
           </section>
 
-          <section className="flex flex-col gap-2">
+          <section className="cost">
+            <div className="val"><span>Cost per clip</span><b>5 credits · {duration}s</b></div>
             <button
               type="button"
               onClick={handleGenerate}
               disabled={!canGenerate}
-              className="btn-neon w-full px-6 py-4 text-base disabled:opacity-50"
-              style={{ cursor: canGenerate ? 'pointer' : 'not-allowed' }}
+              className={`go ${canGenerate ? 'ok' : 'no'}`}
             >
               {/* KINEO-REBASE-2026-07-10 — 10 → 5 credits (2:1 rebase; matches ANIMATE_COST) */}
-              {busy ? PHASE_COPY[phase] : '✨ Bring it to life — 5 credits'}
+              {busy ? PHASE_COPY[phase] : '✨ Bring it to life'}
             </button>
-            <p className="text-[12px] text-center" style={{ color: 'var(--muted)' }}>
-              5 credits per clip ·{' '}
-              <span style={{ color: (credits ?? 0) >= 5 ? '#2997ff' : '#f87171', fontWeight: 700 }}>
-                you have {credits === null ? '—' : credits}
+            <p className="gnote">
+              you have{' '}
+              <span style={{ color: (credits ?? 0) >= 5 ? '#5cb3ff' : '#f87171', fontWeight: 700 }}>
+                {credits === null ? '—' : credits} credits
               </span>
               {!isLoggedIn && (
                 <>
-                  {' '}· <Link href="/login?redirect=/animate" style={{ color: '#2997ff', fontWeight: 700 }}>sign in</Link>
+                  {' '}· <Link href="/login?redirect=/animate" style={{ color: '#5cb3ff', fontWeight: 700 }}>sign in</Link>
                 </>
               )}
             </p>
@@ -564,8 +547,8 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
         <div className="flex flex-col items-center gap-4 lg:sticky lg:top-20">
           <div
             style={{
-              width: 280, height: 420, borderRadius: 24, overflow: 'hidden', position: 'relative',
-              background: '#0D0D0F', border: '1px solid var(--border2)',
+              width: 280, height: 420, borderRadius: 18, overflow: 'hidden', position: 'relative',
+              background: '#101014', border: '1px solid rgba(255,255,255,.12)',
               boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
             }}
           >
@@ -595,7 +578,7 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
           </div>
           {phase === 'done' && resultUrl && (
             <>
-              <a href={resultUrl} download className="btn-neon w-full text-center px-5 py-3 text-sm" style={{ textDecoration: 'none', maxWidth: 280 }}>
+              <a href={resultUrl} download className="go ok" style={{ textDecoration: 'none', maxWidth: 280, textAlign: 'center', display: 'block' }}>
                 ⬇ Download MP4
               </a>
               <button

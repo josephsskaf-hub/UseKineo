@@ -848,6 +848,36 @@ const CAPTION_SYNC_OFFSET = 0.15 // seconds, added to each caption start
  *
  * Returns [{time, duration}] aligned 1:1 with `segments`, or [] on failure.
  */
+
+// KINEO-LIPSYNC-CAPTIONS-2026-08-17 — Whisper sobre o CLIPE (mp4) de uma cena
+// de fala com audio nativo: o fundador viu a legenda descolar da boca do ator
+// no final do video — a distribuicao uniforme nao ouve o ritmo real da fala.
+// Whisper aceita mp4 direto; clipes de 5-10s tem 2-6MB (limite da API: 25MB).
+// Fail-open: qualquer falha retorna [] e a legenda cai no comportamento antigo.
+export async function transcribeClipWithTimestamps(clipUrl: string): Promise<WhisperWord[]> {
+  try {
+    if (!/^https:\/\//.test(clipUrl)) return []
+    const res = await fetch(clipUrl)
+    if (!res.ok) return []
+    const ab = await res.arrayBuffer()
+    if (ab.byteLength < 10_000 || ab.byteLength > 24 * 1024 * 1024) return []
+    const { openai } = await import('@/lib/openai')
+    const file = await toFile(new Blob([ab], { type: 'video/mp4' }), 'clip.mp4', { type: 'video/mp4' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transcription: any = await openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file: file as unknown as Parameters<typeof openai.audio.transcriptions.create>[0]['file'],
+      response_format: 'verbose_json',
+      timestamp_granularities: ['word', 'segment'],
+    } as Parameters<typeof openai.audio.transcriptions.create>[0], { timeout: OPENAI_WHISPER_TIMEOUT_MS, maxRetries: 0 })
+    const words: WhisperWord[] = Array.isArray(transcription?.words) ? transcription.words : []
+    return words.filter((w) => typeof w?.word === 'string' && Number.isFinite(w?.start) && Number.isFinite(w?.end))
+  } catch (e) {
+    console.warn('[compose] clip whisper failed (legenda uniforme):', e instanceof Error ? e.message : String(e))
+    return []
+  }
+}
+
 export function mapWhisperTimingsToSegments(
   words: WhisperWord[],
   segments: Array<{ text: string }>,
@@ -951,12 +981,23 @@ function normalizeCaptionWord(w: string): string {
     .trim()
 }
 
+// KINEO-KARAOKE-2026-08-17 — cada chunk agora carrega também as PALAVRAS com
+// seus timestamps individuais (o mesmo Whisper que já sincroniza o chunk).
+// É o dado que o caminho karaoke em buildCaptionElements usa pra pintar de
+// amarelo exatamente a palavra sendo narrada. Campo opcional: os caminhos
+// proporcionais (sem Whisper) seguem sem ele e nada muda pra eles.
+export interface CaptionChunkWord {
+  word: string
+  start: number
+  end: number
+}
+
 export function buildCaptionsFromWhisperWords(
   words: WhisperWord[],
   totalAudioDuration: number,
   ctaTailSeconds: number,
   maxWords = 7,
-): Array<{ text: string; time: number; duration: number; highlight: string | null }> {
+): Array<{ text: string; time: number; duration: number; highlight: string | null; words: CaptionChunkWord[] }> {
   if (words.length === 0) return []
 
   // Only include words that start before the caption window ends (i.e. before the CTA).
@@ -964,7 +1005,7 @@ export function buildCaptionsFromWhisperWords(
   const windowWords = words.filter((w) => w.start < captionWindowEnd)
   if (windowWords.length === 0) return []
 
-  const result: Array<{ text: string; time: number; duration: number; highlight: string | null }> = []
+  const result: Array<{ text: string; time: number; duration: number; highlight: string | null; words: CaptionChunkWord[] }> = []
 
   // KINEO-SPRINT-12H-2026-07-29 — chunk on MEANING, not on a modulo.
   //
@@ -1005,6 +1046,11 @@ export function buildCaptionsFromWhisperWords(
 
   for (let i = 0; i < groups.length; i++) {
     const chunk = groups[i]
+    // KINEO-KARAOKE-2026-08-17 — usedWords acompanha chunkWords 1:1 (inclusive
+    // no corte anti-stutter abaixo) pra que o timestamp de cada palavra exibida
+    // seja EXATAMENTE o da palavra falada — sem paralelo, o karaoke pintaria a
+    // palavra errada sempre que o guard removesse uma repetição.
+    let usedWords = chunk
     let chunkWords = chunk.map((w) => w.word)
 
     // Anti-stutter guard. Even with clean boundaries, TTS repeats ("it. It's")
@@ -1018,6 +1064,7 @@ export function buildCaptionsFromWhisperWords(
       normalizeCaptionWord(prevLast) === normalizeCaptionWord(chunkWords[0])
     ) {
       chunkWords = chunkWords.slice(1)
+      usedWords = usedWords.slice(1)
     }
 
     const text = chunkWords.join(' ').trim()
@@ -1050,6 +1097,12 @@ export function buildCaptionsFromWhisperWords(
       time: round3(adjustedStart),
       duration: round3(duration),
       highlight: pickHighlightWord(text),
+      // KINEO-KARAOKE-2026-08-17 — timestamps por palavra (ver interface acima).
+      words: usedWords.map((w) => ({
+        word: (w.word ?? '').trim(),
+        start: round3(w.start),
+        end: round3(w.end),
+      })),
     })
   }
 
@@ -1482,6 +1535,7 @@ export function buildCaptionElements({
   highlight,
   emphasize = false,
   hook = false,
+  karaokeWords,
 }: {
   text: string
   time: number
@@ -1494,6 +1548,14 @@ export function buildCaptionElements({
   // PUSH #93 — true for caption chunks inside the opening hook window: larger
   // font + a stronger enter transition so the first line reads as a hook.
   hook?: boolean
+  // KINEO-KARAOKE-2026-08-17 — palavras do chunk com timestamps ABSOLUTOS da
+  // timeline (o chamador soma o offset do bloco no Hollywood). Presente com
+  // 2+ palavras → modo karaoke: a linha fica branca e a palavra sendo narrada
+  // pinta de amarelo via estilo inline `[color]` do Creatomate (documentado
+  // oficialmente em creatomate.com/llms/text.md — o receio antigo de tag
+  // quebrada era de uma versão anterior da plataforma). Ausente → comporta-se
+  // exatamente como antes (uma linha, ênfase por linha inteira).
+  karaokeWords?: CaptionChunkWord[]
 }): CreatomateElement[] {
   // Push #292 — OpusClip/InVideo quality upgrade:
   //   - UPPERCASE text: standard across all professional Shorts tools
@@ -1564,6 +1626,72 @@ export function buildCaptionElements({
   // (white caption on track 5 + yellow word on track 7) was rendering as two
   // visible subtitle lines which looked like duplicate/random captions to viewers.
   // Single white caption only — clean, no confusion, timing already perfect.
+
+  // ── KINEO-KARAOKE-2026-08-17 — highlight amarelo palavra-a-palavra ────────
+  // Pedido do fundador: "o texto mudar de branco pra amarelo na frase em que
+  // está sendo narrado". Implementação: em vez de UM elemento por chunk,
+  // emitimos um elemento por PALAVRA — todos com texto, posição e pill
+  // idênticos, mudando só qual palavra carrega o span [color #FFD700]. Como a
+  // troca é instantânea (enter_transition só no primeiro) e o layout é
+  // byte-idêntico, o viewer percebe apenas a cor correndo pela frase — o
+  // efeito karaoke do Submagic/OpusClip, de graça, em TODOS os motores.
+  // Por que isso NUNCA repete o desastre do Push #064: lá eram DOIS elementos
+  // SIMULTÂNEOS empilhados (linha branca + palavra amarela flutuante); aqui é
+  // sempre UM elemento visível por vez, no mesmo track 5.
+  try {
+    if (Array.isArray(karaokeWords) && karaokeWords.length > 1 && duration > 0.3) {
+      const chunkEnd = round3(time + duration)
+      // Fronteiras de exibição: palavra i fica amarela de b[i] até b[i+1].
+      // Clampadas ao intervalo do chunk e forçadas monotônicas (Whisper pode
+      // reportar starts levemente fora de ordem em tokens colados).
+      const bounds: number[] = []
+      for (let i = 0; i < karaokeWords.length; i++) {
+        const raw = i === 0 ? time : karaokeWords[i].start
+        const clamped = Math.min(chunkEnd, Math.max(time, raw))
+        bounds.push(round3(Math.max(clamped, bounds[i - 1] ?? time)))
+      }
+      // Palavras com janela <50ms não ganham elemento próprio (flicker); a
+      // anterior simplesmente segue amarela até a próxima fronteira mantida —
+      // zero buraco na tela.
+      const kept: number[] = [0]
+      for (let i = 1; i < karaokeWords.length; i++) {
+        const prevStart = bounds[kept[kept.length - 1]]
+        if (bounds[i] - prevStart >= 0.05) kept.push(i)
+      }
+      if (kept.length > 1) {
+        const upper = karaokeWords.map((w) => (w.word ?? '').toUpperCase())
+        const els: CreatomateElement[] = []
+        for (let k = 0; k < kept.length; k++) {
+          const i = kept[k]
+          const segStart = k === 0 ? time : bounds[i]
+          const segEnd = k === kept.length - 1 ? chunkEnd : bounds[kept[k + 1]]
+          if (segEnd - segStart < 0.04) continue
+          const richText = upper
+            .map((w, j) => (j === i ? `[color ${HIGHLIGHT_COLOR}]${w}[/color]` : w))
+            .join(' ')
+            .trim()
+          els.push({
+            ...baseCaption,
+            time: round3(segStart),
+            duration: round3(segEnd - segStart),
+            text: richText,
+            // Linha branca sempre — o amarelo é da palavra corrente. A ênfase
+            // de linha inteira (emphasize) só vale no fallback sem karaoke,
+            // senão a linha amarela engoliria o highlight da palavra.
+            fill_color: '#ffffff',
+            // Pop só na ENTRADA do chunk; as trocas internas são cortes secos
+            // pra ler como cor correndo, não como legenda piscando.
+            ...(k === 0 ? {} : { enter_transition: undefined }),
+          })
+        }
+        if (els.length > 0) return els
+      }
+    }
+  } catch {
+    // Karaoke é enfeite; a legenda é obrigação. Qualquer falha aqui cai no
+    // elemento único de sempre.
+  }
+
   return [baseCaption]
 }
 
@@ -2262,6 +2390,9 @@ export function buildCreatomateSource({
         // PUSH #93 (FIX 4) — opening chunks get the hook treatment.
         // KINEO-HOOK-SENTENCE-2026-07-31 — window = first sentence, not 2s.
         hook: cap.time < firstSentenceEndsAt,
+        // KINEO-KARAOKE-2026-08-17 — timestamps por palavra (já absolutos na
+        // timeline: o Whisper transcreveu a narração inteira).
+        karaokeWords: cap.words,
       }))
     }
   } else {
@@ -2470,6 +2601,11 @@ export interface HollywoodClipInput {
   // dialogue scene (undefined for cinematic/support). Captions chunk THIS
   // text so the on-screen words match what the person actually says.
   dialogueLine?: string
+  // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — palavras REAIS do audio nativo do
+  // clipe (Whisper sobre o proprio mp4, offsets relativos ao inicio da
+  // cena). Presente → as legendas da cena de fala sincronizam com a boca do
+  // ator (karaoke incluso); ausente → distribuicao uniforme de antes.
+  speechWords?: WhisperWord[]
 }
 
 export interface HollywoodNarrationBlock {
@@ -2504,11 +2640,17 @@ export function buildHollywoodCreatomateSource({
   clips,
   narrationBlocks,
   watermark = false,
+  musicUrl = null,
 }: {
   clips: HollywoodClipInput[]
   narrationBlocks: HollywoodNarrationBlock[]
   watermark?: boolean
   endCard?: boolean
+  // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema em volume de cinema.
+  // O Hollywood rodava SEM musica; o fundador ouviu os respiros entre
+  // narracoes como "apagoes" e o filme como "sem brilho". Uma cama musical
+  // continua (mood-matched, 7%) costura os respiros e da cinema ao conjunto.
+  musicUrl?: string | null
 }): Record<string, unknown> {
   const cleanClips = clips.filter((c) => typeof c.url === 'string' && c.url.trim().length > 0)
   if (cleanClips.length === 0) {
@@ -2744,6 +2886,13 @@ export function buildHollywoodCreatomateSource({
         elements.push(...buildCaptionElements({
           text: cap.text, time: t, duration: d, highlight: cap.highlight,
           emphasize: FAST_EMPHASIS_RE.test(cap.text),
+          // KINEO-KARAOKE-2026-08-17 — os words do bloco Hollywood são
+          // relativos ao mp3 do bloco; soma-se block.time pra virar timeline.
+          karaokeWords: cap.words.map((w) => ({
+            word: w.word,
+            start: round3(w.start + block.time),
+            end: round3(w.end + block.time),
+          })),
         }))
       }
     } else if (block.text && block.text.trim()) {
@@ -2783,6 +2932,26 @@ export function buildHollywoodCreatomateSource({
     const t = sceneStarts[i]
     if (t >= captionWindowEnd) return
 
+    // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — com as palavras REAIS do clipe
+    // (Whisper no mp4), a legenda segue a boca do ator, chunk a chunk, com
+    // karaoke — mesmo pipeline das narracoes. Fail-open pro caminho uniforme.
+    if (Array.isArray(clip.speechWords) && clip.speechWords.length > 1) {
+      const caps = buildCaptionsFromWhisperWords(clip.speechWords, secondsFor(clip), 0, CAPTION_WORDS_PER_CHUNK)
+      let emitted = 0
+      for (const cap of caps) {
+        const st = round3(t + cap.time)
+        if (st >= captionWindowEnd) continue
+        const d = round3(Math.max(0.1, Math.min(cap.duration, captionWindowEnd - st)))
+        elements.push(...buildCaptionElements({
+          text: cap.text, time: st, duration: d, highlight: cap.highlight,
+          emphasize: FAST_EMPHASIS_RE.test(cap.text),
+          karaokeWords: cap.words.map((w) => ({ word: w.word, start: round3(w.start + t), end: round3(w.end + t) })),
+        }))
+        emitted++
+      }
+      if (emitted > 0) return
+      // transcricao vazia/inutil → segue pro caminho uniforme abaixo
+    }
     const line = (clip.dialogueLine ?? '').trim()
     if (line) {
       const winStart = round3(t + 0.3)
@@ -2831,6 +3000,17 @@ export function buildHollywoodCreatomateSource({
   // Band ≈55–137px; the top band is otherwise empty now, so the only collision
   // checks that matter are the frame top (55px clear) and the caption top.
   // Full arithmetic is in the standard builder's block above.
+  // KINEO-HOLLYWOOD-SCORE-2026-08-17 — cama musical continua, track 8.
+  // Volume 7% (abaixo dos 12% do classico: aqui existe fala nativa e
+  // ambiencia dos motores por baixo), fades de 1.2s/2s nas pontas.
+  if (musicUrl) {
+    elements.push({
+      type: 'audio', track: 8, time: 0, duration: totalDuration,
+      source: musicUrl, volume: '7%', loop: true,
+      audio_fade_in: 1.2, audio_fade_out: 2,
+    })
+  }
+
   if (watermark) {
     elements.push({
       type: 'text', track: 9, time: 0, duration: totalDuration,

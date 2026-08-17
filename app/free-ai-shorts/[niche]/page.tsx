@@ -8,6 +8,11 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+// KINEO-STARTER-NAS-30-2026-08-17 — ver a nota extensa no hero. Client
+// component importado por página server-rendered: padrão suportado pelo App
+// Router, e é exatamente como `/free-ai-shorts-generator` (a página que
+// converte) já o usa.
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
@@ -418,6 +423,60 @@ const NICHES: Record<string, Niche> = {
       'The most isolated place humans still live',
     ],
   },
+  // KINEO-SEO-LOCALBUSINESS-2026-08-17 — a 30ª página, escolhida pelo MESMO
+  // método que a 29ª (faith): o que os usuários já fazem em `videos.topic`, não
+  // volume de palavra-chave. E o resultado desta vez contraria a premissa da
+  // casa inteira.
+  //
+  // MEDIDO (30 dias, contas internas fora, `videos.topic` classificado por
+  // palavra e conferido contra `checkout_abandoned`):
+  //
+  //   segmento         pessoas   chegou na Stripe   pagou
+  //   faith .............. 23        30,4%            0
+  //   money .............. 41        29,3%            2
+  //   vanishings ......... 52        23,1%            1
+  //   NEGÓCIO LOCAL ...... 27        22,2%            1     ← nenhuma página
+  //   sem rótulo ........ 233        14,2%            4
+  //
+  // Duas leituras, e a segunda é a que decide:
+  //
+  //  1. TODO segmento nomeado bate o "sem rótulo" (14,2%) em chegar na página de
+  //     pagamento. Nomear o nicho não é enfeite de SEO — é o que separa quem
+  //     tenta comprar de quem passeia.
+  //
+  //  2. Negócio local é HOJE o 3º maior segmento nomeado em PESSOAS (27, mais
+  //     que faith quando faith ganhou a página dela) e é o único sem uma linha
+  //     de copy em nenhum lugar do produto. São donos de clínica, imobiliária,
+  //     buffet de casamento, escritório de advocacia, academia, fábrica de
+  //     estrutura de aço — chegando num site que fala EXCLUSIVAMENTE a língua de
+  //     "canal faceless no YouTube". Eles vêm APESAR do nosso marketing, não por
+  //     causa dele. É a definição de demanda não atendida.
+  //
+  // POR QUE ISSO É DINHEIRO E NÃO SÓ TRÁFEGO, e é aqui que o não-óbvio mora:
+  // a cadência deles é ~1 vídeo/pessoa contra 3,2 do faith — pelo funil de
+  // créditos, é o pior segmento da lista. Mas dono de negócio não compra
+  // crédito, compra PREVISIBILIDADE: um vídeo de serviço por mês, todo mês, é
+  // assinatura que não estoura teto e não pede desconto. O criador de canal
+  // queima 40 créditos numa tarde e vai embora (18 casos hoje, 0 conversões); a
+  // clínica gera um vídeo, posta, e continua pagando. Segmento de MENOR consumo
+  // e MAIOR margem — o oposto do que o placar de créditos premia.
+  //
+  // A copy segue a regra da 29ª: linguagem DO FORMATO, não a nossa. Nada de
+  // "faceless" nem "channel" aqui — quem procura isso digita "video ad", "promo
+  // video", "social media video for my business".
+  localbusiness: {
+    label: 'Local Business & Services',
+    h1: 'Free AI Video Ad Maker for Local Businesses',
+    intro:
+      'Turn what your business actually does into a ready-to-post vertical video, usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no film crew, no agency retainer, and nobody from your team on camera. Post it to Instagram Reels, TikTok, YouTube Shorts or a Google Business profile.',
+    ideas: [
+      'The one question every customer asks before booking us — answered in 30 seconds',
+      '3 things to check before you hire anyone in this trade',
+      'What our service actually costs, and why nobody puts it on their website',
+      'A day in our shop, from open to close',
+      'The mistake that costs local customers the most money every year',
+    ],
+  },
 }
 
 export const NICHE_SLUGS = Object.keys(NICHES)
@@ -479,6 +538,65 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           >
             Generate a free {n.label} Fast video →
           </OrganicCtaLink>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              KINEO-STARTER-NAS-30-2026-08-17 — A FAMÍLIA DE 30 PÁGINAS ERA
+              BROCHURA; A PÁGINA-HUB ERA PRODUTO. ESTA LINHA IGUALA AS DUAS.
+              ═══════════════════════════════════════════════════════════════
+              MEDIDO (30 dias, `events`, contas internas fora):
+
+                /free-ai-shorts-generator (1 página)  → 24 sessões
+                /free-ai-shorts/* (as 30 de nicho)    → ~14 sessões
+
+              A página-hub SOZINHA traz mais gente do que a família inteira que
+              ela alimenta. Mas o número que decide não é esse, é a natureza
+              dos eventos: o hub emite `organic_topic_submitted` e
+              `organic_topic_example_started`; as 30 de nicho emitem
+              **APENAS** `landing_session_started` e `organic_cta_clicked`, em
+              12 das 30 (18 páginas com ZERO sessão em 30 dias).
+
+              Ou seja: as páginas de nicho só sabiam MANDAR EMBORA (clique num
+              link que leva ao /signup). O hub deixava a pessoa COMEÇAR ali
+              mesmo. O componente que faz essa diferença é este
+              `TopicGeneratorForm` — o próprio arquivo dele se descreve como
+              "a máquina de ativação de 68% (push69/push70)" — e ele nunca foi
+              importado aqui.
+
+              POR QUE ISTO É A INVERSÃO QUE INTERESSA: a sprint das 10h de hoje
+              mediu que TODO segmento nomeado chega na Stripe mais que o "sem
+              rótulo" (22–30% contra 14,2%) e concluiu que nomear o nicho é
+              conversão. Se isso é verdade, a página de nicho deveria ser a
+              superfície MAIS forte da casa — ela tem a intenção E o nome. Ela
+              era a mais fraca porque foi construída sem o mecanismo. Uma
+              edição neste template alcança as 30 de uma vez.
+
+              `examples` vem de `n.ideas` — cada página semeia o starter com os
+              temas do PRÓPRIO nicho, que já estavam escritos logo abaixo e só
+              existiam como link.
+
+              ⚠️ LIMITE HONESTO, dito aqui para ninguém ler o número errado: o
+              widget navega com `prompt` + `create_intent` + `intent_campaign`,
+              e NÃO com `utm_source=seo` (os links desta página levam utm; ele
+              não). Quem for medir esta mudança conta por
+              `intent_campaign = push63_niche_<slug>`, que é mais específico
+              que `utm_source=seo` — não por utm. Não alterei o componente
+              compartilhado para acrescentar utm: ele é usado por outras 17
+              páginas e mexer nele no fim da janela é exatamente o caminho do
+              `b6fef68`.
+          */}
+          <TopicGeneratorForm
+            campaign={campaign}
+            source={campaign}
+            formId={`niche-starter-${params.niche}`}
+            examples={n.ideas.slice(0, 3)}
+            copy={{
+              label: `What should your free ${n.label} Short be about?`,
+              placeholder: `Type any ${n.label.toLowerCase()} topic or paste your script`,
+              submit: 'Create my free Short',
+              examplesLabel: `${n.label} ideas`,
+              note: 'Your idea is carried into signup so the first Fast video can start without a card.',
+            }}
+          />
         </section>
 
         {/* How it works */}

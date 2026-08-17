@@ -297,6 +297,9 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 
 // ── Planner ──────────────────────────────────────────────────────────────────
 export async function planHollywoodScenes(args: {
+  /** KINEO-DURATIONFIX-2026-08-17 — feedback de replanejamento: total da
+   *  tentativa anterior que veio CURTA (o GPT ignora o alvo às vezes). */
+  shortRetryFeedback?: string
   idea: string
   voiceoverScript?: string
   scenes?: Array<{ voiceover?: string; description?: string }>
@@ -310,14 +313,14 @@ export async function planHollywoodScenes(args: {
     .map((s, i) => `Beat ${i + 1}: ${((s.voiceover || s.description || '') as string).slice(0, 220)}`)
     .join('\n')
 
-  const system = `You are a Hollywood-grade director planning an ultra-realistic 9:16 vertical short film (45-60 seconds total) from an idea/script. You output ONLY valid JSON.
+  const system = `You are a Hollywood-grade director planning an ultra-realistic 9:16 vertical short film (45-70 seconds total) from an idea/script. You output ONLY valid JSON.
 
 You route each scene to one of three engine types:
 - "dialogue": a fictional person speaks ON CAMERA. 5 or 10 seconds. The EXACT spoken line (English) MUST appear inside the scene prompt wrapped in double quotes, e.g.: she looks into the lens and says: "Nobody tells you this about money." The line must FILL the entire clip: the person speaks continuously and energetically for the entire shot, no dead air. Line-length rule (strict): a 10-second scene needs a 22-30 word line; a 5-second scene needs a 10-14 word line. The engine generates the voice and lip sync natively. NEVER plan external narration (TTS) over a person speaking in close-up.
-- "cinematic": an EPIC LANDSCAPE or AERIAL shot only (sweeping vista, drone reveal, vast environment). 8 seconds. MUST carry an external narration line ("voiceover" — see NARRATION rule below). USE SPARINGLY: at most 1-2 "cinematic" scenes per video, and ONLY when the story truly needs an epic wide — every other non-dialogue scene is "support". Write its prompt with the SAME styleSheet look as everything else.
+- "cinematic": an EPIC LANDSCAPE, AERIAL or LARGE-SCALE SPECTACLE shot (sweeping vista, drone reveal, vast environment, massive natural forces). 8 seconds. MUST carry an external narration line ("voiceover" — see NARRATION rule below). Use 1-3 per video. KINEO-SPECTACLE-2026-08-17: any beat showing LARGE-SCALE SPECTACLE — eruption, tsunami, giant waves, storm, explosion, collapse, fire, vast destruction, sky phenomena — MUST be "cinematic", not "support": this engine renders spectacle far sharper. Reserve "support" for intimate/detail shots. Write its prompt with the SAME styleSheet look as everything else.
 - "support": a simpler establishing/detail b-roll shot (ambient sound only, nobody speaks on camera). 5 or 10 seconds. MUST carry a "voiceover" narration line (see NARRATION rule below). Size the scene to its narration, same rule as dialogue: a voiceover under 16 words → 5 seconds; 16 words or more → 10 seconds — the clip must never outlast its words. Composition: support scenes are classic, stable inserts — level horizon, well-composed tripod or slow-dolly shot, NEVER a tilted or dutch angle.
 
-NARRATION (mandatory — ZERO silent seconds): EVERY "cinematic" and "support" scene MUST have a "voiceover". The narration continues the story OVER the b-roll — there must not be a single second of the video without spoken words, and each voiceover must PICK UP exactly where the previous spoken line (dialogue or narration) left off (content continuity, no resets, no filler). Size the voiceover to the scene: ~2.3 words per second — a 10-second scene needs 20-24 words, an 8-second scene 16-20 words, a 5-second scene 10-12 words.
+NARRATION (mandatory — ZERO silent seconds): EVERY "cinematic" and "support" scene MUST have a "voiceover". The narration continues the story OVER the b-roll — there must not be a single second of the video without spoken words, and each voiceover must PICK UP exactly where the previous spoken line (dialogue or narration) left off (content continuity, no resets, no filler). Size the voiceover to the scene: ~2.3 words per second — a 12-second scene needs 26-30 words, a 10-second scene 20-24 words, an 8-second scene 16-20 words, a 5-second scene 10-12 words. A scene whose voiceover runs out before the clip ends is DEAD AIR — a hard failure.
 
 VIRAL STRUCTURE (mandatory — the house timeline, every video follows it):
 - HOOK (0-3s): scene 1 is ALWAYS the HOOK. The FIRST spoken sentence starts within 0.5 seconds of frame one and is a curiosity gap or shock built on a CONCRETE number (e.g. "This island kills 99% of the people who land on it."). Establishing context, greetings or scene-setting BEFORE the hook is FORBIDDEN.
@@ -333,7 +336,7 @@ CINEMATOGRAPHY ("styleSheet" — mandatory): output ONE ~30-word photography des
 
 THE FOUR KEYS TO REALISM (mandatory):
 1) NATIVE AUDIO: dialogue scenes carry their spoken line inside the prompt in double quotes; dialogue scenes NEVER have a "voiceover" field.
-2) CONTINUITY: invent EXACTLY ONE fictional person ("characterSheet": ~40 words of precise physical description — age, ethnicity, hair, exact clothing) and EXACTLY ONE environment ("environmentSheet": ~30 words). Repeat BOTH sheets VERBATIM at the START of every scene prompt that shows the person and/or that place.
+2) CONTINUITY: invent EXACTLY ONE fictional person ("characterSheet": ~40 words of precise physical description — age, ethnicity, hair, exact clothing) and EXACTLY ONE environment ("environmentSheet": ~30 words — the place where the PERSON is). Repeat the characterSheet VERBATIM at the start of every scene that shows the person. KINEO-SPECTACLE-2026-08-17 (scoping fix — the old rule glued one environment onto every b-roll and produced the same sea shot five times): repeat the environmentSheet ONLY on scenes physically set in that place. B-roll scenes set ELSEWHERE in the story (another location, another era, a different event) must NOT contain the environmentSheet — they describe their OWN distinct location in full.
 3) REALISTIC IMPERFECTION: every scene prompt includes directives like "${REALISM_DIRECTIVES}, occasional off-axis glance" — vary the wording scene to scene so it never reads templated.
 4) PHYSICS: only simple, well-executed movements (walking, gesturing, pouring coffee, wind in clothes, turning the head). NO complex action, stunts, sports moves, or acrobatics.
 
@@ -348,7 +351,10 @@ OTHER HARD RULES:
 - ZERO readable text in any shot: no phone/computer screens with content, no signs, no billboards, no labels. If a phone appears, its screen is off or blurred.
 - Scene 1 = the HOOK beat (usually a dialogue scene looking straight into the lens, speaking from the very first frame).
 - MAX 1 LONG B-ROLL IN A ROW: never place two adjacent non-dialogue scenes (cinematic/support) that are BOTH 10 seconds — more than ~10 straight seconds of b-roll kills retention. Break b-roll walls with a dialogue scene, or make the second insert 5 seconds.
-- Total duration 45-60 seconds. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- SCENE DURATION BUDGET (STRICT — a short plan is a REJECTED plan): the "seconds" of ALL scenes MUST sum to AT LEAST the target duration minus 5. Target 60 → scenes must sum 55-62. Count it before answering: 4 scenes of 10+8+8+8=34 is a FAILURE — add scenes or lengthen them until the budget is met. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- NON-DIALOGUE SCENES WITH A VISIBLE PERSON (STRICT): in every "support" or "cinematic" scene where the characterSheet person appears, the prompt MUST state the person is NOT talking — write "mouth closed, not speaking, no lip movement" in the prompt. External narration plays over these scenes; a moving mouth under someone else's voice is a horrifying dub mismatch. Prefer person-FREE b-roll unless the story needs them on screen.
+- VISUAL VARIETY (STRICT — repeated scenes are a hard failure): every scene must differ from EVERY other scene in at least TWO of: shot size (wide / medium / close-up / macro / aerial), camera angle (eye-level / low / high / overhead), camera movement (static / dolly / crane / handheld / orbit), and staging (what the subject is DOING and WHERE inside the environment). The characterSheet/environmentSheet repeat for continuity of WORLD — never for continuity of FRAMING. Two scenes with the same composition = a wasted paid render. Before finalizing, re-read your scene list and rewrite any two scenes that could be mistaken for each other.
+- SUBJECT VARIETY (STRICT — KINEO-SPECTACLE-2026-08-17, founder caught "the same sea scene repeated several times"): before writing scenes, list the DISTINCT visual subjects the story offers (each event, place, object, era and moment is a different subject — e.g. an eruption, a ship at sea, a wave hitting a town, an ash column, a red sky over a city, a new island rising are SIX different subjects). Every non-dialogue scene depicts a DIFFERENT primary subject. Two b-roll scenes of the same subject — even with different framing — are a hard failure. If the story has fewer subjects than scenes, move through TIME (before / during / after) or PLACE, never repeat.
 - ALL text in English regardless of the input language${language && language !== 'en' ? ` (the input may be in "${language}")` : ''}.
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
 - Each scene gets a short on-screen "caption" (max 6 words, punchy).
@@ -359,7 +365,7 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
-Target total duration: ${Math.max(45, Math.min(60, Math.round(durationSeconds || 60)))} seconds.`
+Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
   const completion = await openai.chat.completions.create(
     {

@@ -6,6 +6,15 @@ import { OFFER_290_ENABLED } from '@/lib/flags'
 import Stripe from 'stripe'
 import { createHash } from 'node:crypto'
 import { paypalFetch } from '@/lib/paypal'
+// KINEO-SCANNER-DENOMINADOR-2026-08-16 — o detector NÃO é novo e é de
+// propósito que ele venha de lá: `app/revive/_lib/reviveProspect.ts` nasceu
+// com esta regex CITANDO este arquivo ("mesma lista de headers que
+// app/api/stripe/checkout/route.ts passou a checar no PUSH #97"). A campanha
+// outbound ganhou o filtro de user-agent; a caixa registradora ficou só com o
+// de prefetch auto-declarado. Importar em vez de copiar a regex é a diferença
+// entre uma fonte de verdade e duas que divergem no primeiro scanner novo.
+// Precedente de import: app/api/revive/click e app/api/revive já fazem isto.
+import { isLikelyBotUserAgent } from '@/app/revive/_lib/reviveProspect'
 // KINEO-REGIONAL-PRICING-2026-08-04 — ANNUAL_PRICES / TIER_PRICES /
 // INTRO_PRICES saíram dos imports DE PROPÓSITO. Ler as tabelas direto aqui é
 // exatamente o bug que o preço regional cria: a tabela não sabe em que região
@@ -21,6 +30,11 @@ import {
   PACK_CREDITS,
   TIER_CREDITS,
   TOPUP_CREDITS,
+  // KINEO-TOPUP-CURRENCY-2026-08-12 — os seis preços de top-up saíram daqui
+  // para lib/checkoutPricing.ts. Esta rota continua sendo quem COBRA; ela só
+  // deixou de ser a única a saber o número, porque o modal de upgrade precisa
+  // do mesmo valor na mesma moeda e estava digitando '$5.90' à mão.
+  TOPUP_PRICES,
   getAnnualPrice,
   getIntroPrice,
   introDiscountMinor,
@@ -97,6 +111,9 @@ async function recordCheckoutEvent(
     | 'checkout_started'
     | 'checkout_failed'
     | 'checkout_prefetch_blocked'
+    // KINEO-SCANNER-DENOMINADOR-2026-08-16 — OBSERVA, não barra. Ver o bloco
+    // grande sobre `recordBotSuspicion` abaixo para o porquê de não bloquear.
+    | 'checkout_bot_suspected'
     // KINEO-BULK-2026-07-27 — funil de atacado, nomeado. Server-only (declarado
     // em app/api/events/route.ts): se o sink do browser pudesse cunhá-lo, o
     // denominador do único canal de receita novo viraria ficção.
@@ -185,6 +202,66 @@ async function speculativeNoop(req: NextRequest, selection: string): Promise<Nex
     browserSessionIdFrom(req),
   )
   return new NextResponse(null, { status: 204 })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-SCANNER-DENOMINADOR-2026-08-16 — OBSERVA O SCANNER, NÃO O BARRA
+// ═══════════════════════════════════════════════════════════════════════════
+// MEDIÇÃO QUE ORIGINOU ISTO (produção, 30 dias até 16/08):
+//   `checkout_prefetch_blocked` = 0 linhas. ZERO. A guarda do PUSH #97 nunca
+//   disparou uma única vez. No MESMO intervalo entraram 33 `checkout_attempted`
+//   /`checkout_auth_required` com `user_id` E `session_id` nulos, em rajadas de
+//   8ms–3s, UMA POR TIER (starter→basic→pro) — a assinatura exata que o
+//   comentário do PUSH #97 descreve como scanner de link.
+//
+// POR QUE A GUARDA NÃO PEGA: `isSpeculativeRequest()` só reconhece quem se
+// ANUNCIA (`sec-purpose`, `purpose`, `x-moz`, `next-router-prefetch`). Outlook
+// Safe Links, Proofpoint e Mimecast não anunciam nada — fazem um GET comum.
+// `app/api/cron/send-recovery/route.ts` e `app/api/stripe/checkout/resume/route.ts`
+// JÁ documentam isso por escrito ("isSpeculativeRequest() NÃO detecta scanner
+// corporativo"); o que faltava não era o diagnóstico, era o número.
+//
+// CUSTO REAL: `checkout_attempted` (133 em 30d) é o denominador de entrada do
+// funil, e 33 dele (25%) não são gente. O painel `/admin/funnel` já se protege
+// (`checkoutActorKey` descarta evento sem ator), mas TODA consulta SQL avulsa
+// de sprint conta `count(*)` e lê 133. Foi assim que duas sprints leram taxas
+// de fechamento diferentes da mesma semana.
+//
+// ⚠️ POR QUE ISTO **NÃO** BLOQUEIA — a decisão mais importante deste bloco:
+// `isLikelyBotUserAgent()` devolve `true` para user-agent VAZIO, e um proxy
+// corporativo que remove o header transformaria um comprador real num 204
+// silencioso. Numa página de campanha isso custa uma métrica; na caixa
+// registradora custa a venda — e hoje é dia de TAAFT. Guardrail do fundador:
+// nunca mexer no fluxo de pagamento sem QA do fluxo de pagamento. Então esta
+// sprint só INSTALA O TERMÔMETRO: nenhum caminho de código existente muda,
+// nenhum crédito e nenhum plano são tocados, a requisição segue exatamente o
+// curso que seguia antes.
+//
+// `ua_absent` e `ua_match` são gravados SEPARADOS de propósito: eles são a
+// prova que decide se algum dia dá para bloquear. Se em uma semana `ua_absent`
+// vier junto com `payment_success`, está provado que UA vazio é comprador
+// real e o bloqueio nunca pode incluir esse ramo.
+async function recordBotSuspicion(req: NextRequest, selection: string): Promise<void> {
+  const ua = req.headers.get('user-agent')
+  if (!isLikelyBotUserAgent(ua)) return
+  const trimmed = (ua ?? '').trim()
+  await recordCheckoutEvent(
+    'checkout_bot_suspected',
+    null,
+    {
+      selection,
+      // Dois ramos com remédios opostos, nunca somados num número só.
+      signal: trimmed ? 'ua_match' : 'ua_absent',
+      // UA truncado: é o que permite auditar falso positivo antes de bloquear.
+      // Não é IP, não é e-mail, não é cookie — a linha que speculativeNoop
+      // traça continua respeitada.
+      ua: trimmed.slice(0, 120) || null,
+      // Sem sessão E sem usuário é o que torna a linha invisível no funil;
+      // gravado aqui para a leitura não precisar de um JOIN para saber disso.
+      had_browser_session: Boolean(browserSessionIdFrom(req)),
+    },
+    browserSessionIdFrom(req),
+  )
 }
 
 // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = at most one Stripe session.
@@ -488,10 +565,12 @@ function autopilotPilotPriceIdOverride(currency: Currency): string | null {
 // (checkPricingInvariants) so the next reprice cannot silently break it again.
 // The SKU ids stay topup40/topup120 — they are the ?pack= URL keys and are
 // hard-coded in the Generate screen.
-type TopupId = 'topup40' | 'topup120'
+type TopupId = 'topup40' | 'topup120' | 'topup100'
 const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; description: string; prices: Record<Currency, number> }> = {
-  topup40:  { credits: TOPUP_CREDITS.topup40,  name: 'Kineo — +30 credits', description: 'One-time: 30 credits (1 AI-generated video plus 10 Fast videos). No subscription.', prices: { usd: 590,  brl: 2990, inr: 49900  } },
-  topup120: { credits: TOPUP_CREDITS.topup120, name: 'Kineo — +65 credits', description: 'One-time: 65 credits (3 AI-generated videos plus 5 Fast videos). No subscription.',   prices: { usd: 1290, brl: 6490, inr: 109900 } },
+  topup40:  { credits: TOPUP_CREDITS.topup40,  name: 'Kineo — +30 credits', description: 'One-time: 30 credits (1 AI-generated video plus 10 Fast videos). No subscription.', prices: TOPUP_PRICES.topup40 },
+  topup120: { credits: TOPUP_CREDITS.topup120, name: 'Kineo — +65 credits', description: 'One-time: 65 credits (3 AI-generated videos plus 5 Fast videos). No subscription.',   prices: TOPUP_PRICES.topup120 },
+  // KINEO-TOPUP100-2026-08-17 — o pacote-ancora (ver lib/checkoutPricing).
+  topup100: { credits: TOPUP_CREDITS.topup100, name: 'Kineo — +100 credits', description: 'One-time: 100 credits (5 AI-generated videos). Best value. No subscription.', prices: TOPUP_PRICES.topup100 },
 }
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time "AI Avatar packs"
@@ -958,6 +1037,36 @@ async function buildAndRedirect(
       // engano quando alguém for auditar a receita meses depois.
       price_region: region,
       plan_credits: String(plan.credits),
+      // ═══════════════════════════════════════════════════════════════════
+      // KINEO-PAIS-DA-PAREDE-2026-08-17 — O PAÍS TEM DE VIAJAR NA METADATA.
+      // ═══════════════════════════════════════════════════════════════════
+      // O evento `checkout_session_expired` (KINEO-PAREDE-CHECKOUT-2026-08-16)
+      // nasceu para responder "quem está morrendo na parede do checkout, e de
+      // onde?". Ele lê o país em `session.customer_details.address.country` —
+      // que a Stripe só preenche quando a pessoa DIGITA o endereço. Como a
+      // parede é exatamente o lugar onde ninguém digita nada, o campo veio
+      // **null nas 10 primeiras leituras** (17/08, 04:10Z–14:10Z): o
+      // instrumento construído para responder a pergunta não a responde.
+      //
+      // Nós JÁ sabemos o país no instante da criação — é o mesmo
+      // `x-vercel-ip-country` que resolve a moeda e a região logo acima.
+      // Carimbado aqui, ele sobrevive à expiração (a metadata da sessão volta
+      // inteira no `checkout.session.expired`) e passa a existir para o
+      // caso que importa: a hipótese da Índia (27 das 84 pessoas da parede
+      // são INR e o histórico de `payment_success` é 100% USD).
+      //
+      // ⚠️ DE PROPÓSITO FORA DA `checkoutIdempotencyKeyFor`: a assinatura de
+      // idempotência já contém `user_id` e `currency`, então duas pessoas
+      // nunca compartilham chave e a mesma pessoa não troca de país dentro da
+      // janela de 5 minutos. Incluir o campo ali invalidaria todas as chaves
+      // em voo no deploy sem comprar nada.
+      //
+      // ⚠️ É O PAÍS DO IP, NÃO O DO CARTÃO. Uma VPN mente; o do cartão só
+      // existe depois do pagamento (e aí a venda já aconteceu). Para a
+      // pergunta "quem chega e não paga", o IP é a única fonte que existe
+      // ANTES da parede — mas quem for decidir algo grande com isto lê
+      // `payment_status` junto.
+      ip_country: country,
       checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
       checkout_recovery: checkoutRecovery ? '1' : '0',
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -2147,6 +2256,17 @@ export async function GET(req: NextRequest) {
       return await speculativeNoop(req, selection)
     }
 
+    // KINEO-SCANNER-DENOMINADOR-2026-08-16 — termômetro, não portão. Roda
+    // DEPOIS do ramo acima (quem se anuncia continua sendo
+    // `checkout_prefetch_blocked`, sem contagem dupla) e NÃO altera o fluxo:
+    // a requisição segue para o mesmo lugar de antes, com ou sem suspeita.
+    // `await` porque o handler pode redirecionar em milissegundos e um
+    // fire-and-forget perderia justamente as rajadas de scanner.
+    await recordBotSuspicion(
+      req,
+      req.nextUrl.searchParams.get('pack') ?? req.nextUrl.searchParams.get('tier') ?? 'basic',
+    )
+
     // #473 — Starter Pack one-time checkout: /api/stripe/checkout?pack=starter
     const packParam = req.nextUrl.searchParams.get('pack')
     if (packParam) {
@@ -2160,7 +2280,7 @@ export async function GET(req: NextRequest) {
         )
       }
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
-      if (packParam === 'topup40' || packParam === 'topup120') {
+      if (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100') {
         return await buildTopupAndRedirect(req, packParam, true)
       }
       // KINEO-BULK-2026-07-27 — pacotes de atacado. Precisa vir ANTES do

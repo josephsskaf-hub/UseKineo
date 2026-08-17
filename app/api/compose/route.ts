@@ -13,6 +13,8 @@ import {
   submitCreatomateRender,
   targetWordCount,
   transcribeTTSWithTimestamps,
+  // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — Whisper no mp4 da cena de fala.
+  transcribeClipWithTimestamps,
   uploadVoiceoverToSupabase,
   // Kineo-AudioCache-2026 — TTS + Whisper content-hash cache (fail-open).
   computeVoiceoverCacheKey,
@@ -30,8 +32,8 @@ import {
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
-import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
-import { selectPersonaForScript } from '@/lib/narration/niche-mapping'
+import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
+import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
@@ -1482,27 +1484,21 @@ export async function POST(req: NextRequest) {
       // offset. endCap = end of the SAME scene + 0.5s tolerance: the builder
       // cuts the mp3 there, so narration can never bleed into the next scene
       // and short TTS can never pool silence onto a later scene.
-      const pendingBlocks: Array<{ time: number; endCap: number; text: string }> = []
-      {
-        let cursor = 0
-        hollywoodClips.forEach((c, i) => {
-          // KINEO-HOLLYWOOD-HOST-2026-07-13 — never narrate over 'host'
-          // scenes either: their clip audio IS the speech (our TTS).
-          const narr =
-            c.engine !== 'dialogue' && c.engine !== 'host' && typeof rawNarrations[i] === 'string'
-              ? (rawNarrations[i] as string).trim()
-              : ''
-          const sec = secondsOf(c)
-          if (narr) {
-            pendingBlocks.push({
-              time: cursor,
-              endCap: Math.round((cursor + sec + 0.5) * 1000) / 1000,
-              text: narr,
-            })
-          }
-          cursor = Math.round((cursor + sec) * 1000) / 1000
-        })
-      }
+      // KINEO-GAPFIX-2026-08-17 — os OFFSETS agora sao calculados DEPOIS do
+      // TTS (ver bloco abaixo): a cena de apoio e cortada no tamanho REAL da
+      // narracao medida (+0.6s de respiro), entao o rabo de silencio que o
+      // fundador ouviu como "apagao" deixa de existir estruturalmente. Este
+      // bloco so coleta o TEXTO por cena; tempos vem depois do ajuste.
+      const pendingScenes: Array<{ sceneIdx: number; text: string }> = []
+      hollywoodClips.forEach((c, i) => {
+        // KINEO-HOLLYWOOD-HOST-2026-07-13 — never narrate over 'host'
+        // scenes either: their clip audio IS the speech (our TTS).
+        const narr =
+          c.engine !== 'dialogue' && c.engine !== 'host' && typeof rawNarrations[i] === 'string'
+            ? (rawNarrations[i] as string).trim()
+            : ''
+        if (narr) pendingScenes.push({ sceneIdx: i, text: narr })
+      })
 
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — ONE NARRATOR VOICE. generateTTS
       // re-selects a persona per call by keyword-scanning the text it gets,
@@ -1515,7 +1511,7 @@ export async function POST(req: NextRequest) {
       // Fail-open: a null pin (or a pinned-synth failure per block) falls
       // back to the exact pre-v3.5 generateTTS call.
       let hollywoodPinnedVoice: HollywoodVoice | null = null
-      if (pendingBlocks.length > 0) {
+      if (pendingScenes.length > 0) {
         try {
           hollywoodPinnedVoice = resolveHollywoodVoice(voiceoverScript, language, vertical)
           console.log(
@@ -1530,8 +1526,12 @@ export async function POST(req: NextRequest) {
       // One TTS + upload + Whisper per narrated SCENE (sequential — 2-4
       // scenes typical, still cheap). If NO scene carries narration, TTS is
       // skipped entirely (native audio only).
-      const narrationBlocks: HollywoodNarrationBlock[] = []
-      for (const blk of pendingBlocks) {
+      // KINEO-GAPFIX-2026-08-17 — TTS roda ANTES dos offsets: mede a fala,
+      // ENCOLHE a cena de apoio pro tamanho dela (+0.6s), e so entao a
+      // timeline e montada. Fala de 7.8s em cena planejada de 10s = cena de
+      // 8.4s — zero rabo de silencio ("apagao" do fundador).
+      const measured: Array<{ sceneIdx: number; url: string; dur: number; text: string; words?: WhisperWord[] }> = []
+      for (const pending of pendingScenes) {
         try {
           // KINEO-HOLLYWOOD-HOST-2026-07-13 — pinned voice first (persona
           // pace × user speed, same formula generateTTS applies internally);
@@ -1540,7 +1540,7 @@ export async function POST(req: NextRequest) {
           if (hollywoodPinnedVoice) {
             try {
               buf = await synthesizeHostSpeech({
-                text: blk.text,
+                text: pending.text,
                 voice: hollywoodPinnedVoice.voice,
                 speed: hollywoodPinnedVoice.defaultSpeed * (explicitSpeed ?? 1.0),
               })
@@ -1550,7 +1550,7 @@ export async function POST(req: NextRequest) {
             }
           }
           if (!buf || buf.length === 0) {
-            buf = await generateTTS(blk.text, explicitSpeed ?? 1.0, vertical, narrationTier, language)
+            buf = await generateTTS(pending.text, explicitSpeed ?? 1.0, vertical, narrationTier, language)
           }
           if (!buf || buf.length === 0) continue
           const dur = estimateMp3DurationSeconds(buf)
@@ -1559,12 +1559,11 @@ export async function POST(req: NextRequest) {
             transcribeTTSWithTimestamps(buf).catch(() => [] as WhisperWord[]),
             uploadVoiceoverToSupabase(user.id, buf),
           ])
-          narrationBlocks.push({
-            time: blk.time,
-            endCap: blk.endCap,
+          measured.push({
+            sceneIdx: pending.sceneIdx,
             url,
-            audioDuration: dur,
-            text: blk.text,
+            dur,
+            text: pending.text,
             words: Array.isArray(words) && words.length > 0 ? words : undefined,
           })
         } catch (blockErr) {
@@ -1574,14 +1573,71 @@ export async function POST(req: NextRequest) {
             blockErr instanceof Error ? blockErr.message : String(blockErr))
         }
       }
+      // Encolhe SUPPORT pro tamanho real da fala (piso 3s; nunca cresce alem
+      // do planejado). Cinematic (Veo) fica nos 8s fixos do builder; dialogo/
+      // host tem a fala DENTRO do clipe e nao mudam.
+      for (const m of measured) {
+        const c = hollywoodClips[m.sceneIdx]
+        if (c && c.engine === 'support') {
+          const fit = Math.max(3, Math.round((m.dur + 0.6) * 10) / 10)
+          if (fit < secondsOf(c)) c.seconds = fit
+        }
+      }
+      // Timeline FINAL (pos-ajuste) → offsets e endCaps das narracoes.
+      const narrationBlocks: HollywoodNarrationBlock[] = []
+      {
+        const starts: number[] = []
+        let cursor = 0
+        hollywoodClips.forEach((c) => {
+          starts.push(cursor)
+          cursor = Math.round((cursor + secondsOf(c)) * 1000) / 1000
+        })
+        for (const m of measured) {
+          const c = hollywoodClips[m.sceneIdx]
+          if (!c) continue
+          const time = starts[m.sceneIdx]
+          narrationBlocks.push({
+            time,
+            endCap: Math.round((time + secondsOf(c) + 0.5) * 1000) / 1000,
+            url: m.url,
+            audioDuration: m.dur,
+            text: m.text,
+            words: m.words,
+          })
+        }
+      }
       console.log(
-        `[compose] hollywood: ${hollywoodClips.length} scenes (${hollywoodClips.map((c) => c.engine[0]).join('')}), ${narrationBlocks.length}/${pendingBlocks.length} per-scene narration mp3(s)`,
+        `[compose] hollywood: ${hollywoodClips.length} scenes (${hollywoodClips.map((c) => c.engine[0]).join('')}), ${narrationBlocks.length}/${pendingScenes.length} per-scene narration mp3(s), gapfix ativo`,
       )
 
       // Watermark / end card: hollywood users are paying Studio users, so only
       // the FORCE list (Joseph's self-promo accounts) applies — same behavior
       // as the other premium fal engines.
       const forced = FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
+
+      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
+      // cenas de fala (Whisper direto no mp4 do clipe) pra legenda seguir a
+      // boca do ator. Sequencial, 2-4 clipes tipicos, ~2s cada; best-effort.
+      for (const c of hollywoodClips) {
+        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
+          const words = await transcribeClipWithTimestamps(c.url)
+          if (words.length > 1) c.speechWords = words
+        }
+      }
+      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
+
+      // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema tambem no
+      // Hollywood (rodava sem musica; respiros viravam "apagao"). Mesmo
+      // detector de nicho do classico; seed = url do 1o clipe (deterministico
+      // por render). Best-effort: sem musica o filme sai igual ao de antes.
+      let hollywoodMusicUrl: string | null = null
+      try {
+        const hollyMood = resolveMusicMood(detectNiche(voiceoverScript, vertical))
+        hollywoodMusicUrl = await getBackgroundMusicUrl(hollywoodClips[0]?.url ?? voiceoverScript, hollyMood)
+        if (hollywoodMusicUrl) console.log(`[compose] hollywood score: mood via detectNiche → ${hollywoodMusicUrl.slice(-40)}`)
+      } catch (e) {
+        console.warn('[compose] hollywood music fetch failed (sem trilha):', e instanceof Error ? e.message : String(e))
+      }
 
       let hollywoodSource: Record<string, unknown>
       try {
@@ -1590,6 +1646,7 @@ export async function POST(req: NextRequest) {
           narrationBlocks,
           watermark: forced,
           endCard: forced,
+          musicUrl: hollywoodMusicUrl,
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
@@ -2051,9 +2108,14 @@ export async function POST(req: NextRequest) {
     // Push #293/#488 — fetch background music. Best-effort: never block the
     // render. Seeded with the voiceover upload URL (unique per render) so the
     // track is deterministic per render but rotates across renders.
+    // KINEO-MUSIC-MOOD-2026-08-17 — o nicho do script (a MESMA detecção que
+    // escolhe a persona de voz) agora escolhe o balde de trilha: mistério
+    // recebe suspense, dinheiro recebe phonk, história recebe orquestral.
+    // Fim da roleta cega ao tema flagrada pelo fundador no Farol de Flannan.
     let musicUrl: string | null = null
     try {
-      musicUrl = await getBackgroundMusicUrl(voiceoverUrl)
+      const musicMood = resolveMusicMood(detectNiche(scaledScript, vertical))
+      musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
     } catch (err) {
       console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
     }

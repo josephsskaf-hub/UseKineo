@@ -21,11 +21,29 @@ const SERVER_ONLY_EVENTS = new Set([
   'checkout_auth_required',
   'checkout_started',
   'checkout_failed',
+  // KINEO-PAREDE-CHECKOUT-2026-08-16 — os dois lados da morte de um checkout,
+  // escritos SÓ pelo webhook da Stripe (app/api/stripe/webhook/route.ts).
+  // `checkout_session_expired` = a sessão morreu sem pagamento;
+  // `checkout_payment_failed` = o emissor RECUSOU. São remédios opostos
+  // (oferta/preço vs. defeito técnico-regulatório), e até hoje deixavam o
+  // mesmo rastro. Se o sink do browser pudesse cunhá-los, um burst forjado
+  // faria a parede do checkout parecer maior do que é e mandaria a operação
+  // consertar o lugar errado — o mesmo estrago de viral_onboarding_viewed.
+  'checkout_session_expired',
+  'checkout_payment_failed',
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — written ONLY by the speculativeNoop
   // branch of app/api/stripe/checkout/route.ts when it refuses a prefetch /
   // scanner hit. If the browser sink could mint it, a forged burst would make
   // a real Session-minting incident look like harmless prefetch noise.
   'checkout_prefetch_blocked',
+  // KINEO-SCANNER-DENOMINADOR-2026-08-16 — escrito SÓ por recordBotSuspicion()
+  // em app/api/stripe/checkout/route.ts. Server-only pelo mesmo motivo do
+  // irmão acima, e com um agravante: este evento existe para DECIDIR se um dia
+  // barramos requisições na caixa registradora. Se o sink do browser pudesse
+  // cunhá-lo, qualquer um forjaria um burst de `ua_absent` acompanhado de
+  // compra e provaria, com dado do nosso próprio banco, que o ramo perigoso é
+  // seguro de bloquear — o caminho mais curto para nos fazer barrar clientes.
+  'checkout_bot_suspected',
   'auth_callback_completed',
   'auth_callback_failed',
   'email_signup_completed',

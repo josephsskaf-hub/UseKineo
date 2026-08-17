@@ -7,6 +7,11 @@ CORRIGIR-E-PUSH.bat
 RODAR-DEPLOY.bat
 CORRIGIR-E-PUSH.bat
 tsconfig.tsbuildinfo
+# 16/08 — o tsconfig escopado da regra 3 gera <nome>.tsbuildinfo junto, e o
+# OneDrive recusa o unlink dele (`rm` -> "Operation not permitted"), entao o
+# arquivo SOBREVIVE a sprint que o criou. `tsconfig.*.json` acima ja cobre o
+# config; faltava o buildinfo, que aparecia como `??` no status seguinte.
+*.tsbuildinfo
 # KINEO-BROLL-GC-2026-08-13 — tsconfigs escopados de sprint.
 # A regra 3 do PROMPT-DIARIO manda checar tipos com um tsconfig que ESTENDE o do
 # projeto e escopa o `include` no arquivo alterado (o `tsc` do projeto inteiro

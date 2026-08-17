@@ -74,7 +74,7 @@ export interface FreeTierCopy {
    * KINEO-SEO-CTA-TRIAL-2026-08-07 — rótulo do BOTÃO primário das páginas de
    * aquisição. Entrou aqui porque a troca atômica cobriu meta, chip e FAQ e
    * deixou de fora justamente a string com maior taxa de leitura da página: o
-   * botão. A dobra prometia "Free Creator trial — 40 credits" e o botão logo
+   * botão. A dobra prometia "Free Creator trial — 50 credits" e o botão logo
    * abaixo vendia o free tier ANTIGO ("Make a Fast video free"), que com a flag
    * ON nem existe mais (1 Fast/mês). Quem lê só o botão — a maioria — recebia
    * a oferta fraca.
@@ -128,20 +128,20 @@ const OFF_COPY: FreeTierCopy = {
 // o 50% é exclusivo dos e-mails D5/D10 pós-trial, jamais superfície pública.
 const ON_COPY: FreeTierCopy = {
   headline:
-    'Start free — your first video is on us. New accounts get a full Creator trial: 40 credits, every engine except Studio.',
+    'Start free — your first video is on us. New accounts get a full Creator trial: 50 credits, every engine except Studio.',
   residual: '1 free Fast video/month',
   sentence:
-    'Every new account starts with a full Creator trial — 40 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
-  chip: 'Free Creator trial on signup — 40 credits',
-  chipLower: 'free Creator trial on signup — 40 credits',
+    'Every new account starts with a full Creator trial — 50 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
+  chip: 'Free Creator trial on signup — 50 credits',
+  chipLower: 'free Creator trial on signup — 50 credits',
   planCardBody:
-    'Start free — your first video is on us. New accounts get a full Creator trial: 40 credits, every engine except Studio. Afterwards, 1 free Fast video/month.',
+    'Start free — your first video is on us. New accounts get a full Creator trial: 50 credits, every engine except Studio. Afterwards, 1 free Fast video/month.',
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
     "You've used this month's free Fast video. Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
   cmpKineoFree:
-    'Kineo: every new account starts with a full Creator trial — 40 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
+    'Kineo: every new account starts with a full Creator trial — 50 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
   limitHitEmailIntro:
     "You've used this month's free Fast video — the free plan includes 1 per month.",

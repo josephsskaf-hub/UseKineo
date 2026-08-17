@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression, HOT_LEAD_SUPPRESSION_HOURS } from '@/lib/lifecycle/suppression'
+import { recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { PLANS } from '@/lib/pricing'
 
@@ -532,6 +533,24 @@ export async function GET(req: NextRequest) {
         }),
       })
 
+      // KINEO-EMAIL-QUOTA-WIRED-2026-08-17 — este é o remetente de MAIOR valor
+      // da casa (a pessoa já chegou na página de pagamento) e era um dos que
+      // enviavam sem registrar NADA. Prioridade `revenue`: `claimEmailSlot`
+      // nunca barra esta linha, então NÃO há chamada de claim aqui de
+      // propósito — chamar um gate cujo veredito é sempre "pode" só gastaria um
+      // round-trip por e-mail no caminho quente. O que faltava era o
+      // DENOMINADOR, e é ele que entra: uma linha por desfecho, com o
+      // http_status cru. Um 429 aqui é o único número que prova que a cota do
+      // Resend matou uma recuperação de checkout — hoje isso morre num
+      // console.error que ninguém lê.
+      await recordResendResponse({
+        kind: 'checkout_recovery',
+        priority: 'revenue',
+        userId,
+        res,
+        admin,
+      })
+
       if (res.ok) {
         sent++
         await admin
@@ -551,6 +570,18 @@ export async function GET(req: NextRequest) {
       }
     } catch (err) {
       console.error(`[send-recovery] error for ${email}:`, err)
+      // `ok: null` é EXATAMENTE o caso que a coluna nullable existe para
+      // registrar: o fetch estourou, então não sabemos se o Resend aceitou.
+      // Contar como sucesso inventaria cota gasta; contar como falha liberaria
+      // cota que talvez não exista. Fica explícito no ledger.
+      await recordEmailSend({
+        kind: 'checkout_recovery',
+        priority: 'revenue',
+        userId,
+        ok: null,
+        detail: err instanceof Error ? err.message.slice(0, 300) : 'fetch threw',
+        admin,
+      })
     }
   }
 

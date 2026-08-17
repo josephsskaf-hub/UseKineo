@@ -74,7 +74,10 @@ export default function NavCreditsBadge() {
 
   return (
     <Link
-      href={isZero ? '/pricing' : '/generate'}
+      // KINEO-BUY-DOOR-2026-08-17 — o badge de creditos e a porta permanente
+      // da loja (padrao ElevenLabs/Leonardo): clicou, ve pacotes — com saldo
+      // ou sem.
+      href={'/pricing'}
       style={{
         display: 'inline-flex',
         alignItems: 'center',

@@ -26,7 +26,10 @@
 import { fal } from '@fal-ai/client'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 
-const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/schnell'
+// KINEO-ANCHOR-DEV-2026-08-16 — schnell (tier rapido/barato) era a causa do
+// rosto artificial flagrado pelo fundador; dev custa centavos a mais e muda o
+// jogo em pele/textura. Motor de 150cr merece a melhor ancora.
+const ANCHOR_IMAGE_MODEL = 'fal-ai/flux/dev'
 
 // KINEO-HOLLYWOOD-30-2026-07-10 — approximate cost of the 2 anchor images
 // (flux/schnell is ~pennies; logged conservatively as a flat $0.10 so the
@@ -76,6 +79,12 @@ async function generateAnchorImage(
   }
 
   const deadline = Date.now() + pollWindowMs
+  // KINEO-POLL-FATAL-2026-08-17 — na noite do saldo travado o fal respondeu
+  // "Forbidden" em TODO poll e este loop insistiu a janela inteira; com duas
+  // âncoras em sequência a rota estourou o timeout de 60s da lambda DEPOIS do
+  // débito e ANTES de qualquer estorno — cobrança presa. Erro de auth/permissão
+  // (401/403/Forbidden) não é transitório: 3 seguidos = fatal, fail-open t2v.
+  let authFails = 0
   while (Date.now() < deadline) {
     try {
       const statusResult = await fal.queue.status(model, { requestId })
@@ -91,10 +100,20 @@ async function generateAnchorImage(
         return null
       }
       if (status === 'FAILED') return null
+      authFails = 0
     } catch (err) {
       // Status/result calls are read-only. A transient failure does not justify
       // creating a second paid anchor job.
-      console.warn('[hollywood-anchors] transient poll failure:', err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      const st = (err as { status?: number })?.status
+      if (st === 401 || st === 403 || /forbidden|unauthorized/i.test(msg)) {
+        authFails += 1
+        if (authFails >= 3) {
+          console.error('[hollywood-anchors] auth-like poll failure x3 — treating as FATAL (fail-open to t2v):', msg)
+          return null
+        }
+      }
+      console.warn('[hollywood-anchors] transient poll failure:', msg)
     }
     await new Promise((resolve) => setTimeout(resolve, 750))
   }
@@ -127,7 +146,10 @@ export async function generateHollywoodAnchors(args: {
 
     const portraitPrompt =
       `${character}. Standing in: ${environment}. Cinematography: ${style}. ` +
-      `vertical 9:16 portrait, medium shot, looking directly at the camera, photorealistic, ` +
+      `vertical 9:16 portrait, medium shot, looking directly at the camera. ` +
+      `Shot on 85mm portrait lens, natural window light, real human skin with visible pores and fine texture, ` +
+      `subtle facial asymmetry and imperfections, filmic color, shallow depth of field, ` +
+      `photorealistic like a still from an A24 film — NOT smooth CGI skin, no beauty filter, ` +
       `sharp focus on the face, no text, no watermark, no logo`
     const stillPrompt =
       `${environment}. Cinematography: ${style}. ` +

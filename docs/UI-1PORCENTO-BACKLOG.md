@@ -353,8 +353,24 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     (grep de raios/cinzas/duracoes + Lighthouse vs baseline); registrar no Diario o que
     passou e o que vira backlog v2. Sem codigo novo neste dia — so medicao e correcao fina.
 
-21. **NOVO (13/08, sprint 14h) — /wall: a pagina que existe para PROVAR mostra um
-    retangulo preto.** Achado olhando a Wall of Proof com olhos de Higgsfield.
+21. ✅ **FEITO 16/08 (sprint 18h) — MAS PELO MOTIVO CONTRARIO AO QUE ESTE ITEM E A
+    EMENDA DO ITEM 25 DIZIAM: o crop nunca foi o defeito.** Medido hoje: o YouTube
+    entrega a thumb de Short **pillarboxed em toda resolucao** (faixas de brilho dos 3
+    `maxresdefault` 1280x720: so as faixas 7-12 de 20 tem imagem = banda central de
+    ~30%, e 720x9/16 = 405px = 31,6%), entao `object-fit: cover` numa moldura 9:16
+    conserva o Short **inteiro** — em `hqdefault` e em `maxresdefault`. O `cover` ficou
+    como estava. O defeito real: a thumbnail do unico card da aba padrao responde
+    **404 em todas as 6 resolucoes** e o `i.ytimg.com` devolve, junto do 404, um **JPEG
+    cinza 120x90 valido que dispara `load` e nao `error`** — logo a parte (b) deste item
+    (fallback no `onError`) nao teria feito nada. Entrou `components/wall/WallThumb.tsx`
+    detectando `naturalWidth <= 120` (no `onLoad` **e** no mount, porque com SSR a
+    imagem pode ficar `complete` antes da hidratacao) com fallback da marca, mais o
+    gradiente inferior de legibilidade da parte (c), mais a morte do comentario que
+    descrevia uma URL que o arquivo nao usa (correcao 2 do item 25). Detalhamento
+    completo e as 4 medicoes no Diario de 16/08 (sprint 18h). Rollback: 2 arquivos.
+    **Texto original, preservado porque a leitura errada e o ensinamento:**
+    /wall: a pagina que existe para PROVAR mostra um
+    retangulo preto. Achado olhando a Wall of Proof com olhos de Higgsfield.
     Antes: o card usa a thumb do YouTube (`i.ytimg.com/vi/<id>/hqdefault.jpg`,
     **480x360 = 16:9**) dentro de uma moldura **9:16 de 163x291** com
     `object-fit:cover`. O corte guarda so a tira vertical central — e no unico
@@ -374,8 +390,21 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     breadcrumb + kicker + pill do filtro + CTA + painel de baixo) — o oposto do
     "1 acento usado raro" do item 3 do sistema deles. Rollback: git revert.
 
-22. **NOVO (13/08, sprint 18h) — A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS
-    ARQUIVOS: ESTA NO `html{font-size:14px}`.** Achado olhando `/pricing` com
+22. ✅ **FEITO 17/08 (sprint 14h) — A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS
+    ARQUIVOS: ESTA NO `html{font-size:14px}`.** `tailwind.config.js` ganhou
+    `theme.extend.borderRadius` apontando para os tokens (`md`/`lg` → `var(--r-xs,8px)`,
+    `xl`/`2xl` → `var(--r-sm,13px)`, `3xl` → `var(--r-lg,22px)`; `full` FORA do mapa,
+    de proposito, porque 9999px ja concorda com `--r-pill`). Um arquivo, 546
+    ocorrencias alcancadas. Provado no CSS compilado (`npx tailwindcss` gera
+    `.rounded-xl{border-radius:var(--r-sm, 13px)}` e mantem `.rounded-full{9999px}`)
+    e antes/depois no DOM de producao com a mesma regra injetada: `/pricing` cai de
+    **17 elementos fora da escala para 3** e de **5 raios distintos para 4**, sem
+    diferenca visivel. **A landing nao tem UMA classe `rounded-*`** (mede zero no
+    DOM da home em producao) — entao a vitrine de motores e as regras inviolaveis
+    do hero estao fora do raio de alcance por construcao, nao por cuidado.
+    Detalhamento e as 6 medicoes no Diario de 17/08 (sprint 14h). Rollback: 1 arquivo.
+    **Texto original preservado:**
+    A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS ARQUIVOS: ESTA NO `html{font-size:14px}`. Achado olhando `/pricing` com
     olhos de Higgsfield e medido no DOM de producao. A pagina inteira usa **4
     raios — 9999 / 14 / 10.5 / 7px — e nenhum deles existe na escala de tokens**
     (8/13/18/22/999). Nao e desleixo de quem escreveu a pagina: sao
@@ -568,6 +597,147 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     operacional, enquanto a casa paga o peso de Inter **e** Space Grotesk em toda
     rota; e o azul da marca subiu de **12 elementos (13/08) para 14**, contra o "1
     acento usado raro" do item 3 do sistema deles. Rollback: git revert.
+
+26. **NOVO (16/08, sprint 14h) — /generate: O ACENTO VIROU RUIDO. 89 ELEMENTOS
+    USAM O AZUL DA MARCA NA PAGINA ONDE A INTENCAO DE COMPRA NASCE.** Achado na
+    rotacao (`/generate`) e medido no DOM de producao hoje, elemento por elemento,
+    separando por propriedade: **47 em `color`, 59 em `background`, 38 em `border`,
+    10 em `box-shadow`** — 89 elementos distintos numa pagina de **605**, isto e
+    **1 em cada 7 elementos da tela carrega o acento**. Acima da dobra sao **21**.
+    Para comparar com o que este doc ja mediu: `/wall` tem 14 (item 25), `/pricing`
+    tem 23 (item 22) — **`/generate` tem quase 4x o pior caso registrado ate hoje.**
+    Porque isso importa mais aqui do que nas outras duas: o item 3 do sistema do
+    Higgsfield e "**1 acento usado raro**" (o lime deles aparece em badge e botao,
+    nada mais) e a razao nao e estetica, e funcional — **quando tudo e destaque,
+    nada e destaque**, e a pagina perde a capacidade de dizer "clique AQUI". E
+    `/generate` e, pela medicao de aquisicao da sprint das 13h de hoje, **onde a
+    intencao de compra nasce**: 17 pessoas em `generate_step_1` contra 8 na pagina
+    de precos. A tela que mais precisa de UM ponto focal e a que tem 89.
+    Os dois piores ofensores, medidos: **duas `div.fixed.rounded-full` de 600x600 e
+    500x500 com fundo azul** (glows de ambiente presos no viewport) — sozinhas elas
+    banham a tela inteira no acento antes de qualquer conteudo aparecer.
+    Antes: 89 elementos com o acento, 21 acima da dobra, 2 glows fixos de 600x600 e
+    500x500. Depois: acento reservado a **acao e foco** (CTA primario, estado ativo,
+    focus ring) — alvo <= 12 acima da dobra; os glows de ambiente saem do azul e vao
+    para neutro quente ou perdem opacidade ate nao competirem com o CTA; badge e
+    chip passam a usar `--surface-2` + `--text-2`, como o badge-gray #424242 deles.
+    **Fazer com screenshot antes/depois obrigatorio e um elemento por vez** — esta e
+    a unica categoria de mudanca deste roadmap que altera a APARENCIA e nao so a
+    disciplina, entao ela e proposta ao fundador antes de virar commit.
+    Anotados junto, para nao virarem item novo depois: `/generate` tem **16 raios
+    distintos** e os mais frequentes fora da escala sao `10.5px` (23x), `7px` (15x)
+    e `9999px` (18x) — ou seja **a pagina inteira e Tailwind a 87,5%**, terceira
+    confirmacao do item 22 (com `/pricing` e `/history`); e a fonte fecha o padrao
+    monofonte pela quarta vez: **604 de 605 elementos em Inter, 1 em Space Grotesk**.
+    Rollback: git revert.
+
+    **EMENDA AO ITEM 23 (medida hoje, 16/08) — a doenca do `/history` esta tambem
+    no `/generate`, e o item 23 precisa cobrir as duas paginas.** Medido no DOM de
+    producao: `/generate` tem **11 `<video>`, `preload="metadata"` em 11/11 e
+    `poster` em 0/11**. E exatamente o quadro do item 23 (100 videos la), em escala
+    menor e em lugar pior: **a pagina de trabalho do cliente tambem abre com
+    retangulos pretos esperando metadata**. Nao vira item 26-bis: quem executar o
+    item 23 executa a MESMA correcao (`preload="none"` + montagem no
+    IntersectionObserver + `poster` obrigatorio) nas duas paginas, senao a casa
+    conserta metade do problema e fecha o item.
+
+27. **NOVO (16/08, sprint 18h) — A TELA DO VIDEO PRONTO E O UNICO MOMENTO DE
+    DOPAMINA DO PRODUTO, E ELA COMECA COM UM RETANGULO PRETO DE 460x818.** Achado na
+    rotacao (depois do `/generate` vem a tela do video pronto) e medido no codigo de
+    `app/(dashboard)/generate/GenerateClient.tsx` (13.372 linhas; o bloco
+    `phase === 'done'` comeca na linha 9297). A moldura do resultado tem
+    `aspectRatio 9/16`, `width: min(460px, 90vw)`, `background: '#000'` e dentro dela
+    um `<video autoPlay preload="metadata">` **sem `poster`**. Entre o momento em que
+    o cartao aparece e o primeiro byte do MP4 chegar do CDN, a pessoa olha para um
+    **retangulo preto** — e o comentario do `Push #095` no proprio arquivo admite que
+    o Backblaze devolve **503 enquanto o MP4 novo propaga**, ou seja o caso lento nao
+    e hipotese, e o caso conhecido. **A casa ja resolveu isso em toda outra
+    superficie**: a galeria da home, `/examples` (item 19) e o item 23 dizem
+    "poster-first, o poster e o primeiro paint". A unica tela onde o cliente ve o
+    trabalho que acabou de pagar e a que nao tem poster.
+    Contagem no HEAD de 16/08 nesse arquivo: **9 `<video>`, `poster=` em 0/9,
+    `preload="none"` em 0/9**, 1 `autoPlay`, e **1 unica** mencao a
+    `Save-Data`/`prefers-reduced-motion` em 13.372 linhas.
+    **Nuance que explica a divergencia entre o grep e o DOM, e que vale para o teste 7
+    do dia 20:** a auditoria das 14h mediu **11 `<video>` com `preload="metadata"`
+    11/11** no DOM, mas o grep acha `preload="metadata"` **2 vezes** no arquivo — porque
+    **`metadata` e o default do browser**, entao os 7 tags que nao declaram `preload`
+    nenhum reportam `"metadata"` no DOM. **O grep do teste 7 pode dar verde com o
+    produto inteiro baixando metadata.** O teste precisa ser lido no DOM, nunca no
+    repo — mesma familia do item 22 (o raio que nao passa por `border-radius:`) e do
+    item 24 (a curva que nao esta em arquivo nenhum).
+    Antes: moldura preta ate o CDN responder, sem poster, sem skeleton, com autoplay
+    incondicional. Depois: (a) **`poster` do proprio video** — a coluna
+    `thumbnail_url` existe desde o commit #320 e ja e usada como fundo do botao de play
+    do `/history`, entao o asset ja esta pago; enquanto ela for nula, o **shimmer 9:16
+    do dia 8** no lugar do preto (o roadmap ja manda "skeleton, nunca spinner" — aqui
+    nao ha nem um nem outro, ha vazio); (b) `autoPlay` guardado por **Save-Data/2g**,
+    que e a unica regra do roadmap escrita como inviolavel e que nao esta sendo
+    cumprida justamente onde o arquivo pesa ~28MB.
+    Porque: e o item 9 do teste do dia 20 ("o momento video pronto tem cerimonia") —
+    a cerimonia do dia 7 (o check que se desenha + o pulso de glow azul) esta la e
+    **funciona**, e ela e disparada em cima de um buraco preto. A casa construiu a
+    festa e esqueceu de acender a luz.
+    Anotados junto, para nao virarem item novo depois: o bloco do `done` usa
+    **6 classes `rounded-*`** (3 `rounded-2xl` + 3 `rounded-xl`), quarta confirmacao do
+    item 22; e o **azul aparece 14 vezes so nesse bloco** (o arquivo inteiro tem **215**
+    ocorrencias de `#2997ff`/`41,151,255`) — mas aqui, ao contrario do item 26, **a
+    maior parte e a cerimonia protegida do dia 7 e NAO deve sair**; quem executar o
+    item 26 precisa tratar o bloco `phase === 'done'` como excecao declarada.
+    **Fora de escopo de UI, so registrado para o fundador olhar:** entre o titulo
+    "Your video is ready" e o player existe um paragrafo de **creditos e plano**
+    ("You have X credits left — about N more AI videos... Free Fast includes up to 3
+    watermarked previews per 24 hours"). Sprint de UI nao toca copy de oferta, entao
+    **nada foi feito** — mas o registro fica: no unico segundo em que o produto
+    entrega o que prometeu, a linha imediatamente acima da prova fala de quanto ainda
+    resta na carteira. Rollback: git revert.
+
+28. **NOVO (17/08, sprint 14h) — /studio: A PORTA PRINCIPAL NOVA NASCEU FORA DE
+    TODOS OS TOKENS, E ELA TEM UMA **QUINTA** LINGUAGEM DE TIMING QUE NENHUM ITEM
+    DESTE DOC TINHA VISTO.** Achado na rotacao (o `/generate` deixou de ser a sala
+    de chegada no commit `613ca3e` — chegada de mao vazia agora redireciona pro
+    `/studio`, entao a pagina que este roadmap vinha medindo ha 3 sprints **nao e
+    mais a porta**) e medido no DOM de producao hoje. Numeros de `/studio`,
+    367 elementos numa tela so:
+    - **16 raios distintos** — `10px` (14x), `8px` (12x), `14px` (12x), `999px` (10x),
+      `13px` (6x), `6px` (5x), `16px` (4x), `5px`, `99px`, `9999px`, `10.5px`, `7px`,
+      `9px`, `18px` e duas formas compostas. So **4 elementos** passam por classe
+      Tailwind, entao o item 22 (feito hoje) **quase nao a alcanca**: aqui o raio e
+      px literal em `style` inline, a terceira lingua do item 22.
+    - **QUINTA LINGUAGEM DE TIMING: `ease` puro em 65 dos 73 elementos animados.**
+      O item 24 catalogou quatro (tokens, literais em CSS, `transitionDuration` em
+      JSX, classes Tailwind com `cubic-bezier(.4,0,.2,1)`). `/studio` roda em
+      **`ease`** — a palavra-chave DEFAULT do CSS, que aparece quando alguem escreve
+      `transition: all .16s` sem curva — em `ease` (37), `ease, ease` (17) e
+      `ease, ease, ease` (11); so 8 elementos usam a curva do Tailwind e **zero**
+      usam `--ease-swift`. E sao **5 duracoes** (0.15 / 0.16 / 0.18 / 0.3s), nenhuma
+      igual a `--dur-fast/base/slow`. O teste 4 do dia 20 continua sem enxergar isso:
+      `ease` nao aparece em grep de `cubic-bezier` nem de `--ease-`.
+    - **O ACENTO OUTRA VEZ, E PIOR QUE O `/generate` DO ITEM 26: 39 elementos com o
+      azul em 367 (1 em cada 9,4) e os 39 ACIMA DA DOBRA** — porque o `/studio` e
+      uma tela unica, entao nao existe "abaixo da dobra" onde diluir. O item 26
+      mediu 21 acima da dobra no `/generate`; a tela que substituiu ele tem 39.
+    - **A doenca dos itens 23 e 27 nasceu junto com a pagina: 6 `<video>` de 192x343,
+      `poster` em 0/6, `preload="metadata"` em 6/6 e `readyState 4` em 6/6** — isto e,
+      os seis MP4 baixaram INTEIROS no load, abaixo da dobra, sem um poster no
+      caminho. O truque `#t=0.1` no src esta la tentando fazer papel de poster: e a
+      confissao de que o poster faz falta.
+    - **A unica boa noticia, e ela e grande: `/studio` QUEBROU O PADRAO MONOFONTE.**
+      38 dos 367 elementos em Space Grotesk (o `/pricing`, `/history`, `/signup` e
+      `/generate` mediram zero nos itens 23 e 24). A segunda familia finalmente
+      trabalha dentro do produto.
+    Antes: a porta principal do produto fala 16 raios, 5 duracoes, uma curva default
+    e 39 acentos numa tela. Depois: `/studio` passa pelos tokens como a landing ja
+    passou — raios para a escala, `transition` com `--dur-*`/`--ease-swift`,
+    `poster` + `preload="none"` + IntersectionObserver nos 6 videos (a MESMA correcao
+    do item 23, que agora tem tres paginas: `/history`, `/generate` e `/studio`), e o
+    acento reduzido a acao e foco (alvo <= 12, mesmo alvo do item 26).
+    Porque: e a primeira tela que todo cliente novo ve desde `613ca3e`, e ela e a
+    unica pagina do produto que nunca passou por uma sprint de UI. Enquanto o roadmap
+    medir `/generate`, ele esta medindo uma sala que o fundador ja esvaziou.
+    Anotado junto, para nao virar item novo depois: o breadcrumb do `/studio` imprime
+    **"Kineo / Dashboard"** numa pagina cujo H1 e "Studio" — o par que faltou quando a
+    rota virou a porta principal. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -611,6 +781,362 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### 17/08 (sprint 14h) — ITEM 22 FECHADO NO UNICO LUGAR QUE ALCANCA AS 546 CLASSES, E A DESCOBERTA DE QUE O ROADMAP ESTAVA MEDINDO UMA SALA VAZIA
+
+**1. Auditoria do item anterior (item 21, /wall) — EM PRODUCAO, e PASSOU.** O push
+saiu: `origin/main` esta em `2836f28` e **contem o `eb6f6e4`** da sprint das 18h de
+ontem (o HEAD local esta 2 commits a frente, mas os dois sao do fundador, do Studio —
+nenhum e de UI). Medido em `www.usekineo.com/wall` hoje:
+- **O fallback dispara e o buraco acabou:** `[role="img"]` = **1** na pagina, e o card
+  `#3` (`aSrIVAc81MM`, a thumbnail morta) pinta o gradiente da marca + glifo de play
+  em vez de nada. Os outros dois carregam de verdade — `naturalWidth` **1280x720** e
+  **480x360**. O `transferSize` confirma o diagnostico de ontem por outro caminho: a
+  thumb morta pesa **1.397 bytes** (o JPEG cinza 120x90 do 404) contra 85.954 e 15.595
+  das vivas.
+- **O crop continua certo:** os dois Shorts vivos aparecem inteiros na moldura 163x291,
+  sem tarjas — a decisao de NAO trocar `cover` por `contain` se sustenta na tela.
+- **O gradiente inferior de legibilidade (parte (c) do item 21) esta no ar** e a
+  pastilha "7 views" para de flutuar sobre o frame claro do card #1.
+- **Nada regrediu:** zero erro de console, nenhum z-index novo, o `#rank` no lugar.
+- **Uma armadilha de medicao, registrada para as proximas sprints:** as primeiras
+  leituras deram `complete:false`, `naturalWidth 0` e **zero requisicao a ytimg** — e
+  isso NAO era a pagina, era `document.visibilityState === "hidden"`. Com a aba em
+  segundo plano o Chrome **nao dispara `loading="lazy"`**, entao um screenshot tirado
+  cedo mostra tres retangulos pretos e uma sprint apressada "descobre" um bug que nao
+  existe. Ler `visibilityState` antes de acreditar em qualquer medicao de imagem lazy.
+- **Mudou o quadro do item 25:** a aba padrao "This week" hoje renderiza **3 cards**
+  (era 1 ontem, 0 em 15/08) e o contador diz "6 Shorts published ... 7 views counted".
+  A aba nao abre mais vazia; a divergencia contador-vs-cards continua e o item 25 segue
+  aberto por causa dela.
+
+**2. O ITEM DA SPRINT — item 22, e ele e o item de maior alcance e menor risco do
+roadmap inteiro.** `tailwind.config.js` ganhou `theme.extend.borderRadius` apontando
+para os tokens. **Um arquivo, 546 ocorrencias** (236 `rounded-xl` + 172 `rounded-2xl` +
+111 `rounded-lg` + 18 `rounded-md` + 9 `rounded-3xl`); `rounded-full` (107) ficou de
+fora de proposito porque 9999px ja concorda com `--r-pill`.
+- **Por que so aqui:** `app/globals.css` da `font-size:14px` para `html/body`, entao
+  1rem = 14px e a escala do Tailwind roda a 87,5%. Confirmado no DOM de producao de
+  hoje: `rounded-lg` pinta **7px**, `rounded-xl` **10.5px**, `rounded-2xl` **14px** —
+  e **nenhum** desses valores existe na escala de tokens (8/13/18/22/999). Essas
+  classes nao passam por `border-radius:` nenhum, passam pelo config: o item 11 podia
+  tokenizar arquivo por arquivo para sempre sem alcancar uma so delas.
+- **Prova no CSS compilado, nao no codigo-fonte:** `npx tailwindcss -c tailwind.config.js`
+  gera `.rounded-xl{border-radius:var(--r-sm, 13px)}`, `.rounded-lg{var(--r-xs, 8px)}`,
+  `.rounded-3xl{var(--r-lg, 22px)}` e mantem `.rounded-full{9999px}` intacto.
+- **Antes/depois VISUAL sem deploy:** a mesma regra foi injetada na producao por
+  stylesheet e medida com a pagina no ar. Em `/pricing`: **5 raios distintos → 4**, e
+  os elementos **fora da escala caem de 17 para 3** (os 3 que sobram sao `14px`
+  literais em CSS, nao Tailwind — ficam para o item 11). Screenshot antes e depois em
+  pagina inteira e em zoom no card Starter: **nenhuma diferenca perceptivel**, como o
+  item previa. Em `/studio`: 16 raios distintos → 14, 4 elementos tocados.
+- **O `var()` leva fallback de proposito** (`var(--r-sm, 13px)`): sem ele, um dia em
+  que o `:root` perca o token, `border-radius` vira invalido e **colapsa para 0px em
+  centenas de elementos**. Com fallback, o pior caso e voltar ao valor de hoje.
+- **A regra inviolavel nao foi so respeitada, ela e inalcancavel:** `app/KineoLanding.tsx`
+  **nao tem uma unica classe `rounded-*`** (a landing usa a escala `.klp` em CSS), e o
+  DOM da home em producao mede **0 elementos** com `rounded-md/lg/xl/2xl/3xl`. A vitrine
+  de motores, os cards 500x280 e os `clamp()` do hero estao fora do raio de alcance
+  desta mudanca por construcao — nao por cuidado.
+
+**3. Revisao adversarial (2x, a 2a cacando defeito na propria mudanca).**
+- **CLS: impossivel.** `border-radius` nao entra em layout; nenhuma caixa muda de tamanho.
+- **LCP: intocado.** Mesmo numero de regras CSS; o texto cresce ~60 bytes no bundle.
+- **Colapso para 0px:** era o unico jeito real desta mudanca quebrar a tela — morto
+  pelo fallback dentro do `var()`.
+- **Escopo do token:** o `:root` de `app/globals.css` (linhas 94-98) **nao esta dentro
+  de nenhum `@media`**, e `app/layout.tsx` e o **unico** arquivo com `<html>` no `app/`
+  e importa `globals.css` — nao ha rota que renderize `rounded-*` sem os tokens.
+- **Variantes:** `grep` de `sm:/md:/hover:/group-hover:rounded-*` e de
+  `rounded-t-*/b-*/l-*/r-*` retorna **0**; nao ha `@apply rounded-` em CSS nenhum;
+  e nenhum JS le `borderRadius` de `getComputedStyle`. A superficie e exatamente as
+  5 classes mapeadas.
+- **Onde o delta e maior:** `rounded-md` 5.25→8px (+52%), 18 usos — e **todos** vivem
+  em `admin/*` (paginas internas), `/examples`, `NicheCard` e `PreviewModal`. Zero
+  risco em tela de cliente.
+- **Mobile:** sem variantes responsivas de raio, o valor e o mesmo em toda largura.
+- **Modais/z-index/autoplay/reduced-motion/Save-Data:** nada tocado; `border-radius`
+  nao e animacao, entao nao ha o que respeitar.
+
+**4. Rigor.** `tsc --noEmit -p tsconfig.json` **EXIT=0** e **falsificado**
+(`const _falsify: number = "not a number"` em `lib/uiTokens.ts` → tsc acusa, EXIT=2 →
+restaurado e conferido por md5 identico). O **instrumento do proprio item tambem foi
+falsificado**, que e o que importa aqui porque a mudanca e num `.js` que o tsc nao le:
+`xl` foi trocado por um valor-sentinela, o build do Tailwind refeito, o sentinela
+**apareceu** no CSS gerado, o arquivo foi restaurado (md5 identico, 91 linhas CRLF
+preservadas) e o build voltou a bater byte a byte com o anterior. EOL conferido no HEAD
+por arquivo: `tailwind.config.js` **CRLF** (63→91 linhas, todas CRLF), este doc **LF**
+(0 CR). Indice isolado, sem `add -A`, **sem push**. [KINEO-UI-DIARIO-2026-08-17]
+
+**5. Realimentacao do backlog — ITEM 28 (/studio).** A rotacao devolveu o achado mais
+caro do dia: **o `/generate`, que os itens 26 e 27 mediram, nao e mais a porta do
+produto** — o commit `613ca3e` manda quem chega de mao vazia para o `/studio`. E o
+`/studio` nunca passou por uma sprint de UI: **16 raios distintos** (so 4 alcancados
+pelo item 22 — o resto e px literal inline), **uma QUINTA linguagem de timing** que
+nenhum item deste doc tinha visto (`ease` puro, a palavra-chave default do CSS, em
+**65 dos 73** elementos animados, contra 8 na curva do Tailwind e **zero** em
+`--ease-swift`), **39 elementos com o acento e os 39 acima da dobra** (o item 26 mediu
+21 no `/generate`), e **6 `<video>` com `poster` 0/6, `preload="metadata"` 6/6 e
+`readyState 4` 6/6** — os seis MP4 baixam inteiros no load, abaixo da dobra, com um
+`#t=0.1` no src fazendo papel de poster. A boa noticia: e a **primeira pagina do
+produto que quebra o padrao monofonte** (38 elementos em Space Grotesk; `/pricing`,
+`/history`, `/signup` e `/generate` mediram zero).
+
+### FECHAMENTO DO DIA — 16/08 (3 linhas, escritas pela sprint das 18h)
+
+1. **Nada do dia 16/08 esta no ar.** `origin/main` esta em `315c442` e o HEAD local
+   tem **4 commits a frente** — as sprints das 11h, 13h, 14h (UI) e 16h estao paradas
+   na sua maquina, e entre elas esta o **fail-open do portao do render fantasma**, o
+   que derrubou 42% dos 42 cadastros do TAAFT hoje. O push e seu: `scripts/114-PUSH.bat`.
+2. **A auditoria do item das 14h nao pode ser feita em producao — por causa do item 1.**
+   Foi feita na arvore (raios tokenizados presentes, LF, `tsc` verde) e o que ESTA no ar
+   foi re-medido e nao regrediu: `/wall` com **CLS 0**, zero erro de console.
+3. **A sprint das 18h fechou o item 21 (/wall) — e o item 21 e o 25 estavam errados os
+   dois.** O crop nunca foi o defeito; a thumbnail do unico card da aba padrao esta
+   **morta (404 em todas as 6 resolucoes)** e o YouTube devolve, junto do 404, um **JPEG
+   cinza 120x90 valido** que dispara `load` e nao `error` — a pagina que existe para
+   PROVAR pinta um retangulo de nada, e o conserto obvio (`onError`) nao pegaria isso.
+
+### 16/08 (sprint 18h) — ITEM 21 FECHADO PELO MOTIVO ERRADO DUAS VEZES: NAO E O CROP, E UMA THUMBNAIL MORTA QUE DISPARA `load`
+
+**1. Auditoria do item anterior (sprint 14h, os 10 raios orfaos) — NAO E AUDITAVEL EM
+PRODUCAO, e a razao e o achado da auditoria.** `git rev-list --count origin/main..HEAD`
+= **4**. O `origin/main` esta em `315c442` (ANTI-REPETICAO) e nao contem nenhuma das
+quatro sprints de hoje: 11h (`1259f48`), 13h (`3cce3f6`), **UI 14h (`e4d58f4`)** e 16h
+(`26197ab`). A regra do ciclo manda auditar EM PRODUCAO antes do proximo item; com o
+push parado, isso e impossivel por construcao, e fingir que passou seria pior do que
+registrar. Duas coisas foram feitas no lugar:
+- **Auditoria na arvore:** os 10 raios do dia 20 estao no HEAD, `tsc` escopado EXIT=0,
+  EOL LF conferido, nenhum arquivo do commit das 14h foi tocado depois.
+- **Re-medicao do que ESTA no ar** (para provar que nada regrediu no que os usuarios
+  veem hoje): `/wall` em `www.usekineo.com` responde **HTTP 200**, **CLS 0**, **zero
+  erro de console**. A producao mudou de dominio no caminho e vale registrar:
+  `shortsforgeai.com` agora responde **308 → `www.usekineo.com`**.
+- **Consequencia para o roadmap, nao para esta sprint:** a auditoria em producao so
+  volta a ser possivel depois do push. Se o dia 17 abrir com `origin/main..HEAD` ainda
+  > 0, a sprint das 14h deve auditar a arvore de novo e dizer isso na primeira linha,
+  em vez de medir o ar e achar que esta medindo o proprio trabalho.
+
+**2. O ITEM DA SPRINT — item 21 (/wall), e as duas versoes dele estavam erradas.**
+
+O item 21 (13/08) dizia: o card do mural mostra um retangulo quase todo preto porque
+`hqdefault` e 480x360 e o `object-fit: cover` numa moldura 9:16 guarda so uma tira
+central. A emenda do item 25 (15/08) dizia o contrario: o `src` virou `maxresdefault`
+1280x720, entao o `cover` **corta imagem util** — "de 1280px sobrevivem ~405px, ~32% do
+quadro". **As duas leituras foram falsificadas hoje, com medicao, e nas duas o culpado
+apontado era o crop.**
+
+**Medicao A — o mural serve as DUAS urls ao mesmo tempo.** `?range=all` em producao:
+3 cards em `maxresdefault` (vindos de `row.thumbnail_url`) e 1 em `hqdefault` (o
+fallback de `youtubeThumbUrl()`, `lib/wallOfProof.ts:97`). Uma unica regra de `cover`
+governando duas geometrias — era esse o motivo de cada sprint ver uma coisa.
+
+**Medicao B — o `cover` esta CERTO nas duas, e os "405px" do item 25 sao o quadro
+inteiro.** Baixei os 3 `maxresdefault` e medi o brilho em 20 faixas verticais de 5% da
+largura: as faixas **0-6 e 13-19 sao escuras** e so as **7-12** carregam imagem — banda
+central de ~30% da largura. E **720 x 9/16 = 405px de 1280 = 31,6%**. O YouTube entrega
+a thumbnail de Short **pillarboxed em toda resolucao**; o `cover` numa moldura 9:16
+descarta exatamente as barras e conserva o Short inteiro — em `hqdefault` (202,5px de
+480) e em `maxresdefault` (405px de 1280) igualmente. **Os "~405px que sobram" que a
+emenda leu como perda de 68% sao o quadro util completo.** Trocar por `contain` +
+backdrop borrado — a correcao que o item 21 pedia — mostraria as **barras do YouTube**
+dentro da nossa moldura e encolheria o Short de 163x291 para uma tira de 163x92. **Nao
+foi feito, de proposito.**
+
+**Medicao C — o defeito real, e ele e pior.** O unico card que a aba padrao
+("This week") renderiza hoje e `aSrIVAc81MM`, e **todas as 6 resolucoes de thumbnail
+dele respondem HTTP 404**: `maxresdefault`, `hq720`, `sddefault`, `mqdefault`,
+`hqdefault`, `default`. Medido no DOM de producao com o browser: `naturalWidth` **0x0**
+na moldura de 163x291 — **1 de 1 card visivel na aba padrao nao pinta um pixel.** A
+pagina cujo trabalho e provar entrega, hoje, **100% de nada**.
+
+**Medicao D — e por que o conserto obvio nao teria funcionado.** O `i.ytimg.com` nao
+devolve corpo vazio no 404: devolve um **JPEG cinza de 120x90 perfeitamente valido**.
+Testei os 4 srcs do mural no browser da producao, um `new Image()` por url:
+
+| src | evento | naturalWidth |
+|---|---|---|
+| `aSrIVAc81MM/hqdefault` | **`load`** | **120x90** |
+| `FPXfh0CaB4I/maxresdefault` | `load` | 1280x720 |
+| `HJ1TtTy_7pw/maxresdefault` | `load` | 1280x720 |
+| `fM_DhxZn7Lc/maxresdefault` | `load` | 1280x720 |
+
+**A thumbnail morta dispara `load`, nunca `error`.** Qualquer conserto baseado em
+`onError` — que e o primeiro que qualquer um escreve, e que o proprio item 21 propunha
+na sua parte (b) — **nao faria absolutamente nada aqui**. O discriminador honesto e o
+TAMANHO: o placeholder de ausencia tem sempre 120x90, e a menor thumbnail real do
+YouTube (`mqdefault`) tem 320px. Por isso o teste e `naturalWidth <= 120`.
+
+**A mudanca (diff isolado, rollback trivial):**
+- **`components/wall/WallThumb.tsx` (novo, client)** — o mesmo `<img>` de antes, com
+  deteccao da thumbnail morta por `naturalWidth <= 120` no `onLoad` **e** no mount
+  (com SSR a imagem pode ficar `complete` ANTES da hidratacao e nenhum dos dois eventos
+  chega a disparar — e a unica razao do `useEffect`), mais `onError` como rede de
+  seguranca do caminho que o browser realmente trata como erro. No lugar do buraco entra
+  o fallback da marca: gradiente `#1d1d1f → #141416` (as superficies `--surface-1/2` da
+  tabela de tokens deste doc) com um glifo de play em SVG. **Sem animacao nenhuma** —
+  camada estatica, entao nao ha o que respeitar em `prefers-reduced-motion` nem em
+  `Save-Data`, e nao ha CLS possivel (`position:absolute; inset:0` dentro da mesma caixa
+  `aspect-ratio` de sempre).
+- **`app/wall/page.tsx`** — troca do `<img>` pelo `<WallThumb>`, mais o **gradiente
+  inferior de legibilidade** (item 6 do sistema deles, a parte (c) do item 21): as duas
+  pastilhas (#rank e views) ja tinham fundo proprio, o gradiente e o que impede que
+  flutuem sobre um frame claro. `pointer-events:none` porque o card inteiro e o link.
+- **O comentario mentiroso do item 25 (correcao 2) morreu junto.** As 6 linhas de
+  `app/wall/page.tsx:186-192` explicavam o crop de "hqdefault 480x360" numa pagina que
+  serve as duas urls; foram substituidas pela medicao de hoje, com os dois numeros
+  (202,5 de 480 e 405 de 1280) escritos, para que a proxima sprint nao "conserte" o crop
+  de novo.
+
+**Revisao adversarial, 2a passada cacando defeito na propria mudanca:**
+1. **Falso positivo:** `default.jpg` e uma resolucao REAL do YouTube e tambem tem 120x90
+   — se um dia `row.thumbnail_url` apontar para ela, o card cai no fallback. Aceito e
+   documentado: 120px esticado numa moldura de 163px ja seria inutilizavel, o fallback e
+   melhor do que a versao borrada. `youtubeThumbUrl()` devolve `hqdefault` e o banco so
+   tem `maxresdefault`, entao hoje o risco e zero.
+2. **Hidratacao:** `'use client'` nao tira o elemento do HTML do servidor — o `<img>` dos
+   cards saudaveis sai identico ao de hoje. O `missing` so muda depois da hidratacao;
+   nao ha mismatch, ha transicao de estado.
+3. **Bundle:** `/wall` **ja** e uma rota com componente client (`WallSubmitLink`), entao
+   o runtime do React ja era servido ali. Nenhuma linha nova de baseline.
+4. **z-index / modais:** nenhum `z-index` introduzido. Tudo vive dentro do
+   `overflow:hidden` do card; nada `fixed`, nada em portal — o defeito do dia 18
+   (`forwards` prendendo o interstitial) nao tem como se repetir aqui.
+5. **Ordem de pintura:** o gradiente entra ANTES das duas pastilhas no JSX, entao elas
+   pintam por cima sem precisar de `z-index`; o `#rank` fica no topo-esquerdo e o
+   gradiente so comeca a 42% do fundo — nao se tocam.
+6. **Acessibilidade:** o fallback leva `role="img"` + `aria-label` com o mesmo texto do
+   `alt`, entao o nome acessivel do card nao se perde quando a imagem some.
+7. **A ambiguidade que a mudanca torna irrelevante:** o `<img>` da pagina foi medido no
+   ar com `complete:false / 0x0` (lazy, em voo) enquanto o `new Image()` do mesmo src
+   terminou em `load / 120x90`. Nao importa qual dos dois estados o browser do visitante
+   alcance — **os dois caminhos (`onError` e `naturalWidth<=120`) caem no mesmo
+   fallback**, entao o conserto nao depende de resolver essa duvida.
+
+**O que NAO foi feito e por que:** o item 25 (aba padrao vazia + contador que conta a
+outra aba) continua aberto — hoje o contador imprime **"4 Shorts published by Kineo
+users · showing the last 7 days"** com **1 card** na tela (era 3 contra 0 em 15/08; a
+distancia aumentou). E um item proprio, com regra de negocio (qual aba abre), e a regra
+da casa e um item por sprint. Os raios de `/wall` (6 valores fora da escala) continuam
+com o item 22. **Nada de preco, oferta, credito ou entitlement foi tocado.**
+
+**Rigor:** `tsc` escopado **EXIT=0 e FALSIFICADO** (`useState<number>(false)` proposital
+→ **4x TS2345, EXIT=2** → restaurado e conferido por **md5** nos dois arquivos → EXIT=0).
+EOL **LF** conferido no HEAD e na arvore (0 CR nos dois arquivos). Indice isolado
+(`GIT_INDEX_FILE`), **sem `add -A`**, **sem push**. O `tsconfig.uisprint.json` do teste
+nao pode ser apagado pela sandbox (OneDrive devolve `Operation not permitted`) mas ja
+cai na linha 22 do `.gitignore` (`tsconfig.*.json`) — **nao entra no commit**; apague
+quando quiser.
+
+**3. Item novo no fim do backlog: item 27** (rotacao: depois do `/generate` vem a **tela
+do video pronto**).
+
+### 16/08 (sprint 14h) — DIA 20 (auditoria final) + a descoberta de que ITEM FECHADO NAO FICA FECHADO
+
+**1. Auditoria do item anterior (dia 18) EM PRODUCAO: PASSOU, e passou inteiro.**
+Medido no ar as 14h, nao deduzido do git. O que a sprint das 18h de 15/08 escreveu
+esta servido: a regra em producao e literalmente
+`.page-enter{animation:fadeIn var(--dur-base) var(--ease-out-expo)}` — **sem
+`forwards`**, que era a palavra cuja remocao impediu o transform residual de
+prender o interstitial de auto-OAuth do checkout dentro do cartao. O `/signup`
+servido traz a classe (1 ocorrencia no HTML do servidor). **E o dia 12 subiu
+junto:** a folha de producao, que em 15/08 tinha **0** ocorrencias de `var(--dur-`,
+hoje tem **77 `var(--dur-)`, 44 `var(--ease-)` e 49 `var(--r-)`** — os tokens de
+raio, cinza e timing estao todos respondendo no `:root` do ar
+(`--dur-fast 150ms · --dur-base 250ms · --dur-slow 400ms · --r-xs 8px ·
+--r-sm 13px · --r-md 18px · --r-lg 22px · --r-pill 999px`). **Nada regrediu:**
+CLS **0** medido com PerformanceObserver, zero erro de console, CLS/altura dos
+cards intactos.
+**Uma nuance que vale registrar e nao e defeito:** o `/login` (o par do `/signup`)
+tem a classe no codigo mas **0 ocorrencias no HTML servido** — a pagina inteira e
+client-rendered (o HTML do servidor nao tem nem o campo de senha). A transicao
+roda no mount, so nao no primeiro paint. O par foi cumprido; o caminho e outro.
+
+**2. O ITEM DA SPRINT — dia 20, a auditoria final, com os 10 testes rodados e
+numerados. E o resultado nao e o que o roadmap esperava.**
+
+| # | teste | resultado |
+|---|---|---|
+| 2 | raios orfaos | **FALHOU** — 15 em `KineoLanding` (eram 3 excecoes) + 648 `borderRadius` inline + 655 classes `rounded-*` |
+| 3 | <=9 cinzas | **FALHOU** — 13 tons quase-neutros no `KineoLanding` (eram 10) |
+| 4 | <=3 duracoes | **passa no CSS, FALHA no Tailwind** — 0 literais de duracao em CSS; 15 `duration-*` + 40 `ease-*` + 108 `transition-*` fora dos tokens |
+| 5 | 2 familias | passa com 1 orfao (`-apple-system` — e o `system-ui` do `/wall`, item 25) |
+| 6 | zero spinner | **passa** — `/generate` tem **0** elementos com animacao de giro |
+| 7 | video poster-first | **FALHOU** — `/generate` 11/11 `preload="metadata"`, 0 poster (ver emenda ao item 23) |
+| 8 | focus-visible | passa (auditado 13/08, sem `outline:none` novo) |
+| 9 | cerimonia do video pronto | passa (dia 7 no ar) |
+| 10 | CLS / LCP | **passa** — CLS 0; poster da vitrine e camada `<img>` `loading="eager"`, o `<video>` entra por cima |
+
+**O achado que vale o dia: os itens 11 e 12 foram fechados em 13 e 14/08 DENTRO do
+`app/KineoLanding.tsx` e a reconstrucao da home em 15/08 os reabriu no mesmo
+arquivo, sem que nada acusasse.** A contagem de `border-radius:` numerico naquele
+arquivo, commit a commit de 15/08: **3 (so as excecoes documentadas) → 11 → 14 →
+15**. Os 12 raios novos entraram junto da vitrine de motores (`.ec-dots`,
+`.tr-nav`, `.tr-badge`, `.nd-menu`, `.pstack`, `.sv2`, `.sv3`, `.tile .tic`,
+`.promo`). O mesmo vale para os cinzas: `#a1a1a8`, `#a1a1a6`, `#86868b`,
+`#3a3a3d` e `#111115` voltaram ao arquivo de onde tinham sido removidos.
+**Nao e culpa de quem reconstruiu a home — e a prova de que este roadmap nao tem
+guarda-costas: um item so fica fechado enquanto ninguem escreve CSS novo.**
+
+**A "correcao fina" que o dia 20 autoriza foi feita, e so ela:** os **10 raios
+orfaos vivos** do `KineoLanding` viraram token — diff de **10 linhas, 1 para 1**,
+nenhuma outra propriedade tocada.
+
+| seletor | antes | depois | delta real |
+|---|---|---|---|
+| `.nd-menu::before` | 13px | `--r-sm` | **0** (13px) |
+| `.nd-menu a` | 9px | `--r-xs` | -1px |
+| `.bento .promo::before` | 50% | `--r-pill` | **0** — medido 220x220, quadrado |
+| `.tile .tic` | 8px | `--r-xs` | **0** |
+| `.sv2 i` | 3px | `--r-pill` | **0** — 500x6, o raio ja era metade da altura |
+| `.sv3 b` | 50% | `--r-pill` | **0** — 26x26 |
+| `.tr-nav` | 50% | `--r-pill` | **0** — 38x38 |
+| `.ec-dots i` | 2px | `--r-pill` | **0** — 14x2,5; o clamp devolve 1,25px nos dois |
+| `.tr-badge` | 6px | `--r-xs` | +2px |
+| `.pstack img` | 10px | `--r-xs` | -2px |
+
+**Sete das dez sao byte a byte identicas no render**, e as tres que andam andam
+**<=2px**. Os `50%` so viraram `--r-pill` **depois de medir que os tres elementos
+sao quadrados perfeitos** — em elemento retangular `50%` e elipse e `999px` e
+capsula, entao a conversao que o item 11 fez "por mapa" aqui foi feita por regua.
+Prova em producao pelo metodo da casa (folha de teste no **body**, nunca no head —
+emenda do item 22): com as 10 regras injetadas, os computados trocam como previsto
+e **nenhum retangulo mudou de tamanho** (`162x41`, `30x30`, `500x6`, `26x26`,
+`38x38`, `14x3`, `56x22`, `89x124` iguais antes e depois) — CLS impossivel.
+**O que NAO foi tocado, de proposito:** os 3 `border-radius:0` da tabela
+comparativa (reset, excecao ja documentada no item 11) e os 2 raios de
+`.scroll-cue` / `.scroll-cue::before` — **porque descobri que `.scroll-cue` e CSS
+MORTO**: as 4 regras + o keyframe `cueDrop` existem no `KLP_CSS` e **nenhum
+elemento no JSX usa a classe** (so um comentario no `RevealOnScroll.tsx` a cita).
+Tokenizar codigo morto e maquiar; apagar CSS morto e outra mudanca, entao fica
+registrado aqui e nao entra neste commit.
+**Rigor:** `tsc --noEmit` **EXIT=0**, e falsificado — com um erro proposital
+(`const __kineo_probe: number = 'nao e number'`) o tsc acusou
+`app/KineoLanding.tsx(714,7): error TS2322` e **EXIT=2**; arquivo restaurado e
+conferido byte a byte contra o backup. EOL: LF no disco e LF no HEAD, **0 CRLF**.
+**Revisao adversarial (2 passadas, a 2a cacando defeito meu):** (a) `var()` dentro
+de `::before` — custom property herda para pseudo-elemento, e foi **medido** (o
+`::before` do `.nd-menu` devolveu 13px com o token); (b) todos os 10 seletores sao
+`.klp <algo>`, entao os tokens do bloco de vars do `.klp` alcancam todos — nao ha
+o risco do `var()` cair para 0 que quase quebrou as pilulas do rodape em 14/08;
+(c) z-index/modais/LCP/autoplay: **intocados** — o commit so muda `border-radius`,
+nao ha uma unica outra propriedade no diff.
+
+**3. Realimentacao do backlog: item 26 (`/generate`) + emenda ao item 23.**
+Na rotacao, `/generate` — a pagina onde a medicao de aquisicao de hoje diz que a
+intencao de compra NASCE (17 pessoas em `generate_step_1` contra 8 no `/pricing`) —
+usa o azul da marca em **89 de 605 elementos** (47 texto, 59 fundo, 38 borda, 10
+sombra; 21 acima da dobra), contra 23 do `/pricing` e 14 do `/wall`: **quase 4x o
+pior caso ja registrado neste doc**, e o oposto exato do "1 acento usado raro".
+Detalhe no item 26. A emenda ao item 23 e que **o `/generate` tem a mesma doenca do
+`/history`**: 11 `<video>`, `preload="metadata"` em 11/11, `poster` em 0/11.
+
+**4. Situacao do push:** `origin/main` = `315c442`; **2 commits locais esperam
+push** (as sprints de analytics das 11h e 13h de hoje) **+ este da UI**. As sprints
+de UI de 15/08 ja estao no ar — foi assim que a auditoria acima pode ser feita.
+**O push continua sendo seu.**
+
+---
 
 ### FECHAMENTO DO DIA — 15/08 (3 linhas, escritas pela sprint das 18h)
 

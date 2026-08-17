@@ -24,12 +24,12 @@ const POSTER: Record<string, string> = {
 // KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (fonte:
 // generate-video-cinematic/route.ts). Pares: bento em KineoLanding.tsx.
 const META: Record<string, { name: string; desc: string; href: string }> = {
-  cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/generate?engine=veo&intent_campaign=hero_engine' },
-  cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/generate?engine=kling&intent_campaign=hero_engine' },
-  cinematic_hollywood: { name: 'Kling 3', desc: 'Film scenes, native voice & lip sync', href: '/generate?engine=hollywood&intent_campaign=hero_engine' },
-  cinematic_ai: { name: 'Seedance 1.5', desc: 'The workhorse AI video engine', href: '/generate?engine=seedance&intent_campaign=hero_engine' },
+  cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/studio?engine=veo&intent_campaign=hero_engine' },
+  cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/studio?engine=kling&intent_campaign=hero_engine' },
+  cinematic_hollywood: { name: 'Kling 3', desc: 'Film scenes, native voice & lip sync', href: '/studio?engine=hollywood&intent_campaign=hero_engine' },
+  cinematic_ai: { name: 'Seedance 1.5', desc: 'The workhorse AI video engine', href: '/studio?engine=seedance&intent_campaign=hero_engine' },
   presenter: { name: 'Avatar', desc: 'Talking video from one photo', href: '/avatar?intent_campaign=hero_engine' },
-  fast: { name: 'Kineo 1', desc: 'Kineo’s own engine — 3–7 min', href: '/generate?engine=fast&intent_campaign=hero_engine' },
+  fast: { name: 'Kineo 1', desc: 'Kineo’s own engine — 3–7 min', href: '/studio?engine=fast&intent_campaign=hero_engine' },
 }
 
 const srcOf = (v: WallVideo) => v.previewUrl ?? v.videoUrl

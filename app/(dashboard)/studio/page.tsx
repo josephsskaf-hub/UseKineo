@@ -7,7 +7,7 @@
 // de nenhuma nav até lá.
 import StudioClient from './StudioClient'
 
-export const metadata = { title: 'Studio — Kineo [STAGE]' }
+export const metadata = { title: 'Studio — Kineo' }
 
 export default function StudioPage() {
   return <StudioClient />

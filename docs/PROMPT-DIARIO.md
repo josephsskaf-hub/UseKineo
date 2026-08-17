@@ -1,5 +1,125 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇA — 17/08/2026 (sprint 13h) — 4ª PERNA DA REGRA 1: **ÍNDICE COPIADO ENVELHECE**
+>
+> O contorno `GIT_INDEX_FILE` (necessário porque o OneDrive recusa o `unlink` de
+> `.git/index.lock`) tira uma **FOTO** do índice. Se o `main` se mover entre a
+> cópia e o `commit-tree`, o commit resultante **reverte tudo que entrou no
+> intervalo, em silêncio** — e o `merge-base --is-ancestor` **PASSA**, porque a
+> **topologia está certa** e o que está errado é o **CONTEÚDO**.
+>
+> Aconteceu às 16:3xZ de 17/08: o fundador commitou `dcad414` ("STUDIO VAI PRA
+> PRODUCAO — aprovado") enquanto a sprint rodava; o commit seguinte (`bbfee24`),
+> montado de uma cópia do índice anterior, **apagou 322 linhas do `/studio`**
+> (`StudioClient.tsx` 307, `page.tsx` 14, `KineoLanding.tsx` 1) numa mensagem que
+> falava de páginas de SEO — e **foi empurrado**. É o `b6fef68` de 30/07
+> acontecendo de novo, pela mesma porta.
+>
+> **Fechamento obrigatório de todo commit feito por `commit-tree`:**
+> 1. **reler `refs/heads/main` imediatamente antes** do `commit-tree` — nunca
+>    reusar o valor lido no início da sprint;
+> 2. **`git diff --stat <pai> <novo>` e conferir que TODO arquivo listado é um
+>    arquivo que eu toquei.** Qualquer nome desconhecido — sobretudo com sinal
+>    negativo — é um revert.
+>
+> **O passo 2 é o único que pega este caso.** O passo 1 sozinho NÃO salva: o ref
+> lido estava correto (`dcad414`) e o revert aconteceu mesmo assim, porque o
+> tree vinha da cópia velha. Corrigido em `073e8a2` restaurando os blobs exatos
+> de `dcad414` via `update-index --cacheinfo`, sem reescrever histórico —
+> reescrever ref sob um repo cujo dono está commitando ao vivo foi como o
+> defeito nasceu.
+>
+> **Corolário que confirma a correção 2b de 08/08:** na mesma sequência,
+> `refs/heads/main.lock` continha um SHA **velho** (`dcad414`) enquanto o ref
+> real já era `bbfee24`. Gravar pelo conteúdo do `.lock` teria recusado um
+> commit legítimo. **Parentesco é a checagem certa; o `.lock` não é evidência
+> de nada.**
+>
+> **Corolário de leitura de instrumento (mesma sprint):** um campo de telemetria
+> pode nascer **estruturalmente incapaz** de responder à pergunta que motivou
+> sua criação. `checkout_session_expired` (16/08) lia o país em
+> `customer_details.address.country` — que a Stripe só preenche quando a pessoa
+> **digita o endereço**, e a parede do checkout é exatamente onde ninguém digita.
+> Vieram `null` nas 10 primeiras leituras. **Antes de confiar num campo novo,
+> ler as primeiras N linhas dele e conferir que não são todas nulas** — o
+> instrumento tem de ser medido, igual ao resto.
+
+> ## MUDANÇA — 17/08/2026 (sprint 11h) — 3ª PERNA DA REGRA 1: A CADEIA TEM **QUATRO** ELOS
+>
+> **disco → índice/HEAD → REMOTO → PRODUÇÃO.** `git log origin/main..HEAD` prova
+> o 3º elo e **não diz absolutamente nada** sobre o 4º.
+>
+> Às 14:25Z de 17/08, com o `140-PUSH` já rodado e o GitHub em `38e9b1b`, a
+> **produção rodava `e0d3276` — 5 commits atrás**, incluindo o gate de cota de
+> e-mail, um **fix de build** e a 30ª página SEO. Causa medida pelos carimbos:
+> `e0d3276` foi empurrado 14:00:53Z e deployado 14:20:10Z (**19 min de fila de
+> build da Vercel**); os 5 seguintes, empurrados ~14:18Z, às 14:31Z ainda não
+> tinham registro de deploy criado. **Não era pipeline quebrado — era fila.**
+>
+> **O que isso quase causou:** `email_send_log` estava em **0 linhas** com **48
+> e-mails enviados no dia**, os últimos às 14:20 e 14:25Z. A leitura ingênua
+> ("o gate ficou inerte pela 3ª vez") teria feito alguém **reescrever um gate
+> correto**. O gate não estava inerte: não estava **rodando**. E esse zero era
+> exatamente "a métrica de amanhã" que a sprint anterior tinha nomeado.
+>
+> **Fechamento obrigatório de toda sprint que liga um fio novo:**
+> 1. SHA do último deploy `READY` **em produção** (`list_deployments`), comparado
+>    a `git ls-remote origin refs/heads/main`;
+> 2. se o efeito for observável de fora (página, rota), **uma busca na web aberta
+>    contra a URL de produção** — a única prova que não depende de painel nosso.
+>    Foi assim que a 30ª página foi pega: `/free-ai-shorts/faith` respondia com
+>    **29** irmãs no rodapé e `localbusiness` fora, e a URL dela vinha vazia.
+>
+> **Corolário para leitura de métrica:** antes de concluir qualquer coisa de um
+> número baixo, conferir se o código que produz aquele número **está no ar**.
+> *Zero sobre código não deployado não é evidência de nada* — é a regra 3 de
+> 08/08 aplicada ao 4º elo.
+>
+> **Corolário de EOL (mesma sprint):** `lib/analytics.ts` estava **misto** no HEAD
+> (195 CRLF + 148 LF) e LF puro no disco → diff aparentando **480 linhas** para uma
+> mudança de **89 inserções e 1 deleção**. Antes de commitar arquivo com diff
+> desproporcional, reconstruir preservando o EOL original de cada linha intocada
+> (difflib por opcodes) e conferir o conteúdo byte a byte. Diff inflado é onde um
+> revert silencioso se esconde — lição do `b6fef68`.
+
+> ## MUDANÇA — 17/08/2026 (sprint 10h) — UMA regra, e ela é uma perna nova da regra 1
+>
+> **MÓDULO NOVO FECHA COM DUAS PROVAS: `grep -c` do próprio import E
+> `git show HEAD:<arquivo>`. Nunca o `ls` do disco, e NUNCA o `tsc`.**
+>
+> A sprint das 11h de 17/08 entregou `lib/email/quota.ts` (260 linhas, gate de
+> cota do Resend com reserva de prioridade) + a migração
+> `20260817130000_email_send_log.sql`, e marcou a tarefa como concluída. Às 13:50Z
+> **nada disso funcionava, por três motivos independentes**:
+> 1. `to_regclass('public.email_send_log')` = **null** — a tabela nunca existiu em
+>    produção. Sem ela o gate cai em `degraded_open` e **libera tudo, sempre**;
+> 2. a migração **não compila**: `create index ((sent_at::date), priority)` →
+>    `42P17 functions in index expression must be marked IMMUTABLE` (cast de
+>    `timestamptz` para `date` depende do `TimeZone`, logo é STABLE). Quem
+>    tentasse aplicar também teria falhado;
+> 3. **zero call sites** — `grep -rln "email/quota"` devolvia só o próprio
+>    arquivo. O gate era indistinguível, em produção, de um arquivo inexistente.
+>
+> E o `.sql` estava **untracked**. E o próprio `lib/email/quota.ts` **também
+> estava untracked** — isso só apareceu porque, ao conferir o commit por
+> CONTEÚDO (regra 2), `git show HEAD:lib/email/quota.ts` respondeu
+> **"exists on disk, but not in HEAD"**. Sem essa conferência, o commit que ligou
+> os três remetentes teria ido para produção com
+> `Module not found: Can't resolve '@/lib/email/quota'` em 3 arquivos.
+>
+> **O detalhe que faz esta regra existir: o `tsc --noEmit` escopado PASSOU (exit
+> 0) com o módulo untracked.** O `tsc` lê o **disco**, não a árvore do git. Um
+> `tsc` verde sobre arquivo não versionado é um falso positivo perfeito — local
+> compila, deploy quebra. É a regra 3 (prova em segundos) e a regra 1
+> ("escrevi" ≠ "entreguei") colidindo: a prova rápida que adotamos não cobre a
+> pergunta "isto existe para o build da Vercel?".
+>
+> **Checklist de fechamento de módulo novo, os quatro juntos:**
+> `git status --porcelain -- lib/ app/ | grep '^??'` (nada meu ali) ·
+> `git grep -l "<modulo>" HEAD -- app/` (>0 arquivos) ·
+> `git show HEAD:<arquivo>` (não erra) ·
+> e para migração, `to_regclass` no banco — **nunca** a existência do `.sql`.
+
 > ## MUDANÇAS — 08/08/2026 (sprint 13h) — duas regras, ambas sobre ENTREGA
 >
 > **1. "Escrevi a correção" não é "entreguei a correção". Fechar toda sprint com

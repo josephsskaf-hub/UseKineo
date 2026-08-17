@@ -5,6 +5,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+// KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
+// guardadas (mesmo padrão do cinematic-clip-status).
+import { createHash } from 'crypto'
+import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
@@ -73,7 +77,12 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 
-export const maxDuration = 60
+// KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
+// em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
+// (cobrança presa até o cron). O caminho Hollywood (planner + até 2 replans +
+// âncoras + host TTS + 7 submits) pode passar de 60s legitimamente; compose já
+// roda com 300. Mesmo teto aqui: timeout deixa de ser modo de falha realista.
+export const maxDuration = 300
 
 type CachedCinematicSubmission = {
   fingerprint: string
@@ -114,7 +123,13 @@ const HOLLYWOOD_CREDIT_COST = 150
 // detailed error log. With balance topped up, re-enabling Seedance: better
 // visual quality, ~48% cheaper than Wan ($0.13 vs $0.25/clip @720p no audio),
 // faster (~30-45s/clip). Same { video: { url } } output. Fallback = Wan.
-const SEEDANCE_MODEL = 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
+// KINEO-SEEDANCE-SLUG-2026-08-17 — alavanca de upgrade sem deploy de codigo:
+// o Seedance 2.5 (rei do i2v na arena de ago/2026, clipes nativos de 30s) ja
+// esta no fal. Pra testar em stage/preview: setar KINEO_SEEDANCE_SLUG no env
+// do Vercel (ex.: 'fal-ai/bytedance/seedance-2.5/text-to-video' — validar o
+// slug exato e o schema ANTES no llms.txt do modelo; docs/MOTOR-MAX.md).
+// Sem a env, producao segue byte-identica no 1.5.
+const SEEDANCE_MODEL = process.env.KINEO_SEEDANCE_SLUG || 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video'
 // Push #401 — premium engine for the Pro plan. Kling 2.5 Turbo Pro is more
 // cinematic (motion/physics/prompt adherence) than Seedance. Same { video: { url } }
 // output shape. Kling has no `resolution`/`generate_audio` params and is silent
@@ -240,12 +255,16 @@ function buildFalInput(
   // quoted line), so generate_audio:true yields ambient sound, not speech.
   // Duration snap ≤6s→'5' covers both dialogue (exact 5|10) and support.
   if (model === KLING3_MODEL) {
+    // KINEO-MOTORMAX-2026-08-16 — schema oficial: duration aceita QUALQUER
+    // inteiro 3-15 (o snap 5|10 criava dead air ou fala cortada) e cfg_scale
+    // (default 0.5) aumenta aderencia ao prompt — menos cena aleatoria/gemea.
     return {
       prompt,
-      duration: typeof seconds === 'number' && seconds <= 6 ? '5' : '10',
+      duration: String(Math.max(3, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
       aspect_ratio: '9:16',
       generate_audio: true,
-      negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
+      cfg_scale: 0.6,
+      negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
     }
   }
   if (model === SORA_MODEL) {
@@ -273,7 +292,7 @@ function buildFalInput(
         // antes do TAAFT (decisao do fundador 16/08). Creditos inalterados.
         resolution: '1080p',
         generate_audio: true,
-        negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
+        negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
       }
     }
     return {
@@ -285,6 +304,10 @@ function buildFalInput(
       // — Full HD ligado sem custo extra, antes do TAAFT.
       resolution: '1080p',
       generate_audio: false,
+      // KINEO-MOTORMAX-2026-08-16 — safety_tolerance 5 (default 4): menos
+      // bloqueio espurio de moderacao = menos cena dropada. Nossos prompts
+      // sao b-roll documental — o filtro default e calibrado pra UGC livre.
+      safety_tolerance: '5',
       negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
       ...(typeof seed === 'number' ? { seed } : {}),
@@ -335,17 +358,26 @@ function buildFalInput(
       prompt,
       aspect_ratio: '9:16',
       resolution: '720p',
-      duration: typeof seconds === 'number' && seconds <= 6 ? '5' : '10',
+      // KINEO-MOTORMAX-2026-08-16 — duration continua 4-12 no schema; exata =
+      // sem dead air E mais barata (preco por token ∝ duracao).
+      duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
       generate_audio: true,
     }
   }
-  // Seedance (default). KINEO-SEEDANCE-720-CREATOR-2026-07-06: resolution follows
-  // the plan — Studio (hd=true) = 1080p premium, Creator/credit-payers = 720p.
+  // Seedance (default). KINEO-SEEDANCE-720-CREATOR-2026-07-06: resolution seguia
+  // o plano — Studio 1080p, Creator 720p (margem).
+  // KINEO-1080-GERAL-2026-08-17 (fundador: "qualidade e muito importante para a
+  // nossa porta" — aprovado): 1080p PRA TODOS. Custo fal por video Seedance
+  // sobe ~2x (preco por token ∝ pixels), a margem no Creator estreita mas segue
+  // positiva; o pricing novo (matriz V4, pendente de aprovacao) reequilibra.
+  // A porta mostra Full HD → o produto entrega Full HD, em todo plano.
   return {
     prompt,
     aspect_ratio: '9:16',
-    resolution: hd ? '1080p' : '720p',
-    duration: '10',
+    resolution: '1080p',
+    // KINEO-MOTORMAX-2026-08-16 — duracao exata 4-12 (schema): sem dead air e
+    // ~20% mais barata quando a cena planejada e de 8s (preco por token).
+    duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
     generate_audio: false,
     // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
     ...(typeof seed === 'number' ? { seed } : {}),
@@ -1672,13 +1704,133 @@ export async function POST(req: NextRequest) {
       const hollywoodVertical =
         typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
 
+      // ── KINEO-SALVAGE-2026-08-17 — RETOMADA DE RENDER ────────────────────
+      // Madrugada de 17/08: um render morreu com 4/6 cenas PRONTAS e pagas no
+      // fal (~$8) e o Retry recomeçava do zero — replanejava, re-pagava e
+      // re-esperava as 4 cenas que JÁ EXISTIAM. Agora todo submit Hollywood
+      // grava plano+ids em hollywood_resume (chave: user+fingerprint do
+      // pedido); um novo pedido IGUAL dentro de 2h reaproveita as cenas
+      // completas/na fila e re-submete só as falhadas — planner e âncoras
+      // nem rodam. Fail-open total: qualquer erro aqui cai no caminho normal.
+      const salvageDb = (() => {
+        try {
+          const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+          const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+          if (!url || !key) return null
+          return createAdminClient(url, key, { auth: { persistSession: false } })
+        } catch { return null }
+      })()
+      const salvageFp = createHash('md5')
+        .update(`${user.id}|hollywood|${Math.round(duration || 60)}|${prompt.trim().toLowerCase()}`)
+        .digest('hex')
+      if (salvageDb) {
+        try {
+          const { data: sv } = await salvageDb
+            .from('hollywood_resume')
+            .select('response, request_ids, models, created_at')
+            .eq('user_id', user.id)
+            .eq('fingerprint', salvageFp)
+            .maybeSingle()
+          if (sv && Date.now() - new Date(sv.created_at as string).getTime() < 2 * 60 * 60 * 1000) {
+            // KINEO-SALVAGE-SCOPE-2026-08-17 — flagrado pelo fundador no 1o
+            // uso real: ele RE-GEROU um pedido identico apos um render
+            // COMPLETO e a retomada devolveu as cenas velhas (86% em 1min,
+            // "ja tinha renderizado as cenas?"). Retomada existe SO pra
+            // falha: se ja existe video COMPLETO deste user com este mesmo
+            // prompt desde o snapshot, o pedido novo e um refazer — snapshot
+            // e descartado e o caminho normal (plano fresco) assume.
+            const { data: doneVid } = await salvageDb
+              .from('videos')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('status', 'completed')
+              .gte('created_at', sv.created_at as string)
+              .ilike('topic', `${prompt.trim().slice(0, 60).replace(/[%_]/g, '')}%`)
+              .limit(1)
+              .maybeSingle()
+            if (doneVid) {
+              console.log('[cinematic] SALVAGE descartado: render anterior deste pedido ja COMPLETOU — refazer = plano fresco')
+              await salvageDb.from('hollywood_resume').delete().eq('user_id', user.id).eq('fingerprint', salvageFp)
+              throw new Error('__salvage_skip__')
+            }
+            const storedResp = sv.response as Record<string, unknown>
+            const storedIds = (sv.request_ids as (string | null)[]) ?? []
+            const storedModels = (sv.models as string[]) ?? []
+            const sPrompts = (storedResp.scene_prompts as string[]) ?? []
+            const sAnchors = (storedResp.scene_anchor_urls as (string | null)[]) ?? []
+            const sSeconds = (storedResp.scene_seconds as number[]) ?? []
+            if (storedIds.length > 0 && storedIds.length === storedModels.length) {
+              const falKey = process.env.FAL_KEY
+              if (falKey) fal.config({ credentials: falKey })
+              const freshIds: (string | null)[] = []
+              let reused = 0
+              let resubmitted = 0
+              for (let i = 0; i < storedIds.length; i++) {
+                let keep: string | null = null
+                const rid = storedIds[i]
+                if (rid && falKey) {
+                  try {
+                    const st = (await fal.queue.status(storedModels[i], { requestId: rid })) as { status?: string }
+                    if (st.status === 'COMPLETED' || st.status === 'IN_PROGRESS' || st.status === 'IN_QUEUE') {
+                      keep = rid
+                      reused++
+                    }
+                  } catch { /* status irrecuperável → re-submete abaixo */ }
+                }
+                if (!keep && sPrompts[i]) {
+                  try {
+                    keep = await submitToFal(sPrompts[i], storedModels[i], false, true, sSeconds[i], sAnchors[i] ?? undefined)
+                    if (keep) { resubmitted++; providerSubmissionMayExist = true }
+                  } catch { keep = null }
+                }
+                freshIds.push(keep)
+              }
+              const okSec = sSeconds.reduce((a, s, i) => a + (freshIds[i] ? (s || 0) : 0), 0)
+              const totSec = sSeconds.reduce((a, s) => a + (s || 0), 0) || 1
+              if (freshIds.some(Boolean) && okSec >= totSec * 0.6) {
+                if (reused > 0) providerSubmissionMayExist = true
+                console.log(
+                  `[cinematic] SALVAGE: ${reused} cenas reaproveitadas + ${resubmitted} re-submetidas (fp=${salvageFp.slice(0, 8)}) — planner/âncoras pulados`,
+                )
+                const patched: Record<string, unknown> = {
+                  ...storedResp,
+                  generationId,
+                  fal_request_ids: freshIds,
+                  fal_models: storedModels,
+                  fal_model: storedModels[0] ?? HOLLYWOOD_MODELS.dialogue,
+                }
+                return publishCinematicResponse(patched, freshIds, storedModels)
+              }
+              console.warn('[cinematic] SALVAGE inviável (cenas insuficientes) — replanejando do zero')
+            }
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e)
+          // '__salvage_skip__' = descarte intencional (render anterior ja
+          // completou) — segue pro plano fresco sem alarde.
+          if (msg !== '__salvage_skip__') {
+            console.warn('[cinematic] salvage lookup falhou (caminho normal):', msg)
+          }
+        }
+      }
+
+      // KINEO-TIKTOK-61-2026-08-17 — regra de negocio do fundador: "se a
+      // gente vende 60 segundos, tem que entregar pelo menos 61" (Creator
+      // Rewards do TikTok so paga acima de 1:00). O plano mira ALEM do
+      // pedido (60 → 68) porque a entrega encolhe ~10% (fala real menor que
+      // o planejado + gapfix). Aterrissagem esperada: 61-65s.
+      const hollywoodTarget = (() => {
+        const req = Math.max(45, Math.min(60, Math.round(duration || 60)))
+        return req >= 55 ? req + 8 : req + 4
+      })()
+
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
           idea: prompt,
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
-          durationSeconds: duration,
+          durationSeconds: hollywoodTarget,
           language: hollywoodLanguage,
         })
       } catch (e) {
@@ -1694,6 +1846,135 @@ export async function POST(req: NextRequest) {
           { error: 'Hollywood scene planning failed. Please try again.' },
           { status: 502 },
         )
+      }
+
+      // KINEO-SCENEVARIETY-2026-08-17 — fundador (render Krakatoa): "a mesma
+      // cena do mar se repetiu por varias vezes". Nao confiamos so na regra
+      // nova do planner: aqui a SOMA e conferida em codigo — Jaccard de tokens
+      // entre prompts nao-dialogo (sem as sheets, que repetem por design). Um
+      // par >55% igual = replaneja UMA vez nomeando o par. Ainda igual apos o
+      // replan → segue (logado), nunca mata o render.
+      {
+        const sim = (a: string, b: string): number => {
+          const strip = (p: string) => p
+            .replace(plan.characterSheet ?? '', ' ')
+            .replace(plan.environmentSheet ?? '', ' ')
+            .toLowerCase().replace(/[^a-z0-9\s]/g, ' ')
+          const tok = (p: string) => new Set(strip(p).split(/\s+/).filter((w) => w.length > 3))
+          const A = tok(a), B = tok(b)
+          if (A.size === 0 || B.size === 0) return 0
+          let inter = 0
+          for (const w of A) if (B.has(w)) inter++
+          return inter / (A.size + B.size - inter)
+        }
+        const dupPair = (pl: typeof plan): [number, number] | null => {
+          const br = pl.scenes.map((sc, idx) => ({ sc, idx })).filter((x) => x.sc.type !== 'dialogue')
+          for (let a = 0; a < br.length; a++)
+            for (let b = a + 1; b < br.length; b++)
+              if (sim(br[a].sc.prompt, br[b].sc.prompt) > 0.55) return [br[a].idx + 1, br[b].idx + 1]
+          return null
+        }
+        const dup = dupPair(plan)
+        if (dup) {
+          console.warn(`[cinematic] hollywood scenes ${dup[0]} and ${dup[1]} are near-identical — replanning once for subject variety`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: hollywoodTarget,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `scenes ${dup[0]} and ${dup[1]} show the SAME visual subject. Every non-dialogue scene must depict a DIFFERENT primary subject from the story (different event, place, era or moment) — and the environmentSheet must appear ONLY in scenes set in the narrator's own location.`,
+            })
+            if (!dupPair(replanned)) plan = replanned
+            else console.warn('[cinematic] hollywood variety replan still repetitive — keeping best effort')
+          } catch (e) {
+            console.warn('[cinematic] hollywood variety replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
+          }
+        }
+      }
+
+      // KINEO-DURATIONFIX-2026-08-17 — dois renders do fundador sairam com
+      // EXATOS 34s num pedido de 60s: o GPT-planejador ignora o alvo e ninguem
+      // conferia a SOMA. Agora: (1) soma curta → replaneja UMA vez com o
+      // feedback explicito; (2) ainda curta → estica as cenas NAO-dialogo ate
+      // >=90% do alvo (os motores agora aceitam duracao exata 3-15/4-12 —
+      // MOTORMAX — entao esticar funciona; dialogo nunca estica: a fala tem o
+      // tamanho que tem).
+      {
+        const target = hollywoodTarget // KINEO-TIKTOK-61 — overshoot pro plano
+        const planTotal = (pl: typeof plan) => pl.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+        let total = planTotal(plan)
+        if (total < Math.round(target * 0.85)) {
+          console.warn(`[cinematic] hollywood plan too short: ${total}s of ${target}s target — replanning once`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: hollywoodTarget,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `it totaled only ${total} seconds against a ${target}-second target. Return a plan whose scene seconds SUM to ${target - 5}-${target + 2}. Add scenes or lengthen the non-dialogue ones.`,
+            })
+            if (planTotal(replanned) > total) plan = replanned
+            total = planTotal(plan)
+          } catch (e) {
+            console.warn('[cinematic] hollywood replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
+          }
+        }
+        // Estica b-roll ate o alvo — MAS SO ATE ONDE A FALA ALCANCA.
+        // KINEO-DURATIONFIX-B-2026-08-17 — era 90%; plano de 54 virava video
+        // de 46 (cenas de fala usam o audio REAL, sempre menor).
+        // KINEO-QUEUE-LATENCY-2026-08-17 — teto de apoio 15→12s (clipes de
+        // 14-15s entupiram a fila do Kling na madrugada).
+        // KINEO-NARRATION-FIT-2026-08-17 — feedback do fundador no render da
+        // manha: "faltou narracao no meio, sem brilho". Raiz: o esticador
+        // alongava o CLIPE mas nao a FALA — voiceover de 8s dentro de cena de
+        // 12s = 2-4s de silencio morto POR CENA. Agora o teto de cada cena e
+        // o MENOR entre 12s e o que a narracao dela sustenta (~2.3 pal/s +1s
+        // de respiro). Duracao que faltar vem de MAIS CENAS (replan abaixo),
+        // nunca de cena oca.
+        const wordsOf = (sc: { voiceover?: string | null }) =>
+          (sc.voiceover ?? '').trim().split(/\s+/).filter(Boolean).length
+        const capFor = (sc: { type: string; voiceover?: string | null }) =>
+          sc.type === 'cinematic'
+            ? 8
+            : Math.min(12, Math.max(5, Math.round(wordsOf(sc) / 2.3) + 1))
+        let guard = 60
+        while (total < target && guard-- > 0) {
+          const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc))
+          if (stretchable.length === 0) break
+          for (const sc of stretchable) {
+            if (total >= target) break
+            sc.seconds = (sc.seconds || 0) + 1
+            total += 1
+          }
+        }
+        // Esticador esgotou (toda fala no limite) e ainda falta >5s? UMA
+        // replaneja extra pedindo MAIS CENAS com fala dimensionada — e o
+        // conteudo da script que estava sendo DROPADO ("a historia ficou
+        // curta") volta pro filme.
+        if (total < target - 5) {
+          console.warn(`[cinematic] hollywood plan ${total}s apos esticar ate o limite da fala — replan por MAIS CENAS`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: hollywoodTarget,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `it covered only ${total} seconds of spoken content against a ${target}-second target. Return ${Math.min(8, plan.scenes.length + 1)}-8 scenes summing ${target - 5}-${target + 2} seconds, and size EVERY voiceover to its scene at ~2.3 words per second (a 10s scene needs 20-24 words, a 12s scene 26-30) — use MORE of the source script's facts; do not drop story beats.`,
+            })
+            const replannedTotal = replanned.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+            if (replannedTotal > total) {
+              plan = replanned
+              total = replannedTotal
+            }
+          } catch (e) {
+            console.warn('[cinematic] replan por mais cenas falhou (mantendo plano):', e instanceof Error ? e.message : String(e))
+          }
+        }
+        console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
       }
 
       // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 "UM MUNDO": generate the
@@ -1831,7 +2112,16 @@ export async function POST(req: NextRequest) {
         let sceneEngine: string = hs.type
         let id: string | null = null
 
-        if (anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
+        // KINEO-HOLLYWOOD-VOICEFIX-2026-08-16 — DESLIGADO por padrao (flag).
+        // O host path fazia TTS (persona por hash do script, gênero aleatorio)
+        // por cima do ROSTO do personagem via Avatar: cai numa voz feminina e
+        // o homem da ancora "fala" com voz de mulher (bug flagrado pelo
+        // fundador no render Flannan Isles). Ate o gênero da voz ser resolvido
+        // a partir do characterSheet (Projeto Piso), cenas de dialogo voltam ao
+        // caminho O3 NATIVO: o personagem fala com a PROPRIA voz, labios e voz
+        // sempre do mesmo dono. Narracao TTS segue apenas nas cenas sem gente
+        // (estilo documentario: narrador + personagem sao pessoas diferentes).
+        if (process.env.KINEO_HOLLYWOOD_HOST_TTS === 'on' && anchors && hostVoice && hs.type === 'dialogue' && hs.dialogueLine && hs.dialogueLine.trim()) {
           try {
             const speechBuf = await synthesizeHostSpeech({
               text: hs.dialogueLine,
@@ -1889,14 +2179,65 @@ export async function POST(req: NextRequest) {
         if (!id) {
           // v3.0 path — byte-identical to before v3.5 (and the per-scene
           // fallback when the host path above failed).
+          // KINEO-SPECTACLE-2026-08-17 (fundador: "a mesma cena do mar se
+          // repetiu varias vezes") — a RAIZ da repeticao: TODA cena nao-dialogo
+          // era semeada com a MESMA imagem-ancora de ambiente (i2v), entao
+          // todo b-roll nascia da mesma foto. A ancora de ambiente agora so
+          // vale quando o PROPRIO planner colocou o environmentSheet no prompt
+          // da cena (= a cena se passa no mundo do narrador); b-roll de outros
+          // lugares/eventos vai de t2v e ganha visual proprio.
+          const envSig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
+          const inNarratorWorld = envSig.length > 8 && hs.prompt.toLowerCase().includes(envSig)
           const anchorUrl = anchors
             ? hs.type === 'dialogue'
               ? anchors.portraitUrl
-              : anchors.environmentUrl
+              : inNarratorWorld ? anchors.environmentUrl : undefined
             : undefined
-          const scenePrompt = hs.prompt + eraSuffix
+          // KINEO-IMAGEFIRST-2026-08-17 — fundador pegou a SEGUNDA cena deitada
+          // (Londres 1908 inteira de lado, mesmo com a ordem de horizonte no
+          // prompt). Pedir por favor nao resolve rotacao: agora cena de apoio
+          // sem ancora nasce de um STILL 9:16 proprio (flux, ~2s, centavos) e
+          // anima por i2v — com o primeiro frame vertical, o clipe NAO TEM
+          // como sair deitado. E o modo image-first do PROJETO-PISO. Fail-open:
+          // still falhou → t2v como antes (com o prefixo upright abaixo).
+          let sceneStillUrl: string | null = null
+          if (hs.type === 'support' && !anchorUrl) {
+            try {
+              sceneStillUrl = await generateCinematicSceneStill({
+                scenePrompt: hs.prompt,
+                styleSuffix: plan.styleSheet ?? '',
+                seed: generationSeed,
+                pollWindowMs: 9_000,
+              })
+            } catch { sceneStillUrl = null }
+          }
+          const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
+          sceneModel = sceneAnchor ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[hs.type]
+          // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
+          // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
+          // + voz de outra pessoa = dublagem de terror (o bug que o fundador
+          // viu DUAS vezes). Nao confiamos so no planner: o sufixo vai sempre.
+          const mouthSuffix = hs.type !== 'dialogue' ? ' If any person is visible: mouth closed, not speaking, no lip movement, no talking.' : ''
+          // KINEO-SPECTACLE-2026-08-17 (fundador: "nao estava muito nitida,
+          // sem efeitos") — DNA de nitidez/escala em todo b-roll, em CODIGO
+          // (nao dependemos do planner escrever bonito).
+          // KINEO-UPRIGHT-2026-08-17 (fundador: "teve uma cena deitada") — um
+          // clipe da manha veio com o horizonte NA VERTICAL: em prompt de
+          // "wide establishing" o modelo as vezes pinta a paisagem de lado
+          // dentro do quadro 9:16. Ordem explicita de composicao vertical +
+          // horizonte nivelado em toda cena nao-dialogo.
+          const spectacleSuffix = hs.type !== 'dialogue'
+            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur.'
+            : ''
+          // KINEO-UPRIGHT-B-2026-08-17 — a ordem de composicao vertical sai do
+          // FIM do prompt (onde o modelo menos pesa) e vira PREFIXO: tokens
+          // iniciais mandam mais. Vale pro t2v; no i2v o still ja trava tudo.
+          const uprightPrefix = hs.type !== 'dialogue' && !sceneAnchor
+            ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
+            : ''
+          const scenePrompt = uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           try {
-            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, anchorUrl)
+            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor)
           } catch (e) {
             if (
               e instanceof FalQueueSubmitError && e.ambiguous &&
@@ -1931,7 +2272,23 @@ export async function POST(req: NextRequest) {
       }
 
       const hValid = hRequestIds.filter((id): id is string => id !== null)
-      if (hValid.length === 0) {
+      // KINEO-FAILFAST-2026-08-17 — o render do fundador saiu com 10s de um
+      // alvo de 60s e COBROU 150cr: o saldo do fal estourou NO MEIO da fila
+      // (1/7 cenas entrou, seis 403 "Exhausted balance") e o pipeline compôs
+      // "o que sobrou". O guard antigo só abortava com ZERO cenas — 1/7
+      // passava. Piso novo por SEGUNDOS: se as cenas aceitas não cobrem 60%
+      // do plano, o render já nasceu condenado — aborta AQUI, estorna
+      // automaticamente e alerta o fundador se for saldo. O custo das cenas
+      // parciais já na fila é nosso (centavos), nunca do cliente.
+      const hPlannedSec = plan.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+      const hSubmittedSec = plan.scenes.reduce(
+        (acc, sc, i) => acc + (hRequestIds[i] ? (sc.seconds || 0) : 0),
+        0,
+      )
+      if (hValid.length === 0 || hSubmittedSec < hPlannedSec * 0.6) {
+        console.error(
+          `[cinematic] hollywood FAILFAST: only ${hValid.length}/${plan.scenes.length} scenes (${hSubmittedSec}s of ${hPlannedSec}s planned) — aborting with refund${FAL_EXHAUSTED ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
+        )
         const released = await releaseBirthClaim(FAL_EXHAUSTED ? 'provider_balance_rejected' : 'provider_rejected')
         if (!released) {
           return NextResponse.json(
@@ -1940,17 +2297,17 @@ export async function POST(req: NextRequest) {
           )
         }
         if (FAL_EXHAUSTED) {
-          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood`)
+          await alertFalExhausted(`user=${user.id.slice(0, 8)} engine=hollywood submitted=${hValid.length}/${plan.scenes.length}`)
           return NextResponse.json(
             {
               queued: true,
-              error: "We're experiencing high demand right now. Nothing started and your credits were refunded automatically.",
+              error: "We're experiencing high demand right now. Nothing was charged — your credits were refunded automatically. Please try again in a few minutes.",
             },
             { status: 503 },
           )
         }
         return NextResponse.json(
-          { error: 'Could not submit clips to AI generator. Please try again.' },
+          { error: 'Could not start enough scenes for a full video. Nothing was charged — please try again.' },
           { status: 502 },
         )
       }
@@ -1985,6 +2342,19 @@ export async function POST(req: NextRequest) {
         // audio seconds) | 'dialogue' | 'cinematic' | 'support'. Compose keys
         // volume/narration/caption/duration decisions off this.
         scene_engines: hEngines,
+        // KINEO-HOLLYWOOD-RETRY-2026-08-16 — o client precisa do prompt e da
+        // âncora de cada cena pra re-submeter UMA vez as que falharem no
+        // fornecedor (conserto do vídeo curto de 34s).
+        scene_prompts: plan.scenes.map((s) => s.prompt + eraSuffix),
+        // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
+        // só pra cena que o planner situou no mundo do narrador (environmentSheet
+        // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.
+        scene_anchor_urls: plan.scenes.map((s) => {
+          if (!anchors) return null
+          if (s.type === 'dialogue') return anchors.portraitUrl
+          const sig = (plan.environmentSheet ?? '').trim().toLowerCase().slice(0, 24)
+          return sig.length > 8 && s.prompt.toLowerCase().includes(sig) ? anchors.environmentUrl : null
+        }),
         scene_narrations: hNarrations, // TTS text per scene (null = native audio only)
         // For host scenes these are the MEASURED TTS seconds (0.1s precision),
         // overwritten in the submit loop — not the planner's 5|10 estimate.
@@ -1997,6 +2367,23 @@ export async function POST(req: NextRequest) {
         quality: 'cinematic_hollywood',
         verbatim,
         speed: parsedScript.speed,
+      }
+      // KINEO-SALVAGE-2026-08-17 — grava o snapshot completo pro retry
+      // reaproveitar (best-effort: falha aqui nunca afeta o render).
+      if (salvageDb) {
+        try {
+          await salvageDb.from('hollywood_resume').upsert({
+            user_id: user.id,
+            fingerprint: salvageFp,
+            generation_id: generationId,
+            response,
+            request_ids: hRequestIds,
+            models: hModels,
+            created_at: new Date().toISOString(),
+          })
+        } catch (e) {
+          console.warn('[cinematic] salvage persist falhou:', e instanceof Error ? e.message : String(e))
+        }
       }
       return publishCinematicResponse(response, hRequestIds, hModels)
     }
@@ -2226,7 +2613,16 @@ export async function POST(req: NextRequest) {
     // Do not silently downgrade Kling to Seedance after the signed cost/engine
     // claim is born. A rejected premium submit is retriable and never charged.
 
-    if (validIds.length === 0) {
+    // KINEO-FAILFAST-2026-08-17 — mesmo piso do Hollywood no caminho classico:
+    // menos da METADE das cenas aceitas (ex.: saldo do fal estourando no meio
+    // da fila) = render condenado a sair curto. Aborta com estorno em vez de
+    // compor um toco e cobrar o cliente.
+    if (validIds.length === 0 || validIds.length < Math.ceil(scenes.length * 0.5)) {
+      if (validIds.length > 0) {
+        console.error(
+          `[cinematic] classic FAILFAST: only ${validIds.length}/${scenes.length} scenes submitted — aborting with refund${FAL_EXHAUSTED ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
+        )
+      }
       const released = await releaseBirthClaim(FAL_EXHAUSTED ? 'provider_balance_rejected' : 'provider_rejected')
       if (!released) {
         return NextResponse.json(

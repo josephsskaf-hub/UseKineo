@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+// KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
+import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
@@ -858,6 +860,18 @@ export default function GenerateClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // KINEO-STUDIO-SCRIPTMODE-2026-08-17 — o Studio manda ?script_mode=
+  // verbatim|ai ('Use my script as is' vs 'Let AI structure my text').
+  useEffect(() => {
+    const sm = (searchParams.get('script_mode') ?? '').toLowerCase()
+    if (sm === 'verbatim' || sm === 'ai') setScriptMode(sm)
+    // KINEO-STUDIO-DURATION-2026-08-17 — BUG pego pelo fundador no 1o teste:
+    // clicou 60s no Studio e saiu video de 45 — o Studio nao enviava a
+    // duracao e o default daqui (45) vencia. Agora ?duration= viaja e e lido.
+    const d = Number(searchParams.get('duration') ?? '')
+    if (d === 45 || d === 60 || d === 90) setDuration(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user
   // can lock into Hollywood renders (same face across every video). Loaded
   // lazily the first time the hollywood engine is selected.
@@ -1156,6 +1170,15 @@ export default function GenerateClient({
   // so the user gets an explicit escape instead of a dead button. Until today
   // the only way out of this state was an undocumented `?wm_unlock=1` URL.
   const [activeRenderGateBlocked, setActiveRenderGateBlocked] = useState(false)
+  // KINEO-GATE-SERVER-IDLE-2026-08-16 — espelho em ref do estado acima, lido
+  // SO para escolher a frase do erro. `setError` roda no mesmo tick em que o
+  // portao decide, e o valor de `activeRenderGateBlocked` naquele instante
+  // ainda e o do render anterior — a copy sairia errada em 100% das vezes.
+  const activeRenderGateBlockedRef = useRef(false)
+  function markActiveRenderGateBlocked(blocked: boolean) {
+    activeRenderGateBlockedRef.current = blocked
+    setActiveRenderGateBlocked(blocked)
+  }
   // PUSH #96 — counts restore retries across effect re-runs so the auth retry
   // above can never loop forever.
   const restoreRetryRef = useRef(0)
@@ -1165,6 +1188,14 @@ export default function GenerateClient({
   // guard in handleGenerate. The tick re-renders the "elapsed" label.
   const [serverActiveRender, setServerActiveRender] = useState<ServerActiveRenderProbe | null>(null)
   const serverActiveRenderRef = useRef<ServerActiveRenderProbe | null>(null)
+  // KINEO-GATE-SERVER-IDLE-2026-08-16 — `refreshServerActiveRender()` devolve
+  // `null` para DUAS coisas OPOSTAS: "o servidor respondeu e nao ha render
+  // nenhum" e "nao consegui perguntar" (fetch morto, !res.ok, JSON podre). Usar
+  // o retorno como prova seria repetir o erro do `looksOpenAiQuotaDead` (um
+  // predicado servindo duas audiencias). Este ref carrega a afirmacao ESTREITA
+  // e so ela: `true` apenas quando a sonda respondeu 200, o corpo foi lido e o
+  // estado NAO e 'rendering'. Qualquer falha o zera — silencio nunca vira prova.
+  const serverProbeProvesIdleRef = useRef(false)
   const [serverActiveRenderTick, setServerActiveRenderTick] = useState(() => Date.now())
   // #360 — synchronous re-entry guard against double-submit. Catches the
   // sub-render race the disabled button can't: two clicks before React
@@ -1584,6 +1615,12 @@ export default function GenerateClient({
   // non-hollywood generation, which keeps the classic single-model poll intact.
   const falModelsRef = useRef<string[]>([])
   const sceneEnginesRef = useRef<string[]>([])
+  // KINEO-HOLLYWOOD-RETRY-2026-08-16 — prompt + ancora por cena (vindos do
+  // servidor) pra re-submeter UMA vez cenas que falharem no fornecedor, e a
+  // trava de "ja tentei" (1 rodada de retry por geracao).
+  const scenePromptsRef = useRef<string[]>([])
+  const sceneAnchorsRef = useRef<(string | null)[]>([])
+  const hollyRetriedRef = useRef(false)
   const sceneNarrationsRef = useRef<(string | null)[]>([])
   const sceneSecondsRef = useRef<number[]>([])
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
@@ -2348,7 +2385,14 @@ export default function GenerateClient({
               searchParams?.get('create_intent') !== 'fast' &&
               typeof data.credits === 'number' &&
               data.credits >= creditCostFor('cinematic_ai')
-            if (fromViralNow) { setMode('fast') }
+            // KINEO-URL-ENGINE-WINS-2026-08-17 — flagrado pelo fundador no
+            // teste do Studio: escolheu Kling 2.5 e esta rotina de DEFAULTS
+            // por plano atropelou pra Fast. Default e pra chegada de mao
+            // vazia; ?engine= explicito na URL SEMPRE vence.
+            const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood'].includes(urlEnginePick)
+            if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
+            else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
             // Fix 03/07 — Studio also defaults to Seedance (40cr): Kling (60cr) kept
@@ -3078,6 +3122,51 @@ export default function GenerateClient({
         setGenerateProgress(total > 0 ? Math.round((done / total) * 85) : 0)
 
         if (data.allDone) {
+          // KINEO-HOLLYWOOD-RETRY-2026-08-16 — antes de aceitar um video
+          // CURTO (cenas dropadas = o bug dos 34s/60s), re-submete UMA vez
+          // cada cena que falhou no fornecedor e volta a esperar. So Hollywood
+          // (ha prompts/ancoras por cena) e so uma rodada por geracao.
+          const failedIdx: number[] = (data.clips ?? [])
+            .map((c: { status: string }, i: number) => (c.status === 'failed' ? i : -1))
+            .filter((i: number) => i >= 0)
+          if (
+            failedIdx.length > 0 &&
+            scenePromptsRef.current.length > 0 &&
+            !hollyRetriedRef.current &&
+            !cancelled
+          ) {
+            hollyRetriedRef.current = true
+            const nextIds = [...falRequestIds]
+            let changed = false
+            for (const fi of failedIdx) {
+              const p = scenePromptsRef.current[fi]
+              if (!p || p.length < 20) continue
+              try {
+                const rr = await fetch('/api/retry-hollywood-scene', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    prompt: p,
+                    anchorUrl: sceneAnchorsRef.current[fi] ?? null,
+                    seconds: sceneSecondsRef.current[fi] ?? 10,
+                    model: falModelsRef.current[fi] ?? undefined,
+                  }),
+                })
+                const rj = await rr.json().catch(() => ({}))
+                if (rr.ok && typeof rj.requestId === 'string') {
+                  nextIds[fi] = rj.requestId
+                  changed = true
+                  console.log(`[generate] hollywood scene ${fi + 1} re-submitted (retry) → ${rj.requestId}`)
+                }
+              } catch {
+                // retry e melhor-esforco: falhou, a cena segue dropada como antes
+              }
+            }
+            if (changed) {
+              setFalRequestIds(nextIds) // reinicia o polling com os ids novos
+              return
+            }
+          }
           // Collect all successful clip URLs
           const urls: string[] = (data.clips ?? [])
             .filter((c: { status: string; url: string | null }) => c.status === 'done' && c.url)
@@ -4344,7 +4433,7 @@ export default function GenerateClient({
     // an unrelated later error and invites the user to discard a live render.
     if (activeRenderRestoreResolvedRef.current) {
       if (!resumedRenderRef.current) {
-        setActiveRenderGateBlocked(false)
+        markActiveRenderGateBlocked(false)
         return true
       }
       return false
@@ -4353,7 +4442,7 @@ export default function GenerateClient({
       await new Promise((resolve) => setTimeout(resolve, 100))
       if (resumedRenderRef.current) return false
       if (activeRenderRestoreResolvedRef.current) {
-        setActiveRenderGateBlocked(false)
+        markActiveRenderGateBlocked(false)
         return true
       }
     }
@@ -4396,13 +4485,67 @@ export default function GenerateClient({
         retries: restoreRetryRef.current,
         snapshot: stored,
       })
-      setActiveRenderGateBlocked(false)
+      markActiveRenderGateBlocked(false)
       return true
+    }
+    // KINEO-GATE-SERVER-IDLE-2026-08-16 — os dois fail-opens anteriores (31/07
+    // e 07/08) perguntam a MESMA testemunha: o localStorage. Ambos abrem quando
+    // o snapshot esta `absent`/`stale`/`expired`. Nenhum cobre o caso que
+    // custou o cliente de maior intencao do dia do TAAFT: snapshot RECENTE e
+    // portanto `live`, e do outro lado NADA — nenhuma linha em `render_jobs`,
+    // nenhuma em `credit_debits`, nenhuma em `videos`, na conta inteira.
+    //
+    // 6819371a, 16/08 (utm_source=taaft): cadastrou 16:30:04, despachou o
+    // primeiro video 16:30:32, e as 16:31:10 o `generation_checkpoint_saved`
+    // gravou um snapshot `stage:'submitting'` SEM renderId. O compose nunca
+    // fechou. Cinco minutos depois o portao leu esse checkpoint como "render
+    // pago em voo" e bateu 19 vezes em 2min30 — e no meio da sequencia, as
+    // 16:36:48, ele ABRIU O CHECKOUT DA STRIPE. Voltou, continuou bloqueado,
+    // desistiu. O snapshot que existe para RECUPERAR a pessoa foi o que
+    // trancou o produto na cara dela.
+    //
+    // O ponto nao obvio: `submitting` sem renderId nao aponta para nada. Ele
+    // prova que um compose foi TENTADO, nunca que existe render vivo — e credito
+    // so e debitado no servidor, depois. Entao aqui perguntamos a testemunha
+    // certa. `/api/compose/active` e a MESMA fonte que o lock do compose usa,
+    // logo este portao nunca fica mais frouxo que a guarda do dinheiro: se a
+    // sonda diz que nada esta renderizando, o proprio handleGenerate ja deixaria
+    // passar. Cobre tambem TODO caminho em que o efeito de restore pendura
+    // (`!user`, efeito cancelado, chave de storage divergente), porque nao
+    // depende de descobrir QUAL deles pendurou.
+    //
+    // Adversarial 1/2 — so abrimos com renderId AUSENTE. Snapshot `rendering`
+    // com renderId aponta para algo que existiu; ali a sonda pode estar atras
+    // do banco e o portao continua fechado, como hoje.
+    // Adversarial 2/2 — `generationInFlightRef` fecha a janela de corrida do
+    // compose aceito-mas-ainda-sem-linha: se ESTA aba tem despacho no ar, nao
+    // abrimos. Aba morta (o caso real, recarga de pagina) nao tem.
+    let snapshotHasRenderId = true
+    try {
+      const raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
+      const parsed = raw ? JSON.parse(raw) as Partial<ActiveRenderSnapshot> : null
+      snapshotHasRenderId = Boolean(typeof parsed?.renderId === 'string' && parsed.renderId.trim())
+    } catch {
+      snapshotHasRenderId = true
+    }
+    if (!snapshotHasRenderId && !generationInFlightRef.current) {
+      await refreshServerActiveRender()
+      if (serverProbeProvesIdleRef.current) {
+        activeRenderRestoreResolvedRef.current = true
+        setActiveRenderRestoreResolved(true)
+        void trackEvent('active_render_gate_forced_open', {
+          attempt_id: generationAttemptRef.current,
+          retries: restoreRetryRef.current,
+          snapshot: 'live_server_idle',
+        })
+        markActiveRenderGateBlocked(false)
+        return true
+      }
     }
     // Snapshot exists and we could not prove it stale — it may point at a real
     // paid render, so we keep the gate closed but stop pretending this is a
     // transient "try again in a moment". Surface the manual escape.
-    setActiveRenderGateBlocked(true)
+    markActiveRenderGateBlocked(true)
     return false
   }
 
@@ -4427,7 +4570,7 @@ export default function GenerateClient({
       probe?.state === 'rendering' &&
       Date.now() - probe.startedAtMs < SERVER_ACTIVE_RENDER_WINDOW_MS
     ) {
-      setActiveRenderGateBlocked(false)
+      markActiveRenderGateBlocked(false)
       setError('Good news — a render really is still running on our side. It will appear here on its own; reload if you do not see it in a minute.')
       void trackEvent('active_render_gate_discard_refused', {
         attempt_id: generationAttemptRef.current,
@@ -4439,7 +4582,7 @@ export default function GenerateClient({
     resumedRenderRef.current = false
     activeRenderRestoreResolvedRef.current = true
     setActiveRenderRestoreResolved(true)
-    setActiveRenderGateBlocked(false)
+    markActiveRenderGateBlocked(false)
     setError(null)
     void trackEvent('active_render_gate_discarded_by_user', {
       attempt_id: generationAttemptRef.current,
@@ -4512,9 +4655,14 @@ export default function GenerateClient({
   async function refreshServerActiveRender(): Promise<ServerActiveRenderProbe | null> {
     try {
       const res = await fetch('/api/compose/active', { cache: 'no-store' })
-      if (!res.ok) return null
+      // KINEO-GATE-SERVER-IDLE-2026-08-16 — 401/500/rede caida NAO sao "idle".
+      // A pior hipotese desta sessao e justamente a sessao do cliente quebrada,
+      // e ela devolve 401 aqui: tratar 401 como prova de ociosidade abriria o
+      // portao pelo motivo errado. So um 200 lido ate o fim afirma alguma coisa.
+      if (!res.ok) { serverProbeProvesIdleRef.current = false; return null }
       const data = await res.json().catch(() => null) as Record<string, unknown> | null
-      if (!data) return null
+      if (!data) { serverProbeProvesIdleRef.current = false; return null }
+      serverProbeProvesIdleRef.current = data.state !== 'rendering'
       let probe: ServerActiveRenderProbe | null = null
       if (data.state === 'rendering') {
         const startedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
@@ -4551,6 +4699,7 @@ export default function GenerateClient({
       setServerActiveRenderTick(Date.now())
       return probe
     } catch {
+      serverProbeProvesIdleRef.current = false
       return null
     }
   }
@@ -4618,7 +4767,15 @@ export default function GenerateClient({
       // gate state so the next occurrence identifies its exact path.
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
-        : 'Still checking for an in-progress render. Please try again in a moment.')
+        : activeRenderGateBlockedRef.current
+          // KINEO-GATE-SERVER-IDLE-2026-08-16 — quando o portao ja se
+          // declarou BLOQUEADO, "try again in a moment" e falso: esperar
+          // nao resolve, so o botao vermelho logo abaixo resolve. Era esta
+          // frase que competia com o escape manual do 07/08 e ganhava — o
+          // cliente do TAAFT bateu 19 vezes e nunca clicou no botao. Regra
+          // do PROMPT-DIARIO: copy que manda repetir multiplica a carga.
+          ? 'We could not confirm a render in progress. Use the red button below to start a new video — your credits and finished videos are safe.'
+          : 'Still checking for an in-progress render. Please try again in a moment.')
       // KINEO-RESUME-RENDER-2026-08-04 — the banner above used to be a dead
       // end. Ask the server what is actually happening; the answer renders the
       // resume card ("rendering — check progress" / "ready 🎉") above the form.
@@ -5221,6 +5378,64 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeRenderRestoreResolved])
 
+  // KINEO-STUDIO-ONECLICK-2026-08-17 — degrau 2 do Studio: quando a chegada
+  // vem do Studio com o TOKEN de intencao (setado pelo clique em Generate LA,
+  // onde motor e custo estavam na cara), o fim da analise (phase 'options')
+  // dispara o render sozinho — UMA vez, token consumido na leitura, validade
+  // 2 min. Isto NAO reabre o buraco do Push #447: aquele auto-generate gastava
+  // creditos sem escolha de motor/custo; aqui o usuario ESCOLHEU ambos e
+  // clicou num botao que dizia o preco. handleGenerateGuarded mantem o modal
+  // de sem-creditos como ultima guarda.
+  const studioOneClickFiredRef = useRef(false)
+  useEffect(() => {
+    if (phase !== 'options' || studioOneClickFiredRef.current) return
+    if (searchParams?.get('studio') !== '1') return
+    // KINEO-URL-ENGINE-WINS-2026-08-17 (cinto de seguranca): antes de
+    // disparar, garante que motor e duracao SAO os da URL do Studio — se
+    // qualquer efeito tardio tiver mexido, corrige e espera o proximo
+    // render do React (deps incluem mode/aiEngine/duration).
+    const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
+    if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
+    if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
+      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
+      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
+    }
+    const uDur = Number(searchParams?.get('duration') ?? '')
+    if ((uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
+    try {
+      const raw = sessionStorage.getItem('kineo:studio:go:v1')
+      if (!raw) return
+      sessionStorage.removeItem('kineo:studio:go:v1')
+      const tok = JSON.parse(raw) as { t?: number }
+      if (!tok?.t || Date.now() - tok.t > 120_000) return
+      studioOneClickFiredRef.current = true
+      handleGenerateGuarded()
+    } catch {
+      // sem token valido → comportamento classico (usuario clica Generate)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, mode, aiEngine, duration])
+
+  // KINEO-GENERATE-VIRA-MAQUINA-2026-08-17 (fundador: 'nao faz sentido a
+  // pessoa olhar para as 2 telas'): /generate deixa de ser sala de comando —
+  // quem chega DE MAO VAZIA (sem prompt/intent/render em andamento) e levado
+  // pro /studio. Com parametros de trabalho ou render restaurado, tudo segue
+  // igual (esta pagina vira so a sala de maquinas do Studio).
+  const studioRedirectFiredRef = useRef(false)
+  useEffect(() => {
+    if (studioRedirectFiredRef.current) return
+    if (!activeRenderRestoreResolved || resumedRenderRef.current) return
+    if (phase !== 'idle') return
+    const keys = ['prompt', 'topic', 'create_intent', 'studio', 'autoanalyze', 'engine', 'welcome', 'signup', 'return', 'generationId']
+    if (keys.some((k) => (searchParams?.get(k) ?? '').trim() !== '')) return
+    try {
+      if (sessionStorage.getItem('pendingVideoPrompt')) return
+    } catch {}
+    studioRedirectFiredRef.current = true
+    router.replace('/studio')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRenderRestoreResolved, phase, searchParams])
+
   // Push #301 — Viral Now cards used to AUTO-GENERATE: the moment analysis
   // finished they fired handleGenerate() on the default engine.
   // Push #447 — REMOVED the auto-generate. It silently burned the user's credits
@@ -5406,7 +5621,15 @@ export default function GenerateClient({
       // handleAnalyze) + gate state in the event for diagnosis.
       setError(resumedRenderRef.current
         ? 'Your previous video is still rendering — it will reappear on this page in a moment. You can start this new idea right after it lands.'
-        : 'Still checking for an in-progress render. Please try again in a moment.')
+        : activeRenderGateBlockedRef.current
+          // KINEO-GATE-SERVER-IDLE-2026-08-16 — quando o portao ja se
+          // declarou BLOQUEADO, "try again in a moment" e falso: esperar
+          // nao resolve, so o botao vermelho logo abaixo resolve. Era esta
+          // frase que competia com o escape manual do 07/08 e ganhava — o
+          // cliente do TAAFT bateu 19 vezes e nunca clicou no botao. Regra
+          // do PROMPT-DIARIO: copy que manda repetir multiplica a carga.
+          ? 'We could not confirm a render in progress. Use the red button below to start a new video — your credits and finished videos are safe.'
+          : 'Still checking for an in-progress render. Please try again in a moment.')
       // KINEO-RESUME-RENDER-2026-08-04 — same dead-end fix as handleAnalyze:
       // surface the real render state (resume card) instead of only the banner.
       void refreshServerActiveRender()
@@ -5760,6 +5983,9 @@ export default function GenerateClient({
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
         sceneEnginesRef.current = Array.isArray(data.scene_engines) ? data.scene_engines.filter((e: unknown): e is string => typeof e === 'string') : []
+        scenePromptsRef.current = Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x: unknown) => (typeof x === 'string' ? x : '')) : []
+        sceneAnchorsRef.current = Array.isArray(data.scene_anchor_urls) ? data.scene_anchor_urls.map((x: unknown) => (typeof x === 'string' ? x : null)) : []
+        hollyRetriedRef.current = false
         sceneNarrationsRef.current = Array.isArray(data.scene_narrations) ? data.scene_narrations.map((n: unknown) => (typeof n === 'string' ? n : null)) : []
         sceneSecondsRef.current = Array.isArray(data.scene_seconds) ? data.scene_seconds.map((s: unknown) => (typeof s === 'number' ? s : 10)) : []
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real dialogue line per scene.
@@ -7541,6 +7767,29 @@ export default function GenerateClient({
     return () => clearInterval(id)
   }, [phase, headlineProgress])
 
+  // KINEO-STUDIO-CORTINA-2026-08-17 (fundador: 'ainda esta passando pela
+  // pagina generation') — chegada do Studio NUNCA ve o painel antigo: nas
+  // fases pre-render (analise rodando / options por milissegundos antes do
+  // one-click disparar), uma tela minima do kit segura a cena. Com erro, o
+  // painel classico volta (mensagens/retry moram la).
+  if (
+    searchParams?.get('studio') === '1' &&
+    (phase === 'idle' || phase === 'analyzing' || phase === 'scripting' || phase === 'options') &&
+    !error
+  ) {
+    return (
+      <div className="stu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '72vh', textAlign: 'center' }}>
+        <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
+        <h1 style={{ margin: '0 auto 6px' }}>Studio</h1>
+        <p className="sub" style={{ marginBottom: 22 }}>
+          {phase === 'options' ? 'Starting your render…' : 'Directing your film — writing the script and planning every scene…'}
+        </p>
+        <div className="spinner-sm" style={{ position: 'relative' }}><div className="spinner-sm-inner" /></div>
+      </div>
+    )
+  }
+
+
   return (
     // KINEO-CONTENT-REDESIGN-2026-07-10 (Joseph) — the "miolo": wider canvas
     // (max-w-5xl) + more vertical air, landing-neutral card surfaces (#131316)
@@ -7622,7 +7871,7 @@ export default function GenerateClient({
                   color: '#2997ff',
                 }}
               >
-                {showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
+                {searchParams?.get('studio') === '1' ? 'Studio · Render' : showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
               </span>
               {/* R4 (14/08): stepper — a posicao no fluxo vira 4 segmentos
                   visiveis, nao so um rotulo de texto. */}
@@ -7645,7 +7894,7 @@ export default function GenerateClient({
               </span>
             </div>
             <h1 className="font-black text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text)', fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600, letterSpacing: '-.02em' }}>
-              {showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
+              {searchParams?.get('studio') === '1' && !showStep1 ? 'Studio — rendering your film' : showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
               {showStep1 && 'One idea in. A ready-to-post Short out — usually in 3–7 minutes.'}
@@ -12916,10 +13165,14 @@ function UpgradeModal({
             get one-click top-ups (buy more AI videos) instead of a dead-end.
             KINEO-SPRINT-OFFER-2026-07-14 — non-subscribers take the intro month
             on the plan rows above (the old pack escape button is gone). */}
-        {isSubscriber && (
+        {/* KINEO-TOPUP100-2026-08-17 — o pop-up de creditos zerados agora
+            mostra a escadinha pra TODOS (era so assinante): o momento em que
+            a fome bate e o momento de vender. 100cr e o destaque; 120 vira
+            decoy (+\$2 compra +35cr). */}
+        {(
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#86868b', textAlign: 'center' }}>
-              Out of credits mid-month? Top up instantly — expires at renewal:
+              {isSubscriber ? 'Out of credits mid-month? Top up instantly — expires at renewal:' : 'Need more videos right now? One-time credit packs:'}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
@@ -12951,6 +13204,12 @@ function UpgradeModal({
                   label: `+${TOPUP_CREDITS.topup120} credits`,
                   sub: `${Math.floor(TOPUP_CREDITS.topup120 / 20)} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup120[currency]) : '—',
+                },
+                {
+                  id: 'topup100',
+                  label: `+${TOPUP_CREDITS.topup100} credits`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / 20)} AI videos ⭐ best value`,
+                  price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup100[currency]) : '—',
                 },
               ].map((t) => (
                 <button

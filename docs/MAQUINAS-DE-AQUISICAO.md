@@ -13,7 +13,7 @@ query de leitura — rodar 1x/semana e anotar no Placar.
 | 6 | **Referral sempre armado** | Código de referral buscado no MOUNT (Generate + History): nenhum share sai mais sem ref | `referral_attached=true` ratio nos eventos de share, 7d |
 | 7 | **Afiliados** | /partners público no footer (40% recorrente) + convite por e-mail aos pagantes (segmento paying) | signups com sf_aff cookie, 7d |
 | 8 | **Recuperação de checkout ao vivo** | /checkout/cancelled na marca + CheckoutResumeBanner + StalledCta | `checkout_resume_banner_clicked`, 7d |
-| 9 | **Gate TAAFT** | Domingo 19h: go/no-go automático por e-mail com checklist medido | — one-shot 16/08 |
+| 9 | **Gate TAAFT** | Domingo 19h: go/no-go automático por e-mail com checklist medido | ✅ **ENCERRADA 16/08 19h — veredito NO-GO**, ver `docs/GO-NO-GO-TAAFT-347-2026-08-16.md` (reabre só com entrega ≥85% em dia de ≥25 tentativas **e** 1 pagamento TAAFT) |
 | 10 | **B2B copy-paste** | docs/KIT-DISTRIBUICAO + docs/B2B-COPIA-E-COLA: 6 alvos contatados, 26 na fila | respostas na caixa do Fiverr/hello@ |
 
 ## Regras de ouro

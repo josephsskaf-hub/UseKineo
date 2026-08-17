@@ -970,6 +970,323 @@ export async function POST(req: NextRequest) {
         } catch (abanCatch) {
           console.warn('[stripe webhook] checkout_abandoned insert threw:', abanCatch)
         }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // KINEO-PAREDE-CHECKOUT-2026-08-16 — a expiração também vira EVENTO.
+        // ═══════════════════════════════════════════════════════════════════
+        // POR QUE: `checkout_abandoned` é o livro-caixa VERDADEIRO de quem
+        // chegou na página de pagamento (o webhook escreve, o servidor da
+        // Stripe manda), e `events` só conhecia `checkout_started`, que é
+        // emitido pelo BROWSER. As duas contagens divergem por ~2x: para INR,
+        // `events` conhecia 11 pessoas em 42 dias e o livro-caixa conhece 27.
+        // Todo funil da operação foi lido em `events`, logo todo funil
+        // SUBCONTOU o abandono de checkout. Este evento fecha o par
+        // `checkout_started` → `checkout_session_expired` dentro da MESMA
+        // tabela, para que a taxa de fechamento exista sem ninguém
+        // reconstruir coorte na mão em duas fontes.
+        //
+        // ⚠️ DESCONTINUIDADE: esta linha nasce hoje. Um salto em
+        // `checkout_session_expired` a partir deste deploy é o INSTRUMENTO
+        // nascendo, não abandono novo. O histórico verdadeiro está em
+        // `checkout_abandoned` desde 25/05/2026 e continua lá.
+        //
+        // SERVER_ONLY (app/api/events/route.ts): se o sink do browser pudesse
+        // cunhar isto, um burst forjado faria a parede do checkout parecer
+        // maior do que é e mandaria a operação consertar o lugar errado.
+        let expiredWritten = false
+        try {
+          expiredWritten = await writeServerEvent({
+            name: 'checkout_session_expired',
+            userId: abandonedUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              stripe_session_id: expiredSession.id,
+              tier: abandonedTier,
+              billing: expiredSession.metadata?.billing ?? null,
+              pack: expiredSession.metadata?.pack ?? null,
+              checkout_origin: expiredSession.metadata?.checkout_origin ?? null,
+              intro: expiredSession.metadata?.intro === '1',
+              currency: expiredSession.currency ?? null,
+              amount_total: expiredSession.amount_total ?? null,
+              checkout_mode: expiredSession.mode ?? null,
+              // `payment_status` separa duas mortes MUITO diferentes:
+              // 'unpaid' = nunca digitou cartão; 'no_payment_required' = sessão
+              // de valor zero. Sem isto, "expirou" mistura quem desistiu com
+              // quem tentou e foi recusado.
+              payment_status: expiredSession.payment_status ?? null,
+              customer_country:
+                expiredSession.customer_details?.address?.country ?? null,
+              // ═══════════════════════════════════════════════════════════
+              // KINEO-PAIS-DA-PAREDE-2026-08-17 — o campo acima é null SEMPRE
+              // nesta parede, e isso foi MEDIDO, não suposto: as 10 primeiras
+              // leituras do instrumento (17/08, 04:10Z–14:10Z) trouxeram
+              // `customer_country: null` nas 10. A Stripe só preenche
+              // `customer_details.address` quando a pessoa DIGITA o endereço,
+              // e a parede é precisamente o lugar onde ninguém digita nada.
+              //
+              // `ip_country` vem da metadata que a rota de checkout carimba na
+              // CRIAÇÃO da sessão (x-vercel-ip-country — o mesmo header que
+              // resolve moeda e região). Ele existe para toda sessão criada
+              // após o deploy de 17/08, inclusive as que morrem sem um
+              // caractere digitado.
+              //
+              // Os dois campos ficam LADO A LADO de propósito: são coisas
+              // diferentes e vão discordar. `customer_country` é declaração do
+              // comprador (raro, mas verdadeiro); `ip_country` é inferência de
+              // rede (sempre presente, e uma VPN mente). Colapsar os dois num
+              // campo só apagaria essa diferença exatamente quando ela importa.
+              //
+              // ⚠️ DESCONTINUIDADE: sessões criadas ANTES deste deploy não têm
+              // a metadata e continuarão com `ip_country: null` até expirarem
+              // (janela de 2h). Um null depois de 17/08 + 2h é defeito; antes
+              // disso é só idade.
+              ip_country: expiredSession.metadata?.ip_country ?? null,
+              // ═══════════════════════════════════════════════════════════
+              // KINEO-SEGUNDA-TENTATIVA-2026-08-17 — O ATIVO QUE ESTÁVAMOS
+              // JOGANDO FORA (leitura pura; NENHUM e-mail muda aqui).
+              // ═══════════════════════════════════════════════════════════
+              // Medição de 17/08 (30 dias, contas internas fora): 84% das
+              // pessoas tocam a Stripe UMA vez e somem; quem tenta de novo
+              // converte ~3x mais e responde por metade dos pagantes do mês.
+              // A alavanca não é a página de pagamento — é fazer existir uma
+              // SEGUNDA TENTATIVA.
+              //
+              // `after_expiration.recovery.enabled` está ligado desde
+              // 03/08 (rota de checkout, linha ~1003), o que significa que a
+              // Stripe MINTA uma URL de retomada para CADA sessão que expira.
+              // `grep -rn "recovered_url\|recovery.url"` em app/ e lib/
+              // devolvia zero: nunca foi lida por ninguém. Toda expiração
+              // desde 03/08 gerou esse ativo e o descartou.
+              //
+              // Isso importa porque `KINEO-RECOVERY-NO-MINT-LINK-2026-08-11`
+              // (cron send-recovery) documentou as DUAS armadilhas que
+              // impediam um link de retomada no e-mail — preço (um link
+              // `/api/stripe/checkout?tier=X` sem `intro=1` cobra 2,0–2,5x o
+              // que a pessoa viu) e scanner corporativo (Outlook Safe Links
+              // MINTA sessão a cada GET, sujando `checkout_attempted`). A URL
+              // da própria Stripe **não tem nenhuma das duas**: ela É a sessão
+              // original, com o preço original, e não cria sessão nova.
+              //
+              // ⚠️ POR QUE UM BOOLEANO E NÃO A URL: essa URL é uma credencial
+              // de pagamento viva. `events` hoje bloqueia leitura anônima
+              // (policy `no_public_read`, qual=false), mas guardar link de
+              // pagamento em repouso o faz vazar para todo export de
+              // analytics futuro, e essa é uma decisão de segurança que
+              // ninguém pediu. O booleano responde à única pergunta que a
+              // decisão precisa ("o ativo existe e quanto dura?"); quando o
+              // fundador liberar o GATE #H, o remetente busca a URL fresca na
+              // Stripe pelo `stripe_session_id`, que já está aqui do lado.
+              //
+              // NÃO ligo o link no e-mail nesta sprint DE PROPÓSITO: mexer em
+              // e-mail do fluxo de pagamento é GATE #H do fundador, e o autor
+              // de 11/08 já tinha parado exatamente aqui. Isto carrega a arma;
+              // o gatilho continua sendo dele.
+              recovery_url_available: Boolean(
+                expiredSession.after_expiration?.recovery?.url,
+              ),
+              recovery_url_expires_at:
+                expiredSession.after_expiration?.recovery?.expires_at ?? null,
+            },
+          })
+          // A linha de `checkout_abandoned` tem FK em auth.users: uma conta
+          // apagada derruba o INSERT inteiro e leva junto a MOEDA, que é a
+          // única coisa que esta instrumentação existe para contar. Se o
+          // evento não entrou com dono, ele entra sem dono. Perder o nome é
+          // barato; perder o denominador corrompe o funil.
+          if (!expiredWritten) {
+            await writeServerEvent({
+              name: 'checkout_session_expired',
+              userId: null,
+              path: '/api/stripe/webhook',
+              metadata: {
+                source: 'stripe_webhook',
+                stripe_event_id: event.id,
+                stripe_session_id: expiredSession.id,
+                orphaned_user: true,
+                tier: abandonedTier,
+                currency: expiredSession.currency ?? null,
+                amount_total: expiredSession.amount_total ?? null,
+                payment_status: expiredSession.payment_status ?? null,
+                // KINEO-PAIS-DA-PAREDE-2026-08-17 — mesma razão pela qual a
+                // moeda sobrevive a este ramo: o país é DENOMINADOR, não
+                // adorno. Uma conta apagada é justamente o caso em que o
+                // perfil não pode mais informar a região depois; se o país
+                // não vier aqui, ele não vem de lugar nenhum.
+                ip_country: expiredSession.metadata?.ip_country ?? null,
+              },
+            })
+          }
+        } catch (expiredEventThrown) {
+          console.warn('[stripe webhook] checkout_session_expired event threw:', expiredEventThrown)
+        }
+        break
+      }
+
+      // ═════════════════════════════════════════════════════════════════════
+      // KINEO-PAREDE-CHECKOUT-2026-08-16 — O EVENTO QUE RESPONDE "POR QUÊ".
+      // ═════════════════════════════════════════════════════════════════════
+      // Medido em 16/08: 84 pessoas externas abriram uma sessão de checkout ao
+      // vivo e foram embora; a empresa tem 7 pagantes na vida inteira. Dessas
+      // 84, 27 (32%) são INR — e o histórico de `payment_success` é 100% USD:
+      // nunca entrou uma rupia.
+      //
+      // O problema é que HOJE não dá para distinguir as duas causas, que pedem
+      // remédios opostos:
+      //   (a) o cartão foi RECUSADO  → é defeito técnico/regulatório nosso
+      //       (RBI e-mandate: conta Stripe fora da Índia precisa registrar
+      //        mandato para cobrança recorrente em cartão indiano — sem ele a
+      //        cobrança off-session é recusada);
+      //   (b) a pessoa MUDOU DE IDEIA → é preço/oferta.
+      // Os dois deixam exatamente o mesmo rastro: `checkout_started` e silêncio.
+      // Toda coorte definida por AUSÊNCIA passa por `events` antes de virar
+      // decisão — e esta não tinha por onde passar.
+      //
+      // Estes dois casos são ADITIVOS: nenhum caminho existente é tocado,
+      // nenhum crédito é concedido ou revogado, nenhum plano muda. É leitura
+      // pura. Seguro para o dia do TAAFT.
+      //
+      // ⚠️ AÇÃO DE 30 SEGUNDOS DO FUNDADOR (está em docs/PAREDE-DO-CHECKOUT-
+      // 2026-08-16.md): o endpoint de webhook na Stripe precisa estar inscrito
+      // em `payment_intent.payment_failed` e `charge.failed`. Se não estiver,
+      // este código é inerte — não quebra nada, apenas nunca roda. `stripe_events`
+      // recebe 2-8 eventos/dia, compatível com uma lista curta de inscrição.
+      case 'payment_intent.payment_failed': {
+        const failedIntent = event.data.object as Stripe.PaymentIntent
+        const lastError = failedIntent.last_payment_error ?? null
+        const intentCustomerId =
+          typeof failedIntent.customer === 'string'
+            ? failedIntent.customer
+            : failedIntent.customer?.id ?? null
+        // `invoice` saiu do tipo público do PaymentIntent em versões recentes
+        // da API mas continua vindo no payload das cobranças de fatura — ler
+        // por acesso indexado mantém o discriminador sem `any` solto.
+        const intentInvoiceRaw = (failedIntent as unknown as { invoice?: string | { id?: string } | null }).invoice
+        const intentInvoiceId =
+          typeof intentInvoiceRaw === 'string'
+            ? intentInvoiceRaw
+            : intentInvoiceRaw?.id ?? null
+
+        let failedUserId: string | null =
+          failedIntent.metadata?.supabase_user_id ?? null
+        if (!failedUserId && intentCustomerId) {
+          try {
+            const { data: byCustomer } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('stripe_customer_id', intentCustomerId)
+              .limit(1)
+            failedUserId = byCustomer?.[0]?.id ?? null
+          } catch (lookupThrown) {
+            console.warn('[stripe webhook] payment_failed customer lookup threw:', lookupThrown)
+          }
+        }
+
+        try {
+          await writeServerEvent({
+            name: 'checkout_payment_failed',
+            userId: failedUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              object: 'payment_intent',
+              stripe_payment_intent_id: failedIntent.id,
+              stripe_customer_id: intentCustomerId,
+              currency: failedIntent.currency ?? null,
+              amount: failedIntent.amount ?? null,
+              // SEM ISTO A MÉTRICA MENTE EM 30 DIAS. Uma recusa de RENOVAÇÃO
+              // (cartão de assinante que venceu) não é a parede do checkout —
+              // é churn, e cai no mesmo evento. `invoice` presente ⇒ cobrança
+              // de fatura ⇒ renovação; ausente ⇒ primeira compra. Quem ler
+              // este evento SEMPRE filtra por `is_renewal=false` para medir a
+              // parede, e por `true` para medir churn involuntário.
+              is_renewal: Boolean(intentInvoiceId),
+              stripe_invoice_id: intentInvoiceId,
+              // O par que decide entre (a) e (b): `decline_code` é o veredito
+              // do EMISSOR do cartão. 'transaction_not_allowed' /
+              // 'do_not_honor' em cartão indiano é a assinatura do mandato RBI.
+              error_code: lastError?.code ?? null,
+              decline_code: lastError?.decline_code ?? null,
+              error_type: lastError?.type ?? null,
+              error_message: lastError?.message ?? null,
+              card_country: lastError?.payment_method?.card?.country ?? null,
+              card_brand: lastError?.payment_method?.card?.brand ?? null,
+              card_funding: lastError?.payment_method?.card?.funding ?? null,
+              payment_method_type: lastError?.payment_method?.type ?? null,
+            },
+          })
+        } catch (failedEventThrown) {
+          console.warn('[stripe webhook] checkout_payment_failed (intent) threw:', failedEventThrown)
+        }
+        break
+      }
+
+      case 'charge.failed': {
+        // `charge.failed` traz o `outcome` (network_status / seller_message),
+        // que o PaymentIntent não expõe. Os dois eventos chegam para a mesma
+        // recusa; guardar os dois é de propósito — `outcome.network_status`
+        // separa "o emissor recusou" de "a Stripe bloqueou antes de tentar",
+        // e essa diferença muda quem tem de consertar.
+        const failedCharge = event.data.object as Stripe.Charge
+        const chargeCustomerId =
+          typeof failedCharge.customer === 'string'
+            ? failedCharge.customer
+            : failedCharge.customer?.id ?? null
+
+        const chargeInvoiceRaw = (failedCharge as unknown as { invoice?: string | { id?: string } | null }).invoice
+        const chargeInvoiceId =
+          typeof chargeInvoiceRaw === 'string'
+            ? chargeInvoiceRaw
+            : chargeInvoiceRaw?.id ?? null
+
+        let chargeUserId: string | null = failedCharge.metadata?.supabase_user_id ?? null
+        if (!chargeUserId && chargeCustomerId) {
+          try {
+            const { data: byCustomer } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('stripe_customer_id', chargeCustomerId)
+              .limit(1)
+            chargeUserId = byCustomer?.[0]?.id ?? null
+          } catch (lookupThrown) {
+            console.warn('[stripe webhook] charge.failed customer lookup threw:', lookupThrown)
+          }
+        }
+
+        try {
+          await writeServerEvent({
+            name: 'checkout_payment_failed',
+            userId: chargeUserId,
+            path: '/api/stripe/webhook',
+            metadata: {
+              source: 'stripe_webhook',
+              stripe_event_id: event.id,
+              object: 'charge',
+              stripe_charge_id: failedCharge.id,
+              stripe_customer_id: chargeCustomerId,
+              currency: failedCharge.currency ?? null,
+              amount: failedCharge.amount ?? null,
+              // Ver a nota em payment_intent.payment_failed: renovação recusada
+              // é CHURN, não parede de checkout. Sempre filtrar por este campo.
+              is_renewal: Boolean(chargeInvoiceId),
+              stripe_invoice_id: chargeInvoiceId,
+              error_code: failedCharge.failure_code ?? null,
+              error_message: failedCharge.failure_message ?? null,
+              decline_code: failedCharge.outcome?.reason ?? null,
+              network_status: failedCharge.outcome?.network_status ?? null,
+              seller_message: failedCharge.outcome?.seller_message ?? null,
+              risk_level: failedCharge.outcome?.risk_level ?? null,
+              card_country: failedCharge.payment_method_details?.card?.country ?? null,
+              card_brand: failedCharge.payment_method_details?.card?.brand ?? null,
+              card_funding: failedCharge.payment_method_details?.card?.funding ?? null,
+              payment_method_type: failedCharge.payment_method_details?.type ?? null,
+            },
+          })
+        } catch (chargeEventThrown) {
+          console.warn('[stripe webhook] checkout_payment_failed (charge) threw:', chargeEventThrown)
+        }
         break
       }
 
