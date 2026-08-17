@@ -111,6 +111,18 @@ html{scroll-behavior:smooth}
 .klp .nd-menu a{padding:10px 15px;border-radius:var(--r-xs);font-size:14px;white-space:nowrap;margin:0 5px}
 .klp .nd-menu a:first-child{margin-top:17px}
 .klp .nd-menu a:last-child{margin-bottom:5px}
+/* KINEO-NAV-MEGA-2026-08-17 (fundador: 'dentro de Video todos os motores,
+   parecido com o Higgsfield — motores de um lado, o resto do outro'): o
+   dropdown Video vira mega-menu de DUAS COLUNAS. Coluna 1 = o catalogo dos
+   5 motores com descricao+preco (o dropdown vira vitrine de casa multi-motor);
+   coluna 2 = ferramentas de criacao. */
+.klp .nd-mega{min-width:500px}
+.klp .nd-mega .nm-col{display:flex;flex-direction:column;position:relative;z-index:1;min-width:235px;margin-top:12px;padding:8px 5px 8px}
+.klp .nd-mega .nm-col+.nm-col{border-left:1px solid var(--line)}
+.klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
+.klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25}
+.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px}
+.klp .nd-mega .nm-col a b{font-weight:600}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
 
 .klp .nav-links a.nav-on{color:var(--txt)}
@@ -763,13 +775,27 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <Link href="/thumbnail-generator">Thumbnails</Link>
               </span>
             </span>
+            {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
+                (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
             <span className="nd">
               <Link href="/generate">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu">
-                <Link href="/generate">Generate</Link>
-                <Link href="/viral-now">Viral Now</Link>
-                <Link href="/scripts">Scripts</Link>
-                <Link href="/animate">Animate</Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <Link href="/generate?engine=fast&intent_campaign=nav_mega"><b>Kineo 1</b><i>Kineo&rsquo;s own engine &middot; Free</i></Link>
+                  <Link href="/generate?engine=seedance&intent_campaign=nav_mega"><b>Seedance 1.5</b><i>The workhorse &middot; 20 credits</i></Link>
+                  <Link href="/generate?engine=kling&intent_campaign=nav_mega"><b>Kling 2.5</b><i>Cinematic motion &middot; 50 credits</i></Link>
+                  <Link href="/generate?engine=veo&intent_campaign=nav_mega"><b>Veo 3.1</b><i>Google&rsquo;s flagship &middot; 90 credits</i></Link>
+                  <Link href="/generate?engine=hollywood&intent_campaign=nav_mega"><b>Kling 3</b><i>Film scenes &amp; native voice &middot; 150</i></Link>
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/generate">Generate a Short</Link>
+                  <Link href="/viral-now">🔥 Viral Now</Link>
+                  <Link href="/scripts">Scripts</Link>
+                  <Link href="/animate">Animate a Photo</Link>
+                  <Link href="/examples">Examples</Link>
+                </span>
               </span>
             </span>
             <Link href="/avatar">Avatar</Link>
