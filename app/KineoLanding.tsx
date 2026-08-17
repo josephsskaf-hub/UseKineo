@@ -792,20 +792,19 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
                 (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
             <span className="nd">
-              <Link href="/generate">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/studio">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <NavEngineItem href="/generate?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine · Free" />
-                  <NavEngineItem href="/generate?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse · 20 credits" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
-                  <NavEngineItem href="/generate?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion · 50 credits" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
-                  <NavEngineItem href="/generate?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship · 90 credits" chip="STUDIO" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
-                  <NavEngineItem href="/generate?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice · 150" chip="STUDIO" preview="/previews/bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0.mp4" />
+                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine · Free" />
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse · 20 credits" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion · 50 credits" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship · 90 credits" chip="STUDIO" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice · 150" chip="STUDIO" preview="/previews/bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0.mp4" />
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
                   <Link href="/studio"><b>Studio</b><em className="nm-chip">NEW</em></Link>
-                  <Link href="/generate">Generate a Short</Link>
                   <Link href="/viral-now">🔥 Viral Now</Link>
                   <Link href="/scripts">Scripts</Link>
                   <Link href="/examples">Examples</Link>
@@ -824,7 +823,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
-              <Link href="/generate">Generate video</Link>
+              <Link href="/studio">Studio — generate video</Link>
               <Link href="/viral-now">Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
               <Link href="/animate">Animate</Link>
@@ -909,7 +908,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <img src="/posters/hero-kling3.webp" alt="" loading="lazy" />
                 </span>
               </div>
-              <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
@@ -920,7 +919,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">Free &middot; watermark</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=seedance&intent_campaign=engine_tile" className="tile hot">
+              <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
                 {tileVid('cinematic_ai')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
@@ -932,7 +931,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">20 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=kling&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
                 {tileVid('cinematic_kling')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
@@ -944,7 +943,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">50 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
                 {tileVid('cinematic_veo')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
@@ -956,7 +955,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">90 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">
                 {tileVidLast('cinematic_hollywood')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
@@ -1259,11 +1258,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}
               <div className="fchips">
-                <Link href="/generate?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
-                <Link href="/generate?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
-                <Link href="/generate?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
-                <Link href="/generate?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
-                <Link href="/generate?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
+                <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
+                <Link href="/studio?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
+                <Link href="/studio?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
+                <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
+                <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
               </div>
               <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?src=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
