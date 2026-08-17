@@ -349,6 +349,7 @@ OTHER HARD RULES:
 - Scene 1 = the HOOK beat (usually a dialogue scene looking straight into the lens, speaking from the very first frame).
 - MAX 1 LONG B-ROLL IN A ROW: never place two adjacent non-dialogue scenes (cinematic/support) that are BOTH 10 seconds — more than ~10 straight seconds of b-roll kills retention. Break b-roll walls with a dialogue scene, or make the second insert 5 seconds.
 - Total duration 45-60 seconds. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- VISUAL VARIETY (STRICT — repeated scenes are a hard failure): every scene must differ from EVERY other scene in at least TWO of: shot size (wide / medium / close-up / macro / aerial), camera angle (eye-level / low / high / overhead), camera movement (static / dolly / crane / handheld / orbit), and staging (what the subject is DOING and WHERE inside the environment). The characterSheet/environmentSheet repeat for continuity of WORLD — never for continuity of FRAMING. Two scenes with the same composition = a wasted paid render. Before finalizing, re-read your scene list and rewrite any two scenes that could be mistaken for each other.
 - ALL text in English regardless of the input language${language && language !== 'en' ? ` (the input may be in "${language}")` : ''}.
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
 - Each scene gets a short on-screen "caption" (max 6 words, punchy).
