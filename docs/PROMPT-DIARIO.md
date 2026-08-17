@@ -1,5 +1,49 @@
 # PROMPT DIÁRIO — Kineo
 
+> ## MUDANÇA — 17/08/2026 (sprint 13h) — 4ª PERNA DA REGRA 1: **ÍNDICE COPIADO ENVELHECE**
+>
+> O contorno `GIT_INDEX_FILE` (necessário porque o OneDrive recusa o `unlink` de
+> `.git/index.lock`) tira uma **FOTO** do índice. Se o `main` se mover entre a
+> cópia e o `commit-tree`, o commit resultante **reverte tudo que entrou no
+> intervalo, em silêncio** — e o `merge-base --is-ancestor` **PASSA**, porque a
+> **topologia está certa** e o que está errado é o **CONTEÚDO**.
+>
+> Aconteceu às 16:3xZ de 17/08: o fundador commitou `dcad414` ("STUDIO VAI PRA
+> PRODUCAO — aprovado") enquanto a sprint rodava; o commit seguinte (`bbfee24`),
+> montado de uma cópia do índice anterior, **apagou 322 linhas do `/studio`**
+> (`StudioClient.tsx` 307, `page.tsx` 14, `KineoLanding.tsx` 1) numa mensagem que
+> falava de páginas de SEO — e **foi empurrado**. É o `b6fef68` de 30/07
+> acontecendo de novo, pela mesma porta.
+>
+> **Fechamento obrigatório de todo commit feito por `commit-tree`:**
+> 1. **reler `refs/heads/main` imediatamente antes** do `commit-tree` — nunca
+>    reusar o valor lido no início da sprint;
+> 2. **`git diff --stat <pai> <novo>` e conferir que TODO arquivo listado é um
+>    arquivo que eu toquei.** Qualquer nome desconhecido — sobretudo com sinal
+>    negativo — é um revert.
+>
+> **O passo 2 é o único que pega este caso.** O passo 1 sozinho NÃO salva: o ref
+> lido estava correto (`dcad414`) e o revert aconteceu mesmo assim, porque o
+> tree vinha da cópia velha. Corrigido em `073e8a2` restaurando os blobs exatos
+> de `dcad414` via `update-index --cacheinfo`, sem reescrever histórico —
+> reescrever ref sob um repo cujo dono está commitando ao vivo foi como o
+> defeito nasceu.
+>
+> **Corolário que confirma a correção 2b de 08/08:** na mesma sequência,
+> `refs/heads/main.lock` continha um SHA **velho** (`dcad414`) enquanto o ref
+> real já era `bbfee24`. Gravar pelo conteúdo do `.lock` teria recusado um
+> commit legítimo. **Parentesco é a checagem certa; o `.lock` não é evidência
+> de nada.**
+>
+> **Corolário de leitura de instrumento (mesma sprint):** um campo de telemetria
+> pode nascer **estruturalmente incapaz** de responder à pergunta que motivou
+> sua criação. `checkout_session_expired` (16/08) lia o país em
+> `customer_details.address.country` — que a Stripe só preenche quando a pessoa
+> **digita o endereço**, e a parede do checkout é exatamente onde ninguém digita.
+> Vieram `null` nas 10 primeiras leituras. **Antes de confiar num campo novo,
+> ler as primeiras N linhas dele e conferir que não são todas nulas** — o
+> instrumento tem de ser medido, igual ao resto.
+
 > ## MUDANÇA — 17/08/2026 (sprint 11h) — 3ª PERNA DA REGRA 1: A CADEIA TEM **QUATRO** ELOS
 >
 > **disco → índice/HEAD → REMOTO → PRODUÇÃO.** `git log origin/main..HEAD` prova
