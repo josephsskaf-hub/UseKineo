@@ -32,7 +32,7 @@ import { OUR_FAILURE_EVENT_NAME, isOurFailure } from '@/lib/lifecycle/ourFailure
 // sempre. A sequência (spec do fundador, ORDENS-AQUISICAO 06/08 noite):
 //
 //   d0_welcome         — trial ativado há <24h: "your Creator trial is live —
-//                        40 credits". Um CTA só: gerar vídeo.
+//                        50 credits". Um CTA só: gerar vídeo.
 //   ending_soon        — variante 3d no D2 / variante 7d no D5 ("ends
 //                        tomorrow"/"2 days left") + o que a pessoa perde.
 //                        SEM desconto — preço cheio.
@@ -417,7 +417,7 @@ interface Candidate {
   restore: number
   /**
    * KINEO-D0-EMAIL-REVIEW-2026-08-07 — o que a pessoa TEM agora, não o que foi
-   * concedido. O welcome dizia "40 credits just landed in your account" para
+   * concedido. O welcome dizia "50 credits just landed in your account" para
    * quem já tinha gasto um (as duas primeiras contas reais estavam em 39). "40"
    * é verdade sobre a CONCESSÃO (trial_credits_granted) e mentira sobre o
    * SALDO, e a frase fala de saldo ("in your account"). O número vai daqui, do
@@ -987,7 +987,7 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
     const url = `${APP_URL}/generate?${utm('trial_d0')}`
     // ── KINEO-D0-EMAIL-REVIEW-2026-08-07 — TRÊS AFIRMAÇÕES CORRIGIDAS ────────
     //
-    // 1. "40 credits just landed in your account". As duas primeiras contas
+    // 1. "50 credits just landed in your account". As duas primeiras contas
     //    reais (07/08) receberiam isso com 39 no saldo — já tinham gerado um
     //    Short. `${TRIAL_CREDIT_CAP}` é a CONCESSÃO; a frase fala do SALDO. O
     //    número passa a ser `c.creditsLeft`, medido na linha.

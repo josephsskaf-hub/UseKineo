@@ -24,7 +24,7 @@ export const dynamic = 'force-static'
 export const metadata: Metadata = {
   title: 'Kineo Alternatives — Compare Kineo to Other AI Video Tools',
   description:
-    `Compare Kineo with OpusClip, InVideo, HeyGen, Synthesia, CapCut, Runway and more. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $4.90 for the first month.', OFFER.copy.headline)}`,
+    `Compare Kineo with OpusClip, InVideo, HeyGen, Synthesia, CapCut, Runway and more. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $9.90/month.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/alternatives' },
   openGraph: {
     title: 'Kineo Alternatives — Compare Kineo to Other AI Video Tools',
@@ -66,7 +66,7 @@ export default function AlternativesIndexPage() {
             Try Kineo free →
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>$4.90 first month</b>
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>$9.90/mo</b>
           </p>
           <CostCalculatorLink
             placement="alternatives_hero"

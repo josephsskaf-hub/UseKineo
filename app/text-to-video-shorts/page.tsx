@@ -191,6 +191,13 @@ export default function TextToVideoShortsPage() {
         <p style={p}>
           For adjacent workflows, compare <Link href="/youtube-shorts-from-topic" style={{ color: '#2997ff' }}>YouTube Shorts from a topic</Link>, <Link href="/ai-shorts-without-filming" style={{ color: '#2997ff' }}>Shorts without filming</Link>, and the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>affordable AI Shorts maker</Link> breakdown.
         </p>
+        {/* KINEO-CHATGPT-INTENT-2026-08-10 — link contextual (não só rodapé)
+            para a página nova: esta é a irmã mais próxima em intenção, e quem
+            chega aqui com "colei um texto" muito frequentemente escreveu esse
+            texto no ChatGPT dois minutos antes. */}
+        <p style={p}>
+          Wrote the text in ChatGPT? <Link href="/chatgpt-to-youtube-shorts" style={{ color: '#2997ff' }}>The ChatGPT to YouTube Shorts workflow</Link> covers the prompt that returns narration instead of an essay, the spoken word budget per Short, and the six things to strip out before a voice engine reads it.
+        </p>
 
         <h2 style={h2}>Frequently asked questions</h2>
         <div style={{ display: 'grid', gap: 10 }}>

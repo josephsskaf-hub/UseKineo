@@ -4,7 +4,7 @@
 // (free_ai_generate_used=true) but never paid AND never even clicked checkout
 // (so /api/admin/send-abandon-recovery — which targets *_checkout_clicked
 // events — never reaches them). ~230 warm users today sit in this gap. Offers
-// the same recurring-by-design intro ($4.90 first month, ?intro=1) so a rescue
+// the same recurring-by-design intro ($9.90/mo, ?intro=1) so a rescue
 // becomes a subscription, not a one-off coupon. Mirrors send-abandon-recovery's
 // safety model exactly (internal/disposable filters, paced sends, flag-on-success).
 //

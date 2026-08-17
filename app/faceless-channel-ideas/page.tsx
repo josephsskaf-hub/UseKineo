@@ -229,7 +229,7 @@ const FAQ = [
   },
   {
     q: 'How much does Kineo cost?',
-    a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $4.90 for the first month and then $9.90 per month. Check the pricing page for the current plan details before buying.`,
+    a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $9.90/month and then $9.90 per month. Check the pricing page for the current plan details before buying.`,
   },
 ] as const
 
@@ -283,7 +283,7 @@ export default function FacelessChannelIdeasPage() {
           </OrganicCtaLink>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month, then $9.90/month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo, then $9.90/month
         </p>
 
         <TopicGeneratorForm

@@ -831,7 +831,7 @@ export default function GenerateClient({
   // que também atualiza saldo NÃO refaz esta leitura. Logo existe caminho real
   // em que a caixa diria "0 of 40 trial credits used" para quem acabou de
   // queimar 20 — o mesmo defeito de classe que a revisão do e-mail D0 matou
-  // ("40 credits just landed" para quem tinha 39). Este ref marca o instante em
+  // ("50 credits just landed" para quem tinha 39). Este ref marca o instante em
   // que a tela entrou em `done`; o número só é impresso se a leitura do trial
   // for POSTERIOR a ele. Sem prova de frescor, a caixa aparece inteira, com
   // preço e CTA — só sem o número.
@@ -4520,15 +4520,57 @@ export default function GenerateClient({
     // Adversarial 2/2 — `generationInFlightRef` fecha a janela de corrida do
     // compose aceito-mas-ainda-sem-linha: se ESTA aba tem despacho no ar, nao
     // abrimos. Aba morta (o caso real, recarga de pagina) nao tem.
+    // KINEO-GATE-ID-MORTO-2026-08-17 — o fail-open de 16/08 acima exige
+    // renderId AUSENTE, e por isso NUNCA DISPAROU: em 48h, zero eventos
+    // `active_render_gate_forced_open` com `snapshot:'live_server_idle'` no
+    // banco inteiro — contra 128 cliques bloqueados de 6 pessoas. Ou seja: a
+    // correção de ontem cobriu um caso que quase não acontece, e o caso que
+    // acontece continuou trancado. O preço, medido: sebastiaoraul090 bateu 26
+    // vezes em 88 SEGUNDOS e saiu com ZERO vídeos na conta; okotiu, 19 vezes em
+    // 36s, ZERO vídeos; lihowo4884 (o do TAAFT), 19 vezes, ZERO vídeos. Três de
+    // seis pessoas nunca produziram nada — e quatro das seis nunca clicaram no
+    // botão vermelho de escape, porque ninguém lê um botão quando acha que o
+    // botão principal ainda vai funcionar.
+    //
+    // O caso real é o snapshot `live` COM renderId apontando para um render que
+    // já morreu ou já terminou: o ponteiro local existe, o servidor não tem
+    // nada rodando, e o portão segura a página por até 50 minutos.
+    //
+    // A objeção do adversarial de ontem ("com renderId a sonda pode estar
+    // atrás do banco") é uma objeção de SEGUNDOS, não de minutos: a linha do
+    // compose é escrita dentro da própria requisição. Então em vez de recusar a
+    // testemunha, damos a ela um piso de idade. Acima de 90s, um snapshot que a
+    // sonda não confirma não é um render em voo — é um ponteiro órfão.
+    //
+    // Continua estritamente mais restritivo que a guarda do dinheiro: a sonda é
+    // a MESMA fonte do lock do compose, logo tudo que este portão passa a
+    // deixar passar o `handleGenerate` já deixaria. E continua fail-closed —
+    // 401, 500 ou rede caída não provam ociosidade (`serverProbeProvesIdleRef`
+    // só vira true num 200 lido até o fim).
+    // Adversarial 1/2 — `generationInFlightRef` continua fechando a janela da
+    // aba viva; o piso de idade existe para a aba MORTA, que é o caso real
+    // (recarga de página), e onde `generationInFlightRef` é sempre false.
+    // Adversarial 2/2 — snapshot ilegível mantém `snapshotHasRenderId = true` e
+    // idade `null`, e portanto NÃO abre: quem não sabe o que tem na mão não
+    // ganha permissão nova.
+    const GATE_SERVER_TRUTH_MIN_AGE_MS = 90 * 1000
     let snapshotHasRenderId = true
+    let snapshotAgeMs: number | null = null
     try {
       const raw = localStorage.getItem(activeRenderStorageKey(currentUserIdRef.current))
       const parsed = raw ? JSON.parse(raw) as Partial<ActiveRenderSnapshot> : null
       snapshotHasRenderId = Boolean(typeof parsed?.renderId === 'string' && parsed.renderId.trim())
+      const startedAt = Number(parsed?.startedAt)
+      snapshotAgeMs = Number.isFinite(startedAt) ? Date.now() - startedAt : null
     } catch {
       snapshotHasRenderId = true
+      snapshotAgeMs = null
     }
-    if (!snapshotHasRenderId && !generationInFlightRef.current) {
+    const serverTruthMayOpenGate =
+      !generationInFlightRef.current &&
+      (!snapshotHasRenderId ||
+        (typeof snapshotAgeMs === 'number' && snapshotAgeMs >= GATE_SERVER_TRUTH_MIN_AGE_MS))
+    if (serverTruthMayOpenGate) {
       await refreshServerActiveRender()
       if (serverProbeProvesIdleRef.current) {
         activeRenderRestoreResolvedRef.current = true
@@ -4536,7 +4578,10 @@ export default function GenerateClient({
         void trackEvent('active_render_gate_forced_open', {
           attempt_id: generationAttemptRef.current,
           retries: restoreRetryRef.current,
-          snapshot: 'live_server_idle',
+          // Dois rótulos distintos de propósito: é o que vai provar (ou
+          // desmentir) amanhã que o caminho novo é o que carrega o volume.
+          snapshot: snapshotHasRenderId ? 'live_id_server_idle' : 'live_server_idle',
+          snapshot_age_ms: typeof snapshotAgeMs === 'number' ? Math.round(snapshotAgeMs) : null,
         })
         markActiveRenderGateBlocked(false)
         return true
@@ -8273,7 +8318,7 @@ export default function GenerateClient({
               </p>
             )}
             <p style={{ fontSize: '0.72rem', color: '#86868b', fontWeight: 600, margin: '0 0 10px' }}>
-              Renews at $24.90/mo in 30 days · cancel anytime
+              Renews at $19.90/mo in 30 days · cancel anytime
             </p>
             <button
               type="button"
@@ -10663,7 +10708,7 @@ export default function GenerateClient({
                       <>
                         <span>Go Creator — $9.90 first month →</span>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.92, marginTop: 2 }}>
-                          renews at $24.90/mo in 30 days · cancel anytime
+                          renews at $19.90/mo in 30 days · cancel anytime
                         </span>
                       </>
                     )}
@@ -10697,7 +10742,7 @@ export default function GenerateClient({
                     ) : (
                       <>
                         Just want Fast videos?{' '}
-                        <span style={{ color: '#2997ff' }}>Starter — $4.90 first month →</span>
+                        <span style={{ color: '#2997ff' }}>Starter — $9.90/mo →</span>
                         <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
                           25 credits/month · renews at $9.90/mo in 30 days · cancel anytime
                         </span>
@@ -11949,7 +11994,7 @@ function UpsellSection({
             fontWeight: 600,
           }}
         >
-          Renews at $24.90/mo in 30 days · cancel anytime
+          Renews at $19.90/mo in 30 days · cancel anytime
         </div>
       </div>
 
@@ -13423,7 +13468,7 @@ function UrgencyModal({
             marginBottom: 22,
           }}
         >
-          Go Creator for <strong style={{ color: '#5cb3ff' }}>$9.90 your first month</strong> — 150 credits, full AI scenes and the AI Presenter. Renews at $24.90/mo in 30 days.
+          Go Creator for <strong style={{ color: '#5cb3ff' }}>$9.90 your first month</strong> — full AI scenes and the AI Presenter, then 140 credits every month. Renews at $19.90/mo in 30 days.
         </p>
         <button
           type="button"

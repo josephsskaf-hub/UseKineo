@@ -489,7 +489,7 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   const n = NICHES[params.niche]
   if (!n) return {}
   const title = `${n.h1} — Kineo`
-  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is $4.90 for the first month.`
+  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is $9.90/month.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
@@ -635,7 +635,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
         {/* Final CTA */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — 40 Creator credits for ${n.label} Shorts`)}</h2>
-          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is $4.90 for the first month when you want clean exports.</p>
+          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is $9.90/month when you want clean exports.</p>
           <OrganicCtaLink
             href={signupUrlForIdea(primaryIdea)}
             source={campaign}

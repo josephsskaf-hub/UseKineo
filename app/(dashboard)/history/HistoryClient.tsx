@@ -664,7 +664,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             </h2>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
               {showRepeatCreatorOffer
-                ? 'Starter includes 25 Fast credits each month and clean exports for new videos. Start for $4.90 today, then $9.90/month. Cancel anytime.'
+                ? 'Starter includes 60 credits each month and clean exports for new videos. $9.90/month. Cancel anytime.'
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
             {showRepeatCreatorOffer ? (
@@ -694,7 +694,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               >
                 {checkout.pending === 'history_repeat_offer'
                   ? 'Loading…'
-                  : 'Make new exports clean · $4.90 →'}
+                  : 'Make new exports clean · $9.90 →'}
               </button>
             )}
             {showRepeatCreatorOffer && checkout.error && (
@@ -1396,7 +1396,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     <span>Loading…</span>
                   ) : (
                     <>
-                      <span>Unlock clean exports — Start Starter for $4.90</span>
+                      <span>Unlock clean exports — Start Starter for $9.90</span>
                       <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · then $9.90/month · cancel anytime</span>
                     </>
                   )}

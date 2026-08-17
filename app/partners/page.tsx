@@ -15,7 +15,7 @@
 //                         exactly the status app/a/[code]/route.ts:38 requires
 //                         before it logs a click and sets the cookie
 //   $9.90–$37.90/mo     → lib/pricing.ts:90-91 (Studio) and lib/comparisons.ts:305
-//                         (Starter $9.90, $4.90 first month)
+//                         (Starter $9.90, $9.90/mo)
 //   commissions pending → app/api/stripe/webhook/route.ts:99 inserts
 //                         `status: 'pending'` unconditionally; nothing in that
 //                         file ever writes 'approved'. Payout review is a

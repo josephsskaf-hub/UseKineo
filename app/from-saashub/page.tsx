@@ -98,7 +98,7 @@ export default async function FromSaaSHubPage() {
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-white/40">
           Free Fast exports include a Kineo watermark. Paid plans unlock clean MP4s and premium AI engines.
-          Starter renews at $9.90/month after the $4.90 first month; a 7-day money-back guarantee applies.
+          Starter renews at $9.90/month after the $9.90/mo; a 7-day money-back guarantee applies.
         </p>
       </section>
     </main>

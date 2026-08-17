@@ -174,7 +174,7 @@ export default function FreeAiShortsHubPage() {
             {ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter $4.90 first month
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter $9.90/mo
           </p>
         </section>
 

@@ -308,7 +308,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     freeTier: ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, with no card.', OFFER.copy.sentence),
     entryPrice: 'Starter $4.90 for the first month, then $9.90/month',
     fullPricing:
-      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', 'Creator trial on signup: 40 credits; then 1 Fast/mo')}) · Starter $9.90/mo, $4.90 for the first month, 25 credits ($99/year) · Creator $24.90/mo, 150 credits ($199/year) · Studio $37.90/mo, 200 credits ($379/year). 7-day money-back guarantee.`,
+      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', 'Creator trial on signup: 50 credits; then 1 Fast/mo')}) · Starter $9.90/mo, $4.90 for the first month, 25 credits ($99/year) · Creator $24.90/mo, 150 credits ($199/year) · Studio $37.90/mo, 200 credits ($379/year). 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
     voice: 'AI voiceover generated from the script it wrote, with premium voices on higher tiers.',
@@ -1115,7 +1115,7 @@ export const PAIRS: Pair[] = [
       'You have a topic, not a script, and writing the script is the part you keep not doing.',
       'Your ceiling is budget: $9.90/month, or $4.90 for a first month, against $29.',
       'You publish 9:16 and nothing else, so a tool that does only 9:16 costs you nothing.',
-      ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', 'You want to test the full workflow before paying anything — a Creator trial with 40 credits, no card.'),
+      ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', 'You want to test the full workflow before paying anything — a Creator trial with 50 credits, no card.'),
     ],
     differences: [
       {
@@ -1193,7 +1193,7 @@ export const PAIRS: Pair[] = [
       'You have no long-form footage and no plan to record any.',
       'The bottleneck is writing and producing at all, not distributing something that exists.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', 'You want to try the real workflow before paying — a Creator trial with 40 credits, no card.'),
+      ft(OFFER, 'You want to try a daily posting rhythm before paying — 3 free videos every 24 hours, no card.', 'You want to try the real workflow before paying — a Creator trial with 50 credits, no card.'),
       'You want a clean MP4 on the cheapest paid plan: every Kineo paid tier is watermark-free.',
     ],
     pickB: [
@@ -1365,7 +1365,7 @@ export const PAIRS: Pair[] = [
       'There is no video yet. This is the whole case for Kineo on this page.',
       'You do not film, do not want to, and the channel is faceless by design.',
       'You want script, voiceover, footage and captions from one typed sentence.',
-      ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', 'You want to prove the workflow fits before paying — a Creator trial with 40 credits.'),
+      ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', 'You want to prove the workflow fits before paying — a Creator trial with 50 credits.'),
       'Budget is tight: $9.90/month, or $4.90 for a first month.',
     ],
     pickB: [
@@ -3975,7 +3975,7 @@ export const PAIRS: Pair[] = [
       'You have a topic, not a clip, and the missing step is the video existing at all.',
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
       'You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.',
-      ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', 'You want to test the real thing before paying: a Creator trial with 40 credits, no card.'),
+      ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', 'You want to test the real thing before paying: a Creator trial with 50 credits, no card.'),
       'Budget is the binding constraint: $9.90/month, or $4.90 for a first month, against $24.99.',
     ],
     differences: [
@@ -4148,7 +4148,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage with nobody on screen.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', 'You want to test a real posting rhythm before paying — a Creator trial with 40 credits, no card.'),
+      ft(OFFER, 'You want to test a daily posting rhythm before paying — 3 watermarked Fast videos every 24 hours, no card.', 'You want to test a real posting rhythm before paying — a Creator trial with 50 credits, no card.'),
     ],
     differences: [
       {

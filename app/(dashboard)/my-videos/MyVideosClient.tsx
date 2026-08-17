@@ -707,7 +707,7 @@ function VideoCard({
                 type="button"
                 onClick={onUnlock}
                 disabled={unlockPending}
-                title="Starter: $4.90 first month, then $9.90/month"
+                title="Starter: $9.90/month"
                 className="rounded-lg px-3 py-2 text-xs font-black w-full flex flex-col items-center"
                 style={{
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -722,7 +722,7 @@ function VideoCard({
                   <span>Loading…</span>
                 ) : (
                   <>
-                    <span>Unlock clean exports — Starter $4.90</span>
+                    <span>Unlock clean exports — Starter $9.90</span>
                     <span style={{ fontSize: '0.58rem', opacity: 0.9 }}>for new videos · then $9.90/mo · cancel anytime</span>
                   </>
                 )}

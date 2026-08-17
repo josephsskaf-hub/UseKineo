@@ -295,7 +295,7 @@ export default function HowToStartAFacelessYouTubeChannelPage() {
           </Link>
         </div>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo
         </p>
 
         <h2 style={h2}>The three decisions you make once</h2>
@@ -459,6 +459,12 @@ export default function HowToStartAFacelessYouTubeChannelPage() {
           </li>
           <li>
             <Link href="/faceless-video-generator" style={link}>Faceless video generator</Link> — the tool itself.
+          </li>
+          {/* KINEO-CHATGPT-INTENT-2026-08-10 — Phase 2 é produção, e a rota mais
+              comum para produzir hoje começa num chat. */}
+          <li>
+            <Link href="/chatgpt-to-youtube-shorts" style={link}>ChatGPT to YouTube Shorts</Link> — where the chat
+            window stops and what has to happen after it.
           </li>
           <li>
             <Link href="/shorts-money-calculator" style={link}>Shorts money calculator</Link> — model your own numbers

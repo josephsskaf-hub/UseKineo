@@ -22,12 +22,12 @@ const PUBLICATION_DATE = '2026-07-16T00:00:00.000Z'
 export const metadata: Metadata = {
   title: 'Make a YouTube Short From a Topic — AI Writes, Voices & Edits It | Kineo',
   description:
-    `Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $4.90 for the first month.', OFFER.copy.headline)}`,
+    `Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $9.90/month.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/youtube-shorts-from-topic' },
   openGraph: {
     title: 'Make a YouTube Short From a Topic — usually ready in 3–7 minutes',
     description:
-      'One topic in, a ready-to-post 9:16 Short out: script, voiceover, footage and captions. Try Fast free; Starter is $4.90 for the first month.',
+      'One topic in, a ready-to-post 9:16 Short out: script, voiceover, footage and captions. Try Fast free; Starter is $9.90/month.',
     url: 'https://www.usekineo.com/youtube-shorts-from-topic',
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
@@ -108,7 +108,7 @@ export default function YouTubeShortsFromTopicPage() {
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo
         </p>
 
         <TopicGeneratorForm />

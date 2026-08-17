@@ -71,7 +71,7 @@ const TOOLS: Tool[] = [
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: `${ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)}, no card`,
-    startingPrice: '$4.90 first month, then $9.90/mo',
+    startingPrice: '$9.90/mo, then $9.90/mo',
   },
   {
     name: 'OpusClip',
@@ -189,7 +189,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are there free AI Shorts generators?',
-    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is $4.90 for the first month, then $9.90/month.`,
+    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is $9.90/month, then $9.90/month.`,
   },
   {
     q: 'How should I choose an AI Shorts generator?',
@@ -491,7 +491,7 @@ export default function BestAiShortsGeneratorsPage() {
             narrate, a clip to caption, or an avatar to render. Kineo is the one that starts from
             nothing but a topic and hands you a finished, ready-to-post 9:16 Short: hook-first
             script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
-            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', 'every new account gets a full Creator trial: 40 credits, every engine except Studio, no credit card.')}
+            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', 'every new account gets a full Creator trial: 50 credits, every engine except Studio, no credit card.')}
           </p>
           {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
               CRU para `/free-ai-shorts-generator`: nenhum `organic_cta_clicked`

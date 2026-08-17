@@ -178,7 +178,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does Kineo cost?',
-    a: `${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $4.90 for the first month, then $9.90 per month. Check the pricing page for current plan details.`,
+    a: `${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is $9.90/month, then $9.90 per month. Check the pricing page for current plan details.`,
   },
 ]
 
@@ -293,7 +293,7 @@ export default function RedditStoryVideoGeneratorPage() {
           </Link>
         </div>
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo
         </p>
 
         <TopicGeneratorForm

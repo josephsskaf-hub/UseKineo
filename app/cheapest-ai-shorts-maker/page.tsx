@@ -1,4 +1,4 @@
-// KINEO-REBASE-2026-07-10 — 2:1 credit rebase: every "40 credits" → 20 (Seedance).
+// KINEO-REBASE-2026-07-10 — 2:1 credit rebase: every "50 credits" → 20 (Seedance).
 // ROBO2-SEO-2026-06-28 — high-intent SEO page for the "cheapest AI shorts maker"
 // buyer cluster (cheapest AI YouTube Shorts generator / affordable faceless shorts AI /
 // make AI YouTube Shorts cheap). Honest angle: a local-currency calculator uses

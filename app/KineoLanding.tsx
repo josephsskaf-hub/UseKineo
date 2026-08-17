@@ -1087,8 +1087,8 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   home ainda anunciava "3 / day" — uma promessa MENOR do que a real
                   e, pior, uma que o servidor recusa (o free ON e 1 Fast/mes).
                   Flag OFF devolve "3 / day" byte a byte. */}
-              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', '40-credit trial')}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
-              <tr><td>Starting price</td><td className="us" data-label="Kineo">$4.90 first month</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
+              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', '50-credit trial')}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              <tr><td>Starting price</td><td className="us" data-label="Kineo">$9.90/mo</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
           <p style={{ marginTop: 12, textAlign: 'center', fontSize: 12, color: 'var(--muted2)' }}>✓ included&nbsp;&nbsp;·&nbsp;&nbsp;— not available</p>
@@ -1214,8 +1214,8 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS
                   vs InVideo Plus $25 sem motor premium nenhum. */}
               <div className="pt">Most popular</div><div className="nm">Creator</div>
-              <div className="pr">$9.90<span>/mo</span></div>
-              <div className="pr-then">then $19.90/mo</div>
+              <div className="pr">$19.90<span>/mo</span></div>
+              <div className="pr-then">first month just $9.90</div>
               <ul><li><span className="ck">✓</span> <b>≈ 7 engine films</b> a month, finished</li><li><span className="ck">✓</span> Voice + karaoke captions + score included</li><li><span className="ck">✓</span> 500 projects · forever storage</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
               <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}>Go Creator — $9.90 first month</a>
             </div>
@@ -1315,7 +1315,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   criou ESTA depois e em literal cru. Com a flag ON — o estado de
                   producao — a home fechava prometendo "3 free videos every 24h"
                   a 10cm do FAQ que diz "1 watermarked Fast video per month" e do
-                  bloco de pricing que diz "full Creator trial: 40 credits". Uma
+                  bloco de pricing que diz "full Creator trial: 50 credits". Uma
                   varredura no repo inteiro (app/ components/ lib/) confirma que
                   era a UNICA ocorrencia crua: todas as outras ja passam por ft().
                   Com a flag OFF o texto volta byte a byte ao literal anterior. */}

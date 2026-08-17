@@ -38,7 +38,7 @@ const FAQ = [
   },
   {
     q: 'How do I remove the Kineo watermark?',
-    a: 'Paid plans unlock clean MP4 exports. Starter is $4.90 for the first month and renews at $9.90 per month. The free Fast workflow keeps a Kineo watermark.',
+    a: 'Paid plans unlock clean MP4 exports. Starter is $9.90/month and renews at $9.90 per month. The free Fast workflow keeps a Kineo watermark.',
   },
   {
     q: 'Which faceless video formats can I make?',

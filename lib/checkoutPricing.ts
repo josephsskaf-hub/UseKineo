@@ -377,7 +377,7 @@ export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
 //   $2.90 → net $2.516; 20 cr = 1 Seedance ($2.34)            → +$0.18 (7.0%)
 //   $4.90 → net $4.458; 30 cr = 1 Seedance + 10 Fast ($2.84)  → +$1.62 (36.3%)
 // NOTE FOR THE NEXT PERSON: "two or three AI videos for $4.90" is arithmetically
-// impossible. 40 credits = 2 Seedance = $4.68 worst case, which is −$0.22 on a
+// impossible. 50 credits = 2 Seedance = $4.68 worst case, which is −$0.22 on a
 // $4.90 sale. 30 is the ceiling at this price point.
 export const PACK_CREDITS = {
   /** ?pack=starter — the $4.90 First Pack. */

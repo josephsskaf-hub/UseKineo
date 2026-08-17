@@ -417,7 +417,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
             Make one free →
           </OrganicCtaLink>
           <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $4.90 first month
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo
           </p>
         </section>
 

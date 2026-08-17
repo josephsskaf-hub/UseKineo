@@ -437,7 +437,7 @@ export default function SignupPage() {
                 {[
                   'AI writes the script for you',
                   'Stock footage + voiceover included',
-                  ft(OFFER, 'Create, download & share 3 watermarked Fast videos / 24h', 'Full Creator trial: 40 credits, every engine except Studio'),
+                  ft(OFFER, 'Create, download & share 3 watermarked Fast videos / 24h', 'Full Creator trial: 50 credits, every engine except Studio'),
                 ].map((line) => (
                   <li
                     key={line}
