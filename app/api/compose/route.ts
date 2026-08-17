@@ -13,6 +13,8 @@ import {
   submitCreatomateRender,
   targetWordCount,
   transcribeTTSWithTimestamps,
+  // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — Whisper no mp4 da cena de fala.
+  transcribeClipWithTimestamps,
   uploadVoiceoverToSupabase,
   // Kineo-AudioCache-2026 — TTS + Whisper content-hash cache (fail-open).
   computeVoiceoverCacheKey,
@@ -1612,6 +1614,17 @@ export async function POST(req: NextRequest) {
       // the FORCE list (Joseph's self-promo accounts) applies — same behavior
       // as the other premium fal engines.
       const forced = FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase())
+
+      // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — transcreve o AUDIO NATIVO das
+      // cenas de fala (Whisper direto no mp4 do clipe) pra legenda seguir a
+      // boca do ator. Sequencial, 2-4 clipes tipicos, ~2s cada; best-effort.
+      for (const c of hollywoodClips) {
+        if ((c.engine === 'dialogue' || c.engine === 'host') && c.url) {
+          const words = await transcribeClipWithTimestamps(c.url)
+          if (words.length > 1) c.speechWords = words
+        }
+      }
+      console.log(`[compose] hollywood lipsync captions: ${hollywoodClips.filter((c) => c.speechWords).length} cena(s) de fala transcritas`)
 
       // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema tambem no
       // Hollywood (rodava sem musica; respiros viravam "apagao"). Mesmo

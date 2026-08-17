@@ -1803,13 +1803,23 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // KINEO-TIKTOK-61-2026-08-17 — regra de negocio do fundador: "se a
+      // gente vende 60 segundos, tem que entregar pelo menos 61" (Creator
+      // Rewards do TikTok so paga acima de 1:00). O plano mira ALEM do
+      // pedido (60 → 68) porque a entrega encolhe ~10% (fala real menor que
+      // o planejado + gapfix). Aterrissagem esperada: 61-65s.
+      const hollywoodTarget = (() => {
+        const req = Math.max(45, Math.min(60, Math.round(duration || 60)))
+        return req >= 55 ? req + 8 : req + 4
+      })()
+
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
           idea: prompt,
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
-          durationSeconds: duration,
+          durationSeconds: hollywoodTarget,
           language: hollywoodLanguage,
         })
       } catch (e) {
@@ -1861,7 +1871,7 @@ export async function POST(req: NextRequest) {
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
-              durationSeconds: duration,
+              durationSeconds: hollywoodTarget,
               language: hollywoodLanguage,
               shortRetryFeedback: `scenes ${dup[0]} and ${dup[1]} show the SAME visual subject. Every non-dialogue scene must depict a DIFFERENT primary subject from the story (different event, place, era or moment) — and the environmentSheet must appear ONLY in scenes set in the narrator's own location.`,
             })
@@ -1881,7 +1891,7 @@ export async function POST(req: NextRequest) {
       // MOTORMAX — entao esticar funciona; dialogo nunca estica: a fala tem o
       // tamanho que tem).
       {
-        const target = Math.max(45, Math.min(60, Math.round(duration || 60)))
+        const target = hollywoodTarget // KINEO-TIKTOK-61 — overshoot pro plano
         const planTotal = (pl: typeof plan) => pl.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
         let total = planTotal(plan)
         if (total < Math.round(target * 0.85)) {
@@ -1891,7 +1901,7 @@ export async function POST(req: NextRequest) {
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
-              durationSeconds: duration,
+              durationSeconds: hollywoodTarget,
               language: hollywoodLanguage,
               shortRetryFeedback: `it totaled only ${total} seconds against a ${target}-second target. Return a plan whose scene seconds SUM to ${target - 5}-${target + 2}. Add scenes or lengthen the non-dialogue ones.`,
             })
@@ -1940,7 +1950,7 @@ export async function POST(req: NextRequest) {
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
-              durationSeconds: duration,
+              durationSeconds: hollywoodTarget,
               language: hollywoodLanguage,
               shortRetryFeedback: `it covered only ${total} seconds of spoken content against a ${target}-second target. Return ${Math.min(8, plan.scenes.length + 1)}-8 scenes summing ${target - 5}-${target + 2} seconds, and size EVERY voiceover to its scene at ~2.3 words per second (a 10s scene needs 20-24 words, a 12s scene 26-30) — use MORE of the source script's facts; do not drop story beats.`,
             })

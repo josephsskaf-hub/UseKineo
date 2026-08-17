@@ -313,7 +313,7 @@ export async function planHollywoodScenes(args: {
     .map((s, i) => `Beat ${i + 1}: ${((s.voiceover || s.description || '') as string).slice(0, 220)}`)
     .join('\n')
 
-  const system = `You are a Hollywood-grade director planning an ultra-realistic 9:16 vertical short film (45-60 seconds total) from an idea/script. You output ONLY valid JSON.
+  const system = `You are a Hollywood-grade director planning an ultra-realistic 9:16 vertical short film (45-70 seconds total) from an idea/script. You output ONLY valid JSON.
 
 You route each scene to one of three engine types:
 - "dialogue": a fictional person speaks ON CAMERA. 5 or 10 seconds. The EXACT spoken line (English) MUST appear inside the scene prompt wrapped in double quotes, e.g.: she looks into the lens and says: "Nobody tells you this about money." The line must FILL the entire clip: the person speaks continuously and energetically for the entire shot, no dead air. Line-length rule (strict): a 10-second scene needs a 22-30 word line; a 5-second scene needs a 10-14 word line. The engine generates the voice and lip sync natively. NEVER plan external narration (TTS) over a person speaking in close-up.
@@ -365,7 +365,7 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
-Target total duration: ${Math.max(45, Math.min(60, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
+Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
   const completion = await openai.chat.completions.create(
     {

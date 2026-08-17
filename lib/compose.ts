@@ -848,6 +848,36 @@ const CAPTION_SYNC_OFFSET = 0.15 // seconds, added to each caption start
  *
  * Returns [{time, duration}] aligned 1:1 with `segments`, or [] on failure.
  */
+
+// KINEO-LIPSYNC-CAPTIONS-2026-08-17 — Whisper sobre o CLIPE (mp4) de uma cena
+// de fala com audio nativo: o fundador viu a legenda descolar da boca do ator
+// no final do video — a distribuicao uniforme nao ouve o ritmo real da fala.
+// Whisper aceita mp4 direto; clipes de 5-10s tem 2-6MB (limite da API: 25MB).
+// Fail-open: qualquer falha retorna [] e a legenda cai no comportamento antigo.
+export async function transcribeClipWithTimestamps(clipUrl: string): Promise<WhisperWord[]> {
+  try {
+    if (!/^https:\/\//.test(clipUrl)) return []
+    const res = await fetch(clipUrl)
+    if (!res.ok) return []
+    const ab = await res.arrayBuffer()
+    if (ab.byteLength < 10_000 || ab.byteLength > 24 * 1024 * 1024) return []
+    const { openai } = await import('@/lib/openai')
+    const file = await toFile(new Blob([ab], { type: 'video/mp4' }), 'clip.mp4', { type: 'video/mp4' })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const transcription: any = await openai.audio.transcriptions.create({
+      model: 'whisper-1',
+      file: file as unknown as Parameters<typeof openai.audio.transcriptions.create>[0]['file'],
+      response_format: 'verbose_json',
+      timestamp_granularities: ['word', 'segment'],
+    } as Parameters<typeof openai.audio.transcriptions.create>[0], { timeout: OPENAI_WHISPER_TIMEOUT_MS, maxRetries: 0 })
+    const words: WhisperWord[] = Array.isArray(transcription?.words) ? transcription.words : []
+    return words.filter((w) => typeof w?.word === 'string' && Number.isFinite(w?.start) && Number.isFinite(w?.end))
+  } catch (e) {
+    console.warn('[compose] clip whisper failed (legenda uniforme):', e instanceof Error ? e.message : String(e))
+    return []
+  }
+}
+
 export function mapWhisperTimingsToSegments(
   words: WhisperWord[],
   segments: Array<{ text: string }>,
@@ -2571,6 +2601,11 @@ export interface HollywoodClipInput {
   // dialogue scene (undefined for cinematic/support). Captions chunk THIS
   // text so the on-screen words match what the person actually says.
   dialogueLine?: string
+  // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — palavras REAIS do audio nativo do
+  // clipe (Whisper sobre o proprio mp4, offsets relativos ao inicio da
+  // cena). Presente → as legendas da cena de fala sincronizam com a boca do
+  // ator (karaoke incluso); ausente → distribuicao uniforme de antes.
+  speechWords?: WhisperWord[]
 }
 
 export interface HollywoodNarrationBlock {
@@ -2897,6 +2932,26 @@ export function buildHollywoodCreatomateSource({
     const t = sceneStarts[i]
     if (t >= captionWindowEnd) return
 
+    // KINEO-LIPSYNC-CAPTIONS-2026-08-17 — com as palavras REAIS do clipe
+    // (Whisper no mp4), a legenda segue a boca do ator, chunk a chunk, com
+    // karaoke — mesmo pipeline das narracoes. Fail-open pro caminho uniforme.
+    if (Array.isArray(clip.speechWords) && clip.speechWords.length > 1) {
+      const caps = buildCaptionsFromWhisperWords(clip.speechWords, secondsFor(clip), 0, CAPTION_WORDS_PER_CHUNK)
+      let emitted = 0
+      for (const cap of caps) {
+        const st = round3(t + cap.time)
+        if (st >= captionWindowEnd) continue
+        const d = round3(Math.max(0.1, Math.min(cap.duration, captionWindowEnd - st)))
+        elements.push(...buildCaptionElements({
+          text: cap.text, time: st, duration: d, highlight: cap.highlight,
+          emphasize: FAST_EMPHASIS_RE.test(cap.text),
+          karaokeWords: cap.words.map((w) => ({ word: w.word, start: round3(w.start + t), end: round3(w.end + t) })),
+        }))
+        emitted++
+      }
+      if (emitted > 0) return
+      // transcricao vazia/inutil → segue pro caminho uniforme abaixo
+    }
     const line = (clip.dialogueLine ?? '').trim()
     if (line) {
       const winStart = round3(t + 0.3)
