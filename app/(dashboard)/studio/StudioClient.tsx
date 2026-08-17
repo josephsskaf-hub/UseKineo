@@ -90,8 +90,17 @@ export default function StudioClient() {
     return p && prompt.trim() ? `${prompt.trim()}\n\n[camera: ${p.prompt}]` : prompt.trim()
   }, [prompt, preset])
 
+  // KINEO-STUDIO-ONECLICK-2026-08-17 (degrau 2): o clique AQUI e o
+  // consentimento de gasto — o usuario viu motor + custo e apertou Generate.
+  // Token de uso unico via sessionStorage (mesma origem, 2 min de validade)
+  // autoriza o /generate a disparar o render sozinho ao fim da analise; a
+  // chegada ja roda ?autoanalyze=1 (primitivo do Viral Now). Resultado: UM
+  // clique no Studio → analise → render → filme, sem parada na tela antiga.
   const generate = () => {
-    const q = new URLSearchParams({ engine, prompt: finalPrompt, intent_campaign: 'studio_v4' })
+    try {
+      sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
+    } catch {}
+    const q = new URLSearchParams({ engine, prompt: finalPrompt, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
     router.push(`/generate?${q.toString()}`)
   }
 

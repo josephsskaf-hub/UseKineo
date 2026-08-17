@@ -5357,6 +5357,32 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, activeRenderRestoreResolved])
 
+  // KINEO-STUDIO-ONECLICK-2026-08-17 — degrau 2 do Studio: quando a chegada
+  // vem do Studio com o TOKEN de intencao (setado pelo clique em Generate LA,
+  // onde motor e custo estavam na cara), o fim da analise (phase 'options')
+  // dispara o render sozinho — UMA vez, token consumido na leitura, validade
+  // 2 min. Isto NAO reabre o buraco do Push #447: aquele auto-generate gastava
+  // creditos sem escolha de motor/custo; aqui o usuario ESCOLHEU ambos e
+  // clicou num botao que dizia o preco. handleGenerateGuarded mantem o modal
+  // de sem-creditos como ultima guarda.
+  const studioOneClickFiredRef = useRef(false)
+  useEffect(() => {
+    if (phase !== 'options' || studioOneClickFiredRef.current) return
+    if (searchParams?.get('studio') !== '1') return
+    try {
+      const raw = sessionStorage.getItem('kineo:studio:go:v1')
+      if (!raw) return
+      sessionStorage.removeItem('kineo:studio:go:v1')
+      const tok = JSON.parse(raw) as { t?: number }
+      if (!tok?.t || Date.now() - tok.t > 120_000) return
+      studioOneClickFiredRef.current = true
+      handleGenerateGuarded()
+    } catch {
+      // sem token valido → comportamento classico (usuario clica Generate)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
   // Push #301 — Viral Now cards used to AUTO-GENERATE: the moment analysis
   // finished they fired handleGenerate() on the default engine.
   // Push #447 — REMOVED the auto-generate. It silently burned the user's credits
@@ -7769,7 +7795,7 @@ export default function GenerateClient({
                   color: '#2997ff',
                 }}
               >
-                {showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
+                {searchParams?.get('studio') === '1' ? 'Studio · Render' : showStep1 ? 'Step 1 · Your idea' : showScriptPreview ? 'Step 2 · Review' : (showBrollPlanning || showVisualDirector) ? 'Step 3 · Visuals' : showStep2 ? 'Step 3 · Brief' : 'Step 4 · Generate'}
               </span>
               {/* R4 (14/08): stepper — a posicao no fluxo vira 4 segmentos
                   visiveis, nao so um rotulo de texto. */}
@@ -7792,7 +7818,7 @@ export default function GenerateClient({
               </span>
             </div>
             <h1 className="font-black text-2xl sm:text-3xl mb-1" style={{ color: 'var(--text)', fontFamily: "var(--font-display), var(--font-inter), sans-serif", fontWeight: 600, letterSpacing: '-.02em' }}>
-              {showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
+              {searchParams?.get('studio') === '1' && !showStep1 ? 'Studio — rendering your film' : showStep1 ? 'Create your Short' : showScriptPreview ? 'Your script is ready' : showBrollPlanning ? 'Planning visuals…' : showVisualDirector ? 'Visual Director' : 'Generate your Short'}
             </h1>
             <p className="text-sm" style={{ color: 'var(--muted2)' }}>
               {showStep1 && 'One idea in. A ready-to-post Short out — usually in 3–7 minutes.'}
