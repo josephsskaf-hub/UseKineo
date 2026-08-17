@@ -17,6 +17,8 @@ import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
+// KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
+import NavEngineItem from '@/components/NavEngineItem'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -91,17 +93,46 @@ html{scroll-behavior:smooth}
 .klp .nav-links a{position:relative;transition:color var(--dur-fast) ease}
 .klp .nav-links a .badge{height:15px;font-size:8.5px;padding:0 5px;margin-left:5px;vertical-align:2px;animation:none}
 .klp .nd{position:relative;display:inline-flex}
+/* KINEO-NAV-HOVER-2026-08-17 (fundador: "o sub menu desaparece antes de eu
+   clicar") — dois defeitos: (1) o dropdown abria deslocado 4px pra baixo,
+   criando um VAO MORTO entre o titulo e o menu onde o hover morria no
+   caminho do mouse; (2) o fechamento era instantaneo — 1px fora e sumia.
+   Cura: ::after cria uma PONTE invisivel cobrindo o vao (e um respiro
+   lateral pro trajeto diagonal), o menu abre colado (translateY 0) e o
+   fechamento ganha 0.25s de tolerancia (delay so na SAIDA; abrir segue
+   imediato). */
+.klp .nd::after{content:'';position:absolute;left:-14px;right:-14px;top:100%;height:16px}
 .klp .nd-car{font-size:8px;margin-left:5px;opacity:.6;vertical-align:1px}
-.klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift);z-index:60}
-.klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;transform:translate(-50%,4px)}
+.klp .nd-menu{position:absolute;top:100%;left:50%;transform:translate(-50%,10px);padding-top:12px;opacity:0;pointer-events:none;transition:opacity var(--dur-fast) ease .25s,transform var(--dur-fast) var(--ease-swift) .25s,visibility 0s linear .45s;visibility:hidden;z-index:60}
+.klp .nd:hover .nd-menu,.klp .nd:focus-within .nd-menu{opacity:1;pointer-events:auto;visibility:visible;transform:translate(-50%,0);transition-delay:0s,0s,0s}
 .klp .nd-menu{display:flex}
 .klp .nd-menu>*{display:block}
 .klp .nd-menu{flex-direction:column;min-width:172px;background:transparent}
-.klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:#111115;border:1px solid var(--line);border-radius:13px;box-shadow:0 18px 44px rgba(0,0,0,.55)}
+.klp .nd-menu::before{content:'';position:absolute;inset:12px 0 0 0;background:#111115;border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:0 18px 44px rgba(0,0,0,.55)}
 .klp .nd-menu a{position:relative;z-index:1}
-.klp .nd-menu a{padding:10px 15px;border-radius:9px;font-size:14px;white-space:nowrap;margin:0 5px}
+.klp .nd-menu a{padding:10px 15px;border-radius:var(--r-xs);font-size:14px;white-space:nowrap;margin:0 5px}
 .klp .nd-menu a:first-child{margin-top:17px}
 .klp .nd-menu a:last-child{margin-bottom:5px}
+/* KINEO-NAV-MEGA-2026-08-17 (fundador: 'dentro de Video todos os motores,
+   parecido com o Higgsfield — motores de um lado, o resto do outro'): o
+   dropdown Video vira mega-menu de DUAS COLUNAS. Coluna 1 = o catalogo dos
+   5 motores com descricao+preco (o dropdown vira vitrine de casa multi-motor);
+   coluna 2 = ferramentas de criacao. */
+.klp .nd-mega{min-width:500px}
+.klp .nd-mega .nm-col{display:flex;flex-direction:column;position:relative;z-index:1;min-width:235px;margin-top:12px;padding:8px 5px 8px}
+.klp .nd-mega .nm-col+.nm-col{border-left:1px solid var(--line)}
+.klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
+.klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25}
+.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px}
+.klp .nd-mega .nm-col a b{font-weight:600}
+/* KINEO-NAV-MEGA-PREVIEW-2026-08-17 — mini-clipe flutuando a direita do menu
+   no hover do motor (preview de 8s ja existente; preload none = zero custo
+   ate o primeiro hover). */
+.klp .nd-mega .nvp{position:absolute;left:calc(100% - 2px);top:12px;width:268px;height:150px;border-radius:12px;overflow:hidden;border:1px solid var(--line);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .18s ease}
+.klp .nd-mega .nvp video{width:100%;height:100%;object-fit:cover;display:block}
+.klp .nd-mega .nm-col a:hover .nvp{opacity:1}
+/* Chip de tier (STUDIO) — ensina a hierarquia sem uma palavra. */
+.klp .nm-chip{display:inline-block;margin-left:7px;font-style:normal;font-size:9px;font-weight:800;letter-spacing:.1em;padding:2px 7px;border-radius:99px;background:rgba(41,151,255,.16);color:#7cc0ff;vertical-align:1px}
 .klp .nd-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
 
 .klp .nav-links a.nav-on{color:var(--txt)}
@@ -174,7 +205,7 @@ html{scroll-behavior:smooth}
 .klp .ftr p{margin-top:4px;font-size:13px;color:var(--muted2);line-height:1.45}
 .klp .bento{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;grid-auto-rows:minmax(122px,auto);gap:12px;margin-top:12px}
 .klp .bento .promo{grid-row:span 2;position:relative;border-radius:var(--r-md);overflow:hidden;border:1px solid rgba(41,151,255,.28);background:radial-gradient(120% 90% at 15% 10%,rgba(41,151,255,.28),transparent 55%),radial-gradient(100% 80% at 85% 95%,rgba(41,151,255,.12),transparent 60%),linear-gradient(160deg,#0b1830 0%,#0a0f1c 45%,#0c0c0e 100%);display:flex;flex-direction:column;justify-content:center;padding:30px 28px}
-.klp .bento .promo::before{content:'';position:absolute;left:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(41,151,255,.35),transparent 70%);filter:blur(30px);pointer-events:none}
+.klp .bento .promo::before{content:'';position:absolute;left:-40px;top:-40px;width:220px;height:220px;border-radius:var(--r-pill);background:radial-gradient(circle,rgba(41,151,255,.35),transparent 70%);filter:blur(30px);pointer-events:none}
 .klp .bento .promo>*{position:relative;z-index:1}
 .klp .bento .promo h3{font-size:clamp(1.3rem,2.4vw,1.8rem);font-weight:650;letter-spacing:-.01em;line-height:1.12;text-transform:uppercase;font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .bento .promo p{margin-top:10px;font-size:.95rem;color:var(--txt2);max-width:34ch}
@@ -187,7 +218,7 @@ html{scroll-behavior:smooth}
 .klp .tile .trow{display:flex;align-items:center;justify-content:space-between}
 .klp .tile .tbody{display:flex;flex-direction:column;gap:2px}
 .klp .tile:hover{border-color:rgba(41,151,255,.5);background:var(--card2);transform:translateY(-2px)}
-.klp .tile .tic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);transition:box-shadow var(--dur-fast) ease,border-color var(--dur-fast) ease}
+.klp .tile .tic{width:30px;height:30px;border-radius:var(--r-xs);display:grid;place-items:center;color:var(--blue);background:rgba(41,151,255,.12);border:1px solid rgba(41,151,255,.3);transition:box-shadow var(--dur-fast) ease,border-color var(--dur-fast) ease}
 .klp .tile:hover .tic{border-color:rgba(41,151,255,.6);box-shadow:0 0 14px rgba(41,151,255,.35)}
 .klp .tile h3{font-size:1.02rem;font-weight:650;letter-spacing:-.01em;color:var(--txt);font-family:var(--font-display),var(--font-inter),sans-serif}
 .klp .tile p{font-size:12.5px;color:var(--muted2);line-height:1.4}
@@ -217,12 +248,12 @@ html{scroll-behavior:smooth}
 .klp .sv{height:72px;border-radius:var(--r-sm);border:1px solid var(--line);background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .klp .sv1 span{font-size:12.5px;color:var(--muted);font-style:italic;padding:0 14px;text-align:center}
 .klp .sv2{flex-direction:column;gap:6px;padding:0 18px}
-.klp .sv2 i{display:block;height:6px;border-radius:3px;background:linear-gradient(90deg,rgba(41,151,255,.35),rgba(255,255,255,.10));width:100%}
+.klp .sv2 i{display:block;height:6px;border-radius:var(--r-pill);background:linear-gradient(90deg,rgba(41,151,255,.35),rgba(255,255,255,.10));width:100%}
 .klp .sv2 i:nth-child(2){width:78%}
 .klp .sv2 i:nth-child(3){width:56%}
 .klp .sv3{background:url('/videos/example-sentinel.webp') center/cover}
 .klp .sv3::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.25)}
-.klp .sv3 b{position:relative;z-index:1;width:26px;height:26px;border-radius:50%;background:rgba(41,151,255,.9);display:grid;place-items:center;color:#fff;font-size:10px}
+.klp .sv3 b{position:relative;z-index:1;width:26px;height:26px;border-radius:var(--r-pill);background:rgba(41,151,255,.9);display:grid;place-items:center;color:#fff;font-size:10px}
 .klp .fnote{max-width:640px;margin:0 auto;text-align:center}
 .klp .fnote p{font-size:1.08rem;line-height:1.7;color:var(--txt2)}
 .klp .fnote .sig{margin-top:14px;font-size:13px;color:var(--muted2)}
@@ -483,7 +514,7 @@ html{scroll-behavior:smooth}
 @media(max-width:700px){.klp .hero-line{font-size:12.5px}.klp .ec-go{opacity:1;transform:none;font-size:11px;padding:6px 11px}}
 .klp .tr-wrap{position:relative}
 .klp .tr-wrap::after{content:'';position:absolute;top:0;bottom:6px;right:0;width:70px;background:linear-gradient(90deg,transparent,var(--s0));pointer-events:none;z-index:2}
-.klp .tr-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(17,17,21,.9);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease}
+.klp .tr-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:38px;height:38px;border-radius:var(--r-pill);border:1px solid var(--line);background:rgba(17,17,21,.9);color:#fff;font-size:20px;line-height:1;display:grid;place-items:center;cursor:pointer;transition:border-color var(--dur-fast) ease,background var(--dur-fast) ease}
 .klp .tr-nav:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.15)}
 .klp .tr-prev{left:-8px}
 .klp .tr-next{right:-8px}
@@ -494,7 +525,7 @@ html{scroll-behavior:smooth}
 .klp .ec-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .klp .ec-chip{position:absolute;top:10px;left:10px;z-index:2;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.25);border-radius:var(--r-pill);padding:4px 10px;backdrop-filter:blur(6px)}
 .klp .ec-dots{position:absolute;top:14px;right:12px;z-index:2;display:flex;gap:4px}
-.klp .ec-dots i{position:relative;overflow:hidden;width:14px;height:2.5px;border-radius:2px;background:rgba(255,255,255,.3)}
+.klp .ec-dots i{position:relative;overflow:hidden;width:14px;height:2.5px;border-radius:var(--r-pill);background:rgba(255,255,255,.3)}
 .klp .ec-dots i.on::after{content:'';position:absolute;inset:0;background:#fff;transform-origin:left;animation:ecFill 8s linear forwards}
 @keyframes ecFill{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .klp .ec-go{position:absolute;right:10px;bottom:10px;z-index:2;font-size:12px;font-weight:700;color:#000;background:#fff;border-radius:var(--r-pill);padding:7px 14px;opacity:0;transform:translateY(4px);transition:opacity var(--dur-fast) ease,transform var(--dur-fast) var(--ease-swift)}
@@ -508,12 +539,12 @@ a.pl-badge:hover{color:var(--txt);border-color:rgba(41,151,255,.5)}
 .klp .tr-row::-webkit-scrollbar{display:none}
 .klp .tr-card{position:relative;flex:0 0 clamp(150px,13vw,200px);aspect-ratio:9/16;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--line);background:linear-gradient(100deg,rgba(255,255,255,.035) 40%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.035) 60%) var(--card2);background-size:200% 100%;animation:ewsh 1.6s linear infinite;scroll-snap-align:start;transition:transform var(--dur-base) var(--ease-swift),border-color var(--dur-fast) ease}
 .klp .tr-card:hover{transform:translateY(-3px);border-color:rgba(41,151,255,.5)}
-.klp .tr-badge{position:absolute;top:8px;left:8px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);border-radius:6px;padding:3px 7px;backdrop-filter:blur(4px)}
+.klp .tr-badge{position:absolute;top:8px;left:8px;z-index:2;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.22);border-radius:var(--r-xs);padding:3px 7px;backdrop-filter:blur(4px)}
 .klp .tr-title{position:absolute;inset-inline:0;bottom:0;z-index:2;padding:26px 10px 10px;font-size:11.5px;font-weight:650;line-height:1.3;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent)}
 .klp .tcredits{margin-top:6px;font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--blue);text-transform:uppercase}
 .klp .bento .promo{overflow:hidden}
 .klp .pstack{position:absolute;right:-14px;bottom:-20px;display:flex;gap:8px;transform:rotate(-8deg);opacity:.9}
-.klp .pstack img{width:74px;aspect-ratio:9/14;object-fit:cover;border-radius:10px;border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.klp .pstack img{width:74px;aspect-ratio:9/14;object-fit:cover;border-radius:var(--r-xs);border:1px solid rgba(255,255,255,.18);box-shadow:0 10px 26px rgba(0,0,0,.45)}
 .klp .pstack img:nth-child(2){transform:translateY(10px)}
 .klp .pstack img:nth-child(3){transform:translateY(22px)}
 @media(max-width:1000px){.klp .pstack{display:none}}
@@ -748,19 +779,73 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 Higgsfield: Image e Video abrem submenu no hover/focus (CSS
                 puro, sem JS). O clique no proprio rotulo leva ao destino
                 principal da categoria. */}
+            {/* KINEO-NAV-IMAGE-2026-08-17 (aprovado): Animate a Photo muda de
+                Video pra ca — a porta de entrada dele e uma IMAGEM. O menu
+                deixa de ser dropdown de item unico. */}
+            {/* KINEO-IMAGES-PROD-2026-08-17 (fundador: "pode subir pra
+                producao... dentro do menu de imagens vai ter todos os motores
+                de imagem"): Image vira mega-menu igual ao Video — catalogo de
+                motores com preco | ferramentas. Porta principal: /images. */}
             <span className="nd">
-              <Link href="/thumbnail-generator">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu">
-                <Link href="/thumbnail-generator">Thumbnails</Link>
+              <Link href="/images">Image<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><b>FLUX Schnell</b><i>Instant drafts · 1 credit</i></Link>
+                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><b>FLUX Dev</b><i>Photorealistic · 2 credits</i></Link>
+                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><b>Seedream 5.0 Pro</b><i>Deep understanding · 3 credits</i></Link>
+                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><b>Grok Imagine 2.0</b><em className="nm-chip">NEW</em><i>By xAI · 3 credits</i></Link>
+                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><b>Recraft V3</b><i>Perfect text · 4 credits</i></Link>
+                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><b>Nano Banana Pro</b><em className="nm-chip">STUDIO</em><i>Google’s best · 5 credits</i></Link>
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/images"><b>Create Image</b><em className="nm-chip">NEW</em></Link>
+                  <Link href="/thumbnail-generator">Thumbnails</Link>
+                  <Link href="/animate">Animate a Photo</Link>
+                </span>
               </span>
             </span>
+            {/* KINEO-AUDIO-2026-08-17 ([STAGE] fundador: "quero o menu de
+                audio conectando: imagem - audio - videos"): mega-menu Audio
+                entre Image e Video, mesmo padrao de catalogo com preco. */}
             <span className="nd">
-              <Link href="/generate">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
-              <span className="nd-menu">
-                <Link href="/generate">Generate</Link>
-                <Link href="/viral-now">Viral Now</Link>
-                <Link href="/scripts">Scripts</Link>
-                <Link href="/animate">Animate</Link>
+              <Link href="/audio">Audio<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><b>MiniMax Speech HD</b><i>High-fidelity narration · 2 cr/1k</i></Link>
+                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><b>Eleven v3</b><em className="nm-chip">STUDIO</em><i>Emotion &amp; delivery tags · 2 cr/1k</i></Link>
+                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><b>Dia Dialogue</b><em className="nm-chip">NEW</em><i>Two-speaker scenes · 1 cr/1k</i></Link>
+                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><b>Kokoro</b><i>Instant narration · 1 cr/1k</i></Link>
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/audio"><b>Text to Speech</b><em className="nm-chip">NEW</em></Link>
+                  <Link href="/avatar">Talking Avatar</Link>
+                </span>
+              </span>
+            </span>
+            {/* KINEO-NAV-MEGA-2026-08-17 — Video vira mega-menu: motores
+                (catalogo com preco) | ferramentas. Pares: bento + hero cards. */}
+            <span className="nd">
+              <Link href="/studio">Video<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <span className="nd-menu nd-mega">
+                <span className="nm-col">
+                  <span className="nm-h">Engines</span>
+                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine · Free" />
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse · 20 credits" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion · 50 credits" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship · 90 credits" chip="STUDIO" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice · 150" chip="STUDIO" preview="/previews/bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0.mp4" />
+                </span>
+                <span className="nm-col">
+                  <span className="nm-h">Create</span>
+                  <Link href="/studio"><b>Studio</b><em className="nm-chip">NEW</em></Link>
+                  <Link href="/viral-now">🔥 Viral Now</Link>
+                  <Link href="/scripts">Scripts</Link>
+                  <Link href="/examples">Examples</Link>
+                </span>
               </span>
             </span>
             <Link href="/avatar">Avatar</Link>
@@ -768,14 +853,16 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           </div>
         <div className="nav-right">
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio">Dashboard</Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?src=nav">Start free</Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
-              <Link href="/generate">Generate video</Link>
+              <Link href="/studio">Studio — generate video</Link>
+              <Link href="/images">Images — create image</Link>
+              <Link href="/audio">Audio — text to speech</Link>
               <Link href="/viral-now">Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
               <Link href="/animate">Animate</Link>
@@ -783,7 +870,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <Link href="/avatar">Avatar</Link>
               <a href="#pricing">Pricing</a>
               {initialUser
-                ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
+                ? <Link className="btn btn-w" href="/studio">Dashboard</Link>
                 : <Link className="btn btn-w" href="/signup?src=nav-mobile">Start free</Link>}
             </label>
           </div>
@@ -796,7 +883,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           <h1 className="sr-h1">Kineo — real AI Shorts, straight from the engines</h1>
           {/* UX10 #1 — a pagina abria sem dizer O QUE e o produto. Uma linha
               fina orienta sem trazer o hero gigante de volta. */}
-          <p className="hero-line">Type a topic — get a finished YouTube Short. <span>Five engines, one workflow. Every card below is a real render.</span></p>
+          {/* KINEO-HERO-LINE-2026-08-17 (fundador: "nao fazemos videos no
+              YouTube, fazemos pra varias utilidades — seja criativo"): a linha
+              vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
+              aberto; "real render" fica — e o selo honesto da vitrine. */}
+          <p className="hero-line">Type an idea — watch it become a film. <span>Voiced, scored and captioned by five cinematic engines. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
@@ -833,6 +924,17 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 const v = wallByEngine(eng)
                 return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
               }
+              // KINEO-BENTO-DISTINCT-2026-08-17 (fundador: "ta repetindo... me
+              // surpreende") — o tile do bento pega o ULTIMO video do motor na
+              // parede, nao o primeiro: o hero mostra os 4 primeiros, entao o
+              // 5o curado (megatsunami de Lituya Bay 1958 — deslizamento
+              // explodindo na baia, com o karaoke novo em acao) e EXCLUSIVO do
+              // bento. Fallback: so 1 video no motor → usa ele mesmo.
+              const tileVidLast = (eng: string) => {
+                const list = engineWall.filter((v) => v.engine === eng)
+                const v = list.length > 0 ? list[list.length - 1] : undefined
+                return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
+              }
               return (
             <div className="bento">
               <div className="promo">
@@ -845,7 +947,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <img src="/posters/hero-kling3.webp" alt="" loading="lazy" />
                 </span>
               </div>
-              <Link href="/generate?engine=fast&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=fast&intent_campaign=engine_tile" className="tile">
                 {tileVid('fast')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
@@ -856,7 +958,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">Free &middot; watermark</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=seedance&intent_campaign=engine_tile" className="tile hot">
+              <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
                 {tileVid('cinematic_ai')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 5v14M17 5v14M3 10h4M3 14h4M17 10h4M17 14h4"/></svg></span>
@@ -868,7 +970,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">20 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=kling&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
                 {tileVid('cinematic_kling')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 8l6-3v14l-6-3"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg></span>
@@ -880,7 +982,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">50 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=veo&intent_campaign=engine_tile" className="tile">
+              <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
                 {tileVid('cinematic_veo')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2z"/><path d="M19 15l.9 2.6L22.5 18.5l-2.6.9L19 22l-.9-2.6-2.6-.9 2.6-.9L19 15z" opacity=".7"/></svg></span>
@@ -892,8 +994,8 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <span className="tcredits">90 credits / video</span>
                 </span>
               </Link>
-              <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
-                {tileVid('cinematic_hollywood')}
+              <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">
+                {tileVidLast('cinematic_hollywood')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
                   <span className="tb">Studio</span>
@@ -1127,7 +1229,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 40 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
+          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets a full Creator trial — 50 credits, every engine except Studio')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails
@@ -1195,11 +1297,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   motores clicaveis + Start free. O href antigo #try-kineo
                   apontava para o composer, que nao existe mais. */}
               <div className="fchips">
-                <Link href="/generate?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
-                <Link href="/generate?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
-                <Link href="/generate?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
-                <Link href="/generate?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
-                <Link href="/generate?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
+                <Link href="/studio?engine=fast&intent_campaign=final_chip">Kineo 1</Link>
+                <Link href="/studio?engine=seedance&intent_campaign=final_chip">Seedance 1.5</Link>
+                <Link href="/studio?engine=kling&intent_campaign=final_chip">Kling 2.5</Link>
+                <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
+                <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
               </div>
               <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?src=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de

@@ -39,6 +39,19 @@ const NAV_ICONS: Record<string, JSX.Element> = {
       <path d="m3.5 17 5-5 4 4 3-3 5 5" />
     </svg>
   ),
+  // KINEO-IMAGES-PROD-2026-08-17 — Kineo Images (6 motores texto→imagem)
+  images: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="3" />
+      <path d="M12 7v10M7 12h10" />
+    </svg>
+  ),
+  // KINEO-AUDIO-2026-08-17 — [STAGE] Kineo Audio (texto→voz multi-motor)
+  audio: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 10v4M8 7v10M12 4v16M16 7v10M20 10v4" />
+    </svg>
+  ),
   viral: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M12 3c1 3-3 5-3 8.5a3.5 3.5 0 0 0 7 0c0-1-.4-2-1-2.8.2 2-1 2.6-1 1.3 0-2.5-1-5.5-2-7Z" />
@@ -457,8 +470,10 @@ export default function Sidebar({
           {/* KINEO-NAV-REDESIGN-2026-07-10 (Joseph) — landing-style hierarchy:
               CREATE (the engines) · GROW (audience tools) · ACCOUNT. */}
           <NavSection label="Create" first />
-          <NavItem href="/generate" icon={NAV_ICONS.generate} label="Generate Video" exact={false} pathname={pathname} onClick={onClose} />
-          <NavItem href="/avatar" icon={NAV_ICONS.avatar} label="AI Presenter" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+          <NavItem href="/studio" icon={NAV_ICONS.generate} label="Studio" exact={false} pathname={pathname} onClick={onClose} />
+          <NavItem href="/images" icon={NAV_ICONS.images} label="Images" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+          <NavItem href="/audio" icon={NAV_ICONS.audio} label="Audio" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
+          <NavItem href="/avatar" icon={NAV_ICONS.avatar} label="AI Presenter" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/animate" icon={NAV_ICONS.animate} label="Animate a Photo" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/thumbnail-generator" icon={NAV_ICONS.thumbnails} label="AI Thumbnails" exact={false} pathname={pathname} onClick={onClose} badge="HOT" />
 

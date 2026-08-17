@@ -11,6 +11,7 @@ import { fal } from '@fal-ai/client'
 import { randomUUID } from 'crypto'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
+import { persistImage } from '@/lib/imageStore'
 
 export const maxDuration = 60
 
@@ -101,8 +102,12 @@ export async function POST(req: NextRequest) {
       result?.image?.url ??
       null
     if (!url) throw new Error('no image url in provider response')
-    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${model.cost} ok`)
-    return NextResponse.json({ url, model: modelKey, balance: debit.data - 0 })
+    // KINEO-IMAGES-STORE-2026-08-17 — URL do fal nao e permanente: copia pro
+    // nosso bucket + linha na tabela `images` (galeria My Images). Fallback
+    // best-effort: se a copia falhar, devolve a URL do fal mesmo.
+    const stored = await persistImage({ userId: user.id, prompt, model: modelKey, sourceUrl: url })
+    console.log(`[images] user=${user.id.slice(0, 8)} model=${modelKey} cost=${model.cost} ok persisted=${!!stored.id}`)
+    return NextResponse.json({ url: stored.url, id: stored.id, model: modelKey, balance: debit.data - 0 })
   } catch (e) {
     console.error('[images] provider failed — refunding:', e instanceof Error ? e.message : String(e))
     await refundRenderCredits(renderId).catch(() => {})

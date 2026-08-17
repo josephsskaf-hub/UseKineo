@@ -8,6 +8,7 @@ import { fal } from '@fal-ai/client'
 import { randomUUID } from 'crypto'
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { refundRenderCredits } from '@/lib/credits/refund'
+import { persistUpscale } from '@/lib/imageStore'
 
 export const maxDuration = 60
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
   if (!falKey) return NextResponse.json({ error: 'Provider not configured.' }, { status: 500 })
   fal.config({ credentials: falKey })
 
-  let body: { url?: string }
+  let body: { url?: string; id?: string }
   try {
     body = await req.json()
   } catch {
@@ -48,8 +49,11 @@ export async function POST(req: NextRequest) {
     }
     const url = result?.data?.image?.url ?? result?.image?.url ?? null
     if (!url) throw new Error('no image url in provider response')
+    // KINEO-IMAGES-STORE-2026-08-17 — persiste o upscale no nosso bucket e
+    // grava upscaled_url na linha da galeria (quando o client manda o id).
+    const finalUrl = await persistUpscale({ userId: user.id, imageId: typeof body.id === 'string' ? body.id : null, sourceUrl: url })
     console.log(`[images] upscale user=${user.id.slice(0, 8)} ok`)
-    return NextResponse.json({ url })
+    return NextResponse.json({ url: finalUrl })
   } catch (e) {
     console.error('[images] upscale failed — refunding:', e instanceof Error ? e.message : String(e))
     await refundRenderCredits(renderId).catch(() => {})

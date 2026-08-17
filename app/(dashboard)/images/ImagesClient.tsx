@@ -4,7 +4,7 @@
 // Higgsfield, vestida com o Studio Kit. Multi-motor (FLUX Schnell/Dev +
 // Recraft V3 pra texto perfeito), aspecto, geracao em grade com Download e
 // Upscale 2x por imagem. Aprovado pra stage; sobe pra prod no ok do fundador.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 
 type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
@@ -25,7 +25,7 @@ const SIZES: { key: ImgSize; label: string }[] = [
   { key: 'landscape_16_9', label: '16:9 · Wide' },
 ]
 
-type Item = { url: string; model: ImgModelKey; upscaled?: string | null; upscaling?: boolean }
+type Item = { id?: string | null; url: string; model: ImgModelKey | string; upscaled?: string | null; upscaling?: boolean }
 
 export default function ImagesClient() {
   const [model, setModel] = useState<ImgModelKey>('dev')
@@ -35,6 +35,29 @@ export default function ImagesClient() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [items, setItems] = useState<Item[]>([])
+
+  // KINEO-IMAGES-PROD-2026-08-17 — o mega-menu Image aponta motores pra ca
+  // (?engine=), igual ao padrao do Studio: chegada ja cai com o motor certo.
+  useEffect(() => {
+    const e = new URLSearchParams(window.location.search).get('engine')
+    if (e && IMG_ENGINES.some((x) => x.key === e)) setModel(e as ImgModelKey)
+  }, [])
+
+  // KINEO-IMAGES-STORE-2026-08-17 (fundador: "precisa ter o storage, obvio"):
+  // as imagens agora persistem no nosso bucket + tabela `images` — a grade
+  // virou "My Images" e sobrevive ao refresh.
+  useEffect(() => {
+    fetch('/api/images', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { images: [] }))
+      .then((d) => {
+        if (Array.isArray(d?.images)) {
+          setItems(d.images.map((r: { id: string; url: string; upscaled_url?: string | null; model?: string }) => ({
+            id: r.id, url: r.url, model: (r.model ?? 'dev') as ImgModelKey, upscaled: r.upscaled_url ?? null,
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   const eng = IMG_ENGINES.find((e) => e.key === model)!
 
@@ -50,7 +73,7 @@ export default function ImagesClient() {
       })
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
-      setItems((xs) => [{ url: data.url as string, model }, ...xs])
+      setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model }, ...xs])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed.')
     } finally {
@@ -87,7 +110,7 @@ export default function ImagesClient() {
       const res = await fetch('/api/images/upscale', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: item.url }),
+        body: JSON.stringify({ url: item.url, id: item.id ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Upscale failed.')
@@ -102,10 +125,7 @@ export default function ImagesClient() {
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <h1 style={{ margin: 0 }}>Images</h1>
-        <span className="soon" style={{ fontSize: 10, padding: '3px 8px' }}>STAGE</span>
-      </div>
+      <h1>Images</h1>
       <p className="sub">Type it. See it. Six image engines, one screen.</p>
 
       <div className="grid">
@@ -171,7 +191,7 @@ export default function ImagesClient() {
 
           {items.length > 0 && (
             <div>
-              <div className="lab">This session</div>
+              <div className="lab">My Images</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
                 {items.map((it, i) => (
                   <div key={it.url} className="card" style={{ padding: 10 }}>
