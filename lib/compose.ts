@@ -2605,11 +2605,17 @@ export function buildHollywoodCreatomateSource({
   clips,
   narrationBlocks,
   watermark = false,
+  musicUrl = null,
 }: {
   clips: HollywoodClipInput[]
   narrationBlocks: HollywoodNarrationBlock[]
   watermark?: boolean
   endCard?: boolean
+  // KINEO-HOLLYWOOD-SCORE-2026-08-17 — trilha por tema em volume de cinema.
+  // O Hollywood rodava SEM musica; o fundador ouviu os respiros entre
+  // narracoes como "apagoes" e o filme como "sem brilho". Uma cama musical
+  // continua (mood-matched, 7%) costura os respiros e da cinema ao conjunto.
+  musicUrl?: string | null
 }): Record<string, unknown> {
   const cleanClips = clips.filter((c) => typeof c.url === 'string' && c.url.trim().length > 0)
   if (cleanClips.length === 0) {
@@ -2939,6 +2945,17 @@ export function buildHollywoodCreatomateSource({
   // Band ≈55–137px; the top band is otherwise empty now, so the only collision
   // checks that matter are the frame top (55px clear) and the caption top.
   // Full arithmetic is in the standard builder's block above.
+  // KINEO-HOLLYWOOD-SCORE-2026-08-17 — cama musical continua, track 8.
+  // Volume 7% (abaixo dos 12% do classico: aqui existe fala nativa e
+  // ambiencia dos motores por baixo), fades de 1.2s/2s nas pontas.
+  if (musicUrl) {
+    elements.push({
+      type: 'audio', track: 8, time: 0, duration: totalDuration,
+      source: musicUrl, volume: '7%', loop: true,
+      audio_fade_in: 1.2, audio_fade_out: 2,
+    })
+  }
+
   if (watermark) {
     elements.push({
       type: 'text', track: 9, time: 0, duration: totalDuration,

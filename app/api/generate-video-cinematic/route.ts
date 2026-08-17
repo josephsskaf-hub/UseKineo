@@ -2172,7 +2172,26 @@ export async function POST(req: NextRequest) {
               ? anchors.portraitUrl
               : inNarratorWorld ? anchors.environmentUrl : undefined
             : undefined
-          if (!anchorUrl) sceneModel = HOLLYWOOD_MODELS[hs.type]
+          // KINEO-IMAGEFIRST-2026-08-17 — fundador pegou a SEGUNDA cena deitada
+          // (Londres 1908 inteira de lado, mesmo com a ordem de horizonte no
+          // prompt). Pedir por favor nao resolve rotacao: agora cena de apoio
+          // sem ancora nasce de um STILL 9:16 proprio (flux, ~2s, centavos) e
+          // anima por i2v — com o primeiro frame vertical, o clipe NAO TEM
+          // como sair deitado. E o modo image-first do PROJETO-PISO. Fail-open:
+          // still falhou → t2v como antes (com o prefixo upright abaixo).
+          let sceneStillUrl: string | null = null
+          if (hs.type === 'support' && !anchorUrl) {
+            try {
+              sceneStillUrl = await generateCinematicSceneStill({
+                scenePrompt: hs.prompt,
+                styleSuffix: plan.styleSheet ?? '',
+                seed: generationSeed,
+                pollWindowMs: 9_000,
+              })
+            } catch { sceneStillUrl = null }
+          }
+          const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
+          sceneModel = sceneAnchor ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[hs.type]
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
@@ -2187,11 +2206,17 @@ export async function POST(req: NextRequest) {
           // dentro do quadro 9:16. Ordem explicita de composicao vertical +
           // horizonte nivelado em toda cena nao-dialogo.
           const spectacleSuffix = hs.type !== 'dialogue'
-            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur. Upright vertical composition: the horizon runs HORIZONTALLY across the frame, never sideways, never rotated.'
+            ? ' Ultra sharp focus, crisp fine detail, photorealistic large-scale spectacle, volumetric light, high dynamic range, no blur.'
             : ''
-          const scenePrompt = hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          // KINEO-UPRIGHT-B-2026-08-17 — a ordem de composicao vertical sai do
+          // FIM do prompt (onde o modelo menos pesa) e vira PREFIXO: tokens
+          // iniciais mandam mais. Vale pro t2v; no i2v o still ja trava tudo.
+          const uprightPrefix = hs.type !== 'dialogue' && !sceneAnchor
+            ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
+            : ''
+          const scenePrompt = uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           try {
-            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, anchorUrl)
+            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor)
           } catch (e) {
             if (
               e instanceof FalQueueSubmitError && e.ambiguous &&
