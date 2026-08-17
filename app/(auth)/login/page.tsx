@@ -10,6 +10,7 @@ import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import AuthReel from '@/components/AuthReel'
 
 // Only honor redirects that stay on our own site, so a malicious referrer
 // can't bounce a logged-in user out to an external phishing page.
@@ -27,72 +28,8 @@ function isCheckoutResume(): boolean {
   return new URLSearchParams(window.location.search).get('reason') === 'checkout'
 }
 
-// KINEO-LOGIN-REEL-2026-08-17 — [STAGE] tela de login estilo split-screen
-// (referencia do fundador: InVideo; "a nossa e do lado direito, e em azul,
-// nao vamos nos descaracterizar"): vitrine com os 3 renders com mais efeitos
-// da curadoria Kling 3 girando em crossfade — Carrington (faiscas/aurora),
-// Tunguska (anel de explosao), Lituya (mega-onda). Selo honesto: motor real.
-const LOGIN_REEL = [
-  // KINEO-CURADORIA-17/08 — fundador: fogo fora, natureza dentro. Maracaibo
-  // (mulher + tempestade) abre o reel no lugar do Carrington.
-  { id: '4b12925e-16e6-4b56-af5a-7047f9ae7a28', label: 'Kling 3' },
-  { id: '99818ab0-0960-4089-a784-12b241736868', label: 'Kling 3' },
-  { id: 'e487a011-8781-482f-913e-445ef5ad22bf', label: 'Kling 3' },
-]
-
-function LoginReel() {
-  const [idx, setIdx] = useState(0)
-  const refs = useRef<(HTMLVideoElement | null)[]>([])
-  useEffect(() => {
-    refs.current[0]?.play().catch(() => {})
-    const t = setInterval(() => setIdx((i) => (i + 1) % LOGIN_REEL.length), 8000)
-    return () => clearInterval(t)
-  }, [])
-  useEffect(() => {
-    refs.current.forEach((v, i) => {
-      if (!v) return
-      if (i === idx) v.play().catch(() => {})
-      else v.pause()
-    })
-  }, [idx])
-  return (
-    <div
-      className="relative w-full rounded-2xl overflow-hidden"
-      style={{
-        maxWidth: 780,
-        aspectRatio: '500 / 280',
-        border: '1px solid rgba(41,151,255,.22)',
-        boxShadow: '0 30px 90px rgba(0,0,0,.6), 0 0 60px rgba(41,151,255,.10)',
-        background: '#0a0a0c',
-      }}
-    >
-      {LOGIN_REEL.map((v, i) => (
-        <video
-          key={v.id}
-          ref={(el) => { refs.current[i] = el }}
-          src={`/previews/${v.id}.mp4`}
-          muted
-          loop
-          playsInline
-          preload={i === 0 ? 'auto' : 'metadata'}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: i === idx ? 1 : 0, transition: 'opacity 1.1s ease' }}
-        />
-      ))}
-      <span
-        className="absolute bottom-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full"
-        style={{
-          background: 'rgba(0,0,0,.55)',
-          border: '1px solid rgba(41,151,255,.4)',
-          color: '#7cc0ff',
-          backdropFilter: 'blur(6px)',
-        }}
-      >
-        {LOGIN_REEL[idx].label} · rendered in Kineo
-      </span>
-    </div>
-  )
-}
+// KINEO-AUTH-REEL-2026-08-17 — o reel virou componente compartilhado
+// (components/AuthReel) usado por login E signup; curadoria num lugar so.
 
 export default function LoginPage() {
   // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier via contexto (client).
@@ -212,7 +149,7 @@ export default function LoginPage() {
             </p>
           </div>
           <div className="relative z-10 w-full flex justify-center">
-            <LoginReel />
+            <AuthReel />
           </div>
           <ul className="relative z-10 flex items-center gap-6 flex-wrap justify-center">
             {[
