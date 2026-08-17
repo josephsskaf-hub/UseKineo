@@ -390,8 +390,21 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     breadcrumb + kicker + pill do filtro + CTA + painel de baixo) — o oposto do
     "1 acento usado raro" do item 3 do sistema deles. Rollback: git revert.
 
-22. **NOVO (13/08, sprint 18h) — A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS
-    ARQUIVOS: ESTA NO `html{font-size:14px}`.** Achado olhando `/pricing` com
+22. ✅ **FEITO 17/08 (sprint 14h) — A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS
+    ARQUIVOS: ESTA NO `html{font-size:14px}`.** `tailwind.config.js` ganhou
+    `theme.extend.borderRadius` apontando para os tokens (`md`/`lg` → `var(--r-xs,8px)`,
+    `xl`/`2xl` → `var(--r-sm,13px)`, `3xl` → `var(--r-lg,22px)`; `full` FORA do mapa,
+    de proposito, porque 9999px ja concorda com `--r-pill`). Um arquivo, 546
+    ocorrencias alcancadas. Provado no CSS compilado (`npx tailwindcss` gera
+    `.rounded-xl{border-radius:var(--r-sm, 13px)}` e mantem `.rounded-full{9999px}`)
+    e antes/depois no DOM de producao com a mesma regra injetada: `/pricing` cai de
+    **17 elementos fora da escala para 3** e de **5 raios distintos para 4**, sem
+    diferenca visivel. **A landing nao tem UMA classe `rounded-*`** (mede zero no
+    DOM da home em producao) — entao a vitrine de motores e as regras inviolaveis
+    do hero estao fora do raio de alcance por construcao, nao por cuidado.
+    Detalhamento e as 6 medicoes no Diario de 17/08 (sprint 14h). Rollback: 1 arquivo.
+    **Texto original preservado:**
+    A SEGUNDA LINGUAGEM DE RAIO NAO ESTA NOS ARQUIVOS: ESTA NO `html{font-size:14px}`. Achado olhando `/pricing` com
     olhos de Higgsfield e medido no DOM de producao. A pagina inteira usa **4
     raios — 9999 / 14 / 10.5 / 7px — e nenhum deles existe na escala de tokens**
     (8/13/18/22/999). Nao e desleixo de quem escreveu a pagina: sao
@@ -678,6 +691,53 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     **nada foi feito** — mas o registro fica: no unico segundo em que o produto
     entrega o que prometeu, a linha imediatamente acima da prova fala de quanto ainda
     resta na carteira. Rollback: git revert.
+
+28. **NOVO (17/08, sprint 14h) — /studio: A PORTA PRINCIPAL NOVA NASCEU FORA DE
+    TODOS OS TOKENS, E ELA TEM UMA **QUINTA** LINGUAGEM DE TIMING QUE NENHUM ITEM
+    DESTE DOC TINHA VISTO.** Achado na rotacao (o `/generate` deixou de ser a sala
+    de chegada no commit `613ca3e` — chegada de mao vazia agora redireciona pro
+    `/studio`, entao a pagina que este roadmap vinha medindo ha 3 sprints **nao e
+    mais a porta**) e medido no DOM de producao hoje. Numeros de `/studio`,
+    367 elementos numa tela so:
+    - **16 raios distintos** — `10px` (14x), `8px` (12x), `14px` (12x), `999px` (10x),
+      `13px` (6x), `6px` (5x), `16px` (4x), `5px`, `99px`, `9999px`, `10.5px`, `7px`,
+      `9px`, `18px` e duas formas compostas. So **4 elementos** passam por classe
+      Tailwind, entao o item 22 (feito hoje) **quase nao a alcanca**: aqui o raio e
+      px literal em `style` inline, a terceira lingua do item 22.
+    - **QUINTA LINGUAGEM DE TIMING: `ease` puro em 65 dos 73 elementos animados.**
+      O item 24 catalogou quatro (tokens, literais em CSS, `transitionDuration` em
+      JSX, classes Tailwind com `cubic-bezier(.4,0,.2,1)`). `/studio` roda em
+      **`ease`** — a palavra-chave DEFAULT do CSS, que aparece quando alguem escreve
+      `transition: all .16s` sem curva — em `ease` (37), `ease, ease` (17) e
+      `ease, ease, ease` (11); so 8 elementos usam a curva do Tailwind e **zero**
+      usam `--ease-swift`. E sao **5 duracoes** (0.15 / 0.16 / 0.18 / 0.3s), nenhuma
+      igual a `--dur-fast/base/slow`. O teste 4 do dia 20 continua sem enxergar isso:
+      `ease` nao aparece em grep de `cubic-bezier` nem de `--ease-`.
+    - **O ACENTO OUTRA VEZ, E PIOR QUE O `/generate` DO ITEM 26: 39 elementos com o
+      azul em 367 (1 em cada 9,4) e os 39 ACIMA DA DOBRA** — porque o `/studio` e
+      uma tela unica, entao nao existe "abaixo da dobra" onde diluir. O item 26
+      mediu 21 acima da dobra no `/generate`; a tela que substituiu ele tem 39.
+    - **A doenca dos itens 23 e 27 nasceu junto com a pagina: 6 `<video>` de 192x343,
+      `poster` em 0/6, `preload="metadata"` em 6/6 e `readyState 4` em 6/6** — isto e,
+      os seis MP4 baixaram INTEIROS no load, abaixo da dobra, sem um poster no
+      caminho. O truque `#t=0.1` no src esta la tentando fazer papel de poster: e a
+      confissao de que o poster faz falta.
+    - **A unica boa noticia, e ela e grande: `/studio` QUEBROU O PADRAO MONOFONTE.**
+      38 dos 367 elementos em Space Grotesk (o `/pricing`, `/history`, `/signup` e
+      `/generate` mediram zero nos itens 23 e 24). A segunda familia finalmente
+      trabalha dentro do produto.
+    Antes: a porta principal do produto fala 16 raios, 5 duracoes, uma curva default
+    e 39 acentos numa tela. Depois: `/studio` passa pelos tokens como a landing ja
+    passou — raios para a escala, `transition` com `--dur-*`/`--ease-swift`,
+    `poster` + `preload="none"` + IntersectionObserver nos 6 videos (a MESMA correcao
+    do item 23, que agora tem tres paginas: `/history`, `/generate` e `/studio`), e o
+    acento reduzido a acao e foco (alvo <= 12, mesmo alvo do item 26).
+    Porque: e a primeira tela que todo cliente novo ve desde `613ca3e`, e ela e a
+    unica pagina do produto que nunca passou por uma sprint de UI. Enquanto o roadmap
+    medir `/generate`, ele esta medindo uma sala que o fundador ja esvaziou.
+    Anotado junto, para nao virar item novo depois: o breadcrumb do `/studio` imprime
+    **"Kineo / Dashboard"** numa pagina cujo H1 e "Studio" — o par que faltou quando a
+    rota virou a porta principal. Rollback: git revert.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -721,6 +781,106 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### 17/08 (sprint 14h) — ITEM 22 FECHADO NO UNICO LUGAR QUE ALCANCA AS 546 CLASSES, E A DESCOBERTA DE QUE O ROADMAP ESTAVA MEDINDO UMA SALA VAZIA
+
+**1. Auditoria do item anterior (item 21, /wall) — EM PRODUCAO, e PASSOU.** O push
+saiu: `origin/main` esta em `2836f28` e **contem o `eb6f6e4`** da sprint das 18h de
+ontem (o HEAD local esta 2 commits a frente, mas os dois sao do fundador, do Studio —
+nenhum e de UI). Medido em `www.usekineo.com/wall` hoje:
+- **O fallback dispara e o buraco acabou:** `[role="img"]` = **1** na pagina, e o card
+  `#3` (`aSrIVAc81MM`, a thumbnail morta) pinta o gradiente da marca + glifo de play
+  em vez de nada. Os outros dois carregam de verdade — `naturalWidth` **1280x720** e
+  **480x360**. O `transferSize` confirma o diagnostico de ontem por outro caminho: a
+  thumb morta pesa **1.397 bytes** (o JPEG cinza 120x90 do 404) contra 85.954 e 15.595
+  das vivas.
+- **O crop continua certo:** os dois Shorts vivos aparecem inteiros na moldura 163x291,
+  sem tarjas — a decisao de NAO trocar `cover` por `contain` se sustenta na tela.
+- **O gradiente inferior de legibilidade (parte (c) do item 21) esta no ar** e a
+  pastilha "7 views" para de flutuar sobre o frame claro do card #1.
+- **Nada regrediu:** zero erro de console, nenhum z-index novo, o `#rank` no lugar.
+- **Uma armadilha de medicao, registrada para as proximas sprints:** as primeiras
+  leituras deram `complete:false`, `naturalWidth 0` e **zero requisicao a ytimg** — e
+  isso NAO era a pagina, era `document.visibilityState === "hidden"`. Com a aba em
+  segundo plano o Chrome **nao dispara `loading="lazy"`**, entao um screenshot tirado
+  cedo mostra tres retangulos pretos e uma sprint apressada "descobre" um bug que nao
+  existe. Ler `visibilityState` antes de acreditar em qualquer medicao de imagem lazy.
+- **Mudou o quadro do item 25:** a aba padrao "This week" hoje renderiza **3 cards**
+  (era 1 ontem, 0 em 15/08) e o contador diz "6 Shorts published ... 7 views counted".
+  A aba nao abre mais vazia; a divergencia contador-vs-cards continua e o item 25 segue
+  aberto por causa dela.
+
+**2. O ITEM DA SPRINT — item 22, e ele e o item de maior alcance e menor risco do
+roadmap inteiro.** `tailwind.config.js` ganhou `theme.extend.borderRadius` apontando
+para os tokens. **Um arquivo, 546 ocorrencias** (236 `rounded-xl` + 172 `rounded-2xl` +
+111 `rounded-lg` + 18 `rounded-md` + 9 `rounded-3xl`); `rounded-full` (107) ficou de
+fora de proposito porque 9999px ja concorda com `--r-pill`.
+- **Por que so aqui:** `app/globals.css` da `font-size:14px` para `html/body`, entao
+  1rem = 14px e a escala do Tailwind roda a 87,5%. Confirmado no DOM de producao de
+  hoje: `rounded-lg` pinta **7px**, `rounded-xl` **10.5px**, `rounded-2xl` **14px** —
+  e **nenhum** desses valores existe na escala de tokens (8/13/18/22/999). Essas
+  classes nao passam por `border-radius:` nenhum, passam pelo config: o item 11 podia
+  tokenizar arquivo por arquivo para sempre sem alcancar uma so delas.
+- **Prova no CSS compilado, nao no codigo-fonte:** `npx tailwindcss -c tailwind.config.js`
+  gera `.rounded-xl{border-radius:var(--r-sm, 13px)}`, `.rounded-lg{var(--r-xs, 8px)}`,
+  `.rounded-3xl{var(--r-lg, 22px)}` e mantem `.rounded-full{9999px}` intacto.
+- **Antes/depois VISUAL sem deploy:** a mesma regra foi injetada na producao por
+  stylesheet e medida com a pagina no ar. Em `/pricing`: **5 raios distintos → 4**, e
+  os elementos **fora da escala caem de 17 para 3** (os 3 que sobram sao `14px`
+  literais em CSS, nao Tailwind — ficam para o item 11). Screenshot antes e depois em
+  pagina inteira e em zoom no card Starter: **nenhuma diferenca perceptivel**, como o
+  item previa. Em `/studio`: 16 raios distintos → 14, 4 elementos tocados.
+- **O `var()` leva fallback de proposito** (`var(--r-sm, 13px)`): sem ele, um dia em
+  que o `:root` perca o token, `border-radius` vira invalido e **colapsa para 0px em
+  centenas de elementos**. Com fallback, o pior caso e voltar ao valor de hoje.
+- **A regra inviolavel nao foi so respeitada, ela e inalcancavel:** `app/KineoLanding.tsx`
+  **nao tem uma unica classe `rounded-*`** (a landing usa a escala `.klp` em CSS), e o
+  DOM da home em producao mede **0 elementos** com `rounded-md/lg/xl/2xl/3xl`. A vitrine
+  de motores, os cards 500x280 e os `clamp()` do hero estao fora do raio de alcance
+  desta mudanca por construcao — nao por cuidado.
+
+**3. Revisao adversarial (2x, a 2a cacando defeito na propria mudanca).**
+- **CLS: impossivel.** `border-radius` nao entra em layout; nenhuma caixa muda de tamanho.
+- **LCP: intocado.** Mesmo numero de regras CSS; o texto cresce ~60 bytes no bundle.
+- **Colapso para 0px:** era o unico jeito real desta mudanca quebrar a tela — morto
+  pelo fallback dentro do `var()`.
+- **Escopo do token:** o `:root` de `app/globals.css` (linhas 94-98) **nao esta dentro
+  de nenhum `@media`**, e `app/layout.tsx` e o **unico** arquivo com `<html>` no `app/`
+  e importa `globals.css` — nao ha rota que renderize `rounded-*` sem os tokens.
+- **Variantes:** `grep` de `sm:/md:/hover:/group-hover:rounded-*` e de
+  `rounded-t-*/b-*/l-*/r-*` retorna **0**; nao ha `@apply rounded-` em CSS nenhum;
+  e nenhum JS le `borderRadius` de `getComputedStyle`. A superficie e exatamente as
+  5 classes mapeadas.
+- **Onde o delta e maior:** `rounded-md` 5.25→8px (+52%), 18 usos — e **todos** vivem
+  em `admin/*` (paginas internas), `/examples`, `NicheCard` e `PreviewModal`. Zero
+  risco em tela de cliente.
+- **Mobile:** sem variantes responsivas de raio, o valor e o mesmo em toda largura.
+- **Modais/z-index/autoplay/reduced-motion/Save-Data:** nada tocado; `border-radius`
+  nao e animacao, entao nao ha o que respeitar.
+
+**4. Rigor.** `tsc --noEmit -p tsconfig.json` **EXIT=0** e **falsificado**
+(`const _falsify: number = "not a number"` em `lib/uiTokens.ts` → tsc acusa, EXIT=2 →
+restaurado e conferido por md5 identico). O **instrumento do proprio item tambem foi
+falsificado**, que e o que importa aqui porque a mudanca e num `.js` que o tsc nao le:
+`xl` foi trocado por um valor-sentinela, o build do Tailwind refeito, o sentinela
+**apareceu** no CSS gerado, o arquivo foi restaurado (md5 identico, 91 linhas CRLF
+preservadas) e o build voltou a bater byte a byte com o anterior. EOL conferido no HEAD
+por arquivo: `tailwind.config.js` **CRLF** (63→91 linhas, todas CRLF), este doc **LF**
+(0 CR). Indice isolado, sem `add -A`, **sem push**. [KINEO-UI-DIARIO-2026-08-17]
+
+**5. Realimentacao do backlog — ITEM 28 (/studio).** A rotacao devolveu o achado mais
+caro do dia: **o `/generate`, que os itens 26 e 27 mediram, nao e mais a porta do
+produto** — o commit `613ca3e` manda quem chega de mao vazia para o `/studio`. E o
+`/studio` nunca passou por uma sprint de UI: **16 raios distintos** (so 4 alcancados
+pelo item 22 — o resto e px literal inline), **uma QUINTA linguagem de timing** que
+nenhum item deste doc tinha visto (`ease` puro, a palavra-chave default do CSS, em
+**65 dos 73** elementos animados, contra 8 na curva do Tailwind e **zero** em
+`--ease-swift`), **39 elementos com o acento e os 39 acima da dobra** (o item 26 mediu
+21 no `/generate`), e **6 `<video>` com `poster` 0/6, `preload="metadata"` 6/6 e
+`readyState 4` 6/6** — os seis MP4 baixam inteiros no load, abaixo da dobra, com um
+`#t=0.1` no src fazendo papel de poster. A boa noticia: e a **primeira pagina do
+produto que quebra o padrao monofonte** (38 elementos em Space Grotesk; `/pricing`,
+`/history`, `/signup` e `/generate` mediram zero).
 
 ### FECHAMENTO DO DIA — 16/08 (3 linhas, escritas pela sprint das 18h)
 
