@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { sanitizeAcquisitionReferrer, sanitizeAcquisitionUtmSource } from '@/lib/acquisitionSource'
+import {
+  internalSurfaceLabel,
+  sanitizeAcquisitionReferrer,
+  sanitizeAcquisitionUtmSource,
+} from '@/lib/acquisitionSource'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — ativação do reverse trial. Esta rota é
 // o único touchpoint server-side que TODOS os fluxos de signup já chamam
 // (signup page, login page, mount do /generate), por isso a ativação mora
@@ -64,6 +68,11 @@ export async function POST(req: NextRequest) {
     let signup_utm_medium: string | null = null
     let signup_utm_campaign: string | null = null
     let signup_referrer: string | null = null
+    // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — a tela NOSSA onde o clique começou.
+    // Coluna separada de propósito: `signup_utm_source` responde "de onde a
+    // pessoa veio" e `signup_surface` responde "em que tela nossa ela clicou".
+    // Misturar as duas foi o que apagou a origem externa de 42 perfis.
+    let signup_surface: string | null = null
     const clean = (v: unknown, max: number): string | null =>
       typeof v === 'string' && v.trim() ? v.trim().slice(0, max) : null
     try {
@@ -74,6 +83,14 @@ export async function POST(req: NextRequest) {
       signup_utm_medium = clean(body?.signup_utm_medium, 255)
       signup_utm_campaign = clean(body?.signup_utm_campaign, 255)
       signup_referrer = sanitizeAcquisitionReferrer(clean(body?.signup_referrer, 300), req.nextUrl.hostname)
+      // Aceita tanto o campo novo quanto um `signup_utm_source` que ainda chegue
+      // com rótulo interno: durante a transição existem abas abertas com o
+      // bundle ANTIGO, que continuam mandando 'sticky_cta' em signup_utm_source.
+      // `sanitizeAcquisitionUtmSource` já devolve null para esses (a coluna de
+      // origem fica limpa); esta linha impede que a informação se perca junto.
+      signup_surface =
+        internalSurfaceLabel(clean(body?.signup_surface, 80)) ??
+        internalSurfaceLabel(clean(body?.signup_utm_source, 80))
     } catch {
       /* no/invalid JSON body — keep nulls */
     }
@@ -101,6 +118,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — fallback do cookie de superfície.
+    // Independente do `kineo_src` acima (chaves separadas, ver lib/analytics.ts):
+    // uma pessoa que chegou do TAAFT tem `kineo_src` preenchido e NÃO entraria
+    // no fallback daquele bloco, mas a superfície dela ainda precisa ser lida.
+    if (!signup_surface) {
+      signup_surface = internalSurfaceLabel(req.cookies.get('kineo_surface')?.value ?? null)
+    }
+
     // Country comes from Vercel's edge geo header (already received in prod).
     const signup_country = req.headers.get('x-vercel-ip-country') || null
 
@@ -109,7 +134,7 @@ export async function POST(req: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select(
-        'gclid, utm_source, signup_country, signup_utm_source, signup_utm_medium, signup_utm_campaign, signup_referrer'
+        'gclid, utm_source, signup_country, signup_utm_source, signup_utm_medium, signup_utm_campaign, signup_referrer, signup_surface'
       )
       .eq('id', user.id)
       .single()
@@ -124,6 +149,9 @@ export async function POST(req: NextRequest) {
     if (!profile?.signup_utm_medium && signup_utm_medium) patch.signup_utm_medium = signup_utm_medium
     if (!profile?.signup_utm_campaign && signup_utm_campaign) patch.signup_utm_campaign = signup_utm_campaign
     if (!profile?.signup_referrer && signup_referrer) patch.signup_referrer = signup_referrer
+    // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — mesma regra de first-touch das
+    // demais: só preenche quando ainda está nula, nunca sobrescreve.
+    if (!profile?.signup_surface && signup_surface) patch.signup_surface = signup_surface
 
     if (Object.keys(patch).length > 0) {
       await supabase.from('profiles').update(patch).eq('id', user.id)

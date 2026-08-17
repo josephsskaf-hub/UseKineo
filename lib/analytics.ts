@@ -1,4 +1,8 @@
-import { sanitizeAcquisitionReferrer, sanitizeAcquisitionUtmSource } from '@/lib/acquisitionSource'
+import {
+  internalSurfaceLabel,
+  sanitizeAcquisitionReferrer,
+  sanitizeAcquisitionUtmSource,
+} from '@/lib/acquisitionSource'
 
 // Push #061 — shared client-side event tracking helper.
 //
@@ -181,6 +185,79 @@ type StoredSource = {
   referrer?: string
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-ATTRIBUTION-SURFACE-2026-08-12 — a superfície mora numa chave PRÓPRIA.
+// ═══════════════════════════════════════════════════════════════════════════
+// Depois que `sanitizeAcquisitionUtmSource` passou a recusar 'homepage' e
+// 'sticky_cta' (lib/acquisitionSource.ts), esses rótulos sumiriam por completo
+// se não fossem guardados em outro lugar — e eles valem alguma coisa: a única
+// conversão da história veio de um clique rotulado `sticky_cta`. Saber QUAL
+// tela converte é útil; ela só não pode ocupar a coluna de ORIGEM.
+//
+// POR QUE UMA CHAVE SEPARADA, e não um campo dentro de `kineo_src`:
+// `captureSourceOnce()` decide o first-touch de aquisição por "gravei alguma
+// coisa?" (`Object.keys(src).length === 0` → não grava, para que um pouso
+// externo POSTERIOR ainda possa vencer). Se a superfície entrasse nesse mesmo
+// objeto, um clique interno gravaria o marcador e CONGELARIA o first-touch em
+// "só superfície" — recriando, por outro caminho, exatamente o defeito que
+// esta correção existe para matar. Duas perguntas independentes, dois stores
+// independentes, nenhuma interação possível entre elas.
+const SURFACE_KEY = 'kineo_surface'
+
+function readSurfaceCookie(): string | null {
+  if (typeof document === 'undefined') return null
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)kineo_surface=([^;]+)/)
+    return m ? internalSurfaceLabel(decodeURIComponent(m[1])) : null
+  } catch {
+    return null
+  }
+}
+
+/** First-touch da SUPERFÍCIE interna que originou o clique de cadastro. */
+function captureSurfaceOnce(): void {
+  if (typeof window === 'undefined') return
+  try {
+    let already: string | null = null
+    try {
+      already = localStorage.getItem(SURFACE_KEY)
+    } catch {
+      /* localStorage indisponível — o cookie decide */
+    }
+    if (already || readSurfaceCookie()) return
+
+    const sp = new URLSearchParams(window.location.search)
+    const surface = internalSurfaceLabel(sp.get('utm_source'))
+    if (!surface) return
+
+    try {
+      localStorage.setItem(SURFACE_KEY, surface)
+    } catch {
+      /* ignore */
+    }
+    try {
+      // Mesma janela de 90 dias do `kineo_src`: precisa sobreviver ao round-trip
+      // do OAuth e a uma confirmação de e-mail que só volta dias depois.
+      document.cookie = `${SURFACE_KEY}=${encodeURIComponent(surface)};path=/;max-age=7776000;samesite=lax`
+    } catch {
+      /* ignore */
+    }
+  } catch {
+    /* silent — captura de superfície nunca pode quebrar a página */
+  }
+}
+
+function storedSurface(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(SURFACE_KEY)
+    if (raw) return internalSurfaceLabel(raw)
+  } catch {
+    /* cai no cookie */
+  }
+  return readSurfaceCookie()
+}
+
 function readSourceCookie(): StoredSource | null {
   if (typeof document === 'undefined') return null
   try {
@@ -194,6 +271,12 @@ function readSourceCookie(): StoredSource | null {
 
 export function captureSourceOnce(): void {
   if (typeof window === 'undefined') return
+  // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — a superfície é capturada ANTES do
+  // `return` de first-touch abaixo. Se ficasse depois, todo visitante com fonte
+  // já gravada (o caso normal de quem chegou do TAAFT) nunca teria a superfície
+  // registrada, e o placar de "qual tela converte" nasceria enviesado para
+  // quem NÃO tem origem.
+  captureSurfaceOnce()
   try {
     // First-touch wins: if we already recorded a source (either store), stop.
     if (localStorage.getItem(SRC_KEY) || readSourceCookie()) return
@@ -292,6 +375,11 @@ export function trackSignupSource(): void {
         signup_utm_medium: src.utm_medium || utms.utm_medium || null,
         signup_utm_campaign: src.utm_campaign || storedSignupCampaign() || utms.utm_campaign || null,
         signup_referrer: src.referrer || null,
+        // KINEO-ATTRIBUTION-SURFACE-2026-08-12 — a tela nossa onde o clique de
+        // cadastro começou ('homepage' | 'sticky_cta'). Vai para a coluna
+        // `profiles.signup_surface`; NUNCA para `signup_utm_source`, que
+        // responde de ONDE a pessoa veio.
+        signup_surface: storedSurface(),
       }),
       keepalive: true,
     })
