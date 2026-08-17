@@ -73,14 +73,16 @@ const CSS = `
 .stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
 .stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
 .stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
-.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#131318;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:6px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
-.stu .pk{width:100%;text-align:left;padding:11px 12px;border-radius:11px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease}
+.stu .pk+.pk{margin-top:2px}
 .stu .pk:hover{background:rgba(255,255,255,.05)}
 .stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}
 .stu .pk .t{display:flex;justify-content:space-between;align-items:center}
-.stu .pk .t b{font-weight:700;font-size:14px}
-.stu .pk .t i{font-style:normal;font-size:11.5px;color:rgba(255,255,255,.55);font-weight:700}
-.stu .pk .d{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}
+.stu .pk .t b{font-weight:700;font-size:15px;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .t i{font-style:normal;font-size:11px;font-weight:800;color:#8fc6ff;background:rgba(41,151,255,.13);border:1px solid rgba(41,151,255,.3);border-radius:999px;padding:2.5px 9px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .sp{display:block;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5cb3ff;margin-top:5px;font-family:var(--font-display),var(--font-inter),sans-serif}
+.stu .pk .d{display:block;font-size:12px;color:rgba(255,255,255,.52);margin-top:2px;line-height:1.35}
 .stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
 .stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
 .stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
@@ -174,7 +176,8 @@ export default function StudioClient() {
                       <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
                       <i>{e.credits}</i>
                     </span>
-                    <span className="d">{e.res} · {e.clip} — {e.desc}</span>
+                    <span className="sp">{e.res} · {e.clip}</span>
+                    <span className="d">{e.desc}</span>
                   </button>
                 ))}
               </div>
