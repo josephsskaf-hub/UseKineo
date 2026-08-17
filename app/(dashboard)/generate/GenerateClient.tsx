@@ -8318,7 +8318,7 @@ export default function GenerateClient({
               </p>
             )}
             <p style={{ fontSize: '0.72rem', color: '#86868b', fontWeight: 600, margin: '0 0 10px' }}>
-              Renews at $19.90/mo in 30 days · cancel anytime
+              $19.90/mo · cancel anytime
             </p>
             <button
               type="button"
@@ -10708,7 +10708,7 @@ export default function GenerateClient({
                       <>
                         <span>Go Creator — $9.90 first month →</span>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.92, marginTop: 2 }}>
-                          renews at $19.90/mo in 30 days · cancel anytime
+                          $19.90/mo · cancel anytime
                         </span>
                       </>
                     )}
@@ -11994,7 +11994,7 @@ function UpsellSection({
             fontWeight: 600,
           }}
         >
-          Renews at $19.90/mo in 30 days · cancel anytime
+          $19.90/mo · cancel anytime
         </div>
       </div>
 
@@ -13468,7 +13468,7 @@ function UrgencyModal({
             marginBottom: 22,
           }}
         >
-          Go Creator for <strong style={{ color: '#5cb3ff' }}>$9.90 your first month</strong> — full AI scenes and the AI Presenter, then 140 credits every month. Renews at $19.90/mo in 30 days.
+          Go Creator for <strong style={{ color: '#5cb3ff' }}>$19.90/mo</strong> — full AI scenes, the AI Presenter and 140 credits every month.
         </p>
         <button
           type="button"

@@ -1215,9 +1215,8 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   vs InVideo Plus $25 sem motor premium nenhum. */}
               <div className="pt">Most popular</div><div className="nm">Creator</div>
               <div className="pr">$19.90<span>/mo</span></div>
-              <div className="pr-then">first month just $9.90</div>
               <ul><li><span className="ck">✓</span> <b>≈ 7 engine films</b> a month, finished</li><li><span className="ck">✓</span> Voice + karaoke captions + score included</li><li><span className="ck">✓</span> 500 projects · forever storage</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
-              <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}>Go Creator — $9.90 first month</a>
+              <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}>Go Creator — $19.90/mo</a>
             </div>
             <div className="plan">
               {/* KINEO-PRICING-V5-2026-08-17 — $39.90/320cr: volume + Kling 3

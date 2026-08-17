@@ -102,8 +102,11 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // $4.90'): intro do Starter = preço cheio → hasIntroOffer() devolve false e
   // toda a UI do desconto some sozinha. O intro do Creator ($9.90 no 1º mês
   // do plano de $19.90 = 50% off) continua — funil saudável.
+  // KINEO-NO-INTRO-2026-08-17 (fundador: 'nao tem mais isso de 1 mes'):
+  // TODO intro morreu — starter E basic = preço cheio. hasIntroOffer() false
+  // em toda parte apaga badges, CTAs e letras miúdas sozinho.
   starter: { usd: 990, brl: 4990, inr: 79900 },
-  basic: { usd: 990, brl: 4990, inr: 79900 },
+  basic: { usd: 1990, brl: 7990, inr: 129900 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -221,8 +224,9 @@ export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurre
 // Todos positivos, todos com margem (net $9.31 contra $5.18 de pior caso em 50
 // créditos; o BRL é o mesmo produto vendido a ≈$9,90).
 export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
+  // KINEO-NO-INTRO-2026-08-17 — intro = mensal regional (desconto zero).
   starter: { usd: 499, brl: 2490, inr: 39900 },
-  basic: { usd: 990, brl: 4990, inr: 79900 },
+  basic: { usd: 1990, brl: 7990, inr: 129900 },
 }
 
 // Anual na região. NÃO é uma decisão de preço nova: é a MESMA razão que a
@@ -363,10 +367,10 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
 // Hollywood/Avatar/Veo/Sora are all structurally out of reach.
 // APPLIES TO THE FIRST INVOICE ONLY — renewals grant TIER_CREDITS.
 export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
-  // KINEO-PRICING-V5-2026-08-17 — starter não tem mais 1º mês com desconto
-  // (intro = preço cheio), então o grant do 1º mês é o grant normal do plano.
+  // KINEO-NO-INTRO-2026-08-17 — sem mês com desconto em nenhum plano: o grant
+  // do 1º mês é sempre o grant cheio do plano.
   starter: 60,
-  basic: 50,
+  basic: 140,
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (a). The entry packs used to grant 10

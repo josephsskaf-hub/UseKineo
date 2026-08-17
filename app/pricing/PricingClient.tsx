@@ -108,7 +108,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // KINEO-PRICING-V3D-2026-07-26 — the discounted first month of Creator
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
-    a: 'Think in films: 1 film with Seedance = 20 credits, Kling 2.5 = 50, Veo 3.1 = 90, Kling 3 = 150. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes 60 credits/month (≈3 engine films), Creator includes 140 (≈7 films), Studio includes 320 (≈16 films, or 2 Kling 3 films with room to spare); Autopilot includes 400 on top of the daily Short we publish for you. If you take the discounted first month of Creator, that first month includes 50 credits and every month after it includes the full 140. Credits reset each month (no rollover).',
+    a: 'Think in films: 1 film with Seedance = 20 credits, Kling 2.5 = 50, Veo 3.1 = 90, Kling 3 = 150. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes 60 credits/month (≈3 engine films), Creator includes 140 (≈7 films), Studio includes 320 (≈16 films, or 2 Kling 3 films with room to spare); Autopilot includes 400 on top of the daily Short we publish for you. Credits reset each month (no rollover).',
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
@@ -514,7 +514,7 @@ export default function PricingClient() {
             Pricing
           </div>
           <h1 className="text-balance text-4xl font-black tracking-tight sm:text-5xl text-[#f5f5f7]">
-            {displayCurrency ? headline : 'Your first month is discounted. Cancel anytime.'}
+            {displayCurrency ? headline : 'Simple monthly plans. Cancel anytime.'}
           </h1>
           {/* KINEO-SHOWCASE-2026-07-10 — Joseph: parágrafo comparativo removido
               ("texto sujo") — os CARDS de preço são a estrela do hero. */}
@@ -803,10 +803,9 @@ export default function PricingClient() {
             afirmação falsa sobre duração E sobre créditos do 1º mês. */}
         {billing === 'monthly' && !arrivedWithPromo && (
           <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[#86868b]">
-            First month of Creator is discounted; it renews at the full monthly
-            price in 30 days — cancel anytime. The discounted first month includes{' '}
-            {INTRO_CREDITS.basic} credits; from month two you get the plan&apos;s full{' '}
-            {TIER_CREDITS.basic} monthly credits.
+            Plans renew monthly — cancel anytime. Starter includes{' '}
+            {TIER_CREDITS.starter} credits a month and Creator {TIER_CREDITS.basic};
+            credits reset each month (no rollover).
           </p>
         )}
         {billing === 'monthly' && arrivedWithPromo && (
