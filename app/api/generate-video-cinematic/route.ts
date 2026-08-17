@@ -1875,26 +1875,56 @@ export async function POST(req: NextRequest) {
             console.warn('[cinematic] hollywood replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
           }
         }
-        // Estica b-roll ate o ALVO CHEIO (round-robin +1s, caps por tipo).
-        // KINEO-DURATIONFIX-B-2026-08-17 — era 90% e o fundador mediu o efeito
-        // na tela: plano de 54s virou video de 46s, porque as cenas de fala
-        // usam o tamanho REAL do audio (sempre um pouco menor que o planejado).
-        // O plano agora mira 100% do alvo pra que o encolhimento natural do
-        // compose aterrisse em 55-60s, nao em 46.
-        // KINEO-QUEUE-LATENCY-2026-08-17 — teto de apoio 15→12s. Medido na
-        // madrugada: os clipes de 14-15s foram os que entupiram a fila do
-        // Kling (fila cresce mais que linear com a duracao). 12s mantem o
-        // orcamento de 60s com uma cena a mais quando preciso — mais cortes,
-        // mais ritmo, fila 3-4x mais rapida.
-        const capFor = (t: string) => (t === 'cinematic' ? 8 : 12)
+        // Estica b-roll ate o alvo — MAS SO ATE ONDE A FALA ALCANCA.
+        // KINEO-DURATIONFIX-B-2026-08-17 — era 90%; plano de 54 virava video
+        // de 46 (cenas de fala usam o audio REAL, sempre menor).
+        // KINEO-QUEUE-LATENCY-2026-08-17 — teto de apoio 15→12s (clipes de
+        // 14-15s entupiram a fila do Kling na madrugada).
+        // KINEO-NARRATION-FIT-2026-08-17 — feedback do fundador no render da
+        // manha: "faltou narracao no meio, sem brilho". Raiz: o esticador
+        // alongava o CLIPE mas nao a FALA — voiceover de 8s dentro de cena de
+        // 12s = 2-4s de silencio morto POR CENA. Agora o teto de cada cena e
+        // o MENOR entre 12s e o que a narracao dela sustenta (~2.3 pal/s +1s
+        // de respiro). Duracao que faltar vem de MAIS CENAS (replan abaixo),
+        // nunca de cena oca.
+        const wordsOf = (sc: { voiceover?: string | null }) =>
+          (sc.voiceover ?? '').trim().split(/\s+/).filter(Boolean).length
+        const capFor = (sc: { type: string; voiceover?: string | null }) =>
+          sc.type === 'cinematic'
+            ? 8
+            : Math.min(12, Math.max(5, Math.round(wordsOf(sc) / 2.3) + 1))
         let guard = 60
         while (total < target && guard-- > 0) {
-          const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc.type))
+          const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc))
           if (stretchable.length === 0) break
           for (const sc of stretchable) {
             if (total >= target) break
             sc.seconds = (sc.seconds || 0) + 1
             total += 1
+          }
+        }
+        // Esticador esgotou (toda fala no limite) e ainda falta >5s? UMA
+        // replaneja extra pedindo MAIS CENAS com fala dimensionada — e o
+        // conteudo da script que estava sendo DROPADO ("a historia ficou
+        // curta") volta pro filme.
+        if (total < target - 5) {
+          console.warn(`[cinematic] hollywood plan ${total}s apos esticar ate o limite da fala — replan por MAIS CENAS`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: duration,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `it covered only ${total} seconds of spoken content against a ${target}-second target. Return ${Math.min(8, plan.scenes.length + 1)}-8 scenes summing ${target - 5}-${target + 2} seconds, and size EVERY voiceover to its scene at ~2.3 words per second (a 10s scene needs 20-24 words, a 12s scene 26-30) — use MORE of the source script's facts; do not drop story beats.`,
+            })
+            const replannedTotal = replanned.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+            if (replannedTotal > total) {
+              plan = replanned
+              total = replannedTotal
+            }
+          } catch (e) {
+            console.warn('[cinematic] replan por mais cenas falhou (mantendo plano):', e instanceof Error ? e.message : String(e))
           }
         }
         console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
