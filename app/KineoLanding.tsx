@@ -796,7 +796,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           <h1 className="sr-h1">Kineo — real AI Shorts, straight from the engines</h1>
           {/* UX10 #1 — a pagina abria sem dizer O QUE e o produto. Uma linha
               fina orienta sem trazer o hero gigante de volta. */}
-          <p className="hero-line">Type a topic — get a finished YouTube Short. <span>Five engines, one workflow. Every card below is a real render.</span></p>
+          {/* KINEO-HERO-LINE-2026-08-17 (fundador: "nao fazemos videos no
+              YouTube, fazemos pra varias utilidades — seja criativo"): a linha
+              vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
+              aberto; "real render" fica — e o selo honesto da vitrine. */}
+          <p className="hero-line">Type an idea — watch it become a film. <span>Voiced, scored and captioned by five cinematic engines. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
@@ -831,6 +835,17 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               const wallByEngine = (eng: string) => engineWall.find((v) => v.engine === eng)
               const tileVid = (eng: string) => {
                 const v = wallByEngine(eng)
+                return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
+              }
+              // KINEO-BENTO-DISTINCT-2026-08-17 (fundador: "ta repetindo... me
+              // surpreende") — o tile do bento pega o ULTIMO video do motor na
+              // parede, nao o primeiro: o hero mostra os 4 primeiros, entao o
+              // 5o curado (megatsunami de Lituya Bay 1958 — deslizamento
+              // explodindo na baia, com o karaoke novo em acao) e EXCLUSIVO do
+              // bento. Fallback: so 1 video no motor → usa ele mesmo.
+              const tileVidLast = (eng: string) => {
+                const list = engineWall.filter((v) => v.engine === eng)
+                const v = list.length > 0 ? list[list.length - 1] : undefined
                 return v ? <span className="tvid" aria-hidden="true"><WallMedia src={v.previewUrl ?? v.videoUrl} /></span> : null
               }
               return (
@@ -893,7 +908,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 </span>
               </Link>
               <Link href="/generate?engine=hollywood&intent_campaign=engine_tile" className="tile">
-                {tileVid('cinematic_hollywood')}
+                {tileVidLast('cinematic_hollywood')}
                 <span className="trow">
                   <span className="tic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 11l16-4-1-4L3 7l1 4z"/><path d="M4 11h16v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9z"/><path d="M8 7l2 4M13 5.7l2 4M18 4.4l2 4"/></svg></span>
                   <span className="tb">Studio</span>
