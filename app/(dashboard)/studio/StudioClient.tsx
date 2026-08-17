@@ -59,6 +59,11 @@ export default function StudioClient() {
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p')
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
+  // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
+  // jeito que ela esta ou AI ajudar a escrever'): mesmo par de modos do
+  // fluxo classico — 'ai' estrutura o texto, 'verbatim' narra palavra por
+  // palavra (scripts prontos, como os do canal do fundador).
+  const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim'>('ai')
   const [refName, setRefName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   // KINEO-STUDIO-MYVIDS-2026-08-17 (pedido do fundador na aprovacao: "colocar
@@ -100,7 +105,7 @@ export default function StudioClient() {
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
-    const q = new URLSearchParams({ engine, prompt: finalPrompt, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
+    const q = new URLSearchParams({ engine, prompt: finalPrompt, script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
     router.push(`/generate?${q.toString()}`)
   }
 
@@ -176,7 +181,7 @@ export default function StudioClient() {
             <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
               {prompt.trim() ? 'Generate →' : 'Type your idea first'}
             </button>
-            <div className="gnote">v1: entrega no fluxo comprovado · fase 2 roda aqui dentro</div>
+            <div className="gnote">Voice, karaoke captions and score included.</div>
           </div>
         </div>
 
@@ -186,7 +191,11 @@ export default function StudioClient() {
             <div className="lab"><span className="n">4</span>Your idea</div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
               placeholder="What’s your video about? One idea in — a finished film out: voiced, scored and captioned." />
-            <div className="cnt">{prompt.trim() ? `${prompt.trim().split(/\s+/).length} words` : 'a single line is enough'}</div>
+            <div className="row" style={{ marginTop: 10 }}>
+              <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}>✨ Let AI structure it</button>
+              <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}>📝 Use my script as is</button>
+            </div>
+            <div className="cnt">{prompt.trim() ? `${prompt.trim().split(/\s+/).length} words${scriptMode === 'verbatim' ? ' · narrated word for word' : ''}` : 'a single line is enough — or paste a full script'}</div>
           </div>
 
           <div>

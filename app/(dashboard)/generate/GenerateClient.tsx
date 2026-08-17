@@ -858,6 +858,13 @@ export default function GenerateClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  // KINEO-STUDIO-SCRIPTMODE-2026-08-17 — o Studio manda ?script_mode=
+  // verbatim|ai ('Use my script as is' vs 'Let AI structure my text').
+  useEffect(() => {
+    const sm = (searchParams.get('script_mode') ?? '').toLowerCase()
+    if (sm === 'verbatim' || sm === 'ai') setScriptMode(sm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user
   // can lock into Hollywood renders (same face across every video). Loaded
   // lazily the first time the hollywood engine is selected.
