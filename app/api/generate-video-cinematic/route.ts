@@ -1782,14 +1782,19 @@ export async function POST(req: NextRequest) {
             console.warn('[cinematic] hollywood replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
           }
         }
-        // Estica b-roll ate >=90% do alvo (round-robin +1s, caps por tipo).
+        // Estica b-roll ate o ALVO CHEIO (round-robin +1s, caps por tipo).
+        // KINEO-DURATIONFIX-B-2026-08-17 — era 90% e o fundador mediu o efeito
+        // na tela: plano de 54s virou video de 46s, porque as cenas de fala
+        // usam o tamanho REAL do audio (sempre um pouco menor que o planejado).
+        // O plano agora mira 100% do alvo pra que o encolhimento natural do
+        // compose aterrisse em 55-60s, nao em 46.
         const capFor = (t: string) => (t === 'cinematic' ? 8 : 15)
         let guard = 60
-        while (total < Math.round(target * 0.9) && guard-- > 0) {
+        while (total < target && guard-- > 0) {
           const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc.type))
           if (stretchable.length === 0) break
           for (const sc of stretchable) {
-            if (total >= Math.round(target * 0.9)) break
+            if (total >= target) break
             sc.seconds = (sc.seconds || 0) + 1
             total += 1
           }
