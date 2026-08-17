@@ -89,7 +89,11 @@ const CURATED: Record<string, string[]> = {
   //   FLORESTA DEITADA EM CIRCULO de Tunguska 1908 (aerea, 8.8-16.8, banda
   //   58%, 1000px) + narrador do Krakatoa. Historiador e golden hour (renders
   //   de julho, pipeline velho) saem. 5o = pescador de Lituya (tile do bento).
-  cinematic_hollywood: ['bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '99818ab0-0960-4089-a784-12b241736868', '501d1ef7-5df5-4462-9341-c58ea01f0042', 'e487a011-8781-482f-913e-445ef5ad22bf'],
+  // KINEO-CURADORIA-17/08 (fundador: 'tira o vídeo do fogo — quero natureza,
+  // aventuras, raios, chuvas, mares'): Carrington (telegrafo em chamas) SAI;
+  // ENTRA Maracaibo — mulher falando na beira do lago com a tempestade
+  // armando atrás (0.2-4.7s, corte verificado em 4.6-5.0).
+  cinematic_hollywood: ['4b12925e-16e6-4b56-af5a-7047f9ae7a28', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '99818ab0-0960-4089-a784-12b241736868', '501d1ef7-5df5-4462-9341-c58ea01f0042', 'e487a011-8781-482f-913e-445ef5ad22bf'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   //   SEEDANCE (recurado 15/08 f): abre com a ILHA PROIBIDA (pedido do fundador — render e Seedance, nao Veo; selo fica honesto), janela 40-48s (canoa + ilha aerea) + cratera + tornado + ilha de 63 anos
@@ -126,6 +130,9 @@ const PREVIEWS = new Set<string>([
   // 17/08 d — telegrafo explodindo sob o raio (Carrington) + floresta em circulo (Tunguska), 1000px.
   'bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0',
   '99818ab0-0960-4089-a784-12b241736868',
+  // 17/08 f — MARACAIBO (fundador): mulher na beira do lago, tempestade atras
+  // (0.2-4.7s, banda 22%, crf20@1400px). Substitui o Carrington no card.
+  '4b12925e-16e6-4b56-af5a-7047f9ae7a28',
   // 17/08 e — tile Avatar do bento: o render 9:16 inteiro ficava desenquadrado
   // no tile largo; preview 500:280 com o ROSTO centralizado (banda 36%, 1000px).
   'c21c2456-98dc-4061-bee5-2f02a5180295',

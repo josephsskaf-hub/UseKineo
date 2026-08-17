@@ -33,7 +33,9 @@ function isCheckoutResume(): boolean {
 // da curadoria Kling 3 girando em crossfade — Carrington (faiscas/aurora),
 // Tunguska (anel de explosao), Lituya (mega-onda). Selo honesto: motor real.
 const LOGIN_REEL = [
-  { id: 'bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0', label: 'Kling 3' },
+  // KINEO-CURADORIA-17/08 — fundador: fogo fora, natureza dentro. Maracaibo
+  // (mulher + tempestade) abre o reel no lugar do Carrington.
+  { id: '4b12925e-16e6-4b56-af5a-7047f9ae7a28', label: 'Kling 3' },
   { id: '99818ab0-0960-4089-a784-12b241736868', label: 'Kling 3' },
   { id: 'e487a011-8781-482f-913e-445ef5ad22bf', label: 'Kling 3' },
 ]
