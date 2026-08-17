@@ -863,6 +863,11 @@ export default function GenerateClient({
   useEffect(() => {
     const sm = (searchParams.get('script_mode') ?? '').toLowerCase()
     if (sm === 'verbatim' || sm === 'ai') setScriptMode(sm)
+    // KINEO-STUDIO-DURATION-2026-08-17 — BUG pego pelo fundador no 1o teste:
+    // clicou 60s no Studio e saiu video de 45 — o Studio nao enviava a
+    // duracao e o default daqui (45) vencia. Agora ?duration= viaja e e lido.
+    const d = Number(searchParams.get('duration') ?? '')
+    if (d === 45 || d === 60 || d === 90) setDuration(d)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user

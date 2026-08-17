@@ -105,7 +105,7 @@ export default function StudioClient() {
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
-    const q = new URLSearchParams({ engine, prompt: finalPrompt, script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
+    const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
     router.push(`/generate?${q.toString()}`)
   }
 
@@ -166,11 +166,14 @@ export default function StudioClient() {
 
           {/* 3 · Reference image */}
           <div className="card">
-            <div className="lab"><span className="n">3</span>Reference image <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional</span></div>
+            <div className="lab"><span className="n">3</span>Reference image <span className="soon">SOON</span></div>
+            {/* KINEO-STUDIO-AUDIT-2026-08-17 — auditoria de botoes do fundador
+                flagrou: o upload aceitava o arquivo mas NAO viajava pro render
+                (botao morto = promessa falsa). Ate o pipe de upload ligar,
+                vira SOON honesto — selo honesto vale dentro do produto tambem. */}
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
-            <button type="button" disabled={!eng.supportsRef} onClick={() => fileRef.current?.click()}
-              className={`upl ${eng.supportsRef ? 'ok' : 'no'}`}>
-              {refName ? `🖼️ ${refName} — anchors scene 1` : eng.supportsRef ? '🖼️ Upload an image — your video starts from it' : `🖼️ Available on Kling 3`}
+            <button type="button" disabled className="upl no" title="Fase 2 — o pipe de upload da referencia ainda nao chega ao render">
+              🖼️ Start your video from an image — coming soon
             </button>
           </div>
 
