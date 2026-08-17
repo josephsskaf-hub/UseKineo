@@ -202,6 +202,8 @@ export default function ImagesClient() {
                       <button type="button" className={`pill${it.upscaled ? ' on' : ''}`} disabled={!!it.upscaled || it.upscaling} onClick={() => upscale(i)}>
                         {it.upscaled ? '2x ✓' : it.upscaling ? 'Upscaling…' : '✨ Upscale 2x · 1 cr'}
                       </button>
+                      {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: imagem → filme */}
+                      <a className="pill" style={{ textDecoration: 'none' }} href="/animate">🎬 Animate</a>
                     </div>
                   </div>
                 ))}

@@ -182,6 +182,11 @@ export default function AudioClient() {
 
           {items.length > 0 && (
             <div>
+              {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: voz → filme completo */}
+              <div className="card" style={{ padding: '11px 14px', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--txt2,#9aa0a6)' }}>Like a voice? The Studio builds the whole film around it — visuals, captions and score.</span>
+                <a className="pill on" style={{ textDecoration: 'none' }} href="/studio">Open Studio →</a>
+              </div>
               <div className="lab">My Audio</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {items.map((it, i) => (

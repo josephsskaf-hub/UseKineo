@@ -775,6 +775,21 @@ export default function PricingClient() {
           </p>
         )}
 
+        {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
+            nao so no FAQ: uma fita de precos por resultado. */}
+        <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/[0.08] bg-[#131316] px-5 py-4">
+          <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#2997ff]">What one credit buys</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[#a1a1a8]">
+            <span>🎬 Film (Seedance) — <b className="text-[#f5f5f7]">20 cr</b></span>
+            <span>🎥 Kling 2.5 — <b className="text-[#f5f5f7]">50 cr</b></span>
+            <span>🌐 Veo 3.1 — <b className="text-[#f5f5f7]">90 cr</b></span>
+            <span>🎞 Kling 3 — <b className="text-[#f5f5f7]">150 cr</b></span>
+            <span>🖼 Image — <b className="text-[#f5f5f7]">1-5 cr</b></span>
+            <span>🎙 Voiceover — <b className="text-[#f5f5f7]">1-2 cr</b></span>
+            <span>✨ HD Enhance — <b className="text-[#f5f5f7]">10 cr</b></span>
+          </div>
+        </div>
+
         {/* [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a primeira pergunta de
             qualquer agência ("posso vender isso pro meu cliente?") não tinha
             resposta em lugar nenhum desta página. A linha abaixo NÃO promete

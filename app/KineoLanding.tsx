@@ -1088,6 +1088,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   e, pior, uma que o servidor recusa (o free ON e 1 Fast/mes).
                   Flag OFF devolve "3 / day" byte a byte. */}
               <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', '50-credit trial')}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              {/* KINEO-CEO-HOUR-2026-08-17 (#2) — as 3 features que NENHUM
+                  re-clipper tem: viram linhas da comparacao (e snippet de SEO). */}
+              <tr><td>AI image studio included</td><td className="us" data-label="Kineo">6 engines</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>Voice studio (text-to-speech)</td><td className="us" data-label="Kineo">4 engines</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">limited</td><td className="no" data-label="Submagic">—</td></tr>
+              <tr><td>One-click HD film enhance</td><td className="us" data-label="Kineo">Topaz ✓</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
               <tr><td>Starting price</td><td className="us" data-label="Kineo">$9.90/mo</td><td data-label="OpusClip">$15/mo</td><td data-label="HeyGen">$29/mo</td><td data-label="Submagic">$19/mo</td></tr>
             </tbody>
           </table></div>
@@ -1268,6 +1273,9 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             <div className="qa"><h3>Is the video really mine to post?</h3><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Yes. Trial exports come out clean — download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
             <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads come out clean; after the trial the free Fast video carries a watermark, and paid plans always export clean.')}</p></div>
             <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get a Creator trial with clean exports; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.</p></div>
+            {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
+            <div className="qa"><h3>Can Kineo also generate images and voiceovers?</h3><p>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</p></div>
+            <div className="qa"><h3>Can I make my videos sharper?</h3><p>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</p></div>
             <div className="qa"><h3>Can I use my own script?</h3><p>Yes — paste your script and pick &ldquo;Use my script as is&rdquo; and the AI narrates it word for word.</p></div>
             <div className="qa"><h3>What if a generation fails?</h3><p>Your credits come back automatically the moment a render fails — no support ticket, no waiting. You only pay for videos you actually get.</p></div>
             {/* KINEO-SPRINT-OFFER-2026-07-14 — "credits never expire" was the

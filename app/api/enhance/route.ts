@@ -137,7 +137,36 @@ export async function GET(req: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
   if (!video) return NextResponse.json({ error: 'Video not found.' }, { status: 404 })
-  if (video.enhanced_url) return NextResponse.json({ status: 'done', url: video.enhanced_url })
+  if (video.enhanced_url) {
+    // KINEO-ENHANCE-SELFHEAL-2026-08-17 — o Maracaibo de 88MB estourou o
+    // file_size_limit do bucket (50MB default; elevado a 250MB via SQL hoje) e
+    // a URL ficou presa no fal, que EXPIRA. Todo GET re-tenta a copia enquanto
+    // a URL for do fal — o acervo se conserta sozinho conforme o dono abre o
+    // My Videos. Best-effort: falhou, segue com a URL do fal desta vez.
+    if (/\bfal\.(media|run)\b/.test(video.enhanced_url)) {
+      const admin = svc()
+      if (admin) {
+        try {
+          const res = await fetch(video.enhanced_url, { signal: AbortSignal.timeout(180000) })
+          if (res.ok) {
+            const buf = await res.arrayBuffer()
+            const path = `enhanced/${user.id}/${videoId}.mp4`
+            const { error } = await admin.storage.from('renders').upload(path, buf, { contentType: 'video/mp4', upsert: true })
+            if (!error) {
+              const { data: pub } = admin.storage.from('renders').getPublicUrl(path)
+              await admin.from('videos').update({ enhanced_url: pub.publicUrl }).eq('id', videoId)
+              console.log(`[enhance] SELFHEAL video=${videoId} copiado pro bucket`)
+              return NextResponse.json({ status: 'done', url: pub.publicUrl })
+            }
+            console.warn('[enhance] selfheal upload falhou:', error.message)
+          }
+        } catch (e) {
+          console.warn('[enhance] selfheal falhou:', e instanceof Error ? e.message : String(e))
+        }
+      }
+    }
+    return NextResponse.json({ status: 'done', url: video.enhanced_url })
+  }
   if (!video.enhance_request_id) return NextResponse.json({ status: 'idle' })
 
   try {

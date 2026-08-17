@@ -37,6 +37,21 @@ const ENGINES: {
   { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
 ]
 
+// KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
+// em branco com ideias do padrao viral da casa (verticais que ja performaram).
+const SURPRISE_IDEAS = [
+  'The lake in Venezuela where lightning strikes 28 times a minute — and never stops',
+  'The wave in Alaska that was taller than the Empire State Building',
+  'A diver knocks on a submarine window 100 meters down — true story',
+  'The town that has been on fire underground since 1962',
+  'Why airplane windows are round — the crashes that taught us',
+  'The man who survived two atomic bombs in three days',
+  'The door in the ocean floor scientists refuse to open',
+  'How Rolex watches are made — inside the most secretive factory on Earth',
+  'The island where landing is illegal — and what lives there',
+  'The 1939 photo that should not exist — a smartphone in the crowd',
+]
+
 const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
   { key: 'dolly', label: 'Slow Dolly-In', emoji: '🎥', prompt: 'slow cinematic dolly-in toward the subject' },
   { key: 'crash', label: 'Crash Zoom', emoji: '⚡', prompt: 'sudden dramatic crash zoom onto the focal point' },
@@ -71,6 +86,17 @@ export default function StudioClient() {
   // KINEO-STUDIO-MYVIDS-2026-08-17 (pedido do fundador na aprovacao: "colocar
   // na parte de baixo os meus ultimos videos — e o que falta pra completar"):
   // os 6 renders mais recentes do usuario, hover da play, clique abre o filme.
+  // KINEO-CEO-HOUR-2026-08-17 (#8) — reativacao da base: banner UMA VEZ
+  // anunciando o que nasceu esta semana (Images/Audio/Enhance). ~1.300 contas
+  // antigas nunca souberam que isso existe.
+  const [showNews, setShowNews] = useState(false)
+  useEffect(() => {
+    try { if (!localStorage.getItem('kineo:news:2026-08-17')) setShowNews(true) } catch {}
+  }, [])
+  const dismissNews = () => {
+    setShowNews(false)
+    try { localStorage.setItem('kineo:news:2026-08-17', '1') } catch {}
+  }
   const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null }[]>([])
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
@@ -115,6 +141,14 @@ export default function StudioClient() {
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
+      {showNews && (
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(41,151,255,0.35)', background: 'rgba(41,151,255,0.06)' }}>
+          <span style={{ fontSize: 13.5, color: 'var(--txt2,#c7c7cc)' }}>
+            <b style={{ color: '#7cc0ff' }}>NEW this week:</b> 🖼 <a href="/images" style={{ color: '#f5f5f7' }}>AI Images</a> (6 engines) · 🎙 <a href="/audio" style={{ color: '#f5f5f7' }}>Audio studio</a> (4 voices engines) · ✨ <a href="/history" style={{ color: '#f5f5f7' }}>HD Enhance</a> on every video
+          </span>
+          <button type="button" onClick={dismissNews} aria-label="Dismiss" className="pill" style={{ marginLeft: 'auto' }}>✕</button>
+        </div>
+      )}
       <h1>Studio</h1>
       <p className="sub">Every control on one screen. Pick, type, generate.</p>
 
@@ -193,7 +227,17 @@ export default function StudioClient() {
         {/* ===== DIREITA — ideia + câmera ===== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
-            <div className="lab"><span className="n">4</span>Your idea</div>
+            <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span><span className="n">4</span>Your idea</span>
+              <button
+                type="button"
+                className="pill"
+                style={{ fontSize: 11 }}
+                onClick={() => setPrompt(SURPRISE_IDEAS[Math.floor(Math.random() * SURPRISE_IDEAS.length)])}
+              >
+                🎲 Surprise me
+              </button>
+            </div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
               placeholder="What’s your video about? One idea in — a finished film out: voiced, scored and captioned." />
             <div className="row" style={{ marginTop: 10 }}>

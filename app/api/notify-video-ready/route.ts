@@ -51,11 +51,12 @@ export async function POST(req: NextRequest) {
     const html = `
       <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#161618;color:#fff;padding:32px;border-radius:16px;">
         <h1 style="color:#2997ff;font-size:24px;margin:0 0 8px">Your Short is ready! ⚡</h1>
-        <p style="color:#94a3b8;margin:0 0 24px">Your AI-generated YouTube Short about "<strong style="color:#fff">${safeTopic}</strong>" is ready to download.</p>
+        <p style="color:#94a3b8;margin:0 0 12px">Your AI-generated YouTube Short about "<strong style="color:#fff">${safeTopic}</strong>" is ready to download.</p>
+        <p style="color:#94a3b8;margin:0 0 24px">✨ <strong style="color:#fff">New:</strong> one click of <a href="https://www.usekineo.com/history" style="color:#2997ff;">HD&nbsp;Enhance</a> gives it the Topaz film polish — sharper detail, cinematic grain.</p>
         <a href="${safeVideoUrl}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
           ⬇ Download Your Short
         </a>
-        <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want a clean export and 24 more Fast Shorts this month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is $9.90/month, then $9.90/month →</a></p>
+        <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want clean exports and 60 credits every month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is $9.90/month →</a></p>
         <p style="color:#475569;font-size:11px;margin:16px 0 0">Kineo · <a href="https://www.usekineo.com" style="color:#475569;">usekineo.com</a></p>
       </div>
     `

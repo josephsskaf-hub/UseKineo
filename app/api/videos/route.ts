@@ -22,6 +22,7 @@ interface VideoListItem {
   title: string
   status: 'completed' | 'processing' | 'failed' | 'cancelled'
   video_url: string | null
+  enhanced_url?: string | null
   thumbnail_url: string | null
   duration: number | null
   platform: string
@@ -89,6 +90,8 @@ function toListItem(row: RawRow): VideoListItem {
     title: deriveTitle(row),
     status: coerceStatus(row.status),
     video_url: strOrNull(row.final_video_url) ?? strOrNull(row.video_url),
+    // KINEO-CEO-HOUR-2026-08-17 (#7) — versao HD (Topaz) quando existir.
+    enhanced_url: strOrNull(row.enhanced_url),
     thumbnail_url: strOrNull(row.thumbnail_url) ?? strOrNull(row.thumb_url),
     duration: numOrNull(row.duration) ?? numOrNull(row.duration_seconds),
     platform:
@@ -114,7 +117,7 @@ export async function GET() {
     // because none of the optional columns exist, we retry with only
     // the universally-present columns.
     const wideColumns =
-      'id,status,video_url,final_video_url,title,topic,prompt,script,duration,duration_seconds,quality,platform,thumbnail_url,thumb_url,render_id,created_at'
+      'id,status,video_url,final_video_url,title,topic,prompt,script,duration,duration_seconds,quality,platform,thumbnail_url,thumb_url,render_id,created_at,enhanced_url'
     // Bug fix — narrow fallback used to ask for `final_video_url` and
     // `title`, which do not exist on every environment (migration 004
     // baseline only adds `video_url` / `topic`). When those columns
@@ -128,7 +131,7 @@ export async function GET() {
     // to the ultra-minimal baseline. Without this, title was dropped and the
     // card rendered the raw `topic` (with [Pexels:] markers).
     const midColumns =
-      'id,status,video_url,title,topic,script,duration,quality_mode,platform,thumbnail_url,render_id,created_at'
+      'id,status,video_url,title,topic,script,duration,quality_mode,platform,thumbnail_url,render_id,created_at,enhanced_url'
     const narrowColumns = 'id,status,video_url,topic,created_at'
 
     // Helper: run the videos SELECT with whichever column list works.

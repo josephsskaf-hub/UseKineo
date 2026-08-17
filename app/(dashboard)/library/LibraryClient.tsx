@@ -11,7 +11,7 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 
 type Tab = 'videos' | 'images' | 'audio'
 
-type Vid = { id: string; title: string | null; video_url: string | null; thumbnail_url: string | null }
+type Vid = { id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
@@ -66,8 +66,11 @@ export default function LibraryClient() {
             {vids.map((v) => (
               <Link key={v.id} href="/history" className="card" style={{ padding: 8, textDecoration: 'none' }}>
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
+                  {v.enhanced_url && (
+                    <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.45)', color: '#34d399' }}>✨ HD</span>
+                  )}
                   <video
-                    src={v.video_url ?? undefined}
+                    src={v.enhanced_url ?? v.video_url ?? undefined}
                     poster={v.thumbnail_url ?? undefined}
                     muted
                     playsInline
