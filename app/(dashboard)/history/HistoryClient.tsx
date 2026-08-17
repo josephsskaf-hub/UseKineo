@@ -32,6 +32,123 @@ function isWatermarkedFastAsset(video: Video): boolean {
   return video.quality_mode === 'fast' && Number(video.credits_used ?? 0) === 0
 }
 
+// KINEO-UI-DIARIO-2026-08-17 (roadmap Higgsfield, item 23) — O PESO SEGUE O
+// OLHAR, NAO O PAGELOAD.
+//
+// Antes: os 100 cards montavam `<video preload="metadata">` de uma vez. Medido
+// no DOM de producao hoje, com a conta do fundador: **100 <video>, preload
+// "metadata" declarado em 100/100, poster em 0/100, 91 abaixo da dobra** — e o
+// bucket `renders` guarda **1.027 arquivos de 29,4 MB em media**. Sao 91
+// requisicoes de metadados a objetos de ~29 MB que ninguem vai olhar naquela
+// tela. `<video>` nao tem `loading="lazy"`: quem nao gasta o byte e quem nao
+// monta o elemento.
+//
+// NAO REPETIR O ERRO DE MEDICAO QUE ESTE COMENTARIO QUASE CONGELOU: a leitura
+// de 14/08 dizia "`readyState 0` e `networkState 2` em 100/100 dois segundos
+// depois do load" e concluia starvation de conexao. Refeito hoje, e falso — a
+// aba estava em `visibilityState: "hidden"`, e o Chrome **congela o preload de
+// midia em aba de fundo**. Prova: um `load()` explicito num card VISIVEL na
+// viewport, com a aba escondida, ficou 5 s em `readyState 0` e 0 byte, enquanto
+// um `fetch` com `Range` no MESMO arquivo respondeu **206 na hora**. A rede e o
+// CDN estavam livres; o elemento de midia e que estava suspenso. Toda medicao
+// de `<video>`/`loading="lazy"` tem que ler `document.visibilityState` antes de
+// acreditar em si mesma.
+//
+// Depois: o <video> so MONTA quando o card entra no viewport (rootMargin 300px,
+// entao ele chega pintado, nao pintando na frente da pessoa). Ate la o box e um
+// gradiente da marca — nunca o preto de antes.
+//
+// O QUE ESTE ITEM NAO FAZ, E POR QUE: o backlog mandava usar `thumbnail_url`
+// como `poster` ("o asset ja esta pago", commit #320). MEDIDO NO BANCO HOJE:
+// `select count(thumbnail_url) from videos` = **0 de 1129** — a coluna existe,
+// e lida em 4 telas (`/library`, `/my-videos`, `/studio`, `/generate`) e nunca
+// foi gravada uma vez. Nao ha poster para pedir. Por isso o primeiro frame
+// continua vindo do proprio MP4 (`preload="metadata"`), so que agora sob
+// demanda. Gerar a thumbnail e trabalho de pipeline, nao de sprint de UI: fica
+// registrado como dependencia no backlog.
+//
+// Save-Data e 2g: nao montam nada — o gradiente fica, zero byte de MP4.
+// prefers-reduced-motion: o crossfade morre sozinho pelo `0.01ms !important`
+// global do `globals.css` (regra `!important` de folha vence `style` inline);
+// o frame continua aparecendo, so que sem transicao.
+function HistoryCardFrame({ src }: { src: string }) {
+  const boxRef = useRef<HTMLDivElement | null>(null)
+  const [armed, setArmed] = useState(false)
+  const [painted, setPainted] = useState(false)
+
+  useEffect(() => {
+    const el = boxRef.current
+    if (!el) return
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string }
+    }
+    const conn = nav.connection
+    if (conn?.saveData || (conn?.effectiveType ?? '').includes('2g')) return
+    // Sem IntersectionObserver (browser antigo): monta tudo, que e exatamente o
+    // comportamento de antes desta mudanca — degradacao para o estado conhecido.
+    if (typeof IntersectionObserver !== 'function') {
+      setArmed(true)
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return
+        setArmed(true)
+        observer.disconnect()
+      },
+      { rootMargin: '300px 0px' },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  // O src troca quando o HD (enhanced_url) fica pronto: o frame antigo sai de
+  // cena ate o novo carregar, em vez de piscar o do arquivo anterior.
+  useEffect(() => {
+    setPainted(false)
+  }, [src])
+
+  return (
+    <div
+      ref={boxRef}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'linear-gradient(155deg, #141416 0%, #1d1d1f 52%, #141416 100%)',
+      }}
+    >
+      {armed && (
+        <video
+          // `#t=0.1` NAO e enfeite: `preload="metadata"` so garante readyState 1
+          // (HAVE_METADATA) pela especificacao, e em readyState 1 nao existe
+          // frame decodificado para pintar — o card ficaria no gradiente para
+          // sempre e o `loadeddata` nunca dispararia. O fragmento de midia
+          // manda o browser buscar aquele instante, o que leva o elemento a
+          // readyState 2 e faz o frame existir de verdade. E o mesmo truque que
+          // o `/studio` ja roda em producao contra este mesmo storage, entao
+          // nao e aposta. O fragmento nao vai para o servidor (e resolvido no
+          // cliente), logo a URL requisitada continua identica.
+          src={src.includes('#') ? src : `${src}#t=0.1`}
+          muted
+          playsInline
+          preload="metadata"
+          onLoadedData={() => setPainted(true)}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+            opacity: painted ? 1 : 0,
+            transition: 'opacity var(--dur-base, 250ms) var(--ease-swift, cubic-bezier(.2,0,0,1))',
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
 function extractTitle(topic: string | null): string {
   if (!topic) return 'Untitled Short'
   // Try HOOK line: "HOOK (0-2s): [Pexels: ...] Actual hook text"
@@ -1003,14 +1120,10 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     >
                       {/* Video preview — first frame shown via preload="metadata".
                           KINEO-ENHANCE-VISIVEL-2026-08-17: com HD pronto, o
-                          card passa a tocar a VERSAO ENHANCED + selo HD. */}
-                      <video
-                        src={enhUrls[video.id] ?? video.video_url}
-                        muted
-                        playsInline
-                        preload="metadata"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
+                          card passa a tocar a VERSAO ENHANCED + selo HD.
+                          KINEO-UI-DIARIO-2026-08-17 (item 23): o <video> agora
+                          monta no IntersectionObserver — ver HistoryCardFrame. */}
+                      <HistoryCardFrame src={enhUrls[video.id] ?? video.video_url} />
                       {enhStatus[video.id] === 'done' && (
                         <span
                           style={{

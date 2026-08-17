@@ -470,7 +470,40 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     mesma injecao que nao mudou nada no head mudou tudo no body (numeros na secao
     do Diario). Nao havia `!important` nem segunda folha; era ordem de documento.
 
-23. **NOVO (14/08, sprint 14h) — /history: a pagina onde o cliente ve o proprio
+23. ✅ **FEITO 17/08 (sprint 18h) — METADE (a) FEITA, METADE (b) IMPOSSIVEL, E A
+    JUSTIFICATIVA DESTE ITEM ESTAVA CONTAMINADA.** Entrou `HistoryCardFrame` em
+    `app/(dashboard)/history/HistoryClient.tsx`: o `<video>` do card so MONTA no
+    `IntersectionObserver` (rootMargin 300px), com gradiente da marca no lugar do
+    preto ate la, crossfade `--dur-base`/`--ease-swift` no `loadeddata`, e
+    `#t=0.1` no src para forcar readyState 2 (sem isso `preload="metadata"` so
+    garante readyState 1 pela spec — nao existiria frame para pintar, e o card
+    ficaria no gradiente para sempre). Save-Data/2g nao montam nada.
+    **A metade (b) e IMPOSSIVEL hoje e o item mentia sobre isso.** Este item dizia
+    "a coluna `thumbnail_url` ja existe (commit #320) e nao esta sendo usada como
+    poster ... o asset ja esta pago". Medido no banco hoje:
+    `select count(thumbnail_url) from videos` = **0 de 1129** (e 0 de 213 nos
+    ultimos 7 dias). A coluna existe, e LIDA em quatro telas e **nunca foi gravada
+    uma unica vez**. Nao ha poster para usar. Virou o item 29.
+    **E a evidencia central deste item — "readyState 0 e networkState 2 em 100/100
+    dois segundos depois do load" — nao prova o que dizia.** Refeita hoje: a aba
+    estava em `visibilityState: "hidden"` e o Chrome **congela o preload de midia
+    em aba de fundo**. Prova direta: um `load()` explicito num card VISIVEL na
+    viewport, aba escondida, ficou **5 s em readyState 0 com 0 byte**, enquanto um
+    `fetch` com `Range` no MESMO arquivo respondeu **206 na hora** — rede e CDN
+    livres, o elemento de midia e que estava suspenso. **E exatamente a armadilha
+    que o Diario de 17/08 (sprint 14h) registrou para `loading="lazy"`, uma sprint
+    antes, e que este item pisou mesmo assim.** O que sobra provado e estrutural e
+    basta: **100 `<video>`, `preload="metadata"` declarado em 100/100, `poster` em
+    0/100, 91 abaixo da dobra**, contra um bucket `renders` de **1.027 arquivos de
+    29,4 MB em media**. `<video>` nao tem `loading="lazy"`: quem nao gasta o byte
+    e quem nao monta o elemento.
+    **A metade (c) (paginacao acima de ~24 cards) fica aberta** — e mudanca de
+    arquitetura de dados, nao de UI, e nao cabe num item com rollback trivial.
+    Limite conhecido do que entrou: quem rolar os 100 cards ate o fim monta os 100
+    (nao desmontamos ao sair da tela, para nao piscar no scroll de volta) — o
+    estado final e o de antes, o ganho e todo no comeco. Rollback: 1 arquivo.
+    **Texto original preservado, porque a leitura errada e o ensinamento:**
+    **NOVO (14/08, sprint 14h) — /history: a pagina onde o cliente ve o proprio
     trabalho abre 100 videos de uma vez, nenhum com poster, 91 fora da tela.**
     Achado na rotacao, medido no DOM de producao com sessao real (570 creditos, a
     conta do fundador). Numeros: **100 `<video>`, `preload="metadata"` em 100/100,
@@ -738,6 +771,48 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     Anotado junto, para nao virar item novo depois: o breadcrumb do `/studio` imprime
     **"Kineo / Dashboard"** numa pagina cujo H1 e "Studio" — o par que faltou quando a
     rota virou a porta principal. Rollback: git revert.
+
+29. **NOVO (17/08, sprint 18h) — O POSTER QUE QUATRO TELAS PEDEM NAO EXISTE:
+    `thumbnail_url` E NULL EM 1.129 DE 1.129 LINHAS.** Achado executando o item 23 e
+    confirmado no banco, nao no DOM — e por isso ele e diferente de tudo que este doc
+    tem ate aqui: **nao e um defeito de UI, e a dependencia que trava a metade
+    "poster" de tres itens ao mesmo tempo** (23, 27 e 28).
+    Numeros do banco, hoje: `videos` tem **1.129 linhas, `count(thumbnail_url)` = 0**;
+    **1.125 estao `completed`** e nenhuma tem thumbnail; **213 foram criadas nos
+    ultimos 7 dias** e nenhuma tem thumbnail. Nao e backlog historico que ficou para
+    tras — **o pipeline nunca gravou essa coluna, nem uma vez, nem hoje.**
+    E o codigo pede por ela em toda parte, achando que ela chega:
+    `app/(dashboard)/library/LibraryClient.tsx:74`, `my-videos/MyVideosClient.tsx:480`
+    e `studio/StudioClient.tsx:288` escrevem **`poster={v.thumbnail_url ?? undefined}`**
+    — tres telas com a linha certa, resolvendo para `undefined` em 100% dos casos —
+    e `MyVideosClient.tsx:466` monta um `background: url(${v.thumbnail_url})` que
+    nunca tem URL. O comentario do `GenerateClient.tsx:11002` ja suspeitava
+    ("`thumbnail_url` is the Creatomate snapshot, which is often null"): **nao e
+    "often null", e sempre null.**
+    Medido em `/library` hoje (a tela mais nova da casa, primeira vez que ela entra
+    na rotacao): **6 `<video>`, `poster` em 0/6, `preload="metadata"` em 6/6, 0
+    `<img>` na pagina inteira** — a estante que existe para o cliente ver o acervo
+    dele mostra seis retangulos esperando MP4.
+    Antes: quatro telas pedem um poster que o pipeline nunca produziu, e cada uma
+    resolve o vazio de um jeito (preto, `#t=0.1`, gradiente). Depois: **o render
+    grava `thumbnail_url`** (o frame ja existe — e o mesmo que o `#t=0.1` decodifica
+    no cliente hoje, so que pago 100 vezes, no browser de cada cliente, em vez de uma
+    vez no servidor) e as quatro telas passam a ter primeiro paint sem tocar no MP4.
+    **DEPENDENCIA DECLARADA, e ela e de pipeline, nao de UI** — sprint de UI nao
+    escreve no banco nem mexe em rota de render. Enquanto isso nao existir, os itens
+    23, 27 e 28 so podem entregar a metade `preload`/`IntersectionObserver`, que e o
+    que o item 23 fez hoje. **Este e o item que o fundador precisa despachar para uma
+    sprint de produto**; a sprint de UI fica pronta para consumir a coluna no dia
+    seguinte (a linha `poster={...}` ja esta escrita em 3 dos 4 lugares).
+    Anotados junto, para nao virarem item novo depois: `/library` tem **9 raios
+    distintos e 5 fora da escala** (`10px` 23x, `8px` 17x, `5px`, `9px`, `16px`);
+    roda na **QUINTA linguagem de timing do item 28** — `ease` puro em **55 de 65**
+    elementos animados, contra 10 na curva do Tailwind e **zero** em `--ease-swift`,
+    com 5 duracoes (0.15/0.16/0.18/0.3s), nenhuma igual aos tokens; e tem **23
+    elementos com o acento, os 23 acima da dobra** (mesmo perfil do `/studio`, item
+    28 — tela unica, sem "abaixo da dobra" onde diluir). A boa noticia repete a do
+    `/studio`: **4 elementos em Space Grotesk**, entao as telas novas da casa
+    nasceram fora do padrao monofonte. Rollback: n/a (item de pipeline).
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -781,6 +856,154 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### FECHAMENTO DO DIA — 17/08 (3 linhas, escritas pela sprint das 18h)
+
+1. **O dia 17/08 esta 100% no ar e nada regrediu.** `origin/main` = HEAD local =
+   `85d1fad`, e o item 22 (raios do Tailwind apontando para os tokens) foi medido em
+   producao: `/pricing` caiu de **5 raios distintos para 3** e de **17 elementos fora
+   da escala para 0** — melhor do que a propria sprint das 14h previu (ela projetava
+   17→3) — com **CLS 0** e zero erro de console. **Nao ha nada seu parado para
+   empurrar do lado de UI.**
+2. **A sprint das 18h fez o item 23 (/history): os 100 videos nao baixam mais de
+   uma vez** — cada card monta no `IntersectionObserver` com gradiente da marca no
+   lugar do retangulo preto. **Um arquivo, rollback trivial, sem push** (o push e seu,
+   como sempre).
+3. **O achado do dia e de produto, nao de UI, e ele vale dinheiro: `thumbnail_url` e
+   NULL em 1.129 de 1.129 videos.** Quatro telas suas (`/library`, `/my-videos`,
+   `/studio`, `/generate`) ja pedem `poster={thumbnail_url}` e recebem `undefined`
+   sempre — ou seja **cada cliente paga, no proprio browser, para decodificar um frame
+   que o servidor podia ter gravado uma vez**. Isso trava a metade "poster" de tres
+   itens do roadmap de uma so vez. Virou o **item 29** e precisa de uma sprint de
+   pipeline sua para destravar; a UI ja esta escrita esperando a coluna.
+
+### 17/08 (sprint 18h) — O ITEM 23 ENTREGOU METADE, PROVOU QUE A OUTRA METADE NAO EXISTE, E DERRUBOU A PROPRIA EVIDENCIA QUE O JUSTIFICAVA
+
+**1. Auditoria do item anterior (item 22, raios do Tailwind) — EM PRODUCAO, e PASSOU
+ACIMA DO PREVISTO.** O push saiu: `origin/main` e o HEAD local sao o mesmo commit
+(`85d1fad`), e `git show origin/main:tailwind.config.js` traz o bloco
+`theme.extend.borderRadius` apontando para os tokens. Medido no DOM de
+`www.usekineo.com/pricing` hoje, com a folha real da producao:
+- **`rounded-lg` e `rounded-md` pintam 8px, `rounded-xl` e `rounded-2xl` 13px,
+  `rounded-3xl` 22px, `rounded-full` 9999px** — isto e, as cinco classes mapeadas
+  agora leem os tokens no ar, e o `full` continua fora do mapa como foi decidido.
+- **A pagina inteira caiu para 3 raios distintos (13px, 8px, 9999px) e ZERO elementos
+  fora da escala.** A sprint das 14h previu "5→4 distintos e 17→3 fora da escala"
+  medindo por injecao de folha; no deploy real o resultado foi melhor — os 3 `14px`
+  que ela deu como sobra eram `rounded-2xl`, nao literais de CSS.
+- **Nada regrediu:** **CLS 0** (`PerformanceObserver` com `buffered:true`), zero erro
+  de console, TTFB 9 ms no documento ja aquecido.
+- **Limite honesto da medicao:** a aba roda em `visibilityState: "hidden"`, entao
+  `largest-contentful-paint` nao registra entrada nenhuma — **LCP nao foi medido
+  hoje**, e nao foi. `border-radius` nao entra em layout nem no critical path, entao
+  o risco de LCP era nulo por construcao; mas fica escrito que o numero nao existe.
+
+**2. O ITEM DA SPRINT — item 23 (/history), e ele saiu diferente do que estava
+escrito, em dois pontos.**
+- **O que entrou:** `HistoryCardFrame` em `app/(dashboard)/history/HistoryClient.tsx`.
+  O `<video>` do card so monta quando o card entra no viewport (`IntersectionObserver`,
+  `rootMargin: '300px 0px'`, `disconnect()` no primeiro intersect); ate la o box e um
+  gradiente da marca (`#141416 → #1d1d1f`), **nunca mais o `#000`**; o frame entra em
+  crossfade `--dur-base`/`--ease-swift` no `loadeddata`. Save-Data e 2g nao montam
+  nada. Sem `IntersectionObserver`, monta tudo — degradacao para o comportamento de
+  antes, que e o estado conhecido.
+- **`#t=0.1` no src, e nao e enfeite:** `preload="metadata"` so garante **readyState 1
+  (HAVE_METADATA)** pela especificacao, e em readyState 1 **nao ha frame decodificado
+  para pintar** — sem o fragmento, `loadeddata` poderia nunca disparar e o card ficaria
+  no gradiente para sempre. O fragmento e resolvido no cliente (nao vai para o
+  servidor, nem para o `fetch` do service worker), entao a URL requisitada e a mesma.
+  E o mesmo truque que o `/studio` ja roda em producao contra este storage — o item 28
+  o registrou como "confissao de que o poster faz falta", e e: aqui ele e a muleta
+  consciente enquanto o item 29 nao existe. **Ganho de tabela: no iOS Safari, onde o
+  card hoje e preto, o `#t=` e justamente o padrao que faz o frame aparecer.**
+- **A metade (b) do item — `poster={thumbnail_url}` — E IMPOSSIVEL, e o item mentia
+  sobre isso desde 14/08.** Ele afirmava "a coluna ja existe (commit #320) ... o asset
+  ja esta pago". Medido no banco hoje: **`count(thumbnail_url)` = 0 de 1.129**, 0 de
+  1.125 `completed`, 0 de 213 criados nos ultimos 7 dias. Nao ha nada pago. Virou o
+  **item 29**, que e de pipeline e nao de UI.
+- **A metade (c) (paginacao acima de ~24 cards) fica aberta de proposito** — e
+  arquitetura de dados, nao UI, e nao cabe em "1 item isolado com rollback trivial".
+
+**3. Revisao adversarial (2x, a 2a cacando defeito na propria mudanca) — e a 2a
+achou.**
+- **CLS: zero por construcao.** O componente e `position:absolute; inset:0` dentro do
+  box 9:16 (`paddingTop: 177.78%`) que ja existia; o `<video>` que saiu tinha
+  `height:100%` num pai de altura definida. **Nenhuma caixa muda de tamanho, e o
+  numero de caixas em fluxo cai de 1 para 0.**
+- **z-index / modais: nada tocado.** O overlay escuro, o botao de play e o selo
+  `✨ HD` (`zIndex: 2`) sao irmaos POSTERIORES no DOM e continuam por cima; o lightbox
+  e `fixed z-index 80` e o card nao cria contexto de empilhamento novo.
+- **A armadilha do item 18 foi conferida de proposito:** o container novo tem
+  `position:absolute` e **nenhum `transform`/`filter`/`will-change`** — `absolute`
+  sozinho **nao** cria bloco de contencao para descendente `position:fixed`, e nao ha
+  descendente `fixed` aqui. O acidente que quase quebrou o interstitial do checkout no
+  dia 18 nao se repete.
+- **Hidratacao:** `armed` nasce `false` no servidor e no cliente — o primeiro render e
+  identico dos dois lados, sem mismatch.
+- **DEFEITO QUE A 2a PASSADA ACHOU, e a decisao tomada:** em **Save-Data/2g o card
+  perde o frame que hoje ele tem** — antes o `preload="metadata"` pintava (quando
+  pintava), agora fica so o gradiente. O `HeroGallery` cai para o **poster** nesse
+  caso; aqui **nao existe poster** (item 29), entao "respeitar Save-Data" e "mostrar
+  imagem" ficaram em conflito direto. Ficou o gradiente: o cliente pediu economia
+  explicitamente, o card continua com titulo, data, selo de qualidade e o botao de
+  play, e o clique abre o lightbox que toca. **Fica registrado como custo consciente,
+  e ele desaparece sozinho no dia em que o item 29 existir.**
+- **Limite conhecido:** quem rolar os 100 cards ate o fim termina com os 100 montados
+  (nao desmontamos ao sair da tela, para nao piscar no scroll de volta). O estado final
+  e o de antes; o ganho e todo no comeco, que e onde a pessoa esta.
+- **prefers-reduced-motion:** o crossfade novo e `transition` em `style` inline, e o
+  bloco `@media (prefers-reduced-motion: reduce)` do `globals.css` (linha 604) usa
+  `transition-duration: 0.01ms !important` — **declaracao `!important` de folha vence
+  `style` inline sem `!important`**, entao o desligador global ja cobre o codigo novo
+  sem uma linha a mais. O frame continua aparecendo; so a transicao morre.
+
+**4. A CONTAMINACAO — a evidencia central do item 23 estava errada, e a sprint
+anterior ja tinha escrito o aviso.** O item dizia, desde 14/08: "`readyState 0` e
+`networkState 2` (NETWORK_LOADING) em 100/100 dois segundos depois do load", e concluia
+starvation de conexao — 100 requisicoes brigando pelo mesmo pool. Refeito hoje em
+producao, **e falso**:
+- A aba estava em `visibilityState: "hidden"`, e o Chrome **congela o preload de midia
+  em aba de fundo**. Aos **292 segundos** de vida da pagina: `readyState 0` em 100/100,
+  `networkState 2` em 100/100 e **`performance.getEntriesByType('resource')` com ZERO
+  requisicao de `.mp4`**. Se fosse disputa de conexao, os bytes existiriam.
+- **Prova direta, e ela e definitiva:** um `load()` explicito num card **visivel na
+  viewport**, com a aba escondida, ficou **5 segundos em `readyState 0`, `buffered` 0,
+  0 byte transferido** — enquanto um `fetch` com `Range: bytes=0-1` **no mesmo arquivo,
+  na mesma aba, no mesmo instante** respondeu **206 imediatamente**. Rede livre, CDN
+  livre; o elemento de midia e que estava suspenso.
+- **E o Diario de HOJE, sprint das 14h, ja tinha escrito a armadilha** — para
+  `loading="lazy"` e imagens, com a frase "ler `visibilityState` antes de acreditar em
+  qualquer medicao". **A sprint das 18h pisou nela mesmo assim, uma sprint depois, com
+  `<video>` no lugar de `<img>`.** A regra sobe de "imagem lazy" para **toda medicao de
+  carregamento sob demanda** e esta escrita no proprio codigo agora.
+- **O que sobrou provado, e basta:** os fatos estruturais nao dependem de visibilidade —
+  **100 `<video>`, `preload="metadata"` declarado em 100/100, `poster` em 0/100, 91
+  abaixo da dobra**, contra um bucket `renders` de **1.027 arquivos, 29,4 MB de media,
+  49,5 MB no maior**. `<video>` nao tem `loading="lazy"`: 91 pedidos de metadados a
+  objetos de ~29 MB que ninguem vai olhar. O item continua certo; a frase que o
+  justificava e que estava errada.
+
+**5. Rigor.** `tsc --noEmit -p tsconfig.json` **EXIT=0**, e **falsificado dentro do
+arquivo que a sprint mexeu** (que e o que importa: prova que o tsc le ESTE arquivo, nao
+so que ele roda) — `const _falsifyUISprint: number = "not a number"` injetado logo
+acima de `HistoryCardFrame` → tsc acusou **1 erro, EXIT=2** → arquivo restaurado e
+conferido por **md5 identico** → tsc verde de novo. EOL conferido no HEAD por arquivo:
+`HistoryClient.tsx` **LF** (0 CR no HEAD e 0 no disco, 1.581 linhas) e este doc **LF**
+(0 CR). Indice isolado (`GIT_INDEX_FILE=/tmp/kidxUIS`), **sem `add -A`** — obrigatorio
+aqui, porque a arvore tem 164 arquivos sujos de churn de EOL e de trabalho seu em
+`StudioClient`/`audio`/`enhance` que **nao** podem entrar num commit de UI. **Sem push.**
+[KINEO-UI-DIARIO-2026-08-17]
+
+**6. Realimentacao do backlog — ITEM 29 (`thumbnail_url` nulo em 1.129/1.129).** A
+rotacao levou a `/library`, a tela mais nova da casa e a primeira vez que ela entra
+neste doc: **6 `<video>`, `poster` 0/6, `preload="metadata"` 6/6, 0 `<img>`**, **9 raios
+distintos com 5 fora da escala**, **`ease` puro em 55 de 65** elementos animados (a
+quinta linguagem de timing do item 28, agora confirmada numa segunda pagina) e **23
+elementos com o acento, os 23 acima da dobra**. Mas o achado que importa nao estava no
+DOM e sim no banco: as tres telas novas (`/library`, `/my-videos`, `/studio`) ja
+escrevem `poster={v.thumbnail_url ?? undefined}` — **a linha certa, resolvendo para
+`undefined` em 100% dos casos.** E de pipeline, nao de UI, e trava a metade "poster"
+dos itens 23, 27 e 28 ao mesmo tempo.
 
 ### 17/08 (sprint 14h) — ITEM 22 FECHADO NO UNICO LUGAR QUE ALCANCA AS 546 CLASSES, E A DESCOBERTA DE QUE O ROADMAP ESTAVA MEDINDO UMA SALA VAZIA
 
