@@ -92,10 +92,11 @@ const CURATED: Record<string, string[]> = {
   fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
   //   AVATAR: o close 'Made with Kineo' (render do modo avatar) + o plano aberto
-  //   AVATAR (17/08, ordem do fundador): o tile do bento abre com o narrador do
-  //   Krakatoa falando (mesmo preview do 4o spot do Kling 3) — melhor demo de
-  //   'pessoa falando' que temos; os renders do modo avatar ficam atras.
-  presenter: ['501d1ef7-5df5-4462-9341-c58ea01f0042', 'c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
+  //   AVATAR (17/08 c — fundador: 'nao quero nada igual'): o narrador do
+  //   Krakatoa SAI daqui (ficava dois homens serios com paisagem dramatica
+  //   lado a lado com o pescador do tile Kling 3). Volta o apresentador de
+  //   estudio — close limpo, contraste total. O narrador segue no hero.
+  presenter: ['c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
 }
 
 // NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
