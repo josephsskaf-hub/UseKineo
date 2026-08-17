@@ -68,7 +68,7 @@ import {
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — o entitlement efetivo precisa saber qual é
 // o free tier vigente (clamp de duração) para responder o que um NÃO-pago
 // recebe. lib/freeTierOffer.ts não importa nada — sem ciclo.
-import { getFreeTierOffer } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):
 // igualdade estrita com 'true'. Qualquer outro valor (ausente, '1', 'yes') = OFF.
@@ -92,6 +92,26 @@ export const TRIAL_CREDIT_CAP = 50
  * aprovação do fundador), a concessão acompanha na mesma linha.
  */
 export const TRIAL_GRANT_CREDITS = TRIAL_CREDIT_CAP
+
+// KINEO-GRANT-COPY-UNICA-2026-08-17 — TRAVA DE COMPILAÇÃO ENTRE O GRANT E A COPY.
+//
+// A troca de HOJE (40 → 50) mudou a linha acima e a maior parte das frases, mas
+// deixou o número antigo no BOTÃO PRIMÁRIO de 4 páginas públicas e no H2 das 30
+// páginas de nicho: a dobra prometia 50 e o botão logo abaixo dizia 40. Nada no
+// build reclamou, porque copy e enforcement eram dois literais sem relação.
+//
+// Agora a copy deriva de `TRIAL_GRANT_CREDITS_COPY` (lib/freeTierOffer.ts, que
+// é FOLHA de propósito e não pode importar este arquivo — ver o comentário lá).
+// A asserção abaixo fecha o par na direção que já existe e é puramente de tipo:
+// zero bytes no bundle, zero custo em runtime. Se alguém mexer no teto sem
+// mexer na copy (ou vice-versa), o `tsc` quebra AQUI com o nome do problema.
+//
+// Só falha se os dois números divergirem — mexer nos DOIS juntos compila.
+type AssertSameGrant<A extends number, B extends A> = B
+type _GrantEqualsPublicCopy = AssertSameGrant<
+  typeof TRIAL_GRANT_CREDITS,
+  typeof TRIAL_GRANT_CREDITS_COPY
+>
 
 export type TrialVariant = '3d' | '7d'
 

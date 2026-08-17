@@ -14,7 +14,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 // converte) já o usa.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -634,7 +634,10 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
 
         {/* Final CTA */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — 40 Creator credits for ${n.label} Shorts`)}</h2>
+          {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — o número vinha digitado à mão e
+              ficou em 40 quando o grant virou 50 hoje: este H2 é o mesmo em 30
+              páginas, então era o erro multiplicado por 30. Agora deriva. */}
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} Creator credits for ${n.label} Shorts`)}</h2>
           <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is $9.90/month when you want clean exports.</p>
           <OrganicCtaLink
             href={signupUrlForIdea(primaryIdea)}

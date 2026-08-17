@@ -549,7 +549,11 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     }
     void trackEvent('video_share_clicked', metadata)
     const destination = channel === 'whatsapp'
-      ? `https://wa.me/?text=${encodeURIComponent(`Watch my Short and tell me what you think: ${url}`)}`
+      // KINEO-SHARE-PEDE-IMITACAO-2026-08-17 — par do GenerateClient: mesma
+      // troca de "peça um veredito" para "mostre o mecanismo". Ver o comentário
+      // longo lá; os dois textos têm de andar juntos ou a medição mistura duas
+      // mensagens diferentes no mesmo evento.
+      ? `https://wa.me/?text=${encodeURIComponent(`I made this Short with AI — no camera, no editing. Watch it: ${url}`)}`
       : `https://twitter.com/intent/tweet?text=${encodeURIComponent('I made this Short with Kineo. Watch it here:')}&url=${encodeURIComponent(url)}`
     window.open(destination, '_blank', 'noopener,noreferrer')
     void trackEvent('video_share_channel_opened', metadata)

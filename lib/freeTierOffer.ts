@@ -123,25 +123,46 @@ const OFF_COPY: FreeTierCopy = {
   ctaHeading: 'Make a faceless Fast video free',
 }
 
+// KINEO-GRANT-COPY-UNICA-2026-08-17 — O NÚMERO DO GRANT AGORA TEM UMA FONTE SÓ.
+//
+// A aprovação de HOJE (40 → 50, "se só muda 1 dólar, pode mudar pra 50") mexeu
+// em `TRIAL_CREDIT_CAP` e na maior parte da copy, mas o número estava digitado
+// à mão em 9 frases deste arquivo e em 3 call sites. Duas delas ficaram para
+// trás — e uma era o BOTÃO PRIMÁRIO ("Start free — 40 Creator credits →"),
+// logo abaixo de uma dobra que dizia 50. A pessoa lia dois números na mesma
+// tela e o menor estava no botão.
+//
+// Por que a constante mora AQUI e não é importada de lib/reverseTrial.ts:
+// este arquivo é FOLHA de propósito (o cabeçalho de reverseTrial.ts registra
+// "lib/freeTierOffer.ts não importa nada — sem ciclo") e entra no bundle do
+// browser via `swapFreeTierCopy`. Importar reverseTrial.ts aqui arrastaria
+// `@supabase/supabase-js` para o cliente e fecharia um ciclo.
+// A trava fica na direção que já existe: reverseTrial.ts (que JÁ importa este
+// arquivo) carrega uma asserção de tipo que quebra o `tsc` se os dois números
+// divergirem. Mexer no teto sem mexer na copy passa a não compilar.
+export const TRIAL_GRANT_CREDITS_COPY = 50
+
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
 // o 50% é exclusivo dos e-mails D5/D10 pós-trial, jamais superfície pública.
+const G = TRIAL_GRANT_CREDITS_COPY
+
 const ON_COPY: FreeTierCopy = {
   headline:
-    'Start free — your first video is on us. New accounts get a full Creator trial: 50 credits, every engine except Studio.',
+    `Start free — your first video is on us. New accounts get a full Creator trial: ${G} credits, every engine except Studio.`,
   residual: '1 free Fast video/month',
   sentence:
-    'Every new account starts with a full Creator trial — 50 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
-  chip: 'Free Creator trial on signup — 50 credits',
-  chipLower: 'free Creator trial on signup — 50 credits',
+    `Every new account starts with a full Creator trial — ${G} credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
+  chip: `Free Creator trial on signup — ${G} credits`,
+  chipLower: `free Creator trial on signup — ${G} credits`,
   planCardBody:
-    'Start free — your first video is on us. New accounts get a full Creator trial: 50 credits, every engine except Studio. Afterwards, 1 free Fast video/month.',
+    `Start free — your first video is on us. New accounts get a full Creator trial: ${G} credits, every engine except Studio. Afterwards, 1 free Fast video/month.`,
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
     "You've used this month's free Fast video. Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
   cmpKineoFree:
-    'Kineo: every new account starts with a full Creator trial — 50 credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.',
+    `Kineo: every new account starts with a full Creator trial — ${G} credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
   limitHitEmailIntro:
     "You've used this month's free Fast video — the free plan includes 1 per month.",
@@ -151,8 +172,8 @@ const ON_COPY: FreeTierCopy = {
     'Or wait — your free Fast video comes back next month, and your videos stay in your library either way.',
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
-  // numero de tracao. "40 Creator credits" e verificavel: e o grant exato.
-  ctaPrimary: 'Start free — 40 Creator credits →',
+  // numero de tracao. O numero e verificavel: e o grant exato, derivado.
+  ctaPrimary: `Start free — ${G} Creator credits →`,
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
   ctaHeading: 'Start free — your first video is on us',
 }

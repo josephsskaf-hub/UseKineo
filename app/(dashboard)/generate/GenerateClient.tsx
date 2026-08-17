@@ -90,7 +90,7 @@ import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
 // That modal only sold the retired avatar_credits packs (?pack=avatar*). Avatar
 // videos now cost 120 universal credits; the avatar 402 already routes to the
@@ -106,7 +106,13 @@ import Offer290Banner from './Offer290Banner'
 // KINEO-LOWCREDITS-UPSELL import removed 09/07 — banner retired (see note at
 // the old render site; 0 credits is the normal free state now).
 
-const POST_RENDER_SHARE_VARIANT = 'whatsapp_first_30_30_v1'
+// KINEO-SHARE-PEDE-IMITACAO-2026-08-17 — v1 → v2 OBRIGATÓRIO nesta troca.
+// O texto do WhatsApp mudou de "tell me what you think" (pede veredito) para
+// "I made this Short with AI — no camera, no editing" (pede imitação). Se o
+// rótulo não subisse, os eventos de ANTES e DEPOIS cairiam no mesmo balde e a
+// leitura de amanhã compararia duas mensagens diferentes achando que compara
+// uma só — o erro de coorte que o PROMPT-DIARIO já cobrou duas vezes.
+const POST_RENDER_SHARE_VARIANT = 'whatsapp_imitation_30_30_v2'
 
 interface TaskHandle {
   id: string
@@ -6679,7 +6685,16 @@ export default function GenerateClient({
     const metadata = publicShareMetadata(channel)
     trackEvent('video_share_clicked', metadata)
     const destination = channel === 'whatsapp'
-      ? `https://wa.me/?text=${encodeURIComponent(`Watch my Short and tell me what you think: ${url}`)}`
+      // KINEO-SHARE-PEDE-IMITACAO-2026-08-17 — A MENSAGEM ESTAVA PEDINDO A
+      // COISA ERRADA. "Tell me what you think" convoca um JUIZ: o amigo abre,
+      // assiste, dá a opinião e vai embora — e é exatamente isso que a página
+      // mede (30 dias: 234 sessões no /v/, 7 cliques na CTA, 0 contas criadas,
+      // com uma barra fixa de CTA visível a página inteira desde 14/08; ou
+      // seja, não é o botão que falta, é o enquadramento da visita).
+      // A troca mantém o orgulho de quem compartilha ("I made this") e planta
+      // o MECANISMO, que é a única informação capaz de transformar espectador
+      // em usuário. Pede imitação, não veredito.
+      ? `https://wa.me/?text=${encodeURIComponent(`I made this Short with AI — no camera, no editing. Watch it: ${url}`)}`
       : `https://twitter.com/intent/tweet?text=${encodeURIComponent(ft(OFFER, 'I made this YouTube Short with Kineo. Create up to 3 Fast videos every 24h with no card.', 'I made this YouTube Short with Kineo. Start free — your first video is on us.'))}&url=${encodeURIComponent(url)}`
     window.open(destination, '_blank', 'noopener,noreferrer')
     trackEvent('video_share_channel_opened', metadata)
@@ -13552,7 +13567,9 @@ function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialL
         🎉 {OFFER.reverseTrial && !trialLive ? (
           'Welcome to Kineo — we dropped a viral idea below. Hit Generate, or type your own. No card needed.'
         ) : (
-          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on="Your Creator trial is live — 40 free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed." />
+          // KINEO-GRANT-COPY-UNICA-2026-08-17 — era a PRIMEIRA frase que quem
+          // acabou de se cadastrar lê, e prometia 40 quando a conta recebeu 50.
+          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
         )}
       </span>
       <button

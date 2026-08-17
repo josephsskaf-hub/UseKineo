@@ -22,7 +22,7 @@ import {
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // Push #175 — use checkout GET route instead of hardcoded Stripe links.
 // KINEO-SPRINT-FIX-2026-07-15 — plan/offer preservation: buyers who abandon an
@@ -360,7 +360,7 @@ function CheckoutCancelledContent() {
                     Fair — then look at the product, not the price.
                   </p>
                   <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
-                    {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', 'Use your trial credits — 40 free credits on signup, no card.')} If one of them is good
+                    {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your trial credits — ${TRIAL_GRANT_CREDITS_COPY} free credits on signup, no card.`)} If one of them is good
                     enough to post, that&apos;s the only argument for paying that actually works.
                   </p>
                   <Link

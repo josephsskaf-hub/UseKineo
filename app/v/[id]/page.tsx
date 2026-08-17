@@ -281,6 +281,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               <PublicVideoCtaLink
                 href={signupHref}
                 videoId={params.id}
+                placement="expired_preview"
                 style={{
                   display: 'inline-block',
                   background: BLUE,
@@ -319,6 +320,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           <PublicVideoCtaLink
             href={signupHref}
             videoId={params.id}
+            placement="under_player"
             style={{
               display: 'inline-block',
               background: BLUE,
@@ -356,6 +358,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             <PublicVideoCtaLink
               href={generateFromScriptHref(v.title, 'script_library_video_page')}
               videoId={params.id}
+              placement="after_script"
               style={{
                 display: 'inline-block',
                 marginTop: 6,
@@ -529,6 +532,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         <PublicVideoCtaLink
           href={signupHref}
           videoId={params.id}
+          placement="sticky_bar"
           style={{
             display: 'block',
             width: 'min(420px, 100%)',
