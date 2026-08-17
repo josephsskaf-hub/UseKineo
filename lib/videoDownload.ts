@@ -103,6 +103,13 @@ export type DownloadOutcome =
   | 'fallback_opened'
   | 'popup_blocked'
   | 'unavailable'
+  /**
+   * O MESMO arquivo já estava baixando quando o usuário tocou de novo. Nenhum
+   * `fetch` novo foi aberto: o toque virou o painel de resgate. Não é entrega
+   * (o call site não pode contar como `delivered`) e não é falha — é o segundo
+   * toque deixando de ser dano. Ver KINEO-DOWNLOAD-SIMULTANEOUS-DEATH-2026-08-16.
+   */
+  | 'coalesced'
 
 export interface DownloadVideoOptions {
   url: string
@@ -275,10 +282,13 @@ function isSupabaseHost(url: string): boolean {
   }
 }
 
-type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable'
+type ManualLinkTrigger = 'slow' | 'blob_failed' | 'popup_blocked' | 'unavailable' | 'retry'
 
 function manualLinkTitle(trigger: ManualLinkTrigger): string {
-  if (trigger === 'slow') return 'Still downloading…'
+  // 'retry' = o usuário tocou de novo enquanto o primeiro download ainda corre.
+  // A frase é a MESMA de 'slow' porque o estado do mundo é o mesmo — o que muda
+  // é só quem trouxe o painel para a tela (o relógio ou o dedo).
+  if (trigger === 'slow' || trigger === 'retry') return 'Still downloading…'
   if (trigger === 'unavailable') return 'This file is no longer available.'
   return 'Your download didn’t start.'
 }
@@ -491,6 +501,135 @@ function showManualDownloadLink(
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-DOWNLOAD-SIMULTANEOUS-DEATH-2026-08-16 — as falhas não expiram, elas
+// são MORTAS TODAS JUNTAS. E o segundo toque é quem as multiplica.
+//
+// MEDIDO em produção, 30 dias, contas internas fora:
+//
+//   desktop → 81 cliques · 76 `video_downloaded` · **0 falhas** (0 de 81)
+//   mobile  → 328 cliques · 178 downloads · **106 falhas** · 105 popups barrados
+//   `reason` = "Load failed" e `http_status` = null em **106 de 106**.
+//
+// 100% das falhas do produto são mobile. Nenhuma tem status HTTP — logo nenhuma
+// é o servidor negando o arquivo.
+//
+// A FORMA DAS FALHAS É O ACHADO, e ela elimina a explicação óbvia. Agrupando as
+// falhas de cada pessoa por proximidade no relógio:
+//
+//   falhas no grupo │ espalhamento do FIM │ espalhamento da DURAÇÃO
+//   ────────────────┼─────────────────────┼────────────────────────
+//         13        │       1,75 s        │        35,4 s
+//         11        │       0,77 s        │        31,8 s
+//         10        │       0,40 s        │         7,9 s
+//         10        │       0,61 s        │        52,3 s
+//          8        │       0,62 s        │       118,8 s
+//          5        │       1,27 s        │      **204,7 s**
+//
+// Ler a última linha devagar: cinco `fetch` que começaram em instantes até
+// **205 segundos** diferentes morreram dentro de **1,3 segundo** um do outro.
+// Isso não é timeout — timeout independente daria durações IGUAIS e fins
+// espalhados, e o que se mede é exatamente o contrário. **Um único evento mata
+// todos os fetches em voo ao mesmo tempo.** É a assinatura de um recurso
+// compartilhado caindo (aba suspensa em segundo plano, pressão de memória do
+// WebKit, troca de rede) — nunca de N falhas independentes.
+//
+// E O SEGUNDO TOQUE É O QUE ENCHE O VOO. A done screen é a única das três telas
+// SEM guarda de in-flight (`/history` e `/my-videos` já têm `downloadingId`), e
+// cada toque abria um `fetch` novo do MESMO MP4 de vários MB. Por VÍDEO, no
+// mobile:
+//
+//   1 clique  → 52 vídeos ·  5 com falha  →  **9,6%**
+//   2 cliques → 20 vídeos ·  9 com falha  →  **45%**
+//   3 cliques →  8 vídeos ·  4 com falha  →  **50%**
+//
+// ⚠️ O QUE ISTO **NÃO** PROVA, E POR QUE A CORREÇÃO NÃO DEPENDE DISSO. A
+// causalidade é ambígua nos dois sentidos: a repetição pode estar causando a
+// morte (13 buffers de MP4 vivos num celular = pressão de memória) ou apenas
+// acompanhando-a (quem falha é quem toca de novo). E `/history`, que JÁ TEM a
+// guarda, falhou 5 de 16 cliques — se a guarda fosse o conserto, ali seria
+// zero. (n=16 não decide nada: o intervalo de confiança dessa taxa vai de ~11%
+// a ~59%. Não estou tratando 31% e 33% como iguais; estou dizendo que **um dos
+// dois números não sabe de nada**, e é o de n=16.)
+//
+// Então a correção foi escolhida por um critério mais duro que "qual hipótese
+// eu prefiro": **ela é a ação certa sob AS DUAS.**
+//   · Se a concorrência mata (memória): remove a causa — de até 13 `fetch`
+//     simultâneos do mesmo arquivo para 1.
+//   · Se não mata (suspensão da aba): o segundo toque deixa de ser um `fetch`
+//     desperdiçado e vira o PAINEL DE RESGATE na tela. E o painel é o caminho
+//     que funciona, porque o toque no link é **gesto real do usuário** —
+//     nenhum navegador barra gesto, e era exatamente isso que o `window.open`
+//     depois do `await` nunca teve (0 de 10 de aproveitamento, medido em 07/08).
+//
+// O comportamento do PRIMEIRO toque não muda em NADA — o blob continua sendo o
+// degrau 1, e ele entrega 178 de 328 no mobile e 76 de 81 no desktop. Trocar o
+// caminho que entrega por uma hipótese seria o erro que este arquivo já evitou
+// duas vezes.
+//
+// O INSTRUMENTO QUE DECIDE O MECANISMO (e por que ele entra no MESMO commit):
+// coalescer derruba a concorrência para 1 e com isso **apaga a evidência** que
+// separaria memória de suspensão — a partir de amanhã não haveria mais grupos
+// de 13 para medir. Então a falha passa a carregar `visibility_at_fail` e
+// `hidden_during` (a aba ficou em segundo plano em algum momento deste fetch?)
+// e `concurrent_downloads`. Com um dia de tráfego a pergunta se fecha sozinha:
+// falha com a aba ESCONDIDA → suspensão; falha com a aba VISÍVEL e
+// concorrência 1 → é rede/memória e o próximo degrau é range-request ou
+// Content-Disposition direto. Sem isto, o conserto de hoje cegaria o próximo.
+// ═══════════════════════════════════════════════════════════════════════════
+
+interface InFlightDownload {
+  /** Dono do painel de resgate. O toque repetido NÃO rouba a posse. */
+  token: number
+  startedAt: number
+}
+
+/**
+ * Chave = URL do arquivo, não o `videoId`: dois tamanhos do mesmo vídeo
+ * (watermarked/clean) são dois arquivos e podem baixar em paralelo sem se
+ * atrapalhar. É a URL que define o `fetch` que está em voo.
+ */
+const inFlightDownloads = new Map<string, InFlightDownload>()
+
+/**
+ * ⚠️ REDE DE SEGURANÇA CONTRA O PIOR MODO DE FALHA DESTE ARQUIVO. Uma entrada
+ * que nunca fosse removida trancaria aquele vídeo para SEMPRE naquela sessão —
+ * todo toque seguinte viraria `coalesced` esperando um download que já morreu, e
+ * a pessoa jamais baixaria o arquivo. Isso seria um estrago maior que o bug que
+ * este commit conserta. O `finally` já garante a remoção; este teto é o cinto
+ * além do suspensório.
+ *
+ * ⚠️ A PRIMEIRA VERSÃO DESTA LINHA ESTAVA ERRADA e foi pega na revisão
+ * adversarial: ela reusava `MANUAL_LINK_AUTO_HIDE_MS` (180s) "porque passado
+ * esse tempo não há mais painel na tela". Número escolhido por analogia com
+ * outra grandeza — exatamente o erro que este repositório mais registra. A
+ * DURAÇÃO REAL dos downloads, medida em 30 dias:
+ *
+ *   `video_downloaded`      mobile  n=178 · p50 1,2s · p90 36,0s · max 101,1s
+ *   `video_downloaded`      desktop n=76  · p50 1,4s · p90 14,9s · max  43,5s
+ *   `video_download_failed` mobile  n=106 · p50 51,3s · p90 215,9s · **max 350,9s**
+ *
+ * O p90 das falhas (215,9s) é MAIOR que os 180s. Ou seja: o corte antigo
+ * declararia morto um download vivo em ~1 de cada 10 falhas — e deixaria um
+ * segundo `fetch` entrar em voo — precisamente na cauda lenta, que é onde este
+ * bug mora. A guarda teria se desligado sozinha no único caso que importa.
+ *
+ * 15 minutos ficam confortavelmente acima do mais longo que já se mediu (350,9s)
+ * e continuam limitados. Este número não regula comportamento nenhum no caminho
+ * normal: ele só é lido se uma exceção escapar do `finally`.
+ */
+const INFLIGHT_STALE_MS = 15 * 60_000
+
+function activeDownload(url: string): InFlightDownload | null {
+  const running = inFlightDownloads.get(url)
+  if (!running) return null
+  if (Date.now() - running.startedAt > INFLIGHT_STALE_MS) {
+    inFlightDownloads.delete(url)
+    return null
+  }
+  return running
+}
+
 /**
  * Baixa o vídeo e conta a verdade sobre o que aconteceu.
  *
@@ -514,9 +653,83 @@ export async function downloadVideoFile(
   }
 
   // ── Degrau 0: o denominador. Antes de qualquer await, sempre. ────────────
+  // Continua saindo no toque COALESCIDO também: clique é clique, e mexer neste
+  // denominador quebraria a série histórica de download que o funil já lê.
   fire('video_download_clicked', base)
 
   if (typeof window === 'undefined') return null
+
+  // ── Degrau 0.5: o mesmo arquivo JÁ está em voo? ──────────────────────────
+  // Roda ANTES do `hideManualDownloadLink()` abaixo de propósito: aquela linha
+  // existe para matar o painel de uma tentativa ANTERIOR, e o painel de um
+  // download que ainda corre não é anterior a nada — apagá-lo aqui tiraria da
+  // tela justamente o link tocável que este caminho quer entregar.
+  const running = activeDownload(url)
+  if (running) {
+    // O painel dos 20s pode já estar na tela (o toque veio depois do timer) ou
+    // não (veio antes). Se já está, NÃO se mexe nele: ele já diz a verdade
+    // ("Still downloading…") com o link certo, e reescrever o gatilho cunharia
+    // um `escalated` que não descreve escalada nenhuma.
+    let panelShown = false
+    try {
+      const node = typeof document !== 'undefined' ? document.getElementById(MANUAL_LINK_ID) : null
+      panelShown = !!node && node.dataset.token === String(running.token)
+    } catch {
+      /* ignore */
+    }
+    // ⚠️ 2ª ARMADILHA MORTA NA REVISÃO: só pinta o painel se o download em voo
+    // ainda for o MAIS RECENTE do app. `showManualDownloadLink` começa com um
+    // `hideManualDownloadLink()` SEM token — ele derruba o painel de quem
+    // estiver lá. Se outro download (outro vídeo, outra tela) tiver começado
+    // depois, ele é o dono legítimo da tela, e pintar aqui com o token ANTIGO
+    // faria duas coisas ruins de uma vez: apagaria o painel do download novo e
+    // deixaria na tela um nó que o novo dono não consegue mais remover (token
+    // divergente), preso até o auto-hide de 180s — dizendo "still downloading"
+    // sobre o vídeo errado. Neste caso o toque não pinta nada e a telemetria
+    // registra `panel_shown: false`, que é a verdade.
+    if (!panelShown && running.token === manualLinkToken) {
+      // Token do DONO, nunca um novo: quem termina o download tem de continuar
+      // conseguindo remover o painel (`hideManualDownloadLink(myToken)`). Um
+      // token novo aqui deixaria o painel órfão em cima de um download que deu
+      // certo — dizendo "still downloading" com o arquivo já salvo.
+      panelShown = showManualDownloadLink(url, filename, 'retry', base, running.token)
+    }
+    fire('video_download_coalesced', {
+      ...base,
+      waiting_ms: Date.now() - running.startedAt,
+      panel_shown: panelShown,
+    })
+    return 'coalesced'
+  }
+
+  // ── Rede de segurança (KINEO-DOWNLOAD-MOBILE-RESCUE) ─────────────────────
+  // O token torna este download DONO do painel: duas chamadas simultâneas
+  // (telas diferentes, arquivos diferentes) não podem apagar o painel uma da
+  // outra nem pintar o vídeo errado.
+  const myToken = ++manualLinkToken
+  inFlightDownloads.set(url, { token: myToken, startedAt: Date.now() })
+  try {
+    return await runDownload(opts, myToken, base, device)
+  } finally {
+    // Sem `finally` uma exceção inesperada trancaria este arquivo para sempre
+    // na sessão. Ver INFLIGHT_STALE_MS.
+    //
+    // ⚠️ 3ª ARMADILHA MORTA NA REVISÃO: apaga só se a entrada ainda for MINHA.
+    // Se este download passar dos 15 min, `activeDownload` o considera morto e
+    // um toque novo registra a URL DE NOVO, com outro token. Um `delete` cego
+    // aqui removeria a entrada do download NOVO ao terminar o velho — e a
+    // proteção sumiria em silêncio justamente na sessão mais degradada.
+    if (inFlightDownloads.get(url)?.token === myToken) inFlightDownloads.delete(url)
+  }
+}
+
+async function runDownload(
+  opts: DownloadVideoOptions,
+  myToken: number,
+  base: Record<string, unknown>,
+  device: 'mobile' | 'desktop' | 'unknown',
+): Promise<DownloadOutcome | null> {
+  const { url, filename } = opts
 
   // Painel de uma tentativa ANTERIOR não pode sobreviver à próxima: ele
   // apontaria para o vídeo errado.
@@ -524,11 +737,43 @@ export async function downloadVideoFile(
 
   const startedAt = Date.now()
 
-  // ── Rede de segurança (KINEO-DOWNLOAD-MOBILE-RESCUE) ─────────────────────
-  // O token torna este download DONO do painel: duas chamadas simultâneas
-  // (duplo-toque na done screen, que não tem guarda de in-flight) não podem
-  // apagar o painel uma da outra nem pintar o vídeo errado.
-  const myToken = ++manualLinkToken
+  // Inclui ESTE download (o registro já foi feito pelo chamador). Vale 1 quando
+  // nada mais está em voo — nunca 0, e o nome diz isso.
+  const concurrentAtStart = inFlightDownloads.size
+
+  // ── Instrumento do mecanismo (ver bloco KINEO-DOWNLOAD-SIMULTANEOUS-DEATH) ─
+  // A pergunta que sobra depois deste commit é uma só: quando o fetch morre, a
+  // aba estava em segundo plano? Um `boolean` observado ao longo de TODA a
+  // vida do fetch, porque o estado no instante da falha não conta a ida e
+  // volta — quem some e volta antes do erro deixaria `visibilityState` em
+  // 'visible' e a suspensão passaria despercebida.
+  let hiddenDuring = false
+  let onVisibility: (() => void) | null = null
+  try {
+    if (typeof document !== 'undefined') {
+      if (document.visibilityState === 'hidden') hiddenDuring = true
+      onVisibility = () => {
+        try {
+          if (document.visibilityState === 'hidden') hiddenDuring = true
+        } catch {
+          /* ignore */
+        }
+      }
+      document.addEventListener('visibilitychange', onVisibility)
+    }
+  } catch {
+    onVisibility = null
+  }
+  const stopWatchingVisibility = () => {
+    try {
+      if (onVisibility && typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility)
+        onVisibility = null
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   // `manualShown` só vira true quando existe painel NA TELA de verdade — a
   // função devolve false quando não há `document.body`, quando o href é
   // recusado ou quando algo estoura. Telemetria não pode afirmar impressão
@@ -576,6 +821,7 @@ export async function downloadVideoFile(
     // Os bytes chegaram: o painel some antes de ser lido, mesmo que os 20s já
     // tenham passado. Ninguém é convidado a baixar o que acabou de baixar.
     clearSlowTimer()
+    stopWatchingVisibility()
     hideManualDownloadLink(myToken)
     setTimeout(() => {
       try {
@@ -590,6 +836,14 @@ export async function downloadVideoFile(
       method: 'blob',
       bytes: blob.size,
       ms: Date.now() - startedAt,
+      // ⚠️ O CONTROLE. `hidden_during` na FALHA sozinho não decide nada: se
+      // metade de todo mundo troca de aba enquanto espera, a taxa de escondido
+      // entre quem falhou seria alta mesmo que a suspensão não matasse ninguém.
+      // A comparação honesta é falha × SUCESSO, e por isso o campo sai aqui
+      // também. Regra 3 do PROMPT-DIARIO: número de falha só é notícia junto do
+      // denominador que o gerou.
+      hidden_during: hiddenDuring,
+      concurrent_downloads: concurrentAtStart,
     })
     return 'blob'
   } catch (err) {
@@ -598,6 +852,15 @@ export async function downloadVideoFile(
     //                    mesma URL numa aba nova entrega uma página de erro.
     //   qualquer outro → rede ou CORS. A navegação direta ainda pode funcionar.
     clearSlowTimer()
+    // Lido ANTES de parar o observador — depois deste ponto o estado da aba não
+    // pertence mais a este fetch.
+    let visibilityAtFail: string | null = null
+    try {
+      visibilityAtFail = typeof document !== 'undefined' ? document.visibilityState : null
+    } catch {
+      visibilityAtFail = null
+    }
+    stopWatchingVisibility()
     const reason = err instanceof Error ? err.message.slice(0, 120) : 'unknown'
     const httpStatus = /^HTTP (\d{3})$/.exec(reason)?.[1] ?? null
     fire('video_download_failed', {
@@ -609,6 +872,17 @@ export async function downloadVideoFile(
       // painel. Nome honesto, senão vira um `device` disfarçado.
       panel_already_open: manualShown,
       ms: Date.now() - startedAt,
+      // ── Os três campos que decidem o mecanismo (ver bloco do topo) ────────
+      // `hidden_during` responde "a aba sumiu em ALGUM momento deste fetch?" e
+      // `visibility_at_fail` responde "e no instante da morte?". Os dois juntos
+      // separam quem foi suspenso de quem só deu uma espiada no WhatsApp e
+      // voltou. `concurrent_downloads` fica para provar que a coalescência de
+      // hoje realmente derrubou o voo para 1 — se este número continuar >1 nas
+      // falhas de amanhã, a guarda não pegou o caminho que importa e eu quero
+      // descobrir isso pelo dado, não pela minha convicção.
+      visibility_at_fail: visibilityAtFail,
+      hidden_during: hiddenDuring,
+      concurrent_downloads: concurrentAtStart,
     })
     if (httpStatus) {
       // O servidor NEGOU o arquivo (403/404/410...). Oferecer o link seria
