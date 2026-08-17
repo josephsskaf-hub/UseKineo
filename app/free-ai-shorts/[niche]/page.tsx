@@ -418,6 +418,60 @@ const NICHES: Record<string, Niche> = {
       'The most isolated place humans still live',
     ],
   },
+  // KINEO-SEO-LOCALBUSINESS-2026-08-17 — a 30ª página, escolhida pelo MESMO
+  // método que a 29ª (faith): o que os usuários já fazem em `videos.topic`, não
+  // volume de palavra-chave. E o resultado desta vez contraria a premissa da
+  // casa inteira.
+  //
+  // MEDIDO (30 dias, contas internas fora, `videos.topic` classificado por
+  // palavra e conferido contra `checkout_abandoned`):
+  //
+  //   segmento         pessoas   chegou na Stripe   pagou
+  //   faith .............. 23        30,4%            0
+  //   money .............. 41        29,3%            2
+  //   vanishings ......... 52        23,1%            1
+  //   NEGÓCIO LOCAL ...... 27        22,2%            1     ← nenhuma página
+  //   sem rótulo ........ 233        14,2%            4
+  //
+  // Duas leituras, e a segunda é a que decide:
+  //
+  //  1. TODO segmento nomeado bate o "sem rótulo" (14,2%) em chegar na página de
+  //     pagamento. Nomear o nicho não é enfeite de SEO — é o que separa quem
+  //     tenta comprar de quem passeia.
+  //
+  //  2. Negócio local é HOJE o 3º maior segmento nomeado em PESSOAS (27, mais
+  //     que faith quando faith ganhou a página dela) e é o único sem uma linha
+  //     de copy em nenhum lugar do produto. São donos de clínica, imobiliária,
+  //     buffet de casamento, escritório de advocacia, academia, fábrica de
+  //     estrutura de aço — chegando num site que fala EXCLUSIVAMENTE a língua de
+  //     "canal faceless no YouTube". Eles vêm APESAR do nosso marketing, não por
+  //     causa dele. É a definição de demanda não atendida.
+  //
+  // POR QUE ISSO É DINHEIRO E NÃO SÓ TRÁFEGO, e é aqui que o não-óbvio mora:
+  // a cadência deles é ~1 vídeo/pessoa contra 3,2 do faith — pelo funil de
+  // créditos, é o pior segmento da lista. Mas dono de negócio não compra
+  // crédito, compra PREVISIBILIDADE: um vídeo de serviço por mês, todo mês, é
+  // assinatura que não estoura teto e não pede desconto. O criador de canal
+  // queima 40 créditos numa tarde e vai embora (18 casos hoje, 0 conversões); a
+  // clínica gera um vídeo, posta, e continua pagando. Segmento de MENOR consumo
+  // e MAIOR margem — o oposto do que o placar de créditos premia.
+  //
+  // A copy segue a regra da 29ª: linguagem DO FORMATO, não a nossa. Nada de
+  // "faceless" nem "channel" aqui — quem procura isso digita "video ad", "promo
+  // video", "social media video for my business".
+  localbusiness: {
+    label: 'Local Business & Services',
+    h1: 'Free AI Video Ad Maker for Local Businesses',
+    intro:
+      'Turn what your business actually does into a ready-to-post vertical video, usually in 3–7 minutes. The AI writes the script, records the voiceover, adds captions and finds the footage — no film crew, no agency retainer, and nobody from your team on camera. Post it to Instagram Reels, TikTok, YouTube Shorts or a Google Business profile.',
+    ideas: [
+      'The one question every customer asks before booking us — answered in 30 seconds',
+      '3 things to check before you hire anyone in this trade',
+      'What our service actually costs, and why nobody puts it on their website',
+      'A day in our shop, from open to close',
+      'The mistake that costs local customers the most money every year',
+    ],
+  },
 }
 
 export const NICHE_SLUGS = Object.keys(NICHES)

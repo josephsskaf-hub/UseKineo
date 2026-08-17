@@ -28,6 +28,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { claimEmailSlot, recordEmailSend, recordResendResponse } from '@/lib/email/quota'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -283,9 +284,24 @@ export async function GET(req: NextRequest) {
     if (!resendKeyAuto) return NextResponse.json({ error: 'RESEND_API_KEY ausente' }, { status: 500 })
     const dbAuto = adminClient()
     let sentAuto = 0
+    let yieldedAuto = 0
     const failuresAuto: string[] = []
     for (const lead of picked) {
       const seg = (lead as Lead & { __seg: Segment }).__seg
+      // KINEO-EMAIL-QUOTA-WIRED-2026-08-17 — ESTE é o remetente que tinha de
+      // ceder, e é por ele que o gate existe: 25 e-mails/dia de PROSPECÇÃO
+      // saindo às 13:10 num teto de 100/dia, na frente do "seu trial acaba hoje"
+      // (cron de :25) e do resgate de checkout (cron de :20). Ordem de cron,
+      // não ordem de valor.
+      // `growth` cede a partir de 60% do teto. O `continue` é de propósito e não
+      // um `break`: o loop segue contando os cedidos para o relatório do dia
+      // dizer "não mandei 25 porque a cota estava em 62/100", e não
+      // "não achei gente".
+      const slot = await claimEmailSlot({ kind: `hotlead_${seg}`, priority: 'growth', admin: dbAuto })
+      if (!slot.allowed) {
+        yieldedAuto += 1
+        continue
+      }
       try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
@@ -299,15 +315,26 @@ export async function GET(req: NextRequest) {
             headers: unsubscribeHeaders(lead.id),
           }),
         })
+        await recordResendResponse({ kind: `hotlead_${seg}`, priority: 'growth', userId: lead.id, res, admin: dbAuto })
         if (!res.ok) { failuresAuto.push(`${mask(lead.email)}: ${res.status}`); continue }
         await dbAuto.from('events').insert({ user_id: lead.id, name: FLAG_EVENT, metadata: { segment: seg }, path: '/api/admin/send-hotlead-blast' })
         sentAuto += 1
         await new Promise((r) => setTimeout(r, 600))
       } catch (err) {
         failuresAuto.push(`${mask(lead.email)}: ${err instanceof Error ? err.message : 'erro'}`)
+        await recordEmailSend({
+          kind: `hotlead_${seg}`,
+          priority: 'growth',
+          userId: lead.id,
+          ok: null,
+          detail: err instanceof Error ? err.message.slice(0, 300) : 'fetch threw',
+          admin: dbAuto,
+        })
       }
     }
-    return NextResponse.json({ segment: 'auto', perSegment: perSeg, attempted: picked.length, sent: sentAuto, failures: failuresAuto })
+    // `yielded` vai na resposta porque um cron que mandou 8 de 25 tem de ser
+    // distinguível de um cron que só achou 8 leads (regra dos `*_degraded`).
+    return NextResponse.json({ segment: 'auto', perSegment: perSeg, attempted: picked.length, sent: sentAuto, yielded: yieldedAuto, failures: failuresAuto })
   }
 
   if (!segParam || !(segParam in segments)) {

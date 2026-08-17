@@ -3,6 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+import { recordResendResponse } from '@/lib/email/quota'
 // KINEO-D0-EMAIL-REVIEW-2026-08-07 — a linha do que sobra depois do trial não
 // pode ser redigitada aqui. Com a flag ON o free tier é 1 Fast/MÊS, não 3/dia;
 // o e-mail "ends soon" dizia "free daily limit", que é a copy da flag OFF.
@@ -1879,6 +1880,21 @@ export async function GET(req: NextRequest) {
           headers: unsubscribeHeaders(c.id),
         }),
       })
+      // KINEO-EMAIL-QUOTA-WIRED-2026-08-17 — `revenue`: os 6 kinds do trial são
+      // a sequência que fecha venda e NUNCA cedem vaga. Sem claim, por isso
+      // (o veredito de `revenue` é sempre "pode"); o que entra é o ledger.
+      // Ponto importante e não óbvio: `trial_lifecycle_email_sent` só é gravado
+      // no ramo `res.ok`, então um dia inteiro morto por 429 aparece hoje como
+      // "0 e-mails devidos" e não como "100 e-mails recusados". Esta linha é a
+      // que desfaz essa ilusão — e é o número que justifica pagar o plano.
+      await recordResendResponse({
+        kind: `trial_${c.kind}`,
+        priority: 'revenue',
+        userId: c.id,
+        res,
+        admin,
+      })
+
       if (res.ok) {
         sent++
         // Instrumentação: denominador do funil por kind (sent → arrived → paid).
