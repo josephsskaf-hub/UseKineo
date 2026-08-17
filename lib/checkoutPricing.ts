@@ -22,8 +22,11 @@ export type CheckoutCurrency = 'usd' | 'brl' | 'inr'
 // checkout-facing display. Amounts are in cents, centavos, or paise.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 990, brl: 4990, inr: 79900 },
-  basic: { usd: 2490, brl: 9990, inr: 159900 },
-  pro: { usd: 3790, brl: 18990, inr: 299900 },
+  // KINEO-PRICING-V5-2026-08-17 (fundador: 'super aprovado, bora'): escada
+  // 9.90/19.90/39.90 — Creator cruza a barreira dos $20 (vs InVideo Plus $25),
+  // Studio fica 20% abaixo do Higgsfield Plus ($49). BRL/INR na mesma régua.
+  basic: { usd: 1990, brl: 7990, inr: 129900 },
+  pro: { usd: 3990, brl: 19990, inr: 319900 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier. BRL/INR follow
@@ -89,12 +92,17 @@ export function monthlyPriceMinor(
 // service we have never run at scale is a refund liability, not revenue.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 9900, brl: 49900, inr: 799000 },
-  basic: { usd: 19900, brl: 99900, inr: 1599000 },
-  pro: { usd: 37900, brl: 189900, inr: 2999000 },
+  // KINEO-PRICING-V5-2026-08-17 — anual segue 10× o mensal novo.
+  basic: { usd: 19900, brl: 79900, inr: 1290000 },
+  pro: { usd: 39900, brl: 199900, inr: 3190000 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 490, brl: 2490, inr: 39900 },
+  // KINEO-PRICING-V5-2026-08-17 (fundador: 'não quero mais o plano de
+  // $4.90'): intro do Starter = preço cheio → hasIntroOffer() devolve false e
+  // toda a UI do desconto some sozinha. O intro do Creator ($9.90 no 1º mês
+  // do plano de $19.90 = 50% off) continua — funil saudável.
+  starter: { usd: 990, brl: 4990, inr: 79900 },
   basic: { usd: 990, brl: 4990, inr: 79900 },
 }
 
@@ -140,7 +148,7 @@ export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurre
   // de 'BR' entrar na lista. Entrar na região não muda nada para o Creator em
   // BRL, e isso é o correto: não existe desconto a dar sobre um preço que já é
   // o regional. No Brasil quem sente a mudança é o Starter (linha acima).
-  basic: { usd: 1990, brl: 9990, inr: 159900 },
+  basic: { usd: 1990, brl: 7990, inr: 129900 },
 }
 
 // ── COLISÃO DE VALOR: POR QUE $4.99 E NÃO $4.90 ────────────────────────────
@@ -233,7 +241,7 @@ export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurr
 //   (e 99900 já é 10 × 9990, que é o BRL do Creator regional).
 export const VALUE_REGION_ANNUAL_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
   starter: { usd: 4990, brl: 24900, inr: 399000 },
-  basic: { usd: 19900, brl: 99900, inr: 1599000 },
+  basic: { usd: 19900, brl: 79900, inr: 1290000 },
 }
 
 /** true quando o tier tem tabela regional própria (starter/basic). */
@@ -338,9 +346,11 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // manual headroom without ever letting the plan go underwater: even if all 400
 // were burned on Seedance the COGS is $46.80 against ~$290 net.
 export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
-  starter: 25,
-  basic: 150,
-  pro: 200,
+  // KINEO-PRICING-V5-2026-08-17 — isonomia $/cr: 16.5¢ → 14.2¢ → 12.5¢
+  // (melhora suave subindo; margens pior-caso 61% / 54% / ~47%).
+  starter: 60,
+  basic: 140,
+  pro: 320,
   autopilot: 400,
 }
 
@@ -353,7 +363,9 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
 // Hollywood/Avatar/Veo/Sora are all structurally out of reach.
 // APPLIES TO THE FIRST INVOICE ONLY — renewals grant TIER_CREDITS.
 export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
-  starter: 25,
+  // KINEO-PRICING-V5-2026-08-17 — starter não tem mais 1º mês com desconto
+  // (intro = preço cheio), então o grant do 1º mês é o grant normal do plano.
+  starter: 60,
   basic: 50,
 }
 

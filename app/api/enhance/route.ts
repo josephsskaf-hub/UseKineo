@@ -65,11 +65,35 @@ export async function POST(req: NextRequest) {
   if (video.enhanced_url) return NextResponse.json({ status: 'done', url: video.enhanced_url })
   if (video.enhance_request_id) return NextResponse.json({ status: 'processing' })
 
+  // KINEO-PRICING-V5-2026-08-17 — Studio (plan 'pro') inclui 2 enhances HD
+  // gratis por mes (contados por videos.enhanced_at no mes corrente). Do 3º em
+  // diante, e a partir de qualquer outro plano, custa os 10cr normais.
+  let freeGrant = false
+  try {
+    const { data: profile } = await supabase.from('profiles').select('plan').eq('id', user.id).maybeSingle()
+    const plan = String((profile as { plan?: string | null } | null)?.plan ?? '').toLowerCase()
+    if (plan === 'pro') {
+      const monthStart = new Date()
+      monthStart.setUTCDate(1)
+      monthStart.setUTCHours(0, 0, 0, 0)
+      const { count } = await supabase
+        .from('videos')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('enhanced_at', monthStart.toISOString())
+      if ((count ?? 0) < 2) freeGrant = true
+    }
+  } catch {
+    // fail-closed pro debito normal — nunca bloqueia o enhance
+  }
+
   // Débito idempotente por VÍDEO: enhance-<videoId>. Re-clique = mesmo renderId
-  // = sem cobrança dupla.
-  const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: `enhance-${videoId}`, cost: ENHANCE_COST })
-  if (debit.error || debit.data === null) {
-    return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
+  // = sem cobrança dupla. Com o grant gratis do Studio, o debito e pulado.
+  if (!freeGrant) {
+    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: `enhance-${videoId}`, cost: ENHANCE_COST })
+    if (debit.error || debit.data === null) {
+      return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
+    }
   }
 
   try {
@@ -143,7 +167,7 @@ export async function GET(req: NextRequest) {
         } catch (copyErr) {
           console.warn('[enhance] copy to bucket failed — using fal url:', copyErr instanceof Error ? copyErr.message : String(copyErr))
         }
-        await admin.from('videos').update({ enhanced_url: finalUrl, enhance_request_id: null }).eq('id', videoId)
+        await admin.from('videos').update({ enhanced_url: finalUrl, enhance_request_id: null, enhanced_at: new Date().toISOString() }).eq('id', videoId)
       }
       console.log(`[enhance] video=${videoId} DONE`)
       return NextResponse.json({ status: 'done', url: finalUrl })
