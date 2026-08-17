@@ -816,7 +816,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           </div>
         <div className="nav-right">
           {initialUser
-            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/generate">Dashboard</Link></div>
+            ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio">Dashboard</Link></div>
             : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?src=nav">Start free</Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
@@ -831,7 +831,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <Link href="/avatar">Avatar</Link>
               <a href="#pricing">Pricing</a>
               {initialUser
-                ? <Link className="btn btn-w" href="/generate">Dashboard</Link>
+                ? <Link className="btn btn-w" href="/studio">Dashboard</Link>
                 : <Link className="btn btn-w" href="/signup?src=nav-mobile">Start free</Link>}
             </label>
           </div>
