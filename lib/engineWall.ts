@@ -74,7 +74,10 @@ const CURATED: Record<string, string[]> = {
   //   fogo do 1o card (Seedance); fica historiador (banda de corte subiu pro
   //   rosto inteiro) + golden hour + estudio futurista
   //   KLING 3 (recurado 15/08 e): abre com o UGC de moletom (escolha do fundador: 'nem ta parecendo AI') + historiador (rua torta cortada, comeca no 20s) + golden hour + estudio
-  cinematic_hollywood: ['216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '8a61d9fe-0878-4d8c-8746-7d769575ce4a'],
+  //   KLING 3 (recurado 17/08 — fundador): 4o spot vira o NARRADOR DO KRAKATOA
+  //   (render dele desta noite, ondas quebrando atras, janela 44.5-52.5 do
+  //   payoff — 'a pessoa que fala entra bem em cena'); estudio futurista sai.
+  cinematic_hollywood: ['216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '501d1ef7-5df5-4462-9341-c58ea01f0042'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   //   SEEDANCE (recurado 15/08 f): abre com a ILHA PROIBIDA (pedido do fundador — render e Seedance, nao Veo; selo fica honesto), janela 40-48s (canoa + ilha aerea) + cratera + tornado + ilha de 63 anos
@@ -84,7 +87,10 @@ const CURATED: Record<string, string[]> = {
   fast: ['c87c3a25-c3b7-4a97-8429-eb0fc98b67bc', 'cc1dcb36-b627-412b-9cf1-461f9bcdf592', '107dd757-6454-4af9-9b3e-b07fb8656f2a', 'ea7c8d34-8a6e-4a2e-872e-e12a400e267d'],
   //   PRESENTER: o apresentador generico "Made with Kineo" (unico seguro — ver EXCLUDED)
   //   AVATAR: o close 'Made with Kineo' (render do modo avatar) + o plano aberto
-  presenter: ['c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
+  //   AVATAR (17/08, ordem do fundador): o tile do bento abre com o narrador do
+  //   Krakatoa falando (mesmo preview do 4o spot do Kling 3) — melhor demo de
+  //   'pessoa falando' que temos; os renders do modo avatar ficam atras.
+  presenter: ['501d1ef7-5df5-4462-9341-c58ea01f0042', 'c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
 }
 
 // NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
@@ -100,6 +106,8 @@ const PREVIEWS = new Set<string>([
   '956187b7-08d2-4c54-ac99-fa8508a9ed5c', '8a61d9fe-0878-4d8c-8746-7d769575ce4a', 'e31129fa-bc50-4557-8889-0d50e630d5f1', 'f32ea301-a239-4d2c-a516-388796aa63da', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9',
   '86653d2d-8d31-4937-8d98-e56c50706fd2', 'e9406197-e67c-47ff-9bb6-e3682a47c6e4', '95a680f5-0cf1-44b4-aeb9-3a888b314661', '87488144-105b-4b02-b284-f6915dfa4501', 'a88b7564-3592-4b12-9560-1646ea998e78',
   '75728dfb-3b29-47fa-aea8-b806d549a2b9', 'd8157290-65db-4d1d-b914-268d54f92087',
+  // 17/08 — narrador do Krakatoa (payoff 44.5-52.5s): 4o spot do Kling 3 + tile Avatar do bento.
+  '501d1ef7-5df5-4462-9341-c58ea01f0042',
 ])
 
 const EXCLUDED = new Set<string>([
@@ -299,7 +307,10 @@ async function buildWall(caps: Record<string, number>, skipCurated = false): Pro
       const title = cleanTitleLine((row.topic ?? '').toString()) || `${ENGINE_BADGES[engine] ?? 'AI'} — real Kineo render`
       if (!row.video_url) return false
       // Dedupe de título (dois "They call him..." lado a lado é vitrine preguiçosa).
-      const key = title.slice(0, 40).toLowerCase()
+      // 17/08 — a chave agora inclui o MOTOR: o mesmo render curado pode servir
+      // dois lugares da página (fundador: narrador do Krakatoa no card Kling 3
+      // E no tile Avatar). Dentro do mesmo motor o dedupe segue integral.
+      const key = `${engine}|${title.slice(0, 40).toLowerCase()}`
       if (seenTitles.has(key)) return false
       seenTitles.add(key)
       out.push({
