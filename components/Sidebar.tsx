@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback } from 'react'
 import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 interface SidebarProps {
   userEmail: string
@@ -600,7 +601,7 @@ export default function Sidebar({
         {!isLoggedIn ? (
           <div className="px-3 pt-3 pb-3 flex-shrink-0">
             <div style={{ borderRadius: 14, padding: '14px 14px', background: 'rgba(41,151,255,0.05)', border: '1px solid rgba(41,151,255,0.18)' }}>
-              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F5F7FF', marginBottom: 4 }}><FreeTierCopy legacy="⚡ 3 free Fast previews daily" on="⚡ Creator trial: 40 free credits" /></p>
+              <p style={{ fontSize: '0.8rem', fontWeight: 800, color: '#F5F7FF', marginBottom: 4 }}><FreeTierCopy legacy="⚡ 3 free Fast previews daily" on={`⚡ Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits`} /></p>
               <p style={{ fontSize: '0.72rem', color: '#86868b', lineHeight: 1.5, marginBottom: 10 }}>Sign up, create and watch before you pay. No card required.</p>
               <button
                 onClick={() => setShowAuthModal(true)}

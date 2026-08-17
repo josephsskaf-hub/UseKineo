@@ -18,7 +18,7 @@
 //  - This file is the single source of truth for the whole cluster, so a fact
 //    can never drift between two pages.
 
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
 // este módulo só é importado por código server-side, ver revisão no SPRINT).
@@ -4293,7 +4293,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is $9.90/month for 25 credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', ', and every new account starts with a Creator trial: 40 free credits.')}`,
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is $9.90/month for 25 credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',
