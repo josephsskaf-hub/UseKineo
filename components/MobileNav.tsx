@@ -9,14 +9,14 @@ import { usePathname } from 'next/navigation'
 // matches the professional desktop nav.
 const NAV_ITEMS: { href: string; icon: JSX.Element; label: string; exact: boolean }[] = [
   {
-    href: '/generate',
+    href: '/studio',
     icon: (
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2.5" y="5" width="14" height="14" rx="3" />
         <path d="M16.5 10.5 21.5 7v10l-5-3.5" />
       </svg>
     ),
-    label: 'Generator',
+    label: 'Studio',
     exact: false,
   },
   {

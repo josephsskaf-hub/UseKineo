@@ -457,7 +457,7 @@ export default function Sidebar({
           {/* KINEO-NAV-REDESIGN-2026-07-10 (Joseph) — landing-style hierarchy:
               CREATE (the engines) · GROW (audience tools) · ACCOUNT. */}
           <NavSection label="Create" first />
-          <NavItem href="/generate" icon={NAV_ICONS.generate} label="Generate Video" exact={false} pathname={pathname} onClick={onClose} />
+          <NavItem href="/studio" icon={NAV_ICONS.generate} label="Studio" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/avatar" icon={NAV_ICONS.avatar} label="AI Presenter" exact={false} pathname={pathname} onClick={onClose} badge="NEW" />
           <NavItem href="/animate" icon={NAV_ICONS.animate} label="Animate a Photo" exact={false} pathname={pathname} onClick={onClose} />
           <NavItem href="/thumbnail-generator" icon={NAV_ICONS.thumbnails} label="AI Thumbnails" exact={false} pathname={pathname} onClick={onClose} badge="HOT" />

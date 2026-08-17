@@ -5390,6 +5390,26 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
+  // KINEO-GENERATE-VIRA-MAQUINA-2026-08-17 (fundador: 'nao faz sentido a
+  // pessoa olhar para as 2 telas'): /generate deixa de ser sala de comando —
+  // quem chega DE MAO VAZIA (sem prompt/intent/render em andamento) e levado
+  // pro /studio. Com parametros de trabalho ou render restaurado, tudo segue
+  // igual (esta pagina vira so a sala de maquinas do Studio).
+  const studioRedirectFiredRef = useRef(false)
+  useEffect(() => {
+    if (studioRedirectFiredRef.current) return
+    if (!activeRenderRestoreResolved || resumedRenderRef.current) return
+    if (phase !== 'idle') return
+    const keys = ['prompt', 'topic', 'create_intent', 'studio', 'autoanalyze', 'engine', 'welcome', 'signup', 'return', 'generationId']
+    if (keys.some((k) => (searchParams?.get(k) ?? '').trim() !== '')) return
+    try {
+      if (sessionStorage.getItem('pendingVideoPrompt')) return
+    } catch {}
+    studioRedirectFiredRef.current = true
+    router.replace('/studio')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRenderRestoreResolved, phase, searchParams])
+
   // Push #301 — Viral Now cards used to AUTO-GENERATE: the moment analysis
   // finished they fired handleGenerate() on the default engine.
   // Push #447 — REMOVED the auto-generate. It silently burned the user's credits
