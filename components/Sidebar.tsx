@@ -269,6 +269,21 @@ export default function Sidebar({
   // zero.
   const [cinematicTokens, setCinematicTokens] = useState<number | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  // KINEO-STORAGE-METER-2026-08-17 (fundador: "no menu de configurações a
+  // pessoa vê tudo que ela tem — vídeos, imagens, áudios — e o storage"):
+  // carregado UMA vez, na primeira abertura do popup.
+  const [storageInfo, setStorageInfo] = useState<{
+    videos: number; images: number; audios: number; total: number
+    limit: number | null; retention: string
+  } | null>(null)
+  useEffect(() => {
+    if (!settingsOpen || storageInfo) return
+    fetch('/api/storage-usage', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && typeof d.total === 'number') setStorageInfo(d) })
+      .catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsOpen])
 
   function extractDisplayName(meta: Record<string, unknown> | undefined | null): string {
     if (!meta) return ''
@@ -629,6 +644,41 @@ export default function Sidebar({
                   padding: 6,
                 }}
               >
+                {/* KINEO-STORAGE-METER-2026-08-17 — bloco Library + storage no
+                    topo do popup: contadores por tipo, barra de uso contra o
+                    limite do plano e a retencao (Pricing V5). Clique → /library. */}
+                <Link
+                  href="/library"
+                  onClick={() => { setSettingsOpen(false); onClose?.() }}
+                  style={{
+                    display: 'block', padding: '10px 10px 11px', borderRadius: 10,
+                    textDecoration: 'none', background: 'rgba(41,151,255,0.06)',
+                    border: '1px solid rgba(41,151,255,0.18)', marginBottom: 6,
+                  }}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)' }}>
+                    <span>🗂 Library</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 600, color: '#7cc0ff' }}>
+                      {storageInfo ? `${storageInfo.videos} videos · ${storageInfo.images} images · ${storageInfo.audios} audio` : '…'}
+                    </span>
+                  </span>
+                  {storageInfo && (
+                    <>
+                      <span aria-hidden="true" style={{ display: 'block', height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.08)', marginTop: 8, overflow: 'hidden' }}>
+                        <span style={{
+                          display: 'block', height: '100%', borderRadius: 99,
+                          width: storageInfo.limit ? `${Math.min(100, Math.round((storageInfo.total / storageInfo.limit) * 100))}%` : '100%',
+                          background: storageInfo.limit && storageInfo.total / storageInfo.limit > 0.85 ? '#f59e0b' : '#2997ff',
+                        }} />
+                      </span>
+                      <span style={{ display: 'block', marginTop: 5, fontSize: '0.64rem', fontWeight: 600, letterSpacing: '0.04em', color: 'var(--muted2, #86868b)' }}>
+                        {storageInfo.limit
+                          ? `${storageInfo.total} of ${storageInfo.limit} projects · ${storageInfo.retention}`
+                          : `${storageInfo.total} projects · unlimited · ${storageInfo.retention}`}
+                      </span>
+                    </>
+                  )}
+                </Link>
                 {/* Settings v3 (12/06) — menu mirrors the real account tabs:
                     Profile · Billing · Usage. "Members" (placeholder) is gone
                     and "Manage Account" became Billing. Refined line icons. */}
