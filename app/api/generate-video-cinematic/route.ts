@@ -73,7 +73,12 @@ import {
   type CinematicRequestId,
 } from '@/lib/cinematic/claim'
 
-export const maxDuration = 60
+// KINEO-POLL-FATAL-2026-08-17 — era 60. Na noite do fal travado a rota morreu
+// em "Task timed out after 60 seconds" DEPOIS do débito e ANTES do estorno
+// (cobrança presa até o cron). O caminho Hollywood (planner + até 2 replans +
+// âncoras + host TTS + 7 submits) pode passar de 60s legitimamente; compose já
+// roda com 300. Mesmo teto aqui: timeout deixa de ser modo de falha realista.
+export const maxDuration = 300
 
 type CachedCinematicSubmission = {
   fingerprint: string

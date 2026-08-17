@@ -79,6 +79,12 @@ async function generateAnchorImage(
   }
 
   const deadline = Date.now() + pollWindowMs
+  // KINEO-POLL-FATAL-2026-08-17 — na noite do saldo travado o fal respondeu
+  // "Forbidden" em TODO poll e este loop insistiu a janela inteira; com duas
+  // âncoras em sequência a rota estourou o timeout de 60s da lambda DEPOIS do
+  // débito e ANTES de qualquer estorno — cobrança presa. Erro de auth/permissão
+  // (401/403/Forbidden) não é transitório: 3 seguidos = fatal, fail-open t2v.
+  let authFails = 0
   while (Date.now() < deadline) {
     try {
       const statusResult = await fal.queue.status(model, { requestId })
@@ -94,10 +100,20 @@ async function generateAnchorImage(
         return null
       }
       if (status === 'FAILED') return null
+      authFails = 0
     } catch (err) {
       // Status/result calls are read-only. A transient failure does not justify
       // creating a second paid anchor job.
-      console.warn('[hollywood-anchors] transient poll failure:', err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      const st = (err as { status?: number })?.status
+      if (st === 401 || st === 403 || /forbidden|unauthorized/i.test(msg)) {
+        authFails += 1
+        if (authFails >= 3) {
+          console.error('[hollywood-anchors] auth-like poll failure x3 — treating as FATAL (fail-open to t2v):', msg)
+          return null
+        }
+      }
+      console.warn('[hollywood-anchors] transient poll failure:', msg)
     }
     await new Promise((resolve) => setTimeout(resolve, 750))
   }
