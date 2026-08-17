@@ -1,19 +1,16 @@
 'use client'
 
-// KINEO-STUDIO-V4-2026-08-16 — [STAGE] Generation numa tela só (pedido do
-// fundador, prints do Higgsfield como referência):
-//   1. 720p/1080p escolhível
-//   2. duração 15/45/60 (15s marcado FASE 2 — precisa do backend afiado)
-//   3. imagem de referência (ativa no Kling 3, que já tem i2v pronto)
-//   4. aspecto 9:16 / 16:9 (16:9 FASE 2 — template de legendas horizontal)
-//   5. seletor de motor com badges honestos: resolução nativa + faixa de
-//      segundos POR CLIPE que o modelo gera (não é tempo de render)
-//   6. presets de câmera — movimentos pré-testados que viram prompt validado
-//
-// v1 DE APROVAÇÃO: a tela configura tudo e entrega no fluxo de geração
-// existente (comprovado). Itens FASE 2 ficam visíveis mas honestamente
-// marcados. Aprovado o desenho → ligo o backend (1 dia) e o Generate roda
-// aqui dentro.
+// KINEO-STUDIO-V4-2026-08-16 — [STAGE] Generation numa tela só (spec do fundador).
+// KINEO-STUDIO-POLISH-2026-08-17 — passe de design pedido pelo fundador
+// ("intuitividade + harmonia, mais gostoso de mexer, melhorar as fontes"):
+//   · inline-styles → classes CSS reais (hover/focus/transições vivas)
+//   · controles agrupados em CARDS numerados (1 Engine · 2 Format · 3 Image
+//     · 4 Idea · 5 Camera) — o olho segue o fluxo sem pensar
+//   · escala tipográfica única (títulos -.02em, labels 10.5 caps, corpo 13.5)
+//   · "fase 2" vira chip SOON (copy do cliente 100% inglês; explicação
+//     interna fica no title/tooltip)
+//   · pills com estado selecionado em glow, hover com lift de 1px
+//   · resumo vivo no card de custo: motor · duração · resolução · aspecto
 import { useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -30,15 +27,13 @@ const ENGINES: {
   supportsRef: boolean
   supports1080: 'yes' | 'always' | 'fase2'
 }[] = [
-  { key: 'fast', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', clip: '35–60s direto', credits: 'Free · watermark', supportsRef: false, supports1080: 'always' },
-  { key: 'seedance', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '720p · 1080p', clip: '4–15s/clipe', credits: '20 cr', supportsRef: false, supports1080: 'fase2' },
-  { key: 'kling', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: 'HD nativo', clip: '5–10s/clipe', credits: '50 cr', supportsRef: false, supports1080: 'always' },
-  { key: 'veo', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p ✓', clip: '4–8s/clipe', credits: '90 cr', supportsRef: false, supports1080: 'always' },
-  { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p nativo', clip: '3–15s/clipe', credits: '150 cr', supportsRef: true, supports1080: 'always' },
+  { key: 'fast', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', clip: '35–60s direct', credits: 'Free', supportsRef: false, supports1080: 'always' },
+  { key: 'seedance', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', clip: '4–12s/clip', credits: '20 cr', supportsRef: false, supports1080: 'always' },
+  { key: 'kling', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: 'HD native', clip: '5–10s/clip', credits: '50 cr', supportsRef: false, supports1080: 'always' },
+  { key: 'veo', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', clip: '4–8s/clip', credits: '90 cr', supportsRef: false, supports1080: 'always' },
+  { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p native', clip: '3–15s/clip', credits: '150 cr', supportsRef: true, supports1080: 'always' },
 ]
 
-// #6 — presets de câmera: strings CURADAS que apendam ao prompt. O cliente
-// clica no movimento em vez de torcer pra câmera se mexer.
 const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: string }[] = [
   { key: 'dolly', label: 'Slow Dolly-In', emoji: '🎥', prompt: 'slow cinematic dolly-in toward the subject' },
   { key: 'crash', label: 'Crash Zoom', emoji: '⚡', prompt: 'sudden dramatic crash zoom onto the focal point' },
@@ -50,24 +45,80 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
   { key: 'static', label: 'Locked Tripod', emoji: '🗿', prompt: 'perfectly static tripod shot, movement inside the frame' },
 ]
 
-const pill = (active: boolean, disabled = false): React.CSSProperties => ({
-  padding: '9px 14px',
-  borderRadius: 999,
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.45 : 1,
-  background: active ? '#2997ff' : 'rgba(255,255,255,.05)',
-  border: `1px solid ${active ? 'rgba(41,151,255,.8)' : 'rgba(255,255,255,.12)'}`,
-  color: active ? '#fff' : 'rgba(255,255,255,.7)',
-  transition: 'all .15s ease',
-})
+const CSS = `
+.stu{min-height:100vh;background:radial-gradient(120% 70% at 50% -10%,rgba(41,151,255,.07),transparent 55%),#0a0a0c;color:#fafafa;padding:26px 34px 60px;font-family:inherit}
+.stu *{box-sizing:border-box}
+.stu .stage{display:flex;align-items:center;gap:10px;margin-bottom:20px}
+.stu .stage b{font-size:10px;font-weight:900;letter-spacing:.18em;padding:4px 10px;border-radius:999px;background:rgba(255,180,40,.14);border:1px solid rgba(255,180,40,.5);color:#ffb428}
+.stu .stage i{font-style:normal;font-size:12px;color:rgba(255,255,255,.45)}
+.stu h1{font-size:32px;font-weight:700;letter-spacing:-.025em;margin:0 0 4px}
+.stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
+.stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
+@media(max-width:900px){.stu .grid{grid-template-columns:1fr}}
+.stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+.stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
+.stu .card:hover{border-color:rgba(255,255,255,.16)}
+.stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.48);font-weight:800;text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.stu .lab .n{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:6px;background:rgba(41,151,255,.16);color:#7cc0ff;font-size:10px;font-weight:900}
+.stu .row{display:flex;gap:8px;flex-wrap:wrap}
+.stu .pill{padding:9px 14px;border-radius:999px;font-size:13px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.72);transition:all .16s ease;position:relative}
+.stu .pill:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);color:#fff}
+.stu .pill.on{background:#2997ff;border-color:rgba(41,151,255,.9);color:#fff;box-shadow:0 4px 18px rgba(41,151,255,.35)}
+.stu .pill.off{opacity:.42;cursor:not-allowed}
+.stu .pill.off:hover{transform:none;border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.72)}
+.stu .soon{font-size:8.5px;font-weight:900;letter-spacing:.08em;margin-left:6px;padding:1.5px 5px;border-radius:99px;background:rgba(255,180,40,.16);color:#ffb428;vertical-align:1px}
+.stu .hint{font-size:11.5px;color:rgba(255,255,255,.42);margin-top:8px;line-height:1.45}
+.stu .mdlbtn{width:100%;text-align:left;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.12);cursor:pointer;color:#fff;transition:border-color .18s ease}
+.stu .mdlbtn:hover{border-color:rgba(41,151,255,.5)}
+.stu .mdlname{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
+.stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#131318;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:6px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
+.stu .pk{width:100%;text-align:left;padding:11px 12px;border-radius:11px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease}
+.stu .pk:hover{background:rgba(255,255,255,.05)}
+.stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35)}
+.stu .pk .t{display:flex;justify-content:space-between;align-items:center}
+.stu .pk .t b{font-weight:700;font-size:14px}
+.stu .pk .t i{font-style:normal;font-size:11.5px;color:rgba(255,255,255,.55);font-weight:700}
+.stu .pk .d{font-size:11px;color:rgba(255,255,255,.45);margin-top:3px}
+.stu .tag{font-size:9px;font-weight:800;color:#5cb3ff;border:1px solid rgba(41,151,255,.4);border-radius:999px;padding:2px 7px;margin-left:6px;vertical-align:1px}
+.stu .upl{width:100%;padding:16px 14px;border-radius:14px;background:rgba(255,255,255,.03);border:1px dashed rgba(255,255,255,.22);font-size:13px;transition:all .16s ease}
+.stu .upl.ok{cursor:pointer;color:rgba(255,255,255,.78)}
+.stu .upl.ok:hover{border-color:rgba(41,151,255,.6);background:rgba(41,151,255,.05)}
+.stu .upl.no{cursor:not-allowed;color:rgba(255,255,255,.35)}
+.stu .cost{padding:17px 16px;border-radius:18px;background:linear-gradient(160deg,#0c1a33,#0a0f1c);border:1px solid rgba(41,151,255,.32)}
+.stu .cost .sum{font-size:12.5px;color:rgba(255,255,255,.62);margin-bottom:4px}
+.stu .cost .val{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.stu .cost .val span{font-size:13px;color:rgba(255,255,255,.6)}
+.stu .cost .val b{color:#5cb3ff;font-weight:800;font-size:15px}
+.stu .go{width:100%;padding:15px 0;border-radius:999px;font-size:15px;font-weight:800;border:none;transition:all .18s ease}
+.stu .go.ok{background:#fff;color:#000;cursor:pointer}
+.stu .go.ok:hover{transform:translateY(-1px);box-shadow:0 10px 30px rgba(255,255,255,.18)}
+.stu .go.no{background:rgba(255,255,255,.16);color:rgba(255,255,255,.5);cursor:not-allowed}
+.stu .gnote{font-size:10.5px;color:rgba(255,255,255,.4);margin-top:9px;text-align:center}
+.stu textarea{width:100%;resize:vertical;padding:17px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:15px;line-height:1.55;outline:none;font-family:inherit;transition:border-color .18s ease}
+.stu textarea:focus{border-color:rgba(41,151,255,.55);box-shadow:0 0 0 3px rgba(41,151,255,.12)}
+.stu .cnt{font-size:11px;color:rgba(255,255,255,.35);text-align:right;margin-top:5px}
+.stu .cams{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:700px){.stu .cams{grid-template-columns:repeat(2,1fr)}}
+.stu .cam{padding:14px 10px;border-radius:14px;text-align:center;cursor:pointer;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);color:#fff;transition:all .16s ease}
+.stu .cam:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.stu .cam.on{background:rgba(41,151,255,.14);border-color:rgba(41,151,255,.65);box-shadow:0 6px 22px rgba(41,151,255,.22)}
+.stu .cam .e{font-size:21px}
+.stu .cam .l{font-size:12px;font-weight:700;margin-top:5px;letter-spacing:-.01em}
+.stu .camline{margin-top:10px;font-size:12.5px;color:#5cb3ff;background:rgba(41,151,255,.08);border:1px solid rgba(41,151,255,.25);border-radius:10px;padding:8px 12px}
+.stu .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px}
+@media(max-width:700px){.stu .steps{grid-template-columns:1fr}}
+.stu .step{padding:16px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08)}
+.stu .step b{display:block;font-size:11px;font-weight:800;letter-spacing:.1em;color:#5cb3ff;margin-bottom:6px}
+.stu .step p{margin:0;font-size:13px;color:rgba(255,255,255,.65);line-height:1.5}
+`
 
 export default function StudioClient() {
   const router = useRouter()
   const [engine, setEngine] = useState<EngineKey>('seedance')
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [duration, setDuration] = useState<15 | 45 | 60>(45)
+  const [duration, setDuration] = useState<15 | 45 | 60>(60)
   const [aspect, setAspect] = useState<'9:16' | '16:9'>('9:16')
   const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p')
   const [preset, setPreset] = useState<string | null>(null)
@@ -83,151 +134,122 @@ export default function StudioClient() {
   }, [prompt, preset])
 
   const generate = () => {
-    // v1 de aprovação: entrega no fluxo comprovado do /generate já configurado.
-    // Fase 2 (pós-aprovação): a máquina roda aqui dentro com os params novos.
     const q = new URLSearchParams({ engine, prompt: finalPrompt, intent_campaign: 'studio_v4' })
     router.push(`/generate?${q.toString()}`)
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0c', color: '#fafafa', padding: '28px 32px' }}>
-      {/* Faixa STAGE — inconfundível */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: '.18em', padding: '4px 10px', borderRadius: 999, background: 'rgba(255,180,40,.15)', border: '1px solid rgba(255,180,40,.5)', color: '#ffb428' }}>STAGE · AGUARDANDO APROVAÇÃO DO FUNDADOR</span>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,.45)' }}>Nada disto está em produção.</span>
+    <div className="stu">
+      <style dangerouslySetInnerHTML={{ __html: CSS }} />
+
+      <div className="stage">
+        <b>STAGE · AGUARDANDO APROVAÇÃO DO FUNDADOR</b>
+        <i>Nada disto está em produção.</i>
       </div>
 
-      <h1 style={{ fontSize: 30, fontWeight: 650, letterSpacing: '-.02em', marginBottom: 4 }}>Studio</h1>
-      <p style={{ color: 'rgba(255,255,255,.55)', fontSize: 14, marginBottom: 26 }}>Every control on one screen. Pick, type, generate.</p>
+      <h1>Studio</h1>
+      <p className="sub">Every control on one screen. Pick, type, generate.</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 22, alignItems: 'start' }}>
-        {/* ===== RAIL ESQUERDO — controles ===== */}
-        <div style={{ position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-          {/* Motor (#5 — badges honestos) */}
+      <div className="grid">
+        {/* ===== RAIL ESQUERDO — controles em cards numerados ===== */}
+        <div className="rail">
+          {/* 1 · Engine */}
           <div style={{ position: 'relative' }}>
-            <button type="button" onClick={() => setPickerOpen((o) => !o)} style={{ width: '100%', textAlign: 'left', padding: '14px 16px', borderRadius: 14, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.12)', cursor: 'pointer', color: '#fff' }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em' }}>Model</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-                <span style={{ fontSize: 16, fontWeight: 700 }}>{eng.name}</span>
-                <span style={{ fontSize: 12, color: '#5cb3ff' }}>{eng.res} · {eng.clip} ▾</span>
-              </div>
+            <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
+              <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
+              <span className="mdlname">
+                <b>{eng.name}</b>
+                <i>{eng.res} · {eng.clip} ▾</i>
+              </span>
             </button>
             {pickerOpen && (
-              <div style={{ position: 'absolute', zIndex: 40, top: '104%', left: 0, right: 0, background: '#131318', border: '1px solid rgba(255,255,255,.14)', borderRadius: 14, padding: 6, boxShadow: '0 24px 60px rgba(0,0,0,.6)' }}>
+              <div className="picker">
                 {ENGINES.map((e) => (
-                  <button key={e.key} type="button" onClick={() => { setEngine(e.key); setPickerOpen(false); if (e.supports1080 === 'fase2') setResolution('720p') }}
-                    style={{ width: '100%', textAlign: 'left', padding: '10px 12px', borderRadius: 10, background: e.key === engine ? 'rgba(41,151,255,.12)' : 'transparent', border: 'none', cursor: 'pointer', color: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 700, fontSize: 14 }}>{e.name} {e.tag && <span style={{ fontSize: 9, fontWeight: 800, color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)', borderRadius: 999, padding: '2px 7px', marginLeft: 6, verticalAlign: '1px' }}>{e.tag}</span>}</span>
-                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>{e.credits}</span>
-                    </div>
-                    {/* badge = resolução de saída + faixa de segundos que o MODELO gera por clipe */}
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', marginTop: 2 }}>{e.res} · {e.clip} — {e.desc}</div>
+                  <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
+                    onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
+                    <span className="t">
+                      <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                      <i>{e.credits}</i>
+                    </span>
+                    <span className="d">{e.res} · {e.clip} — {e.desc}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Duração (#2) */}
-          <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Duration</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={pill(duration === 15, true)} title="FASE 2 — precisa do backend de 2 cenas afiado antes de ligar">15s · fase 2</button>
-              <button type="button" style={pill(duration === 45)} onClick={() => setDuration(45)}>45s ⭐</button>
-              <button type="button" style={pill(duration === 60)} onClick={() => setDuration(60)}>60s</button>
+          {/* 2 · Format — duração + aspecto + resolução num card só */}
+          <div className="card">
+            <div className="lab"><span className="n">2</span>Format</div>
+            <div className="row" style={{ marginBottom: 12 }}>
+              <button type="button" className="pill off" title="Fase 2 — precisa do backend de 2 cenas afiado antes de ligar">15s<span className="soon">SOON</span></button>
+              <button type="button" className={`pill${duration === 45 ? ' on' : ''}`} onClick={() => setDuration(45)}>45s</button>
+              <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
             </div>
+            <div className="row" style={{ marginBottom: 12 }}>
+              <button type="button" className={`pill${aspect === '9:16' ? ' on' : ''}`} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
+              <button type="button" className="pill off" title="Fase 2 — falta o template horizontal de legendas no compose">16:9<span className="soon">SOON</span></button>
+            </div>
+            <div className="row">
+              <button type="button" className="pill off" title="Todos os motores já saem em Full HD — 720p não é mais necessário">720p</button>
+              <button type="button" className={`pill${resolution === '1080p' ? ' on' : ''}`} onClick={() => setResolution('1080p')}>1080p Full HD</button>
+            </div>
+            <div className="hint">{eng.name} renders in Full HD at no extra cost.</div>
           </div>
 
-          {/* Aspecto (#4) */}
-          <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Aspect ratio</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={pill(aspect === '9:16')} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
-              <button type="button" style={pill(aspect === '16:9', true)} title="FASE 2 — os motores já aceitam 16:9; falta o template horizontal de legendas no compose">16:9 · fase 2</button>
-            </div>
-          </div>
-
-          {/* Resolução (#1) */}
-          <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Resolution</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={pill(resolution === '720p', eng.supports1080 === 'always')} onClick={() => eng.supports1080 !== 'always' && setResolution('720p')}>720p</button>
-              <button type="button" style={pill(resolution === '1080p', eng.supports1080 === 'fase2')} onClick={() => eng.supports1080 !== 'fase2' && setResolution('1080p')}
-                title={eng.supports1080 === 'fase2' ? 'FASE 2 neste motor — custo 2x no fornecedor, créditos a definir com o fundador' : ''}>1080p</button>
-            </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginTop: 6 }}>
-              {eng.supports1080 === 'always' ? `${eng.name} já sai em Full HD — sem custo extra.` : '1080p no Seedance chega na fase 2 (+créditos, a aprovar).'}
-            </div>
-          </div>
-
-          {/* Imagem de referência (#3) */}
-          <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Reference image</div>
+          {/* 3 · Reference image */}
+          <div className="card">
+            <div className="lab"><span className="n">3</span>Reference image <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional</span></div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
             <button type="button" disabled={!eng.supportsRef} onClick={() => fileRef.current?.click()}
-              style={{ width: '100%', padding: '16px 14px', borderRadius: 14, background: 'rgba(255,255,255,.03)', border: '1px dashed rgba(255,255,255,.22)', color: eng.supportsRef ? 'rgba(255,255,255,.75)' : 'rgba(255,255,255,.35)', cursor: eng.supportsRef ? 'pointer' : 'not-allowed', fontSize: 13 }}>
-              {refName ? `🖼️ ${refName} — vira a âncora da cena 1` : eng.supportsRef ? '🖼️ Upload an image — the video starts from it' : `🖼️ ${eng.name} ainda não lê imagem — use Kling 3`}
+              className={`upl ${eng.supportsRef ? 'ok' : 'no'}`}>
+              {refName ? `🖼️ ${refName} — anchors scene 1` : eng.supportsRef ? '🖼️ Upload an image — your video starts from it' : `🖼️ Available on Kling 3`}
             </button>
           </div>
 
           {/* Custo + Generate */}
-          <div style={{ marginTop: 6, padding: 16, borderRadius: 16, background: 'linear-gradient(160deg,#0b1830,#0a0f1c)', border: '1px solid rgba(41,151,255,.3)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'rgba(255,255,255,.6)', marginBottom: 10 }}>
-              <span>Estimated cost</span>
-              <span style={{ color: '#5cb3ff', fontWeight: 800 }}>{eng.credits}{duration === 60 ? ' · 60s' : ''}</span>
-            </div>
-            <button type="button" onClick={generate} disabled={!prompt.trim()}
-              style={{ width: '100%', padding: '14px 0', borderRadius: 999, fontSize: 15, fontWeight: 800, background: prompt.trim() ? '#fff' : 'rgba(255,255,255,.25)', color: '#000', border: 'none', cursor: prompt.trim() ? 'pointer' : 'not-allowed' }}>
-              Generate →
+          <div className="cost">
+            <div className="sum">{eng.name} · {duration}s · {resolution} · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            <div className="val"><span>Estimated cost</span><b>{eng.credits}</b></div>
+            <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
+              {prompt.trim() ? 'Generate →' : 'Type your idea first'}
             </button>
-            <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,.4)', marginTop: 8, textAlign: 'center' }}>v1: entrega no fluxo comprovado · fase 2 roda aqui dentro</div>
+            <div className="gnote">v1: entrega no fluxo comprovado · fase 2 roda aqui dentro</div>
           </div>
         </div>
 
-        {/* ===== DIREITA — prompt + presets ===== */}
+        {/* ===== DIREITA — ideia + câmera ===== */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 8 }}>Your idea</div>
+            <div className="lab"><span className="n">4</span>Your idea</div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
-              placeholder={'What’s your video about? One idea in — a finished video out.'}
-              style={{ width: '100%', resize: 'vertical', padding: 16, borderRadius: 16, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.12)', color: '#fff', fontSize: 15, lineHeight: 1.5, outline: 'none' }} />
+              placeholder="What’s your video about? One idea in — a finished film out: voiced, scored and captioned." />
+            <div className="cnt">{prompt.trim() ? `${prompt.trim().split(/\s+/).length} words` : 'a single line is enough'}</div>
           </div>
 
-          {/* #6 — presets de câmera */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.45)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em' }}>Camera preset</div>
-              <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,.4)' }}>movimento pré-testado — entra no prompt como instrução validada</div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+            <div className="lab"><span className="n">5</span>Camera preset <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 0 }}>optional — a pre-tested move added to your prompt</span></div>
+            <div className="cams">
               {CAMERA_PRESETS.map((c) => (
-                <button key={c.key} type="button" onClick={() => setPreset(preset === c.key ? null : c.key)}
-                  style={{ padding: '14px 10px', borderRadius: 14, textAlign: 'center', cursor: 'pointer', background: preset === c.key ? 'rgba(41,151,255,.15)' : 'rgba(255,255,255,.03)', border: `1px solid ${preset === c.key ? 'rgba(41,151,255,.65)' : 'rgba(255,255,255,.1)'}`, color: '#fff' }}>
-                  <div style={{ fontSize: 20 }}>{c.emoji}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4 }}>{c.label}</div>
+                <button key={c.key} type="button" className={`cam${preset === c.key ? ' on' : ''}`}
+                  onClick={() => setPreset(preset === c.key ? null : c.key)}>
+                  <div className="e">{c.emoji}</div>
+                  <div className="l">{c.label}</div>
                 </button>
               ))}
             </div>
             {preset && (
-              <div style={{ marginTop: 10, fontSize: 12.5, color: '#5cb3ff', background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.25)', borderRadius: 10, padding: '8px 12px' }}>
-                camera: {CAMERA_PRESETS.find((c) => c.key === preset)?.prompt}
-              </div>
+              <div className="camline">camera: {CAMERA_PRESETS.find((c) => c.key === preset)?.prompt}</div>
             )}
           </div>
 
-          {/* Como funciona — 3 passos, estilo Higgsfield */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginTop: 6 }}>
+          <div className="steps">
             {[
-              ['1 · CONFIGURE', 'Motor, duração, resolução, aspecto e câmera — tudo nesta tela.'],
-              ['2 · TYPE', 'Uma ideia. O Kineo escreve o roteiro e dirige cada cena.'],
-              ['3 · GET VIDEO', 'Voz, legendas e música prontos. Baixa e posta.'],
+              ['1 · CONFIGURE', 'Engine, length, resolution and camera — all on this screen.'],
+              ['2 · TYPE', 'One idea. Kineo writes the script and directs every scene.'],
+              ['3 · GET YOUR FILM', 'Voice, karaoke captions and score included. Download and post.'],
             ].map(([t, d]) => (
-              <div key={t} style={{ padding: 16, borderRadius: 14, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.08)' }}>
-                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.1em', color: '#5cb3ff', marginBottom: 6 }}>{t}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,.65)', lineHeight: 1.5 }}>{d}</div>
-              </div>
+              <div key={t} className="step"><b>{t}</b><p>{d}</p></div>
             ))}
           </div>
         </div>
