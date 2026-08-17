@@ -240,11 +240,15 @@ function buildFalInput(
   // quoted line), so generate_audio:true yields ambient sound, not speech.
   // Duration snap ≤6s→'5' covers both dialogue (exact 5|10) and support.
   if (model === KLING3_MODEL) {
+    // KINEO-MOTORMAX-2026-08-16 — schema oficial: duration aceita QUALQUER
+    // inteiro 3-15 (o snap 5|10 criava dead air ou fala cortada) e cfg_scale
+    // (default 0.5) aumenta aderencia ao prompt — menos cena aleatoria/gemea.
     return {
       prompt,
-      duration: typeof seconds === 'number' && seconds <= 6 ? '5' : '10',
+      duration: String(Math.max(3, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
       aspect_ratio: '9:16',
       generate_audio: true,
+      cfg_scale: 0.6,
       negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
     }
   }
@@ -285,6 +289,10 @@ function buildFalInput(
       // — Full HD ligado sem custo extra, antes do TAAFT.
       resolution: '1080p',
       generate_audio: false,
+      // KINEO-MOTORMAX-2026-08-16 — safety_tolerance 5 (default 4): menos
+      // bloqueio espurio de moderacao = menos cena dropada. Nossos prompts
+      // sao b-roll documental — o filtro default e calibrado pra UGC livre.
+      safety_tolerance: '5',
       negative_prompt: 'human face, person, people, crowd, cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption',
       // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
       ...(typeof seed === 'number' ? { seed } : {}),
@@ -335,7 +343,9 @@ function buildFalInput(
       prompt,
       aspect_ratio: '9:16',
       resolution: '720p',
-      duration: typeof seconds === 'number' && seconds <= 6 ? '5' : '10',
+      // KINEO-MOTORMAX-2026-08-16 — duration continua 4-12 no schema; exata =
+      // sem dead air E mais barata (preco por token ∝ duracao).
+      duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
       generate_audio: true,
     }
   }
@@ -345,7 +355,9 @@ function buildFalInput(
     prompt,
     aspect_ratio: '9:16',
     resolution: hd ? '1080p' : '720p',
-    duration: '10',
+    // KINEO-MOTORMAX-2026-08-16 — duracao exata 4-12 (schema): sem dead air e
+    // ~20% mais barata quando a cena planejada e de 8s (preco por token).
+    duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
     generate_audio: false,
     // KINEO-SEED-2026-07-24 — shared per-generation seed for cross-clip coherence.
     ...(typeof seed === 'number' ? { seed } : {}),
