@@ -1708,6 +1708,49 @@ export async function POST(req: NextRequest) {
         )
       }
 
+      // KINEO-DURATIONFIX-2026-08-17 — dois renders do fundador sairam com
+      // EXATOS 34s num pedido de 60s: o GPT-planejador ignora o alvo e ninguem
+      // conferia a SOMA. Agora: (1) soma curta → replaneja UMA vez com o
+      // feedback explicito; (2) ainda curta → estica as cenas NAO-dialogo ate
+      // >=90% do alvo (os motores agora aceitam duracao exata 3-15/4-12 —
+      // MOTORMAX — entao esticar funciona; dialogo nunca estica: a fala tem o
+      // tamanho que tem).
+      {
+        const target = Math.max(45, Math.min(60, Math.round(duration || 60)))
+        const planTotal = (pl: typeof plan) => pl.scenes.reduce((acc, sc) => acc + (sc.seconds || 0), 0)
+        let total = planTotal(plan)
+        if (total < Math.round(target * 0.85)) {
+          console.warn(`[cinematic] hollywood plan too short: ${total}s of ${target}s target — replanning once`)
+          try {
+            const replanned = await planHollywoodScenes({
+              idea: prompt,
+              voiceoverScript: hollywoodVoiceover || undefined,
+              scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
+              durationSeconds: duration,
+              language: hollywoodLanguage,
+              shortRetryFeedback: `it totaled only ${total} seconds against a ${target}-second target. Return a plan whose scene seconds SUM to ${target - 5}-${target + 2}. Add scenes or lengthen the non-dialogue ones.`,
+            })
+            if (planTotal(replanned) > total) plan = replanned
+            total = planTotal(plan)
+          } catch (e) {
+            console.warn('[cinematic] hollywood replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
+          }
+        }
+        // Estica b-roll ate >=90% do alvo (round-robin +1s, caps por tipo).
+        const capFor = (t: string) => (t === 'cinematic' ? 8 : 15)
+        let guard = 60
+        while (total < Math.round(target * 0.9) && guard-- > 0) {
+          const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc.type))
+          if (stretchable.length === 0) break
+          for (const sc of stretchable) {
+            if (total >= Math.round(target * 0.9)) break
+            sc.seconds = (sc.seconds || 0) + 1
+            total += 1
+          }
+        }
+        console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
+      }
+
       // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 "UM MUNDO": generate the
       // two image anchors from the plan's sheets (portrait + environment
       // still, ~$0.10, synchronous — flux/schnell is fast). FAIL-OPEN: null →
@@ -1915,7 +1958,12 @@ export async function POST(req: NextRequest) {
               ? anchors.portraitUrl
               : anchors.environmentUrl
             : undefined
-          const scenePrompt = hs.prompt + eraSuffix
+          // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
+          // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
+          // + voz de outra pessoa = dublagem de terror (o bug que o fundador
+          // viu DUAS vezes). Nao confiamos so no planner: o sufixo vai sempre.
+          const mouthSuffix = hs.type !== 'dialogue' ? ' If any person is visible: mouth closed, not speaking, no lip movement, no talking.' : ''
+          const scenePrompt = hs.prompt + eraSuffix + mouthSuffix
           try {
             id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, anchorUrl)
           } catch (e) {

@@ -297,6 +297,9 @@ function trimNarrationToWords(text: string, maxWords: number): string {
 
 // ── Planner ──────────────────────────────────────────────────────────────────
 export async function planHollywoodScenes(args: {
+  /** KINEO-DURATIONFIX-2026-08-17 — feedback de replanejamento: total da
+   *  tentativa anterior que veio CURTA (o GPT ignora o alvo às vezes). */
+  shortRetryFeedback?: string
   idea: string
   voiceoverScript?: string
   scenes?: Array<{ voiceover?: string; description?: string }>
@@ -348,7 +351,8 @@ OTHER HARD RULES:
 - ZERO readable text in any shot: no phone/computer screens with content, no signs, no billboards, no labels. If a phone appears, its screen is off or blurred.
 - Scene 1 = the HOOK beat (usually a dialogue scene looking straight into the lens, speaking from the very first frame).
 - MAX 1 LONG B-ROLL IN A ROW: never place two adjacent non-dialogue scenes (cinematic/support) that are BOTH 10 seconds — more than ~10 straight seconds of b-roll kills retention. Break b-roll walls with a dialogue scene, or make the second insert 5 seconds.
-- Total duration 45-60 seconds. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- SCENE DURATION BUDGET (STRICT — a short plan is a REJECTED plan): the "seconds" of ALL scenes MUST sum to AT LEAST the target duration minus 5. Target 60 → scenes must sum 55-62. Count it before answering: 4 scenes of 10+8+8+8=34 is a FAILURE — add scenes or lengthen them until the budget is met. 4 to 6 scenes. Zero dead frames — every second earns attention.
+- NON-DIALOGUE SCENES WITH A VISIBLE PERSON (STRICT): in every "support" or "cinematic" scene where the characterSheet person appears, the prompt MUST state the person is NOT talking — write "mouth closed, not speaking, no lip movement" in the prompt. External narration plays over these scenes; a moving mouth under someone else's voice is a horrifying dub mismatch. Prefer person-FREE b-roll unless the story needs them on screen.
 - VISUAL VARIETY (STRICT — repeated scenes are a hard failure): every scene must differ from EVERY other scene in at least TWO of: shot size (wide / medium / close-up / macro / aerial), camera angle (eye-level / low / high / overhead), camera movement (static / dolly / crane / handheld / orbit), and staging (what the subject is DOING and WHERE inside the environment). The characterSheet/environmentSheet repeat for continuity of WORLD — never for continuity of FRAMING. Two scenes with the same composition = a wasted paid render. Before finalizing, re-read your scene list and rewrite any two scenes that could be mistaken for each other.
 - ALL text in English regardless of the input language${language && language !== 'en' ? ` (the input may be in "${language}")` : ''}.
 - NEVER name or depict a real person (no celebrities, politicians, athletes, historical figures). People are always fictional and generic.
@@ -360,7 +364,7 @@ Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
 ${voiceoverScript ? `Existing narration script (reuse its facts and beats):\n${String(voiceoverScript).slice(0, 1500)}\n` : ''}${sceneCtx ? `Existing scene beats:\n${sceneCtx}\n` : ''}
-Target total duration: ${Math.max(45, Math.min(60, Math.round(durationSeconds || 60)))} seconds.`
+Target total duration: ${Math.max(45, Math.min(60, Math.round(durationSeconds || 60)))} seconds.${args.shortRetryFeedback ? `\n\nIMPORTANT — YOUR PREVIOUS PLAN WAS REJECTED: ${args.shortRetryFeedback}` : ''}`
 
   const completion = await openai.chat.completions.create(
     {
