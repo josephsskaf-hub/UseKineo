@@ -82,7 +82,14 @@ const CURATED: Record<string, string[]> = {
   //   fiorde do Alasca, janela 0.4-5.8s, banda 32% (rosto cheio, SEM legenda —
   //   fundador vetou legenda no tile). O hero mostra os 4 primeiros; o 5o e
   //   EXCLUSIVO do tile do bento (tileVidLast) — zero repeticao na pagina.
-  cinematic_hollywood: ['216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '956187b7-08d2-4c54-ac99-fa8508a9ed5c', 'e31129fa-bc50-4557-8889-0d50e630d5f1', '501d1ef7-5df5-4462-9341-c58ea01f0042', 'e487a011-8781-482f-913e-445ef5ad22bf'],
+  //   KLING 3 (17/08 d — 'pega esses ultimos videos e coloca as melhores
+  //   cenas'): ABRE com o TELEGRAFO EXPLODINDO sob o raio (Carrington 1859,
+  //   render da manha pos-consertos — faiscas sobre os telhados vitorianos,
+  //   janela 23.8-31.8, banda 30%, 1000px) + moletom (escolha antiga dele) +
+  //   FLORESTA DEITADA EM CIRCULO de Tunguska 1908 (aerea, 8.8-16.8, banda
+  //   58%, 1000px) + narrador do Krakatoa. Historiador e golden hour (renders
+  //   de julho, pipeline velho) saem. 5o = pescador de Lituya (tile do bento).
+  cinematic_hollywood: ['bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0', '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', '99818ab0-0960-4089-a784-12b241736868', '501d1ef7-5df5-4462-9341-c58ea01f0042', 'e487a011-8781-482f-913e-445ef5ad22bf'],
   //   SEEDANCE: relogio de luxo em macro + mapa antigo em pergaminho + maos a luz de vela
   //   SEEDANCE (recurado 15/08 b — 2 escolhidos pelo fundador por print): cratera de fogo do Turkmenistan + ilha de 63 anos + tornado no mar + alce
   //   SEEDANCE (recurado 15/08 f): abre com a ILHA PROIBIDA (pedido do fundador — render e Seedance, nao Veo; selo fica honesto), janela 40-48s (canoa + ilha aerea) + cratera + tornado + ilha de 63 anos
@@ -116,6 +123,9 @@ const PREVIEWS = new Set<string>([
   '501d1ef7-5df5-4462-9341-c58ea01f0042',
   // 17/08 — Lituya Bay, pescador-testemunha (0.4-5.8s, banda 32%, sem legenda): tile Kling 3 do bento.
   'e487a011-8781-482f-913e-445ef5ad22bf',
+  // 17/08 d — telegrafo explodindo sob o raio (Carrington) + floresta em circulo (Tunguska), 1000px.
+  'bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0',
+  '99818ab0-0960-4089-a784-12b241736868',
 ])
 
 const EXCLUDED = new Set<string>([
