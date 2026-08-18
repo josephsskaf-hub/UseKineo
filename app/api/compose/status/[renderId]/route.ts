@@ -215,10 +215,40 @@ export async function GET(
   { params }: { params: { renderId: string } }
 ) {
   try {
-    const supabase = createServerSupabase()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // KINEO-SERVICE-FINISH-2026-08-19 — espelho do modo serviço do /api/compose
+    // (ver comentário lá): o finisher de renders órfãos consulta o status em
+    // nome do dono. Fail-closed; validação de posse do render continua igual.
+    const svcSecret = process.env.CRON_SECRET
+    const svcUserHeader = (req.headers.get('x-kineo-service-user') ?? '').trim()
+    const isServiceFinish =
+      !!svcSecret &&
+      req.headers.get('authorization') === `Bearer ${svcSecret}` &&
+      /^[0-9a-f-]{36}$/i.test(svcUserHeader)
+    // Mesma auditoria do /api/compose (19/08): usos downstream de `supabase`
+    // são operações já escopadas pelo fluxo (push endpoints do próprio fetch,
+    // etc.) — client admin preserva o comportamento no modo serviço.
+    let supabase: SupabaseClient
+    let user: { id: string; email?: string | null } | null = null
+    if (isServiceFinish) {
+      const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!svcUrl || !svcKey) {
+        return NextResponse.json({ error: 'Service mode unavailable.' }, { status: 503 })
+      }
+      supabase = createAdminClient(svcUrl, svcKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+      const { data: svcProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', svcUserHeader)
+        .maybeSingle()
+      user = { id: svcUserHeader, email: svcProfile?.email ?? null }
+    } else {
+      supabase = createServerSupabase()
+      const auth = await supabase.auth.getUser()
+      user = auth.data.user
+    }
     if (!user) {
       return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
     }

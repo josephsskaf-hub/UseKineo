@@ -435,12 +435,51 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabase = createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
+    // KINEO-SERVICE-FINISH-2026-08-19 — modo serviço do finisher de renders
+    // órfãos (cron finish-stranded-renders): `Authorization: Bearer CRON_SECRET`
+    // + `x-kineo-service-user` identificam o DONO REAL da geração abandonada.
+    // Fail-closed: sem CRON_SECRET no env o modo não existe; header errado cai
+    // no fluxo normal de cookie. O segredo substitui SÓ o cookie — toda a
+    // cadeia de assinaturas (claim HMAC, authorized_completed_urls, custo por
+    // tier) roda idêntica com o userId informado, então o pior que um portador
+    // do segredo consegue é COMPLETAR o render que o próprio dono já pagou.
+    const serviceSecret = process.env.CRON_SECRET
+    const serviceUserHeader = (req.headers.get('x-kineo-service-user') ?? '').trim()
+    const isServiceFinish =
+      !!serviceSecret &&
+      req.headers.get('authorization') === `Bearer ${serviceSecret}` &&
+      /^[0-9a-f-]{36}$/i.test(serviceUserHeader)
+    // `supabase` e `user` alimentam TODO o resto da rota. Auditoria de
+    // 19/08: cada uso downstream filtra explicitamente por user.id (.eq) —
+    // nenhum depende de RLS implícito — então o client admin no modo serviço
+    // mantém o mesmo escopo de dados do client de cookie.
+    let supabase: SupabaseClient
+    let user: { id: string; email?: string | null }
+    if (isServiceFinish) {
+      const svcUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const svcKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (!svcUrl || !svcKey) {
+        return NextResponse.json({ error: 'Service mode unavailable.' }, { status: 503 })
+      }
+      supabase = createAdminClient(svcUrl, svcKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      })
+      const { data: svcProfile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', serviceUserHeader)
+        .maybeSingle()
+      user = { id: serviceUserHeader, email: svcProfile?.email ?? null }
+      console.log(`[compose] service-finish mode for user=${serviceUserHeader.slice(0, 8)}`)
+    } else {
+      supabase = createClient()
+      const {
+        data: { user: cookieUser },
+      } = await supabase.auth.getUser()
+      if (!cookieUser) {
+        return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
+      }
+      user = cookieUser
     }
     const authenticatedUserId = user.id
 

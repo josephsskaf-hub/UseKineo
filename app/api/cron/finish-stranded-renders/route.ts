@@ -1,37 +1,37 @@
-// KINEO-STRANDED-2026-08-18 — ordem do fundador ("vamos fazer isso HOJE e já
-// não ter mais esse problema"): o maior vazamento do funil medido em 72h são
-// 131 eventos `idle / resolved=false resumed=false` — gente que mandou gerar,
-// cansou de esperar os 15-25 min do motor de IA, FECHOU A ABA, e nunca viu o
-// vídeo: o pipeline é orquestrado pelo cliente, então sem aba não há compose.
-// Créditos queimados, mágica não aconteceu, trial morto.
+// KINEO-STRANDED-2026-08-18/19 — "o vídeo continua renderizando mesmo com a
+// aba fechada" (ordem do fundador, noite de 18/08). Duas gerações do mesmo
+// arquivo na mesma noite:
 //
-// V1 (este cron, risco zero nas rotas blindadas): DETECTA e TRAZ DE VOLTA.
-// A cada 15 min: acha claims cinematográficos `settled` (12min-20h de idade,
-// não released), confere NO FAL se as cenas terminaram (server-side, mesma
-// lógica do poller), confere que o vídeo NÃO compôs, e manda UM e-mail:
-// "Your scenes are ready — one click to finish". O link cai no /generate,
-// onde o resume flow já detecta o render ativo e termina o compose sozinho
-// (33 retomadas bem-sucedidas nas últimas 72h — máquina batalha-testada).
-// O e-mail chega ~20-30 min depois da pessoa desistir: exatamente quando o
-// produto tem um presente pronto pra entregar.
+// V1 (22h): detectava o render órfão e mandava e-mail "one click to finish".
+// V2 (madrugada, ESTE arquivo): o servidor TERMINA O FILME SOZINHO.
 //
-// V2 (amanhã, de cabeça fria): compose 100% server-side via bypass CRON nas
-// rotas /api/compose e /api/compose/status — exige mexer na camada de auth
-// mais sensível da casa, não se faz às 22h.
+// O ciclo completo, a cada 15 min:
+//   1. Claims cinematográficos `settled` (12min-20h) SEM compose invocado
+//      (sem metadata.render_id) → confere no fal se TODAS as cenas terminaram
+//      → autoriza as URLs no claim (authorizeCinematicCompletedUrls — a MESMA
+//      função assinada que o poller do cliente usa; a cadeia de segurança não
+//      muda) → reconstrói o payload de compose a partir da RESPOSTA guardada
+//      no claim (hash-verificada) → invoca /api/compose EM PROCESSO no modo
+//      serviço (Bearer CRON_SECRET + x-kineo-service-user; ver
+//      KINEO-SERVICE-FINISH nas duas rotas).
+//   2. Claims COM render_id e vídeo ainda não completo → consulta
+//      /api/compose/status em modo serviço (a própria rota persiste o vídeo
+//      quando a Creatomate termina) → quando o vídeo existe, e-mail
+//      "Your video is ready 🎬" com link direto (1× por geração).
+//   3. Compose falhou 2× → fallback: o e-mail de resgate da V1 ("one click
+//      to finish"), 1× por geração — nunca fica pior que a V1.
 //
-// Guard rails (padrão dos lifecycle jobs):
-// - CRON_SECRET fail-closed · RESEND obrigatório
-// - 1 e-mail por GERAÇÃO, pra sempre (evento stranded_rescue_sent com
-//   session_id = generationId — checado antes de enviar)
-// - máx 20 por rodada · pausa 500ms entre envios
-// - pula opt-out, contas internas/teste, e-mail descartável óbvio
-// - só envia se TODAS as cenas do fal estão COMPLETED (clicar e ainda esperar
-//   10 min seria promessa quebrada; parcial fica pra próxima rodada)
+// Guard rails: CRON_SECRET fail-closed · máx 3 composes/rodada (TTS é pesado
+// e divide os 300s do cron) · dedupe por eventos (stranded_compose_attempt /
+// stranded_ready_sent / stranded_rescue_sent) · pula opt-out, contas
+// internas, descartáveis.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
-import { CINEMATIC_CLAIM_EVENT } from '@/lib/cinematic/claim'
+import { CINEMATIC_CLAIM_EVENT, authorizeCinematicCompletedUrls, loadVerifiedCinematicClaim } from '@/lib/cinematic/claim'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
+import { POST as composePost } from '@/app/api/compose/route'
+import { GET as composeStatusGet } from '@/app/api/compose/status/[renderId]/route'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -40,9 +40,12 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM_EMAIL = 'Kineo Team <hello@usekineo.com>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const RESCUE_EVENT = 'stranded_rescue_sent'
+const ATTEMPT_EVENT = 'stranded_compose_attempt'
+const READY_EVENT = 'stranded_ready_sent'
 const MIN_AGE_MS = 12 * 60 * 1000
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
-const MAX_PER_RUN = 20
+const MAX_COMPOSE_PER_RUN = 3
+const MAX_COMPOSE_ATTEMPTS = 2
 
 function isAuthorized(req: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET
@@ -61,52 +64,111 @@ function isInternalOrJunkEmail(email: string): boolean {
   )
 }
 
-async function allClipsDone(requestIds: Array<string | null>, models: string[]): Promise<boolean> {
+type ClipResult = { requestId: string; model: string; url: string }
+
+/** Todas as cenas COMPLETED → devolve as URLs na ordem das cenas; senão null. */
+async function collectFinishedClips(
+  requestIds: Array<string | null>,
+  models: string[],
+): Promise<ClipResult[] | null> {
   const falKey = process.env.FAL_KEY
-  if (!falKey) return false
+  if (!falKey) return null
   fal.config({ credentials: falKey })
-  const live = requestIds
-    .map((id, i) => ({ id, model: models[i] }))
-    .filter((x): x is { id: string; model: string } => !!x.id && !!x.model)
-  if (live.length === 0) return false
-  for (const clip of live) {
+  const out: ClipResult[] = []
+  for (let i = 0; i < requestIds.length; i++) {
+    const id = requestIds[i]
+    const model = models[i]
+    if (!id || !model) continue // cena que nunca submeteu: o FAILFAST já filtrou o grosso
     try {
-      const st = await fal.queue.status(clip.model, { requestId: clip.id })
-      if ((st as { status?: string }).status !== 'COMPLETED') return false
+      const st = await fal.queue.status(model, { requestId: id })
+      if ((st as { status?: string }).status !== 'COMPLETED') return null
+      const res = await fal.queue.result(model, { requestId: id })
+      const data = ((res as { data?: unknown }).data ?? res) as {
+        video?: { url?: string }
+        output?: { video?: { url?: string } }
+      }
+      const url = data?.video?.url ?? data?.output?.video?.url ?? null
+      if (!url) return null
+      out.push({ requestId: id, model, url })
     } catch {
-      // 422/400 = clipe morto no provedor; um clipe morto ainda pode compor
-      // com os vivos (o resume decide) — mas para o e-mail "ready" exigimos
-      // resposta limpa de todos: erro = não está pronto, próxima rodada vê.
-      return false
+      return null // 422 terminal ou transporte: nada de compose nesta rodada
     }
   }
-  return true
+  return out.length > 0 ? out : null
 }
 
-function emailText(finishUrl: string): string {
+function serviceHeaders(userId: string): Record<string, string> {
+  return {
+    'content-type': 'application/json',
+    authorization: `Bearer ${process.env.CRON_SECRET}`,
+    'x-kineo-service-user': userId,
+  }
+}
+
+function rescueText(finishUrl: string): string {
   return `Hey — your AI scenes finished rendering. 🎬
 
 You started a video on Kineo and the heavy part is done: every scene came out of the engine and is waiting for you. One click finishes the film — voiceover, captions and music are assembled in about two minutes while you watch.
 
 Finish your video: ${finishUrl}
 
-(Your scenes are held for you, but engine output doesn't wait forever — best to finish today.)
+— Kineo`
+}
+
+function rescueHtml(finishUrl: string, userId: string): string {
+  return `
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
+  <p style="font-size:18px"><b>Your AI scenes finished rendering 🎬</b></p>
+  <p>You started a video on Kineo and the heavy part is done. One click finishes the film — voiceover, captions and music are assembled in about two minutes while you watch.</p>
+  <p style="margin:26px 0"><a href="${finishUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Finish my video &rarr;</a></p>
+  <p style="color:#64748b;font-size:13px">— Kineo</p>
+</div>
+${emailFooterHtml(userId)}`
+}
+
+function readyText(videoUrl: string): string {
+  return `Your video is ready. 🎬
+
+You started a film on Kineo and we finished it for you — scenes, voiceover, captions and music, all assembled. Watch and download it here:
+
+${videoUrl}
+
+Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.
 
 — Kineo`
 }
 
-function emailHtml(finishUrl: string, userId: string): string {
+function readyHtml(videoUrl: string, userId: string): string {
   return `
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
-  <p style="font-size:18px"><b>Your AI scenes finished rendering 🎬</b></p>
-  <p>You started a video on Kineo and the heavy part is done: every scene came out of the engine and is waiting for you. One click finishes the film — voiceover, captions and music are assembled in about two minutes while you watch.</p>
-  <p style="margin:26px 0">
-    <a href="${finishUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Finish my video &rarr;</a>
-  </p>
-  <p style="color:#64748b;font-size:13px">Your scenes are held for you, but engine output doesn't wait forever — best to finish today.</p>
+  <p style="font-size:18px"><b>Your video is ready 🎬</b></p>
+  <p>You started a film on Kineo and we finished it for you — scenes, voiceover, captions and music, all assembled.</p>
+  <p style="margin:26px 0"><a href="${videoUrl}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Watch my video &rarr;</a></p>
+  <p style="color:#64748b;font-size:13px">Post it somewhere? Paste the link in the app afterwards and you get +3 credits back.</p>
   <p style="color:#64748b;font-size:13px">— Kineo</p>
 </div>
 ${emailFooterHtml(userId)}`
+}
+
+async function sendEmail(to: string, userId: string, subject: string, text: string, html: string): Promise<boolean> {
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: FROM_EMAIL,
+        to,
+        reply_to: 'joseph@usekineo.com',
+        subject,
+        text: text + emailFooterText(userId),
+        html,
+        headers: unsubscribeHeaders(userId),
+      }),
+    })
+    return res.ok
+  } catch {
+    return false
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -122,8 +184,6 @@ export async function GET(req: NextRequest) {
   const minIso = new Date(now - MAX_AGE_MS).toISOString()
   const maxIso = new Date(now - MIN_AGE_MS).toISOString()
 
-  // Claims settled na janela. metadata->>'status' settled = créditos cobrados,
-  // cenas submetidas; released = já resolvido (composto ou estornado).
   const { data: claims, error: claimErr } = await admin
     .from('events')
     .select('user_id, session_id, created_at, metadata')
@@ -141,89 +201,181 @@ export async function GET(req: NextRequest) {
     const md = row.metadata as Record<string, unknown> | null
     return md && md.status === 'settled'
   })
-  if (candidates.length === 0) return NextResponse.json({ checked: 0, sent: 0, note: 'no settled claims in window' })
+  if (candidates.length === 0) return NextResponse.json({ checked: 0, composed: 0, ready: 0, rescued: 0, note: 'no settled claims in window' })
 
-  // Dedupe: 1 resgate por geração, pra sempre.
+  // Dedupe/attempt bookkeeping por geração.
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
-  const { data: alreadyRows } = await admin
+  const { data: markerRows } = await admin
     .from('events')
-    .select('session_id')
-    .eq('name', RESCUE_EVENT)
+    .select('name, session_id')
+    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT])
     .in('session_id', genIds.slice(0, 200))
-  const already = new Set((alreadyRows ?? []).map((r) => r.session_id))
+  const rescued = new Set<string>()
+  const readySent = new Set<string>()
+  const attempts = new Map<string, number>()
+  for (const m of markerRows ?? []) {
+    const sid = m.session_id as string | null
+    if (!sid) continue
+    if (m.name === RESCUE_EVENT) rescued.add(sid)
+    else if (m.name === READY_EVENT) readySent.add(sid)
+    else if (m.name === ATTEMPT_EVENT) attempts.set(sid, (attempts.get(sid) ?? 0) + 1)
+  }
 
-  let sent = 0
   let checked = 0
+  let composed = 0
+  let ready = 0
+  let rescuedCount = 0
   const results: Array<{ generation: string; outcome: string }> = []
 
   for (const claim of candidates) {
-    if (sent >= MAX_PER_RUN) break
     const genId = claim.session_id as string | null
     const userId = claim.user_id as string | null
-    if (!genId || !userId || already.has(genId)) continue
-    checked++
-
+    if (!genId || !userId) continue
     const md = claim.metadata as Record<string, unknown>
-    const requestIds = Array.isArray(md.fal_request_ids) ? (md.fal_request_ids as Array<string | null>) : []
-    const models = Array.isArray(md.fal_models) ? (md.fal_models as string[]) : []
-    if (requestIds.length === 0) { results.push({ generation: genId.slice(0, 8), outcome: 'no_request_ids' }); continue }
+    checked++
+    const gen8 = genId.slice(0, 8)
 
-    // O compose já foi invocado? Quando /api/compose consome o claim ele grava
-    // metadata.render_id (linha ~703 de compose/route.ts) — se existe, o
-    // usuário voltou (ou o resume terminou) e este cron não tem nada a fazer.
-    // Claims released (refund) já ficaram de fora no filtro de status.
-    if (typeof md.render_id === 'string' && md.render_id.length > 0) {
-      results.push({ generation: genId.slice(0, 8), outcome: 'compose_already_started' })
-      continue
-    }
-
-    // Perfil: e-mail válido, sem opt-out, não interno.
+    // Perfil (e-mail para os avisos; contas internas ainda GANHAM o finish —
+    // só não recebem e-mail).
     const { data: prof } = await admin
       .from('profiles')
       .select('email, email_opted_out')
       .eq('id', userId)
       .maybeSingle()
     const email = prof?.email ?? ''
-    if (!email || prof?.email_opted_out || isInternalOrJunkEmail(email)) {
-      results.push({ generation: genId.slice(0, 8), outcome: 'no_valid_email' })
+    const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
+
+    const renderId = typeof md.render_id === 'string' && md.render_id.length > 0 ? md.render_id : null
+
+    if (renderId) {
+      // ── Fase 2: compose já existe — empurra o status e avisa quando pronto ──
+      if (readySent.has(genId)) { results.push({ generation: gen8, outcome: 'already_notified' }); continue }
+      try {
+        const statusReq = new NextRequest(`${APP_URL}/api/compose/status/${renderId}`, {
+          headers: serviceHeaders(userId),
+        })
+        await composeStatusGet(statusReq, { params: { renderId } })
+      } catch (e) {
+        console.warn(`[stranded] status poke failed for ${gen8}:`, e instanceof Error ? e.message : String(e))
+      }
+      const { data: vid } = await admin
+        .from('videos')
+        .select('id, status, video_url, final_video_url')
+        .eq('user_id', userId)
+        .eq('render_id', renderId)
+        .maybeSingle()
+      const finalUrl = (vid?.final_video_url ?? vid?.video_url ?? '') as string
+      if (vid?.status === 'completed' && finalUrl) {
+        if (mayEmail) {
+          const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(`${APP_URL}/history?utm_source=stranded_ready`), readyHtml(`${APP_URL}/history?utm_source=stranded_ready`, userId))
+          if (ok) {
+            await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId } })
+            ready++
+            results.push({ generation: gen8, outcome: 'ready_email_sent' })
+          } else results.push({ generation: gen8, outcome: 'ready_email_failed' })
+        } else {
+          await admin.from('events').insert({ user_id: userId, name: READY_EVENT, session_id: genId, metadata: { render_id: renderId, email: 'skipped' } })
+          results.push({ generation: gen8, outcome: 'completed_no_email' })
+        }
+      } else {
+        results.push({ generation: gen8, outcome: 'render_in_progress' })
+      }
       continue
     }
 
-    // Todas as cenas prontas no fal? (promessa do e-mail: "one click finishes")
-    const ready = await allClipsDone(requestIds, models)
-    if (!ready) { results.push({ generation: genId.slice(0, 8), outcome: 'clips_not_ready_yet' }); continue }
+    // ── Fase 1: compose nunca foi invocado ──
+    const attemptCount = attempts.get(genId) ?? 0
+    if (attemptCount >= MAX_COMPOSE_ATTEMPTS) {
+      // Fallback V1: e-mail de resgate (1× por geração, pra sempre)
+      if (!rescued.has(genId) && mayEmail) {
+        const ok = await sendEmail(email, userId, 'Your AI scenes are ready — one click to finish your video 🎬', rescueText(`${APP_URL}/generate?utm_source=stranded_rescue`), rescueHtml(`${APP_URL}/generate?utm_source=stranded_rescue`, userId))
+        if (ok) {
+          await admin.from('events').insert({ user_id: userId, name: RESCUE_EVENT, session_id: genId, metadata: {} })
+          rescuedCount++
+          results.push({ generation: gen8, outcome: 'rescue_email_sent' })
+        } else results.push({ generation: gen8, outcome: 'rescue_email_failed' })
+      } else {
+        results.push({ generation: gen8, outcome: 'compose_gave_up' })
+      }
+      continue
+    }
+    if (composed >= MAX_COMPOSE_PER_RUN) { results.push({ generation: gen8, outcome: 'deferred_budget' }); continue }
 
-    const finishUrl = `${APP_URL}/generate?utm_source=stranded_rescue`
+    const requestIds = Array.isArray(md.fal_request_ids) ? (md.fal_request_ids as Array<string | null>) : []
+    const models = Array.isArray(md.fal_models) ? (md.fal_models as string[]) : []
+    if (requestIds.length === 0) { results.push({ generation: gen8, outcome: 'no_request_ids' }); continue }
+
+    const clips = await collectFinishedClips(requestIds, models)
+    if (!clips) { results.push({ generation: gen8, outcome: 'clips_not_ready_yet' }); continue }
+
+    // Autoriza as URLs no claim pela MESMA função assinada do poller.
+    const authorized = await authorizeCinematicCompletedUrls({
+      db: admin,
+      secret,
+      userId,
+      generationId: genId,
+      completed: clips,
+    })
+    if (!authorized.ok) { results.push({ generation: gen8, outcome: `authorize_failed:${authorized.error}`.slice(0, 60) }); continue }
+
+    // Recarrega o claim verificado: response (hash-conferida) + URLs na ordem.
+    const reloaded = await loadVerifiedCinematicClaim({ db: admin, secret, userId, generationId: genId })
+    if (!reloaded.ok || !reloaded.claim) { results.push({ generation: gen8, outcome: 'reload_failed' }); continue }
+    const vClaim = reloaded.claim
+    const response = (vClaim.response ?? {}) as Record<string, unknown>
+    const clipUrls = vClaim.authorizedCompletedUrls.filter((u): u is string => typeof u === 'string' && u.length > 0)
+    if (clipUrls.length === 0) { results.push({ generation: gen8, outcome: 'no_authorized_urls' }); continue }
+
+    const sceneSeconds = Array.isArray(response.scene_seconds) ? (response.scene_seconds as number[]) : null
+    const duration =
+      typeof response.duration === 'number' && response.duration > 0
+        ? response.duration
+        : sceneSeconds
+          ? Math.max(15, Math.min(90, Math.round(sceneSeconds.reduce((a, b) => a + (Number(b) || 0), 0))))
+          : 60
+    const payload: Record<string, unknown> = {
+      generationId: genId,
+      clip_urls: clipUrls,
+      voiceover_script: typeof response.voiceover_script === 'string' ? response.voiceover_script : '',
+      scene_captions: Array.isArray(response.scene_captions) ? response.scene_captions : [],
+      duration,
+      topic: typeof response.topic === 'string' ? response.topic : undefined,
+      quality: vClaim.quality,
+      ...(Array.isArray(response.scene_engines) && response.scene_engines.length > 0
+        ? {
+            scene_engines: response.scene_engines,
+            scene_narrations: response.scene_narrations ?? [],
+            scene_seconds: response.scene_seconds ?? [],
+            scene_dialogues: response.scene_dialogues ?? [],
+          }
+        : {}),
+    }
+
+    await admin.from('events').insert({ user_id: userId, name: ATTEMPT_EVENT, session_id: genId, metadata: { attempt: attemptCount + 1 } })
     try {
-      const res = await fetch('https://api.resend.com/emails', {
+      const composeReq = new NextRequest(`${APP_URL}/api/compose`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          from: FROM_EMAIL,
-          to: email,
-          reply_to: 'joseph@usekineo.com',
-          subject: 'Your AI scenes are ready — one click to finish your video 🎬',
-          text: emailText(finishUrl) + emailFooterText(userId),
-          html: emailHtml(finishUrl, userId),
-          headers: unsubscribeHeaders(userId),
-        }),
+        headers: serviceHeaders(userId),
+        body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error(`resend ${res.status}`)
-      await admin.from('events').insert({
-        user_id: userId,
-        name: RESCUE_EVENT,
-        session_id: genId,
-        metadata: { email_masked: email.replace(/^(.{2}).*(@.*)$/, '$1***$2') },
-      })
-      sent++
-      results.push({ generation: genId.slice(0, 8), outcome: 'sent' })
-      await new Promise((r) => setTimeout(r, 500))
+      const res = await composePost(composeReq)
+      const json = (await res.json().catch(() => null)) as Record<string, unknown> | null
+      if (res.ok) {
+        composed++
+        console.log(`[stranded] server-finish composed gen=${gen8} renderId=${json?.renderId ?? '?'}`)
+        results.push({ generation: gen8, outcome: 'composed_server_side' })
+      } else if (res.status === 409 && json?.pending === true) {
+        results.push({ generation: gen8, outcome: 'compose_pending_race' })
+      } else {
+        console.error(`[stranded] compose failed gen=${gen8}: ${res.status} ${JSON.stringify(json).slice(0, 200)}`)
+        results.push({ generation: gen8, outcome: `compose_error_${res.status}` })
+      }
     } catch (e) {
-      console.error('[stranded] send failed:', e instanceof Error ? e.message : String(e))
-      results.push({ generation: genId.slice(0, 8), outcome: 'send_failed' })
+      console.error(`[stranded] compose threw gen=${gen8}:`, e instanceof Error ? e.message : String(e))
+      results.push({ generation: gen8, outcome: 'compose_threw' })
     }
   }
 
-  console.log(`[stranded] checked=${checked} sent=${sent}`)
-  return NextResponse.json({ checked, sent, results })
+  console.log(`[stranded] checked=${checked} composed=${composed} ready=${ready} rescued=${rescuedCount}`)
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, results })
 }
