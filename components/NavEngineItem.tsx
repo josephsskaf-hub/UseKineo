@@ -16,6 +16,7 @@ export default function NavEngineItem({
   desc,
   chip,
   preview,
+  icon,
 }: {
   href: string
   name: string
@@ -24,6 +25,9 @@ export default function NavEngineItem({
   chip?: string
   /** /previews/{id}.mp4 — clipe leve de 8s do proprio motor. */
   preview?: string
+  /** KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield): caixinha
+      arredondada a esquerda com monograma/glifo do motor. */
+  icon?: React.ReactNode
 }) {
   const ref = useRef<HTMLVideoElement | null>(null)
   return (
@@ -38,11 +42,14 @@ export default function NavEngineItem({
       }}
       onMouseLeave={() => ref.current?.pause()}
     >
-      <b>
-        {name}
-        {chip ? <em className="nm-chip">{chip}</em> : null}
-      </b>
-      <i>{desc}</i>
+      {icon ? <span className="nm-ic" aria-hidden="true">{icon}</span> : null}
+      <span className="nm-tx">
+        <b>
+          {name}
+          {chip ? <em className="nm-chip">{chip}</em> : null}
+        </b>
+        <i>{desc}</i>
+      </span>
       {preview ? (
         <span className="nvp" aria-hidden="true">
           <video ref={ref} src={preview} muted loop playsInline preload="none" />

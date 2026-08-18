@@ -122,8 +122,10 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-col{display:flex;flex-direction:column;position:relative;z-index:1;min-width:235px;margin-top:12px;padding:8px 5px 8px}
 .klp .nd-mega .nm-col+.nm-col{border-left:1px solid var(--line)}
 .klp .nd-mega .nm-h{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--txt2);font-weight:700;padding:6px 15px 7px;margin:0 5px}
-.klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25}
-.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px}
+.klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25;display:flex;align-items:center;gap:11px}
+.klp .nm-ic{flex-shrink:0;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:14px;color:#e8eaee;letter-spacing:-.02em}
+.klp .nm-tx{display:flex;flex-direction:column;min-width:0}
+.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px;white-space:nowrap}
 .klp .nd-mega .nm-col a b{font-weight:600}
 /* KINEO-NAV-MEGA-PREVIEW-2026-08-17 — mini-clipe flutuando a direita do menu
    no hover do motor (preview de 8s ja existente; preload none = zero custo
@@ -791,18 +793,21 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><b>FLUX Schnell</b><i>Instant drafts · 1 credit</i></Link>
-                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><b>FLUX Dev</b><i>Photorealistic · 2 credits</i></Link>
-                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><b>Seedream 5.0 Pro</b><i>Deep understanding · 3 credits</i></Link>
-                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><b>Grok Imagine 2.0</b><em className="nm-chip">NEW</em><i>By xAI · 3 credits</i></Link>
-                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><b>Recraft V3</b><i>Perfect text · 4 credits</i></Link>
-                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><b>Nano Banana Pro</b><em className="nm-chip">STUDIO</em><i>Google’s best · 5 credits</i></Link>
+                  {/* KINEO-MENU-ICONES-2026-08-17 (fundador, ref. Higgsfield):
+                      SEM preco no menu (atrito antes da hora — preco mora na
+                      pagina) + caixinha com monograma/glifo de cada produto. */}
+                  <Link href="/images?engine=schnell&intent_campaign=nav_mega"><span className="nm-ic">F</span><span className="nm-tx"><b>FLUX Schnell</b><i>Instant drafts</i></span></Link>
+                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev</b><i>Sharp &amp; photorealistic</i></span></Link>
+                  <Link href="/images?engine=seedream&intent_campaign=nav_mega"><span className="nm-ic">S</span><span className="nm-tx"><b>Seedream 5.0 Pro</b><i>Deep prompt understanding</i></span></Link>
+                  <Link href="/images?engine=grok&intent_campaign=nav_mega"><span className="nm-ic">𝕏</span><span className="nm-tx"><b>Grok Imagine 2.0</b><em className="nm-chip">NEW</em><i>Highly aesthetic, by xAI</i></span></Link>
+                  <Link href="/images?engine=recraft&intent_campaign=nav_mega"><span className="nm-ic">R</span><span className="nm-tx"><b>Recraft V3</b><i>Perfect text rendering</i></span></Link>
+                  <Link href="/images?engine=nanobanana&intent_campaign=nav_mega"><span className="nm-ic">🍌</span><span className="nm-tx"><b>Nano Banana Pro</b><em className="nm-chip">STUDIO</em><i>Google’s best image model</i></span></Link>
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
-                  <Link href="/images"><b>Create Image</b><em className="nm-chip">NEW</em></Link>
-                  <Link href="/thumbnail-generator">Thumbnails</Link>
-                  <Link href="/animate">Animate a Photo</Link>
+                  <Link href="/images"><span className="nm-ic">🎨</span><span className="nm-tx"><b>Create Image</b><em className="nm-chip">NEW</em><i>Six engines, one screen</i></span></Link>
+                  <Link href="/thumbnail-generator"><span className="nm-ic">🖼</span><span className="nm-tx"><b>Thumbnails</b><i>Click-magnet YouTube covers</i></span></Link>
+                  <Link href="/animate"><span className="nm-ic">🎞</span><span className="nm-tx"><b>Animate a Photo</b><i>Bring any image to life</i></span></Link>
                 </span>
               </span>
             </span>
@@ -814,15 +819,15 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><b>MiniMax Speech HD</b><i>High-fidelity narration · 2 cr/1k</i></Link>
-                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><b>Eleven v3</b><em className="nm-chip">STUDIO</em><i>Emotion &amp; delivery tags · 2 cr/1k</i></Link>
-                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><b>Dia Dialogue</b><em className="nm-chip">NEW</em><i>Two-speaker scenes · 1 cr/1k</i></Link>
-                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><b>Kokoro</b><i>Instant narration · 1 cr/1k</i></Link>
+                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD</b><i>High-fidelity narration</i></span></Link>
+                  <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><span className="nm-ic">11</span><span className="nm-tx"><b>Eleven v3</b><em className="nm-chip">STUDIO</em><i>Emotion &amp; delivery tags</i></span></Link>
+                  <Link href="/audio?engine=dia&intent_campaign=nav_mega"><span className="nm-ic">D</span><span className="nm-tx"><b>Dia Dialogue</b><em className="nm-chip">NEW</em><i>Two-speaker scenes</i></span></Link>
+                  <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><span className="nm-ic">K</span><span className="nm-tx"><b>Kokoro</b><i>Instant narration</i></span></Link>
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
-                  <Link href="/audio"><b>Text to Speech</b><em className="nm-chip">NEW</em></Link>
-                  <Link href="/avatar">Talking Avatar</Link>
+                  <Link href="/audio"><span className="nm-ic">🎙</span><span className="nm-tx"><b>Text to Speech</b><em className="nm-chip">NEW</em><i>Four voice engines</i></span></Link>
+                  <Link href="/avatar"><span className="nm-ic">👤</span><span className="nm-tx"><b>Talking Avatar</b><i>A face that speaks your script</i></span></Link>
                 </span>
               </span>
             </span>
@@ -833,18 +838,18 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine · Free" />
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse · 20 credits" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
-                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion · 50 credits" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
-                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship · 90 credits" chip="STUDIO" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
-                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice · 150" chip="STUDIO" preview="/previews/bed6cb8c-22c5-4a4c-a445-4a01c6d1ced0.mp4" />
+                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — free" icon="⚡" />
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
+                  <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine" chip="STUDIO" icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
+                  <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice" chip="STUDIO" icon="K3" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
-                  <Link href="/studio"><b>Studio</b><em className="nm-chip">NEW</em></Link>
-                  <Link href="/viral-now">🔥 Viral Now</Link>
-                  <Link href="/scripts">Scripts</Link>
-                  <Link href="/examples">Examples</Link>
+                  <Link href="/studio"><span className="nm-ic">🎬</span><span className="nm-tx"><b>Studio</b><em className="nm-chip">NEW</em><i>Every control, one screen</i></span></Link>
+                  <Link href="/viral-now"><span className="nm-ic">🔥</span><span className="nm-tx"><b>Viral Now</b><i>Today’s trending topics</i></span></Link>
+                  <Link href="/scripts"><span className="nm-ic">✍️</span><span className="nm-tx"><b>Scripts</b><i>Ready-to-shoot viral scripts</i></span></Link>
+                  <Link href="/examples"><span className="nm-ic">▦</span><span className="nm-tx"><b>Examples</b><i>Real renders, every engine</i></span></Link>
                 </span>
               </span>
             </span>
