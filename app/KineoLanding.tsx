@@ -125,7 +125,7 @@ html{scroll-behavior:smooth}
 .klp .nd-mega .nm-col a{margin:0 5px;line-height:1.25;display:flex;align-items:center;gap:11px}
 .klp .nm-ic{flex-shrink:0;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:14px;color:#e8eaee;letter-spacing:-.02em}
 .klp .nm-tx{display:flex;flex-direction:column;min-width:0}
-.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px;white-space:nowrap}
+.klp .nd-mega .nm-col a i{display:block;font-style:normal;font-size:11.5px;color:var(--txt2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:210px}
 .klp .nd-mega .nm-col a b{font-weight:600}
 /* KINEO-NAV-MEGA-PREVIEW-2026-08-17 — mini-clipe flutuando a direita do menu
    no hover do motor (preview de 8s ja existente; preload none = zero custo

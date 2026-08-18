@@ -126,7 +126,7 @@ export default function AudioClient() {
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>{eng.perK} cr / 1000 chars ▾</i>
+                <i style={{ marginLeft: 'auto' }}>▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -138,7 +138,6 @@ export default function AudioClient() {
                     <span className="pk-tx">
                       <span className="t">
                         <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        <i>{e.perK} cr / 1k</i>
                       </span>
                       <span className="d">{e.desc}</span>
                     </span>

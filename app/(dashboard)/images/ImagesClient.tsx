@@ -137,7 +137,7 @@ export default function ImagesClient() {
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>{eng.credits} ▾</i>
+                <i style={{ marginLeft: 'auto' }}>▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -149,7 +149,6 @@ export default function ImagesClient() {
                     <span className="pk-tx">
                       <span className="t">
                         <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        <i>{e.credits}</i>
                       </span>
                       <span className="d">{e.desc}</span>
                     </span>

@@ -175,11 +175,13 @@ export default function StudioClient() {
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true">{e.icon}</span>
                     <span className="pk-tx">
+                      {/* KINEO-PRECO-NO-COMPROMISSO-2026-08-18 (fundador +
+                          averiguacao Higgsfield/InVideo: preco nao mora no
+                          seletor — so no cartao de gerar e no /pricing). */}
                       <span className="t">
                         <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        <i>{e.credits}</i>
+                        <i>{e.res}</i>
                       </span>
-                      <span className="sp">{e.res}</span>
                       <span className="d">{e.desc}</span>
                     </span>
                     {e.preview && (
