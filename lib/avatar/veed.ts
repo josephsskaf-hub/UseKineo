@@ -465,11 +465,23 @@ export async function checkAvatarJob(requestId: string, engine?: AvatarEngine): 
     }
     return { status: 'failed', videoUrl: null }
   } catch (err) {
-    console.error(`[avatar/veed] status check failed for ${requestId}:`, err instanceof Error ? err.message : String(err))
-    // A queue-status request can fail while the already-paid provider job keeps
-    // running (network reset, 429, provider 5xx). Treat transport exceptions as
-    // retryable; only an explicit terminal queue state above is allowed to make
-    // the clients discard their resumable snapshot and offer a fresh submit.
+    // KINEO-AVATAR-422-2026-08-18 — flagrado AO VIVO nos logs de producao
+    // (23:00Z): um job avatar devolvendo 422 "Unprocessable Entity" a cada
+    // poll por minutos — spinner eterno, zero refund. E o MESMO defeito que o
+    // caminho cinematografico curou em 05/08 (KINEO-CINEMATIC-RELIABILITY):
+    // 422/400 do fal e TERMINAL (content filter / erro interno do modelo),
+    // nunca transiente. Mapear pra 'processing' prendia o usuario pra sempre;
+    // 'failed' deixa o avatar-status upstream estornar automaticamente.
+    const status = typeof (err as { status?: unknown })?.status === 'number'
+      ? (err as { status: number }).status
+      : null
+    const msg = err instanceof Error ? err.message : String(err)
+    if (status === 422 || status === 400 || /unprocessable entity/i.test(msg)) {
+      console.error(`[avatar/veed] TERMINAL provider error (${status ?? 'no status'}) for ${requestId}:`, msg)
+      return { status: 'failed', videoUrl: null }
+    }
+    console.error(`[avatar/veed] status check failed for ${requestId}:`, msg)
+    // Transporte (rede, 429, 5xx) segue retriavel: o job pago pode estar vivo.
     return { status: 'processing', videoUrl: null }
   }
 }

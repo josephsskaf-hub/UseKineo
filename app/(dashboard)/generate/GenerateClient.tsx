@@ -9431,7 +9431,17 @@ export default function GenerateClient({
                     ? 'Fast renders usually finish in 3–7 minutes; busy queues can take longer.'
                     : 'AI renders can take several minutes depending on the selected engine.'}
                 </div>
-                <div className="mt-1">You can close this tab — we'll email you the moment it's ready. Or leave it open to watch it finish.</div>
+                {/* KINEO-STRANDED-COPY-2026-08-18 — a promessa "pode fechar a
+                    aba" só é VERDADE nos motores de IA: o cron
+                    finish-stranded-renders (15min) vigia os claims
+                    cinematográficos e manda o e-mail de resgate. O modo Fast
+                    não tem claim — fechar a aba mata o render sem e-mail.
+                    Cada modo diz só a sua verdade. */}
+                <div className="mt-1">
+                  {(mode === 'fast' || mode === 'creator')
+                    ? "Almost there — this one finishes fastest with the tab open."
+                    : "You can safely close this tab — when your scenes finish rendering, we'll email you a link that completes the film in one click."}
+                </div>
               </div>
 
               {/* The per-clip tile grid was removed in push #031 — the final
