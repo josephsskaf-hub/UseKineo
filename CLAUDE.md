@@ -1,4 +1,35 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
+# ⚡⚡ SYNC 17/08 (sessão CEO — domingo de 8 produtos) — LER ANTES DE QUALQUER COISA:
+# - PRICING V5 (fundador aprovou): Starter $9.90/60cr · Creator $19.90/140cr ·
+#   Studio $39.90/320cr · Autopilot $299/400cr. SEM 1º MÊS COM DESCONTO em
+#   NENHUM plano (INTRO_PRICES = preço cheio → hasIntroOffer() false; NÃO
+#   reintroduzir "first month" em copy). Trial grátis = 50cr. O $4.90 MORREU.
+#   Página de preços fala em FILMES ("≈ 7 engine films/mo"), não em créditos.
+# - PRODUTOS NOVOS EM PROD: /images (6 motores fal: schnell 1cr/dev 2/seedream 3/
+#   grok 3/recraft 4/nanobanana 5 + upscale ESRGAN 1cr) · /audio (TTS: minimax 2cr/1k
+#   OBRIGATÓRIO output_format:'url', eleven 2, dia 1, kokoro 1 — param é `prompt`!) ·
+#   /library (abas Videos/Images/Audio) · ✨HD Enhance (fal-ai/topaz/upscale/video,
+#   Proteus, upscale_factor 1 = tier $0.02/s; fator 2 = $0.08/s NÃO usar; 10cr,
+#   Studio ganha 2 grátis/mês via videos.enhanced_at) · /ai-video-upscaler (SEO).
+# - STORAGE: tabelas images/audios (RLS select own) + bucket renders (limite
+#   ELEVADO a 250MB via SQL) paths images//audio//enhanced/. TODA mídia gerada
+#   DEVE persistir no nosso bucket (URL do fal expira!). Enhance tem SELF-HEAL:
+#   GET re-copia URLs fal→bucket. Popup da conta = painel 950×430 (medida do
+#   fundador) com Library+storage. Limites por plano: free 10/14d, starter
+#   100/90d, creator 500/forever, studio ∞ (gate de enforcement ainda NÃO existe).
+# - CURADORIA/VITRINE (fundador): NATUREZA — raios/chuva/mar/aventura; FOGO FORA.
+#   Maracaibo (4b12925e) slot 1 do Kling 3 + reel de entrada (mulher+tempestade
+#   0.2-4.7 e avalanche 16.6-19.9 = 4b12925e-avalanche.mp4). Previews agora
+#   crf19-20@1400px CORTADOS DOS MASTERS ENHANCED quando existirem (não mais
+#   640px!). components/AuthReel.tsx = reel único de login+signup (avança
+#   onEnded, NUNCA timer fixo — clipes têm durações diferentes).
+# - LOGIN E SIGNUP = split-screen (vitrine esq., form 440px dir.) — mexeu num,
+#   mexe no outro (AuthReel compartilhado).
+# - PENDÊNCIAS: gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
+#   (decidir grandfather 150) · Starter regional $4.99 (fundador pode querer
+#   subir) · pack one-time $2.90/$4.90 do Offer290Banner (decisão pendente) ·
+#   score viral aleatório (74 vs 81 mesma prompt) · Channels/série com memória
+#   (tese aprovada, não construída) · MiniMax-H3 candidato nº1 a motor novo.
 # ⚡ SYNC 15/08 (sessão CEO) — LEIAM ANTES DE MEXER NA HOME/EXAMPLES:
 # - HOME VIROU VITRINE DE MOTORES (sem composer! decisão do fundador): 4 cards
 #   500x280 full-bleed (Seedance 1.5/Kling 2.5/Veo 3.1/Kling 3) com 4 clipes
