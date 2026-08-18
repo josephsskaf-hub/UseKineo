@@ -1748,6 +1748,18 @@ export function buildCreatomateSource({
   if (hasAvatar && realAudioDuration && realAudioDuration > 0.5 && realAudioDuration < 120) {
     totalDuration = Math.min(totalDuration, clamp(Math.ceil((realAudioDuration + 0.4) * 10) / 10, 3, 90))
   }
+  // KINEO-TIKTOK-61-2026-08-18 (fundador: "pedi 60, entregou 59 — não vai pro
+  // Rewards; esses detalhes precisamos consertar AGORA"): duração pedida >= 60
+  // é CONTRATO de monetização — o programa de Rewards do TikTok só paga vídeo
+  // ACIMA de 1 minuto, então 59.9s vale zero. O corte final nunca sai abaixo
+  // de 61.5s: o loop de clipes abaixo preenche o visual até totalDuration e a
+  // trilha cobre o rabo (fade-out já existe); a narração pode terminar 1-2s
+  // antes sem prejuízo. Não se aplica ao avatar (lá a narração É o relógio do
+  // rosto — esticar deixaria a boca congelada).
+  if (!hasAvatar && typeof duration === 'number' && duration >= 60 && totalDuration < 61.5) {
+    console.log(`[compose] TIKTOK-61: total ${totalDuration}s abaixo do piso com pedido de ${duration}s — esticado para 61.5s`)
+    totalDuration = 61.5
+  }
   // Avatar mode can render with ZERO stock clips (talking head carries the
   // whole video); every other mode still requires clips.
   if (cleanClips.length === 0 && !hasAvatar) {
