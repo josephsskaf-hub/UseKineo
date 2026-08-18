@@ -23,6 +23,11 @@ export const maxDuration = 300
 
 const SLUG = 'fal-ai/topaz/upscale/video'
 const ENHANCE_COST = 10
+// KINEO-4K-2026-08-18 (roubo com critério do 'Seedance 4K' do Higgsfield):
+// upscale_factor 2 → 2160×3840, tier fal >1080p = \$0.08/s (60s ≈ \$4.80 de
+// custo) → 40 créditos (\$6 retail no pior caso, margem fina no 60s mas
+// positiva; no 30s sobra 60%).
+const ENHANCE_4K_COST = 40
 
 function svc() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -46,13 +51,14 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
   if (!configFal()) return NextResponse.json({ error: 'Provider not configured.' }, { status: 500 })
 
-  let body: { videoId?: string }
+  let body: { videoId?: string; quality?: string }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid body.' }, { status: 400 })
   }
   const videoId = String(body.videoId ?? '')
+  const is4k = body.quality === '4k'
   if (!videoId) return NextResponse.json({ error: 'videoId required.' }, { status: 400 })
 
   const { data: video } = await supabase
@@ -89,8 +95,9 @@ export async function POST(req: NextRequest) {
 
   // Débito idempotente por VÍDEO: enhance-<videoId>. Re-clique = mesmo renderId
   // = sem cobrança dupla. Com o grant gratis do Studio, o debito e pulado.
-  if (!freeGrant) {
-    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: `enhance-${videoId}`, cost: ENHANCE_COST })
+  if (!freeGrant || is4k) {
+    // grant grátis do Studio vale só pro HD; 4K é sempre pago.
+    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: `enhance-${videoId}`, cost: is4k ? ENHANCE_4K_COST : ENHANCE_COST })
     if (debit.error || debit.data === null) {
       return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
     }
@@ -101,7 +108,7 @@ export async function POST(req: NextRequest) {
       input: {
         video_url: video.video_url,
         model: 'Proteus',
-        upscale_factor: 1,
+        upscale_factor: is4k ? 2 : 1,
         compression: 0.6,
         recover_detail: 0.6,
         grain: 0.02,

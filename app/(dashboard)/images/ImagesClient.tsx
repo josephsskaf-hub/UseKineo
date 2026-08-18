@@ -102,6 +102,34 @@ export default function ImagesClient() {
     }
   }
 
+  // KINEO-EDIT-2026-08-18 — "✏️ Edit" por instrução (FLUX Kontext, 3cr):
+  // "make it sunset", "change the palette to teal", "remove the text"…
+  const [editIdx, setEditIdx] = useState<number | null>(null)
+  const [editTxt, setEditTxt] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  async function applyEdit(idx: number) {
+    const item = items[idx]
+    if (!item || !editTxt.trim() || editBusy) return
+    setEditBusy(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/images/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: item.upscaled ?? item.url, instruction: editTxt.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Edit failed.')
+      setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model: 'kontext' }, ...xs])
+      setEditIdx(null)
+      setEditTxt('')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Edit failed.')
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
   async function upscale(idx: number) {
     const item = items[idx]
     if (!item || item.upscaling || item.upscaled) return
@@ -222,7 +250,22 @@ export default function ImagesClient() {
                       </button>
                       {/* KINEO-CEO-HOUR-2026-08-17 (#4) — flywheel: imagem → filme */}
                       <a className="pill" style={{ textDecoration: 'none' }} href="/animate">🎬 Animate</a>
+                      <button type="button" className={`pill${editIdx === i ? ' on' : ''}`} onClick={() => { setEditIdx(editIdx === i ? null : i); setEditTxt('') }}>✏️ Edit · 3 cr</button>
                     </div>
+                    {editIdx === i && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                        <input
+                          value={editTxt}
+                          onChange={(e) => setEditTxt(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') applyEdit(i) }}
+                          placeholder="make it sunset · teal palette · remove text…"
+                          style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: 9, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(41,151,255,.35)', color: '#f5f5f7', fontSize: 12, outline: 'none' }}
+                        />
+                        <button type="button" className="pill on" disabled={editBusy || !editTxt.trim()} onClick={() => applyEdit(i)}>
+                          {editBusy ? '…' : 'Go'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

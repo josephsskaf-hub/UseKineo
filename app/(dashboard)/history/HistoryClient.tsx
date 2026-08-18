@@ -444,7 +444,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   }, [])
 
   // KINEO-ENHANCE-2026-08-17 — dispara o Topaz e faz polling ate o resultado.
-  async function handleEnhance(video: Video) {
+  async function handleEnhance(video: Video, quality: 'hd' | '4k' = 'hd') {
     const cur = enhStatus[video.id]
     if (cur === 'processing') return
     if (cur === 'done' && enhUrls[video.id]) {
@@ -463,7 +463,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
       const res = await fetch('/api/enhance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: video.id }),
+        body: JSON.stringify({ videoId: video.id, quality: quality === '4k' ? '4k' : undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? 'Enhance failed.')
@@ -1270,6 +1270,22 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                   >
                     {enhStatus[video.id] === 'processing' ? '✨…' : enhStatus[video.id] === 'done' ? '✨ HD ✓' : '✨ HD'}
                   </button>
+                  {/* KINEO-4K-2026-08-18 — Export 4K (Topaz 2x) antes do 1º enhance */}
+                  {!enhStatus[video.id] && (
+                    <button
+                      onClick={() => handleEnhance(video, '4k')}
+                      title="Export in 4K — Topaz 2x upscale (2160×3840) · 40 credits"
+                      aria-label="Export 4K · 40 credits"
+                      style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+                        padding: '5px 4px', borderRadius: 6,
+                        background: 'rgba(168,85,247,0.08)', border: '1px solid rgba(168,85,247,0.3)',
+                        color: '#c084fc', fontSize: '0.6rem', fontWeight: 700, cursor: 'pointer',
+                      }}
+                    >
+                      4K
+                    </button>
+                  )}
 
                   {/* #459 — share the public /v/[id] page */}
                   <button

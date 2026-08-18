@@ -253,6 +253,22 @@ export default function StudioClient() {
                 🎲 Surprise me
               </button>
             </div>
+            {/* KINEO-TEMPLATES-2026-08-18 (roubo com critério dos format cards
+                do InVideo): um clique arma o formato — esqueleto de prompt +
+                modo de script certo. */}
+            <div className="row" style={{ marginBottom: 8 }}>
+              {([
+                ['📊 Facts', '5 shocking facts about ', 'ai'],
+                ['🕵️ Mystery', 'The unsolved mystery of ', 'ai'],
+                ['📖 True Story', 'The incredible true story of ', 'ai'],
+                ['📝 My Script', '', 'verbatim'],
+              ] as const).map(([label, seed, mode]) => (
+                <button key={label} type="button" className="pill" style={{ fontSize: 11.5 }}
+                  onClick={() => { setScriptMode(mode as 'ai' | 'verbatim'); if (seed) setPrompt(seed) }}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
               placeholder="What’s your video about? One idea in — a finished film out: voiced, scored and captioned." />
             <div className="row" style={{ marginTop: 10 }}>

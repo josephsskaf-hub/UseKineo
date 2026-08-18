@@ -6,6 +6,59 @@ import type { ViralTopic } from '@/lib/viralTopics'
 import { getNextRefreshMs } from '@/lib/viralTopics'
 import { trackEvent } from '@/lib/analytics'
 
+// KINEO-SEASONS-2026-08-18 (roubo com critério da fileira 'Black Friday' do
+// InVideo): temporadas por janela de data — o calendário vira merchandising.
+const SEASONS: { window: [string, string]; title: string; emoji: string; topics: string[] }[] = [
+  {
+    window: ['08-01', '10-31'], title: 'Halloween early birds', emoji: '🎃',
+    topics: [
+      'The true story behind the world’s most haunted doll',
+      'Why this abandoned asylum is sealed until 2050',
+      '3 real cases that inspired horror movies',
+    ],
+  },
+  {
+    window: ['11-01', '11-30'], title: 'Black Friday season', emoji: '🛍️',
+    topics: [
+      'The psychology tricks stores use on Black Friday',
+      'How Black Friday actually started — the dark history',
+      '5 Black Friday “deals” that are never deals',
+    ],
+  },
+  {
+    window: ['12-01', '12-26'], title: 'Holiday season', emoji: '🎄',
+    topics: [
+      'The billion-dollar business of Christmas music',
+      'Why Coca-Cola invented the modern Santa',
+      'The island where Christmas is illegal',
+    ],
+  },
+]
+function activeSeason() {
+  const now = new Date()
+  const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  return SEASONS.find((s) => mmdd >= s.window[0] && mmdd <= s.window[1]) ?? null
+}
+function SeasonRow() {
+  const s = activeSeason()
+  if (!s) return null
+  return (
+    <div style={{ margin: '18px 0 6px', padding: '14px 16px', borderRadius: 14, background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.25)' }}>
+      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#fdba74', marginBottom: 10 }}>
+        {s.emoji} Season: {s.title}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {s.topics.map((t) => (
+          <a key={t} href={`/studio?prompt=${encodeURIComponent(t)}`}
+            style={{ fontSize: 12.5, fontWeight: 600, color: '#f5f5f7', textDecoration: 'none', padding: '8px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+            {t} →
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Vertical color map ───────────────────────────────────────────────────────
 const VERTICAL_COLORS: Record<string, string> = {
   billionaire: '#2997ff',
@@ -325,6 +378,8 @@ export default function ViralNowClient({
             }} />
           </span>
         </div>
+        {/* KINEO-SEASONS-2026-08-18 */}
+        <SeasonRow />
         <p style={{
           margin: 0,
           fontSize: '0.82rem',
