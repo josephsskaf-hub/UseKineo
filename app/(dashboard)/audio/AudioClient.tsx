@@ -10,18 +10,18 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 
 type AudioModelKey = 'eleven' | 'minimax' | 'dia' | 'kokoro'
 
-const AUDIO_ENGINES: { key: AudioModelKey; name: string; tag?: string; desc: string; perK: number; voices: { id: string; label: string }[] }[] = [
-  { key: 'minimax', name: 'MiniMax Speech HD', tag: 'Popular', desc: 'High-fidelity narration voice', perK: 2, voices: [] },
+const AUDIO_ENGINES: { key: AudioModelKey; icon: string; name: string; tag?: string; desc: string; perK: number; voices: { id: string; label: string }[] }[] = [
+  { key: 'minimax', icon: 'M', name: 'MiniMax Speech HD', tag: 'Popular', desc: 'High-fidelity narration voice', perK: 2, voices: [] },
   {
-    key: 'eleven', name: 'Eleven v3', tag: 'Studio', desc: 'Emotion control — (laughs), (whispers)', perK: 2,
+    key: 'eleven', icon: '11', name: 'Eleven v3', tag: 'Studio', desc: 'Emotion control — (laughs), (whispers)', perK: 2,
     voices: [
       { id: 'Rachel', label: 'Rachel' }, { id: 'Aria', label: 'Aria' }, { id: 'Brian', label: 'Brian' },
       { id: 'Charlotte', label: 'Charlotte' }, { id: 'Daniel', label: 'Daniel' }, { id: 'Jessica', label: 'Jessica' },
     ],
   },
-  { key: 'dia', name: 'Dia Dialogue', tag: 'New', desc: 'Two-speaker scenes — [S1] [S2] + laughs', perK: 1, voices: [] },
+  { key: 'dia', icon: 'D', name: 'Dia Dialogue', tag: 'New', desc: 'Two-speaker scenes — [S1] [S2] + laughs', perK: 1, voices: [] },
   {
-    key: 'kokoro', name: 'Kokoro', desc: 'Instant narration — lowest cost', perK: 1,
+    key: 'kokoro', icon: 'K', name: 'Kokoro', desc: 'Instant narration — lowest cost', perK: 1,
     voices: [
       { id: 'af_heart', label: 'Heart (F)' }, { id: 'af_bella', label: 'Bella (F)' }, { id: 'af_nova', label: 'Nova (F)' },
       { id: 'am_adam', label: 'Adam (M)' }, { id: 'am_michael', label: 'Michael (M)' }, { id: 'am_onyx', label: 'Onyx (M)' },
@@ -123,9 +123,10 @@ export default function AudioClient() {
           <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname">
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i>{eng.perK} cr / 1000 chars ▾</i>
+                <i style={{ marginLeft: 'auto' }}>{eng.perK} cr / 1000 chars ▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -133,11 +134,14 @@ export default function AudioClient() {
                 {AUDIO_ENGINES.map((e) => (
                   <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
                     onClick={() => { setModel(e.key); setPickerOpen(false) }}>
-                    <span className="t">
-                      <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      <i>{e.perK} cr / 1k</i>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                        <i>{e.perK} cr / 1k</i>
+                      </span>
+                      <span className="d">{e.desc}</span>
                     </span>
-                    <span className="d">{e.desc}</span>
                   </button>
                 ))}
               </div>

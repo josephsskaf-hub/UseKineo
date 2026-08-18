@@ -797,7 +797,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                       SEM preco no menu (atrito antes da hora — preco mora na
                       pagina) + caixinha com monograma/glifo de cada produto. */}
                   <Link href="/images?engine=schnell&intent_campaign=nav_mega"><span className="nm-ic">F</span><span className="nm-tx"><b>FLUX Schnell</b><i>Instant drafts</i></span></Link>
-                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev</b><i>Sharp &amp; photorealistic</i></span></Link>
+                  <Link href="/images?engine=dev&intent_campaign=nav_mega"><span className="nm-ic">F+</span><span className="nm-tx"><b>FLUX Dev</b><em className="nm-chip">TOP</em><i>Sharp &amp; photorealistic</i></span></Link>
                   <Link href="/images?engine=seedream&intent_campaign=nav_mega"><span className="nm-ic">S</span><span className="nm-tx"><b>Seedream 5.0 Pro</b><i>Deep prompt understanding</i></span></Link>
                   <Link href="/images?engine=grok&intent_campaign=nav_mega"><span className="nm-ic">𝕏</span><span className="nm-tx"><b>Grok Imagine 2.0</b><em className="nm-chip">NEW</em><i>Highly aesthetic, by xAI</i></span></Link>
                   <Link href="/images?engine=recraft&intent_campaign=nav_mega"><span className="nm-ic">R</span><span className="nm-tx"><b>Recraft V3</b><i>Perfect text rendering</i></span></Link>
@@ -819,7 +819,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD</b><i>High-fidelity narration</i></span></Link>
+                  <Link href="/audio?engine=minimax&intent_campaign=nav_mega"><span className="nm-ic">M</span><span className="nm-tx"><b>MiniMax Speech HD</b><em className="nm-chip">TOP</em><i>High-fidelity narration</i></span></Link>
                   <Link href="/audio?engine=eleven&intent_campaign=nav_mega"><span className="nm-ic">11</span><span className="nm-tx"><b>Eleven v3</b><em className="nm-chip">STUDIO</em><i>Emotion &amp; delivery tags</i></span></Link>
                   <Link href="/audio?engine=dia&intent_campaign=nav_mega"><span className="nm-ic">D</span><span className="nm-tx"><b>Dia Dialogue</b><em className="nm-chip">NEW</em><i>Two-speaker scenes</i></span></Link>
                   <Link href="/audio?engine=kokoro&intent_campaign=nav_mega"><span className="nm-ic">K</span><span className="nm-tx"><b>Kokoro</b><i>Instant narration</i></span></Link>
@@ -839,7 +839,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
                   <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — free" icon="⚡" />
-                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
+                  <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" chip="TOP" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine" chip="STUDIO" icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
                   <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice" chip="STUDIO" icon="K3" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
@@ -865,10 +865,10 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
-              <Link href="/studio">Studio — generate video</Link>
-              <Link href="/images">Images — create image</Link>
-              <Link href="/audio">Audio — text to speech</Link>
-              <Link href="/viral-now">Viral Now</Link>
+              <Link href="/studio">🎬 Studio — generate video</Link>
+              <Link href="/images">🎨 Images — create image</Link>
+              <Link href="/audio">🎙 Audio — text to speech</Link>
+              <Link href="/viral-now">🔥 Viral Now</Link>
               <Link href="/scripts">Scripts</Link>
               <Link href="/animate">Animate</Link>
               <Link href="/thumbnail-generator">Thumbnails</Link>
@@ -892,7 +892,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               YouTube, fazemos pra varias utilidades — seja criativo"): a linha
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line">Type an idea — watch it become a film. <span>Voiced, scored and captioned by five cinematic engines. Every card below is a real render.</span></p>
+          <p className="hero-line">Type an idea — watch it become a film. <span>Five video engines, six image models, four voices — scripted, scored and captioned. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">

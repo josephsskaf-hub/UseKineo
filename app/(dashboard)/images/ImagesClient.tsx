@@ -10,13 +10,13 @@ import { STUDIO_KIT_CSS } from '@/components/studioKit'
 type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
 
-const IMG_ENGINES: { key: ImgModelKey; name: string; tag?: string; desc: string; credits: string }[] = [
-  { key: 'schnell', name: 'FLUX Schnell', desc: 'Instant drafts — ~2 seconds', credits: '1 cr' },
-  { key: 'dev', name: 'FLUX Dev', tag: 'Popular', desc: 'Sharp, detailed, photorealistic', credits: '2 cr' },
-  { key: 'seedream', name: 'Seedream 5.0 Pro', desc: 'Deep prompt understanding, native text', credits: '3 cr' },
-  { key: 'grok', name: 'Grok Imagine 2.0', tag: 'New', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
-  { key: 'recraft', name: 'Recraft V3', tag: 'Studio', desc: 'Perfect text rendering (thumbnails!)', credits: '4 cr' },
-  { key: 'nanobanana', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s best 4K image model', credits: '5 cr' },
+const IMG_ENGINES: { key: ImgModelKey; icon: string; name: string; tag?: string; desc: string; credits: string }[] = [
+  { key: 'schnell', icon: 'F', name: 'FLUX Schnell', desc: 'Instant drafts — ~2 seconds', credits: '1 cr' },
+  { key: 'dev', icon: 'F+', name: 'FLUX Dev', tag: 'Popular', desc: 'Sharp, detailed, photorealistic', credits: '2 cr' },
+  { key: 'seedream', icon: 'S', name: 'Seedream 5.0 Pro', desc: 'Deep prompt understanding, native text', credits: '3 cr' },
+  { key: 'grok', icon: '𝕏', name: 'Grok Imagine 2.0', tag: 'New', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
+  { key: 'recraft', icon: 'R', name: 'Recraft V3', tag: 'Studio', desc: 'Perfect text rendering (thumbnails!)', credits: '4 cr' },
+  { key: 'nanobanana', icon: '🍌', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s best 4K image model', credits: '5 cr' },
 ]
 
 const SIZES: { key: ImgSize; label: string }[] = [
@@ -134,9 +134,10 @@ export default function ImagesClient() {
           <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname">
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i>{eng.credits} ▾</i>
+                <i style={{ marginLeft: 'auto' }}>{eng.credits} ▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -144,11 +145,14 @@ export default function ImagesClient() {
                 {IMG_ENGINES.map((e) => (
                   <button key={e.key} type="button" className={`pk${e.key === model ? ' on' : ''}`}
                     onClick={() => { setModel(e.key); setPickerOpen(false) }}>
-                    <span className="t">
-                      <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      <i>{e.credits}</i>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                        <i>{e.credits}</i>
+                      </span>
+                      <span className="d">{e.desc}</span>
                     </span>
-                    <span className="d">{e.desc}</span>
                   </button>
                 ))}
               </div>

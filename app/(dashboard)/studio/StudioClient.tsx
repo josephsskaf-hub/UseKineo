@@ -23,6 +23,7 @@ type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood'
 // (verificado por ffprobe), entao a spec visivel e uma so: 1080p.
 const ENGINES: {
   key: EngineKey
+  icon: string
   name: string
   tag?: string
   desc: string
@@ -30,11 +31,11 @@ const ENGINES: {
   credits: string
   supportsRef: boolean
 }[] = [
-  { key: 'fast', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: 'Free', supportsRef: false },
-  { key: 'seedance', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
-  { key: 'kling', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
-  { key: 'veo', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
-  { key: 'hollywood', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
+  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: 'Free', supportsRef: false },
+  { key: 'seedance', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
+  { key: 'kling', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
+  { key: 'veo', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
+  { key: 'hollywood', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
@@ -97,7 +98,7 @@ export default function StudioClient() {
     setShowNews(false)
     try { localStorage.setItem('kineo:news:2026-08-17', '1') } catch {}
   }
-  const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null }[]>([])
+  const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }[]>([])
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { videos: [] }))
@@ -159,9 +160,10 @@ export default function StudioClient() {
           <div style={{ position: 'relative' }}>
             <button type="button" className="mdlbtn" onClick={() => setPickerOpen((o) => !o)}>
               <span className="lab" style={{ marginBottom: 0 }}><span className="n">1</span>Engine</span>
-              <span className="mdlname">
+              <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i>{eng.res} ▾</i>
+                <i style={{ marginLeft: 'auto' }}>{eng.res} ▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -169,12 +171,15 @@ export default function StudioClient() {
                 {ENGINES.map((e) => (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
-                    <span className="t">
-                      <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                      <i>{e.credits}</i>
+                    <span className="eng-ic" aria-hidden="true">{e.icon}</span>
+                    <span className="pk-tx">
+                      <span className="t">
+                        <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
+                        <i>{e.credits}</i>
+                      </span>
+                      <span className="sp">{e.res}</span>
+                      <span className="d">{e.desc}</span>
                     </span>
-                    <span className="sp">{e.res}</span>
-                    <span className="d">{e.desc}</span>
                   </button>
                 ))}
               </div>
@@ -215,7 +220,7 @@ export default function StudioClient() {
 
           {/* Custo + Generate */}
           <div className="cost">
-            <div className="sum">{eng.name} · {duration}s · {resolution} · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · {resolution} · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
             <div className="val"><span>Estimated cost</span><b>{eng.credits}</b></div>
             <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
               {prompt.trim() ? 'Generate →' : 'Type your idea first'}
@@ -282,9 +287,10 @@ export default function StudioClient() {
               </div>
               <div className="vrow">
                 {myVids.map((v) => (
-                  <a key={v.id} className="vtile" href={v.video_url ?? '#'} target="_blank" rel="noreferrer">
+                  <a key={v.id} className="vtile" href={(v.enhanced_url ?? v.video_url) ?? '#'} target="_blank" rel="noreferrer" style={{ position: 'relative' }}>
+                    {v.enhanced_url && <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.18)', border: '1px solid rgba(52,211,153,0.5)', color: '#34d399' }}>✨ HD</span>}
                     <video
-                      src={`${v.video_url}#t=0.1`}
+                      src={`${v.enhanced_url ?? v.video_url}#t=0.1`}
                       poster={v.thumbnail_url ?? undefined}
                       muted
                       loop

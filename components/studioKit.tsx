@@ -43,7 +43,9 @@ export const STUDIO_KIT_CSS = `
 .stu .mdlname b{font-size:17px;font-weight:700;letter-spacing:-.01em;font-family:var(--font-display),var(--font-inter),sans-serif}
 .stu .mdlname i{font-style:normal;font-size:12px;color:#5cb3ff}
 .stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
-.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease}
+.stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
+.stu .pk .pk-tx{flex:1;min-width:0}
+.stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
 .stu .pk+.pk{margin-top:2px}
 .stu .pk:hover{background:rgba(255,255,255,.05)}
 .stu .pk.on{background:rgba(41,151,255,.12);border-color:rgba(41,151,255,.35);box-shadow:inset 3px 0 0 #2997ff}

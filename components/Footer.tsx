@@ -59,6 +59,11 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
     // do app — o Footer não está no layout raiz.
     // ═══════════════════════════════════════════════════════════════════════
     links: [
+      // KINEO-NOITE-2026-08-17 — os produtos novos do dia entram no rodape
+      // (26 paginas publicas linkando; nenhuma pagina nasce orfa).
+      { href: '/images', label: 'AI image generator — 6 engines' },
+      { href: '/audio', label: 'AI voice generator (text to speech)' },
+      { href: '/ai-video-upscaler', label: 'AI video upscaler & enhancer' },
       { href: '/viral-now', label: 'Trending Shorts ideas today' },
       { href: '/ai-avatar', label: 'AI Avatar video — your face, any script' },
       // `&` literal, NÃO `&amp;`: isto é uma string JS renderizada como
