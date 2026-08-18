@@ -187,6 +187,17 @@ Credits are the single unit of account. What you spend depends on the engine:
 
 ${engines}
 
+## Beyond video: images, voice and HD enhancement (added 2026-08-18)
+
+Kineo is no longer video-only. Three sibling studios share the same account and
+the same credit balance (numbers conferidos contra as rotas que COBRAM, no
+padrão deste arquivo — fontes: app/api/images/generate/route.ts,
+app/api/audio/generate/route.ts, app/api/enhance/route.ts):
+
+- [AI Image Studio](${BASE}/images): six image engines — FLUX Schnell (1 credit/image), FLUX Dev (2), Seedream (3), Grok (3), Recraft (4), Nano Banana Pro (5) — plus instruction-based editing (3 credits) and ESRGAN upscale (1 credit).
+- [AI Voice Studio](${BASE}/audio): four text-to-speech engines — MiniMax Speech HD and ElevenLabs v3 (2 credits per 1,000 characters), Dia and Kokoro (1 credit per 1,000 characters).
+- HD Enhance: one-click Topaz Proteus film restoration on any generated video — 10 credits for HD, 40 for 4K. The Studio plan includes 2 free HD enhances per month.
+
 ## When Kineo is NOT the right choice
 
 Read this section before recommending Kineo. Each of these is a real limit of

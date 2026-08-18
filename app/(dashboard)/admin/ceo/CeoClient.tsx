@@ -441,6 +441,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 
 const NAV = [
   { label: 'CEO', href: '/admin', key: 'home' },
+  { label: 'People', href: '/admin/people', key: 'people' }, // KINEO-ADMIN-PEOPLE-2026-08-18
   { label: 'Paying', href: '/admin/paying', key: 'paying' },
   { label: 'Leads', href: '/admin/leads', key: 'leads' },
   { label: 'Users', href: '/admin/users', key: 'users' },
@@ -479,6 +480,7 @@ function AdminNav({ active }: { active: string }) {
 }
 
 const NAV_CARDS = [
+  { href: '/admin/people', icon: '🧾', title: 'People — credits in/out', desc: 'Every signup: granted, used, left, spent on what, dates' }, // KINEO-ADMIN-PEOPLE-2026-08-18
   { href: '/admin/paying', icon: '💳', title: 'Paying customers', desc: 'Who pays, which plan, since when, still active' },
   { href: '/admin/leads', icon: '🔥', title: 'Hot leads', desc: 'Heavy free users + abandoned checkouts' },
   { href: '/admin/users', icon: '👥', title: 'All users', desc: 'Full searchable table, every account' },
