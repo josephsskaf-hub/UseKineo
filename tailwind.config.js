@@ -35,6 +35,53 @@ module.exports = {
         '2xl': 'var(--r-sm, 13px)',
         '3xl': 'var(--r-lg, 22px)',
       },
+      /* KINEO-UI-DIARIO-2026-08-18 — item 24 do roadmap Higgsfield.
+         A QUARTA LINGUAGEM DE TIMING NAO ESTAVA EM ARQUIVO NENHUM, ESTAVA
+         NO DEFAULT DESTE CONFIG. As classes Tailwind (`transition*`,
+         `duration-*`, `ease-*`) sao 289 ocorrencias em `app/`+`components/`
+         e NAO passam por `transition:` em CSS nenhum — grep por token nunca
+         as alcanca, exatamente como o raio do item 22. Sem estas duas chaves
+         elas rodavam no default do Tailwind: 150ms e cubic-bezier(.4,0,.2,1),
+         uma TERCEIRA curva que nao existe em arquivo nosso.
+         Medido no DOM de producao em 18/08, antes da mudanca: /pricing tem
+         31 elementos animados e **31 de 31 na curva do Tailwind**, zero nos
+         nossos tokens; /studio tem 10. Ou seja o teste 4 do dia 20
+         ("<=3 duracoes + 2 easings nomeados") podia dar VERDE com a pagina de
+         precos inteira rodando numa curva de terceiro.
+         O MAPA, e por que ele nao e o que o backlog escreveu em 15/08:
+         - DEFAULT 150ms -> --dur-fast (150ms): DELTA ZERO. E o balde grande
+           (todo `transition`/`transition-all`/`transition-colors` sem
+           `duration-*`), entao a mudanca de maior alcance do roadmap nao move
+           um milissegundo. O ganho e de acoplamento: no dia em que --dur-fast
+           mudar, estes 289 lugares mudam junto em vez de rachar a UI em duas
+           velocidades.
+         - 200 -> --dur-fast (150ms, -50ms) e 300 -> --dur-base (250ms, -50ms)
+           pela REGRA DETERMINISTICA da casa (globals.css, 15/08): <=0.2s vira
+           fast, 0.22-0.3s vira base, >=0.35s vira slow. O backlog propunha
+           200->base (+50ms); a regra e posterior e vence — e o teto de 50ms
+           por colagem e respeitado nos dois.
+         - 700 FICA DE FORA, de proposito: `duration-700` tem 1 uso
+           (ViralScore.tsx:208, a barra que cresce na frente da pessoa) e
+           mapea-lo para --dur-slow seria -300ms, seis vezes o teto de 50ms.
+           Isso nao e consolidacao, e redesign — decisao do fundador, nao de
+           sprint.
+         - `out` -> --ease-out-expo alcanca as 22 `ease-out` do repo. `in-out`
+           (18 usos) FICA no default porque a casa nao tem token de in-out:
+           forcar --ease-swift (que e curva de saida) seria trocar o
+           comportamento de 18 elementos sem token que justifique. Fica
+           registrado no backlog como o resto medido deste item.
+         Fallback dentro do var() pelo mesmo motivo do item 22: se o :root
+         perder o token, `transition-duration: var(--dur-fast)` seria invalido
+         e a declaracao cairia — com fallback o pior caso e o valor de hoje. */
+      transitionDuration: {
+        DEFAULT: 'var(--dur-fast, 150ms)',
+        200: 'var(--dur-fast, 150ms)',
+        300: 'var(--dur-base, 250ms)',
+      },
+      transitionTimingFunction: {
+        DEFAULT: 'var(--ease-swift, cubic-bezier(.2,0,0,1))',
+        out: 'var(--ease-out-expo, cubic-bezier(.16,1,.3,1))',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },

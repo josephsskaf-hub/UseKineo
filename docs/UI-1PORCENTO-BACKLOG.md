@@ -813,6 +813,47 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
     28 — tela unica, sem "abaixo da dobra" onde diluir). A boa noticia repete a do
     `/studio`: **4 elementos em Space Grotesk**, entao as telas novas da casa
     nasceram fora do padrao monofonte. Rollback: n/a (item de pipeline).
+
+30. **NOVO (18/08, sprint 14h) — /images VENDE SEIS MOTORES DE IMAGEM COM UM
+    DROPDOWN DE TEXTO: A PAGINA INTEIRA TEM 1 `<img>`, E ELA E DO PROPRIO
+    CLIENTE.** Achado na rotacao — `/images` e `/audio` entraram em producao em
+    17-18/08 e nunca passaram por este doc. Medido no DOM de producao hoje
+    (viewport 1920x911): **339 elementos, 1 `<img>`, 0 `<video>`**. O unico `<img>`
+    e uma imagem que ESTE usuario ja gerou, dentro de "My Images" — ou seja **para
+    quem chega com a conta vazia, a tela que vende geracao de imagem nao mostra
+    nenhuma imagem**. O subtitulo promete "Type it. See it. Six image engines, one
+    screen" e o seletor de motor e um dropdown de texto ("FLUX Dev") com um
+    quadradinho de sigla; o cliente escolhe entre schnell/dev/seedream/grok/recraft/
+    nanobanana — que custam de 1 a 5 creditos — **sem ver um pixel do que cada um
+    faz**, e o custo so aparece depois que ele escolhe.
+    Isso e exatamente a licao que a casa ja aprendeu e ja cobrou: em 15/08 a home
+    trocou o composer por uma **vitrine de motores** com 4 clipes curados girando
+    por card (`EngineCycleCard` + `lib/engineWall.ts`), e o placar do dia foi
+    **14 eventos de checkout, recorde contra 2-4/dia**. O Higgsfield faz o mesmo —
+    **o modelo nunca e vendido pelo nome, e vendido pelo frame**. `/images` e a
+    unica superficie onde o output E uma imagem estatica, isto e, onde a prova e
+    mais barata que em qualquer outro lugar do produto (nada de MP4, nada de
+    poster, nada de `preload`), e e a que nao tem prova nenhuma.
+    Antes: 6 motores num dropdown de texto, 1 `<img>` na pagina, 0 amostra por
+    motor, custo revelado so apos a escolha, "My Images" vazio para conta nova.
+    Depois: (a) cada motor carrega **uma miniatura curada gerada por ele mesmo**
+    (assets estaticos em `public/`, `loading="lazy"`, `width`/`height` declarados
+    para CLS 0, curadoria do fundador como em `engineWall.ts` — natureza:
+    raios/chuva/mar/aventura, fogo fora); (b) o **custo em creditos aparece junto
+    da amostra**, na hora de escolher, nao depois; (c) o empty state de "My Images"
+    mostra 3 exemplos curados com o prompt que os gerou, que e ao mesmo tempo prova
+    e tutorial (1 clique = prompt no campo). **Nao toca em preco, credito nem
+    entitlement — so mostra o numero que a tabela ja cobra.** Rollback: git revert.
+    Anotados junto, para nao virarem item novo depois: `/images` tem **12 raios
+    distintos** e os piores fora da escala sao `10px` (19x), `5px` (5x) e `16px`
+    (4x) — quarta confirmacao do item 22 numa tela nova; roda na **QUINTA linguagem
+    de timing do item 28** (`ease` puro em **111** elementos contra 10 na curva do
+    Tailwind e **zero** nos tokens), com 4 duracoes (0.15/0.16/0.18/0.3s); tem **21
+    elementos com o acento e os 21 acima da dobra** (mesmo perfil de `/studio` e
+    `/library` — tela unica); e **19 elementos em Space Grotesk**, entao as telas
+    novas seguem fora do padrao monofonte, o que e bom. O unico `<img>` da pagina
+    nao declara `width`/`height` nem `loading` — quando "My Images" encher, cada
+    linha nova e um candidato a shift.
 ---
 
 ## COMO SABEREMOS (o teste do dia 20 — 10 afirmacoes verificaveis)
@@ -856,6 +897,130 @@ Resultado visivel: dia 20 = screenshot lado a lado com o Higgsfield passa no tes
 - CLS zero: poster e video sao camadas absolute no mesmo box aspect-ratio 9/16.
 
 ## DIARIO
+
+### 18/08 (sprint 14h) — ITEM 24: A CURVA DE TERCEIRO SAIU DE 41 ELEMENTOS EM DUAS PAGINAS COM UM ARQUIVO, E O TSC NAO E O PORTAO DESTE ARQUIVO (PROVADO, NAO SUPOSTO)
+
+**1. Auditoria do item anterior (item 23, /history) — EM PRODUCAO, e PASSOU ACIMA DO
+PREVISTO.** `git ls-remote origin main` e o HEAD local sao o mesmo commit
+(`41b4baa`) e o `HistoryCardFrame` esta no ar. Medido no DOM de
+`www.usekineo.com/history` hoje, com 100 videos na conta:
+- **100 cards, 9 `<video>` no documento.** Antes eram **100 de 100**; agora so montam
+  os que entram no viewport mais o `rootMargin` de 300px — **91 elementos de midia
+  simplesmente nao existem mais no DOM**, e nao apenas "nao baixam".
+- **Zero retangulo preto: 100 de 100 caixas com o gradiente da marca.** Os 9 montados
+  tem `#t=0.1` em 9/9 e `preload="metadata"` em 9/9, exatamente como escrito.
+- **Nada regrediu:** as caixas 9:16 continuam identicas, o selo `✨ HD` e o botao de
+  play seguem por cima, e nao ha erro de console proprio da pagina.
+- **Limite honesto, e e o mesmo da sprint de ontem:** a aba roda em
+  `visibilityState: "hidden"`, entao `readyState` ficou 0 em 9/9 e o transfer de
+  `.mp4` deu **0 byte** — isso **nao** prova economia de rede nem que o frame pinta;
+  prova so a estrutura. O que sustenta o item e a contagem de elementos (100→9), que
+  independe de visibilidade.
+- **ACHADO DA AUDITORIA, e ele NAO e do item 23: a producao lanca React #425
+  (hydration text mismatch) e #422 (erro ao hidratar Suspense) em TODA rota
+  medida** — `/history` as 14:10:17 e `/pricing` as 14:10:37, mesmo chunk
+  (`fd9d1056`), mesma pilha. **Nao e regressao da sprint** (aparece numa pagina que
+  nao tem `HistoryCardFrame` nenhum, e o `armed` nasce `false` nos dois lados), e por
+  isso nao virou conserto de sprint de UI — mas e um erro global de layout que
+  derruba a hidratacao e precisa de dono. Candidato obvio pela forma: texto derivado
+  de `Date.now()` renderizado no servidor e recalculado no cliente.
+
+**2. O ITEM DA SPRINT — item 24 (`tailwind.config.js`: timing e curva apontando para
+os tokens), e o mapa saiu diferente do que o backlog escreveu em 15/08, com motivo.**
+- **O que entrou:** `theme.extend.transitionDuration` (`DEFAULT`, `200`, `300`) e
+  `theme.extend.transitionTimingFunction` (`DEFAULT`, `out`) — **um arquivo, 47
+  linhas, das quais 39 sao o comentario que explica o mapa**.
+- **`700` FICOU DE FORA, contra o que o backlog propunha.** `duration-700` tem **1
+  uso** (`components/ViralScore.tsx:208`, a barra que cresce na frente da pessoa) e
+  mapea-lo para `--dur-slow` seria **-300ms, seis vezes o teto de 50ms** que a casa
+  se impos em 15/08. Isso nao e consolidacao, e redesign — decisao do fundador.
+- **`200` foi para `--dur-fast` (-50ms) e nao para `--dur-base` (+50ms)**, porque a
+  **regra deterministica** escrita no `globals.css` em 15/08 (<=0.2s = fast) e
+  posterior ao texto do item e vence o julgamento por papel. Os dois deltas cabem no
+  teto.
+- **`ease-in-out` (18 usos) fica no default, declarado:** a casa **nao tem token de
+  in-out**; forcar `--ease-swift`, que e curva de saida, trocaria o comportamento de
+  18 elementos sem token que justifique. Fica escrito como o resto medido do item.
+- **O `DEFAULT` de duracao move ZERO milissegundo** (150ms → `--dur-fast`, que e
+  150ms) e cobre o balde grande: **289 ocorrencias de `transition*` em `app/` +
+  `components/`**. A mudanca de maior alcance do roadmap nao muda um frame de
+  animacao — muda so quem manda nela.
+
+**3. Antes→depois medido em PRODUCAO, com a folha de teste no body (metodo da casa,
+14/08).** A regra emitida pelo build novo foi injetada na producao ao vivo:
+- **`/pricing`: 31 elementos animados, e 31 de 31 estavam na curva
+  `cubic-bezier(.4,0,.2,1)` — que nao existe em arquivo nenhum nosso.** Depois:
+  **31 de 31 em `--ease-swift`, zero na curva de terceiro**, e as duracoes caem de
+  **2 valores (0.15s e 0.2s) para 1 (0.15s)**.
+- **`/studio`: os 10 elementos na curva do Tailwind vao a ZERO**; os outros **132
+  rodam em `ease` puro**, que e a QUINTA linguagem do item 28 (styled-jsx) e **este
+  item nao alcanca** — dito na cara para nao virar vitoria inflada.
+- **`CLS = 0`** por `PerformanceObserver` com `buffered:true`, e **as 12 caixas
+  medidas ficaram byte a byte identicas** antes e depois — timing e curva nao entram
+  em layout, por construcao. **LCP intocado:** o poster segue sendo o primeiro paint;
+  nenhuma regra nova toca `<img>`, `<video>` ou o critical path.
+
+**4. Rigor — e aqui a sprint descobriu que estava prestes a mentir para si mesma.**
+- **`tsc --noEmit` EXIT=0** — mas **o tsc NAO e o portao deste arquivo, e isso foi
+  provado, nao suposto**: injetei `const _falsifyUISprint: number = "not a number"`
+  **dentro do `tailwind.config.js`** e o **tsc continuou EXIT=0** (o `tsconfig` nao
+  inclui `.js` de configuracao). Se a sprint tivesse parado no "tsc verde", teria
+  declarado verificado um arquivo que o verificador nunca leu.
+- **O portao real e o build do Tailwind, e ele foi falsificado de verdade:** troquei
+  `300: 'var(--dur-base, 250ms)'` por `300: '9999ms'`, limpei o cache do jiti e o CSS
+  emitido virou **`.duration-300 { transition-duration: 9999ms }`** → restaurei →
+  **md5 `2b64d457…` identico ao original** → CSS emitido **byte a byte igual** ao
+  verificado. Isto e, o build le ESTE arquivo e obedece a ESTES valores.
+- **Anomalia resolvida em vez de anotada:** o erro de sintaxe injetado **nao** quebrou
+  o build do Tailwind (EXIT=0, CSS correto) mesmo com `node_modules/.cache` apagado.
+  Nao e fallback silencioso: o Tailwind carrega o config via **jiti**, que aceita
+  sintaxe TypeScript e **remove a anotacao de tipo**. Por isso a falsificacao valida
+  aqui e semantica (valor errado), nunca sintatica.
+- **CSS emitido conferido classe a classe** com o binario do repo (`tailwindcss
+  3.4.19`) num config-espelho: `.transition`, `.transition-all` e `.transition-colors`
+  saem com `var(--ease-swift, …)` + `var(--dur-fast, 150ms)`; `.duration-200` →
+  `var(--dur-fast, 150ms)`; `.duration-300` → `var(--dur-base, 250ms)`; `.ease-out` →
+  `var(--ease-out-expo, …)`; **`.duration-500`, `.duration-700`, `.ease-in`,
+  `.ease-in-out` e `.ease-linear` intactos**, como projetado.
+- **EOL conferido no HEAD por arquivo:** `tailwind.config.js` e **CRLF 100%** no HEAD
+  (91/91) e no disco (138/138) — as 47 linhas novas entraram em CRLF, e o
+  `git diff --stat` mostra **47 insercoes e 0 delecoes**, sem o arquivo inteiro virar
+  diff. Este doc e **LF, 0 CR** nos dois lados.
+
+**5. Revisao adversarial (2x, a 2a cacando defeito na propria mudanca).**
+- **`prefers-reduced-motion` continua vencendo:** o bloco global do `globals.css`
+  (linha 604) usa `transition-duration: 0.01ms !important`, e **nenhuma classe
+  utilitaria nova tem `!important`** — conferido que o repo nao usa nenhuma variante
+  `!duration-*`/`!transition*`/`!ease-*`. O desligador segue soberano.
+- **Ninguem le o config em runtime:** grep por `resolveConfig`/`require('tailwind
+  .config')` em `app/`, `components/` e `lib/` **nao acha nada** — a mudanca nao
+  vaza para JS, so para CSS.
+- **Coreografia com `setTimeout` nao existe nos alvos:** os 14 usos de
+  `duration-200`/`duration-300` foram lidos um a um — sao hover de card, escala de
+  icone, opacidade de thumb e o slide do `Sidebar`; **nenhum tem JS esperando o fim da
+  transicao** para desmontar. O pior caso e um drawer 50ms mais rapido.
+- **`duration-*` nao toca animacao:** confirmado no CSS emitido que a chave so gera
+  `transition-duration` — `spin`, `btn-pulse`, `shimmer` e o resto do ambiente ficam
+  onde estavam (a regra do dia 12: ambiente nao e escala de UI).
+- **DEFEITO QUE A 2a PASSADA ACHOU:** `ease-out` → `--ease-out-expo` **e a unica parte
+  visivel deste item** — sao **22 usos**, e `expo` (`.16,1,.3,1`) chega bem mais rapido
+  que `cubic-bezier(0,0,.2,1)`. Nao ha como medir isso por DOM (a curva so aparece em
+  movimento). **Fica declarado como a linha para o fundador olhar depois do deploy**;
+  se destoar, o rollback e uma linha (apagar a chave `out`), sem tocar no resto.
+
+**6. Realimentacao do backlog — ITEM 30 (`/images`).** A rotacao chegou nas telas que
+entraram em producao em 17-18/08 e nunca passaram por este doc. `/images` tem **339
+elementos e 1 `<img>`** — e o unico `<img>` e uma imagem que o proprio usuario gerou:
+**para conta nova, a tela que vende geracao de imagem nao mostra imagem nenhuma**, e
+os 6 motores (1 a 5 creditos) sao escolhidos num **dropdown de texto**, sem uma
+amostra do que cada um produz. E a licao que a home ja cobrou em 15/08 (vitrine de
+motores → 14 checkouts, recorde) aplicada ao lugar onde a prova e **mais barata que em
+qualquer outro** — imagem estatica, sem MP4, sem poster, sem `preload`. Detalhe,
+numeros e o "depois" no item 30.
+
+**Proximo em ordem:** item 25 (`/wall` abrindo vazio com o contador da outra aba) —
+itens 21, 22, 23 e 24 estao fechados; 26 e 27 pedem aprovacao do fundador porque mudam
+aparencia, e 29 e de pipeline. [KINEO-UI-DIARIO-2026-08-18]
 
 ### FECHAMENTO DO DIA — 17/08 (3 linhas, escritas pela sprint das 18h)
 
