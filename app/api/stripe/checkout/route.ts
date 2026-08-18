@@ -1098,6 +1098,10 @@ async function buildAndRedirect(
   // não estiver ativo na Stripe; o lookup é reaproveitado mais abaixo para não
   // gastar uma segunda chamada de API.
   let resolvedPromo: Awaited<ReturnType<typeof stripe.promotionCodes.list>>['data'][number] | null = null
+  // KINEO-FIRST50-2026-08-18 — trava do gate abaixo: quando true, o bloco de
+  // aplicação de promo mais abaixo é PULADO (só setar resolvedPromo=null não
+  // bastaria — aquele bloco re-consulta a Stripe e reaplicaria o código).
+  let promoBlocked = false
   if (requestedPromo && !privatePackPromo) {
     try {
       const pre = await stripe.promotionCodes.list({ code: requestedPromo, active: true, limit: 1 })
@@ -1106,6 +1110,49 @@ async function buildAndRedirect(
       // Falha de rede não pode custar a venda: sem resolução, o intro segue
       // valendo e o bloco de promo mais abaixo tenta de novo.
       console.warn('[stripe/checkout] promo pre-check failed, intro keeps priority:', preErr)
+    }
+  }
+
+  // KINEO-FIRST50-2026-08-18 — autorização do fundador (18/08): promo público
+  // FIRST50 = 50% SÓ NA 1ª FATURA (irmão de 1 mês do COMEBACK50, que é 3
+  // meses). AUTO-PROVISIONADO no padrão ensureIntroCoupon: o servidor cria o
+  // cupom e o promotion code na Stripe na primeira vez que um link ?promo=
+  // FIRST50 é usado — zero setup manual no dashboard, impossível prometer
+  // desconto que não existe. percent_off vale igual em USD/BRL/INR (sem id por
+  // moeda, ao contrário do amount_off do intro). Fail-safe herdado: qualquer
+  // erro aqui segue o checkout a preço cheio, nunca bloqueia a venda.
+  // GATE EM CÓDIGO (mesma regra do COMEBACK50, Ordem I): só Creator/Studio
+  // mensal — NUNCA Starter (o preço de entrada não cobre inferência) e NUNCA
+  // annual (já embute 2 meses grátis; 50% em cima seria desconto duplo).
+  if (requestedPromo && requestedPromo.toUpperCase() === 'FIRST50' && !privatePackPromo) {
+    if (tier === 'starter' || isAnnual) {
+      console.warn(`[stripe/checkout] FIRST50 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator/Studio mensal`)
+      resolvedPromo = null
+      promoBlocked = true
+    } else if (!resolvedPromo) {
+      try {
+        const FIRST50_COUPON_ID = 'KINEO_FIRST50'
+        try {
+          await stripe.coupons.retrieve(FIRST50_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: FIRST50_COUPON_ID,
+            percent_off: 50,
+            duration: 'once',
+            name: '50% off first month',
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: FIRST50_COUPON_ID, code: 'FIRST50' })
+        } catch {
+          // já existe (corrida ou segunda visita) — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: 'FIRST50', active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log('[stripe/checkout] FIRST50 self-provisioned/resolved')
+      } catch (e) {
+        console.warn('[stripe/checkout] FIRST50 self-provision falhou (checkout segue a preço cheio):', e)
+      }
     }
   }
 
@@ -1182,7 +1229,7 @@ async function buildAndRedirect(
     )
   }
 
-  if (!discountApplied && requestedPromo) {
+  if (!discountApplied && requestedPromo && !promoBlocked) { // KINEO-FIRST50-2026-08-18: gate
     try {
       // Reaproveita o pre-check de precedência (KINEO-PROMO-BEATS-INTRO) quando
       // ele já resolveu; só chama a Stripe de novo no caminho privatePackPromo,
