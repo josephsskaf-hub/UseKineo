@@ -5438,6 +5438,11 @@ export default function GenerateClient({
   // clicou num botao que dizia o preco. handleGenerateGuarded mantem o modal
   // de sem-creditos como ultima guarda.
   const studioOneClickFiredRef = useRef(false)
+  // KINEO-AUDIT-CORTINA-2026-08-18 (auditoria #1/#2): a cortina so pode cobrir
+  // a fase 'options' enquanto um auto-fire REAL esta pendente. Sem token
+  // (reload/back-forward) ou apos o fire (que pode abrir o paywall), ela abre
+  // e devolve o painel classico — nunca mais spinner eterno.
+  const studioAutoFirePendingRef = useRef(true)
   useEffect(() => {
     if (phase !== 'options' || studioOneClickFiredRef.current) return
     if (searchParams?.get('studio') !== '1') return
@@ -5455,13 +5460,16 @@ export default function GenerateClient({
     if ((uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
-      if (!raw) return
+      if (!raw) { studioAutoFirePendingRef.current = false; return }
       sessionStorage.removeItem('kineo:studio:go:v1')
       const tok = JSON.parse(raw) as { t?: number }
-      if (!tok?.t || Date.now() - tok.t > 120_000) return
+      if (!tok?.t || Date.now() - tok.t > 120_000) { studioAutoFirePendingRef.current = false; return }
       studioOneClickFiredRef.current = true
       handleGenerateGuarded()
+      // paywall/erro sincronos ja aconteceram — a cortina libera a tela
+      studioAutoFirePendingRef.current = false
     } catch {
+      studioAutoFirePendingRef.current = false
       // sem token valido → comportamento classico (usuario clica Generate)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -7834,8 +7842,10 @@ export default function GenerateClient({
   // painel classico volta (mensagens/retry moram la).
   if (
     searchParams?.get('studio') === '1' &&
-    (phase === 'idle' || phase === 'analyzing' || phase === 'scripting' || phase === 'options') &&
-    !error
+    (phase === 'idle' || phase === 'analyzing' || phase === 'scripting' ||
+      (phase === 'options' && studioAutoFirePendingRef.current)) &&
+    !error &&
+    !showUpgradeModal
   ) {
     return (
       <div className="stu" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '72vh', textAlign: 'center' }}>

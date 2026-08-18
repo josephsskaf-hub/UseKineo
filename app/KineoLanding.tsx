@@ -859,7 +859,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         <div className="nav-right">
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio">Dashboard</Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?src=nav">Start free</Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?utm_source=nav">Start free</Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -876,7 +876,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio">Dashboard</Link>
-                : <Link className="btn btn-w" href="/signup?src=nav-mobile">Start free</Link>}
+                : <Link className="btn btn-w" href="/signup?utm_source=nav-mobile">Start free</Link>}
             </label>
           </div>
         </div>
@@ -945,7 +945,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <div className="promo">
                 <h3>Start with the full toolkit</h3>
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
-                <Link className="btn btn-w" href={isSignedIn ? '/generate?src=engine_bento' : '/signup?src=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
+                <Link className="btn btn-w" href={isSignedIn ? '/generate?src=engine_bento' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
                 <span className="pstack" aria-hidden="true">
                   <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
                   <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />
@@ -1318,7 +1318,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
                 <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
               </div>
-              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?src=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
+              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da

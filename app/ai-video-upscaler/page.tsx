@@ -74,7 +74,7 @@ export default function AiVideoUpscalerPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href="/signup?src=upscaler"
+            href="/signup?utm_source=upscaler"
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             Try it free — 50 credits →

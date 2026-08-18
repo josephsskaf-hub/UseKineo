@@ -1113,8 +1113,10 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     </div>
                   ) : (
                     <div
+                      id={`v-${video.id}`}
                       onClick={() => setLightbox(video.id)}
                       style={{
+                        scrollMarginTop: 80,
                         width: '100%',
                         height: '100%',
                         position: 'relative',

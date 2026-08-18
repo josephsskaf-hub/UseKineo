@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
   // = sem cobrança dupla. Com o grant gratis do Studio, o debito e pulado.
   if (!freeGrant || is4k) {
     // grant grátis do Studio vale só pro HD; 4K é sempre pago.
-    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: `enhance-${videoId}`, cost: is4k ? ENHANCE_4K_COST : ENHANCE_COST })
+    const debit = await debitVideoCredits(supabase, { userId: user.id, renderId: is4k ? `enhance4k-${videoId}` : `enhance-${videoId}`, cost: is4k ? ENHANCE_4K_COST : ENHANCE_COST })
     if (debit.error || debit.data === null) {
       return NextResponse.json({ error: 'Not enough credits.', code: 'credits' }, { status: 402 })
     }

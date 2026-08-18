@@ -49,6 +49,8 @@ export async function updateSession(request: NextRequest) {
   if (isProtected && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
+    // KINEO-AUDIT-REDIRECT-2026-08-18: destino preservado (login le ?redirect=)
+    url.searchParams.set('redirect', request.nextUrl.pathname)
     return NextResponse.redirect(url)
   }
 

@@ -188,6 +188,10 @@ export default function AudioClient() {
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
+                {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
+                {error.toLowerCase().includes('signed in') && (
+                  <> <a href="/login?redirect=/audio" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
+                )}
               </p>
             )}
           </div>

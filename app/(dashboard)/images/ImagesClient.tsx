@@ -211,7 +211,7 @@ export default function ImagesClient() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
             <div className="lab"><span className="n">3</span>Your image</div>
-            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
+            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4} maxLength={2000}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
             {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
                 branco: um clique preenche o prompt. */}
@@ -231,6 +231,10 @@ export default function ImagesClient() {
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
+                {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
+                {error.toLowerCase().includes('signed in') && (
+                  <> <a href="/login?redirect=/images" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
+                )}
               </p>
             )}
           </div>

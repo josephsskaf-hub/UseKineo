@@ -94,7 +94,7 @@ export default function LibraryClient() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
             {vids.map((v) => (
-              <Link key={v.id} href="/history" className="card" style={{ padding: 8, textDecoration: 'none' }}>
+              <Link key={v.id} href={`/history#v-${v.id}`} className="card" style={{ padding: 8, textDecoration: 'none' }}>
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {v.enhanced_url && (
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.45)', color: '#34d399' }}>✨ HD</span>

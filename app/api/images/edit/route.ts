@@ -14,7 +14,9 @@ import { persistImage } from '@/lib/imageStore'
 
 export const maxDuration = 60
 
-const ALLOWED_HOST_RE = /^https:\/\/([a-z0-9.-]+\.)?(fal\.media|fal\.run|cqqukkvjjrguayiyjvhh\.supabase\.co)\//i
+// KINEO-AUDIT-ENV-2026-08-18: host do storage derivado do env, nao hardcoded.
+const SUPA_HOST = (() => { try { return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? '').host.replace(/\./g, '\\.') } catch { return 'supabase\\.co' } })()
+const ALLOWED_HOST_RE = new RegExp(`^https://([a-z0-9.-]+\\.)?(fal\\.media|fal\\.run|${SUPA_HOST})/`, 'i')
 const EDIT_COST = 3
 
 export async function POST(req: NextRequest) {

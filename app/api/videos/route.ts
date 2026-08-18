@@ -146,7 +146,7 @@ export async function GET() {
         .select(columns)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
-        .limit(6)
+        .limit(48)
     }
 
     let query = await runSelect(wideColumns)

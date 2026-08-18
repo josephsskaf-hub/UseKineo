@@ -86,6 +86,7 @@ export default function StudioClient() {
   const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim'>('ai')
   const [refName, setRefName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
+  const campaignRef = useRef('studio_v4')
   // KINEO-STUDIO-MYVIDS-2026-08-17 (pedido do fundador na aprovacao: "colocar
   // na parte de baixo os meus ultimos videos — e o que falta pra completar"):
   // os 6 renders mais recentes do usuario, hover da play, clique abre o filme.
@@ -117,6 +118,10 @@ export default function StudioClient() {
     if (e && ENGINES.some((x) => x.key === e)) setEngine(e as EngineKey)
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    // KINEO-AUDIT-CAMPAIGN-2026-08-18: a campanha da landing (nav_mega/
+    // engine_tile/hero_engine) atravessa o Studio em vez de virar 'studio_v4'.
+    const ic = sp.get('intent_campaign')
+    if (ic) campaignRef.current = ic
   }, [])
 
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
@@ -136,7 +141,7 @@ export default function StudioClient() {
     try {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
-    const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: 'studio_v4' })
+    const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
     router.push(`/generate?${q.toString()}`)
   }
 
@@ -200,16 +205,16 @@ export default function StudioClient() {
           <div className="card">
             <div className="lab"><span className="n">2</span>Format</div>
             <div className="row" style={{ marginBottom: 12 }}>
-              <button type="button" className="pill off" title="Fase 2 — precisa do backend de 2 cenas afiado antes de ligar">15s<span className="soon">SOON</span></button>
+              <button type="button" className="pill off" title="Coming soon">15s<span className="soon">SOON</span></button>
               <button type="button" className={`pill${duration === 45 ? ' on' : ''}`} onClick={() => setDuration(45)}>45s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
             </div>
             <div className="row" style={{ marginBottom: 12 }}>
               <button type="button" className={`pill${aspect === '9:16' ? ' on' : ''}`} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
-              <button type="button" className="pill off" title="Fase 2 — falta o template horizontal de legendas no compose">16:9<span className="soon">SOON</span></button>
+              <button type="button" className="pill off" title="Coming soon">16:9<span className="soon">SOON</span></button>
             </div>
             <div className="row">
-              <button type="button" className="pill off" title="Todos os motores já saem em Full HD — 720p não é mais necessário">720p</button>
+              <button type="button" disabled className="pill off" title="Every engine already renders in Full HD at no extra cost">720p<span className="soon">SOON</span></button>
               <button type="button" className={`pill${resolution === '1080p' ? ' on' : ''}`} onClick={() => setResolution('1080p')}>1080p Full HD</button>
             </div>
             <div className="hint">{eng.name} renders in Full HD at no extra cost.</div>
@@ -223,7 +228,7 @@ export default function StudioClient() {
                 (botao morto = promessa falsa). Ate o pipe de upload ligar,
                 vira SOON honesto — selo honesto vale dentro do produto tambem. */}
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={(ev) => setRefName(ev.target.files?.[0]?.name ?? null)} />
-            <button type="button" disabled className="upl no" title="Fase 2 — o pipe de upload da referencia ainda nao chega ao render">
+            <button type="button" disabled className="upl no" title="Coming soon">
               🖼️ Start your video from an image — coming soon
             </button>
           </div>
