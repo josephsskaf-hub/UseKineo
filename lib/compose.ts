@@ -2679,11 +2679,17 @@ export function buildHollywoodCreatomateSource({
   // Clamp 2..20s: a hollywood line is ≤220 chars ≈ ≤13s of speech, so 20 is
   // pure safety. MUST mirror secondsOf in app/api/compose/route.ts or the
   // narration-block offsets drift from the real timeline.
+  // KINEO-CONTRATO-C2-2026-08-18 — honra os segundos exatos do plano (MOTORMAX;
+  // o molde 5|10/8-fixo/teto-10 encolhia 51s planejados para 44-46s compostos).
+  // MUST mirror secondsOf in app/api/compose/route.ts.
   const secondsFor = (c: HollywoodClipInput): number =>
     c.engine === 'host'
       ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
-      : c.engine === 'dialogue' ? (c.seconds === 5 ? 5 : 10) : c.engine === 'cinematic' ? 8 :
-        Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(10, Math.max(2, c.seconds)) : 10
+      : c.engine === 'dialogue'
+        ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
+        : c.engine === 'cinematic'
+          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(8, Math.max(4, c.seconds)) : 8)
+          : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(12, Math.max(2, c.seconds)) : 10)
 
   const durations = cleanClips.map(secondsFor)
   let total = durations.reduce((s, d) => s + d, 0)
@@ -2696,8 +2702,12 @@ export function buildHollywoodCreatomateSource({
   // >60s). Middle scenes can't be trimmed here either: their narration mp3s
   // were placed at offsets computed from the UNtrimmed durations in
   // app/api/compose/route.ts, and moving earlier scenes would desync them.
-  while (total > 60 && durations.length > 0 && cleanClips[durations.length - 1].engine !== 'host') {
-    const overflow = total - 60
+  // KINEO-CONTRATO-C2-2026-08-18 — teto de apara 60→64: aparar para 60.0s
+  // cravados matava o TikTok Creator Rewards (que exige >60s). 61-64s e a
+  // zona perfeita; so aparamos o que passar DISSO.
+  const TRIM_CEILING = 64
+  while (total > TRIM_CEILING && durations.length > 0 && cleanClips[durations.length - 1].engine !== 'host') {
+    const overflow = total - TRIM_CEILING
     const lastIdx = durations.length - 1
     const trimmable = durations[lastIdx] - 2 // never below 2s
     if (trimmable <= 0) break

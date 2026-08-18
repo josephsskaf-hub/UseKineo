@@ -1887,7 +1887,30 @@ export async function POST(req: NextRequest) {
               shortRetryFeedback: `scenes ${dup[0]} and ${dup[1]} show the SAME visual subject. Every non-dialogue scene must depict a DIFFERENT primary subject from the story (different event, place, era or moment) — and the environmentSheet must appear ONLY in scenes set in the narrator's own location.`,
             })
             if (!dupPair(replanned)) plan = replanned
-            else console.warn('[cinematic] hollywood variety replan still repetitive — keeping best effort')
+            else {
+              // KINEO-CONTRATO-C3-2026-08-18 — dentes: "keeping best effort"
+              // entregou o par repetido do render ef2d09bf. Replan nao
+              // divergiu → divergencia DETERMINISTICA em codigo: a 2a cena do
+              // par ganha um eixo visual novo (angulo/hora/escala), perde o
+              // environmentSheet (a cola que repetia o mesmo mar) e mantem so
+              // a cabeca do prompt original + styleSheet.
+              const AXES = [
+                'extreme aerial view at night, tiny lights far below',
+                'macro close-up of one telling detail, shallow focus, texture filling the frame',
+                'vast wide establishing shot at dawn, tiny human silhouette for scale',
+                'slow-motion detail shot, dust and particles drifting through a shaft of light',
+              ]
+              let axed = 0
+              let d: [number, number] | null = null
+              while ((d = dupPair(plan)) !== null && axed < 4) {
+                const sc = plan.scenes[d[1] - 1]
+                const stripped = plan.environmentSheet ? sc.prompt.split(plan.environmentSheet).join(' ') : sc.prompt
+                const head = stripped.replace(/\s+/g, ' ').trim().split(' ').slice(0, 14).join(' ')
+                sc.prompt = `${AXES[axed % AXES.length]}, ${head}, ${plan.styleSheet}`
+                console.warn(`[contrato] C3 variety enforced in code: scene ${d[1]} re-axed`)
+                axed++
+              }
+            }
           } catch (e) {
             console.warn('[cinematic] hollywood variety replan failed (keeping first plan):', e instanceof Error ? e.message : String(e))
           }
@@ -1975,6 +1998,128 @@ export async function POST(req: NextRequest) {
           }
         }
         console.log(`[cinematic] hollywood plan duration: ${total}s of ${target}s target (${plan.scenes.length} scenes)`)
+      }
+
+      // ═══ KINEO-CONTRATO-2026-08-18 — Cláusulas 1+2 (docs/CONTRATO-HOLLYWOOD.md)
+      // Render ef2d09bf provou: o planner condensou 160 palavras em 52 e
+      // submeteu 51s de 68s. C1: com script verbatim, o TEXTO FALADO do filme
+      // é o roteiro do usuário, redistribuído cena a cena EM CÓDIGO — o GPT
+      // dirige a câmera, nunca mais escreve/condensa/inventa fala. O relógio
+      // vira o roteiro (~2.3 palavras/s), então duração fecha por aritmética.
+      if (verbatim && hollywoodVoiceover && hollywoodVoiceover.trim().length > 0) {
+        const wordsIn = (t: string) => t.trim().split(/\s+/).filter(Boolean).length
+        const totalWords = wordsIn(hollywoodVoiceover)
+        const sentences =
+          hollywoodVoiceover
+            .replace(/\s+/g, ' ')
+            .match(/[^.!?…]+[.!?…]+["”']?|[^.!?…]+$/g)
+            ?.map((s) => s.trim())
+            .filter(Boolean) ?? []
+        if (totalWords >= 40 && sentences.length >= 3) {
+          type PlanScene = (typeof plan.scenes)[number]
+          const capWords = (sc: PlanScene) =>
+            sc.type === 'dialogue' ? 32 : sc.type === 'cinematic' ? 18 : 30 // cinematic=Veo max 8s
+          const planSecs = plan.scenes.reduce((a, sc) => a + (sc.seconds || 5), 0) || 1
+          let si = 0
+          for (let i = 0; i < plan.scenes.length; i++) {
+            const sc = plan.scenes[i]
+            const share = Math.max(6, Math.round(totalWords * ((sc.seconds || 5) / planSecs)))
+            const chunk: string[] = []
+            let w = 0
+            while (si < sentences.length) {
+              const nw = wordsIn(sentences[si])
+              if (chunk.length > 0 && (w + nw > capWords(sc) || w >= share)) break
+              chunk.push(sentences[si])
+              w += nw
+              si++
+            }
+            const text = chunk.join(' ').trim()
+            if (!text) continue
+            if (sc.type === 'dialogue') {
+              const spoken = text.replace(/"/g, "'")
+              sc.dialogueLine = spoken
+              sc.prompt = /"[^"]{6,}"/.test(sc.prompt)
+                ? sc.prompt.replace(/"[^"]{6,}"/, `"${spoken}"`)
+                : `${sc.prompt} The person looks straight into the lens and says: "${spoken}"`
+              sc.voiceover = undefined
+              sc.needsNarration = false
+              sc.seconds = Math.max(3, Math.min(15, Math.round(w / 2.3) + 1))
+            } else {
+              sc.voiceover = text
+              sc.needsNarration = true
+              const cap = sc.type === 'cinematic' ? 8 : 12 // Veo entrega no max 8s
+              sc.seconds = Math.max(4, Math.min(cap, Math.round(w / 2.3) + 1))
+            }
+          }
+          // Sobra de roteiro (história maior que o plano): vira cenas de apoio
+          // novas — o conteúdo do fundador NUNCA é dropado.
+          while (si < sentences.length && plan.scenes.length < 9) {
+            const chunk: string[] = []
+            let w = 0
+            while (si < sentences.length && (chunk.length === 0 || w + wordsIn(sentences[si]) <= 28)) {
+              chunk.push(sentences[si])
+              w += wordsIn(sentences[si])
+              si++
+            }
+            plan.scenes.push({
+              index: plan.scenes.length + 1,
+              type: 'support',
+              beat: 'PAYOFF',
+              seconds: Math.max(4, Math.min(12, Math.round(w / 2.3) + 1)),
+              prompt: `slow cinematic insert continuing the story, ${plan.environmentSheet}, level horizon, stable slow dolly detail shot, ${plan.styleSheet}`,
+              voiceover: chunk.join(' '),
+              needsNarration: true,
+              caption: '',
+            } as PlanScene)
+          }
+          if (si < sentences.length) {
+            const rest = sentences.slice(si).join(' ')
+            const lastNarr = [...plan.scenes].reverse().find((sc) => sc.type !== 'dialogue')
+            if (lastNarr) {
+              lastNarr.voiceover = `${lastNarr.voiceover ?? ''} ${rest}`.trim()
+              lastNarr.seconds = Math.max(4, Math.min(12, Math.round(wordsIn(lastNarr.voiceover) / 2.3) + 1))
+            }
+          }
+          console.log(
+            `[contrato] C1 verbatim: ${totalWords} palavras do roteiro → ${plan.scenes.length} cenas, ${plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)}s falados (zero texto inventado)`,
+          )
+        }
+      }
+
+      // C2 — DURAÇÃO É CONTRATO: nunca submeter plano < 95% do alvo. Se ainda
+      // faltar depois de replans+esticador+C1, cenas de apoio atmosféricas
+      // (ambiente da própria história, sem gente) completam a conta — b-roll
+      // custa centavos e rabo com trilha é melhor que vídeo curto que vale
+      // ZERO no TikTok Rewards.
+      {
+        type PlanScene = (typeof plan.scenes)[number]
+        const tally = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
+        let t = tally()
+        const floor95 = Math.round(hollywoodTarget * 0.95)
+        while (t < floor95 && plan.scenes.length < 10) {
+          plan.scenes.push({
+            index: plan.scenes.length + 1,
+            type: 'support',
+            beat: 'PAYOFF',
+            seconds: Math.max(4, Math.min(10, floor95 - t)),
+            prompt: `slow atmospheric closing shot of ${plan.environmentSheet}, no people, golden light fading, level horizon, stable slow dolly, ${plan.styleSheet}`,
+            voiceover: undefined,
+            needsNarration: false,
+            caption: '',
+          } as PlanScene)
+          t = tally()
+        }
+        if (t < floor95) {
+          for (const sc of plan.scenes) {
+            if (t >= floor95) break
+            if (sc.type !== 'dialogue' && (sc.seconds || 0) < 12) {
+              const d = Math.min(12 - (sc.seconds || 0), floor95 - t)
+              sc.seconds = (sc.seconds || 0) + d
+              t += d
+            }
+          }
+        }
+        console.log(`[contrato] C2: plano final ${t}s de ${hollywoodTarget}s alvo (piso ${floor95}s, ${plan.scenes.length} cenas)`)
       }
 
       // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 "UM MUNDO": generate the
@@ -2285,7 +2430,10 @@ export async function POST(req: NextRequest) {
         (acc, sc, i) => acc + (hRequestIds[i] ? (sc.seconds || 0) : 0),
         0,
       )
-      if (hValid.length === 0 || hSubmittedSec < hPlannedSec * 0.6) {
+      // KINEO-CONTRATO-C2-2026-08-18 — piso de submissão sobe 60%→90%: com o
+      // plano agora fechando >=95% do alvo, aceitar só 60% dele de volta seria
+      // reabrir a porta do vídeo curto. Falhou >10% das cenas → aborta+estorna.
+      if (hValid.length === 0 || hSubmittedSec < hPlannedSec * 0.9) {
         console.error(
           `[cinematic] hollywood FAILFAST: only ${hValid.length}/${plan.scenes.length} scenes (${hSubmittedSec}s of ${hPlannedSec}s planned) — aborting with refund${FAL_EXHAUSTED ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
         )

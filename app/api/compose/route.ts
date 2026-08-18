@@ -1474,10 +1474,19 @@ export async function POST(req: NextRequest) {
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — host scenes use their MEASURED audio
       // seconds exactly (clamp 2..20, mirrors the builder — snapping would
       // re-introduce the silence/cut-speech defect the host path removes).
+      // KINEO-CONTRATO-C2-2026-08-18 — o molde velho (dialogue 5|10, cinematic
+      // 8 fixo, support teto 10) ENCOLHIA o plano: 51s planejados viravam
+      // 44-46s compostos. MOTORMAX: os motores aceitam duracao exata — o
+      // compose agora HONRA os segundos do plano (so clamps de seguranca).
+      // MUST mirror secondsFor in lib/compose.ts.
       const secondsOf = (c: HollywoodClipInput): number =>
         c.engine === 'host'
           ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
-          : c.engine === 'dialogue' ? (c.seconds === 5 ? 5 : 10) : c.engine === 'cinematic' ? 8 : Math.min(10, Math.max(2, c.seconds))
+          : c.engine === 'dialogue'
+            ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
+            : c.engine === 'cinematic'
+              ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(8, Math.max(4, c.seconds)) : 8)
+              : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(12, Math.max(2, c.seconds)) : 10)
 
       // KINEO-HOLLYWOOD-24-2026-07-10 — one pending TTS entry PER narrated
       // scene (no more contiguous-block grouping), placed at that scene's own
