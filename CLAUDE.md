@@ -25,6 +25,11 @@
 #   onEnded, NUNCA timer fixo — clipes têm durações diferentes).
 # - LOGIN E SIGNUP = split-screen (vitrine esq., form 440px dir.) — mexeu num,
 #   mexe no outro (AuthReel compartilhado).
+# - 🚨 PRIORIDADE #1 DA PRÓXIMA SESSÃO: docs/CONTRATO-HOLLYWOOD.md — render
+#   ef2d09bf provou (log): planner entrega 51s de 68s alvo, condensa script
+#   verbatim de 160→52 palavras, aceita cena repetida/borrada "best effort" e
+#   queima watermark /free em render PAGO. 4 cláusulas hard-gate no doc.
+#   Fundador: "solução definitiva, não podemos ter o flagship assim".
 # - PENDÊNCIAS: gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
 #   (decidir grandfather 150) · Starter regional $4.99 (fundador pode querer
 #   subir) · pack one-time $2.90/$4.90 do Offer290Banner (decisão pendente) ·
