@@ -115,6 +115,13 @@
 - Idioma: Inglês
 - Escolher sempre os temas com maior potencial viral (baseado nos Shorts que já performaram bem)
 
+## ⚠ REGRA FIXA — DURAÇÃO 60s+ (fundador 18/08, TikTok Creator Rewards)
+**Todo vídeo da casa (vitrine + canais do fundador) mira 60 segundos ou mais**
+— o programa de Rewards do TikTok só monetiza vídeo >1min. Na prática: duração
+60s no Studio + script de ~150-165 palavras (narração/2.3wps); o overshoot
+TIKTOK-61 do planner já garante que o corte final passa de 60s. Script menor
+que isso = pedir pro fundador confirmar antes.
+
 ## ⚠ REGRA FIXA — scripts de vídeo (fundador 15/08)
 **Sempre que o fundador pedir uma script de vídeo, entregar JUNTO as configurações de geração** — motor, duração, character, "Use my script as is" vs "Let AI structure", e custo em créditos. Nunca mandar script solta.
 - Script escrita por mim/por ele → sempre "Use my script as is" (narração verbatim)
