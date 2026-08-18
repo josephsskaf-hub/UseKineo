@@ -7,6 +7,7 @@
 // player + download + galeria My Audio persistente (tabela audios + bucket).
 import { useEffect, useMemo, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 
 type AudioModelKey = 'eleven' | 'minimax' | 'dia' | 'kokoro'
 
@@ -45,6 +46,9 @@ export default function AudioClient() {
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // KINEO-TOPUP-POPUP-2026-08-18 — 402 'Not enough credits' abre o popup de
+  // recarga (packs one-time) em vez de morrer num texto de erro.
+  const [showTopup, setShowTopup] = useState(false)
   const [items, setItems] = useState<Item[]>([])
 
   const eng = AUDIO_ENGINES.find((e) => e.key === model)!
@@ -87,7 +91,7 @@ export default function AudioClient() {
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
       setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model, voice, text: text.trim() }, ...xs])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generation failed.')
+      { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) setShowTopup(true) }
     } finally {
       setBusy(false)
     }
@@ -185,10 +189,14 @@ export default function AudioClient() {
                 ))}
               </div>
             )}
+            {showTopup && <CreditsTopupModal surface="audio_402" onClose={() => setShowTopup(false)} />}
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
+                {error.toLowerCase().includes('credits') && (
+                  <> <button type="button" onClick={() => setShowTopup(true)} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
+                )}
                 {error.toLowerCase().includes('signed in') && (
                   <> <a href="/login?redirect=/audio" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
                 )}

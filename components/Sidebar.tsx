@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useState, useEffect, useCallback } from 'react'
 import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 interface SidebarProps {
@@ -258,6 +259,8 @@ export default function Sidebar({
   const router = useRouter()
   const supabase = createClient()
   const [showAuthModal, setShowAuthModal] = useState(false)
+  // KINEO-TOPUP-POPUP-2026-08-18 — popup de recarga sem troca de plano
+  const [showTopup, setShowTopup] = useState(false)
   const [isPro, setIsPro] = useState(initialIsPro)
   const [userEmail, setUserEmail] = useState(initialEmail)
   const [displayName, setDisplayName] = useState('')
@@ -524,11 +527,18 @@ export default function Sidebar({
         {/* Bottom area: credits card + (guest CTA or no-credits upsell) */}
         {isLoggedIn && (
           <div className="px-3 pt-3 pb-2 flex-shrink-0">
-            <Link
-              href="/pricing"
-              onClick={onClose}
+            <button
+              type="button"
+              // KINEO-TOPUP-POPUP-2026-08-18 (fundador, tarefa do dia): o chip
+              // de creditos abria o /pricing — pagina de PLANO. Quem clica no
+              // "+" quer CREDITO. Agora abre o CreditsTopupModal (packs
+              // one-time na moeda do comprador); o upgrade de plano continua
+              // a um clique como link secundario dentro do proprio modal.
+              onClick={() => setShowTopup(true)}
+              aria-label="Add credits"
               className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
               style={{
+                width: '100%', textAlign: 'left', cursor: 'pointer',
                 // KINEO-NAV-REDESIGN-2026-07-10 — landing-card surface (quiet
                 // border, no neon halo) so the column reads clean.
                 background: '#131316',
@@ -594,7 +604,7 @@ export default function Sidebar({
               >
                 +
               </div>
-            </Link>
+            </button>
           </div>
         )}
 
@@ -872,6 +882,7 @@ export default function Sidebar({
         </div>
       </aside>
 
+      {showTopup && <CreditsTopupModal surface="sidebar_chip" onClose={() => setShowTopup(false)} />}
       {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} defaultTab="signup" />}
     </>
   )

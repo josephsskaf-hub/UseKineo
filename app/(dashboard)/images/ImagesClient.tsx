@@ -6,6 +6,7 @@
 // Upscale 2x por imagem. Aprovado pra stage; sobe pra prod no ok do fundador.
 import { useEffect, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 
 type ImgModelKey = 'schnell' | 'dev' | 'recraft' | 'nanobanana' | 'seedream' | 'grok'
 type ImgSize = 'square_hd' | 'portrait_16_9' | 'landscape_16_9'
@@ -34,6 +35,9 @@ export default function ImagesClient() {
   const [prompt, setPrompt] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // KINEO-TOPUP-POPUP-2026-08-18 — 402 'Not enough credits' abre o popup de
+  // recarga (packs one-time) em vez de morrer num texto de erro.
+  const [showTopup, setShowTopup] = useState(false)
   const [items, setItems] = useState<Item[]>([])
 
   // KINEO-IMAGES-PROD-2026-08-17 — o mega-menu Image aponta motores pra ca
@@ -75,7 +79,7 @@ export default function ImagesClient() {
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
       setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model }, ...xs])
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generation failed.')
+      { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) setShowTopup(true) }
     } finally {
       setBusy(false)
     }
@@ -124,7 +128,7 @@ export default function ImagesClient() {
       setEditIdx(null)
       setEditTxt('')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Edit failed.')
+      { const m = e instanceof Error ? e.message : 'Edit failed.'; setError(m); if (/not enough credits/i.test(m)) setShowTopup(true) }
     } finally {
       setEditBusy(false)
     }
@@ -144,7 +148,7 @@ export default function ImagesClient() {
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Upscale failed.')
       setItems((xs) => xs.map((x, i) => (i === idx ? { ...x, upscaled: data.url as string, upscaling: false } : x)))
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upscale failed.')
+      { const m = e instanceof Error ? e.message : 'Upscale failed.'; setError(m); if (/not enough credits/i.test(m)) setShowTopup(true) }
       setItems((xs) => xs.map((x, i) => (i === idx ? { ...x, upscaling: false } : x)))
     }
   }
@@ -228,10 +232,14 @@ export default function ImagesClient() {
                 ))}
               </div>
             )}
+            {showTopup && <CreditsTopupModal surface="images_402" onClose={() => setShowTopup(false)} />}
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
+                {error.toLowerCase().includes('credits') && (
+                  <> <button type="button" onClick={() => setShowTopup(true)} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
+                )}
                 {error.toLowerCase().includes('signed in') && (
                   <> <a href="/login?redirect=/images" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
                 )}

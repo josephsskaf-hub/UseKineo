@@ -150,6 +150,7 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
         <nav className="flex gap-1 mt-4 flex-wrap">
           {[
             { label: '← CEO', href: '/admin' },
+            { label: 'People', href: '/admin/people' }, // KINEO-ADMIN-PEOPLE-2026-08-18
             { label: 'Paying', href: '/admin/paying' },
             { label: 'Users', href: '/admin/users' },
             { label: 'Funnel', href: '/admin/funnel' },
