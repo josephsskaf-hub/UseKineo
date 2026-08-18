@@ -11,6 +11,47 @@
 # todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
 # em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
 
+## 18/08/2026 — 🔴🔴 O pico recuou pela metade, mas os dois tanques pequenos (fal e OpenAI) seguem no escuro — e o produto continua rodando, o que sugere que o fundador recarregou
+
+**50 cadastros em 24h (metade do recorde de 97; ainda 2,5× o normal), 48 vídeos entregues,
+19 renders de IA. Fato central do dia: NÃO consigo ler os painéis do fal e da OpenAI daqui
+(sessão sem browser logado), e ontem os dois zeravam em horas. A evidência indireta é boa —
+6 Hollywood + 12 Seedance renderizaram HOJE e zero falha por quota/saldo em 24h — o que só é
+possível se houve recarga (ontem o fal tinha $27,67 e o banco estima ~$83 queimados desde
+então). Mas "provavelmente recarregou" não é veredito: os dois ficam VERMELHOS até o fundador
+confirmar visualmente saldo + auto-recarga LIGADA (é a 3ª vez que "ligado" não persiste).**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **fal.ai** | 🔴 **VERMELHO até confirmação — painel ilegível hoje** | Banco: **19 renders IA em 24h** (12 Seedance + 6 Hollywood + 1 Kling) ≈ **~$83/24h ESTIMADOS** (12×$1,97 + 6×$9,50 + Kling ~$2; lembrete: o banco historicamente SUBCONTA ~1,9×) · sintomas: 2 `fal_poll_deadline_exceeded` em 48h (madrugada de 17/08), nenhum novo hoje | Ontem: saldo $27,67 + auto top-up OFF. Consumo estimado desde então (~$83) > saldo de ontem → **ou houve recarga manual, ou está operando no vapor**. Renders IA seguem completando (8 hoje até agora), então não morreu. **Ação: fundador confirmar no painel HOJE — saldo ≥$200 e a linha "Auto top-up" ATIVA no Credit activity (evidência = a linha, não aritmética).** |
+| **OpenAI** | 🔴 **VERMELHO até confirmação — projeção de ontem zera HOJE** | Banco: **0 falhas quota/openai em 24h** (motivos 24h: analyze_blocked_active_render_gate 31, failed 5, cinematic_dispatch_not_ok 3 — nenhum de saldo) · 48 vídeos = 48 scriptings OK | Ontem: $8,86 a −$6,33/dia + banner "Auto-reload is OFF" → **zeraria 18–19/08, ou seja, HOJE**. Scripting funcionando = ainda tem saldo, mas pode ser questão de horas. **Ação: fundador confirmar no painel HOJE — saldo ≥$50 e "Enable auto-reload" salvo (o banner de ontem dizia OFF).** |
+| **Creatomate** | 🟡 **AMARELO — estoura ANTES da renovação até na média 7d** | Estimativa fórmula validada (6 acertos seguidos, razão 1,115): **ciclo ~7.949 de 30.000 (27%)** · 24h: 48 vídeos, 2.505s ≈ **1.738 cr** (vs 3.000 ontem) · média 7d: **~1.109 cr/dia** | Restam ~22.051 cr. Na média 7d: **19,9 dias → estoura ~07/09, 3 dias ANTES da renovação (10/09)**. No ritmo de ontem/hoje (1,7–3K/dia): **~13 dias → ~31/08**. A folga que existia na média morreu: **até na hipótese otimista o ciclo não fecha**. **Ação: decisão de plano até 20/08 (prazo de ontem, mantido) — o incidente de 09/08 foi exatamente isso, 33h fora do ar.** |
+| **Resend** | 🟡 **AMARELO — 57 já enviados no dia UTC de hoje, e o dia não acabou** | **Ledger central `email_send_log` (novo, 17/08 — agora mede TUDO, incl. checkout_recovery): 113 envios/24h, 100% ok, 0 falha** · por dia UTC: **17/08 = 56 · 18/08 = 57 (parcial!)** · quebra 24h: d0_welcome 67 · ending_soon 14 · downgraded_loss 13 · expired_offer_d5 11 · checkout_recovery 8 | Ontem o limite free (100/dia) NÃO estourou (56). Hoje já vai em **57 com o dia UTC ainda rodando** — os d0_welcome dos 50 cadastros de hoje ainda estão saindo. Piso de 70% deve cruzar dentro do dia. **Ação: manter a decisão de ontem — plano pago (~$20/mês) resolve de vez; decidir antes do próximo dia de pico, porque e-mail recusado é falha silenciosa de conversão.** |
+| **Supabase Storage** | 🟢 VERDE (pico normalizou) | Banco bruto **111,45 GB** (8.816 obj.) × 0,503 calibrado = **~56,1 GB de 100 GB (ESTIMATIVA)** · +3,1 GB brutos/24h (vs +12,6 no pico) ≈ +1,6 GB cobrados/dia | Folga ~44 GB ≈ **~28 dias no ritmo atual** (>14 = verde). Maior bucket: `broll` **73,1 GB brutos** (4.099 obj.). **Ação $0 de pé: GC do broll esta semana — é o alívio sem cartão.** |
+
+**Saúde do produto:** zero falha de fornecedor em 24h. As 31 `analyze_blocked_active_render_gate`
+são gate de concorrência (uso pesado), não defeito. 50 cadastros/24h, 214/7d — o pós-recorde
+assentou num patamar 2–3× o antigo normal, e é ESSE patamar que as contas acima usam.
+
+**Nota de segurança:** a tabela `trial_revive_backfill_20260811` apontada em 13/08 está com
+RLS **ligado** hoje — achado resolvido.
+
+**Ação recomendada (nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **HOJE — fal e OpenAI: 2 minutos de painel cada.** Confirmar saldo E auto-recarga ativa. Se já fez ontem, só conferir que o botão persistiu.
+2. **Até 20/08 — Creatomate:** subir plano. A média 7d já não fecha o ciclo; não é mais "se o pico durar".
+3. **Antes do próximo pico — Resend:** plano pago ~$20/mês.
+4. **Esta semana, $0 — Storage:** GC do bucket `broll`.
+
+**O insight deste check-up:** o dia seguinte ao recorde é o dia mais perigoso do ciclo — o
+consumo cai pela metade e a sensação de alívio desliga a urgência, mas os saldos foram
+queimados NO pico e continuam queimados. Alívio de ritmo não repõe tanque. E a segunda lição:
+quando o check-up não alcança o painel, o veredito honesto é VERMELHO-até-confirmação, não
+"deve ter recarregado" — otimismo sem leitura foi exatamente o erro do "top-up provado" de 16/08.
+
+**Não consegui medir:** saldo fal.ai e saldo OpenAI (painéis exigem login; sessão de hoje sem
+browser) — vereditos deles são projeção de ontem + evidência indireta do banco; envios Resend
+anteriores a 17/08 fora do ledger novo.
+
 ## 17/08/2026 — 🔴🔴🔴 O MELHOR DIA DA HISTÓRIA está queimando os fornecedores em ritmo de HORAS
 
 **97 cadastros em 24h (recorde absoluto; o antigo era 69), 89 vídeos entregues, 61 pessoas
