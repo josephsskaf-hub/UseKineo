@@ -37,7 +37,11 @@
 #   Boiling River (fundador roda; aprovado só se ≥61s + narração fiel + zero
 #   cena repetida/borrada). QA por pixel (Laplacian/luma) ficou pra V2 —
 #   exige ffmpeg no server; claim assinado não guarda prompt p/ re-render.
-# - PENDÊNCIAS: gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
+# - PENDÊNCIAS: [18/08 noite] preço do Kling 3 — filme agora sai 64-73s ≈
+#   $11-12 de fal em 150cr (margem 35-45%); fundador decide AMANHÃ entre manter
+#   150cr / 180cr / preço-por-segundo no V4 (recomendação da sessão CEO: manter
+#   agora, embutir por-segundo no /generate V4 — NÃO mexer antes da decisão) ·
+#   gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
 #   (decidir grandfather 150) · Starter regional $4.99 (fundador pode querer
 #   subir) · pack one-time $2.90/$4.90 do Offer290Banner (decisão pendente) ·
 #   score viral aleatório (74 vs 81 mesma prompt) · Channels/série com memória
