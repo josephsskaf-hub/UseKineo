@@ -83,6 +83,10 @@
     {
       "path": "/api/admin/send-hotlead-blast?confirm=SEND&segment=auto&limit=25",
       "schedule": "10 13 * * *"
+    },
+    {
+      "path": "/api/cron/finish-stranded-renders",
+      "schedule": "*/15 * * * *"
     }
   ]
 }
