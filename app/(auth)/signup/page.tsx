@@ -344,7 +344,7 @@ export default function SignupPage() {
           <ul className="relative z-10 flex items-center gap-6 flex-wrap justify-center">
             {[
               'AI writes the script',
-              'Cinematic engines',
+              'Films · images · voices',
               ft(OFFER, '3 free videos / 24h', 'Free trial — 50 credits'),
             ].map((line) => (
               <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>

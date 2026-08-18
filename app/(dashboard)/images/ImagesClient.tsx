@@ -20,9 +20,9 @@ const IMG_ENGINES: { key: ImgModelKey; icon: string; name: string; tag?: string;
 ]
 
 const SIZES: { key: ImgSize; label: string }[] = [
-  { key: 'portrait_16_9', label: '9:16 · Vertical' },
-  { key: 'square_hd', label: '1:1 · Square' },
-  { key: 'landscape_16_9', label: '16:9 · Wide' },
+  { key: 'portrait_16_9', label: '▯ 9:16 · Vertical' },
+  { key: 'square_hd', label: '□ 1:1 · Square' },
+  { key: 'landscape_16_9', label: '▭ 16:9 · Wide' },
 ]
 
 type Item = { id?: string | null; url: string; model: ImgModelKey | string; upscaled?: string | null; upscaling?: boolean }
@@ -186,6 +186,21 @@ export default function ImagesClient() {
             <div className="lab"><span className="n">3</span>Your image</div>
             <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={4}
               placeholder="A lighthouse on a cliff at dusk, storm rolling in, cinematic light — or a YouTube thumbnail with the text “ABANDONED”." />
+            {/* KINEO-NOITE2-2026-08-17 (#5) — chips de ideia matam a pagina em
+                branco: um clique preenche o prompt. */}
+            {!prompt.trim() && (
+              <div className="row" style={{ marginTop: 10 }}>
+                {[
+                  'A lighthouse on a cliff at dusk, storm rolling in, cinematic light',
+                  'YouTube thumbnail, shocked man pointing at a burning safe, bold text “HE VANISHED”',
+                  'Macro shot of a chameleon eye, iridescent scales, studio lighting',
+                ].map((s) => (
+                  <button key={s} type="button" className="pill" style={{ fontSize: 11 }} onClick={() => setPrompt(s)}>
+                    {s.slice(0, 38)}…
+                  </button>
+                ))}
+              </div>
+            )}
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}

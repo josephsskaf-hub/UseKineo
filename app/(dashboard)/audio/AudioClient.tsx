@@ -177,6 +177,15 @@ export default function AudioClient() {
             <div className="lab"><span className="n">{eng.voices.length > 0 ? 3 : 2}</span>Your script</div>
             <textarea value={text} onChange={(e) => setText(e.target.value)} rows={5} maxLength={2000}
               placeholder={PLACEHOLDERS[model]} />
+            {!text.trim() && (
+              <div className="row" style={{ marginTop: 10 }}>
+                {(['minimax', 'eleven', 'dia', 'kokoro'] as const).map((k) => (
+                  <button key={k} type="button" className="pill" style={{ fontSize: 11 }} onClick={() => setText(PLACEHOLDERS[k])}>
+                    {PLACEHOLDERS[k].slice(0, 36)}…
+                  </button>
+                ))}
+              </div>
+            )}
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
@@ -201,6 +210,7 @@ export default function AudioClient() {
                         {AUDIO_ENGINES.find((e) => e.key === it.model)?.name ?? it.model}{it.voice ? ` · ${it.voice}` : ''}
                       </span>
                       <button type="button" className="pill" onClick={() => download(it.url, i)}>⬇ Download</button>
+                      {it.text && <a className="pill" style={{ textDecoration: 'none' }} href={`/studio?prompt=${encodeURIComponent(it.text.slice(0, 500))}`}>🎬 Use in Studio</a>}
                     </div>
                     {it.text && <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{it.text}</div>}
                   </div>

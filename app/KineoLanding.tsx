@@ -815,7 +815,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 audio conectando: imagem - audio - videos"): mega-menu Audio
                 entre Image e Video, mesmo padrao de catalogo com preco. */}
             <span className="nd">
-              <Link href="/audio">Audio<span className="nd-car" aria-hidden="true">▾</span></Link>
+              <Link href="/audio">Audio<em className="nm-chip" style={{ marginLeft: 5 }}>NEW</em><span className="nd-car" aria-hidden="true">▾</span></Link>
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>

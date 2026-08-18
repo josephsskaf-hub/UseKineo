@@ -716,6 +716,12 @@ export default function PricingClient() {
                     {p.outcome}
                   </p>
                 ) : null}
+                {/* KINEO-NOITE2-2026-08-17 (#8) — todo plano leva o toolkit inteiro */}
+                {isPaid && (
+                  <p className="mb-2 text-[11.5px] font-semibold text-[#7cc0ff]">
+                    🎬 Films · 🎨 Images · 🎙 Voices · ✨ HD Enhance — all included
+                  </p>
+                )}
                 {/* KINEO-PRICING-V5-2026-08-17 — storage é entitlement visível */}
                 {'storageLine' in p && p.storageLine ? (
                   <p className="mb-6 text-[11.5px] font-bold uppercase tracking-[.08em] text-[#86868b]">

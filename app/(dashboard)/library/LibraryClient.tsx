@@ -21,6 +21,29 @@ export default function LibraryClient() {
   const [imgs, setImgs] = useState<Img[]>([])
   const [auds, setAuds] = useState<Aud[]>([])
   const [loaded, setLoaded] = useState(false)
+  // KINEO-NOITE2-2026-08-17 (#2) — o medidor de storage tambem na estante.
+  const [usage, setUsage] = useState<{ total: number; limit: number | null; retention: string } | null>(null)
+  useEffect(() => {
+    fetch('/api/storage-usage', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && typeof d.total === 'number') setUsage(d) })
+      .catch(() => {})
+  }, [])
+  // KINEO-NOITE2-2026-08-17 (#1) — download de verdade (blob) na estante.
+  async function dl(url: string, filename: string) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error('fetch failed')
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000)
+    } catch { window.open(url, '_blank', 'noopener') }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -46,7 +69,14 @@ export default function LibraryClient() {
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
       <h1>Library</h1>
-      <p className="sub">Everything you’ve created, in one place.</p>
+      <p className="sub">
+        Everything you’ve created, in one place.
+        {usage && (
+          <span style={{ marginLeft: 10, fontSize: 12, color: '#7cc0ff', fontWeight: 700 }}>
+            {usage.limit ? `${usage.total} of ${usage.limit} projects` : `${usage.total} projects · unlimited`} · {usage.retention}
+          </span>
+        )}
+      </p>
 
       <div className="row" style={{ marginBottom: 20 }}>
         {TABS.map((t) => (
@@ -97,10 +127,14 @@ export default function LibraryClient() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
             {imgs.map((im) => (
-              <a key={im.id} href={im.upscaled_url ?? im.url} target="_blank" rel="noreferrer" className="card" style={{ padding: 8 }}>
+              <div key={im.id} className="card" style={{ padding: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
-              </a>
+                <div className="row" style={{ marginTop: 8 }}>
+                  <button type="button" className="pill" onClick={() => dl(im.upscaled_url ?? im.url, `kineo-image-${im.id.slice(0, 6)}.png`)}>⬇ Download</button>
+                  <a className="pill" style={{ textDecoration: 'none' }} href="/animate">🎬 Animate</a>
+                </div>
+              </div>
             ))}
           </div>
         )
@@ -115,6 +149,7 @@ export default function LibraryClient() {
               <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <audio controls preload="none" src={a.url} style={{ flex: '1 1 260px', height: 36 }} />
                 <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>{a.model}{a.voice ? ` · ${a.voice}` : ''}</span>
+                <button type="button" className="pill" onClick={() => dl(a.url, `kineo-audio-${a.id.slice(0, 6)}.mp3`)}>⬇</button>
                 {a.text && <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--txt2,#9aa0a6)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</div>}
               </div>
             ))}

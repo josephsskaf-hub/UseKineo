@@ -45,6 +45,10 @@ export const STUDIO_KIT_CSS = `
 .stu .picker{position:absolute;z-index:40;top:104%;left:0;right:0;background:#141419;border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:8px;box-shadow:0 24px 60px rgba(0,0,0,.65)}
 .stu .pk{width:100%;text-align:left;padding:12px 13px;border-radius:12px;background:transparent;border:1px solid transparent;cursor:pointer;color:#fff;transition:all .14s ease;display:flex;align-items:center;gap:11px}
 .stu .pk .pk-tx{flex:1;min-width:0}
+.stu .pk{position:relative}
+.stu .pk .pkv{position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);width:250px;height:140px;border-radius:12px;overflow:hidden;border:1px solid rgba(41,151,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.55);background:#0a0a0c;opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:5}
+.stu .pk .pkv video{width:100%;height:100%;object-fit:cover;display:block}
+.stu .pk:hover .pkv{opacity:1}
 .stu .eng-ic{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);font-weight:800;font-size:13px;color:#e8eaee;letter-spacing:-.02em}
 .stu .pk+.pk{margin-top:2px}
 .stu .pk:hover{background:rgba(255,255,255,.05)}

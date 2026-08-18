@@ -23,6 +23,8 @@ type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood'
 // (verificado por ffprobe), entao a spec visivel e uma so: 1080p.
 const ENGINES: {
   key: EngineKey
+  /** KINEO-NOITE2-2026-08-17 (#4) — clipe de 8s no hover do picker. */
+  preview?: string
   icon: string
   name: string
   tag?: string
@@ -32,10 +34,10 @@ const ENGINES: {
   supportsRef: boolean
 }[] = [
   { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: 'Free', supportsRef: false },
-  { key: 'seedance', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
-  { key: 'kling', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
-  { key: 'veo', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
-  { key: 'hollywood', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
+  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
+  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
+  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
@@ -180,6 +182,12 @@ export default function StudioClient() {
                       <span className="sp">{e.res}</span>
                       <span className="d">{e.desc}</span>
                     </span>
+                    {e.preview && (
+                      <span className="pkv" aria-hidden="true">
+                        <video src={e.preview} muted loop playsInline preload="none"
+                          onMouseEnter={(ev) => { const v = ev.currentTarget; v.currentTime = 0; v.play().catch(() => {}) }} />
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
