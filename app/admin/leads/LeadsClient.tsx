@@ -17,6 +17,7 @@ interface AdminUserRow {
   email: string
   name: string | null
   created_at: string
+  credits: number | null // KINEO-HOTLEADS-2026-08-18 — the API already returns it
   videos_count: number
   last_video_at: string | null
   plan: string | null
@@ -100,6 +101,22 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
       )
   }, [users])
 
+  // KINEO-HOTLEADS-2026-08-18 — pedido do fundador ("quero ver quem quase
+  // comprou E quem zerou os creditos"): trial queimado ate (quase) zero com
+  // >=2 videos gerados = 2o sinal de compra mais forte depois do checkout.
+  const burnedTrial = useMemo(() => {
+    return (users ?? [])
+      .filter(
+        (u) =>
+          !u.is_internal &&
+          !u.is_paid &&
+          typeof u.credits === 'number' &&
+          u.credits <= 5 &&
+          u.videos_count >= 2,
+      )
+      .sort((a, b) => (b.videos_count - a.videos_count) || ((a.last_video_at ?? '') < (b.last_video_at ?? '') ? 1 : -1))
+  }, [users])
+
   const stuckAtCheckout = useMemo(() => {
     return (users ?? [])
       .filter((u) => !u.is_internal && u.checkout_abandoned)
@@ -166,15 +183,41 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
             we have.
           </p>
           <Table
-            head={['Email', 'Name', 'Signed up', 'Videos', 'Downloads', 'Last video', 'Country']}
+            head={['Email', 'Name', 'Signed up', 'Credits left', 'Videos', 'Downloads', 'Last video', 'Country']}
             border="rgba(248,113,113,.4)"
             empty="Nobody stuck at checkout."
             rows={stuckAtCheckout.slice(0, 60).map((u) => [
-              <Mono key="e" text={u.email} badge="checkout" badgeColor="#f87171" />,
+              <Mono key="e" text={u.email} badge="checkout" badgeColor="#f87171" mailtoSubject="Did something go wrong at checkout?" />,
               u.name || '—',
               fmtDate(u.created_at),
+              fmt(u.credits),
               fmt(u.videos_count),
               fmt(u.downloads_count),
+              fmtDate(u.last_video_at),
+              u.last_country ? `${flagEmoji(u.last_country)} ${u.last_country}` : '—',
+            ])}
+          />
+        </section>
+      )}
+
+      {/* 1.5 — burned the whole trial (KINEO-HOTLEADS-2026-08-18) */}
+      {users && (
+        <section className="mb-8">
+          <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#fb923c' }}>
+            ⚡ Burned the trial to zero ({burnedTrial.length})
+          </h2>
+          <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
+            Free accounts with ≤5 credits left and ≥2 videos made. They used the product until it ran
+            out — the strongest buy signal after checkout. Click an email to send the rescue note.
+          </p>
+          <Table
+            head={['Email', 'Credits left', 'Videos', 'Last video', 'Country']}
+            border="rgba(251,146,60,.4)"
+            empty="Nobody has burned through the trial yet."
+            rows={burnedTrial.slice(0, 60).map((u) => [
+              <Mono key="e" text={u.email} badge="zero" badgeColor="#fb923c" mailtoSubject="You hit zero credits — here's what I can do" />,
+              u.credits === 0 ? '0 🔥' : fmt(u.credits),
+              fmt(u.videos_count),
               fmtDate(u.last_video_at),
               u.last_country ? `${flagEmoji(u.last_country)} ${u.last_country}` : '—',
             ])}
@@ -237,12 +280,27 @@ export default function LeadsClient({ denied }: { denied?: boolean }) {
 
 // ── atoms ───────────────────────────────────────────────────────────────────
 
-function Mono({ text, badge, badgeColor }: { text: string; badge?: string; badgeColor?: string }) {
+// KINEO-HOTLEADS-2026-08-18 — email clicavel: 1 clique abre o Gmail com o
+// assunto do e-mail de resgate ja preenchido (modelo EMAIL-HOT-LEAD.md).
+function Mono({ text, badge, badgeColor, mailtoSubject }: { text: string; badge?: string; badgeColor?: string; mailtoSubject?: string }) {
+  const inner = (
+    <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
+      {text || '—'}
+    </span>
+  )
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-      <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '0.82rem' }}>
-        {text || '—'}
-      </span>
+      {text && mailtoSubject ? (
+        <a
+          href={`mailto:${text}?subject=${encodeURIComponent(mailtoSubject)}`}
+          style={{ color: '#93c5fd', textDecoration: 'none' }}
+          title="Send the rescue email"
+        >
+          {inner}
+        </a>
+      ) : (
+        inner
+      )}
       {badge && (
         <span
           className="rounded px-1.5 py-0.5 text-[10px] font-black uppercase"
