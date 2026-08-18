@@ -47,8 +47,12 @@ const ADMIN_EMAILS = new Set([
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 
-const PROMO_CODE = 'COMEBACK50'
-const CTA_URL = `https://usekineo.com/pricing?promo=${PROMO_CODE}&utm_source=comeback50`
+// KINEO-FIRST50-BATCH-2026-08-18 — ordem do fundador ("diminuir pro 1 mês
+// só, aproveitando que ainda não mandamos"): o lote passa a usar o FIRST50
+// (50% SÓ na 1ª fatura, Creator/Studio mensal, gate no checkout). O COMEBACK50
+// de 3 meses continua vivo na Stripe para quem JÁ recebeu o link (gchibuye).
+const PROMO_CODE = 'FIRST50'
+const CTA_URL = `https://usekineo.com/pricing?promo=${PROMO_CODE}&utm_source=first50`
 
 // Passo a passo exato pedido pelo fundador na Ordem I — devolvido pelo preflight
 // quando o cupom ainda não existe, para o clique ser de 2 minutos.
@@ -113,11 +117,11 @@ function emailText(videos: number, downloads: number, userId: string): string {
 
 ${evidenceLine(videos, downloads)} That puts you in the small group of people who actually got the thing to work — and you're still on the free plan, which means the watermark is still on your exports.
 
-So here's a straight offer: 50% off Creator or Studio for 3 months, code COMEBACK50, applied automatically here:
+So here's a straight offer: 50% off your first month of Creator or Studio, code FIRST50, applied automatically here:
 
 ${CTA_URL}
 
-If you're posting more than a couple of Shorts a week, Studio is the one — it's the plan built for volume, and at half price for three months it's the cheapest it will ever be.
+If you're posting more than a couple of Shorts a week, Studio is the one — it's the plan built for volume, and at half price your first month is the cheapest way in you'll ever get.
 
 Month to month. Cancel any time, no email to me required.
 
@@ -132,11 +136,11 @@ function emailHtml(videos: number, downloads: number, userId: string): string {
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 🎬</p>
   <p>${evidenceLine(videos, downloads)} That puts you in the small group of people who actually got the thing to work — and you're still on the free plan, which means the watermark is still on your exports.</p>
-  <p style="font-size:18px;margin:18px 0"><b>So here's a straight offer: 50% off Creator or Studio for 3 months.</b> Code <b>COMEBACK50</b>, applied automatically:</p>
+  <p style="font-size:18px;margin:18px 0"><b>So here's a straight offer: 50% off your first month of Creator or Studio.</b> Code <b>FIRST50</b>, applied automatically:</p>
   <p style="margin:26px 0">
     <a href="${CTA_URL}" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Claim 50% off &rarr;</a>
   </p>
-  <p style="color:#475569;font-size:14px">If you're posting more than a couple of Shorts a week, <b>Studio</b> is the one — it's the plan built for volume, and at half price for three months it's the cheapest it will ever be.</p>
+  <p style="color:#475569;font-size:14px">If you're posting more than a couple of Shorts a week, <b>Studio</b> is the one — it's the plan built for volume, and at half price your first month is the cheapest way in you'll ever get.</p>
   <p style="color:#475569;font-size:14px">Month to month. Cancel any time, no email to me required.</p>
   <p style="color:#475569;font-size:14px">Reply to this and you get me, not a helpdesk.</p>
   <p>— Joseph, founder<br/>Kineo · <a href="https://usekineo.com" style="color:#2997ff">usekineo.com</a></p>
@@ -204,8 +208,31 @@ async function completedVideoCounts(admin: AdminDb): Promise<{ counts: Map<strin
 async function promoIsLive(): Promise<{ live: boolean; detail: string }> {
   if (!process.env.STRIPE_SECRET_KEY) return { live: false, detail: 'STRIPE_SECRET_KEY not configured' }
   try {
-    const list = await stripe.promotionCodes.list({ code: PROMO_CODE, active: true, limit: 1 })
-    const pc = list.data[0]
+    let list = await stripe.promotionCodes.list({ code: PROMO_CODE, active: true, limit: 1 })
+    let pc = list.data[0]
+    if (!pc && PROMO_CODE === 'FIRST50') {
+      // KINEO-FIRST50-BATCH-2026-08-18 — auto-provisiona (autorizacao do
+      // fundador, mesma receita idempotente do checkout): cupom percent_off 50
+      // duration 'once' + promotion code FIRST50. A restricao Creator/Studio-
+      // mensal e imposta EM CODIGO no gate do checkout (KINEO-PROMO-GATE), nao
+      // no cupom — por isso nenhum applies_to aqui.
+      try {
+        try {
+          await stripe.coupons.retrieve('KINEO_FIRST50')
+        } catch {
+          await stripe.coupons.create({ id: 'KINEO_FIRST50', percent_off: 50, duration: 'once', name: '50% off first month' })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: 'KINEO_FIRST50', code: 'FIRST50' })
+        } catch {
+          // ja existia (corrida) — o list abaixo resolve
+        }
+        list = await stripe.promotionCodes.list({ code: PROMO_CODE, active: true, limit: 1 })
+        pc = list.data[0]
+      } catch (provErr) {
+        return { live: false, detail: `self-provision failed: ${provErr instanceof Error ? provErr.message : String(provErr)}` }
+      }
+    }
     if (!pc) return { live: false, detail: `no active promotion code named ${PROMO_CODE}` }
     return { live: true, detail: `promotion_code ${pc.id} active` }
   } catch (e) {
