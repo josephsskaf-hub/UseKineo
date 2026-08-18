@@ -25,11 +25,18 @@
 #   onEnded, NUNCA timer fixo — clipes têm durações diferentes).
 # - LOGIN E SIGNUP = split-screen (vitrine esq., form 440px dir.) — mexeu num,
 #   mexe no outro (AuthReel compartilhado).
-# - 🚨 PRIORIDADE #1 DA PRÓXIMA SESSÃO: docs/CONTRATO-HOLLYWOOD.md — render
-#   ef2d09bf provou (log): planner entrega 51s de 68s alvo, condensa script
-#   verbatim de 160→52 palavras, aceita cena repetida/borrada "best effort" e
-#   queima watermark /free em render PAGO. 4 cláusulas hard-gate no doc.
-#   Fundador: "solução definitiva, não podemos ter o flagship assim".
+# - ✅ CONTRATO-HOLLYWOOD EXECUTADO (18/08 manhã, commit c33a737): C1 verbatim
+#   = roteiro redistribuído EM CÓDIGO cena a cena (GPT só dirige câmera, nunca
+#   escreve fala); C2 piso 95% do alvo + FAILFAST 60→90% + secondsOf/secondsFor
+#   honram segundos exatos (o molde 5|10/8/teto-10 encolhia 51s→44.8s!) + teto
+#   de apara 60→64s (Rewards exige >60); C3 variedade com dentes (divergência
+#   determinística em código, "best effort" morreu); C4 watermark = design do
+#   fundador (FORCE_WATERMARK_EMAILS, Push #434 — decisão dele manter/tirar).
+#   ⚠ espelhos: secondsOf (app/api/compose/route.ts) ≡ secondsFor (lib/
+#   compose.ts) — mexeu num, mexe no outro. FALTA: validação com re-render do
+#   Boiling River (fundador roda; aprovado só se ≥61s + narração fiel + zero
+#   cena repetida/borrada). QA por pixel (Laplacian/luma) ficou pra V2 —
+#   exige ffmpeg no server; claim assinado não guarda prompt p/ re-render.
 # - PENDÊNCIAS: gate de storage (V2) · assinantes antigos $24.90 recebem 140cr
 #   (decidir grandfather 150) · Starter regional $4.99 (fundador pode querer
 #   subir) · pack one-time $2.90/$4.90 do Offer290Banner (decisão pendente) ·
