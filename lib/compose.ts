@@ -2706,7 +2706,21 @@ export function buildHollywoodCreatomateSource({
   // cravados matava o TikTok Creator Rewards (que exige >60s). 61-64s e a
   // zona perfeita; so aparamos o que passar DISSO.
   const TRIM_CEILING = 64
-  while (total > TRIM_CEILING && durations.length > 0 && cleanClips[durations.length - 1].engine !== 'host') {
+  // KINEO-CONTRATO-FIT-2026-08-18 — com o C1, TODA cena e dimensionada pela
+  // fala (o esticador antigo deixava folga; agora nao ha folga nenhuma).
+  // Aparar o ultimo clipe = comer palavras: do PAYOFF nativo (dialogue, regra
+  // HOOK/PAYOFF-on-camera poe dialogo no fim) ou da narracao TTS (endCap).
+  // Entao a apara so roda quando o ultimo clipe e um b-roll SEM fala — na
+  // pratica, filme verbatim entrega 64-73s e isso e FEATURE: TikTok Rewards
+  // paga >60s, e 60 pedidos = piso, nao teto (regra do fundador 18/08).
+  // No mundo C1 TODA cena carrega fala: dialogue/host tem a voz DENTRO do
+  // clipe, e support/cinematic tem narracao TTS dimensionada pela propria
+  // fala (o encolhedor do route ja cortou a folga). Nao existe mais "rabo
+  // gordo" para aparar — so palavra para perder. A apara fica DESLIGADA para
+  // qualquer ultimo clipe com fala; como hoje todos tem, ela e efetivamente
+  // um no-op mantido para um futuro clipe mudo (outro/instrumental).
+  const HOLLYWOOD_TRIM_ENABLED = false
+  while (HOLLYWOOD_TRIM_ENABLED && total > TRIM_CEILING && durations.length > 0 && cleanClips[durations.length - 1].engine !== 'host') {
     const overflow = total - TRIM_CEILING
     const lastIdx = durations.length - 1
     const trimmable = durations[lastIdx] - 2 // never below 2s

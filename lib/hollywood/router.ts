@@ -77,7 +77,11 @@ import { PRESENTER_MODEL, PRESENTER_USD_PER_SECOND } from '@/lib/avatar/veed'
 // 'cinematic' scenes the planner may request.
 export const HOLLYWOOD_MODELS = {
   dialogue: 'fal-ai/kling-video/v3/pro/text-to-video',
-  cinematic: 'fal-ai/veo3.1/fast',
+  // KINEO-CONTRATO-SHARP-2026-08-18 — era veo3.1/fast (720p): a cena borrada
+  // do render ef2d09bf. Hollywood e o tier Kling 3 — TODA cena renderiza na
+  // familia Kling agora (custo ~igual: $0.112-0.196/s vs $0.15/s), look
+  // uniforme, zero cena soft de motor B dentro do filme de 150cr.
+  cinematic: 'fal-ai/kling-video/v3/pro/text-to-video',
   support: 'fal-ai/kling-video/v3/pro/text-to-video',
 } as const
 
@@ -103,7 +107,7 @@ export type HollywoodSceneType = keyof typeof HOLLYWOOD_MODELS
 // buys the visual coherence). Used for the code-computed cost estimate + logs.
 export const HOLLYWOOD_USD_PER_SECOND: Record<HollywoodSceneType, number> = {
   dialogue: 0.168,
-  cinematic: 0.15,
+  cinematic: 0.168, // KINEO-CONTRATO-SHARP-2026-08-18 — cinematic agora e Kling tambem
   support: 0.168,
 }
 

@@ -2018,7 +2018,7 @@ export async function POST(req: NextRequest) {
         if (totalWords >= 40 && sentences.length >= 3) {
           type PlanScene = (typeof plan.scenes)[number]
           const capWords = (sc: PlanScene) =>
-            sc.type === 'dialogue' ? 32 : sc.type === 'cinematic' ? 18 : 30 // cinematic=Veo max 8s
+            sc.type === 'dialogue' ? 32 : sc.type === 'cinematic' ? 16 : 26 // KINEO-CONTRATO-FIT-2026-08-18: fala cabe SEMPRE no teto do clipe (26w=11.3s<12s; 16w=7s<8s) — 30/18 deixavam a ultima palavra pro endCap engolir
           const planSecs = plan.scenes.reduce((a, sc) => a + (sc.seconds || 5), 0) || 1
           let si = 0
           for (let i = 0; i < plan.scenes.length; i++) {
@@ -2056,7 +2056,7 @@ export async function POST(req: NextRequest) {
           while (si < sentences.length && plan.scenes.length < 9) {
             const chunk: string[] = []
             let w = 0
-            while (si < sentences.length && (chunk.length === 0 || w + wordsIn(sentences[si]) <= 28)) {
+            while (si < sentences.length && (chunk.length === 0 || w + wordsIn(sentences[si]) <= 26)) {
               chunk.push(sentences[si])
               w += wordsIn(sentences[si])
               si++
@@ -2346,7 +2346,15 @@ export async function POST(req: NextRequest) {
           // como sair deitado. E o modo image-first do PROJETO-PISO. Fail-open:
           // still falhou → t2v como antes (com o prefixo upright abaixo).
           let sceneStillUrl: string | null = null
-          if (hs.type === 'support' && !anchorUrl) {
+          // KINEO-CONTRATO-SHARP-2026-08-18 — a cena BORRADA do render
+          // ef2d09bf era exatamente este caminho: cinematic sem ancora caia
+          // no veo3.1/fast t2v (720p soft) dentro de um filme de 150cr
+          // vendido como Kling 3. Cinematic agora recebe o MESMO tratamento
+          // image-first do support: still 9:16 proprio (flux, centavos) →
+          // Kling o3 i2v ($0.168/s vs $0.15/s do veo = +$0.14 por cena de 8s)
+          // — nitidez de flagship, horizonte em pe garantido pelo primeiro
+          // frame, e o filme inteiro com o look de UM motor so.
+          if ((hs.type === 'support' || hs.type === 'cinematic') && !anchorUrl) {
             try {
               sceneStillUrl = await generateCinematicSceneStill({
                 scenePrompt: hs.prompt,
