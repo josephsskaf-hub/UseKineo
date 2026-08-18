@@ -48,6 +48,22 @@
 #   motores novos — LER docs/PLANO-GENERATION-V4.md e docs/PRECOS-MOTORES-V4.md
 #   antes de qualquer mudança em generate/engineCost/analyze-idea
 
+# ⚠⚠ REGRA FIXA — SPRINTS ENTREGAM MUDANÇA QUE O FUNDADOR VÊ (fundador 17/08):
+# "às vezes vejo o sprint rodando 10x/dia e não vejo mudanças como as de hoje."
+# TODA sessão de sprint deve entregar PELO MENOS UMA mudança visível de produto
+# no padrão do dia 17/08 — exemplos do que CONTA: produto novo na cara do
+# cliente (Images/Audio/Library/Enhance), tela redesenhada (login split-screen,
+# mega-menu com ícones sem preço, popup 950×430), vitrine melhor (previews HD,
+# curadoria), pricing/copy que vende melhor, feature roubada com critério do
+# Higgsfield/InVideo. O que NÃO conta como entrega única: refactor invisível,
+# micro-SEO, fix de log, doc — isso é acompanhamento, não prato principal.
+# Teste antes de encerrar o sprint: "se o fundador abrir o site agora, ele VÊ
+# a diferença e sorri?" Se a resposta for não, o sprint não terminou.
+# Receita que funcionou hoje: (1) olhar um concorrente com print/tela real,
+# (2) escolher o que é fácil E visível, (3) implementar com selo honesto,
+# (4) push no mesmo dia. Ambição na medida: mudanças grandes em stage
+# (studio-v4) pra aprovação; polish direto na main.
+
 # App versão atual: v3.0 ✅ (Phase 1 B-roll Intelligence COMPLETE)
 # v3.0 DONE — Phase 1: B-roll Intelligence System fully connected
 # #346: generate-video-fast now reads brollQueries from BrollPlan → exact Pexels queries per scene
