@@ -1124,12 +1124,21 @@ async function buildAndRedirect(
   // GATE EM CÓDIGO (mesma regra do COMEBACK50, Ordem I): só Creator/Studio
   // mensal — NUNCA Starter (o preço de entrada não cobre inferência) e NUNCA
   // annual (já embute 2 meses grátis; 50% em cima seria desconto duplo).
-  if (requestedPromo && requestedPromo.toUpperCase() === 'FIRST50' && !privatePackPromo) {
-    if (tier === 'starter' || isAnnual) {
-      console.warn(`[stripe/checkout] FIRST50 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator/Studio mensal`)
-      resolvedPromo = null
-      promoBlocked = true
-    } else if (!resolvedPromo) {
+  // KINEO-PROMO-GATE-2026-08-18 — o gate vale para os DOIS promos públicos da
+  // casa (FIRST50 e COMEBACK50), pelos mesmos dois motivos: (a) Starter — o
+  // cupom na Stripe é restrito a Creator/Studio, então um clique no Starter
+  // com ?promo= na URL faria a sessions.create INTEIRA falhar ("Payment
+  // session failed" = venda bloqueada por um desconto que nem se aplicava);
+  // (b) annual — cupom "3 months"/"once" numa fatura ANUAL desconta o ano
+  // inteiro pela metade. Bloqueado: segue a preço cheio, sem erro.
+  const publicPromo = requestedPromo ? requestedPromo.toUpperCase() : ''
+  if ((publicPromo === 'FIRST50' || publicPromo === 'COMEBACK50') && !privatePackPromo && (tier === 'starter' || isAnnual)) {
+    console.warn(`[stripe/checkout] ${publicPromo} ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator/Studio mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === 'FIRST50' && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
       try {
         const FIRST50_COUPON_ID = 'KINEO_FIRST50'
         try {
