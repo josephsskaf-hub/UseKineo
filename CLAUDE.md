@@ -1,5 +1,5 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
-# ⚡⚡ SYNC 17/08 (sessão CEO — domingo de 8 produtos) — LER ANTES DE QUALQUER COISA:
+# ⚡⚡ SYNC 17-18/08 (sessão CEO — segunda de 8 produtos) — LER ANTES DE QUALQUER COISA:
 # - PRICING V5 (fundador aprovou): Starter $9.90/60cr · Creator $19.90/140cr ·
 #   Studio $39.90/320cr · Autopilot $299/400cr. SEM 1º MÊS COM DESCONTO em
 #   NENHUM plano (INTRO_PRICES = preço cheio → hasIntroOffer() false; NÃO
