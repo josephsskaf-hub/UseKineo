@@ -8116,7 +8116,7 @@ export default function GenerateClient({
           concorre mais com o overlay NicheOnboarding na mesma tela; um novato
           ve UMA superficie de welcome por vez. */}
       {showStep1 && showWelcome && !showNicheOnboarding && (
-        <WelcomeBanner onDismiss={dismissWelcome} trialLive={trialActive || trialPhase === 'active'} />
+        <WelcomeBanner onDismiss={dismissWelcome} trialLive={trialActive || trialPhase === 'active'} grantedCredits={trialUi?.creditsGranted ?? null} />
       )}
 
       {/* Push #098 — out-of-credits upgrade modal. Opened by any Generate /
@@ -13544,8 +13544,19 @@ function UrgencyModal({
 // ─── Push #098 — first-visit welcome banner ─────────────────────────────────
 // Dismissible green banner shown above Step 1. The dismiss handler writes
 // the sf_welcomed flag to localStorage so the banner never returns.
-function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialLive: boolean }) {
+// KINEO-GRANT-DITO-E-O-DA-CONTA-2026-08-17 — `grantedCredits` e a concessao
+// REAL desta conta (`profiles.trial_credits_granted`, via trialUi). Superficie
+// PUBLICA fala da OFERTA (constante); superficie LOGADA fala do FATO. A troca
+// de 40->50 de hoje as ~14h BRT deixou 139 contas em trial ATIVO com concessao
+// de 40 — sem isto, todas elas liam "50 free credits" na PRIMEIRA frase da tela
+// de gerar, e a promessa nao bate com o saldo. Fallback para a constante quando
+// nao sabemos (trialUi ainda nao chegou): recem-cadastrado de hoje recebe 50.
+function WelcomeBanner({ onDismiss, trialLive, grantedCredits }: { onDismiss: () => void; trialLive: boolean; grantedCredits?: number | null }) {
   const OFFER = useFreeTierOffer()
+  const grant =
+    typeof grantedCredits === 'number' && grantedCredits > 0
+      ? grantedCredits
+      : TRIAL_GRANT_CREDITS_COPY
   return (
     <div
       role="status"
@@ -13569,7 +13580,7 @@ function WelcomeBanner({ onDismiss, trialLive }: { onDismiss: () => void; trialL
         ) : (
           // KINEO-GRANT-COPY-UNICA-2026-08-17 — era a PRIMEIRA frase que quem
           // acabou de se cadastrar lê, e prometia 40 quando a conta recebeu 50.
-          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
+          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${grant} free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
         )}
       </span>
       <button
