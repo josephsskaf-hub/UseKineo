@@ -306,9 +306,27 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
   // Kineo 1 (138 renders contra 73 do Seedance em 7 dias), então a margem
   // efetiva é bem maior. Com 6 assinantes, um único usuário pesado custa mais
   // que um mês inteiro de MRR — por isso o piso é o pior caso.
+  // ⚠️ KINEO-LADDER-FIX-2026-08-19 — STUDIO SUBIU DE 160 PARA 180 CRÉDITOS.
+  //
+  // A primeira versão da V6 QUEBROU A ESCADA e só apareceu quando o fundador
+  // pediu o preço por crédito. Com Studio a 160cr o $/cr ficava assim:
+  //     Starter $0.1750 · Creator $0.1667 · Studio $0.1812  ← invertido
+  // Ou seja: quem pagava $29 comprava crédito MAIS CARO que quem pagava $15.
+  // Isso destrói a razão de existir do degrau de cima — a promessa implícita
+  // de uma escada é que subir compra volume mais barato, e um cliente atento
+  // faz essa conta em trinta segundos. O movimento racional dele viraria
+  // "fico no Creator e compro top-up", que é exatamente a inversão que o
+  // invariante (1) guarda entre plano e top-up mas NÃO guarda entre planos.
+  //
+  // 180cr devolve a ordem correta, decrescente como deve ser:
+  //     Starter $0.1750 → Creator $0.1667 → Studio $0.1611
+  // Custo: 20 créditos de margem no cenário ruim (33% → 24% no pior caso,
+  // ~50% no mix real). Segue oito vezes acima dos 3% que o Studio da V5 tinha,
+  // e 180 mantém verdadeira a promessa que sustenta o plano premium: um filme
+  // Kling 3 (150cr) por mês com folga.
   starter: 40,
   basic: 90,
-  pro: 160,
+  pro: 180,
   autopilot: 400,
 }
 

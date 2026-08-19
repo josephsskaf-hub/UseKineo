@@ -74,7 +74,7 @@ const STARTER_FEATURES = [
 // Creator passou a conceder 90. Vender um plano dizendo que ele inclui algo
 // que o servidor recusa com 402 é a pior classe de erro de copy que existe —
 // o cliente só descobre depois de pagar. Quem quer o filme Hollywood precisa
-// do Studio (160 créditos), e é lá que a promessa foi parar.
+// do Studio (180 créditos), e é lá que a promessa foi parar.
 // Os números agora saem de videosPerMonth(): grant do plano ÷ custo do motor,
 // calculado na hora, das mesmas constantes que o servidor debita.
 const BASIC_FEATURES = [
@@ -88,7 +88,7 @@ const BASIC_FEATURES = [
 ]
 
 // KINEO-PRICING-V6-2026-08-19 — o Studio é o plano que FECHA um filme
-// Hollywood (160 ≥ 150). A promessa que estava no card errado veio para cá.
+// Hollywood (180 ≥ 150). A promessa que estava no card errado veio para cá.
 const PRO_FEATURES = [
   `${STUDIO_HOLLYWOOD_FILMS} Hollywood film/month — or ~${STUDIO_CINEMATIC_FILMS} cinematic Kling 2.5, or ~${STUDIO_AI_FILMS} Seedance`,
   'Kling 2.5 + Kling 3 engines (top-tier cinematic)',
@@ -371,7 +371,7 @@ export default function PricingCards({
           }}
         />
 
-        {/* KINEO-PRICING-V6-2026-08-19 — 200 → 160 créditos ($29). É o único
+        {/* KINEO-PRICING-V6-2026-08-19 — 200 → 180 créditos ($29). É o único
             plano que fecha um filme Hollywood (150), então é aqui que essa
             promessa vive agora. */}
         {/* KINEO-SPRINT-OFFER-2026-07-14 — badge/highlight moved to Creator. */}
