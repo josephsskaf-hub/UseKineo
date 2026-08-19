@@ -86,6 +86,15 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
     const cur = (active % 2 === 0 ? refA : refB).current
     const old = (active % 2 === 0 ? refB : refA).current
     cur?.play().catch(() => {})
+    // KINEO-CARD-REVEAL-2026-08-19 (fundador: "o card do Kling 3 travou no
+    // rosto da mulher") — REGRESSAO do pre-roll (196): a classe .hv-on (a que
+    // revela o video, opacity 0→1) era adicionada SO no evento onPlaying, e
+    // com o pre-roll o play() acontece 1.2s ANTES do swap, quando o slot
+    // ainda nao e o corrente — o handler via isCur=false, nao revelava, e
+    // depois nunca mais disparava (o video ja estava tocando). O card ficava
+    // preso no POSTER estatico. Agora a revelacao e explicita no swap: quem
+    // vira corrente ganha .hv-on aqui, tocando ou nao.
+    cur?.classList.add('hv-on')
     if (old && len > 1) {
       // O slot antigo segura o conteudo ate o crossfade acabar; SO ENTAO
       // recebe o proximo clipe pra pre-carregar (invisivel, opacity 0).
