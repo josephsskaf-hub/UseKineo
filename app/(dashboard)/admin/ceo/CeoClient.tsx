@@ -18,6 +18,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { CeoData, FunnelWindow } from '@/app/api/admin/ceo/compute'
+import LiveNowPanel from '@/components/LiveNowPanel' // KINEO-ADMIN-LIVE-2026-08-19
 
 export type { CeoData }
 
@@ -109,6 +110,8 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
 
   const body = (
     <div className="px-4 sm:px-6 py-7 pb-20 max-w-5xl mx-auto">
+      {/* KINEO-ADMIN-LIVE-2026-08-19 — quem esta no site AGORA fica no TOPO:
+          e a unica informacao do painel que perde valor em minutos. */}
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <header className="mb-6">
         <div
@@ -135,6 +138,9 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
         </div>
         <AdminNav active={home ? 'home' : 'ceo'} />
       </header>
+
+      <LiveNowPanel />
+
 
       {/* ── Row 1: Revenue ───────────────────────────────────────────────── */}
       <Section title="💰 Revenue — active paid plans">
