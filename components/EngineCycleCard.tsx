@@ -46,6 +46,13 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
   // Em qual `active` a transicao ja foi disparada (evita disparo duplo
   // entre onTimeUpdate e onEnded).
   const firedRef = useRef(-1)
+  // KINEO-CARD-SHARP-2026-08-19 (fundador: 'a moca de cabelos pretos demora
+  // pra ficar nitida e trava um pouquinho na troca') — o play() do proximo
+  // clipe so acontecia NA troca: decoder frio = primeiros frames moles +
+  // micro-engasgo. Agora o slot escondido comeca a TOCAR ~1.2s antes
+  // (invisivel, opacity 0): na troca o fade revela um video ja decodificado
+  // e em movimento. warmedRef evita re-aquecer no mesmo ciclo.
+  const warmedRef = useRef(-1)
   const refA = useRef<HTMLVideoElement | null>(null)
   const refB = useRef<HTMLVideoElement | null>(null)
 
@@ -124,7 +131,15 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
         // sem frame congelado. onEnded fica de reserva.
         onTimeUpdate={(e) => {
           const el = e.currentTarget
-          if (isCur && len > 1 && el.duration && el.duration - el.currentTime <= 0.45 && firedRef.current !== active) {
+          if (!isCur || len <= 1 || !el.duration) return
+          const left = el.duration - el.currentTime
+          // Pre-roll: aquece o decoder do slot escondido antes do swap.
+          if (left <= 1.2 && warmedRef.current !== active) {
+            warmedRef.current = active
+            const hidden = (active % 2 === 0 ? refB : refA).current
+            hidden?.play().catch(() => {})
+          }
+          if (left <= 0.45 && firedRef.current !== active) {
             firedRef.current = active
             advance()
           }
