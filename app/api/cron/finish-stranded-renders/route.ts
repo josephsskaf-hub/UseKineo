@@ -42,6 +42,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'
 const RESCUE_EVENT = 'stranded_rescue_sent'
 const ATTEMPT_EVENT = 'stranded_compose_attempt'
 const READY_EVENT = 'stranded_ready_sent'
+// KINEO-STRANDED-LOOP-2026-08-19 — o compose NAO grava render_id no metadata
+// do claim (a leitura md.render_id nunca disparava a fase 2; o cron re-compos
+// o mesmo gen a cada rodada ate o teto — 45 attempts na madrugada, zero email
+// ready). Marcador PROPRIO: quando NOS compomos com sucesso, gravamos este
+// evento com o render_id da resposta — a fase 2 lê daqui, nao do claim.
+const COMPOSED_EVENT = 'stranded_composed'
 const MIN_AGE_MS = 12 * 60 * 1000
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
 const MAX_COMPOSE_PER_RUN = 3
@@ -207,18 +213,23 @@ export async function GET(req: NextRequest) {
   const genIds = candidates.map((c) => c.session_id).filter((s): s is string => !!s)
   const { data: markerRows } = await admin
     .from('events')
-    .select('name, session_id')
-    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT])
+    .select('name, session_id, metadata')
+    .in('name', [RESCUE_EVENT, ATTEMPT_EVENT, READY_EVENT, COMPOSED_EVENT])
     .in('session_id', genIds.slice(0, 200))
   const rescued = new Set<string>()
   const readySent = new Set<string>()
   const attempts = new Map<string, number>()
+  const composedRender = new Map<string, string | null>()
   for (const m of markerRows ?? []) {
     const sid = m.session_id as string | null
     if (!sid) continue
     if (m.name === RESCUE_EVENT) rescued.add(sid)
     else if (m.name === READY_EVENT) readySent.add(sid)
     else if (m.name === ATTEMPT_EVENT) attempts.set(sid, (attempts.get(sid) ?? 0) + 1)
+    else if (m.name === COMPOSED_EVENT) {
+      const rid = (m as { metadata?: { render_id?: unknown } }).metadata?.render_id
+      composedRender.set(sid, typeof rid === 'string' && rid.length > 0 ? rid : null)
+    }
   }
 
   let checked = 0
@@ -245,11 +256,31 @@ export async function GET(req: NextRequest) {
     const email = prof?.email ?? ''
     const mayEmail = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
 
-    const renderId = typeof md.render_id === 'string' && md.render_id.length > 0 ? md.render_id : null
+    const claimRenderId = typeof md.render_id === 'string' && md.render_id.length > 0 ? md.render_id : null
+    const ourRenderId = composedRender.has(genId) ? composedRender.get(genId) ?? null : null
+    const weComposed = composedRender.has(genId)
+    const renderId = ourRenderId ?? claimRenderId
 
-    if (renderId) {
+    // O usuário terminou SOZINHO (voltou, resume completou)? Video completed
+    // sem marcador nosso = ele estava presente e JA VIU — não mandar email.
+    if (!weComposed && !claimRenderId) {
+      const { data: selfDone } = await admin
+        .from('videos')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .gte('created_at', claim.created_at as string)
+        .limit(1)
+      if ((selfDone ?? []).length > 0) {
+        results.push({ generation: gen8, outcome: 'user_finished_themselves' })
+        continue
+      }
+    }
+
+    if (weComposed || renderId) {
       // ── Fase 2: compose já existe — empurra o status e avisa quando pronto ──
       if (readySent.has(genId)) { results.push({ generation: gen8, outcome: 'already_notified' }); continue }
+      if (!renderId) { results.push({ generation: gen8, outcome: 'composed_render_id_unknown' }); continue }
       try {
         const statusReq = new NextRequest(`${APP_URL}/api/compose/status/${renderId}`, {
           headers: serviceHeaders(userId),
@@ -362,7 +393,13 @@ export async function GET(req: NextRequest) {
       const json = (await res.json().catch(() => null)) as Record<string, unknown> | null
       if (res.ok) {
         composed++
-        console.log(`[stranded] server-finish composed gen=${gen8} renderId=${json?.renderId ?? '?'}`)
+        const rid =
+          (typeof json?.renderId === 'string' && json.renderId) ||
+          (typeof json?.render_id === 'string' && json.render_id) ||
+          (typeof (json?.render as { id?: unknown } | undefined)?.id === 'string' && (json?.render as { id: string }).id) ||
+          null
+        await admin.from('events').insert({ user_id: userId, name: COMPOSED_EVENT, session_id: genId, metadata: { render_id: rid } })
+        console.log(`[stranded] server-finish composed gen=${gen8} renderId=${rid ?? '?'}`)
         results.push({ generation: gen8, outcome: 'composed_server_side' })
       } else if (res.status === 409 && json?.pending === true) {
         results.push({ generation: gen8, outcome: 'compose_pending_race' })
