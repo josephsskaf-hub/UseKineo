@@ -293,9 +293,22 @@ export const ENGINE_FACTS: EngineFact[] = [
     what: 'A talking avatar with lip-synced narration, for formats that need a person on screen.',
   },
   {
+    // KINEO-H3-2026-08-19 — MiniMax H3 entra ANTES do Kling 3 nesta lista de
+    // propósito: este arquivo alimenta /llms.txt e /api/facts, ou seja, é o que
+    // um modelo de linguagem lê para descrever o catálogo. O motor que a maioria
+    // dos planos consegue usar deve ser citado antes do que quase ninguém
+    // alcança.
+    name: 'MiniMax H3',
+    credits: creditCostFor('cinematic_h3'),
+    what: 'Cinematic multi-scene film at a third of the flagship cost, with up to nine reference images keeping character and style consistent across every scene.',
+  },
+  {
     name: 'Kling 3',
     credits: creditCostFor('cinematic_hollywood'),
-    what: 'The longest, most expensive multi-scene format. One is included each month on Creator.',
+    // ⚠️ A frase antiga dizia "One is included each month on Creator" — virou
+    // FALSA na V6: o Creator tem 90 créditos e o Kling 3 custa 150. Só o Studio
+    // fecha um. É a mesma promessa quebrada que apareceu em outras cinco telas.
+    what: 'The longest, most expensive multi-scene format, with native voice and lip sync. One fits each month on the Studio plan.',
   },
 ]
 

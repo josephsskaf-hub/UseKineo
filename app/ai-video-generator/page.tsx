@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
   description:
-    'Pick the AI video engine and get a finished vertical Short: Kineo 1 (free), Seedance 1.5, Kling 2.5, Veo 3.1 and Kling 3 — with script, AI voiceover and captions assembled for you. Real user renders, not a demo reel.',
+    'Pick the AI video engine and get a finished vertical Short: Kineo 1, Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1 and Kling 3 — with script, AI voiceover and captions assembled for you. Real user renders, not a demo reel.',
   alternates: { canonical: `${BASE}/ai-video-generator` },
   openGraph: {
     title: 'AI Video Generator — Seedance, Kling, Veo & Kineo 1 | Kineo',
@@ -77,7 +77,7 @@ export default async function EngineHubPage() {
           </h1>
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 700 }}>
             Most AI video tools hand you a silent 5-second clip and leave the rest to you. Kineo runs the same
-            engines — Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3 and its own Kineo 1 — and returns a finished
+            engines — Seedance 1.5, Kling 2.5, MiniMax H3, Veo 3.1, Kling 3 and its own Kineo 1 — and returns a finished
             vertical Short: hook-first script, AI voiceover, matched or generated scenes, burned-in captions.
             One idea in, a ready-to-post 9:16 MP4 out.
           </p>

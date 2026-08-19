@@ -41,7 +41,7 @@ export const dynamicParams = false
 
 type Engine = {
   /** Valor aceito por /generate?engine=… (GenerateClient.tsx:762). */
-  param: 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood'
+  param: 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'
   /** quality_mode no banco — chave de getEngineRenders. */
   qualityMode: string
   /** Nome comercial exibido (bate com os selos de lib/engineWall.ts). */
@@ -197,6 +197,37 @@ export const ENGINES: Record<string, Engine> = {
       {
         q: 'Can I keep the same face across every video?',
         a: 'Yes. Character Lock saves a presenter and reuses the exact same face across renders and thumbnails, so a channel keeps one recognisable host.',
+      },
+    ],
+  },
+  // KINEO-H3-2026-08-19 — pagina propria do motor novo. Estas paginas sao a
+  // porta de entrada organica ("minimax h3 video generator"), e sao lidas pelo
+  // ChatGPT: e por isso que cada motor tem a sua. Numeros conferidos na fal em
+  // 19/08 — \$0.06/s em 768p.
+  'minimax-h3': {
+    param: 'h3',
+    qualityMode: 'cinematic_h3',
+    name: 'MiniMax H3',
+    model: 'minimax/h3 (text-to-video / image-to-video)',
+    credits: '45 credits per video',
+    tier: 'Creator',
+    h1: 'MiniMax H3 AI video generator — cinematic film that fits your plan',
+    intro:
+      'MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders multi-scene films at 45 credits, so a Creator plan makes two of them and a Studio plan four — where the top-tier Kling 3, at 150 credits, fits once. H3 also reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.',
+    bestFor: 'Series and channels: anything where the same look has to survive across eight scenes and across weeks of episodes.',
+    tradeoff: 'Renders at 768p rather than 1080p. For a 9:16 Short that is plenty, and one-click HD Enhance covers the cases where it is not.',
+    faq: [
+      {
+        q: 'How much does a MiniMax H3 video cost on Kineo?',
+        a: '45 credits per finished film. On the Creator plan (90 credits) that is two films a month; on Studio (180 credits) it is four.',
+      },
+      {
+        q: 'Why choose MiniMax H3 over Kling 3?',
+        a: 'Cost and consistency. Kling 3 costs 150 credits, so only the Studio plan fits one per month. H3 costs 45, and it accepts up to nine reference images at once — which is the difference between a character who looks the same in every scene and one who drifts. Kling 3 still wins when a scene needs a person speaking on camera with native lip sync.',
+      },
+      {
+        q: 'Does MiniMax H3 generate its own audio?',
+        a: 'The model can, but Kineo keeps it muted on purpose. Your narration is spoken exactly as you wrote it, and letting the model add a second voice on top would break that. The soundtrack you hear is chosen to match the subject of the video.',
       },
     ],
   },

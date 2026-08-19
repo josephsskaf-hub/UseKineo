@@ -853,6 +853,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine" chip="STUDIO" icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
                   <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice" chip="STUDIO" icon="K3" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
+                  {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
+                      da vitrine tem de ser deste motor, e o primeiro render de
+                      validacao ainda nao rodou. Emprestar clipe de outro motor
+                      quebraria o selo honesto, que e regra da casa. */}
+                  <NavEngineItem href="/studio?engine=h3&intent_campaign=nav_mega" name="MiniMax H3" desc="Cinematic film that fits your plan" chip="NEW" icon="H3" />
                 </span>
                 <span className="nm-col">
                   <span className="nm-h">Create</span>
@@ -1322,7 +1327,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
             <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. It is the same price everywhere in the world — we show it in your local currency, but nobody pays more or less for where they live. New accounts get free credits to make a first video before paying anything.</p></div>
-            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>Six, behind one interface and one balance: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
+            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>Seven, behind one interface and one balance: Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
             <div className="qa"><h3>What is the best AI video generator for faceless YouTube channels?</h3><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></div>
           </div>
         </div>
