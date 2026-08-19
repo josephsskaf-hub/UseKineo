@@ -49,8 +49,10 @@ export interface LiveVisitor {
   // situação legível sem precisar consultar o banco na mão.
   /** true = tem geração EM VOO agora (explica crédito gasto sem vídeo). */
   rendering: boolean
-  /** Quanto do trial já foi gasto: "20 of 50". */
+  /** Quanto do trial já foi gasto: "20 of 50" — do contador oficial. */
   creditsUsedLabel: string | null
+  /** Em QUÊ foi: "Seedance×2 (40cr) · Kineo 1×1 (2cr)". Só débitos efetivos. */
+  spentOn: string | null
   /** Horas desde o cadastro — separa quem chegou agora de quem voltou. */
   hoursOld: number
   /** Falhas de geração desta pessoa: um número alto aqui é dor, não uso. */
@@ -115,12 +117,48 @@ export async function GET() {
 
     let online: LiveVisitor[] = []
     if (ids.length > 0) {
+      // KINEO-LIVE-V3-2026-08-19 — o consumo REAL, por motor, das últimas 24h.
+      // O fundador viu '80 créditos, 0 usados' e '48, usou 2' e não conseguiu
+      // explicar nenhum dos dois. Os dois eram o MESMO defeito de leitura: a
+      // tela INFERIA o uso a partir do saldo ('50 − saldo'), e o saldo não é
+      // um contador — ele sobe (extensão de trial devolve créditos, estorno
+      // devolve) e desce por coisas diferentes (Kineo 1 custa 1-2cr pra conta
+      // trial). A verdade sobre USO mora em dois lugares que a tela agora lê:
+      // profiles.trial_credits_used (o contador oficial do trial) e os claims
+      // de consumo (o que cada débito realmente comprou, por motor).
+      const claimsPromise = admin
+        .from('events')
+        .select('user_id, metadata')
+        .in('name', ['compose_submission_claim', 'cinematic_submission_claim'])
+        .in('user_id', ids)
+        .gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString())
+        .limit(2000)
       const [profRes, vidRes] = await Promise.all([
         admin.from('profiles')
-          .select('id, email, name, plan, has_paid, video_credits, signup_country, last_country, signup_utm_source, created_at')
+          .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
+      const claimsRes = await claimsPromise
+      // "Seedance×2 (40cr) · Kineo 1×3 (6cr)" — o extrato de hoje, por pessoa.
+      const ENGINE_SHORT: Record<string, string> = {
+        fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5',
+        cinematic_h3: 'H3', cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',
+        avatar: 'Avatar', presenter: 'Presenter',
+      }
+      const spentBy = new Map<string, Map<string, { n: number; cr: number }>>()
+      for (const c of claimsRes.data ?? []) {
+        const uid = (c as { user_id: string }).user_id
+        const md = (c as { metadata: { quality?: string; cost?: number; credit_cost?: number; status?: string } }).metadata ?? {}
+        // claim 'released' = estornado: não é consumo, é tentativa devolvida.
+        if (md.status === 'released') continue
+        const q = md.quality ?? '?'
+        const cr = typeof md.cost === 'number' ? md.cost : typeof md.credit_cost === 'number' ? md.credit_cost : 0
+        const m = spentBy.get(uid) ?? new Map()
+        const cur = m.get(q) ?? { n: 0, cr: 0 }
+        cur.n += 1; cur.cr += cr
+        m.set(q, cur); spentBy.set(uid, m)
+      }
       const vidCount = new Map<string, number>()
       for (const v of vidRes.data ?? []) {
         const uid = (v as { user_id: string }).user_id
@@ -160,14 +198,26 @@ export async function GET() {
           const hoursOld = createdAt
             ? Math.max(0, Math.round((now - Date.parse(createdAt)) / 3_600_000))
             : 0
-          // O grant do trial é 50; mostrar "usou X de 50" responde de relance
-          // se a pessoa está experimentando ou já queimou tudo.
-          const TRIAL_GRANT = 50
-          const cr = typeof p.video_credits === 'number' ? p.video_credits : null
+          // KINEO-LIVE-V3-2026-08-19 — usa o CONTADOR oficial, nunca a
+          // inferência '50 − saldo'. A inferência quebrava dos dois lados:
+          // saldo 80 (extensão de trial devolveu créditos) virava '0 usados',
+          // e um Kineo 1 debitado (1-2cr pra conta trial) virava mistério.
+          const tcu = (p as { trial_credits_used?: unknown }).trial_credits_used
+          const tcg = (p as { trial_credits_granted?: unknown }).trial_credits_granted
           const creditsUsedLabel =
-            cr !== null && !PAID_PLANS.has(((p.plan as string) ?? '').toLowerCase())
-              ? `${Math.max(0, TRIAL_GRANT - cr)} of ${TRIAL_GRANT} used`
+            typeof tcu === 'number' && typeof tcg === 'number' && tcg > 0
+              ? `${tcu} of ${tcg} used`
               : null
+          // O extrato de hoje: em QUÊ os créditos foram (só débitos efetivos;
+          // estorno não conta). É a resposta direta do pedido do fundador —
+          // "diz com o quê a pessoa usou".
+          const spent = spentBy.get(p.id as string)
+          const spentOn = spent
+            ? [...spent.entries()]
+                .sort((a, b) => b[1].cr - a[1].cr)
+                .map(([q, v]) => `${ENGINE_SHORT[q] ?? q}×${v.n} (${v.cr}cr)`)
+                .join(' · ')
+            : null
 
           return {
             user_id: p.id as string,
@@ -185,6 +235,7 @@ export async function GET() {
             source: (p.signup_utm_source as string | null) ?? null,
             rendering,
             creditsUsedLabel,
+            spentOn,
             hoursOld,
             failed,
             lastEngine,

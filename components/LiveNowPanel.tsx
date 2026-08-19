@@ -142,6 +142,12 @@ export default function LiveNowPanel() {
                     {v.creditsUsedLabel && (
                       <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.creditsUsedLabel}</span>
                     )}
+                    {/* KINEO-LIVE-V3-2026-08-19 — o extrato: EM QUÊ os créditos
+                        foram hoje. Era a pergunta que o fundador não conseguia
+                        responder olhando a tela. */}
+                    {v.spentOn && (
+                      <div style={{ color: '#a78bfa', fontSize: '0.68rem', marginTop: 2 }}>{v.spentOn}</div>
+                    )}
                   </td>
                   <td style={{ padding: '9px 12px', color: 'var(--text)', fontSize: '0.8rem' }}>{v.videos}</td>
                   <td style={{ padding: '9px 12px', color: 'var(--muted2)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
