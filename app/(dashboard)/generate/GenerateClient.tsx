@@ -869,7 +869,7 @@ export default function GenerateClient({
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
   // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
-  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood'>('seedance')
+  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3'>('seedance')
 
   // KINEO-ENGINE-DEEPLINK-2026-08-15 — o "depois do clique" do padrao
   // Higgsfield: os cards de motor da home aterrissam AQUI com o motor JA
@@ -882,9 +882,9 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood'].includes(engine)) {
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3'].includes(engine)) {
       setMode('cinematic_ai')
-      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood')
+      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -2418,7 +2418,7 @@ export default function GenerateClient({
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
             const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood'].includes(urlEnginePick)
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3'].includes(urlEnginePick)
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
@@ -4907,7 +4907,14 @@ export default function GenerateClient({
     // filler ("digital age reshapes possibilities"). The raw idea flows through
     // analyze/generate untouched and reaches /api/generate-video-cinematic as
     // body.prompt.
-    const isHollywoodRaw = mode === 'cinematic_ai' && aiEngine === 'hollywood'
+    // KINEO-H3-2026-08-19 — o H3 é da MESMA família cinematográfica, então a
+    // ideia crua também tem de chegar inteira ao servidor. Sem incluí-lo aqui,
+    // o /api/generate-script reescreveria o texto em narração de terceira
+    // pessoa ANTES do planner Hollywood ver, e as falas viravam recheio
+    // genérico — o defeito descrito no comentário logo acima, que já custou
+    // caro uma vez. O motor novo herda a proteção junto com o resto do
+    // Contrato, que é o motivo inteiro de ele entrar por esta estrada.
+    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3')
     const needsStructuring = isHollywoodRaw
       ? false
       : scriptMode === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
@@ -5475,8 +5482,8 @@ export default function GenerateClient({
     const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
     if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
     if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
-      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
-      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood'); return }
+      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'); return }
+      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'); return }
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
     if ((uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
@@ -7436,12 +7443,29 @@ export default function GenerateClient({
   }, [showInlineFirstVideo, prompt])
   const selectedCost = mode === 'creator'
     ? 0
+    // ⚠️ KINEO-H3-2026-08-19 — ESTA LINHA ERA UM ESPELHO CHUMBADO DA TABELA DE
+    // CUSTO, e já estava mentindo: dizia `fast = 1` depois de o Kineo 1 subir
+    // para 2 créditos hoje. É o mesmo defeito que passamos o dia consertando em
+    // preço — a mesma verdade morando em dois lugares, e um deles envelhece.
+    // O número que a TELA promete e o número que o SERVIDOR cobra agora saem
+    // ambos de creditCostFor(), que já estava importado neste arquivo.
     : mode === 'fast'
-    ? (isPaidAccount ? 1 : 0)
+    ? creditCostFor('fast', isPaidAccount)
     : mode === 'cinematic_ai'
-    // KINEO-PRICING-V3B-2026-07-10 — Kling 50, Veo 90, Sora 100,
-    // Hollywood 150 (preço FINAL aprovado 10/07), Seedance 20.
-    ? (aiEngine === 'kling' ? 50 : aiEngine === 'veo' ? 90 : aiEngine === 'sora' ? 100 : aiEngine === 'hollywood' ? 150 : 20)
+    ? creditCostFor(
+        aiEngine === 'kling'
+          ? 'cinematic_kling'
+          : aiEngine === 'veo'
+            ? 'cinematic_veo'
+            : aiEngine === 'sora'
+              ? 'cinematic_sora'
+              : aiEngine === 'hollywood'
+                ? 'cinematic_hollywood'
+                : aiEngine === 'h3'
+                  ? 'cinematic_h3'
+                  : 'cinematic_ai',
+        isPaidAccount,
+      )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
 
   // Push #156 — ready-to-paste YouTube description for the next-steps guide.
@@ -12595,8 +12619,8 @@ function ModeSelector({
   credits: number | null
   freeAiUsed: boolean | null
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
-  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood'
-  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood') => void
+  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3'
+  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3') => void
   isStarter: boolean
   isCreator: boolean
   isStudio: boolean
@@ -12741,10 +12765,16 @@ function ModeSelector({
               // native voice). KINEO-REBASE-2026-07-10 — costs halved (Hollywood
               // 150 = preço FINAL aprovado 10/07) + engines unlocked for ANY
               // paying user (universal gates — no more Studio-only lock).
-              { key: 'hollywood', label: 'Hollywood', sub: 'ultra-realistic people & voice', cr: 150 },
+              { key: 'hollywood', label: 'Kling 3', sub: 'ultra-realistic people & voice', cr: 150 },
+              // KINEO-H3-2026-08-19 — MiniMax H3. Entra LOGO ABAIXO do Kling 3 e
+              // acima do Veo de proposito: e o filme carro-chefe que CABE no
+              // plano. Depois do corte de grants da V6 o Creator (90cr) nao faz
+              // nenhum Kling 3 (150cr); a 45cr ele faz dois H3. Se o cliente so
+              // enxerga o de 150 ele conclui que filme e coisa de Studio.
+              { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: 45 },
               { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: 90 },
               { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: 50 }, // KINEO-PRICING-V3B-2026-07-10
-            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood'; label: string; sub: string; cr: number }[]).map((m) => {
+            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3'; label: string; sub: string; cr: number }[]).map((m) => {
               const active = mode === 'cinematic_ai' && aiEngine === m.key
               return (
                 <button

@@ -19,6 +19,7 @@ export type Quality =
   | 'cinematic_veo'
   | 'cinematic_sora'
   | 'cinematic_hollywood'
+  | 'cinematic_h3'
   | 'avatar'
   | 'presenter'
 
@@ -41,7 +42,23 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // any paid plan) Fast now costs 1 credit per video. Free users stay at
       // 0 (watermarked render). Paid clean exports cost 1 credit; a zero balance
       // is rejected before provider submission and never bypasses settlement.
-      return isPaidUser ? 1 : 0
+      // ⚠️ KINEO-FAST-2CR-2026-08-19 — 1 → 2 CRÉDITOS para conta paga
+      // (fundador: "é um vídeo muito bom pra ser um crédito, tem que aumentar").
+      //
+      // A MARGEM NUNCA FOI O PROBLEMA: o Kineo 1 custa $0,02-0,05 por render e
+      // a 1 crédito já rendia ~70%. O problema é POSICIONAMENTO. A 1 crédito o
+      // Starter entregava 40 vídeos por mês, e o cliente lê "1 crédito" como
+      // "o vídeo mais barato" em vez de "o vídeo mais rápido" — desvaloriza
+      // justamente o motor MAIS USADO da casa (138 renders em 7 dias, contra
+      // 73 do Seedance).
+      //
+      // A 2 créditos: Starter faz 20 vídeos/mês (ainda muito), margem sobe de
+      // ~70% para ~85%, e o motor deixa de parecer descartável.
+      //
+      // O GRÁTIS NÃO MUDA. Free segue em 0 — o funil de assistir-antes-de-pagar
+      // (KINEO-ZERO-SIGNUP) é o que traz gente, e encarecê-lo seria cobrar
+      // pedágio na porta de entrada.
+      return isPaidUser ? 2 : 0
     case 'avatar':
       // KINEO-AVATAR-120-2026-07-06 — AI Avatar folded into the UNIVERSAL
       // video_credits system (was the separate avatar_credits add-on @ 1/video).
@@ -63,6 +80,18 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // KINEO-PRICING-V3B-2026-07-10 — 45 → 50 (margin bump). Keep in sync
       // with KLING_CREDIT_COST in generate-video-cinematic.
       return 50
+    case 'cinematic_h3':
+      // KINEO-H3-2026-08-19 — MiniMax H3 a 768p custa $0.06/s na fal: um filme
+      // de 65s (o formato da casa, 60s+ por causa do TikTok Rewards) sai por
+      // $3.90. A 45 créditos, ao preço por crédito do Creator ($0.1667), a
+      // receita líquida é $7.00 e a margem fica em 44%.
+      //
+      // POR QUE 45 E NÃO 50 (que daria 50% de margem): a 50 o Creator, com 90
+      // créditos, faz UM filme. A 45 ele faz DOIS. O motor existe justamente
+      // porque o corte de grants da V6 deixou o Creator sem nenhum filme
+      // carro-chefe (Kling 3 custa 150cr) — margem melhor num produto que não
+      // cabe no plano vale zero.
+      return 45
     case 'cinematic_veo':
       // #489/#491 — Veo 3.1 Fast premium. Keep in sync with VEO_CREDIT_COST.
       // KINEO-REBASE-2026-07-10 — 180 → 90.
@@ -113,6 +142,7 @@ export function normalizeQuality(raw: string | null | undefined): Quality {
     case 'cinematic_veo':
     case 'cinematic_sora':
     case 'cinematic_hollywood':
+    case 'cinematic_h3': // KINEO-H3-2026-08-19
     case 'avatar':
     case 'presenter':
       return q

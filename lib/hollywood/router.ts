@@ -101,6 +101,66 @@ export const KLING3_I2V_USD_PER_SECOND = 0.168
 
 export type HollywoodSceneType = keyof typeof HOLLYWOOD_MODELS
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-H3-2026-08-19 — MINIMAX H3 ENTRA NA MESMA ESTRADA, NÃO NUMA NOVA.
+// ═══════════════════════════════════════════════════════════════════════════
+// Decisão de arquitetura que é o ponto inteiro deste motor: o H3 renderiza
+// pelo pipeline cinematográfico EXISTENTE. Um caminho paralelo nasceria sem as
+// quatro proteções do Contrato Hollywood (narração verbatim, piso de 95% da
+// duração, variedade determinística, watermark) e repetiria exatamente os
+// erros de duração encolhida e cena repetida que custaram dois dias de
+// conserto no Kling 3. Reusar a estrada é o que compra a experiência.
+//
+// POR QUE ESTE MOTOR (estudo em docs/MOTOR-NOVO-ESTUDO-2026-08-19.md):
+//   · $0.06/s em 768p → filme de 65s custa $3.90 contra $10.92 do Kling 3
+//   · o corte de grants da V6 deixou o Creator (90cr) sem NENHUM filme
+//     carro-chefe: Kling 3 custa 150cr. A 45cr o Creator faz 2, o Studio 4
+//   · aceita até 9 IMAGENS DE REFERÊNCIA num contexto só — o remédio direto
+//     para a inconsistência entre cenas que foi a dor estrutural do Kling 3
+//   · áudio nativo em estéreo (ver a nota sobre mudo, abaixo)
+//
+// Seedance 2.0 ficou de fora e vale dizer por quê: a $0.3034/s o filme sairia
+// a $19.72 e exigiria ~220 créditos. O Studio inteiro tem 180 — seria vender
+// um botão que ninguém pode apertar.
+export const H3_MODELS: Record<HollywoodSceneType, string> = {
+  dialogue: 'minimax/h3/text-to-video',
+  cinematic: 'minimax/h3/text-to-video',
+  support: 'minimax/h3/text-to-video',
+}
+
+/** Caminho ancorado: a cena nasce de uma imagem-âncora (consistência visual). */
+export const H3_I2V_MODEL = 'minimax/h3/image-to-video'
+
+// fal, ago/2026: $0.05/s em 480p · $0.06/s em 768p · $0.13/s em 2K · $0.16/s em
+// 4K. Ficamos em 768p: entregamos 9:16 para Shorts, 768 no lado curto basta, e
+// 2K custaria 2,2× por um ganho que o Enhance (Topaz) já cobre sob demanda para
+// quem quiser.
+export const H3_USD_PER_SECOND = 0.06
+export const H3_RESOLUTION = '768P' as const
+
+/** Família de motor do caminho cinematográfico. */
+export type CinematicFamily = 'hollywood' | 'h3'
+
+/**
+ * PONTO ÚNICO de escolha de modelo por cena. Os quatro lugares do route que
+ * faziam `anchors ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[type]` passam por aqui
+ * — sem isso, adicionar um motor exigiria lembrar de quatro sítios, que é
+ * exatamente como nascem as divergências que passamos o dia consertando.
+ */
+export function cinematicSceneModel(
+  family: CinematicFamily,
+  type: HollywoodSceneType,
+  hasAnchor: boolean,
+): string {
+  if (family === 'h3') return hasAnchor ? H3_I2V_MODEL : H3_MODELS[type]
+  return hasAnchor ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[type]
+}
+
+/** Custo por segundo da família — usado na estimativa e nos logs. */
+export function cinematicUsdPerSecond(family: CinematicFamily, type: HollywoodSceneType): number {
+  return family === 'h3' ? H3_USD_PER_SECOND : HOLLYWOOD_USD_PER_SECOND[type]
+}
+
 // KINEO-HOLLYWOOD-22-2026-07-10 — fal pricing, jul/2026: Kling 3 Pro audio-on
 // $0.168/s (now BOTH dialogue and support); Veo 3.1 fast audio-on 720p $0.15/s.
 // Typical 55s video ≈ $8.90 (was ~$6-7 with Seedance support — the extra ~$2

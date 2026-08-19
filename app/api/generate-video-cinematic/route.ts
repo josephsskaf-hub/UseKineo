@@ -25,6 +25,13 @@ import { openai } from '@/lib/openai'
 import {
   HOLLYWOOD_MODELS,
   KLING3_I2V_MODEL,
+  // KINEO-H3-2026-08-19 — MiniMax H3 entra pela MESMA estrada cinematográfica
+  // para herdar o Contrato Hollywood inteiro. Ver o bloco no router.
+  H3_I2V_MODEL,
+  H3_MODELS,
+  H3_RESOLUTION,
+  cinematicSceneModel,
+  type CinematicFamily,
   mentionsRealPerson,
   planHollywoodScenes,
   logHollywoodCost,
@@ -116,6 +123,13 @@ const SORA_CREDIT_COST = 100 // Sora segue BLOQUEADO (KINEO-SORA-REMOVED) — va
 // KINEO-REBASE-2026-07-10 — HOLLYWOOD = 150 créditos: preço FINAL aprovado 10/07
 // (equivale a 300 old-credits ≈ $28 de crédito → margem saudável sobre ~$10 de fal).
 const HOLLYWOOD_CREDIT_COST = 150
+
+// KINEO-H3-2026-08-19 — MiniMax H3, 768p. Espelha creditCostFor('cinematic_h3')
+// em lib/credits/engineCost.ts, que é onde o raciocínio dos 45 créditos está
+// escrito por extenso. ⚠️ Mexeu num, mexe no outro — a divergência entre o
+// preço que a rota cobra e o que o settle cobra é a classe de bug que o próprio
+// engineCost.ts foi criado para matar.
+const H3_CREDIT_COST = 45
 
 // fal.ai model — Wan 2.5 text-to-video (commercial, supports 9:16, $0.05/s).
 // #368 — Seedance 1.5 Pro. The earlier 'submit error' (#366) was fal EXHAUSTED
@@ -231,6 +245,36 @@ function buildFalInput(
   // b-roll gets ambience). Aspect follows the 9:16 anchor image, so no
   // aspect_ratio param. Only the confirmed params are sent (no negative_prompt
   // — the zero-readable-text rule rides in the prompt suffix from the router).
+  // ═══ KINEO-H3-2026-08-19 — MINIMAX H3 ═══════════════════════════════════
+  // Schema oficial fal: prompt (até 7.000 caracteres), duration 5-15 (inteiro),
+  // resolution 480P|768P|2K|4K, aspect_ratio. O caminho ancorado (i2v) recebe
+  // image_url e herda a proporção da imagem, então não manda aspect_ratio.
+  //
+  // ⚠️ O ÁUDIO NATIVO ENTRA MUDO, E ISSO É DELIBERADO. O H3 gera diálogo,
+  // trilha e foley próprios — e o Contrato Hollywood C1 diz que a narração é a
+  // do usuário, palavra por palavra. Deixar o modelo falar por cima quebraria
+  // o contrato mais importante que temos, e do jeito pior: o cliente ouviria
+  // uma voz que ele não escreveu dizendo algo que ele não pediu.
+  // A trilha dele como AMBIÊNCIA sob a nossa narração é ganho real e fica para
+  // a segunda rodada — depois de medir, não junto com a estreia do motor.
+  if (model === H3_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
+      resolution: H3_RESOLUTION,
+      generate_audio: false,
+    }
+  }
+  if (model === H3_MODELS.dialogue) {
+    return {
+      prompt,
+      duration: Math.max(5, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10))),
+      resolution: H3_RESOLUTION,
+      aspect_ratio: '9:16',
+      generate_audio: false,
+    }
+  }
   if (model === KLING3_I2V_MODEL) {
     const sec = Math.max(3, Math.min(15, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))
     return {
@@ -832,11 +876,18 @@ export async function POST(req: NextRequest) {
     const wantsSora = body.engine === 'sora'
     // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0 (per-scene engine routing).
     const wantsHollywood = body.engine === 'hollywood'
+    // KINEO-H3-2026-08-19 — o H3 é uma FAMÍLIA do caminho Hollywood, não um
+    // caminho novo: `hollywoodPath` é o que liga o planner, o Contrato de
+    // duração, a narração verbatim e a variedade determinística. `family` só
+    // decide QUAL modelo cada cena chama.
+    const wantsH3 = body.engine === 'h3'
+    const hollywoodPath = wantsHollywood || wantsH3
+    const family: CinematicFamily = wantsH3 ? 'h3' : 'hollywood'
 
     // KINEO-HOLLYWOOD-2026-07-09 — anti-deepfake gate. Hollywood renders REAL
     // fictional people with native voice, so a prompt naming a real person is
     // blocked outright (cheap check, before any credit/plan work).
-    if (wantsHollywood && mentionsRealPerson(prompt)) {
+    if (hollywoodPath && mentionsRealPerson(prompt)) {
       return NextResponse.json(
         { error: "Hollywood Mode can't depict real people. Describe a fictional person instead." },
         { status: 400 },
@@ -899,7 +950,7 @@ export async function POST(req: NextRequest) {
 
     // Premium engines (Kling/Veo/Hollywood) need any PAID account — the
     // reverse trial never includes the Studio engines.
-    if ((wantsKling || wantsVeo || wantsHollywood) && !isPaidUser) {
+    if ((wantsKling || wantsVeo || hollywoodPath) && !isPaidUser) {
       return NextResponse.json(
         {
           error: trialActive
@@ -929,7 +980,7 @@ export async function POST(req: NextRequest) {
 
     // Push #402 — per-engine cost. KINEO-PRICING-V3B-2026-07-10: Hollywood 150,
     // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20.
-    const cost = wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
+    const cost = wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
 
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
@@ -1031,7 +1082,7 @@ export async function POST(req: NextRequest) {
         needed: cost,
         balance,
         held_by_unsettled_render: heldByUnsettled,
-        engine: wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
+        engine: wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
         is_paid: isPaidUser,
@@ -1069,14 +1120,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const claimQuality = wantsHollywood
+    const claimQuality = wantsH3
+      ? 'cinematic_h3'
+      : wantsHollywood
       ? 'cinematic_hollywood'
       : wantsKling
         ? 'cinematic_kling'
         : wantsVeo
           ? 'cinematic_veo'
           : 'cinematic_ai'
-    const claimEngine = wantsHollywood
+    const claimEngine = wantsH3
+      ? 'h3'
+      : wantsHollywood
       ? 'hollywood'
       : wantsKling
         ? 'kling'
@@ -1631,7 +1686,7 @@ export async function POST(req: NextRequest) {
     // KINEO-HOLLYWOOD-2026-07-09 — skipped for hollywood: planHollywoodScenes
     // writes its own per-scene prompts (people allowed), so the faceless
     // description pass would be wasted work.
-    if (verbatim && planScenes.length === 0 && !wantsHollywood) {
+    if (verbatim && planScenes.length === 0 && !hollywoodPath) {
       try {
         const aiPrompts = await generateCinematicDescriptions(scenes, prompt)
         scenes = scenes.map((s, i) => ({
@@ -1691,7 +1746,7 @@ export async function POST(req: NextRequest) {
     // narrations, seconds). buildFacelessCinematicPrompt / PERSON_NOUN_RE are
     // intentionally NOT applied — fictional people are the point here. The
     // era-lock suffix IS kept (period accuracy still matters).
-    if (wantsHollywood) {
+    if (hollywoodPath) {
       const hollywoodVoiceover = verbatim && parsedScript.narration
         ? parsedScript.narration
         : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
@@ -2253,7 +2308,7 @@ export async function POST(req: NextRequest) {
       for (const hs of plan.scenes) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
-        let sceneModel: string = anchors ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[hs.type]
+        let sceneModel: string = cinematicSceneModel(family, hs.type, Boolean(anchors))
         let sceneEngine: string = hs.type
         let id: string | null = null
 
@@ -2316,7 +2371,7 @@ export async function POST(req: NextRequest) {
               e instanceof Error ? e.message : String(e),
             )
             id = null
-            sceneModel = anchors ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[hs.type]
+            sceneModel = cinematicSceneModel(family, hs.type, Boolean(anchors))
             sceneEngine = hs.type
           }
         }
@@ -2365,7 +2420,7 @@ export async function POST(req: NextRequest) {
             } catch { sceneStillUrl = null }
           }
           const sceneAnchor = anchorUrl ?? sceneStillUrl ?? undefined
-          sceneModel = sceneAnchor ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[hs.type]
+          sceneModel = cinematicSceneModel(family, hs.type, Boolean(sceneAnchor))
           // KINEO-VOICEFIX-2026-08-17 (parte 2, em CODIGO): cena NAO-dialogo
           // nunca pode ter boca mexendo — a narracao TTS toca por cima e boca
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
@@ -2420,7 +2475,7 @@ export async function POST(req: NextRequest) {
       while (hRequestIds.length < plan.scenes.length) {
         const unsubmitted = plan.scenes[hRequestIds.length]
         hRequestIds.push(null)
-        hModels.push(anchors ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[unsubmitted.type])
+        hModels.push(cinematicSceneModel(family, unsubmitted.type, Boolean(anchors)))
         hEngines.push(unsubmitted.type)
       }
 
