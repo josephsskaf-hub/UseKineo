@@ -14,8 +14,15 @@
 //   link live instantly → app/api/affiliate/apply/route.ts:110 ('active') is
 //                         exactly the status app/a/[code]/route.ts:38 requires
 //                         before it logs a click and sets the cookie
-//   $9.90–$37.90/mo     → lib/pricing.ts:90-91 (Studio) and lib/comparisons.ts:305
-//                         (Starter $9.90, $9.90/mo)
+//   $7–$29/mo           → lib/checkoutPricing.ts (TIER_PRICES), importado aqui.
+//                         KINEO-PRICING-V6-2026-08-19: este range estava
+//                         DIGITADO como "$9.90–$37.90" e a tabela de ilustração
+//                         logo abaixo tinha sido calculada à mão em cima dele.
+//                         Uma página que promete comissão sobre preço de lista
+//                         não pode ter o preço de lista como texto solto — ela
+//                         vira uma promessa de dinheiro errada no dia do
+//                         reprice, para um público (afiliados) que checa conta.
+//                         Agora o range E a tabela derivam de TIER_PRICES.
 //   commissions pending → app/api/stripe/webhook/route.ts:99 inserts
 //                         `status: 'pending'` unconditionally; nothing in that
 //                         file ever writes 'approved'. Payout review is a
@@ -23,9 +30,27 @@
 // If the insert status is ever reverted to 'pending', the "live the moment you
 // apply" copy on this page becomes false again and must be reverted with it.
 import type { Metadata } from 'next'
+import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
+
+// KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
+// digitada. 40% é a taxa que app/api/affiliate/apply/route.ts grava
+// (commission_rate: 0.4); o piso e o teto são o plano mais barato e o mais caro
+// da escada de assinatura (Autopilot fica de fora de propósito: $299/mês num
+// exemplo de afiliado infla a promessa com um produto que quase ninguém compra).
+const COMMISSION_RATE = 0.4
+const CHEAPEST_PLAN_USD = TIER_PRICES.starter.usd / 100
+const PRICIEST_PLAN_USD = TIER_PRICES.pro.usd / 100
+
+/** "~$28–$116 / mo" para N clientes indicados, a 40% recorrente. */
+function monthlyRange(customers: number): string {
+  const money = (usd: number) => '$' + Math.round(customers * COMMISSION_RATE * usd).toLocaleString('en-US')
+  return `~${money(CHEAPEST_PLAN_USD)}–${money(PRICIEST_PLAN_USD)} / mo`
+}
+
+const PRICE_RANGE = `$${CHEAPEST_PLAN_USD}–$${PRICIEST_PLAN_USD}/month`
 
 export const dynamic = 'force-static'
 
@@ -95,9 +120,9 @@ export default function PartnersPage() {
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>What 40% recurring looks like</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
             {[
-              { n: '10', d: 'referred customers', e: '~$40–$152 / mo' },
-              { n: '50', d: 'referred customers', e: '~$198–$758 / mo' },
-              { n: '200', d: 'referred customers', e: '~$792–$3,032 / mo' },
+              { n: '10', d: 'referred customers', e: monthlyRange(10) },
+              { n: '50', d: 'referred customers', e: monthlyRange(50) },
+              { n: '200', d: 'referred customers', e: monthlyRange(200) },
             ].map((r) => (
               <div key={r.n} style={{ ...CARD, borderRadius: 14, padding: 18, textAlign: 'center' }}>
                 <div style={{ fontSize: '1.8rem', fontWeight: 900 }}>{r.n}</div>
@@ -106,7 +131,7 @@ export default function PartnersPage() {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: '0.74rem', color: '#64748B', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>Illustration based on 40% of current USD renewal list prices ($9.90–$37.90/month), before taxes, refunds or failed payments. Introductory first-month prices are lower.</p>
+          <p style={{ fontSize: '0.74rem', color: '#64748B', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Same price worldwide — there is no discounted first month to erode the first commission.</p>
         </section>
 
         {/* How */}

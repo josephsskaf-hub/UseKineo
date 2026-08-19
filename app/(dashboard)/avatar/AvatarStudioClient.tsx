@@ -14,6 +14,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+// KINEO-PRICING-V6-2026-08-19 — "get credits from $9.90" era o único preço
+// desta tela e estava chumbado. Vem da tabela que a Stripe cobra.
+import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 
 type Phase = 'idle' | 'uploading' | 'submitting' | 'animating' | 'composing' | 'rendering' | 'done' | 'failed'
 
@@ -1735,7 +1738,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
               </span>
               {(avatarCredits ?? AVATAR_COST) < AVATAR_COST && (
                 <>
-                  {' '}· <Link href="/pricing" style={{ color: '#2997ff' }}>get credits from $9.90</Link>
+                  {' '}· <Link href="/pricing" style={{ color: '#2997ff' }}>get credits from {formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}</Link>
                 </>
               )}
             </p>

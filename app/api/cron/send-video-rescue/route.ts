@@ -15,15 +15,23 @@ import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO_LIFECYCLE_EMAILS_ENABLED (a supressão cruzada de 24h já está ligada
 // nos 4 crons + 2 rotas admin desde 27/07) — a decisão de virar segue sendo
 // exclusivamente do fundador.
-import { PACK_CREDITS } from '@/lib/checkoutPricing'
+// KINEO-PRICING-V6-2026-08-19 — preço e grant entram pelo mesmo caminho que os
+// créditos do pack já entravam desde 31/07. Ver o bloco em buildEmail() sobre
+// o FOUNDING50 que saiu daqui.
+import { PACK_CREDITS, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 // send-video-rescue — #477
 //
 // The warmest leak in the funnel: users who CREATED a video (felt the "wow")
 // but never paid. From the 30-day funnel ~76 activate and only ~5 pay — that's
 // ~71 people who proved intent and walked. This cron emails them once, a day
-// after their last Short, with the founding 50%-off offer AND the $4.90 Starter
-// Pack (low-commitment) so the hardest step (first payment) is easy to take.
+// after their last Short, with the new (lower) plan prices AND the $4.90
+// Starter Pack (low-commitment) so the hardest step (first payment) is easy to
+// take. KINEO-PRICING-V6-2026-08-19 — a "founding 50%-off offer" que estava
+// aqui morreu junto com o 1º mês com desconto.
 //
 // Guard rails:
 //   - max 1 rescue email per user, ever (profiles.video_rescue_sent_at)
@@ -69,12 +77,20 @@ function isAuthorized(req: NextRequest): boolean {
 
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
 function buildEmail(userId: string) {
-  const upgradeUrl = `${APP_URL}/pricing?promo=FOUNDING50`
+  // ⚠️ KINEO-PRICING-V6-2026-08-19 — `?promo=FOUNDING50` REMOVIDO das duas
+  // URLs. O texto abaixo prometia "Founding offer: 50% off your first month" e
+  // essa oferta não existe mais (INTRO_PRICES == TIER_PRICES desde 17/08). O
+  // cupom em si não é auto-provisionado por nós — ele depende de um promotion
+  // code continuar ativo na Stripe —, então manter o parâmetro deixava o
+  // desconto no limbo: ou ele não aplica e o e-mail mentiu, ou ele aplica e a
+  // gente vende o Creator pela metade sem uma única tela dizendo isso. Nenhum
+  // dos dois é aceitável. O argumento novo é o preço, que caiu de verdade.
+  const upgradeUrl = `${APP_URL}/pricing`
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — never put /api/stripe/checkout in an
   // email. Corporate mail scanners follow every link, which minted Checkout
   // Sessions nobody clicked and polluted the abandoned-checkout numbers. Same
   // repoint already applied to send-abandon-recovery and send-free-upsell.
-  const packUrl = `${APP_URL}/pricing?promo=FOUNDING50&intent_campaign=video_rescue_pack`
+  const packUrl = `${APP_URL}/pricing?intent_campaign=video_rescue_pack`
   const makeUrl = `${APP_URL}/generate`
   const text = `Hey,
 
@@ -84,8 +100,8 @@ You already did the hard part — you generated a real Short with AI: script, vo
 
 If you want to keep posting without the hassle, two easy ways to keep going:
 
-- Founding offer: 50% off your first month. Cancel anytime, 7-day money-back: ${upgradeUrl}
-- Not ready for a subscription? Grab ${PACK_CREDITS.starter} more Shorts for $4.90, one-time (no plan): ${packUrl}
+- We just cut every price: Starter is ${STARTER_PRICE}/month (${TIER_CREDITS.starter} credits), Creator ${CREATOR_PRICE}/month (${TIER_CREDITS.basic}). Same price every month, worldwide. Cancel anytime, 7-day money-back: ${upgradeUrl}
+- Not ready for a subscription? Grab ${PACK_CREDITS.starter} more credits for $4.90, one-time (no plan): ${packUrl}
 
 Or just make another one right now: ${makeUrl}
 

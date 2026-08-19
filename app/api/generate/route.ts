@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, buildGenerationPrompt, buildSingleVideoPrompt, ShortVideo } from '@/lib/openai'
+// KINEO-PRICING-V6-2026-08-19 — a mensagem de recusa por limite grátis citava
+// preço e créditos à mão. Ver o comentário no 402 mais abaixo.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 
 // Increase Vercel function timeout to 60s (hobby plan max)
 export const maxDuration = 60
@@ -108,7 +111,13 @@ export async function POST(req: NextRequest) {
     if (!isTopicMode && !isPro && generationsUsed >= FREE_LIMIT) {
       return NextResponse.json(
         {
-          error: `You've used all ${FREE_LIMIT} free generations. Upgrade to Starter ($9.90/mo, 50 videos) or Creator ($24.90/mo, 150 credits).`, // KINEO-PRICING-V3B-2026-07-10
+          // ⚠️ KINEO-PRICING-V6-2026-08-19 — esta mensagem de 402 dizia
+          // "Starter ($9.90/mo, 50 videos) ou Creator ($24.90/mo, 150
+          // credits)". Quatro números errados numa string que o usuário lê
+          // NO MOMENTO DA RECUSA — a única frase que ele vai reler antes de
+          // decidir se paga. "50 videos" já estava errado desde o rebase de
+          // 10/07 (o Starter nunca concedeu 50 créditos na V3+).
+          error: `You've used all ${FREE_LIMIT} free generations. Upgrade to Starter (${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits) or Creator (${formatCheckoutMoney('usd', TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits).`,
         },
         { status: 402 }
       )

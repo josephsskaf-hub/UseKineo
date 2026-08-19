@@ -11,6 +11,13 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+// KINEO-PRICING-V6-2026-08-19 — esta tela vendia Starter com "$9.90/month" e
+// "60 credits" DIGITADOS em três lugares, e os três estavam errados no dia
+// seguinte ao reprice. USD fixo aqui (o checkout re-resolve a moeda pelo IP no
+// servidor), mas nunca mais um dígito à mão.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+const STARTER_PRICE_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
 interface Video {
   id: string
@@ -785,7 +792,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             </h2>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
               {showRepeatCreatorOffer
-                ? 'Starter includes 60 credits each month and clean exports for new videos. $9.90/month. Cancel anytime.'
+                ? `Starter includes ${TIER_CREDITS.starter} credits each month and clean exports for new videos. ${STARTER_PRICE_USD}/month. Cancel anytime.`
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
             {showRepeatCreatorOffer ? (
@@ -815,7 +822,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               >
                 {checkout.pending === 'history_repeat_offer'
                   ? 'Loading…'
-                  : 'Make new exports clean · $9.90 →'}
+                  : `Make new exports clean · ${STARTER_PRICE_USD} →`}
               </button>
             )}
             {showRepeatCreatorOffer && checkout.error && (
@@ -1531,8 +1538,11 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                     <span>Loading…</span>
                   ) : (
                     <>
-                      <span>Unlock clean exports — Start Starter for $9.90</span>
-                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · then $9.90/month · cancel anytime</span>
+                      <span>Unlock clean exports — Start Starter for {STARTER_PRICE_USD}</span>
+                      {/* KINEO-PRICING-V6-2026-08-19 — "then $X/month" insinuava
+                          um preço de entrada diferente do de renovação. Não há
+                          intro em nenhum plano: é o MESMO valor todo mês. */}
+                      <span style={{ fontSize: '0.65rem', fontWeight: 700, opacity: 0.9 }}>For new videos · {STARTER_PRICE_USD}/month · cancel anytime</span>
                     </>
                   )}
                 </button>

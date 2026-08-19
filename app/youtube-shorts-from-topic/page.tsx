@@ -11,6 +11,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from './TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -22,12 +26,12 @@ const PUBLICATION_DATE = '2026-07-16T00:00:00.000Z'
 export const metadata: Metadata = {
   title: 'Make a YouTube Short From a Topic — AI Writes, Voices & Edits It | Kineo',
   description:
-    `Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $9.90/month.', OFFER.copy.headline)}`,
+    `Type a topic and get a finished faceless YouTube Short — script, AI voiceover, footage and captions. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ' + STARTER_MONTH + '.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/youtube-shorts-from-topic' },
   openGraph: {
     title: 'Make a YouTube Short From a Topic — usually ready in 3–7 minutes',
     description:
-      'One topic in, a ready-to-post 9:16 Short out: script, voiceover, footage and captions. Try Fast free; Starter is $9.90/month.',
+      'One topic in, a ready-to-post 9:16 Short out: script, voiceover, footage and captions. Try Fast free; Starter is ' + STARTER_MONTH + '.',
     url: 'https://www.usekineo.com/youtube-shorts-from-topic',
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
@@ -50,7 +54,7 @@ const STEPS: { n: string; t: string; d: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   { q: 'Is there an AI that makes a YouTube Short from just a topic?', a: 'Yes. Kineo turns a single topic into a finished faceless Short — it writes the script, records the AI voiceover, finds matching footage and adds captions, then renders a ready-to-post 9:16 video, usually in 3–7 minutes. You never film anything.' },
   { q: 'Can I make a YouTube Short from a script, narrated word-for-word?', a: 'Yes. Paste your own script and Kineo narrates it verbatim, matches footage to each line and captions it — no editing or timeline required.' },
-  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: `${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter costs $4.90 for the first month, then $9.90/month, with a 7-day money-back guarantee.` },
+  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: `${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter costs ${STARTER_MONTH} — the same price worldwide — with a 7-day money-back guarantee.` },
   { q: 'How is this different from OpusClip or Submagic?', a: 'OpusClip and Submagic re-clip or caption a long video you already filmed. Kineo generates the entire video from a topic — ideal for faceless creators who start with nothing but an idea.' },
   { q: 'Do I need any editing skills?', a: 'No. There is no timeline to learn. You type a topic (or paste a script) and download a finished 9:16 Short ready to post on YouTube, TikTok and Reels.' },
 ]
@@ -108,7 +112,7 @@ export default function YouTubeShortsFromTopicPage() {
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter $9.90/mo
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter {STARTER_MO}
         </p>
 
         <TopicGeneratorForm />

@@ -15,6 +15,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — ESTE E-MAIL VENDIA UM VÍDEO QUE O PACK NÃO
+// PAGA. A última linha dizia: "Out of credits? The $4.90 pack (10 videos,
+// never expires) covers your first presenter video and more" — num e-mail cujo
+// assunto INTEIRO é o AI Presenter. O pack concede 30 créditos
+// (PACK_CREDITS.starter) e um presenter custa 70. Quem comprasse por causa
+// dessa frase compraria exatamente para fazer a coisa anunciada e levaria um
+// 402 na cara. Não é preço desatualizado — é o SKU errado para a promessa,
+// e nenhuma tabela de preço nova conserta isso: só a frase.
+// (O preço do pack, $4.90, é o único número aqui que não mudou na V6.)
+import { PACK_CREDITS } from '@/lib/checkoutPricing'
+import { creditCostFor } from '@/lib/credits/engineCost'
+
+const PRESENTER_COST = creditCostFor('presenter', true)
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -75,7 +88,7 @@ function emailHtml(userId: string): string {
   <p style="margin:26px 0">
     <a href="https://usekineo.com/avatar?utm_source=feature_email&utm_campaign=avatar_suite" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Try AI Presenter →</a>
   </p>
-  <p style="font-size:13px;color:#64748b">Out of credits? The $4.90 pack (10 videos, never expires) covers your first presenter video and more.</p>
+  <p style="font-size:13px;color:#64748b">Out of credits? The $4.90 pack adds ${PACK_CREDITS.starter} credits (they never expire) — enough for Shorts and gesture clips. A presenter video costs ${PRESENTER_COST} credits, so for those a monthly plan is the cheaper route.</p>
   <p>Just reply if you want me to walk you through any of it — I read every email.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>

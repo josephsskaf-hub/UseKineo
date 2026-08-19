@@ -7,6 +7,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -38,7 +42,7 @@ const FAQ = [
   },
   {
     q: 'How do I remove the Kineo watermark?',
-    a: 'Paid plans unlock clean MP4 exports. Starter is $9.90/month and renews at $9.90 per month. The free Fast workflow keeps a Kineo watermark.',
+    a: 'Paid plans unlock clean MP4 exports. Starter is ' + STARTER_MONTH + ', the same price worldwide. The free Fast workflow keeps a Kineo watermark.',
   },
   {
     q: 'Which faceless video formats can I make?',
@@ -235,7 +239,7 @@ export default function FacelessVideoGeneratorPage() {
 
         <h2 style={h2}>Transparent free and paid output</h2>
         <p style={p}>
-          {ft(OFFER, 'New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card.', OFFER.copy.sentence)} Starter costs $4.90 for the first month, then $9.90 per month, and unlocks clean MP4 exports. Cancel anytime.
+          {ft(OFFER, 'New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card.', OFFER.copy.sentence)} Starter costs {STARTER_MONTH} — the same price worldwide — and unlocks clean MP4 exports. Cancel anytime.
         </p>
         <p style={p}>
           Compare related workflows: <Link href="/free-ai-shorts-generator" style={{ color: '#2997ff' }}>free AI Shorts generator</Link>, <Link href="/text-to-video-shorts" style={{ color: '#2997ff' }}>text-to-video Shorts</Link>, and <Link href="/alternatives" style={{ color: '#2997ff' }}>Kineo alternatives and comparisons</Link>.

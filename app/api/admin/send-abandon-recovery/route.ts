@@ -22,6 +22,20 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — ESTE E-MAIL VENDIA UM PREÇO QUE NÃO EXISTE.
+// O assunto era "First month $4.90" e o corpo prometia "half price … renews at
+// $9.90/mo" mais "Creator (150 credits + 1 Hollywood film/month) also half
+// off". Quatro afirmações, quatro falsas: o 1º mês com desconto morreu em
+// 17/08, o Starter é $7, o Creator concede 90 créditos (não 150) e um filme
+// Hollywood custa 150 — não cabe no plano de jeito nenhum.
+// Um e-mail é pior que uma landing nesse aspecto: fica na caixa de entrada
+// com data, e a pessoa volta nele DEPOIS de ver a fatura. Todo número aqui
+// passa a sair da tabela que a Stripe cobra.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+
+const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -37,9 +51,12 @@ const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
 const REPLY_TO = 'hello@usekineo.com'
 // KINEO-INTRO-MONTH-2026-07-13 — oferta trocada: 20% off (KINEO20) → 1º mês
 // do Starter por $4.90. Desconto mais fundo (50% vs 20%) E recorrente por
-// design: quem resgata vira assinatura, não cupom avulso. O link vai direto
-// pro checkout com ?intro=1 (o servidor aplica o cupom e valida 1-por-conta).
-const SUBJECT = 'Still thinking it over? First month $4.90'
+// design: quem resgata vira assinatura, não cupom avulso.
+// KINEO-PRICING-V6-2026-08-19 — o assunto era "First month $4.90". Sem intro,
+// o argumento de resgate deixa de ser desconto e passa a ser o PREÇO, que
+// caiu de verdade ($9.90 → $7). É um argumento melhor e, ao contrário do
+// outro, é verdadeiro.
+const SUBJECT = `Still thinking it over? Kineo starts at ${STARTER_PRICE}/mo`
 
 // The checkout-click events fired across pricing, homepage, and the watermark moment.
 const CHECKOUT_EVENTS = [
@@ -98,9 +115,10 @@ function isValidExternalEmail(email: string): boolean {
 // nobody clicked. Both now land on /pricing, which is a plain page.
 //
 // Intent is preserved: /pricing reads ?promo= and ?intent_campaign= and
-// forwards them to the checkout route, and its handleBuy() already appends
-// &intro=1 automatically for monthly starter/basic — the exact half-price
-// first month this email promises. NOTE: /pricing does NOT currently read
+// forwards them to the checkout route. (KINEO-PRICING-V6-2026-08-19: o
+// &intro=1 que o /pricing anexa continua indo, mas não desconta mais nada —
+// INTRO_PRICES == TIER_PRICES. Este e-mail não promete desconto nenhum.)
+// NOTE: /pricing does NOT currently read
 // ?tier=, so that param is carried for attribution only; the reader still
 // picks the plan card themselves.
 //
@@ -111,11 +129,11 @@ function emailHtml(userId: string): string {
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 🎬</p>
   <p>I noticed you got as far as checkout but didn't finish. No pressure — but if price was the thing holding you back, let me help.</p>
-  <p style="font-size:18px;margin:18px 0"><b>Your first month for $4.90</b> — half price. 25 credits, watermark-free videos, cancel anytime.</p>
+  <p style="font-size:18px;margin:18px 0"><b>Starter is now ${STARTER_PRICE}/month</b> — ${TIER_CREDITS.starter} credits, watermark-free videos, cancel anytime.</p>
   <p style="margin:26px 0">
-    <a href="https://usekineo.com/pricing?tier=starter&intent_campaign=abandon_recovery" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Start for $4.90 &rarr;</a>
+    <a href="https://usekineo.com/pricing?tier=starter&intent_campaign=abandon_recovery" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Start for ${STARTER_PRICE} &rarr;</a>
   </p>
-  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want more power? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=abandon_recovery" style="color:#2997ff">first month $9.90</a>.</p>
+  <p style="color:#475569;font-size:14px">Same price every month — no intro trick, cancel anytime with two clicks · 7-day money-back guarantee. Want more power? The Creator plan (${TIER_CREDITS.basic} credits ≈ ${CREATOR_AI_FILMS} AI films a month) is <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=abandon_recovery" style="color:#2997ff">${CREATOR_PRICE}/month</a>.</p>
   <p>If something else held you back — a feature or a question — just reply to this email. It comes straight to me.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>

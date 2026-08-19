@@ -1,0 +1,107 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V6-2026-08-19 — O PREÇO ESCRITO NAS PÁGINAS DE SEO.
+// ═══════════════════════════════════════════════════════════════════════════
+// POR QUE ESTE ARQUIVO EXISTE (e por que não é "mais uma indireção"):
+//
+// O checkout já tinha fonte única desde a V3 (lib/checkoutPricing.ts). As ~25
+// páginas de marketing/SEO, não: cada uma escrevia "$9.90" à mão, dentro de
+// literais de string, dezenas de vezes por arquivo. O resultado é o que se
+// mediu em 19/08 — a Stripe cobrando o preço novo enquanto /alternatives,
+// /vs, /pricing (metadata) e mais vinte páginas continuavam publicando o
+// velho. Não é descuido de ninguém: é o que sempre acontece quando o número
+// mora em 200 lugares e a lista desses lugares não existe em canto nenhum.
+//
+// A alternativa era repetir estas mesmas três linhas em cada página. Isso
+// resolve o preço de HOJE e recria o problema no próximo reprice, porque
+// voltam a ser 20 arquivos para lembrar. Aqui é UM import por página e um
+// grep (`from '@/lib/marketingPrice'`) que lista a superfície inteira.
+//
+// NADA AQUI É UM NÚMERO. Tudo deriva de TIER_PRICES/TIER_CREDITS — as mesmas
+// constantes que a rota da Stripe usa para cobrar. Um reprice em
+// checkoutPricing.ts chega nestas páginas sem que ninguém precise abri-las.
+import { TIER_PRICES, TIER_CREDITS, type CheckoutTier } from '@/lib/checkoutPricing'
+import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
+
+/** "7" / "15" / "29" — dólares inteiros, sem centavos zerados. A escada da V6
+ *  é redonda de propósito, e a copy de marketing lê melhor como "$7/mo" do que
+ *  como "$7.00/mo". Se um dia um tier voltar a ter centavos, eles aparecem
+ *  sozinhos (o toFixed(2) só entra quando há centavo de verdade). */
+function usdLabel(tier: CheckoutTier): string {
+  const cents = TIER_PRICES[tier].usd
+  return cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2)
+}
+
+/** "7" — só o número, sem cifrão. Existe para as páginas em espanhol e
+ *  português, onde a moeda se escreve "US$ 7" e não "$7". */
+export const STARTER_USD_AMOUNT = usdLabel('starter')
+
+export const STARTER_PRICE = `$${usdLabel('starter')}`
+export const CREATOR_PRICE = `$${usdLabel('basic')}`
+export const STUDIO_PRICE = `$${usdLabel('pro')}`
+
+export const STARTER_MO = `${STARTER_PRICE}/mo`
+export const STARTER_MONTH = `${STARTER_PRICE}/month`
+export const CREATOR_MO = `${CREATOR_PRICE}/mo`
+export const CREATOR_MONTH = `${CREATOR_PRICE}/month`
+export const STUDIO_MO = `${STUDIO_PRICE}/mo`
+export const STUDIO_MONTH = `${STUDIO_PRICE}/month`
+
+/** Créditos mensais de cada plano — mesma fonte que o webhook credita. */
+export const STARTER_CREDITS = TIER_CREDITS.starter
+export const CREATOR_CREDITS = TIER_CREDITS.basic
+export const STUDIO_CREDITS = TIER_CREDITS.pro
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V6-2026-08-19 — QUANTOS FILMES O PLANO REALMENTE FAZ.
+// ═══════════════════════════════════════════════════════════════════════════
+// Este bloco nasceu de uma PROMESSA QUEBRADA, não de vontade de abstrair.
+//
+// Cinco superfícies de produto prometiam, com estas palavras, "1 Hollywood
+// film every month — included" no Creator: o grid do /generate, a caixa de
+// 0 créditos, o modal de exit-intent, o e-mail de abandono e o de free-upsell.
+// A frase nasceu verdadeira na V3B (Creator = 150 créditos, Hollywood = 150).
+// Na V6 o Creator tem 90 e o Hollywood continua custando 150 — a promessa
+// virou aritmeticamente impossível, e ninguém percebeu porque o "150" da
+// esquerda e o "150" da direita moravam em arquivos diferentes.
+//
+// A lição é a mesma do preço: quantidade de vídeo é uma DIVISÃO entre duas
+// constantes que mudam em commits separados (grant do plano × custo do motor).
+// Escrever o resultado à mão é assinar um cheque contra um saldo que outra
+// pessoa pode gastar. Aqui a divisão é feita na hora, das duas fontes reais.
+//
+// `isPaidUser = true` porque toda frase deste arquivo descreve o que um
+// ASSINANTE recebe — no plano gratuito o Fast custa 0 e a conta daria ∞.
+
+/** Quantos vídeos de `quality` cabem no grant mensal de `tier`. Arredonda
+ *  para baixo: prometer o vídeo que não fecha é exatamente o defeito acima. */
+export function videosPerMonth(tier: CheckoutTier, quality: Quality): number {
+  return Math.floor(TIER_CREDITS[tier] / creditCostFor(quality, true))
+}
+
+/** Seedance (20 cr) — o motor de IA de entrada, é ele que a copy chama de
+ *  "engine film". Starter 2 · Creator 4 · Studio 8. */
+export const STARTER_AI_FILMS = videosPerMonth('starter', 'cinematic_ai')
+export const CREATOR_AI_FILMS = videosPerMonth('basic', 'cinematic_ai')
+export const STUDIO_AI_FILMS = videosPerMonth('pro', 'cinematic_ai')
+
+/** Kling 2.5 (50 cr) — o cinematográfico. Creator 1 · Studio 3. */
+export const CREATOR_CINEMATIC_FILMS = videosPerMonth('basic', 'cinematic_kling')
+export const STUDIO_CINEMATIC_FILMS = videosPerMonth('pro', 'cinematic_kling')
+
+/** Kling 3 / "Hollywood" (150 cr) — o filme caro. Studio 1; Creator ZERO.
+ *  Toda copy que quiser vender o filme Hollywood tem de checar isto antes,
+ *  em vez de repetir a frase de 2026-07-10. */
+export const STUDIO_HOLLYWOOD_FILMS = videosPerMonth('pro', 'cinematic_hollywood')
+export const CREATOR_HOLLYWOOD_FILMS = videosPerMonth('basic', 'cinematic_hollywood')
+
+/** true = o plano fecha pelo menos um filme Hollywood no mês. */
+export function fitsHollywood(tier: CheckoutTier): boolean {
+  return videosPerMonth(tier, 'cinematic_hollywood') >= 1
+}
+
+// KINEO-PRICING-V6-2026-08-19 — a frase que substituiu o preço regional.
+// A escada por país morreu (ver o bloco de TIER_PRICES): agora é a MESMA
+// oferta no mundo inteiro, só escrita na moeda de quem lê. Páginas que
+// diziam "o preço varia por região" usam esta constante para não voltarem a
+// divergir umas das outras na hora de explicar isso.
+export const SAME_PRICE_WORLDWIDE = 'the same price worldwide'

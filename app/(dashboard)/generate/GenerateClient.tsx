@@ -29,6 +29,10 @@ import { PLAN_LIST } from '@/lib/pricing'
 // upgrade passou a DERIVAR "quantos vídeos de IA este plano compra" dele em vez
 // de redigitar o número.
 import { creditCostFor } from '@/lib/credits/engineCost'
+// KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
+// eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
+// O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
+import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -113,6 +117,24 @@ import Offer290Banner from './Offer290Banner'
 // leitura de amanhã compararia duas mensagens diferentes achando que compara
 // uma só — o erro de coorte que o PROMPT-DIARIO já cobrou duas vezes.
 const POST_RENDER_SHARE_VARIANT = 'whatsapp_imitation_30_30_v2'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V6-2026-08-19 — OS PREÇOS EM DÓLAR DESTA TELA, DERIVADOS.
+// ═══════════════════════════════════════════════════════════════════════════
+// Este arquivo tem meia dúzia de caixas de venda, e as que ficam DENTRO de
+// componentes-filhos (o modal de 0 créditos, o modal de urgência) não têm
+// acesso ao estado de moeda do componente principal — por isso sempre
+// escreveram dólar chumbado: "$9.90 first month", "$19.90/mo", "150
+// credits/month". Eram sete literais de uma tabela que já tinha morrido duas
+// vezes.
+//
+// Estas constantes não resolvem a moeda do visitante (as caixas que TÊM o
+// estado continuam usando getTierPrice() com a moeda do /api/geo, que é
+// melhor). Elas resolvem a única coisa que um literal nunca resolve: ficar
+// certas depois do próximo reprice. USD é o mesmo default que a tela já
+// mostrava; a COBRANÇA sempre foi re-resolvida por IP no servidor.
+const STARTER_USD_LABEL = formatCheckoutMoney('usd', getTierPrice('starter', 'usd'))
+const CREATOR_USD_LABEL = formatCheckoutMoney('usd', getTierPrice('basic', 'usd'))
 
 interface TaskHandle {
   id: string
@@ -8344,9 +8366,14 @@ export default function GenerateClient({
                   moment, and contradicted the single primary offer (Creator).
                   Now: intro Creator, renewal explicit, same one offer as the
                   0-credit modal and the post-render block. */}
+              {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "150 credits/month … e 1
+                  Hollywood film included" era FALSO NOS DOIS NÚMEROS: o
+                  Creator concede 90 créditos e o filme Hollywood custa 150, ou
+                  seja, o plano nem chega perto de fechar um. Quem comprasse
+                  por causa desta frase descobriria o 402 depois de pagar. */}
               Go Creator and never run out of credits.
-              Get <strong style={{ color: '#2997ff' }}>150 credits/month</strong> — full AI scenes,
-              AI Presenter and 1 Hollywood film included, every month.
+              Get <strong style={{ color: '#2997ff' }}>{TIER_CREDITS.basic} credits/month</strong> — full AI scenes,
+              AI Presenter and about {CREATOR_AI_FILMS} AI-generated films, every month.
             </p>
             {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — was an <a href> straight at
                 the payment API: prefetchable, and every repeat tap minted a
@@ -8382,7 +8409,8 @@ export default function GenerateClient({
             >
               {exitIntentCheckout.pending
                 ? 'Opening secure checkout…'
-                : 'Go Creator — $9.90 first month →'}
+                /* KINEO-PRICING-V6-2026-08-19 — não existe 1º mês. */
+                : `Go Creator — ${CREATOR_USD_LABEL}/mo →`}
             </button>
             {exitIntentCheckout.error && (
               <p
@@ -8404,7 +8432,7 @@ export default function GenerateClient({
               </p>
             )}
             <p style={{ fontSize: '0.72rem', color: '#86868b', fontWeight: 600, margin: '0 0 10px' }}>
-              $19.90/mo · cancel anytime
+              {CREATOR_USD_LABEL}/mo · same price every month · cancel anytime
             </p>
             <button
               type="button"
@@ -9827,7 +9855,9 @@ export default function GenerateClient({
                         ═══════════════════════════════════════════════════════ */}
                     <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                       {watermarkedDownloadConfirmed
-                        ? 'Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds 25 credits.'
+                        /* KINEO-PRICING-V6-2026-08-19 — "adds 25 credits" era
+                           literal da V3C; o Starter concede TIER_CREDITS.starter. */
+                        ? `Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds ${TIER_CREDITS.starter} credits.`
                         : 'Finished and yours to keep — post it on YouTube Shorts, TikTok or Reels, and monetize it.'}
                     </p>
                     {/* O preço só aparece ACIMA do download depois que a pessoa já
@@ -9836,7 +9866,12 @@ export default function GenerateClient({
                         KINEO-READING-ORDER acima. */}
                     {watermarkedDownloadConfirmed && (
                       <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                        {postVideoPriceNote ?? 'Your first month is discounted · local price loads before checkout'}
+                        {/* KINEO-PRICING-V6-2026-08-19 — o FALLBACK (usado
+                            enquanto o /api/geo não respondeu) prometia desconto
+                            de 1º mês. Ele aparecia exatamente para quem ainda
+                            não tinha número na tela, ou seja, a única coisa que
+                            a pessoa lia era a promessa falsa. */}
+                        {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
                       </p>
                     )}
                     {/* ═══════════════════════════════════════════════════════
@@ -9952,10 +9987,16 @@ export default function GenerateClient({
                   {!watermarkedDownloadConfirmed && (
                     <>
                       <p className="text-xs text-center" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                        Starter rebuilds this exact video clean and adds 25 credits.
+                        {/* KINEO-PRICING-V6-2026-08-19 — 25 → TIER_CREDITS.starter. */}
+                        Starter rebuilds this exact video clean and adds {TIER_CREDITS.starter} credits.
                       </p>
                       <p className="text-xs mt-1.5 text-center font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                        {postVideoPriceNote ?? 'Your first month is discounted · local price loads before checkout'}
+                        {/* KINEO-PRICING-V6-2026-08-19 — o FALLBACK (usado
+                            enquanto o /api/geo não respondeu) prometia desconto
+                            de 1º mês. Ele aparecia exatamente para quem ainda
+                            não tinha número na tela, ou seja, a única coisa que
+                            a pessoa lia era a promessa falsa. */}
+                        {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
                       </p>
                     </>
                   )}
@@ -9980,7 +10021,7 @@ export default function GenerateClient({
                           Download clean + Start Starter{postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} →
                         </span>
                         <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
-                          This exact video clean · 25 credits included
+                          This exact video clean · {TIER_CREDITS.starter} credits included
                         </span>
                       </>
                     )}
@@ -10800,8 +10841,8 @@ export default function GenerateClient({
               {/* Push #099 — Post-generation upgrade upsell (free users with
                   credits < 20 — KINEO-REBASE-2026-07-10).
                   KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER rebuild: one
-                  primary path (intro Creator $9.90 first month — the plan that
-                  unlocks AI scenes + AI Presenter) + intro Starter $4.90 as
+                  primary path (Creator — the plan that
+                  unlocks AI scenes + AI Presenter) + Starter as
                   the quieter secondary. This block now appears only to legacy
                   pack buyers; unpaid users see the single contextual Starter
                   offer beside their finished video. Both buttons use GET (the old primary POSTed to
@@ -10833,7 +10874,8 @@ export default function GenerateClient({
                       className="text-xs font-semibold"
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
-                      Full AI scenes, AI Presenter and 150 credits every month.
+                      {/* KINEO-PRICING-V6-2026-08-19 — 150 → TIER_CREDITS.basic. */}
+                      Full AI scenes, AI Presenter and {TIER_CREDITS.basic} credits every month.
                     </p>
                   </div>
                   <button
@@ -10861,9 +10903,12 @@ export default function GenerateClient({
                       <span>Opening secure checkout…</span>
                     ) : (
                       <>
-                        <span>Go Creator — $9.90 first month →</span>
+                        {/* KINEO-PRICING-V6-2026-08-19 — "$9.90 first month /
+                            $19.90/mo" era a V5 inteira dentro de dois literais.
+                            Não há 1º mês: um preço só, todo mês. */}
+                        <span>Go Creator — {CREATOR_USD_LABEL}/mo →</span>
                         <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.92, marginTop: 2 }}>
-                          $19.90/mo · cancel anytime
+                          {TIER_CREDITS.basic} credits every month · cancel anytime
                         </span>
                       </>
                     )}
@@ -10897,9 +10942,12 @@ export default function GenerateClient({
                     ) : (
                       <>
                         Just want Fast videos?{' '}
-                        <span style={{ color: '#2997ff' }}>Starter — $9.90/mo →</span>
+                        {/* KINEO-PRICING-V6-2026-08-19 — "renews at $9.90/mo in
+                            30 days" insinuava que os 30 primeiros dias custavam
+                            outra coisa. Custam o mesmo. */}
+                        <span style={{ color: '#2997ff' }}>Starter — {STARTER_USD_LABEL}/mo →</span>
                         <span style={{ display: 'block', fontSize: '0.7rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
-                          25 credits/month · renews at $9.90/mo in 30 days · cancel anytime
+                          {TIER_CREDITS.starter} credits/month · same price every month · cancel anytime
                         </span>
                       </>
                     )}
@@ -12087,8 +12135,13 @@ function UpsellSection({
         >
           {/* Fix 2 (12/06) — copy matches the real tier this modal opens
               (tier=basic = Creator — KINEO-PRICING-V3B-2026-07-10). */}
-          {/* KINEO-SPRINT-OFFER-2026-07-14 — intro-month framing, renewal explicit. */}
-          Get 150 credits/month — 1 Hollywood film included — for $9.90 your first month
+          {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — a frase inteira era falsa em três
+              eixos: 150 créditos (são 90), "1 Hollywood film included" (custa
+              150, não cabe em 90) e "$9.90 your first month" (não há 1º mês).
+              Esta é a caixa que aparece quando a pessoa ZERA os créditos —
+              intenção máxima de compra, e portanto o pior lugar do produto
+              para uma promessa que a fatura desmente. */}
+          Get {TIER_CREDITS.basic} credits/month — about {CREATOR_AI_FILMS} AI films — for {CREATOR_USD_LABEL}/mo
         </div>
         <ul
           style={{
@@ -12099,7 +12152,10 @@ function UpsellSection({
             lineHeight: 1.65,
           }}
         >
-          <li>1 Hollywood film every month included — or ~7 AI Generated videos (20 credits each)</li>
+          {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — mesma promessa quebrada da linha
+              acima. Quem quiser o filme Hollywood precisa do Studio (160 cr);
+              o "20 credits each" agora vem de creditCostFor(). */}
+          <li>~{CREATOR_AI_FILMS} AI Generated videos every month ({creditCostFor('cinematic_ai', true)} credits each)</li>
           <li>Every scene generated by AI — cinematic feel</li>
           <li>Download MP4 · Captions included · No watermark</li>
         </ul>
@@ -12120,7 +12176,7 @@ function UpsellSection({
             boxShadow: '0 6px 22px rgba(41,151,255,.28)',
           }}
         >
-          {upgradeLoading ? 'Opening checkout…' : 'Go Creator — $9.90 first month →'}
+          {upgradeLoading ? 'Opening checkout…' : `Go Creator — ${CREATOR_USD_LABEL}/mo →`}
         </button>
         {checkoutError && (
           <p
@@ -12149,7 +12205,7 @@ function UpsellSection({
             fontWeight: 600,
           }}
         >
-          $19.90/mo · cancel anytime
+          {CREATOR_USD_LABEL}/mo · same price every month · cancel anytime
         </div>
       </div>
 
@@ -13623,7 +13679,9 @@ function UrgencyModal({
             marginBottom: 22,
           }}
         >
-          Go Creator for <strong style={{ color: '#5cb3ff' }}>$19.90/mo</strong> — full AI scenes, the AI Presenter and 140 credits every month.
+          {/* KINEO-PRICING-V6-2026-08-19 — "$19.90/mo … 140 credits" era a V5
+              literal dentro do modal de urgência (contagem regressiva). */}
+          Go Creator for <strong style={{ color: '#5cb3ff' }}>{CREATOR_USD_LABEL}/mo</strong> — full AI scenes, the AI Presenter and {TIER_CREDITS.basic} credits every month.
         </p>
         <button
           type="button"
@@ -13645,7 +13703,7 @@ function UrgencyModal({
             letterSpacing: '-0.01em',
           }}
         >
-          {loading ? 'Opening checkout…' : 'Go Creator — $9.90 first month →'}
+          {loading ? 'Opening checkout…' : `Go Creator — ${CREATOR_USD_LABEL}/mo →`}
         </button>
         {checkoutError && (
           <p

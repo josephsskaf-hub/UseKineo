@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import PricingClient from './PricingClient'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -14,12 +18,12 @@ const OFFER = getFreeTierOffer()
 export const metadata: Metadata = {
   title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
   description:
-    `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
+    `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at ${STARTER_MONTH} — the same price worldwide — and unlock clean, watermark-free MP4 exports.`,
   alternates: { canonical: '/pricing' },
   openGraph: {
     title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
     description:
-      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
+      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at ${STARTER_MONTH} — the same price worldwide — and unlock clean, watermark-free MP4 exports.`,
     url: 'https://www.usekineo.com/pricing',
     siteName: 'Kineo',
     images: [
@@ -36,7 +40,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Kineo Pricing — AI YouTube Shorts Generator Plans',
     description:
-      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at $4.90 the first month and unlock clean, watermark-free MP4 exports.`,
+      `${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Paid plans start at ${STARTER_MONTH} — the same price worldwide — and unlock clean, watermark-free MP4 exports.`,
     images: ['https://www.usekineo.com/og-image.png'],
   },
 }

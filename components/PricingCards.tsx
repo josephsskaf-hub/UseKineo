@@ -36,6 +36,17 @@ import {
   type CheckoutTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+// KINEO-PRICING-V6-2026-08-19 — contagens de vídeo derivadas (grant ÷ custo do
+// motor). Ver o bloco "QUANTOS FILMES O PLANO REALMENTE FAZ" em
+// lib/marketingPrice.ts: as taglines deste grid prometiam 150/200 créditos e
+// "1 Hollywood film" com a tabela da V3B congelada dentro de literais.
+import {
+  CREATOR_AI_FILMS,
+  CREATOR_CINEMATIC_FILMS,
+  STUDIO_AI_FILMS,
+  STUDIO_CINEMATIC_FILMS,
+  STUDIO_HOLLYWOOD_FILMS,
+} from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
@@ -57,11 +68,18 @@ const STARTER_FEATURES = [
   'My Videos history',
 ]
 
-// KINEO-PRICING-V3B-2026-07-10 — Creator $24.90/150cr: 1 Hollywood film every
-// month included (150 cr), or ~7 AI-generated videos (20 cr each).
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — A LINHA "1 Hollywood film every month —
+// included" MORREU AQUI, e não por estilo: ela virou IMPOSSÍVEL. O filme
+// Hollywood custa 150 créditos (creditCostFor('cinematic_hollywood')) e o
+// Creator passou a conceder 90. Vender um plano dizendo que ele inclui algo
+// que o servidor recusa com 402 é a pior classe de erro de copy que existe —
+// o cliente só descobre depois de pagar. Quem quer o filme Hollywood precisa
+// do Studio (160 créditos), e é lá que a promessa foi parar.
+// Os números agora saem de videosPerMonth(): grant do plano ÷ custo do motor,
+// calculado na hora, das mesmas constantes que o servidor debita.
 const BASIC_FEATURES = [
-  '1 Hollywood film every month — included',
-  'Or ~7 AI-generated videos/month',
+  `~${CREATOR_AI_FILMS} AI-generated videos/month (Seedance)`,
+  `Or ${CREATOR_CINEMATIC_FILMS} cinematic Kling 2.5 video/month`,
   'Seedance AI engine (great quality)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
@@ -69,11 +87,11 @@ const BASIC_FEATURES = [
   'My Videos history',
 ]
 
-// KINEO-REBASE-2026-07-10 — 2:1 credit rebase: Studio 200 credits → ~4 Kling
-// (50 cr — KINEO-PRICING-V3B-2026-07-10) or ~10 Seedance (20 cr) videos.
+// KINEO-PRICING-V6-2026-08-19 — o Studio é o plano que FECHA um filme
+// Hollywood (160 ≥ 150). A promessa que estava no card errado veio para cá.
 const PRO_FEATURES = [
-  '~4 cinematic AI videos/month (or ~10 Seedance)',
-  'Kling 2.5 engine (top-tier cinematic)',
+  `${STUDIO_HOLLYWOOD_FILMS} Hollywood film/month — or ~${STUDIO_CINEMATIC_FILMS} cinematic Kling 2.5, or ~${STUDIO_AI_FILMS} Seedance`,
+  'Kling 2.5 + Kling 3 engines (top-tier cinematic)',
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',
@@ -147,8 +165,12 @@ export default function PricingCards({
   // redirect, so no fetch/await is needed here and the user gesture is
   // preserved across all browsers including mobile Safari.
   function handleBuy(tier: CheckoutTier) {
-    // KINEO-INTRO-MONTH-2026-07-13 — Starter/Creator levam o 1º mês com
-    // desconto ($4.90/$9.90); o servidor valida elegibilidade (1 por conta).
+    // KINEO-PRICING-V6-2026-08-19 — NÃO EXISTE MAIS 1º MÊS COM DESCONTO
+    // (INTRO_PRICES == TIER_PRICES). O `&intro=1` continua sendo enviado de
+    // propósito: o servidor calcula o amount_off e ele dá zero, então o
+    // parâmetro é inofensivo e o link segue idêntico ao das outras telas. Se
+    // um dia um intro voltar a existir em checkoutPricing.ts, esta tela o
+    // concede sozinha — e o rótulo acende via hasIntroOffer().
     // KINEO-REGIONAL-PRICING-2026-08-04 — `intent=1` continua indo sempre. Na
     // região `value` o Starter não tem desconto (amountOff = 0) e o servidor
     // ignora o parâmetro sozinho; mandar mesmo assim mantém o link idêntico ao
@@ -296,14 +318,17 @@ export default function PricingCards({
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — Starter tagline was 2 pricing
             generations stale ("50 Fast-Mode Shorts"); synced to V3C (25
-            credits). Intro renewal spelled out via renewNote. */}
+            credits). Intro renewal spelled out via renewNote.
+            KINEO-PRICING-V6-2026-08-19 — e ficou stale de novo (25 → 40). O
+            padrão é claro: tagline com número digitado envelhece a cada
+            reprice. As três agora saem de PLANS.*.credits (= TIER_CREDITS). */}
         <PlanCard
           tier="starter"
           name={PLANS.starter.name}
           price={priceFor('starter')}
           period="/ month"
           renewNote={introNoteFor('starter')}
-          tagline="25 credits/month — up to 25 Fast videos from smart stock footage + AI voiceover."
+          tagline={`${PLANS.starter.credits} credits/month — up to ${PLANS.starter.credits} Fast videos from smart stock footage + AI voiceover.`}
           features={STARTER_FEATURES}
           selected={selectedPlan === 'starter'}
           onSelect={() => setSelectedPlan('starter')}
@@ -317,7 +342,9 @@ export default function PricingCards({
           }}
         />
 
-        {/* KINEO-PRICING-V3B-2026-07-10 — $24.90/150cr, 1 Hollywood film included. */}
+        {/* KINEO-PRICING-V6-2026-08-19 — era "$24.90/150cr, 1 Hollywood film
+            included". Os três números morreram: Creator é $15/90cr e 90 não
+            paga um Hollywood de 150. Ver BASIC_FEATURES acima. */}
         {/* KINEO-SPRINT-OFFER-2026-07-14 — Creator is the highlighted primary
             ("Most Popular", matching /pricing); intro renewal explicit. */}
         <PlanCard
@@ -326,7 +353,7 @@ export default function PricingCards({
           price={priceFor('basic')}
           period="/ month"
           renewNote={introNoteFor('basic')}
-          tagline="150 credits/month — 1 Hollywood film every month included."
+          tagline={`${PLANS.basic.credits} credits/month — about ${CREATOR_AI_FILMS} AI-generated films every month.`}
           features={BASIC_FEATURES}
           badge="Most Popular"
           highlight
@@ -344,14 +371,16 @@ export default function PricingCards({
           }}
         />
 
-        {/* KINEO-REBASE-2026-07-10 — 360/400 → 200 credits (2:1 rebase, USD unchanged). */}
+        {/* KINEO-PRICING-V6-2026-08-19 — 200 → 160 créditos ($29). É o único
+            plano que fecha um filme Hollywood (150), então é aqui que essa
+            promessa vive agora. */}
         {/* KINEO-SPRINT-OFFER-2026-07-14 — badge/highlight moved to Creator. */}
         <PlanCard
           tier="pro"
           name={PLANS.pro.name}
           price={priceFor('pro')}
           period="/ month"
-          tagline="Premium Kling engine + 200 credits — up to 10 AI or ~4 cinematic Shorts/month."
+          tagline={`Premium Kling engine + ${PLANS.pro.credits} credits — up to ${STUDIO_AI_FILMS} AI or ~${STUDIO_CINEMATIC_FILMS} cinematic Shorts/month.`}
           features={PRO_FEATURES}
           selected={selectedPlan === 'pro'}
           onSelect={() => setSelectedPlan('pro')}
@@ -378,7 +407,8 @@ export default function PricingCards({
           place in the /generate flow that offers the other product.
 
           Deliberately a band, not a 4th card: $299 dropped into a row that
-          tops out at $37.90 reads as a typo. The $99 pilot is the entry.
+          tops out at the Studio price reads as a typo (e na V6, com o teto em
+          $29, o contraste ficou ainda mais violento). The $99 pilot is the entry.
           ══════════════════════════════════════════════════════════════════ */}
       <div
         className="mx-auto mt-5 rounded-2xl p-5 sm:p-6"

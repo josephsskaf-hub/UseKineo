@@ -22,6 +22,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+// KINEO-PRICING-V6-2026-08-19 — o botão de desbloqueio repetia "$9.90" três
+// vezes (title, label e letra miúda). USD fixo aqui; a cobrança re-resolve a
+// moeda pelo IP no servidor. O que não pode voltar é o dígito à mão.
+import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+const STARTER_PRICE_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
 export interface VideoRow {
   id: string
@@ -707,7 +713,7 @@ function VideoCard({
                 type="button"
                 onClick={onUnlock}
                 disabled={unlockPending}
-                title="Starter: $9.90/month"
+                title={`Starter: ${STARTER_PRICE_USD}/month`}
                 className="rounded-lg px-3 py-2 text-xs font-black w-full flex flex-col items-center"
                 style={{
                   background: 'linear-gradient(135deg, #f59e0b, #d97706)',
@@ -722,8 +728,10 @@ function VideoCard({
                   <span>Loading…</span>
                 ) : (
                   <>
-                    <span>Unlock clean exports — Starter $9.90</span>
-                    <span style={{ fontSize: '0.58rem', opacity: 0.9 }}>for new videos · then $9.90/mo · cancel anytime</span>
+                    <span>Unlock clean exports — Starter {STARTER_PRICE_USD}</span>
+                    {/* KINEO-PRICING-V6-2026-08-19 — "then $X/mo" sugeria preço
+                        de entrada. Não existe intro: é o mesmo valor sempre. */}
+                    <span style={{ fontSize: '0.58rem', opacity: 0.9 }}>for new videos · {STARTER_PRICE_USD}/mo · cancel anytime</span>
                   </>
                 )}
               </button>

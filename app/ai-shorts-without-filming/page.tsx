@@ -14,6 +14,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -38,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Make YouTube Shorts without filming — faceless AI, no camera',
     description:
-      'Turn one idea into a finished faceless Short: script, AI voiceover, footage and captions. No camera. Try Fast free; Starter is $9.90/month.',
+      'Turn one idea into a finished faceless Short: script, AI voiceover, footage and captions. No camera. Try Fast free; Starter is ' + STARTER_MONTH + '.',
     url: 'https://www.usekineo.com/ai-shorts-without-filming',
     type: 'website',
     images: [{ url: FEATURED_EXAMPLE.posterPath, width: 360, height: 640 }],
@@ -71,7 +75,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Will my face or voice ever be shown?', a: 'No. The channel format is faceless by design — you never appear on screen, and the narration is an AI voiceover, so your own voice stays private. It is made for anonymous creators who want a channel without being on camera.' },
   { q: 'Is this just a clip cutter like OpusClip or Submagic?', a: 'No. Clip cutters re-clip a long video you already filmed — which still requires you to record footage first. Kineo works the other way around: it creates the video from an idea, so you start with nothing but a topic and never film at all.' },
   { q: 'Do I need editing skills to make a Short without filming?', a: 'No. There is no timeline and no clips to arrange. The script, AI voiceover, footage and captions are generated and assembled automatically, so you get a ready-to-post Short without touching an editor.' },
-  { q: 'How much does it cost to make Shorts without filming?', a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines; Starter is $9.90/month.` },
+  { q: 'How much does it cost to make Shorts without filming?', a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines; Starter is ${STARTER_MONTH}.` },
 ]
 
 export default function AiShortsWithoutFilmingPage() {

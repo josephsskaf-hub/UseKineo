@@ -13,6 +13,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — o template do Abhijeet prometia "Creator
+// comes out to $19.92/mo (150 credits, 1 Hollywood film included)". Os três
+// números morreram: $19.92 era 20% sobre $24.90 (hoje o Creator é $15), o
+// grant é 90 e um filme Hollywood custa 150 créditos — não cabe.
+// O KINEO20 NÃO É AUTO-PROVISIONADO por nós (só FIRST50/COMEBACK50 são): ele
+// depende de um promotion code existir na Stripe. Por isso a linha abaixo
+// deixou de AFIRMAR o valor com desconto como se fosse certo e passa a
+// mostrar o preço de lista, com o cupom como "se aplicar".
+import { PACK_CREDITS, TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -66,7 +78,7 @@ function abandonHtml(userId: string, videos?: number): { subject: string; html: 
   <p>I saw a checkout from your account that didn't finish${typeof videos === 'number' && videos > 0 ? ` — and that you've already made ${videos} video${videos === 1 ? '' : 's'} with us` : ''}. If something got in the way, two things that might help:</p>
   <p><b>1) 20% off any plan</b> with code <b>KINEO20</b> (applies automatically):<br/>
   <a href="${PRICING}" style="color:#2997ff;font-weight:bold">usekineo.com/pricing → KINEO20 applied</a></p>
-  <p><b>2) No subscription?</b> The $4.90 pack = 10 videos, credits never expire.</p>
+  <p><b>2) No subscription?</b> The $4.90 pack = ${PACK_CREDITS.starter} credits, and they never expire.</p>
   <p>And since you last looked, Kineo got a big upgrade: <b>AI Presenter</b> (talking host with perfect lip-sync), <b>Character Lock</b> (same face in every video), and you can now use <b>your own footage and your own voice</b>.</p>
   <p>Card being rejected? We also take <b>Apple Pay and Link</b> at checkout. Or just reply — I'll sort it personally.</p>
   <p>— Joseph, founder · Kineo</p>
@@ -83,9 +95,9 @@ function pqlHtml(userId: string, videos?: number): { subject: string; html: stri
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b>.</p>
   <p>You've made <b>${n} video${n === 1 ? '' : 's'}</b> with us — you clearly get the workflow. Here's the cheapest way to keep the momentum:</p>
-  <p style="font-size:17px"><b>10 videos for $4.90, one-time.</b> No subscription, watermark-free, credits never expire.</p>
+  <p style="font-size:17px"><b>${PACK_CREDITS.starter} credits for $4.90, one-time.</b> No subscription, watermark-free, credits never expire.</p>
   <p style="margin:22px 0">
-    <a href="${PRICING}" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get 10 videos for $4.90 →</a>
+    <a href="${PRICING}" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for $4.90 →</a>
   </p>
   <p>Want a plan instead? Code <b>KINEO20</b> gives 20% off any tier. And everything new is included: <b>AI Presenter</b> (talking host), <b>Character Lock</b> (same face every video), <b>your own footage &amp; voice</b>.</p>
   <p>Reply anytime — I read every email.</p>
@@ -105,7 +117,7 @@ function abhijeetHtml(userId: string): { subject: string; html: string } {
   <p><b>🎬 Your own footage:</b> on the Generate page you'll find "My footage" — upload your photos/clips and the scenes use THEM (stock only fills the gaps). Your script is narrated word-for-word with "Use my script as is".</p>
   <p><b>🎙️ Your own voice:</b> upload a ready voiceover (MP3/WAV) and we skip the AI narrator entirely — captions sync to YOUR audio. Or record ~1 min in the AI Presenter page and every video can speak in your cloned voice.</p>
   <p>Both are included on any paid plan. Since you asked for them, here's <b>20% off</b>: code <b>KINEO20</b> —
-  <a href="${PRICING}" style="color:#2997ff;font-weight:bold">Creator comes out to $19.92/mo</a> (150 credits, 1 Hollywood film included).</p>
+  <a href="${PRICING}" style="color:#2997ff;font-weight:bold">Creator is ${CREATOR_PRICE}/mo</a> (${TIER_CREDITS.basic} credits ≈ ${CREATOR_AI_FILMS} AI films a month) — the code comes off that at checkout.</p>
   <p style="margin:22px 0">
     <a href="${AVATAR}" style="background:#2997ff;color:#ffffff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Try it now →</a>
   </p>

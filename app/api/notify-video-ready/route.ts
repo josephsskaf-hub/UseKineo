@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+// KINEO-PRICING-V6-2026-08-19 — o rodapé deste e-mail dizia "60 credits every
+// month … Starter is $9.90/month". Os dois números eram da V5. Este e-mail
+// chega no minuto em que o vídeo fica pronto — o instante de maior boa
+// vontade do cliente — e é o pior momento possível para o preço estar errado.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 
 // Push #104 — email the user when their video is ready. Mirrors the
 // env conventions used by /api/send-welcome (RESEND_API_KEY +
@@ -56,7 +61,7 @@ export async function POST(req: NextRequest) {
         <a href="${safeVideoUrl}" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;font-size:15px;">
           ⬇ Download Your Short
         </a>
-        <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want clean exports and 60 credits every month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is $9.90/month →</a></p>
+        <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want clean exports and ${TIER_CREDITS.starter} credits every month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is ${formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}/month →</a></p>
         <p style="color:#475569;font-size:11px;margin:16px 0 0">Kineo · <a href="https://www.usekineo.com" style="color:#475569;">usekineo.com</a></p>
       </div>
     `

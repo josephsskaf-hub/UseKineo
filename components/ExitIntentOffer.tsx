@@ -43,6 +43,9 @@ import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — "≈ 7 engine films" era literal; ver o comentário
+// no card do Creator, mais abaixo.
+import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
 // KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
 import {
   coercePriceRegion,
@@ -396,11 +399,16 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             Este modal — o ÚLTIMO que um visitante hesitante vê antes de sair
             do /pricing, ou seja, o pior lugar possível para uma mentira —
             tinha TODOS os números errados, congelados na tabela V3:
-              "Half-price first month"   → não existe half-price na V5
-              Starter "25 credits/mo"    → são 60
+              "Half-price first month"   → não existe half-price
+              Starter "25 credits/mo"    → literal, ficou para trás
               Starter "$4.90 first month, then $9.90"  → $4.90 morreu
-              Creator "150 credits/mo"   → são 140
+              Creator "150 credits/mo"   → literal, ficou para trás
               Creator "$9.90 first month, then $24.90" → os DOIS morreram
+            (Os "valores corretos" que esta nota trazia em 19/08 — 60 e 140 —
+            duraram algumas horas: a V6 os levou para 40 e 90 no mesmo dia.
+            Comentário que anota o número certo envelhece igualzinho ao código
+            que o digita. Por isso nenhum deles é citado aqui: quem quiser
+            saber lê TIER_CREDITS.)
             E tudo em dólar chumbado, para brasileiro e indiano também.
             Resultado prático: prometíamos metade do preço, a pessoa clicava,
             e o Stripe cobrava o valor cheio numa moeda diferente. Não existe
@@ -415,7 +423,8 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs
             intro Creator (right, highlighted). Ambos assinaturas → MRR. */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-left">
-          {/* Left — Starter: first month $4.90, then $9.90/mo */}
+          {/* Left — Starter (KINEO-PRICING-V6-2026-08-19: preço único, sem 1º
+              mês; o rótulo sai de exitPrice() → getTierPrice()). */}
           <div
             className="rounded-xl p-4 flex flex-col"
             style={{
@@ -448,7 +457,8 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             </button>
           </div>
 
-          {/* Right — Creator: first month $9.90, then $24.90/mo (HIGHLIGHTED) */}
+          {/* Right — Creator (HIGHLIGHTED). Mesmo raciocínio do card da
+              esquerda: sem 1º mês, preço derivado. */}
           <div
             className="relative rounded-xl p-4 flex flex-col"
             style={{
@@ -469,8 +479,12 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             <span className="text-xl font-black text-[#f5f5f7]">
               {exitPrice('basic')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
             </span>
+            {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "≈ 7 engine films a month" era o
+                último número literal deste modal, e sobreviveu à correção de
+                19/08 justamente por não ter cifrão (a auditoria caçou preços).
+                7 vinha de 140 ÷ 20; com 90 créditos são 4. Derivado agora. */}
             <span className="text-[12.5px] text-[#cfe7ff] mt-1 mb-3 leading-relaxed">
-              ≈ 7 engine films a month · voice, captions and score included
+              ≈ {CREATOR_AI_FILMS} engine films a month · voice, captions and score included
             </span>
             <button
               type="button"
@@ -503,8 +517,14 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           </div>
         )}
 
+        {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "renews at the full monthly price
+            after month 1" AFIRMA UM DESCONTO DE ENTRADA por implicação: só faz
+            sentido se o mês 1 for mais barato que os seguintes, e ele não é.
+            A letra miúda contradizia os dois cards logo acima, que já mostram
+            o preço cheio. Trocada pelo que é verdade e é argumento de venda:
+            o valor não muda depois. */}
         <p className="text-[11px] text-[#6e6e73]">
-          7-day money-back guarantee · cancel anytime · renews at the full monthly price after month 1
+          7-day money-back guarantee · cancel anytime · same price every month
         </p>
       </div>
     </div>

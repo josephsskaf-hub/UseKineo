@@ -8,6 +8,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço e grant desta tela saem da MESMA tabela
+// que a rota da Stripe cobra. Ver PLAN_LIMITS logo abaixo.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 
 interface AccountClientProps {
   email: string
@@ -50,7 +53,19 @@ function isTabKey(v: string | null | undefined): v is TabKey {
 
 // Free access is allowance-based (up to 3 watermarked Fast videos / 24h), not
 // credit-based. Only paid subscriptions include a monthly credit balance.
-const PLAN_LIMITS = { free: 0, starter: 25, basic: 150, pro: 200 } as const
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — esta linha era `{ starter: 25, basic: 150,
+// pro: 200 }` DIGITADA À MÃO, e alimenta o denominador do medidor de uso ("N /
+// LIMITE left" + a barra de progresso). Com o grant real em 40/90/160, um
+// assinante Creator com 90 créditos intactos veria "90 / 150 left" e uma barra
+// 40% consumida no primeiro dia do ciclo — a tela onde a pessoa vai CONFERIR o
+// que comprou dizendo que ela já gastou o que não gastou. Agora vem de
+// TIER_CREDITS, a mesma constante que o webhook credita.
+const PLAN_LIMITS = {
+  free: 0,
+  starter: TIER_CREDITS.starter,
+  basic: TIER_CREDITS.basic,
+  pro: TIER_CREDITS.pro,
+} as const
 const PLAN_COLORS = {
   free: { color: '#86868b', bg: 'rgba(134,134,139,.1)', border: 'rgba(134,134,139,.2)' },
   starter: { color: '#14b8a6', bg: 'rgba(20,184,166,.1)', border: 'rgba(20,184,166,.2)' },
@@ -473,7 +488,8 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                     transition: 'all 0.18s ease',
                   }}
                 >
-                  Upgrade — plans from $9.90/mo →
+                  {/* KINEO-PRICING-V6-2026-08-19 — era "$9.90/mo" literal. */}
+                  Upgrade — plans from {formatCheckoutMoney('usd', TIER_PRICES.starter.usd)}/mo →
                 </Link>
               )}
             </div>
@@ -633,9 +649,12 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
               </div>
 
               <ul style={{ fontSize: '0.77rem', color: 'var(--muted2)', listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <li>🟢 Starter = <strong style={{ color: 'var(--text)' }}>25 credits / month</strong></li>
-                <li>🔵 Creator = <strong style={{ color: 'var(--text)' }}>150 credits / month</strong></li>
-                <li>⚡ Studio = <strong style={{ color: 'var(--text)' }}>200 credits / month</strong></li>
+                {/* KINEO-PRICING-V6-2026-08-19 — 25/150/200 eram literais da V3.
+                    Derivados de TIER_CREDITS: esta lista fica ao lado do medidor
+                    de uso e contradizê-lo faz a tela parecer quebrada. */}
+                <li>🟢 Starter = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.starter} credits / month</strong></li>
+                <li>🔵 Creator = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.basic} credits / month</strong></li>
+                <li>⚡ Studio = <strong style={{ color: 'var(--text)' }}>{TIER_CREDITS.pro} credits / month</strong></li>
               </ul>
 
               <p className="text-xs mt-4" style={{ color: 'var(--muted)' }}>

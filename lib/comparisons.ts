@@ -1106,7 +1106,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'They are not substitutes and the price gap is not the reason',
-        p: 'HeyGen Creator is $29/month, or $24 billed annually. Kineo Starter is $9.90/month, $4.90 for a first month. That gap is real but it is not the argument — you cannot get a talking avatar out of Kineo at any price, and you cannot get a faceless stock-footage Short out of HeyGen without fighting the product.',
+        p: `HeyGen Creator is $29/month, or $24 billed annually. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month. That gap is real but it is not the argument — you cannot get a talking avatar out of Kineo at any price, and you cannot get a faceless stock-footage Short out of HeyGen without fighting the product.`,
       },
       {
         h: 'HeyGen is the better product on almost every axis except one',
@@ -1131,7 +1131,7 @@ export const PAIRS: Pair[] = [
     pickB: [
       'The format is faceless: stock footage, AI narration, captions, no presenter.',
       'You have a topic, not a script, and writing the script is the part you keep not doing.',
-      'Your ceiling is budget: $9.90/month, or $4.90 for a first month, against $29.',
+      'Your ceiling is budget: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29.',
       'You publish 9:16 and nothing else, so a tool that does only 9:16 costs you nothing.',
       ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', 'You want to test the full workflow before paying anything — a Creator trial with 50 credits, no card.'),
     ],
@@ -1160,7 +1160,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Is Kineo cheaper than HeyGen?',
-        a: 'Yes at list: Kineo Starter is $9.90/month, $4.90 for the first month, against HeyGen Creator at $29/month, or $24/month billed annually, verified on heygen.com/pricing on July 26, 2026. But they are not priced for the same job, so the comparison is only useful if either tool could actually do what you need.',
+        a: `Yes at list: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against HeyGen Creator at $29/month, or $24/month billed annually, verified on heygen.com/pricing on July 26, 2026. But they are not priced for the same job, so the comparison is only useful if either tool could actually do what you need.`,
       },
       {
         q: 'Does Kineo have avatars at all?',
@@ -1204,7 +1204,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On price at entry, Kineo is lower and that is not the main point',
-        p: 'OpusClip Starter is $15/month, monthly billing only, for 150 credits. Pro is $29/month or $14.50/month billed annually at $174/year, with 3,600 credits released up front. Kineo Starter is $9.90/month, $4.90 for a first month. OpusClip Pro billed annually is close enough to Kineo Starter that price should not decide this — the source-footage question should.',
+        p: `OpusClip Starter is $15/month, monthly billing only, for 150 credits. Pro is $29/month or $14.50/month billed annually at $174/year, with 3,600 credits released up front. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month. OpusClip Pro billed annually is close enough to Kineo Starter that price should not decide this — the source-footage question should.`,
       },
     ],
     pickA: [
@@ -1250,7 +1250,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which is cheaper?',
-        a: 'Kineo Starter at $9.90/month, $4.90 for a first month, against OpusClip Starter at $15/month. OpusClip Pro billed annually works out to $14.50/month at $174/year. Both sets of figures from their own pricing pages on July 26, 2026.',
+        a: `Kineo Starter at ${K(TIER_PRICES.starter.usd)}/month, against OpusClip Starter at $15/month. OpusClip Pro billed annually works out to $14.50/month at $174/year. Both sets of figures from their own pricing pages on July 26, 2026.`,
       },
       {
         q: 'Could I use both?',
@@ -1290,13 +1290,13 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On volume, Pictory’s quota is larger and differently shaped',
-        p: 'Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is $9.90/month for 25 credits, where a Fast video is 1 credit and a Cinematic one is 50. Cheaper per month, and metered by render quality rather than duration.',
+        p: `Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, where a Fast video is 1 credit and a Cinematic one is 50. Cheaper per month, and metered by render quality rather than duration.`,
       },
     ],
     pickA: [
       'Your input is a topic, not a document — and writing the script is the step that keeps not happening.',
       'You publish 9:16 vertical and nothing else.',
-      'Budget is the binding constraint: $9.90/month, or $4.90 for a first month, against $29.',
+      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29.',
       'You want an open-ended free tier rather than a 14-day clock.',
       'You want footage matched to the actual narration lines rather than to a paragraph of source text.',
     ],
@@ -1332,7 +1332,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which is cheaper?',
-        a: 'Kineo Starter is $9.90/month, $4.90 for a first month, against Pictory Starter at $29/month, or $25/month billed annually. Pictory buys you a much larger monthly minute allowance and more input formats for that difference, so cheaper is not automatically better here.',
+        a: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against Pictory Starter at $29/month, or $25/month billed annually. Pictory buys you a much larger monthly minute allowance and more input formats for that difference, so cheaper is not automatically better here.`,
       },
       {
         q: 'Can Kineo turn a blog post into a video?',
@@ -1372,7 +1372,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The volume ceilings are shaped differently',
-        p: 'Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is $9.90/month for 25 credits, with a Fast video costing 1. If you post daily, 15 videos a month on Submagic Starter is the constraint to check first.',
+        p: `Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, with a Fast video costing 1. If you post daily, 15 videos a month on Submagic Starter is the constraint to check first.`,
       },
       {
         h: 'Both free tiers watermark, with different caps',
@@ -1384,7 +1384,7 @@ export const PAIRS: Pair[] = [
       'You do not film, do not want to, and the channel is faceless by design.',
       'You want script, voiceover, footage and captions from one typed sentence.',
       ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', 'You want to prove the workflow fits before paying — a Creator trial with 50 credits.'),
-      'Budget is tight: $9.90/month, or $4.90 for a first month.',
+      'Budget is tight: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month.',
     ],
     pickB: [
       'You already film, and captions are the missing 20%.',
@@ -1418,7 +1418,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Which is cheaper?',
-        a: 'Kineo Starter at $9.90/month, $4.90 for a first month, against Submagic Starter at $19/member/month, or $12/member/month billed yearly. Note the "per member" on Submagic’s side.',
+        a: `Kineo Starter at ${K(TIER_PRICES.starter.usd)}/month, against Submagic Starter at $19/member/month, or $12/member/month billed yearly. Note the "per member" on Submagic’s side.`,
       },
       {
         q: 'Does Kineo add captions automatically?',
@@ -3971,7 +3971,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Captions is the more capable tool and the more expensive one',
-        p: 'Max at $24.99/month for 500 credits buys curated AI Edit styles, AI actors and digital twins, a chat-based editor, 100+ caption templates and generative music, voiceover, images, video and b-roll. Kineo Starter is $9.90/month, $4.90 for a first month, for 25 credits. We are not going to pretend Kineo does most of that list, because it does not.',
+        p: `Max at $24.99/month for 500 credits buys curated AI Edit styles, AI actors and digital twins, a chat-based editor, 100+ caption templates and generative music, voiceover, images, video and b-roll. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits. We are not going to pretend Kineo does most of that list, because it does not.`,
       },
       {
         h: 'Kineo’s constraint is the whole product',
@@ -3994,7 +3994,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
       'You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.',
       ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', 'You want to test the real thing before paying: a Creator trial with 50 credits, no card.'),
-      'Budget is the binding constraint: $9.90/month, or $4.90 for a first month, against $24.99.',
+      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $24.99.',
     ],
     differences: [
       {
@@ -4003,7 +4003,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The watermark answer differs in an important way',
-        p: 'Kineo watermarks free renders and every paid plan exports a clean MP4, starting at $9.90/month. The Captions pricing page does not state a watermark policy either way in what we could read. We are not going to characterise what Captions does — we are pointing out that the answer is published on one side and not the other, and that it matters if you plan to run on a free tier.',
+        p: `Kineo watermarks free renders and every paid plan exports a clean MP4, starting at ${K(TIER_PRICES.starter.usd)}/month. The Captions pricing page does not state a watermark policy either way in what we could read. We are not going to characterise what Captions does — we are pointing out that the answer is published on one side and not the other, and that it matters if you plan to run on a free tier.`,
       },
       {
         h: 'Where the footage comes from',
@@ -4017,7 +4017,7 @@ export const PAIRS: Pair[] = [
     faq: [
       {
         q: 'Is Kineo cheaper than Captions?',
-        a: 'Yes at list: Kineo Starter is $9.90/month, $4.90 for the first month, against Captions Max at $24.99/month. But Captions buys an editor with AI actors, generative b-roll and 100+ caption templates, which Kineo does not have. Cheaper only matters if the cheaper tool does the job you need.',
+        a: `Yes at list: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against Captions Max at $24.99/month. But Captions buys an editor with AI actors, generative b-roll and 100+ caption templates, which Kineo does not have. Cheaper only matters if the cheaper tool does the job you need.`,
       },
       {
         q: 'Can Captions make a video from just a topic?',
@@ -4057,7 +4057,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Price is not close, and it is not the argument',
-        p: 'Creatify Starter is $39/month for 100 credits. Kineo Starter is $9.90/month, $4.90 for a first month, for 25 credits. That gap is real. It is also irrelevant if you need a media buyer and an ad tracker, because Kineo has neither and never will.',
+        p: `Creatify Starter is $39/month for 100 credits. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits. That gap is real. It is also irrelevant if you need a media buyer and an ad tracker, because Kineo has neither and never will.`,
       },
       {
         h: 'The free tiers reveal what each is sized for',
@@ -4080,7 +4080,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, no actor in frame.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Budget is the binding constraint: $9.90/month, or $4.90 for a first month, against $39.',
+      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $39.',
     ],
     differences: [
       {
@@ -4089,7 +4089,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Both watermark free output; both clear it at the first paid step',
-        p: 'Creatify watermarks its free plan and includes removal from Starter at $39/month. Kineo watermarks its free tier and every paid plan exports a clean MP4 from $9.90/month. There is no free clean output on either side, which is worth planning around rather than discovering.',
+        p: `Creatify watermarks its free plan and includes removal from Starter at $39/month. Kineo watermarks its free tier and every paid plan exports a clean MP4 from ${K(TIER_PRICES.starter.usd)}/month. There is no free clean output on either side, which is worth planning around rather than discovering.`,
       },
       {
         h: 'Team support: published on one side, absent on the other',
@@ -4103,7 +4103,7 @@ export const PAIRS: Pair[] = [
     faq: [
       {
         q: 'Is Kineo cheaper than Creatify?',
-        a: 'Yes at list: Kineo Starter is $9.90/month, $4.90 for the first month, against Creatify Starter at $39/month, verified at creatify.ai/pricing on July 26, 2026. They are priced for different jobs, so the comparison is only useful if either tool could do what you need.',
+        a: `Yes at list: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against Creatify Starter at $39/month, verified at creatify.ai/pricing on July 26, 2026. They are priced for different jobs, so the comparison is only useful if either tool could do what you need.`,
       },
       {
         q: 'Can Creatify make faceless content?',
@@ -4151,7 +4151,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On price at entry Kineo is lower, and that is not the argument',
-        p: 'Kineo Starter is $9.90/month, $4.90 for a first month. Descript Hobbyist is $24/month, or $16 billed annually. If you have footage, $16 a month for a real editor is not expensive — it is the correct purchase, and the price gap should not decide this.',
+        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month. Descript Hobbyist is $24/month, or $16 billed annually. If you have footage, $16 a month for a real editor is not expensive — it is the correct purchase, and the price gap should not decide this.`,
       },
     ],
     pickA: [
@@ -4179,7 +4179,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Watermarks clear at similar points',
-        p: 'Descript exports 720p watermarked on free and watermark-free 1080p from Hobbyist at $24/month, or $16 annually. Kineo watermarks free renders and every paid plan exports a clean MP4 from $9.90/month. Both are explicit about it, which makes this one of the easier lines in the comparison.',
+        p: `Descript exports 720p watermarked on free and watermark-free 1080p from Hobbyist at $24/month, or $16 annually. Kineo watermarks free renders and every paid plan exports a clean MP4 from ${K(TIER_PRICES.starter.usd)}/month. Both are explicit about it, which makes this one of the easier lines in the comparison.`,
       },
       {
         h: 'What each refuses to do',
@@ -4189,7 +4189,7 @@ export const PAIRS: Pair[] = [
     faq: [
       {
         q: 'Is Kineo cheaper than Descript?',
-        a: 'Yes: Kineo Starter is $9.90/month, $4.90 for the first month, against Descript Hobbyist at $24/month or $16 billed annually, verified at descript.com/pricing on July 26, 2026. Descript buys a full editor plus 10 media hours and 400 AI credits, so cheaper is not the same as better here.',
+        a: `Yes: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against Descript Hobbyist at $24/month or $16 billed annually, verified at descript.com/pricing on July 26, 2026. Descript buys a full editor plus 10 media hours and 400 AI credits, so cheaper is not the same as better here.`,
       },
       {
         q: 'Can Descript make a video from a topic?',
@@ -4205,7 +4205,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Could I use both?',
-        a: 'Yes, and it is coherent if you record some weeks and not others — Descript for the weeks with footage, Kineo for the weeks without. At $16/month for Descript Hobbyist annually plus $9.90 for Kineo Starter, that is about $26 a month.',
+        a: `Yes, and it is coherent if you record some weeks and not others — Descript for the weeks with footage, Kineo for the weeks without. At $16/month for Descript Hobbyist annually plus ${K(TIER_PRICES.starter.usd)} for Kineo Starter, that is about ${K(1600 + TIER_PRICES.starter.usd)} a month.`,
       },
     ],
     kineo:
@@ -4237,7 +4237,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On price at entry Kineo is lower and the units are unrelated',
-        p: 'Kineo Starter is $9.90/month, $4.90 for a first month, for 25 credits, with a Fast video costing 1 credit. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.',
+        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits, with a Fast video costing 1 credit. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.`,
       },
     ],
     pickA: [
@@ -4245,7 +4245,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, nobody on screen.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Every paid plan should export a clean MP4 — Kineo’s do, from $9.90/month.',
+      'Every paid plan should export a clean MP4 — Kineo’s do, from ${K(TIER_PRICES.starter.usd)}/month.',
     ],
     pickB: [
       'You already record long-form and it is sitting unclipped. This is the whole case.',
@@ -4261,7 +4261,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The watermark answer: published on one side',
-        p: 'Kineo watermarks its free tier and every paid plan exports a clean MP4 from $9.90/month. quso.ai’s pricing page does not state a watermark policy in what we could read. We are not going to claim quso does or does not watermark — we are saying that our answer is published and theirs, on the page we checked, is not.',
+        p: `Kineo watermarks its free tier and every paid plan exports a clean MP4 from ${K(TIER_PRICES.starter.usd)}/month. quso.ai’s pricing page does not state a watermark policy in what we could read. We are not going to claim quso does or does not watermark — we are saying that our answer is published and theirs, on the page we checked, is not.`,
       },
       {
         h: 'Storage and retention against credit reset',
@@ -4279,7 +4279,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Is Kineo cheaper than quso.ai?',
-        a: 'Yes at list: Kineo Starter is $9.90/month, $4.90 for the first month, against quso Lite at $29/month or $19 billed annually. quso Lite includes unlimited 1080p clips and publishing to 6 platforms, which Kineo has no equivalent of, so cheaper is only meaningful if you have no footage.',
+        a: `Yes at list: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against quso Lite at $29/month or $19 billed annually. quso Lite includes unlimited 1080p clips and publishing to 6 platforms, which Kineo has no equivalent of, so cheaper is only meaningful if you have no footage.`,
       },
       {
         q: 'Does Kineo publish to TikTok or YouTube for me?',
@@ -4291,7 +4291,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'Could I use both?',
-        a: 'Yes, and it is a reasonable setup if you record long-form some weeks and not others — quso for the weeks with footage, Kineo for the weeks without. At $19/month for quso Lite annually plus $9.90 for Kineo Starter, that is about $29 a month.',
+        a: `Yes, and it is a reasonable setup if you record long-form some weeks and not others — quso for the weeks with footage, Kineo for the weeks without. At $19/month for quso Lite annually plus ${K(TIER_PRICES.starter.usd)} for Kineo Starter, that is about ${K(1900 + TIER_PRICES.starter.usd)} a month.`,
       },
     ],
     kineo:
@@ -4311,7 +4311,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is $9.90/month for 25 credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',
@@ -4331,7 +4331,7 @@ export const PAIRS: Pair[] = [
       'Volume is the constraint and you post most days.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Budget is binding: $9.90/month, or $4.90 for a first month, against $29 or $89.',
+      'Budget is binding: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29 or $89.',
     ],
     pickB: [
       'A company is paying, and the video is training, onboarding, policy or internal comms.',
@@ -4351,7 +4351,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Watermark and logo',
-        p: 'Synthesia puts its logo on free-plan video and makes it removable on any paid plan, cheapest at $29/month or $18 yearly. Kineo watermarks free renders and every paid plan exports a clean MP4 from $9.90/month. Both are explicit about it; the difference is what the cheapest clean output costs.',
+        p: `Synthesia puts its logo on free-plan video and makes it removable on any paid plan, cheapest at $29/month or $18 yearly. Kineo watermarks free renders and every paid plan exports a clean MP4 from ${K(TIER_PRICES.starter.usd)}/month. Both are explicit about it; the difference is what the cheapest clean output costs.`,
       },
       {
         h: 'Teams, governance and everything Kineo does not have',
@@ -4361,7 +4361,7 @@ export const PAIRS: Pair[] = [
     faq: [
       {
         q: 'Is Kineo cheaper than Synthesia?',
-        a: 'Yes at list: Kineo Starter is $9.90/month, $4.90 for the first month, against Synthesia Starter at $29/month or $18 billed yearly, verified at synthesia.io/pricing on July 26, 2026. They are not priced for the same job, so the comparison only helps if either tool could do what you need.',
+        a: `Yes at list: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against Synthesia Starter at $29/month or $18 billed yearly, verified at synthesia.io/pricing on July 26, 2026. They are not priced for the same job, so the comparison only helps if either tool could do what you need.`,
       },
       {
         q: 'How many videos can I make on Synthesia per month?',

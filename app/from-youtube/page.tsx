@@ -4,6 +4,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import { createClient } from '@/lib/supabase/server'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import YouTubeBridgeClient from './YouTubeBridgeClient'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 // The legacy Darvaza preview was produced from an older script. Keep the live
 // proof factual by showing a different founder-owned export until today's
@@ -101,8 +105,8 @@ export default async function FromYouTubePage() {
         </div>
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-white/40">
-          Free Fast exports include a Kineo watermark. Starter is $4.90 for the first
-          month and renews at $9.90/month. Cancel anytime; a 7-day money-back guarantee applies.
+          Free Fast exports include a Kineo watermark. Starter is {STARTER_MONTH},
+          the same price worldwide. Cancel anytime; a 7-day money-back guarantee applies.
         </p>
       </section>
     </main>

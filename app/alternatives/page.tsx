@@ -15,6 +15,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import { COMPETITORS, COMPETITOR_SLUGS } from './[competitor]/page'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -24,7 +28,7 @@ export const dynamic = 'force-static'
 export const metadata: Metadata = {
   title: 'Kineo Alternatives — Compare Kineo to Other AI Video Tools',
   description:
-    `Compare Kineo with OpusClip, InVideo, HeyGen, Synthesia, CapCut, Runway and more. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is $9.90/month.', OFFER.copy.headline)}`,
+    `Compare Kineo with OpusClip, InVideo, HeyGen, Synthesia, CapCut, Runway and more. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ' + STARTER_MONTH + '.', OFFER.copy.headline)}`,
   alternates: { canonical: 'https://www.usekineo.com/alternatives' },
   openGraph: {
     title: 'Kineo Alternatives — Compare Kineo to Other AI Video Tools',
@@ -66,7 +70,7 @@ export default function AlternativesIndexPage() {
             Try Kineo free →
           </OrganicCtaLink>
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '10px 0 0' }}>
-            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>$9.90/mo</b>
+            {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b>
           </p>
           <CostCalculatorLink
             placement="alternatives_hero"

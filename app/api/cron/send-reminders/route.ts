@@ -7,6 +7,16 @@ import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — a linha de preço deste lembrete era
+// "Starter $9.90/mo, then $9.90/mo · Creator $9.90 first month, then
+// $24.90/mo". Além dos quatro valores mortos, o "$9.90/mo, then $9.90/mo" do
+// Starter é literalmente a mesma quantia escrita duas vezes com um "then" no
+// meio — sobra de uma edição anterior que ninguém reviu porque estava dentro
+// de uma string HTML de 40 linhas. Agora é uma frase só, derivada.
+import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -265,7 +275,7 @@ export async function GET(req: NextRequest) {
                   </td>
                 </tr>
               </table>
-              <p style="text-align:center;color:#475569;font-size:12px;margin:0 0 24px;">Starter $9.90/mo, then $9.90/mo · Creator $9.90 first month, then $24.90/mo</p>
+              <p style="text-align:center;color:#475569;font-size:12px;margin:0 0 24px;">Starter ${STARTER_PRICE}/mo · Creator ${CREATOR_PRICE}/mo · same price every month, worldwide</p>
 
               <div style="border-top:1px solid rgba(255,255,255,0.06);padding-top:18px;">
                 <p style="color:#475569;font-size:12px;margin:0;text-align:center;line-height:1.6;">

@@ -18,7 +18,10 @@
 
 import { useEffect, useState } from 'react'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+// KINEO-PRICING-V6-2026-08-19 — quantos vídeos de IA o grant do Starter paga
+// de verdade. Ver lib/marketingPrice.ts.
+import { STARTER_AI_FILMS } from '@/lib/marketingPrice'
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
@@ -26,7 +29,10 @@ const THRESHOLD = 5
 // KINEO-ORDEM5-PROOF-2026-08-03 — price derived from the single source
 // (lib/checkoutPricing.ts) instead of a hardcoded "$9.90" that could go stale
 // exactly like the "50 Fast videos" line did in July.
-const STARTER_USD = `$${(TIER_PRICES.starter.usd / 100).toFixed(2)}`
+// KINEO-PRICING-V6-2026-08-19 — formatCheckoutMoney no lugar do toFixed(2)
+// caseiro: é o mesmo formatador de toda superfície de preço, então o rótulo
+// desta faixa não pode divergir do da tela ao lado por arredondamento.
+const STARTER_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
 export default function LowCreditsUpsell() {
   const [eligible, setEligible] = useState(false)
@@ -99,8 +105,12 @@ export default function LowCreditsUpsell() {
             over two weeks, at the exact moment of highest purchase intent.
             Now derived from TIER_CREDITS so it cannot go stale again. */}
         <span style={{ color: '#a5b4fc', fontSize: 13, fontWeight: 600 }}>
+          {/* KINEO-PRICING-V6-2026-08-19 — "or 1 AI Generated video" era um
+              literal que subestimava o plano (40 créditos pagam 2 Seedance).
+              Derivado, ele acompanha qualquer reprice de grant OU de motor. */}
           Get {TIER_CREDITS.starter} credits every month — {TIER_CREDITS.starter} Fast
-          videos, or 1 AI Generated video. {STARTER_USD}/mo. Cancel anytime.
+          videos, or {STARTER_AI_FILMS} AI Generated video{STARTER_AI_FILMS === 1 ? '' : 's'}.
+          {' '}{STARTER_USD}/mo. Cancel anytime.
         </span>
         {/* KINEO-ORDEM5-PROOF-2026-08-03 — Ordem 5, linha de prova no upsell.
             Número real com filtro de internas (896 em 03/08); piso "+",

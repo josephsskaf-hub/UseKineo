@@ -23,6 +23,7 @@ import {
   type TopupId,
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import { creditCostFor } from '@/lib/credits/engineCost'
 
 const PACKS: Array<{ id: TopupId; badge?: string }> = [
   { id: 'topup40' },
@@ -123,7 +124,14 @@ export default function CreditsTopupModal({
           {PACKS.map(({ id, badge }) => {
             const cr = TOPUP_CREDITS[id]
             const price = currency ? formatCheckoutMoney(currency, TOPUP_PRICES[id][currency]) : '—'
-            const films = Math.floor(cr / 20)
+            // KINEO-PRICING-V6-2026-08-19 — o divisor era o literal 20 (custo
+            // do Seedance). Ele está certo HOJE, e é exatamente esse o
+            // problema: o custo do motor mora em lib/credits/engineCost.ts e
+            // muda em commits que ninguém pensa em cruzar com este arquivo.
+            // Com o topup100 caindo de 100 → 75 créditos nesta mesma rodada,
+            // a linha "≈ N AI films" já mudou de valor sozinha (5 → 3) — que é
+            // exatamente o comportamento que se quer de um número derivado.
+            const films = Math.floor(cr / creditCostFor('cinematic_ai', true))
             const highlighted = !!badge
             return (
               <button

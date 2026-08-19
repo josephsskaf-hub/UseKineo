@@ -4,6 +4,10 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import { createClient } from '@/lib/supabase/server'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import SaaSHubBridgeClient from './SaaSHubBridgeClient'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 const FEATURED_EXAMPLE = PUBLIC_EXAMPLES[1]
 
@@ -87,7 +91,7 @@ export default async function FromSaaSHubPage() {
           {[
             ['From scratch', 'Unlike clip cutters, Kineo starts from a topic. You do not need a long video first.'],
             ['Ready to post', 'Script, voice, visuals, captions and a 9:16 MP4 are created in one workflow.'],
-            ['Clear pricing', 'Starter is $4.90 for month one, then $9.90/month. Cancel anytime.'],
+            ['Clear pricing', 'Starter is ' + STARTER_MONTH + ', the same price worldwide. Cancel anytime.'],
           ].map(([title, body]) => (
             <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
               <h2 className="font-black">{title}</h2>
@@ -98,7 +102,7 @@ export default async function FromSaaSHubPage() {
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-white/40">
           Free Fast exports include a Kineo watermark. Paid plans unlock clean MP4s and premium AI engines.
-          Starter renews at $9.90/month after the $9.90/mo; a 7-day money-back guarantee applies.
+          Starter is {STARTER_MONTH}, the same price worldwide; a 7-day money-back guarantee applies.
         </p>
       </section>
     </main>

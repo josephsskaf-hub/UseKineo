@@ -5,7 +5,7 @@ import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { LIFECYCLE_SKIP_STAMP } from '@/lib/lifecycle/skipStamp'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { isInternalEmail } from '@/lib/internalAccounts'
-import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS } from '@/lib/checkoutPricing'
+import { TIER_PRICES, INTRO_PRICES, TIER_CREDITS, hasIntroOffer } from '@/lib/checkoutPricing'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-CREDIT-STUCK-2026-08-08 — mesma pausa usada na política de 429.
 import { sleep } from '@/lib/rateLimit'
@@ -16,11 +16,13 @@ import { sleep } from '@/lib/rateLimit'
 // who completes their 3rd Fast video inside 24h has just hit the wall the
 // in-app counter shows (compose FREE_FAST_PREVIEW_LIMIT = 3, rolling 24h).
 // This cron runs every 30 min and emails them within the hour, while intent
-// is hot: Starter removes the wall, first month half off.
+// is hot: Starter removes the wall.
 //
-// Copy mirrors the APPROVED in-app refusal message (app/api/compose/route.ts):
-// "Keep creating with Starter for $4.90 your first month, then $9.90/month."
+// Copy mirrors the APPROVED in-app refusal message (app/api/compose/route.ts).
 // Prices/credits come from lib/checkoutPricing.ts — the single price source.
+// KINEO-PRICING-V6-2026-08-19 — a menção a "first month half off" saiu daqui e
+// do corpo do e-mail; ver o bloco em buildEmail() sobre a frase que continuou
+// mentindo mesmo com todas as variáveis corretas.
 //
 // Guard rails (same as the other lifecycle jobs):
 // - max 1 per user EVER (profiles.cap_hit_sent_at). Pulo por atributo
@@ -88,12 +90,28 @@ function buildEmail(userId: string) {
   const intro = usd(INTRO_PRICES.starter.usd)
   const monthly = usd(TIER_PRICES.starter.usd)
   const credits = TIER_CREDITS.starter
+  // ⚠️ KINEO-PRICING-V6-2026-08-19 — os NÚMEROS deste e-mail sempre vieram da
+  // fonte única (o autor de 03/08 fez certo). O que estava chumbado era a
+  // FORMA da frase: "your first month is half off — X, then Y/month". Com
+  // INTRO_PRICES == TIER_PRICES desde 17/08, X e Y passaram a ser o MESMO
+  // valor, e a frase virou "seu primeiro mês é metade do preço — $7, depois
+  // $7/mês". Ninguém percebeu porque o template compilava e os dois números
+  // eram legítimos: a mentira estava na conjunção, não na variável.
+  // Lição para a próxima: derivar o número não basta, a frase que o cerca
+  // também afirma coisas. hasIntroOffer() é quem decide qual frase existe.
+  const hasIntro = hasIntroOffer('starter', 'usd')
+  const offerLine = hasIntro
+    ? `${credits} credits every month, clean exports with no watermark, and your first month is half off — ${intro}, then ${monthly}/month. Cancel anytime.`
+    : `${credits} credits every month, clean exports with no watermark — ${monthly}/month, the same price every month, worldwide. Cancel anytime.`
+  const offerLineHtml = hasIntro
+    ? `<strong>${credits} credits every month</strong>, clean exports with no watermark, and your first month is half off — <strong>${intro}</strong>, then ${monthly}/month. Cancel anytime.`
+    : `<strong>${credits} credits every month</strong>, clean exports with no watermark — <strong>${monthly}/month</strong>, the same price every month, worldwide. Cancel anytime.`
 
   const text = `Hey,
 
 ${ft(OFFER, `You've used up today's free Fast previews — the cap is ${FREE_CAP} every 24 hours.`, OFFER.copy.limitHitEmailIntro)}
 
-${ft(OFFER, `If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark, and your first month is half off — ${intro}, then ${monthly}/month. Cancel anytime.`, `If you're on a roll, Starter removes the wall: ${credits} credits every month, clean exports with no watermark — ${intro} your first month, then ${monthly}/month. Cancel anytime.`)}
+${ft(OFFER, `If you're on a roll, Starter removes the wall: ${offerLine}`, `If you're on a roll, Starter removes the wall: ${offerLine}`)}
 
 Keep creating: ${url}
 
@@ -105,7 +123,7 @@ usekineo.com`
   const html = `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;">
   <p style="margin:0 0 14px;">Hey,</p>
   <p style="margin:0 0 14px;">${ft(OFFER, `You've used up <strong>today's free Fast previews</strong> — the cap is ${FREE_CAP} every 24 hours.`, OFFER.copy.limitHitEmailIntroHtml)}</p>
-  <p style="margin:0 0 14px;">${ft(OFFER, `If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark, and your first month is half off — <strong>${intro}</strong>, then ${monthly}/month. Cancel anytime.`, `If you're on a roll, Starter removes the wall: <strong>${credits} credits every month</strong>, clean exports with no watermark — <strong>${intro}</strong> your first month, then ${monthly}/month. Cancel anytime.`)}</p>
+  <p style="margin:0 0 14px;">${ft(OFFER, `If you're on a roll, Starter removes the wall: ${offerLineHtml}`, `If you're on a roll, Starter removes the wall: ${offerLineHtml}`)}</p>
   <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Keep creating &rarr;</a></p>
   <p style="margin:0 0 14px;">${ft(OFFER, 'Or wait for the reset — free previews come back every 24 hours, and your videos stay in your library either way.', OFFER.copy.limitResetLine)}</p>
   <p style="margin:0 0 2px;">Kineo Team</p>

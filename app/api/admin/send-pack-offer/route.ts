@@ -17,6 +17,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
+// KINEO-PRICING-V6-2026-08-19 — o PREÇO do pack ($4.90) não mudou na V6, mas
+// a QUANTIDADE nunca bateu: o assunto dizia "25-Short pack", o corpo dizia "10
+// videos", e o SKU concede PACK_CREDITS.starter (30) desde a V3D. Três números
+// para uma coisa só, no mesmo e-mail. Agora é um, derivado.
+import { PACK_CREDITS } from '@/lib/checkoutPricing'
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -30,7 +35,7 @@ const ADMIN_EMAILS = new Set([
 // hello@ = prospecção/resgate de leads (support@ is reserved for support).
 const FROM_EMAIL = 'Joseph at Kineo <hello@usekineo.com>'
 const REPLY_TO = 'hello@usekineo.com'
-const SUBJECT = 'Your 25-Short pack — $4.90, no subscription'
+const SUBJECT = `Your ${PACK_CREDITS.starter}-credit pack — $4.90, no subscription`
 
 // KINEO-PACK-WIDEN-2026-07-08 — widened from the Jul 5–6 cohort to ALL signups
 // (launch onward → end of today) so the $4.90 win-back reaches every unpaid lead
@@ -80,14 +85,14 @@ function emailHtml(userId: string): string {
   <p>Hey — thanks for trying <b>Kineo</b> 🎬</p>
   <p>You can turn any idea into a finished, faceless YouTube Short in a few minutes — footage, voiceover, captions and music, done for you.</p>
   <p>Here's a founder deal to keep the momentum going:</p>
-  <p style="font-size:18px;margin:18px 0"><b>10 videos for a one-time $4.90.</b></p>
+  <p style="font-size:18px;margin:18px 0"><b>${PACK_CREDITS.starter} credits for a one-time $4.90.</b></p>
   <ul>
     <li>No subscription</li>
     <li>Watermark-free</li>
     <li>Credits never expire</li>
   </ul>
   <p style="margin:26px 0">
-    <a href="https://usekineo.com/pricing?utm_source=winback_email&utm_campaign=starter25" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Get 10 videos for $4.90 →</a>
+    <a href="https://usekineo.com/pricing?utm_source=winback_email&utm_campaign=starter25" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Get ${PACK_CREDITS.starter} credits for $4.90 →</a>
   </p>
   <p>Just reply to this email if you need anything — I read every one.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>

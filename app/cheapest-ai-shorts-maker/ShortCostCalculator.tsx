@@ -8,6 +8,7 @@ import {
   CURRENCY_DISPLAY,
   INTRO_PRICES,
   TIER_PRICES,
+  hasIntroOffer,
   formatCheckoutMoney,
   type CheckoutCurrency,
   type CheckoutTier,
@@ -128,8 +129,20 @@ export default function ShortCostCalculator() {
   const recommendationMonthly = recommendation && currency
     ? TIER_PRICES[recommendation.tier][currency]
     : null
-  const recommendationIntro = recommendation && currency && recommendation.intro
-    ? INTRO_PRICES[recommendation.tier as 'starter' | 'basic'][currency]
+  // KINEO-PRICING-V6-2026-08-19 — `recommendation.intro` só diz que o tier TEM
+  // uma linha em INTRO_PRICES, não que essa linha seja mais barata. Desde que o
+  // 1º mês com desconto morreu, INTRO_PRICES == TIER_PRICES, e esta calculadora
+  // vinha imprimindo um selo azul "First month $7.00" logo abaixo de "$7.00/mo"
+  // — duas vezes o mesmo número, com um dos dois se chamando desconto. Quem
+  // pergunta o preço numa página chamada "cheapest AI shorts maker" é
+  // exatamente quem repara nisso. hasIntroOffer() é a checagem que existe para
+  // isto: ela compara os dois valores em vez de acreditar no rótulo, então o
+  // selo volta sozinho no dia em que houver desconto de verdade.
+  const introTier = recommendation && recommendation.intro
+    ? (recommendation.tier as 'starter' | 'basic')
+    : null
+  const recommendationIntro = introTier && currency && hasIntroOffer(introTier, currency)
+    ? INTRO_PRICES[introTier][currency]
     : null
 
   return (
@@ -237,7 +250,7 @@ export default function ShortCostCalculator() {
               </div>
             ) : (
               <div style={{ marginTop: 6, color: '#f5f5f7', fontWeight: 800 }}>
-                Above the 200 credits included in Studio. Start with a smaller target, then add credits after subscribing.
+                Above the {PRODUCT_PLANS.pro.credits} credits included in {PRODUCT_PLANS.pro.name}. Start with a smaller target, then add credits after subscribing.
               </div>
             )}
           </div>

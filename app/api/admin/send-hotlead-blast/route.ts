@@ -29,6 +29,15 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
 import { claimEmailSlot, recordEmailSend, recordResendResponse } from '@/lib/email/quota'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — três dos quatro segmentos vendiam "first
+// month $X": Creator "$9.90 for the first month (150 credits)" e Starter
+// "$4.90". Nenhum dos dois existe desde 17/08, e o grant do Creator é 90.
+// Este blast fala com os leads MAIS quentes da base (gente que zerou o
+// trial) — é o público que menos perdoa uma diferença entre e-mail e fatura.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+
+const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -93,7 +102,7 @@ function bodyFor(seg: Segment, lead: Lead, userId: string): string {
 <p>Hey — Joseph here, founder of Kineo.</p>
 <p>You did something almost nobody does: you used your trial credits down to zero. That tells me the videos were worth making — and that something stopped you at the paying part.</p>
 <p>I'd genuinely like to know what it was. Price? A missing feature? Output quality on a specific niche?</p>
-<p>If it helps: the Creator plan is <b>$9.90 for the first month</b> (150 credits, clean exports, every engine except Studio).</p>
+<p>If it helps: we just cut every price. The Creator plan is <b>${CREATOR_PRICE}/month</b> (${TIER_CREDITS.basic} credits, clean exports, every engine except Studio) — same price every month, worldwide.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=basic&intent_campaign=hotlead_burned" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Keep making videos &rarr;</a></p>
 <p>And if it was something else — just hit reply. It comes straight to me, and I answer everything myself.</p>
 ${sig}`
@@ -103,7 +112,7 @@ ${sig}`
 <p>Hey — Joseph here, founder of Kineo.</p>
 <p>You still have <b>${lead.credits} credits</b> sitting in your account. They don't expire this week, but I noticed you stopped — and when someone makes a video and then goes quiet, it's usually because something got in the way.</p>
 <p>Was it the output? The credit math? Something confusing in the flow? Whatever it was, reply and tell me — I read every answer myself and I'd rather fix your reason than send you a coupon.</p>
-<p>If you just want more room to create: the first month of Starter is <b>$4.90</b>.</p>
+<p>If you just want more room to create: Starter is now <b>${STARTER_PRICE}/month</b>, ${TIER_CREDITS.starter} credits.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=starter&intent_campaign=hotlead_stalled" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">See plans &rarr;</a></p>
 ${sig}`
   }
@@ -111,7 +120,7 @@ ${sig}`
     return `${open}
 <p>Hey — Joseph here, founder of Kineo.</p>
 <p>You downloaded your video — that's the whole point, so thank you for actually using the thing.</p>
-<p>One thing a lot of people miss: the watermark isn't permanent. Any paid plan exports <b>clean, watermark-free MP4s</b> — and the first month of Starter is <b>$4.90</b>.</p>
+<p>One thing a lot of people miss: the watermark isn't permanent. Any paid plan exports <b>clean, watermark-free MP4s</b> — and Starter is now <b>${STARTER_PRICE}/month</b>.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=starter&intent_campaign=hotlead_watermark" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Export clean videos &rarr;</a></p>
 <p>And if the watermark never bothered you — even better. Reply and tell me what WOULD make you upgrade someday. It comes straight to me.</p>
 ${sig}`

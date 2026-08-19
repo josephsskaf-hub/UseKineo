@@ -6,6 +6,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+// KINEO-PRICING-V6-2026-08-19 — preço E grant derivados de TIER_PRICES/
+// TIER_CREDITS. Esta linha errava os DOIS ($9.90 e 60 créditos) porque foram
+// digitados juntos: quando a escada desceu para $7/40, nada aqui apontava
+// para a tabela que cobra, então a página seguiu vendendo o plano antigo.
+import { STARTER_MONTH, STARTER_CREDITS } from '@/lib/marketingPrice'
 
 const BASE = 'https://www.usekineo.com'
 
@@ -33,7 +38,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: 'Images cost 1–5 credits depending on the engine. Every new account gets a free 50-credit trial with no card — enough for dozens of images. Paid plans start at $9.90/month for 60 credits, and credits are shared across images, voice and video.',
+    a: 'Images cost 1–5 credits depending on the engine. Every new account gets a free 50-credit trial with no card — enough for dozens of images. Paid plans start at ' + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits — the same price worldwide — and credits are shared across images, voice and video.',
   },
   {
     q: 'Can I turn my images into videos?',

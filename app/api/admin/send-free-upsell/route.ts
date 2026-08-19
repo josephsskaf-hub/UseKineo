@@ -4,8 +4,8 @@
 // (free_ai_generate_used=true) but never paid AND never even clicked checkout
 // (so /api/admin/send-abandon-recovery — which targets *_checkout_clicked
 // events — never reaches them). ~230 warm users today sit in this gap. Offers
-// the same recurring-by-design intro ($9.90/mo, ?intro=1) so a rescue
-// becomes a subscription, not a one-off coupon. Mirrors send-abandon-recovery's
+// the entry plan (?intro=1 continua na URL mas, desde 17/08, não desconta
+// nada) so a rescue becomes a subscription, not a one-off coupon. Mirrors send-abandon-recovery's
 // safety model exactly (internal/disposable filters, paced sends, flag-on-success).
 //
 // Idempotent via profiles.free_upsell_emailed (flagged on SUCCESSFUL send only),
@@ -20,6 +20,17 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { loadLifecycleSuppression } from '@/lib/lifecycle/suppression'
+// ⚠️ KINEO-PRICING-V6-2026-08-19 — mesmas quatro mentiras do
+// send-abandon-recovery, copiadas palavra por palavra ("$4.90 your first
+// month", "25 credits", "renews at $9.90/mo", "Creator 150 credits + 1
+// Hollywood film … also half off"). É a assinatura do problema: a copy foi
+// duplicada entre rotas, então o reprice teria de ser lembrado em cada uma.
+// Derivando da tabela, uma correção vale para todas.
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+
+const STARTER_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+const CREATOR_PRICE = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
 
 export const maxDuration = 300
 export const dynamic = 'force-dynamic'
@@ -73,8 +84,9 @@ function isValidExternalEmail(email: string): boolean {
 // /pricing, a plain page.
 //
 // Intent is preserved: /pricing reads ?promo= and ?intent_campaign= and passes
-// them to the checkout route, and its handleBuy() appends &intro=1 for monthly
-// starter/basic — the same half-price first month promised above. NOTE:
+// them to the checkout route. (KINEO-PRICING-V6-2026-08-19: o &intro=1 que o
+// /pricing anexa não desconta mais nada e este e-mail não promete desconto.)
+// NOTE:
 // /pricing does NOT currently read ?tier=, so that param is attribution only.
 //
 // KINEO-UNSUBSCRIBE-2026-07-26 — recebe userId para o rodapé de descadastro.
@@ -83,11 +95,11 @@ function emailHtml(userId: string): string {
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#1e293b;line-height:1.6">
   <p>Hey — Joseph here, founder of <b>Kineo</b> 🎬</p>
   <p>You already made a video with Kineo — nice. The only thing between you and posting it clean is the watermark.</p>
-  <p style="font-size:18px;margin:18px 0"><b>Unlock watermark-free MP4s for $4.90 your first month</b> — 25 credits, cancel anytime.</p>
+  <p style="font-size:18px;margin:18px 0"><b>Unlock watermark-free MP4s for ${STARTER_PRICE}/month</b> — ${TIER_CREDITS.starter} credits, cancel anytime.</p>
   <p style="margin:26px 0">
     <a href="https://usekineo.com/pricing?tier=starter&intent_campaign=free_upsell" style="background:#2997ff;color:#ffffff;padding:13px 24px;border-radius:10px;text-decoration:none;font-weight:bold">Unlock my clean video &rarr;</a>
   </p>
-  <p style="color:#475569;font-size:14px">Renews at $9.90/mo after the first month — cancel anytime with two clicks · 7-day money-back guarantee. Want to post daily? The Creator plan (150 credits + 1 Hollywood film/month) is also half off: <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=free_upsell" style="color:#2997ff">first month $9.90</a>.</p>
+  <p style="color:#475569;font-size:14px">Same price every month — cancel anytime with two clicks · 7-day money-back guarantee. Want to post daily? The Creator plan (${TIER_CREDITS.basic} credits ≈ ${CREATOR_AI_FILMS} AI films a month) is <a href="https://usekineo.com/pricing?tier=basic&intent_campaign=free_upsell" style="color:#2997ff">${CREATOR_PRICE}/month</a>.</p>
   <p>Stuck on anything — a niche, a topic, an export? Just reply to this email. It comes straight to me.</p>
   <p>— Joseph, founder<br/>Kineo · https://usekineo.com</p>
 </div>

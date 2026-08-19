@@ -16,6 +16,10 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-STARTER-EM-ARTIGO-2026-08-15 — o MESMO componente da home/#70, nunca
 // uma cópia. Ver o bloco no corpo. Client island; `force-static` segue valendo.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -71,7 +75,7 @@ const TOOLS: Tool[] = [
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: `${ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)}, no card`,
-    startingPrice: '$9.90/mo, then $9.90/mo',
+    startingPrice: STARTER_MO,
   },
   {
     name: 'OpusClip',
@@ -189,7 +193,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are there free AI Shorts generators?',
-    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is $9.90/month, then $9.90/month.`,
+    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is ${STARTER_MONTH}, the same price worldwide.`,
   },
   {
     q: 'How should I choose an AI Shorts generator?',
@@ -342,7 +346,8 @@ export default function BestAiShortsGeneratorsPage() {
             </h3>
             <p style={{ color: '#d2d2d7', lineHeight: 1.55, fontSize: '0.95rem', margin: 0 }}>
               Most tools have a limited free plan or watermarked trial so you can test output
-              before paying. Check the monthly price after any intro discount, whether credits
+              before paying. Check what the plan really costs every month — an advertised
+              first-month price is not the price you will pay — whether credits
               roll over, and whether the free tier is enough to validate a niche.
             </p>
           </section>

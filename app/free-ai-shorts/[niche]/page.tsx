@@ -15,6 +15,10 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_MONTH } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -489,7 +493,7 @@ export function generateMetadata({ params }: { params: { niche: string } }): Met
   const n = NICHES[params.niche]
   if (!n) return {}
   const title = `${n.h1} — Kineo`
-  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is $9.90/month.`
+  const description = `${n.intro} ${ft(OFFER, 'Create up to 3 watermarked Fast videos every 24h with no card.', OFFER.copy.headline)} Starter is ${STARTER_MONTH}.`
   const url = `https://www.usekineo.com/free-ai-shorts/${params.niche}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
@@ -638,7 +642,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               ficou em 40 quando o grant virou 50 hoje: este H2 é o mesmo em 30
               páginas, então era o erro multiplicado por 30. Agora deriva. */}
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} Creator credits for ${n.label} Shorts`)}</h2>
-          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is $9.90/month when you want clean exports.</p>
+          <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is {STARTER_MONTH} when you want clean exports.</p>
           <OrganicCtaLink
             href={signupUrlForIdea(primaryIdea)}
             source={campaign}

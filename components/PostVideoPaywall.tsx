@@ -16,7 +16,9 @@ import { useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 // KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel
 // também é USD fixo). O checkout continua resolvendo a moeda no servidor.
-import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, PACK_CREDITS, formatCheckoutMoney } from '@/lib/checkoutPricing'
+// KINEO-PRICING-V6-2026-08-19 — contagem de vídeos derivada do grant do plano.
+import { STUDIO_CINEMATIC_FILMS } from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 
@@ -68,8 +70,17 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
   function handleBuy(tier: 'basic' | 'pro') {
     // #471 — carry the founding 50%-off promo (same as the wall modal) so the
     // inline post-video paywall converts at the same discount.
-    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}&promo=FOUNDING50`, {
-      promo: 'FOUNDING50',
+    // ⚠️ KINEO-PRICING-V6-2026-08-19 — `&promo=FOUNDING50` REMOVIDO, e não é
+    // só coerência com a copy que acabou de sair daqui. O código não é
+    // auto-provisionado (só FIRST50/COMEBACK50 são): ele resolve de um
+    // promotion code que pode ou não continuar ativo na Stripe. Se continuar,
+    // metade da 1ª fatura do Creator = líquido $7.28 contra um COGS de pior
+    // caso de $9.86 nos 90 créditos concedidos — venda com prejuízo, aplicada
+    // em silêncio, sem nenhuma tela mencionando desconto. Deixar um cupom
+    // pendurado numa URL sem copy que o justifique é dinheiro saindo por uma
+    // porta que ninguém está olhando. Preço cheio, igual ao resto do produto.
+    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}`, {
+      pricing_surface: 'post_video_paywall',
     })
     if (started) trackCheckoutClick(tier)
   }
@@ -99,9 +110,17 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
         >
           Your Short is ready. Unlock your Creator Pack.
         </h3>
+        {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "Founding offer: 50% off your first
+            month" SAIU. Não era mais uma frase de marketing otimista: era uma
+            afirmação sobre a PRIMEIRA FATURA, e a primeira fatura passou a ser
+            o preço cheio (INTRO_PRICES == TIER_PRICES desde 17/08). A pessoa
+            lia "metade do preço", clicava, e o Stripe cobrava o dobro do que
+            ela acabara de ler — no cartão, não numa landing. É a diferença
+            entre uma oferta e uma cobrança-surpresa. O que sobrou é o que
+            continua sendo verdade e não depende de tabela nenhuma. */}
         <p className="text-xs" style={{ color: 'var(--muted)' }}>
           {credits} credit{credits === 1 ? '' : 's'} left.{' '}
-          <span style={{ color: '#f5f5f7', fontWeight: 800 }}>Founding offer: 50% off your first month</span>
+          <span style={{ color: '#f5f5f7', fontWeight: 800 }}>Same price every month</span>
           {' '}· cancel anytime · 7-day money-back.
         </p>
       </div>
@@ -139,7 +158,9 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
           renew={PLANS.pro.periodLabel}
           features={[
             `${PLANS.pro.credits} credits / month`,
-            '1 Cinematic AI video / month',
+            // KINEO-PRICING-V6-2026-08-19 — era "1 Cinematic AI video / month",
+            // literal e subestimado (160 créditos pagam 3 Kling 2.5). Derivado.
+            `${STUDIO_CINEMATIC_FILMS} cinematic AI videos / month`,
             'Download without watermark',
           ]}
           ctaLabel={
@@ -160,8 +181,13 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
 
       {/* ROBO-ENTRY-490 (Joseph aprovou 30/06) — lowest-commitment option on the
           post-Short nudge. A free user who just made their first Short faces a
-          big jump straight to $24.90/mo; the $4.90 one-time 10-Shorts pack is a
-          far easier first "yes". Same checkout as the 0-credit modal + /pricing. */}
+          big jump straight to a monthly plan; the $4.90 one-time pack is a far
+          easier first "yes". Same checkout as the 0-credit modal + /pricing.
+          KINEO-PRICING-V6-2026-08-19 — o "$24.90/mo" desta nota morreu (Creator
+          é $15). O PREÇO do pack ($4.90) NÃO mudou na V6 e continua literal
+          porque não existe constante exportada para ele; o que passou a ser
+          derivado é a QUANTIDADE: o pack concede PACK_CREDITS.starter (30)
+          créditos, e a copy vendia "10 videos" desde antes do rebase. */}
       <button
         type="button"
         disabled={purchasing !== null}
@@ -192,7 +218,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
         ) : (
           <>
             Not ready for a monthly plan?{' '}
-            <span style={{ color: '#2997ff' }}>Start with 10 videos for $4.90 →</span>
+            <span style={{ color: '#2997ff' }}>Start with {PACK_CREDITS.starter} credits for $4.90 →</span>
             <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
               One-time · no subscription · credits never expire
             </span>

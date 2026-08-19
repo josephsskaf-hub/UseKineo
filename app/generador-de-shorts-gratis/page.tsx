@@ -8,6 +8,10 @@ import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import Footer from '@/components/Footer'
+// KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
+// lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
+// de tabela publicando um valor que o checkout não cobrava mais.
+import { STARTER_USD_AMOUNT } from '@/lib/marketingPrice'
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'seo_generador_es'
@@ -41,7 +45,7 @@ const FAQ = [
   },
   {
     q: '¿Es gratis de verdad? ¿Hace falta tarjeta?',
-    a: 'Creas, ves, descargas y publicas videos Fast con marca de agua sin tarjeta. Los planes de pago liberan el MP4 limpio, desde US$ 4,90 el primer mes.',
+    a: 'Creas, ves, descargas y publicas videos Fast con marca de agua sin tarjeta. Los planes de pago liberan el MP4 limpio, desde US$ ' + STARTER_USD_AMOUNT + ' al mes, el mismo precio en todo el mundo.',
   },
   {
     q: '¿Tengo que aparecer o saber editar?',

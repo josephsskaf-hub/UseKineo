@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TIER_PRICES, formatCheckoutMoney, getTierPrice, coercePriceRegion, type CheckoutCurrency, type PriceRegion } from '@/lib/checkoutPricing'
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney, getTierPrice, coercePriceRegion, type CheckoutCurrency, type PriceRegion } from '@/lib/checkoutPricing'
 
 // KINEO-CHECKOUT-TRIAGE-2026-07-25 — this modal advertised a hardcoded
 // "$11.90/mo" that no plan has charged for two pricing generations. Derived
@@ -118,7 +118,12 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
           }}
         >
           {[
-            '⚡ 50–100 Fast Mode renders / month',
+            // KINEO-PRICING-V6-2026-08-19 — era "⚡ 50–100 Fast Mode renders /
+            // month", um intervalo digitado que nunca correspondeu a plano
+            // nenhum da V5 (60–320) nem da V6 (40–160). Fast custa 1 crédito
+            // para conta paga, então a faixa é literalmente o menor e o maior
+            // grant do catálogo — e agora ela sai deles.
+            `⚡ ${TIER_CREDITS.starter}–${TIER_CREDITS.pro} Fast Mode renders / month`,
             '🎬 AI script + voiceover pipeline',
             '🔤 Auto-captions engine',
             '📥 Watermark-free MP4 output',

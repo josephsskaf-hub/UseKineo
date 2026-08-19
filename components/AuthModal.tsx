@@ -294,7 +294,11 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                   className="rounded-xl px-4 py-3 text-xs mb-4"
                   style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.28)', color: '#2997ff', lineHeight: 1.5 }}
                 >
-                  Your selected plan and intro price are saved. Continue below and we&apos;ll take you straight back to secure checkout.
+                  {/* KINEO-PRICING-V6-2026-08-19 — "e intro price" saiu: não
+                      existe preço de entrada para guardar, e prometer que ele
+                      foi "salvo" faz a pessoa esperar um valor menor na tela
+                      seguinte. O plano escolhido continua sendo preservado. */}
+                  Your selected plan is saved. Continue below and we&apos;ll take you straight back to secure checkout.
                 </div>
               )}
 
