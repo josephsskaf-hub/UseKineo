@@ -96,7 +96,7 @@ export default function LiveNowPanel() {
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,.03)' }}>
-                {['Who', 'Doing now', 'Credits', 'Videos', 'From', 'Seen'].map((h) => (
+                {['Who', 'Doing now', 'Credits used', 'Videos', 'Age', 'From', 'Seen'].map((h) => (
                   <th key={h} className="font-black uppercase tracking-widest" style={{ fontSize: '0.58rem', color: 'var(--muted2)', textAlign: 'left', padding: '8px 12px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -117,9 +117,36 @@ export default function LiveNowPanel() {
                       <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase" style={{ background: 'rgba(52,211,153,.12)', color: '#34d399', border: '1px solid rgba(52,211,153,.35)' }}>sub</span>
                     )}
                   </td>
-                  <td style={{ padding: '9px 12px', color: heatColor(v.heat), fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{v.did.join(' · ')}</td>
-                  <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#fb923c' : 'var(--text)', fontSize: '0.8rem' }}>{v.credits ?? '—'}</td>
+                  <td style={{ padding: '9px 12px', color: heatColor(v.heat), fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
+                    {v.did.join(' · ')}
+                    {/* KINEO-LIVE-V2-2026-08-19 — o selo que explica o caso que
+                        o fundador nao conseguiu ler: credito gasto e ZERO
+                        video. O credito sai quando a geracao COMECA; o video
+                        so existe quando ela TERMINA. Entre os dois, isto. */}
+                    {v.rendering && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase"
+                        style={{ background: 'rgba(251,191,36,.14)', color: '#fbbf24', border: '1px solid rgba(251,191,36,.35)' }}>
+                        rendering
+                      </span>
+                    )}
+                    {v.failed > 0 && (
+                      <span className="ml-2 rounded px-1.5 py-0.5 text-[9px] font-black uppercase"
+                        title="Geracoes que falharam — dor, nao uso"
+                        style={{ background: 'rgba(248,113,113,.12)', color: '#f87171', border: '1px solid rgba(248,113,113,.35)' }}>
+                        {v.failed} failed
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#fb923c' : 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontWeight: 700 }}>{v.credits ?? '—'}</span>
+                    {v.creditsUsedLabel && (
+                      <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.creditsUsedLabel}</span>
+                    )}
+                  </td>
                   <td style={{ padding: '9px 12px', color: 'var(--text)', fontSize: '0.8rem' }}>{v.videos}</td>
+                  <td style={{ padding: '9px 12px', color: 'var(--muted2)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+                    {v.hoursOld < 1 ? 'novo' : v.hoursOld < 48 ? `${v.hoursOld}h` : `${Math.round(v.hoursOld / 24)}d`}
+                  </td>
                   <td style={{ padding: '9px 12px', color: 'var(--muted2)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
                     {flag(v.country)} {v.country ?? '—'}{v.source ? ` · ${v.source}` : ''}
                   </td>
@@ -133,7 +160,8 @@ export default function LiveNowPanel() {
         )}
       </div>
       <p className="text-[10px] mt-2" style={{ color: 'var(--muted2)' }}>
-        Online = signed-in visitor with activity in the last 5 minutes · refreshes every 30s · click the email to write them now.
+        Online = visitante logado com atividade nos últimos 5 min · atualiza a cada 30s · clique no e-mail para escrever agora.
+        {' '}<b>rendering</b> = geração em voo: o crédito já saiu, o vídeo ainda não existe — é isso que explica &quot;crédito gasto, zero vídeo&quot;.
       </p>
     </section>
   )

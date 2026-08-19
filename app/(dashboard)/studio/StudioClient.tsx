@@ -14,8 +14,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter } from 'next/navigation'
+// KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
+import { creditCostFor } from '@/lib/credits/engineCost'
 
-type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood'
+// KINEO-H3-2026-08-19 — 'h3' entra aqui. ⚠️ LIÇÃO: o motor foi adicionado ao
+// seletor do /generate e NÃO apareceu para o fundador, porque a tela que ele
+// usa é o /studio — que mantém a PRÓPRIA lista de motores. São dois seletores
+// para a mesma decisão, e é o mesmo defeito estrutural do dia: a mesma verdade
+// morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
+// o motor existir nos dois.
+type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna
@@ -33,11 +41,20 @@ const ENGINES: {
   credits: string
   supportsRef: boolean
 }[] = [
-  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: 'Free', supportsRef: false },
-  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: '20 cr', supportsRef: false },
-  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: '50 cr', supportsRef: false },
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: '90 cr', supportsRef: false },
-  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: '150 cr', supportsRef: true },
+  // ⚠️ 'credits' saiu de string chumbada para creditCostFor(): o Kineo 1 dizia
+  // "Free" e desde hoje custa 2 créditos para quem paga (dizer Free e cobrar 2
+  // é cobrança-surpresa, a mesma classe de erro que passamos o dia caçando em
+  // preço). Free continua vendo "Free" — para ele o custo É zero.
+  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
+  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
+  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
+  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
+  // KINEO-H3-2026-08-19 — MiniMax H3. Sem preview ainda (entra depois do
+  // primeiro render de validação; vitrine com clipe de outro motor seria
+  // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
+  // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
+  { key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'New', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina

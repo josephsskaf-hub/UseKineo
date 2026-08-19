@@ -27,6 +27,7 @@ import {
   formatUsd,
   isPaidPlan,
   mrrForPlan,
+  stripeMrrUsd,
   pct,
   planAccent,
   planBase,
@@ -203,7 +204,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
     fetchAllRows<ProfileRow>(
       admin,
       'profiles',
-      'id, email, plan, created_at, stripe_customer_id, video_credits, has_paid',
+      'id, email, plan, created_at, stripe_customer_id, stripe_subscription_id, video_credits, has_paid',
     ),
     fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at'),
   ])
@@ -270,6 +271,20 @@ export async function computeCeoData(): Promise<CeoData | null> {
     }
   }
   atRiskUsers.sort((a, b) => a.credits - b.credits)
+
+  // ⚠️ KINEO-MRR-STRIPE-2026-08-19 — A VERDADE SOBRE RECEITA MORA NA STRIPE.
+  // O laço acima soma pelo PREÇO DE TABELA, e isso deixou de ser a receita no
+  // instante em que a V6 mudou os preços: assinante antigo mantém o valor que
+  // assinou. Medido hoje: a tela dizia $66.00 e a receita real era $94.40.
+  // Aqui o total é substituído pela soma real das assinaturas; a quebra por
+  // plano fica com o preço de tabela de propósito (ela responde "quanto vale
+  // um Creator hoje", não "quanto o fulano paga").
+  const subIds = external
+    .filter((p) => isPaidPlan(p.plan))
+    .map((p) => (p as { stripe_subscription_id?: string | null }).stripe_subscription_id ?? '')
+    .filter(Boolean)
+  const stripeMrr = await stripeMrrUsd(subIds)
+  if (stripeMrr) mrr = stripeMrr.mrr
 
   const mrrByPlan = [...byPlan.values()].sort((a, b) => b.mrrUsd - a.mrrUsd)
   const countFor = (b: PlanBase) => byPlan.get(b)?.count ?? 0

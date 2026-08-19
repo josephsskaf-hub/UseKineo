@@ -14,7 +14,31 @@
 // internal accounts filtered out. NOT `has_paid`, which counts anyone who ever
 // paid including refunds.
 
+// ⚠️⚠️ KINEO-MRR-STRIPE-2026-08-19 — ESTE ARQUIVO PASSOU A MENTIR HOJE, E O
+// MOTIVO É INSTRUTIVO O BASTANTE PARA FICAR ESCRITO.
+//
+// A tabela abaixo deriva de lib/pricing.PLANS, que hoje passou a derivar de
+// checkoutPricing (V6: $7/$15/$29). Isso consertou 20 telas de marketing e
+// QUEBROU esta: os 6 assinantes atuais assinaram ENTRE 09/07 e 10/08, e a
+// Stripe mantém o preço original de cada assinatura para sempre. Eles pagam
+// $24.90, $19.90 e $9.90 — não $15 e $7.
+//
+// Resultado medido: o painel CEO exibia MRR $66.00 quando a receita real é
+// $94.40. O fundador estava olhando o número mais importante da empresa,
+// subestimado em 30%, no dia em que ele mais precisava lê-lo.
+//
+// A LIÇÃO É A MESMA DO DIA, com um giro: derivar da fonte única é certo para
+// o preço que a gente COBRA de quem chega agora, e errado para o preço que a
+// gente RECEBE de quem já assinou. São duas perguntas diferentes:
+//   · "quanto custa o Creator?"        → checkoutPricing (preço de tabela)
+//   · "quanto essa pessoa me paga?"    → STRIPE (contrato assinado)
+// MRR é a segunda. A única fonte honesta é a assinatura.
+//
+// mrrForPlan() FICA, porque é o fallback quando a Stripe não responde e porque
+// telas de projeção ("se todos fossem Creator...") querem preço de tabela. Mas
+// toda superfície que anuncia RECEITA deve preferir stripeMrrUsd().
 import { PLANS } from '@/lib/pricing'
+import Stripe from 'stripe'
 
 // Monthly USD per stored plan value. Keys must cover every value the Stripe
 // webhook / checkout route / PayPal webhook can write to profiles.plan —
@@ -64,6 +88,50 @@ export function isTrialPlan(plan: string | null | undefined): boolean {
 /** Monthly USD this plan contributes to MRR (0 for free / one-off / unknown). */
 export function mrrForPlan(plan: string | null | undefined): number {
   return PLAN_PRICE_USD[normalizePlan(plan)] ?? 0
+}
+
+/**
+ * MRR REAL: soma o que a Stripe cobra de cada assinatura ativa.
+ *
+ * É o número que o painel CEO deve mostrar. Assinante antigo mantém o preço
+ * que assinou (grandfathering automático da Stripe), então a tabela de preço
+ * de hoje não sabe responder quanto ele paga.
+ *
+ * Devolve null quando não dá para saber (sem chave, erro de rede) — e nesse
+ * caso o chamador cai no cálculo por tabela. Nunca inventa: melhor mostrar a
+ * estimativa rotulada do que um número inventado com cara de exato.
+ */
+export async function stripeMrrUsd(subscriptionIds: string[]): Promise<{
+  mrr: number
+  counted: number
+  perSubscription: Array<{ id: string; usd: number; status: string }>
+} | null> {
+  const secret = process.env.STRIPE_SECRET_KEY
+  const ids = subscriptionIds.filter((s) => typeof s === 'string' && s.startsWith('sub_'))
+  if (!secret || ids.length === 0) return null
+  try {
+    const stripe = new Stripe(secret, { apiVersion: '2025-02-24.acacia' })
+    const perSubscription: Array<{ id: string; usd: number; status: string }> = []
+    let mrr = 0
+    for (const id of ids) {
+      const sub = await stripe.subscriptions.retrieve(id)
+      // Só conta assinatura que a Stripe considera viva. 'canceled'/'unpaid'
+      // continuam existindo como objeto e somá-las infla o MRR com receita
+      // que não vai entrar.
+      const alive = sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due'
+      const item = sub.items?.data?.[0]
+      const amount = typeof item?.price?.unit_amount === 'number' ? item.price.unit_amount : 0
+      // Anual vira mensal para o MRR não pular no mês da cobrança.
+      const perMonth = item?.price?.recurring?.interval === 'year' ? amount / 12 : amount
+      const usd = alive ? perMonth / 100 : 0
+      if (alive) mrr += usd
+      perSubscription.push({ id, usd, status: sub.status })
+    }
+    return { mrr, counted: perSubscription.filter((s) => s.usd > 0).length, perSubscription }
+  } catch (e) {
+    console.warn('[mrr] Stripe indisponível, caindo para a tabela:', e instanceof Error ? e.message : String(e))
+    return null
+  }
 }
 
 export type PlanBase = 'free' | 'starter' | 'creator' | 'studio' | 'autopilot'

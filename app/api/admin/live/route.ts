@@ -39,6 +39,24 @@ export interface LiveVisitor {
   /** Quão perto de comprar: 3 = abriu checkout · 2 = gerou vídeo · 1 = só olhou */
   heat: number
   source: string | null
+  // ═══ KINEO-LIVE-V2-2026-08-19 ═══════════════════════════════════════════
+  // Pedido do fundador: "deixa esse LIVE mais completo pra eu entender melhor
+  // as situações". Ele olhou a tela e não conseguiu explicar por que alguém
+  // aparecia com 30 créditos e 0 vídeos. A resposta é que a coluna 'vídeos'
+  // conta VÍDEO PRONTO, e o crédito já sai da conta quando a geração COMEÇA —
+  // então, no meio de um render, a pessoa aparece com o crédito gasto e nenhum
+  // vídeo. Não era bug, era leitura impossível. Os campos abaixo tornam a
+  // situação legível sem precisar consultar o banco na mão.
+  /** true = tem geração EM VOO agora (explica crédito gasto sem vídeo). */
+  rendering: boolean
+  /** Quanto do trial já foi gasto: "20 of 50". */
+  creditsUsedLabel: string | null
+  /** Horas desde o cadastro — separa quem chegou agora de quem voltou. */
+  hoursOld: number
+  /** Falhas de geração desta pessoa: um número alto aqui é dor, não uso. */
+  failed: number
+  /** Motor da última tentativa, para saber o que ela está testando. */
+  lastEngine: string | null
 }
 
 export interface LiveData {
@@ -99,7 +117,7 @@ export async function GET() {
     if (ids.length > 0) {
       const [profRes, vidRes] = await Promise.all([
         admin.from('profiles')
-          .select('id, email, name, plan, has_paid, video_credits, signup_country, last_country, signup_utm_source')
+          .select('id, email, name, plan, has_paid, video_credits, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
@@ -131,6 +149,26 @@ export async function GET() {
           if ([...names].some((n) => n.startsWith('images_') || n === 'image_generated')) did.push('🖼 imagens')
           if (did.length === 0) did.push('👀 navegando')
 
+          // KINEO-LIVE-V2-2026-08-19 — o estado que faltava para a tela ser
+          // legível. 'rendering' é o que explica "crédito gasto, zero vídeo".
+          const rendering =
+            names.has('video_generation_started') && !names.has('video_generation_completed')
+          const failed = row.events.filter((n) => n === 'video_generation_failed').length
+          const lastEngine =
+            [...names].find((n) => n.startsWith('engine_')) ?? null
+          const createdAt = (p as { created_at?: string }).created_at
+          const hoursOld = createdAt
+            ? Math.max(0, Math.round((now - Date.parse(createdAt)) / 3_600_000))
+            : 0
+          // O grant do trial é 50; mostrar "usou X de 50" responde de relance
+          // se a pessoa está experimentando ou já queimou tudo.
+          const TRIAL_GRANT = 50
+          const cr = typeof p.video_credits === 'number' ? p.video_credits : null
+          const creditsUsedLabel =
+            cr !== null && !PAID_PLANS.has(((p.plan as string) ?? '').toLowerCase())
+              ? `${Math.max(0, TRIAL_GRANT - cr)} of ${TRIAL_GRANT} used`
+              : null
+
           return {
             user_id: p.id as string,
             email: (p.email as string) ?? '',
@@ -145,6 +183,11 @@ export async function GET() {
             did,
             heat,
             source: (p.signup_utm_source as string | null) ?? null,
+            rendering,
+            creditsUsedLabel,
+            hoursOld,
+            failed,
+            lastEngine,
           }
         })
         .filter((v) => v.email && !internal(v.email))
