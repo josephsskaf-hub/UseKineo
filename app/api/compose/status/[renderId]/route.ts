@@ -48,7 +48,7 @@ export const dynamic = 'force-dynamic'
 // Protection rule intact: a failed render never charges (debit is success-only,
 // idempotent by render_id).
 // KINEO-HOLLYWOOD-2026-07-09 — 'cinematic_hollywood' added (260 cr, provisional).
-type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'avatar' | 'presenter'
+type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'avatar' | 'presenter'
 
 // KINEO-CREDIT-INTENT-2026-07-11 — creditCostFor moved to
 // lib/credits/engineCost.ts so the render-BIRTH route (/api/compose) and this
@@ -305,7 +305,7 @@ export async function GET(
     const isCinematicQuality =
       quality === 'cinematic_ai' || quality === 'cinematic_kling' ||
       quality === 'cinematic_veo' || quality === 'cinematic_sora' ||
-      quality === 'cinematic_hollywood'
+      quality === 'cinematic_hollywood' || quality === 'cinematic_h3'
     let prepaidCinematicClaim: CinematicClaim | null = null
     let prepaidAvatarClaim: VerifiedAvatarBirthClaim | null = null
     // KINEO-CREDIT-STUCK-2026-08-08 — era `ReturnType<typeof createAdminClient>`.

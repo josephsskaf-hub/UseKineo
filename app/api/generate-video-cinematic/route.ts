@@ -2255,7 +2255,14 @@ export async function POST(req: NextRequest) {
       // string compose receives back from the client, and BOTH routes resolve
       // the narrator persona from it (lib/hollywood/hostVoice) — that's what
       // guarantees the host lines and the b-roll narration share ONE voice.
-      const hNarrations = plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
+      // KINEO-H3-FIX-2026-08-19 — no Kling 3, cena de diálogo fala SOZINHA
+      // (áudio nativo) e por isso narração=null. O H3 entra MUDO por decisão
+      // (Contrato C1: a voz é a do usuário) — então no H3 TODA cena leva TTS,
+      // inclusive as de diálogo, usando a própria fala como narração. Sem isto
+      // o filme sairia com buracos de silêncio exatamente nas cenas-chave.
+      const hNarrations = wantsH3
+        ? plan.scenes.map((s) => s.voiceover ?? s.dialogueLine ?? null)
+        : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
       const hVoiceoverScript =
         hNarrations.filter(Boolean).join(' ') ||
         plan.scenes.map((s) => s.dialogueLine ?? '').filter(Boolean).join(' ') ||
@@ -2552,7 +2559,12 @@ export async function POST(req: NextRequest) {
         // 'host' (presenter clip, speech baked in, timeline follows the real
         // audio seconds) | 'dialogue' | 'cinematic' | 'support'. Compose keys
         // volume/narration/caption/duration decisions off this.
-        scene_engines: hEngines,
+        // KINEO-H3-FIX-2026-08-19 — o compose abaixa a narração e usa a fala
+        // nativa quando vê 'dialogue'. No H3 não existe fala nativa, então a
+        // cena de diálogo é reportada como 'cinematic' (narrada por cima, como
+        // qualquer outra). O rótulo 'host' fica: esse caminho gera o próprio
+        // áudio via presenter e independe do motor de cena.
+        scene_engines: wantsH3 ? hEngines.map((e) => (e === 'dialogue' ? 'cinematic' : e)) : hEngines,
         // KINEO-HOLLYWOOD-RETRY-2026-08-16 — o client precisa do prompt e da
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
@@ -2573,9 +2585,25 @@ export async function POST(req: NextRequest) {
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per
         // dialogue scene (null for the rest), parallel to fal_request_ids.
         // Compose uses it to caption dialogue scenes with the REAL speech.
-        scene_dialogues: plan.scenes.map((s) => (s.type === 'dialogue' && s.dialogueLine ? s.dialogueLine : null)),
+        // KINEO-H3-FIX-2026-08-19 — scene_dialogues legenda a FALA NATIVA da
+        // cena. No H3 a fala virou narração TTS (acima), que já gera a própria
+        // legenda karaokê — manter as duas legendaria o mesmo texto em dobro.
+        scene_dialogues: wantsH3
+          ? plan.scenes.map(() => null)
+          : plan.scenes.map((s) => (s.type === 'dialogue' && s.dialogueLine ? s.dialogueLine : null)),
         cost_estimate_usd: plan.estimatedCostUsd,
-        quality: 'cinematic_hollywood',
+        // ⚠️ KINEO-H3-FIX-2026-08-19 — ESTA LINHA ERA `quality: 'cinematic_hollywood'`
+        // CRAVADO, e foi o bug que travou o primeiro render H3 da história (o do
+        // fundador, 22:07). A cadeia: o claim nasce com claimQuality='cinematic_h3',
+        // as 8 cenas SOBEM pra fal com sucesso ($11 de fornecedor), e na hora de
+        // publicar a resposta o validador de assinatura compara response.quality
+        // com claim.quality → 'cinematic_hollywood' ≠ 'cinematic_h3' → recusa
+        // ("response does not match provider binding") → o cliente fica preso em
+        // "Submitting..." pra sempre com as cenas prontas do outro lado.
+        // O validador fez o TRABALHO DELE — a resposta estava mesmo mentindo
+        // sobre o que era. O erro foi meu: o quinto lugar com valor cravado que
+        // a família H3 expôs num único dia.
+        quality: claimQuality,
         verbatim,
         speed: parsedScript.speed,
       }
