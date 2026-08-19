@@ -459,6 +459,9 @@ const NAV = [
   { label: 'Trial', href: '/admin/trial-abuse', key: 'trial-abuse' },
   // KINEO-TRIAL-COHORT-2026-08-11 — a coorte VIVA, segmentada por comportamento.
   { label: 'Cohort', href: '/admin/trial-cohort', key: 'trial-cohort' },
+  // KINEO-TRIAL-ROI-2026-08-19 — a pergunta que nenhuma das duas telas de
+  // trial responde: do dinheiro que já saiu, quanto voltou?
+  { label: 'ROI do trial', href: '/admin/trial-roi', key: 'trial-roi' },
   // KINEO-SUPPLIER-ALARM-2026-08-11 — consumo, ritmo e data de estouro por
   // fornecedor. Depois de dois apagões de saldo em 11 dias, esta é a tela que
   // responde "dá para dormir?" sem abrir seis painéis de terceiros.
