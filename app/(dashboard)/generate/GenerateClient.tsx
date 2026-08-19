@@ -7650,11 +7650,51 @@ export default function GenerateClient({
   const trialStarterPrice = postVideoCurrency
     ? formatCheckoutMoney(postVideoCurrency, getTierPrice('starter', postVideoCurrency, postVideoRegion))
     : null
-  const trialOfferPriceNote = trialOfferFullPrice
+  // ═══ KINEO-VALUE-LADDER-FLIP-2026-08-19 ══════════════════════════════════
+  // O ESCAPE NÃO BASTOU. A autópsia do kanishka (acima) tratou o sintoma —
+  // "ele não sabia que ₹399 existia" — e a cura foi um LINK embaixo de um
+  // botão de ₹1.299. Os números de hoje dizem que o link não segura a porta.
+  //
+  // FUNIL DE 7 DIAS, medido em 19/08: 247 cadastros → 135 fizeram vídeo → 44
+  // chegaram ao checkout → ZERO assinaram. E o número que muda o diagnóstico:
+  // os 44 tentaram DUAS VEZES OU MAIS. Nenhum é curioso de passagem. Quem
+  // volta ao checkout duas vezes quer comprar; se não comprou, encontrou uma
+  // parede, não uma dúvida.
+  //
+  // A parede tem endereço. 16 dos 44 são da Índia, 0% converteu; as duas
+  // únicas vendas da semana vieram dos EUA. E as sessões expiradas dizem o
+  // que eles viram: `tier: basic, currency: inr, amount_total: 129900` —
+  // ₹1.299/mês — com `customer_country: null`, ou seja, saíram ANTES mesmo de
+  // digitar o cartão. Não é recusa de emissor nem e-mandate do RBI (que é
+  // real, mas só morde depois do cartão): é preço. ₹1.299 contra ₹399 é 3,25x,
+  // e na Índia essa diferença separa compra por impulso de decisão familiar.
+  //
+  // Estávamos gritando o preço alto e sussurrando o baixo — exatamente para a
+  // região onde o baixo existe. A escada inverte por REGIÃO, não por país:
+  // quem está em região `value` vê Starter no botão e Creator como upgrade;
+  // em `standard` nada muda (lá o Creator É o melhor primeiro passo e a
+  // ordem atual continua correta). Regra da casa preservada: nenhum preço
+  // digitado à mão, tudo de getTierPrice(), e o servidor segue re-resolvendo
+  // país → moeda → região no checkout. Isto aqui é rótulo e ordem, nunca
+  // autoridade de preço.
+  const valueLadderFlip = postVideoRegion === 'value' && trialStarterPrice !== null
+  const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice
         ? `${trialOfferIntroPrice} first month · then ${trialOfferFullPrice}/month · cancel anytime`
         : `${trialOfferFullPrice}/month · cancel anytime`)
     : null
+  // KINEO-VALUE-LADDER-FLIP-2026-08-19 — a nota de preço acompanha o botão.
+  // Deixá-la no Creator enquanto o botão vira Starter seria a mesma
+  // desonestidade que este commit está consertando, só que ao contrário.
+  const trialOfferPriceNote = valueLadderFlip
+    ? `${trialStarterPrice}/month · cancel anytime`
+    : trialOfferPriceNoteBasic
+  // Rótulos da escada. `primary` é quem ganha o botão azul; `secondary` é a
+  // saída de texto logo abaixo. Ambos os preços saem de getTierPrice().
+  const ladderPrimaryTier: 'starter' | 'basic' = valueLadderFlip ? 'starter' : 'basic'
+  const ladderSecondaryLabel = valueLadderFlip
+    ? (trialOfferFullPrice ? `need more credits? Creator is ${trialOfferFullPrice}/month →` : null)
+    : (trialStarterPrice ? `or start at ${trialStarterPrice}/month →` : null)
   // FRASE DE PRAZO OU NENHUMA. `msLeft` é o restante no instante da RESPOSTA;
   // descontar o decorrido desde então usa o relógio do cliente só para o delta.
   // Abaixo de 1 hora a frase não é impressa: um "0 hours left" ou um "1 day"
@@ -10063,9 +10103,17 @@ export default function GenerateClient({
                             nenhuma das duas: continua sem prometer motor algum
                             (Kling/Veo/Hollywood seguem "🔒 Studio") e continua
                             interpolando TIER_CREDITS, nunca um número novo. */}
-                        {trialPostVideoPhase === 'ending'
-                          ? `Creator picks up from here — ${TIER_CREDITS.basic} credits every month.`
-                          : `Creator picks up where the trial ends — ${TIER_CREDITS.basic} credits every month.`}
+                        {/* KINEO-VALUE-LADDER-FLIP-2026-08-19 — em região
+                            `value` a frase descreve o plano que o botão
+                            realmente abre (Starter), com o número de créditos
+                            vindo de TIER_CREDITS como sempre. */}
+                        {valueLadderFlip
+                          ? (trialPostVideoPhase === 'ending'
+                              ? `Starter picks up from here — ${TIER_CREDITS.starter} credits every month.`
+                              : `Starter picks up where the trial ends — ${TIER_CREDITS.starter} credits every month.`)
+                          : (trialPostVideoPhase === 'ending'
+                              ? `Creator picks up from here — ${TIER_CREDITS.basic} credits every month.`
+                              : `Creator picks up where the trial ends — ${TIER_CREDITS.basic} credits every month.`)}
                       </p>
                       {trialOfferPriceNote && (
                         <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
@@ -10112,16 +10160,24 @@ export default function GenerateClient({
                           // lados a razão não existe.
                           trial_phase: trialPostVideoPhase,
                           trial_ended_by_cap: trialEndedByCap,
+                          // KINEO-VALUE-LADDER-FLIP-2026-08-19 — sem estes dois
+                          // campos a inversão é inauditável: `tier` acima
+                          // continuaria dizendo 'basic' para um clique que abriu
+                          // o Starter, e a comparação value × standard (a única
+                          // pergunta que decide se a inversão fica) não existiria.
+                          ladder_flip: valueLadderFlip,
+                          ladder_primary_tier: ladderPrimaryTier,
+                          price_region: postVideoRegion,
                           ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
                           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
                         })
                         const started = trialPostVideoCheckout.launch(
-                          'basic',
-                          withIntentCampaign('/api/stripe/checkout?tier=basic&intro=1'),
-                          { tier: 'basic', intro: true, from: 'trial_post_video' },
+                          ladderPrimaryTier,
+                          withIntentCampaign(`/api/stripe/checkout?tier=${ladderPrimaryTier}&intro=1`),
+                          { tier: ladderPrimaryTier, intro: true, from: 'trial_post_video' },
                         )
                         if (!started) return
-                        trackCheckoutClick('basic')
+                        trackCheckoutClick(ladderPrimaryTier)
                       }}
                       disabled={trialPostVideoCheckout.pending !== null}
                       className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black text-white"
@@ -10133,7 +10189,9 @@ export default function GenerateClient({
                         boxShadow: '0 8px 24px rgba(41,151,255,.28)',
                       }}
                     >
-                      {trialPostVideoCheckout.pending !== null ? 'Opening checkout…' : 'Continue on Creator'}
+                      {trialPostVideoCheckout.pending !== null
+                        ? 'Opening checkout…'
+                        : valueLadderFlip ? 'Continue on Starter' : 'Continue on Creator'}
                     </button>
                     {trialPostVideoCheckout.error && (
                       <p className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
@@ -10145,17 +10203,28 @@ export default function GenerateClient({
                         em vez de sair do site (o caso kanishka, IN). Mesmo
                         hook de checkout (telemetria + guarda de duplo clique);
                         surface separada no evento para medir o resgate. */}
-                    {trialStarterPrice && (
+                    {ladderSecondaryLabel && (
                       <button
                         type="button"
                         onClick={() => {
+                          // O degrau secundário é o OUTRO tier da escada: em
+                          // região `value` ele sobe para Creator, em `standard`
+                          // ele desce para Starter. A surface do evento diz qual
+                          // dos dois foi, senão os dois viram a mesma linha.
+                          const secondary: 'starter' | 'basic' = valueLadderFlip ? 'basic' : 'starter'
                           const started = trialPostVideoCheckout.launch(
-                            'starter',
-                            withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1'),
-                            { tier: 'starter', intro: true, from: 'trial_post_video_starter_escape' },
+                            secondary,
+                            withIntentCampaign(`/api/stripe/checkout?tier=${secondary}&intro=1`),
+                            {
+                              tier: secondary,
+                              intro: true,
+                              from: valueLadderFlip
+                                ? 'trial_post_video_creator_upgrade'
+                                : 'trial_post_video_starter_escape',
+                            },
                           )
                           if (!started) return
-                          trackCheckoutClick('starter')
+                          trackCheckoutClick(secondary)
                         }}
                         disabled={trialPostVideoCheckout.pending !== null}
                         className="block w-full text-center mt-2.5 text-xs font-bold"
@@ -10167,7 +10236,7 @@ export default function GenerateClient({
                           padding: '4px 0',
                         }}
                       >
-                        or start at {trialStarterPrice}/month →
+                        {ladderSecondaryLabel}
                       </button>
                     )}
                     <p

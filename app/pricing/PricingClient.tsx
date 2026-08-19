@@ -131,6 +131,21 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
 // voltar ao preço americano se alguém acrescentar uma chamada nova.
 function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
   // Push #404 — 3 plans: Starter (Fast) · Creator (Seedance, popular) · Studio (Kling).
+  //
+  // ═══ KINEO-VALUE-LADDER-FLIP-2026-08-19 ═════════════════════════════════
+  // O selo segue a REGIÃO. Até hoje "Most Popular" estava cravado no Creator
+  // em toda parte, o que na região `value` significava apontar o holofote
+  // para ₹1.299/mês num mercado onde a nossa porta de entrada é ₹399. O
+  // funil de 7 dias mediu o preço disso: 44 pessoas chegaram ao checkout,
+  // TODAS tentaram 2+ vezes, e ZERO assinaram — 16 delas da Índia, olhando
+  // para ₹1.299 e saindo antes de digitar o cartão (`customer_country: null`
+  // nas sessões expiradas).
+  //
+  // Aqui não há mentira nova: em `value` o Starter recebe "Best Value", que é
+  // literalmente o que ele é naquela região, e o Creator continua na página,
+  // destacado, um degrau acima. Em `standard` nada muda — lá o Creator É o
+  // primeiro passo certo e ele mantém "Most Popular".
+  const valueRegion = region === 'value'
   return [
     {
       tier: 'starter',
@@ -153,6 +168,9 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       videosPerMonth: '≈ 3 engine films / month',
       storageLine: '100 projects · 90-day storage',
       cta: { label: 'Get Started', href: '#checkout' },
+      // Na região `value` o Starter é a porta de entrada real, e é ele que
+      // ganha o realce azul de "Best Value".
+      highlight: valueRegion,
     },
     {
       tier: 'basic',
@@ -170,8 +188,10 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       videosPerMonth: '≈ 7 engine films / month',
       storageLine: '500 projects · forever storage',
       cta: { label: 'Get Started', href: '#checkout' },
-      highlight: true,
-      popular: true,
+      // Em `value` o Creator cede a fita e o realce ao Starter, mas continua
+      // na página como o degrau de cima — não some, não muda de preço.
+      highlight: !valueRegion,
+      popular: !valueRegion,
     },
     {
       tier: 'pro',
