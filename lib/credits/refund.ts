@@ -212,7 +212,14 @@ export async function sweepStuckRenderDebits(): Promise<{
 // A regra de decisão não mudou: o sweep continua falhando FECHADO em qualquer
 // ambiguidade (claim não `settled`, vídeo entregue, erro de leitura) — o que
 // mudou é só quanto tempo o crédito da pessoa fica refém antes da pergunta.
-const CINEMATIC_ABANDON_CUTOFF_MS = 45 * 60 * 1000
+// KINEO-STRANDED-RACE-2026-08-19 — 45min matava o finisher no berço: o
+// teste do fundador (gen 0ad0b67c) foi ESTORNADO às 45min enquanto o cron
+// finish-stranded-renders (15/15min) ainda esperava as 7 cenas Seedance
+// ficarem prontas — dois robôs nossos disputando o mesmo render, e o do
+// estorno ganhava sempre. 100min = janela folgada pro finisher compor
+// (cenas prontas em 10-25min + compose 2-4min) e ainda MUITO abaixo do que
+// um humano toleraria esperando crédito de volta.
+const CINEMATIC_ABANDON_CUTOFF_MS = 100 * 60 * 1000
 
 function metadataOf(row: { metadata?: unknown } | null): Record<string, unknown> {
   return row?.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)

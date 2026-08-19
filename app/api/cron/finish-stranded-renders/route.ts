@@ -72,35 +72,64 @@ function isInternalOrJunkEmail(email: string): boolean {
 
 type ClipResult = { requestId: string; model: string; url: string }
 
-/** Todas as cenas COMPLETED → devolve as URLs na ordem das cenas; senão null. */
+/**
+ * KINEO-STRANDED-PARTIAL-2026-08-19 — antes: exigia TODAS as cenas COMPLETED
+ * e devolvia null a qualquer imperfeição. Isso é MAIS RÍGIDO que o pipeline do
+ * cliente, que compõe com os clipes que sobreviveram (o poller marca o clipe
+ * morto como failed e segue). Uma cena com 422 travava o filme inteiro pra
+ * sempre — e o refund-sweep depois apagava o claim. Agora:
+ *   · cena COMPLETED  → entra no filme
+ *   · cena FAILED/422 → é PULADA (mesma decisão do cliente)
+ *   · cena ainda IN_QUEUE/IN_PROGRESS → espera a próxima rodada (retorna
+ *     'pending', porque compor agora perderia uma cena que VAI chegar)
+ * Compõe quando não há nenhuma pendente e sobreviveu pelo menos 60% das cenas
+ * (piso do FAILFAST: menos que isso é filme mutilado, melhor estornar).
+ */
+type ClipCollect =
+  | { state: 'ready'; clips: ClipResult[] }
+  | { state: 'pending'; done: number; total: number }
+  | { state: 'too_few'; done: number; total: number }
+
 async function collectFinishedClips(
   requestIds: Array<string | null>,
   models: string[],
-): Promise<ClipResult[] | null> {
+): Promise<ClipCollect> {
   const falKey = process.env.FAL_KEY
-  if (!falKey) return null
+  if (!falKey) return { state: 'pending', done: 0, total: requestIds.length }
   fal.config({ credentials: falKey })
   const out: ClipResult[] = []
+  let stillRunning = 0
+  let submitted = 0
   for (let i = 0; i < requestIds.length; i++) {
     const id = requestIds[i]
     const model = models[i]
-    if (!id || !model) continue // cena que nunca submeteu: o FAILFAST já filtrou o grosso
+    if (!id || !model) continue
+    submitted++
     try {
       const st = await fal.queue.status(model, { requestId: id })
-      if ((st as { status?: string }).status !== 'COMPLETED') return null
+      const status = (st as { status?: string }).status
+      if (status === 'IN_QUEUE' || status === 'IN_PROGRESS') { stillRunning++; continue }
+      if (status !== 'COMPLETED') continue // FAILED → pula, como o cliente faz
       const res = await fal.queue.result(model, { requestId: id })
       const data = ((res as { data?: unknown }).data ?? res) as {
         video?: { url?: string }
         output?: { video?: { url?: string } }
       }
       const url = data?.video?.url ?? data?.output?.video?.url ?? null
-      if (!url) return null
-      out.push({ requestId: id, model, url })
-    } catch {
-      return null // 422 terminal ou transporte: nada de compose nesta rodada
+      if (url) out.push({ requestId: id, model, url })
+    } catch (e) {
+      // 422/400 = clipe morto no provedor → pula. Erro de transporte também
+      // cai aqui; a próxima rodada re-checa (o clipe fica de fora só se
+      // continuar inacessível, e o piso de 60% protege o filme).
+      const status = typeof (e as { status?: unknown })?.status === 'number' ? (e as { status: number }).status : null
+      if (status !== 422 && status !== 400) stillRunning++
     }
   }
-  return out.length > 0 ? out : null
+  if (stillRunning > 0) return { state: 'pending', done: out.length, total: submitted }
+  if (out.length === 0 || out.length < Math.ceil(submitted * 0.6)) {
+    return { state: 'too_few', done: out.length, total: submitted }
+  }
+  return { state: 'ready', clips: out }
 }
 
 function serviceHeaders(userId: string): Record<string, string> {
@@ -336,8 +365,16 @@ export async function GET(req: NextRequest) {
     const models = Array.isArray(md.fal_models) ? (md.fal_models as string[]) : []
     if (requestIds.length === 0) { results.push({ generation: gen8, outcome: 'no_request_ids' }); continue }
 
-    const clips = await collectFinishedClips(requestIds, models)
-    if (!clips) { results.push({ generation: gen8, outcome: 'clips_not_ready_yet' }); continue }
+    const collected = await collectFinishedClips(requestIds, models)
+    if (collected.state !== 'ready') {
+      // KINEO-STRANDED-DIAG-2026-08-19 — antes esta saída era MUDA: o render
+      // do fundador ficou 1h sem um único evento e eu fiquei cego. Agora todo
+      // pulo deixa rastro no log com a contagem real de cenas.
+      console.log(`[stranded] gen=${gen8} skip=${collected.state} clips=${collected.done}/${collected.total}`)
+      results.push({ generation: gen8, outcome: `${collected.state}:${collected.done}/${collected.total}` })
+      continue
+    }
+    const clips = collected.clips
 
     // Autoriza as URLs no claim pela MESMA função assinada do poller.
     const authorized = await authorizeCinematicCompletedUrls({
