@@ -17,7 +17,10 @@ import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
-import LandingStarterPrice from '@/components/LandingStarterPrice' // KINEO-REGIONAL-VITRINE-2026-08-19
+// KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
+// por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
+// (chumbados). Agora os TRÊS planos falam a moeda do visitante.
+import LandingPlanPrice from '@/components/LandingPlanPrice'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
 
 /** Centavos → "19.90". O FAQ de preco NUNCA digita numero a mao (ver #faq). */
@@ -1226,26 +1229,26 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   mostrava $9.90 chumbado pra Índia/Nigéria/etc (70 signups IN
                   em 14d, 17 checkouts, ZERO vendas). A vitrine agora fala o
                   preco da prateleira do visitante. */}
-              <div className="pr"><LandingStarterPrice variant="big" /></div>
+              <div className="pr"><LandingPlanPrice tier="starter" variant="big" /></div>
               <ul><li><span className="ck">✓</span> <b>≈ 3 engine films</b> or 60 quick videos/mo</li><li><span className="ck">✓</span> Every engine · images · voiceovers</li><li><span className="ck">✓</span> Watermark-free MP4</li><li><span className="ck">✓</span> 100 projects · 90-day storage</li></ul>
-              <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}><LandingStarterPrice variant="cta" /></a>
+              <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></a>
             </div>
             <div className="plan pop">
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS
                   vs InVideo Plus $25 sem motor premium nenhum. */}
               <div className="pt">Most popular</div><div className="nm">Creator</div>
-              <div className="pr">$19.90<span>/mo</span></div>
+              <div className="pr"><LandingPlanPrice tier="basic" variant="big" /></div>
               <ul><li><span className="ck">✓</span> <b>≈ 7 engine films</b> a month, finished</li><li><span className="ck">✓</span> Voice + karaoke captions + score included</li><li><span className="ck">✓</span> 500 projects · forever storage</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
-              <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}>Go Creator — $19.90/mo</a>
+              <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></a>
             </div>
             <div className="plan">
               {/* KINEO-PRICING-V5-2026-08-17 — $39.90/320cr: volume + Kling 3
                   todo mes + 2 Enhance HD gratis + storage ilimitado. 20% abaixo
                   do Higgsfield Plus ($49), entregando filme pronto. */}
               <div className="pt">Best value per film</div><div className="nm">Studio</div>
-              <div className="pr">$39.90<span>/mo</span></div>
+              <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
               <ul><li><span className="ck">✓</span> <b>≈ 16 films</b> — incl. 2 Kling 3/mo</li><li><span className="ck">✓</span> 2 free HD enhances every month</li><li><span className="ck">✓</span> Unlimited projects · forever storage</li><li><span className="ck">✓</span> Everything in Creator</li></ul>
-              <a className="btn btn-w" rel="nofollow" href={studioCheckoutHref}>Go Studio — $39.90/mo</a>
+              <a className="btn btn-w" rel="nofollow" href={studioCheckoutHref}><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></a>
             </div>
           </div>
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"

@@ -43,6 +43,16 @@ import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+// KINEO-VITRINE-MOEDA-2026-08-19 — ver o bloco grande junto ao texto do modal.
+import {
+  coercePriceRegion,
+  formatCheckoutMoney,
+  getTierPrice,
+  TIER_CREDITS,
+  type CheckoutCurrency,
+  type CheckoutTier,
+  type PriceRegion,
+} from '@/lib/checkoutPricing'
 
 const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
@@ -88,6 +98,16 @@ function checkoutIntentParam(): string {
 // lá a pessoa já está decidindo preço.
 export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal' | 'free' } = {}) {
   const [open, setOpen] = useState(false)
+  // KINEO-VITRINE-MOEDA-2026-08-19 — moeda + região do visitante, resolvidas
+  // só quando o modal abre (é exit-intent: na maioria das visitas ele nunca
+  // aparece, e não vale gastar um fetch em toda pageview por isso).
+  // Fallback = USD/standard: na dúvida, preço cheio, nunca desconto fantasma.
+  const [money, setMoney] = useState<{ currency: CheckoutCurrency; region: PriceRegion }>({
+    currency: 'usd',
+    region: 'standard',
+  })
+  const exitPrice = (tier: CheckoutTier) =>
+    formatCheckoutMoney(money.currency, getTierPrice(tier, money.currency, money.region))
   // KINEO-SPRINT-OFFER-2026-07-14 — 'pack' removed from the union with the
   // one-time escape-hatch link (single-offer cleanup: the modal now sells
   // exactly two things — intro Starter and intro Creator, both recurring).
@@ -234,6 +254,24 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  // Resolve a moeda no instante em que o modal abre. Só EXIBIÇÃO: o
+  // /api/stripe/checkout re-resolve país → moeda → região no servidor e nunca
+  // aceita nada vindo do navegador.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
+      .then((r) => (r.ok ? (r.json() as Promise<{ currency?: string; region?: string }>) : Promise.reject()))
+      .then((d) => {
+        if (cancelled) return
+        const currency: CheckoutCurrency =
+          d.currency === 'brl' || d.currency === 'inr' || d.currency === 'usd' ? d.currency : 'usd'
+        setMoney({ currency, region: coercePriceRegion(d.region) })
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [open])
+
   // KINEO-INTRO-MONTH-2026-07-13 — EXIT-INTENT v3 "RECORRÊNCIA": os dois
   // cards agora são ASSINATURAS com 1º mês de entrada ($4.90 Starter /
   // $9.90 Creator). Mesma mecânica GET (302 servidor, gesture-chain do
@@ -352,8 +390,26 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
         </h2>
         {/* KINEO-SPRINT-OFFER-2026-07-14 — copy no longer implies a one-time
             option ("try it once" was the pack); both cards are subscriptions. */}
+        {/* ═══ KINEO-VITRINE-MOEDA-2026-08-19 — ESTE MODAL MENTIA INTEIRO ═════
+            Pergunta do fundador ("a pessoa vê um preço e no checkout é outro,
+            isso tira credibilidade") me fez auditar as superfícies de preço.
+            Este modal — o ÚLTIMO que um visitante hesitante vê antes de sair
+            do /pricing, ou seja, o pior lugar possível para uma mentira —
+            tinha TODOS os números errados, congelados na tabela V3:
+              "Half-price first month"   → não existe half-price na V5
+              Starter "25 credits/mo"    → são 60
+              Starter "$4.90 first month, then $9.90"  → $4.90 morreu
+              Creator "150 credits/mo"   → são 140
+              Creator "$9.90 first month, then $24.90" → os DOIS morreram
+            E tudo em dólar chumbado, para brasileiro e indiano também.
+            Resultado prático: prometíamos metade do preço, a pessoa clicava,
+            e o Stripe cobrava o valor cheio numa moeda diferente. Não existe
+            jeito mais eficiente de queimar a confiança de quem já hesitou.
+            Agora: preço de getTierPrice() na moeda+região do visitante, sem
+            NENHUMA afirmação de desconto — o que a gente tem de verdade para
+            oferecer aqui é a escada (o degrau barato), não um desconto. */}
         <p id="exit-offer-desc" className="text-[13.5px] text-[#86868b] mb-5 leading-relaxed">
-          Half-price first month, fresh credits every month. One click.
+          Fresh credits every month, every engine unlocked. Cancel anytime.
         </p>
 
         {/* KINEO-INTRO-MONTH-2026-07-13 — v3 ladder: intro Starter (left) vs
@@ -368,13 +424,13 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             }}
           >
             <span className="text-[10px] font-black uppercase tracking-[.12em] text-[#86868b] mb-1.5">
-              Starter · 25 credits/mo
+              Starter · {TIER_CREDITS.starter} credits/mo
             </span>
             <span className="text-xl font-black text-[#f5f5f7]">
-              $4.90 <span className="text-[12px] font-bold text-[#86868b]">first month</span>
+              {exitPrice('starter')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
             </span>
             <span className="text-[12.5px] text-[#a1a1a6] mt-1 mb-3 leading-relaxed">
-              then $9.90/mo · no watermark · cancel anytime
+              every engine · no watermark · cancel anytime
             </span>
             <button
               type="button"
@@ -388,7 +444,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 cursor: 'pointer',
               }}
             >
-              {buying === 'starter' ? 'Loading…' : 'Start for $4.90 →'}
+              {buying === 'starter' ? 'Loading…' : `Start for ${exitPrice('starter')} →`}
             </button>
           </div>
 
@@ -408,13 +464,13 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               Best value
             </span>
             <span className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5" style={{ color: '#7cc0ff' }}>
-              Creator · 150 credits/mo
+              Creator · {TIER_CREDITS.basic} credits/mo
             </span>
             <span className="text-xl font-black text-[#f5f5f7]">
-              $9.90 <span className="text-[12px] font-bold text-[#86868b]">first month</span>
+              {exitPrice('basic')} <span className="text-[12px] font-bold text-[#86868b]">/month</span>
             </span>
             <span className="text-[12.5px] text-[#cfe7ff] mt-1 mb-3 leading-relaxed">
-              then $24.90/mo · 1 Hollywood film included · AI Presenter
+              ≈ 7 engine films a month · voice, captions and score included
             </span>
             <button
               type="button"
@@ -428,7 +484,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
                 cursor: 'pointer',
               }}
             >
-              {buying === 'creator' ? 'Loading…' : 'Start for $9.90 →'}
+              {buying === 'creator' ? 'Loading…' : `Start for ${exitPrice('basic')} →`}
             </button>
           </div>
         </div>
