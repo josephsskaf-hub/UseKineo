@@ -88,8 +88,19 @@ const FALLBACK_TRACKS = [
 // ---------------------------------------------------------------------------
 export type MusicMood = 'suspense' | 'epic' | 'hustle' | 'dark'
 
+// KINEO-MUSIC-SINERGIA-2026-08-19 (fundador: "a trilha precisa ter sinergia
+// com o vídeo, em TODOS os motores"). Três defeitos consertados aqui, sem
+// faixa nova (expandir catálogo exige audição + aprovação — ver regra acima):
+//   1. `voodoo-tribal` estava em suspense E em epic. Faixa tribal não é
+//      épico-orquestral; agora vive só no suspense, onde funciona.
+//   2. O balde `dark` (fallback) sorteava entre as 8 faixas — ou seja, um
+//      vídeo de mistério podia receber PHONK DE DINHEIRO. Phonk/trap agora
+//      são exclusivos do `hustle`; o fallback só tem cinematográfico neutro.
+//   3. `facts`/`learning`/`curiosities` (o fallback do detectNiche, e portanto
+//      o caso MAIS COMUM) caía nessa roleta. Agora mapeia para suspense — o
+//      tom real do canal de curiosidade.
 const MOOD_TRACKS: Record<MusicMood, string[]> = {
-  // Mistério / conspiração / dark history — tensão e suspense, zero batida festiva.
+  // Mistério / conspiração / dark history / curiosidade — tensão, zero festa.
   suspense: [
     `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
     `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
@@ -99,7 +110,6 @@ const MOOD_TRACKS: Record<MusicMood, string[]> = {
   epic: [
     `${SUPABASE_MUSIC_BASE}/orchestral-trap.mp3`,
     `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
-    `${SUPABASE_MUSIC_BASE}/voodoo-tribal.mp3`,
   ],
   // Dinheiro / billionaire / luxo / tech — a batida phonk/trap que JÁ era a
   // identidade do canal de finanças; aqui ela é acerto, não acidente.
@@ -108,8 +118,14 @@ const MOOD_TRACKS: Record<MusicMood, string[]> = {
     `${SUPABASE_MUSIC_BASE}/dark-trap-time.mp3`,
     `${SUPABASE_MUSIC_BASE}/dark-beat-loop.mp3`,
   ],
-  // Sem sinal de tema — catálogo completo (comportamento antigo).
-  dark: FALLBACK_TRACKS,
+  // Sem sinal de tema — SÓ cinematográfico neutro. Nunca phonk/trap: uma
+  // batida de dinheiro sob uma história de mistério é o que o fundador ouviu
+  // como "sem sinergia".
+  dark: [
+    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
+    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
+    `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
+  ],
 }
 
 // ContentNiche (lib/narration/niche-mapping) → balde de humor. Espelha o
@@ -129,7 +145,12 @@ const NICHE_TO_MOOD: Record<string, MusicMood> = {
   luxury: 'hustle',
   ai: 'hustle',
   technology: 'hustle',
-  // learning / curiosities / facts → sem mapeamento → 'dark' (catálogo cheio)
+  // KINEO-MUSIC-SINERGIA-2026-08-19 — estes três eram o buraco: 'facts' é o
+  // FALLBACK do detectNiche (o caso mais frequente do produto) e caía na
+  // roleta. O canal é curiosidade/mistério — suspense é o tom certo.
+  facts: 'suspense',
+  learning: 'suspense',
+  curiosities: 'suspense',
 }
 
 export function resolveMusicMood(niche: string | null | undefined): MusicMood {
