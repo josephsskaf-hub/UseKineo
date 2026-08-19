@@ -17,6 +17,7 @@ import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
+import LandingStarterPrice from '@/components/LandingStarterPrice' // KINEO-REGIONAL-VITRINE-2026-08-19
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -1216,9 +1217,14 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               {/* KINEO-PRICING-V5-2026-08-17 (fundador): $4.90 morreu; Starter
                   e $9.90/60cr direto e o card fala em FILMES, nao em creditos. */}
               <div className="pt">Best for starting out</div><div className="nm">Starter</div>
-              <div className="pr">$9.90<span>/mo</span></div>
+              {/* KINEO-REGIONAL-VITRINE-2026-08-19 — o checkout JA cobra
+                  $4.99/₹399/R$24,90 na regiao value desde 04/08, mas a home
+                  mostrava $9.90 chumbado pra Índia/Nigéria/etc (70 signups IN
+                  em 14d, 17 checkouts, ZERO vendas). A vitrine agora fala o
+                  preco da prateleira do visitante. */}
+              <div className="pr"><LandingStarterPrice variant="big" /></div>
               <ul><li><span className="ck">✓</span> <b>≈ 3 engine films</b> or 60 quick videos/mo</li><li><span className="ck">✓</span> Every engine · images · voiceovers</li><li><span className="ck">✓</span> Watermark-free MP4</li><li><span className="ck">✓</span> 100 projects · 90-day storage</li></ul>
-              <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}>Start — $9.90/mo</a>
+              <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}><LandingStarterPrice variant="cta" /></a>
             </div>
             <div className="plan pop">
               {/* KINEO-PRICING-V5-2026-08-17 — $19.90/140cr: 7 filmes PRONTOS

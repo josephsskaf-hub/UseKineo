@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { TIER_PRICES, formatCheckoutMoney, getTierPrice, coercePriceRegion, type CheckoutCurrency, type PriceRegion } from '@/lib/checkoutPricing'
 
 // KINEO-CHECKOUT-TRIAGE-2026-07-25 — this modal advertised a hardcoded
 // "$11.90/mo" that no plan has charged for two pricing generations. Derived
@@ -10,6 +10,8 @@ import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 // can never drift again. USD is the display default here; the checkout itself
 // still resolves the buyer's real currency server-side by IP.
 const STARTER_FROM_PRICE = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
+// KINEO-REGIONAL-VITRINE-2026-08-19 — o modal e superficie de venda batida e
+// dizia "$9.90" pra todo mundo; regiao value ve o preco regional real.
 
 interface UpgradeModalProps {
   onClose: () => void
@@ -18,6 +20,20 @@ interface UpgradeModalProps {
 
 export default function UpgradeModal({ onClose }: UpgradeModalProps) {
   const router = useRouter()
+  const [fromPrice, setFromPrice] = useState(STARTER_FROM_PRICE)
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async (r) => (r.ok ? (r.json() as Promise<{ currency?: string; region?: string }>) : Promise.reject()))
+      .then(({ currency, region }) => {
+        if (cancelled) return
+        const cur: CheckoutCurrency = currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+        const reg: PriceRegion = coercePriceRegion(region)
+        setFromPrice(formatCheckoutMoney(cur, getTierPrice('starter', cur, reg)))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [])
 
   // Accessibility: close on Escape, reusing the existing onClose handler.
   useEffect(() => {
@@ -90,7 +106,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
           <span className="grad-text">free renders</span>
         </h2>
         <p className="text-sm mb-7" style={{ color: '#86868b' }}>
-          Activate a plan to keep your pipeline running — from {STARTER_FROM_PRICE}/mo.
+          Activate a plan to keep your pipeline running — from {fromPrice}/mo.
         </p>
 
         {/* Features */}
