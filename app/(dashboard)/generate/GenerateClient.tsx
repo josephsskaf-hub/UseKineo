@@ -7641,6 +7641,15 @@ export default function GenerateClient({
   const trialOfferIntroPrice = postVideoCurrency && trialOfferHasIntro
     ? formatCheckoutMoney(postVideoCurrency, getIntroPrice('basic', postVideoCurrency, postVideoRegion))
     : null
+  // KINEO-STARTER-ESCAPE-2026-08-19 — autópsia da venda perdida do kanishka
+  // (IN, 19/08): a caixa pós-vídeo empurra SÓ o Creator. Ele abriu o checkout
+  // ₹1.299 duas vezes, hesitou e as sessões expiraram — sem NUNCA ver que
+  // existe uma porta de ₹399. Preço regional invisível no momento da decisão
+  // é o mesmo defeito que a home tinha até ontem (push 192). Agora a caixa
+  // oferece a escada: Creator no botão, Starter como escape logo abaixo.
+  const trialStarterPrice = postVideoCurrency
+    ? formatCheckoutMoney(postVideoCurrency, getTierPrice('starter', postVideoCurrency, postVideoRegion))
+    : null
   const trialOfferPriceNote = trialOfferFullPrice
     ? (trialOfferIntroPrice
         ? `${trialOfferIntroPrice} first month · then ${trialOfferFullPrice}/month · cancel anytime`
@@ -10130,6 +10139,36 @@ export default function GenerateClient({
                       <p className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
                         {trialPostVideoCheckout.error}
                       </p>
+                    )}
+                    {/* KINEO-STARTER-ESCAPE-2026-08-19 — a escada de preço no
+                        ponto de decisão: quem acha o Creator caro sai por aqui
+                        em vez de sair do site (o caso kanishka, IN). Mesmo
+                        hook de checkout (telemetria + guarda de duplo clique);
+                        surface separada no evento para medir o resgate. */}
+                    {trialStarterPrice && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const started = trialPostVideoCheckout.launch(
+                            'starter',
+                            withIntentCampaign('/api/stripe/checkout?tier=starter&intro=1'),
+                            { tier: 'starter', intro: true, from: 'trial_post_video_starter_escape' },
+                          )
+                          if (!started) return
+                          trackCheckoutClick('starter')
+                        }}
+                        disabled={trialPostVideoCheckout.pending !== null}
+                        className="block w-full text-center mt-2.5 text-xs font-bold"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#7cc0ff',
+                          cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
+                          padding: '4px 0',
+                        }}
+                      >
+                        or start at {trialStarterPrice}/month →
+                      </button>
                     )}
                     <p
                       className="text-center mt-2"
