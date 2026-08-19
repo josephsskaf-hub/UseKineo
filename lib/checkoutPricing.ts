@@ -20,13 +20,52 @@ export type CheckoutCurrency = 'usd' | 'brl' | 'inr'
 
 // Single price source for the server-authoritative Stripe route and every
 // checkout-facing display. Amounts are in cents, centavos, or paise.
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V6-2026-08-19 — PREÇO GLOBAL ÚNICO (fundador: "preço global
+// pra todo mundo, mais simples"). $7 / $15 / $29.
+// ═══════════════════════════════════════════════════════════════════════════
+// POR QUE A ESCADA DESCEU, e por que o desconto regional morreu junto:
+//
+// 1) O DESCONTO REGIONAL NUNCA VENDEU. Nem uma vez. Medido em 19/08: 557
+//    cadastros de países `value` (Índia, Brasil, Nigéria, Quênia...), 46,5%
+//    deles ATIVARAM (fizeram vídeo — mais engajados que a média global de
+//    38,3%), e ZERO assinou no preço com desconto. Os 3 pagantes desses
+//    países não provam nada dele: akajitin (NG) pagou em 03/08, um dia ANTES
+//    do regional existir; noelrss21 (ZA) comprou Creator, que nunca teve
+//    desconto regional; abhijeet (IN) foi pack avulso em julho.
+//    Ressalva honesta: o preço regional ficou INVISÍVEL na vitrine até
+//    19/08. "Nunca vendeu" está contaminado com "ninguém viu" — não dá para
+//    afirmar que fracassou, dá para afirmar que custou caro sem ser testado.
+//
+// 2) O CUSTO DELE ERA ALTÍSSIMO. Em um único dia (19/08) TRÊS superfícies
+//    foram flagradas mentindo preço, e a dimensão `region` estava em todas:
+//    o JSON-LD que o ChatGPT lê, o bloco de planos da home (mostrando
+//    R$24,90 ao lado de $19.90 na MESMA tabela) e o modal de exit-intent do
+//    /pricing (prometendo "half-price first month" que não existe). Nenhuma
+//    foi achada procurando — todas por tropeço.
+//
+// 3) E ELE EXISTIA PARA UM PLANO SÓ. Creator em BRL/INR já era idêntico nas
+//    duas regiões (está escrito no bloco antigo: "não há nada a descontar") e
+//    Studio nunca teve tier regional. Toda a máquina de geo, a lista de 18
+//    países com furos conhecidos (Zâmbia, Camarões e Macedônia de fora,
+//    Quênia e Gana dentro) e as três telas mentirosas existiam para dar
+//    desconto no Starter. Relação custo/benefício indefensável.
+//
+// 4) O ARGUMENTO QUE FECHA: com 6 assinantes não existe amostra para otimizar
+//    preço por região. Cada dimensão nova (região, moeda, intro, cupom)
+//    multiplica superfícies e bugs enquanto o número de clientes nunca chega
+//    para validar nenhuma. Nessa escala, simplificar não é limpeza — é a
+//    única forma de conseguir aprender alguma coisa.
+//
+// BRL e INR CONTINUAM: moeda ≠ desconto. Mostrar R$ para brasileiro remove
+// atrito e não adiciona dimensão nenhuma (é a MESMA oferta, escrita na moeda
+// da pessoa). O que morreu foi o segundo degrau de preço, não a moeda local.
+// Os valores locais abaixo são o equivalente direto do dólar (BRL ≈ 5,4x,
+// INR ≈ 87x), arredondados para terminação comercial.
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 990, brl: 4990, inr: 79900 },
-  // KINEO-PRICING-V5-2026-08-17 (fundador: 'super aprovado, bora'): escada
-  // 9.90/19.90/39.90 — Creator cruza a barreira dos $20 (vs InVideo Plus $25),
-  // Studio fica 20% abaixo do Higgsfield Plus ($49). BRL/INR na mesma régua.
-  basic: { usd: 1990, brl: 7990, inr: 129900 },
-  pro: { usd: 3990, brl: 19990, inr: 319900 },
+  starter: { usd: 700, brl: 3790, inr: 59900 },
+  basic: { usd: 1500, brl: 7990, inr: 129900 },
+  pro: { usd: 2900, brl: 15490, inr: 249900 },
 }
 
 // KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier. BRL/INR follow
@@ -90,11 +129,12 @@ export function monthlyPriceMinor(
 // Autopilot has no annual SKU on purpose: it is an operational commitment
 // (we publish to the customer's channel every day), and a 12-month prepay on a
 // service we have never run at scale is a refund liability, not revenue.
+// KINEO-PRICING-V6-2026-08-19 — anual segue a mesma regra de sempre: 10× o
+// mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 9900, brl: 49900, inr: 799000 },
-  // KINEO-PRICING-V5-2026-08-17 — anual segue 10× o mensal novo.
-  basic: { usd: 19900, brl: 79900, inr: 1290000 },
-  pro: { usd: 39900, brl: 199900, inr: 3190000 },
+  starter: { usd: 7000, brl: 37900, inr: 599000 },
+  basic: { usd: 15000, brl: 79900, inr: 1299000 },
+  pro: { usd: 29000, brl: 154900, inr: 2499000 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -105,148 +145,34 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-NO-INTRO-2026-08-17 (fundador: 'nao tem mais isso de 1 mes'):
   // TODO intro morreu — starter E basic = preço cheio. hasIntroOffer() false
   // em toda parte apaga badges, CTAs e letras miúdas sozinho.
-  starter: { usd: 990, brl: 4990, inr: 79900 },
-  basic: { usd: 1990, brl: 7990, inr: 129900 },
+  // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
+  // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
+  // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
+  starter: { usd: 700, brl: 3790, inr: 59900 },
+  basic: { usd: 1500, brl: 7990, inr: 129900 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// KINEO-REGIONAL-PRICING-2026-08-04 — PREÇO REGIONAL (APROVADO PELO FUNDADOR).
+// KINEO-PRICING-V6-2026-08-19 — A REGIÃO DE PREÇO MORREU. Ver o bloco de
+// TIER_PRICES para os quatro motivos (nunca vendeu · três telas mentindo no
+// mesmo dia · existia para um plano só · não há amostra para otimizá-la).
 // ═══════════════════════════════════════════════════════════════════════════
-// MOEDA E REGIÃO SÃO COISAS DIFERENTES. `CheckoutCurrency` responde "em que
-// moeda o cartão é cobrado" (BR→BRL, IN→INR, resto→USD). `PriceRegion` responde
-// "quanto este mercado consegue pagar". Um nigeriano paga em USD e mora numa
-// região de menor renda: sem esta separação ele só teria o preço americano.
-// Por isso resolvePriceRegion() vive AO LADO de resolveCheckoutCurrency() e
-// NÃO dentro dela.
-//
-// O QUE MUDA: só Starter e Creator (`basic`), só o mensal e o 1º mês.
-//   Starter  $9.90 → $4.99   ·  Creator $24.90 → $19.90
-// O QUE NÃO MUDA: Studio (`pro`), Autopilot, piloto, packs, top-ups e atacado.
-// Razão do fundador: o custo do MOTOR de IA não cai por região. Studio a 200
-// créditos custa até $23.40 de provider no pior caso — descontar o Studio o
-// deixaria estruturalmente negativo. O desconto regional só cabe onde a margem
-// aguenta, e a checagem de invariante no fim deste arquivo prova isso a cada
-// import em dev.
-export type PriceRegion = 'standard' | 'value'
+// O TIPO FICA COM UM VALOR SÓ DE PROPÓSITO. Apagar `PriceRegion` de vez
+// obrigaria a editar as ~15 telas que passam `region` — um refactor grande no
+// caminho do dinheiro, tudo de uma vez. Estreitar o tipo para `'standard'`
+// consegue mais com menos risco:
+//   · quem passa `region` continua compilando (o valor ainda é válido);
+//   · TODA comparação `region === 'value'` vira ERRO DE COMPILAÇÃO, então o
+//     tsc lista sozinho cada tela que ainda acredita na região — não sobra
+//     ramo morto escondido;
+//   · e a região não pode voltar por acidente: não existe mais o valor.
+// A limpeza final (remover o parâmetro das assinaturas) fica para um passo
+// separado, quando ele já não fizer nada em lugar nenhum.
+export type PriceRegion = 'standard'
 
-/** Só starter e basic têm preço regional. Coincide com CheckoutIntroTier. */
+/** Tier que PODE ter preço de 1º mês. Hoje INTRO_PRICES == TIER_PRICES, então
+ *  hasIntroOffer() é false em toda parte e nenhuma tela promete desconto. */
 export type RegionalTier = CheckoutIntroTier
-
-// Mensalidade na região de menor renda.
-//   usd 499 ($4.99) — NÃO 490. Ver a nota "COLISÃO DE VALOR" logo abaixo.
-//   inr 39900 (₹399) — metade do ₹799 atual, alinhado ao novo USD.
-//   brl 2490 (R$24,90) — KINEO-REGIONAL-PRICING-BR-2026-08-04. Este número era
-//         o espelho do padrão (4990) enquanto a decisão sobre o Brasil estava
-//         pendente. ELA VEIO: o fundador incluiu o Brasil na região `value` em
-//         04/08/2026 (o dado que decidiu está no bloco de
-//         VALUE_REGION_COUNTRIES). R$49,90 → R$24,90 é o MESMO corte pela
-//         metade que o Starter levou em USD ($9.90 → $4.99) e em INR
-//         (₹799 → ₹399) — não é uma escada nova, é a mesma escada em BRL.
-export const VALUE_REGION_TIER_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 499, brl: 2490, inr: 39900 },
-  // ₹1599 ≈ $19.84 — o INR do Creator JÁ equivale ao novo preço regional em
-  // dólar. Mantido igual ao padrão de propósito: não há nada a descontar.
-  // KINEO-REGIONAL-PRICING-BR-2026-08-04 — o MESMO vale para o BRL: R$99,90 é
-  // ≈ $19,90, ou seja, o Creator brasileiro JÁ ESTAVA no preço regional antes
-  // de 'BR' entrar na lista. Entrar na região não muda nada para o Creator em
-  // BRL, e isso é o correto: não existe desconto a dar sobre um preço que já é
-  // o regional. No Brasil quem sente a mudança é o Starter (linha acima).
-  basic: { usd: 1990, brl: 7990, inr: 129900 },
-}
-
-// ── COLISÃO DE VALOR: POR QUE $4.99 E NÃO $4.90 ────────────────────────────
-// PACK_PRICES.usd é 490 (o First Pack de $4.90, mode:'payment'). O Starter
-// regional é mode:'subscription' (app/api/stripe/checkout/route.ts:867) e o
-// fallback por valor do webhook está atrás de `if (session.mode === 'payment')`
-// (app/api/stripe/webhook/route.ts:414) — então, HOJE, 490 não colidiria de
-// fato. O motivo de não usar 490 mesmo assim é mais concreto que a teoria:
-//
-//   Se 490 passasse a ter dois donos, ele teria de entrar em
-//   AMBIGUOUS_ONE_TIME_USD_AMOUNTS para o invariante (6) parar de reclamar. E
-//   o webhook, ao ver um valor dessa lista sem metadata.pack, RECUSA a sessão
-//   (webhook/route.ts:~474). Isso MATARIA o fallback legado
-//   `amount === 490 → PACK_CREDITS.starter`, que existe justamente para as
-//   sessões de Payment Link antigas que chegam sem metadata. Trocaríamos um
-//   risco hipotético por uma regressão real em quem paga $4.90 hoje.
-//
-// $4.99 preserva a intenção do fundador (~$4.90), não colide com nada, e é o
-// que o invariante (7) machine-checka.
-//
-// ── E POR QUE, EM BRL, O EMPATE É ACEITO ───────────────────────────────────
-// KINEO-REGIONAL-PRICING-BR-2026-08-04. PACK_PRICES.brl é 2490 (o First Pack
-// brasileiro, app/api/stripe/checkout/route.ts:384) e o Starter regional em
-// BRL também é 2490 — exatamente o empate que acabou de ser RECUSADO em USD.
-// A decisão oposta aqui não é incoerência; é que NENHUM dos dois motivos que
-// reprovaram o 490 existe em BRL:
-//
-//   1. O empate não é alcançável. Todo o fallback por valor do webhook está
-//      dentro de `if (session.mode === 'payment')`
-//      (app/api/stripe/webhook/route.ts:413), e o Starter — regional ou não —
-//      é criado com `mode: 'subscription'`
-//      (app/api/stripe/checkout/route.ts:896). Uma assinatura nunca entra
-//      naquele bloco, então 2490 nunca chega a ser resolvido por valor.
-//   2. Mesmo se entrasse, não há SKU errado a conceder. A escada de valores
-//      legados escrita à mão no webhook é 900 / 1900 / 490 / 290 — 2490 não
-//      está lá. O pior caso seria o log 'unexpected amount_total' e ZERO
-//      créditos concedidos, não a concessão de outro produto.
-//
-// Em USD o 490 tem um dono legado ATIVO (`amount === 490 →
-// PACK_CREDITS.starter`) que seria morto ao declarar o valor ambíguo. Não há
-// equivalente em BRL: nenhuma linha do webhook lê 2490. Por isso o invariante
-// (7) checa colisão só em USD — é a única moeda onde o fallback por valor tem
-// entradas escritas à mão para matar.
-
-// Primeiro mês na região de menor renda.
-//
-// ⚠️ O INTRO DO STARTER REGIONAL É INTENCIONALMENTE IGUAL À MENSALIDADE.
-// O cupom de 1º mês é criado com amount_off = mensalidade − intro. Com o
-// Starter regional em $4.99 não sobra desconto que feche a conta:
-//   INTRO_CREDITS.starter = 25 créditos → pior caso $2.59 de provider.
-//   Para cobrir isso o bruto precisa ser ≥ $2.99 (net $2.60). Um "1º mês por
-//   $2.49" seria −$0.47 no dia 1, e um "1º mês por $3.49" seria um desconto de
-//   $1.50 que não convence ninguém.
-// A leitura correta é outra: NA REGIÃO, O PREÇO DE LISTA JÁ É O PREÇO DE
-// ENTRADA. $4.99/mês regional == $4.90 que o resto do mundo paga só no 1º mês.
-// Mesma coisa em INR: ₹399 regional == o ₹399 que era o intro padrão.
-// KINEO-REGIONAL-PRICING-BR-2026-08-04 — e mesma coisa em BRL: R$24,90
-// regional == o R$24,90 que era o INTRO_PRICES.starter.brl padrão. Logo
-// introDiscountMinor('starter','brl','value') = 2490 − 2490 = 0, o
-// `if (amountOff > 0)` do checkout pula o cupom, e nenhum cupom de valor zero
-// (que a Stripe recusaria) é criado para o comprador brasileiro.
-// Com intro == lista, amountOff = 0, e o checkout já pula o cupom nesse caso
-// (`if (amountOff > 0)`), então nenhum cupom lixo chega à Stripe.
-// hasIntroOffer() abaixo é o que as telas usam para não prometer um desconto
-// que não existe.
-//
-// O Creator regional MANTÉM intro de verdade: $19.90 → $9.90 (amountOff 1000),
-// ₹1599 → ₹799 (amountOff 80000) e — KINEO-REGIONAL-PRICING-BR-2026-08-04 —
-// R$99,90 → R$49,90 (amountOff 5000, o INTRO_PRICES.basic.brl que já existia).
-// Todos positivos, todos com margem (net $9.31 contra $5.18 de pior caso em 50
-// créditos; o BRL é o mesmo produto vendido a ≈$9,90).
-export const VALUE_REGION_INTRO_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
-  // KINEO-NO-INTRO-2026-08-17 — intro = mensal regional (desconto zero).
-  starter: { usd: 499, brl: 2490, inr: 39900 },
-  basic: { usd: 1990, brl: 7990, inr: 129900 },
-}
-
-// Anual na região. NÃO é uma decisão de preço nova: é a MESMA razão que a
-// escada padrão já pratica (anual = 10× o mensal, "2 meses grátis") aplicada
-// ao número novo do fundador. Sem isto o toggle anual viraria um produto
-// quebrado na região — $99/ano contra $4.99/mês (= $59.88/ano) é um "desconto"
-// que custa 65% MAIS caro. O invariante (8) trava exatamente isso.
-//   starter usd 4990 = 10 × 499   ·  inr 399000 = 10 × 39900
-//   KINEO-REGIONAL-PRICING-BR-2026-08-04 — brl 24900 = 10 × 2490. MESMA regra,
-//   aplicada ao BRL novo; não há decisão de preço nova aqui. Deixar o anual em
-//   49900 seria o produto quebrado que o invariante (8) descreve: R$499/ano
-//   contra R$24,90/mês (= R$298,80/ano) custaria 67% MAIS caro com o rótulo
-//   "≈2 meses grátis" em cima. Isto não é hipótese — o invariante (8) FALHA
-//   com 49900 aqui, e foi assim que o número foi conferido.
-//   basic — igual ao padrão em todas as moedas, porque 19900 já é 10 × 1990
-//   (e 99900 já é 10 × 9990, que é o BRL do Creator regional).
-export const VALUE_REGION_ANNUAL_PRICES: Record<RegionalTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 4990, brl: 24900, inr: 399000 },
-  basic: { usd: 19900, brl: 79900, inr: 1290000 },
-}
 
 /** true quando o tier tem tabela regional própria (starter/basic). */
 export function isRegionalTier(tier: CheckoutPlanTier): tier is RegionalTier {
@@ -264,7 +190,7 @@ export function getTierPrice(
   currency: CheckoutCurrency,
   region: PriceRegion = 'standard',
 ): number {
-  if (region === 'value' && isRegionalTier(tier)) return VALUE_REGION_TIER_PRICES[tier][currency]
+  void region // V6: existe uma tabela só. Parâmetro mantido por compatibilidade.
   return TIER_PRICES[tier][currency]
 }
 
@@ -274,7 +200,7 @@ export function getIntroPrice(
   currency: CheckoutCurrency,
   region: PriceRegion = 'standard',
 ): number {
-  if (region === 'value') return VALUE_REGION_INTRO_PRICES[tier][currency]
+  void region
   return INTRO_PRICES[tier][currency]
 }
 
@@ -284,7 +210,7 @@ export function getAnnualPrice(
   currency: CheckoutCurrency,
   region: PriceRegion = 'standard',
 ): number {
-  if (region === 'value' && isRegionalTier(tier)) return VALUE_REGION_ANNUAL_PRICES[tier][currency]
+  void region
   return ANNUAL_PRICES[tier][currency]
 }
 
@@ -350,11 +276,39 @@ export function netAfterStripeUsd(grossUsd: number): number {
 // manual headroom without ever letting the plan go underwater: even if all 400
 // were burned on Seedance the COGS is $46.80 against ~$290 net.
 export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
-  // KINEO-PRICING-V5-2026-08-17 — isonomia $/cr: 16.5¢ → 14.2¢ → 12.5¢
-  // (melhora suave subindo; margens pior-caso 61% / 54% / ~47%).
-  starter: 60,
-  basic: 140,
-  pro: 320,
+  // ═══ KINEO-PRICING-V6-2026-08-19 — O GRANT FOI RECALIBRADO PELO CONSUMO ═══
+  // O preço só pôde cair porque o grant desceu junto, e o grant só pôde
+  // descer porque NINGUÉM o consumia. Medido em 19/08, o que cada assinante
+  // pagante realmente usou do que recebeu:
+  //     gapozweb    Starter  60cr → usou 43   (72%)
+  //     akajitin    Starter  60cr → usou 38   (63%)
+  //     valos87196  Creator 140cr → usou 67   (48%)
+  //     noelrss21   Creator 140cr → usou 52   (37%)
+  //     den.higgins Creator 140cr → usou  0   ( 0%)
+  // O Creator entregava TRÊS VEZES o que o cliente mais faminto retirava.
+  // Isso não era generosidade: era margem paga por um valor que ninguém
+  // levava embora — e era exatamente o que impedia o preço de $15.
+  //
+  // Cortar 140 → 90 não tira nada de NENHUM cliente atual (o recordista pegou
+  // 67). Trocamos um número de vitrine que ninguém consome por uma redução de
+  // preço de 25% que todo mundo vê.
+  //
+  // MARGENS NO PIOR CASO (tudo gasto no Seedance, $0,117/cr — o motor mais
+  // caro do catálogo), calculadas com worstCaseCogsUsd + netAfterStripeUsd:
+  //     Starter $7  / 40cr  → líquido $6.50  · COGS $4.68  · +$1.82 (28%)
+  //     Creator $15 / 90cr  → líquido $14.26 · COGS $9.86  · +$4.40 (31%)
+  //     Studio  $29 / 160cr → líquido $27.86 · COGS $18.72 · +$9.14 (33%)
+  // Comparação com a V5, que era pior do que aparentava: Studio rodava a 3%
+  // de margem no pior caso ($39.90/320cr). A V6 é mais barata para o cliente
+  // E mais segura para a casa.
+  //
+  // O pior caso é grade de proteção, não previsão: o uso real é dominado pelo
+  // Kineo 1 (138 renders contra 73 do Seedance em 7 dias), então a margem
+  // efetiva é bem maior. Com 6 assinantes, um único usuário pesado custa mais
+  // que um mês inteiro de MRR — por isso o piso é o pior caso.
+  starter: 40,
+  basic: 90,
+  pro: 160,
   autopilot: 400,
 }
 
@@ -369,8 +323,14 @@ export const TIER_CREDITS: Record<CheckoutPlanTier, number> = {
 export const INTRO_CREDITS: Record<CheckoutIntroTier, number> = {
   // KINEO-NO-INTRO-2026-08-17 — sem mês com desconto em nenhum plano: o grant
   // do 1º mês é sempre o grant cheio do plano.
-  starter: 60,
-  basic: 140,
+  // KINEO-PRICING-V6-2026-08-19 — e por isso ele TEM de acompanhar TIER_CREDITS.
+  // O invariante pegou esta linha esquecida: com o preço já em $7/$15 e o grant
+  // do 1º mês ainda em 60/140, os SKUs `intro:starter` e `intro:basic` ficavam
+  // abaixo do custo no pior caso (net $6.50 vs COGS $7.02; $14.26 vs $16.38) —
+  // ou seja, o primeiro mês de todo assinante novo seria prejuízo. É o tipo de
+  // erro que só aparece em produção, no extrato, um mês depois.
+  starter: 40,
+  basic: 90,
 }
 
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (a). The entry packs used to grant 10
@@ -407,12 +367,21 @@ export const PACK_CREDITS = {
 export const TOPUP_CREDITS = {
   topup40: 30,
   topup120: 65,
+  // ⚠ KINEO-PRICING-V6-2026-08-19 — topup100 CAIU DE 100 PARA 75 CRÉDITOS.
+  // Não é mesquinharia, é o invariante (1) fazendo o trabalho dele: com o
+  // Creator a $15/90cr ($0.1667/cr), um top-up de $14.90 por 100 créditos
+  // sairia a $0.1490/cr — MAIS BARATO que a assinatura que ele deveria
+  // complementar. O movimento racional do cliente viraria "assino o Starter e
+  // compro top-up pra sempre", e a gente estaria vendendo crédito abaixo da
+  // própria prateleira mais barata. A 75cr ele volta para $0.1987/cr, em linha
+  // com os outros dois (0.1967 e 0.1985), e o efeito Goldilocks continua de pé:
+  // +$2 sobre o topup120 compra +10 créditos.
   // KINEO-TOPUP100-2026-08-17 (aprovado): o pacote-ancora — 100 creditos
   // (5 AI videos) por \$14.90 = \$0.149/cr. Efeito Goldilocks: o topup120
   // (65cr por \$12.90) vira decoy; +\$2 compra +35cr. Margem ~80% (COGS
   // ~\$0.03/cr). Segue 43% acima do \$/cr do Creator — nunca canibaliza a
   // assinatura.
-  topup100: 100,
+  topup100: 75,
 } as const
 
 export type TopupId = keyof typeof TOPUP_CREDITS
@@ -499,14 +468,22 @@ export function isBulkPackId(raw: string | null | undefined): raw is BulkPackId 
 // piloto e sairia com plan='autopilot_pilot' — um plano de $299/mês entregue
 // por um pacote de 10 vídeos.
 //
-// (ANNUAL_PRICES.starter.usd também é 9900 e ANNUAL_PRICES.pro.usd é 37900,
-// iguais a bulk10 e bulk50. Hoje o anual é mode:'subscription' e nunca alcança
-// o Path A — mas o comentário do webhook já avisava que isso é uma bomba-relógio
-// se o anual virar pagamento único. Por isso os anuais entram na conta abaixo.)
+// (ANNUAL_PRICES.starter.usd também era 9900, igual a bulk10. Hoje o anual é
+// mode:'subscription' e nunca alcança o Path A — mas o comentário do webhook já
+// avisava que isso é uma bomba-relógio se o anual virar pagamento único. Por
+// isso os anuais entram na conta abaixo.)
+//
+// KINEO-PRICING-V6-2026-08-19 — 37900 SAIU DA LISTA. Ele estava aqui porque o
+// anual do Studio custava $379 e empatava com o bulk50; na V6 o anual do Studio
+// é $290, então 37900 tem um dono só. O invariante (6) reclamou sozinho —
+// "entrada obsoleta bloqueia um fallback legítimo" —, e ele está certo: manter
+// um valor não-ambíguo nesta lista faz o webhook RECUSAR creditar uma sessão de
+// bulk50 que perdesse a metadata. Sobrou 9900, que segue empatando de verdade
+// (bulk10 = piloto Autopilot = anual do Starter na V6).
 //
 // Esta lista é o contrato entre o preço e o webhook: para QUALQUER valor aqui,
 // o webhook resolve SÓ por metadata.pack exata e NUNCA por valor.
-export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set([9900, 37900])
+export const AMBIGUOUS_ONE_TIME_USD_AMOUNTS: ReadonlySet<number> = new Set([9900])
 
 /** true = este valor em USD não identifica um SKU sozinho. */
 export function isAmbiguousOneTimeUsdAmount(amountMinor: number, currency: string | null | undefined): boolean {
@@ -536,8 +513,6 @@ export const CHEAPEST_PLAN_USD_PER_CREDIT: number = Math.min(
   planUsdPerCredit('starter'),
   planUsdPerCredit('basic'),
   planUsdPerCredit('pro'),
-  planUsdPerCredit('starter', 'value'),
-  planUsdPerCredit('basic', 'value'),
 )
 
 export const CURRENCY_DISPLAY: Record<CheckoutCurrency, {
@@ -554,87 +529,30 @@ export function resolveCheckoutCurrency(country: string | null | undefined): Che
   const normalized = String(country || '').toUpperCase()
   return normalized === 'BR' ? 'brl' : normalized === 'IN' ? 'inr' : 'usd'
 }
-
-// ═══════════════════════════════════════════════════════════════════════════
-// KINEO-REGIONAL-PRICING-2026-08-04 — PAÍSES DA REGIÃO DE MENOR RENDA.
-// ═══════════════════════════════════════════════════════════════════════════
-// COMO ESTA LISTA FOI ESCOLHIDA (o fundador aprovou o critério, não os ISOs um
-// a um): interseção de DUAS coisas, nesta ordem —
-//   1. BASE DE USUÁRIOS MEDIDA. São os países de onde os 713 cadastros já
-//      chegam em volume e onde o funil morre no preço, não no produto. Cortar
-//      preço num país sem tráfego não gera venda; gera só desconto para quem
-//      já ia pagar.
-//   2. RENDA. Todos são economias de renda baixa/média-baixa a média (faixa do
-//      Banco Mundial), onde $9.90/mês é uma fração relevante da renda diária.
-// A lista é DELIBERADAMENTE curta. Cada país aqui é receita cortada pela
-// metade no Starter; ampliar é decisão do fundador, não de manutenção.
-//
-// ✅ 'BR' ENTROU — DECIDIDO PELO FUNDADOR EM 04/08/2026.
-// KINEO-REGIONAL-PRICING-BR-2026-08-04. A versão anterior deste comentário
-// dizia que a decisão sobre o Brasil estava PENDENTE. Não está mais.
-//
-// O DADO QUE DECIDIU: o Brasil é o 4º maior país da base — 59 usuários, 14
-// cadastros novos nos últimos 14 dias. Tráfego real, e crescendo. Contra isso:
-// ativação de apenas 20,3% e ZERO pagantes, com UM único checkout aberto em
-// toda a história do país. Volume alto com conversão zero é a assinatura de um
-// funil que morre no PREÇO e não no produto — que é literalmente o critério
-// (1) desta lista. R$49,90/mês por um app que o comprador ainda não sabe se
-// funciona é um pedido grande no Brasil; R$24,90 é o pedido que cabe.
-//
-// O QUE MUDA NA PRÁTICA: só o Starter, R$49,90 → R$24,90 (e o anual, 10×).
-// O Creator NÃO muda: R$99,90 ≈ $19,90 JÁ era o preço regional. Studio,
-// Autopilot, piloto, packs, top-ups e atacado seguem intocados, pelo mesmo
-// motivo de margem descrito no topo deste arquivo.
-//
-// ⚠️ O RISCO QUE O FUNDADOR ACEITOU, ESCRITO PARA NÃO SER ESQUECIDO: se os 59
-// brasileiros não convertem a R$49,90, é possível que também não convertam a
-// R$24,90 — e nesse caso cortamos pela metade a receita futura de um país sem
-// ter provado a hipótese. O experimento é barato só ENQUANTO a receita
-// brasileira for zero, que é o caso hoje. Se em ~30 dias o Brasil continuar em
-// 0 pagante, a conclusão é que o preço não era a causa: remover 'BR' desta
-// lista é uma linha, e os números BRL acima voltam a ser letra morta sem
-// quebrar nada.
-export const VALUE_REGION_COUNTRIES: ReadonlySet<string> = new Set([
-  'BR', // Brasil — entrou em 04/08/2026; ver o bloco acima
-  'IN', // Índia
-  'NG', // Nigéria
-  'PK', // Paquistão
-  'ZA', // África do Sul
-  'BD', // Bangladesh
-  'ID', // Indonésia
-  'PH', // Filipinas
-  'VN', // Vietnã
-  'EG', // Egito
-  'KE', // Quênia
-  'GH', // Gana
-  'LK', // Sri Lanka
-  'NP', // Nepal
-  'TZ', // Tanzânia
-  'UG', // Uganda
-  'MA', // Marrocos
-  'DZ', // Argélia
-])
+// KINEO-PRICING-V6-2026-08-19 — a lista de países da região `value` foi
+// REMOVIDA junto com a região. Ela tinha furos conhecidos que nunca fecharam
+// (Zâmbia, Camarões e Macedônia do Norte de fora, com renda comparável a
+// Quênia e Gana que estavam dentro) e cada furo era uma pessoa engajada
+// vendo o preço cheio sem que ninguém percebesse. Manter uma lista de 18
+// países atualizada à mão é uma dívida que a gente não tem tamanho para
+// pagar — e o motivo dela deixou de existir quando a escada virou uma só.
 
 /**
- * Região de preço a partir do país do IP (`x-vercel-ip-country`).
+ * V6: existe uma tabela de preço só, então a região é sempre 'standard'.
  *
- * Mora AO LADO de resolveCheckoutCurrency, não dentro: um comprador nigeriano
- * é cobrado em USD (moeda) e paga o preço regional (região). Fundir as duas
- * resoluções tornaria impossível descrever esse caso.
- *
- * País desconhecido/ausente → 'standard' (fail-safe: na dúvida, preço cheio;
- * o erro caro é dar desconto a quem pagaria integral, não o contrário).
- * O servidor SEMPRE re-resolve isto no /api/stripe/checkout — o navegador
- * nunca escolhe a própria região, do mesmo jeito que nunca escolhe a moeda.
+ * A função CONTINUA existindo — e não é vestígio preguiçoso. O /api/geo, o
+ * /api/stripe/checkout e ~15 telas a chamam; mantê-la devolvendo o valor
+ * único deixa a mudança de preço isolada de um refactor de assinatura no
+ * caminho do dinheiro. Como `PriceRegion` agora tem um valor só, é
+ * impossível esta função voltar a devolver outra coisa sem o tipo reclamar.
  */
-export function resolvePriceRegion(country: string | null | undefined): PriceRegion {
-  const normalized = String(country || '').toUpperCase().trim()
-  return VALUE_REGION_COUNTRIES.has(normalized) ? 'value' : 'standard'
+export function resolvePriceRegion(_country: string | null | undefined): PriceRegion {
+  return 'standard'
 }
 
 /** Narrowing para valores vindos da rede (/api/geo) — nunca confia no browser. */
-export function coercePriceRegion(raw: string | null | undefined): PriceRegion {
-  return raw === 'value' ? 'value' : 'standard'
+export function coercePriceRegion(_raw: string | null | undefined): PriceRegion {
+  return 'standard'
 }
 
 export function formatCheckoutMoney(currency: CheckoutCurrency, amountMinor: number): string {
@@ -693,17 +611,10 @@ export function checkPricingInvariants(): string[] {
     { id: 'plan:autopilot', usdMinor: AUTOPILOT_PRICES.usd, credits: TIER_CREDITS.autopilot },
     { id: 'intro:starter', usdMinor: INTRO_PRICES.starter.usd, credits: INTRO_CREDITS.starter },
     { id: 'intro:basic', usdMinor: INTRO_PRICES.basic.usd, credits: INTRO_CREDITS.basic },
-    // KINEO-REGIONAL-PRICING-2026-08-04 — a região `value` leva EXATAMENTE o
-    // mesmo teste. É o ponto do arquivo onde um desconto regional generoso
-    // demais aparece como número, não como opinião: o Creator regional
-    // ($19.90 / 150 créditos) sobrevive por +$2.14 (11%) no pior caso, que é a
-    // margem mais fina de todo o catálogo. Uma reprecificação de motor que
-    // suba WORST_CASE_USD_PER_CREDIT de $0.117 para ~$0.135 apaga essa folga —
-    // e é aqui que isso vai gritar, antes de virar prejuízo.
-    { id: 'plan:starter/value', usdMinor: getTierPrice('starter', 'usd', 'value'), credits: TIER_CREDITS.starter },
-    { id: 'plan:basic/value', usdMinor: getTierPrice('basic', 'usd', 'value'), credits: TIER_CREDITS.basic },
-    { id: 'intro:starter/value', usdMinor: getIntroPrice('starter', 'usd', 'value'), credits: INTRO_CREDITS.starter },
-    { id: 'intro:basic/value', usdMinor: getIntroPrice('basic', 'usd', 'value'), credits: INTRO_CREDITS.basic },
+    // KINEO-PRICING-V6-2026-08-19 — as quatro linhas da região `value` saíram
+    // daqui junto com a região. Elas eram o ponto do arquivo onde um desconto
+    // regional generoso demais aparecia como número em vez de opinião; sem
+    // segunda tabela, os SKUs acima já são o catálogo inteiro.
   ]
   for (const sku of recurring) {
     const net = netAfterStripeUsd(sku.usdMinor / 100)
@@ -816,15 +727,9 @@ export function checkPricingInvariants(): string[] {
   for (const tier of Object.keys(ANNUAL_PRICES) as CheckoutTier[]) {
     claim(ANNUAL_PRICES[tier].usd, `annual:${tier}`)
   }
-  // KINEO-REGIONAL-PRICING-2026-08-04 — o anual regional entra pelo MESMO
-  // motivo defensivo dos anuais acima. Só é reivindicado quando difere do
-  // padrão: quando é o mesmo número (basic/value = 19900 = basic), é o mesmo
-  // preço do mesmo SKU e reivindicar duas vezes produziria uma colisão falsa
-  // que esconderia as verdadeiras.
-  for (const tier of ['starter', 'basic'] as RegionalTier[]) {
-    const valueAnnual = VALUE_REGION_ANNUAL_PRICES[tier].usd
-    if (valueAnnual !== ANNUAL_PRICES[tier].usd) claim(valueAnnual, `annual:${tier}/value`)
-  }
+  // KINEO-PRICING-V6-2026-08-19 — o laço do anual REGIONAL saiu junto com a
+  // região. Não existe mais um segundo conjunto de valores anuais para
+  // reivindicar, e o laço acima já cobre os três que restaram.
 
   for (const [amount, owners] of usdAmountOwners) {
     if (owners.length > 1 && !AMBIGUOUS_ONE_TIME_USD_AMOUNTS.has(amount)) {
@@ -843,33 +748,13 @@ export function checkPricingInvariants(): string[] {
     }
   }
 
-  // (7) KINEO-REGIONAL-PRICING-2026-08-04 — o preço regional NÃO pode empatar
-  // com nenhum SKU de compra única em USD.
-  //
-  // Hoje isso é redundante: o Path A do webhook está atrás de
-  // `session.mode === 'payment'` e toda assinatura é mode:'subscription'. Mas
-  // a redundância é exatamente o ponto — o preço regional é o número mais
-  // provável de ser mexido a próximo (o fundador vai testar $3.99, $5.99…), e
-  // o mode gate é uma propriedade de RUNTIME de outro arquivo. Se alguém
-  // escolher $4.90 aqui, o conserto não é "adicionar 490 à lista de ambíguos":
-  // isso mataria o fallback legado `amount === 490 → PACK_CREDITS.starter` das
-  // sessões de Payment Link antigas. O conserto é escolher outro preço, e esta
-  // mensagem diz isso.
-  const regionalUsdAmounts: Array<{ id: string; amount: number }> = []
-  for (const tier of ['starter', 'basic'] as RegionalTier[]) {
-    regionalUsdAmounts.push({ id: `plan:${tier}/value`, amount: getTierPrice(tier, 'usd', 'value') })
-    regionalUsdAmounts.push({ id: `intro:${tier}/value`, amount: getIntroPrice(tier, 'usd', 'value') })
-  }
-  for (const { id, amount } of regionalUsdAmounts) {
-    const owners = (usdAmountOwners.get(amount) ?? []).filter((o) => o !== id)
-    if (owners.length > 0) {
-      problems.push(
-        `${id} is USD ${amount}, the same amount as one-time SKU(s) ${owners.join(', ')}. ` +
-        `Pick a different regional price — do NOT add it to AMBIGUOUS_ONE_TIME_USD_AMOUNTS, ` +
-        `that would disable the legacy amount fallback those SKUs depend on.`,
-      )
-    }
-  }
+  // (7) KINEO-PRICING-V6-2026-08-19 — a checagem de "preço regional não pode
+  // empatar com SKU de compra única" saiu junto com a região. O risco que ela
+  // guardava, porém, NÃO saiu: qualquer preço de assinatura novo que colida
+  // com um valor de compra única em USD ainda faria o fallback por valor do
+  // webhook creditar o pacote errado. Isso continua coberto pela checagem (6)
+  // logo acima, que reivindica TODOS os valores USD do catálogo — inclusive
+  // os três mensais e os três anuais da tabela nova.
 
   // (8) KINEO-REGIONAL-PRICING-2026-08-04 — o anual tem de valer a pena DENTRO
   // da própria região e da própria moeda.

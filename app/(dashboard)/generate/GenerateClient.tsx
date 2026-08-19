@@ -7677,7 +7677,19 @@ export default function GenerateClient({
   // digitado à mão, tudo de getTierPrice(), e o servidor segue re-resolvendo
   // país → moeda → região no checkout. Isto aqui é rótulo e ordem, nunca
   // autoridade de preço.
-  const valueLadderFlip = postVideoRegion === 'value' && trialStarterPrice !== null
+  //
+  // ⚠️ KINEO-PRICING-V6-2026-08-19 — A INVERSÃO MORREU NO MESMO DIA EM QUE
+  // NASCEU, e por um motivo bom: o fundador matou a região de preço. Sem duas
+  // tabelas não existe "escada regional" para inverter — todo mundo vê a mesma
+  // ($7 / $15 / $29). O bloco acima fica como registro do raciocínio, mas a
+  // condição agora é constante `false` e a caixa volta a abrir no Creator.
+  //
+  // O QUE PERMANECE VERDADEIRO do diagnóstico, e é o que o V6 endereça de
+  // forma mais direta: o problema nunca foi qual plano vinha primeiro, era o
+  // TAMANHO do primeiro degrau. $19,90 como porta de entrada assustava; $15
+  // com $7 ao lado é outra conversa. A inversão era um curativo na
+  // apresentação; o preço novo trata a causa.
+  const valueLadderFlip = false
   const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice
         ? `${trialOfferIntroPrice} first month · then ${trialOfferFullPrice}/month · cancel anytime`

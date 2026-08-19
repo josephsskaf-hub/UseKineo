@@ -141,11 +141,12 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
   // para ₹1.299 e saindo antes de digitar o cartão (`customer_country: null`
   // nas sessões expiradas).
   //
-  // Aqui não há mentira nova: em `value` o Starter recebe "Best Value", que é
-  // literalmente o que ele é naquela região, e o Creator continua na página,
-  // destacado, um degrau acima. Em `standard` nada muda — lá o Creator É o
-  // primeiro passo certo e ele mantém "Most Popular".
-  const valueRegion = region === 'value'
+  // KINEO-PRICING-V6-2026-08-19 — a região morreu no mesmo dia. Com uma
+  // tabela só ($7/$15/$29 para todo mundo), o selo volta a ser uma decisão de
+  // posicionamento e não de geografia: "Most Popular" fica no Creator, que é
+  // o primeiro passo certo agora que ele custa $15 e não $19,90.
+  void region
+  const valueRegion = false
   return [
     {
       tier: 'starter',

@@ -407,8 +407,14 @@ async function ensureIntroCoupon(
   region: PriceRegion,
   amountOff: number,
 ): Promise<string | null> {
-  const regionSuffix = region === 'value' ? '_VALUE' : ''
-  const id = `KINEO_INTRO_${tier.toUpperCase()}_${currency.toUpperCase()}${regionSuffix}`
+  // KINEO-PRICING-V6-2026-08-19 — o sufixo _VALUE saiu junto com a região.
+  // Cupons antigos com esse sufixo continuam existindo no Stripe e não fazem
+  // mal nenhum: ninguém mais pede por eles, e todo cupom de intro só nasce
+  // quando introDiscountMinor() > 0 — que hoje é sempre 0, porque INTRO_PRICES
+  // espelha TIER_PRICES. Ou seja, esta função inteira está dormente por
+  // desenho, e é o desejado.
+  void region
+  const id = `KINEO_INTRO_${tier.toUpperCase()}_${currency.toUpperCase()}`
   try {
     await stripe.coupons.retrieve(id)
     return id
