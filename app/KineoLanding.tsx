@@ -18,6 +18,10 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
 import LandingStarterPrice from '@/components/LandingStarterPrice' // KINEO-REGIONAL-VITRINE-2026-08-19
+import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
+
+/** Centavos → "19.90". O FAQ de preco NUNCA digita numero a mao (ver #faq). */
+const usdPrice = (cents: number) => (cents / 100).toFixed(2)
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -1303,6 +1307,18 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 components/StructuredData.tsx — mudar nos tres ou em nenhum. */}
             <div className="qa"><h3>Can I use the videos commercially, or for client work?</h3><p>Yes. Our terms let you use Kineo for lawful personal or commercial purposes and confirm that you keep ownership of the videos you generate, so you can post them, monetize them and deliver them to a client as part of your own paid service. No extra license, no per-video royalty. Two limits come from the same terms: you cannot resell or redistribute Kineo itself, and the stock clips inside a render are licensed for use in your finished video, not for re-upload as standalone stock footage. Paid plans export the clean, watermark-free MP4.</p></div>
             <div className="qa"><h3>How long does one video take?</h3><p>Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.</p></div>
+            {/* KINEO-AEO-PRICE-TRUTH-2026-08-19 — as tres perguntas abaixo sao
+                escritas na FORMA em que a pessoa digita no ChatGPT, nao na
+                forma de FAQ institucional. 205 dos 245 cadastros desta semana
+                vieram de recomendacao de maquina (ChatGPT + TAAFT), entao a
+                pagina precisa responder a pergunta de quem AINDA NAO nos
+                conhece, nao so a objecao de quem ja esta aqui. Espelhadas
+                verbatim em components/StructuredData.tsx (faqSchema) — mudar
+                nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
+                Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
+            <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. India, Brazil, Nigeria and other regions get local pricing automatically. New accounts get free credits to make a first video before paying anything.</p></div>
+            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>Six, behind one interface and one balance: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
+            <div className="qa"><h3>What is the best AI video generator for faceless YouTube channels?</h3><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></div>
           </div>
         </div>
       </section>

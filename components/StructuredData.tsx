@@ -1,4 +1,5 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -24,6 +25,34 @@ const OFFER = getFreeTierOffer()
 //      has a visible FAQ, so the markup mirrors real content and stays compliant.
 //   3. Organization/SoftwareApplication gain alternateName 'ShortsForgeAI' so
 //      entity resolvers merge the pre-rename brand into one entity, not two.
+//
+// KINEO-AEO-PRICE-TRUTH-2026-08-19 — ACHADO GRAVE, e a razão desta revisão.
+//
+// Nos últimos 7 dias, 205 dos 245 cadastros vieram de recomendação de máquina
+// (60 do ChatGPT, 145 do TAAFT). Ou seja: hoje quem descreve a Kineo para o
+// mundo é um modelo de linguagem lendo ESTE arquivo. E este arquivo estava
+// mentindo. Os preços aqui congelaram na tabela V3 e nunca acompanharam a V5
+// aprovada em 17/08 — anunciavam Creator $24.90/150cr e Studio $37.90/200cr
+// (hoje $19.90/140 e $39.90/320), Starter com 25 créditos (hoje 60), e pior:
+// prometiam "$4.90 for the first month" e "$9.90 for the first month", uma
+// oferta que MORREU na V5 e que o CLAUDE.md proíbe explicitamente de reaparecer
+// em copy. Alguém perguntando ao ChatGPT "quanto custa a Kineo?" recebia um
+// preço errado e um desconto inexistente — e depois batia no checkout real.
+// Preço errado na resposta da máquina não é SEO ruim, é promessa quebrada no
+// momento exato da decisão de compra.
+//
+// A correção estrutural (não só o conserto do número): os offers agora são
+// DERIVADOS de lib/checkoutPricing.ts, a mesma fonte que o Stripe usa. Não há
+// mais número digitado à mão neste arquivo, então o schema não tem como voltar
+// a divergir do checkout — no dia em que o preço mudar, muda aqui junto.
+//
+// O featureList também estava dois produtos atrás: não citava nenhum motor pelo
+// nome (é justamente assim que o usuário pergunta — "gerador com Veo 3.1"), nem
+// Images, Audio, Enhance ou a regra dos 60s+ para o TikTok Rewards. Um modelo
+// não pode recomendar a gente por uma capacidade que não sabe que temos.
+
+/** Centavos → "19.90". Único ponto de formatação de preço deste arquivo. */
+const usd = (cents: number) => (cents / 100).toFixed(2)
 
 const organizationSchema = {
   '@context': 'https://schema.org',
@@ -50,47 +79,50 @@ const softwareApplicationSchema = {
     'Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.',
   featureList: [
     'Topic-to-video: one typed idea becomes a finished 9:16 Short',
+    'Six AI video engines in one account: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar',
     'AI script writing with hook and payoff structure',
-    'AI voiceover narration',
-    'Automatic footage matching and AI-generated scenes',
-    'Burned-in captions',
+    'Use your own script word for word, narrated verbatim',
+    'AI voiceover narration with word-by-word captions',
+    'Soundtrack chosen to match the mood of the subject',
+    'Videos of 60 seconds or more, for TikTok Creator Rewards eligibility',
+    'AI image studio (6 engines) and text-to-speech studio (4 engines) included',
+    'One-click HD enhance powered by Topaz film restoration',
     'Watermark-free MP4 export on paid plans',
   ],
   offers: {
     '@type': 'AggregateOffer',
-    lowPrice: '4.90',
-    highPrice: '37.90',
+    lowPrice: usd(TIER_PRICES.starter.usd),
+    highPrice: usd(TIER_PRICES.pro.usd),
     priceCurrency: 'USD',
     offerCount: 3,
     offers: [
       {
-        '@type': 'Offer',
         name: 'Starter',
-        price: '9.90',
-        priceCurrency: 'USD',
-        description:
-          'Starter — $4.90 for the first month, then $9.90/month. 25 credits per billing month, watermark-free MP4 exports.',
-        url: 'https://www.usekineo.com/pricing',
+        cents: TIER_PRICES.starter.usd,
+        credits: TIER_CREDITS.starter,
+        extra: 'Watermark-free MP4 exports.',
       },
       {
-        '@type': 'Offer',
         name: 'Creator',
-        price: '24.90',
-        priceCurrency: 'USD',
-        description:
-          'Creator — $9.90 for the first month, then $24.90/month. 150 credits per billing month, including one Hollywood film.',
-        url: 'https://www.usekineo.com/pricing',
+        cents: TIER_PRICES.basic.usd,
+        credits: TIER_CREDITS.basic,
+        extra: 'Enough for roughly seven cinematic films a month, or many more Fast renders.',
       },
       {
-        '@type': 'Offer',
         name: 'Studio',
-        price: '37.90',
-        priceCurrency: 'USD',
-        description:
-          'Studio — $37.90/month. 200 credits per billing month for Cinematic and AI Generated renders.',
-        url: 'https://www.usekineo.com/pricing',
+        cents: TIER_PRICES.pro.usd,
+        credits: TIER_CREDITS.pro,
+        extra: 'Highest volume, plus two free HD enhances every month.',
       },
-    ],
+    ].map((p) => ({
+      '@type': 'Offer',
+      name: p.name,
+      price: usd(p.cents),
+      priceCurrency: 'USD',
+      availability: 'https://schema.org/InStock',
+      description: `${p.name} — $${usd(p.cents)}/month. ${p.credits} credits per billing month. ${p.extra}`,
+      url: 'https://www.usekineo.com/pricing',
+    })),
   },
 }
 
@@ -189,6 +221,37 @@ const faqSchema = {
       acceptedAnswer: {
         '@type': 'Answer',
         text: 'Fast Mode usually finishes in 3–7 minutes. AI-generated and cinematic videos take a little longer because every scene is generated before the final MP4 is composed.',
+      },
+    },
+    // KINEO-AEO-PRICE-TRUTH-2026-08-19 — as três perguntas abaixo são novas e
+    // existem por um motivo específico: são escritas na FORMA EXATA em que a
+    // pessoa digita no ChatGPT ("quanto custa", "quais motores", "qual é o
+    // melhor"). As nove perguntas acima são FAQ institucional — respondem
+    // objeções de quem JÁ está na página. Essas três respondem a pergunta de
+    // quem ainda não sabe que existimos, que é onde os 205 de 245 cadastros
+    // desta semana nasceram. Espelhadas verbatim em app/KineoLanding.tsx #faq.
+    {
+      '@type': 'Question',
+      name: 'How much does Kineo cost?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. India, Brazil, Nigeria and other regions get local pricing automatically. New accounts get free credits to make a first video before paying anything.`,
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Which AI video engines can I use in Kineo?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Six, behind one interface and one balance: Veo 3.1, Kling 3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on the Kineo homepage is a real render from the engine named on the card — the badge always tells the truth about which model made it.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is the best AI video generator for faceless YouTube channels?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.',
       },
     },
   ],
