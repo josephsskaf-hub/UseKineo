@@ -1,4 +1,21 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
+
+# 🔒 CONCLUSÃO JÁ FECHADA — NÃO REABRIR (fundador 19/08, estudo repetido
+# várias vezes): O VAZAMENTO DO CHECKOUT É PREÇO. As pessoas chegam na
+# página de pagamento, ACHAM CARO e não compram. NÃO é erro de cartão, NÃO é
+# recusa de emissor, NÃO é trilho de pagamento (UPI/Pix/e-mandate do RBI).
+# Já foi investigado mais de uma vez e deu a mesma coisa todas as vezes.
+#   ⛔ NÃO gastar sessão re-investigando "será que o pagamento está quebrado?"
+#   ✅ Toda hipótese de conversão parte de PREÇO/OFERTA/PERCEPÇÃO DE VALOR.
+# Cegueira conhecida (não confundir com evidência): a tabela `events` NUNCA
+# teve um único `checkout_payment_failed`, e `metadata.customer_country` vem
+# null em 100% dos eventos — inclusive nos que PAGARAM. Ou seja, esses dois
+# campos NÃO PROVAM NADA em nenhuma direção. Quem tentar concluir a partir
+# deles (como eu tentei em 19/08) vai errar. A verdade sobre recusa só existe
+# no painel da Stripe.
+# Números que sustentam a conclusão (funil 7d, medido 19/08): 247 cadastros →
+# 135 fizeram vídeo → 44 chegaram ao checkout → 0 assinaram, e os 44 tentaram
+# 2+ VEZES. Quem volta duas vezes quer comprar; travou no valor.
 # ⚡⚡ SYNC 17-18/08 (sessão CEO — segunda de 8 produtos) — LER ANTES DE QUALQUER COISA:
 # - PRICING V5 (fundador aprovou): Starter $9.90/60cr · Creator $19.90/140cr ·
 #   Studio $39.90/320cr · Autopilot $299/400cr. SEM 1º MÊS COM DESCONTO em
