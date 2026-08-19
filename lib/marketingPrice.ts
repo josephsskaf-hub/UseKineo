@@ -99,6 +99,61 @@ export function fitsHollywood(tier: CheckoutTier): boolean {
   return videosPerMonth(tier, 'cinematic_hollywood') >= 1
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-CLIPES-2026-08-19 — CONTAR CENAS TAMBÉM, NÃO SÓ FILMES.
+// ═══════════════════════════════════════════════════════════════════════════
+// Descoberto conferindo a página de preços do Higgsfield ao vivo. O plano topo
+// deles ($99/mês anual) anuncia "~133 Seedance 2.0 videos"; o Plus ($39) anuncia
+// "~44". O nosso Studio anuncia "9 filmes".
+//
+// Os dois números são verdadeiros e medem coisas DIFERENTES: o deles é CLIPE
+// (o Higgsfield é gerador de clipe com controle de câmera — quem escreve,
+// narra, legenda e monta é o cliente); o nosso é FILME PRONTO de 60s+, com
+// roteiro, narração, legenda karaokê e trilha.
+//
+// Na mesma unidade a nossa posição é boa: um filme de 65s precisa de ~8 cenas,
+// então os 44 clipes do Plus deles são ~5 filmes de matéria-prima por $39,
+// contra 4 filmes PRONTOS por $29 no nosso Studio. Custo por filme quase
+// idêntico — e a gente faz o trabalho.
+//
+// O PROBLEMA NUNCA FOI O PLANO, FOI A UNIDADE DE MEDIDA. "133 vídeos" ao lado
+// de "9 filmes" parece 14× maior mesmo não sendo, e o cliente que não conhece
+// a diferença conclui que somos caros e mesquinhos — exatamente a percepção
+// que o fundador já fechou como o vazamento do checkout. A gente estava se
+// subvendendo por honestidade de nomenclatura.
+//
+// A CORREÇÃO NÃO É INFLAR NADA. É dizer as duas verdades: filmes prontos E as
+// cenas que os compõem. Nenhum número novo é inventado — SCENES_PER_FILM é a
+// média real do planner Hollywood, e a conta sai das mesmas constantes.
+//
+// ⚠️ O QUE NÃO SE DEVE COPIAR DELES: anunciar SÓ o clipe. Clipe é o terreno
+// onde eles ganham (têm mais dinheiro e vendem volume bruto); filme pronto é o
+// nosso. Trocar a nossa unidade pela deles seria escolher competir no campo
+// onde perdemos — a cena entra ao LADO do filme, nunca no lugar.
+
+/** Cenas por filme de 60s+. Não é chute: o planner Hollywood corta o roteiro
+ *  em cenas de 8-12s, então um filme de ~65s fecha em 7-9. Usamos 8, o meio. */
+export const SCENES_PER_FILM = 8
+
+/** Cenas geradas que cabem no plano, na mesma unidade que o mercado anuncia.
+ *  Deriva de videosPerMonth × SCENES_PER_FILM — se o grant ou o custo do motor
+ *  mudar, este número acompanha sozinho. */
+export function scenesPerMonth(tier: CheckoutTier, quality: Quality): number {
+  return videosPerMonth(tier, quality) * SCENES_PER_FILM
+}
+
+/** Seedance (o motor que a copy chama de "engine film"), em cenas. */
+export const STARTER_SCENES = scenesPerMonth('starter', 'cinematic_ai')
+export const CREATOR_SCENES = scenesPerMonth('basic', 'cinematic_ai')
+export const STUDIO_SCENES = scenesPerMonth('pro', 'cinematic_ai')
+
+/** A frase pronta, para não ser reescrita de formas diferentes em cada tela.
+ *  Ex.: "≈ 4 finished films — 32 AI scenes". */
+export function filmsAndScenes(tier: CheckoutTier, quality: Quality = 'cinematic_ai'): string {
+  const films = videosPerMonth(tier, quality)
+  return `≈ ${films} finished ${films === 1 ? 'film' : 'films'} — ${films * SCENES_PER_FILM} AI scenes`
+}
+
 // KINEO-PRICING-V6-2026-08-19 — a frase que substituiu o preço regional.
 // A escada por país morreu (ver o bloco de TIER_PRICES): agora é a MESMA
 // oferta no mundo inteiro, só escrita na moeda de quem lê. Páginas que
