@@ -109,7 +109,7 @@ const OFF_COPY: FreeTierCopy = {
   counterNoun: 'today',
   planLimitLine: 'Fast previews every 24h',
   limitHitError:
-    "You've hit today's free limit (3 Fast previews). Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
+    "You've hit today's free limit (3 Fast previews). Keep creating with Starter — same price worldwide. Cancel anytime.",
   cmpKineoFree: 'Kineo free: up to 3 watermarked Fast videos every 24 hours, no card.',
   limitHitEmailSubject: "You hit today's free limit — Starter removes the wall",
   limitHitEmailIntro:
@@ -160,7 +160,7 @@ const ON_COPY: FreeTierCopy = {
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
-    "You've used this month's free Fast video. Keep creating with Starter for $4.90 your first month, then $9.90/month. Cancel anytime.",
+    "You've used this month's free Fast video. Keep creating with Starter — same price worldwide. Cancel anytime.",
   cmpKineoFree:
     `Kineo: every new account starts with a full Creator trial — ${G} credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',

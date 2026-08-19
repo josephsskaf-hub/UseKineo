@@ -66,9 +66,9 @@ function resolveGeoOnce(): Promise<Resolved> {
 // nesta grade, e deixá-lo fora do tipo impede que alguém o adicione aqui sem
 // perceber que getTierPrice() nem o aceita.
 const USD_FALLBACK: Record<CheckoutTier, string> = {
-  starter: '$9.90',
-  basic: '$19.90',
-  pro: '$39.90',
+  starter: '$7.00',
+  basic: '$15.00',
+  pro: '$29.00',
 }
 
 export default function LandingPlanPrice({

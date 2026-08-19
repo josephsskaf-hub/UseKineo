@@ -1,3 +1,13 @@
+import {
+  ANNUAL_PRICES,
+  formatCheckoutMoney,
+  TIER_CREDITS,
+  TIER_PRICES,
+} from '@/lib/checkoutPricing'
+
+/** Rótulo USD do NOSSO preço. Concorrente nunca passa por aqui. */
+const K = (minor: number) => formatCheckoutMoney('usd', minor)
+
 // KINEO-VS-2026-07-26 — data layer for the /vs comparison cluster.
 //
 // THE BET: most vendors only publish "us vs them" pages, which buyers discount
@@ -306,9 +316,17 @@ export const TOOLS: Record<ToolId, Tool> = {
     category: 'Turns one typed topic into a finished faceless 9:16 Short — script, AI voiceover, matched footage, captions.',
     needsSource: 'No. A sentence is the whole input. There is no footage to upload and no timeline to learn.',
     freeTier: ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours, with no card.', OFFER.copy.sentence),
-    entryPrice: 'Starter $4.90 for the first month, then $9.90/month',
+    // KINEO-PRICING-V6-2026-08-19 — DERIVADO. Este arquivo tinha o preço do
+    // PRÓPRIO Kineo escrito à mão, e ele mentia em duas frentes: prometia
+    // "$4.90 for the first month" (oferta morta na V5) e citava a tabela V3
+    // inteira. Como estas strings são renderizadas em /vs/[pair],
+    // /alternatives/[competitor] e /facts — as páginas que o ChatGPT lê para
+    // comparar a gente com InVideo e afins — era a nossa própria comparação
+    // que estava desatualizada. Os preços dos CONCORRENTES seguem à mão de
+    // propósito: são dado verificado, com data de verificação.
+    entryPrice: `Starter ${K(TIER_PRICES.starter.usd)}/month`,
     fullPricing:
-      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', 'Creator trial on signup: 50 credits; then 1 Fast/mo')}) · Starter $9.90/mo, $4.90 for the first month, 25 credits ($99/year) · Creator $24.90/mo, 150 credits ($199/year) · Studio $37.90/mo, 200 credits ($379/year). 7-day money-back guarantee.`,
+      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', 'Creator trial on signup: 50 credits; then 1 Fast/mo')}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Same price worldwide. 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
     voice: 'AI voiceover generated from the script it wrote, with premium voices on higher tiers.',

@@ -20,6 +20,14 @@
 // it by name) but it is deliberately NOT in PLAN_LIST: PLAN_LIST drives the
 // 3-card self-serve grid, and Autopilot is a done-for-you service sold in its
 // own section against agency pricing, not against our own $37.90 tier.
+import {
+  ANNUAL_PRICES,
+  AUTOPILOT_PRICES,
+  formatCheckoutMoney,
+  TIER_CREDITS,
+  TIER_PRICES,
+} from '@/lib/checkoutPricing'
+
 export type PlanTier = 'free' | 'starter' | 'basic' | 'pro' | 'autopilot'
 
 export interface PlanConfig {
@@ -38,6 +46,30 @@ export interface PlanConfig {
   annualHref?: string
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-PRICING-V6-2026-08-19 — ESTA TABELA PAROU DE TER NÚMEROS PRÓPRIOS.
+// ═══════════════════════════════════════════════════════════════════════════
+// Ela era a SEGUNDA tabela de preço do sistema, e estava mentindo há tempos:
+// no dia em que foi auditada dizia Creator $24.90/150cr e Studio $37.90/200cr
+// enquanto o checkout (lib/checkoutPricing.ts) já cobrava $19.90/140 e
+// $39.90/320. Ou seja: a tela de MRR do admin, o PostVideoPaywall e o
+// ShortCostCalculator liam preços que a Stripe nunca cobrou.
+//
+// Não é um bug de digitação — é o defeito estrutural que produziu TRÊS
+// superfícies mentirosas em 19/08 (o JSON-LD do ChatGPT, a home e o
+// exit-intent). Sempre que existem dois lugares com a mesma verdade, um
+// deles fica velho, e nunca dá para saber qual sem conferir os dois.
+//
+// A partir daqui PLANS é DERIVADO de checkoutPricing.ts. Os rótulos são
+// gerados com formatCheckoutMoney(). Um preço novo entra em UM lugar só e
+// aparece aqui de graça; não existe mais como divergir.
+//
+// USD nos rótulos de propósito: PLANS é consumido por telas internas
+// (admin/MRR, overview) e por componentes que ainda não resolvem moeda. Quem
+// mostra preço ao CLIENTE deve usar getTierPrice() com a moeda do visitante —
+// ver components/LandingPlanPrice.tsx.
+const usdLabel = (minor: number) => formatCheckoutMoney('usd', minor)
+
 export const PLANS: Record<PlanTier, PlanConfig> = {
   free: {
     tier: 'free',
@@ -49,91 +81,58 @@ export const PLANS: Record<PlanTier, PlanConfig> = {
     cta: 'Run Free',
     href: '/signup',
   },
-  // Push #404 — STARTER: Fast engine (stock, relevance-gated). High volume,
-  // cheap entry to compete with InVideo/AutoShorts.
-  // KINEO-REBASE-2026-07-10 — 50 → 25 credits (2:1 rebase, USD unchanged).
   starter: {
     tier: 'starter',
     name: 'Starter',
-    price: 9.90,
-    priceLabel: '$9.90',
+    price: TIER_PRICES.starter.usd / 100,
+    priceLabel: usdLabel(TIER_PRICES.starter.usd),
     periodLabel: '/ month',
-    credits: 25,
-    cta: 'Start for $9.90',
+    credits: TIER_CREDITS.starter,
+    cta: `Start for ${usdLabel(TIER_PRICES.starter.usd)}`,
     href: '/api/stripe/checkout?tier=starter',
-    annualPriceLabel: '$99',
-    annualPerMonthLabel: '$8.25',
+    annualPriceLabel: usdLabel(ANNUAL_PRICES.starter.usd),
+    annualPerMonthLabel: usdLabel(Math.round(ANNUAL_PRICES.starter.usd / 12)),
     annualHref: '/api/stripe/checkout?tier=starter&billing=annual',
   },
-  // Push #404 — CREATOR: Seedance AI engine. 20 credits/video → 6 videos.
-  // KINEO-REBASE-2026-07-10 — 240 → 120 credits (2:1 rebase, USD unchanged).
-  // KINEO-PRICING-V3B-2026-07-10 — $19.90/120cr → $24.90/150cr. Positioning:
-  // 1 Hollywood film every month included (150 cr), or ~7 AI Gen videos.
-  // Existing subscribers keep their old price (Stripe keeps the subscription's
-  // original unit_amount) — this only affects NEW checkouts.
   basic: {
     tier: 'basic',
     name: 'Creator',
-    price: 24.90,
-    priceLabel: '$24.90',
+    price: TIER_PRICES.basic.usd / 100,
+    priceLabel: usdLabel(TIER_PRICES.basic.usd),
     periodLabel: '/ month',
-    credits: 150,
+    credits: TIER_CREDITS.basic,
     cta: 'Go Creator',
     href: '/api/stripe/checkout?tier=basic',
-    // KINEO-SPRINT-OFFER-2026-07-14 — recommended flag moved Studio → Creator:
-    // every surface (pricing cards, 0-credit modal) now points at the same
-    // primary plan. Creator is what /pricing already calls "Most Popular".
+    // KINEO-SPRINT-OFFER-2026-07-14 — a marcação de recomendado aponta para o
+    // MESMO plano em todas as superfícies (cards, modal de 0 crédito).
     recommended: true,
-    annualPriceLabel: '$199',
-    annualPerMonthLabel: '$16.58',
+    annualPriceLabel: usdLabel(ANNUAL_PRICES.basic.usd),
+    annualPerMonthLabel: usdLabel(Math.round(ANNUAL_PRICES.basic.usd / 12)),
     annualHref: '/api/stripe/checkout?tier=basic&billing=annual',
   },
-  // Push #404 — STUDIO: Kling premium engine (fallback Seedance). 60 cr/video → 6 videos (or 9 on Seedance).
   pro: {
     tier: 'pro',
     name: 'Studio',
-    price: 37.90,
-    priceLabel: '$37.90',
+    price: TIER_PRICES.pro.usd / 100,
+    priceLabel: usdLabel(TIER_PRICES.pro.usd),
     periodLabel: '/ month',
-    // KINEO-STUDIO-400-2026-07-06 — was inconsistent (360 here vs 600 in the
-    // Stripe/PayPal webhooks). Aligned everywhere.
-    // KINEO-REBASE-2026-07-10 — 400 → 200 credits (2:1 rebase, USD unchanged):
-    // ~10 Seedance videos or ~4 Kling. No credit rollover between months.
-    credits: 200,
+    credits: TIER_CREDITS.pro,
     cta: 'Go Studio',
     href: '/api/stripe/checkout?tier=pro',
-    // KINEO-SPRINT-OFFER-2026-07-14 — no longer the recommended plan (see basic).
-    annualPriceLabel: '$379',
-    annualPerMonthLabel: '$31.58',
+    annualPriceLabel: usdLabel(ANNUAL_PRICES.pro.usd),
+    annualPerMonthLabel: usdLabel(Math.round(ANNUAL_PRICES.pro.usd / 12)),
     annualHref: '/api/stripe/checkout?tier=pro&billing=annual',
   },
-  // KINEO-AUTOPILOT-299-2026-07-26 — AUTOPILOT: done-for-you. We connect the
-  // customer's YouTube channel and publish one Short per day, every day. The
-  // customer does nothing after onboarding.
-  //
-  // The comparable is NOT our own Studio tier — it is a human editing agency:
-  // VidChops charges $495/mo for 16 shorts, Tasty Edits $2,400/mo for 30.
-  // Autopilot ships 30/mo for $299 with no briefs, no revisions, no Slack.
-  //
-  // MARGIN (see lib/checkoutPricing.ts for the shared cost basis):
-  //   Gross                       $299.00
-  //   Stripe (2.9% + $0.30)       −$ 8.97
-  //   Net                         $290.03
-  //   30 Fast renders @ $0.02–0.05 −$ 0.60 to 1.50
-  //   YouTube Data API upload      $  0.00  (1 upload/day vs 10,000-unit quota)
-  //   Storage + egress            −$ 0.50  (generous)
-  //   Service-level gross margin  ≈$288    (96.3%)
-  // Absolute worst case, if the customer manually burns all 400 credits on
-  // Seedance instead: 20 renders × $2.34 = $46.80 → +$243.23 (81.3% of gross).
-  // The 'fast'/'basic_ai' clamp in lib/autopilot/config.ts is what keeps the
-  // scheduled half of that from ever drifting.
+  // KINEO-AUTOPILOT-299-2026-07-26 — done-for-you: conectamos o canal do
+  // cliente e publicamos um Short por dia. O comparável NÃO é o nosso Studio,
+  // é uma agência de edição humana (VidChops $495/mês por 16 shorts).
   autopilot: {
     tier: 'autopilot',
     name: 'Autopilot',
-    price: 299,
-    priceLabel: '$299',
+    price: AUTOPILOT_PRICES.usd / 100,
+    priceLabel: usdLabel(AUTOPILOT_PRICES.usd),
     periodLabel: '/ month',
-    credits: 400,
+    credits: TIER_CREDITS.autopilot,
     cta: 'Start Autopilot',
     href: '/api/stripe/checkout?tier=autopilot',
   },
