@@ -11,6 +11,44 @@
 # todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
 # em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
 
+## 19/08/2026 — 🔴🔴 3º dia no escuro em fal/OpenAI — e um fato NOVO no Resend: ontem passou de 100/dia SEM uma falha
+
+**41 cadastros em 24h (243 em 7d — o patamar novo de ~35/dia assentou), 43 renders (11 de IA),
+35 vídeos entregues, ZERO falha por quota/saldo em 48h. O dia da verdade da OpenAI era HOJE
+(projeção de 17/08: zerava 18–19/08) e o scripting está rodando — ou o fundador recarregou, ou
+o auto-reload finalmente disparou. Não consigo distinguir daqui (3º dia sem leitura de painel):
+pela regra de 18/08, os dois seguem VERMELHOS-até-confirmação. E o Resend entregou um fato que
+muda o veredito dele: 18/08 fechou com 116 envios, TODOS ok — acima do teto free de 100/dia
+sem UMA recusa, o que só acontece se o plano já for pago (ou o teto não disparou).**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **fal.ai** | 🔴 **VERMELHO até confirmação — 3º dia sem painel** | Banco: **11 renders IA em 24h** (todos Seedance) ≈ **~$22/24h ESTIMADOS** (11×$1,97; o banco historicamente SUBCONTA ~1,9× → real pode ser ~$40) · 7d: 77 Seedance + 11 Hollywood + 2 Veo + 1 Kling ≈ **~$278 ESTIMADOS no acumulado** (>$100 → gatilho de conferir painel) · **zero `fal_poll_deadline` em 48h**, zero falha de quota | Ritmo caiu (11 IA vs 19 ontem, 41 no pico). Consumo estimado desde a última leitura real (17/08, $27,67): **>$100** — impossível estar de pé sem recarga. Evidência indireta segue boa (renders completando), mas evidência indireta não é saldo. **Ação: fundador abrir o painel HOJE — confirmar saldo ≥$200 E a linha "Auto top-up" ATIVA no Credit activity. 2 minutos encerram 3 dias de escuro.** |
+| **OpenAI** | 🔴 **VERMELHO até confirmação — HOJE era o dia da projeção de zerar** | Banco: **0 falhas quota/openai em 48h** · 35 vídeos entregues = 35 scriptings OK · motivos de falha 24h todos de produto (gate studio 2, trial_stalled 2, threw 3, active_render 1 — total 8, benigno) | Projeção de 17/08: $8,86 a −$6,33/dia → **zeraria 18–19/08 = HOJE**. Está rodando → houve dinheiro novo. Se foi o auto-reload, é a PRIMEIRA vez que ele dispara — e provar isso vale mais que o saldo (encerra a classe de falha do incidente 31/07). **Ação: fundador conferir HOJE — se houver cobrança automática de ~$25 no Billing history, o auto-reload FUNCIONA (anotar aqui amanhã); se houver compra manual redonda, a proteção segue decorativa.** |
+| **Creatomate** | 🟡 **AMARELO — estoura ~05-06/09, antes da renovação (10/09) · DECISÃO É AMANHÃ (20/08)** | Estimativa fórmula validada (6 acertos, razão 1,115): **ciclo ~9.260 de 30.000 (31%)** · 24h: 36 vídeos, 1.890s ≈ **1.311 cr** · média 7d: **~1.179 cr/dia** (241 vídeos) | Restam ~20.740 cr. Média 7d: **17,6 dias → estoura ~06/09**. Ritmo de 24h: **15,8 dias → ~04/09**. Os dois ritmos convergem no mesmo veredito de ontem: **o ciclo NÃO fecha em nenhuma hipótese** — falta 4-6 dias de cota antes do dia 10. **Ação: o prazo que o próprio fundador manteve é AMANHÃ, 20/08 — subir o plano. O incidente de 09/08 (33h fora) foi exatamente esta curva ignorada.** |
+| **Resend** | 🟡 **AMARELO — mas com evidência de que o teto free JÁ NÃO se aplica (confirmar)** | Ledger `email_send_log`: **118 envios/24h, 118 ok, 0 falha** · por dia UTC: **17/08=56 · 18/08=116 (!) · 19/08=59 parcial** · quebra 24h: d0_welcome 48 · ending_soon 39 · downgraded_loss 12 · expired_offer_d5 10 · recovery 5 · outros 4 | **Fato novo: 18/08 fechou em 116 — 16 acima do teto free (100/dia) — e o ledger registra 116 aceites, zero recusa.** Resend em quota devolve 429 (ok=false no ledger). Duas leituras possíveis: (a) o fundador JÁ subiu o plano (não vejo o painel) → resolver o item de vez; (b) o teto não disparou por janela de contagem → sorte, não proteção. **Ação: fundador confirmar no painel do Resend qual plano está ativo. Se ainda for free, hoje já vai em 59 e o padrão de 116 repete.** |
+| **Supabase Storage** | 🟢 VERDE — ~33 dias | Banco bruto **114,05 GB** (9.064 obj.) × 0,503 calibrado = **~57,4 GB de 100 GB (ESTIMATIVA)** · +2,6 GB brutos/24h ≈ +1,3 GB cobrados/dia | Folga ~43 GB ≈ **~33 dias no ritmo atual**. Maior bucket: `broll` **74,5 GB brutos** (4.177 obj., +1,4 GB/24h). **Ação $0 segue de pé: GC do broll — só ele devolveria ~2 meses de folga sem cartão.** |
+
+**Saúde do produto:** impecável — 35 entregues/24h, 8 falhas todas de produto/gate, zero de
+fornecedor em 48h. O patamar pós-recorde estabilizou em ~35-41 cadastros/dia (243/7d), 3-4× o
+normal antigo — as contas acima já usam esse patamar.
+
+**Ação recomendada (nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **HOJE — fal e OpenAI: 2 minutos de painel cada** (3º dia pedindo o mesmo). No OpenAI, olhar o Billing history: cobrança automática de ~$25 = auto-reload FUNCIONA, primeira prova da história.
+2. **AMANHÃ, 20/08 — Creatomate: decidir o plano.** É o prazo do próprio fundador; a média 7d não fecha o ciclo.
+3. **HOJE — Resend: confirmar o plano no painel.** Se o 116-sem-falha de ontem foi upgrade, riscar o item; se foi sorte, pagar antes do próximo pico.
+4. **Esta semana, $0 — Storage:** GC do bucket `broll`.
+
+**O insight deste check-up:** o ledger do Resend virou, sem querer, um detector de plano — 116
+aceites num dia de teto 100 é impossível no free, então o próprio comportamento do fornecedor
+conta o que o painel esconde. Vale generalizar: quando não dá pra LER a configuração, dá pra
+INFERI-la pelo que o fornecedor deixou passar. É o mesmo princípio do "evidência de disparo"
+de 16/08, aplicado ao contrário — e continua valendo a ressalva: inferência boa vira veredito
+só depois que o fundador confirma no painel.
+
+**Não consegui medir:** saldo fal.ai, saldo OpenAI e plano ativo do Resend (painéis exigem
+login; sessão sem browser) — vereditos deles são projeção + evidência indireta do banco.
+
 ## 18/08/2026 — 🔴🔴 O pico recuou pela metade, mas os dois tanques pequenos (fal e OpenAI) seguem no escuro — e o produto continua rodando, o que sugere que o fundador recarregou
 
 **50 cadastros em 24h (metade do recorde de 97; ainda 2,5× o normal), 48 vídeos entregues,
