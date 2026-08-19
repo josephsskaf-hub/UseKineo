@@ -82,7 +82,7 @@ export default function ShortCostCalculator() {
         if (!response.ok) throw new Error('geo_lookup_failed')
         const data = await response.json() as { currency?: string }
         const resolved: CheckoutCurrency =
-          data.currency === 'brl' || data.currency === 'inr' ? data.currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19
         if (cancelled) return
         setCurrency(resolved)
         void trackEvent('short_cost_calculator_viewed', {

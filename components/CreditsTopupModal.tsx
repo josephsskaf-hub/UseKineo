@@ -51,7 +51,7 @@ export default function CreditsTopupModal({
     void fetch('/api/geo', { credentials: 'same-origin', cache: 'no-store' })
       .then(async (r) => (r.ok ? (r.json() as Promise<{ currency?: string }>) : Promise.reject()))
       .then(({ currency: c }) => {
-        if (!cancelled) setCurrency(c === 'brl' || c === 'inr' || c === 'usd' ? c : 'usd')
+        if (!cancelled) setCurrency('usd') // KINEO-USD-ONLY-2026-08-19
       })
       .catch(() => {
         if (!cancelled) setCurrency('usd')

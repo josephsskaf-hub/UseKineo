@@ -27,7 +27,7 @@ export default function UpgradeModal({ onClose }: UpgradeModalProps) {
       .then(async (r) => (r.ok ? (r.json() as Promise<{ currency?: string; region?: string }>) : Promise.reject()))
       .then(({ currency, region }) => {
         if (cancelled) return
-        const cur: CheckoutCurrency = currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+        const cur: CheckoutCurrency = 'usd' // KINEO-USD-ONLY-2026-08-19
         const reg: PriceRegion = coercePriceRegion(region)
         setFromPrice(formatCheckoutMoney(cur, getTierPrice('starter', cur, reg)))
       })

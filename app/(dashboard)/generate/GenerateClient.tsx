@@ -3546,7 +3546,7 @@ export default function GenerateClient({
       .then(({ country, currency, region }) => {
         if (cancelled) return
         const safeCurrency: CheckoutCurrency =
-          currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19 — moeda única; narrowing virou constante
         const safeRegion = coercePriceRegion(region)
         // O país fica guardado porque quem EMITE o evento agora é outro efeito,
         // e ele roda MUITO depois desta resposta (só quando o usuário chega à

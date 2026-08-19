@@ -53,7 +53,7 @@ function resolveGeoOnce(): Promise<Resolved> {
         if (!r.ok) throw new Error('geo failed')
         const data = (await r.json()) as { currency?: string; region?: string }
         const currency: CheckoutCurrency =
-          data.currency === 'brl' || data.currency === 'inr' || data.currency === 'usd' ? data.currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19
         return { currency, region: coercePriceRegion(data.region) }
       })
       .catch(() => ({ currency: 'usd' as CheckoutCurrency, region: 'standard' as PriceRegion }))

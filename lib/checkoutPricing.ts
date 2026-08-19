@@ -16,7 +16,37 @@ export type CheckoutTier = 'starter' | 'basic' | 'pro'
 // compile break. Anything that must accept all four uses CheckoutPlanTier.
 export type CheckoutPlanTier = CheckoutTier | 'autopilot'
 export type CheckoutIntroTier = 'starter' | 'basic'
-export type CheckoutCurrency = 'usd' | 'brl' | 'inr'
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-USD-ONLY-2026-08-19 — UMA MOEDA (fundador: "quero leitura em USD pra
+// todo mundo; não gosto de ter preço em português e o resto do site em outra
+// língua, não faz sentido").
+// ═══════════════════════════════════════════════════════════════════════════
+// A razão dele é de coerência e é boa: o site inteiro é em inglês, e "R$79,90"
+// no meio de uma página em inglês lê como se fosse outro produto. Mas existe
+// um motivo mais duro, e é o que decidiu:
+//
+// OS PREÇOS LOCAIS ERAM NÚMEROS FIXOS DERIVANDO CONTRA O DÓLAR. R$37,90 valia
+// "cerca de $7" a um câmbio de 5,41. Ninguém revisita esse número quando o
+// câmbio anda:
+//     câmbio 4,80 → R$37,90 vale $7,90  (cobramos 13% A MAIS)
+//     câmbio 5,41 → R$37,90 vale $7,01  (alvo)
+//     câmbio 6,20 → R$37,90 vale $6,11  (cobramos 13% A MENOS)
+// Três moedas × três planos = nove números derivando sozinhos, sem ninguém
+// olhando, contra o único preço que a gente realmente decidiu. É a MESMA
+// doença que produziu as três telas mentirosas de hoje — uma segunda fonte da
+// verdade que envelhece em silêncio — só que essa envelhece sem ninguém
+// digitar nada.
+//
+// O tipo fica com um valor só de propósito, pelo mesmo motivo de PriceRegion:
+// todo `currency === 'brl'` vira ERRO DE COMPILAÇÃO e o tsc lista sozinho cada
+// tela que ainda acredita em multi-moeda.
+//
+// ⚠️ O QUE ISSO CUSTA, dito na cara: cobrar em USD para brasileiro e indiano
+// adiciona IOF/spread do banco emissor e costuma converter pior que moeda
+// local. A troca é deliberada — a moeda local não produziu UMA venda em 557
+// cadastros desses países, e o risco de derivar em silêncio é maior que o
+// ganho não comprovado.
+export type CheckoutCurrency = 'usd'
 
 // Single price source for the server-authoritative Stripe route and every
 // checkout-facing display. Amounts are in cents, centavos, or paise.
@@ -57,22 +87,19 @@ export type CheckoutCurrency = 'usd' | 'brl' | 'inr'
 //    para validar nenhuma. Nessa escala, simplificar não é limpeza — é a
 //    única forma de conseguir aprender alguma coisa.
 //
-// BRL e INR CONTINUAM: moeda ≠ desconto. Mostrar R$ para brasileiro remove
-// atrito e não adiciona dimensão nenhuma (é a MESMA oferta, escrita na moeda
-// da pessoa). O que morreu foi o segundo degrau de preço, não a moeda local.
-// Os valores locais abaixo são o equivalente direto do dólar (BRL ≈ 5,4x,
-// INR ≈ 87x), arredondados para terminação comercial.
+// (NOTA HISTÓRICA: por algumas horas de 19/08 a V6 manteve BRL e INR como
+// tradução do mesmo preço. Isso caiu no mesmo dia — ver o bloco USD-ONLY no
+// topo do arquivo: números locais fixos derivam contra o dólar quando o câmbio
+// anda, e ninguém revisita nove números. Hoje existe UM preço, em USD.)
 export const TIER_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 700, brl: 3790, inr: 59900 },
-  basic: { usd: 1500, brl: 7990, inr: 129900 },
-  pro: { usd: 2900, brl: 15490, inr: 249900 },
+  starter: { usd: 700 },
+  basic: { usd: 1500 },
+  pro: { usd: 2900 },
 }
 
-// KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier. BRL/INR follow
-// the same multipliers the rest of the ladder already uses (BRL ≈ 5.0x USD,
-// INR ≈ 81x USD) so the three storefronts stay internally consistent.
+// KINEO-AUTOPILOT-299-2026-07-26 — $299/mo done-for-you tier.
 export const AUTOPILOT_PRICES: Record<CheckoutCurrency, number> = {
-  usd: 29900, brl: 149900, inr: 2419900,
+  usd: 29900,
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -89,13 +116,12 @@ export const AUTOPILOT_PRICES: Record<CheckoutCurrency, number> = {
 // end date, which is why the plan it grants (autopilot_pilot) carries an
 // expiry that the CRON enforces — see lib/autopilot/config.ts.
 //
-// BRL/INR follow the same multipliers as the rest of the ladder (BRL ≈ 5.0x,
-// INR ≈ 80.8x). Do NOT let any two SKU amounts collide across currencies
-// without a currency check: the webhook's value-based fallback compares
-// amount_total, and topup40 is ₹49,900 while the pilot is R$499,00 — the same
-// integer. Every fallback added for this SKU is currency-qualified.
+// KINEO-USD-ONLY-2026-08-19 — a advertência sobre COLISÃO ENTRE MOEDAS que
+// vivia aqui perdeu o objeto (topup40 era ₹49.900 e o piloto R$499,00, o mesmo
+// inteiro). Com uma moeda só, colisão de valor é sempre colisão de verdade —
+// e é exatamente isso que o invariante (6) checa, agora sem falso negativo.
 export const AUTOPILOT_PILOT_PRICES: Record<CheckoutCurrency, number> = {
-  usd: 9900, brl: 49900, inr: 799900,
+  usd: 9900,
 }
 
 // Days of Autopilot the pilot buys — and therefore the number of Shorts
@@ -132,9 +158,9 @@ export function monthlyPriceMinor(
 // KINEO-PRICING-V6-2026-08-19 — anual segue a mesma regra de sempre: 10× o
 // mensal (dois meses de graça). $70 / $150 / $290.
 export const ANNUAL_PRICES: Record<CheckoutTier, Record<CheckoutCurrency, number>> = {
-  starter: { usd: 7000, brl: 37900, inr: 599000 },
-  basic: { usd: 15000, brl: 79900, inr: 1299000 },
-  pro: { usd: 29000, brl: 154900, inr: 2499000 },
+  starter: { usd: 7000 },
+  basic: { usd: 15000 },
+  pro: { usd: 29000 },
 }
 
 export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, number>> = {
@@ -148,8 +174,8 @@ export const INTRO_PRICES: Record<CheckoutIntroTier, Record<CheckoutCurrency, nu
   // KINEO-PRICING-V6-2026-08-19 — segue espelhando TIER_PRICES. Se algum dia
   // voltar a existir intro, é AQUI que ele nasce, e o hasIntroOffer() acende
   // a UI sozinho. Enquanto for igual, nenhuma tela promete desconto.
-  starter: { usd: 700, brl: 3790, inr: 59900 },
-  basic: { usd: 1500, brl: 7990, inr: 129900 },
+  starter: { usd: 700 },
+  basic: { usd: 1500 },
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -539,13 +565,10 @@ export const CURRENCY_DISPLAY: Record<CheckoutCurrency, {
   label: string
 }> = {
   usd: { locale: 'en-US', currencyCode: 'USD', label: 'USD' },
-  brl: { locale: 'pt-BR', currencyCode: 'BRL', label: 'BRL' },
-  inr: { locale: 'en-IN', currencyCode: 'INR', label: 'INR' },
 }
 
-export function resolveCheckoutCurrency(country: string | null | undefined): CheckoutCurrency {
-  const normalized = String(country || '').toUpperCase()
-  return normalized === 'BR' ? 'brl' : normalized === 'IN' ? 'inr' : 'usd'
+export function resolveCheckoutCurrency(_country: string | null | undefined): CheckoutCurrency {
+  return 'usd'
 }
 // KINEO-PRICING-V6-2026-08-19 — a lista de países da região `value` foi
 // REMOVIDA junto com a região. Ela tinha furos conhecidos que nunca fecharam
@@ -575,7 +598,7 @@ export function coercePriceRegion(_raw: string | null | undefined): PriceRegion 
 
 export function formatCheckoutMoney(currency: CheckoutCurrency, amountMinor: number): string {
   const config = CURRENCY_DISPLAY[currency]
-  const fractionDigits = currency === 'inr' ? 0 : 2
+  const fractionDigits = 2
   return new Intl.NumberFormat(config.locale, {
     style: 'currency',
     currency: config.currencyCode,
@@ -823,9 +846,9 @@ export function checkPricingInvariants(): string[] {
 // de CREDIT_TOPUPS.prices, que continua sendo quem cobra — a rota agora
 // importa em vez de declarar.
 export const TOPUP_PRICES: Record<TopupId, Record<CheckoutCurrency, number>> = {
-  topup40: { usd: 590, brl: 2990, inr: 49900 },
-  topup100: { usd: 1490, brl: 7490, inr: 124900 },
-  topup120: { usd: 1290, brl: 6490, inr: 109900 },
+  topup40: { usd: 590 },
+  topup100: { usd: 1490 },
+  topup120: { usd: 1290 },
 }
 
 /** USD list price of each top-up SKU, in cents. Derivado de TOPUP_PRICES. */

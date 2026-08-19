@@ -338,7 +338,7 @@ function checkoutProductFromLaunchUrl(url: string): LaunchProduct {
 function formatProbeMoney(amount: number, currency: string): string | null {
   if (!Number.isFinite(amount) || amount < 0 || !/^[a-z]{3}$/i.test(currency)) return null
   try {
-    return new Intl.NumberFormat(currency.toLowerCase() === 'brl' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat('en-US', { // KINEO-USD-ONLY-2026-08-19
       style: 'currency',
       currency: currency.toUpperCase(),
     }).format(amount / 100)

@@ -36,7 +36,7 @@ function shouldHide(pathname: string): boolean {
 
 function formatMoney(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat(currency === 'brl' ? 'pt-BR' : 'en-US', {
+    return new Intl.NumberFormat('en-US', { // KINEO-USD-ONLY-2026-08-19
       style: 'currency',
       currency: currency.toUpperCase(),
     }).format(amount / 100)

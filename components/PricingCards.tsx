@@ -139,7 +139,7 @@ export default function PricingCards({
         if (!response.ok) throw new Error('geo_lookup_failed')
         const data = await response.json() as { currency?: string; region?: string }
         const currency: CheckoutCurrency =
-          data.currency === 'brl' || data.currency === 'inr' ? data.currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19
         const region = coercePriceRegion(data.region)
         if (cancelled) return
         setDisplayCurrency(currency)

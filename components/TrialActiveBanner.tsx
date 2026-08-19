@@ -241,7 +241,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       })
       .then((data) => {
         if (cancelled) return
-        setCurrency(data.currency === 'brl' || data.currency === 'inr' ? data.currency : 'usd')
+        setCurrency('usd') // KINEO-USD-ONLY-2026-08-19
         setRegion(coercePriceRegion(data.region))
       })
       .catch(() => {

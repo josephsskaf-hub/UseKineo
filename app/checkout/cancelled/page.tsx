@@ -61,8 +61,10 @@ function CheckoutCancelledContent() {
   const privatePackPromo = Boolean(promo?.toUpperCase().startsWith('KINEO5-')) && billing === 'monthly' && tier === 'basic'
   const introEligible = intro && billing === 'monthly' && (tier === 'starter' || tier === 'basic')
   const rawCurrency = searchParams.get('currency')
-  const checkoutCurrency: 'usd' | 'brl' | 'inr' =
-    rawCurrency === 'brl' || rawCurrency === 'inr' ? rawCurrency : 'usd'
+  // KINEO-USD-ONLY-2026-08-19 — a querystring pode trazer moeda de uma sessão
+  // antiga; ignorada de propósito. Existe uma moeda só, e quem manda é o servidor.
+  const checkoutCurrency: 'usd' = 'usd'
+  void rawCurrency
   const returnToWatermark = searchParams.get('return') === 'wm'
   const rawIntentCampaign = (searchParams.get('intent_campaign') ?? '').trim()
   const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign)

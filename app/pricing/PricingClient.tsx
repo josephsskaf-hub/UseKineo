@@ -376,7 +376,7 @@ export default function PricingClient() {
       .then(({ country, currency, region }) => {
         if (cancelled) return
         const safeCurrency: DisplayCurrency =
-          currency === 'brl' || currency === 'inr' || currency === 'usd' ? currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19
         const safeRegion = coercePriceRegion(region)
         setDisplayCurrency(safeCurrency)
         setDisplayRegion(safeRegion)

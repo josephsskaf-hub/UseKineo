@@ -268,7 +268,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
       .then((d) => {
         if (cancelled) return
         const currency: CheckoutCurrency =
-          d.currency === 'brl' || d.currency === 'inr' || d.currency === 'usd' ? d.currency : 'usd'
+          'usd' // KINEO-USD-ONLY-2026-08-19
         setMoney({ currency, region: coercePriceRegion(d.region) })
       })
       .catch(() => {})

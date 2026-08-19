@@ -1282,7 +1282,8 @@ async function buildAndRedirect(
           }
           const amountOff = coupon.amount_off
           const firstChargeAmount = typeof amountOff === 'number' ? unitAmount - amountOff : null
-          const expectedFirstCharge = currency === 'usd' ? 500 : currency === 'inr' ? 40500 : null
+          // KINEO-USD-ONLY-2026-08-19 — o ramo INR morreu com a moeda.
+          const expectedFirstCharge = currency === 'usd' ? 500 : null
           if (
             !coupon.valid ||
             coupon.duration !== 'once' ||
