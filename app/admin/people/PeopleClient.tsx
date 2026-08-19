@@ -13,7 +13,9 @@ const CARD: React.CSSProperties = { background: '#161618', border: '1px solid #2
 
 interface Summary {
   total: number
-  paid: number
+  active_subs: number
+  churned: number
+  one_time: number
   credits_in_circulation: number
   credits_used_total: number
 }
@@ -30,6 +32,16 @@ function flagEmoji(cc: string | null): string {
   if (!cc || cc.length !== 2) return ''
   const A = 0x1f1e6
   return String.fromCodePoint(...[...cc.toUpperCase()].map((c) => A + c.charCodeAt(0) - 65))
+}
+
+// KINEO-PAIDKIND-2026-08-19 — 'sub' = assinatura ativa (o que o Stripe
+// mostra) · 'left' = assinou e cancelou (coorte nº1 de win-back: já confiou o
+// cartão uma vez) · 'pack' = pagamento avulso, nunca assinou.
+function kindBadge(k: PersonRow['paid_kind']): { label: string; color: string } | null {
+  if (k === 'active') return { label: 'sub', color: '#34d399' }
+  if (k === 'churned') return { label: 'left', color: '#f87171' }
+  if (k === 'one_time') return { label: 'pack', color: '#fbbf24' }
+  return null
 }
 
 function usageLabel(p: PersonRow): string {
@@ -71,14 +83,20 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   }, [denied])
 
   const filtered = useMemo(() => {
+    const base = (people ?? []).filter((p) => !p.is_internal) // fundador/teste fora
     const needle = q.trim().toLowerCase()
-    if (!needle) return people ?? []
-    return (people ?? []).filter(
+    if (!needle) return base
+    return base.filter(
       (p) => p.email.toLowerCase().includes(needle) || (p.name ?? '').toLowerCase().includes(needle) || (p.country ?? '').toLowerCase() === needle,
     )
   }, [people, q])
 
-  const buyers = useMemo(() => filtered.filter((p) => p.has_paid), [filtered])
+  const KIND_ORDER: Record<string, number> = { active: 0, churned: 1, one_time: 2 }
+  const buyers = useMemo(
+    () => filtered.filter((p) => p.paid_kind).sort((a, b) => (KIND_ORDER[a.paid_kind!] ?? 9) - (KIND_ORDER[b.paid_kind!] ?? 9)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered],
+  )
   const everyone = useMemo(() => (showAll ? filtered : filtered.slice(0, 250)), [filtered, showAll])
 
   if (denied) {
@@ -121,12 +139,17 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       </header>
 
       {summary && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           {[
             ['Signups', summary.total, '#f5f5f7'],
-            ['Paying', summary.paid, '#34d399'],
+            // KINEO-PAIDKIND-2026-08-19 — o placar espelha o Stripe: ativos
+            // = assinatura pagando AGORA (era 'Paying' com has_paid cru, que
+            // somava cancelados + packs e mostrava 10 quando o Stripe tem 6).
+            ['Active subs', summary.active_subs, '#34d399'],
+            ['Churned', summary.churned, '#f87171'],
+            ['One-time', summary.one_time, '#fbbf24'],
             ['Credits in wallets', summary.credits_in_circulation, '#2997ff'],
-            ['Credits spent (all-time)', summary.credits_used_total, '#fbbf24'],
+            ['Credits spent', summary.credits_used_total, '#a1a1a8'],
           ].map(([label, value, color]) => (
             <div key={label as string} className="rounded-2xl px-4 py-3" style={CARD}>
               <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#86868b' }}>{label}</div>
@@ -154,17 +177,18 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       {people && (
         <section className="mb-8">
           <h2 className="text-[11px] font-black uppercase tracking-widest mb-1" style={{ color: '#34d399' }}>
-            💰 Bought ({buyers.length})
+            💰 Bought ({buyers.length}) — {buyers.filter((b) => b.paid_kind === 'active').length} active · {buyers.filter((b) => b.paid_kind === 'churned').length} left · {buyers.filter((b) => b.paid_kind === 'one_time').length} pack
           </h2>
           <p className="text-[11px] mb-3" style={{ color: '#86868b' }}>
-            Everyone who has ever paid — first payment date, what they were granted, what they burned, what&apos;s left.
+            <b style={{ color: '#34d399' }}>sub</b> = paying now (mirrors Stripe) · <b style={{ color: '#f87171' }}>left</b> = subscribed and cancelled (hottest win-back cohort) · <b style={{ color: '#fbbf24' }}>pack</b> = paid once, never subscribed.
           </p>
           <Table
-            head={['Email', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Last activity']}
+            head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Last activity']}
             border="rgba(52,211,153,.4)"
             empty="No paying customers match."
             rows={buyers.map((p) => [
-              <Mono key="e" text={p.email} />,
+              <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
+              kindBadge(p.paid_kind)?.label ?? '—',
               p.plan ?? '—',
               fmtDate(p.first_paid),
               p.credits_granted?.toLocaleString('en-US') ?? '—',
@@ -190,7 +214,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             border="rgba(255,255,255,.14)"
             empty="No one matches."
             rows={everyone.map((p) => [
-              <Mono key="e" text={p.email} badge={p.has_paid ? 'paid' : undefined} badgeColor="#34d399" />,
+              <Mono key="e" text={p.email} badge={kindBadge(p.paid_kind)?.label} badgeColor={kindBadge(p.paid_kind)?.color} />,
               fmtDate(p.signup),
               p.country ? `${flagEmoji(p.country)} ${p.country}` : '—',
               p.plan ?? '—',

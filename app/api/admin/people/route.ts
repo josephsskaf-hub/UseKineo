@@ -19,6 +19,8 @@ import { fetchAllRows, isAdminEmail, serviceClient } from '../_shared/db'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+export type PaidKind = 'active' | 'churned' | 'one_time' | null
+
 export interface PersonRow {
   email: string
   name: string | null
@@ -26,6 +28,13 @@ export interface PersonRow {
   country: string | null
   plan: string | null
   has_paid: boolean
+  // KINEO-PAIDKIND-2026-08-19 (fundador: "quem pagou 1x, quem é assinante e
+  // quem saiu") — has_paid cru misturava os três e inflava o placar (10 vs os
+  // 6 ativos do Stripe). Regra: plano pago atual = 'active'; tem
+  // subscription_id (stripe/paddle/paypal) mas plano free = ASSINOU E SAIU =
+  // 'churned'; pagou sem nunca ter subscription = pack avulso = 'one_time'.
+  paid_kind: PaidKind
+  is_internal: boolean
   first_paid: string | null
   credits_left: number | null
   credits_used: number
@@ -69,7 +78,10 @@ export async function GET() {
         created_at: string | null
         signup_country: string | null
         last_country: string | null
-      }>(admin, 'profiles', 'id, email, name, plan, has_paid, video_credits, created_at, signup_country, last_country'),
+        stripe_subscription_id: string | null
+        paddle_subscription_id: string | null
+        paypal_subscription_id: string | null
+      }>(admin, 'profiles', 'id, email, name, plan, has_paid, video_credits, created_at, signup_country, last_country, stripe_subscription_id, paddle_subscription_id, paypal_subscription_id'),
       fetchAllRows<{
         user_id: string | null
         render_id: string | null
@@ -115,12 +127,20 @@ export async function GET() {
       if (!cur || e.created_at < cur) firstPaid.set(e.user_id, e.created_at)
     }
 
+    const PAID_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot'])
+    const isInternal = (email: string) => {
+      const e = email.toLowerCase()
+      return e.startsWith('josephsskaf') || e.startsWith('josephskaf') || e.endsWith('@shortsforgeai.com')
+    }
     const people: PersonRow[] = profiles
       .filter((p) => !!p.email)
       .map((p) => {
         const agg = byUser.get(p.id)
         const used = agg?.used ?? 0
         const left = typeof p.video_credits === 'number' ? p.video_credits : null
+        const hasSub = !!(p.stripe_subscription_id || p.paddle_subscription_id || p.paypal_subscription_id)
+        const planPaid = PAID_PLANS.has((p.plan ?? '').toLowerCase())
+        const paidKind: PaidKind = p.has_paid !== true ? null : planPaid ? 'active' : hasSub ? 'churned' : 'one_time'
         return {
           email: p.email as string,
           name: p.name ?? null,
@@ -128,6 +148,8 @@ export async function GET() {
           country: p.signup_country ?? p.last_country ?? null,
           plan: p.plan ?? null,
           has_paid: p.has_paid === true,
+          paid_kind: paidKind,
+          is_internal: isInternal(p.email as string),
           first_paid: firstPaid.get(p.id) ?? null,
           credits_left: left,
           credits_used: used,
@@ -143,11 +165,16 @@ export async function GET() {
       })
       .sort((a, b) => (a.signup < b.signup ? 1 : -1))
 
+    // Placar espelha o Stripe: conta interna (fundador/teste) fica FORA de
+    // todas as contagens de dinheiro.
+    const ext = people.filter((p) => !p.is_internal)
     const summary = {
-      total: people.length,
-      paid: people.filter((p) => p.has_paid).length,
-      credits_in_circulation: people.reduce((s, p) => s + (p.credits_left ?? 0), 0),
-      credits_used_total: people.reduce((s, p) => s + p.credits_used, 0),
+      total: ext.length,
+      active_subs: ext.filter((p) => p.paid_kind === 'active').length,
+      churned: ext.filter((p) => p.paid_kind === 'churned').length,
+      one_time: ext.filter((p) => p.paid_kind === 'one_time').length,
+      credits_in_circulation: ext.reduce((s, p) => s + (p.credits_left ?? 0), 0),
+      credits_used_total: ext.reduce((s, p) => s + p.credits_used, 0),
     }
 
     return NextResponse.json({ people, summary })
