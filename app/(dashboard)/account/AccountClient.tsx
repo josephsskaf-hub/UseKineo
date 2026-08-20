@@ -532,7 +532,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                   style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.2)' }}
                 >
                   <div className="text-xs font-black mb-2" style={{ color: '#2997ff', letterSpacing: '.08em', textTransform: 'uppercase' }}>
-                    No card required
+                    No card needed for the free tier
                   </div>
                   <h3 className="text-lg font-black mb-2" style={{ color: 'var(--text)' }}>
                     {trialActive

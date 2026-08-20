@@ -107,7 +107,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', 'Every new account starts with a full Creator trial — 50 credits, no card — and Seedance is included in it, so the first two Seedance videos come out of the trial.')}`,
+        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', 'The 7-day Creator trial ($1 to start, card required) includes 80 credits, and Seedance is part of it — so the first four Seedance videos come out of the trial.')}`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -134,7 +134,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: 'No — Kling 2.5 is a Studio-plan engine at 50 credits per video, and it is not included in the free Creator trial. The engines you can run without a card are Kineo 1 and, on the trial, Seedance 1.5.',
+        a: 'No — Kling 2.5 is a Studio-plan engine at 50 credits per video, and it is not included in the Creator trial. The engine you can run without a card is Kineo 1; the trial adds Seedance 1.5.',
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -296,7 +296,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
     e.tier === 'Studio'
       ? `${e.name} is a Studio-plan engine — it is not part of the free trial.`
       : e.tier === 'Creator'
-        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is included in the free Creator trial — 50 credits, no card.`)
+        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is included in the 7-day Creator trial — $1 to start, 80 credits, card required.`)
         : ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
 
   return (

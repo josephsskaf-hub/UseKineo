@@ -1465,7 +1465,7 @@ export async function POST(req: NextRequest) {
                   from: 'Kineo Team <hello@usekineo.com>',
                   to: [to],
                   reply_to: 'hello@usekineo.com',
-                  subject: `Your free week ends ${when}`,
+                  subject: `Your Kineo trial ends ${when} — $15 unless you cancel`,
                   text: `Hey,\n\nQuick heads up, no surprises: your free week of Kineo ends on ${when}, and your card will be charged $${amount} for the first month.\n\nIf Kineo is working for you, there is nothing to do — your credits renew and you keep going.\n\nIf it is not, cancel in one click here and you will not be charged: ${manage}\n\nEither way, thanks for giving it a real try.\n\nKineo Team\nusekineo.com`,
                   html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;"><p>Hey,</p><p>Quick heads up, no surprises: your free week of Kineo ends on <strong>${when}</strong>, and your card will be charged <strong>$${amount}</strong> for the first month.</p><p>If Kineo is working for you, there is nothing to do — your credits renew and you keep going.</p><p>If it is not, <a href="${manage}" style="color:#2997ff">cancel in one click here</a> and you will not be charged.</p><p>Either way, thanks for giving it a real try.</p><p style="margin:0 0 2px">Kineo Team</p><p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p></div>`,
                 }),

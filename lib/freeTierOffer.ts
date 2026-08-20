@@ -152,24 +152,39 @@ const G = TRIAL_GRANT_CREDITS_COPY
 // porta de entrada — que é onde a pessoa decide se vale a pena criar a conta.
 // Derivado do grant ÷ custo do Seedance (o motor mais caro que o trial abre),
 // nunca digitado: se o grant mudar, o número de filmes acompanha sozinho.
-const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
+export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 
+// ⚠️ KINEO-TRIAL-CARTAO-COPY-2026-08-20 — TODA PROMESSA DE "NO CARD" SAIU.
+// O fundador viu a tela de cadastro e apontou: "aqui fala que no card
+// required, e sim precisa do card não?". Está certo, e o problema era maior
+// que a frase — era INCOERÊNCIA DE MODELO. Enquanto a conta nova ganhasse os
+// créditos de graça, o trial com cartão que acabamos de construir não
+// substituiria nada: ninguém entrega o cartão para receber o que já ganha
+// sem ele.
+// Estas frases são a fonte única de ~20 superfícies (landing, signup, login,
+// páginas de SEO, comparativos, e-mails). Corrigir aqui conserta todas de uma
+// vez — foi assim que a V6 fechou 273 preços chumbados.
+// O que a copy passa a dizer, e é literalmente o que o Stripe faz: uma semana
+// grátis, cartão na entrada, cobrança no dia 8, cancelamento em um clique.
+// Dizer "cancele quando quiser" ao lado do cartão não é amaciar a pílula — é
+// a informação que faz a pessoa clicar sem medo E o que nos protege de
+// contestação depois.
 const ON_COPY: FreeTierCopy = {
   headline:
-    `Start free — your first video is on us. New accounts get a full Creator trial: ${TRIAL_FILMS} AI films, every engine except Studio.`,
+    `Try Creator free for 7 days — ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click.`,
   residual: '1 free Fast video/month',
   sentence:
-    `Every new account starts with a full Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
-  chip: `Free Creator trial on signup — ${TRIAL_FILMS} AI films`,
-  chipLower: `free Creator trial on signup — ${TRIAL_FILMS} AI films`,
+    `Start a 7-day Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click before it renews.`,
+  chip: `7-day Creator trial — ${TRIAL_FILMS} AI films`,
+  chipLower: `7-day Creator trial — ${TRIAL_FILMS} AI films`,
   planCardBody:
-    `Start free — your first video is on us. New accounts get a full Creator trial: ${TRIAL_FILMS} AI films, every engine except Studio. Afterwards, 1 free Fast video/month.`,
+    `7 days of Creator, free: ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click before it renews.`,
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
     "You've used this month's free Fast video. Keep creating with Starter — same price worldwide. Cancel anytime.",
   cmpKineoFree:
-    `Kineo: every new account starts with a full Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
+    `Kineo: a 7-day Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click.`,
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
   limitHitEmailIntro:
     "You've used this month's free Fast video — the free plan includes 1 per month.",
@@ -180,9 +195,9 @@ const ON_COPY: FreeTierCopy = {
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
-  ctaPrimary: `Start free — ${TRIAL_FILMS} AI films on us →`,
+  ctaPrimary: `Start your free week — ${TRIAL_FILMS} AI films →`,
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
-  ctaHeading: 'Start free — your first video is on us',
+  ctaHeading: 'Try Creator free for 7 days',
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000

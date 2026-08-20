@@ -625,7 +625,7 @@ export default function PricingClient() {
           style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
         >
           <p className="text-[12.5px] font-semibold text-[#86868b]">
-            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', ' — no card; new accounts get a 50-credit Creator trial.')}
+            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', '; new accounts can start a 7-day Creator trial — $1 to start, 80 credits, card required.')}
           </p>
           <CostCalculatorLink
             placement="pricing_pre_cards"

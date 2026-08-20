@@ -42,7 +42,7 @@ export default function PhWelcomeBanner() {
       }}
     >
       {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — derivado; ver lib/freeTierOffer.ts. */}
-      <FreeTierCopy legacy="Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks." on={`Welcome, Product Hunters — your Creator trial starts now: ${TRIAL_GRANT_CREDITS_COPY} free credits. No card, no tricks.`} />{' '}
+      <FreeTierCopy legacy="Welcome, Product Hunters — make 3 free Shorts today. No card, no watermark tricks." on={`Welcome, Product Hunters — your Creator trial starts now: ${TRIAL_GRANT_CREDITS_COPY} free credits. Cancel in one click, no tricks.`} />{' '}
       <a
         href="/signup?utm_source=producthunt&intent_campaign=ph_launch_banner"
         onClick={() => { void trackEvent('ph_welcome_banner_clicked') }}

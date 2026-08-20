@@ -345,7 +345,7 @@ export default function SignupPage() {
             {[
               'AI writes the script',
               'Films · images · voices',
-              ft(OFFER, '3 free videos / 24h', 'Free trial — 50 credits'),
+              ft(OFFER, '3 free videos / 24h', `Free trial — ${TRIAL_GRANT_CREDITS_COPY} credits`),
             ].map((line) => (
               <li key={line} className="flex items-center gap-2 text-xs font-semibold" style={{ color: 'var(--text2)' }}>
                 <span

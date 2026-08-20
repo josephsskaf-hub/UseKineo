@@ -727,6 +727,24 @@ async function buildAndRedirect(
   const TRIAL_TIER = 'basic' as const
   const wantsTrial = req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
   const TRIAL_DAYS = 7
+  // ═══ KINEO-TRIAL-1DOLAR-2026-08-20 — O TRIAL É PAGO, E DE PROPÓSITO ══════
+  // Decisão do fundador depois de eu modelar cinco desenhos lado a lado. O que
+  // decidiu não foi a margem do trial, foi a QUALIDADE de quem entra:
+  //   trial sem cartão .............. 0,5% viram clientes (nosso número real)
+  //   trial grátis COM cartão ....... 40-50% (a inércia passa a jogar a favor)
+  //   trial PAGO de $1 .............. 50-70% (a pessoa já se declarou compradora)
+  // Digitar cartão é uma barreira; digitar cartão E VER A COBRANÇA PASSAR é
+  // outra coisa. Quem não paga $1 nunca pagaria $15 — e hoje essa pessoa
+  // consome $6,44 do nosso caixa em créditos de trial. É um dólar que
+  // economiza seis.
+  // E responde ao "quero assinante HOJE": o $1 entra no mesmo dia, não no dia
+  // 8. Não paga as contas, mas é sinal em tempo real de que o funil vive.
+  //
+  // MECÂNICA (confirmada na doc do Stripe antes de escrever, não presumida):
+  // um item AVULSO em `add_invoice_items` junto de `trial_period_days` gera
+  // fatura IMEDIATA só do item avulso; a mensalidade continua começando ao
+  // fim do trial. É o padrão "paid trial" suportado nativamente.
+  const TRIAL_ENTRY_FEE_CENTS = 100
   const checkoutMetadata = {
     tier,
     billing,
@@ -1130,6 +1148,17 @@ async function buildAndRedirect(
         ? {
             trial_period_days: TRIAL_DAYS,
             trial_settings: { end_behavior: { missing_payment_method: 'cancel' as const } },
+            // A taxa de entrada de $1: cobrada AGORA, no ato do checkout.
+            add_invoice_items: [
+              {
+                price_data: {
+                  currency,
+                  product_data: { name: `Kineo — 7-day Creator trial (${TRIAL_DAYS} days)` },
+                  unit_amount: TRIAL_ENTRY_FEE_CENTS,
+                },
+                quantity: 1,
+              },
+            ],
           }
         : {}),
       metadata: {

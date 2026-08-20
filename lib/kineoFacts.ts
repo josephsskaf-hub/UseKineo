@@ -20,6 +20,7 @@
 //    errado num arquivo feito para LLM citar vira desinformação atribuída à
 //    marca — pior do que um fato ausente.
 
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import {
   TIER_PRICES,
   INTRO_PRICES,
@@ -350,10 +351,15 @@ export const OFFER_EFFECTIVE: { iso: string; human: string } | null =
 // consumido por dezenas de páginas de marketing — o import de VALOR arrastaria
 // o cliente admin do Supabase para o bundle do cliente. É o mesmo motivo pelo
 // qual `REFERRAL_REWARD_CREDITS` acima também é local.
-// ⚠️ fonte: lib/reverseTrial.ts:82 (`export const TRIAL_CREDIT_CAP = 40`).
-// Se aquele número mudar, este mente — e o teto é decisão FECHADA do fundador
-// em 40, então a divergência só nasce por engano.
-const TRIAL_CREDIT_CAP = 40
+// ⚠️ fonte: lib/reverseTrial.ts (`TRIAL_CREDIT_CAP`). Se aquele número mudar,
+// este mente — e ele JÁ MENTIU: ficou em 40 enquanto o teto real virou 50
+// (17/08) e depois 80 (20/08). Este arquivo alimenta /api/facts, /llms.txt e
+// /facts — é o que um modelo de linguagem lê como "a verdade sobre o Kineo".
+// Mentir aqui é mentir dentro do ChatGPT.
+// Não dá para importar de reverseTrial (arrastaria o cliente admin do Supabase
+// para o bundle), mas dá para importar do freeTierOffer, que é FOLHA e carrega
+// o mesmo número com trava de tipo contra o reverseTrial.
+const TRIAL_CREDIT_CAP = TRIAL_GRANT_CREDITS_COPY
 
 // KINEO-AEO-FACTS-WINDOW-2026-08-08 — o milissegundo de uma janela de 24h,
 // escrito uma vez. É a ÚNICA condição sob a qual um campo chamado `videosPer24h`
@@ -406,9 +412,16 @@ export const FREE_TIER = {
   //     cartão. Agora a concessão é a oração principal e o limite residual vem
   //     depois, sem deixar de ser dito. Com a flag OFF, string byte a byte
   //     idêntica à de hoje.
+  // ⚠️ KINEO-TRIAL-CARTAO-2026-08-20 — "no credit card" saiu; duração e preço
+  // de entrada entraram. O trial agora é: US$1 na entrada, cartão obrigatório,
+  // 7 dias, e vira Creator ($15/mês) no dia 8 se não cancelar. Um modelo de
+  // linguagem repete exatamente o que está escrito — então tem de estar
+  // COMPLETO, não só verdadeiro.
   allowance: FREE_OFFER.reverseTrial
-    ? `a ${TRIAL_CREDIT_CAP}-credit Creator trial on every new account, no credit card; after the trial, ${FREE_OFFER.limit} watermarked Fast video per month`
+    ? `a 7-day Creator trial with ${TRIAL_CREDIT_CAP} credits for a $1 entry fee (card required; renews at $15/month unless cancelled); without the trial, ${FREE_OFFER.limit} watermarked Fast video per month, no card`
     : 'up to 3 watermarked Fast videos every 24 hours',
+  // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
+  // pago. Este campo descreve a porta gratuita, que não mudou.
   creditCardRequired: false,
   watermark: true,
   // fonte: app/api/cron/send-activation-nudge/route.ts:53 — "create, watch,
@@ -578,7 +591,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       ? 'You need watermark-free video indefinitely without ever paying.'
       : 'You need watermark-free video without paying anything.',
     useInstead: FREE_OFFER.reverseTrial
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account starts with a ${TRIAL_CREDIT_CAP}-credit Creator trial, no credit card, and renders made during the trial export clean. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: the 7-day Creator trial costs $1 up front, includes ${TRIAL_CREDIT_CAP} credits, requires a card and renews at $15/month unless cancelled — and renders made during the trial export clean. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {

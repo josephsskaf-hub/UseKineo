@@ -784,10 +784,10 @@ const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 function currentKineoOffer(value: string): string {
   return value
     .replace(/is the first short really free\?/gi, 'Can I use Kineo without paying?')
-    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you start with a full Creator trial — 50 credits, no card'))
-    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you start with a full Creator trial — 50 credits, no card'))
-    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', 'a full Creator trial — 50 credits, no card'))
-    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', 'a full Creator trial — 50 credits, no card'))
+    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you can start a 7-day Creator trial for $1 — 80 credits, card required'))
+    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you can start a 7-day Creator trial for $1 — 80 credits, card required'))
+    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', 'a 7-day Creator trial for $1 — 80 credits, card required'))
+    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', 'a 7-day Creator trial for $1 — 80 credits, card required'))
     // KINEO-PRICING-V6-2026-08-19 — AQUI MORRERAM NOVE SUBSTITUIÇÕES DE PREÇO.
     // Elas existiam para consertar, no render, um preço errado que estava
     // escrito lá em cima na tabela COMPETITORS — e por isso eram um remendo que
@@ -804,9 +804,9 @@ function currentKineoOffer(value: string): string {
     // O conserto certo não é reescrever a substituição: é a origem passar a
     // derivar o preço de TIER_PRICES, o que ela agora faz. Sobrou aqui só o que
     // esta função sempre foi de verdade — o swap da copy do free tier.
-    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', 'a full Creator trial — 50 credits, no card'))
-    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', 'a full Creator trial with 50 credits is free'))
-    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', 'a full Creator trial — 50 credits, no card'))
+    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', 'a 7-day Creator trial for $1 — 80 credits, card required'))
+    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', 'a 7-day Creator trial with 80 credits costs $1'))
+    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', 'a 7-day Creator trial for $1 — 80 credits, card required'))
 }
 
 function Cell({ v }: { v: boolean | string }) {

@@ -259,7 +259,7 @@ export async function GET(req: NextRequest) {
               <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.3);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
                 <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 6px;">⏰ YOUR FAST ACCESS IS READY</p>
                 <p style="color:#f1f5f9;font-size:24px;font-weight:900;margin:0 0 4px;">${ft(OFFER, 'Up to 3 Fast videos every 24h.', OFFER.copy.chip)}</p>
-                <p style="color:#64748b;font-size:13px;margin:0;">${ft(OFFER, 'No card. Free videos include a Kineo watermark.', 'No card. Trial credits export clean, watermark-free videos.')}</p>
+                <p style="color:#64748b;font-size:13px;margin:0;">${ft(OFFER, 'No card. Free videos include a Kineo watermark.', 'Trial credits export clean, watermark-free videos.')}</p>
               </div>
 
               <p style="color:#94a3b8;font-size:14px;margin:0 0 24px;line-height:1.7;">

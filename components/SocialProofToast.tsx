@@ -46,7 +46,7 @@ export default function SocialProofToast() {
     const raw = MESSAGES[idx]
     // A única mensagem que promete o free tier passa pela troca da oferta.
     const msg = raw.text === 'Up to 3 Fast previews every 24h — no card'
-      ? { ...raw, text: ft(OFFER, raw.text, `${OFFER.copy.chip} — no card`) }
+      ? { ...raw, text: ft(OFFER, raw.text, `${OFFER.copy.chip}`) }
       : raw
     const id = ++idRef.current
 

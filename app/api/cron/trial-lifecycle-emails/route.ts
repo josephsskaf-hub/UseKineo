@@ -1034,7 +1034,7 @@ function buildEmail(c: Candidate): { subject: string; text: string; html: string
       : cta(url, ctaLabel)
     const text = `Hey,
 
-Your Creator trial is live. ${creditLine} — every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.
+Your Creator trial is live. ${creditLine} — every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark.
 
 ${bodyLineSafe}
 ${topicsText}
@@ -1042,7 +1042,7 @@ Kineo Team
 usekineo.com`
     const html = wrap(`
   <p style="margin:0 0 14px;">Hey,</p>
-  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark, no card needed.</p>
+  <p style="margin:0 0 14px;"><strong>Your Creator trial is live.</strong> ${creditLine} &mdash; every engine except Studio (Kling, Veo and Hollywood) is unlocked, no watermark.</p>
   <p style="margin:0 0 14px;">${bodyLineSafe}</p>
   ${topicsHtml}
   ${sig}`)
@@ -1482,7 +1482,7 @@ usekineo.com`
 
 ${madeLine}. So we put ${EXTENSION_DAYS} more days back on it, starting now.
 
-${creditLine}. Same engine, same clean exports, no card needed: ${url}
+${creditLine}. Same engine, same clean exports: ${url}
 
 This is a one-time extension — after it, Creator goes back to being a paid plan.
 

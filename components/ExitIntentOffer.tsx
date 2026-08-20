@@ -339,7 +339,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           <p className="mt-2 text-sm" style={{ color: '#a8adb5', lineHeight: 1.6 }}>
             Type one idea, get a finished Short in about 3 minutes.
             {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — derivado; ver lib/freeTierOffer.ts. */}
-            <FreeTierCopy legacy="3 free videos every day · no card needed." on={`Creator trial on signup: ${TRIAL_GRANT_CREDITS_COPY} free credits · no card needed.`} />
+            <FreeTierCopy legacy="3 free videos every day · no card needed." on={`7-day Creator trial: ${TRIAL_GRANT_CREDITS_COPY} credits for $1 · cancel in one click.`} />
           </p>
           <a
             href="/signup"

@@ -6,6 +6,7 @@
 // para video de fora, o caminho e gerar/importar no Kineo (sem promessa de
 // upload avulso que nao existe — CTA leva pro signup + Studio).
 import type { Metadata } from 'next'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 
@@ -35,11 +36,11 @@ const FAQS = [
   },
   {
     q: 'Can I enhance a video I made in another tool?',
-    a: 'The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts start with a 50-credit trial, no card.',
+    a: 'The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts can start a 7-day Creator trial for $1 — 80 credits.',
   },
   {
     q: 'How much does it cost?',
-    a: 'Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 20 credits with Seedance. Every new account gets a free 50-credit trial.',
+    a: 'Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 20 credits with Seedance. The 7-day Creator trial costs $1 and includes 80 credits.',
   },
 ]
 
@@ -77,7 +78,7 @@ export default function AiVideoUpscalerPage() {
             href="/signup?utm_source=upscaler"
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
-            Try it free — 50 credits →
+            {`Try Creator free for 7 days — ${TRIAL_GRANT_CREDITS_COPY} credits →`}
           </Link>
           <Link
             href="/login"
