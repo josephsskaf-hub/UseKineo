@@ -172,6 +172,23 @@ Três achados que valem mais que o número:
 
 ---
 
+## Incidente #4 — OpenAI sem crédito (REINCIDÊNCIA do #1) · 19/08/2026
+
+(O #3 — fal.ai 13–15/08 — está documentado no log do `docs/CHECKUP-FORNECEDORES.md`.)
+
+| | |
+|---|---|
+| **Início** | 19/08 19:31Z (16:31 BRT — horário de pico da tarde) |
+| **Fim** | 19/08 ~21:50Z (último `openai_quota_dead` 21:50:26Z; 21 vídeos entregues depois, zero falha openai em 20/08) |
+| **Duração** | **~2h20** |
+| **Causa** | Saldo OpenAI zerado — a MESMA causa do #1. O auto-reload (gatilho $10) foi cruzado e **não segurou o zero**: ou não disparou, ou disparou tarde demais pro ritmo atual (~$6/dia = gatilho de $10 vale meio dia). A recarga que reergueu chegou DEPOIS do apagão. |
+| **Sintoma** | 27 `openai_quota_dead` + 18 `openai_quota_dead_degraded` + 9 `openai_capacity_stop_early` + ~52 `cinematic_dispatch_not_ok` + 18 `fast_dispatch_not_ok` + 9 `generate_script_not_ok` ≈ **~130 eventos** na janela. |
+| **Atingidos** | 5–8 pessoas na janela (3 users no quota_dead direto). |
+| **Como foi descoberto** | Check-up diário de 20/08 (a posteriori). O check-up vinha marcando OpenAI 🔴 há 3 dias com projeção de zerar 18–19/08 — **a projeção acertou o dia**. |
+| **Lição** | Gatilho de auto-recarga se mede em **dias de consumo, não dólares**, e se re-dimensiona toda vez que o tráfego muda de patamar. E: camada preventiva que aponta o painel não protege nada se o painel não for aberto — 3 dias de aviso não impediram 2h20 de apagão. |
+
+---
+
 ## Regra permanente, escrita para a próxima sprint
 
 > **Todo fornecedor pago do pipeline entra no painel `/admin/supplier-health` e no cron

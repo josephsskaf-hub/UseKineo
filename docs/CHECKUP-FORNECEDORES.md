@@ -11,6 +11,50 @@
 # todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
 # em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
 
+## 20/08/2026 — 🔴 ACONTECEU: a OpenAI ZEROU ontem à noite — 4º incidente de fornecedor (2h20 fora), e a recuperação prova que a proteção automática NÃO disparou a tempo
+
+**O que este check-up vinha avisando há 3 dias aconteceu: ontem 19/08, 19:31–21:50 UTC
+(16:31–18:50 BRT), a OpenAI ficou sem saldo e o produto quebrou por 2h20 — ~130 eventos de
+falha (27 `openai_quota_dead` + 18 degraded + 9 capacity_stop + ~52 cinematic_dispatch + 18
+fast_dispatch + 9 script) atingindo 5–8 pessoas no horário de pico da tarde. Depois das 21:50Z,
+recuperou de vez: 21 vídeos entregues, ZERO falha de OpenAI hoje. A conta que importa: se o
+auto-reload funcionasse, ele dispararia no gatilho de $10 ANTES do zero — o saldo cruzou o
+gatilho, zerou, e o produto caiu. Auto-reload que age depois do zero não é proteção. Fora isso:
+45 cadastros/24h (268/7d — patamar ~38/dia firme), 51 entregues, e o Creatomate acelerou de
+novo (1.873 cr/24h) no dia em que o prazo de decisão do fundador VENCE (hoje, 20/08).**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **OpenAI** | 🔴 **VERMELHO — ZEROU ontem (incidente #4, 2h20 fora) · auto-reload REPROVADO no teste real** | Banco: janela 19/08 19:31→21:50Z com 27 `openai_quota_dead` (3 users) + 18 `openai_quota_dead_degraded` + 9 `openai_capacity_stop_early` (5 users) + dispatches mortos em cascata · pós-21:50Z: **21 entregues, 0 falha openai hoje** (rabo de 8 eventos = 1 usuário retentando, não sistêmico) | O teste que o check-up de 16/08 esperava aconteceu sozinho: o gatilho de $10 foi cruzado e **nada segurou o zero** — quem reergueu (recarga ~22:00Z) chegou DEPOIS do apagão. 2h20 vs 14h do incidente 31/07: a diferença foi velocidade humana, não proteção. **Ação HOJE: abrir Billing history da OpenAI — (a) se houver cobrança automática de ~$25 entre 19–22h UTC de 19/08, o auto-reload existe mas dispara TARDE (gatilho $10 é baixo demais pro ritmo atual: subir pra $25+); (b) se a compra for manual/redonda, a proteção é decorativa — reconfigurar e salvar de verdade. E conferir o saldo atual: sem leitura, amanhã pode repetir.** |
+| **fal.ai** | 🔴 **VERMELHO até confirmação — 4º dia sem painel · sintomas leves aparecendo** | Banco: **25 renders IA em 24h** (23 Seedance + 1 Hollywood + 1 H3) ≈ **~$57/24h ESTIMADOS** (23×$1,97+$9,50+~$2; banco subconta ~1,9× → real pode ser ~$105) · 7d: 108 IA (92 Seedance + 12 Hollywood + 2 Veo + 1 Kling + 1 H3) ≈ **~$300 ESTIMADOS** · sintomas 24h: **2 `fal_poll_retries_exhausted` (22:43Z e 06:00Z hoje) + 1 `fal_poll_deadline` (23:33Z)**, 1 usuário | Consumo estimado desde a última leitura real (17/08, $27,67): **>$150** — só está de pé com recarga que ninguém confirmou. Os 3 poll-fails da madrugada são o primeiro sintoma em dias — pode ser latência do fal, pode ser começo de aperto. **Ação: o mesmo pedido pelo 4º dia — 2 minutos no painel: saldo ≥$200 E linha "Auto top-up" ATIVA no Credit activity. Ontem a OpenAI mostrou o custo de não abrir o painel.** |
+| **Creatomate** | 🟡 **AMARELO forte — o prazo de decisão VENCE HOJE (20/08) e o consumo acelerou** | Estimativa fórmula validada (6 acertos, razão 1,115): **ciclo ~11.132 de 30.000 (37%)** — 327 vídeos, 16.050s desde 10/08 · 24h: 54 vídeos, 2.700s ≈ **1.873 cr** (vs 1.311 ontem: +43%) · média 7d: 274 vídeos, 13.635s ≈ **1.351 cr/dia** | Restam ~18.868 cr. Média 7d: **14,0 dias → estoura ~03/09**. Ritmo de 24h: **10,1 dias → ~30/08**. Renovação 10/09: **faltam 6–11 dias de cota, e a margem só encolhe** (ontem eram 16-18 dias de folga; hoje 10-14). **Ação: a decisão é HOJE — o prazo é o que o próprio fundador fixou em 17/08 e manteve 3 vezes. O incidente de 09/08 (33h fora) foi exatamente esta curva deixada pra depois. Ontem a OpenAI deu o aviso de graça; o Creatomate está fazendo a mesma curva em câmera lenta.** |
+| **Resend** | 🟡 **AMARELO — 2º dia seguido acima de 100 aceitos sem UMA recusa (a inferência de plano pago ganhou força; falta o painel confirmar)** | Ledger `email_send_log`: **140 tentativas/24h** · por dia UTC: **17/08=56 · 18/08=116 ok · 19/08=151 (126 ok, 25 "falhas") · 20/08=48 parcial** · quebra 24h: downgraded_loss 37 · d0_welcome 34 · **hotlead_watermark 24 (consumidor NOVO)** · expired_offer_d5 21 · ending_soon 20 · outros 4 | **As 25 "falhas" de ontem NÃO são do Resend**: detail = "yield 62/100 (limite 60)" — é o throttle INTERNO da campanha hotlead se auto-limitando. O Resend em si aceitou 126 num dia (teto free = 100) sem um 429, pelo 2º dia seguido. Free cap real não deixaria passar 116 e 126. **Ação: confirmar o plano no painel do Resend e riscar o item de vez — ou descobrir que estamos vivendo de uma janela de contagem generosa. E o hotlead_watermark é um consumidor novo de 24/dia que ninguém dimensionou.** |
+| **Supabase Storage** | 🟢 VERDE — ~23 dias | Banco bruto **117,55 GB** (9.398 obj.) × 0,503 calibrado = **~59,1 GB de 100 GB (ESTIMATIVA)** · +3,5 GB brutos/24h ≈ +1,76 GB cobrados/dia | Folga ~41 GB ≈ **~23 dias no ritmo atual** (era ~33 ontem — o ritmo subiu 35%). Maior bucket: `broll` **76,07 GB brutos** (4.254 obj., +1,6 GB/24h). **Ação $0 segue: GC do broll — devolveria ~1,5 mês de folga sem cartão.** |
+
+**Saúde do produto:** fora da janela do apagão, saudável — 51 entregues/24h, 45 cadastros,
+patamar de ~38/dia firme. Mas o dia teve o pior evento de fornecedor desde 09/08: ~130 falhas
+em 2h20, todas evitáveis com o saldo que este check-up pede pra conferir há 3 dias.
+
+**Ação recomendada (nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **HOJE — OpenAI: Billing history + saldo.** Separar auto×manual na recarga de ~22:00Z de ontem. Se foi manual, o auto-reload segue decorativo e o incidente #4 se repete no próximo ciclo.
+2. **HOJE — Creatomate: decidir o plano.** O prazo é hoje e a cota não fecha o ciclo em nenhum ritmo medido.
+3. **HOJE — fal: 2 min de painel** (4º dia do mesmo pedido; poll-fails da madrugada são o primeiro sintoma).
+4. **HOJE — Resend: confirmar plano** (2 dias >100 aceitos = quase certeza de pago; "quase" não é veredito).
+5. **Esta semana, $0 — Storage:** GC do `broll`.
+
+**O insight deste check-up:** o incidente #4 é o primeiro que aconteceu COM o check-up olhando —
+e ele mostra o limite exato desta camada: eu vejo a curva, aviso a data, e o apagão acontece
+mesmo assim se o painel não for aberto. A camada preventiva detecta; quem protege é a recarga
+automática BEM configurada (gatilho dimensionado pro ritmo novo, não pro de julho). O gatilho
+de $10 da OpenAI era 5 dias de aviso no tráfego antigo; no atual é meio dia — mesmo funcionando,
+dispararia tarde. Regra que fica: **gatilho de auto-recarga se mede em DIAS de consumo, não em
+dólares** — e precisa ser re-dimensionado toda vez que o patamar de tráfego muda (é a mesma
+lição do 17/08, agora provada com sangue).
+
+**Não consegui medir:** saldo fal.ai, saldo OpenAI e plano ativo do Resend (painéis exigem
+login; sessão sem browser) — e por isso não sei separar manual×auto na recarga de ontem: só o
+Billing history separa.
+
 ## 19/08/2026 — 🔴🔴 3º dia no escuro em fal/OpenAI — e um fato NOVO no Resend: ontem passou de 100/dia SEM uma falha
 
 **41 cadastros em 24h (243 em 7d — o patamar novo de ~35/dia assentou), 43 renders (11 de IA),
