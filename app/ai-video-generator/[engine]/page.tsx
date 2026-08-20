@@ -70,7 +70,7 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'fast',
     name: 'Kineo 1',
     model: 'Kineo’s own stock-footage + TTS pipeline',
-    credits: 'Free (watermarked) · 1 credit for a clean export',
+    credits: 'Free (watermarked) · 5 credits for a clean export',
     tier: 'Free',
     h1: 'Kineo 1 — the free AI video generator that finishes the whole Short',
     intro:
@@ -80,7 +80,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kineo 1 really free?',
-        a: `Yes — Kineo 1 renders and plays with a watermark at no cost and with no credit card. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free export costs 1 credit on a paid plan.`,
+        a: `Yes — Kineo 1 renders and plays with a watermark at no cost and with no credit card. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free export costs 5 credits on a paid plan.`,
       },
       {
         q: 'How long does a Kineo 1 video take?',
@@ -115,7 +115,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: 'Seedance is the best value per generated video (20 credits) and handles most faceless Shorts. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 all require the Studio plan.',
+        a: 'Seedance is the best value per generated video (20 credits) and handles most faceless Shorts. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.',
       },
     ],
   },
@@ -134,7 +134,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: 'No — Kling 2.5 is a Studio-plan engine at 50 credits per video, and it is not included in the Creator trial. The engine you can run without a card is Kineo 1; the trial adds Seedance 1.5.',
+        a: 'Yes — every new account unlocks Kling 2.5 along with every other engine. It costs 50 credits per video, so the 80 free credits cover one. Trial films come out watermarked; a plan unlocks the clean download.',
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -161,7 +161,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: 'Not on Kineo — Veo 3.1 is a Studio-plan engine at 90 credits per video and is deliberately outside the free trial. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.',
+        a: 'Yes — Veo 3.1 is unlocked on every account at 90 credits per video and the 80 free credits fall just short of one — any plan or top-up covers it. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.',
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
@@ -294,7 +294,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
 
   const tierNote =
     e.tier === 'Studio'
-      ? `${e.name} is a Studio-plan engine — it is not part of the free trial.`
+      ? `${e.name} is unlocked on every account — the only limit is whether your credits cover it.`
       : e.tier === 'Creator'
         ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is unlocked on every new account — 80 free credits, no card. Trial films are watermarked; a plan unlocks the clean download.`)
         : ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)

@@ -11,6 +11,7 @@ import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço e grant desta tela saem da MESMA tabela
 // que a rota da Stripe cobra. Ver PLAN_LIMITS logo abaixo.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { creditCostFor } from '@/lib/credits/engineCost'
 
 interface AccountClientProps {
   email: string
@@ -436,7 +437,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                         entram no trial (invariante 2 de getEffectiveEntitlement)
                         e prometer o contrario aqui seria o caso Kling — a tela
                         destravando o que o servidor recusa com 402. */}
-                    <ReadOnlyRow label="Trial includes" value="Every engine except Studio · clean exports" />
+                    <ReadOnlyRow label="Trial includes" value="Every engine unlocked · watermarked exports" />
                     <ReadOnlyRow label="After the trial" value={ft(OFFER, '3 watermarked Fast videos / 24h', OFFER.copy.residual)} />
                   </>
                 ) : tier === 'free' ? (
@@ -444,7 +445,7 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                     <ReadOnlyRow label="Included credits" value="0" />
                     {(credits ?? 0) > 0 && <ReadOnlyRow label="Purchased credits" value={String(credits)} />}
                     {hasPaid ? (
-                      <ReadOnlyRow label="Legacy paid access" value="Clean Fast videos · 1 credit each" />
+                      <ReadOnlyRow label="Legacy paid access" value={`Clean Fast videos · ${creditCostFor('fast', true)} credits each`} />
                     ) : (
                       <ReadOnlyRow label="Never-paid allowance" value={ft(OFFER, '3 watermarked Fast videos / 24h', OFFER.copy.residual)} />
                     )}
@@ -541,9 +542,9 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                   </h3>
                   <p className="text-sm mb-3" style={{ color: 'var(--muted)', lineHeight: 1.6 }}>
                     {trialActive
-                      ? `Trial credits unlock every engine except Studio and export clean, watermark-free MP4s. When the trial ends, unspent trial credits are removed and free access is ${OFFER.copy.residual}.`
+                      ? `Trial credits unlock EVERY engine, Kling 3 included. Trial films carry a watermark — any paid plan unlocks the clean, watermark-free MP4. When the trial ends, unspent trial credits are removed and free access is ${OFFER.copy.residual}.`
                       : hasPaid
-                        ? 'Your legacy pack keeps clean Fast exports available at 1 credit each. Upgrade to a monthly plan when you want a recurring balance.'
+                        ? `Your legacy pack keeps clean Fast exports available at ${creditCostFor('fast', true)} credits each. Upgrade to a monthly plan when you want a recurring balance.`
                         : 'Never-paid free accounts can create, watch, download and share each Fast video with a watermark. The allowance grants no credits and does not include premium AI Generated video.'}
                   </p>
                   {/* "Purchased" e falso para o saldo do trial — ele foi
@@ -558,10 +559,12 @@ function AccountInner({ email, isPro, hasPaid, createdAt, planTier, trialActive 
                     className="inline-flex rounded-xl px-4 py-2.5 text-sm font-black"
                     style={{ background: '#2997ff', color: '#fff', textDecoration: 'none' }}
                   >
-                    {/* Quem esta em trial JA exporta limpo: vender "desbloqueie
-                        o export limpo" para ele e a mesma classe de mentira que
-                        a etiqueta FREE do Fast (f9a4a9b). */}
-                    {trialActive || hasPaid ? 'See monthly plans →' : 'Unlock clean, watermark-free MP4s →'}
+                    {/* KINEO-TETO-2026-08-20 — INVERTIDO. Antes o trial
+                        exportava limpo e vender "desbloqueie o export limpo"
+                        para ele era mentira. Agora o trial sai COM marca
+                        d'água, então essa é exatamente a oferta certa para
+                        quem está em trial — é o paywall do modelo novo. */}
+                    {hasPaid ? 'See monthly plans →' : 'Unlock clean, watermark-free MP4s →'}
                   </Link>
                 </div>
               ) : (

@@ -102,7 +102,7 @@ function bodyFor(seg: Segment, lead: Lead, userId: string): string {
 <p>Hey — Joseph here, founder of Kineo.</p>
 <p>You did something almost nobody does: you used your trial credits down to zero. That tells me the videos were worth making — and that something stopped you at the paying part.</p>
 <p>I'd genuinely like to know what it was. Price? A missing feature? Output quality on a specific niche?</p>
-<p>If it helps: we just cut every price. The Creator plan is <b>${CREATOR_PRICE}/month</b> (${TIER_CREDITS.basic} credits, clean exports, every engine except Studio) — same price every month, worldwide.</p>
+<p>If it helps: we just cut every price. The Creator plan is <b>${CREATOR_PRICE}/month</b> (${TIER_CREDITS.basic} credits, clean exports, every engine unlocked) — same price every month, worldwide.</p>
 <p style="margin:22px 0"><a href="https://usekineo.com/pricing?tier=basic&intent_campaign=hotlead_burned" style="background:#2997ff;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:bold">Keep making videos &rarr;</a></p>
 <p>And if it was something else — just hit reply. It comes straight to me, and I answer everything myself.</p>
 ${sig}`

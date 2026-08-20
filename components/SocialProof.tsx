@@ -185,7 +185,7 @@ export default function SocialProof() {
         {TRUST_SIGNALS.map((raw, i) => {
           // O selo 'free' promete a oferta — passa pela troca; os demais ficam.
           const s = raw.id === 'free'
-            ? { ...raw, title: ft(OFFER, raw.title, OFFER.copy.chip), sub: ft(OFFER, raw.sub, 'Trial exports are clean') }
+            ? { ...raw, title: ft(OFFER, raw.title, OFFER.copy.chip), sub: ft(OFFER, raw.sub, 'Every engine unlocked on signup') }
             : raw
           return <SignalCard key={s.id} signal={s} visible={visible} index={i} />
         })}

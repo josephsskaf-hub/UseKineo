@@ -310,8 +310,8 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
             {/* O que a concessão É, em unidades que a pessoa reconhece. "40
                 créditos" não significa nada para quem nunca gastou um. */}
             {trialVideos > 0
-              ? `${granted} credits included — about ${trialVideos} cinematic AI video${trialVideos === 1 ? '' : 's'}, no watermark, full length.`
-              : `${granted} credits included — cinematic AI engine, no watermark, full length.`}
+              ? `${granted} credits included — about ${trialVideos} cinematic AI video${trialVideos === 1 ? '' : 's'}, watermarked until you upgrade.`
+              : `${granted} credits included — cinematic AI engine, watermarked until you upgrade.`}
           </p>
           {counterRendered && (
             <p className="mt-1 text-xs font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>

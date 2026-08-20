@@ -496,7 +496,7 @@ export default function BestAiShortsGeneratorsPage() {
             narrate, a clip to caption, or an avatar to render. Kineo is the one that starts from
             nothing but a topic and hands you a finished, ready-to-post 9:16 Short: hook-first
             script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
-            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', 'every new account can start a 7-day Creator trial: $1 to start, 80 credits, every engine except Studio, card required.')}
+            it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', 'every new account gets 80 free credits with every engine unlocked, no card — films come out watermarked until you upgrade.')}
           </p>
           {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
               CRU para `/free-ai-shorts-generator`: nenhum `organic_cta_clicked`

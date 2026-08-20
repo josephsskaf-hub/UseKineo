@@ -133,7 +133,7 @@ export default async function StateOfAiShortsPage() {
       stat: `${s.fastSharePercent}%`,
       label: 'of videos use Fast Mode (stock footage)',
       detail:
-        `Stock-footage Fast Mode at 1 credit accounts for ${s.fastSharePercent}% of finished videos; ` +
+        `Stock-footage Fast Mode at 5 credits accounts for ${s.fastSharePercent}% of finished videos; ` +
         `premium generative engines account for ${s.premiumSharePercent}%. Creators overwhelmingly ` +
         `validate cheap first — the premium upgrade is the exception, not the norm.`,
     },

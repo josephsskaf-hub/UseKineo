@@ -8582,7 +8582,7 @@ export default function GenerateClient({
                   o ramo de baixo continua identico ao de hoje. */}
               <span>
                 {trialActive ? (
-                  <>You&apos;re in. <strong>Your trial credits unlock every engine except Studio, and your exports come out clean</strong> — we&apos;ve loaded an idea below.</>
+                  <>You&apos;re in. <strong>Your trial credits unlock EVERY engine, Kling 3 included &mdash; films come out watermarked until you upgrade</strong> — we&apos;ve loaded an idea below.</>
                 ) : (
                   <>You&apos;re in. <strong>Your Fast previews are free to create, watch, share and download with a watermark</strong> — we&apos;ve loaded an idea below.</>
                 )}
@@ -9690,8 +9690,8 @@ export default function GenerateClient({
                         ramos: durante o trial o Fast é PAGO (1 crédito, export
                         limpo), então a frase correta é a do ramo pago. */}
                     {credits >= 20
-                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : 'Paid Fast clean exports use 1 credit each.'}`
-                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : 'Paid Fast clean exports use 1 credit each.'}`}
+                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : `Paid Fast clean exports use ${creditCostFor('fast', true)} credits each.`}`
+                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : `Paid Fast clean exports use ${creditCostFor('fast', true)} credits each.`}`}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -12675,9 +12675,18 @@ function ModeSelector({
   // Seedance destrava; Kling/Veo/Hollywood NUNCA (cadeado "Studio" abaixo).
   // O servidor impõe o mesmo gate em generate-video-cinematic. Flag OFF ⇒
   // trialActive é false e tudo aqui fica idêntico ao comportamento atual.
+  // ⚠️ KINEO-TETO-UI-2026-08-20 — O CADEADO QUE ANULAVA A MUDANÇA.
+  // O servidor passou a liberar Kling/Veo/H3/Kling 3 para trial ativo
+  // (TRIAL_UNLOCKS_PREMIUM em generate-video-cinematic), mas ESTAS DUAS LINHAS
+  // continuavam `anyPaid` — então a interface desenhava 🔒 nos motores bons e
+  // o clique caía no modal de upgrade. Ou seja: a decisão de produto mais
+  // importante do dia não existia para o cliente, porque ele nunca chegava a
+  // ver o botão. Achado na auditoria pós-deploy, não em teoria.
+  // Regra que fica: gate de servidor e gate de UI são um PAR. Mexeu num, mexe
+  // no outro — senão o produto e a tela contam histórias diferentes.
   const seedanceUnlocked = anyPaid || trialActive
-  const klingUnlocked = anyPaid
-  const cinematicUnlocked = anyPaid
+  const klingUnlocked = anyPaid || trialActive
+  const cinematicUnlocked = anyPaid || trialActive
   const fastSelected = mode === 'fast'
   const seedanceSelected = mode === 'cinematic_ai' && aiEngine === 'seedance'
   const klingSelected = mode === 'cinematic_ai' && aiEngine === 'kling'
@@ -12711,7 +12720,7 @@ function ModeSelector({
                per Fast video, so their badge says so; free users keep FREE
                (downloadable watermark; clean export is the paid upgrade). */
             fastCostsCredit ? (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)' }}>1 credit</span>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)' }}>{creditCostFor('fast', true)} credits</span>
             ) : (
               <span className="text-xs font-black px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#5cb3ff', border: '1px solid rgba(41,151,255,.4)' }}>FREE</span>
             )
@@ -13824,7 +13833,7 @@ function WelcomeBanner({ onDismiss, trialLive, grantedCredits }: { onDismiss: ()
         ) : (
           // KINEO-GRANT-COPY-UNICA-2026-08-17 — era a PRIMEIRA frase que quem
           // acabou de se cadastrar lê, e prometia 40 quando a conta recebeu 50.
-          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${grant} free credits, every engine except Studio. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
+          <FreeTierCopy legacy="Create up to 3 watermarked Fast videos every 24 hours — we dropped a viral idea below. Hit Generate, or type your own. No card needed." on={`Your Creator trial is live — ${grant} free credits, every engine unlocked — Kling 3 included. We dropped a viral idea below. Hit Generate, or type your own. No card needed.`} />
         )}
       </span>
       <button

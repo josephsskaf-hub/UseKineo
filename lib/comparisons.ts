@@ -326,7 +326,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     // propósito: são dado verificado, com data de verificação.
     entryPrice: `Starter ${K(TIER_PRICES.starter.usd)}/month`,
     fullPricing:
-      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', '7-day Creator trial: $1, 80 credits; then 1 Fast/mo')}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Same price worldwide. 7-day money-back guarantee.`,
+      `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', '80 free credits, every engine, watermarked; then 1 Fast/mo')}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Same price worldwide. 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
     voice: 'AI voiceover generated from the script it wrote, with premium voices on higher tiers.',
