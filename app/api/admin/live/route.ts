@@ -133,13 +133,40 @@ export async function GET() {
         .in('user_id', ids)
         .gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString())
         .limit(2000)
+      // KINEO-SPEND-FULL-2026-08-20 (fundador: "quero saber onde os créditos
+      // foram gastos, se foi em fotos, vídeos ou áudios"). Vídeo vem dos
+      // claims acima; FOTO e ÁUDIO vêm das próprias tabelas — cada linha é
+      // uma geração cobrada, com o motor no campo `model`.
+      const dayIso = new Date(now - 24 * 60 * 60 * 1000).toISOString()
+      const imagesPromise = admin
+        .from('images').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
+      const audiosPromise = admin
+        .from('audios').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
       const [profRes, vidRes] = await Promise.all([
         admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
-      const claimsRes = await claimsPromise
+      const [claimsRes, imagesRes, audiosRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise])
+      // "🖼 3 fotos (schnell×2, seedream×1)" — o modelo diz o motor; contamos
+      // por pessoa. Custo exato por foto/áudio varia por motor (1-5cr) e mora
+      // no biller; aqui o objetivo é LEITURA — o que a pessoa fez, de relance.
+      const mediaBy = new Map<string, { img: Map<string, number>; aud: Map<string, number> }>()
+      const bump = (uid: string, kind: 'img' | 'aud', model: string) => {
+        const entry = mediaBy.get(uid) ?? { img: new Map(), aud: new Map() }
+        const m = entry[kind]
+        m.set(model, (m.get(model) ?? 0) + 1)
+        mediaBy.set(uid, entry)
+      }
+      for (const r of imagesRes.data ?? []) {
+        const uid = (r as { user_id: string }).user_id
+        if (uid) bump(uid, 'img', ((r as { model?: string }).model ?? '?').split('/').pop() ?? '?')
+      }
+      for (const r of audiosRes.data ?? []) {
+        const uid = (r as { user_id: string }).user_id
+        if (uid) bump(uid, 'aud', ((r as { model?: string }).model ?? '?').split('/').pop() ?? '?')
+      }
       // "Seedance×2 (40cr) · Kineo 1×3 (6cr)" — o extrato de hoje, por pessoa.
       const ENGINE_SHORT: Record<string, string> = {
         fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5',
@@ -212,12 +239,24 @@ export async function GET() {
           // estorno não conta). É a resposta direta do pedido do fundador —
           // "diz com o quê a pessoa usou".
           const spent = spentBy.get(p.id as string)
-          const spentOn = spent
-            ? [...spent.entries()]
-                .sort((a, b) => b[1].cr - a[1].cr)
-                .map(([q, v]) => `${ENGINE_SHORT[q] ?? q}×${v.n} (${v.cr}cr)`)
-                .join(' · ')
-            : null
+          const media = mediaBy.get(p.id as string)
+          const parts: string[] = []
+          if (spent) {
+            for (const [q, v] of [...spent.entries()].sort((a, b) => b[1].cr - a[1].cr)) {
+              parts.push(`🎬 ${ENGINE_SHORT[q] ?? q}×${v.n} (${v.cr}cr)`)
+            }
+          }
+          if (media && media.img.size > 0) {
+            const total = [...media.img.values()].reduce((a, b) => a + b, 0)
+            const det = [...media.img.entries()].map(([m, n]) => `${m}×${n}`).join(', ')
+            parts.push(`🖼 ${total} foto${total > 1 ? 's' : ''} (${det})`)
+          }
+          if (media && media.aud.size > 0) {
+            const total = [...media.aud.values()].reduce((a, b) => a + b, 0)
+            const det = [...media.aud.entries()].map(([m, n]) => `${m}×${n}`).join(', ')
+            parts.push(`🎙 ${total} áudio${total > 1 ? 's' : ''} (${det})`)
+          }
+          const spentOn = parts.length > 0 ? parts.join(' · ') : null
 
           return {
             user_id: p.id as string,

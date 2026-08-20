@@ -1646,6 +1646,44 @@ export async function POST(req: NextRequest) {
           if (fit < secondsOf(c)) c.seconds = fit
         }
       }
+
+      // ═══ KINEO-TAIL-2026-08-20 — O APAGÃO DO FINAL (feedback do Joyita) ═══
+      // O fundador assistiu o primeiro Kling 3 pós-Contrato: 1 minuto ✓,
+      // legendas ✓, música ✓ — e "um apagão de 3-4 segundos NA MESMA CENA, no
+      // final, porque acho que faltou história ali". Diagnóstico dele exato:
+      // o C2 estica o plano até o piso de 60s+, mas a NARRAÇÃO é o roteiro
+      // verbatim (C1) e acaba quando o texto acaba. A última cena fica com um
+      // rabo mudo — e o fim é o pior lugar possível para silêncio, porque é o
+      // momento do "follow" e a última memória do vídeo.
+      //
+      // O CONSERTO NEGOCIA ENTRE OS DOIS CONTRATOS: apara o rabo mudo da
+      // ÚLTIMA cena narrada até o fim real da fala (+0.8s de respiro), mas
+      // NUNCA deixa o total cair abaixo de 61s (o piso do TikTok Rewards com
+      // margem). Se aparar tudo furaria o piso, apara só até o piso — melhor
+      // 1-2s de música de fechamento do que perder a monetização do vídeo
+      // inteiro. Cena 'host'/'dialogue' no final não é tocada: a fala DELA já
+      // é o clipe.
+      {
+        const TIKTOK_FLOOR_S = 61
+        const last = hollywoodClips[hollywoodClips.length - 1]
+        const lastIdx = hollywoodClips.length - 1
+        const lastMeasured = measured.find((m) => m.sceneIdx === lastIdx)
+        if (last && lastMeasured && (last.engine === 'support' || last.engine === 'cinematic')) {
+          const totalNow = hollywoodClips.reduce((acc, c) => acc + secondsOf(c), 0)
+          const speechEnd = Math.round((lastMeasured.dur + 0.8) * 10) / 10
+          const tail = secondsOf(last) - speechEnd
+          if (tail > 1) {
+            // quanto dá pra aparar sem furar o piso
+            const maxTrim = Math.max(0, totalNow - TIKTOK_FLOOR_S)
+            const trim = Math.min(tail, maxTrim)
+            if (trim > 0.5) {
+              last.seconds = Math.round((secondsOf(last) - trim) * 10) / 10
+              console.log(`[compose] KINEO-TAIL: última cena aparada em ${trim.toFixed(1)}s (rabo mudo era ${tail.toFixed(1)}s; total ${totalNow.toFixed(1)}s → ${(totalNow - trim).toFixed(1)}s, piso ${TIKTOK_FLOOR_S}s preservado)`)
+            }
+          }
+        }
+      }
+
       // Timeline FINAL (pos-ajuste) → offsets e endCaps das narracoes.
       const narrationBlocks: HollywoodNarrationBlock[] = []
       {
