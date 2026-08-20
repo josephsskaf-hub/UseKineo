@@ -74,10 +74,30 @@ export type RenderProfile = {
   fps: number
 }
 
+// KINEO-24FPS-2026-08-20 — 30 → 24 fps, decisão do fundador com a cota do
+// Creatomate apertando (37% do ciclo consumido faltando 21 dias, déficit
+// medido de 9.500-20.500 créditos até a renovação de 10/09).
+//
+// POR QUE 24 E NÃO OUTRA COISA: o custo do fornecedor é linear em fps
+// (width×height×fps×segundos/1e8), então 30→24 corta 20% do consumo de render
+// PARA SEMPRE, sem tocar em resolução. E 24 fps não é uma degradação
+// disfarçada de economia: é a taxa do CINEMA há um século. O produto se vende
+// como cinematográfico ("Studio", "engine films") — 24 fps é mais coerente com
+// a promessa do que 30, que é taxa de broadcast/TV. Num vertical de 60s com
+// movimento de câmera lento, que é exatamente o nosso conteúdo, a diferença é
+// invisível; o que apareceria em 24 fps é panorâmica rápida, e o
+// STABLE_SHOT_SUFFIX do router já proíbe isso em toda cena de apoio.
+//
+// O QUE ISSO NÃO RESOLVE (dito na cara para ninguém se enganar depois): 24 fps
+// leva a cota de ~14 para ~17,5 dias no ritmo médio, e faltam 21 até a
+// renovação. É fôlego, não solução — o ciclo continua sem fechar se o tráfego
+// mantiver o ritmo. A decisão de plano segue de pé.
+//
+// Reversível em 1 minuto sem deploy: KINEO_RENDER_FPS=30 na Vercel.
 export const DEFAULT_RENDER_PROFILE: RenderProfile = {
   width: 1080,
   height: 1920,
-  fps: 30,
+  fps: 24,
 }
 
 // Limites de sanidade. Não são gosto: fora deles o Creatomate recusa o job ou
