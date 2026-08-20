@@ -231,9 +231,12 @@ export async function GET() {
           // e um Kineo 1 debitado (1-2cr pra conta trial) virava mistério.
           const tcu = (p as { trial_credits_used?: unknown }).trial_credits_used
           const tcg = (p as { trial_credits_granted?: unknown }).trial_credits_granted
+          // "4 of 50 used" ao lado de um saldo de 46 obriga quem lê a fazer
+          // a conta de cabeça. Agora a linha diz as duas coisas em português:
+          // quanto GASTOU e quanto SOBRA do trial.
           const creditsUsedLabel =
             typeof tcu === 'number' && typeof tcg === 'number' && tcg > 0
-              ? `${tcu} of ${tcg} used`
+              ? `gastou ${tcu} dos ${tcg} do trial · sobram ${Math.max(0, tcg - tcu)}`
               : null
           // O extrato de hoje: em QUÊ os créditos foram (só débitos efetivos;
           // estorno não conta). É a resposta direta do pedido do fundador —
@@ -243,17 +246,23 @@ export async function GET() {
           const parts: string[] = []
           if (spent) {
             for (const [q, v] of [...spent.entries()].sort((a, b) => b[1].cr - a[1].cr)) {
-              parts.push(`🎬 ${ENGINE_SHORT[q] ?? q}×${v.n} (${v.cr}cr)`)
+              // KINEO-LIVE-LEGIVEL-2026-08-20 (fundador: "1x3 nao da pra
+              // entender") — o nome do motor TERMINA em número ("Kineo 1"),
+              // então "Kineo 1×3" lia como parte do nome. A quantidade vai
+              // para a FRENTE e o crédito ganha rótulo: "3 vídeos no Kineo 1
+              // · 4 créditos". Ninguém precisa decifrar.
+              const plural = v.n === 1 ? 'vídeo' : 'vídeos'
+              parts.push(`🎬 ${v.n} ${plural} no ${ENGINE_SHORT[q] ?? q} · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}`)
             }
           }
           if (media && media.img.size > 0) {
             const total = [...media.img.values()].reduce((a, b) => a + b, 0)
-            const det = [...media.img.entries()].map(([m, n]) => `${m}×${n}`).join(', ')
+            const det = [...media.img.entries()].map(([m, n]) => `${n} no ${m}`).join(', ')
             parts.push(`🖼 ${total} foto${total > 1 ? 's' : ''} (${det})`)
           }
           if (media && media.aud.size > 0) {
             const total = [...media.aud.values()].reduce((a, b) => a + b, 0)
-            const det = [...media.aud.entries()].map(([m, n]) => `${m}×${n}`).join(', ')
+            const det = [...media.aud.entries()].map(([m, n]) => `${n} no ${m}`).join(', ')
             parts.push(`🎙 ${total} áudio${total > 1 ? 's' : ''} (${det})`)
           }
           const spentOn = parts.length > 0 ? parts.join(' · ') : null

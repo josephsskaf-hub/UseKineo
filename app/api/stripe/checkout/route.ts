@@ -708,7 +708,21 @@ async function buildAndRedirect(
   // cobrança e o valor aparecem antes do botão; (2) o Stripe manda o aviso
   // oficial 7 dias antes via customer.subscription.trial_will_end e nós
   // mandamos o nosso; (3) cancelar é um clique no painel da conta.
-  const wantsTrial = req.nextUrl.searchParams.get('trial') === '1'
+  // ⚠️ O TRIAL É EXCLUSIVO DO CREATOR, e a razão é do fundador: "se for o
+  // Starter ele vai usar 80 créditos e vai poder comprar um plano mais
+  // barato?". Está certo — seria incoerente em dois níveis:
+  //   1. VALOR: o trial dá 80 créditos e o Starter dá 40. A pessoa
+  //      experimentaria um serviço MELHOR do que o que vai pagar, e o
+  //      primeiro mês real seria um downgrade. Decepção programada.
+  //   2. MARGEM: o trial custa até $6,44 e o Starter líquido é $6,50. O
+  //      primeiro mês fecharia em zero — pagaríamos para adquirir alguém
+  //      que mal cobre o próprio custo de aquisição.
+  // No Creator a conta fecha: 80cr de trial ≈ 90cr do plano (a pessoa testa
+  // EXATAMENTE o que vai comprar) e $14,26 líquidos cobrem o trial com folga.
+  // O gate é no SERVIDOR de propósito: link adulterado com ?trial=1&tier=
+  // starter não fura. Starter e Studio seguem disponíveis para compra direta.
+  const TRIAL_TIER = 'basic' as const
+  const wantsTrial = req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
   const TRIAL_DAYS = 7
   const checkoutMetadata = {
     tier,

@@ -187,7 +187,10 @@ export default function PricingCards({
     // escolhe AQUI qual plano será cobrado, que é o que elimina a surpresa
     // (surpresa no dia da cobrança = contestação de cartão = conta Stripe em
     // risco). Anual não entra: quem assina um ano não está testando.
-    const trialParam = alreadySubscribed ? '' : '&trial=1' // este card é sempre mensal
+    // Trial só no Creator (decisão do fundador): no Starter a pessoa testaria
+    // com 80 créditos para assinar um plano de 40 — e $7 não cobre o custo do
+    // trial. O servidor também recusa, então link adulterado não fura.
+    const trialParam = !alreadySubscribed && tier === 'basic' ? '&trial=1' : ''
     const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}${trialParam}`, {
       tier,
       pricing_surface: 'generate_step_1',
@@ -343,7 +346,7 @@ export default function PricingCards({
             label:
               purchasing === 'starter'
                 ? 'Loading…'
-                : (alreadySubscribed ? 'Continue with Starter' : 'Start free week — Starter'),
+                : 'Continue with Starter',
             onClick: () => handleBuy('starter'),
             loading: purchasing === 'starter',
           }}
@@ -370,9 +373,14 @@ export default function PricingCards({
             label:
               purchasing === 'basic'
                 ? 'Loading…'
-                : selectedPlan === 'basic'
-                  ? 'Continue with Creator'
-                  : PLANS.basic.cta,
+                // KINEO-TRIAL-CARTAO-2026-08-20 — a semana grátis é a oferta
+                // do Creator e precisa estar NO BOTÃO. É o único plano com
+                // trial, e é assim que ele vira o degrau óbvio da escada.
+                : !alreadySubscribed
+                  ? 'Start your free week →'
+                  : selectedPlan === 'basic'
+                    ? 'Continue with Creator'
+                    : PLANS.basic.cta,
             onClick: () => handleBuy('basic'),
             loading: purchasing === 'basic',
           }}
