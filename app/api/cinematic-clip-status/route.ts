@@ -27,7 +27,20 @@ const HOST_PRESENTER_MODEL = 'fal-ai/kling-video/ai-avatar/v2/standard'
 // kling scene is anchored its per-scene model is this i2v id, which the signed
 // claim records and this poller must accept or anchored generations 503 here.
 const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
+// ⚠️ KINEO-H3-POLLER-2026-08-20 — O SEXTO VALOR CRAVADO QUE O H3 EXPÔS.
+// Este poller mantém a PRÓPRIA lista de modelos, e o H3 não estava nela:
+// todas as 9 cenas do primeiro render válido (fundador, 05:59) subiram pra
+// fal normalmente, mas cada consulta de status respondia 503 aqui — foram os
+// 375 erros 5xx da madrugada em /api/cinematic-clip-status. O comentário do
+// KLING_I2V acima já AVISAVA ("this poller must accept or anchored
+// generations 503 here") e mesmo assim a lista ficou para trás de novo.
+// Ela deveria importar de lib/hollywood/router; fica anotado — hoje o
+// conserto mínimo é adicionar os dois endpoints do H3.
+const H3_T2V_MODEL = 'minimax/h3/text-to-video'
+const H3_I2V_MODEL = 'minimax/h3/image-to-video'
 const ALLOWED_MODELS = new Set([
+  H3_T2V_MODEL,
+  H3_I2V_MODEL,
   SEEDANCE_MODEL,
   KLING_MODEL,
   VEO_MODEL,
