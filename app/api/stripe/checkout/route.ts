@@ -571,12 +571,15 @@ function autopilotPilotPriceIdOverride(currency: Currency): string | null {
 // (checkPricingInvariants) so the next reprice cannot silently break it again.
 // The SKU ids stay topup40/topup120 — they are the ?pack= URL keys and are
 // hard-coded in the Generate screen.
-type TopupId = 'topup40' | 'topup120' | 'topup100'
+type TopupId = 'topup40' | 'topup120' | 'topup100' | 'topup300'
 const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; description: string; prices: Record<Currency, number> }> = {
   topup40:  { credits: TOPUP_CREDITS.topup40,  name: 'Kineo — +30 credits', description: 'One-time: 30 credits (1 AI-generated video plus 10 Fast videos). No subscription.', prices: TOPUP_PRICES.topup40 },
   topup120: { credits: TOPUP_CREDITS.topup120, name: 'Kineo — +65 credits', description: 'One-time: 65 credits (3 AI-generated videos plus 5 Fast videos). No subscription.',   prices: TOPUP_PRICES.topup120 },
   // KINEO-TOPUP100-2026-08-17 — o pacote-ancora (ver lib/checkoutPricing).
   topup100: { credits: TOPUP_CREDITS.topup100, name: 'Kineo — +100 credits', description: 'One-time: 100 credits (5 AI-generated videos). Best value. No subscription.', prices: TOPUP_PRICES.topup100 },
+  // KINEO-TOPUP300-2026-08-20 — o nome diz o FILME, não o crédito: é o único
+  // pacote que compra o motor da vitrine, e é assim que ele se vende.
+  topup300: { credits: TOPUP_CREDITS.topup300, name: 'Kineo — 2 Kling 3 films (300 credits)', description: 'One-time: 300 credits — enough for two full Kling 3 films, our top cinematic engine. Best value per credit. No subscription.', prices: TOPUP_PRICES.topup300 },
 }
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time "AI Avatar packs"
@@ -2436,7 +2439,7 @@ export async function GET(req: NextRequest) {
         )
       }
       // KINEO-TOPUP-2026-07-06 — AI credit top-ups (Creator+).
-      if (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100') {
+      if (packParam === 'topup40' || packParam === 'topup120' || packParam === 'topup100' || packParam === 'topup300') {
         return await buildTopupAndRedirect(req, packParam, true)
       }
       // KINEO-BULK-2026-07-27 — pacotes de atacado. Precisa vir ANTES do

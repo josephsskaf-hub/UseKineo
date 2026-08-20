@@ -446,6 +446,16 @@ export const TOPUP_CREDITS = {
   // ~\$0.03/cr). Segue 43% acima do \$/cr do Creator — nunca canibaliza a
   // assinatura.
   topup100: 75,
+  // ═══ KINEO-TOPUP300-2026-08-20 — O PACOTE QUE COMPRA O NOSSO MELHOR MOTOR ═
+  // Pedido do fundador, e ele nasceu de um defeito de desenho que só ficou
+  // visível quando ele perguntou "existe top-up de 150?": NÃO existia. Tínhamos
+  // o Kling 3 (150cr) na vitrine — nos cards da home, no vídeo que o fundador
+  // posta — e nenhum jeito limpo de comprá-lo avulso. Quem quisesse um precisava
+  // somar dois pacotes e ficar com troco. Fricção no exato momento em que a
+  // pessoa JÁ decidiu gastar.
+  // 300 = DOIS filmes Kling 3, que é como o fundador pediu e é melhor unidade:
+  // um filme é teste, dois é uso.
+  topup300: 300,
 } as const
 
 export type TopupId = keyof typeof TOPUP_CREDITS
@@ -780,6 +790,7 @@ export function checkPricingInvariants(): string[] {
   claim(TOPUP_USD_PRICES.topup40, 'topup40')
   claim(TOPUP_USD_PRICES.topup100, 'topup100')
   claim(TOPUP_USD_PRICES.topup120, 'topup120')
+  claim(TOPUP_USD_PRICES.topup300, 'topup300')
   claim(AUTOPILOT_PILOT_PRICES.usd, 'pilot:autopilot')
   for (const id of BULK_PACK_IDS) claim(BULK_PACKS[id].usdMinor, `bulk:${id}`)
   // Os anuais são mode:'subscription' HOJE e não alcançam o Path A do webhook.
@@ -869,12 +880,23 @@ export const TOPUP_PRICES: Record<TopupId, Record<CheckoutCurrency, number>> = {
   topup40: { usd: 590 },
   topup100: { usd: 1490 },
   topup120: { usd: 1290 },
+  // $49.90 / 300 = $0.1663 por crédito. Escolhido contra duas âncoras:
+  //   · o INVARIANTE (1) deste arquivo — todo top-up custa mais por crédito
+  //     que o plano mais barato (Studio, $0.1611). Passa por 3%, o que é
+  //     apertado de propósito: é o maior pacote, então é o mais barato por
+  //     crédito, como manda qualquer escada de volume. Se o Studio um dia
+  //     ficar mais caro por crédito, a checagem no fim deste arquivo AVISA.
+  //   · o que a pessoa paga HOJE para chegar a 300cr: 4× topup100 = $59.60.
+  //     O pacote novo é 16% mais barato e não deixa troco.
+  // Margem: líquido $48.15 contra $23.70 de dois Kling 3 → 51%.
+  topup300: { usd: 4990 },
 }
 
 /** USD list price of each top-up SKU, in cents. Derivado de TOPUP_PRICES. */
 export const TOPUP_USD_PRICES: Record<TopupId, number> = {
   topup40: TOPUP_PRICES.topup40.usd,
   topup100: TOPUP_PRICES.topup100.usd,
+  topup300: TOPUP_PRICES.topup300.usd,
   topup120: TOPUP_PRICES.topup120.usd,
 }
 

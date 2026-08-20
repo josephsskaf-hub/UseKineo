@@ -13500,8 +13500,18 @@ function UpgradeModal({
                 {
                   id: 'topup100',
                   label: `+${TOPUP_CREDITS.topup100} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / 20)} AI videos ⭐ best value`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / 20)} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup100[currency]) : '—',
+                },
+                // KINEO-TOPUP300-2026-08-20 — o único pacote que compra o motor
+                // da vitrine. O selo "best value" migra do topup100 (que não
+                // compra Kling nenhum) para cá, onde ele é literalmente verdade:
+                // menor preço por crédito dos quatro.
+                {
+                  id: 'topup300',
+                  label: `+${TOPUP_CREDITS.topup300} credits`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup300 / 150)} Kling 3 films ⭐ best value`,
+                  price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup300[currency]) : '—',
                 },
               ].map((t) => (
                 <button

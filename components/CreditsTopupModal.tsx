@@ -28,7 +28,12 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 const PACKS: Array<{ id: TopupId; badge?: string }> = [
   { id: 'topup40' },
   { id: 'topup120' },
-  { id: 'topup100', badge: 'Best value' },
+  { id: 'topup100' },
+  // KINEO-TOPUP300-2026-08-20 — o pacote que compra DOIS Kling 3, o motor da
+  // vitrine. Vira o destacado: é o único que compra um filme inteiro do topo
+  // do catálogo, e "Best value" agora é verdade literal (menor $/crédito dos
+  // quatro). O selo velho estava no topup100, que não compra Kling nenhum.
+  { id: 'topup300', badge: 'Best value' },
 ]
 
 export default function CreditsTopupModal({
@@ -132,6 +137,10 @@ export default function CreditsTopupModal({
             // a linha "≈ N AI films" já mudou de valor sozinha (5 → 3) — que é
             // exatamente o comportamento que se quer de um número derivado.
             const films = Math.floor(cr / creditCostFor('cinematic_ai', true))
+            // Para os pacotes que alcançam o Kling 3, o número que VENDE não é
+            // "15 filmes Seedance", é "2 filmes Kling 3" — o motor da vitrine.
+            // Derivado, nunca cravado (o Kling 3 já mudou de preço uma vez).
+            const kling3 = Math.floor(cr / creditCostFor('cinematic_hollywood', true))
             const highlighted = !!badge
             return (
               <button
@@ -198,7 +207,7 @@ export default function CreditsTopupModal({
                     </span>
                     <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, marginTop: 2 }}>+{cr} credits</span>
                     <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b', marginTop: 2 }}>
-                      ≈ {films} AI {films === 1 ? 'film' : 'films'}
+                      {kling3 >= 1 ? `${kling3} Kling 3 ${kling3 === 1 ? 'film' : 'films'}` : `≈ ${films} AI ${films === 1 ? 'film' : 'films'}`}
                     </span>
                   </>
                 )}
