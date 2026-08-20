@@ -1631,7 +1631,17 @@ export async function POST(req: NextRequest) {
       // host tem a fala DENTRO do clipe e nao mudam.
       for (const m of measured) {
         const c = hollywoodClips[m.sceneIdx]
-        if (c && c.engine === 'support') {
+        // ⚠️ KINEO-H3-DURACAO-2026-08-20 — NO H3 O ENCOLHIMENTO E PROIBIDO.
+        // O GAPFIX encolhe a cena pro tamanho da narração medida (+0.6s). No
+        // Kling isso rouba pouco: as cenas de diálogo (não narradas, fala
+        // nativa) seguram a duração. No H3 TODA cena é narrada — então TODAS
+        // encolhiam, e o primeiro render real saiu com 54s de um plano de 65s
+        // (medido: os 9 clipes da fal vieram EXATOS, 5.18/10.14s; os 11s
+        // sumiram aqui). 54s < 60s = fora do TikTok Creator Rewards, a regra
+        // de negócio nº1 da casa. Com os clipes mudos (muteClipAudio) e a
+        // cama musical, o respiro pós-narração é música — não silêncio, não
+        // voz fantasma. O clipe preenche os segundos que o plano prometeu.
+        if (c && c.engine === 'support' && quality !== 'cinematic_h3') {
           const fit = Math.max(3, Math.round((m.dur + 0.6) * 10) / 10)
           if (fit < secondsOf(c)) c.seconds = fit
         }
@@ -1700,6 +1710,8 @@ export async function POST(req: NextRequest) {
           watermark: forced,
           endCard: forced,
           musicUrl: hollywoodMusicUrl,
+        // KINEO-H3-AUDIO-2026-08-20 — ver o comentário no builder.
+        muteClipAudio: quality === 'cinematic_h3',
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

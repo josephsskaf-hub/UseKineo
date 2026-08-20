@@ -2653,6 +2653,7 @@ export function buildHollywoodCreatomateSource({
   narrationBlocks,
   watermark = false,
   musicUrl = null,
+  muteClipAudio = false,
 }: {
   clips: HollywoodClipInput[]
   narrationBlocks: HollywoodNarrationBlock[]
@@ -2663,6 +2664,15 @@ export function buildHollywoodCreatomateSource({
   // narracoes como "apagoes" e o filme como "sem brilho". Uma cama musical
   // continua (mood-matched, 7%) costura os respiros e da cinema ao conjunto.
   musicUrl?: string | null
+  // ⚠️ KINEO-H3-AUDIO-2026-08-20 — o MiniMax H3 IGNORA generate_audio:false e
+  // devolve TODO clipe com trilha própria (medido por ffprobe no primeiro
+  // render real: pico de −0.2 dB — fala alta e clara). Com o volume ambiente
+  // de 35-55% desta tabela, a voz que o MODELO inventou tocava por baixo da
+  // nossa narração — o fundador ouviu a legenda dizer uma frase e "o senhor
+  // de casaco" repeti-la segundos depois. Era o próprio clipe falando.
+  // true = todo clipe entra a 0%: no H3 a única voz é a nossa narração (C1),
+  // e a ambiência vem da trilha musical, não do modelo.
+  muteClipAudio?: boolean
 }): Record<string, unknown> {
   const cleanClips = clips.filter((c) => typeof c.url === 'string' && c.url.trim().length > 0)
   if (cleanClips.length === 0) {
@@ -2798,7 +2808,7 @@ export function buildHollywoodCreatomateSource({
       fit: 'cover',
       loop: clip.engine !== 'host',
       x: '50%', y: '50%', width: '100%', height: '100%',
-      volume: HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%',
+      volume: muteClipAudio ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
       ...(HOLLYWOOD_CROSSFADE && i > 0
         ? { enter_transition: { type: 'fade', duration: HOLLYWOOD_CROSSFADE_SECONDS } }
         : {}),
