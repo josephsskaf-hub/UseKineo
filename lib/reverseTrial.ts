@@ -84,7 +84,30 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
 // Studio' mas 40 creditos NAO compravam um Kling 2.5 (50). Agora o menu do
 // trial e honesto: 2 Seedance OU 1 Kling 2.5. Custo extra por usuario que
 // escolher o premium: <\$1.
-export const TRIAL_CREDIT_CAP = 50
+//
+// ═══ KINEO-TRIAL-80-2026-08-20 — O TRIAL PASSA A VALER 4 FILMES ═══════════
+// 50 → 80, e o número não é gosto: é o limiar de compra, medido em 854 contas.
+//     1 vídeo feito  → 0,33% assinam
+//     2-3 vídeos     → 0,86%
+//     4-6 vídeos     → 11,76%   ← 24× mais
+//     7+ vídeos      → 18,18%
+// A decisão de comprar não acontece no checkout, acontece no QUARTO VÍDEO. E o
+// trial de 50 créditos DESLIGAVA a pessoa no segundo (2 × 20cr no Seedance) —
+// ou seja, a régua estava calibrada dois filmes ABAIXO do ponto em que o
+// produto se vende sozinho. Estávamos pagando o custo de aquisição inteiro e
+// desistindo um passo antes do gol.
+//
+// 80 = 4 filmes no motor mais caro que o trial libera (Seedance, 20cr). O
+// desenho é do fundador e é melhor que uma régua fixa: em vez de impor "4
+// filmes", damos o VALOR de 4 filmes e a pessoa escolhe a mistura — 4 Seedance,
+// ou 16 no Kineo 1, ou qualquer combinação. Quem escolhe o barato passa MUITO
+// além do limiar, que é exatamente o que queremos.
+//
+// O QUE CUSTA: pior caso $6,44 por trial (4 × $1,61, o Seedance já em 720p —
+// ver KINEO-SEEDANCE-720-MARGEM). Antes dos consertos de margem de hoje esse
+// mesmo trial custaria $14,68; foi a margem arrumada que pagou este aumento.
+// Hollywood/Veo/Kling seguem fora do trial por design — 80 não compra nenhum.
+export const TRIAL_CREDIT_CAP = 80
 
 /**
  * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):

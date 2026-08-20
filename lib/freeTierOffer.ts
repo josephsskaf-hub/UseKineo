@@ -140,29 +140,36 @@ const OFF_COPY: FreeTierCopy = {
 // A trava fica na direção que já existe: reverseTrial.ts (que JÁ importa este
 // arquivo) carrega uma asserção de tipo que quebra o `tsc` se os dois números
 // divergirem. Mexer no teto sem mexer na copy passa a não compilar.
-export const TRIAL_GRANT_CREDITS_COPY = 50
+export const TRIAL_GRANT_CREDITS_COPY = 80 // KINEO-TRIAL-80-2026-08-20 — espelho de TRIAL_CREDIT_CAP (a trava de tipo em reverseTrial.ts quebra o build se divergirem)
 
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
 // o 50% é exclusivo dos e-mails D5/D10 pós-trial, jamais superfície pública.
 const G = TRIAL_GRANT_CREDITS_COPY
+// KINEO-TRIAL-FILMES-2026-08-20 — "80 credits" não significa nada para quem
+// acabou de chegar; "4 AI films" significa tudo. É a mesma regra que a página
+// de preços já segue (fala em filmes, não em créditos) e agora vale também na
+// porta de entrada — que é onde a pessoa decide se vale a pena criar a conta.
+// Derivado do grant ÷ custo do Seedance (o motor mais caro que o trial abre),
+// nunca digitado: se o grant mudar, o número de filmes acompanha sozinho.
+const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 
 const ON_COPY: FreeTierCopy = {
   headline:
-    `Start free — your first video is on us. New accounts get a full Creator trial: ${G} credits, every engine except Studio.`,
+    `Start free — your first video is on us. New accounts get a full Creator trial: ${TRIAL_FILMS} AI films, every engine except Studio.`,
   residual: '1 free Fast video/month',
   sentence:
-    `Every new account starts with a full Creator trial — ${G} credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
-  chip: `Free Creator trial on signup — ${G} credits`,
-  chipLower: `free Creator trial on signup — ${G} credits`,
+    `Every new account starts with a full Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
+  chip: `Free Creator trial on signup — ${TRIAL_FILMS} AI films`,
+  chipLower: `free Creator trial on signup — ${TRIAL_FILMS} AI films`,
   planCardBody:
-    `Start free — your first video is on us. New accounts get a full Creator trial: ${G} credits, every engine except Studio. Afterwards, 1 free Fast video/month.`,
+    `Start free — your first video is on us. New accounts get a full Creator trial: ${TRIAL_FILMS} AI films, every engine except Studio. Afterwards, 1 free Fast video/month.`,
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
     "You've used this month's free Fast video. Keep creating with Starter — same price worldwide. Cancel anytime.",
   cmpKineoFree:
-    `Kineo: every new account starts with a full Creator trial — ${G} credits, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
+    `Kineo: every new account starts with a full Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio, no card — and keeps 1 free Fast video per month after it ends.`,
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
   limitHitEmailIntro:
     "You've used this month's free Fast video — the free plan includes 1 per month.",
@@ -173,7 +180,7 @@ const ON_COPY: FreeTierCopy = {
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
-  ctaPrimary: `Start free — ${G} Creator credits →`,
+  ctaPrimary: `Start free — ${TRIAL_FILMS} AI films on us →`,
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
   ctaHeading: 'Start free — your first video is on us',
 }
