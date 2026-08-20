@@ -60,11 +60,11 @@ const ENGINES: {
   // "Free" e desde hoje custa 2 créditos para quem paga (dizer Free e cobrar 2
   // é cobrança-surpresa, a mesma classe de erro que passamos o dia caçando em
   // preço). Free continua vendo "Free" — para ele o custo É zero.
-  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '1080p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
-  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '1080p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
-  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '1080p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
-  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '1080p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
-  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '1080p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
+  { key: 'fast', icon: '⚡', name: 'Kineo 1', desc: 'Kineo’s own engine — stock + captions', res: '720p', credits: `${creditCostFor('fast', true)} cr`, supportsRef: false },
+  { key: 'seedance', preview: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', icon: 'S', name: 'Seedance 1.5', tag: 'Popular', desc: 'The workhorse AI video engine', res: '720p', credits: `${creditCostFor('cinematic_ai', true)} cr`, supportsRef: false },
+  { key: 'kling', preview: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', icon: 'K', name: 'Kling 2.5', tag: 'Studio', desc: 'Cinematic motion and camera work', res: '720p', credits: `${creditCostFor('cinematic_kling', true)} cr`, supportsRef: false },
+  { key: 'veo', preview: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', icon: 'G', name: 'Veo 3.1', tag: 'Studio', desc: 'Google’s flagship cinematic engine', res: '720p', credits: `${creditCostFor('cinematic_veo', true)} cr`, supportsRef: false },
+  { key: 'hollywood', preview: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', icon: 'K3', name: 'Kling 3', tag: 'Studio', desc: 'Film scenes, native voice & lip sync', res: '720p', credits: `${creditCostFor('cinematic_hollywood', true)} cr`, supportsRef: true },
   // KINEO-H3-2026-08-19 — MiniMax H3. Sem preview ainda (entra depois do
   // primeiro render de validação; vitrine com clipe de outro motor seria
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
@@ -106,9 +106,15 @@ export default function StudioClient() {
   const router = useRouter()
   const [engine, setEngine] = useState<EngineKey>('seedance')
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [duration, setDuration] = useState<15 | 45 | 60>(60)
+  // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
+  // e `setDuration(35)` só não explodia porque o TS não cobre este caminho.
+  const [duration, setDuration] = useState<35 | 60 | 90>(60)
   const [aspect, setAspect] = useState<'9:16' | '16:9'>('9:16')
-  const [resolution, setResolution] = useState<'720p' | '1080p'>('1080p')
+  // KINEO-RES-HONESTA-2026-08-20 — estado REMOVIDO junto com o seletor. Ele
+  // nunca chegou a valer nada (o 720p vivia desabilitado) e virou perigoso:
+  // um valor chamado `resolution` fixo em '1080p' convida o próximo a mandá-lo
+  // ao servidor como se fosse escolha do cliente. A resolução real é do motor
+  // (eng.res) e o master é sempre 1080×1920.
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
@@ -256,9 +262,24 @@ export default function StudioClient() {
               <button type="button" className={`pill${aspect === '9:16' ? ' on' : ''}`} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
               <button type="button" className="pill off" title="Coming soon">16:9<span className="soon">SOON</span></button>
             </div>
-            <div className="row">
-              <button type="button" disabled className="pill off" title="Every film is delivered as a 1080×1920 Full HD master">720p<span className="soon">SOON</span></button>
-              <button type="button" className={`pill${resolution === '1080p' ? ' on' : ''}`} onClick={() => setResolution('1080p')}>1080p Full HD</button>
+            {/* ⚠️ KINEO-RES-HONESTA-2026-08-20 — a tela se contradizia.
+                O card do motor mostrava "768p" (a resolução real do H3) e
+                LOGO ABAIXO um botão "1080p Full HD" aparecia selecionado. Duas
+                afirmações opostas na mesma tela, e a de baixo era a falsa.
+                A verdade, que vale para TODOS os motores: cada um gera na
+                resolução nativa dele (H3 em 768p, os demais em 720p desde a
+                mudança de margem de hoje) e o Creatomate ENTREGA o master em
+                1080×1920. Então a linha deixa de ser um seletor — que nunca
+                selecionou nada, o 720p sempre esteve desabilitado — e passa a
+                ser a informação: nativa do motor → master entregue.
+                Selo honesto é ativo de marca; um botão que mente sobre a
+                resolução é a mesma classe de erro do "Free" no Kineo 1. */}
+            <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="pill off" style={{ cursor: 'default' }}>
+                {eng.res} <span style={{ opacity: 0.6 }}>native</span>
+              </span>
+              <span style={{ color: 'var(--muted2)', fontSize: '0.8rem' }}>→</span>
+              <span className="pill on" style={{ cursor: 'default' }}>1080×1920 master</span>
             </div>
             <div className="hint">Delivered as a 1080×1920 Full HD master. For maximum sharpness, run ✨HD Enhance on the finished film.</div>
           </div>
@@ -278,12 +299,19 @@ export default function StudioClient() {
 
           {/* Custo + Generate */}
           <div className="cost">
-            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · {resolution} · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · {eng.res} → 1080p · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
             {/* O número tem de mudar junto com o seletor: preço que só
                 aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
                 por esta mesma função (creditCostForDuration), então tela e
                 fatura nunca divergem. */}
             <div className="val"><span>Estimated cost</span><b>{creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)} cr</b></div>
+            {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
+                render sobe sem dizer quanto é normal, e quem não conhece lê
+                como travado. Fast é minutos; motor de IA é vários minutos. */}
+            <div className="val" style={{ opacity: 0.75 }}>
+              <span>Usually takes</span>
+              <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
+            </div>
             <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
               {prompt.trim() ? 'Generate →' : 'Type your idea first'}
             </button>

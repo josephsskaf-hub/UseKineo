@@ -46,7 +46,7 @@ export const maxDuration = 120
 // ~$0.01-0.05 per video.
 
 // Push #208 — removed 30s option, added 90s. 30s replaced by 45s minimum.
-const SUPPORTED_DURATIONS = [45, 60, 90] as const
+const SUPPORTED_DURATIONS = [35, 45, 60, 90] as const
 type Duration = (typeof SUPPORTED_DURATIONS)[number]
 
 // Push #434 — Fast Mode is FREE (0 credits) as a top-of-funnel growth engine.

@@ -28,7 +28,7 @@ import { PLAN_LIST } from '@/lib/pricing'
 // import, nenhum segredo): é a fonte única do custo por motor, e o modal de
 // upgrade passou a DERIVAR "quantos vídeos de IA este plano compra" dele em vez
 // de redigitar o número.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
@@ -224,7 +224,10 @@ function isProcessingPhase(p: Phase): boolean {
 // default; 60s is the "deep story" option.
 // Push #208 — removed 30s (too short for quality content), added 90s.
 // Works for YouTube Shorts AND TikTok (up to 3 min supported).
-type Duration = 45 | 60 | 90
+// KINEO-DURACAO-FIX-2026-08-20 — 35 entrou como tier oficial do /studio e
+// este tipo não sabia. Todo `35` que chegava por URL caía no fallback 45: a
+// pessoa clicava 35s e recebia (e pagava) 45s.
+type Duration = 35 | 45 | 60 | 90
 // Push #084 — added 'fast' for the Pexels + TTS cheap pipeline (1 credit).
 // Cinematic quality tiers (basic / basic_ai / pro) still flow through Runway.
 // Push #315 — added 'cinematic_ai' for fal.ai Wan 2.1 mode.
@@ -232,9 +235,15 @@ type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai'
 // Push #315 — added 'cinematic_ai' for fal.ai Wan 2.1 mode (3 credits, no Pro required).
 type GenerationMode = 'fast' | 'cinematic_ai' | 'cinematic' | 'creator'
 
+// KINEO-DURACAO-2026-08-20 — os mesmos três tiers do /studio, e pela mesma
+// razão medida (Socialinsider, 6M vídeos TikTok, jan-jun/2026): 60-90s rende
+// 7.200 views medianas contra 2.200 de 30-60s. O 45s saiu de "Recommended"
+// porque recomendar 45 é recomendar um vídeo que NÃO monetiza no TikTok — o
+// Creator Rewards exige mais de 1 minuto.
 const DURATION_OPTIONS: { value: Duration; label: string }[] = [
-  { value: 45, label: '45s — Recommended ⭐' },
-  { value: 60, label: '60s — Deep Story' },
+  { value: 35, label: '35s — Quick' },
+  { value: 60, label: '60s — Deep Story ⭐' },
+  { value: 90, label: '90s — Max reach 📈' },
 ]
 
 const POLL_GENERATING_MS = 4000
@@ -897,7 +906,7 @@ export default function GenerateClient({
     // clicou 60s no Studio e saiu video de 45 — o Studio nao enviava a
     // duracao e o default daqui (45) vencia. Agora ?duration= viaja e e lido.
     const d = Number(searchParams.get('duration') ?? '')
-    if (d === 45 || d === 60 || d === 90) setDuration(d)
+    if (d === 35 || d === 45 || d === 60 || d === 90) setDuration(d)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user
@@ -5492,7 +5501,7 @@ export default function GenerateClient({
       if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'); return }
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
-    if ((uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
+    if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
     try {
       const raw = sessionStorage.getItem('kineo:studio:go:v1')
       if (!raw) { studioAutoFirePendingRef.current = false; return }
@@ -7455,10 +7464,16 @@ export default function GenerateClient({
     // preço — a mesma verdade morando em dois lugares, e um deles envelhece.
     // O número que a TELA promete e o número que o SERVIDOR cobra agora saem
     // ambos de creditCostFor(), que já estava importado neste arquivo.
+    // ⚠️ KINEO-DURACAO-FIX-2026-08-20 — o número da tela ignorava a DURAÇÃO.
+    // Esta tela tem seletor de duração e o custo passou a escalar com ela
+    // (35s=60% · 60s=100% · 90s=150%), mas aqui continuava o preço de 60s. O
+    // botão dizia "Generate · 20 credits" num Seedance de 90s e o servidor
+    // debitava 30 — cobrança-surpresa, exatamente o que o comentário em
+    // engineCost.ts diz que não pode existir. Uma função dos dois lados.
     : mode === 'fast'
-    ? creditCostFor('fast', isPaidAccount)
+    ? creditCostForDuration('fast', isPaidAccount, duration)
     : mode === 'cinematic_ai'
-    ? creditCostFor(
+    ? creditCostForDuration(
         aiEngine === 'kling'
           ? 'cinematic_kling'
           : aiEngine === 'veo'
@@ -7471,6 +7486,7 @@ export default function GenerateClient({
                   ? 'cinematic_h3'
                   : 'cinematic_ai',
         isPaidAccount,
+        duration,
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
 
@@ -12438,7 +12454,13 @@ function RenderHeader({ progress, message }: { progress: number; message: string
             display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
             background: '#2997ff', animation: 'pulse 1.5s ease-in-out infinite',
           }} />
-          <span>Rendering · {timeStr}</span>
+          {/* ⚠️ KINEO-ESPERA-2026-08-20 — o cronômetro sozinho parece defeito.
+              "Rendering · 23s" subindo ao lado de 8%, sem dizer quanto é
+              NORMAL, lê como travado — e a pessoa fecha a aba. Fechar a aba é
+              exatamente o que produz o render órfão que passei a manhã
+              resgatando (32 renders de 26 pessoas em 7 dias). Dizer a
+              expectativa é mais barato que resgatar depois. */}
+          <span>Rendering · {timeStr} <span style={{ opacity: 0.7 }}>· usually 3–20 min depending on the engine</span></span>
         </div>
         <div style={{ marginTop: 10 }}>
           <ProgressBar progress={pct} />

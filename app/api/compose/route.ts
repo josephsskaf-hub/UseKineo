@@ -38,7 +38,7 @@ import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mappi
 // cost for every render, keyed by render_id, the moment it is created. This is
 // the trusted source /api/compose/status bills from (instead of the client's
 // ?quality / ?deducted query params). creditCostFor is the shared price table.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-CREATOMATE-BLACKOUT-2026-08-10 — o Creatomate era o único fornecedor do
 // caminho de render sem alarme, e é o que entra em 100% dos vídeos.
 import { alertCreatomateDown } from '@/lib/creatomateAlert'
@@ -673,7 +673,18 @@ export async function POST(req: NextRequest) {
         authorizedUrls.every((url, index) => url === clipUrls[index])
       if (
         !cinematicQualities.has(trustedQuality) || quality !== trustedQuality ||
-        cinematicBirthClaim.creditCost !== creditCostFor(trustedQuality, true) ||
+        // ⚠️ KINEO-DURACAO-FIX-2026-08-20 — BLOQUEADOR DE COBRANÇA.
+        // Esta linha comparava o custo do claim com o preço FIXO de 60s. Desde
+        // que o crédito passou a escalar com a duração, um render de 35s (12cr)
+        // ou de 90s (30cr) nascia com um custo que NUNCA batia com o de 60s
+        // (20cr) — e a compose recusava com "These AI clips do not match their
+        // signed generation" DEPOIS de o crédito já ter sido debitado.
+        // Ou seja: os dois tiers novos estavam quebrados em produção, e do pior
+        // jeito possível (cobra e não entrega). Pego na auditoria, não por
+        // cliente — mas era questão de minutos.
+        // A verificação continua existindo e continua dura: ela só passa a usar
+        // a MESMA função que criou o claim.
+        cinematicBirthClaim.creditCost !== creditCostForDuration(trustedQuality, true, duration) ||
         !inputsMatch
       ) {
         return NextResponse.json(
@@ -1394,7 +1405,7 @@ export async function POST(req: NextRequest) {
           const quotaResponse = await reserveFreeFastPreviewSlot()
           if (quotaResponse) return quotaResponse
         } else {
-          const requiredCredits = creditCostFor('fast', true)
+          const requiredCredits = creditCostForDuration('fast', true, duration)
           if (creditBalance < requiredCredits) {
             // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
             await logComposeRefusal('insufficient_credits_fast', authenticatedUserId, {

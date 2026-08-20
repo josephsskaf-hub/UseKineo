@@ -24,7 +24,7 @@ export const maxDuration = 60
 // them together. Push #064 — durations bumped to 30 / 45 / 60 so the AI
 // has enough room to build a real story arc. The default 45s lives in
 // the client.
-const SUPPORTED_DURATIONS = [30, 45, 60] as const
+const SUPPORTED_DURATIONS = [30, 35, 45, 60, 90] as const
 type Duration = (typeof SUPPORTED_DURATIONS)[number]
 type Quality = 'basic' | 'basic_ai' | 'pro'
 

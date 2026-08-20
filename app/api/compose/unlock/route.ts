@@ -19,7 +19,7 @@ import { getBackgroundMusicUrl } from '@/lib/pixabayMusic'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the engine + intended cost for the
 // clean re-render so /api/compose/status bills it from the server-side intent
 // (not the client ?quality param), exactly like /api/compose does.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { inspectActiveComposeCreditHolds } from '@/lib/credits/composeHold'
 import { recordRenderIntent } from '@/lib/credits/renderIntent'
 import {
@@ -105,7 +105,7 @@ interface UnlockBody {
 }
 
 // Keep the clean re-render identical to the just-created Fast preview.
-const SUPPORTED_DURATIONS = [10, 30, 45, 50, 60, 90] as const
+const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
 
 export async function POST(req: NextRequest) {
   try {
@@ -213,7 +213,7 @@ export async function POST(req: NextRequest) {
     const generationId = `unlock_${createHash('sha256').update(sessionId).digest('hex').slice(0, 32)}`
     const claimId = composeClaimId(user.id, generationId)
     const submissionCacheKey = `${user.id}:${generationId}`
-    const intendedCost = creditCostFor('fast', true)
+    const intendedCost = creditCostForDuration('fast', true, duration)
     let ownsSubmissionClaim = false
 
     const claimUnavailable = () => NextResponse.json(
