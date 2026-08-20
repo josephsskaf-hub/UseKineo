@@ -96,7 +96,7 @@ export default function LiveNowPanel() {
           <table className="w-full text-sm" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,.03)' }}>
-                {['Who', 'Doing now', 'Credits used', 'Videos', 'Age', 'From', 'Seen'].map((h) => (
+                {['Who', 'Doing now', 'Saldo e no que gastou', 'Vídeos (total)', 'Age', 'From', 'Seen'].map((h) => (
                   <th key={h} className="font-black uppercase tracking-widest" style={{ fontSize: '0.58rem', color: 'var(--muted2)', textAlign: 'left', padding: '8px 12px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -138,7 +138,7 @@ export default function LiveNowPanel() {
                     )}
                   </td>
                   <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#fb923c' : 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontWeight: 700 }}>{v.credits ?? '—'}</span>
+                    <span style={{ fontWeight: 700 }}>{v.credits ?? '—'}{v.credits !== null && v.credits !== undefined ? ' cr' : ''}</span>
                     {v.creditsUsedLabel && (
                       <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.creditsUsedLabel}</span>
                     )}

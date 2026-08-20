@@ -234,9 +234,16 @@ export async function GET() {
           // "4 of 50 used" ao lado de um saldo de 46 obriga quem lê a fazer
           // a conta de cabeça. Agora a linha diz as duas coisas em português:
           // quanto GASTOU e quanto SOBRA do trial.
+          // KINEO-LIVE-SALDO-2026-08-20 (fundador: "gastou 36 dos 40 tambem
+          // nao da pra entender") — o defeito era repetição: a célula já mostra
+          // o SALDO em número grande, e o rótulo repetia esse mesmo número no
+          // fim ("sobram 4"), então o 4 aparecia duas vezes e o cabeçalho ainda
+          // dizia "Credits used". Agora cada coisa aparece UMA vez: o número
+          // grande é o saldo (com "cr"), e este rótulo conta só a história do
+          // trial — quanto foi concedido e quanto já queimou.
           const creditsUsedLabel =
             typeof tcu === 'number' && typeof tcg === 'number' && tcg > 0
-              ? `gastou ${tcu} dos ${tcg} do trial · sobram ${Math.max(0, tcg - tcu)}`
+              ? `trial: ${tcg} concedidos, ${tcu} queimados`
               : null
           // O extrato de hoje: em QUÊ os créditos foram (só débitos efetivos;
           // estorno não conta). É a resposta direta do pedido do fundador —
@@ -252,18 +259,36 @@ export async function GET() {
               // para a FRENTE e o crédito ganha rótulo: "3 vídeos no Kineo 1
               // · 4 créditos". Ninguém precisa decifrar.
               const plural = v.n === 1 ? 'vídeo' : 'vídeos'
-              parts.push(`🎬 ${v.n} ${plural} no ${ENGINE_SHORT[q] ?? q} · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}`)
+              // KINEO-LIVE-24H-2026-08-20 (2ª leitura do fundador: "2 vídeos no
+              // Kineo 1 seriam 10 créditos, está escrito 7"). A conta dele está
+              // certa; o rótulo é que mentia por omissão, em duas frentes:
+              //   1. O extrato soma o `cost` gravado em CADA claim, ou seja, o
+              //      preço VIGENTE no dia do render. Dois vídeos feitos durante
+              //      a troca de preço de hoje (2cr → 5cr) somam 7, não 10. Está
+              //      historicamente correto e é assim que tem de ser — trocar
+              //      pelo preço de hoje reescreveria o passado e faria o extrato
+              //      divergir do que foi realmente debitado.
+              //   2. A coluna VIDEOS ao lado é o total HISTÓRICO da pessoa (12),
+              //      enquanto isto aqui é só das últimas 24h. Duas janelas de
+              //      tempo na mesma linha, sem dizer qual é qual.
+              // O conserto é falar: o período entra no texto e o crédito ganha
+              // "no preço da época" quando os vídeos custaram preços diferentes.
+              const mistoDePrecos = v.n > 1 && v.cr % v.n !== 0
+              parts.push(
+                `🎬 24h: ${v.n} ${plural} no ${ENGINE_SHORT[q] ?? q} · ${v.cr} ${v.cr === 1 ? 'crédito' : 'créditos'}` +
+                (mistoDePrecos ? ' (preço da época)' : ''),
+              )
             }
           }
           if (media && media.img.size > 0) {
             const total = [...media.img.values()].reduce((a, b) => a + b, 0)
             const det = [...media.img.entries()].map(([m, n]) => `${n} no ${m}`).join(', ')
-            parts.push(`🖼 ${total} foto${total > 1 ? 's' : ''} (${det})`)
+            parts.push(`🖼 24h: ${total} foto${total > 1 ? 's' : ''} (${det})`)
           }
           if (media && media.aud.size > 0) {
             const total = [...media.aud.values()].reduce((a, b) => a + b, 0)
             const det = [...media.aud.entries()].map(([m, n]) => `${n} no ${m}`).join(', ')
-            parts.push(`🎙 ${total} áudio${total > 1 ? 's' : ''} (${det})`)
+            parts.push(`🎙 24h: ${total} áudio${total > 1 ? 's' : ''} (${det})`)
           }
           const spentOn = parts.length > 0 ? parts.join(' · ') : null
 

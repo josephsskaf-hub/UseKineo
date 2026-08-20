@@ -273,6 +273,18 @@ export default function Sidebar({
   // loading; 0 hides the badge so non-Pro users don't see a meaningless
   // zero.
   const [cinematicTokens, setCinematicTokens] = useState<number | null>(null)
+  // ⚠️ KINEO-ACCOUNT-PANEL-CRASH-2026-08-20 — ESTE ESTADO NÃO EXISTIA, e o
+  // painel da conta NUNCA abriu desde que foi criado (19/08). O JSX passava
+  // `plan={plan}` para o <AccountPanel> com `plan` simplesmente não declarado
+  // em lugar nenhum deste arquivo: clicar na engrenagem lançava
+  // "ReferenceError: plan is not defined" e derrubava o app inteiro para a
+  // tela preta de "Application error" — não só o painel, o APP.
+  // Por que o tsc não pegou: `plan` existe no lib.dom do TypeScript (a API
+  // antiga window.plan), então o compilador resolveu o nome e ficou quieto. É
+  // o tipo de defeito que só aparece clicando — e ninguém tinha clicado.
+  // O dado sempre esteve à mão: /api/me/plan já devolve `plan`, e o fetch
+  // abaixo lia a resposta e jogava fora esse campo.
+  const [plan, setPlan] = useState<string | null>(initialIsPro ? 'pro' : null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   // KINEO-STORAGE-METER-2026-08-17 (fundador: "no menu de configurações a
   // pessoa vê tudo que ela tem — vídeos, imagens, áudios — e o storage"):
@@ -327,6 +339,8 @@ export default function Sidebar({
             ? planData.cinematic_tokens
             : 0
         setCinematicTokens(Math.max(0, tokens))
+        // O campo que faltava. A resposta sempre teve; ninguém guardava.
+        setPlan(typeof planData.plan === 'string' ? planData.plan : null)
       } else {
         setCinematicTokens(0)
       }
