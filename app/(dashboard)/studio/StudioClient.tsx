@@ -15,7 +15,22 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
+import type { Quality } from '@/lib/credits/engineCost'
+
+// A chave do card → a Quality que o biller entende. Uma fonte só para os dois
+// (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
+// string chumbada divergindo do que o servidor debita.
+const ENGINE_QUALITY: Record<string, Quality> = {
+  fast: 'fast',
+  seedance: 'cinematic_ai',
+  kling: 'cinematic_kling',
+  veo: 'cinematic_veo',
+  hollywood: 'cinematic_hollywood',
+  h3: 'cinematic_h3',
+  avatar: 'avatar',
+  presenter: 'presenter',
+}
 
 // KINEO-H3-2026-08-19 — 'h3' entra aqui. ⚠️ LIÇÃO: o motor foi adicionado ao
 // seletor do /generate e NÃO apareceu para o fundador, porque a tela que ele
@@ -222,9 +237,20 @@ export default function StudioClient() {
           <div className="card">
             <div className="lab"><span className="n">2</span>Format</div>
             <div className="row" style={{ marginBottom: 12 }}>
-              <button type="button" className="pill off" title="Coming soon">15s<span className="soon">SOON</span></button>
-              <button type="button" className={`pill${duration === 45 ? ' on' : ''}`} onClick={() => setDuration(45)}>45s</button>
+              {/* ═══ KINEO-DURACAO-2026-08-20 — OS TRÊS TIERS QUE O DADO PEDE ═══
+                  Medido em 6M de vídeos do TikTok (Socialinsider, jan-jun/2026):
+                  15-30s rende 1.000 views medianas · 30-60s rende 2.200 ·
+                  60-90s rende 7.200 · 90-120s rende 9.620. Ou seja, o teto de
+                  60s que a gente tinha deixava 4× de alcance na mesa. São duas
+                  lógicas de ranking rodando juntas: curto ganha em taxa de
+                  conclusão, longo acumula tempo de exibição — e VIEWS SEGUEM
+                  TEMPO DE EXIBIÇÃO.
+                  35s fica como o tier de volume (barato, para testar tema);
+                  60s continua o padrão e o piso de monetização do TikTok;
+                  90s é o tier de alcance. */}
+              <button type="button" className={`pill${duration === 35 ? ' on' : ''}`} onClick={() => setDuration(35)}>35s</button>
               <button type="button" className={`pill${duration === 60 ? ' on' : ''}`} onClick={() => setDuration(60)}>60s ⭐</button>
+              <button type="button" className={`pill${duration === 90 ? ' on' : ''}`} onClick={() => setDuration(90)} title="Mais alcance: no TikTok, 90s rende ~4x as views de um vídeo de 60s">90s 📈</button>
             </div>
             <div className="row" style={{ marginBottom: 12 }}>
               <button type="button" className={`pill${aspect === '9:16' ? ' on' : ''}`} onClick={() => setAspect('9:16')}>9:16 · Shorts</button>
@@ -253,7 +279,11 @@ export default function StudioClient() {
           {/* Custo + Generate */}
           <div className="cost">
             <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · {resolution} · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
-            <div className="val"><span>Estimated cost</span><b>{eng.credits}</b></div>
+            {/* O número tem de mudar junto com o seletor: preço que só
+                aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
+                por esta mesma função (creditCostForDuration), então tela e
+                fatura nunca divergem. */}
+            <div className="val"><span>Estimated cost</span><b>{creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)} cr</b></div>
             <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
               {prompt.trim() ? 'Generate →' : 'Type your idea first'}
             </button>

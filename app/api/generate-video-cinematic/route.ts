@@ -3,6 +3,7 @@
 // Client polls /api/cinematic-clip-status until all clips are ready, then
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
+import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
@@ -1032,8 +1033,29 @@ export async function POST(req: NextRequest) {
     }
 
     // Push #402 — per-engine cost. KINEO-PRICING-V3B-2026-07-10: Hollywood 150,
-    // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20.
-    const cost = wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
+    // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20 — valores de REFERÊNCIA
+    // para 60s. A cobrança real escala com a duração (abaixo).
+    const baseCost = wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
+    // ═══ KINEO-DURACAO-2026-08-20 — O SERVIDOR COBRA O QUE A TELA MOSTROU ═══
+    // O /studio calcula o "Estimated cost" com creditCostForDuration; se esta
+    // linha usasse outro número, a pessoa veria 30 e seria debitada 20 (ou o
+    // contrário) — cobrança-surpresa, a mesma classe de erro que passamos o dia
+    // caçando. Uma função, dois lados.
+    // O custo do fornecedor é linear nos segundos gerados: 35s ≈ 60% de um 60s,
+    // 90s ≈ 150%. Sem esta escala, o tier de 90s (que o dado do TikTok mostra
+    // render 4× mais views) viraria o mais barato por segundo e derreteria a
+    // margem justamente no formato que todo mundo passaria a escolher.
+    const costQuality: Quality = wantsH3
+      ? 'cinematic_h3'
+      : wantsHollywood
+        ? 'cinematic_hollywood'
+        : wantsKling
+          ? 'cinematic_kling'
+          : wantsVeo
+            ? 'cinematic_veo'
+            : 'cinematic_ai'
+    const cost = creditCostForDuration(costQuality, true, duration)
+    void baseCost // mantido para leitura: é o valor de referência a 60s
 
     // PUSH #20 — every premium AI engine is paid-only. The acquisition offer is
     // Fast (3 watermarked videos / 24h), never a hidden premium trial.
@@ -1927,9 +1949,29 @@ export async function POST(req: NextRequest) {
       // Rewards do TikTok so paga acima de 1:00). O plano mira ALEM do
       // pedido (60 → 68) porque a entrega encolhe ~10% (fala real menor que
       // o planejado + gapfix). Aterrissagem esperada: 61-65s.
+      // ═══ KINEO-ALVO-2026-08-20 — O ALVO PASSA A VALER ATÉ 90s ═══════════
+      // O clamp era `min(60)`: pedir 90 entregava 60. Fechava o tier de maior
+      // alcance antes de ele existir. Medido em 6M de vídeos do TikTok
+      // (Socialinsider, jan-jun/2026): 60-90s rende 7.200 views medianas contra
+      // 2.200 de 30-60s — e 90-120s rende 9.620, com engajamento SUBINDO.
+      //
+      // O OVERSHOOT NÃO É GORDURA, É O CONTRATO. A narração é o trilho mestre
+      // (Contrato C1: o texto do usuário é lido verbatim), e fala real quase
+      // nunca bate a estimativa de 2,3 palavras/segundo. Se o alvo fosse o
+      // número exato, o vídeo fecharia ABAIXO dele — que foi exatamente o que
+      // aconteceu com o Seedance: pedia 60, entregava 49 de média.
+      // Então miramos ACIMA e deixamos a narração puxar para baixo:
+      //   35s → 39  (margem de 4s; não há piso de monetização a defender aqui)
+      //   60s → 68  (o Rewards do TikTok exige >60 e descarta view com <5s
+      //              assistidos; 60,5s é o pior lugar possível de se estar —
+      //              qualquer diferença de encoding derruba a elegibilidade.
+      //              O piso operacional real é 63-65s, e 68 dá folga a isso)
+      //   90s → 98  (mesma proporção de folga)
       const hollywoodTarget = (() => {
-        const req = Math.max(45, Math.min(60, Math.round(duration || 60)))
-        return req >= 55 ? req + 8 : req + 4
+        const req = Math.max(30, Math.min(90, Math.round(duration || 60)))
+        if (req >= 85) return req + 8   // tier 90s
+        if (req >= 55) return req + 8   // tier 60s — piso do TikTok Rewards
+        return req + 4                  // tier curto
       })()
 
       let plan: HollywoodPlan

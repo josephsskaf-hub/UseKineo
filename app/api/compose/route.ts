@@ -124,7 +124,9 @@ const FORCE_WATERMARK_EMAILS = new Set<string>([
 // Push #234 — added 90: the client offers 45/60/90, and without 90 here a
 // 90s request silently coerced to 45 → the script was sized for 45s and the
 // final video came out ~half the requested length.
-const SUPPORTED_DURATIONS = [10, 30, 45, 50, 60, 90] as const
+// KINEO-DURACAO-2026-08-20 — 35 entra como tier curto oficial do /studio.
+// Os demais ficam por compatibilidade com links e clientes antigos.
+const SUPPORTED_DURATIONS = [10, 30, 35, 45, 50, 60, 90] as const
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — resolvido no módulo (runtime de servidor; na
 // Vercel a env é fixa por deployment, então isto nunca muda no meio da vida do

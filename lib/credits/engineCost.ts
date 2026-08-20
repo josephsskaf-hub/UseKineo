@@ -140,6 +140,42 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
 // its own price. Charged via the same debit_video_credits RPC + deterministic
 // billing reference as the avatar/gesture pipelines.
 //   Voice clone (fal MiniMax voice-clone, ~$1.50/clone, one-time per voice).
+// ═══ KINEO-DURACAO-2026-08-20 — O CRÉDITO PASSA A SEGUIR A DURAÇÃO ═══════
+// Decisão do fundador ao abrir o tier de 90s. O motivo é aritmético e não dava
+// para ignorar: o custo do fornecedor é LINEAR nos segundos gerados, mas o
+// preço em créditos era FIXO por motor. Um Seedance de 90s consome 50% mais
+// que um de 60s e cobrava igual:
+//     35s → $0.94 de fal · 60s → $1.61 · 90s → $2.42
+// A 20 créditos fixos, a margem caía de 72% (35s) para 27% (90s) — ou seja, o
+// vídeo mais longo virava o mais barato por segundo justamente quando o dado
+// do TikTok (6M vídeos, jan-jun/2026) mostra que 90s rende 9,6× mais views que
+// 15-30s. Todo mundo migraria para o 90 e a margem cairia sozinha.
+//
+// A regra é a mais simples que resolve: proporcional ao alvo, com 60s como
+// referência (o preço histórico de cada motor). Nada de tabela nova para
+// manter — mexeu no custo base, os três tiers acompanham.
+//     35s = 60% · 60s = 100% · 90s = 150%
+// Arredonda para cima: nunca cobramos menos do que o fornecedor leva.
+//
+// ⚠️ O NÚMERO TEM DE APARECER ANTES DO CLIQUE. O /studio já mostra "Estimated
+// cost"; ele passa a reagir ao seletor de duração. Preço que muda depois do
+// clique é cobrança-surpresa — a mesma classe de erro que caçamos o dia todo.
+export const DURATION_REFERENCE_SECONDS = 60
+
+export function creditCostForDuration(
+  quality: Quality,
+  isPaidUser: boolean,
+  seconds: number,
+): number {
+  const base = creditCostFor(quality, isPaidUser)
+  if (base <= 0) return base // free tier segue 0 — a escala não cria cobrança onde não havia
+  const safe = Number.isFinite(seconds) && seconds > 0 ? seconds : DURATION_REFERENCE_SECONDS
+  // Clamp defensivo: 10s..180s cobre todo SUPPORTED_DURATIONS com folga e
+  // impede que um valor absurdo vindo da URL vire uma cobrança absurda.
+  const clamped = Math.max(10, Math.min(180, safe))
+  return Math.max(1, Math.ceil(base * (clamped / DURATION_REFERENCE_SECONDS)))
+}
+
 export const CLONE_VOICE_CREDIT_COST = 10
 //   Scene generation (FLUX.1 Kontext edit + best-effort face-swap, ~cents).
 export const SCENE_GEN_CREDIT_COST = 2
