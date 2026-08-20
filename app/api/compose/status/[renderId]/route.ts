@@ -924,6 +924,59 @@ export async function GET(
       // back to a service-role lookup scoped to this owner + render.
       const videoId = persistedVideoId ?? await findCompletedVideoId(user.id, renderId)
 
+      // ═══ KINEO-SHARP-HOUSE-2026-08-20 — ENHANCE AUTOMÁTICO NOS VÍDEOS DA CASA
+      // Decisão do fundador (feedback de nitidez do Joyita): todo render
+      // cinematográfico das contas da casa passa no Topaz (Proteus, factor 1 =
+      // tier $0.02/s ≈ $1.30/filme) SEM ele precisar clicar em ✨HD Enhance.
+      // Mesmo submit do /api/enhance, sem débito de créditos (conta da casa) e
+      // sem bloquear a resposta do polling. O GET self-heal do /api/enhance já
+      // completa o job e troca a URL quando ele abre a Library — zero fluxo
+      // novo. Idempotente: só submete se enhance_request_id ainda é null.
+      // Cliente NÃO entra aqui: pra ele o Enhance é produto pago (10cr).
+      try {
+        const HOUSE_ENHANCE_EMAILS = new Set(['josephsskaf@gmail.com'])
+        if (
+          isCinematicQuality &&
+          videoId &&
+          user.email &&
+          HOUSE_ENHANCE_EMAILS.has(user.email.toLowerCase())
+        ) {
+          const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+          const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+          const falKey = process.env.FAL_KEY ?? process.env.FAL_API_KEY
+          if (adminUrl && secret && falKey) {
+            const houseAdmin = createAdminClient(adminUrl, secret, {
+              auth: { autoRefreshToken: false, persistSession: false },
+            })
+            const { data: vrow } = await houseAdmin
+              .from('videos')
+              .select('enhance_request_id, video_url')
+              .eq('id', videoId)
+              .maybeSingle()
+            if (vrow && !vrow.enhance_request_id && vrow.video_url) {
+              const { fal } = await import('@fal-ai/client')
+              fal.config({ credentials: falKey })
+              const { request_id } = await fal.queue.submit('fal-ai/topaz/upscale/video', {
+                input: {
+                  video_url: vrow.video_url,
+                  model: 'Proteus',
+                  upscale_factor: 1, // 1 = nitidez sem mudar resolução (tier barato); 2 quadruplica o custo
+                  compression: 0.6,
+                  recover_detail: 0.6,
+                  grain: 0.02,
+                  H264_output: true,
+                },
+              })
+              await houseAdmin.from('videos').update({ enhance_request_id: request_id }).eq('id', videoId)
+              console.log(`[house-enhance] video=${videoId} auto-submitted req=${request_id}`)
+            }
+          }
+        }
+      } catch (e) {
+        // best-effort: nunca derruba a resposta do render pronto
+        console.warn('[house-enhance] failed:', e instanceof Error ? e.message : String(e))
+      }
+
       return NextResponse.json({
         phase: 'done',
         final_video_url: responseVideoUrl,

@@ -331,6 +331,18 @@ const STABLE_SHOT_SUFFIX =
 // use" through ACTION and FRAMING, never through readable UI — Kling renders
 // on-screen text in Chinese (KINEO-HOLLYWOOD-21 bug d), so screens stay
 // stylized/blurred and the NO_TEXT rule keeps its last-position authority.
+// ═══ KINEO-SHARP-2026-08-20 — NITIDEZ É DIRIGIDA, NÃO SORTEADA ═══════════
+// Feedback do fundador no Joyita (Kling 3): cenas de avatar/diálogo abrindo
+// SEM NITIDEZ — soft, lavadas. Pesquisa de mercado confirmou: é a reclamação
+// nº 1 do Kling em qualquer produto (quando o modelo hesita na textura, ele
+// entrega borrão liso; pior nos primeiros frames de i2v, o "acordar" da
+// imagem parada). Todo concorrente recebe o mesmo clipe cru — quem parece
+// limpo DIRIGIU o motor. Nosso lado dos 60%: sufixo de nitidez code-enforced
+// em TODA cena (o i2v do Kling não aceita negative_prompt confirmado, então
+// a direção viaja no próprio prompt — canal que funciona em todos os motores).
+const SHARP_SUFFIX =
+  ' Tack-sharp focus from the very first frame, crystal-clear facial detail and skin texture, high micro-contrast, pristine clarity throughout — never soft focus, never hazy or washed out.'
+
 const DEMO_SHOT_SUFFIX =
   ' Product demonstration insert: close on hands actively using the product/device, over-the-shoulder or macro framing of the interaction, screens and interfaces rendered as soft glowing abstract shapes (blurred, stylized, unreadable).'
 
@@ -573,7 +585,7 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
     // KINEO-HOLLYWOOD-HOST-2026-07-13 — demo scenes get the demonstration
     // direction suffix (code-enforced; rides BEFORE the NO_TEXT rule so the
     // "screens are abstract/unreadable" instruction keeps final authority).
-    prompt = `${prompt} Cinematography (match exactly): ${styleSheet}.${type !== 'dialogue' ? STABLE_SHOT_SUFFIX : ''}${isDemo ? DEMO_SHOT_SUFFIX : ''}${NO_TEXT_SUFFIX}`
+    prompt = `${prompt} Cinematography (match exactly): ${styleSheet}.${type !== 'dialogue' ? STABLE_SHOT_SUFFIX : ''}${isDemo ? DEMO_SHOT_SUFFIX : ''}${SHARP_SUFFIX}${NO_TEXT_SUFFIX}`
 
     const caption =
       (typeof rs.caption === 'string' && rs.caption.trim()
@@ -711,7 +723,7 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
       // planner-native dialogue prompt (sheets first, quoted line, realism
       // directives, styleSheet, NO_TEXT last). No STABLE_SHOT/DEMO suffixes:
       // this is now a person shot, not an insert.
-      sc.prompt = `${characterSheet}. Standing in: ${environmentSheet}. Medium shot, 9:16 vertical framing — looking straight into the lens, the person says: "${sc.dialogueLine}" The person speaks continuously and energetically for the entire shot, no dead air, ${REALISM_DIRECTIVES}. Cinematography (match exactly): ${styleSheet}.${NO_TEXT_SUFFIX}`
+      sc.prompt = `${characterSheet}. Standing in: ${environmentSheet}. Medium shot, 9:16 vertical framing — looking straight into the lens, the person says: "${sc.dialogueLine}" The person speaks continuously and energetically for the entire shot, no dead air, ${REALISM_DIRECTIVES}. Cinematography (match exactly): ${styleSheet}.${SHARP_SUFFIX}${NO_TEXT_SUFFIX}`
       console.log(
         `[hollywood-planner] KINEO-HOLLYWOOD-HOST — scene ${sc.index} (beat=${sc.beat}) converted ${prevType} → dialogue (host on camera, ${lineWords} words → ${sc.seconds}s)`,
       )

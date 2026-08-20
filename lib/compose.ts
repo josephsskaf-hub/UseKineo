@@ -2766,6 +2766,19 @@ export function buildHollywoodCreatomateSource({
   // Gate: flip HOLLYWOOD_CROSSFADE to false to kill the effect instantly.
   const HOLLYWOOD_CROSSFADE = true
   const HOLLYWOOD_CROSSFADE_SECONDS = 0.25
+  // ═══ KINEO-SHARP-2026-08-20 — ENTRADA DE AVATAR SEM MOSTRAR O "ACORDAR" ═══
+  // Fundador no Joyita: cenas de avatar/diálogo ABREM sem nitidez. É o i2v
+  // do Kling assentando a textura nos primeiros frames (temporal drift) — o
+  // clipe cru de TODO concorrente é igual; quem parece limpo cobre a abertura
+  // na edição. Regra: cena com gente falando (dialogue/host) entra com fade
+  // de 0.7s (o clipe anterior estende por baixo), então os frames moles
+  // passam ESCONDIDOS sob o fim da cena anterior. SÓ IMAGEM: enter_transition
+  // não toca o áudio, a primeira palavra continua intacta. Se a cena de
+  // avatar for a PRIMEIRA do filme (HOOK-on-camera), não há cena anterior —
+  // fade de 0.5s do preto do track 1, que lê como abertura de cinema.
+  const AVATAR_FADE_SECONDS = 0.7
+  const fadeFor = (c: HollywoodClipInput): number =>
+    c.engine === 'dialogue' || c.engine === 'host' ? AVATAR_FADE_SECONDS : HOLLYWOOD_CROSSFADE_SECONDS
 
   // Track 1 — solid background (never show a transparent gap).
   // PUSH #95 — needs RECT_PATH to draw at all; see the shape-stack block in
@@ -2794,7 +2807,7 @@ export function buildHollywoodCreatomateSource({
     const isLast = i === cleanClips.length - 1
     // Non-last clips run long enough to sit under the next clip's fade-in;
     // the last clip keeps the classic micro-overlap (nothing follows it).
-    const overlap = HOLLYWOOD_CROSSFADE && !isLast ? HOLLYWOOD_CROSSFADE_SECONDS : CLIP_GAP_OVERLAP
+    const overlap = HOLLYWOOD_CROSSFADE && !isLast ? fadeFor(cleanClips[i + 1]) : CLIP_GAP_OVERLAP
     elements.push({
       type: 'video',
       track: 2,
@@ -2810,8 +2823,10 @@ export function buildHollywoodCreatomateSource({
       x: '50%', y: '50%', width: '100%', height: '100%',
       volume: muteClipAudio ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
       ...(HOLLYWOOD_CROSSFADE && i > 0
-        ? { enter_transition: { type: 'fade', duration: HOLLYWOOD_CROSSFADE_SECONDS } }
-        : {}),
+        ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
+        : HOLLYWOOD_CROSSFADE && (clip.engine === 'dialogue' || clip.engine === 'host')
+          ? { enter_transition: { type: 'fade', duration: 0.5 } } // abertura do filme: fade do preto
+          : {}),
     })
   })
 
