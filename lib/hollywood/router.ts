@@ -217,8 +217,30 @@ export const CONTEMPORARY_FIGURE_RE = new RegExp(
 // KINEO-HOLLYWOOD-2026-07-09 — duplicated from NAMED_FIGURE_RE in
 // app/api/generate-video-cinematic/route.ts (era-lock, historical figures).
 // Duplicated on purpose: lib code must not import from a route file. Keep in sync.
+// ⚠️ KINEO-GATE-FALSE-POSITIVE-2026-08-20 — ESTA REGEX BLOQUEAVA FRASE COMUM.
+//
+// Descoberto pelo render do fundador (script do Edmund Fitzgerald, 06:00): o
+// gate anti-deepfake recusou "The captain radioed a ship nearby". A heurística
+// "título + Nome próprio" (`captain\s+[A-Z][\w'-]+`) foi escrita para pegar
+// "Captain Scott" — mas a regex inteira carregava a flag `i`, e com `i` o
+// `[A-Z]` aceita QUALQUER letra. Resultado: "captain radioed", "king cobra",
+// "president announced", "general store" — tudo virava "pessoa real" e
+// derrubava o render com estorno. Num canal de MISTÉRIO (naufrágios, guerras,
+// expedições), título militar + verbo é frase de quase todo roteiro.
+//
+// O conserto separa as duas naturezas do padrão:
+//   · a heurística título+Nome fica CASE-SENSITIVE (sem `i`): "Captain Scott"
+//     continua barrado, "the captain radioed" passa — a maiúscula do nome
+//     próprio é exatamente o sinal que a heurística sempre quis usar;
+//   · a lista de nomes explícitos (hitler, napoleon...) mantém o `i`, porque
+//     nome citado em minúscula continua sendo a mesma pessoa.
+// Mesma dupla vive em NAMED_FIGURE_RE no route (duplicada de propósito — lib
+// não importa de route). Corrigida lá também; manter em sincronia.
+export const HISTORICAL_TITLE_NAME_RE =
+  /\b(?:[Ee]mperor|[Gg]eneral|[Mm]arshal|[Kk]ing|[Qq]ueen|[Tt]sar|[Cc]zar|[Pp]resident|[Cc]ommander|[Cc]olonel|[Aa]dmiral|[Cc]aptain|[Dd]uke|[Ll]ord|[Ss]ir|[Kk]aiser|[Pp]haraoh)\s+[A-Z][\w'-]+/g
+
 export const HISTORICAL_FIGURE_RE =
-  /\b(?:(?:emperor|general|marshal|king|queen|tsar|czar|president|commander|colonel|admiral|captain|duke|lord|sir|kaiser|pharaoh)\s+[A-Z][\w'-]+|napoleon(?:\s+bonaparte)?|bonaparte|wellington|hitler|stalin|churchill|caesar|cleopatra|genghis\s+khan|alexander\s+the\s+great|abraham\s+lincoln|george\s+washington|joan\s+of\s+arc)\b/gi
+  /\b(?:napoleon(?:\s+bonaparte)?|bonaparte|wellington|hitler|stalin|churchill|caesar|cleopatra|genghis\s+khan|alexander\s+the\s+great|abraham\s+lincoln|george\s+washington|joan\s+of\s+arc)\b/gi
 
 /** Stateless "does this text name a real person?" check (the /g regexes are
  * stateful under .test(), so we reset lastIndex before every use). */
@@ -227,16 +249,20 @@ export function mentionsRealPerson(text: string): boolean {
   CONTEMPORARY_FIGURE_RE.lastIndex = 0
   if (CONTEMPORARY_FIGURE_RE.test(t)) return true
   HISTORICAL_FIGURE_RE.lastIndex = 0
-  return HISTORICAL_FIGURE_RE.test(t)
+  if (HISTORICAL_FIGURE_RE.test(t)) return true
+  HISTORICAL_TITLE_NAME_RE.lastIndex = 0
+  return HISTORICAL_TITLE_NAME_RE.test(t)
 }
 
 /** Replace any real-person name with a generic fictional description. */
 export function sanitizeRealPeople(text: string): string {
   CONTEMPORARY_FIGURE_RE.lastIndex = 0
   HISTORICAL_FIGURE_RE.lastIndex = 0
+  HISTORICAL_TITLE_NAME_RE.lastIndex = 0
   return (text ?? '')
     .replace(CONTEMPORARY_FIGURE_RE, 'a fictional person (no real-world likeness)')
     .replace(HISTORICAL_FIGURE_RE, 'a fictional period-accurate figure')
+    .replace(HISTORICAL_TITLE_NAME_RE, 'a fictional period-accurate figure')
     .replace(/\s{2,}/g, ' ')
     .trim()
 }

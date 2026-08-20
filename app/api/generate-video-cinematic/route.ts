@@ -451,8 +451,14 @@ const PERSON_NOUN_RE =
 //  (b) eraLockSuffix(): if the script mentions a pre-1940 year or era word,
 //      every scene prompt gets a hard period-accuracy tail (Seedance has no
 //      negative_prompt param, so the positive prompt is the only lever).
+// KINEO-GATE-FALSE-POSITIVE-2026-08-20 — mesma correção do router: a flag `i`
+// anulava o [A-Z] da heurística título+Nome e "the captain radioed" virava
+// pessoa real (bloqueou o render do fundador). Título+Nome agora é
+// case-sensitive; só a lista de nomes explícitos mantém o `i`.
+const NAMED_TITLE_RE =
+  /\b(?:[Ee]mperor|[Gg]eneral|[Mm]arshal|[Kk]ing|[Qq]ueen|[Tt]sar|[Cc]zar|[Pp]resident|[Cc]ommander|[Cc]olonel|[Aa]dmiral|[Cc]aptain|[Dd]uke|[Ll]ord|[Ss]ir|[Kk]aiser|[Pp]haraoh)\s+[A-Z][\w'-]+/g
 const NAMED_FIGURE_RE =
-  /\b(?:(?:emperor|general|marshal|king|queen|tsar|czar|president|commander|colonel|admiral|captain|duke|lord|sir|kaiser|pharaoh)\s+[A-Z][\w'-]+|napoleon(?:\s+bonaparte)?|bonaparte|wellington|hitler|stalin|churchill|caesar|cleopatra|genghis\s+khan|alexander\s+the\s+great|abraham\s+lincoln|george\s+washington|joan\s+of\s+arc)\b/gi
+  /\b(?:napoleon(?:\s+bonaparte)?|bonaparte|wellington|hitler|stalin|churchill|caesar|cleopatra|genghis\s+khan|alexander\s+the\s+great|abraham\s+lincoln|george\s+washington|joan\s+of\s+arc)\b/gi
 
 const ERA_YEAR_RE = /\b1[0-8][0-9]{2}\b|\b19[0-3][0-9]\b/ // years 1000–1939
 const ERA_WORD_RE =
@@ -476,6 +482,7 @@ function buildFacelessCinematicPrompt(raw: string): string {
   s = s
     // Named historical figures → silhouette from behind (never a face).
     .replace(NAMED_FIGURE_RE, 'a distant silhouetted figure seen from behind')
+    .replace(NAMED_TITLE_RE, 'a distant silhouetted figure seen from behind')
     .replace(PERSON_NOUN_RE, ' ')
     .replace(/\s{2,}/g, ' ')
     .replace(/^[\s,.;:–-]+/, '')
