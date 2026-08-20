@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
   }
 
   const prompt = String(body.prompt ?? '').trim()
-  if (prompt.length < 20 || prompt.length > 4000) {
+  // 4000→6000: o prompt agora é o SUBMETIDO completo (upright+era+mouth+spectacle+sharp), maior que o cru.
+  if (prompt.length < 20 || prompt.length > 6000) {
     return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 })
   }
   const anchorUrl = typeof body.anchorUrl === 'string' && body.anchorUrl.startsWith('https://') ? body.anchorUrl : null
@@ -70,12 +71,22 @@ export async function POST(req: NextRequest) {
     : anchorUrl
     ? { image_url: anchorUrl, prompt, duration: String(seconds), generate_audio: true }
     : {
-        prompt,
-        duration: seconds <= 6 ? '5' : '10',
+        // KINEO-KLING3-AUDIT-2026-08-20 — dois desvios do route principal:
+        // 1) duration era o snap velho 5|10 que o MOTORMAX matou (recriava
+        //    dead-air/fala cortada exatamente na cena re-tentada);
+        // 2) negative_prompt estava uma geração atrás (sem rotated frame/
+        //    tilted horizon/soft focus). Agora espelha o branch KLING3_MODEL.
+        prompt:
+          // cena t2v sem âncora precisa da ordem de composição vertical como
+          // PREFIXO (KINEO-UPRIGHT-B); o prompt guardado pode vir de um submit
+          // i2v (still travava o quadro) e não tê-la.
+          prompt.startsWith('Vertical 9:16') ? prompt : `Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. ${prompt}`,
+        duration: String(seconds),
         aspect_ratio: '9:16',
         generate_audio: true,
+        cfg_scale: 0.6,
         negative_prompt:
-          'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
+          'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
       }
 
   // KINEO-H3-AUDIT2-2026-08-20 — O RETRY MORRIA EM 404 DEPOIS DE FUNCIONAR.

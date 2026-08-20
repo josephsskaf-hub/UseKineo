@@ -2319,12 +2319,20 @@ export async function POST(req: NextRequest) {
       const hRequestIds: (string | null)[] = []
       const hModels: string[] = []
       const hEngines: string[] = []
+      // KINEO-KLING3-AUDIT-2026-08-20 — scene_prompts devolvia o prompt CRU
+      // (plan + eraSuffix), mas o submit real acrescenta uprightPrefix +
+      // mouthSuffix + spectacleSuffix. O retry e o salvage re-submetiam com o
+      // prompt cru: cena re-tentada perdia o "mouth closed" (a dublagem de
+      // terror que o fundador viu DUAS vezes), o DNA de nitidez e o horizonte
+      // em pé. Agora guardamos o prompt EXATO que foi pro fal, cena a cena.
+      const hSubmittedPrompts: string[] = []
       for (const hs of plan.scenes) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
         let sceneModel: string = cinematicSceneModel(family, hs.type, Boolean(anchors))
         let sceneEngine: string = hs.type
         let id: string | null = null
+        let submittedPrompt: string = hs.prompt + eraSuffix // sobrescrito com o prompt completo no caminho t2v/i2v
 
         // KINEO-HOLLYWOOD-VOICEFIX-2026-08-16 — DESLIGADO por padrao (flag).
         // O host path fazia TTS (persona por hash do script, gênero aleatorio)
@@ -2376,6 +2384,7 @@ export async function POST(req: NextRequest) {
                 hRequestIds.push(null)
                 hModels.push(HOST_PRESENTER_MODEL)
                 hEngines.push('host')
+                hSubmittedPrompts.push(submittedPrompt)
                 break
               }
               throw e
@@ -2458,6 +2467,7 @@ export async function POST(req: NextRequest) {
             ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
             : ''
           const scenePrompt = uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          submittedPrompt = scenePrompt
           try {
             id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor)
           } catch (e) {
@@ -2472,6 +2482,7 @@ export async function POST(req: NextRequest) {
               hRequestIds.push(null)
               hModels.push(sceneModel)
               hEngines.push(sceneEngine)
+              hSubmittedPrompts.push(submittedPrompt)
               break
             }
             throw e
@@ -2481,6 +2492,7 @@ export async function POST(req: NextRequest) {
         hRequestIds.push(id)
         hModels.push(sceneModel)
         hEngines.push(sceneEngine)
+        hSubmittedPrompts.push(submittedPrompt)
         await new Promise((r) => setTimeout(r, 450))
       }
 
@@ -2491,6 +2503,7 @@ export async function POST(req: NextRequest) {
         hRequestIds.push(null)
         hModels.push(cinematicSceneModel(family, unsubmitted.type, Boolean(anchors)))
         hEngines.push(unsubmitted.type)
+        hSubmittedPrompts.push(unsubmitted.prompt + eraSuffix)
       }
 
       const hValid = hRequestIds.filter((id): id is string => id !== null)
@@ -2575,7 +2588,7 @@ export async function POST(req: NextRequest) {
         // KINEO-HOLLYWOOD-RETRY-2026-08-16 — o client precisa do prompt e da
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
-        scene_prompts: plan.scenes.map((s) => s.prompt + eraSuffix),
+        scene_prompts: hSubmittedPrompts, // prompt EXATO submetido (upright+era+mouth+spectacle) — retry/salvage fiéis
         // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
         // só pra cena que o planner situou no mundo do narrador (environmentSheet
         // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.
