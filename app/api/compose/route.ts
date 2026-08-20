@@ -1238,6 +1238,16 @@ export async function POST(req: NextRequest) {
     // and prior buyers with remaining credits get clean exports and pay the
     // documented credit cost. Premium AI has no free trial.
     let isFreePlanFast = false
+    // ⚠️ KINEO-TETO-HOTFIX-2026-08-20 — `ent` é declarado dentro do bloco de
+    // entitlement (~linha 1271) e NÃO existe no escopo do builder, lá embaixo.
+    // Usei `ent.isTrial` direto no `watermark` e derrubei TODO render em
+    // produção com "Could not assemble the render: ent is not defined" — pego
+    // no LIVE por uma pessoa nova, vinda do ChatGPT, no primeiro vídeo dela.
+    // O tsc não pegou porque `ent` EXISTE no arquivo (só que noutro escopo), e
+    // o TypeScript resolve o nome antes de saber que o bloco não alcança.
+    // Espelha exatamente o padrão de `isFreePlanFast`: declarada aqui fora,
+    // atribuída lá dentro, lida no builder.
+    let isTrialRender = false
     let withEndCard = false
     if (quality === 'cinematic_ai' || quality === 'fast') {
       const { data: prof, error: profileAccessError } = await supabase
@@ -1346,6 +1356,7 @@ export async function POST(req: NextRequest) {
         // grátis seria invisível para o próprio cap do trial).
         // Flag OFF ⇒ ent.isTrial false ⇒ predicado idêntico ao anterior.
         isFreePlanFast = isFreePlan && !hasPaid && !ent.isTrial
+        isTrialRender = ent.isTrial
         if (isFreePlanFast) {
           // The downloadable watermark + end card are the organic distribution
           // loop. Paid Starter/Creator/Studio and pack-credit renders stay clean.
@@ -2264,7 +2275,7 @@ export async function POST(req: NextRequest) {
         // 80 créditos passa a custar até $11,85 por pessoa sem nada em troca.
         watermark:
           isFreePlanFast ||
-          ent.isTrial ||
+          isTrialRender ||
           FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase()), // #434 — Joseph's self-promo accounts always watermarked
         // Free growth-loop videos and Joseph's self-promo accounts carry the
         // end card. Every paid export is clean.
