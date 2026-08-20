@@ -26,6 +26,7 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { TRIAL_GRANT_CREDITS } from '@/lib/reverseTrial'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -757,7 +758,15 @@ export async function POST(req: NextRequest) {
           introCreditsRaw > 0 &&
           introCreditsRaw <= planCredits
         const firstMonthCredits = introApplied ? Math.floor(introCreditsRaw) : planCredits
-        const creditsToGrant = isTrial ? 5 : firstMonthCredits
+        // ⚠️ KINEO-TRIAL-CARTAO-2026-08-20 — os 5 créditos eram do trial de 3
+        // dias que nunca chegou a rodar (5cr não compram NADA: um Seedance
+        // custa 20). O trial novo é de 7 dias COM CARTÃO e o grant precisa
+        // valer o que a página prometeu: TRIAL_GRANT_CREDITS (80 = 4 filmes).
+        // Se a pessoa deu o cartão e recebeu 5 créditos, ela cancela no mesmo
+        // dia — e com razão. O restante do plano entra no dia 8, quando a
+        // primeira fatura é paga (invoice.payment_succeeded, caminho que já
+        // existe e concede TIER_CREDITS).
+        const creditsToGrant = isTrial ? TRIAL_GRANT_CREDITS : firstMonthCredits
         const subscriptionFulfillmentId = `checkout_fulfilled:${session.id}`
         const publishSubscriptionFulfillment = async (): Promise<void> => {
           const { error: fulfillmentCompleteError } = await supabase
@@ -1426,6 +1435,50 @@ export async function POST(req: NextRequest) {
         await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
         await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', attributionSystem: subscription.metadata?.affiliate_system })
 
+        break
+      }
+
+      // ═══ KINEO-TRIAL-AVISO-2026-08-20 — O E-MAIL QUE PROTEGE A CONTA ═════
+      // O Stripe dispara este evento 3 dias antes de o trial virar cobrança.
+      // Mandar o aviso NÃO é gentileza: trial que cobra de surpresa vira
+      // contestação de cartão, e contestação em volume derruba a conta Stripe
+      // inteira. Ou seja, este e-mail é o que torna o modelo sustentável — e é
+      // também o que faz a pessoa que VAI ficar se sentir respeitada.
+      // Deliberadamente sem venda: só o fato, a data, o valor e como cancelar.
+      case 'customer.subscription.trial_will_end': {
+        const sub = event.data.object as Stripe.Subscription
+        const trialUserId = sub.metadata?.supabase_user_id ?? null
+        const trialEnd = sub.trial_end ? new Date(sub.trial_end * 1000) : null
+        if (trialUserId && trialEnd && process.env.RESEND_API_KEY) {
+          try {
+            const { data: prof } = await supabase
+              .from('profiles').select('email, email_opted_out').eq('id', trialUserId).maybeSingle()
+            const to = (prof?.email ?? '') as string
+            if (to && !prof?.email_opted_out) {
+              const amount = ((sub.items.data[0]?.price?.unit_amount ?? 0) / 100).toFixed(2)
+              const when = trialEnd.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+              const manage = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.usekineo.com'}/account`
+              await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: 'Kineo Team <hello@usekineo.com>',
+                  to: [to],
+                  reply_to: 'hello@usekineo.com',
+                  subject: `Your free week ends ${when}`,
+                  text: `Hey,\n\nQuick heads up, no surprises: your free week of Kineo ends on ${when}, and your card will be charged $${amount} for the first month.\n\nIf Kineo is working for you, there is nothing to do — your credits renew and you keep going.\n\nIf it is not, cancel in one click here and you will not be charged: ${manage}\n\nEither way, thanks for giving it a real try.\n\nKineo Team\nusekineo.com`,
+                  html: `<div style="font-family:Arial,sans-serif;font-size:15px;color:#111;line-height:1.6;max-width:480px;"><p>Hey,</p><p>Quick heads up, no surprises: your free week of Kineo ends on <strong>${when}</strong>, and your card will be charged <strong>$${amount}</strong> for the first month.</p><p>If Kineo is working for you, there is nothing to do — your credits renew and you keep going.</p><p>If it is not, <a href="${manage}" style="color:#2997ff">cancel in one click here</a> and you will not be charged.</p><p>Either way, thanks for giving it a real try.</p><p style="margin:0 0 2px">Kineo Team</p><p style="margin:0"><a href="https://www.usekineo.com" style="color:#2997ff">usekineo.com</a></p></div>`,
+                }),
+              })
+              await supabase.from('events').insert({ user_id: trialUserId, name: 'card_trial_ending_emailed', metadata: { amount, ends: trialEnd.toISOString() } })
+              console.log('[stripe webhook] trial_will_end aviso enviado:', trialUserId.slice(0, 8))
+            }
+          } catch (e) {
+            // Nunca derruba o webhook: falha de e-mail não pode virar retry infinito na Stripe.
+            console.error('[stripe webhook] trial_will_end email falhou:', e instanceof Error ? e.message : String(e))
+          }
+        }
+        entitlementConfirmed = true
         break
       }
 

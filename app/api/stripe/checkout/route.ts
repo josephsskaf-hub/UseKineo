@@ -686,6 +686,30 @@ async function buildAndRedirect(
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
+  // ═══ KINEO-TRIAL-CARTAO-2026-08-20 — O TRIAL PASSA A PEDIR CARTÃO ════════
+  // Decisão do fundador, e ela corrige um erro meu de raciocínio: eu vinha
+  // defendendo trial mais generoso com base em "quem faz 4 vídeos converte
+  // 24× mais". Ele apontou o furo — isso é CORRELAÇÃO. Pode ser simplesmente
+  // que quem já ia comprar é quem faz 4 vídeos; dar crédito não transforma
+  // curioso em cliente.
+  //
+  // O QUE MUDA DE VERDADE É DE QUE LADO A INÉRCIA TRABALHA:
+  //   modelo antigo → a pessoa usa, o trial acaba, e para virar cliente ela
+  //     precisa DECIDIR (abrir carteira, digitar cartão, escolher plano).
+  //     Toda a fricção fica do lado de comprar. Resultado medido: 0,5%.
+  //   modelo novo → ela dá o cartão ANTES, quando está empolgada, e vira
+  //     cliente se NÃO fizer nada. A decisão difícil muda de lugar.
+  // Mesmo produto, mesmo preço; o que muda é onde fica o atrito.
+  //
+  // ⚠️ ISTO SÓ É HONESTO SE FOR ÓBVIO. Trial que cobra sem a pessoa entender
+  // vira contestação de cartão, e contestação em volume mata a conta Stripe —
+  // seria trocar conversão por sobrevivência. Por isso, três regras que NÃO
+  // podem ser afrouxadas por quem mexer aqui depois: (1) a data da primeira
+  // cobrança e o valor aparecem antes do botão; (2) o Stripe manda o aviso
+  // oficial 7 dias antes via customer.subscription.trial_will_end e nós
+  // mandamos o nosso; (3) cancelar é um clique no painel da conta.
+  const wantsTrial = req.nextUrl.searchParams.get('trial') === '1'
+  const TRIAL_DAYS = 7
   const checkoutMetadata = {
     tier,
     billing,
@@ -1078,6 +1102,19 @@ async function buildAndRedirect(
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     },
     subscription_data: {
+      // KINEO-TRIAL-CARTAO-2026-08-20 — 7 dias grátis com cartão em mãos. O
+      // webhook JÁ sabia lidar com isto (o ramo `no_payment_required` em
+      // checkout.session.completed existe desde o trial de 3 dias que nunca
+      // foi ligado) — aqui a assinatura finalmente nasce em trial.
+      // `missing_payment_method: 'cancel'` é deliberado: se o cartão falhar no
+      // dia da cobrança, a assinatura CANCELA em vez de ficar pendurada com o
+      // cliente usando de graça e nós pagando fornecedor.
+      ...(wantsTrial && !isAnnual
+        ? {
+            trial_period_days: TRIAL_DAYS,
+            trial_settings: { end_behavior: { missing_payment_method: 'cancel' as const } },
+          }
+        : {}),
       metadata: {
         supabase_user_id: user.id,
         tier,
@@ -1085,9 +1122,12 @@ async function buildAndRedirect(
         plan_credits: String(plan.credits),
         checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
         checkout_recovery: checkoutRecovery ? '1' : '0',
+        ...(wantsTrial && !isAnnual ? { card_trial: '1', trial_days: String(TRIAL_DAYS) } : {}),
         ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
       },
     },
+    // Cartão é obrigatório mesmo sem cobrança agora — é o ponto do modelo.
+    ...(wantsTrial && !isAnnual ? { payment_method_collection: 'always' as const } : {}),
   }
 
   let discountApplied = false

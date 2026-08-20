@@ -181,7 +181,14 @@ export default function PricingCards({
     const campaignParam = intentCampaign
       ? `&intent_campaign=${encodeURIComponent(intentCampaign)}`
       : ''
-    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}`, {
+    // ═══ KINEO-TRIAL-CARTAO-2026-08-20 ═══════════════════════════════════
+    // Quem ainda não é cliente entra pela SEMANA GRÁTIS, não pela compra
+    // direta. O cartão é pedido agora, a cobrança só no dia 8 — e a pessoa
+    // escolhe AQUI qual plano será cobrado, que é o que elimina a surpresa
+    // (surpresa no dia da cobrança = contestação de cartão = conta Stripe em
+    // risco). Anual não entra: quem assina um ano não está testando.
+    const trialParam = alreadySubscribed ? '' : '&trial=1' // este card é sempre mensal
+    const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}${trialParam}`, {
       tier,
       pricing_surface: 'generate_step_1',
     })
@@ -336,7 +343,7 @@ export default function PricingCards({
             label:
               purchasing === 'starter'
                 ? 'Loading…'
-                : 'Continue with Starter',
+                : (alreadySubscribed ? 'Continue with Starter' : 'Start free week — Starter'),
             onClick: () => handleBuy('starter'),
             loading: purchasing === 'starter',
           }}
