@@ -9,12 +9,17 @@ import { createClient } from '@/lib/supabase/server'
 import { fal } from '@fal-ai/client'
 import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
 
-import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL } from '@/lib/hollywood/router'
+import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION } from '@/lib/hollywood/router'
 
 // Fonte única de modelos: o router do Hollywood.
 const KLING3_I2V = KLING3_I2V_MODEL
 const KLING3_T2V = HOLLYWOOD_MODELS.dialogue
-const ALLOWED = new Set<string>([KLING3_I2V, HOLLYWOOD_MODELS.dialogue, HOLLYWOOD_MODELS.cinematic, HOLLYWOOD_MODELS.support])
+// KINEO-H3-RETRY-2026-08-20 (auditoria pós-estreia) — esta rota nasceu antes
+// do H3 e não o conhecia: um retry de cena H3 caía no fallback Kling — clipe
+// de OUTRO motor no meio do filme, e pior, com generate_audio:true, ou seja,
+// a VOZ FANTASMA que acabamos de matar voltava pela porta dos fundos do retry.
+const H3_SET = new Set<string>([H3_MODELS.dialogue, H3_MODELS.cinematic, H3_MODELS.support, H3_I2V_MODEL])
+const ALLOWED = new Set<string>([KLING3_I2V, HOLLYWOOD_MODELS.dialogue, HOLLYWOOD_MODELS.cinematic, HOLLYWOOD_MODELS.support, ...H3_SET])
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -40,10 +45,27 @@ export async function POST(req: NextRequest) {
   }
   const anchorUrl = typeof body.anchorUrl === 'string' && body.anchorUrl.startsWith('https://') ? body.anchorUrl : null
   const seconds = Math.max(3, Math.min(15, Math.round(Number(body.seconds) || 10)))
-  const model = anchorUrl ? KLING3_I2V : (ALLOWED.has(String(body.model)) ? String(body.model) : KLING3_T2V)
+  // KINEO-H3-RETRY-2026-08-20 — a FAMÍLIA do pedido manda: se o modelo que
+  // falhou era H3, o retry fica no H3 (i2v se tem âncora). O `anchorUrl ?
+  // KLING3_I2V` antigo sequestrava até âncora H3 pro Kling.
+  const requestedIsH3 = H3_SET.has(String(body.model))
+  const model = requestedIsH3
+    ? (anchorUrl ? H3_I2V_MODEL : (ALLOWED.has(String(body.model)) ? String(body.model) : H3_MODELS.cinematic))
+    : anchorUrl ? KLING3_I2V : (ALLOWED.has(String(body.model)) ? String(body.model) : KLING3_T2V)
 
-  // Input idêntico ao buildFalInput dos branches Kling 3 do route principal.
-  const input: Record<string, unknown> = anchorUrl
+  // Input idêntico ao buildFalInput dos branches correspondentes do route
+  // principal. H3: duration INTEIRO 5-15, resolution 768P, generate_audio
+  // SEMPRE false (o H3 ignora e manda áudio mesmo assim — o compose muta —
+  // mas o parâmetro fica pelo dia em que o modelo passar a respeitá-lo).
+  const input: Record<string, unknown> = requestedIsH3
+    ? {
+        ...(anchorUrl ? { image_url: anchorUrl } : { aspect_ratio: '9:16' }),
+        prompt,
+        duration: Math.max(5, Math.min(15, seconds)),
+        resolution: H3_RESOLUTION,
+        generate_audio: false,
+      }
+    : anchorUrl
     ? { image_url: anchorUrl, prompt, duration: String(seconds), generate_audio: true }
     : {
         prompt,

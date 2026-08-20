@@ -2697,8 +2697,9 @@ export function buildHollywoodCreatomateSource({
       ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(20, Math.max(2, c.seconds)) : 10)
       : c.engine === 'dialogue'
         ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(3, c.seconds)) : 10)
+        // KINEO-H3-SLOT-2026-08-20 — teto 8→15: no H3 a ex-cena de diálogo vira 'cinematic' com 10s reais; min(8) cortava narração no meio da palavra. Hollywood/Veo planeja cinematic=8s, então nada muda pra eles. MUST mirror.
         : c.engine === 'cinematic'
-          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(8, Math.max(4, c.seconds)) : 8)
+          ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(4, c.seconds)) : 8)
           : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(12, Math.max(2, c.seconds)) : 10)
 
   const durations = cleanClips.map(secondsFor)
