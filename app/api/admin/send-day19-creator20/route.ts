@@ -42,7 +42,28 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY ?? ''
 const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'joseph@usekineo.com'
 const SENT_EVENT = 'day19_creator20_emailed_v1'
-const RECENT_CAMPAIGNS = ['checkout_rescue_emailed_v1', 'made_video_today_emailed_v1', 'india_price_emailed_v1']
+// KINEO-DAY19-V2-2026-08-20 — decisão do fundador ao revisar: "só vou mandar
+// para aquelas que não receberam NADA ainda". A exclusão deixou de ser
+// janela de 24h e virou HISTÓRICO COMPLETO de campanha de marketing —
+// qualquer pessoa com qualquer um destes carimbos fica fora, não importa
+// quando recebeu. A lista veio do BANCO (select dos eventos *emailed*/*sent*
+// reais), não do código — carimbo antigo de rota já apagada continua
+// valendo como "já recebeu".
+// E-mails FUNCIONAIS ficam de fora da exclusão de propósito:
+// trial_lifecycle_email_sent (783 envios — excluiria a base inteira),
+// video_rescue/credits_back/cap_hit/stranded_rescue são notificação de
+// produto, não campanha. "Não recebeu nada" = nada de MARKETING.
+const MARKETING_STAMPS = [
+  'checkout_rescue_emailed_v1',
+  'made_video_today_emailed_v1',
+  'india_price_emailed_v1',
+  'hotlead_emailed_v1',
+  'hotlead_emailed_v2',
+  'comeback50_sent',
+  'blackout_winback_sent',
+  'hot_upsell_sent',
+  'post_nudge_sent',
+]
 
 // Dia 19 em BRT (UTC−3): 19/08 03:00 UTC → 20/08 03:00 UTC.
 const DAY19_START = '2026-08-19T03:00:00Z'
@@ -132,13 +153,12 @@ export async function GET(req: NextRequest) {
     const videoCounts = new Map<string, number>()
     const recentlyMailed = new Set<string>()
     const alreadySent = new Set<string>()
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
     for (const chunk of chunks) {
       const [p, v, m, s2] = await Promise.all([
         admin.from('profiles').select('id, email, email_opted_out, has_paid, plan').in('id', chunk),
         admin.from('videos').select('user_id').in('user_id', chunk).limit(10000),
-        admin.from('events').select('user_id').in('user_id', chunk).in('name', RECENT_CAMPAIGNS).gte('created_at', dayAgo),
+        admin.from('events').select('user_id').in('user_id', chunk).in('name', MARKETING_STAMPS),
         admin.from('events').select('user_id').in('user_id', chunk).eq('name', SENT_EVENT),
       ])
       for (const row of p.data ?? []) profiles.push(row as (typeof profiles)[number])
@@ -150,6 +170,8 @@ export async function GET(req: NextRequest) {
       for (const row of s2.data ?? []) alreadySent.add((row as { user_id: string }).user_id)
     }
 
+    // include_recent continua existindo como interruptor de emergência, mas o
+    // default agora reflete a ordem: quem já recebeu marketing NÃO entra.
     const includeRecent = req.nextUrl.searchParams.get('include_recent') === '1'
     const PAID = new Set(['starter', 'basic', 'pro', 'autopilot'])
     const recipients = profiles
@@ -171,12 +193,12 @@ export async function GET(req: NextRequest) {
     if (!confirm) {
       return NextResponse.json({
         mode: 'DRY_RUN',
-        cohort: `esteve no site no dia 19 (BRT) · não pagou · e-mail real${includeRecent ? '' : ' · SEM quem recebeu campanha nas últimas 24h'}`,
+        cohort: `esteve no site no dia 19 (BRT) · não pagou · e-mail real${includeRecent ? '' : ' · NUNCA recebeu campanha de marketing'}`,
         remaining_unemailed: recipients.length,
         excluded_for_recent_campaign: includeRecent ? 0 : [...recentlyMailed].filter((id) => !alreadySent.has(id)).length,
         note_sobreposicao: includeRecent
-          ? '⚠ include_recent=1: quem recebeu e-mail ontem à noite VAI receber este também (3º toque em ~12h).'
-          : 'Excluídos os tocados nas últimas 24h (resgate/fez-vídeo). Use &include_recent=1 para incluir todos.',
+          ? '⚠ include_recent=1: pessoas que JÁ receberam campanha vão receber esta também.'
+          : 'Só quem NUNCA recebeu campanha de marketing (decisão do fundador, 20/08).',
         fizeram_video: recipients.filter((r) => r.videos > 0).length,
         subject: SUBJECT,
         coupon: 'CREATOR20 · 20% · 1ª fatura · SÓ Creator mensal (gate em código no checkout)',
