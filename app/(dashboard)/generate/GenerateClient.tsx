@@ -3178,6 +3178,12 @@ export default function GenerateClient({
                     anchorUrl: sceneAnchorsRef.current[fi] ?? null,
                     seconds: sceneSecondsRef.current[fi] ?? 10,
                     model: falModelsRef.current[fi] ?? undefined,
+                    // KINEO-H3-AUDIT2-2026-08-20 — o servidor RETARGETA o claim
+                    // assinado pro request id novo; sem isso o próximo poll
+                    // morria em 404 (ids do poll ≠ ids do claim).
+                    generationId,
+                    sceneIndex: fi,
+                    oldRequestId: falRequestIds[fi] ?? null,
                   }),
                 })
                 const rj = await rr.json().catch(() => ({}))

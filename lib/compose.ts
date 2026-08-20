@@ -2822,7 +2822,11 @@ export function buildHollywoodCreatomateSource({
       fit: 'cover',
       loop: clip.engine !== 'host',
       x: '50%', y: '50%', width: '100%', height: '100%',
-      volume: muteClipAudio ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
+      // KINEO-H3-AUDIT2-2026-08-20 — cena 'host' NUNCA entra no mute do H3:
+      // o áudio dela é o NOSSO TTS (apresentador), não voz inventada do
+      // modelo. Hoje o host path está atrás de flag (desligado), mas se ligar
+      // num render H3, mutar o host = cena de apresentador MUDA. Blindado.
+      volume: muteClipAudio && clip.engine !== 'host' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
       ...(HOLLYWOOD_CROSSFADE && i > 0
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
         : HOLLYWOOD_CROSSFADE && (clip.engine === 'dialogue' || clip.engine === 'host')

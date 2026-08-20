@@ -6,8 +6,10 @@
 // Chamado pelo GenerateClient quando o polling termina com cenas 'failed'.
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { fal } from '@fal-ai/client'
 import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
+import { retargetCinematicRequestId, validCinematicGenerationId } from '@/lib/cinematic/claim'
 
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION } from '@/lib/hollywood/router'
 
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (!falKey) return NextResponse.json({ error: 'Provider not configured' }, { status: 500 })
   fal.config({ credentials: falKey })
 
-  let body: { prompt?: string; anchorUrl?: string | null; seconds?: number; model?: string }
+  let body: { prompt?: string; anchorUrl?: string | null; seconds?: number; model?: string; generationId?: string; oldRequestId?: string | null; sceneIndex?: number }
   try {
     body = await req.json()
   } catch {
@@ -76,9 +78,46 @@ export async function POST(req: NextRequest) {
           'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text',
       }
 
+  // KINEO-H3-AUDIT2-2026-08-20 — O RETRY MORRIA EM 404 DEPOIS DE FUNCIONAR.
+  // Esta rota devolvia um request id novo, mas o claim assinado continuava
+  // com o id VELHO — e o poller (cinematic-clip-status) exige que os ids do
+  // poll batam 1:1 com o claim. O poll seguinte ao retry respondia 404
+  // "Generation not found" e a geração inteira era dada como morta, mesmo com
+  // as cenas boas prontas. Agora o claim é RETARGETADO junto (mesmo dono,
+  // mesmo modelo no slot, slot sem URL autorizada). Sem generationId/
+  // oldRequestId (client antigo em cache) o comportamento é o legado.
+  const generationId = typeof body.generationId === 'string' && validCinematicGenerationId(body.generationId) ? body.generationId : null
+  const oldRequestId = typeof body.oldRequestId === 'string' && body.oldRequestId.length > 0 ? body.oldRequestId : null
+  const sceneIndex = Number.isInteger(body.sceneIndex) && (body.sceneIndex as number) >= 0 ? (body.sceneIndex as number) : null
+
   try {
     const { request_id } = await fal.queue.submit(model, { input })
     if (!request_id) throw new Error('no request id')
+    if (generationId && sceneIndex !== null) {
+      const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const secret = process.env.SUPABASE_SERVICE_ROLE_KEY
+      if (adminUrl && secret) {
+        const admin = createAdminClient(adminUrl, secret, { auth: { autoRefreshToken: false, persistSession: false } })
+        const retargeted = await retargetCinematicRequestId({
+          db: admin,
+          secret,
+          userId: user.id,
+          generationId,
+          index: sceneIndex,
+          oldRequestId,
+          newRequestId: request_id,
+          model,
+        })
+        if (!retargeted.ok) {
+          // Falhou o retarget = o poller vai rejeitar o id novo. Melhor avisar
+          // o client pra NÃO trocar o id (cena segue dropada, filme compõe com
+          // o que tem) do que entregar um id que mata a geração inteira em 404.
+          console.error(`[retry-hollywood-scene] claim retarget failed (${retargeted.error}) — retry discarded`)
+          return NextResponse.json({ error: 'Retry could not be authorized.' }, { status: 409 })
+        }
+        console.log(`[retry-hollywood-scene] claim retargeted idx=${sceneIndex} ${oldRequestId ? oldRequestId.slice(0, 8) : 'null'}→${request_id.slice(0, 8)}`)
+      }
+    }
     console.log(`[retry-hollywood-scene] user=${user.id.slice(0, 8)} model=${model} resubmitted → ${request_id}`)
     return NextResponse.json({ requestId: request_id, model })
   } catch (e) {

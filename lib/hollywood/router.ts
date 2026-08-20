@@ -798,12 +798,18 @@ export function logHollywoodCost(
   for (let i = 0; i < scenes.length; i++) {
     const s = scenes[i]
     const model = opts?.models?.[i] ?? HOLLYWOOD_MODELS[s.type]
+    // KINEO-H3-AUDIT2-2026-08-20 — o log não conhecia o H3 e registrava cena
+    // H3 ao preço do Kling ($0.168/s vs $0.06/s): custo aparente inflado 2.8×.
+    // Só afeta o NOSSO log de margem, mas margem errada = decisão errada.
+    const isH3Model = model === H3_I2V_MODEL || model === H3_MODELS.dialogue || model === H3_MODELS.cinematic || model === H3_MODELS.support
     const perSecond =
-      model === PRESENTER_MODEL
-        ? PRESENTER_USD_PER_SECOND
-        : model === KLING3_I2V_MODEL
-          ? KLING3_I2V_USD_PER_SECOND
-          : HOLLYWOOD_USD_PER_SECOND[s.type]
+      isH3Model
+        ? H3_USD_PER_SECOND
+        : model === PRESENTER_MODEL
+          ? PRESENTER_USD_PER_SECOND
+          : model === KLING3_I2V_MODEL
+            ? KLING3_I2V_USD_PER_SECOND
+            : HOLLYWOOD_USD_PER_SECOND[s.type]
     const usd = s.seconds * perSecond
     total += usd
     console.log(

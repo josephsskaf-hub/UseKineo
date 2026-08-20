@@ -646,6 +646,75 @@ export async function completeCinematicClaim(args: {
 }
 
 /**
+ * KINEO-H3-AUDIT2-2026-08-20 — RETARGET DE UMA CENA RE-TENTADA.
+ * A rota /api/retry-hollywood-scene re-submete uma cena que falhou no
+ * fornecedor e devolve um request id NOVO — mas o claim assinado continuava
+ * com o id velho. Resultado: o próximo poll do cliente falhava no
+ * `sameArray(requestedIds, claim.falRequestIds)` do poller e a geração
+ * inteira morria em 404 ("Generation not found"). O retry estava
+ * estruturalmente quebrado desde que o claim endureceu.
+ * Este helper troca UM id no claim com as mesmas garantias do resto do
+ * sistema: dono verificado, modelo IMUTÁVEL no slot (retry nunca troca de
+ * motor — impede rebaixar um filme de 150cr pra um clipe barato), slot ainda
+ * sem URL autorizada, e o response assinado é re-hasheado junto (senão o
+ * validResponseBinding do compose rejeitaria o claim retargetado).
+ */
+export async function retargetCinematicRequestId(args: {
+  db: SupabaseClient
+  secret: string
+  userId: string
+  generationId: string
+  // Slot por ÍNDICE: cena que nunca foi submetida (fal recusou o submit no
+  // nascimento) tem falRequestIds[index] === null — buscar por id não a
+  // encontraria. oldRequestId null = "o slot deve estar vazio".
+  index: number
+  oldRequestId: string | null
+  newRequestId: string
+  model: string
+}): Promise<CinematicClaimMutation> {
+  if (!validRequestId(args.newRequestId) || !args.newRequestId) {
+    return { ok: false, error: 'invalid new request id' }
+  }
+  if (!Number.isInteger(args.index) || args.index < 0) {
+    return { ok: false, error: 'invalid scene index' }
+  }
+  const loaded = await loadVerifiedCinematicClaim(args)
+  if (!loaded.ok || !loaded.claim) return { ok: false, error: loaded.ok ? 'claim not found' : loaded.error }
+  const current = loaded.claim
+  if (current.status !== 'done' && current.status !== 'settled') {
+    return { ok: false, error: `cannot retarget ${current.status} claim`, conflict: true }
+  }
+  // Idempotência: o id novo já está no claim (retry duplo/replay) → ok.
+  if (current.falRequestIds.includes(args.newRequestId)) return { ok: true, claim: current }
+  const index = args.index
+  if (index >= current.falRequestIds.length) return { ok: false, error: 'scene index out of range', conflict: true }
+  if (current.falRequestIds[index] !== args.oldRequestId) {
+    return { ok: false, error: 'slot request id mismatch', conflict: true }
+  }
+  if (current.falModels[index] !== args.model) {
+    return { ok: false, error: 'retarget model mismatch', conflict: true }
+  }
+  if (current.authorizedCompletedUrls[index]) {
+    return { ok: false, error: 'scene already has an authorized URL', conflict: true }
+  }
+  const falRequestIds = [...current.falRequestIds]
+  falRequestIds[index] = args.newRequestId
+  let response = current.response
+  let responseHash = current.responseHash
+  if (response && Array.isArray(response.fal_request_ids)) {
+    const respIds = [...(response.fal_request_ids as CinematicRequestId[])]
+    if ((respIds[index] ?? null) !== args.oldRequestId) {
+      return { ok: false, error: 'response request id mismatch', conflict: true }
+    }
+    respIds[index] = args.newRequestId
+    response = { ...response, fal_request_ids: respIds }
+    responseHash = cinematicValueHash(response)
+  }
+  const next = withSignature(args.secret, { ...current, falRequestIds, response, responseHash })
+  return updateClaim({ db: args.db, secret: args.secret, previous: current, next })
+}
+
+/**
  * Bind provider-completed URLs to their signed request id/model slots. Once a
  * slot is authorized, it cannot be changed to a different URL.
  */
