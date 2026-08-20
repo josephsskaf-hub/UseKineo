@@ -1143,6 +1143,45 @@ async function buildAndRedirect(
     resolvedPromo = null
     promoBlocked = true
   }
+  // KINEO-CREATOR20-2026-08-20 — autorização do fundador (20/08, madrugada):
+  // cupom de 20% SÓ NA 1ª FATURA e SÓ NO CREATOR MENSAL, para a campanha da
+  // coorte do dia 19 ("todas as pessoas que usaram o site no dia 19"). O gate
+  // é MAIS estreito que o do FIRST50 de propósito: a ordem foi "somente para
+  // o plano creator" — Studio fica fora, Starter fica fora, anual fica fora.
+  // Mesmo padrão auto-provisionado: impossível o e-mail prometer um cupom que
+  // não existe na Stripe.
+  if (publicPromo === 'CREATOR20' && !privatePackPromo && (tier !== 'basic' || isAnnual)) {
+    console.warn(`[stripe/checkout] CREATOR20 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === 'CREATOR20' && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
+      try {
+        const CREATOR20_COUPON_ID = 'KINEO_CREATOR20'
+        try {
+          await stripe.coupons.retrieve(CREATOR20_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: CREATOR20_COUPON_ID,
+            percent_off: 20,
+            duration: 'once',
+            name: '20% off first month (Creator)',
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: CREATOR20_COUPON_ID, code: 'CREATOR20' })
+        } catch {
+          // já existe — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: 'CREATOR20', active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log('[stripe/checkout] CREATOR20 self-provisioned/resolved')
+      } catch (e) {
+        console.warn('[stripe/checkout] CREATOR20 self-provision falhou (checkout segue a preço cheio):', e)
+      }
+    }
+  }
   if (publicPromo === 'FIRST50' && !privatePackPromo && !promoBlocked) {
     if (!resolvedPromo) {
       try {
