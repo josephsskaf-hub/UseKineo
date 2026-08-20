@@ -85,6 +85,10 @@
       "schedule": "10 13 * * *"
     },
     {
+      "path": "/api/cron/send-momentum-nudge",
+      "schedule": "30 13 * * *"
+    },
+    {
       "path": "/api/cron/finish-stranded-renders",
       "schedule": "*/15 * * * *"
     }

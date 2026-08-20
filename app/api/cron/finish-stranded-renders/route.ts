@@ -48,6 +48,17 @@ const READY_EVENT = 'stranded_ready_sent'
 // ready). Marcador PROPRIO: quando NOS compomos com sucesso, gravamos este
 // evento com o render_id da resposta — a fase 2 lê daqui, nao do claim.
 const COMPOSED_EVENT = 'stranded_composed'
+// ⚠️ KINEO-STRANDED-FAST-2026-08-20 — O MOTOR MAIS USADO NÃO TINHA RESGATE.
+// Este cron nasceu olhando SÓ o claim cinematográfico. Só que o Kineo 1
+// (fast) — 281 dos 410 vídeos da semana — não passa por ele: ele grava
+// `compose_submission_claim`. Resultado medido hoje: 32 renders de 26 PESSOAS
+// em 7 dias foram entregues ao Creatomate, ficaram prontos lá, e nunca
+// chegaram ao cliente, porque quem persiste o vídeo é o polling da ABA. A
+// pessoa fechou o navegador e o vídeo dela morreu pronto na prateleira.
+// É o pior tipo de perda que existe: o custo já foi pago, o produto já
+// existe, e o cliente foi embora achando que não funcionou.
+const FAST_READY_EVENT = 'stranded_fast_ready_sent'
+const MAX_FAST_PER_RUN = 25
 const MIN_AGE_MS = 12 * 60 * 1000
 const MAX_AGE_MS = 20 * 60 * 60 * 1000
 const MAX_COMPOSE_PER_RUN = 3
@@ -450,6 +461,86 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  console.log(`[stranded] checked=${checked} composed=${composed} ready=${ready} rescued=${rescuedCount}`)
-  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, results })
+  // ═══ FASE 3 — RESGATE DO CAMINHO COMPOSE (Kineo 1 e qualquer motor) ═══════
+  // Mesma mecânica da Fase 2, outra porta de entrada: aqui o compose JÁ foi
+  // submetido (o claim tem render_id), então nunca há re-submissão nem custo
+  // novo de fornecedor — só cutucamos o status, que faz a própria rota
+  // persistir o vídeo, e avisamos a pessoa. Barato e idempotente.
+  let fastReady = 0
+  try {
+    const { data: fastClaims } = await admin
+      .from('events')
+      .select('user_id, session_id, created_at, metadata')
+      .eq('name', 'compose_submission_claim')
+      .gte('created_at', minIso)
+      .lte('created_at', maxIso)
+      .order('created_at', { ascending: false })
+      .limit(200)
+
+    const fastGenIds = (fastClaims ?? []).map((c) => c.session_id).filter((x): x is string => !!x)
+    const { data: fastMarkers } = fastGenIds.length > 0
+      ? await admin.from('events').select('session_id').eq('name', FAST_READY_EVENT).in('session_id', fastGenIds.slice(0, 200))
+      : { data: [] as Array<{ session_id: string | null }> }
+    const alreadyFast = new Set((fastMarkers ?? []).map((m) => m.session_id as string))
+
+    for (const row of fastClaims ?? []) {
+      if (fastReady >= MAX_FAST_PER_RUN) break
+      const genId = row.session_id as string | null
+      const userId = row.user_id as string | null
+      const md = row.metadata as Record<string, unknown> | null
+      if (!genId || !userId || !md) continue
+      if (alreadyFast.has(genId)) continue
+      const renderId = typeof md.render_id === 'string' ? md.render_id : null
+      if (!renderId) continue
+
+      // Já existe vídeo para este render? Então a aba da pessoa deu conta.
+      const { data: existing } = await admin
+        .from('videos')
+        .select('id, status, video_url, final_video_url')
+        .eq('user_id', userId)
+        .eq('render_id', renderId)
+        .maybeSingle()
+      if (existing?.status === 'completed') continue
+
+      // Cutuca o status em modo serviço — a rota persiste o vídeo se a
+      // Creatomate terminou. Sem custo de fornecedor: o render já foi pago.
+      try {
+        const statusReq = new NextRequest(`${APP_URL}/api/compose/status/${renderId}`, { headers: serviceHeaders(userId) })
+        await composeStatusGet(statusReq, { params: { renderId } })
+      } catch (e) {
+        console.warn(`[stranded-fast] status poke failed ${renderId.slice(0, 8)}:`, e instanceof Error ? e.message : String(e))
+        continue
+      }
+
+      const { data: vid } = await admin
+        .from('videos')
+        .select('id, status, video_url, final_video_url')
+        .eq('user_id', userId)
+        .eq('render_id', renderId)
+        .maybeSingle()
+      const finalUrl = (vid?.final_video_url ?? vid?.video_url ?? '') as string
+      if (vid?.status !== 'completed' || !finalUrl) continue
+
+      const { data: prof } = await admin.from('profiles').select('email, email_opted_out').eq('id', userId).maybeSingle()
+      const email = (prof?.email ?? '') as string
+      const mayEmailFast = !!email && !prof?.email_opted_out && !isInternalOrJunkEmail(email)
+      if (mayEmailFast) {
+        const link = `${APP_URL}/history?utm_source=stranded_fast_ready`
+        const ok = await sendEmail(email, userId, 'Your video is ready 🎬', readyText(link), readyHtml(link, userId))
+        if (ok) {
+          await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId } })
+          fastReady++
+          results.push({ generation: genId.slice(0, 8), outcome: 'fast_ready_email_sent' })
+        }
+      } else {
+        await admin.from('events').insert({ user_id: userId, name: FAST_READY_EVENT, session_id: genId, metadata: { render_id: renderId, email: 'skipped' } })
+        results.push({ generation: genId.slice(0, 8), outcome: 'fast_recovered_no_email' })
+      }
+    }
+  } catch (e) {
+    console.error('[stranded-fast] phase failed:', e instanceof Error ? e.message : String(e))
+  }
+
+  console.log(`[stranded] checked=${checked} composed=${composed} ready=${ready} rescued=${rescuedCount} fastReady=${fastReady}`)
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, results })
 }
