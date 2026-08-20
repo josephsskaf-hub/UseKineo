@@ -9,7 +9,7 @@ import { trackSignupSource } from '@/lib/analytics'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import AuthReel from '@/components/AuthReel'
 
 // Only honor redirects that stay on our own site, so a malicious referrer
