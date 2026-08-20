@@ -300,6 +300,15 @@ export interface CreatomateRenderState {
   url: string | null
   snapshotUrl: string | null
   error: string | null
+  /** ⚠️ KINEO-DURACAO-REAL-2026-08-20 — a duração do ARQUIVO, vinda do
+   *  Creatomate. Até hoje a tabela `videos` guardava a duração PEDIDA (e, no
+   *  caminho do cron de resgate, um fallback cravado de 30), então o painel
+   *  dizia 30s para um vídeo de 65s. Isso não é cosmético: foi com esse campo
+   *  que eu concluí (errado) que o Seedance entregava 49s e não monetizava.
+   *  Medindo os arquivos: 62,9s · 62,5s · 61,5s · 65,0s. O produto sempre
+   *  esteve certo; o registro é que mentia — e métrica que mente produz
+   *  decisão errada, que é o defeito mais caro que existe. */
+  durationSeconds: number | null
 }
 
 // Push #234 — calibrated to the REAL TTS pace. OpenAI tts-1 (onyx) speaks at
@@ -3204,6 +3213,7 @@ export async function pollCreatomateRender(renderId: string): Promise<Creatomate
     snapshot_url?: string
     error_message?: string
     progress?: number
+    duration?: number
   }
 
   const raw = (data.status ?? '').toLowerCase()
@@ -3269,5 +3279,10 @@ export async function pollCreatomateRender(renderId: string): Promise<Creatomate
     url: typeof data.url === 'string' ? data.url : null,
     snapshotUrl: typeof data.snapshot_url === 'string' ? data.snapshot_url : null,
     error: typeof data.error_message === 'string' ? data.error_message : null,
+    // A duração real do MP4, direto de quem montou o arquivo.
+    durationSeconds:
+      typeof data.duration === 'number' && data.duration > 0
+        ? Math.round(data.duration * 10) / 10
+        : null,
   }
 }

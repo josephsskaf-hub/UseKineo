@@ -384,8 +384,17 @@ export async function GET(
     // Push #050 — topic + duration travel as query params so we can record
     // them in the videos history row on success. Both are optional: the
     // route still works without them, the history row just has nulls.
+    // ⚠️ KINEO-DURACAO-REAL-2026-08-20 — este fallback cravado de 30 é o que
+    // gravou "30 segundos" num vídeo de 65. Quem chama sem `?duration=` (o cron
+    // de resgate, que hoje monta boa parte dos filmes) caía direto nele.
+    // A duração pedida NUNCA foi a entregue: a narração é o trilho mestre e o
+    // vídeo fecha onde a fala termina. Guardar o pedido no lugar do entregue
+    // fez o painel mentir e me fez tirar conclusão errada sobre monetização.
+    // A verdade agora vem de quem montou o arquivo (Creatomate), e o parâmetro
+    // vira só o palpite inicial enquanto o render não terminou.
     const durationParam = Number(req.nextUrl.searchParams.get('duration') ?? '')
-    const duration = Number.isFinite(durationParam) && durationParam > 0 ? Math.floor(durationParam) : 30
+    const requestedDuration = Number.isFinite(durationParam) && durationParam > 0 ? Math.floor(durationParam) : 60
+    let duration = requestedDuration
     const topic = (req.nextUrl.searchParams.get('topic') ?? '').toString().slice(0, 1000)
     // PUSH #100 — ready-to-paste YouTube description from /api/analyze-idea,
     // forwarded by the composer so the history row (and the public /v/[id]
@@ -413,6 +422,12 @@ export async function GET(
     }
 
     if (state.status === 'succeeded' && state.url) {
+      // KINEO-DURACAO-REAL-2026-08-20 — a partir daqui, `duration` é a duração
+      // do ARQUIVO (o Creatomate acabou de montá-lo e sabe o número exato). O
+      // valor pedido só sobrevive se o fornecedor não devolver a medida.
+      if (typeof state.durationSeconds === 'number' && state.durationSeconds > 0) {
+        duration = Math.round(state.durationSeconds)
+      }
       if (prepaidCinematicClaim?.status === 'released') {
         return NextResponse.json({
           phase: 'failed',
