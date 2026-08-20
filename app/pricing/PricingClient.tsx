@@ -44,7 +44,8 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
-import { swapFreeTierCopy as ft, type FreeTierOffer } from '@/lib/freeTierOffer'
+import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
+import { creditCostFor } from '@/lib/credits/engineCost'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -625,7 +626,7 @@ export default function PricingClient() {
           style={{ background: 'rgba(41,151,255,0.07)', border: '1px solid rgba(41,151,255,0.4)' }}
         >
           <p className="text-[12.5px] font-semibold text-[#86868b]">
-            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', '; new accounts can start a 7-day Creator trial — $1 to start, 80 credits, card required.')}
+            Not sure yet? <Link href="/signup" className="font-bold text-[#2997ff] hover:text-[#2997ff]">{ft(OFFER, 'Create up to 3 Fast videos free every 24h', 'Start free — your first video is on us')}</Link>{ft(OFFER, ' — no card; download and share with a watermark.', `; new accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, no card — films are watermarked until you upgrade.`)}
           </p>
           <CostCalculatorLink
             placement="pricing_pre_cards"
@@ -1160,40 +1161,58 @@ export default function PricingClient() {
                   // (rebase 2:1 + universal engines): credits 25/150/200, AI Gen
                   // 20cr, Kling 50cr, Presenter 70cr, Hollywood 150cr. Engines
                   // unlock for ANY paid plan (balance permitting).
+                  // ⚠️ KINEO-TABELA-2026-08-20 — ESTA TABELA ESTAVA DUAS VERSÕES
+                  // ATRÁS e foi pega no teste do fluxo: dizia "Fast 1 cr"
+                  // (custa 5 desde hoje) e "Monthly credits 25/150/200" (é
+                  // 40/90/180 desde a V6, ontem). Ou seja: a página que mais
+                  // vende era a que mais mentia. Agora TODO número aqui deriva
+                  // — creditCostFor para motor, TIER_CREDITS para grant. Se um
+                  // preço mudar amanhã, esta tabela acompanha sozinha.
+                  // A coluna FREE também mudou de significado: o trial agora
+                  // abre TODOS os motores (KINEO-TETO), então ela deixa de ser
+                  // uma coluna de "—" e passa a dizer o que de fato acontece —
+                  // roda tudo, sai com marca d'água.
                   {
                     label: 'Fast mode (smart stock)',
-                    free: ft(OFFER, 'Up to 3 / 24h · watermark', '1/mo · watermark'),
-                    starter: '✅ 1 cr',
-                    basic: '✅ 1 cr',
-                    pro: '✅ 1 cr',
+                    free: ft(OFFER, 'Up to 3 / 24h · watermark', '✅ watermark'),
+                    starter: `✅ ${creditCostFor('fast', true)} cr`,
+                    basic: `✅ ${creditCostFor('fast', true)} cr`,
+                    pro: `✅ ${creditCostFor('fast', true)} cr`,
                   },
                   {
-                    label: 'AI Generated videos (Seedance, 20 cr)',
-                    free: '— Paid only',
+                    label: `AI Generated videos (Seedance, ${creditCostFor('cinematic_ai', true)} cr)`,
+                    free: ft(OFFER, '— Paid only', '✅ watermark'),
                     starter: '✅',
                     basic: '✅',
                     pro: '✅',
                   },
                   {
-                    label: 'Cinematic AI videos (Kling, 50 cr)',
-                    free: '—',
-                    starter: 'Needs +25 cr',
+                    label: `MiniMax H3 — cinematic (${creditCostFor('cinematic_h3', true)} cr)`,
+                    free: ft(OFFER, '—', '✅ watermark'),
+                    starter: '—',
+                    basic: '✅',
+                    pro: '✅',
+                  },
+                  {
+                    label: `Cinematic AI videos (Kling, ${creditCostFor('cinematic_kling', true)} cr)`,
+                    free: ft(OFFER, '—', '✅ watermark'),
+                    starter: '—',
                     basic: '✅',
                     pro: '✅ 1080p',
                   },
                   {
-                    label: '🎬 AI Presenter — talking avatar (70 cr)',
-                    free: '—',
-                    starter: 'Needs +45 cr',
+                    label: `🎬 AI Presenter — talking avatar (${creditCostFor('presenter', true)} cr)`,
+                    free: ft(OFFER, '—', '✅ watermark'),
+                    starter: '—',
                     basic: '✅',
                     pro: '✅',
                   },
                   {
-                    label: '🎥 Hollywood film (150 cr)',
-                    free: '—',
-                    starter: 'Needs +125 cr',
-                    basic: '✅ 1/mo included',
-                    pro: '✅',
+                    label: `🎥 Kling 3 — top cinematic (${creditCostFor('cinematic_hollywood', true)} cr)`,
+                    free: ft(OFFER, '—', 'Unlocked · needs credits'),
+                    starter: '—',
+                    basic: '—',
+                    pro: '✅ 1/mo',
                   },
                   {
                     label: '🎭 Saved characters (same face every video)',
@@ -1204,10 +1223,10 @@ export default function PricingClient() {
                   },
                   {
                     label: 'Monthly credits',
-                    free: '0',
-                    starter: '25',
-                    basic: '150',
-                    pro: '200',
+                    free: ft(OFFER, '0', `${TRIAL_GRANT_CREDITS_COPY} free, once`),
+                    starter: String(TIER_CREDITS.starter),
+                    basic: String(TIER_CREDITS.basic),
+                    pro: String(TIER_CREDITS.pro),
                   },
                   {
                     label: 'Render time',
