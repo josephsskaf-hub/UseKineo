@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
               <!-- hero benefit box -->
               <div style="background:rgba(41,151,255,0.08);border:1px solid rgba(41,151,255,0.28);border-radius:14px;padding:20px 24px;margin-bottom:28px;text-align:center;">
-                <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 8px;">${ft(OFFER, 'UP TO 3 FAST VIDEOS / 24H — NO CARD', `CREATOR TRIAL: ${TRIAL_GRANT_CREDITS_COPY} CREDITS · 7 DAYS`)}</p>
+                <p style="color:#2997ff;font-size:12px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;margin:0 0 8px;">${ft(OFFER, 'UP TO 3 FAST VIDEOS / 24H — NO CARD', `${TRIAL_GRANT_CREDITS_COPY} FREE CREDITS · EVERY ENGINE UNLOCKED`)}</p>
                 <p style="color:#f1f5f9;font-size:28px;font-weight:900;margin:0 0 4px;letter-spacing:-0.5px;">See your idea become a Short</p>
                 <p style="color:#64748b;font-size:13px;margin:0;">Script, voice, footage and captions — automatically.</p>
               </div>

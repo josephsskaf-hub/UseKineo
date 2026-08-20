@@ -107,7 +107,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', 'The 7-day Creator trial ($1 to start, card required) includes 80 credits, and Seedance is part of it — so the first four Seedance videos come out of the trial.')}`,
+        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', 'Every new account gets 80 free credits with no card, and Seedance is included — so the first four Seedance films come out of the free credits, watermarked. A plan unlocks the clean download.')}`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -296,7 +296,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
     e.tier === 'Studio'
       ? `${e.name} is a Studio-plan engine — it is not part of the free trial.`
       : e.tier === 'Creator'
-        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is included in the 7-day Creator trial — $1 to start, 80 credits, card required.`)
+        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is unlocked on every new account — 80 free credits, no card. Trial films are watermarked; a plan unlocks the clean download.`)
         : ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
 
   return (

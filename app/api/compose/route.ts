@@ -2246,8 +2246,25 @@ export async function POST(req: NextRequest) {
           body.avatar_hook_seconds < 30
             ? body.avatar_hook_seconds
             : null,
+        // ═══ KINEO-TETO-2026-08-20 — A MARCA D'ÁGUA VIRA O PAYWALL ══════
+        // Par obrigatório do KINEO-TETO em generate-video-cinematic (que abriu
+        // Kling 3/Veo/H3 para o trial). Modelo copiado do OpusClip e adaptado:
+        // eles entregam o clipe e cobram pela POSSE (o vídeo grátis deixa de
+        // ser exportável em 3 dias). A gente entrega o filme inteiro — motor
+        // caro incluído — e cobra pelo EXPORT LIMPO.
+        //
+        // Por que marca d'água e não expiração, que era o jeito deles:
+        //   1. expiração gera raiva (a pessoa sente que perdeu trabalho);
+        //   2. o vídeo com marca d'água que ela postar vira propaganda nossa.
+        //      O OpusClip não pode usar isso — o vídeo é do cliente dele. O
+        //      nosso é criado do zero e leva a nossa marca com orgulho.
+        //
+        // ⚠️ SE ISTO FOR REVERTIDO, REVERTER O KINEO-TETO JUNTO. Motor caro
+        // liberado SEM marca d'água = produto inteiro de graça, e o trial de
+        // 80 créditos passa a custar até $11,85 por pessoa sem nada em troca.
         watermark:
           isFreePlanFast ||
+          ent.isTrial ||
           FORCE_WATERMARK_EMAILS.has((user.email ?? '').toLowerCase()), // #434 — Joseph's self-promo accounts always watermarked
         // Free growth-loop videos and Joseph's self-promo accounts carry the
         // end card. Every paid export is clean.

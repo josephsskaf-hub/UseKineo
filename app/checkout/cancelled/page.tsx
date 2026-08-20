@@ -362,7 +362,7 @@ function CheckoutCancelledContent() {
                     Fair — then look at the product, not the price.
                   </p>
                   <p style={{ margin: '6px 0 12px', fontSize: '0.82rem', color: 'var(--muted2)', lineHeight: 1.55 }}>
-                    {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Start the 7-day Creator trial — ${TRIAL_GRANT_CREDITS_COPY} credits for $1.`)} If one of them is good
+                    {ft(OFFER, 'Make up to 3 Fast videos every 24h on the free account, no card.', `Use your ${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked.`)} If one of them is good
                     enough to post, that&apos;s the only argument for paying that actually works.
                   </p>
                   <Link

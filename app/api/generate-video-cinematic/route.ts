@@ -974,9 +974,36 @@ export async function POST(req: NextRequest) {
     const trialEnded =
       (trialUi.phase === 'downgraded' || trialUi.phase === 'ending') && trialUi.creditsGranted > 0
 
-    // Premium engines (Kling/Veo/Hollywood) need any PAID account — the
-    // reverse trial never includes the Studio engines.
-    if ((wantsKling || wantsVeo || hollywoodPath) && !isPaidUser) {
+    // ═══ KINEO-TETO-2026-08-20 — O TRIAL PASSA A MOSTRAR O TETO ═══════════
+    // Inversão do modelo, decidida com o fundador depois do estudo dos cinco
+    // concorrentes. O padrão vencedor da categoria (OpusClip) NÃO raciona o
+    // produto: entrega o vídeo pronto e cobra pela POSSE dele — o clipe grátis
+    // deixa de ser exportável em 3 dias. Quem paga, paga para não perder uma
+    // coisa que já é sua; é aversão à perda, não expectativa de ganho.
+    //
+    // O QUE ESTÁVAMOS FAZENDO ERA O CONTRÁRIO, e contra nós mesmos: o trial só
+    // abria o Kineo 1 e o Seedance, ou seja, a pessoa julgava a Kineo pelo
+    // PISO do catálogo e concluía que somos medianos. Só que o nosso
+    // diferencial mora no TETO — Kling 3 com voz nativa e lip sync é
+    // exatamente o que nenhum desses concorrentes tem (eles cortam vídeo
+    // alheio; nós fazemos filme do zero).
+    //
+    // Agora o trial abre TUDO. O que segura a conversão não é mais o bloqueio
+    // do motor, é a MARCA D'ÁGUA + o download limpo (ver app/api/compose:
+    // `watermark`). A pessoa faz o filme cinematográfico dela, assiste, se
+    // encanta — e o botão de baixar pede o plano.
+    //
+    // O custo disso é real e foi aceito de olhos abertos: um Kling 3 custa
+    // ~$11,85 de fornecedor e o trial de 80 créditos NÃO alcança os 150 dele
+    // (por isso o gate de crédito abaixo continua sendo o freio de verdade).
+    // Quem alcança é o H3 (45cr) e o Veo (90cr) — os dois já são teto o
+    // suficiente para vender, e cabem no orçamento do trial.
+    //
+    // Marca d'água ligada para trial: KINEO-TETO no compose. Se um dia isso
+    // for revertido, REVERTER OS DOIS JUNTOS — liberar motor caro sem marca
+    // d'água é dar o produto inteiro de graça.
+    const TRIAL_UNLOCKS_PREMIUM = true
+    if ((wantsKling || wantsVeo || hollywoodPath) && !isPaidUser && !(TRIAL_UNLOCKS_PREMIUM && trialActive)) {
       return NextResponse.json(
         {
           error: trialActive

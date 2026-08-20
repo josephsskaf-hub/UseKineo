@@ -190,7 +190,10 @@ export default function PricingCards({
     // Trial só no Creator (decisão do fundador): no Starter a pessoa testaria
     // com 80 créditos para assinar um plano de 40 — e $7 não cobre o custo do
     // trial. O servidor também recusa, então link adulterado não fura.
-    const trialParam = !alreadySubscribed && tier === 'basic' ? '&trial=1' : ''
+    // Trial com cartão desligado no servidor (ver CARD_TRIAL_ENABLED em
+    // app/api/stripe/checkout). O parâmetro não faz mal — o servidor ignora —
+    // mas o BOTÃO não pode prometer semana grátis enquanto isso estiver off.
+    const trialParam = ''
     const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}${trialParam}`, {
       tier,
       pricing_surface: 'generate_step_1',
@@ -376,11 +379,9 @@ export default function PricingCards({
                 // KINEO-TRIAL-CARTAO-2026-08-20 — a semana grátis é a oferta
                 // do Creator e precisa estar NO BOTÃO. É o único plano com
                 // trial, e é assim que ele vira o degrau óbvio da escada.
-                : !alreadySubscribed
-                  ? 'Start your free week →'
-                  : selectedPlan === 'basic'
-                    ? 'Continue with Creator'
-                    : PLANS.basic.cta,
+                : selectedPlan === 'basic'
+                  ? 'Continue with Creator'
+                  : PLANS.basic.cta,
             onClick: () => handleBuy('basic'),
             loading: purchasing === 'basic',
           }}

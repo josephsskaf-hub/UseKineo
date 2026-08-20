@@ -154,6 +154,19 @@ const G = TRIAL_GRANT_CREDITS_COPY
 // nunca digitado: se o grant mudar, o número de filmes acompanha sozinho.
 export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 
+// ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)
+// O modelo mudou DUAS VEZES em 20/08 e a segunda desfez a primeira. Registro
+// as duas para ninguém refazer o caminho:
+//   1ª: trial pago de $1 com cartão obrigatório. Morreu no mesmo dia, quando
+//       o estudo dos 5 concorrentes mostrou que NENHUM cobra entrada e que só
+//       5% de 65 ferramentas do segmento pedem cartão — três delas usam "no
+//       credit card required" como frase de venda.
+//   2ª (a que vale): modelo do OpusClip adaptado. Sem cartão, sem taxa. O
+//       trial abre TODOS os motores — inclusive os caros, que é onde ganhamos
+//       deles — e o vídeo sai COM MARCA D'ÁGUA. O download limpo é o paywall.
+// A frase-chave da copy é "yours to keep": a pessoa não compra promessa,
+// compra a posse de um filme que ela JÁ fez e já viu.
+// (bloco anterior mantido abaixo para histórico)
 // ⚠️ KINEO-TRIAL-CARTAO-COPY-2026-08-20 — TODA PROMESSA DE "NO CARD" SAIU.
 // O fundador viu a tela de cadastro e apontou: "aqui fala que no card
 // required, e sim precisa do card não?". Está certo, e o problema era maior
@@ -171,20 +184,20 @@ export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 // contestação depois.
 const ON_COPY: FreeTierCopy = {
   headline:
-    `Try Creator free for 7 days — ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click.`,
+    `Start free — every engine unlocked, including Kling 3. Make ${TRIAL_FILMS} AI films free, watermarked. Upgrade any time to download them clean.`,
   residual: '1 free Fast video/month',
   sentence:
-    `Start a 7-day Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click before it renews.`,
-  chip: `7-day Creator trial — ${TRIAL_FILMS} AI films`,
-  chipLower: `7-day Creator trial — ${TRIAL_FILMS} AI films`,
+    `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,
+  chip: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
+  chipLower: `${TRIAL_GRANT_CREDITS_COPY} free credits — every engine unlocked`,
   planCardBody:
-    `7 days of Creator, free: ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click before it renews.`,
+    `Free to start: ${TRIAL_GRANT_CREDITS_COPY} credits, every engine unlocked including Kling 3. Watermarked while you try; a plan makes them yours to keep.`,
   counterNoun: 'this month',
   planLimitLine: 'free Fast video per month',
   limitHitError:
     "You've used this month's free Fast video. Keep creating with Starter — same price worldwide. Cancel anytime.",
   cmpKineoFree:
-    `Kineo: a 7-day Creator trial — enough for ${TRIAL_FILMS} AI films, every engine except Studio. Card required, cancel in one click.`,
+    `Kineo: ${TRIAL_GRANT_CREDITS_COPY} free credits on signup with every engine unlocked, Kling 3 included. Trial films are watermarked; any paid plan unlocks clean downloads.`,
   limitHitEmailSubject: 'You used your free Fast video — Starter removes the wall',
   limitHitEmailIntro:
     "You've used this month's free Fast video — the free plan includes 1 per month.",
@@ -195,9 +208,9 @@ const ON_COPY: FreeTierCopy = {
   // Nomeia a coisa MAIOR que a pessoa recebe no clique, sem prometer desconto
   // (guardrail do fundador: 50%/COMEBACK50 nunca em superficie publica) e sem
   // numero de tracao. O numero e verificavel: e o grant exato, derivado.
-  ctaPrimary: `Start your free week — ${TRIAL_FILMS} AI films →`,
+  ctaPrimary: `Start free — every engine unlocked →`,
   // Primeira oracao da headline aprovada pelo fundador, verbatim.
-  ctaHeading: 'Try Creator free for 7 days',
+  ctaHeading: 'Make a real film free — keep it for $7',
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000

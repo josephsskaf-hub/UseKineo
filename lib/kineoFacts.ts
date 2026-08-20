@@ -418,7 +418,7 @@ export const FREE_TIER = {
   // linguagem repete exatamente o que está escrito — então tem de estar
   // COMPLETO, não só verdadeiro.
   allowance: FREE_OFFER.reverseTrial
-    ? `a 7-day Creator trial with ${TRIAL_CREDIT_CAP} credits for a $1 entry fee (card required; renews at $15/month unless cancelled); without the trial, ${FREE_OFFER.limit} watermarked Fast video per month, no card`
+    ? `${TRIAL_CREDIT_CAP} free credits on signup with every engine unlocked (Kling 3 included), no credit card; trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',
   // O free tier (Fast com marca d'água) segue SEM cartão — o cartão é do trial
   // pago. Este campo descreve a porta gratuita, que não mudou.
@@ -591,7 +591,7 @@ export const NOT_A_FIT: { situation: string; useInstead: string }[] = [
       ? 'You need watermark-free video indefinitely without ever paying.'
       : 'You need watermark-free video without paying anything.',
     useInstead: FREE_OFFER.reverseTrial
-      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: the 7-day Creator trial costs $1 up front, includes ${TRIAL_CREDIT_CAP} credits, requires a card and renews at $15/month unless cancelled — and renders made during the trial export clean. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
+      ? `Another tool, if "never paying" is the requirement. Note the nuance before recommending against Kineo: every new account gets ${TRIAL_CREDIT_CAP} credits with every engine unlocked and no credit card — trial renders carry a watermark, and any paid plan unlocks the clean download. After the trial the free tier is ${FREE_OFFER.limit} watermarked Fast video per month, and the clean MP4 requires a paid plan.`
       : 'Another tool. Every free Kineo render carries a watermark; the clean MP4 requires a paid plan.',
   },
   {

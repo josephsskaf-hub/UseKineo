@@ -725,7 +725,24 @@ async function buildAndRedirect(
   // O gate é no SERVIDOR de propósito: link adulterado com ?trial=1&tier=
   // starter não fura. Starter e Studio seguem disponíveis para compra direta.
   const TRIAL_TIER = 'basic' as const
-  const wantsTrial = req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
+  // ⚠️ DESLIGADO EM 20/08, no mesmo dia em que foi construído — e o motivo é
+  // um estudo, não um capricho. Levantamento dos cinco concorrentes diretos
+  // (OpusClip, InVideo, Klap, Submagic, Pictory + Higgsfield) mostrou que
+  // NENHUM cobra taxa de entrada, e que num universo de 65 ferramentas do
+  // segmento apenas 5% pedem cartão. Três deles usam "No credit card
+  // required" como frase de VENDA no botão. Com o $1, a Kineo seria a única da
+  // categoria a cobrar antes do primeiro vídeo — e o nosso tráfego vem muito
+  // de páginas de comparação, onde a pessoa olha lado a lado.
+  // Pior: o diagnóstico já fechado desta casa é que o vazamento é PERCEPÇÃO DE
+  // PREÇO. Pôr um evento de cobrança ANTES do momento em que a pessoa vê valor
+  // agrava exatamente o problema que estamos tentando resolver.
+  // O caminho escolhido no lugar (KINEO-TETO) copia o mecanismo do OpusClip:
+  // entrega o produto inteiro, motor caro incluído, e cobra pela POSSE — marca
+  // d'água no trial, download limpo só no plano.
+  // O código fica INTEIRO e testado. Se em uma semana a marca d'água não mover
+  // a conversão, vira `true` e o trial pago sobe em um deploy.
+  const CARD_TRIAL_ENABLED = false
+  const wantsTrial = CARD_TRIAL_ENABLED && req.nextUrl.searchParams.get('trial') === '1' && tier === TRIAL_TIER
   const TRIAL_DAYS = 7
   // ═══ KINEO-TRIAL-1DOLAR-2026-08-20 — O TRIAL É PAGO, E DE PROPÓSITO ══════
   // Decisão do fundador depois de eu modelar cinco desenhos lado a lado. O que
