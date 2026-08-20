@@ -272,24 +272,44 @@ export function hasIntroOffer(
 // everywhere; the invariant assertions at the bottom of this file fail loudly
 // in dev if a future edit reintroduces a below-cost or inverted SKU.
 //
-// COST BASIS (from lib/credits/engineCost.ts + the provider notes in
-// app/api/generate-video-cinematic/route.ts):
-//   Fast              1 credit  ≈ $0.02 – 0.05 / render  → ≤ $0.050 / credit
-//   AI Gen (Seedance) 20 credits ≈ $1.56 – 2.34 / render → ≤ $0.117 / credit
-//   Kling             50 credits (cost not repriced here)
-//   Hollywood         150 credits ≈ $8.90 – 10.20        → ≤ $0.068 / credit
-//   Avatar            110 credits ≈ $9.60                → ≤ $0.087 / credit
-// Seedance is the WORST dollar-per-credit engine in the catalog at $0.117/cr.
-// Worst-case COGS for a grant of N credits is therefore:
-//   floor(N / 20) Seedance renders + (N mod 20) Fast renders.
-export const WORST_CASE_USD_PER_CREDIT = 0.117
-export const FAST_USD_PER_CREDIT = 0.05
+// ═══ COST BASIS — REMEDIDO EM 20/08/2026 (sessão de margem) ═══════════════
+// A base anterior usava o custo TEÓRICO do Seedance ($1,56-2,34/render). A
+// fatura real da fal desmentiu: $3,30/render em 1080p. O invariante estava
+// portanto medindo o pior caso com o número errado e passando planos que na
+// verdade rodavam no zero a zero.
+//
+// Os números abaixo saem da fórmula PÚBLICA do fal, conferida no schema
+// oficial hoje: tokens = (w × h × fps × s) / 1024, a $1,20/M sem áudio.
+// Vídeo típico = 6 cenas de 8s.
+//   Kineo 1 (fast)  5 cr ≈ $0.33/render (Creatomate 24fps + OpenAI; Pexels
+//                          é grátis — não há fornecedor de vídeo) → $0.066/cr
+//   Seedance 720p  20 cr ≈ $1.61/render                            → $0.081/cr
+//   MiniMax H3     45 cr ≈ $5.20/render                            → $0.116/cr  ← PIOR
+//   Kling 2.5      50 cr ≈ $5.50/render                            → $0.110/cr
+//   Veo 3.1        90 cr ≈ $9.50/render                            → $0.106/cr
+//   Avatar        110 cr ≈ $9.00/render                            → $0.082/cr
+//   Kling 3       150 cr ≈ $11.85/render                           → $0.079/cr
+//
+// O PIOR MOTOR MUDOU DE DONO. Com o Seedance em 720p (KINEO-SEEDANCE-720-
+// MARGEM-2026-08-20) quem passa a definir o pior caso é o MiniMax H3, a
+// $0.116/crédito. O número quase não muda ($0.117 → $0.116) — mas o dono
+// muda, e quem reprecificar o H3 amanhã precisa saber que mexe no piso de
+// TODOS os planos. Este comentário existe para essa pessoa.
+//
+// Worst-case COGS de um grant de N créditos: N × pior-$/crédito, com o resto
+// em Fast (o motor mais barato por crédito).
+export const WORST_CASE_USD_PER_CREDIT = 0.116
+export const FAST_USD_PER_CREDIT = 0.066
 
-/** Worst-case provider cost (USD) a user can extract from a grant of N credits. */
+/** Worst-case provider cost (USD) a user can extract from a grant of N credits.
+ *  KINEO-COGS-H3-2026-08-20 — o pior motor agora é o H3 (45cr, $0.116/cr), não
+ *  o Seedance (20cr). A conta gasta o máximo possível no pior motor e joga o
+ *  resto no Fast, que é o mais barato por crédito. */
 export function worstCaseCogsUsd(credits: number): number {
-  const seedanceRenders = Math.floor(credits / 20)
-  const leftoverFast = credits % 20
-  return seedanceRenders * 20 * WORST_CASE_USD_PER_CREDIT + leftoverFast * FAST_USD_PER_CREDIT
+  const WORST_ENGINE_CREDITS = 45 // MiniMax H3
+  const worstRenders = Math.floor(credits / WORST_ENGINE_CREDITS)
+  const leftover = credits % WORST_ENGINE_CREDITS
+  return worstRenders * WORST_ENGINE_CREDITS * WORST_CASE_USD_PER_CREDIT + leftover * FAST_USD_PER_CREDIT
 }
 
 /** Stripe standard card pricing: 2.9% + $0.30. USD only — used for margin math. */

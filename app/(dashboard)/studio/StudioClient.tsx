@@ -231,10 +231,10 @@ export default function StudioClient() {
               <button type="button" className="pill off" title="Coming soon">16:9<span className="soon">SOON</span></button>
             </div>
             <div className="row">
-              <button type="button" disabled className="pill off" title="Every engine already renders in Full HD at no extra cost">720p<span className="soon">SOON</span></button>
+              <button type="button" disabled className="pill off" title="Every film is delivered as a 1080×1920 Full HD master">720p<span className="soon">SOON</span></button>
               <button type="button" className={`pill${resolution === '1080p' ? ' on' : ''}`} onClick={() => setResolution('1080p')}>1080p Full HD</button>
             </div>
-            <div className="hint">{eng.name} renders in Full HD at no extra cost.</div>
+            <div className="hint">Delivered as a 1080×1920 Full HD master. For maximum sharpness, run ✨HD Enhance on the finished film.</div>
           </div>
 
           {/* 3 · Reference image */}

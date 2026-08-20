@@ -58,7 +58,26 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // O GRÁTIS NÃO MUDA. Free segue em 0 — o funil de assistir-antes-de-pagar
       // (KINEO-ZERO-SIGNUP) é o que traz gente, e encarecê-lo seria cobrar
       // pedágio na porta de entrada.
-      return isPaidUser ? 2 : 0
+      //
+      // ⚠️ KINEO-FAST-5CR-2026-08-20 — 2 → 5 CRÉDITOS (decisão do fundador na
+      // sessão de margem). O comentário acima ("custa $0,02-0,05, margem nunca
+      // foi o problema") media só o VÍDEO — e o Kineo 1 não gera vídeo em
+      // fornecedor (b-roll é Pexels, de graça). Medido o custo TOTAL do
+      // entregável, a conta era outra: Creatomate ~$0,13/vídeo (já com os 24
+      // fps de hoje) + OpenAI script/TTS ~$0,20 = ~$0,33 por vídeo, contra
+      // $0,33 de receita a 2 créditos. Ou seja, o motor MAIS USADO da casa
+      // rodava no zero a zero, e cada vídeo a mais só somava risco.
+      //
+      // A 5 créditos: receita $0,83 por vídeo, margem ~60%. E o posicionamento
+      // fecha com a régua nova — 5 é 1/4 de um Seedance (20) e 1/30 de um
+      // Kling 3 (150), que é honestamente a proporção de trabalho entre eles.
+      //
+      // O QUE ISSO CUSTA, DITO NA CARA: o volume por plano cai pela metade e
+      // meia. Starter passa de 20 para 8 vídeos rápidos/mês, Creator de 45
+      // para 18, e o trial de 25 para 10. O trial ainda passa folgado do 4º
+      // vídeo (o limiar onde a conversão medida salta de 0,9% para 11,8%),
+      // que é o número que essa decisão não podia quebrar — e não quebrou.
+      return isPaidUser ? 5 : 0
     case 'avatar':
       // KINEO-AVATAR-120-2026-07-06 — AI Avatar folded into the UNIVERSAL
       // video_credits system (was the separate avatar_credits add-on @ 1/video).

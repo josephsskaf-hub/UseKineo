@@ -408,17 +408,36 @@ function buildFalInput(
       generate_audio: true,
     }
   }
-  // Seedance (default). KINEO-SEEDANCE-720-CREATOR-2026-07-06: resolution seguia
-  // o plano — Studio 1080p, Creator 720p (margem).
-  // KINEO-1080-GERAL-2026-08-17 (fundador: "qualidade e muito importante para a
-  // nossa porta" — aprovado): 1080p PRA TODOS. Custo fal por video Seedance
-  // sobe ~2x (preco por token ∝ pixels), a margem no Creator estreita mas segue
-  // positiva; o pricing novo (matriz V4, pendente de aprovacao) reequilibra.
-  // A porta mostra Full HD → o produto entrega Full HD, em todo plano.
+  // Seedance (default).
+  // ⚠️ KINEO-SEEDANCE-720-MARGEM-2026-08-20 — 1080p → 720p, e esta é a reversão
+  // consciente do KINEO-1080-GERAL-2026-08-17. Aquele commit já avisava que o
+  // custo dobrava e que "o pricing novo reequilibra"; o reequilíbrio nunca veio
+  // — e a V6 (19/08) ainda BAIXOU o preço. Resultado medido hoje na sessão de
+  // margem: o motor MAIS USADO da casa rodava a +5% de margem, praticamente no
+  // zero, e cada trial de sucesso nos custava mais dinheiro.
+  //
+  // A CONTA, pela fórmula pública do fal (tokens = w×h×fps×s/1024, $1,20/M sem
+  // áudio — conferida no schema oficial hoje, não estimada):
+  //   1080×1920: cena de 8s = $0,467 → vídeo de 6 cenas = $2,80 → margem  +5%
+  //    720×1280: cena de 8s = $0,207 → vídeo de 6 cenas = $1,24 → margem +52%
+  //
+  // POR QUE ISSO NÃO É REBAIXAR O PRODUTO:
+  //   1. O ARQUIVO ENTREGUE CONTINUA 1080×1920 — o Creatomate monta no perfil
+  //      de saída (lib/renderProfile), que não muda. O que muda é a resolução
+  //      da FONTE de cada cena.
+  //   2. O destino é TikTok/Shorts, que recomprime tudo para perto de 720p. A
+  //      gente estava pagando 2,25× por pixels que a plataforma joga fora.
+  //   3. O caminho para nitidez de verdade agora é PRODUTO, não custo
+  //      escondido: o ✨HD Enhance (Topaz Proteus, 10cr) reconstrói detalhe em
+  //      vez de só ter mais pixels — entrega mais que 1080p nativo e é
+  //      receita, não despesa.
+  //
+  // Reversível sem deploy se o fundador não gostar do resultado visual:
+  // KINEO_SEEDANCE_RESOLUTION=1080p na Vercel.
   return {
     prompt,
     aspect_ratio: '9:16',
-    resolution: '1080p',
+    resolution: process.env.KINEO_SEEDANCE_RESOLUTION || '720p',
     // KINEO-MOTORMAX-2026-08-16 — duracao exata 4-12 (schema): sem dead air e
     // ~20% mais barata quando a cena planejada e de 8s (preco por token).
     duration: String(Math.max(4, Math.min(12, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 10)))),
