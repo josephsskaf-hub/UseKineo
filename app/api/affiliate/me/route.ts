@@ -31,16 +31,87 @@ interface AdminDb {
 // Aqui o cupom nasce sozinho na primeira vez que o afiliado abre o painel —
 // vale tanto para quem se cadastrar hoje quanto para os 1.073 de ontem.
 //
-// FRONTEIRA DE DINHEIRO, DE PROPÓSITO: eu NÃO crio o desconto. O fundador cria
-// UM cupom na Stripe (ele decide a porcentagem) e põe o id em
-// AFFILIATE_STRIPE_COUPON_ID. Daí para frente eu só cunho os códigos que
-// apontam para o desconto dele. Sem a variável, nada acontece e o painel
-// simplesmente não mostra bloco de cupom — nunca um código quebrado na mão do
-// criador, que seria pior do que não ter cupom nenhum.
+// O DESCONTO — "SEU TRIAL É GRÁTIS", e não os 20% que eu ia usar de início.
+//
+// Escrevi 20% primeiro, copiando o CREATOR20, e a auditoria derrubou: NOSSA
+// PORTA DE ENTRADA É O TRIAL DE $1. Um cupom `duration:'once'` incide na
+// PRIMEIRA FATURA, e a primeira fatura de quem entra pelo trial é a taxa de
+// $1 — não os $15. Ou seja, 20% teria dado ao viewer um desconto de VINTE
+// CENTAVOS. Ninguém decora e fala um código na câmera para economizar $0,20.
+// O código seria digitado por ninguém e o trilho inteiro morreria de novo,
+// desta vez em silêncio.
+//
+// $1 de abatimento resolve os dois lados de uma vez:
+//   · Para o viewer vira uma frase que se fala em vídeo e se entende na hora:
+//     "usa meu código e sua primeira semana sai de graça".
+//   · Para nós custa $1 por indicação, contra $3 que os 20% custariam. Mais
+//     barato E mais atraente — não é troca, é ganho dos dois lados.
+//   · A recorrência fica INTACTA: o desconto é `once`, então todo mês de $15
+//     depois disso entra cheio.
+//
+// O que se perde: o $1 era um filtro de intenção (Modelo D — quem não paga $1
+// nunca pagaria $15). Aqui esse filtro é substituído pelo AVAL DO CRIADOR, que
+// é um sinal melhor. E a fricção que realmente importa continua de pé: o
+// cartão segue obrigatório (`payment_method_collection: 'always'`).
+//
+// A CONTA DA COMISSÃO (medida em 21/08, não estimada):
+//   O assinante real faz 3-4 filmes/mês e consome ~55 dos 140 créditos do
+//   Creator (média de 16,4cr por filme pago, sobre 1.185 filmes em 90 dias).
+//   Creator $15 · fal ~$4,24 · taxa ~$0,74 · comissão $6,00 → sobra ~$4/mês.
+//   ⚠ TRIPWIRE: quem queimar os 140 créditos custa ~$10,78 de fal e vira
+//   PREJUÍZO de ~$2,50/mês. Esse risco já existe sem afiliado; a comissão o
+//   amplia. Se aparecer um caso desses, a alavanca é a TAXA (40% → 25-30%),
+//   nunca o cupom.
+//
+// ⚠ FALTA UM TESTE AO VIVO: preciso confirmar na Stripe que um cupom de
+// assinatura abate mesmo um item de `add_invoice_items` (é assim que o $1 é
+// cobrado). A doc indica que sim; enquanto não vir com meus olhos, isto está
+// marcado como NÃO VERIFICADO.
+const AFFILIATE_COUPON_ID = 'KINEO_AFFILIATE_FREETRIAL'
+const AFFILIATE_COUPON_AMOUNT_OFF = 100 // centavos = a taxa de entrada inteira
+
 function couponTextFor(code: string): string {
   // O código da indicação já é único no banco; reaproveitá-lo garante unicidade
   // do cupom sem inventar um segundo espaço de nomes para colidir.
   return `KINEO${String(code).toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 24)
+}
+
+// Auto-provisiona o desconto-base na Stripe, mesmo padrão que o checkout já usa
+// para FIRST50 e CREATOR20 (retrieve → se não existe, create). Isso tira o
+// fundador do caminho: nada de criar cupom no painel nem setar env var.
+// A env AFFILIATE_STRIPE_COUPON_ID continua valendo como override, caso ele
+// queira apontar para um desconto diferente sem mexer em código.
+async function ensureAffiliateBaseCoupon(): Promise<string | null> {
+  const override = process.env.AFFILIATE_STRIPE_COUPON_ID
+  if (override) return override
+  try {
+    await stripe.coupons.retrieve(AFFILIATE_COUPON_ID)
+    return AFFILIATE_COUPON_ID
+  } catch {
+    try {
+      await stripe.coupons.create({
+        id: AFFILIATE_COUPON_ID,
+        amount_off: AFFILIATE_COUPON_AMOUNT_OFF,
+        currency: 'usd',
+        duration: 'once',
+        // ⚠ Coupon.name da Stripe tem limite de 40 caracteres (o KINEO_INTRO
+        // já quebrou por isso em 07/08 e derrubou uma venda). Este tem 29.
+        name: 'Kineo creator code - free trial',
+      })
+      console.log('[affiliate coupon] desconto-base auto-provisionado')
+      return AFFILIATE_COUPON_ID
+    } catch (e) {
+      // Corrida entre duas requisições: o outro lado criou. Confere antes de
+      // desistir — desistir aqui esconderia o bloco de cupom sem motivo.
+      try {
+        await stripe.coupons.retrieve(AFFILIATE_COUPON_ID)
+        return AFFILIATE_COUPON_ID
+      } catch {
+        console.error('[affiliate coupon] nao consegui provisionar o desconto-base:', e)
+        return null
+      }
+    }
+  }
 }
 
 async function mintCouponIfMissing(
@@ -49,7 +120,7 @@ async function mintCouponIfMissing(
 ): Promise<string | null> {
   if (affiliate.coupon_code) return affiliate.coupon_code
   if (affiliate.status !== 'active') return null
-  const baseCoupon = process.env.AFFILIATE_STRIPE_COUPON_ID
+  const baseCoupon = await ensureAffiliateBaseCoupon()
   if (!baseCoupon) return null
 
   const texto = couponTextFor(affiliate.code)

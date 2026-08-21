@@ -510,9 +510,13 @@ export default function AffiliatePage() {
             </button>
           </div>
           <p className="text-xs mt-3 leading-relaxed" style={{ color: MUTED }}>
-            Say it out loud in your video: <span style={{ color: TEXT, fontWeight: 800 }}>&ldquo;use code {a.coupon_code} at checkout&rdquo;</span>.
-            Your viewer types it, gets the discount, and you get paid — no link, no bio, no clicking.
-            It also works on your renewals: once someone uses your code, every month they stay counts for you.
+            Say it out loud in your video:{' '}
+            <span style={{ color: TEXT, fontWeight: 800 }}>
+              &ldquo;use code {a.coupon_code} and your first week is free&rdquo;
+            </span>
+            . They type it at checkout, the $1 entry fee is waived, and you get paid — no link, no bio,
+            no clicking. And it keeps paying: once someone uses your code, every month they stay counts
+            for you, for as long as they stay.
           </p>
         </div>
       ) : null}
