@@ -52,23 +52,19 @@ const SEARCH_QUERIES = [
 const SUPABASE_MUSIC_BASE =
   'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/music'
 
+// ⚠ REDE DE SEGURANÇA, e SÓ isso. Hoje MOOD_TRACKS cobre os 6 climas, então o
+// `?? FALLBACK_TRACKS` lá embaixo é inalcançável. Ele existe para o dia em que
+// alguém adicionar um clima novo e esquecer de preencher o catálogo.
+// KINEO-TRILHA-59-2026-08-21 — as 8 faixas antigas saíram DAQUI TAMBÉM. Três
+// delas (`phonk-song`, `voodoo-tribal`, `dark-trap-time`) carregam vocal e
+// cantoria: é o que o fundador ouviu como "letras que não reconhecemos". Vocal
+// disputa com a narração e some com a inteligibilidade — cama de narração é
+// instrumental, sem exceção. Os arquivos continuam no bucket; só não são mais
+// escolhidos por ninguém.
 const FALLBACK_TRACKS = [
-  // "Phonk Song" by Seth_Makes_Sounds (Freesound 704410, CC0) — 81s
-  `${SUPABASE_MUSIC_BASE}/phonk-song.mp3`,
-  // "Dark Beat Synth Electro Atmo Cinematic" by szegvari (611374, CC0) — 48s
-  `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
-  // "Dark Beat Synth Electro Atmo Slow Cinematic" by szegvari (611373, CC0) — 48s
-  `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
-  // "Dark Beat Loop" by BenDerhover (686772, CC0) — 48s
-  `${SUPABASE_MUSIC_BASE}/dark-beat-loop.mp3`,
-  // "Black Magick Voodoo Tribal" by memz (325143, CC0) — 53s
-  `${SUPABASE_MUSIC_BASE}/voodoo-tribal.mp3`,
-  // "TRAP Type Beat - Dark Time" by Diamond_Tunes (703568, CC0) — 125s
-  `${SUPABASE_MUSIC_BASE}/dark-trap-time.mp3`,
-  // "Scary Dark Cinematic For Suspenseful Moments" (711663, CC0) — 73s
-  `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
-  // "Orchestral trap music" by Migfus20 (524313, CC0) — 46s
-  `${SUPABASE_MUSIC_BASE}/orchestral-trap.mp3`,
+  `${SUPABASE_MUSIC_BASE}/suspense-01.mp3`,
+  `${SUPABASE_MUSIC_BASE}/epic-01.mp3`,
+  `${SUPABASE_MUSIC_BASE}/emotional-01.mp3`,
 ]
 
 // ---------------------------------------------------------------------------
@@ -86,7 +82,12 @@ const FALLBACK_TRACKS = [
 // aleatório é roleta de qualidade). Expandir o catálogo = baixar + ouvir +
 // aprovar com o fundador antes de entrar aqui.
 // ---------------------------------------------------------------------------
-export type MusicMood = 'suspense' | 'epic' | 'hustle' | 'dark'
+// KINEO-TRILHA-59-2026-08-21 — eram 4 climas e 8 arquivos, com 'dark'
+// repetindo as MESMAS faixas de 'suspense'. Na prática a maioria dos filmes
+// ouvia 3 músicas. O fundador: "assisto vídeos da nossa plataforma e vejo
+// sempre os mesmos". Não era impressão — era o catálogo.
+// Agora 6 climas e 59 faixas, ZERO repetida entre grupos.
+export type MusicMood = 'suspense' | 'epic' | 'hustle' | 'tech' | 'emotional' | 'nature'
 
 // KINEO-MUSIC-SINERGIA-2026-08-19 (fundador: "a trilha precisa ter sinergia
 // com o vídeo, em TODOS os motores"). Três defeitos consertados aqui, sem
@@ -99,32 +100,88 @@ export type MusicMood = 'suspense' | 'epic' | 'hustle' | 'dark'
 //   3. `facts`/`learning`/`curiosities` (o fallback do detectNiche, e portanto
 //      o caso MAIS COMUM) caía nessa roleta. Agora mapeia para suspense — o
 //      tom real do canal de curiosidade.
+// 59 faixas CC0 (Openverse), colhidas e CURADAS em 21/08 — não sorteadas em
+// tempo de render, que foi o erro de 09/07 que fez desligarem a busca dinâmica.
+// O funil de curadoria reprovou 17 de 76: efeito sonoro, gravação de campo,
+// alarme, ringtone, faixa com silêncio no meio, e tudo abaixo de -35 dB médio
+// (esparso demais para servir de cama). As sobreviventes foram RECLASSIFICADAS
+// pelo título real, não pela busca que as encontrou — a busca "peaceful
+// documentary" trazia "Street Thriller" para o balde de natureza, que é
+// exatamente o tipo de erro que produz trilha sem sinergia.
+// TODAS normalizadas a -23 LUFS: sem isso uma faixa a -8 dB e outra a -30 dB
+// fazem a música saltar de vídeo para vídeo, e metade da sensação de amadorismo
+// vem daí.
 const MOOD_TRACKS: Record<MusicMood, string[]> = {
-  // Mistério / conspiração / dark history / curiosidade — tensão, zero festa.
   suspense: [
-    `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
-    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
-    `${SUPABASE_MUSIC_BASE}/voodoo-tribal.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-06.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-07.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-08.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-09.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-10.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-11.mp3`,
+    `${SUPABASE_MUSIC_BASE}/suspense-12.mp3`,
   ],
-  // História / geografia / ciência — peso cinematográfico, orquestral.
   epic: [
-    `${SUPABASE_MUSIC_BASE}/orchestral-trap.mp3`,
-    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-06.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-07.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-08.mp3`,
+    `${SUPABASE_MUSIC_BASE}/epic-09.mp3`,
   ],
-  // Dinheiro / billionaire / luxo / tech — a batida phonk/trap que JÁ era a
-  // identidade do canal de finanças; aqui ela é acerto, não acidente.
   hustle: [
-    `${SUPABASE_MUSIC_BASE}/phonk-song.mp3`,
-    `${SUPABASE_MUSIC_BASE}/dark-trap-time.mp3`,
-    `${SUPABASE_MUSIC_BASE}/dark-beat-loop.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-06.mp3`,
+    `${SUPABASE_MUSIC_BASE}/hustle-07.mp3`,
   ],
-  // Sem sinal de tema — SÓ cinematográfico neutro. Nunca phonk/trap: uma
-  // batida de dinheiro sob uma história de mistério é o que o fundador ouviu
-  // como "sem sinergia".
-  dark: [
-    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-a.mp3`,
-    `${SUPABASE_MUSIC_BASE}/dark-beat-cinematic-b.mp3`,
-    `${SUPABASE_MUSIC_BASE}/scary-dark-cinematic.mp3`,
+  tech: [
+    `${SUPABASE_MUSIC_BASE}/tech-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/tech-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/tech-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/tech-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/tech-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/tech-06.mp3`,
+  ],
+  emotional: [
+    `${SUPABASE_MUSIC_BASE}/emotional-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-06.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-07.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-08.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-09.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-10.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-11.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-12.mp3`,
+    `${SUPABASE_MUSIC_BASE}/emotional-13.mp3`,
+  ],
+  nature: [
+    `${SUPABASE_MUSIC_BASE}/nature-01.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-02.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-03.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-04.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-05.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-06.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-07.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-08.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-09.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-10.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-11.mp3`,
+    `${SUPABASE_MUSIC_BASE}/nature-12.mp3`,
   ],
 }
 
@@ -135,27 +192,43 @@ const NICHE_TO_MOOD: Record<string, MusicMood> = {
   mystery: 'suspense',
   conspiracy: 'suspense',
   dark_history: 'suspense',
+  horror: 'suspense',
   history: 'epic',
   geography: 'epic',
   travel: 'epic',
-  science: 'epic',
+  adventure: 'epic',
   finance: 'hustle',
   billionaire: 'hustle',
   money: 'hustle',
   luxury: 'hustle',
-  ai: 'hustle',
-  technology: 'hustle',
-  // KINEO-MUSIC-SINERGIA-2026-08-19 — estes três eram o buraco: 'facts' é o
-  // FALLBACK do detectNiche (o caso mais frequente do produto) e caía na
-  // roleta. O canal é curiosidade/mistério — suspense é o tom certo.
+  business: 'hustle',
+  // KINEO-TRILHA-59-2026-08-21 — ai/technology/science saíram do 'hustle'.
+  // Batida de trap sob uma história de inteligência artificial era o mesmo
+  // erro de sinergia que o fundador ouviu: o clima certo é eletrônico.
+  ai: 'tech',
+  technology: 'tech',
+  science: 'tech',
+  // Histórias de pessoa, psicologia e criador pedem piano, não orquestra épica.
+  psychology: 'emotional',
+  people: 'emotional',
+  creator: 'emotional',
+  // Natureza/documentário: o pedido de curadoria do fundador (raios, chuva,
+  // mar, aventura) tem clima próprio em vez de cair no genérico.
+  nature: 'nature',
+  documentary: 'nature',
+  // 'facts' é o FALLBACK do detectNiche, ou seja, o caso MAIS frequente do
+  // produto. O canal é curiosidade/mistério — suspense é o tom certo.
   facts: 'suspense',
   learning: 'suspense',
   curiosities: 'suspense',
 }
 
 export function resolveMusicMood(niche: string | null | undefined): MusicMood {
-  if (!niche) return 'dark'
-  return NICHE_TO_MOOD[niche.toLowerCase()] ?? 'dark'
+  // 'dark' morreu junto com o catálogo antigo. Sem sinal de tema o produto é
+  // canal de curiosidade, então suspense é o padrão honesto — nunca uma batida
+  // de dinheiro sob uma história de mistério.
+  if (!niche) return 'suspense'
+  return NICHE_TO_MOOD[niche.toLowerCase()] ?? 'suspense'
 }
 
 type OpenverseHit = {
@@ -250,9 +323,9 @@ export async function getBackgroundMusicUrl(seed?: string, mood?: MusicMood): Pr
 
   // LAYER 2 (now primary) — curated self-hosted CC0 tracks, mood-matched
   // (KINEO-MUSIC-MOOD-2026-08-17) + deterministic rotation dentro do balde.
-  const pool = MOOD_TRACKS[mood ?? 'dark'] ?? FALLBACK_TRACKS
+  const pool = MOOD_TRACKS[mood ?? 'suspense'] ?? FALLBACK_TRACKS
   const fallback = pool[pickIndex(pool.length, seed, 'fallback')]
-  console.log(`[music] Using curated self-hosted CC0 track (mood=${mood ?? 'dark'}): ${fallback}`)
+  console.log(`[music] faixa curada (clima=${mood ?? 'suspense'}, ${pool.length} disponíveis): ${fallback}`)
   return fallback
 
   // LAYER 3 (no music) is the caller's try/catch in /api/compose — it logs
