@@ -18,7 +18,7 @@ const BASE = 'https://www.usekineo.com'
 export const metadata: Metadata = {
   title: 'AI Image Generator — 6 Engines, One Studio (FLUX, Seedream, Grok, Recraft) | Kineo',
   description:
-    'Generate images with six AI engines in one place: FLUX Schnell & Dev, Seedream, Grok, Recraft and Nano Banana Pro. Edit with instructions, upscale to HD. 80 free credits on signup, no card.',
+    `Generate images with six AI engines in one place: FLUX Schnell & Dev, Seedream, Grok, Recraft and Nano Banana Pro. Edit with instructions, upscale to HD. ${TRIAL_GRANT_CREDITS_COPY} free credits on signup, no card.`,
   alternates: { canonical: `${BASE}/ai-image-generator` },
   openGraph: {
     title: 'AI Image Generator — six engines, one studio',
@@ -39,7 +39,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: 'Images cost 1–5 credits depending on the engine. Every new account gets 80 free credits — enough for dozens of images. Paid plans start at ' + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits — the same price worldwide — and credits are shared across images, voice and video.',
+    a: `Images cost 1–5 credits depending on the engine. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits — enough to try every engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits — the same price worldwide — and credits are shared across images, voice and video.',
   },
   {
     q: 'Can I turn my images into videos?',

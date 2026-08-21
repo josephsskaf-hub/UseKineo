@@ -51,27 +51,33 @@ export default function PhWelcomeBanner() {
         Start free →
       </a>
       {/*
-        KINEO-PH-PROMO-LINE-2026-08-04 (Ordem I, item 2) — a linha do cupom.
-        Redação DELIBERADA: "use code PRODUCTHUNT at checkout", e o link leva a
-        /pricing?promo=PRODUCTHUNT. Não diz "aplicado automaticamente" porque o
-        dashboard da Stripe estava em erro na hora e não deu para confirmar que
-        o CÓDIGO PROMOCIONAL (não o cupom) existe — o cupom eu vi na lista, o
-        promotion code não. Se ele não existir, o checkout ignora o promo em
-        silêncio (route.ts) e a pessoa cai no preço cheio: com esta redação ela
-        ainda tem o campo de cupom do próprio Stripe Checkout para digitar o
-        código, então o pior caso é fricção, não promessa quebrada.
+        ⚠️ KINEO-SEM-CUPOM-PUBLICO-2026-08-21 — A LINHA DO CUPOM SAIU DAQUI.
+        (Era: "Use code PRODUCTHUNT at checkout — 30% off your first 3 months",
+        KINEO-PH-PROMO-LINE-2026-08-04.)
+
+        O QUE FOI MEDIDO HOJE, e o que derrubou a linha:
+          · dos 9 clientes pagantes, ZERO usaram cupom — todos pagaram cheio;
+          · 430 e-mails de campanha COM desconto produziram 1 venda.
+        Cupom não vendeu nada aqui. Isso já bastaria para tirar.
+
+        Mas o motivo de verdade é pior que "não funciona". A conclusão fechada
+        do fundador (19/08) é que o vazamento do checkout é PERCEPÇÃO DE VALOR:
+        a pessoa chega no pagamento, acha caro e sai. Desconto empurra essa
+        percepção para BAIXO, não para cima — quem achou caro e recebe 30% off
+        não conclui "que barato", conclui "então não valia aquilo". A gente
+        estava pagando para piorar exatamente a métrica que precisa subir.
+        No lugar do desconto, a âncora que subiu hoje na grade de preços:
+        "$3,22 por filme pronto contra $30-75 de um editor freelancer".
+
+        ⚠️ A DISTINÇÃO QUE ESTA MUDANÇA **NÃO** APAGA: o cupom do AFILIADO
+        (20%, KINEO_AFFILIATE_20) continua de pé, de propósito. Ele não é
+        desconto de desespero para quem já está aqui e não compra — é o preço
+        de trazer alguém NOVO, e é a única forma de atribuir a venda quando o
+        criador fala em vídeo e não dá para clicar em link (TikTok/Reels).
+        Desconto que resgata cliente parado destrói valor; desconto que paga
+        por um cliente que não existiria é custo de aquisição. Não confundir os
+        dois na hora de "limpar os cupons".
       */}
-      <span style={{ display: 'block', marginTop: 4, fontWeight: 600, opacity: .92 }}>
-        Staying? Use code{' '}
-        <a
-          href="/pricing?promo=PRODUCTHUNT&utm_source=producthunt&intent_campaign=ph_launch_banner"
-          onClick={() => { void trackEvent('ph_welcome_banner_promo_clicked') }}
-          style={{ color: '#5cb3ff', textDecoration: 'underline', fontWeight: 800 }}
-        >
-          PRODUCTHUNT
-        </a>{' '}
-        at checkout — 30% off your first 3 months.
-      </span>
     </div>
   )
 }

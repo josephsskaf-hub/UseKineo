@@ -160,6 +160,30 @@ const G = TRIAL_GRANT_CREDITS_COPY
 // nunca digitado: se o grant mudar, o número de filmes acompanha sozinho.
 export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 
+// ═══ KINEO-TRIAL-COBRE-MOTOR-2026-08-21 ════════════════════════════════════
+// A auditoria de hoje (grant 80 → 25) achou frases que não ficaram só
+// DESATUALIZADAS — ficaram FALSAS, que é uma categoria pior:
+//
+//   "Kling 2.5 costs 50 credits per video, so the 80 free credits cover one."
+//        → com 25 créditos NÃO cobre nenhum. A frase promete um vídeo que a
+//          pessoa não vai conseguir fazer, na página de SEO daquele motor.
+//   "the first four Seedance films come out of the free credits"
+//        → com 25 é UM. Prometia quatro.
+//
+// O defeito não é o número: é a frase ter sido escrita como AFIRMAÇÃO FIXA
+// sobre uma relação entre DUAS variáveis (o grant e o preço do motor), das
+// quais nenhuma é estável. Toda vez que qualquer uma muda, a frase mente — e
+// mente em página pública, sobre o que o cliente vai receber de graça.
+//
+// Esta função existe para que a frase não seja mais escrita: ela é CALCULADA.
+// Quem escrever copy nova sobre "o trial cobre quantos vídeos deste motor?"
+// chama isto e não digita número nenhum.
+/** Quantos filmes de um motor de `custo` créditos o trial cobre. 0 = nenhum. */
+export function trialFilmsForEngine(custo: number): number {
+  if (!Number.isFinite(custo) || custo <= 0) return 0
+  return Math.floor(TRIAL_GRANT_CREDITS_COPY / custo)
+}
+
 // ⚠️ KINEO-TETO-COPY-2026-08-20 — A COPY DO MODELO NOVO (leia antes de mexer)
 // O modelo mudou DUAS VEZES em 20/08 e a segunda desfez a primeira. Registro
 // as duas para ninguém refazer o caminho:

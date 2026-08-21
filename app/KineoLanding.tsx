@@ -1107,7 +1107,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   home ainda anunciava "3 / day" — uma promessa MENOR do que a real
                   e, pior, uma que o servidor recusa (o free ON e 1 Fast/mes).
                   Flag OFF devolve "3 / day" byte a byte. */}
-              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', '80-credit trial')}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
+              <tr><td>Free videos, no credit card</td><td className="us" data-label="Kineo">{ft(OFFER, '3 / day', `${TRIAL_GRANT_CREDITS_COPY}-credit trial`)}</td><td className="no" data-label="OpusClip">limited</td><td className="no" data-label="HeyGen">trial</td><td className="no" data-label="Submagic">trial</td></tr>
               {/* KINEO-CEO-HOUR-2026-08-17 (#2) — as 3 features que NENHUM
                   re-clipper tem: viram linhas da comparacao (e snippet de SEO). */}
               <tr><td>AI image studio included</td><td className="us" data-label="Kineo">6 engines</td><td className="no" data-label="OpusClip">—</td><td className="no" data-label="HeyGen">—</td><td className="no" data-label="Submagic">—</td></tr>
@@ -1261,7 +1261,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           {/* KINEO-SPRINT-OFFER-2026-07-14 — the "10 videos for $4.90 one-time"
               note is gone (single-offer cleanup; ?pack=starter stays alive for
               the watermark unlock only). The intro month is the entry path. */}
-          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', 'every new account gets 80 free credits with every engine unlocked, Kling 3 included')}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
+          <div className="snote">Try it first: <b>{ft(OFFER, 'create, watch, download and share up to 3 Fast videos every 24h', `every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, Kling 3 included`)}</b>{ft(OFFER, ' — no card, watermark included.', ' — no card.')}</div>
           {/* KINEO-CRO-2026-07-25 — payment-trust line to lower checkout anxiety. */}
           <p style={{ marginTop: 14, textAlign: 'center', fontSize: 12.5, letterSpacing: '.02em', color: 'var(--muted2)' }}>
             Secure checkout by Stripe&nbsp;·&nbsp;Cancel in one click&nbsp;·&nbsp;Credits refunded automatically if a render fails

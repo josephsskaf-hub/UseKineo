@@ -139,7 +139,18 @@ export default function PartnersPage() {
               </div>
             ))}
           </div>
-          <p style={{ fontSize: '0.74rem', color: '#64748B', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Same price worldwide — there is no discounted first month to erode the first commission.</p>
+          <p style={{ fontSize: '0.74rem', color: '#64748B', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>{/* ⚠️ KINEO-CONTRADICAO-PARTNERS-2026-08-21 — esta frase dizia "there is no
+    discounted first month to erode the first commission", e a MESMA PÁGINA,
+    45 linhas acima, promete ao afiliado que quem digita o código dele "gets
+    20% off their first month". As duas não podem ser verdade, e a segunda é a
+    que corresponde ao código (KINEO_AFFILIATE_20 = percent_off 20, duration
+    'once', em app/api/affiliate/me/route.ts).
+    Ou seja: a página estava mentindo para o afiliado sobre quanto ele ganha na
+    PRIMEIRA fatura — justamente o número que ele usa para decidir se vale a
+    pena promover. Errar contra o parceiro é o tipo de erro que ele descobre
+    sozinho no primeiro pagamento, e aí a gente perde o parceiro e a confiança
+    junto. Agora a frase diz a mecânica real, com o número derivado. */}
+Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Same price worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
         </section>
 
         {/* How */}

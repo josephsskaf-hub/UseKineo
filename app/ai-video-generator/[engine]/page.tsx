@@ -27,7 +27,17 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import { getEngineRenders } from '@/lib/engineWall'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import {
+  getFreeTierOffer,
+  swapFreeTierCopy as ft,
+  TRIAL_GRANT_CREDITS_COPY,
+  // KINEO-TRIAL-COBRE-MOTOR-2026-08-21 — as FAQs desta página afirmavam
+  // quantos vídeos de CADA motor os créditos grátis pagavam. Com o grant em
+  // 25 (era 80), duas dessas frases viraram falsas: Kling 2.5 "cover one"
+  // deixou de cobrir, e Seedance "the first four films" virou um. Agora a
+  // conta é feita, não escrita.
+  trialFilmsForEngine,
+} from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -107,7 +117,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', 'Every new account gets 80 free credits with no card, and Seedance is included — so the first four Seedance films come out of the free credits, watermarked. A plan unlocks the clean download.')}`,
+        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(20)} Seedance ${trialFilmsForEngine(20) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -134,7 +144,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: 'Yes — every new account unlocks Kling 2.5 along with every other engine. It costs 50 credits per video, so the 80 free credits cover one. Trial films come out watermarked; a plan unlocks the clean download.',
+        a: `Yes — every new account unlocks Kling 2.5 along with every other engine. It costs 50 credits per video, and the ${TRIAL_GRANT_CREDITS_COPY} free credits ${trialFilmsForEngine(50) > 0 ? `cover ${trialFilmsForEngine(50)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. Any plan or top-up unlocks Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -161,7 +171,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: 'Yes — Veo 3.1 is unlocked on every account at 90 credits per video and the 80 free credits fall just short of one — any plan or top-up covers it. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.',
+        a: `Yes — Veo 3.1 is unlocked on every account at 90 credits per video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes a plan or a top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
@@ -296,7 +306,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
     e.tier === 'Studio'
       ? `${e.name} is unlocked on every account — the only limit is whether your credits cover it.`
       : e.tier === 'Creator'
-        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is unlocked on every new account — 80 free credits, no card. Trial films are watermarked; a plan unlocks the clean download.`)
+        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is unlocked on every new account — ${TRIAL_GRANT_CREDITS_COPY} free credits, no card. Trial films are watermarked; a plan unlocks the clean download.`)
         : ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
 
   return (

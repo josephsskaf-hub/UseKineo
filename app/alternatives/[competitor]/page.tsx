@@ -17,7 +17,7 @@ import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSectio
 // back to search. The map and the lookup both live in lib/comparisons.ts, which
 // is the single source of truth for the comparison cluster.
 import { TOOLS, TOOL_ID_BY_ALTERNATIVES_SLUG, otherTool, pairsForTool } from '@/lib/comparisons'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — o preço do Starter aparece dezenas de vezes
 // nesta página. Foi exatamente por ser digitado à mão que ele sobreviveu a
 // duas mudanças de tabela ($4.90 → $9.90 → $7) e continuou mentindo aqui
@@ -784,10 +784,10 @@ const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 function currentKineoOffer(value: string): string {
   return value
     .replace(/is the first short really free\?/gi, 'Can I use Kineo without paying?')
-    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you get 80 free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download'))
-    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', 'you get 80 free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download'))
-    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', '80 free credits with every engine unlocked, no card (films are watermarked until you upgrade)'))
-    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', '80 free credits with every engine unlocked, no card (films are watermarked until you upgrade)'))
+    .replace(/your first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download`))
+    .replace(/the first short is free(?: with no credit card(?: required)?)?/gi, ft(OFFER, 'you can create up to 3 watermarked Fast videos every 24h with no card', `you get ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — trial films are watermarked and a plan unlocks the clean download`))
+    .replace(/a free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
+    .replace(/free first short/gi, ft(OFFER, 'up to 3 watermarked Fast videos every 24h with no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
     // KINEO-PRICING-V6-2026-08-19 — AQUI MORRERAM NOVE SUBSTITUIÇÕES DE PREÇO.
     // Elas existiam para consertar, no render, um preço errado que estava
     // escrito lá em cima na tabela COMPETITORS — e por isso eram um remendo que
@@ -804,9 +804,9 @@ function currentKineoOffer(value: string): string {
     // O conserto certo não é reescrever a substituição: é a origem passar a
     // derivar o preço de TIER_PRICES, o que ela agora faz. Sobrou aqui só o que
     // esta função sempre foi de verdade — o swap da copy do free tier.
-    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', '80 free credits with every engine unlocked, no card (films are watermarked until you upgrade)'))
-    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', '80 free credits with every engine unlocked is free'))
-    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', '80 free credits with every engine unlocked, no card (films are watermarked until you upgrade)'))
+    .replaceAll('first Short free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
+    .replaceAll('first one is free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h are free', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked is free`))
+    .replaceAll('first one free', ft(OFFER, 'up to 3 watermarked Fast videos every 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card (films are watermarked until you upgrade)`))
 }
 
 function Cell({ v }: { v: boolean | string }) {

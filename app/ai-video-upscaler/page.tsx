@@ -36,11 +36,11 @@ const FAQS = [
   },
   {
     q: 'Can I enhance a video I made in another tool?',
-    a: 'The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts get 80 free credits, every engine unlocked.',
+    a: `The fastest path is to remake it in Kineo — type the same idea, pick a cinematic engine (Seedance, Kling, Veo), and the film comes out finished with voice, karaoke captions and score. Then one click of Enhance gives it the HD film polish. New accounts get ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked.`,
   },
   {
     q: 'How much does it cost?',
-    a: 'Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 20 credits with Seedance. Every new account gets 80 free credits on signup.',
+    a: `Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 20 credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
   },
 ]
 
