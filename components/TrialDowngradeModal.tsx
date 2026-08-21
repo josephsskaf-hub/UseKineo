@@ -61,7 +61,31 @@ import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 
 // Dispensa por CONTA e por navegador. NÃO é o gate de elegibilidade — esse é
 // do servidor; isto só evita que o modal reapareça a cada navegação.
-const DISMISSED_PREFIX = 'kineo_trial_downgrade_dismissed_v1'
+//
+// ⚠️ KINEO-MODAL-NAO-SE-AUTODESTROI-2026-08-21 — v1 → v2, e a razão é um
+// número: 207 contas rebaixadas em 7 dias, 188 e-mails enviados, 3 voltaram.
+// Este modal é a ÚNICA superfície do produto que fala com essa pessoa dentro
+// do app, e ele foi visto UMA vez em 41 trials.
+//
+// A causa não era o gate do servidor: era esta chave. Na v1, QUALQUER dispensa
+// — inclusive um clique fora do card ou um Escape sem intenção — gravava '1' e
+// a oferta MORRIA PARA SEMPRE naquele navegador. Clicar fora de um modal é o
+// gesto mais barato que existe numa tela; a v1 cobrava por ele o preço mais
+// caro que existe no funil: o cliente nunca mais ver a oferta.
+//
+// A v2 separa INTENÇÃO de ACIDENTE, que é a distinção que a v1 não fazia:
+//   · backdrop / Escape  → adia por ADIA_MS (a pessoa não disse não, ela só
+//     não estava olhando para isso agora)
+//   · "Keep creating on the free plan" → permanente. Ela LEU e escolheu; pedir
+//     de novo depois disso é assédio, não conversão.
+// A chave muda de nome (v1 → v2) de propósito: quem já foi silenciado por um
+// clique acidental volta a ser alcançável uma vez.
+const DISMISSED_PREFIX = 'kineo_trial_downgrade_dismissed_v2'
+/** Adiamento do acidente. 20h e não 24: senão quem entra sempre no mesmo
+ *  horário do dia nunca mais alcança a janela. */
+const ADIA_MS = 20 * 60 * 60 * 1000
+/** Teto de reaparições por acidente. Sem ele, "adiar" vira perseguir. */
+const MAX_ADIAMENTOS = 3
 // Dedupe do evento de exibição. Duas decisões que a segunda passada da revisão
 // corrigiu, e as duas são sobre MEDIR CERTO:
 //   · o namespace é o MESMO da dispensa (`:userKey`). A primeira versão desta
@@ -106,9 +130,25 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   useEffect(() => {
     let cancelled = false
 
-    // Short-circuit antes de gastar a request: quem já dispensou não custa nada.
+    // Short-circuit antes de gastar a request: quem dispensou DE PROPÓSITO não
+    // custa nada e nunca mais é incomodado. Quem só clicou fora volta depois de
+    // ADIA_MS, até MAX_ADIAMENTOS vezes.
+    //
+    // Formato da chave: 'perm' | '<timestampMs>:<contador>'. Valor legado '1'
+    // (da v1) não existe aqui porque o prefixo mudou de nome — mas qualquer
+    // coisa que não parseie é tratada como PERMANENTE, e isso é deliberado:
+    // no caminho de dúvida, a escolha segura é calar, não insistir.
     try {
-      if (window.localStorage.getItem(dismissKey) === '1') return
+      const bruto = window.localStorage.getItem(dismissKey)
+      if (bruto === 'perm') return
+      if (bruto) {
+        const [quandoStr, contaStr] = bruto.split(':')
+        const quando = Number(quandoStr)
+        const conta = Number(contaStr)
+        if (!Number.isFinite(quando) || !Number.isFinite(conta)) return
+        if (conta >= MAX_ADIAMENTOS) return
+        if (Date.now() - quando < ADIA_MS) return
+      }
     } catch {
       // localStorage bloqueado nunca esconde o modal nem derruba a tela.
     }
@@ -197,12 +237,30 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     (how: 'backdrop' | 'escape' | 'stay_free') => {
       // Reporta ANTES de qualquer efeito: ação sem desfecho registrado é
       // instrumento cego, e a regra de morte desta tela corre sobre a AÇÃO.
-      void trackEvent('trial_downgrade_modal_dismissed', { how })
+      // Acidente adia; intenção encerra. Ver KINEO-MODAL-NAO-SE-AUTODESTROI.
+      const intencional = how === 'stay_free'
+      let adiamento = 0
       try {
-        window.localStorage.setItem(dismissKey, '1')
+        if (intencional) {
+          window.localStorage.setItem(dismissKey, 'perm')
+        } else {
+          const anterior = window.localStorage.getItem(dismissKey)
+          const conta = anterior ? Number(anterior.split(':')[1]) : 0
+          adiamento = (Number.isFinite(conta) ? conta : 0) + 1
+          window.localStorage.setItem(dismissKey, `${Date.now()}:${adiamento}`)
+        }
       } catch {
         // Sem localStorage o modal reaparece na próxima navegação. Chato, não grave.
       }
+      // O evento sai DEPOIS de gravar mas com o número já resolvido: sem
+      // `adiamento` no payload não dá para separar "dispensou de vez" de
+      // "clicou fora pela 3ª vez", que é exatamente a distinção que esta
+      // mudança criou e que precisa ser medida para valer alguma coisa.
+      void trackEvent('trial_downgrade_modal_dismissed', {
+        how,
+        intentional: intencional,
+        deferral: intencional ? null : adiamento,
+      })
       setOpen(false)
       try {
         returnFocusTo.current?.focus({ preventScroll: true })
@@ -246,6 +304,9 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   // Vídeos AI que a concessão do trial realmente comprava. Derivado, nunca
   // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
   const trialVideos = SEEDANCE_COST > 0 ? Math.floor(granted / SEEDANCE_COST) : 0
+  // Filmes de IA que a mensalidade do Creator compra. Mesma derivação do
+  // `trialVideos` acima — uma só fonte para "quantos vídeos isto dá".
+  const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
 
   function goToCreator() {
     // O evento sai ANTES da navegação — depois do redirect do Stripe não existe
@@ -276,16 +337,16 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       style={{
         position: 'fixed',
         inset: 0,
-        // 999 e não 1000: o modal de upgrade do /generate usa 1000 e empate se
-        // resolve por ordem no DOM, o que ninguém escolheu. Na prática o empate
-        // é improvável (este backdrop cobre a tela inteira e intercepta o
-        // clique que abriria o outro), mas 999 remove a ambiguidade de graça.
-        // ⚠️ NÃO é o maior z-index do app e não pretende ser: CheckoutResumeBanner
-        // (10050, montado no layout RAIZ) e SocialProofToast (9999) pintam por
-        // cima — um usuário rebaixado com checkout abandonado vê o banner sobre
-        // este modal. Registrado no relatório da sprint; não é regressão desta
-        // mudança, mas é o próximo defeito visual desta tela.
-        zIndex: 999,
+        // ⚠️ KINEO-MODAL-NAO-SE-AUTODESTROI-2026-08-21 — 999 → 10060, cobrando
+        // a dívida que a versão anterior registrou e deixou de pé.
+        // Em 999 este modal perdia para o CheckoutResumeBanner (10050, montado
+        // no layout RAIZ) e para o SocialProofToast (9999). Quem isso atingia
+        // não era um usuário qualquer: é PRECISAMENTE a pessoa rebaixada QUE JÁ
+        // TENTOU PAGAR — a de maior intenção de compra do banco inteiro — vendo
+        // um banner pintar por cima da única tela que lhe oferece o plano.
+        // 10060 é o novo topo do app; se algo precisar subir acima disto no
+        // futuro, é decisão consciente, não empate por ordem no DOM.
+        zIndex: 10060,
         background: 'rgba(0,0,0,0.82)',
         backdropFilter: 'blur(6px)',
         display: 'flex',
@@ -394,6 +455,21 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
               </>
             )}
           </p>
+          {/* ⚠️ KINEO-ANCORA-POR-VIDEO-2026-08-21 — "$15/mês por 90 créditos"
+              exige que a pessoa faça DUAS divisões de cabeça para saber o que
+              está comprando, e ninguém faz conta na tela que pede cartão. Esta
+              linha faz a conta por ela, na unidade em que ela pensa: FILME.
+              O número é DERIVADO de TIER_CREDITS × creditCostFor — no dia em
+              que o custo do motor mudar, a frase acompanha sozinha, que é
+              exatamente o que não aconteceu com a copy do "first month" que
+              sobreviveu meses ao fim do desconto. */}
+          {currency !== null && filmesPorMes > 0 && (
+            <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.5, color: '#8ec5ff' }}>
+              ≈ {formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))} per AI film
+              {' · '}
+              {filmesPorMes} AI films a month
+            </p>
+          )}
         </div>
 
         {checkout.error && (

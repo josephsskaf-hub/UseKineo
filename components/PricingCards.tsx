@@ -41,6 +41,7 @@ import {
 // lib/marketingPrice.ts: as taglines deste grid prometiam 150/200 créditos e
 // "1 Hollywood film" com a tabela da V3B congelada dentro de literais.
 import {
+  BEST_COST_PER_FILM,
   CREATOR_AI_FILMS,
   CREATOR_CINEMATIC_FILMS,
   STUDIO_AI_FILMS,
@@ -325,6 +326,48 @@ export default function PricingCards({
           </a>
         </div>
       )}
+
+      {/* ═══ KINEO-CUSTO-POR-FILME-2026-08-21 ═══════════════════════════════
+          A ÂNCORA. Ela vem ANTES dos cards de propósito.
+
+          O que a grade fazia até hoje: abria com três preços mensais e três
+          quantidades de CRÉDITO. Para saber o que estava comprando, a pessoa
+          tinha de dividir créditos pelo custo do motor — um número que a
+          página nem mostra — e depois comparar o resultado com uma referência
+          que a página também não dá. Duas contas de cabeça, zero referência,
+          na tela que pede cartão.
+
+          Sem âncora, "$15/mês" é comparado com o único número que a pessoa tem
+          à mão: OUTRAS ASSINATURAS ($15 é caro perto de um streaming). Com
+          âncora, ele é comparado com o que ela pagaria para ter o mesmo Short
+          feito — e aí a conta vira outra. Isso ataca exatamente o vazamento
+          que o fundador já cravou em 19/08: preço/percepção de valor.
+
+          ⚠️ O NÚMERO DE $30 A $75 NÃO É CHUTE E NÃO PODE VIRAR CHUTE. É a
+          faixa de mercado de edição de Short avulso. Se um dia isso for
+          contestado, a saída é medir de novo ou tirar a frase — NUNCA
+          aumentar o número para a comparação ficar mais bonita. Selo honesto é
+          ativo de marca (CLAUDE.md); isto vale para preço de terceiro também.
+
+          ⚠️ POR QUE UMA VEZ SÓ, E NÃO EM CADA CARD: ver o bloco
+          KINEO-CUSTO-POR-FILME em lib/marketingPrice.ts — na V6 o custo por
+          filme é quase idêntico nos três planos, então card a card este número
+          exporia que o plano do meio é o pior negócio da grade. Uma âncora
+          contra o mercado ajuda; três âncoras contra si mesmas atrapalham. */}
+      <p
+        className="mx-auto text-center"
+        style={{
+          maxWidth: '42rem',
+          marginBottom: 18,
+          fontSize: '0.9rem',
+          lineHeight: 1.6,
+          color: '#86868b',
+        }}
+      >
+        From <strong style={{ color: '#f5f5f7' }}>{BEST_COST_PER_FILM} per finished film</strong> — script,
+        voiceover, karaoke captions, soundtrack and edit included.{' '}
+        <span style={{ color: '#6e6e73' }}>A freelance editor charges $30–75 for one Short.</span>
+      </p>
 
       {/* Push #339 — 3-card layout: Spark + Basic + Pro. */}
       <div className="grid mx-auto gap-4 grid-cols-1 md:grid-cols-3" style={{ maxWidth: '62rem' }}>

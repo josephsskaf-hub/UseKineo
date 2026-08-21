@@ -94,6 +94,10 @@ import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/vid
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
+// KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
+// componente para a medição (90% da espera é o Creatomate, não o nosso código).
+import WaitingShowcase from '@/components/video/WaitingShowcase'
+import useReadyBeacon from '@/components/video/useReadyBeacon'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -3519,6 +3523,16 @@ export default function GenerateClient({
   useEffect(() => {
     if (phase === 'done' || phase === 'failed') setWmUnlocking(false)
   }, [phase])
+
+  // KINEO-AVISO-DE-PRONTO-2026-08-21 — a espera dura ~3 min e 90% dela é o
+  // Creatomate (medido: 182,7s mediana), então não dá para encurtá-la sem
+  // baixar resolução. O que dá para encurtar é o tempo entre "o filme ficou
+  // pronto" e "a pessoa descobre": em 3 minutos ela troca de aba, e hoje o
+  // primeiro aviso é um e-mail que sai 30 min depois (send-video-ready).
+  // O hook pisca o título da aba SÓ quando a página está em segundo plano.
+  // Ver o cabeçalho de useReadyBeacon para o porquê de não ter som e de não
+  // pedir permissão de notificação.
+  useReadyBeacon(phase === 'done' && Boolean(finalVideoUrl))
 
   // ═══════════════════════════════════════════════════════════════════════
   // KINEO-READY-VIEWED-2026-08-03 — medida 4 do plano da semana.
@@ -9805,13 +9819,47 @@ export default function GenerateClient({
                     finish-stranded-renders (15min) vigia os claims
                     cinematográficos e manda o e-mail de resgate. O modo Fast
                     não tem claim — fechar a aba mata o render sem e-mail.
-                    Cada modo diz só a sua verdade. */}
+                    Cada modo diz só a sua verdade.
+
+                    ⚠️ ATUALIZADO EM 21/08 — A SEGUNDA METADE DESSE COMENTÁRIO
+                    DEIXOU DE SER VERDADE E A COPY NÃO ACOMPANHOU. O bloco
+                    KINEO-STRANDED-FAST-2026-08-20 estendeu o cron ao Kineo 1
+                    (ele lê `compose_submission_claim`, não só o claim
+                    cinematográfico). Não é teoria: em 7 dias o `events` tem 15
+                    `stranded_fast_ready_sent` e 19 `stranded_ready_sent` — o
+                    resgate está entregando filme de Fast por e-mail HOJE.
+
+                    Por que trocar a frase importa em dinheiro: "finishes
+                    fastest with the tab open" é literalmente verdade (a aba
+                    persiste o vídeo na hora; fechada, espera-se até 15 min pelo
+                    cron) — só que ela transmite RISCO, e risco numa tela de 3
+                    minutos de espera é exatamente o que faz a pessoa ficar
+                    olhando, cansar e desistir. A frase nova diz as duas coisas
+                    na ordem certa: a aba é mais rápida, E nada se perde sem
+                    ela. Prometer rede de segurança que existe é só parar de
+                    esconder um ativo que já foi construído e pago.
+
+                    ⚠️ ESTA FRASE É UM PAR COM O CRON: se
+                    finish-stranded-renders parar de cobrir o Fast, esta linha
+                    vira mentira. Mexeu num, mexe no outro. */}
                 <div className="mt-1">
                   {(mode === 'fast' || mode === 'creator')
-                    ? "Almost there — this one finishes fastest with the tab open."
+                    ? "Keeping this tab open is the fastest way to get it — but you don't have to. If you close it, we finish the render on our servers and email you the link."
                     : "You can safely close this tab — when your scenes finish rendering, we'll email you a link that completes the film in one click."}
                 </div>
               </div>
+
+              {/* KINEO-ESPERA-VENDE-2026-08-21 — a vitrine entra AQUI, depois
+                  do estado do render e ANTES dos "Scene prompts".
+                  A ordem não é estética: a primeira coisa que a tela deve
+                  responder é "meu vídeo está vivo?" (barra + fases acima). Só
+                  com isso respondido é que faz sentido mostrar outra coisa.
+                  Inverter isso transformaria a vitrine em ruído em cima de uma
+                  ansiedade não resolvida — o erro que a gente já cometeu em
+                  20/08 pondo o card de recompensa ANTES do botão de download e
+                  medindo 107 pessoas indo embora sem o arquivo. Entrega
+                  primeiro, oferta depois: é a mesma regra. */}
+              <WaitingShowcase />
 
               {/* The per-clip tile grid was removed in push #031 — the final
                   output is a single composed MP4, so users only ever see ONE

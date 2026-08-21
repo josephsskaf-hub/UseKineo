@@ -154,6 +154,55 @@ export function filmsAndScenes(tier: CheckoutTier, quality: Quality = 'cinematic
   return `≈ ${films} finished ${films === 1 ? 'film' : 'films'} — ${films * SCENES_PER_FILM} AI scenes`
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-CUSTO-POR-FILME-2026-08-21 — O PREÇO NA UNIDADE EM QUE O CLIENTE PENSA
+// ═══════════════════════════════════════════════════════════════════════════
+// O problema medido: a grade de preços vende CRÉDITO ("90 credits/month"), e
+// ninguém tem intuição sobre crédito. Para saber o que está comprando, a
+// pessoa precisa dividir 90 por 20 (que ela não sabe que é 20) e comparar o
+// resultado com uma referência que a página não dá. Ninguém faz duas contas de
+// cabeça na tela que pede cartão — ela olha "$15/mês", não sabe traduzir, e
+// vai embora. Isso conversa direto com a conclusão fechada do fundador em
+// 19/08: o vazamento é PERCEPÇÃO DE VALOR, não trilho de pagamento.
+//
+// Este bloco faz a conta pela pessoa, na unidade dela: FILME PRONTO.
+//
+// ⚠️ ACHADO QUE ESTA FUNÇÃO EXPÔS, e que é decisão do FUNDADOR, não minha:
+// na V6 o custo por filme é praticamente IGUAL nos três planos
+// (Starter $7/2 = $3,50 · Creator $15/4 = $3,75 · Studio $29/8 = $3,63).
+// Ou seja: subir de plano não barateia o filme — em Creator ele fica até um
+// pouco mais caro que em Starter. Uma escada normalmente dá desconto por
+// volume, justamente para PUXAR a pessoa para cima; a nossa não dá motivo
+// aritmético nenhum para sair do Starter.
+// Por isso a copy NÃO imprime este número card a card: lado a lado, ele
+// mostraria que o plano do meio é o pior negócio da grade. O número entra UMA
+// vez, como âncora contra o mundo lá fora (editor freelancer: $30-75 por
+// Short), que é a comparação em que a gente ganha de longe.
+// Registrado para o fundador decidir a escada; nenhum preço foi mexido aqui.
+
+/** Custo em dólares de um filme pronto de `quality` dentro do plano `tier`.
+ *  Deriva de TIER_PRICES ÷ videosPerMonth — as mesmas fontes que a Stripe
+ *  cobra e que o webhook credita. Zero se o plano não fecha um filme. */
+export function costPerFilmUsd(tier: CheckoutTier, quality: Quality = 'cinematic_ai'): number {
+  const filmes = videosPerMonth(tier, quality)
+  if (filmes <= 0) return 0
+  return TIER_PRICES[tier].usd / 100 / filmes
+}
+
+/** O MELHOR custo por filme da grade — é este que a âncora anuncia. "Melhor"
+ *  e não "do Creator" de propósito: a frase diz "a partir de", então ela
+ *  continua verdadeira em qualquer reprice, inclusive num que inverta a
+ *  ordem dos planos. Frase que sobrevive ao próximo commit vale mais que
+ *  frase que descreve o commit de hoje. */
+export const BEST_COST_PER_FILM_USD = Math.min(
+  ...(['starter', 'basic', 'pro'] as CheckoutTier[])
+    .map((t) => costPerFilmUsd(t))
+    .filter((v) => v > 0),
+)
+
+/** "$3.50" — o rótulo pronto, arredondado para centavo. */
+export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
+
 // KINEO-PRICING-V6-2026-08-19 — a frase que substituiu o preço regional.
 // A escada por país morreu (ver o bloco de TIER_PRICES): agora é a MESMA
 // oferta no mundo inteiro, só escrita na moeda de quem lê. Páginas que
