@@ -7,9 +7,72 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import { stripe } from '@/lib/stripe'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+
+// O cliente admin é criado sem tipos gerados do banco, então o genérico do
+// supabase-js colapsa para `never` em .update(). Uma interface mínima com o
+// que este arquivo realmente usa evita o `any` solto e mantém o tsc útil.
+interface AdminDb {
+  from(table: string): {
+    update(values: Record<string, unknown>): { eq(col: string, val: string): Promise<unknown> }
+  }
+}
+
+// ═══ KINEO-CUPOM-AFILIADO-2026-08-21 — CUNHAGEM AUTOMÁTICA ══════════════
+//
+// O webhook agora sabe pagar comissão por cupom, mas isso só serve para quem
+// TEM cupom — e `coupon_code` nunca foi preenchido em lugar nenhum do código.
+// Eram 1.073 pessoas com código de indicação e ZERO com cupom: o trilho novo
+// nasceria morto, servindo só os afiliados que o fundador configurasse à mão.
+//
+// Aqui o cupom nasce sozinho na primeira vez que o afiliado abre o painel —
+// vale tanto para quem se cadastrar hoje quanto para os 1.073 de ontem.
+//
+// FRONTEIRA DE DINHEIRO, DE PROPÓSITO: eu NÃO crio o desconto. O fundador cria
+// UM cupom na Stripe (ele decide a porcentagem) e põe o id em
+// AFFILIATE_STRIPE_COUPON_ID. Daí para frente eu só cunho os códigos que
+// apontam para o desconto dele. Sem a variável, nada acontece e o painel
+// simplesmente não mostra bloco de cupom — nunca um código quebrado na mão do
+// criador, que seria pior do que não ter cupom nenhum.
+function couponTextFor(code: string): string {
+  // O código da indicação já é único no banco; reaproveitá-lo garante unicidade
+  // do cupom sem inventar um segundo espaço de nomes para colidir.
+  return `KINEO${String(code).toUpperCase().replace(/[^A-Z0-9]/g, '')}`.slice(0, 24)
+}
+
+async function mintCouponIfMissing(
+  admin: AdminDb,
+  affiliate: { id: string; code: string; status: string; coupon_code: string | null }
+): Promise<string | null> {
+  if (affiliate.coupon_code) return affiliate.coupon_code
+  if (affiliate.status !== 'active') return null
+  const baseCoupon = process.env.AFFILIATE_STRIPE_COUPON_ID
+  if (!baseCoupon) return null
+
+  const texto = couponTextFor(affiliate.code)
+  try {
+    // Idempotente: se já existir na Stripe (retry, deploy no meio, duas abas),
+    // reaproveita em vez de estourar por código duplicado.
+    const existentes = await stripe.promotionCodes.list({ code: texto, limit: 1 })
+    if (existentes.data.length === 0) {
+      await stripe.promotionCodes.create({
+        coupon: baseCoupon,
+        code: texto,
+        metadata: { affiliate_id: affiliate.id, source: 'kineo_affiliate_auto' },
+      })
+    }
+    await admin.from('affiliates').update({ coupon_code: texto }).eq('id', affiliate.id)
+    return texto
+  } catch (err) {
+    // Falhou? Devolve null: o painel esconde o bloco e a gente tenta de novo no
+    // próximo load. Nunca mostrar um cupom que o checkout vai recusar.
+    console.error('[affiliate coupon] mint failed:', err)
+    return null
+  }
+}
 
 interface CommissionRow {
   created_at: string | null
@@ -53,6 +116,14 @@ export async function GET() {
     }
 
     const affiliateId = affiliate.id
+
+    // Cunha o cupom na primeira visita ao painel (ver bloco no topo do arquivo).
+    const couponCode = await mintCouponIfMissing(admin as unknown as AdminDb, {
+      id: affiliate.id,
+      code: affiliate.code as string,
+      status: affiliate.status as string,
+      coupon_code: (affiliate.coupon_code as string | null) ?? null,
+    })
 
     // Lifetime click + referral counts.
     const [{ count: clicks }, { count: signups }, { count: paid }] = await Promise.all([
@@ -105,7 +176,7 @@ export async function GET() {
         code: affiliate.code,
         status: affiliate.status,
         commission_rate: affiliate.commission_rate,
-        coupon_code: affiliate.coupon_code,
+        coupon_code: couponCode,
       },
       link: 'https://www.usekineo.com/a/' + affiliate.code,
       stats: {

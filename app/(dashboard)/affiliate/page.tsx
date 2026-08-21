@@ -124,6 +124,7 @@ export default function AffiliatePage() {
   const [authRequired, setAuthRequired] = useState(false)
   const [applying, setApplying] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [couponCopied, setCouponCopied] = useState(false)
   // PUSH #101 — true only for the render right after a successful apply in
   // THIS session, so the "your link is live, use it now" block is a moment and
   // not permanent dashboard furniture.
@@ -454,15 +455,67 @@ export default function AffiliatePage() {
             ))}
           </div>
         ) : null}
-        {a.coupon_code ? (
-          <div className="text-xs mt-3" style={{ color: MUTED }}>
-            Coupon code:{' '}
-            <span className="font-black px-2 py-0.5 rounded" style={{ background: 'rgba(41,151,255,.12)', color: CYAN }}>
-              {a.coupon_code}
-            </span>
-          </div>
-        ) : null}
       </div>
+
+      {/* KINEO-CUPOM-AFILIADO-2026-08-21 — o cupom deixa de ser rodapé.
+          Num vídeo de TikTok/Reels/Shorts não existe link clicável: o criador
+          FALA o código e a pessoa digita no checkout. Para quem divulga em
+          vídeo — que é exatamente quem queremos — este bloco é a ferramenta
+          principal, não o link. Por isso ganha o mesmo destaque visual. */}
+      {a.coupon_code ? (
+        <div
+          className="rounded-2xl p-5 mb-5"
+          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
+        >
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: MUTED }}>
+            Your coupon — for video, where links don&apos;t work
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              readOnly
+              value={a.coupon_code}
+              onFocus={(e) => e.currentTarget.select()}
+              className="flex-1 rounded-xl px-3 py-2.5 text-lg font-black tracking-widest"
+              style={{
+                background: 'rgba(13,13,28,.85)',
+                border: '1px solid rgba(41,151,255,.3)',
+                color: GREEN,
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  void navigator.clipboard.writeText(a.coupon_code ?? '')
+                  setCouponCopied(true)
+                  trackAffiliateEvent('affiliate_coupon_copied', { code: a.coupon_code })
+                  setTimeout(() => setCouponCopied(false), 1800)
+                } catch {
+                  /* clipboard bloqueado: o input já está selecionável à mão */
+                }
+              }}
+              className="rounded-xl px-5 py-2.5 text-sm font-black"
+              style={{
+                background: 'linear-gradient(135deg, #2997ff, #2997ff)',
+                boxShadow: '0 4px 18px rgba(41,151,255,.35)',
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                border: 'none',
+                color: '#fff',
+              }}
+            >
+              {couponCopied ? '✓ Copied!' : 'Copy coupon'}
+            </button>
+          </div>
+          <p className="text-xs mt-3 leading-relaxed" style={{ color: MUTED }}>
+            Say it out loud in your video: <span style={{ color: TEXT, fontWeight: 800 }}>&ldquo;use code {a.coupon_code} at checkout&rdquo;</span>.
+            Your viewer types it, gets the discount, and you get paid — no link, no bio, no clicking.
+            It also works on your renewals: once someone uses your code, every month they stay counts for you.
+          </p>
+        </div>
+      ) : null}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">

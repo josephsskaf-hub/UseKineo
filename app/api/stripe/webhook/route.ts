@@ -87,13 +87,70 @@ async function isProtectedProfile(
   return PROTECTED_EMAILS.has((data?.email ?? '').toLowerCase())
 }
 
+// ═══ KINEO-CUPOM-AFILIADO-2026-08-21 — ATRIBUIÇÃO SEM LINK ══════════════
+//
+// O buraco: nosso afiliado só ganha se o comprador CLICAR no link /a/CODIGO.
+// Isso funciona em post de blog e newsletter, e falha exatamente onde estão
+// os criadores que queremos — TikTok, Reels e Shorts, onde não há link
+// clicável no vídeo. O criador fala "usa JOAO20", a pessoa digita no
+// checkout, paga, e o criador não ganha nada. Ele descobre, para de divulgar.
+//
+// A trava não era falta de tabela: `affiliates.coupon_code` JÁ EXISTE e o
+// admin JÁ deixa preencher. O que faltava é ninguém LER na hora do dinheiro.
+//
+// Como funciona agora: se o comprador não tem link (affiliate_id null), a
+// gente olha o código promocional que ele digitou na Stripe, traduz o ID
+// para o texto do cupom, e procura um afiliado dono daquele texto. Achou →
+// comissão paga E o perfil fica carimbado, então TODA RENOVAÇÃO futura já
+// credita sozinha (recorrência não passa por cupom nenhum).
+//
+// Ordem de precedência deliberada: LINK GANHA DO CUPOM. Quem clicou primeiro
+// é o dono da indicação (first-touch, mesma regra do /a/[code]). O cupom é
+// só a rede de segurança de quem chegou sem link.
+async function resolveAffiliateByCoupon(
+  supabase: AdminClient,
+  session: Stripe.Checkout.Session
+): Promise<string | null> {
+  try {
+    // ⚠ CUIDADO AO MEXER: `session.discounts` NÃO EXISTE nesta versão do SDK
+    // (stripe 16, apiVersion 2024-06-20) — escrevi assim na primeira tentativa
+    // e o tsc pegou. O desconto só aparece em `total_details.breakdown`, que
+    // NÃO vem no corpo do webhook: precisa de um retrieve com expand. Como
+    // `ignoreBuildErrors` está ligado no next.config, um acesso a campo
+    // inexistente compilaria e viraria `undefined` calado em produção — o
+    // trilho inteiro nunca dispararia e ninguém perceberia.
+    const cheia = await stripe.checkout.sessions.retrieve(session.id, {
+      expand: ['total_details.breakdown.discounts'],
+    })
+    const promoRaw = cheia.total_details?.breakdown?.discounts?.[0]?.discount?.promotion_code
+    if (!promoRaw) return null
+    // Pode vir expandido (objeto) ou como id cru (promo_xxx). O texto que a
+    // pessoa digitou ("KINEOABC123") é o `.code`.
+    const code =
+      typeof promoRaw === 'string'
+        ? ((await stripe.promotionCodes.retrieve(promoRaw))?.code ?? '').trim()
+        : (promoRaw.code ?? '').trim()
+    if (!code) return null
+    const { data: aff } = await supabase
+      .from('affiliates')
+      .select('id, status')
+      .ilike('coupon_code', code)
+      .maybeSingle()
+    if (!aff || aff.status !== 'active') return null
+    return aff.id as string
+  } catch (err) {
+    console.error('[affiliate coupon] resolve failed:', err)
+    return null
+  }
+}
+
 // #480 — Affiliate commission. If the paying user was attributed to an affiliate
 // (profiles.affiliate_id), record a PENDING commission (rate × amount paid).
 // Idempotent via unique(provider, external_id). Stays 'pending' until the admin
 // approves it (so refunds inside the window simply never get approved/paid).
 async function recordAffiliateCommission(
   supabase: AdminClient,
-  args: { userId: string; externalId: string; amountGross: number; currency: string; type: 'initial' | 'recurring'; attributionSystem?: string | null }
+  args: { userId: string; externalId: string; amountGross: number; currency: string; type: 'initial' | 'recurring'; attributionSystem?: string | null; session?: Stripe.Checkout.Session }
 ): Promise<void> {
   try {
     // Rewardful owns this charge. Suppress the custom ledger so the same
@@ -101,7 +158,29 @@ async function recordAffiliateCommission(
     if (args.attributionSystem === 'rewardful') return
     if (!args.userId || !args.externalId || !args.amountGross || args.amountGross <= 0) return
     const { data: prof } = await supabase.from('profiles').select('affiliate_id').eq('id', args.userId).single()
-    const affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null
+    let affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null
+    if (!affiliateId && args.session) {
+      affiliateId = await resolveAffiliateByCoupon(supabase, args.session)
+      if (affiliateId) {
+        // Carimba o perfil para que a RENOVAÇÃO do mês que vem — que não
+        // carrega cupom nenhum — continue creditando o mesmo criador.
+        await supabase.from('profiles').update({ affiliate_id: affiliateId }).eq('id', args.userId)
+        // Cria a linha de indicação se ainda não existir. O bloco logo abaixo
+        // a encontra e marca como paga — mesmo caminho de quem veio por link.
+        const { data: jaExiste } = await supabase
+          .from('affiliate_referrals')
+          .select('id')
+          .eq('affiliate_id', affiliateId)
+          .eq('referred_user_id', args.userId)
+          .maybeSingle()
+        if (!jaExiste) {
+          await supabase
+            .from('affiliate_referrals')
+            .insert({ affiliate_id: affiliateId, referred_user_id: args.userId, status: 'signup' })
+        }
+        console.log(`[affiliate coupon] user ${args.userId} → affiliate ${affiliateId} (sem link, via cupom)`)
+      }
+    }
     if (!affiliateId) return
     const { data: aff } = await supabase.from('affiliates').select('id, commission_rate, status').eq('id', affiliateId).single()
     if (!aff || aff.status !== 'active') return
@@ -702,7 +781,7 @@ export async function POST(req: NextRequest) {
           // (o ramo de erro lança antes). Um pack/piloto comprado durante ou
           // logo após o trial também é conversão.
           await markTrialConverted(supabase, userId, { source: 'checkout_payment', stripeRef: session.id })
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
           break
         }
 
@@ -792,7 +871,7 @@ export async function POST(req: NextRequest) {
         if (fulfilledSession?.id === subscriptionFulfillmentId) {
           entitlementConfirmed = true
           entitlementPending = false
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
           // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre a janela de crash entre
           // o publish do fulfillment e o carimbo da primeira execução: o resume
           // idempotente passa por aqui, e a UPDATE guardada faz 0 linhas quando
@@ -832,7 +911,7 @@ export async function POST(req: NextRequest) {
           // that Stripe now reports as canceled, unpaid, paused or otherwise
           // non-access. The original payment remains recorded for analytics and
           // affiliate accounting, then this stale event is closed permanently.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -858,7 +937,7 @@ export async function POST(req: NextRequest) {
           // its original Checkout. A delayed replay of that old Checkout must
           // not add the old grant or downgrade the account back to its historic
           // tier. The live subscription metadata is authoritative here.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -922,7 +1001,7 @@ export async function POST(req: NextRequest) {
         // Commission insert is independently idempotent by external_id. Run it
         // before publishing fulfillment so a crash cannot leave a permanent
         // completed marker with the commission missing.
-        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system })
+        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
 
         // This marker means completed, so publish it only after the idempotent
         // profile update. If publication fails, Stripe retries; the same
