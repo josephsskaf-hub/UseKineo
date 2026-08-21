@@ -97,17 +97,40 @@ export const REVERSE_TRIAL_ENABLED = process.env.KINEO_REVERSE_TRIAL_ENABLED ===
 // produto se vende sozinho. Estávamos pagando o custo de aquisição inteiro e
 // desistindo um passo antes do gol.
 //
-// 80 = 4 filmes no motor mais caro que o trial libera (Seedance, 20cr). O
-// desenho é do fundador e é melhor que uma régua fixa: em vez de impor "4
-// filmes", damos o VALOR de 4 filmes e a pessoa escolhe a mistura — 4 Seedance,
-// ou 16 no Kineo 1, ou qualquer combinação. Quem escolhe o barato passa MUITO
-// além do limiar, que é exatamente o que queremos.
+// ═══ KINEO-TRIAL-25-2026-08-21 — 80 → 25, decisão do fundador ═════════════
 //
-// O QUE CUSTA: pior caso $6,44 por trial (4 × $1,61, o Seedance já em 720p —
-// ver KINEO-SEEDANCE-720-MARGEM). Antes dos consertos de margem de hoje esse
-// mesmo trial custaria $14,68; foi a margem arrumada que pagou este aumento.
-// Hollywood/Veo/Kling seguem fora do trial por design — 80 não compra nenhum.
-export const TRIAL_CREDIT_CAP = 80
+// O QUE FOI MEDIDO (14 dias com o trial a 80, de 07/08 a 21/08):
+//   250 pessoas renderizaram · 416 vídeos · 3.070 créditos · ~$236 de fal
+//   ≈ $17 POR DIA, contra 2 assinaturas geradas no mesmo período.
+//
+// E o detalhe que definiu o formato do corte: NÃO HÁ ABUSO. Zero pessoas
+// fizeram 3+ vídeos nos motores caros. 142 usaram só o Kineo 1 e 108 fizeram
+// UM OU DOIS vídeos bons. Ou seja, o custo não vem de gente espremendo o
+// trial — vem do custo normal de 108 pessoas verem o produto funcionar. Um
+// teto por pessoa não resolveria nada, porque ninguém estava perto do teto.
+//
+// POR QUE 25 E NÃO ZERO. O fundador propôs deixar SÓ o Kineo 1 (custo ~zero).
+// Recusei com número: o Kineo 1 é banco de imagens, não é a IA generativa —
+// quem só experimenta ele nunca vê o que a Kineo tem de diferente. Foi o
+// próprio fundador que em 20/08 tirou o primeiro vídeo do Kineo 1, justamente
+// porque 69% começavam ali e ninguém convertia. Matar o motor bom do trial
+// desfaria essa lição.
+// 25 = 1 Seedance (20cr) + 2 Kineo 1 (2cr cada). A pessoa vê a qualidade
+// máxima UMA vez — que é onde mora o "uau" — e ainda brinca duas vezes.
+//
+// O QUE ISSO ECONOMIZA: pior caso cai de $6,44 para $1,61 por trial (−75%),
+// e a queima diária de ~$17 para ~$5. O dinheiro liberado vai para
+// DESCOBERTA, que é onde as vendas realmente aconteceram: 4 dos 9 clientes
+// vieram do TAAFT, contra 1 venda em 430 e-mails de campanha.
+//
+// ⚠️ O QUE ESTE NÚMERO **NÃO** RESOLVE, dito na cara para ninguém se iludir
+// depois: a conversão com trial (1,21%) e sem trial (1,52%), corrigindo a
+// maturação, são estatisticamente indistinguíveis com 7 e 2 vendas. Este
+// corte é uma decisão de CUSTO, não de conversão. Se a conversão cair nas
+// próximas 2 semanas, a causa provável é ter tirado o 2º/3º/4º filme de
+// quem ia se convencer no volume — e a reversão é trocar este número aqui.
+// Hollywood/Veo/Kling seguem fora do trial por design — 25 não compra nenhum.
+export const TRIAL_CREDIT_CAP = 25
 
 /**
  * Créditos concedidos na ATIVAÇÃO do trial. Decisão final do fundador (06/08):

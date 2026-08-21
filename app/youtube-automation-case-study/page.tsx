@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -199,7 +199,7 @@ export default function CaseStudyPage() {
                 parágrafo que JÁ passa por ft(), então com a flag ON a mesma
                 caixa dizia "Creator trial: 50 credits" no texto e "3 videos a
                 day" no botão. Flag OFF devolve o literal byte a byte. */}
-            {ft(OFFER, 'Start free — 3 videos a day', 'Start free — 80 credits, every engine')}
+            {ft(OFFER, 'Start free — 3 videos a day', `Start free — ${TRIAL_GRANT_CREDITS_COPY} credits, every engine`)}
           </Link>
           <p className="mt-4 text-xs text-white/40">
             Curious about the money side? <Link href="/how-much-do-youtube-shorts-pay" className="underline hover:text-white/70">How much Shorts pay</Link> ·{' '}

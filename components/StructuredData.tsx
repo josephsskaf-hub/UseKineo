@@ -1,4 +1,4 @@
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -159,7 +159,7 @@ const faqSchema = {
       name: 'Is there a watermark?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `${ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get 80 credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.`,
+        text: `${ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)} Paid plans export clean, watermark-free MP4s.`,
       },
     },
     {

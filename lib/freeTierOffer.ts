@@ -140,7 +140,13 @@ const OFF_COPY: FreeTierCopy = {
 // A trava fica na direção que já existe: reverseTrial.ts (que JÁ importa este
 // arquivo) carrega uma asserção de tipo que quebra o `tsc` se os dois números
 // divergirem. Mexer no teto sem mexer na copy passa a não compilar.
-export const TRIAL_GRANT_CREDITS_COPY = 80 // KINEO-TRIAL-80-2026-08-20 — espelho de TRIAL_CREDIT_CAP (a trava de tipo em reverseTrial.ts quebra o build se divergirem)
+// KINEO-TRIAL-25-2026-08-21 — 80 → 25. Espelho de TRIAL_CREDIT_CAP; a trava de
+// tipo em reverseTrial.ts quebra o build se os dois divergirem (foi ela que
+// obrigou esta linha a mudar junto, exatamente como foi desenhada para fazer).
+// O porquê do número está inteiro no bloco KINEO-TRIAL-25 de lib/reverseTrial.ts
+// — resumo: $17/dia de fal contra 2 assinaturas em 14 dias, e nenhum abuso
+// (ninguém fez 3+ vídeos caros), então o corte é no TAMANHO, não no motor.
+export const TRIAL_GRANT_CREDITS_COPY = 25
 
 // ON = decisão do fundador (docs/ORDENS-AQUISICAO-2026-08-02.md, bloco
 // "DECISÕES FINAIS — REVERSE TRIAL"). NUNCA mencionar desconto/50% aqui:
@@ -184,7 +190,14 @@ export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
 // contestação depois.
 const ON_COPY: FreeTierCopy = {
   headline:
-    `Start free — every engine unlocked, including Kling 3. Make ${TRIAL_FILMS} AI films free, watermarked. Upgrade any time to download them clean.`,
+    // ⚠️ KINEO-TRIAL-25-2026-08-21 — PLURAL DERIVADO, NÃO ESCRITO.
+    // Com o grant em 80 esta frase dizia "Make 4 AI films free" e o plural era
+    // verdade por acidente. Com 25, TRIAL_FILMS vira 1 e a MESMA frase passaria
+    // a publicar "Make 1 AI films free" — erro de inglês na PRIMEIRA linha que
+    // um estrangeiro lê do produto. O `tsc` não pega isso: gramática não é tipo.
+    // É o mesmo gênero de defeito que a trava de compilação acima resolveu para
+    // o NÚMERO; aqui a trava é derivar a palavra do número, na mesma expressão.
+    `Start free — every engine unlocked, including Kling 3. Make ${TRIAL_FILMS} AI ${TRIAL_FILMS === 1 ? 'film' : 'films'} free, watermarked. Upgrade any time to download them clean.`,
   residual: '1 free Fast video/month',
   sentence:
     `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} credits and every engine unlocked — Kling 3 included. Films come out watermarked; a plan removes the watermark and unlocks clean downloads.`,

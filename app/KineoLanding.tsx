@@ -29,7 +29,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 const usdPrice = (cents: number) => (cents / 100).toFixed(2)
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -1297,7 +1297,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 byte; o texto fora do ft() nao mudou. */}
             <div className="qa"><h3>Is the video really mine to post?</h3><p>{ft(OFFER, 'Yes. Never-paid free users can download, share and post the watermarked MP4.', 'Trial films carry a small watermark — you can download, share and post the MP4. After the trial, the free Fast video carries a watermark.')} Paid plans unlock the clean, watermark-free MP4 for YouTube, TikTok or Reels.</p></div>
             <div className="qa"><h3>Do I need any editing skills?</h3><p>None. You type one idea and the AI writes the script, records the voice, finds the footage and adds captions. {ft(OFFER, 'Free downloads carry a watermark; paid plans unlock the clean MP4.', 'Trial downloads carry a watermark, and so does the free Fast video after the trial, and paid plans always export clean.')}</p></div>
-            <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', 'New accounts get 80 credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.')} Paid plans export clean, watermark-free MP4s.</p></div>
+            <div className="qa"><h3>Is there a watermark?</h3><p>{ft(OFFER, 'Free access gives new users up to 3 watermarked Fast videos every 24 hours, with no card. You can download and share them.', `New accounts get ${TRIAL_GRANT_CREDITS_COPY} credits with every engine unlocked, watermarked; after it ends, free access gives 1 watermarked Fast video per month that you can download and share.`)} Paid plans export clean, watermark-free MP4s.</p></div>
             {/* KINEO-CEO-HOUR-2026-08-17 (#9) — os produtos novos entram no FAQ */}
             <div className="qa"><h3>Can Kineo also generate images and voiceovers?</h3><p>Yes — Kineo includes an AI image studio (6 engines including FLUX, Seedream and Nano Banana Pro, from 1 credit per image) and a voice studio with 4 text-to-speech engines (from 1 credit per 1000 characters). Everything you make lives in your Library.</p></div>
             <div className="qa"><h3>Can I make my videos sharper?</h3><p>Every video has a one-click Enhance option powered by Topaz film restoration — it removes compression artifacts, recovers detail and adds fine cinematic grain. 10 credits per video; the Studio plan includes 2 free enhances a month.</p></div>
