@@ -105,7 +105,6 @@
       "schedule": "*/5 * * * *"
     },
     {
-      "_comentario": "KINEO-REENVIO-8X-2026-08-21 — o confirm=SEND SAIU da URL. Esta campanha reenviou 8x para as mesmas 29 pessoas hoje (16:40 as 19:00, uma por passada) porque a deduplicacao falhava ABERTO. Sem confirm=SEND a rota roda em DRY_RUN: continua relatando quem seria elegivel e NAO manda e-mail nenhum. Para rearmar depois do conserto validado: repor ?confirm=SEND aqui E gravar a linha campaign_armed_oneoff_unlock (as duas chaves). Cadencia de 20min tambem esta errada para campanha de venda unica — se voltar, que volte diaria.",
       "path": "/api/cron/send-oneoff-unlock",
       "schedule": "0 15 * * *"
     }

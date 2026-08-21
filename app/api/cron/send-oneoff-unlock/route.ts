@@ -37,6 +37,22 @@ import { packPriceLabel, PACK_CREDITS } from '@/lib/checkoutPricing'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
+// ⚠️ KINEO-REENVIO-8X-2026-08-21 — ESTA CAMPANHA ESTÁ DESARMADA NO CRON.
+// Em vercel.json o `?confirm=SEND` foi REMOVIDO da URL e a cadência caiu de
+// */20 para diária (0 15 * * *). Sem `confirm=SEND` a rota roda em DRY_RUN:
+// continua relatando quem seria elegível e não manda um único e-mail.
+//
+// (O comentário morava no próprio vercel.json e QUEBROU O DEPLOY: o schema de
+// `crons` da Vercel recusa qualquer propriedade além de `path` e `schedule` —
+// "Invalid vercel.json - crons[26] should NOT have additional property".
+// Pior ainda, o build falhado deixou o cron ANTIGO vivo em produção por mais
+// uma rodada. Lição: arquivo de configuração validado por schema não é lugar
+// de documentação; a documentação mora no código que ele aponta — aqui.)
+//
+// PARA REARMAR, depois de validar o conserto da deduplicação em DRY_RUN:
+//   1. repor `?confirm=SEND` no path em vercel.json
+//   2. gravar a linha `campaign_armed_oneoff_unlock` (as duas chaves)
+//   3. conferir na primeira rodada que `skipped_already_sent` > 0
 const STAMP = 'oneoff_unlock_emailed'
 /** A linha que ARMA o disparo. Sem ela, a rota só relata. */
 const ARM_EVENT = 'campaign_armed_oneoff_unlock'
