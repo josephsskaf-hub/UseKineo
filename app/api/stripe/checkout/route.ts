@@ -42,6 +42,7 @@ import {
   monthlyPriceMinor,
   resolveCheckoutCurrency,
   resolvePriceRegion,
+  PACK_PRICE_MINOR,
   type BulkPackId,
   type CheckoutCurrency as Currency,
   type CheckoutIntroTier as IntroTier,
@@ -493,7 +494,11 @@ const STARTER_PACK = {
   description: 'One-time: 30 credits — 1 AI-generated video plus 10 Fast videos. No subscription.',
 }
 //   USD $4.90 | BRL R$24.90 | INR ₹399  (same ratios as the plans)
-const PACK_PRICES: Record<Currency, number> = { usd: 490, brl: 2490, inr: 39900 }
+// KINEO-VENDER-O-VIDEO-2026-08-21 — o usd deixa de ser literal aqui: a tela do
+// paywall passou a mostrar este preco, e preco em tela e preco cobrado tem de
+// sair da MESMA linha. brl/inr ficam so como resto historico (CheckoutCurrency
+// e 'usd' desde a V6; nenhum caminho vivo os alcanca).
+const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd, brl: 2490, inr: 39900 }
 
 // KINEO-OFFER290-2026-07-07 — first-purchase URGENCY offer. A NEW user in the
 // first 24h after their 1st video sees "$4.90 → $2.90, expires in 24h" with a

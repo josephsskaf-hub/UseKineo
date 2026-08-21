@@ -69,6 +69,8 @@ import {
   // que a rota da Stripe cobra.
   INTRO_CREDITS,
   TIER_CREDITS,
+  PACK_CREDITS,
+  packPriceLabel,
   // KINEO-TOPUP-CURRENCY-2026-08-12 — os dois botões de top-up desta mesma
   // caixa continuavam com preço literal em dólar depois que as linhas de plano
   // acima deles foram corrigidas em 06/08. Uma correção que para no meio da
@@ -796,7 +798,23 @@ export default function GenerateClient({
   function onboardingPick(topic: string) {
     onboardingAutoGenerateRef.current = true
     setPrompt(topic)
-    setMode('fast') // first video = Fast = zero friction (see value fast)
+    // KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — era `setMode('fast')` com o
+    // comentário "first video = Fast = zero friction". A intenção era boa e o
+    // resultado, medido, foi o contrário: a fricção que importa não é escolher
+    // um motor, é a pessoa achar o resultado sem graça e não voltar. 69% dos
+    // primeiros vídeos saíam no nosso motor mais fraco, e 164 pessoas em 14
+    // dias fizeram exatamente um filme e sumiram.
+    // Este é o momento de MAIOR intenção que existe — alguém que acabou de se
+    // cadastrar e escolheu um tema. Gastar isso no piso do produto é o pior
+    // negócio possível.
+    // A trava de saldo é a mesma do default por plano: sem os 20 créditos,
+    // cai no Fast, porque um vídeo fraco é melhor que nenhum vídeo.
+    if (typeof credits === 'number' && credits >= creditCostFor('cinematic_ai')) {
+      setMode('cinematic_ai')
+      setAiEngine('seedance')
+    } else {
+      setMode('fast')
+    }
     finishOnboarding()
     void handleAnalyze(topic, { fromTopic: true, skipPreview: true, structureFirst: true })
   }
@@ -2422,6 +2440,41 @@ export default function GenerateClient({
               searchParams?.get('create_intent') !== 'fast' &&
               typeof data.credits === 'number' &&
               data.credits >= creditCostFor('cinematic_ai')
+
+            // ═══ KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 ═══════════════════════
+            // MEDIDO HOJE, 14 dias: 445 filmes de 251 pessoas. 293 saíram no
+            // Kineo 1 e 135 no Seedance. Kling 3, Veo, H3 e Kling 2.5 somaram
+            // 17 filmes — TODOS de UMA pessoa, o fundador. Nenhum cliente usou
+            // um motor bom uma única vez. E 69% dos PRIMEIROS vídeos saem no
+            // Kineo 1, que é o nosso piso.
+            // Ou seja: passamos a semana liberando Kling 3 e Veo no trial, e a
+            // pessoa julga a Kineo pelo pior resultado que sabemos produzir,
+            // gastando 1 dos 80 créditos. Os outros 79 ficam parados.
+            // O funil bate com isso: 436 cadastros → 251 fizeram vídeo → 164
+            // fizeram EXATAMENTE UM → 63 viram o preço → 3 pagaram. A queda
+            // brutal é do vídeo 1 para o 2, não no checkout. E 76 das que
+            // pararam no primeiro TINHAM saldo de sobra — não faltou crédito,
+            // faltou motivo para continuar.
+            //
+            // POR QUE SEEDANCE E NÃO O KLING 3: 80 créditos ÷ 20 = exatamente
+            // QUATRO filmes Seedance, e 4 filmes é o limiar onde a conversão
+            // histórica salta (0,33% com 1 filme · 11,76% com 4-6). Defaultar
+            // no Kling 3 (150cr) daria UM filme lindo e zero orçamento para
+            // chegar ao limiar — trocaria um problema por outro.
+            //
+            // A TRAVA QUE NÃO PODE CAIR: `credits >= creditCostFor('cinematic_ai')`.
+            // Fast custa 0 para o free tier; Seedance custa 20. Defaultar quem
+            // está sem saldo num motor pago troca "um vídeo fraco" por
+            // "NENHUM vídeo" — que é infinitamente pior. Quem não tem os 20
+            // continua no Fast, como sempre.
+            const brandNewDefaultsToGoodEngine =
+              data.isStarter !== true &&
+              data.isCreator !== true &&
+              data.isStudio !== true &&
+              data.hasPaid !== true &&
+              searchParams?.get('create_intent') !== 'fast' &&
+              typeof data.credits === 'number' &&
+              data.credits >= creditCostFor('cinematic_ai')
             // KINEO-URL-ENGINE-WINS-2026-08-17 — flagrado pelo fundador no
             // teste do Studio: escolheu Kling 2.5 e esta rotina de DEFAULTS
             // por plano atropelou pra Fast. Default e pra chegada de mao
@@ -2431,6 +2484,10 @@ export default function GenerateClient({
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
+            // Chegou de mãos vazias e TEM saldo → Seedance. Este ramo tem de
+            // vir ANTES do `else if (data.isStarter || ...)` abaixo, que é o
+            // que empurrava todo mundo para o Fast.
+            else if (brandNewDefaultsToGoodEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
             // Fix 03/07 — Studio also defaults to Seedance (40cr): Kling (60cr) kept
             // pre-selecting itself on every load for Studio accounts (reported 5x),
@@ -7008,6 +7065,52 @@ export default function GenerateClient({
     trackCheckoutClick('starter')
   }
 
+  // ═══ KINEO-VENDER-O-VIDEO-2026-08-21 — O AVULSO QUE JÁ EXISTIA ═══════════
+  //
+  // 63 pessoas em 14 dias chegaram no preço e 3 pagaram. A leitura fácil é
+  // "está caro". A leitura que bate melhor com o comportamento é outra: elas
+  // acabaram de fazer UM vídeo, querem ELE limpo, e a única saída que a tela
+  // oferece é assinar um plano MENSAL. A conta que a pessoa faz não é
+  // "$7 é muito" — é "eu vou usar isso todo mês?". E ela não sabe ainda.
+  //
+  // O QUE EU NÃO PRECISEI CONSTRUIR: o produto já existe e já funciona ponta
+  // a ponta. `?pack=starter&return=wm` custa $4.90, entrega 30 créditos, e é
+  // o ÚNICO SKU avulso que respeita `return=wm` — o `compose/unlock` aceita
+  // ele explicitamente (`session.metadata?.pack === 'starter10'`, conferido
+  // linha a linha antes de escrever isto). Ou seja: ele reconstrói ESTE vídeo
+  // limpo. Estava pronto e não era oferecido em NENHUMA tela.
+  //
+  // A SACADA QUE NÃO É ÓBVIA — o barato existe para vender o caro.
+  // Sozinho, "$7 por mês" para um vídeo parece caro. Ao lado de "$4.90 só
+  // este vídeo", o $7 vira a escolha inteligente: 30 créditos avulsos contra
+  // 40 créditos TODO MÊS por $2.10 a mais. A âncora faz o trabalho que
+  // nenhuma copy faz. Mesmo que quase ninguém compre o avulso, ele paga o
+  // próprio espaço na tela — e quem comprar vira cliente pagante com cartão
+  // registrado, que é de longe o público que mais assina depois.
+  function handleBuyThisVideoOnly() {
+    try {
+      if (lastFastRenderRef.current) {
+        localStorage.setItem('kineo_wm_unlock', JSON.stringify(lastFastRenderRef.current))
+      }
+    } catch {
+      // Mesmo tratamento do fluxo de assinatura: o pacote é creditado de
+      // qualquer forma; o que se perde é o re-render deste vídeo NESTE browser.
+    }
+    const started = wmCheckout.launch(
+      'starter_pack_wm',
+      withIntentCampaign('/api/stripe/checkout?pack=starter&return=wm'),
+      { pack: 'starter', return_to: 'watermark_unlock' },
+    )
+    if (!started) return
+    trackEvent('post_video_single_unlock_clicked', {
+      source: 'result_export_choice',
+      offer: 'starter_pack_one_time',
+      watermarked_downloaded: watermarkedDownloadConfirmed,
+      ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+      ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+    })
+  }
+
   // Push #317 — upload the finished video directly to YouTube.
   async function handleYouTubeUpload() {
     if (!finalVideoUrl) return
@@ -10071,6 +10174,31 @@ export default function GenerateClient({
                         </span>
                       </>
                     )}
+                  </button>
+                  {/* KINEO-VENDER-O-VIDEO-2026-08-21 — a opção de comprar SÓ
+                      este vídeo. Ver o comentário longo em handleBuyThisVideoOnly:
+                      o SKU já existia, já limpa a marca d'água e não era
+                      oferecido em tela nenhuma. Fica DEPOIS do botão da
+                      assinatura e com peso visual menor de propósito — o papel
+                      dele é ser a régua que faz o plano parecer barato, não
+                      roubar a venda recorrente. */}
+                  <button
+                    type="button"
+                    onClick={handleBuyThisVideoOnly}
+                    disabled={wmCheckout.pending !== null}
+                    className="flex flex-col items-center justify-center w-full rounded-xl mt-2 py-2.5 px-3 text-xs font-bold text-center"
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid var(--border)',
+                      color: 'var(--muted2)',
+                      cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                      opacity: wmCheckout.pending ? 0.7 : 1,
+                    }}
+                  >
+                    <span>Just this one video — {packPriceLabel()}, no subscription</span>
+                    <span style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.8, marginTop: 2 }}>
+                      One-time · this exact video clean · {PACK_CREDITS.starter} credits
+                    </span>
                   </button>
                   {wmCheckout.error && (
                     <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>

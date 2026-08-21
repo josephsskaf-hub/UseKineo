@@ -414,6 +414,21 @@ export const PACK_CREDITS = {
   starter290: 20,
 } as const
 
+// KINEO-VENDER-O-VIDEO-2026-08-21 — o preço do pacote avulso mora aqui porque
+// a TELA passou a mostrá-lo. Antes ele só existia dentro de
+// app/api/stripe/checkout/route.ts (PACK_PRICES), invisível para o client, e
+// eu quase escrevi "$4.90" cravado no JSX — que é exatamente o defeito que
+// este repositório já pegou duas vezes (o `20` do Seedance e o `25` do
+// Starter). Preço que aparece em tela e preço que a Stripe cobra têm de sair
+// da MESMA linha.
+/** ?pack=starter — valor em centavos. Espelha PACK_PRICES.usd do checkout. */
+export const PACK_PRICE_MINOR: Record<CheckoutCurrency, number> = { usd: 490 }
+
+/** "$4.90" — formatado para copy. */
+export function packPriceLabel(currency: CheckoutCurrency = 'usd'): string {
+  return `$${(PACK_PRICE_MINOR[currency] / 100).toFixed(2)}`
+}
+
 // KINEO-PRICING-V3D-2026-07-26 — DEFECT (c). Top-ups are sold ONLY to existing
 // subscribers, so they must cost MORE per credit than the subscription they sit
 // on top of; otherwise the rational move for a Creator/Studio subscriber is to
