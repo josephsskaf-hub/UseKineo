@@ -213,7 +213,20 @@ export async function POST(req: NextRequest) {
     const generationId = `unlock_${createHash('sha256').update(sessionId).digest('hex').slice(0, 32)}`
     const claimId = composeClaimId(user.id, generationId)
     const submissionCacheKey = `${user.id}:${generationId}`
-    const intendedCost = creditCostForDuration('fast', true, duration)
+    // ═══ KINEO-UNLOCK-GRATIS-2026-08-21 — O DESBLOQUEIO NÃO COBRA CRÉDITO ═══
+    // Decisão do fundador. A pessoa acabou de assinar POR CAUSA deste vídeo:
+    // fez, gostou, viu a marca d'água, pagou o plano para tirá-la. Descontar
+    // crédito para entregar exatamente a coisa que a fez pagar é cobrar duas
+    // vezes pelo mesmo momento — como pagar a conta do restaurante e ainda
+    // cobrarem a embalagem para levar.
+    // E é o pior instante possível para essa cobrança: é o primeiro segundo
+    // dela como cliente pagante. A primeira impressão tem de ser o produto
+    // entregando o que prometeu, não o saldo caindo.
+    // O CUSTO REAL PARA NÓS É QUASE ZERO: o desbloqueio só REMONTA o vídeo
+    // (Creatomate, centavos). Os clipes de IA já foram gerados e pagos no
+    // render original — nenhum motor roda de novo aqui.
+    // Ela mantém o saldo cheio do plano recém-assinado.
+    const intendedCost = 0
     let ownsSubmissionClaim = false
 
     const claimUnavailable = () => NextResponse.json(
