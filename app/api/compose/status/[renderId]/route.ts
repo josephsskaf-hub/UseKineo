@@ -12,7 +12,7 @@ import { isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 // (and price) from the server-side render_jobs intent row, NEVER from the
 // client's ?quality / ?deducted query params. creditCostFor is the single
 // shared price table (was a local copy here).
-import { creditCostFor, normalizeQuality } from '@/lib/credits/engineCost'
+import { creditCostFor, normalizeQuality, creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — todo débito passa pelo wrapper único
 // (mesmo RPC; com a flag OFF é byte-idêntico ao rpc direto).
 import { debitVideoCredits } from '@/lib/credits/debit'
@@ -485,7 +485,13 @@ export async function GET(
         intent!.cost >= 0 && intent!.cost <= 1000
           ? intent!.cost
           : null
-      const cost = intentCost ?? creditCostFor(quality, fastIsPaidUser)
+      // KINEO-DURACAO-FIX2-2026-08-21 — o SETTLE é a cobrança final. Se ele
+      // usar o preço de 60s enquanto o claim nasceu proporcional, o débito
+      // diverge da reserva e o render é recusado depois de pago. O `intentCost`
+      // (gravado no nascimento) continua tendo prioridade — o fallback é que
+      // precisava escalar junto. `duration` aqui já é a REAL do arquivo quando
+      // o render terminou; para o cálculo de custo isso é conservador e certo.
+      const cost = intentCost ?? creditCostForDuration(quality, fastIsPaidUser, duration)
 
       // Push #230 — URL returned to the client. Defaults to the Creatomate
       // output; upgraded to the permanent Supabase URL after the asset

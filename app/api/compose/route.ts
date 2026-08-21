@@ -1431,10 +1431,19 @@ export async function POST(req: NextRequest) {
       quality === 'presenter' || (quality === 'fast' && !isFreePlanFast)
     if (isCreditBilledQuality && !ownsSubmissionClaim) {
       if (cinematicUpstreamDebited || avatarUpstreamDebited) {
-        const prepaidReservation = await claimGenerationSubmission(creditCostFor(quality, true), false)
+        // ⚠️ KINEO-DURACAO-FIX2-2026-08-21 — ESTE ERA O BUG QUE SOBROU.
+        // Ontem consertei a VERIFICAÇÃO (linha ~687) mas não a RESERVA. O
+        // resultado, medido numa pessoa real às 04:47 de hoje: o birth claim
+        // nascia com 27 créditos (H3 a 35s = 45 × 35/60) e o compose reservava
+        // 45 (o preço de 60s). Números diferentes para o mesmo render ⇒ "These
+        // AI clips do not match their signed generation", duas vezes, e 54
+        // créditos presos (dois holds de 27). Ela se cadastrou às 04:35,
+        // tentou três vezes e foi embora sem UM vídeo.
+        // Toda reserva/cobrança tem de sair da MESMA função que criou o claim.
+        const prepaidReservation = await claimGenerationSubmission(creditCostForDuration(quality, true, duration), false)
         if (prepaidReservation.kind !== 'acquired') return prepaidReservation.response
       } else {
-        const paidReservation = await reservePaidCreditSlot(creditCostFor(quality, true))
+        const paidReservation = await reservePaidCreditSlot(creditCostForDuration(quality, true, duration))
         if (paidReservation) return paidReservation
       }
     }
@@ -1786,7 +1795,8 @@ export async function POST(req: NextRequest) {
 
       // Submit once per authenticated generation. Retrying a provider POST
       // after an ambiguous response can create and charge two render jobs.
-      const hollywoodCost = creditCostFor(quality)
+      // KINEO-DURACAO-FIX2-2026-08-21 — o caminho Hollywood/H3 também escala.
+      const hollywoodCost = creditCostForDuration(quality, true, duration)
       const hollywoodClaim: SubmissionClaimResult = ownsSubmissionClaim
         ? { kind: 'acquired' }
         : await claimGenerationSubmission(hollywoodCost)
@@ -2310,7 +2320,9 @@ export async function POST(req: NextRequest) {
     // Step 5 — Submit to Creatomate once per authenticated generation. The
     // provider has no documented idempotency key, so a blind retry after an
     // ambiguous response can create and charge two jobs.
-    const intendedCost = creditCostFor(quality, quality === 'fast' ? !isFreePlanFast : false)
+    // Mesmo motivo do bloco acima: o custo pretendido registrado no intent
+    // precisa bater com o do claim, senão o settle diverge lá na frente.
+    const intendedCost = creditCostForDuration(quality, quality === 'fast' ? !isFreePlanFast : false, duration)
     const claim: SubmissionClaimResult = ownsSubmissionClaim
       ? { kind: 'acquired' }
       : await claimGenerationSubmission(intendedCost)
