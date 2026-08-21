@@ -512,11 +512,11 @@ export default function AffiliatePage() {
           <p className="text-xs mt-3 leading-relaxed" style={{ color: MUTED }}>
             Say it out loud in your video:{' '}
             <span style={{ color: TEXT, fontWeight: 800 }}>
-              &ldquo;use code {a.coupon_code} and your first week is free&rdquo;
+              &ldquo;use code {a.coupon_code} for 20% off&rdquo;
             </span>
-            . They type it at checkout, the $1 entry fee is waived, and you get paid — no link, no bio,
-            no clicking. And it keeps paying: once someone uses your code, every month they stay counts
-            for you, for as long as they stay.
+            . They type it at checkout, get 20% off their first month, and you get credited — no link,
+            no bio, no clicking. And it keeps paying: once someone redeems your code, every month they
+            stay counts for you, for as long as they stay subscribed.
           </p>
         </div>
       ) : null}

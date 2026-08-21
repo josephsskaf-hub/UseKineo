@@ -412,11 +412,17 @@ export const FREE_TIER = {
   //     cartão. Agora a concessão é a oração principal e o limite residual vem
   //     depois, sem deixar de ser dito. Com a flag OFF, string byte a byte
   //     idêntica à de hoje.
-  // ⚠️ KINEO-TRIAL-CARTAO-2026-08-20 — "no credit card" saiu; duração e preço
-  // de entrada entraram. O trial agora é: US$1 na entrada, cartão obrigatório,
-  // 7 dias, e vira Creator ($15/mês) no dia 8 se não cancelar. Um modelo de
-  // linguagem repete exatamente o que está escrito — então tem de estar
-  // COMPLETO, não só verdadeiro.
+  // ⚠️ COMENTÁRIO OBSOLETO REMOVIDO EM 21/08 — o que estava escrito aqui
+  // descrevia o trial de US$1 com cartão obrigatório como se fosse o modelo no
+  // ar. NÃO É: `CARD_TRIAL_ENABLED = false` em app/api/stripe/checkout, e o
+  // modelo vigente é o do OpusClip — 80 créditos na inscrição, todos os motores
+  // liberados, SEM cartão, filmes com marca d'água, e o plano pago é que
+  // desbloqueia o download limpo. A string abaixo sempre esteve certa; era só o
+  // comentário que mentia.
+  // Isso não é detalhe: em 21/08 eu li esta descrição, acreditei nela e quase
+  // publiquei um cupom prometendo "trial grátis" para um trial que não existe.
+  // Se o trial de $1 for religado um dia, ESTE comentário volta junto — e não
+  // antes.
   allowance: FREE_OFFER.reverseTrial
     ? `${TRIAL_CREDIT_CAP} free credits on signup with every engine unlocked (Kling 3 included), no credit card; trial films render watermarked and any paid plan unlocks clean, watermark-free downloads`
     : 'up to 3 watermarked Fast videos every 24 hours',

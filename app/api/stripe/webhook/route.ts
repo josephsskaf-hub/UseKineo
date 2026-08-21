@@ -109,9 +109,15 @@ async function isProtectedProfile(
 // só a rede de segurança de quem chegou sem link.
 async function resolveAffiliateByCoupon(
   supabase: AdminClient,
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
+  compradorUserId: string
 ): Promise<string | null> {
   try {
+    // Atalho barato: `amount_discount` JÁ vem no corpo do webhook. A maioria
+    // esmagadora dos pagamentos não usa cupom nenhum, e sem esta linha toda
+    // compra pagaria duas chamadas extras à Stripe por nada.
+    if (!session.total_details?.amount_discount) return null
+
     // ⚠ CUIDADO AO MEXER: `session.discounts` NÃO EXISTE nesta versão do SDK
     // (stripe 16, apiVersion 2024-06-20) — escrevi assim na primeira tentativa
     // e o tsc pegou. O desconto só aparece em `total_details.breakdown`, que
@@ -131,12 +137,44 @@ async function resolveAffiliateByCoupon(
         ? ((await stripe.promotionCodes.retrieve(promoRaw))?.code ?? '').trim()
         : (promoRaw.code ?? '').trim()
     if (!code) return null
-    const { data: aff } = await supabase
+
+    // ⚠ COMPARAÇÃO EXATA, NÃO `ilike`. O texto vem do cliente e o `ilike` do
+    // PostgREST trata `%` e `_` como CURINGAS: um código digitado como "KINEO%"
+    // casaria com o cupom de QUALQUER afiliado. Os códigos que nós cunhamos são
+    // [A-Z0-9] e nunca teriam esse problema, mas o admin grava `coupon_code` em
+    // texto livre — a porta existia.
+    const codeUpper = code.toUpperCase()
+    if (!/^[A-Z0-9]{4,24}$/.test(codeUpper)) return null
+    const { data: candidatos, error: buscaErro } = await supabase
       .from('affiliates')
-      .select('id, status')
-      .ilike('coupon_code', code)
-      .maybeSingle()
-    if (!aff || aff.status !== 'active') return null
+      .select('id, user_id, status, coupon_code')
+      .eq('coupon_code', codeUpper)
+      .limit(2)
+    if (buscaErro) {
+      console.error('[affiliate coupon] busca falhou:', buscaErro.message)
+      return null
+    }
+    // Dois afiliados com o mesmo texto = ambiguidade. Pagar ao "primeiro" seria
+    // sortear o dono do dinheiro; melhor não pagar e deixar rastro no log.
+    if (!candidatos || candidatos.length !== 1) {
+      if (candidatos && candidatos.length > 1) {
+        console.error(`[affiliate coupon] AMBIGUO: ${candidatos.length} afiliados com o cupom ${codeUpper}`)
+      }
+      return null
+    }
+    const aff = candidatos[0]
+    if (aff.status !== 'active') return null
+
+    // ⚠ AUTO-INDICAÇÃO. Sem isto, qualquer pessoa vira afiliado em dois cliques
+    // (apply nasce 'active'), abre /affiliate para o cupom ser cunhado, e assina
+    // com o próprio código — levando 40% de si mesma, TODO MÊS, para sempre.
+    // A margem do Creator é ~$10; menos $6 de comissão sobra $4, e quem consumir
+    // os créditos todos vira prejuízo permanente. O guard equivalente já existia
+    // em /api/affiliate/attribute e não tinha sido espelhado aqui.
+    if (aff.user_id && aff.user_id === compradorUserId) {
+      console.warn(`[affiliate coupon] auto-indicacao bloqueada: user ${compradorUserId}`)
+      return null
+    }
     return aff.id as string
   } catch (err) {
     console.error('[affiliate coupon] resolve failed:', err)
@@ -156,32 +194,67 @@ async function recordAffiliateCommission(
     // Rewardful owns this charge. Suppress the custom ledger so the same
     // initial payment or renewal can never create two affiliate liabilities.
     if (args.attributionSystem === 'rewardful') return
-    if (!args.userId || !args.externalId || !args.amountGross || args.amountGross <= 0) return
+    if (!args.userId || !args.externalId) return
+
     const { data: prof } = await supabase.from('profiles').select('affiliate_id').eq('id', args.userId).single()
     let affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null
+
+    // ⚠ ESTE BLOCO FICA ANTES DO GUARD DE VALOR, DE PROPÓSITO.
+    // O `amountGross <= 0` morava três linhas acima e matava a atribuição por
+    // cupom antes dela acontecer. Numa sessão que fecha em ZERO — cupom que
+    // cobre o valor todo, ou trial sem cobrança — a função retornava cedo, o
+    // perfil NUNCA era carimbado, e como a renovação só sabe ler
+    // `profiles.affiliate_id`, o criador ficava sem receber PARA SEMPRE. Sem
+    // erro, sem log, sem ninguém perceber. O carimbo é atribuição, não
+    // pagamento: tem que acontecer mesmo quando não entrou dinheiro hoje.
     if (!affiliateId && args.session) {
-      affiliateId = await resolveAffiliateByCoupon(supabase, args.session)
+      affiliateId = await resolveAffiliateByCoupon(supabase, args.session, args.userId)
       if (affiliateId) {
-        // Carimba o perfil para que a RENOVAÇÃO do mês que vem — que não
-        // carrega cupom nenhum — continue creditando o mesmo criador.
-        await supabase.from('profiles').update({ affiliate_id: affiliateId }).eq('id', args.userId)
-        // Cria a linha de indicação se ainda não existir. O bloco logo abaixo
-        // a encontra e marca como paga — mesmo caminho de quem veio por link.
-        const { data: jaExiste } = await supabase
+        // First-touch: a busca é por PESSOA, não por afiliado. Filtrar por
+        // afiliado (como estava) não enxergava a indicação de OUTRO criador e
+        // deixava o cupom sequestrar uma indicação que já tinha dono — o link
+        // de A viraria comissão vitalícia de B por um código digitado.
+        const { data: indicacaoExistente } = await supabase
           .from('affiliate_referrals')
-          .select('id')
-          .eq('affiliate_id', affiliateId)
+          .select('id, affiliate_id')
           .eq('referred_user_id', args.userId)
           .maybeSingle()
-        if (!jaExiste) {
-          await supabase
-            .from('affiliate_referrals')
-            .insert({ affiliate_id: affiliateId, referred_user_id: args.userId, status: 'signup' })
+
+        if (indicacaoExistente && indicacaoExistente.affiliate_id !== affiliateId) {
+          // Já tem dono e é outro. First-touch vence: honra o primeiro e
+          // ignora o cupom. O comprador fica com o desconto; a comissão vai
+          // para quem trouxe a pessoa.
+          console.warn(
+            `[affiliate coupon] cupom de ${affiliateId} ignorado: user ${args.userId} ja indicado por ${indicacaoExistente.affiliate_id}`
+          )
+          affiliateId = indicacaoExistente.affiliate_id as string
+        } else {
+          const { error: carimboErro } = await supabase
+            .from('profiles')
+            .update({ affiliate_id: affiliateId })
+            .eq('id', args.userId)
+          if (carimboErro) {
+            // Sem carimbo não há renovação creditada. Melhor abortar o caminho
+            // do cupom e deixar rastro do que registrar uma comissão de entrada
+            // que nunca teria continuidade.
+            console.error('[affiliate coupon] carimbo do perfil falhou:', carimboErro.message)
+            affiliateId = null
+          } else if (!indicacaoExistente) {
+            const { error: insErro } = await supabase
+              .from('affiliate_referrals')
+              .insert({ affiliate_id: affiliateId, referred_user_id: args.userId, status: 'signup' })
+            if (insErro) console.error('[affiliate coupon] insert da indicacao falhou:', insErro.message)
+          }
+          if (affiliateId) {
+            console.log(`[affiliate coupon] user ${args.userId} → affiliate ${affiliateId} (sem link, via cupom)`)
+          }
         }
-        console.log(`[affiliate coupon] user ${args.userId} → affiliate ${affiliateId} (sem link, via cupom)`)
       }
     }
     if (!affiliateId) return
+    // Só AGORA o valor importa: atribuição já está gravada acima, e o que este
+    // guard evita é lançar uma comissão de valor zero ou negativo.
+    if (!args.amountGross || args.amountGross <= 0) return
     const { data: aff } = await supabase.from('affiliates').select('id, commission_rate, status').eq('id', affiliateId).single()
     if (!aff || aff.status !== 'active') return
     const rate = Number(aff.commission_rate ?? 0)
