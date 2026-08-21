@@ -11,6 +11,53 @@
 # todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
 # em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
 
+## 21/08/2026 — 🔴 5º dia no escuro em fal (sintomas PIORANDO hoje de manhã) · Creatomate: o prazo de decisão VENCEU ontem e ninguém sabe o resultado · e uma boa notícia: o Storage ENCOLHEU 6 GB (alguém limpou)
+
+**O dia esfriou (25 cadastros/24h vs 45; 23 entregues vs 51 — o dia 20 fechou normal após o
+apagão), mas os dois pontos abertos continuam abertos: (1) fal segue sem leitura de painel pelo
+5º dia E os sintomas cresceram — 4 `poll_retries_exhausted` em 24h, sendo TRÊS em 18 minutos
+hoje de manhã (11:20–11:38Z), o pior cluster desde o incidente de 13-15/08; (2) o prazo de
+decisão do Creatomate era ONTEM e este check-up não tem como saber se o plano subiu — a única
+coisa que dá pra medir é que o ritmo desacelerou (906 cr/24h vs 1.873) e mesmo assim a média 7d
+NÃO fecha o ciclo. Fato novo dos bons: o Storage caiu de 117,6 → 111,4 GB brutos em 24h
+(broll −4,3 GB) — a primeira redução da história da série; o GC aparentemente rodou.**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **fal.ai** | 🔴 **VERMELHO até confirmação — 5º dia sem painel · sintomas PIORARAM hoje** | Banco: **14 renders IA em 24h** (10 Seedance + 3 H3 + 1 Kling) ≈ **~$28/24h ESTIMADOS** (10×$1,97 + 4×~$2; banco subconta ~1,9× → real pode ser ~$53) · 7d: 118 IA (98 Seedance + 12 Hollywood + 4 H3 + 2 Veo + 2 Kling) ≈ **~$339 ESTIMADOS** · sintomas 24h: **4 `poll_retries_exhausted`, 3 deles em 18 min hoje 11:20–11:38Z** (ontem eram 3 espalhados na madrugada) | Consumo estimado desde a última leitura real (17/08, $27,67): **>$180**. O cluster de poll-fails desta manhã é o padrão que precedeu o incidente de 13-15/08 (latência alta → deadline). Pode ser só latência do fal — mas com saldo ilegível há 5 dias, "pode ser" não protege nada. **Ação: os mesmos 2 minutos pedidos há 5 dias — saldo ≥$200 E linha "Auto top-up" ATIVA no Credit activity.** |
+| **OpenAI** | 🔴 **VERMELHO até confirmação — a recarga de 19/08 segue sem auditoria e, se foi o auto-reload ($25), zera DE NOVO ~23/08** | Banco: **0 falhas quota/openai em 48h** · 23 entregues = 23 scriptings OK · falhas 24h todas de produto (ver nota) | A recarga de ~22:00Z de 19/08 ergueu o produto, mas ninguém olhou o Billing history: se foi auto-reload, o alvo é $25 — no ritmo medido de −$6,33/dia isso é **~4 dias de tanque → cruza o gatilho de $10 por volta de 22-23/08 e o teste de ontem se repete no fim de semana**. Se foi manual, idem, com a agravante de depender de alguém estar acordado. **Ação (mesma de ontem, agora com data): Billing history + saldo HOJE — o próximo cruzamento do gatilho é em ~2 dias.** |
+| **Creatomate** | 🟡 **AMARELO — prazo de decisão VENCEU ontem (20/08) · a média 7d ainda NÃO fecha o ciclo** | Estimativa fórmula validada (razão 1,115): **ciclo ~12.036 de 30.000 (40%)** — 353 vídeos, 17.356s desde 10/08 · 24h: 26 vídeos, 1.306s ≈ **906 cr** (vs 1.873 ontem: −52%) · média 7d: 284 vídeos, 14.191s ≈ **1.406 cr/dia** | Restam ~17.964 cr. Média 7d: **12,8 dias → estoura ~03/09, 7 dias ANTES da renovação (10/09)**. Ritmo de 24h: 19,8 dias → fecha EXATAMENTE na renovação, com margem zero. A desaceleração de hoje é alívio de ritmo, não reposição de tanque (lição de 18/08). Sinal interno: **1 evento `creatomate_quota_hwm` em 48h** — o próprio alarme de high-water-mark do código acordou. **Ação: se o plano subiu ontem, anotar aqui e encerrar; se não subiu, a decisão está VENCIDA e a média 7d continua não fechando o ciclo.** |
+| **Resend** | 🟡 **AMARELO fraco — 3º dia seguido acima de 100 sem UMA recusa (20/08 fechou em 163, recorde)** | Ledger `email_send_log`: **203 tentativas/24h, 203 ok, 0 falha** · por dia UTC: **18/08=116 · 19/08=151 (126 ok) · 20/08=163 ok (recorde) · 21/08=88 parcial** · quebra 24h: ending_soon 51 · d0_welcome 47 · expired_offer_d5 42 · downgraded_loss 29 · hotlead_watermark 24 · outros 10 | **163 aceitos num dia de teto free 100, zero 429, pelo 3º dia** — no free isso é impossível; a inferência de plano pago está praticamente fechada. Falta só o painel dizer QUAL plano (o pago de entrada tem teto ~50k/mês; 203/dia = ~6k/mês, folga enorme). **Ação: 1 minuto no painel pra riscar o item de vez.** hotlead_watermark segue em 24/dia — consumo já dimensionado dentro do novo teto se o plano for pago. |
+| **Supabase Storage** | 🟢 **VERDE — e ENCOLHEU: −6,2 GB brutos em 24h (primeira queda da série)** | Banco bruto **111,35 GB** (9.636 obj.) × 0,503 calibrado = **~56,0 GB de 100 GB (ESTIMATIVA)** · vs ontem 117,55 → **−6,2 GB com +238 objetos** · broll: **71,82 GB** (4.306 obj., −4,25 GB) · renders: 33,63 GB | Folga ~44 GB. A queda com MAIS objetos = arquivos grandes deletados — o GC do broll (pedido desde 17/08) aparentemente rodou, devolvendo ~2,4 dias de folga só ontem. No ritmo pré-limpeza (~1,7 GB cobrados/dia) a folga é **~25 dias**; se o GC virar rotina, o item sai do radar. **Confirmar se foi o GC ou limpeza manual — se foi o GC, está funcionando e merece cron.** |
+
+**Saúde do produto:** dia frio e limpo — 23 entregues/24h, 25 cadastros (7d: 282, ~40/dia
+firme), 31 falhas/8 users, ZERO de quota/saldo. Mas o detalhe das falhas trouxe **2 bugs de
+produto novos**: (1) `compose_not_ok: "ent is not defined"` — **ReferenceError em código** no
+caminho de montagem, 3× em 20/08 17:40–17:47Z; (2) `"These AI clips do not match their signed
+generation"` — a trava C1 do contrato-Hollywood REJEITANDO composes reais, 3× entre 20-21/08.
+Os dois merecem sprint: o primeiro é typo que derruba render pago; o segundo pode ser a trava
+funcionando (clipe trocado) ou falso positivo — e falso positivo ali bloqueia cliente que pagou.
+
+**Ação recomendada (nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **HOJE — fal: painel (5º dia).** O cluster de poll-fails desta manhã é o mesmo prelúdio de 13/08.
+2. **HOJE — OpenAI: Billing history.** O próximo cruzamento do gatilho de $10 é em ~2 dias (fim de semana).
+3. **HOJE — Creatomate: registrar a decisão** (o prazo venceu ontem; a média 7d não fecha o ciclo).
+4. **1 min — Resend: confirmar plano e riscar o item.**
+5. **Sprint — os 2 bugs de compose** (`ent is not defined` + falso positivo da trava C1).
+
+**O insight deste check-up:** o Storage entregou a prova de que **a única alavanca que não
+depende de cartão — deletar o que ninguém vê — é também a única que já funcionou sozinha**:
+6 GB devolvidos em 24h sem decisão, sem painel, sem cartão. Enquanto isso, os quatro itens que
+dependem de ALGUÉM ABRIR UM PAINEL acumulam 5, 3, 1 e 3 dias de fila. A lição operacional:
+tudo que puder ser resolvido por código agendado (GC, ledger, medidor) sai da fila humana pra
+sempre — e a fila humana deveria guardar só o que exige cartão. Vale inverter o esforço: em vez
+de pedir painel 5 dias seguidos, gastar um sprint tornando cada leitura de painel DESNECESSÁRIA
+(ex.: e-mail de recibo do fal/OpenAI cai numa caixa que o banco lê → saldo vira dado do banco).
+
+**Não consegui medir:** saldo fal.ai, saldo OpenAI (e manual×auto da recarga de 19/08), plano
+ativo do Resend — painéis exigem login; sessão agendada sem browser. Vereditos deles são
+projeção + evidência indireta do banco, pela regra de 18/08.
+
 ## 20/08/2026 — 🔴 ACONTECEU: a OpenAI ZEROU ontem à noite — 4º incidente de fornecedor (2h20 fora), e a recuperação prova que a proteção automática NÃO disparou a tempo
 
 **O que este check-up vinha avisando há 3 dias aconteceu: ontem 19/08, 19:31–21:50 UTC
