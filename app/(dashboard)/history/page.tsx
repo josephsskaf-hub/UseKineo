@@ -23,7 +23,20 @@ export default async function MyVideosPage() {
     .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
-    .limit(100)
+    // KINEO-HISTORICO-300-2026-08-21 — 100 → 300 (pedido do fundador: "estou
+    // com limitação de cem vídeos, eu sei que na minha conta eu tenho mais").
+    // O teto de 100 cortava o acervo antigo justamente de quem mais produz, e
+    // acervo antigo é matéria-prima de vitrine e de curadoria.
+    //
+    // ⚠️ POR QUE 300 É SEGURO E 100 NÃO ERA UM CAPRICHO: o custo desta tela
+    // nunca foi a QUERY (300 linhas de metadados é trivial para o Postgres) —
+    // era o DOM. O comentário de 14/08 em HistoryClient mediu 100 elementos
+    // <video preload="metadata"> montados de uma vez, 91 deles abaixo da
+    // dobra, todos disputando conexão. Aquilo já foi corrigido lá (poster +
+    // montagem sob demanda), então subir o teto aqui não recria o problema.
+    // ⚠️ PAR: se alguém reverter a virtualização/poster do HistoryClient, este
+    // 300 volta a doer três vezes mais que o 100 doía. Mexeu num, olha o outro.
+    .limit(300)
 
   return <MyVideosClient videos={videos ?? []} />
 }

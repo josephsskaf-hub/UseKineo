@@ -119,11 +119,50 @@ export async function GET(req: NextRequest) {
   const ids = [...new Set((checkouts ?? []).map((c) => c.user_id as string).filter(Boolean))]
   if (ids.length === 0) return NextResponse.json({ mode: 'DRY_RUN', eligible: 0, note: 'ninguem no checkout em 7d' })
 
-  const [{ data: profs }, { data: stamps }, { data: vids }] = await Promise.all([
+  const [{ data: profs }, { data: stamps, error: stampsErro }, { data: vids }] = await Promise.all([
     admin.from('profiles').select('id, email, email_opted_out, video_credits, is_pro').in('id', ids),
-    admin.from('events').select('user_id').eq('name', STAMP).in('user_id', ids),
+    // ⚠️ SEM `.in('user_id', ids)` — E ISSO É A CORREÇÃO, NÃO UM DESCUIDO.
+    // Ver KINEO-REENVIO-8X abaixo: com centenas de UUIDs, o `.in()` monta uma
+    // query string gigante e o PostgREST devolve ERRO em vez de linhas. Como o
+    // código antigo lia só `data` e ignorava `error`, `stamps` vinha null, o
+    // Set de deduplicação nascia VAZIO, e a campanha reenviava para todo mundo
+    // a cada passada. Ler a tabela inteira do carimbo é barato (uma campanha
+    // tem centenas de linhas, não milhões) e não tem limite de URL.
+    admin.from('events').select('user_id').eq('name', STAMP).limit(5000),
     admin.from('videos').select('user_id').eq('status', 'completed').in('user_id', ids),
   ])
+
+  // ═══ KINEO-REENVIO-8X-2026-08-21 — FAIL-CLOSED NA DEDUPLICAÇÃO ═══════════
+  // O QUE ACONTECEU, medido no `events` de hoje: 29 pessoas receberam ESTE
+  // e-mail 8 VEZES, entre 16:40 e 19:00, uma a cada 20 minutos — exatamente a
+  // cadência do cron. 204 disparos onde deviam ter saído 29.
+  //
+  // A trava de deduplicação EXISTIA (o `jaRecebeu` logo abaixo) e mesmo assim
+  // não segurou, porque ela FALHAVA ABERTO: quando a consulta dos carimbos não
+  // devolvia nada — por erro, não por ausência — o conjunto de "quem já
+  // recebeu" ficava vazio, e um conjunto vazio significa, para o laço abaixo,
+  // "ninguém recebeu ainda, manda para todos". O pior desenho possível: o
+  // modo de falha da trava é o comportamento que ela existe para impedir.
+  //
+  // A LIÇÃO, que vale para toda rota que manda e-mail para cliente de verdade:
+  // NÃO EXISTE `?? []` INOCENTE NUMA GUARDA. `(stamps ?? [])` lê como
+  // "cuidado, pode vir vazio" e na prática significa "se der erro, ignore a
+  // guarda". Toda consulta que decide SE MANDA precisa distinguir os três
+  // casos — deu certo e veio vazio · deu certo e veio cheio · DEU ERRO — e o
+  // terceiro tem que abortar. É o mesmo padrão do `entitlementsResolved` no
+  // TrialDowngradeModal: veredito não resolvido não vira ação.
+  //
+  // E o dano aqui não é abstrato: os 29 são os leads MAIS QUENTES do banco
+  // (viram preço, fizeram vídeo, não assinaram). Oito e-mails iguais em duas
+  // horas não só não vendem — treinam o provedor a mandar TODO e-mail nosso
+  // para spam, inclusive os de entrega ("seu vídeo está pronto").
+  if (stampsErro) {
+    console.error('[oneoff-unlock] ABORTADO — nao consegui ler os carimbos:', stampsErro.message)
+    return NextResponse.json(
+      { mode: 'ABORTED', reason: 'dedupe_unreadable', detail: stampsErro.message },
+      { status: 503 },
+    )
+  }
   const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
   const contagem = new Map<string, number>()
   for (const v of vids ?? []) {
