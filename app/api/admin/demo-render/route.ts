@@ -29,6 +29,22 @@ import { mintUserSession, callAsUser, type UserSession } from '@/lib/autopilot/s
 // alvo, igualzinho a um render feito à mão. Por isso: CRON_SECRET fail-closed
 // e a conta alvo só pode ser resolvida por e-mail explícito no corpo — nunca
 // varrendo a tabela de usuários.
+//
+// ═══ POR QUE TAMBÉM EXISTE UM GET DRENADO POR CRON ═══════════════════════
+// O POST acima exige quem chama ter o CRON_SECRET em mãos. Eu não tenho, e
+// pedir para o fundador colar um segredo no chat é a pior forma de resolver
+// isso: segredo colado em conversa vaza, fica no histórico e não se revoga.
+//
+// A saída é a fila `demo_render_jobs`. Quem ENFILEIRA é o service_role, que já
+// administra o banco. Quem EXECUTA é o cron da Vercel, e a Vercel injeta o
+// `Authorization: Bearer $CRON_SECRET` sozinha na hora de chamar a rota. Ou
+// seja: o segredo nunca sai da plataforma e ninguém precisa digitá-lo.
+//
+// Cada passada do cron AVANÇA UM ESTÁGIO por job, porque um clipe de IA demora
+// minutos e a lambda morre em 300s:
+//   queued → submitted → composing → done
+// Se a passada acabar no meio, o job fica no estágio em que estava e a próxima
+// continua dali. Nada é regerado: clipe pronto na fal continua pronto.
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
 
@@ -246,4 +262,174 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ error: 'step deve ser start ou finish' }, { status: 400 })
+}
+
+// ═══ WORKER: drena a fila `demo_render_jobs` ═════════════════════════════
+// Chamado pelo cron da Vercel, que injeta o CRON_SECRET sozinha.
+// Avança UM estágio por job em cada passada. Um job por passada, de propósito:
+// os motores caros (Kling 3) já disputam fila na fal, e disparar oito de uma
+// vez só faz todo mundo esperar mais.
+const MAX_TENTATIVAS = 4
+
+export async function GET(req: NextRequest) {
+  if (!autorizado(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const svc = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !svc) return NextResponse.json({ error: 'env missing' }, { status: 503 })
+  const db = createAdminClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } })
+  const baseUrl = baseUrlDe(req)
+
+  // Mais velho primeiro: a ordem da fila é a ordem de prioridade que quem
+  // enfileirou escolheu.
+  const { data: jobs } = await db
+    .from('demo_render_jobs')
+    .select('*')
+    .in('status', ['queued', 'submitted'])
+    .lt('attempts', MAX_TENTATIVAS)
+    .order('created_at', { ascending: true })
+    .limit(1)
+
+  const job = jobs?.[0] as Record<string, unknown> | undefined
+  if (!job) return NextResponse.json({ ok: true, nota: 'fila vazia' })
+
+  const id = job.id as string
+  const email = job.account_email as string
+  const marcar = async (patch: Record<string, unknown>) => {
+    await db.from('demo_render_jobs').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
+  }
+  await marcar({ attempts: ((job.attempts as number) ?? 0) + 1 })
+
+  const sess = await sessaoPara(email)
+  if ('erro' in sess) {
+    await marcar({ error: sess.erro })
+    return NextResponse.json({ id, erro: sess.erro }, { status: 200 })
+  }
+
+  try {
+    // ── queued → submitted ────────────────────────────────────────────────
+    if (job.status === 'queued') {
+      const generationId = `demo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`
+      const r = await callAsUser<CinematicResposta>({
+        baseUrl,
+        path: '/api/generate-video-cinematic',
+        session: sess.session,
+        method: 'POST',
+        body: {
+          generationId,
+          prompt: job.prompt as string,
+          duration: (job.duration as number) ?? 60,
+          language: 'en',
+          engine: (job.engine as string) ?? 'cinematic',
+        },
+        timeoutMs: 280_000,
+      })
+      if (!r.ok || !r.body) {
+        const msg = r.body?.error ?? r.errorText ?? `HTTP ${r.status}`
+        // `pending` = aceito e reconciliando. NÃO é falha: devolver o job para
+        // `queued` sem consumir tentativa evitaria contar errado, mas manter a
+        // tentativa é o que impede um job problemático de girar para sempre.
+        await marcar({ error: msg })
+        return NextResponse.json({ id, estagio: 'start', erro: msg })
+      }
+      const ids = (r.body.fal_request_ids ?? []).filter((x): x is string => typeof x === 'string' && x.length > 0)
+      if (ids.length === 0) {
+        await marcar({ error: 'o motor nao devolveu clipes' })
+        return NextResponse.json({ id, estagio: 'start', erro: 'sem clipes' })
+      }
+      await marcar({
+        status: 'submitted',
+        generation_id: generationId,
+        fal_request_ids: ids,
+        fal_model: r.body.fal_model ?? null,
+        fal_models: r.body.fal_models ?? null,
+        voiceover_script: r.body.voiceover_script ?? '',
+        scene_captions: r.body.scene_captions ?? [],
+        verbatim: r.body.verbatim ?? false,
+        speed: typeof r.body.speed === 'number' ? r.body.speed : null,
+        // ⚠ `engine` e `quality` sao vocabularios DIFERENTES: pede-se
+        // 'hollywood' ao motor, mas o compose cobra 'cinematic_hollywood'.
+        // Guardamos o quality que o SERVIDOR devolveu, nunca uma traducao
+        // adivinhada — traduzir errado faria o compose recusar o filme DEPOIS
+        // de debitar o credito (o bug de 20/08 nos tiers de 35s e 90s).
+        quality: r.body.quality ?? null,
+        error: null,
+        // Submeteu com sucesso: zera para que a espera pelos clipes tenha o
+        // orçamento de tentativas inteiro, e não o que sobrou do submit.
+        attempts: 0,
+      })
+      return NextResponse.json({ id, estagio: 'submetido', alvo: job.target_name, clipes: ids.length })
+    }
+
+    // ── submitted → composing ─────────────────────────────────────────────
+    const falRequestIds = (job.fal_request_ids as string[]) ?? []
+    const generationId = (job.generation_id as string) ?? ''
+    const qs = new URLSearchParams({ ids: JSON.stringify(falRequestIds), generationId })
+    if (job.fal_model) qs.set('model', String(job.fal_model))
+    if (Array.isArray(job.fal_models) && (job.fal_models as string[]).length > 0) {
+      qs.set('models', JSON.stringify(job.fal_models))
+    }
+
+    const s = await callAsUser<ClipStatusResposta>({
+      baseUrl,
+      path: `/api/cinematic-clip-status?${qs.toString()}`,
+      session: sess.session,
+      method: 'GET',
+      timeoutMs: 30_000,
+    })
+    if (s.status === 502) {
+      await marcar({ status: 'failed', error: s.body?.error ?? 'motor falhou nos clipes' })
+      return NextResponse.json({ id, estagio: 'clipes', erro: 'motor falhou' })
+    }
+    if (!s.body?.allDone) {
+      // Ainda cozinhando. NÃO consome tentativa — esperar não é errar.
+      await marcar({ attempts: (job.attempts as number) ?? 0 })
+      return NextResponse.json({
+        id,
+        estagio: 'aguardando clipes',
+        alvo: job.target_name,
+        prontos: s.body?.done ?? 0,
+        total: s.body?.total ?? falRequestIds.length,
+      })
+    }
+
+    const clipUrls = (s.body.clips ?? []).map((c) => c.url).filter((u): u is string => typeof u === 'string')
+    if (clipUrls.length === 0) {
+      await marcar({ status: 'failed', error: 'clipes prontos sem url' })
+      return NextResponse.json({ id, erro: 'clipes prontos sem url' })
+    }
+
+    const c = await callAsUser<ComposeResposta>({
+      baseUrl,
+      path: '/api/compose',
+      session: sess.session,
+      method: 'POST',
+      body: {
+        generationId,
+        clip_urls: clipUrls,
+        voiceover_script: String(job.voiceover_script ?? ''),
+        scene_captions: Array.isArray(job.scene_captions) ? job.scene_captions : [],
+        duration: (job.duration as number) ?? 60,
+        topic: String(job.target_name ?? 'Kineo demo'),
+        quality: String(job.quality ?? job.engine ?? 'cinematic_ai'),
+        language: 'en',
+        ...(job.verbatim && typeof job.speed === 'number' ? { speed: Number(job.speed) } : {}),
+      },
+      timeoutMs: 290_000,
+    })
+    const renderId = (c.body?.render_id ?? '').trim()
+    if (!c.ok || !renderId) {
+      const msg = c.body?.error ?? c.errorText ?? `HTTP ${c.status}`
+      await marcar({ error: msg })
+      return NextResponse.json({ id, estagio: 'compose', erro: msg })
+    }
+    // `composing` é o estado final desta fila. Daqui em diante quem termina o
+    // filme é o pipeline normal de compose + o cron finish-stranded-renders,
+    // exatamente como num render feito à mão. Não duplicamos essa espera.
+    await marcar({ status: 'composing', render_id: renderId, error: null })
+    return NextResponse.json({ id, estagio: 'montando', alvo: job.target_name, renderId })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    await marcar({ error: msg.slice(0, 400) })
+    return NextResponse.json({ id, erro: msg.slice(0, 400) }, { status: 200 })
+  }
 }

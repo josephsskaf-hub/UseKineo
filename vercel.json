@@ -99,6 +99,10 @@
     {
       "path": "/api/cron/finish-stranded-renders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/admin/demo-render",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
