@@ -148,7 +148,12 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
         }}
       >
         <div style={{ marginBottom: 10, color: '#2997ff', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
-          Your first Fast video
+          {/* KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — era "Your first Fast
+              video". Com o trial passando a abrir no Seedance, prometer "Fast"
+              virou mentira no PRIMEIRO botão que uma conta nova toca. Copy
+              neutra: não promete motor, e continua verdadeira nos dois casos
+              (Seedance com saldo, Fast sem). */}
+          Your first video
         </div>
         <h1 id="first-video-title" style={{ margin: '0 0 10px', color: '#f5f5f7', fontSize: 'clamp(1.55rem, 6vw, 2.15rem)', lineHeight: 1.1, letterSpacing: '-0.035em' }}>
           Start with one ready-to-make idea.
@@ -192,9 +197,17 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
               d'agua, porque a mesma tela tambem e vista por quem ja saiu do
               trial (ai o Fast gratis realmente carimba). Flag OFF devolve a
               frase atual byte a byte. */}
+          {/* ⚠ "free" saiu do ramo ON. Duas razões, e as duas foram medidas:
+              (1) desde o KINEO-TETO (20/08) o filme do TRIAL também sai COM
+                  marca d'água — o comentário acima, que dizia "sai LIMPO",
+                  está estagnado desde então;
+              (2) com o trial abrindo no Seedance, o clique consome 20 dos 80
+                  créditos. Chamar isso de "free" é a promessa mais cara que
+                  existe: quebra no primeiro clique da pessoa.
+              "Included" é verdade nos dois: o crédito já está na conta dela. */}
           <FreeTierCopy
             legacy="Create this free watermarked video →"
-            on="Create this video free →"
+            on="Create this video — included →"
           />
         </button>
         {/* PUSH #96 — JOB 2(a)/(e): the only escape hatch was a ~17px tall

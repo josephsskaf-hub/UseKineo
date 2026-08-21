@@ -807,9 +807,20 @@ export default function GenerateClient({
     // Este é o momento de MAIOR intenção que existe — alguém que acabou de se
     // cadastrar e escolheu um tema. Gastar isso no piso do produto é o pior
     // negócio possível.
-    // A trava de saldo é a mesma do default por plano: sem os 20 créditos,
-    // cai no Fast, porque um vídeo fraco é melhor que nenhum vídeo.
-    if (typeof credits === 'number' && credits >= creditCostFor('cinematic_ai')) {
+    // ⚠ A TRAVA É ENTITLEMENT, NÃO SALDO — a auditoria corrigiu isto e a
+    // distinção custa caro. Ter 20 créditos NÃO dá direito ao Seedance: o
+    // gate do servidor é `!isPaidUser && !trialActive` e a UI desenha cadeado
+    // pela MESMA regra. Uma conta free com saldo (trial vencido com crédito
+    // estornado é um caso real deste banco) levaria 402 e ficaria SEM VÍDEO.
+    // Saldo entra junto porque `outOfCredits()` é cost-blind e um trial com
+    // 19 créditos gastaria o analyze e comeria 402 no generate.
+    // E o `mode` daqui é um PAR com o guard do dispatcher (~6640): se um
+    // aceitar cinematic_ai e o outro não, o primeiro vídeo não é despachado.
+    if (
+      trialActive &&
+      typeof credits === 'number' &&
+      credits >= creditCostFor('cinematic_ai')
+    ) {
       setMode('cinematic_ai')
       setAiEngine('seedance')
     } else {
@@ -2441,40 +2452,29 @@ export default function GenerateClient({
               typeof data.credits === 'number' &&
               data.credits >= creditCostFor('cinematic_ai')
 
-            // ═══ KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 ═══════════════════════
-            // MEDIDO HOJE, 14 dias: 445 filmes de 251 pessoas. 293 saíram no
-            // Kineo 1 e 135 no Seedance. Kling 3, Veo, H3 e Kling 2.5 somaram
-            // 17 filmes — TODOS de UMA pessoa, o fundador. Nenhum cliente usou
-            // um motor bom uma única vez. E 69% dos PRIMEIROS vídeos saem no
-            // Kineo 1, que é o nosso piso.
-            // Ou seja: passamos a semana liberando Kling 3 e Veo no trial, e a
-            // pessoa julga a Kineo pelo pior resultado que sabemos produzir,
-            // gastando 1 dos 80 créditos. Os outros 79 ficam parados.
-            // O funil bate com isso: 436 cadastros → 251 fizeram vídeo → 164
-            // fizeram EXATAMENTE UM → 63 viram o preço → 3 pagaram. A queda
-            // brutal é do vídeo 1 para o 2, não no checkout. E 76 das que
-            // pararam no primeiro TINHAM saldo de sobra — não faltou crédito,
-            // faltou motivo para continuar.
+            // ═══ KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — RAMO REMOVIDO ═══════
+            // Eu tinha adicionado aqui um `brandNewDefaultsToGoodEngine` que
+            // pre-selecionava Seedance para qualquer conta com saldo >= 20. A
+            // auditoria derrubou por dois motivos, e os dois procedem:
             //
-            // POR QUE SEEDANCE E NÃO O KLING 3: 80 créditos ÷ 20 = exatamente
-            // QUATRO filmes Seedance, e 4 filmes é o limiar onde a conversão
-            // histórica salta (0,33% com 1 filme · 11,76% com 4-6). Defaultar
-            // no Kling 3 (150cr) daria UM filme lindo e zero orçamento para
-            // chegar ao limiar — trocaria um problema por outro.
+            // 1. ELE ESCOLHIA A TRAVA ERRADA. Saldo nao da direito ao Seedance;
+            //    ENTITLEMENT da. Uma conta free com 20 creditos (existe: trial
+            //    vencido com saldo estornado, ver lib/reverseTrial) via cadeado
+            //    na UI (`seedanceUnlocked = anyPaid || trialActive`) e levava
+            //    402 no servidor. Ou seja: eu trocaria "video fraco" por
+            //    "NENHUM video" — exatamente o que o proprio comentario que
+            //    escrevi dizia para nao fazer.
+            // 2. COM A GUARDA CERTA ELE VIRA REDUNDANTE. Somando
+            //    `entitlementTier === 'creator'` ele fica identico ao
+            //    `trialDefaultsToCreatorEngine` logo acima, que JA existe desde
+            //    07/08. Ou seja: o default do trial JA ERA Seedance, e mesmo
+            //    assim 69% dos primeiros videos saem no Fast.
             //
-            // A TRAVA QUE NÃO PODE CAIR: `credits >= creditCostFor('cinematic_ai')`.
-            // Fast custa 0 para o free tier; Seedance custa 20. Defaultar quem
-            // está sem saldo num motor pago troca "um vídeo fraco" por
-            // "NENHUM vídeo" — que é infinitamente pior. Quem não tem os 20
-            // continua no Fast, como sempre.
-            const brandNewDefaultsToGoodEngine =
-              data.isStarter !== true &&
-              data.isCreator !== true &&
-              data.isStudio !== true &&
-              data.hasPaid !== true &&
-              searchParams?.get('create_intent') !== 'fast' &&
-              typeof data.credits === 'number' &&
-              data.credits >= creditCostFor('cinematic_ai')
+            // O QUE ISSO ENSINA (e vale mais que o ramo): os 69% NAO vem do
+            // default por plano. Vem dos caminhos que FORCAM Fast — o
+            // onboarding (corrigido neste commit), o `create_intent=fast` das
+            // paginas de SEO, e o `fromViralNow` logo abaixo, que empurra o
+            // clique de MAIOR intencao da casa para o piso do catalogo.
             // KINEO-URL-ENGINE-WINS-2026-08-17 — flagrado pelo fundador no
             // teste do Studio: escolheu Kling 2.5 e esta rotina de DEFAULTS
             // por plano atropelou pra Fast. Default e pra chegada de mao
@@ -2484,10 +2484,6 @@ export default function GenerateClient({
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
-            // Chegou de mãos vazias e TEM saldo → Seedance. Este ramo tem de
-            // vir ANTES do `else if (data.isStarter || ...)` abaixo, que é o
-            // que empurrava todo mundo para o Fast.
-            else if (brandNewDefaultsToGoodEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
             else if (data.isStarter || (!data.isCreator && !data.isStudio)) { setMode('fast') }
             // Fix 03/07 — Studio also defaults to Seedance (40cr): Kling (60cr) kept
             // pre-selecting itself on every load for Studio accounts (reported 5x),
@@ -6635,13 +6631,31 @@ export default function GenerateClient({
       return
     }
 
-    if (!onboardingPending || mode !== 'fast') return
+    // ⚠ KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — ESTA LINHA ERA `mode !== 'fast'`
+    // e por isso o motor do onboarding e ESTE guard sao um PAR: trocar um sem o
+    // outro faz o primeiro video NAO SER DESPACHADO. A auditoria pegou: com o
+    // onboarding escolhendo Seedance, o return acontecia aqui, o
+    // `onboardingAutoGenerateRef` NUNCA era limpo (o reset mora na linha de
+    // baixo, depois do return) e o botao de escape `handleInlineFirstVideo`
+    // tambem morria, porque ele checa esse mesmo ref. Resultado: a pessoa
+    // ficava parada na tela de opcoes, para sempre. Zero video — o oposto
+    // exato do que a mudanca queria.
+    if (!onboardingPending || (mode !== 'fast' && mode !== 'cinematic_ai')) {
+      // Sai do modo onboarding mesmo quando nao despacha, senao o ref preso
+      // desliga o CTA inline e a pessoa fica sem nenhum caminho.
+      if (!onboardingPending) return
+      onboardingAutoGenerateRef.current = false
+      return
+    }
     onboardingAutoGenerateRef.current = false
     onboardingGenerationDispatchedRef.current = true
     try { sessionStorage.setItem(PUSH27_ONBOARDING_RENDER_SESSION_KEY, '1') } catch {}
     trackEvent('first_video_generation_dispatched_from_viral_onboarding', {
       source: 'viral_onboarding',
-      engine: 'fast',
+      // era literal 'fast'. Com o onboarding podendo escolher Seedance, o
+      // literal viraria mentira no funil — e funil que mente custa a proxima
+      // decisao, nao esta.
+      engine: mode === 'cinematic_ai' ? aiEngine : 'fast',
       version: 'push27_single_choice',
     })
     void handleGenerate()
@@ -7102,6 +7116,7 @@ export default function GenerateClient({
       { pack: 'starter', return_to: 'watermark_unlock' },
     )
     if (!started) return
+    trackCheckoutClick('starter')
     trackEvent('post_video_single_unlock_clicked', {
       source: 'result_export_choice',
       offer: 'starter_pack_one_time',
@@ -7641,6 +7656,122 @@ export default function GenerateClient({
   // que antes não tinha campo nenhum de trial. Com ele dá para perguntar se a
   // caixa avulsa rouba clique da assinatura em 'ending' — e aí a supressão
   // volta com número.
+  // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════
+  // Ver o bloco longo em app/api/next-episode/route.ts para o porquê. Resumo:
+  // 164 pessoas em 14 dias fizeram UM filme e sumiram, 76 delas com crédito
+  // sobrando. O que mata a sessão é o formulário em branco — a pessoa teria
+  // que inventar o próximo tema com a empolgação já passando. Então a gente
+  // entrega o episódio 2 escrito, em vez de pedir a próxima ideia.
+  const [nextEpisode, setNextEpisode] = useState<{ title: string; script: string } | null>(null)
+  const [nextEpisodeLoading, setNextEpisodeLoading] = useState(false)
+  const nextEpisodeAskedForRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (phase !== 'done') return
+    // ⚠ NUNCA CAIR NO `prompt` CRU. Na volta da Stripe (`?wm_unlock=1`) isto é
+    // um mount NOVO: `lastFastRenderRef` nasce vazio e `prompt` pode conter um
+    // tópico ALEATÓRIO semeado de VIRAL_STARTER_TOPICS. O card ofereceria
+    // "episódio 2" de um filme que a pessoa nunca fez, e gastaria GPT para
+    // isso. Sem o tema real do filme, o card simplesmente não aparece.
+    const base = (lastFastRenderRef.current?.topic ?? '').trim()
+    if (!base) return
+    // Uma vez por filme. A chave é o próprio tema: se a pessoa renderizar o
+    // MESMO filme de novo (retry, unlock da marca d'água), não gasta outra
+    // chamada de GPT nem troca o episódio que já está na tela.
+    if (nextEpisodeAskedForRef.current === base) return
+    nextEpisodeAskedForRef.current = base
+    let cancelado = false
+    setNextEpisodeLoading(true)
+    void (async () => {
+      try {
+        const r = await fetch('/api/next-episode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ previousTopic: base, language }),
+        })
+        if (!r.ok || cancelado) return
+        const d = (await r.json()) as { title?: string; script?: string }
+        if (cancelado || !d.script) return
+        setNextEpisode({ title: d.title ?? 'Episode 2', script: d.script })
+      } catch {
+        // Silencioso de propósito: isto é um bônus na tela de sucesso. Um erro
+        // aqui NÃO pode virar mensagem de erro em cima de um filme que deu
+        // certo — só significa que o card não aparece.
+      } finally {
+        // Sem o `if`: quando a pessoa sai de `done` com o fetch em voo,
+        // `cancelado` fica true e o loading NUNCA desligava — a próxima
+        // passada saía cedo pelo ref e o card ficava preso em
+        // "Writing episode 2…" para sempre.
+        setNextEpisodeLoading(false)
+      }
+    })()
+    return () => {
+      cancelado = true
+      setNextEpisodeLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
+  // ═══ KINEO-CREDITO-POR-POSTAR-2026-08-21 ═══════════════════════════════
+  // Ver o bloco longo em app/api/post-reward/route.ts. Em uma linha: o filme
+  // grátis já sai com `usekineo.com/free` queimado, ou seja, já é um outdoor
+  // que a gente entrega de graça e nunca cobra. Aqui ele passa a comprar
+  // distribuição — e o prêmio é crédito, então o dinheiro só sai do caixa se
+  // a pessoa gerar mais um filme, que é exatamente o que a gente quer.
+  const [postUrl, setPostUrl] = useState('')
+  const [postRewardMsg, setPostRewardMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [postRewardSending, setPostRewardSending] = useState(false)
+
+  async function claimPostReward() {
+    const link = postUrl.trim()
+    if (!link || postRewardSending) return
+    setPostRewardSending(true)
+    setPostRewardMsg(null)
+    try {
+      const r = await fetch('/api/post-reward', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // ⚠ `publicVideoId`, NÃO `renderId`. São colunas diferentes: renderId é o id
+        // do render na Creatomate e `videos.id` é a linha do banco (o compose/status
+        // faz `.eq('render_id', renderId)` justamente para traduzir um no outro).
+        // Mandar renderId aqui fazia o servidor procurar `videos.id = <render_id>`,
+        // não achar nada e devolver 403 em 100% das reivindicações.
+        body: JSON.stringify({ url: link, videoId: publicVideoId ?? undefined }),
+      })
+      const d = (await r.json().catch(() => ({}))) as {
+        creditsAdded?: number
+        balance?: number
+        error?: string
+      }
+      if (r.ok && typeof d.creditsAdded === 'number') {
+        setPostRewardMsg({ ok: true, text: `+${d.creditsAdded} credits added. Thank you.` })
+        setPostUrl('')
+        if (typeof d.balance === 'number') setCredits(d.balance)
+        trackEvent('post_reward_claimed_ui', { credits: d.creditsAdded })
+      } else {
+        setPostRewardMsg({ ok: false, text: d.error ?? 'Could not verify that link.' })
+      }
+    } catch {
+      setPostRewardMsg({ ok: false, text: 'Network error. Try again.' })
+    } finally {
+      setPostRewardSending(false)
+    }
+  }
+
+  function startNextEpisode() {
+    if (!nextEpisode) return
+    trackEvent('next_episode_clicked', { title: nextEpisode.title.slice(0, 80) })
+    const s = nextEpisode.script
+    setNextEpisode(null)
+    setPrompt(s)
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch {}
+    // `structureFirst: false` porque o roteiro JÁ vem com HOOK/MICRO REWARD/
+    // ESCALATION/PAYOFF (a rota recusa e não devolve nada quando não vêm).
+    // Mandar estruturar de novo faria o GPT reescrever a narração e quebraria
+    // o Contrato C1 — a fala tem de sair exatamente como está na tela.
+    void handleAnalyze(s, { fromTopic: true, skipPreview: true, structureFirst: false })
+  }
+
   const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
     !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
   // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
@@ -10274,6 +10405,139 @@ export default function GenerateClient({
                     tempo resta, e quantos créditos/mês o Creator dá — este
                     último interpolado de TIER_CREDITS, não redigitado.
                     ═══════════════════════════════════════════════════════════ */}
+              {/* ⚠ POSIÇÃO: DEPOIS DO DOWNLOAD, NUNCA ANTES.
+                  A auditoria pegou estes dois cards acima do botão de baixar.
+                  A regra KINEO-DELIVER-FIRST não é estética: mediu 107 pessoas
+                  que esperaram o filme, viram a tela pronta e foram embora SEM
+                  O ARQUIVO. Qualquer coisa que empurre o download para baixo
+                  cobra esse pedágio de novo — inclusive um card que ajuda. */}
+              {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
+                  é quem carrega a marca d'água. Oferecer isto a um assinante
+                  seria pagar por um outdoor que não existe: o filme dele sai
+                  limpo, sem o nosso domínio em lugar nenhum. */}
+              {phase === 'done' && planTier === 'free' && !hasPaid && (
+                <div
+                  className="mt-7 w-full rounded-2xl p-4"
+                  style={{
+                    maxWidth: 460,
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    background: 'var(--card)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <div
+                    className="text-[10px] font-black uppercase tracking-widest mb-1.5"
+                    style={{ color: 'var(--muted2)' }}
+                  >
+                    Post it, get 20 credits
+                  </div>
+                  <p className="text-xs mb-2.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                    Publish this video on YouTube, TikTok or Instagram, paste the link, and we add
+                    20 credits — enough for one more film. One reward per video.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      value={postUrl}
+                      onChange={(e) => setPostUrl(e.target.value)}
+                      placeholder="https://youtube.com/shorts/…"
+                      className="flex-1 rounded-xl px-3 py-2 text-xs"
+                      style={{
+                        background: 'rgba(13,13,28,.6)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text)',
+                        outline: 'none',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void claimPostReward()}
+                      disabled={postRewardSending || !postUrl.trim()}
+                      className="rounded-xl px-4 py-2 text-xs font-black text-white"
+                      style={{
+                        background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                        border: 'none',
+                        whiteSpace: 'nowrap',
+                        cursor: postRewardSending || !postUrl.trim() ? 'not-allowed' : 'pointer',
+                        opacity: postRewardSending || !postUrl.trim() ? 0.55 : 1,
+                      }}
+                    >
+                      {postRewardSending ? 'Checking…' : 'Claim 20 credits'}
+                    </button>
+                  </div>
+                  {postRewardMsg && (
+                    <p
+                      role="status"
+                      className="text-xs mt-2 font-semibold"
+                      style={{ color: postRewardMsg.ok ? '#5cb3ff' : '#ff6b6b', lineHeight: 1.45 }}
+                    >
+                      {postRewardMsg.text}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* KINEO-PROXIMO-EPISODIO-2026-08-21 — o filme termina entregando
+                  o próximo, em vez de pedir a próxima ideia. Aparece DEPOIS do
+                  download e do paywall de propósito: primeiro a pessoa resolve
+                  o vídeo que ela veio fazer, aí a gente oferece o seguinte. */}
+              {(nextEpisode || nextEpisodeLoading) && (
+                <div
+                  className="mt-7 w-full rounded-2xl p-4"
+                  style={{
+                    maxWidth: 460,
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    background: 'rgba(41,151,255,.06)',
+                    border: '1px solid rgba(41,151,255,.28)',
+                  }}
+                >
+                  <div
+                    className="text-[10px] font-black uppercase tracking-widest mb-2"
+                    style={{ color: 'var(--muted2)' }}
+                  >
+                    Your next episode is written
+                  </div>
+                  {nextEpisodeLoading && !nextEpisode ? (
+                    <p className="text-xs" style={{ color: 'var(--muted2)' }}>
+                      Writing episode 2…
+                    </p>
+                  ) : nextEpisode ? (
+                    <>
+                      <p className="text-sm font-bold" style={{ color: 'var(--text)', lineHeight: 1.35 }}>
+                        {nextEpisode.title}
+                      </p>
+                      <p
+                        className="text-xs mt-1.5"
+                        style={{
+                          color: 'var(--muted2)',
+                          lineHeight: 1.5,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {nextEpisode.script.replace(/^(HOOK|MICRO REWARD|ESCALATION|PAYOFF)\s*$/gim, '').trim()}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={startNextEpisode}
+                        className="w-full rounded-xl mt-3 py-2.5 text-sm font-black text-white"
+                        style={{
+                          background: 'linear-gradient(135deg,#2997ff,#2997ff)',
+                          border: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Make this one too →
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              )}
+
                 {showTrialPostVideoOffer && (
                   <div
                     ref={trialPostVideoOfferRef}
@@ -10398,10 +10662,26 @@ export default function GenerateClient({
                           ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
                           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
                         })
+                        // ⚠ KINEO-TRIAL-SAI-LIMPO-2026-08-21 — faltava `return=wm`
+                        // AQUI, e isso era um buraco de receita silencioso: desde
+                        // o KINEO-TETO (20/08) o filme do TRIAL também sai com
+                        // marca d'água, mas esta oferta assinava o plano e NÃO
+                        // reconstruía o vídeo que a pessoa acabou de fazer. Ela
+                        // pagava e continuava com a marca no arquivo que queria.
+                        // O stash em localStorage é a outra metade do par: sem
+                        // ele o `?wm_unlock=1` volta sem nada para reconstruir.
+                        try {
+                          if (lastFastRenderRef.current) {
+                            localStorage.setItem('kineo_wm_unlock', JSON.stringify(lastFastRenderRef.current))
+                          }
+                        } catch {
+                          // storage bloqueado: a assinatura ativa igual; só o
+                          // re-render deste vídeo não resume NESTE browser.
+                        }
                         const started = trialPostVideoCheckout.launch(
                           ladderPrimaryTier,
-                          withIntentCampaign(`/api/stripe/checkout?tier=${ladderPrimaryTier}&intro=1`),
-                          { tier: ladderPrimaryTier, intro: true, from: 'trial_post_video' },
+                          withIntentCampaign(`/api/stripe/checkout?tier=${ladderPrimaryTier}&intro=1&return=wm`),
+                          { tier: ladderPrimaryTier, intro: true, from: 'trial_post_video', return_to: 'watermark_unlock' },
                         )
                         if (!started) return
                         trackCheckoutClick(ladderPrimaryTier)
@@ -10425,6 +10705,30 @@ export default function GenerateClient({
                         {trialPostVideoCheckout.error}
                       </p>
                     )}
+                    {/* KINEO-VENDER-O-VIDEO-2026-08-21 — a régua também aqui.
+                        A auditoria mostrou que o trial via SÓ assinatura mensal
+                        — justamente a objeção que o avulso existe para
+                        contornar ("eu vou usar isso todo mês?"). E com a flag
+                        do reverse trial ligada, TODA conta nova nasce em trial:
+                        essa era a coorte inteira de gente nova sem alternativa. */}
+                    <button
+                      type="button"
+                      onClick={handleBuyThisVideoOnly}
+                      disabled={wmCheckout.pending !== null}
+                      className="flex flex-col items-center justify-center w-full rounded-xl mt-2 py-2.5 px-3 text-xs font-bold text-center"
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--border)',
+                        color: 'var(--muted2)',
+                        cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                        opacity: wmCheckout.pending ? 0.7 : 1,
+                      }}
+                    >
+                      <span>Just this one video — {packPriceLabel()}, no subscription</span>
+                      <span style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.8, marginTop: 2 }}>
+                        One-time · this exact video clean · {PACK_CREDITS.starter} credits
+                      </span>
+                    </button>
                     {/* KINEO-STARTER-ESCAPE-2026-08-19 — a escada de preço no
                         ponto de decisão: quem acha o Creator caro sai por aqui
                         em vez de sair do site (o caso kanishka, IN). Mesmo
