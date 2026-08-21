@@ -30,6 +30,40 @@ import { mintUserSession, callAsUser, type UserSession } from '@/lib/autopilot/s
 // e a conta alvo só pode ser resolvida por e-mail explícito no corpo — nunca
 // varrendo a tabela de usuários.
 //
+// ═══ ⚠⚠ O FORMATO DO `prompt` NÃO É LIVRE — LEIA ANTES DE ENFILEIRAR ═══════
+//
+// ERRO COMETIDO EM 21/08, e caro: enfileirei 8 filmes com roteiros marcados
+// como HOOK / MICRO REWARD / ESCALATION / PAYOFF. Os 8 saíram com a narração
+// REESCRITA e ENCOLHIDA — 155 palavras viraram ~40. Medido nos arquivos:
+// 17 segundos de fala dentro de 80 segundos de filme. O fundador viu e
+// descreveu como "apagões" e "imagens repetidas"; não era nada disso —
+// medi zero frame preto em dois limiares. Era vazio de narração, com cenas
+// de 13 segundos sem ninguém falando.
+//
+// A CAUSA: quem decide se a narração é verbatim é `parseUserScript`
+// (lib/scriptParser.ts), e ele procura UMA coisa só — o marcador
+// `[Pexels: <consulta visual>]`. Os marcadores HOOK/MICRO REWARD/... são de
+// OUTRO parser (`parseViralScriptSections`, usado no /api/analyze-idea).
+// Sem `[Pexels: ...]`, `hasMarkers` é false, `verbatim` é false, e o
+// generate-video-cinematic entende que recebeu um TEMA, não um roteiro — daí
+// ele escreve o texto dele e ignora o meu. Contrato C1 nunca liga.
+//
+// FORMATO CERTO, uma linha por cena:
+//   [Pexels: chess board dramatic lighting] In 1997, a machine beat the
+//   greatest chess player alive. Everyone said chess was dead.
+//   [Pexels: crowded tournament hall] Chess is not dead. More people play...
+//
+// Vale para o Kling 3 (hollywood) também: ali o `[Pexels: ...]` não busca
+// stock nenhum, ele vira a DIREÇÃO VISUAL da cena, e
+// `parsedScript.narration` inteira vira a fala do filme
+// (generate-video-cinematic ~1825: `verbatim && parsedScript.narration`).
+//
+// REGRA QUE FICA: antes de enfileirar, confira que o prompt tem um
+// `[Pexels: ...]` por cena. Depois do render, confira `verbatim = true` e
+// `length(voiceover_script)` compatível com o que você escreveu. Se o texto
+// guardado for muito menor que o seu, o filme JÁ nasceu errado — não adianta
+// olhar a imagem.
+//
 // ═══ POR QUE TAMBÉM EXISTE UM GET DRENADO POR CRON ═══════════════════════
 // O POST acima exige quem chama ter o CRON_SECRET em mãos. Eu não tenho, e
 // pedir para o fundador colar um segredo no chat é a pior forma de resolver
