@@ -115,6 +115,24 @@ export default function StudioClient() {
   // um valor chamado `resolution` fixo em '1080p' convida o próximo a mandá-lo
   // ao servidor como se fosse escolha do cliente. A resolução real é do motor
   // (eng.res) e o master é sempre 1080×1920.
+  // ═══ KINEO-CABE-2026-08-21 — A TELA PRECISA SABER O SALDO ═══════════════
+  // Desde que o trial abriu TODOS os motores (KINEO-TETO), a pessoa vê o
+  // Kling 3 destravado — e ele custa 150 créditos contra os 80 do trial. Ela
+  // escolhe, escreve a ideia, clica, e leva "créditos insuficientes". Pior
+  // combinação possível: mostramos o topo do catálogo e negamos na última
+  // porta, depois de ela já ter investido a ideia.
+  // O que cabe hoje no trial de 80: Kineo 1, Seedance, H3 e Kling 2.5 nos três
+  // tiers; Presenter até 60s; Veo e Avatar só em 35s; Kling 3 em NENHUM.
+  // Saber o saldo aqui permite dizer a verdade ANTES do clique.
+  const [balance, setBalance] = useState<number | null>(null)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/me/credits', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits) })
+      .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
+    return () => { alive = false }
+  }, [])
   const [preset, setPreset] = useState<string | null>(null)
   const [prompt, setPrompt] = useState('')
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 (fundador: 'faltou usar a script do
@@ -163,6 +181,9 @@ export default function StudioClient() {
   }, [])
 
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
+  // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
+  // discordarem entre si (foi assim que a tela e o servidor divergiram ontem).
+  const cost = creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)
 
   const finalPrompt = useMemo(() => {
     const p = CAMERA_PRESETS.find((c) => c.key === preset)
@@ -304,7 +325,17 @@ export default function StudioClient() {
                 aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
                 por esta mesma função (creditCostForDuration), então tela e
                 fatura nunca divergem. */}
-            <div className="val"><span>Estimated cost</span><b>{creditCostForDuration(ENGINE_QUALITY[eng.key] ?? 'cinematic_ai', true, duration)} cr</b></div>
+            <div className="val">
+              <span>Estimated cost</span>
+              <b style={balance !== null && cost > balance ? { color: '#fb923c' } : undefined}>{cost} cr</b>
+            </div>
+            {balance !== null && cost > balance && (
+              // A verdade ANTES da ideia ser escrita, não depois do clique.
+              <div className="val" style={{ color: '#fb923c', fontSize: '0.78rem' }}>
+                <span>You have {balance} cr</span>
+                <b style={{ fontWeight: 600 }}>{duration > 35 ? 'try 35s, or another engine' : 'try another engine'}</b>
+              </div>
+            )}
             {/* Expectativa de tempo ANTES do clique: o cronômetro da tela de
                 render sobe sem dizer quanto é normal, e quem não conhece lê
                 como travado. Fast é minutos; motor de IA é vários minutos. */}
@@ -313,7 +344,11 @@ export default function StudioClient() {
               <b style={{ fontWeight: 600 }}>{eng.key === 'fast' ? '3–7 min' : '8–20 min'}</b>
             </div>
             <button type="button" onClick={generate} disabled={!prompt.trim()} className={`go ${prompt.trim() ? 'ok' : 'no'}`}>
-              {prompt.trim() ? 'Generate →' : 'Type your idea first'}
+              {!prompt.trim()
+                ? 'Type your idea first'
+                : balance !== null && cost > balance
+                  ? `Need ${cost - balance} more credits`
+                  : 'Generate →'}
             </button>
             <div className="gnote">Voice, karaoke captions and score included.</div>
           </div>
