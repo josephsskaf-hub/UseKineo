@@ -103,6 +103,10 @@
     {
       "path": "/api/admin/demo-render",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/send-oneoff-unlock?confirm=SEND",
+      "schedule": "*/20 * * * *"
     }
   ]
 }
