@@ -4,6 +4,10 @@ import DashboardShell from './DashboardShell'
 // or the Add-to-Home-Screen hint (iOS). Dashboard only, so the public
 // landing/ads funnel stays distraction-free.
 import InstallAppBanner from '@/components/InstallAppBanner'
+// KINEO-CHATGPT-WELCOME-2026-08-22 — faixa para quem chegou por link do
+// ChatGPT (150 pessoas, 0 conversoes; caem direto no /generate e pulam toda
+// a narrativa de valor). Ver o cabecalho do componente para a medicao.
+import ChatGptWelcomeBanner from '@/components/ChatGptWelcomeBanner'
 // Push #427 — push-notification opt-in ("know when your video is ready")
 import EnablePushBanner from '@/components/EnablePushBanner'
 // Push #443 — referral loop: fires attribute+qualify on any authenticated page
@@ -149,6 +153,7 @@ export default async function DashboardLayout({
           que toda tela autenticada atravessa e que não cobre nada. `userKey`
           vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
       {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
+      <ChatGptWelcomeBanner />
       {children}
       <InstallAppBanner />
       {user && <ReferralPromoBanner />}

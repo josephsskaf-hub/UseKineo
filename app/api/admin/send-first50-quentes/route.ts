@@ -129,44 +129,47 @@ export async function GET(req: NextRequest) {
 
   const segment = req.nextUrl.searchParams.get('segment') === 'queimados' ? 'queimados' : 'limpos'
 
-  // ── A coorte: uma leitura de eventos, cruzada em memória ─────────────────
-  // Sem RPC e sem SQL cru de propósito — a coorte é de centenas de pessoas,
-  // não de milhões, e uma rota que manda e-mail para cliente real não é lugar
-  // de estrear uma função de banco que ninguém revisou.
-  const desde = new Date(Date.now() - 10 * 24 * 3600_000).toISOString()
-  const { data: eventos, error: evErro } = await admin
-    .from('events')
-    .select('user_id, name, created_at')
-    .gte('created_at', desde)
-    .not('user_id', 'is', null)
-    .limit(50000)
-
-  // ⚠️ FAIL-CLOSED — a lição de hoje, aplicada. Uma leitura que decide QUEM
-  // recebe não pode virar `?? []`: lista vazia por erro leria como "ninguém
-  // ainda", que é exatamente o bug que mandou 8 e-mails.
-  if (evErro) {
-    return NextResponse.json({ mode: 'ABORTED', reason: 'events_unreadable', detail: evErro.message }, { status: 503 })
+  // ═══ KINEO-COORTE-NO-BANCO-2026-08-22 — A LIÇÃO QUE O DRY-RUN ENSINOU ═══
+  //
+  // A versão anterior deste bloco lia até 50.000 eventos e agregava em
+  // JavaScript. O comentário dela dizia, com convicção, que era "de propósito
+  // — sem RPC e sem SQL cru". O dry-run do fundador devolveu `eligible: 0`
+  // enquanto o SQL direto achava 17, e a causa é que o PostgREST do Supabase
+  // TRUNCA qualquer resposta em ~1.000 linhas SEM ERRO: a rota recebeu 4%
+  // dos 24.925 eventos da janela e concluiu "coorte vazia" com cara de
+  // sucesso.
+  //
+  // O fail-closed de ontem não pegou porque truncamento NÃO É ERRO — `error`
+  // vem null, `data` vem cheio (de menos). É a terceira variação do mesmo
+  // defeito em dois dias: guarda que confia numa leitura que pode degradar
+  // em silêncio. A regra que fica: AGREGAÇÃO PERTENCE AO BANCO. Contagem por
+  // pessoa, distinct de dias, bool_or — tudo isso o Postgres faz com índice
+  // e devolve 43 linhas; trazer linhas cruas para contar em JS é pagar
+  // transferência para refazer pior, com um teto invisível no meio.
+  //
+  // A função (supabase/migrations/20260822_first50_quentes_cohort) devolve
+  // só os user_ids: 4+ dias distintos em 10, com toque no checkout.
+  const { data: coorteRows, error: coorteErro } = await admin.rpc('first50_quentes_cohort')
+  if (coorteErro) {
+    return NextResponse.json(
+      { mode: 'ABORTED', reason: 'cohort_unreadable', detail: coorteErro.message },
+      { status: 503 },
+    )
   }
-
-  const dias = new Map<string, Set<string>>()
-  const tocouCheckout = new Set<string>()
-  for (const e of eventos ?? []) {
-    const u = e.user_id as string
-    if (!dias.has(u)) dias.set(u, new Set())
-    dias.get(u)!.add((e.created_at as string).slice(0, 10))
-    if ((e.name as string).includes('checkout')) tocouCheckout.add(u)
-  }
-  const quentes = [...dias.entries()]
-    .filter(([u, ds]) => ds.size >= 4 && tocouCheckout.has(u))
-    .map(([u]) => u)
+  const quentes = ((coorteRows ?? []) as Array<{ user_id: string }>)
+    .map((r) => r.user_id)
+    .filter(Boolean)
 
   if (quentes.length === 0) return NextResponse.json({ mode: 'DRY_RUN', eligible: 0, note: 'coorte vazia' })
 
   const [{ data: profs, error: pErro }, { data: spam, error: sErro }, { data: stamps, error: stErro }] =
     await Promise.all([
       admin.from('profiles').select('id, email, email_opted_out, has_paid, is_pro').in('id', quentes),
-      admin.from('events').select('user_id').eq('name', 'oneoff_unlock_emailed').limit(5000),
-      admin.from('events').select('user_id').eq('name', STAMP).limit(5000),
+      // ⚠️ o PostgREST corta em ~1.000 linhas mesmo pedindo 5.000 — hoje os stamps
+      // têm ~212 linhas, mas se algum passar de 1.000 esta leitura degrada em
+      // silêncio. order desc = os mais novos sobrevivem ao corte.
+      admin.from('events').select('user_id').eq('name', 'oneoff_unlock_emailed').order('created_at', { ascending: false }).limit(1000),
+      admin.from('events').select('user_id').eq('name', STAMP).order('created_at', { ascending: false }).limit(1000),
     ])
   if (pErro || sErro || stErro) {
     return NextResponse.json(
