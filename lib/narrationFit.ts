@@ -114,16 +114,38 @@ export interface NarrationFit {
  * "aprovado" ali significava "dá para postar", não "é o padrão da casa". A
  * régua deve mirar o que a Kineo quer ENTREGAR, não o mínimo que passa.
  *
- * O que isso significa na prática: com 60s, no máximo 12s sem voz. Um roteiro
- * de ~110 palavras vira o piso para pedir um vídeo de um minuto.
+ * ⚠️⚠️ 22/08, SEGUNDA REVISÃO — 80% → 95%, E O ARGUMENTO É DO FUNDADOR:
+ * "quanto maior o tempo sem legenda, pior o vídeo fica; 22s é 25% do vídeo,
+ * até 16s é ruim; precisa ser no máximo de 1 a 3 segundos sem voz".
  *
- * O RISCO ACEITO, dito em voz alta: mais gente vai bater na recusa antes de
- * renderizar. É atrito de propósito — atrito antes do débito custa 200ms;
- * atrito depois custa 150 créditos e um vídeo que a pessoa não posta.
+ * Ele está certo, e a auditoria dos 6 motores prova de um jeito que eu não
+ * tinha notado ao propor 70%:
  *
- * PARA REVERTER: 0.7 devolve o comportamento calibrado no julgamento original.
+ *     Kling 2.5 ... 100% de cobertura (0s sem voz)
+ *     Veo ......... 100%             (0s)
+ *     Seedance .... 98%              (1s)
+ *     Kineo 1 ..... 98%              (1s)
+ *     H3 .......... 75%              (16s)  ← fora da curva
+ *     Kling 3 ..... 69%              (22s)  ← fora da curva
+ *
+ * O padrão que ele pediu NÃO é aspiração: é o que dois terços do produto já
+ * entrega hoje. Uma régua em 70% ou 80% legalizaria justamente os dois casos
+ * que ele reprovou. Eu estava calibrando pelo pior aceitável em vez de pelo
+ * que o produto já sabe fazer — erro de referência, não de conta.
+ *
+ * 95% de 60s = no máximo 3s sem voz, exatamente o pedido.
+ *
+ * QUANTO ISSO EXIGE DO ROTEIRO (e por que não é proibitivo):
+ *     30s → 66 palavras · 45s → 99 · 60s → 132 · 65s → 143
+ * O gerador automático já pede 140-170, então o caminho em que a IA escreve
+ * passa folgado. A régua só morde quem escreve o PRÓPRIO roteiro curto — e
+ * ali recusar é melhor que entregar: com 120 palavras num vídeo de 60s a
+ * pessoa receberia 8s mudos e culparia a Kineo, não o texto dela.
+ *
+ * PARA REVERTER: 0.8 volta ao intermediário, 0.7 ao calibrado no julgamento
+ * inicial dos 6 demos.
  */
-export const MIN_COVERAGE = 0.8
+export const MIN_COVERAGE = 0.95
 
 export function narrationFit(script: string, targetSeconds: number): NarrationFit {
   const speech = speechSeconds(script)
@@ -149,10 +171,24 @@ export function narrationFit(script: string, targetSeconds: number): NarrationFi
 export function narrationTooShortMessage(fit: NarrationFit): string {
   const fala = Math.round(fit.speech)
   const alvo = Math.round(fit.target)
-  const sugerida = Math.max(15, Math.round(fit.speech / 5) * 5)
+  // Arredonda PARA BAIXO em múltiplos de 5: sugerir uma duração que a
+  // narração não alcança recriaria o próprio defeito na segunda tentativa.
+  const sugerida = Math.max(15, Math.floor(fit.speech / 5) * 5)
+
+  // ⚠️ A ORDEM DAS DUAS SAÍDAS NÃO É ESTÉTICA — É DINHEIRO DO CLIENTE.
+  // "Escrever mais" vem primeiro, e encurtar vem com AVISO, porque abaixo de
+  // 60s o vídeo sai do TikTok Creator Rewards (regra de negócio nº1 da casa,
+  // CLAUDE.md). Sugerir "use 50s" sem dizer isso resolveria a nossa validação
+  // entregando ao cliente um vídeo que não monetiza — trocar o problema dele
+  // por um pior, em silêncio.
+  const perdeMonetizacao = alvo >= 60 && sugerida < 60
+  const alternativa = perdeMonetizacao
+    ? `Or set the length to ${sugerida} seconds — but note that videos under 60 seconds don't qualify for TikTok's Creator Rewards.`
+    : `Or set the length to ${sugerida} seconds.`
+
   return (
     `Your script is about ${fala} seconds of narration, but you asked for a ${alvo}-second video — ` +
-    `that would leave roughly ${Math.round(fit.silence)} seconds with no voice. ` +
-    `Add about ${fit.missingWords} more words, or set the length to ${sugerida} seconds.`
+    `that would leave roughly ${Math.round(fit.silence)} seconds of music with no story being told. ` +
+    `Add about ${fit.missingWords} more words. ${alternativa}`
   )
 }
