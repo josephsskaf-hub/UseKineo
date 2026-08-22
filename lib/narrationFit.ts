@@ -89,36 +89,41 @@ export interface NarrationFit {
 }
 
 /**
- * TOLERÂNCIA: 70% de cobertura.
+ * TOLERÂNCIA: 80% de cobertura (era 70% — ver a nota de 22/08 abaixo).
  *
  * Não é 100% de propósito — respiro entre frases e um fecho musical de 2-3s
  * são DIREÇÃO, não defeito, e o KINEO-TAIL já apara o excesso do final.
  *
- * ⚠️ O NÚMERO FOI CALIBRADO CONTRA O JULGAMENTO DO FUNDADOR, NÃO ESCOLHIDO
- * POR SER REDONDO. Ele assistiu os 6 demos e deu o veredito de cada um; a
- * régua tinha de reproduzir exatamente esse veredito, senão ela viraria
- * atrito para ele em vez de proteção:
+ * ⚠️ O NÚMERO É DECISÃO DO FUNDADOR, TOMADA COM OS DOIS LADOS NA MESA.
+ * Ele assistiu os 6 demos e deu veredito de cada um. Medido:
  *
- *     roteiro          fala   cobertura   ele disse            régua
- *     Solopreneur       32s      53%      "está quebrado"      RECUSA ✓
- *     Rob The AI Guy    34s      57%      (mesmo defeito)      RECUSA ✓
- *     Roanoke           43s      71%      "estão bons"         passa  ✓
- *     Craigslist        48s      79%      "estão bons"         passa  ✓
- *     Jasmin            49s      82%      "estão bons"         passa  ✓
- *     Kasparov          60s     100%      (o correto)          passa  ✓
+ *     roteiro          fala   cobertura   ele disse           em 70%   em 80%
+ *     Solopreneur       32s      53%      "está quebrado"     RECUSA   RECUSA
+ *     Rob The AI Guy    34s      57%      (mesmo defeito)     RECUSA   RECUSA
+ *     Roanoke           43s      71%      "estão bons"        passa    RECUSA
+ *     Craigslist        48s      79%      "estão bons"        passa    RECUSA
+ *     Jasmin            49s      82%      "estão bons"        passa    passa
+ *     Kasparov          60s     100%      (o correto)         passa    passa
  *
- * Minha primeira escolha foi 80%, que "parecia" mais rigorosa — e teria
- * RECUSADO o Craigslist e o Roanoke, dois vídeos que ele aprovou. Régua mais
- * dura que o cliente é régua que ele desliga.
+ * Eu propus 70%, porque reproduz exatamente o julgamento dele e uma régua
+ * mais dura que o cliente é uma régua que o cliente desliga. Apresentei o
+ * custo de 80% em voz alta: recusa o Craigslist e o Roanoke, que ele tinha
+ * aprovado.
  *
- * 70% de 60s = até 18s sem voz. Parece muito escrito assim, e é o que ele
- * tolera na prática; o que fecha a conta é que a poda de cenas mudas
- * (KINEO-CENA-MUDA) já remove o pior desses buracos antes de renderizar.
+ * ELE ESCOLHEU 80% SABENDO DISSO, e o argumento dele é melhor que o meu:
+ * "aprovado" ali significava "dá para postar", não "é o padrão da casa". A
+ * régua deve mirar o que a Kineo quer ENTREGAR, não o mínimo que passa.
  *
- * SE UM DIA APERTAR: subir este número exige assistir aos vídeos de novo com
- * o fundador, não deduzir de teoria.
+ * O que isso significa na prática: com 60s, no máximo 12s sem voz. Um roteiro
+ * de ~110 palavras vira o piso para pedir um vídeo de um minuto.
+ *
+ * O RISCO ACEITO, dito em voz alta: mais gente vai bater na recusa antes de
+ * renderizar. É atrito de propósito — atrito antes do débito custa 200ms;
+ * atrito depois custa 150 créditos e um vídeo que a pessoa não posta.
+ *
+ * PARA REVERTER: 0.7 devolve o comportamento calibrado no julgamento original.
  */
-export const MIN_COVERAGE = 0.7
+export const MIN_COVERAGE = 0.8
 
 export function narrationFit(script: string, targetSeconds: number): NarrationFit {
   const speech = speechSeconds(script)

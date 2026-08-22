@@ -89,6 +89,14 @@ interface CinematicResposta {
   fal_models?: string[]
   voiceover_script?: string
   scene_captions?: string[]
+  // ⚠️ KINEO-DEMO-MONTA-IGUAL-2026-08-22 — OS QUATRO CAMPOS QUE FALTAVAM.
+  // Sem eles este worker montava o filme por um caminho que NENHUM cliente usa
+  // (ver o bloco no POST do compose, abaixo). Declarados aqui para que o
+  // TypeScript cobre o repasse, em vez de deixar sumir em silêncio de novo.
+  scene_engines?: string[]
+  scene_narrations?: (string | null)[]
+  scene_dialogues?: (string | null)[]
+  scene_seconds?: number[]
   duration?: number
   quality?: string
   verbatim?: boolean
@@ -378,6 +386,14 @@ export async function GET(req: NextRequest) {
         fal_models: r.body.fal_models ?? null,
         voiceover_script: r.body.voiceover_script ?? '',
         scene_captions: r.body.scene_captions ?? [],
+        // KINEO-DEMO-MONTA-IGUAL-2026-08-22 — guardados aqui porque o worker
+        // roda em PASSADAS separadas: submete numa, compõe noutra. Sem
+        // persistir, a resposta do /api/generate-video-cinematic morre no fim
+        // desta requisição e o compose da passada seguinte monta às cegas.
+        scene_engines: r.body.scene_engines ?? [],
+        scene_narrations: r.body.scene_narrations ?? [],
+        scene_dialogues: r.body.scene_dialogues ?? [],
+        scene_seconds: r.body.scene_seconds ?? [],
         verbatim: r.body.verbatim ?? false,
         speed: typeof r.body.speed === 'number' ? r.body.speed : null,
         // ⚠ `engine` e `quality` sao vocabularios DIFERENTES: pede-se
@@ -442,6 +458,39 @@ export async function GET(req: NextRequest) {
         clip_urls: clipUrls,
         voiceover_script: String(job.voiceover_script ?? ''),
         scene_captions: Array.isArray(job.scene_captions) ? job.scene_captions : [],
+        // ═══ KINEO-DEMO-MONTA-IGUAL-2026-08-22 ═════════════════════════════
+        // ESTES QUATRO CAMPOS FALTAVAM, E É POR ISSO QUE O DEMO SAIU QUEBRADO.
+        //
+        // O fundador reprovou um Kling 3 deste worker: "só o avatar fala, e
+        // ainda sem legenda; as outras cenas têm apagão de narração". Medi os
+        // três motores lado a lado e o veredito foi este:
+        //     Kling 2.5 (produto normal) .... legenda OK
+        //     H3        (produto normal) .... legenda OK (3 de 4 frames)
+        //     Kling 3   (ESTE worker) ....... legenda em 0 de 6 frames
+        // O único quebrado é o único que passou por aqui.
+        //
+        // O QUE ACONTECIA: o /api/compose lê `scene_engines`, `scene_dialogues`
+        // e `scene_narrations` do corpo. Sem eles:
+        //   · toda cena caía no default 'support' — inclusive as de DIÁLOGO,
+        //     então o filme perdia a noção de qual cena é o avatar falando;
+        //   · `dialogueLine` nascia vazio, e é dele que sai a legenda quando a
+        //     transcrição do clipe não vem. Sem texto, o fallback não emite
+        //     nada — que é exatamente o "sem legenda" que ele viu;
+        //   · a narração por cena não existia, então a TTS não tinha como ser
+        //     distribuída — o "apagão de narração" nas cenas de apoio.
+        //
+        // A LIÇÃO É MAIOR QUE O BUG: um worker de teste que monta o filme por
+        // um caminho DIFERENTE do cliente não testa o produto — testa a si
+        // mesmo. Os oito demos que eu gerei para os afiliados saíram por aqui,
+        // e por isso NÃO representam o que um cliente recebe. Este worker
+        // agora repassa o corpo inteiro que o GenerateClient repassa
+        // (app/(dashboard)/generate/GenerateClient.tsx:4051), e o cron de
+        // resgate faz o mesmo (finish-stranded-renders:428). Três chamadores,
+        // um só formato.
+        scene_engines: Array.isArray(job.scene_engines) ? job.scene_engines : [],
+        scene_narrations: Array.isArray(job.scene_narrations) ? job.scene_narrations : [],
+        scene_dialogues: Array.isArray(job.scene_dialogues) ? job.scene_dialogues : [],
+        scene_seconds: Array.isArray(job.scene_seconds) ? job.scene_seconds : [],
         duration: (job.duration as number) ?? 60,
         topic: String(job.target_name ?? 'Kineo demo'),
         quality: String(job.quality ?? job.engine ?? 'cinematic_ai'),

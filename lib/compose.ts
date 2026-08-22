@@ -863,13 +863,42 @@ const CAPTION_SYNC_OFFSET = 0.15 // seconds, added to each caption start
 // no final do video — a distribuicao uniforme nao ouve o ritmo real da fala.
 // Whisper aceita mp4 direto; clipes de 5-10s tem 2-6MB (limite da API: 25MB).
 // Fail-open: qualquer falha retorna [] e a legenda cai no comportamento antigo.
+// ⚠️ KINEO-LEGENDA-MUDA-2026-08-22 — CADA RECUSA AQUI PASSA A DIZER O PORQÊ.
+// Auditoria de 22/08: o Kling 3 saiu com ZERO legenda em 6 de 6 frames, e o
+// mecanismo de legenda das cenas de fala existe e está completo desde 17/08.
+// Ou seja, ele RODOU E DESISTIU — e desistia em silêncio, com `return []`,
+// então não havia como saber em qual dos quatro degraus tinha parado.
+// O suspeito nº1 é o teto de 24 MB: esta função baixa o MP4 INTEIRO e o manda
+// para o Whisper, quando o que interessa são ~160 KB de áudio. Um clipe do
+// Kling 3 Pro em alta qualidade encosta nesse teto com facilidade. Mas eu NÃO
+// consegui provar (as URLs dos clipes não são guardadas e o log já rotacionou),
+// e o resto do arquivo tem cicatriz suficiente de conclusão apressada. Então
+// em vez de adivinhar: cada saída passa a registrar o motivo e o tamanho, e o
+// próximo render responde a pergunta sozinho.
 export async function transcribeClipWithTimestamps(clipUrl: string): Promise<WhisperWord[]> {
   try {
-    if (!/^https:\/\//.test(clipUrl)) return []
+    if (!/^https:\/\//.test(clipUrl)) {
+      console.warn('[compose] clip whisper: URL nao-https, pulando')
+      return []
+    }
     const res = await fetch(clipUrl)
-    if (!res.ok) return []
+    if (!res.ok) {
+      console.warn(`[compose] clip whisper: download falhou HTTP ${res.status}`)
+      return []
+    }
     const ab = await res.arrayBuffer()
-    if (ab.byteLength < 10_000 || ab.byteLength > 24 * 1024 * 1024) return []
+    const mb = (ab.byteLength / 1024 / 1024).toFixed(1)
+    if (ab.byteLength < 10_000) {
+      console.warn(`[compose] clip whisper: clipe pequeno demais (${ab.byteLength}B) — provavelmente erro no download`)
+      return []
+    }
+    if (ab.byteLength > 24 * 1024 * 1024) {
+      // ESTE é o degrau que eu suspeito ser o culpado do Kling 3. Se aparecer
+      // nos logs, a solução definitiva é mandar só o ÁUDIO ao Whisper em vez
+      // do vídeo — o teto de 25 MB é da OpenAI e não sobe.
+      console.warn(`[compose] clip whisper: clipe ACIMA do teto do Whisper (${mb}MB > 24MB) — legenda desta cena vai pelo fallback de texto`)
+      return []
+    }
     const { openai } = await import('@/lib/openai')
     const file = await toFile(new Blob([ab], { type: 'video/mp4' }), 'clip.mp4', { type: 'video/mp4' })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
