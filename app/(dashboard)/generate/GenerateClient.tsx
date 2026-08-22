@@ -1412,6 +1412,8 @@ export default function GenerateClient({
     entitlementTier !== null &&
     !(hasPaid || isStarter || isCreator || isStudio || trialActive)
   const [wmUnlocking, setWmUnlocking] = useState(false)
+  // KINEO-PAYWALL-VITRINE-2026-08-22 — o paywall pós-vídeo no padrão novo.
+  const [showCleanPaywall, setShowCleanPaywall] = useState(false)
   const [wmUnlockError, setWmUnlockError] = useState<string | null>(null)
   const [watermarkedDownloadConfirmed, setWatermarkedDownloadConfirmed] = useState(false)
   const lastFastRenderRef = useRef<FastRenderInputs | null>(null)
@@ -8714,72 +8716,69 @@ export default function GenerateClient({
             overflowY: 'auto',
           }}
         >
+          {/* ═══ KINEO-MODAL-VITRINE-2026-08-22 — o exit-intent LOGADO no
+              padrão aprovado (880px, quadrado, prova + decisão). A oferta
+              continua a MESMA de sempre (Creator, um só CTA — lição do
+              KINEO-SPRINT-OFFER); só a casca e a hierarquia mudaram. */}
           <div
             onClick={(e) => e.stopPropagation()}
+            className="grid md:grid-cols-[1fr_1.15fr]"
             style={{
               position: 'relative',
-              maxWidth: 440,
+              maxWidth: 880,
               width: '100%',
-              borderRadius: 20,
-              background: 'linear-gradient(145deg, #161618 0%, #161618 100%)',
-              border: '1px solid rgba(41,151,255,0.4)',
-              boxShadow: '0 24px 64px rgba(0,0,0,.6), 0 0 40px rgba(41,151,255,.15)',
-              padding: '32px 28px 28px',
-              textAlign: 'center',
+              borderRadius: 10,
+              overflow: 'hidden',
+              background: '#131316',
+              border: '1px solid #2a2a2d',
+              boxShadow: '0 24px 80px rgba(0,0,0,.55)',
+              textAlign: 'left',
             }}
           >
-            {/* Close button */}
             <button
               type="button"
               onClick={() => setShowExitIntentUpgrade(false)}
               aria-label="Close"
-              style={{
-                position: 'absolute',
-                top: 12,
-                right: 14,
-                background: 'none',
-                border: 'none',
-                color: '#86868b',
-                fontSize: 22,
-                lineHeight: 1,
-                cursor: 'pointer',
-                padding: 4,
-              }}
+              style={{ position: 'absolute', top: 12, right: 14, zIndex: 2, background: 'none', border: 'none', color: '#86868b', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: 4 }}
             >
               ×
             </button>
-
-            <div style={{ fontSize: '2.2rem', marginBottom: 8 }}>⚡</div>
-            <h2 style={{
-              fontSize: '1.25rem',
-              fontWeight: 900,
-              color: '#F1F5F9',
-              marginBottom: 8,
-              lineHeight: 1.25,
-            }}>
-              Wait — before you go!
+            <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+              <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+                <video src="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>VEO 3.1</span>
+                <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo on Creator</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {['VEO 3.1', 'KLING 3', 'KLING 2.5', 'SEEDANCE 1.5', 'MINIMAX H3', 'KINEO 1'].map((e) => (
+                  <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{e}</span>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+                Every film above was made with Kineo, labeled with the real engine that rendered it.
+              </div>
+            </div>
+            <div style={{ padding: '26px 26px 22px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Before you go</div>
+            <h2 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.02em', color: '#F1F5F9', marginBottom: 10, lineHeight: 1.12 }}>
+              Don&apos;t run out<br />mid-idea again
             </h2>
-            <p style={{
-              fontSize: '0.9rem',
-              color: '#86868b',
-              marginBottom: 22,
-              lineHeight: 1.55,
-            }}>
-              {/* Fix 2 (12/06) — copy must match the REAL tier the button opens.
-                  KINEO-SPRINT-OFFER-2026-07-14 — pitching STUDIO $37.90 to a
-                  leaving FREE user was the hardest possible ask at the weakest
-                  moment, and contradicted the single primary offer (Creator).
-                  Now: intro Creator, renewal explicit, same one offer as the
-                  0-credit modal and the post-render block. */}
-              {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — "150 credits/month … e 1
-                  Hollywood film included" era FALSO NOS DOIS NÚMEROS: o
-                  Creator concede 90 créditos e o filme Hollywood custa 150, ou
-                  seja, o plano nem chega perto de fechar um. Quem comprasse
-                  por causa desta frase descobriria o 402 depois de pagar. */}
-              Go Creator and never run out of credits.
-              Get <strong style={{ color: '#2997ff' }}>{TIER_CREDITS.basic} credits/month</strong> — full AI scenes,
-              AI Presenter and about {CREATOR_AI_FILMS} AI-generated films, every month.
+            <p style={{ fontSize: '0.85rem', color: '#86868b', marginBottom: 16, lineHeight: 1.6 }}>
+              {/* Fix 2 (12/06) + KINEO-SPRINT-OFFER-2026-07-14 + KINEO-PRICING-V6:
+                  copy sempre do tier REAL do botão (Creator), números derivados. */}
+              Creator keeps the credits coming every month — full AI scenes, AI Presenter, clean downloads.
             </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+              {[
+                [`${TIER_CREDITS.basic} cr/mo`, `≈ ${CREATOR_AI_FILMS} AI films every month`],
+                [BEST_COST_PER_FILM, 'per finished film (editors: $30+)'],
+              ].map(([n, d]) => (
+                <div key={n} style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#f5f5f7' }}>{n}</div>
+                  <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>{d}</div>
+                </div>
+              ))}
+            </div>
             {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — was an <a href> straight at
                 the payment API: prefetchable, and every repeat tap minted a
                 Stripe Session. Now a button behind the shared launcher. */}
@@ -8853,6 +8852,7 @@ export default function GenerateClient({
             >
               No thanks, I&apos;ll stay on the free plan
             </button>
+            </div>{/* fim da coluna de decisão (KINEO-MODAL-VITRINE) */}
           </div>
         </div>
       )}
@@ -10513,74 +10513,105 @@ export default function GenerateClient({
                     </span>
                     <span style={{ height: 1, flex: 1, background: 'var(--border)' }} />
                   </div>
-                  {!watermarkedDownloadConfirmed && (
-                    <>
-                      <p className="text-xs text-center" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                        {/* KINEO-PRICING-V6-2026-08-19 — 25 → TIER_CREDITS.starter. */}
-                        Starter rebuilds this exact video clean and adds {TIER_CREDITS.starter} credits.
-                      </p>
-                      <p className="text-xs mt-1.5 text-center font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
-                        {/* KINEO-PRICING-V6-2026-08-19 — o FALLBACK (usado
-                            enquanto o /api/geo não respondeu) prometia desconto
-                            de 1º mês. Ele aparecia exatamente para quem ainda
-                            não tinha número na tela, ou seja, a única coisa que
-                            a pessoa lia era a promessa falsa. */}
-                        {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
-                      </p>
-                    </>
-                  )}
+                  {/* ═══ KINEO-PAYWALL-VITRINE-2026-08-22 — os DOIS botões de
+                      checkout deram lugar a UM gatilho que abre o paywall novo
+                      (padrão aprovado pelo fundador: 880px, quadrado, duas
+                      colunas). O modal mostra O PRÓPRIO VÍDEO da pessoa rodando
+                      — que é a prova mais forte que existe — e carrega as duas
+                      ofertas (Starter recomendado + avulso como régua).
+                      O deliver-first fica INTACTO: o download verde continua
+                      acima, primeiro e sem pedágio.
+                      ⚠️ risco aceito e monitorável: era 1 clique até o Stripe,
+                      agora são 2. `post_video_offer_viewed` + os eventos do
+                      wmCheckout medem se a vitrine paga o clique extra. */}
                   <button
                     type="button"
-                    onClick={handleRemoveWatermark}
-                    disabled={wmCheckout.pending !== null}
+                    onClick={() => { setShowCleanPaywall(true); void trackEvent('clean_paywall_opened', { after_download: watermarkedDownloadConfirmed }) }}
                     className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center"
                     style={{
                       background: 'rgba(41,151,255,.10)',
                       border: '1px solid rgba(41,151,255,.45)',
                       color: '#5cb3ff',
-                      cursor: wmCheckout.pending ? 'wait' : 'pointer',
-                      opacity: wmCheckout.pending ? 0.7 : 1,
+                      cursor: 'pointer',
                     }}
                   >
-                    {wmCheckout.pending ? (
-                      <span>Opening secure checkout…</span>
-                    ) : (
-                      <>
-                        <span>
-                          Download clean + Start Starter{postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} →
-                        </span>
-                        <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
-                          This exact video clean · {TIER_CREDITS.starter} credits included
-                        </span>
-                      </>
-                    )}
-                  </button>
-                  {/* KINEO-VENDER-O-VIDEO-2026-08-21 — a opção de comprar SÓ
-                      este vídeo. Ver o comentário longo em handleBuyThisVideoOnly:
-                      o SKU já existia, já limpa a marca d'água e não era
-                      oferecido em tela nenhuma. Fica DEPOIS do botão da
-                      assinatura e com peso visual menor de propósito — o papel
-                      dele é ser a régua que faz o plano parecer barato, não
-                      roubar a venda recorrente. */}
-                  <button
-                    type="button"
-                    onClick={handleBuyThisVideoOnly}
-                    disabled={wmCheckout.pending !== null}
-                    className="flex flex-col items-center justify-center w-full rounded-xl mt-2 py-2.5 px-3 text-xs font-bold text-center"
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid var(--border)',
-                      color: 'var(--muted2)',
-                      cursor: wmCheckout.pending ? 'wait' : 'pointer',
-                      opacity: wmCheckout.pending ? 0.7 : 1,
-                    }}
-                  >
-                    <span>Just this one video — {packPriceLabel()}, no subscription</span>
-                    <span style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.8, marginTop: 2 }}>
-                      One-time · this exact video clean · {PACK_CREDITS.starter} credits
+                    <span>Remove the watermark →</span>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
+                      This exact video, clean — from {packPriceLabel()}
                     </span>
                   </button>
-                  {wmCheckout.error && (
+                  {/* ═══ O PAYWALL PÓS-VÍDEO (KINEO-PAYWALL-VITRINE-2026-08-22) ══
+                      Aberto só por clique no gatilho acima — nunca sozinho, para
+                      não virar pedágio na entrega. Coluna esquerda = O VÍDEO DA
+                      PRÓPRIA PESSOA rodando (finalVideoUrl está no escopo aqui,
+                      diferente do TrialDowngradeModal que usa clipe de curadoria
+                      por não ter o vídeo à mão). Direita = as duas ofertas que
+                      antes eram botões soltos: Starter recomendado, avulso como
+                      régua (KINEO-VENDER-O-VIDEO). Handlers e telemetria dos
+                      checkouts reutilizados sem mudança. */}
+                  {showCleanPaywall && finalVideoUrl && (
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      onClick={() => setShowCleanPaywall(false)}
+                      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, overflowY: 'auto' }}
+                    >
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="grid md:grid-cols-[1fr_1.15fr]"
+                        style={{ width: '100%', maxWidth: 880, background: '#131316', border: '1px solid #2a2a2d', borderRadius: 10, overflow: 'hidden', textAlign: 'left', boxShadow: '0 24px 80px rgba(0,0,0,.55)' }}
+                      >
+                        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+                          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '9 / 12', background: '#111', border: '1px solid #2a2a2d' }}>
+                            <video src={finalVideoUrl} autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>YOUR FILM</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+                            This is the exact video you just made. Clean means this same file, rebuilt without the Kineo watermark.
+                          </div>
+                        </div>
+                        <div style={{ padding: '26px 26px 22px' }}>
+                          <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Remove the watermark</div>
+                          <h2 style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', margin: 0, marginBottom: 10 }}>
+                            Your film, without the mark
+                          </h2>
+                          <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 16 }}>
+                            {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleRemoveWatermark}
+                            disabled={wmCheckout.pending !== null}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', border: 'none', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, cursor: wmCheckout.pending ? 'wait' : 'pointer', opacity: wmCheckout.pending ? 0.7 : 1 }}
+                          >
+                            {wmCheckout.pending ? 'Opening secure checkout…' : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''} · this video clean + ${TIER_CREDITS.starter} credits/mo`}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBuyThisVideoOnly}
+                            disabled={wmCheckout.pending !== null}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: '#86868b', border: '1px solid #2a2a2d', borderRadius: 8, padding: 12, fontSize: 13, fontWeight: 700, cursor: wmCheckout.pending ? 'wait' : 'pointer', marginTop: 8 }}
+                          >
+                            Just this one video — {packPriceLabel()}, one-time · {PACK_CREDITS.starter} credits
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowCleanPaywall(false)}
+                            style={{ display: 'block', width: '100%', textAlign: 'center', background: 'transparent', color: '#6e6e73', border: 'none', padding: '10px 0 0', fontSize: 12, fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+                          >
+                            Keep the free watermarked copy
+                          </button>
+                          {wmCheckout.error && (
+                            <p role="alert" style={{ marginTop: 10, fontSize: 12, fontWeight: 600, color: '#ff6b6b', lineHeight: 1.45 }}>{wmCheckout.error}</p>
+                          )}
+                          <p style={{ fontSize: 11, color: '#6e6e73', textAlign: 'center', marginTop: 12, lineHeight: 1.5 }}>
+                            Cancel anytime. Your videos stay yours.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {wmCheckout.error && !showCleanPaywall && (
                     <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
                       {wmCheckout.error}
                     </p>
