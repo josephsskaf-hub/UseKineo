@@ -98,6 +98,11 @@ import NextShortsSection from '@/components/video/NextShortsSection'
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
 import WaitingShowcase from '@/components/video/WaitingShowcase'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
+// KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
+// para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
+// opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
+// produto nao tem.
+import { MIN_COVERAGE } from '@/lib/narrationFit'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -1369,6 +1374,18 @@ export default function GenerateClient({
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
+  // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a recusa por narração curta e a
+  // oferta de completar. `null` = não há recusa pendente.
+  const [scriptTooShort, setScriptTooShort] = useState<{
+    message: string
+    speechSeconds: number
+    suggestedDuration: number
+    missingWords: number
+    targetSeconds: number
+  } | null>(null)
+  /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
+  const [expandedScript, setExpandedScript] = useState<string | null>(null)
+  const [expanding, setExpanding] = useState(false)
   // #465 — the saved video's DB id, for the public /v/[id] share link on the
   // done screen (share at peak delight → growth loop).
   const [publicVideoId, setPublicVideoId] = useState<string | null>(null)
@@ -4905,6 +4922,55 @@ export default function GenerateClient({
     })
   }
 
+  // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — pede ao servidor o roteiro
+  // completado. NÃO renderiza nada e NÃO gasta crédito: só devolve texto, que
+  // a pessoa lê e aprova. Ver o cabeçalho de /api/expand-script para o porquê
+  // de não ser automático (Contrato C1 + o risco de fato inventado).
+  async function handleExpandScript() {
+    if (!scriptTooShort || expanding) return
+    setExpanding(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/expand-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          script: structuredScriptRef.current ?? prompt,
+          targetSeconds: scriptTooShort.targetSeconds,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || typeof data?.script !== 'string') {
+        setError(typeof data?.error === 'string' ? data.error : 'Could not expand the script. Please add the lines yourself.')
+        void trackEvent('script_expand_failed', { http: res.status, rewrote_author: data?.rewroteAuthor === true })
+        return
+      }
+      setExpandedScript(data.script)
+      void trackEvent('script_expanded', {
+        before_seconds: data?.before?.seconds ?? null,
+        after_seconds: data?.after?.seconds ?? null,
+        still_short: data?.stillShort === true,
+      })
+    } catch {
+      setError('Could not expand the script right now.')
+    } finally {
+      setExpanding(false)
+    }
+  }
+
+  /** A pessoa aprovou o texto completado: ele vira o roteiro e o fluxo segue. */
+  function acceptExpandedScript() {
+    if (!expandedScript) return
+    structuredScriptRef.current = expandedScript
+    setPrompt(expandedScript)
+    setExpandedScript(null)
+    setScriptTooShort(null)
+    setError(null)
+    setPhase('idle')
+    void trackEvent('script_expand_accepted')
+  }
+
   async function handleAnalyze(
     overridePrompt?: string,
     opts?: { fromTopic?: boolean; skipPreview?: boolean; structureFirst?: boolean },
@@ -6129,6 +6195,51 @@ export default function GenerateClient({
           }
           openOutOfCreditsModal(gateReason)
           trackGenerationFailure('generating', `cinematic_gate_${gateReason}`, { httpStatus: 402 })
+          setPhase('failed'); return
+        }
+        // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ══════════════════════════
+        // O servidor recusou porque a NARRAÇÃO não enche a duração pedida
+        // (lib/narrationFit.ts). Isso não é falha: é a única recusa do
+        // produto que a gente sabe exatamente como resolver.
+        //
+        // Antes desta tela, o comportamento era assimétrico e injusto: quando
+        // a IA escrevia o roteiro, o servidor media e re-pedia até encher;
+        // quando o CLIENTE escrevia, a gente só reclamava ("adicione 24
+        // palavras") e devolvia o problema para ele. O fundador apontou isso
+        // com uma pergunta seca — "e nosso código agora aumenta a script do
+        // cliente?" — e a resposta era não.
+        //
+        // Agora a gente oferece completar. NÃO é automático de propósito: o
+        // Contrato C1 diz que com "use meu roteiro como está" o GPT nunca
+        // escreve fala. Expandir em silêncio quebraria isso — e o risco é
+        // concreto, não teórico: em 22/08 um vídeo do lote de demos teve de
+        // ser vetado porque o GPT, preenchendo roteiro sozinho, inventou
+        // cinco estatísticas (inclusive "200% de chance de monetização").
+        // Oferecer + mostrar antes de renderizar preserva o C1 (ela autoriza)
+        // e põe olhos humanos no texto novo antes de virar vídeo.
+        if (res.status === 422 && data?.narrationTooShort === true) {
+          setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          setScriptTooShort({
+            message: typeof data?.error === 'string' ? data.error : '',
+            speechSeconds: Number(data?.speechSeconds) || 0,
+            // ⚠️ O servidor sugere um múltiplo de 5 (ex.: 50s), mas o seletor
+            // do produto só tem 35 | 45 | 60 | 90. Oferecer "faça 50s" num
+            // seletor que não tem 50 seria um botão que não funciona — então
+            // a sugestão é encaixada no MAIOR valor do seletor que a narração
+            // ainda enche. Se nem o menor couber, não há alternativa honesta
+            // e o botão não aparece (0).
+            suggestedDuration: (() => {
+              const fala = Number(data?.speechSeconds) || 0
+              const opcoes: Duration[] = [90, 60, 45, 35]
+              return opcoes.find((d) => fala >= d * MIN_COVERAGE) ?? 0
+            })(),
+            missingWords: Number(data?.missingWords) || 0,
+            targetSeconds: duration,
+          })
+          trackGenerationFailure('generating', 'narration_too_short', {
+            httpStatus: 422,
+            detail: `speech=${Number(data?.speechSeconds) || 0}s target=${duration}s`,
+          })
           setPhase('failed'); return
         }
         if (!res.ok) {
@@ -9890,7 +10001,97 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'failed' && (
+          {/* ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ═══════════════════════
+              A recusa por narração curta NÃO usa o card vermelho de erro, e a
+              escolha é deliberada: vermelho comunica "algo quebrou", e aqui
+              nada quebrou — o produto está evitando entregar um filme com um
+              terço de música sem história, ANTES de cobrar por ele.
+              Card azul, tom de ajuda, e a saída que resolve em um clique. */}
+          {phase === 'failed' && scriptTooShort && (
+            <section
+              className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
+              style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.28)' }}
+            >
+              <div className="font-black text-base mb-2" style={{ color: '#5cb3ff' }}>
+                Your script is shorter than the video
+              </div>
+              <div className="text-sm mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.6 }}>
+                {scriptTooShort.message}
+              </div>
+
+              {expandedScript ? (
+                <>
+                  {/* O TEXTO APARECE ANTES DE RENDERIZAR. É isto que preserva o
+                      Contrato C1 (ela autoriza) e o que impede um fato
+                      inventado de virar vídeo sem ninguém ler. */}
+                  <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
+                    Read it before we render
+                  </div>
+                  <textarea
+                    value={expandedScript}
+                    onChange={(e) => setExpandedScript(e.target.value)}
+                    rows={12}
+                    className="w-full rounded-xl p-3 text-sm mb-3"
+                    style={{ background: '#0d0d10', border: '1px solid var(--border)', color: 'var(--fg)', lineHeight: 1.6 }}
+                  />
+                  <div className="text-xs mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                    Your original sentences are untouched — everything else was added. Edit anything you disagree with.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={acceptExpandedScript}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                      style={{ background: '#2997ff', border: 'none' }}
+                    >
+                      Use this script
+                    </button>
+                    <button
+                      onClick={() => setExpandedScript(null)}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={handleExpandScript}
+                    disabled={expanding}
+                    className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                    style={{ background: '#2997ff', border: 'none', opacity: expanding ? 0.6 : 1, cursor: expanding ? 'wait' : 'pointer' }}
+                  >
+                    {expanding ? 'Writing…' : `Finish it for me (+${scriptTooShort.missingWords} words)`}
+                  </button>
+                  {scriptTooShort.suggestedDuration > 0 && (
+                    <button
+                      onClick={() => {
+                        setDuration(scriptTooShort.suggestedDuration as Duration)
+                        setScriptTooShort(null)
+                        setError(null)
+                        setPhase('idle')
+                        void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration })
+                      }}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                    >
+                      Make it {scriptTooShort.suggestedDuration}s instead
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setScriptTooShort(null); setError(null); setPhase('idle') }}
+                    className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                    style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                  >
+                    I&apos;ll write it
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+
+          {phase === 'failed' && !scriptTooShort && (
             <section
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)' }}
