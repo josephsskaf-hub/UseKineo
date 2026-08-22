@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import {
@@ -98,7 +99,11 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-- Total script: 130-170 words (narrated at 1.05x speed = ~45-55 seconds)
+- Total script: 140-170 spoken words. This is a HARD FLOOR, not a style note:
+  at the measured narration rate of 2.3 words per second, 140 words is 61
+  seconds of speech. Anything shorter leaves the film running on music with
+  no story being told, and the video is rejected before it renders.
+  (Do not count the [Pexels: ...] cues or the section headers as words.)
 - Every fact must be specific: names, numbers, dates, places — never vague
 - ESCALATION must feel more intense than MICRO REWARD 3
 - RHYTHM is the fastest beat after the HOOK: stacked 1-3 word punches, no filler. It exists to accelerate before the payoff.
@@ -139,6 +144,47 @@ function missingElements(text: string): string[] {
     ['PAYOFF', /\bPAYOFF\b|\bPAGAMENTO\b|\bRECOMPENSA FINAL\b/i],
   ]
   return checks.filter(([, re]) => !re.test(text)).map(([name]) => name)
+}
+
+// ═══ KINEO-ROTEIRO-CURTO-2026-08-22 ════════════════════════════════════════
+// A VALIDAÇÃO QUE FALTAVA, e ela é a raiz do "apagão de narração" no caminho
+// automático (aquele em que a pessoa digita um tema e a IA escreve).
+//
+// O SYSTEM_PROMPT pede "Total script: 130-170 words" há muito tempo. Nada
+// nunca CONFERIU. E o `missingElements`/`payoffIsEmpty` logo abaixo provam que
+// a estrutura de re-pedir já existia — só nunca olhou para o tamanho.
+//
+// Medido em 22/08 num H3 do produto normal (não do worker de demo): 49s de voz
+// num vídeo de 65s = 75% de cobertura, ~113 palavras. Abaixo do mínimo que o
+// próprio prompt pede, e ninguém reclamou. O resto do minuto é música sobre
+// imagem — silêncio ABSOLUTO medido foi 0s, então não é vazio: é a HISTÓRIA
+// que para de ser contada. Foi exatamente assim que o fundador descreveu
+// ("ficava uma história muito esquisita").
+//
+// POR QUE ISTO É O CONSERTO CERTO E NÃO MAIS UM REMENDO DE MONTAGEM: o
+// KINEO-TAIL apara só o rabo da última cena; o gapfix encolhe cenas de apoio
+// (e é PROIBIDO no H3 desde 20/08, para não furar os 60s do TikTok Rewards).
+// Ou seja, a montagem está de mãos atadas por decisão consciente. Com um
+// roteiro do tamanho certo, ela não precisa de nenhum truque — a fala enche o
+// filme sozinha, que é como os quatro motores saudáveis (98-100% de cobertura)
+// já funcionam hoje.
+//
+// O piso é derivado de MIN_COVERAGE, a mesma constante que barra o roteiro
+// curto do usuário no caminho verbatim (lib/narrationFit.ts). Um só número
+// governa os dois caminhos: o que a pessoa escreve e o que a IA escreve.
+const SCRIPT_TARGET_SECONDS = 60
+function scriptWordCount(text: string): number {
+  return text
+    .replace(/^\s*(HOOK|MICRO REWARD ?\d*|ESCALATION|RHYTHM|PAYOFF)\s*(\([^)]*\))?\s*:?/gim, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')   // [Pexels: ...] não é falado
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length
+}
+/** Palavras mínimas para a narração cobrir MIN_COVERAGE de um vídeo de 60s. */
+const MIN_SCRIPT_WORDS = Math.ceil(SCRIPT_TARGET_SECONDS * MIN_COVERAGE * WORDS_PER_SECOND)
+function scriptTooShort(text: string): boolean {
+  return scriptWordCount(text) < MIN_SCRIPT_WORDS
 }
 
 // Now requires ALL 5 elements (was: HOOK + (MICRO REWARD or PAYOFF)).
@@ -224,10 +270,18 @@ export async function POST(req: NextRequest) {
     // regenerate ONCE with a targeted reinforcement. If the retry still falls
     // short, proceed with what we have (degraded — never blocks the flow).
     let missing = missingElements(script)
-    if (missing.length > 0 || payoffIsEmpty(script)) {
+    if (missing.length > 0 || payoffIsEmpty(script) || scriptTooShort(script)) {
       const problems: string[] = []
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
       if (payoffIsEmpty(script)) problems.push('the PAYOFF teased instead of delivering a concrete answer')
+      // KINEO-ROTEIRO-CURTO-2026-08-22 — o número vai no pedido de correção
+      // porque "escreva mais" não é instrução: o GPT precisa do alvo.
+      if (scriptTooShort(script)) {
+        problems.push(
+          `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${MIN_SCRIPT_WORDS} ` +
+          `to fill a ${SCRIPT_TARGET_SECONDS}-second video with narration instead of silence`,
+        )
+      }
       console.warn('[generate-script] regenerating once —', problems.join('; '))
       try {
         const retry = await openai.chat.completions.create({
@@ -251,8 +305,11 @@ export async function POST(req: NextRequest) {
         if (retryScript) {
           script = retryScript
           missing = missingElements(retryScript)
-          if (missing.length > 0 || payoffIsEmpty(retryScript)) {
-            console.warn('[generate-script] still imperfect after retry — using it anyway (degraded)')
+          if (missing.length > 0 || payoffIsEmpty(retryScript) || scriptTooShort(retryScript)) {
+            console.warn(
+              `[generate-script] still imperfect after retry — using it anyway (degraded). ` +
+              `words=${scriptWordCount(retryScript)}/${MIN_SCRIPT_WORDS}`,
+            )
           }
         }
       } catch (retryErr) {
