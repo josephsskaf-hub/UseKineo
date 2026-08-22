@@ -915,6 +915,44 @@ export async function POST(req: NextRequest) {
            cost,
            credit_hold: creditHold,
            duration,
+          // ═══ KINEO-TITULO-SOBREVIVE-2026-08-22 ═══════════════════════════
+          // O TEMA E A DESCRIÇÃO PASSAM A MORAR NO CLAIM, e não só na URL.
+          //
+          // Medido hoje: vídeos nascendo como "Untitled Short" no My Videos.
+          // Dias 15→18/08: ZERO. Dia 19: 2. Dia 20: 5. Dia 21: 12 de 27 (44%).
+          // A curva começa exatamente quando o cron finish-stranded-renders
+          // entrou no ar.
+          //
+          // A CAUSA: `/api/compose/status/[renderId]` lê o tema de
+          // `?topic=` — um QUERY PARAM. Quem chama por outro caminho que não
+          // a aba original (o cron de resgate, o demo-render) não tem esses
+          // parâmetros, e o vídeo é gravado com o campo vazio.
+          //
+          // ⚠️ ESTE DEFEITO JÁ TINHA SIDO DIAGNOSTICADO E CONSERTADO PELA
+          // METADE. O comentário KINEO-DURACAO-REAL-2026-08-20, logo ao lado
+          // da leitura do `topic` naquele arquivo, diz com todas as letras:
+          // "Quem chama sem `?duration=` (o cron de resgate, que hoje monta
+          // boa parte dos filmes) caía direto nele". Consertaram a DURAÇÃO e
+          // deixaram o TEMA e a DESCRIÇÃO na mesma armadilha. Reconhecer a
+          // classe do bug e corrigir só a instância que doía naquele dia é
+          // como o mesmo defeito volta com outra roupa duas semanas depois.
+          //
+          // Query param é frágil por natureza: ele existe enquanto existir a
+          // requisição do cliente. O claim é durável e TODO caminho passa por
+          // ele — cliente, cron de resgate e demo-render. Guardar aqui é
+          // guardar onde a informação sobrevive.
+          topic: (body.topic ?? '').toString().slice(0, 1000) || null,
+          // ⚠️ SÓ O TEMA, NÃO A DESCRIÇÃO — e o tsc é que me ensinou isto.
+          // Eu tinha escrito `body.youtubeDescription` aqui por simetria, e o
+          // compilador recusou: esse campo NÃO EXISTE no ComposeBody. Ou seja,
+          // a descrição do YouTube nunca passa pelo /api/compose — ela é gerada
+          // no /api/analyze-idea e viaja do CLIENTE direto para o status. Não
+          // há como o claim guardá-la, porque ela nunca chega aqui.
+          // Para o caminho de resgate a descrição continua nascendo vazia, e
+          // isso é coberto por outro mecanismo: o /api/video-summary preenche
+          // depois (ver o comentário do campo em persistCompletedVideo).
+          // Registrado para ninguém "completar a simetria" depois e quebrar o
+          // build de novo procurando um campo que não existe.
           authority: signComposeClaim(serviceRoleKey, {
             claimId,
             userId: authenticatedUserId,
@@ -977,6 +1015,15 @@ export async function POST(req: NextRequest) {
         cost,
         credit_hold: creditHold,
         duration,
+        // ⚠️ KINEO-TITULO-SOBREVIVE-2026-08-22 — REPETIDOS AQUI DE PROPÓSITO.
+        // Este objeto SUBSTITUI o metadata inteiro do claim (não faz merge),
+        // então qualquer campo que não seja re-listado aqui é APAGADO no
+        // momento em que o render é confirmado — exatamente o momento em que
+        // o `render_id` aparece e o claim se torna localizável. Omitir os dois
+        // aqui deixaria o fallback compilando, passando na revisão e falhando
+        // em 100% dos casos reais, porque o único claim que a busca encontra é
+        // este. Mexeu num, mexe no outro.
+        topic: (body.topic ?? '').toString().slice(0, 1000) || null,
         completed_at: new Date().toISOString(),
         authority: signComposeClaim(serviceRoleKey, {
           claimId,

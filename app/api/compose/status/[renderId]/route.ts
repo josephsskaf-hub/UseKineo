@@ -18,6 +18,11 @@ import { creditCostFor, normalizeQuality, creditCostForDuration } from '@/lib/cr
 import { debitVideoCredits } from '@/lib/credits/debit'
 import { releaseFailedFreeFastClaim, settleComposeCreditHoldForRender } from '@/lib/credits/composeHold'
 import { getRenderIntent } from '@/lib/credits/renderIntent'
+// KINEO-TITULO-SOBREVIVE-2026-08-22 — o claim de submissao guarda o TEMA para
+// quando a URL nao trouxer (cron de resgate, worker de demo). Só o tema: a
+// descricao do YouTube nunca passa pelo /api/compose (o tsc me mostrou isso ao
+// recusar `body.youtubeDescription`), entao nao ha o que guardar la.
+import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import {
   loadPrepaidAvatarClaimForRender,
   settleAvatarCreditHoldForRender,
@@ -401,6 +406,43 @@ export async function GET(
     // page) is born with the same branded text the user copies. Same 600-char
     // cap analyze-idea applies to youtube_description.
     const ytDescriptionParam = (req.nextUrl.searchParams.get('ytdesc') ?? '').toString().slice(0, 600)
+
+    // ═══ KINEO-TITULO-SOBREVIVE-2026-08-22 — FALLBACK PELO CLAIM ═══════════
+    // Se o tema/descrição não vieram na URL, busca no claim de submissão, que
+    // o /api/compose grava com os dois campos. Ver o bloco de mesmo nome lá
+    // para a medição (44% dos vídeos de 21/08 nasceram "Untitled Short").
+    //
+    // Por que só quando falta: o parâmetro da URL é o caminho normal e o mais
+    // fresco — a aba do usuário tem o texto que ele acabou de ver na tela. O
+    // claim é a rede embaixo, para quando quem persiste o vídeo é o cron de
+    // resgate ou o worker de demo, que não têm requisição de cliente nenhuma.
+    //
+    // Uma leitura a mais no banco só no caminho degradado; zero custo no
+    // caminho feliz. E nunca lança: falhar aqui devolveria o comportamento
+    // atual (campo vazio), nunca algo pior que ele.
+    let topicFromClaim = ''
+    if (!topic) {
+      try {
+        const claimUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const claimKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+        const claimDb = claimUrl && claimKey
+          ? createAdminClient(claimUrl, claimKey, { auth: { persistSession: false, autoRefreshToken: false } })
+          : null
+        const { data: claimRow } = !claimDb ? { data: null } : await claimDb
+          .from('events')
+          .select('metadata')
+          .eq('name', COMPOSE_CLAIM_EVENT)
+          .eq('metadata->>render_id', renderId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        const md = (claimRow?.metadata ?? {}) as Record<string, unknown>
+        if (typeof md.topic === 'string') topicFromClaim = md.topic.slice(0, 1000)
+      } catch (e) {
+        console.warn('[compose/status] claim lookup for topic failed:', e instanceof Error ? e.message : String(e))
+      }
+    }
+    const topicFinal = topic || topicFromClaim
 
     if (!process.env.CREATOMATE_API_KEY) {
       return NextResponse.json(
@@ -818,7 +860,7 @@ export async function GET(
           user_id_prefix: user.id.slice(0, 8),
           duration,
           quality,
-          has_topic: topic.length > 0,
+          has_topic: topicFinal.length > 0,
         }))
         // PUSH #100 — brand the stored description exactly like video-summary
         // does (free plan only). Best-effort: a failed profile read just stores
@@ -859,7 +901,13 @@ export async function GET(
             snapshotUrl: finalThumbUrl,
             quality,
             duration,
-            topic,
+            // KINEO-TITULO-SOBREVIVE-2026-08-22 — `topicFinal`, não `topic`.
+            // É desta linha que sai o `title` do card no My Videos (o helper
+            // deriva o título da primeira linha do tema). Com `topic` cru, todo
+            // vídeo persistido por um caminho SEM query param — cron de resgate
+            // e worker de demo — nascia "Untitled Short": 44% dos vídeos de
+            // 21/08. `topicFinal` cai no claim quando a URL não traz nada.
+            topic: topicFinal,
             creditsUsed: cost,
             youtubeDescription: historyDescription,
           })
