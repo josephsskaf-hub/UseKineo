@@ -308,6 +308,16 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
   if (!open) return null
 
   if (variant === 'free') {
+    // ═══ KINEO-MODAL-VITRINE-2026-08-22 — casca nova aprovada em preview.
+    // Duas mudanças além do visual, ambas pedidas pelo fundador:
+    //   1. TAMANHO/FORMA: 448px→880px, cantos 8, duas colunas (prova + decisão).
+    //   2. COPY SEM AMBIGUIDADE DE BÔNUS: o fundador leu a versão anterior e
+    //      entendeu que SAIR renderia crédito extra. Se ele entendeu assim,
+    //      cliente entende também. A copy agora nomeia a FONTE da oferta
+    //      ("signing up gets you the standard N credits...") e diz com todas
+    //      as letras que não há prêmio por sair — o que também nos protege de
+    //      treinar o comportamento de ameaçar sair para ganhar bônus.
+    // Gatilhos, guards de sessão e telemetria: intactos.
     return (
       <div
         className="fixed inset-0 z-[100] flex items-center justify-center p-4"
@@ -320,38 +330,73 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           aria-modal="true"
           aria-labelledby="exit-free-title"
           tabIndex={-1}
-          className="relative w-full max-w-md rounded-2xl p-7 text-center outline-none"
-          style={{ background: '#161618', border: '1px solid rgba(41,151,255,.35)', boxShadow: '0 0 60px rgba(41,151,255,.15)' }}
+          className="relative w-full max-w-[880px] overflow-hidden text-left outline-none grid md:grid-cols-[1fr_1.15fr]"
+          style={{ background: '#131316', border: '1px solid #2a2a2d', borderRadius: 10, boxShadow: '0 24px 80px rgba(0,0,0,.55)' }}
           onClick={(e) => e.stopPropagation()}
         >
           <button
             type="button"
             aria-label="Close"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-3 text-xl font-bold"
+            className="absolute right-4 top-3 text-xl font-bold z-10"
             style={{ color: '#86868b', background: 'none', border: 'none', cursor: 'pointer' }}
           >
             ×
           </button>
-          <h2 id="exit-free-title" className="text-[1.35rem] font-black tracking-tight" style={{ color: '#f5f5f7' }}>
-            Before you go — make one free.
-          </h2>
-          <p className="mt-2 text-sm" style={{ color: '#a8adb5', lineHeight: 1.6 }}>
-            Type one idea, get a finished Short in about 3 minutes.
-            {/* KINEO-GRANT-COPY-UNICA-2026-08-17 — derivado; ver lib/freeTierOffer.ts. */}
-            <FreeTierCopy legacy="3 free videos every day · no card needed." on={`${TRIAL_GRANT_CREDITS_COPY} free credits on signup · every engine unlocked, Kling 3 included.`} />
-          </p>
-          <a
-            href="/signup"
-            onClick={() => trackEvent('exit_intent_free_clicked')}
-            className="mt-5 block w-full rounded-xl px-4 py-3 text-[15px] font-extrabold text-white"
-            style={{ background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', textDecoration: 'none' }}
-          >
-            Create my free Short →
-          </a>
-          <p className="mt-3 text-[11.5px] font-semibold" style={{ color: '#86868b' }}>
-            No card · no watermark tricks · yours to post
-          </p>
+          {/* ── Prova ─────────────────────────────────────────────────── */}
+          <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+            <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+              <video src="/previews/26d25419-6719-47ab-b24b-df214e007fbd.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>KLING 2.5</span>
+              <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo</span>
+            </div>
+            <div style={{ fontSize: 13, color: '#86868b', lineHeight: 1.65 }}>
+              One thing before you go:<br /><br />
+              Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style={{ color: '#f5f5f7', fontWeight: 800 }}>You just type the topic.</b>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[`${TRIAL_GRANT_CREDITS_COPY} FREE CREDITS`, 'NO CARD', 'EVERY ENGINE UNLOCKED'].map((t) => (
+                <span key={t} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{t}</span>
+              ))}
+            </div>
+          </div>
+          {/* ── Decisão ───────────────────────────────────────────────── */}
+          <div style={{ padding: '26px 26px 22px' }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff', marginBottom: 10 }}>Before you go</div>
+            <h2 id="exit-free-title" style={{ fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em', color: '#f5f5f7', margin: 0, marginBottom: 10 }}>
+              You haven&apos;t tried it yet —<br />and trying it is free
+            </h2>
+            <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 18 }}>
+              {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
+              <FreeTierCopy
+                legacy="3 free videos every day · no card needed."
+                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for one cinematic AI film plus a couple of fast ones. No card, no special deal for leaving: this is simply what a new account comes with.`}
+              />
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>
+              {[
+                ['~3 min', 'from topic to finished video'],
+                ['9:16', 'built for Shorts, TikTok & Reels'],
+                ['6 engines', 'Veo, Kling 3, Seedance…'],
+                ['$0', 'to try — no card, no trick'],
+              ].map(([n, d]) => (
+                <div key={n} style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#f5f5f7' }}>{n}</div>
+                  <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>{d}</div>
+                </div>
+              ))}
+            </div>
+            <a
+              href="/signup"
+              onClick={() => trackEvent('exit_intent_free_clicked')}
+              style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}
+            >
+              Sign up and make my first video
+            </a>
+            <p style={{ fontSize: 11, color: '#6e6e73', textAlign: 'center', marginTop: 14, lineHeight: 1.5 }}>
+              Creating an account takes under a minute.
+            </p>
+          </div>
         </div>
       </div>
     )

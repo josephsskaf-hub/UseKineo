@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Preview — Kineo modals v2 (English, final copy)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ══ TIPOGRAFIA v2 (pedido: "melhora as fontes") ══════════════════════════
+     · Inter no lugar da fonte de sistema — e a familia que o dashboard ja
+       usa; o modal deixava de combinar com o resto do site
+     · Titulos: 900, tracking apertado (-0.02em) — peso de manchete
+     · Numeros das celulas: tabular-nums, 800 — numeros alinham como painel
+     · Corpo: 400/1.6 — mais leve que o anterior, contraste maior com titulo
+     · Kickers/labels: 800, tracking largo, 10-11px — etiqueta, nao frase   */
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0a0a0c; color:#f5f5f7; font-family:'Inter',-apple-system,sans-serif; padding:40px 16px; font-feature-settings:'ss01'; }
+  .label { max-width:880px; margin:48px auto 12px; font-size:11px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:#6e6e73; }
+  .label:first-child { margin-top:0; }
+  .modal { max-width:880px; margin:0 auto; background:#131316; border:1px solid #2a2a2d; border-radius:10px; overflow:hidden; box-shadow:0 24px 80px rgba(0,0,0,.55); }
+  .cols { display:grid; grid-template-columns:1fr 1.1fr; }
+  @media (max-width:720px){ .cols { grid-template-columns:1fr; } }
+  .showcase { background:#0d0d10; border-right:1px solid #2a2a2d; padding:22px; display:flex; flex-direction:column; gap:12px; }
+  .frame { position:relative; border-radius:8px; overflow:hidden; aspect-ratio:16/10; background:linear-gradient(135deg,#1a2b45 0%,#0d1626 60%,#1c1210 100%); border:1px solid #2a2a2d; }
+  .frame.f2 { background:linear-gradient(135deg,#20122b 0%,#0d0d1c 60%,#0a1a1c 100%); }
+  .frame .badge { position:absolute; top:8px; left:8px; background:rgba(0,0,0,.72); padding:3px 8px; border-radius:4px; font-size:9px; font-weight:900; letter-spacing:.1em; }
+  .frame .cap { position:absolute; bottom:8px; left:8px; right:8px; font-size:11px; font-weight:600; text-shadow:0 1px 3px rgba(0,0,0,.9); }
+  .frame .play { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:26px; opacity:.85; }
+  .engines { display:flex; flex-wrap:wrap; gap:6px; }
+  .eng { font-size:9.5px; font-weight:800; letter-spacing:.08em; padding:4px 9px; border-radius:4px; background:#1d1d1f; border:1px solid #2a2a2d; color:#a8a8ad; }
+  .proof { font-size:12px; font-weight:400; color:#86868b; line-height:1.6; }
+  .decide { padding:28px 28px 22px; display:flex; flex-direction:column; }
+  .kicker { font-size:10.5px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; color:#5cb3ff; margin-bottom:10px; }
+  h2 { font-size:26px; line-height:1.12; font-weight:900; letter-spacing:-0.02em; margin-bottom:10px; }
+  .sub { font-size:13.5px; font-weight:400; color:#86868b; line-height:1.6; margin-bottom:18px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .cell { background:#1d1d1f; border:1px solid #2a2a2d; border-radius:8px; padding:12px 13px; }
+  .cell .n { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+  .cell .d { font-size:10.5px; font-weight:400; color:#86868b; margin-top:3px; line-height:1.45; }
+  .anchor { background:linear-gradient(90deg,rgba(41,151,255,.14),rgba(41,151,255,.04)); border:1px solid rgba(41,151,255,.4); border-radius:8px; padding:13px 15px; font-size:13px; font-weight:400; line-height:1.55; color:#cfe6ff; margin-bottom:18px; }
+  .anchor b { color:#fff; font-weight:800; }
+  .cta { display:block; width:100%; text-align:center; background:#2997ff; color:#fff; border:none; border-radius:8px; padding:15px; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer; font-family:inherit; }
+  .cta:hover { background:#3ba1ff; }
+  .alt { display:block; width:100%; text-align:center; background:transparent; color:#86868b; border:1px solid #2a2a2d; border-radius:8px; padding:12px; font-size:13px; font-weight:700; cursor:pointer; margin-top:8px; font-family:inherit; }
+  .fine { font-size:11px; font-weight:400; color:#6e6e73; text-align:center; margin-top:14px; line-height:1.5; }
+  .plans { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:18px; }
+  .plan { background:#1d1d1f; border:1px solid #2a2a2d; border-radius:8px; padding:13px 10px; text-align:center; cursor:pointer; }
+  .plan.hot { border-color:#2997ff; background:rgba(41,151,255,.08); position:relative; }
+  .plan.hot::after { content:'MOST POPULAR'; position:absolute; top:-8px; left:50%; transform:translateX(-50%); background:#2997ff; font-size:8px; font-weight:900; letter-spacing:.1em; padding:2px 8px; border-radius:3px; white-space:nowrap; }
+  .plan .nm { font-size:10.5px; font-weight:800; letter-spacing:.08em; color:#a8a8ad; }
+  .plan .pr { font-size:22px; font-weight:900; font-variant-numeric:tabular-nums; letter-spacing:-0.02em; margin:5px 0 2px; }
+  .plan .per { font-size:10px; font-weight:400; color:#6e6e73; }
+  .compare { width:100%; border-collapse:collapse; margin-bottom:4px; font-size:12.5px; }
+  .compare td { padding:8px 4px; border-bottom:1px solid #232326; font-weight:400; color:#a8a8ad; }
+  .compare td:last-child { text-align:right; font-weight:700; color:#f5f5f7; }
+  .compare .x { color:#ff6b6b; font-weight:800; }
+  .compare .v { color:#4ade80; font-weight:800; }
+  .compare tr.lost td { color:#6e6e73; }
+</style>
+</head>
+<body>
+
+<div class="label">1 · Upgrade modal — out of credits on /generate (most seen)</div>
+<div class="modal"><div class="cols">
+  <div class="showcase">
+    <div class="frame"><span class="badge">KLING 3</span><span class="play">&#9654;</span><span class="cap">Maracaibo — the never-ending storm</span></div>
+    <div class="frame f2"><span class="badge">SEEDANCE 1.5</span><span class="play">&#9654;</span><span class="cap">The forbidden island</span></div>
+    <div class="engines"><span class="eng">VEO 3.1</span><span class="eng">KLING 3</span><span class="eng">KLING 2.5</span><span class="eng">SEEDANCE 1.5</span><span class="eng">MINIMAX H3</span><span class="eng">KINEO 1</span></div>
+    <div class="proof">Every film above was made with Kineo, labeled with the real engine that rendered it.</div>
+  </div>
+  <div class="decide">
+    <div class="kicker">You're out of credits</div>
+    <h2>Pick up right where you left off</h2>
+    <p class="sub">You've made your videos and seen how they come out. A plan unlocks monthly credits, clean watermark-free downloads and the premium engines.</p>
+    <div class="plans">
+      <div class="plan"><div class="nm">STARTER</div><div class="pr">$7</div><div class="per">/mo · 40 cr</div></div>
+      <div class="plan hot"><div class="nm">CREATOR</div><div class="pr">$15</div><div class="per">/mo · 90 cr</div></div>
+      <div class="plan"><div class="nm">STUDIO</div><div class="pr">$29</div><div class="per">/mo · 180 cr</div></div>
+    </div>
+    <div class="anchor">From <b>$3.22 per finished film</b> — script, voiceover, karaoke captions, soundtrack and edit included. A freelance editor charges <b>$30–75</b> for one Short.</div>
+    <button class="cta">Continue on Creator — $15/mo</button>
+    <button class="alt">Compare all three plans</button>
+    <div class="fine">Cancel anytime. Your videos stay yours.</div>
+  </div>
+</div></div>
+
+<div class="label">2 · Exit intent — cursor leaving the page</div>
+<div class="modal"><div class="cols">
+  <div class="showcase">
+    <div class="frame"><span class="badge">SEEDANCE 1.5</span><span class="play">&#9654;</span><span class="cap">Made by a free user, today</span></div>
+    <div class="proof" style="font-size:13px;line-height:1.65">One thing before you go:<br><br>Kineo writes the script, records the voiceover, cuts the scenes, captions and delivers the MP4. <b style="color:#f5f5f7;font-weight:800">You just type the topic.</b></div>
+    <div class="engines"><span class="eng">25 FREE CREDITS</span><span class="eng">NO CARD</span><span class="eng">EVERY ENGINE UNLOCKED</span></div>
+  </div>
+  <div class="decide">
+    <div class="kicker">Before you go</div>
+    <h2>You haven't tried it yet —<br>and trying it is free</h2>
+    <p class="sub">Signing up gets you the standard 25 free credits every new account receives — enough for one cinematic AI film plus a couple of fast ones. No card, no special deal for leaving: this is simply what a new account comes with.</p>
+    <div class="grid2">
+      <div class="cell"><div class="n">~3 min</div><div class="d">from topic to finished video</div></div>
+      <div class="cell"><div class="n">9:16</div><div class="d">built for Shorts, TikTok &amp; Reels</div></div>
+      <div class="cell"><div class="n">6 engines</div><div class="d">Veo, Kling 3, Seedance…</div></div>
+      <div class="cell"><div class="n">$0</div><div class="d">to try — no card, no trick</div></div>
+    </div>
+    <button class="cta">Sign up and make my first video</button>
+    <div class="fine">Creating an account takes under a minute.</div>
+  </div>
+</div></div>
+
+<div class="label">3 · Trial ended — "continue on Creator"</div>
+<div class="modal"><div class="cols">
+  <div class="showcase">
+    <div class="frame"><span class="badge">YOUR FILM</span><span class="play">&#9654;</span><span class="cap">The film you made during your trial</span></div>
+    <div class="proof" style="font-weight:800;color:#f5f5f7">What changed on your account:</div>
+    <table class="compare">
+      <tr class="lost"><td>AI engines (Seedance, Kling…)</td><td class="x">locked</td></tr>
+      <tr class="lost"><td>Clean download</td><td class="x">watermarked</td></tr>
+      <tr><td>Your finished videos</td><td class="v">still yours</td></tr>
+      <tr><td>Free video</td><td>1 Fast / month</td></tr>
+    </table>
+  </div>
+  <div class="decide">
+    <div class="kicker">Your trial ended</div>
+    <h2>You made real films.<br>Don't stop now.</h2>
+    <p class="sub">Creator brings back everything the trial unlocked — every month, not just once.</p>
+    <div class="grid2">
+      <div class="cell"><div class="n">90 cr/mo</div><div class="d">&#8776; 4 AI films every month</div></div>
+      <div class="cell"><div class="n">$3.75</div><div class="d">per finished film (editors: $30+)</div></div>
+      <div class="cell"><div class="n">No mark</div><div class="d">clean downloads, truly yours</div></div>
+      <div class="cell"><div class="n">Kling 2.5</div><div class="d">cinematic engine included</div></div>
+    </div>
+    <button class="cta">Continue on Creator — $15/mo</button>
+    <button class="alt">Keep creating on the free plan</button>
+    <div class="fine">Cancel anytime. Your videos stay yours.</div>
+  </div>
+</div></div>
+
+<p style="max-width:880px;margin:40px auto 0;font-size:12px;color:#6e6e73;line-height:1.6">
+Placeholders become real preview clips from <code>public/previews/</code> (same curation as the
+homepage), muted autoplay. All numbers ($3.22/film, 90cr = 4 films, 25 credits) derive from the
+real constants in code — never typed by hand.
+</p>
+</body>
+</html>

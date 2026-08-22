@@ -32,7 +32,7 @@ import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
-import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+import { BEST_COST_PER_FILM, CREATOR_AI_FILMS } from '@/lib/marketingPrice'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -14022,28 +14022,70 @@ function UpgradeModal({
         overflowY: 'auto',
       }}
     >
+      {/* ═══ KINEO-MODAL-VITRINE-2026-08-22 — a casca nova, aprovada pelo
+          fundador em preview HTML antes de virar código ("gostei bastante...
+          aprovado"). O que mudou e por quê:
+            · 460px → 880px, cantos 20 → 10 ("maiores, quadrados")
+            · DUAS COLUNAS: prova à esquerda (filmes reais com o selo do motor
+              que os produziu), decisão à direita. O modal deixa de ser um
+              aviso pedindo dinheiro e vira uma vitrine — a pessoa vê o que
+              está comprando no mesmo quadro em que decide.
+            · A coluna de prova é `hidden md:flex`: no celular ela sai inteira
+              (não dá para pagar 2 vídeos de banda numa tela de 380px).
+            · Os clipes vêm de public/previews (curadoria do fundador, os
+              MESMOS da home): leves (104-244KB), muted, preload=metadata.
+            · A âncora $/filme deriva de BEST_COST_PER_FILM — nunca digitada.
+          TODA a máquina (moeda por região, razões de gate, top-ups,
+          telemetria) ficou intacta: só a casca trocou. */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
           width: '100%',
-          maxWidth: 460,
-          background: '#161618',
-          border: '1px solid rgba(41,151,255,0.35)',
-          borderRadius: 20,
-          padding: '28px 24px',
-          textAlign: 'center',
-          boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(41,151,255,0.18)',
+          maxWidth: 880,
+          background: '#131316',
+          border: '1px solid #2a2a2d',
+          borderRadius: 10,
+          overflow: 'hidden',
+          textAlign: 'left',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.55)',
         }}
       >
+       <div className="grid md:grid-cols-[1fr_1.15fr]">
+        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+          {[
+            { id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', badge: 'VEO 3.1', cap: 'Runit Dome' },
+            { id: '26d25419-6719-47ab-b24b-df214e007fbd', badge: 'KLING 2.5', cap: 'The golden mountain' },
+          ].map((f) => (
+            <div key={f.id} style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+              <video src={`/previews/${f.id}.mp4`} autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>{f.badge}</span>
+              <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>{f.cap}</span>
+            </div>
+          ))}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {['VEO 3.1', 'KLING 3', 'KLING 2.5', 'SEEDANCE 1.5', 'MINIMAX H3', 'KINEO 1'].map((e) => (
+              <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{e}</span>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+            Every film above was made with Kineo, labeled with the real engine that rendered it.
+          </div>
+        </div>
+        <div style={{ padding: '26px 26px 22px' }}>
         <h2
           id="upgrade-modal-title"
-          style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', lineHeight: 1.25, margin: 0, marginBottom: 8 }}
+          style={{ fontSize: '1.55rem', fontWeight: 900, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1.15, margin: 0, marginBottom: 8 }}
         >
           {head.title}
         </h2>
-        <p style={{ fontSize: '0.92rem', color: '#a1a1a8', lineHeight: 1.5, margin: 0, marginBottom: 14 }}>
+        <p style={{ fontSize: '0.9rem', color: '#a1a1a8', lineHeight: 1.55, margin: 0, marginBottom: 12 }}>
           {head.sub}
         </p>
+        {/* A âncora que ataca o vazamento fechado pelo fundador (percepção de
+            valor): o preço na unidade em que a pessoa pensa — FILME. */}
+        <div style={{ background: 'linear-gradient(90deg,rgba(41,151,255,.14),rgba(41,151,255,.04))', border: '1px solid rgba(41,151,255,.4)', borderRadius: 8, padding: '11px 13px', fontSize: '0.82rem', lineHeight: 1.55, color: '#cfe6ff', marginBottom: 14 }}>
+          From <b style={{ color: '#fff' }}>{BEST_COST_PER_FILM} per finished film</b> — script, voiceover, karaoke captions, soundtrack and edit included. A freelance editor charges <b style={{ color: '#fff' }}>$30–75</b> for one Short.
+        </div>
 
         {/* #466 social-proof row REMOVED (KINEO-SPRINT-OFFER-2026-07-14):
             "Join 300+ creators" was unverifiable and the "50% off · mm:ss"
@@ -14296,6 +14338,8 @@ function UpgradeModal({
         {/* KINEO-SPRINT-OFFER-2026-07-14 — "Founding Creator · only 50 spots"
             footer removed: third competing discount claim in this modal, and
             the seat count was not enforced anywhere. */}
+        </div>{/* fim da coluna de decisão (KINEO-MODAL-VITRINE) */}
+       </div>{/* fim do grid de duas colunas */}
       </div>
     </div>
   )

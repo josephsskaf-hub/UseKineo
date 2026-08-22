@@ -359,66 +359,91 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         overflowY: 'auto',
       }}
     >
+      {/* ═══ KINEO-MODAL-VITRINE-2026-08-22 — casca nova aprovada em preview
+          pelo fundador (880px, cantos 10, duas colunas: comparativo à
+          esquerda, decisão à direita). Toda a lógica — gate do servidor,
+          dispensa v2 acidente-vs-intenção, telemetria, moeda — intacta. */}
       <div
         ref={cardRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="trial-downgrade-title"
         tabIndex={-1}
+        className="grid md:grid-cols-[1fr_1.15fr]"
         style={{
           width: '100%',
-          maxWidth: 460,
+          maxWidth: 880,
           margin: 'auto',
-          background: '#161618',
+          background: '#131316',
           border: '1px solid #2a2a2d',
-          borderRadius: 18,
-          padding: '26px 22px',
+          borderRadius: 10,
+          overflow: 'hidden',
           color: '#f5f5f7',
           outline: 'none',
         }}
       >
-        <p style={{ margin: 0, fontSize: 11, fontWeight: 800, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#86868b' }}>
+        {/* ── Coluna de prova: o que mudou na conta ─────────────────────── */}
+        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+            {/* Clipe da curadoria (mesma da home) — não o vídeo da pessoa: o
+                modal não tem a URL dele sem mais uma chamada, e um clipe
+                premium aqui mostra exatamente o que ela perde. */}
+            <video src="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em' }}>VEO 3.1</span>
+            <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with the engines your trial unlocked</span>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: '#f5f5f7' }}>What changed on your account:</div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+            <tbody>
+              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', color: '#6e6e73' }}>AI engines (Seedance, Kling…)</td><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', textAlign: 'right', fontWeight: 800, color: '#ff6b6b' }}>locked</td></tr>
+              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', color: '#6e6e73' }}>Clean download</td><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', textAlign: 'right', fontWeight: 800, color: '#ff6b6b' }}>watermarked</td></tr>
+              <tr><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', color: '#a8a8ad' }}>Your finished videos</td><td style={{ padding: '8px 4px', borderBottom: '1px solid #232326', textAlign: 'right', fontWeight: 800, color: '#4ade80' }}>still yours</td></tr>
+              {/* Saldo REAL da mesma fonte do badge do topo — "0 credits" era
+                  falso para quem tinha crédito de indicação (lição da v1). */}
+              {creditsNow !== null && (
+                <tr><td style={{ padding: '8px 4px', color: '#a8a8ad' }}>Credits left (Fast only)</td><td style={{ padding: '8px 4px', textAlign: 'right', fontWeight: 800 }}>{creditsNow}</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {/* ── Coluna de decisão ──────────────────────────────────────────── */}
+        <div style={{ padding: '26px 26px 22px' }}>
+        <p style={{ margin: 0, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#5cb3ff' }}>
           Your trial ended
         </p>
-        <h2 id="trial-downgrade-title" style={{ margin: '8px 0 6px', fontSize: 23, lineHeight: 1.2, fontWeight: 800 }}>
-          You&apos;re back on the free plan
+        <h2 id="trial-downgrade-title" style={{ margin: '10px 0 8px', fontSize: 26, lineHeight: 1.12, fontWeight: 900, letterSpacing: '-0.02em' }}>
+          You made real films.<br />Don&apos;t stop now.
         </h2>
-        <p style={{ margin: '0 0 18px', fontSize: 14, lineHeight: 1.5, color: '#86868b' }}>
+        <p style={{ margin: '0 0 16px', fontSize: 13.5, lineHeight: 1.6, color: '#86868b' }}>
           {granted > 0
-            ? `You used ${used} of the ${granted} credits that came with your trial.`
-            : 'Your trial credits have expired.'}{' '}
-          Here&apos;s what changed.
+            ? `You used ${used} of the ${granted} trial credits. `
+            : ''}
+          Creator brings back everything the trial unlocked — every month, not just once.
+          {' '}<FreeTierCopy legacy={`Free plan: ${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h.`} on="The free plan keeps 1 Fast video per month." />
         </p>
 
-        {/* Comparativo. Só afirmações verificáveis no código de hoje.
-            minmax(0,1fr) para o grid não estourar em 320px. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 18 }}>
-          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 12, padding: '13px 12px' }}>
-            <p style={{ margin: '0 0 9px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6e6e73' }}>
-              During your trial
-            </p>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: 13, lineHeight: 1.65, color: '#86868b' }}>
-              <li>AI video engine unlocked</li>
-              {granted > 0 && <li>{granted} credits included</li>}
-              {trialVideos > 0 && <li>{trialVideos} AI videos included</li>}
-            </ul>
+        {/* Grid de números — todos DERIVADOS (TIER_CREDITS × creditCostFor),
+            nunca redigitados: a lição das três frases falsas da v1. */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 16 }}>
+          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{TIER_CREDITS.basic} cr/mo</div>
+            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>≈ {filmesPorMes} AI films every month</div>
           </div>
-          <div style={{ background: '#1d1d1f', border: '1px solid #3a3a3d', borderRadius: 12, padding: '13px 12px' }}>
-            <p style={{ margin: '0 0 9px', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#f5f5f7' }}>
-              Free plan — now
-            </p>
-            <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: 13, lineHeight: 1.65, color: '#86868b' }}>
-              <li>AI video engine locked</li>
-              {/* Saldo REAL, da mesma fonte do badge do topo (o cron revoga
-                  `min(saldo, concedido − usado)`, então crédito de indicação e
-                  crédito anterior ao trial SOBREVIVEM — "0 credits" era falso).
-                  O "(Fast only)" não é enfeite: sem ele a linha implica que o
-                  saldo compra o motor que a linha de cima diz estar trancado, e
-                  ele não compra — AI exige conta paga, custe o que custar o
-                  saldo. Omitido quando o número não é conhecido. */}
-              {creditsNow !== null && <li>{creditsNow} credits left (Fast only)</li>}
-              <li><FreeTierCopy legacy={`${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h`} on="1 free Fast video per month" /></li>
-            </ul>
+          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>
+              {currency !== null && filmesPorMes > 0
+                ? formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))
+                : '—'}
+            </div>
+            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>per finished film (editors: $30+)</div>
+          </div>
+          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>No mark</div>
+            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>clean downloads, truly yours</div>
+          </div>
+          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
+            <div style={{ fontSize: 20, fontWeight: 800 }}>{trialVideos > 0 ? `${trialVideos}×` : 'AI'}</div>
+            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>{trialVideos > 0 ? 'what your whole trial bought — now monthly' : 'engines back on, every month'}</div>
           </div>
         </div>
 
@@ -523,6 +548,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         <p style={{ margin: '12px 0 0', fontSize: 11, lineHeight: 1.5, color: '#6e6e73', textAlign: 'center' }}>
           Cancel anytime. Your videos stay yours.
         </p>
+        </div>{/* fim da coluna de decisão (KINEO-MODAL-VITRINE) */}
       </div>
     </div>
   )
