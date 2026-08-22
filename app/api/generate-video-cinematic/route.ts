@@ -14,6 +14,10 @@ import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
 import { checkAiRenderDailyCap, AI_RENDER_CAP_MESSAGE } from '@/lib/aiRenderCircuitBreaker'
 import { parseUserScript } from '@/lib/scriptParser'
+// KINEO-NARRACAO-ENCHE-2026-08-22 — a aritmética que impede um roteiro curto
+// demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
+// medição que originou a regra.
+import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -1690,6 +1694,49 @@ export async function POST(req: NextRequest) {
     const parsedScript = parseUserScript(prompt)
     const verbatim = parsedScript.hasMarkers && parsedScript.segments.length > 0
 
+    // ═══ KINEO-NARRACAO-ENCHE-2026-08-22 — A TRAVA, E ELA VEM ANTES DO DÉBITO ══
+    //
+    // O caso que mandou construir isto: o fundador reprovou um Kling 3 de 70s
+    // cujo roteiro tinha 402 caracteres (73 palavras ≈ 32s de fala). Medido
+    // quadro a quadro: luminância NUNCA abaixo de 44 (não havia apagão de
+    // imagem, nunca houve) e ~28s de déficit de narração. O nome "apagão"
+    // atrasou o diagnóstico por duas rodadas.
+    //
+    // A poda de cenas mudas (KINEO-CENA-MUDA, mais abaixo) conserta o SINTOMA:
+    // o filme sai íntegro, só que curto. Esta trava ataca a CAUSA — e ela tem
+    // de vir aqui, ANTES de `generate-video-cinematic` debitar. Um filme
+    // Hollywood custa 150 créditos; entregar 28 segundos mudos por esse preço,
+    // e só descobrir 6 minutos depois, é o pior desfecho possível para os dois
+    // lados. Recusar em 200ms com um número acionável é o melhor.
+    //
+    // ⚠️ SÓ VALE PARA O CAMINHO VERBATIM, e isso é deliberado: ali o texto é do
+    // USUÁRIO e nós não podemos reescrevê-lo (Contrato C1), então a única saída
+    // honesta é ele decidir — escrever mais, ou aceitar um vídeo mais curto. No
+    // caminho automático quem escreve é o nosso gerador, e a correção certa lá
+    // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
+    if (verbatim && parsedScript.narration) {
+      const fit = narrationFit(parsedScript.narration, duration)
+      if (!fit.ok) {
+        console.warn(
+          `[narracao] RECUSADO antes do débito: ${Math.round(fit.speech)}s de fala para ` +
+          `alvo de ${duration}s (cobertura ${(fit.coverage * 100).toFixed(0)}%, ` +
+          `mínimo ${(MIN_COVERAGE * 100).toFixed(0)}%).`,
+        )
+        return NextResponse.json(
+          {
+            error: narrationTooShortMessage(fit),
+            narrationTooShort: true,
+            // A UI usa estes para oferecer o botão "usar Xs" sem a pessoa ter
+            // de fazer conta nenhuma.
+            speechSeconds: Math.round(fit.speech),
+            suggestedDuration: Math.max(15, Math.round(fit.speech / 5) * 5),
+            missingWords: fit.missingWords,
+          },
+          { status: 422 },
+        )
+      }
+    }
+
     // #442 — in verbatim mode the final video follows the SCRIPT length, not the
     // selected duration button (the script is narrated in full). The clip count
     // was still derived from the button, so a long script + a short button
@@ -2167,6 +2214,11 @@ export async function POST(req: NextRequest) {
             .filter(Boolean) ?? []
         if (totalWords >= 40 && sentences.length >= 3) {
           type PlanScene = (typeof plan.scenes)[number]
+          // KINEO-CENA-MUDA-2026-08-22 — índices das cenas que ficaram SEM
+          // texto porque o roteiro acabou antes. Elas são PODADAS logo abaixo,
+          // depois do laço: remover no meio da iteração embaralharia os
+          // índices e o `plan.scenes[i]` passaria a apontar para outra cena.
+          const cenasSemFala = new Set<number>()
           const capWords = (sc: PlanScene) =>
             sc.type === 'dialogue' ? 32 : sc.type === 'cinematic' ? 16 : 26 // KINEO-CONTRATO-FIT-2026-08-18: fala cabe SEMPRE no teto do clipe (26w=11.3s<12s; 16w=7s<8s) — 30/18 deixavam a ultima palavra pro endCap engolir
           const planSecs = plan.scenes.reduce((a, sc) => a + (sc.seconds || 5), 0) || 1
@@ -2184,7 +2236,39 @@ export async function POST(req: NextRequest) {
               si++
             }
             const text = chunk.join(' ').trim()
-            if (!text) continue
+            // ═══ KINEO-CENA-MUDA-2026-08-22 ═══════════════════════════════
+            // ESTA LINHA ERA `if (!text) continue` E É A ORIGEM DO "APAGÃO".
+            //
+            // Quando o roteiro acaba antes das cenas (`si` chegou ao fim das
+            // frases), o `continue` PULAVA a cena — e a cena continuava no
+            // plano, com a duração que o GPT pediu e com o voiceover que o
+            // GPT tinha inventado, ou com nenhum. Nos dois casos o resultado
+            // é o mesmo na tela: imagem rodando sem voz.
+            //
+            // Medido hoje no render que o fundador reprovou (Solopreneur v2,
+            // Kling 3, 70s, 402 caracteres de roteiro = 73 palavras):
+            //   silêncio real >1s: 0,2→2,8s · 9,9→12,3s · 60,1→63,6s ·
+            //   67,2→70,0s ≈ 11s de buracos, e ~28s de déficit total de fala.
+            //   Luminância nunca abaixo de 44 — NÃO havia apagão de imagem,
+            //   nunca houve. O nome "apagão" atrasou o diagnóstico em duas
+            //   rodadas, inclusive a minha de 20/08, que consertou o rabo mudo
+            //   do FINAL (KINEO-TAIL) e não tocou no buraco do MEIO.
+            //
+            // E o defeito é PIOR do que só silêncio: uma cena pulada aqui
+            // mantém o `voiceover` que o GPT escreveu, o que fura o Contrato
+            // C1 (o GPT nunca escreve fala) sem que ninguém perceba — a
+            // narração deixa de ser a do usuário exatamente nas cenas em que
+            // o roteiro dele acabou.
+            //
+            // O CONSERTO: cena sem texto é MARCADA para poda, não pulada.
+            // Filme mais curto e íntegro vale mais que filme no tamanho
+            // pedido com um terço de imagem muda — e a poda acontece abaixo,
+            // ANTES do C2 medir a duração, para que o C2 trabalhe sobre o
+            // plano real em vez de contar segundos que não têm fala.
+            if (!text) {
+              cenasSemFala.add(i)
+              continue
+            }
             if (sc.type === 'dialogue') {
               const spoken = text.replace(/"/g, "'")
               sc.dialogueLine = spoken
@@ -2201,6 +2285,37 @@ export async function POST(req: NextRequest) {
               sc.seconds = Math.max(4, Math.min(cap, Math.round(w / 2.3) + 1))
             }
           }
+          // ═══ KINEO-CENA-MUDA-2026-08-22 — A PODA ═══════════════════════
+          // Cenas que não receberam uma única palavra do roteiro saem do
+          // plano. Só rodam se AINDA houver frases sobrando (`si`), porque
+          // nesse caso o buraco foi de distribuição, não de falta de texto, e
+          // o bloco de sobra logo abaixo vai preenchê-las.
+          //
+          // POR QUE PODAR EM VEZ DE INVENTAR FALA: inventar quebra o Contrato
+          // C1 (a narração é do usuário, sempre). Deixar mudo é o defeito que
+          // o fundador acabou de reprovar. Entre um filme mais CURTO e um
+          // filme do tamanho pedido com um terço de imagem sem voz, o curto
+          // ganha — e é o único dos três caminhos que não mente para ninguém.
+          //
+          // ⚠️ ISTO PODE DERRUBAR O FILME ABAIXO DO PISO DE 60s do TikTok
+          // Creator Rewards, e isso é ACEITO de propósito: um vídeo de 40s
+          // inteiro vale mais que um de 65s com 25s mudos, e o C2 logo abaixo
+          // ainda tenta recompor a duração com cenas que TENHAM fala. A defesa
+          // de verdade contra o filme curto não é aqui — é impedir que um
+          // roteiro curto demais entre no pipeline (ver lib/narrationFit.ts).
+          if (cenasSemFala.size > 0 && si >= sentences.length) {
+            const antes = plan.scenes.length
+            const segundosPodados = [...cenasSemFala]
+              .reduce((a, i) => a + (plan.scenes[i]?.seconds || 0), 0)
+            plan.scenes = plan.scenes.filter((_, i) => !cenasSemFala.has(i))
+            plan.scenes.forEach((sc, i) => { sc.index = i + 1 })
+            console.warn(
+              `[contrato] C1 PODA: ${antes - plan.scenes.length} cena(s) sem fala removida(s) ` +
+              `(${segundosPodados}s que sairiam MUDOS). Roteiro de ${totalWords} palavras ` +
+              `≈ ${Math.round(totalWords / 2.3)}s de voz para um alvo de ${hollywoodTarget}s.`,
+            )
+          }
+
           // Sobra de roteiro (história maior que o plano): vira cenas de apoio
           // novas — o conteúdo do fundador NUNCA é dropado.
           while (si < sentences.length && plan.scenes.length < 9) {
