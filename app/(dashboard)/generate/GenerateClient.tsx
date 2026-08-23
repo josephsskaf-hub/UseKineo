@@ -7735,6 +7735,44 @@ export default function GenerateClient({
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
 
+  // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
+  // clique. Decisão B do fundador (23/08), e o caso que a motivou: 6 pessoas
+  // em 22/08 escolheram 90s com os 25 créditos INTACTOS do trial e bateram em
+  // "you have 25, needs 30" — parede DEPOIS do clique, sem explicação e sem
+  // saída. Quem bate nisso não pensa "faço 60s"; pensa "o trial é mentira".
+  //
+  // A alternativa era subir o trial para 30 (paga +$6/dia para resolver um
+  // problema de sinalização) ou caso especial no biller (mexer onde mora o
+  // dinheiro). Esta é a única que não toca preço nem promessa: só INFORMA.
+  //
+  // Mesma resolução de quality do selectedCost acima — deliberadamente uma
+  // chamada à MESMA função que o servidor usa para cobrar (engineCost), nunca
+  // uma tabela local: a tela que promete e o biller que cobra não podem
+  // divergir (a lição do "Generate · 20 credits" que debitava 30).
+  const costForDurationOption = (d: Duration): number => {
+    if (mode === 'creator') return 0
+    if (mode === 'fast') return creditCostForDuration('fast', isPaidAccount, d)
+    if (mode === 'cinematic_ai') {
+      const q =
+        aiEngine === 'kling' ? 'cinematic_kling'
+        : aiEngine === 'veo' ? 'cinematic_veo'
+        : aiEngine === 'sora' ? 'cinematic_sora'
+        : aiEngine === 'hollywood' ? 'cinematic_hollywood'
+        : aiEngine === 'h3' ? 'cinematic_h3'
+        : 'cinematic_ai'
+      return creditCostForDuration(q, isPaidAccount, d)
+    }
+    return QUALITY_OPTIONS.find((qq) => qq.key === quality)?.credits ?? 8
+  }
+  /** A maior duração que o saldo atual paga. null = nem a menor cabe. */
+  const maxAffordableDuration = ((): Duration | null => {
+    if (credits === null) return null
+    const cabiveis = DURATION_OPTIONS.map((o) => o.value).filter((d) => costForDurationOption(d) <= credits)
+    return cabiveis.length ? (Math.max(...cabiveis) as Duration) : null
+  })()
+  const selectedUnaffordable =
+    credits !== null && costForDurationOption(duration) > credits && costForDurationOption(duration) > 0
+
   // Push #156 — ready-to-paste YouTube description for the next-steps guide.
   // PUSH #100 — o que o usuário COPIA agora é exatamente o que o servidor
   // publica: mesma linha de crédito, mesma UTM (lib/videoDescription.ts).
@@ -9350,23 +9388,67 @@ export default function GenerateClient({
               Duration
             </div>
             <div className="flex gap-2 flex-wrap">
-              {DURATION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDuration(opt.value)}
-                  className="rounded-full px-4 py-1.5 text-sm font-bold"
-                  style={{
-                    background: duration === opt.value ? '#2997ff' : 'rgba(255,255,255,.04)',
-                    border: duration === opt.value ? '1px solid rgba(41,151,255,.65)' : '1px solid var(--border)',
-                    color: duration === opt.value ? '#FFFFFF' : 'var(--muted)',
-                    cursor: 'pointer',
-                    transition: 'all 150ms cubic-bezier(.2,0,0,1)',
-                  }}
-                >
-                  {opt.label}
-                </button>
-              ))}
+              {DURATION_OPTIONS.map((opt) => {
+                const custo = costForDurationOption(opt.value)
+                const naoCabe = credits !== null && custo > 0 && custo > credits
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => setDuration(opt.value)}
+                    className="rounded-full px-4 py-1.5 text-sm font-bold"
+                    style={{
+                      background: duration === opt.value ? '#2997ff' : 'rgba(255,255,255,.04)',
+                      border: duration === opt.value ? '1px solid rgba(41,151,255,.65)' : '1px solid var(--border)',
+                      color: duration === opt.value ? '#FFFFFF' : 'var(--muted)',
+                      cursor: 'pointer',
+                      transition: 'all 150ms cubic-bezier(.2,0,0,1)',
+                      // KINEO-CUSTO-VISIVEL — quem não alcança a opção vê isso
+                      // ANTES de clicar, não numa recusa depois. A opção segue
+                      // clicável de propósito: escolher e ler o aviso abaixo é
+                      // caminho legítimo (e o aviso vende o plano).
+                      opacity: naoCabe ? 0.55 : 1,
+                    }}
+                  >
+                    {opt.label}
+                    {custo > 0 && (
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, opacity: 0.85, marginLeft: 6 }}>
+                        · {custo} cr
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
+            {/* O AVISO COM SAÍDA — a parede vira placa de desvio. Só aparece
+                quando a duração SELECIONADA não cabe no saldo. */}
+            {selectedUnaffordable && (
+              <div
+                className="rounded-xl px-3 py-2.5 mt-2"
+                style={{ background: 'rgba(41,151,255,.07)', border: '1px solid rgba(41,151,255,.28)' }}
+              >
+                <p className="text-xs font-bold" style={{ color: '#5cb3ff', lineHeight: 1.5 }}>
+                  {duration}s costs {costForDurationOption(duration)} credits — you have {credits}.
+                  {maxAffordableDuration
+                    ? ` Your credits cover up to ${maxAffordableDuration}s.`
+                    : ' A plan tops you up in one click.'}
+                </p>
+                {maxAffordableDuration && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDuration(maxAffordableDuration)
+                      void trackEvent('duration_downshift_clicked', {
+                        from: duration, to: maxAffordableDuration, credits,
+                      })
+                    }}
+                    className="rounded-lg px-3 py-1.5 mt-1.5 text-xs font-black"
+                    style={{ background: '#2997ff', border: 'none', color: '#fff', cursor: 'pointer' }}
+                  >
+                    Make it {maxAffordableDuration}s ({costForDurationOption(maxAffordableDuration)} cr) →
+                  </button>
+                )}
+              </div>
+            )}
             <p className="text-xs mt-2" style={{ color: 'var(--muted)' }}>
               Longer videos give the AI more room to build a complete story.
             </p>
