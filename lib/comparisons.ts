@@ -29,6 +29,14 @@ const K = (minor: number) => formatCheckoutMoney('usd', minor)
 //    can never drift between two pages.
 
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+// #296 — o custo em créditos de CADA motor passa a ser derivado, pela mesma
+// razão que o preço em dólar já era (ver a nota do KINEO-PRICING-V6 abaixo, em
+// `entryPrice`): a linha `exportLimits` do Kineo listava "a Fast video costs 1
+// credit" — o Kineo 1 passou a custar 2 em 20/08 — e não mencionava o MiniMax
+// H3, que existe desde 19/08. Preço escrito à mão numa página pública envelhece
+// em silêncio, e esta linha aparece em 73 páginas (27 de /alternatives + 46 de
+// /vs), incluindo as que o ChatGPT lê para nos comparar.
+import { creditCostFor } from '@/lib/credits/engineCost'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
 // este módulo só é importado por código server-side, ver revisão no SPRINT).
@@ -329,10 +337,17 @@ export const TOOLS: Record<ToolId, Tool> = {
       `Free (${ft(OFFER, 'up to 3 watermarked Fast videos per 24h, no card', `${TRIAL_GRANT_CREDITS_COPY} free credits, every engine, watermarked; then 1 Fast/mo`)}) · Starter ${K(TIER_PRICES.starter.usd)}/mo, ${TIER_CREDITS.starter} credits (${K(ANNUAL_PRICES.starter.usd)}/year) · Creator ${K(TIER_PRICES.basic.usd)}/mo, ${TIER_CREDITS.basic} credits (${K(ANNUAL_PRICES.basic.usd)}/year) · Studio ${K(TIER_PRICES.pro.usd)}/mo, ${TIER_CREDITS.pro} credits (${K(ANNUAL_PRICES.pro.usd)}/year). Same price worldwide. 7-day money-back guarantee.`,
     watermark: 'Watermarked on the free tier; every paid plan exports a clean, watermark-free MP4.',
     ratios: '9:16 vertical only. That is a deliberate limit, not an oversight.',
-    voice: 'AI voiceover generated from the script it wrote, with premium voices on higher tiers.',
+    // #296 — a linha que o comprador realmente compara lado a lado. Desde
+    // 23/08 a resposta honesta não é mais só "tem narração de IA": nos dois
+    // motores premium o personagem em cena fala a fala escrita, com lip sync,
+    // alternando com o narrador — e é o único item desta tabela inteira que
+    // nenhum dos 27 concorrentes tem. Ficar de fora daqui era esconder o
+    // argumento no lugar onde a decisão acontece.
+    voice:
+      'AI voiceover generated from the script, with a narrator voice matched to the subject. On Kling 3 and MiniMax H3 a character on screen can also speak the scripted line with lip sync, alternating with the narrator inside the same film.',
     stock: 'Stock footage matched scene by scene to the actual voiceover lines, plus generative engines on higher tiers.',
     exportLimits:
-      'Credit-metered: a Fast video costs 1 credit, an AI Generated video 20, Cinematic 50, AI Presenter 70, a Hollywood film 150. Credits do not roll over between months.',
+      `Credit-metered: a Kineo 1 video costs ${creditCostFor('fast', true)} credits, Seedance ${creditCostFor('cinematic_ai')}, MiniMax H3 ${creditCostFor('cinematic_h3')}, Kling 2.5 ${creditCostFor('cinematic_kling')}, AI Presenter ${creditCostFor('presenter')}, and a Kling 3 film ${creditCostFor('cinematic_hollywood')}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,
