@@ -1267,6 +1267,61 @@ export default function PricingClient() {
           </p>
         </div>
 
+        {/* ═══ #288 — KINEO-PROVA-NO-PRECO-2026-08-23 ══════════════════════
+            A vitrine de filmes reais existia na home, no /examples e em todo
+            modal de venda — em TODA superfície menos a página onde a pessoa
+            decide pagar. Quem chega aqui por link direto (e-mail, diretório,
+            afiliado) vê uma tabela de preços sem nunca ter visto o produto
+            funcionando: é pedir dinheiro por uma promessa em texto.
+            Dois filmes reais, com o selo do motor que os fez (regra do selo
+            honesto), logo antes do FAQ — o último quadro antes da decisão.
+            Clipes leves da curadoria (104-244KB), muted/loop/playsInline,
+            preload=metadata; some no celular (`hidden md:grid`) porque não se
+            paga 2 vídeos de banda numa tela de 380px. */}
+        <div className="mt-16">
+          <div className="mb-6 text-center">
+            <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">
+              MADE WITH KINEO
+            </div>
+            <h2 className="text-balance text-2xl font-black tracking-tight sm:text-3xl text-[#f5f5f7]">
+              This is what a plan buys
+            </h2>
+            <p className="mt-2 text-[13px] text-[#86868b]">
+              Both films below were made on Kineo, start to finish, and are labelled with the engine that rendered them.
+            </p>
+          </div>
+          <div className="mx-auto hidden max-w-3xl grid-cols-2 gap-4 md:grid">
+            {[
+              // IDs conferidos em disco (public/previews) — os MESMOS clipes
+              // leves que os modais de venda usam. Arquivo inexistente aqui =
+              // quadro preto na página de preço, então nada de id de memória.
+              { id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', engine: 'VEO 3.1', cap: 'Made with Kineo' },
+              { id: '26d25419-6719-47ab-b24b-df214e007fbd', engine: 'KLING 2.5', cap: 'Made with Kineo' },
+            ].map((f) => (
+              <div key={f.id} className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[#111]" style={{ aspectRatio: '16 / 10' }}>
+                <video
+                  src={`/previews/${f.id}.mp4`}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+                <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-[3px] text-[9px] font-black tracking-[.1em] text-white">
+                  {f.engine}
+                </span>
+                <span className="absolute bottom-2 left-2 right-2 text-[11px] font-semibold text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>
+                  {f.cap}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mx-auto mt-3 max-w-2xl text-center text-[12px] text-[#86868b]">
+            On Kling 3 and MiniMax H3, characters on screen speak their own lines with lip sync while a narrator carries the story.
+          </p>
+        </div>
+
         {/* Push #099 — FAQ accordion. Five evergreen objections lifted from
             support tickets and the homepage CRO copy. Pure client-side
             useState toggle so the page stays static-renderable. */}

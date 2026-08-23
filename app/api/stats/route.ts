@@ -14,9 +14,22 @@ import { NextResponse } from 'next/server'
 // these are small cushions so off-peak hours never publish a 0. Previously the
 // total baseline was 9847 (a ~40x inflation over the real ~253) and inconsistent
 // with every other "creators" claim on the site — corrected to a truthful ~300+.
-const TODAY_BASELINE = 10
-const WEEK_BASELINE = 20
-const TOTAL_BASELINE = 50
+// ⚠️ #292 — KINEO-NUMERO-VERDADEIRO-2026-08-23. OS COLCHÕES MORRERAM.
+// Medido hoje no banco: 1.319 vídeos no total, 291 nos últimos 7 dias. Ou
+// seja, o colchão que existia para "nunca publicar zero" virou ruído: somar
+// 50 a 1.319 não protege de nada e transforma um número REAL num número
+// aproximado — exatamente o que a regra do selo honesto proíbe em toda
+// superfície pública da marca.
+// E há um argumento de venda além da ética: a verdade agora é MAIOR que a
+// invenção. Quem chegou a inflar o total para 9.847 estava, sem saber,
+// escrevendo o teto do próprio crescimento — o número real passou o colchão
+// e o colchão passou a esconder o quanto a casa cresceu.
+// Zero continua tratado: quem decide EXIBIR é o componente (LiveStatsBadge /
+// LiveStatsBand só renderizam acima de limiares próprios). O papel desta
+// rota é dizer a verdade; o papel da tela é decidir se a verdade cabe.
+const TODAY_BASELINE = 0
+const WEEK_BASELINE = 0
+const TOTAL_BASELINE = 0
 
 export async function GET() {
   try {

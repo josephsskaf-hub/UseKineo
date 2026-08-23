@@ -65,6 +65,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/text-to-video-shorts', priority: 0.9, freq: 'weekly' },
     { path: '/cheapest-ai-shorts-maker', priority: 0.8, freq: 'weekly' },
     { path: '/ai-shorts-without-filming', priority: 0.8, freq: 'weekly' },
+    // #289 — cluster 'talking characters / lip sync'. Prioridade 0.9 porque é
+    // a única página que vende algo que NENHUM dos 27 concorrentes de
+    // /alternatives faz (diálogo com lip sync alternando com narração), e
+    // porque a intenção de quem busca isso é de compra, não de pesquisa.
+    { path: '/ai-video-with-talking-characters', priority: 0.9, freq: 'weekly' },
     // KINEO-CEO-HOUR-2026-08-17 (#1) — captura de 'ai video upscaler/enhancer'
     { path: '/ai-video-upscaler', priority: 0.8, freq: 'weekly' },
     // KINEO-SEO-2026-08-18 — captura de 'ai image generator' / 'ai voice

@@ -549,6 +549,57 @@ export default async function PublicVideoPage({ params }: { params: { id: string
           Make one like this — free →
         </PublicVideoCtaLink>
       </div>
+
+      {/* ═══ #291 — KINEO-CTA-ALCANCAVEL-2026-08-23 ═══════════════════════════
+          O DENOMINADOR QUE O OBSERVER DE 17/08 FOI BUSCAR (ver a nota longa em
+          components/PublicVideoCtaLink.tsx): 234 sessões → 7 cliques → 0 contas.
+          Aquele commit instrumentou a pergunta "ela não quis, ou ela nunca
+          viu?" e a própria nota já dizia que a geometria era suspeita POR
+          CONSTRUÇÃO: acima da primeira CTA existem breadcrumb, H1, subtítulo e
+          um player 9:16 que, num telefone de 380px, tem ~675px de altura — a
+          CTA começa depois da dobra, sempre.
+          Esta barra resolve a geometria sem tocar no conteúdo: fixa no rodapé,
+          SÓ no celular (`media (max-width: 768px)`), sempre alcançável com o
+          polegar. `placement="sticky_mobile"` mantém a medição separada das
+          outras três posições — se ela converter e as outras não, a resposta
+          era geometria; se nenhuma converter, era a oferta. A instrumentação
+          continua respondendo a pergunta, agora com a variável certa isolada.
+          `pb` extra no <main> impede que a barra cubra o último parágrafo. */}
+      <style>{`
+        .kineo-sticky-cta { display: none; }
+        @media (max-width: 768px) {
+          .kineo-sticky-cta {
+            display: block;
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 60;
+            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(0,0,0,0.92);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+          }
+          .kineo-sticky-cta a { width: 100%; text-align: center; }
+        }
+      `}</style>
+      <div className="kineo-sticky-cta">
+        <PublicVideoCtaLink
+          href={signupHref}
+          videoId={params.id}
+          placement="sticky_mobile"
+          style={{
+            display: 'block',
+            background: BLUE,
+            color: '#000',
+            fontWeight: 900,
+            padding: '14px 18px',
+            borderRadius: 12,
+            textDecoration: 'none',
+            fontSize: '0.95rem',
+          }}
+        >
+          Make one like this — free →
+        </PublicVideoCtaLink>
+      </div>
     </main>
   )
 }

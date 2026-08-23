@@ -10793,12 +10793,31 @@ export default function GenerateClient({
                         trial não tem marca d'água (o servidor decide por
                         isFreePlanFast, que agora exclui o trial). O botão não
                         pode prometer o contrário. */}
+                    {/* ⚠️ #287 — KINEO-BOTAO-NAO-VENDE-CONTRA-SI-2026-08-23.
+                        MEDIDO (funil 7d): 150 pessoas TERMINARAM um filme e só
+                        64 baixaram — 86 filmes prontos abandonados, o maior
+                        vazamento do produto hoje (43% de aproveitamento no
+                        momento de maior desejo que existe).
+                        O rótulo era `Download with Kineo watermark (…)`: a
+                        primeira palavra depois de "Download" era a RESSALVA. No
+                        instante em que a pessoa acabou de ver o próprio filme,
+                        o botão principal falava do defeito da cópia grátis em
+                        vez do filme. Agora o botão promete o FILME e a ressalva
+                        vira a linha de baixo — que continua existindo, visível
+                        e honesta (regra do selo honesto), só deixa de ser
+                        manchete. Deliver-first intacto: o download grátis
+                        continua primeiro, sem pedágio. */}
                     {planTier === 'free' && !hasPaid && !trialActive
-                      ? `Download with Kineo watermark (${finalVideoSeconds ?? duration}s · MP4)`
+                      ? `Download my film (${finalVideoSeconds ?? duration}s · MP4)`
                       : planTier === null && !hasPaid
                         ? `Download Your Short (${finalVideoSeconds ?? duration}s · MP4)`
                         : `Download clean Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
+                )}
+                {!showPostVideoExportChoice && planTier === 'free' && !hasPaid && !trialActive && (
+                  <p className="text-center" style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45, marginTop: -4 }}>
+                    Free copy — carries a small Kineo watermark. Yours to post anywhere.
+                  </p>
                 )}
 
                 {/* ═══════════════════════════════════════════════════════════

@@ -222,8 +222,16 @@ export const ENGINES: Record<string, Engine> = {
     credits: '45 credits per video',
     tier: 'Creator',
     h1: 'MiniMax H3 AI video generator — cinematic film that fits your plan',
+    // #293 — KINEO-H3-FALA-NA-PAGINA-2026-08-23. Desde hoje o H3 renderiza
+    // cenas de DIÁLOGO com lip sync alternando com narração (o mesmo desenho do
+    // Kling 3), validado em dois renders reais. A página vendia só "cinemático
+    // e barato" — o argumento mais forte do motor estava fora do texto que o
+    // Google lê e que o comprador compara. O link interno também é o que dá
+    // tração à página nova /ai-video-with-talking-characters: página órfã
+    // demora semanas para ser indexada; página linkada de uma que já ranqueia
+    // entra na próxima passada do crawler.
     intro:
-      'MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders multi-scene films at 45 credits, so a Creator plan makes two of them and a Studio plan four — where the top-tier Kling 3, at 150 credits, fits once. H3 also reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.',
+      'MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders multi-scene films at 45 credits, so a Creator plan makes two of them and a Studio plan four — where the top-tier Kling 3, at 150 credits, fits once. Since August 2026 it also renders talking-character scenes: a person on screen speaks your exact line with lip sync while a documentary narrator carries the rest of the film. H3 reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.',
     bestFor: 'Series and channels: anything where the same look has to survive across eight scenes and across weeks of episodes.',
     tradeoff: 'Renders at 768p rather than 1080p. For a 9:16 Short that is plenty, and one-click HD Enhance covers the cases where it is not.',
     faq: [
