@@ -607,10 +607,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
 
-    const prompt = (body.prompt ?? '').trim()
+    const promptRaw = (body.prompt ?? '').trim()
+    if (!promptRaw) {
+      return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
+    }
+
+    // Push #278 — Studio camera preset com dentes. O Studio anexa
+    // "[camera: <movimento>]" ao prompt; até hoje isso era best-effort (o GPT
+    // via a tag no texto e "tendia" a aplicar — a mesma classe de promessa
+    // frouxa que o contrato-Hollywood C3 matou). Agora é determinístico:
+    // extraímos o movimento em código, tiramos a tag do texto (para nunca
+    // vazar em narração, chunk verbatim ou título) e anexamos a TODO
+    // visual_prompt antes do clamp, nos três caminhos (viral, verbatim, normal).
+    const cameraTag = promptRaw.match(/\[camera:\s*([^\]]+)\]/i)
+    const cameraMove = cameraTag ? cameraTag[1].trim().slice(0, 120) : null
+    const prompt = cameraMove
+      ? promptRaw.replace(/\[camera:[^\]]*\]/gi, ' ').replace(/[ \t]{2,}/g, ' ').trim()
+      : promptRaw
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
     }
+    const withCamera = (visual: string): string =>
+      cameraMove && visual.trim()
+        ? `${visual.trim().replace(/[.,;\s]+$/, '')}. Camera move: ${cameraMove}.`
+        : visual
 
     // Push #316 — language selection (en | pt | es), defaults to English.
     const language: AnalyzeLanguage =
@@ -692,7 +712,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
             duration_seconds: asNumber(gpt.duration_seconds, s.duration_seconds),
             caption: clampCaption(asString(gpt.caption, s.voiceover.split(' ').slice(0, 6).join(' '))),
             highlight: asString(gpt.highlight, '') || null,
-            visual_prompt: clampToProviderLimit(asString(gpt.visual_prompt, fallbackV.scenes[i]?.visual_prompt ?? '')),
+            visual_prompt: clampToProviderLimit(withCamera(asString(gpt.visual_prompt, fallbackV.scenes[i]?.visual_prompt ?? ''))),
             voiceover: s.voiceover, // ← exact parsed text, NEVER replaced
           }
         })
@@ -808,7 +828,7 @@ Return valid JSON only: { "viral_title": "...", "youtube_title": "...", "youtube
               duration_seconds: asNumber(gpt.duration_seconds, s.duration_seconds),
               caption: clampCaption(asString(gpt.caption, s.voiceover.split(' ').slice(0, 6).join(' '))),
               highlight: asString(gpt.highlight, '') || null,
-              visual_prompt: clampToProviderLimit(asString(gpt.visual_prompt, fallbackV.scenes[i]?.visual_prompt ?? '')),
+              visual_prompt: clampToProviderLimit(withCamera(asString(gpt.visual_prompt, fallbackV.scenes[i]?.visual_prompt ?? ''))),
               voiceover: s.voiceover, // ← user's exact words, NEVER replaced
             }
           })
@@ -915,7 +935,11 @@ Return ONLY the JSON object — no markdown, no commentary.`
       const data = JSON.parse(raw) as Record<string, unknown>
 
       const plan = durationPlanFor(duration)
-      const scenes = coerceScenes(data.scenes, fallback.scenes, plan.sceneCount)
+      // Push #278 — caminho normal também honra o camera preset do Studio.
+      const scenes = coerceScenes(data.scenes, fallback.scenes, plan.sceneCount).map((s) => ({
+        ...s,
+        visual_prompt: clampToProviderLimit(withCamera(s.visual_prompt)),
+      }))
       const viral_title = asString(data.viral_title, fallback.viral_title).slice(0, 120)
       const hook = asString(data.hook, fallback.hook)
       const summary = asString(data.summary, fallback.summary)
