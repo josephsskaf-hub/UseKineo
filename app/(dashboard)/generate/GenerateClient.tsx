@@ -6261,7 +6261,13 @@ export default function GenerateClient({
         setQuality('cinematic_ai')
         falUsedRef.current = true
         falModelRef.current = typeof data.fal_model === 'string' ? data.fal_model : ''
-        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : 'cinematic_ai'
+        // #279 — KINEO-H3-CLIENT-FIX: 'cinematic_h3' faltava neste mapa. O
+        // servidor devolvia h3, o cliente colapsava para 'cinematic_ai', e a
+        // compose recusava com "These AI clips do not match their signed
+        // generation" (claim h3/45cr ≠ pedido ai/20cr). Mesmo defeito que o
+        // normalize do servidor teve em 19/08 — o espelho do cliente ficou
+        // para trás. Allowlist explícita, com fallback seguro.
+        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : 'cinematic_ai'
         // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (empty arrays for
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
