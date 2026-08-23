@@ -18,6 +18,13 @@ interface Summary {
   one_time: number
   credits_in_circulation: number
   credits_used_total: number
+  // #295 — o lado entregue do placar.
+  made_videos_total: number
+  made_animations_total: number
+  made_images_total: number
+  made_audios_total: number
+  burned_nothing_delivered: number
+  burned_credits: number
 }
 
 function fmtDate(iso: string | null): string {
@@ -51,6 +58,20 @@ function usageLabel(p: PersonRow): string {
   if (p.used_audio > 0) parts.push(`🎙 ${p.used_audio}`)
   if (p.used_enhance > 0) parts.push(`✨ ${p.used_enhance}`)
   if (p.used_other > 0) parts.push(`• ${p.used_other}`)
+  return parts.length ? parts.join(' · ') : '—'
+}
+
+// #295 — O QUE A PESSOA RECEBEU (o contra-peso de `usageLabel`, que mostra só
+// o que ela GASTOU). Ler as duas colunas lado a lado responde, numa olhada, a
+// pergunta que abriu esta mudança: "gastou 40 e não fez nada?" — se a coluna
+// da direita mostra `🎞 6 · 🖼 2`, o produto funcionou e a leitura anterior
+// era um ponto cego do painel, não um cliente insatisfeito.
+function deliveredLabel(p: PersonRow): string {
+  const parts: string[] = []
+  if (p.made_videos > 0) parts.push(`🎞 ${p.made_videos}`)
+  if (p.made_animations > 0) parts.push(`🌀 ${p.made_animations}`)
+  if (p.made_images > 0) parts.push(`🖼 ${p.made_images}`)
+  if (p.made_audios > 0) parts.push(`🔊 ${p.made_audios}`)
   return parts.length ? parts.join(' · ') : '—'
 }
 
@@ -150,6 +171,16 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             ['One-time', summary.one_time, '#fbbf24'],
             ['Credits in wallets', summary.credits_in_circulation, '#2997ff'],
             ['Credits spent', summary.credits_used_total, '#a1a1a8'],
+            // #295 — o que o dinheiro virou. Um placar de gasto sem um placar
+            // de ENTREGA mede o custo e ignora o produto.
+            ['Videos made', summary.made_videos_total, '#34d399'],
+            ['Animations', summary.made_animations_total, '#34d399'],
+            ['Images', summary.made_images_total, '#34d399'],
+            ['Voiceovers', summary.made_audios_total, '#34d399'],
+            // O alarme fica ao lado do placar de propósito: número ruim
+            // escondido numa aba é número que ninguém age em cima.
+            ['⚠ Burned (nothing back)', summary.burned_nothing_delivered, summary.burned_nothing_delivered > 0 ? '#f87171' : '#34d399'],
+            ['⚠ Credits burned', summary.burned_credits, summary.burned_credits > 0 ? '#f87171' : '#34d399'],
           ].map(([label, value, color]) => (
             <div key={label as string} className="rounded-2xl px-4 py-3" style={CARD}>
               <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#86868b' }}>{label}</div>
@@ -183,7 +214,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             <b style={{ color: '#34d399' }}>sub</b> = paying now (mirrors Stripe) · <b style={{ color: '#f87171' }}>left</b> = subscribed and cancelled (hottest win-back cohort) · <b style={{ color: '#fbbf24' }}>pack</b> = paid once, never subscribed.
           </p>
           <Table
-            head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Last activity']}
+            head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity']}
             border="rgba(52,211,153,.4)"
             empty="No paying customers match."
             rows={buyers.map((p) => [
@@ -195,6 +226,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               p.credits_used.toLocaleString('en-US'),
               <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#fb923c' : '#2997ff' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
               usageLabel(p),
+              <span key="g" style={{ color: p.burned_nothing_delivered ? '#f87171' : '#34d399', fontWeight: 700 }}>
+                {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
+              </span>,
               fmtDate(p.last_use),
             ])}
           />
@@ -210,7 +244,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             Every signup, newest first, with the full credit story per person.
           </p>
           <Table
-            head={['Email', 'Signed up', 'Country', 'Plan', 'Granted', 'Used', 'Left', 'Spent on', 'Last activity']}
+            head={['Email', 'Signed up', 'Country', 'Plan', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity']}
             border="rgba(255,255,255,.14)"
             empty="No one matches."
             rows={everyone.map((p) => [
@@ -222,6 +256,9 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
               p.credits_used.toLocaleString('en-US'),
               <b key="l" style={{ color: (p.credits_left ?? 0) <= 5 ? '#fb923c' : '#2997ff' }}>{p.credits_left?.toLocaleString('en-US') ?? '—'}</b>,
               usageLabel(p),
+              <span key="g" style={{ color: p.burned_nothing_delivered ? '#f87171' : '#34d399', fontWeight: 700 }}>
+                {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
+              </span>,
               fmtDate(p.last_use),
             ])}
           />
