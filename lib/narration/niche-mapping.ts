@@ -41,16 +41,20 @@ type NicheMapping = {
 }
 
 const NICHE_PERSONA_MAP: Record<ContentNiche, NicheMapping> = {
-  mystery:      { primary: 'dark-mystery',      secondary: 'conspiracy',        cinematic: 'emotional-storyteller' },
+  // #282 — mystery/dark_history/history no tier cinematic caíam em
+  // emotional-storyteller (nova, voz FEMININA) — o fundador ouviu num filme
+  // de Pompeia e reprovou na hora. Documentário de mistério/história pede
+  // voz masculina grave: dark-mystery (onyx) e documentary (echo).
+  mystery:      { primary: 'dark-mystery',      secondary: 'conspiracy',        cinematic: 'dark-mystery' },
   conspiracy:   { primary: 'conspiracy',         secondary: 'dark-mystery',      cinematic: 'dark-mystery' },
-  dark_history: { primary: 'documentary',        secondary: 'dark-mystery',      cinematic: 'emotional-storyteller' },
+  dark_history: { primary: 'documentary',        secondary: 'dark-mystery',      cinematic: 'dark-mystery' },
   finance:      { primary: 'finance-authority',  secondary: 'storyteller',       cinematic: 'luxury-narrator' },
   billionaire:  { primary: 'finance-authority',  secondary: 'luxury-narrator',   cinematic: 'luxury-narrator' },
   money:        { primary: 'finance-authority',  secondary: 'energetic-facts',   cinematic: 'luxury-narrator' },
   curiosities:  { primary: 'energetic-facts',    secondary: 'storyteller',       cinematic: 'emotional-storyteller' },
   learning:     { primary: 'storyteller',         secondary: 'energetic-facts',   cinematic: 'documentary' },
   facts:        { primary: 'energetic-facts',    secondary: 'storyteller',       cinematic: 'documentary' },
-  history:      { primary: 'documentary',         secondary: 'emotional-storyteller', cinematic: 'emotional-storyteller' },
+  history:      { primary: 'documentary',         secondary: 'emotional-storyteller', cinematic: 'documentary' },
   geography:    { primary: 'documentary',         secondary: 'storyteller',       cinematic: 'luxury-narrator' },
   science:      { primary: 'documentary',         secondary: 'futuristic-ai',     cinematic: 'futuristic-ai' },
   luxury:       { primary: 'luxury-narrator',    secondary: 'finance-authority', cinematic: 'luxury-narrator' },
@@ -76,7 +80,7 @@ const NICHE_KEYWORDS: Array<{ niche: ContentNiche; keywords: string[] }> = [
   { niche: 'technology',   keywords: ['tech', 'software', 'computer', 'internet', 'smartphone', 'app', 'code', 'startup', 'silicon valley', 'quantum', 'space'] },
   { niche: 'science',      keywords: ['science', 'physics', 'chemistry', 'biology', 'experiment', 'discovery', 'nasa', 'universe', 'black hole', 'evolution', 'dna'] },
   // history / geography
-  { niche: 'history',      keywords: ['ancient', 'roman', 'empire', 'medieval', 'century', 'world war', 'wwii', 'wwi', 'historical', 'civilization', 'pharaoh', 'viking', 'revolution'] },
+  { niche: 'history',      keywords: ['ancient', 'roman', 'empire', 'medieval', 'century', 'centuries', 'world war', 'wwii', 'wwi', 'historical', 'civilization', 'pharaoh', 'viking', 'revolution', 'archaeolog', 'eyewitness account', 'scribes'] },
   { niche: 'geography',    keywords: ['country', 'capital', 'mountain', 'ocean', 'continent', 'nation', 'population', 'territory', 'island', 'border', 'flag', 'language spoken', 'city'] },
   { niche: 'travel',       keywords: ['travel', 'visit', 'beach', 'destination', 'tourism', 'backpack', 'hostel', 'wanderlust', 'explore', 'hidden gem'] },
   // generic learning / facts last — lowest specificity
@@ -108,10 +112,26 @@ const VERTICAL_TO_NICHE: Record<string, ContentNiche> = {
 export function detectNiche(script: string, vertical?: string): ContentNiche {
   const lower = script.toLowerCase()
 
-  // 1. Run keyword scan — first match wins (list is ordered most→least specific)
+  // #282 — KINEO-NICHO-POR-PESO-2026-08-23. Era "primeiro match ganha": o
+  // roteiro de Pompeia dizia "scientists" (1 hit fraco em science, que vem
+  // antes na lista) e perdia para "Roman history... centuries" (2+ hits em
+  // history). Resultado medido: filme histórico narrado por futuristic-ai
+  // (alloy, feminina) com trilha "tech" — o fundador ouviu e reprovou.
+  // Agora CONTA-SE os hits por nicho; empate mantém a ordem da lista (que
+  // continua most→least specific, preservando a semântica antiga).
+  // E o match vira FRONTEIRA DE PALAVRA + prefixo (regex \bkw), não substring
+  // solto: 'app' casava dentro de "h·app·ened" e 'science' dentro de
+  // "scientists" — dois falsos positivos MEDIDOS neste mesmo roteiro. Prefixo
+  // preserva plurais ('fact'→'facts', 'archaeolog'→'archaeologists').
+  const hasKw = (kw: string): boolean =>
+    new RegExp('\\b' + kw.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(lower)
+  let best: ContentNiche | null = null
+  let bestScore = 0
   for (const { niche, keywords } of NICHE_KEYWORDS) {
-    if (keywords.some((kw) => lower.includes(kw))) return niche
+    const score = keywords.reduce((acc, kw) => acc + (hasKw(kw) ? 1 : 0), 0)
+    if (score > bestScore) { best = niche; bestScore = score }
   }
+  if (best) return best
 
   // 2. Fall back to channel vertical if no keyword matched
   if (vertical) {
