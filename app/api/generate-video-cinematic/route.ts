@@ -2470,8 +2470,15 @@ export async function POST(req: NextRequest) {
       // (Contrato C1: a voz é a do usuário) — então no H3 TODA cena leva TTS,
       // inclusive as de diálogo, usando a própria fala como narração. Sem isto
       // o filme sairia com buracos de silêncio exatamente nas cenas-chave.
+      // #281 — KINEO-H3-DIALOGO-2026-08-23 (fundador: "quero que ela fale em
+      // alguns momentos, e em outros a narracao assuma"). O flatten de 19/08
+      // (dialogo virava cena narrada) MORREU: o proprio builder mediu que o H3
+      // devolve fala nativa alta e clara (pico -0.2dB) — o motor fala, so
+      // faltava dirigir. Agora o H3 usa o MESMO desenho do Kling 3: cena de
+      // dialogo fala sozinha (audio nativo, narracao null), o resto e narrado.
+      // C1 preservado: a dialogueLine vem do roteiro redistribuido em codigo.
       const hNarrations = wantsH3
-        ? plan.scenes.map((s) => s.voiceover ?? s.dialogueLine ?? null)
+        ? plan.scenes.map((s) => (s.type === 'dialogue' ? null : (s.voiceover ?? null)))
         : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
       const hVoiceoverScript =
         hNarrations.filter(Boolean).join(' ') ||
@@ -2652,6 +2659,15 @@ export async function POST(req: NextRequest) {
           // + voz de outra pessoa = dublagem de terror (o bug que o fundador
           // viu DUAS vezes). Nao confiamos so no planner: o sufixo vai sempre.
           const mouthSuffix = hs.type !== 'dialogue' ? ' If any person is visible: mouth closed, not speaking, no lip movement, no talking.' : ''
+          // #281 — KINEO-H3-BOCA-2026-08-23 (fundador, filme de Pompeia: "o
+          // avatar fala, a voz nao aparece, so a narracao"). O render saiu COM
+          // o mouthSuffix acima e o H3 ignorou: e um motor treinado em gente
+          // falando, e aviso no FIM do prompt pesa pouco — a MESMA licao do
+          // UPRIGHT-B (tokens iniciais mandam mais). Na familia h3, onde NAO
+          // existe fala nativa (tudo e narrado), a proibicao vira PREFIXO.
+          const mouthPrefix = family === 'h3' && hs.type !== 'dialogue'
+            ? 'No one talks on camera. Every visible person is silent, mouth closed, no lip movement, not speaking. '
+            : ''
           // KINEO-SPECTACLE-2026-08-17 (fundador: "nao estava muito nitida,
           // sem efeitos") — DNA de nitidez/escala em todo b-roll, em CODIGO
           // (nao dependemos do planner escrever bonito).
@@ -2669,7 +2685,7 @@ export async function POST(req: NextRequest) {
           const uprightPrefix = hs.type !== 'dialogue' && !sceneAnchor
             ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
             : ''
-          const scenePrompt = uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          const scenePrompt = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           submittedPrompt = scenePrompt
           try {
             id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor)
@@ -2782,12 +2798,11 @@ export async function POST(req: NextRequest) {
         // 'host' (presenter clip, speech baked in, timeline follows the real
         // audio seconds) | 'dialogue' | 'cinematic' | 'support'. Compose keys
         // volume/narration/caption/duration decisions off this.
-        // KINEO-H3-FIX-2026-08-19 — o compose abaixa a narração e usa a fala
-        // nativa quando vê 'dialogue'. No H3 não existe fala nativa, então a
-        // cena de diálogo é reportada como 'cinematic' (narrada por cima, como
-        // qualquer outra). O rótulo 'host' fica: esse caminho gera o próprio
-        // áudio via presenter e independe do motor de cena.
-        scene_engines: wantsH3 ? hEngines.map((e) => (e === 'dialogue' ? 'cinematic' : e)) : hEngines,
+        // #281 — KINEO-H3-DIALOGO-2026-08-23: o rótulo 'dialogue' volta a
+        // viajar de verdade no H3 (o map dialogue→cinematic de 19/08 morreu
+        // junto com o flatten). Compose vê 'dialogue' → não narra por cima,
+        // não muta o clipe, e transcreve a fala nativa para a legenda.
+        scene_engines: hEngines,
         // KINEO-HOLLYWOOD-RETRY-2026-08-16 — o client precisa do prompt e da
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
@@ -2808,12 +2823,10 @@ export async function POST(req: NextRequest) {
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per
         // dialogue scene (null for the rest), parallel to fal_request_ids.
         // Compose uses it to caption dialogue scenes with the REAL speech.
-        // KINEO-H3-FIX-2026-08-19 — scene_dialogues legenda a FALA NATIVA da
-        // cena. No H3 a fala virou narração TTS (acima), que já gera a própria
-        // legenda karaokê — manter as duas legendaria o mesmo texto em dobro.
-        scene_dialogues: wantsH3
-          ? plan.scenes.map(() => null)
-          : plan.scenes.map((s) => (s.type === 'dialogue' && s.dialogueLine ? s.dialogueLine : null)),
+        // #281 — KINEO-H3-DIALOGO-2026-08-23: com o diálogo nativo religado,
+        // o H3 volta a mandar a fala exata da cena (compose a usa para a
+        // legenda lipsync via Whisper, igual Kling 3).
+        scene_dialogues: plan.scenes.map((s) => (s.type === 'dialogue' && s.dialogueLine ? s.dialogueLine : null)),
         cost_estimate_usd: plan.estimatedCostUsd,
         // ⚠️ KINEO-H3-FIX-2026-08-19 — ESTA LINHA ERA `quality: 'cinematic_hollywood'`
         // CRAVADO, e foi o bug que travou o primeiro render H3 da história (o do

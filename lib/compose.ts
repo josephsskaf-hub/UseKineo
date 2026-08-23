@@ -2864,7 +2864,13 @@ export function buildHollywoodCreatomateSource({
       // o áudio dela é o NOSSO TTS (apresentador), não voz inventada do
       // modelo. Hoje o host path está atrás de flag (desligado), mas se ligar
       // num render H3, mutar o host = cena de apresentador MUDA. Blindado.
-      volume: muteClipAudio && clip.engine !== 'host' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
+      // #281 — KINEO-H3-DIALOGO-2026-08-23: 'dialogue' sai do mute do H3 junto
+      // com 'host'. A fala nativa da cena de diálogo agora É dirigida (o
+      // planner escreve a linha exata no prompt) — mutá-la seria o defeito que
+      // o fundador reportou: boca mexendo sem voz. O mute continua valendo
+      // para cinematic/support, onde a voz inventada do modelo briga com a
+      // narração (o caso do "senhor de casaco" de 20/08).
+      volume: muteClipAudio && clip.engine !== 'host' && clip.engine !== 'dialogue' ? '0%' : (HOLLYWOOD_CLIP_VOLUME[clip.engine] ?? '35%'),
       ...(HOLLYWOOD_CROSSFADE && i > 0
         ? { enter_transition: { type: 'fade', duration: fadeFor(clip) } }
         : HOLLYWOOD_CROSSFADE && (clip.engine === 'dialogue' || clip.engine === 'host')
