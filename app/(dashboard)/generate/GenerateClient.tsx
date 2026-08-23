@@ -4060,7 +4060,13 @@ export default function GenerateClient({
             // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (parallel to
             // clip_urls) so compose routes native-audio volume + block TTS.
             // Only sent for hollywood renders; every other mode is unchanged.
-            ...(falUsedRef.current && falQualityRef.current === 'cinematic_hollywood' && sceneEnginesRef.current.length > 0
+            // #280 — KINEO-H3-SCENES-FIX: o H3 compõe pelo MESMO caminho
+            // hollywood no servidor (per-scene narration), mas este spread só
+            // mandava scene_* para 'cinematic_hollywood'. Resultado: compose
+            // recebia 9 cenas sem narração nenhuma → filme MUDO de 90s (clipes
+            // inteiros, sem trilho de voz). Par do servidor: compose route
+            // linha ~1558 aceita hollywood E h3 — agora o cliente também.
+            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3') && sceneEnginesRef.current.length > 0
               ? {
                   scene_engines: sceneEnginesRef.current,
                   scene_narrations: sceneNarrationsRef.current,
