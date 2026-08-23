@@ -60,6 +60,12 @@ const FROM_EMAIL = 'Joseph at Kineo <joseph@usekineo.com>'
 const REPLY_TO = 'josephsskaf@gmail.com'
 const PROMO = 'FIRST50'
 const STAMP = 'first50_quentes_emailed_v1'
+// #284 — KINEO-FIRST50-ONDA2-2026-08-23: os 17 da onda 1 (22/08 14:22 UTC)
+// deram ZERO clique em 24h. Assunto novo, ângulo novo (notícia de produto,
+// não desconto repetido), carimbo próprio, e piso de 60h desde a onda 1 —
+// o fundador dispara na segunda, nunca antes do respiro.
+const STAMP2 = 'first50_quentes_emailed_v2'
+const ONDA2_GAP_MS = 60 * 60 * 60 * 1000
 const ADMIN_EMAILS = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com'])
 
 function isInternalOrJunk(email: string): boolean {
@@ -115,6 +121,42 @@ Founder, Kineo`
   return { texto: texto + '\n\n' + emailFooterText(userId), html }
 }
 
+// #284 — corpo da ONDA 2. Regra do ângulo: quem ignorou "50% off" uma vez não
+// abre outro "50% off" — abre NOTÍCIA. E a notícia é real e desta semana: o
+// personagem do filme agora FALA (diálogo nativo com lip sync no H3 e no
+// Kling 3, validado hoje pelos dois renders do fundador). O cupom entra como
+// lembrete de uma linha, não como manchete. Zero desconto novo, zero
+// escassez inventada.
+function corpoOnda2(userId: string) {
+  const link = `https://usekineo.com/pricing?promo=${PROMO}&utm_source=first50_onda2`
+  const texto = `Quick follow-up — no new pitch, just one thing we shipped this weekend that changes what your films can look like.
+
+Until now, every Kineo film had one narrator over b-roll. As of today, the character ON SCREEN can speak — their own voice, lips moving with the words — while the documentary narrator carries the rest of the story. It's the difference between a slideshow and a scene.
+
+It works on MiniMax H3 (45 credits a film) and Kling 3. Nothing to configure: write your script, the director decides who speaks when.
+
+Your ${PROMO} code still works — 50% off the first month of Creator (${CREATOR_PRICE}/mo, ~${CREATOR_AI_FILMS} AI films). Same link as before:
+
+${link}
+
+If you already decided Kineo isn't for you, reply with one word about why and I'll stop emailing — I read every reply.
+
+Joseph
+Founder, Kineo`
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;color:#1a1a1a;line-height:1.6">
+  <p>Quick follow-up — no new pitch, just one thing we shipped this weekend that changes what your films can look like.</p>
+  <p>Until now, every Kineo film had one narrator over b-roll. As of today, <b>the character on screen can speak</b> — their own voice, lips moving with the words — while the documentary narrator carries the rest of the story. It's the difference between a slideshow and a scene.</p>
+  <p>It works on MiniMax H3 (45 credits a film) and Kling 3. Nothing to configure: write your script, the director decides who speaks when.</p>
+  <p>Your <b>${PROMO}</b> code still works — 50% off the first month of Creator (${CREATOR_PRICE}/mo, ~${CREATOR_AI_FILMS} AI films). Same link as before:</p>
+  <p style="margin:24px 0"><a href="${link}" style="background:#2997ff;color:#fff;padding:13px 26px;border-radius:10px;text-decoration:none;font-weight:700;display:inline-block">See the new engines — 50% off month one</a></p>
+  <p style="color:#555">If you already decided Kineo isn't for you, reply with one word about why and I'll stop emailing — I read every reply.</p>
+  <p style="color:#555">Joseph<br>Founder, Kineo</p>
+  ${emailFooterHtml(userId)}
+</div>`
+  return { texto: texto + '\n\n' + emailFooterText(userId), html }
+}
+
 export async function GET(req: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -127,7 +169,8 @@ export async function GET(req: NextRequest) {
   if (!url || !svc) return NextResponse.json({ error: 'env' }, { status: 503 })
   const admin = createAdminClient(url, svc, { auth: { persistSession: false, autoRefreshToken: false } })
 
-  const segment = req.nextUrl.searchParams.get('segment') === 'queimados' ? 'queimados' : 'limpos'
+  const segParam = req.nextUrl.searchParams.get('segment')
+  const segment = segParam === 'queimados' ? 'queimados' : segParam === 'segunda' ? 'segunda' : 'limpos'
 
   // ═══ KINEO-COORTE-NO-BANCO-2026-08-22 — A LIÇÃO QUE O DRY-RUN ENSINOU ═══
   //
@@ -169,7 +212,8 @@ export async function GET(req: NextRequest) {
       // têm ~212 linhas, mas se algum passar de 1.000 esta leitura degrada em
       // silêncio. order desc = os mais novos sobrevivem ao corte.
       admin.from('events').select('user_id').eq('name', 'oneoff_unlock_emailed').order('created_at', { ascending: false }).limit(1000),
-      admin.from('events').select('user_id').eq('name', STAMP).order('created_at', { ascending: false }).limit(1000),
+      // #284 — created_at junto: a onda 2 precisa da IDADE do carimbo v1.
+      admin.from('events').select('user_id, created_at').eq('name', STAMP).order('created_at', { ascending: false }).limit(1000),
     ])
   if (pErro || sErro || stErro) {
     return NextResponse.json(
@@ -180,12 +224,42 @@ export async function GET(req: NextRequest) {
 
   const queimados = new Set((spam ?? []).map((s) => s.user_id as string))
   const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
+  // #284 — idade do carimbo v1 por pessoa (o mais RECENTE, ordem desc acima).
+  const v1Em = new Map<string, number>()
+  for (const s of stamps ?? []) {
+    const id = s.user_id as string
+    if (!v1Em.has(id)) v1Em.set(id, Date.parse((s as { created_at?: string }).created_at ?? ''))
+  }
+
+  // #284 — dedupe da onda 2 fail-closed: se a leitura do carimbo v2 falhar,
+  // ABORTA (a lição de 21/08 — a trava que falha aberto É o desastre).
+  let jaRecebeuOnda2 = new Set<string>()
+  if (segment === 'segunda') {
+    const { data: stamps2, error: st2Erro } = await admin
+      .from('events').select('user_id').eq('name', STAMP2)
+      .order('created_at', { ascending: false }).limit(1000)
+    if (st2Erro) {
+      return NextResponse.json(
+        { mode: 'ABORTED', reason: 'stamp2_unreadable', detail: st2Erro.message },
+        { status: 503 },
+      )
+    }
+    jaRecebeuOnda2 = new Set((stamps2 ?? []).map((s) => s.user_id as string))
+  }
 
   const alvos = (profs ?? []).filter((p) => {
     const id = p.id as string
     const email = (p.email ?? '') as string
     if (!email || p.email_opted_out || isInternalOrJunk(email)) return false
     if (p.has_paid === true || p.is_pro === true) return false
+    if (segment === 'segunda') {
+      // Onda 2: SÓ quem recebeu a onda 1, com respiro mínimo de 60h, e que
+      // ainda não recebeu a onda 2. Quem pagou já caiu no filtro acima.
+      const em = v1Em.get(id)
+      if (!jaRecebeu.has(id) || !em || !Number.isFinite(em)) return false
+      if (Date.now() - em < ONDA2_GAP_MS) return false
+      return !jaRecebeuOnda2.has(id)
+    }
     if (jaRecebeu.has(id)) return false
     return segment === 'queimados' ? queimados.has(id) : !queimados.has(id)
   })
@@ -195,7 +269,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       mode: 'DRY_RUN',
       segment,
-      cohort: 'voltou em 4+ dias distintos em 10d · tocou checkout · nunca pagou · nunca recebeu esta campanha',
+      cohort: segment === 'segunda'
+        ? 'recebeu a onda 1 há 60h+ · nunca pagou · nunca recebeu a onda 2'
+        : 'voltou em 4+ dias distintos em 10d · tocou checkout · nunca pagou · nunca recebeu esta campanha',
       eligible: alvos.length,
       emails: alvos.map((a) => a.email),
       proximo_passo: `adicione &confirm=SEND para disparar (segment=${segment})`,
@@ -208,7 +284,9 @@ export async function GET(req: NextRequest) {
   const results: { email: string; outcome: string }[] = []
   for (const a of alvos) {
     const email = a.email as string
-    const { texto, html } = corpo(segment === 'queimados', a.id as string)
+    const { texto, html } = segment === 'segunda'
+      ? corpoOnda2(a.id as string)
+      : corpo(segment === 'queimados', a.id as string)
     try {
       const res = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -217,16 +295,18 @@ export async function GET(req: NextRequest) {
           from: FROM_EMAIL,
           reply_to: REPLY_TO,
           to: email,
-          subject: segment === 'queimados'
-            ? 'Sorry about the repeated emails — and 50% off if you still want it'
-            : `${BEST_COST_PER_FILM} per finished film — 50% off your first month`,
+          subject: segment === 'segunda'
+            ? 'The character in your film can speak now'
+            : segment === 'queimados'
+              ? 'Sorry about the repeated emails — and 50% off if you still want it'
+              : `${BEST_COST_PER_FILM} per finished film — 50% off your first month`,
           text: texto,
           html,
           headers: unsubscribeHeaders(a.id as string),
         }),
       })
       if (res.ok) {
-        await admin.from('events').insert({ user_id: a.id, name: STAMP, metadata: { segment, promo: PROMO } })
+        await admin.from('events').insert({ user_id: a.id, name: segment === 'segunda' ? STAMP2 : STAMP, metadata: { segment, promo: PROMO } })
         ok++
         results.push({ email, outcome: 'sent' })
       } else {
