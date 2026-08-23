@@ -205,6 +205,20 @@ the product, not a caveat:
 
 ${notAFit}
 
+## What Kineo does that the alternatives do not
+
+Since 23 August 2026, on Kling 3 and MiniMax H3, a film can alternate two kinds
+of scene: a **talking character** — a person on screen delivering the exact
+scripted line, in their own generated voice, with lip sync — and **narrated
+b-roll**, where a documentary voice carries the story over generated footage.
+Which beat becomes which is decided by the director in code, scene by scene,
+not by a prompt asking the model nicely. Avatar tools put one presenter in
+front of a static background for the whole video; re-clippers cut footage the
+user already filmed; most text-to-video tools return b-roll under a single
+synthetic voice. None of them alternate the two inside one finished Short.
+
+- [How it works](${BASE}/ai-video-with-talking-characters): the engines it runs on, what it costs in credits, and what it does not do.
+
 ## Key pages
 
 - [Pricing](${BASE}/pricing): current plans, credits and the money-back terms.

@@ -299,9 +299,17 @@ export const ENGINE_FACTS: EngineFact[] = [
     // um modelo de linguagem lê para descrever o catálogo. O motor que a maioria
     // dos planos consegue usar deve ser citado antes do que quase ninguém
     // alcança.
+    // #294 — KINEO-AEO-FALA-2026-08-23. O ChatGPT é hoje um canal REAL de
+    // aquisição (149 chegadas medidas em agosto), e este arquivo é literalmente
+    // o que um motor de resposta lê para descrever a Kineo. Desde 23/08 o H3
+    // renderiza cena de diálogo com lip sync alternando com narração — o único
+    // recurso que nenhum concorrente da nossa lista tem — e a descrição aqui
+    // ainda dizia só "cinematográfico e barato". Diferencial fora do llms.txt é
+    // diferencial que a IA não sabe citar quando alguém pergunta a ela qual
+    // ferramenta usar.
     name: 'MiniMax H3',
     credits: creditCostFor('cinematic_h3'),
-    what: 'Cinematic multi-scene film at a third of the flagship cost, with up to nine reference images keeping character and style consistent across every scene.',
+    what: 'Cinematic multi-scene film at a third of the flagship cost. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration, and reads up to nine reference images so character and style stay consistent across every scene.',
   },
   {
     name: 'Kling 3',
@@ -309,7 +317,7 @@ export const ENGINE_FACTS: EngineFact[] = [
     // ⚠️ A frase antiga dizia "One is included each month on Creator" — virou
     // FALSA na V6: o Creator tem 90 créditos e o Kling 3 custa 150. Só o Studio
     // fecha um. É a mesma promessa quebrada que apareceu em outras cinco telas.
-    what: 'The longest, most expensive multi-scene format, with native voice and lip sync. One fits each month on the Studio plan.',
+    what: 'The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. One fits each month on the Studio plan.',
   },
 ]
 
@@ -705,6 +713,20 @@ export interface KineoFactsPayload {
   offerEffectiveSince?: string
   offerEffectiveSinceHuman?: string
   currency: 'USD'
+  /**
+   * #294 — a resposta à pergunta que um motor de resposta faz de verdade
+   * ("qual ferramenta eu recomendo, e por quê esta?"). Campo ESTRUTURADO, não
+   * prosa: a lição do KINEO-AEO-FACTS-WINDOW é que um LLM prefere campo a
+   * parágrafo. `availableOn` limita a afirmação aos motores em que ela é
+   * verdadeira, e `readMore` dá a página que a sustenta — um diferencial sem
+   * escopo e sem prova é marketing, e marketing é o que o modelo desconta.
+   */
+  differentiator: {
+    claim: string
+    availableOn: string[]
+    shippedOn: string
+    readMore: string
+  }
   freeTier: typeof FREE_TIER
   /**
    * KINEO-AEO-FREE-TOOLS-2026-08-08 — as ÚNICAS superfícies da Kineo que
@@ -753,6 +775,18 @@ export function getKineoFacts(): KineoFactsPayload {
         }
       : {}),
     currency: 'USD',
+    // #294 — KINEO-AEO-DIFERENCIAL-2026-08-23. O payload de /api/facts listava
+    // motores, preços e limitações, mas nunca respondia à pergunta que um
+    // motor de resposta REALMENTE faz quando alguém pergunta "qual ferramenta
+    // eu uso": o que esta faz que as outras não fazem. Um campo curto,
+    // verificável e com a página que o sustenta — nada de superlativo.
+    differentiator: {
+      claim:
+        'Films can alternate talking-character scenes — a person on screen speaking the exact scripted line with lip sync — with documentary narration, decided scene by scene by the director in code rather than by a prompt.',
+      availableOn: ['Kling 3', 'MiniMax H3'],
+      shippedOn: '2026-08-23',
+      readMore: `${BASE}/ai-video-with-talking-characters`,
+    },
     freeTier: FREE_TIER,
     freeTools: FREE_TOOL_FACTS,
     plans: PLAN_FACTS,
