@@ -1374,6 +1374,12 @@ export default function GenerateClient({
   const [renderProgress, setRenderProgress] = useState<number>(0)
   const [generateProgress, setGenerateProgress] = useState<number>(0)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
+  // #283 — KINEO-DURACAO-NO-BOTAO (fundador 23/08): o botão de download dizia
+  // "60s" (o valor do SELETOR) num filme que saiu com 79s reais — o overshoot
+  // do contrato de duração é feature, mas o rótulo mentia. A verdade vem do
+  // próprio arquivo: onLoadedMetadata do player entrega os segundos exatos.
+  // null até o metadata carregar → os rótulos caem no seletor como fallback.
+  const [finalVideoSeconds, setFinalVideoSeconds] = useState<number | null>(null)
   // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a recusa por narração curta e a
   // oferta de completar. `null` = não há recusa pendente.
   const [scriptTooShort, setScriptTooShort] = useState<{
@@ -6842,7 +6848,7 @@ export default function GenerateClient({
   async function handleDownload(e: React.MouseEvent<HTMLAnchorElement>) {
     if (!finalVideoUrl) return
     const slug = slugifyTitle(analysis?.title)
-    const filename = slug ? `${slug}.mp4` : `kineo-${duration}s.mp4`
+    const filename = slug ? `${slug}.mp4` : `kineo-${finalVideoSeconds ?? duration}s.mp4`
     // KINEO-TRIAL-BLOCKERS-2026-08-07 — o download de uma conta em trial é
     // CLEAN de verdade agora; rotulá-lo 'watermarked' contaminaria a série que
     // mede a pressão do watermark sobre a conversão.
@@ -7472,6 +7478,9 @@ export default function GenerateClient({
   useEffect(() => {
     setPlayerFailed(false)
     playerRetryAttemptRef.current = 0
+    // #283 — vídeo novo, medição nova (senão o rótulo herda os segundos do
+    // filme anterior até o metadata do novo carregar).
+    setFinalVideoSeconds(null)
   }, [finalVideoUrl])
 
   // Push #095 — robust player startup with retry + backoff.
@@ -10294,7 +10303,7 @@ export default function GenerateClient({
                   Your video is ready
                 </h2>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
-                  {duration}s · YouTube Shorts / TikTok 9:16
+                  {finalVideoSeconds ?? duration}s · YouTube Shorts / TikTok 9:16
                 </p>
                 {/* ROBO-ENTRY-495 — honest credits line at the win moment. AI
                     Generated (Seedance) costs 20 credits (KINEO-REBASE-2026-07-10) and Fast Mode is free,
@@ -10387,6 +10396,11 @@ export default function GenerateClient({
                     controls
                     controlsList="nodownload"
                     onContextMenu={(e) => e.preventDefault()}
+                    // #283 — a duração REAL do filme, lida do arquivo.
+                    onLoadedMetadata={(e) => {
+                      const d = e.currentTarget.duration
+                      if (Number.isFinite(d) && d > 1) setFinalVideoSeconds(Math.round(d))
+                    }}
                     autoPlay
                     playsInline
                     preload="metadata"
@@ -10620,7 +10634,7 @@ export default function GenerateClient({
                     <span>{watermarkedDownloadConfirmed ? '✓' : '⬇'}</span>
                     {watermarkedDownloadConfirmed
                       ? 'Download again (free copy)'
-                      : `Download my Short (${duration}s · MP4)`}
+                      : `Download my Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
                   {/* KINEO-READING-ORDER-2026-07-30 — o rótulo era "OR", e "OR"
                       afirma uma exclusividade que não existe: baixar de graça NÃO
@@ -10780,10 +10794,10 @@ export default function GenerateClient({
                         isFreePlanFast, que agora exclui o trial). O botão não
                         pode prometer o contrário. */}
                     {planTier === 'free' && !hasPaid && !trialActive
-                      ? `Download with Kineo watermark (${duration}s · MP4)`
+                      ? `Download with Kineo watermark (${finalVideoSeconds ?? duration}s · MP4)`
                       : planTier === null && !hasPaid
-                        ? `Download Your Short (${duration}s · MP4)`
-                        : `Download clean Short (${duration}s · MP4)`}
+                        ? `Download Your Short (${finalVideoSeconds ?? duration}s · MP4)`
+                        : `Download clean Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
                 )}
 
@@ -11890,7 +11904,7 @@ export default function GenerateClient({
                   maxWidth: 480,
                 }}
               >
-                <span>📊 {duration}s</span>
+                <span>📊 {finalVideoSeconds ?? duration}s</span>
                 <span>·</span>
                 <span>
                   {mode === 'cinematic'
