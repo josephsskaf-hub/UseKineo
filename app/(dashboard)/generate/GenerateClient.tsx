@@ -102,7 +102,7 @@ import useReadyBeacon from '@/components/video/useReadyBeacon'
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
-import { MIN_COVERAGE } from '@/lib/narrationFit'
+import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -9055,6 +9055,35 @@ export default function GenerateClient({
               e.currentTarget.style.boxShadow = 'none'
             }}
           />
+          {/* ═══ KINEO-CONTADOR-VIVO-2026-08-23 — palavras ↔ segundos, em
+              tempo real, embaixo do campo. A régua da casa em uma linha que o
+              fundador pediu para poder explicar a qualquer um: "quer 60
+              segundos monetizáveis? escreve 150 palavras".
+
+              Por que aqui e não só na recusa: a trava de 95% (narrationFit)
+              recusa DEPOIS de escrever; este contador guia DURANTE. Mesma
+              medicina do custo por duração: informação antes do gasto.
+
+              Deriva de speechSeconds() — a MESMA função que o servidor usa
+              para recusar. Se a régua mudar lá, o contador acompanha; dois
+              números divergindo nesta tela seria o defeito clássico da casa.
+              Só aparece com 8+ palavras: contador em cima de campo vazio é
+              ruído, não guia. */}
+          {(() => {
+            const fala = speechSeconds(prompt)
+            const palavras = prompt.trim() ? prompt.trim().replace(/\[[^\]]*\]/g, ' ').split(/\s+/).filter(Boolean).length : 0
+            if (palavras < 8) return null
+            const cobre = fala >= duration * MIN_COVERAGE
+            const faltam = cobre ? 0 : Math.ceil((duration * MIN_COVERAGE - fala) * 2.3)
+            return (
+              <p className="text-xs mt-1.5" style={{ color: cobre ? '#4ade80' : '#5cb3ff', fontWeight: 700, maxWidth: 830 }}>
+                {palavras} words ≈ {Math.round(fala)}s of narration{' '}
+                {cobre
+                  ? `✓ fills your ${duration}s video`
+                  : `— add ~${faltam} words to fill ${duration}s (or pick a shorter length)`}
+              </p>
+            )
+          })()}
 
           {showInlineFirstVideo && (
             <div className="mt-4" style={{ maxWidth: 830 }}>

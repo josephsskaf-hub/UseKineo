@@ -415,14 +415,35 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
         aria-labelledby="exit-offer-title"
         aria-describedby="exit-offer-desc"
         tabIndex={-1}
-        className="relative w-full max-w-lg rounded-2xl p-7 text-center outline-none"
+        className="relative w-full max-w-[880px] overflow-hidden text-left outline-none grid md:grid-cols-[1fr_1.15fr]"
         style={{
-          background: '#161618',
-          border: '1px solid rgba(41,151,255,.35)',
-          boxShadow: '0 0 60px rgba(41,151,255,.15)',
+          background: '#131316',
+          border: '1px solid #2a2a2d',
+          borderRadius: 10,
+          boxShadow: '0 24px 80px rgba(0,0,0,.55)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* ═══ KINEO-MODAL-VITRINE-2026-08-22 — a variante deal era a última
+            superfície de VENDA no visual velho (card 512px centrado). Mesma
+            casca aprovada; os preços já eram derivados desde o
+            KINEO-VITRINE-MOEDA-2026-08-19, então aqui só a moldura muda. */}
+        <div className="hidden md:flex flex-col gap-3" style={{ background: '#0d0d10', borderRight: '1px solid #2a2a2d', padding: 22 }}>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', aspectRatio: '16 / 10', background: '#111', border: '1px solid #2a2a2d' }}>
+            <video src="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" autoPlay muted loop playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <span style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,.72)', padding: '3px 8px', borderRadius: 4, fontSize: 9, fontWeight: 900, letterSpacing: '0.1em', color: '#fff' }}>VEO 3.1</span>
+            <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {['VEO 3.1', 'KLING 3', 'KLING 2.5', 'SEEDANCE 1.5', 'MINIMAX H3', 'KINEO 1'].map((e) => (
+              <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{e}</span>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: '#86868b', lineHeight: 1.6 }}>
+            Every film above was made with Kineo, labeled with the real engine that rendered it.
+          </div>
+        </div>
+        <div style={{ padding: '26px 26px 22px' }}>
         <button
           type="button"
           onClick={() => setOpen(false)}
@@ -433,7 +454,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
           ×
         </button>
 
-        <h2 id="exit-offer-title" className="text-2xl font-black text-[#f5f5f7] mb-2 text-balance">
+        <h2 id="exit-offer-title" className="font-black text-[#f5f5f7] mb-2" style={{ fontSize: 26, lineHeight: 1.12, letterSpacing: '-0.02em' }}>
           Wait — pick your <span style={{ color: '#2997ff' }}>deal</span> before you go
         </h2>
         {/* KINEO-SPRINT-OFFER-2026-07-14 — copy no longer implies a one-time
@@ -571,6 +592,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
         <p className="text-[11px] text-[#6e6e73]">
           7-day money-back guarantee · cancel anytime · same price every month
         </p>
+        </div>{/* fim da coluna de decisão (KINEO-MODAL-VITRINE) */}
       </div>
     </div>
   )
