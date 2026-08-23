@@ -1,4 +1,32 @@
-# Segunda-feira 25/08 — os 21 queimados do incidente
+# Segunda-feira 25/08 — cobrança dupla: 21 queimados + onda 2 dos 17
+
+## ATUALIZADO 23/08 (#284): são DUAS campanhas, 4 cliques no total
+
+**Campanha A — queimados** (21 pessoas, e-mail com desculpa primeiro): passos
+abaixo, como já estava.
+
+**Campanha B — onda 2 dos limpos** (os 17 da onda 1 de sábado, que deram zero
+clique): assunto novo — "The character in your film can speak now" — vendendo
+a NOTÍCIA da semana (diálogo nativo H3/Kling 3, validado nos seus 2 filmes de
+sábado), com o FIRST50 como lembrete de uma linha. A rota só aceita quem
+recebeu a onda 1 há 60h+ e nunca recebeu a onda 2 (carimbo v2 próprio,
+dedupe fail-closed).
+
+**1º — dry-run da onda 2:**
+```
+https://www.usekineo.com/api/admin/send-first50-quentes?segment=segunda
+```
+Esperado: `eligible` até 17 (menos quem tiver assinado até lá).
+
+**2º — disparo da onda 2:**
+```
+https://www.usekineo.com/api/admin/send-first50-quentes?segment=segunda&confirm=SEND
+```
+
+Ordem sugerida na segunda: queimados de manhã (9-10h BRT), onda 2 no início
+da tarde (13-14h BRT) — dois horários de inbox diferentes, sem parecer rajada.
+
+---
 
 ## O contexto em três linhas
 
