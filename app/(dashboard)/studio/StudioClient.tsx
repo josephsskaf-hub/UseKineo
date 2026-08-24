@@ -232,7 +232,15 @@ export default function StudioClient() {
               <span className="mdlname" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span className="eng-ic" aria-hidden="true">{eng.icon}</span>
                 <b>{eng.name}</b>
-                <i style={{ marginLeft: 'auto' }}>{eng.res} ▾</i>
+                {/* KINEO-RES-1080-2026-08-24 — o fundador leu "720p ▾" ao lado
+                    do Kling 3 e "1080×1920 master" logo abaixo como CONTRADIÇÃO
+                    ("precisa arrumar isso") — e ele é o leitor mais treinado da
+                    casa; cliente tropeça igual. A decisão dele de 17/08 já dizia:
+                    "só 1080p — as pessoas não precisam saber". O rótulo do card
+                    fecha com a promessa da entrega (todo master é 1080×1920,
+                    verificado por ffprobe); a resolução NATIVA do motor sai da
+                    vitrine e vive só no hint explicativo do formato. */}
+                <i style={{ marginLeft: 'auto' }}>1080p ▾</i>
               </span>
             </button>
             {pickerOpen && (
@@ -247,7 +255,12 @@ export default function StudioClient() {
                           seletor — so no cartao de gerar e no /pricing). */}
                       <span className="t">
                         <b>{e.name}{e.tag && <span className="tag">{e.tag}</span>}</b>
-                        <i>{e.res}</i>
+                        {/* KINEO-RES-1080-2026-08-24 — era {e.res}: o mesmo
+                            "720p" que confundiu o fundador no card fechado,
+                            repetido dentro do seletor. Todos entregam o mesmo
+                            master; mostrar resolução nativa aqui só recoloca a
+                            contradição que acabamos de tirar. */}
+                        <i>1080p</i>
                       </span>
                       <span className="d">{e.desc}</span>
                     </span>
@@ -298,14 +311,16 @@ export default function StudioClient() {
                 ser a informação: nativa do motor → master entregue.
                 Selo honesto é ativo de marca; um botão que mente sobre a
                 resolução é a mesma classe de erro do "Free" no Kineo 1. */}
+            {/* KINEO-RES-1080-2026-08-24 — a dupla de pills "720p native
+                (apagada) → 1080×1920 master (acesa)" era informação vestida de
+                CONTROLE: pill apagada lê como "opção quebrada/desabilitada", e
+                o fundador leu exatamente assim. Vira UMA pill de entrega; a
+                verdade sobre a resolução nativa continua dita, mas em TEXTO no
+                hint — informação em formato de informação, controle nenhum. */}
             <div className="row" style={{ alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="pill off" style={{ cursor: 'default' }}>
-                {eng.res} <span style={{ opacity: 0.6 }}>native</span>
-              </span>
-              <span style={{ color: 'var(--muted2)', fontSize: '0.8rem' }}>→</span>
-              <span className="pill on" style={{ cursor: 'default' }}>1080×1920 master</span>
+              <span className="pill on" style={{ cursor: 'default' }}>1080×1920 · Full HD master</span>
             </div>
-            <div className="hint">Delivered as a 1080×1920 Full HD master. For maximum sharpness, run ✨HD Enhance on the finished film.</div>
+            <div className="hint">Every film is delivered as a 1080×1920 Full HD master (engines render natively at 720–768p and are mastered up). For maximum sharpness, run ✨HD Enhance on the finished film.</div>
           </div>
 
           {/* 3 · Reference image */}
@@ -323,7 +338,7 @@ export default function StudioClient() {
 
           {/* Custo + Generate */}
           <div className="cost">
-            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · {eng.res} → 1080p · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
+            <div className="sum" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span className="eng-ic" style={{ width: 24, height: 24, borderRadius: 7, fontSize: 10.5 }} aria-hidden="true">{eng.icon}</span>{eng.name} · {duration}s · 1080p · {aspect}{preset ? ` · ${CAMERA_PRESETS.find((c) => c.key === preset)?.label}` : ''}</div>
             {/* O número tem de mudar junto com o seletor: preço que só
                 aparece DEPOIS do clique é cobrança-surpresa. O servidor cobra
                 por esta mesma função (creditCostForDuration), então tela e
