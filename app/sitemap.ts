@@ -138,6 +138,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // reviews", a pergunta pré-compra que toda LLM recebe. 0.8 como as outras
     // páginas de objeção (/can-you-monetize-ai-videos).
     { path: '/reviews', priority: 0.8, freq: 'weekly' },
+    // KINEO-SORA-MIGRATION-2026-08-24 — o Sora foi DESCONTINUADO (API morre
+    // 24/09/2026, fonte OpenAI). População inteira migrando com prazo; 0.9
+    // porque é cabeça de cluster de intenção com relógio correndo.
+    { path: '/sora-alternative', priority: 0.9, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
