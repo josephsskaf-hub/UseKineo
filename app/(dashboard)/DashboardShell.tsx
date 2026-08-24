@@ -7,6 +7,10 @@ import MobileNav from '@/components/MobileNav'
 import AvatarLaunchBanner from '@/components/AvatarLaunchBanner'
 // KINEO-REBASE-2026-07-10 — one-time 2:1 credit-rebase notice (self-expires 24/07)
 import CreditRebaseBanner from '@/components/CreditRebaseBanner'
+// KINEO-CREATOR30-2026-08-24 — modal da coorte do print (30% Creator, 1ª
+// fatura). Auto-contido: elegibilidade vem de /api/me/creator30-offer e o
+// componente some sozinho depois de 31/08.
+import Creator30OfferModal from '@/components/Creator30OfferModal'
 import { usePathname } from 'next/navigation'
 
 interface DashboardShellProps {
@@ -110,6 +114,7 @@ export default function DashboardShell({
         {/* KINEO-REBASE-2026-07-10 — credit-rebase conversion notice (dismissible,
             localStorage kineo_rebase_seen, hard-stops after 2026-07-24) */}
         <CreditRebaseBanner />
+        <Creator30OfferModal />
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
         <AvatarLaunchBanner />
         {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra

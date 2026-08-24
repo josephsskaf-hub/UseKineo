@@ -1263,6 +1263,45 @@ async function buildAndRedirect(
     resolvedPromo = null
     promoBlocked = true
   }
+  // KINEO-CREATOR30-2026-08-24 — autorização do fundador (24/08, print da
+  // coorte na mão): 30% SÓ NA 1ª FATURA e SÓ NO CREATOR MENSAL, para os 10 do
+  // print — trial queimado + os 6 que tiveram crédito preso pelo órfão-pendente
+  // (#299) e foram estornados hoje. É a coorte que TENTOU usar o produto e foi
+  // mal atendida; o desconto é o pedido de desculpas com prazo. Mesmo gate
+  // estreito do CREATOR20 (Studio fora, Starter fora, anual fora) e mesmo
+  // auto-provisionamento: impossível o e-mail prometer cupom que não existe.
+  if (publicPromo === 'CREATOR30' && !privatePackPromo && (tier !== 'basic' || isAnnual)) {
+    console.warn(`[stripe/checkout] CREATOR30 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === 'CREATOR30' && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
+      try {
+        const CREATOR30_COUPON_ID = 'KINEO_CREATOR30'
+        try {
+          await stripe.coupons.retrieve(CREATOR30_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: CREATOR30_COUPON_ID,
+            percent_off: 30,
+            duration: 'once',
+            name: '30% off first month (Creator)',
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: CREATOR30_COUPON_ID, code: 'CREATOR30' })
+        } catch {
+          // já existe — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: 'CREATOR30', active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log('[stripe/checkout] CREATOR30 self-provisioned/resolved')
+      } catch (e) {
+        console.warn('[stripe/checkout] CREATOR30 self-provision falhou (checkout segue a preço cheio):', e)
+      }
+    }
+  }
   if (publicPromo === 'CREATOR20' && !privatePackPromo && !promoBlocked) {
     if (!resolvedPromo) {
       try {
