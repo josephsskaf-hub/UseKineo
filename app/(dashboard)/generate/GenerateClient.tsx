@@ -7009,7 +7009,8 @@ export default function GenerateClient({
     const nextPrompt = buildSeriesContinuationPrompt(seed)
     if (!nextPrompt) {
       handleReset()
-      router.push('/generate')
+      // KINEO-STUDIO-UNIFICACAO-2026-08-24 — endereço novo da casa de máquinas.
+      router.push('/studio/create')
       return
     }
     trackEvent('series_continue_clicked', {

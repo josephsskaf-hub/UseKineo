@@ -201,7 +201,10 @@ export default function StudioClient() {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
-    router.push(`/generate?${q.toString()}`)
+    // KINEO-STUDIO-UNIFICACAO-2026-08-24 — a casa de máquinas agora mora em
+    // /studio/create (o /generate virou porteiro que redireciona). Apontar
+    // direto evita o hop extra do redirect no clique mais quente do produto.
+    router.push(`/studio/create?${q.toString()}`)
   }
 
   return (
