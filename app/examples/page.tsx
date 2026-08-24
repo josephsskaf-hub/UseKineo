@@ -4,6 +4,10 @@ import WallMedia from '@/components/WallMedia'
 import { getExamplesBest } from '@/lib/engineWall'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+// KINEO-EXAMPLES-LOGADO-2026-08-24 — o fundador abriu /examples LOGADO e viu
+// "Start free": a página tratava assinante como estranho. O header agora
+// pergunta ao servidor quem está olhando.
+import { createClient } from '@/lib/supabase/server'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -21,8 +25,18 @@ export const metadata: Metadata = {
   },
 }
 
+// A checagem de auth torna a página por-request — aceitável: ela já lê o
+// banco (getExamplesBest) e a vitrine muda com a curadoria de qualquer jeito.
+export const dynamic = 'force-dynamic'
+
 export default async function ExamplesPage() {
   const best = await getExamplesBest()
+  // KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vê "Open Studio" (a porta do
+  // produto), visitante vê "Start free" (a porta do funil). Mostrar signup a
+  // um assinante é pedir para ele criar a conta que já paga.
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = Boolean(user)
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-white/10">
@@ -30,14 +44,23 @@ export default async function ExamplesPage() {
           <Link href="/" className="font-display text-lg font-semibold tracking-[-.02em] tracking-tight">Kineo</Link>
           <nav className="flex items-center gap-4 text-sm font-bold text-white/70">
             <Link href="/pricing" className="transition hover:text-white">Pricing</Link>
-            <OrganicCtaLink
-              href="/signup?utm_source=examples&utm_medium=proof&utm_campaign=push31"
-              source="examples_index"
-              placement="header"
-              className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
-            >
-              Start free
-            </OrganicCtaLink>
+            {isLoggedIn ? (
+              <Link
+                href="/studio"
+                className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
+              >
+                Open Studio
+              </Link>
+            ) : (
+              <OrganicCtaLink
+                href="/signup?utm_source=examples&utm_medium=proof&utm_campaign=push31"
+                source="examples_index"
+                placement="header"
+                className="rounded-full bg-white px-4 py-2 text-black transition hover:bg-white"
+              >
+                Start free
+              </OrganicCtaLink>
+            )}
           </nav>
         </div>
       </header>
@@ -82,18 +105,40 @@ export default async function ExamplesPage() {
             abaixo, cada um com o selo do modelo que o gerou (mesma honestidade
             da Engine Wall da home). */}
         
+        {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
+            todos os reviews que temos". Todos = UM (Rick, autorização escrita
+            de 19 e 24/08) — e é exatamente por isso que ele entra inteiro e
+            com nome, em vez de virar uma parede de estrelas anônimas: quem
+            acabou de VER os renders acima lê uma voz real confirmando o que
+            os olhos viram. Quando houver 3+, virar strip — não antes (mesma
+            regra da home, #304). */}
+        <figure className="mx-auto mt-14 max-w-2xl text-center">
+          <blockquote className="text-balance text-lg italic leading-8 text-white/80 sm:text-xl">
+            “Too many good ideas die in the mind. This is a product that gives them an escape
+            route. Stay with it.”
+          </blockquote>
+          <figcaption className="mt-3 text-sm text-white/50">
+            — Rick Crossley, subscriber ·{' '}
+            <Link href="/reviews" className="text-[#2997ff] transition hover:text-white">
+              read our honest reviews page →
+            </Link>
+          </figcaption>
+        </figure>
+
         <div className="mt-12 rounded-[22px] border border-[#2997ff]/25 bg-[#2997ff]/[0.06] p-6 sm:flex sm:items-center sm:justify-between sm:gap-6">
           <div>
             <h2 className="text-xl font-semibold tracking-[-.02em]">Bring your own topic.</h2>
             <p className="mt-1 text-sm leading-6 text-white/60">{ft(OFFER, 'Try up to three watermarked Fast videos every 24 hours. No card required.', OFFER.copy.headline)}</p>
           </div>
+          {/* KINEO-EXAMPLES-LOGADO-2026-08-24 — logado vai direto ao Studio
+              (a porta única do #301); visitante segue o funil de sempre. */}
           <OrganicCtaLink
-            href="/generate?utm_source=examples&utm_medium=proof&utm_campaign=push31"
+            href={isLoggedIn ? '/studio?utm_source=examples&utm_medium=proof&utm_campaign=push31' : '/generate?utm_source=examples&utm_medium=proof&utm_campaign=push31'}
             source="examples_index"
             placement="footer_band"
             className="mt-5 inline-flex rounded-full bg-white px-5 py-3 text-sm font-semibold tracking-[-.02em] text-black transition hover:bg-white sm:mt-0"
           >
-            Create a Fast video →
+            {isLoggedIn ? 'Open Studio →' : 'Create a Fast video →'}
           </OrganicCtaLink>
         </div>
       </section>
