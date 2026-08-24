@@ -11,6 +11,59 @@
 # todo dia). Isso encerra a linha de alarmes externos: webhook Slack/Discord foi descartado
 # em 14/08, e-mail em 16/08. Nada de sugerir canal novo — nem aqui, nem em outro relatório.
 
+## 24/08/2026 — 🔴 OpenAI: 14h DEPOIS do zero projetado e o produto está VIVO — mas só 3 entregas desde 22:00Z: sobrevivência ainda não é prova · Creatomate: o estouro recuou 03/09→~06/09 (o pico saiu da janela 7d) mas o ciclo segue NÃO fechando — e o alarme interno (hwm) disparou 2× em 48h · Resend: 6º dia >100 sem recusa · Um sinal novo: 67 trial_downgraded_loss em 24h — a coorte do recorde está morrendo sem converter
+
+**Segunda-feira de manhã, o dia mais limpo da série (18 cadastros/24h, 16 entregues, 9 falhas/5
+users todas de produto, ZERO evento de quota/fal em 48h — 3º dia limpo seguido). Três fatos:
+(1) OpenAI — o zero absoluto projetado era ontem ~22:00Z; estamos ~14h depois e houve 3 entregas
+pós-22:00Z com zero falha de quota. É a primeira vez que o produto SOBREVIVE a um cruzamento
+projetado — mas 3 entregas num domingo à noite fria são compatíveis com "auto-reload disparou"
+E com "vapor esticado pelo fim de semana frio"; o zero, se não houve recarga, é questão de horas
+de segunda-feira quente. (2) Creatomate — a média 7d caiu de 1.492→1.152 cr/dia porque os dias
+quentes de 17-19/08 SAÍRAM da janela; o estouro projetado recuou de 03/09 para ~06-07/09, mas
+segue 3-4 dias ANTES da renovação (10/09) — e o próprio alarme de high-water-mark do código
+(`creatomate_quota_hwm`) disparou 2× em 48h, a última HOJE 10:56Z. (3) O motor nº1 do dia de
+fal foi o H3 (8 de 13 renders IA) — o candidato a motor novo já é o mais usado sem anúncio.**
+
+| Fornecedor | Veredito | Medida (fonte) | Conta |
+|---|---|---|---|
+| **OpenAI** | 🔴 **VERMELHO até confirmação — sobrevivemos 14h ao zero projetado, mas com amostra de 3 entregas** | Banco: **0 falhas quota/openai em 48h** (query eventos openai/quota: só `creatomate_quota_hwm`) · **3 entregues após 23/08 22:00Z** (o zero projetado) · 16 entregues/24h = 16 scriptings OK · falhas 24h todas de produto (ver nota) | A projeção punha ~$6 ontem 22:00Z a −$6,33/dia. 14h depois, vivo. Hipótese (a): auto-reload disparou no gatilho de $10 em 22-23/08 → saldo ~$25, a classe de falha do 31/07 MORREU — seria a primeira prova da história. Hipótese (b): o fim de semana frio queimou menos que −$6,33/dia e o vapor esticou → o zero cai HOJE, segunda quente, no pior horário. **3 entregas não separam as duas. Ação: Billing history AGORA — cobrança automática de ~$25 datada 22-24/08 = anotar aqui e ENCERRAR a classe de falha; nada lá = recarregar antes do meio-dia, porque segunda esquenta o consumo.** |
+| **fal.ai** | 🔴 **VERMELHO até confirmação — 8º dia sem painel · 3º dia seguido SEM sintoma** | Banco: **13 renders IA em 24h** (8 H3 + 3 Seedance + 1 Kling + 1 Hollywood) ≈ **~$33/24h ESTIMADOS** (8×~$2 + 3×$1,97 + $2 + $9,50; banco subconta ~1,9× → real pode ser ~$63) · 7d: 101 IA (76 Seedance + 12 H3 + 10 Hollywood + 3 Kling) ≈ **~$275 ESTIMADOS** · sintomas 48h: **ZERO `fal_poll_*`** | Consumo estimado desde a última leitura real (17/08, $27,67): **~$280-290**. Três dias limpos de sintoma — melhor sequência desde 13/08 — mas 8 dias de saldo ilegível com ~$280 estimados queimados é o mesmo escuro, só maior. Fato novo: **o H3 virou o motor nº1 do dia (8 de 13)** — se o padrão segurar, o custo médio por render IA CAI (~$2 vs $9,50 do Hollywood), o que alivia o tanque. **Ação: os mesmos 2 minutos, 8º dia — saldo ≥$200 E "Auto top-up" ATIVA no Credit activity.** |
+| **Creatomate** | 🟡 **AMARELO — o estouro recuou (03/09→~06-07/09) porque o PICO saiu da janela 7d, mas o ciclo segue não fechando · alarme hwm interno disparou 2× em 48h** | Estimativa fórmula validada (razão 1,115): **ciclo ~14.362 de 30.000 (48%)** — 413 vídeos, 20.706s desde 10/08 · 24h: 17 vídeos, 1.015s ≈ **704 cr** · média 7d: 222 vídeos, 11.631s ≈ **1.152 cr/dia** (era 1.492 — os dias de 17-19/08 saíram da janela) · `creatomate_quota_hwm`: 23/08 16:07Z e **24/08 10:56Z** | Restam ~15.638 cr para 17 dias de ciclo. Média 7d: **13,6 dias → estoura ~06-07/09, 3-4 dias ANTES da renovação (10/09)**. Ritmo 24h: 22,2 dias → fecha. Consumo no ritmo do tempo: 48% do tanque em 45% do ciclo — quase no fio. A melhora da média é retrovisor (pico saindo da janela), não economia — mas é a primeira vez que a DATA de estouro anda pra FRENTE por tendência, não por um domingo. **Ação: decisão vencida desde 20/08 (4 dias). Se a segunda-feira voltar a ~1.500/dia, o estouro volta pra ~03/09. O próprio código concorda: o alarme hwm acordou 2× em 48h.** |
+| **Resend** | 🟡 **AMARELO fraco — 6º dia acima de 100 ok sem UMA recusa (23/08 fechou em 140 ok) · dia 100% limpo até no throttle interno** | Ledger `email_send_log`: 24h = **156 tentativas, 156 ok, 0 falha** (nem o throttle interno do hotlead disparou) · por dia UTC: **19/08=126 ok · 20/08=163 · 21/08=184 · 22/08=133 · 23/08=140 · 24/08=55 parcial** · quebra 24h: **trial_downgraded_loss 67 (2,3× ontem)** · hotlead 24 · ending_soon 22 · d0_welcome 21 · lastcall_d10 10 · expired_d5 10 · outros 2 | 6 dias seguidos acima do teto free com zero 429 — plano pago é inferência fechada na prática. O número que importa hoje não é do Resend: **67 `trial_downgraded_loss` em 24h = a coorte do recorde de 17/08 expirando SEM converter** (ver insight). **Ação: o mesmo 1 minuto no painel pra riscar o item.** |
+| **Supabase Storage** | 🟢 **VERDE — +1,17 GB/24h, ritmo baixo confirmado (1 Hollywood só)** | Banco bruto **123,09 GB** (10.053 obj.) × 0,503 calibrado = **~61,9 GB de 100 GB (ESTIMATIVA)** · vs ontem 121,92 → **+1,17 GB/24h** (broll 78,66 +0,6 · renders 37,92 +0,5) | Folga ~38,1 GB cobrados. Ritmo pré-pico (~1,7 GB/dia): **~22 dias** — verde. A regressão Hollywood→storage segue valendo: 1 Hollywood hoje = +1,2 GB; 4 Hollywood (22/08) = +9,7. **Ação: GC do broll como cron segue sendo a alavanca $0 (pedido desde 17/08, 7 dias na fila).** |
+
+**Saúde do produto:** o dia mais limpo da série — 16 entregues/24h, 18 cadastros (7d: 217,
+~31/dia — esfriando do patamar 42), **9 falhas/5 users em 24h** (mínimo histórico recente):
+narration_too_short 3, sem reason 3, analyze_threw 1, gate credits_held 1, compose_not_ok 1.
+O `compose_not_ok` apareceu 1× — o bug "ent is not defined" de 20/08 segue vivo em dose homeopática.
+
+**Ação recomendada (nenhuma compra feita por mim — dinheiro é a mão do fundador):**
+1. **AGORA — OpenAI: Billing history.** Cobrança automática de ~$25 em 22-24/08 = proteção provada pela primeira vez, anotar e encerrar a classe de falha do 31/07. Nada lá = recarregar antes do meio-dia; segunda-feira esquenta e o vapor de domingo não atravessa o dia.
+2. **HOJE — Creatomate: decisão vencida há 4 dias** e agora o alarme interno do código concorda (hwm 2× em 48h). A média 7d melhorou mas segue não fechando (~06-07/09).
+3. **2 min — fal: painel (8º dia).** ~$280-290 estimados desde a última leitura real.
+4. **1 min — Resend: confirmar plano e riscar.**
+5. **Sprint $0 — GC do broll vira cron (7 dias na fila)** + bug `ent is not defined`.
+
+**O insight deste check-up:** os 67 `trial_downgraded_loss` de hoje (2,3× o normal) são a coorte
+do recorde de 17/08 (97 cadastros) chegando ao fim do trial SEM converter — o funil está entregando
+em massa exatamente o desfecho que a conclusão fechada do fundador previu: chegam, testam, acham
+caro, expiram. Isso conecta dois relógios que andavam separados: o relógio de FORNECEDOR (essa
+coorte queimou Creatomate/fal/storage por 7 dias) e o relógio de RECEITA (ela sai sem pagar um
+dólar). Cada coorte grande que expira sem converter é custo de fornecedor já pago + receita zero —
+o que torna a decisão de preço/oferta (a conclusão de 19/08) também uma decisão de CAIXA de
+fornecedor: converter 5 dessas 67 pessoas pagaria o upgrade do Creatomate inteiro. E o adendo à
+regra de ontem: a média 7d é retrovisor — quando um pico sai da janela ela melhora sozinha; a
+data de estouro só é tendência real se recuar vários dias seguidos, não um.
+
+**E-mail:** não enviado, mesmo com amarelos/vermelhos — decisão fechada do fundador em 16/08/2026
+(cabeçalho deste doc): canal oficial e único é esta entrega diária com a tabela.
+
+**Não consegui medir:** saldo fal.ai, saldo OpenAI (e se o auto-reload disparou no cruzamento —
+só o Billing history separa as duas hipóteses), plano ativo do Resend — painéis exigem login;
+sessão agendada sem browser. Vereditos deles são projeção + evidência indireta do banco, pela
+regra de 18/08.
+
 ## 23/08/2026 — 🔴 OpenAI: o gatilho foi cruzado ONTEM e o produto segue de pé — mas o ZERO absoluto projetado é HOJE ~22:00Z, então "de pé até agora" ainda não é prova · Domingo mais frio da série: pela 1ª vez desde 20/08 UM ritmo medido volta a fechar o ciclo do Creatomate (mas a média 7d segue estourando ~03/09) · Storage desacelerou 12×
 
 **Domingo gelado (18 cadastros/24h, 14 entregues, 27 falhas todas de produto, ZERO evento de
