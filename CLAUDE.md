@@ -97,6 +97,30 @@
 # (4) push no mesmo dia. Ambição na medida: mudanças grandes em stage
 # (studio-v4) pra aprovação; polish direto na main.
 
+# ⚡ SYNC 24/08 — DAR CRÉDITO AGORA TEM BOTÃO (#297), E A REGRA QUE VEIO JUNTO:
+# ⛔ NUNCA prometer a um cliente algo que o produto não sabe executar sozinho.
+# O caso: em 19/08 foram oferecidos 100 créditos por uma review. Rick
+# (gapozweb) deixou a ÚNICA review pública que a Kineo tem, cobrou DUAS vezes,
+# e em 22/08 mandou um e-mail chamado "Feeling forgotten". A causa não foi
+# desleixo — NÃO HAVIA COMO DAR O CRÉDITO: nenhuma rota, nenhum botão em todo
+# o /api/admin. "Faço na mão depois" é onde promessa morre.
+# ✅ AGORA: /admin/people → botão "+ créditos" na linha da pessoa. Motivo é
+#    OBRIGATÓRIO e toda concessão vira evento `admin_credits_granted`
+#    (quem/quanto/por quê). Teto 1.000 por vez. Use SEMPRE por aí — não abra
+#    o banco à mão, senão o rastro se perde.
+# 📊 O painel também passou a medir O QUE FOI ENTREGUE (#295), não só o gasto:
+#    coluna "Got back" ao lado de "Spent on". ATENÇÃO ao ponto cego antigo:
+#    /animate, /images e /audio NÃO criam linha em `videos` — quem usa esses
+#    produtos parecia "gastou 40 e não fez nada" e na verdade RECEBEU (medido:
+#    1.801 entregas de animação para 14 pessoas que o painel mostrava como 0).
+# 📮 SLA DE RESPOSTA (a lição maior do dia): 5 clientes reais escreveram em
+#    30 dias e 4 ficaram SEM RESPOSTA — todos eram respostas a campanhas do
+#    próprio fundador. Pedir favor e sumir converte cliente neutro em cliente
+#    ressentido. Toda campanha nova exige varrer as respostas em ≤48h.
+# 🔍 FUNIL 7d (medido 24/08): 247 cadastros → 115 sem nenhum vídeo, dos quais
+#    103 NUNCA gastaram um crédito. O gargalo da ativação não é render
+#    quebrado nem preço — é gente que chega e não aperta o botão.
+
 # App versão atual: v3.0 ✅ (Phase 1 B-roll Intelligence COMPLETE)
 # v3.0 DONE — Phase 1: B-roll Intelligence System fully connected
 # #346: generate-video-fast now reads brollQueries from BrollPlan → exact Pexels queries per scene
