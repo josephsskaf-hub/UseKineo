@@ -250,7 +250,10 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
   const cutoff = new Date(Date.now() - CINEMATIC_ABANDON_CUTOFF_MS).toISOString()
   const { data: debits, error } = await db
     .from('credit_debits')
-    .select('render_id, user_id, amount')
+    // created_at entrou no select por causa do ÓRFÃO-PENDENTE (ver passo 1b):
+    // é a única ponte possível entre um débito e um claim que morreu antes de
+    // ganhar resolution_reference.
+    .select('render_id, user_id, amount, created_at')
     .eq('kind', 'video')
     .is('refunded_at', null)
     .like('render_id', 'cinematic-%')
@@ -283,7 +286,60 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
       console.warn(`[refund/cinematic-sweep] birth claim lookup failed ref=${billingReference}:`, birthError.message)
       continue
     }
-    if (!birthRow) continue // no verifiable owner → fail closed
+    // ═══ KINEO-ORFAO-PENDENTE-2026-08-24 ════════════════════════════════════
+    // 1b) Débito SEM claim de nascimento localizável. Durante três dias isto
+    // foi lido como "sem dono verificável → falha fechado → pula", e o pulo
+    // era eterno: `resolution_reference` — a chave usada na busca acima — SÓ É
+    // ESCRITA QUANDO O CLAIM RESOLVE. Um claim que morre em `pending` (o
+    // despacho caiu entre o débito e o POST no fal) nunca ganha a referência,
+    // logo nunca é encontrado, logo nunca é estornado. Fail-closed virou
+    // prisão perpétua: 7 clientes reais, 110 créditos, 21→24/08 — e a lista
+    // era quase idêntica à coorte "gastou e não recebeu nada" do painel #295,
+    // ou seja, este buraco vinha fabricando exatamente os clientes que o
+    // fundador pediu para investigar.
+    //
+    // A regra do resgate, deliberadamente estreita para continuar fail-closed
+    // em tudo que não seja ESTE caso:
+    //   · o claim irmão é do MESMO usuário, nasceu a ≤60s do débito (medido:
+    //     os 8 casos reais nasceram 1-2s antes do débito);
+    //   · está em `pending` — nunca despachou, nunca resolveu;
+    //   · não tem fal_request_ids (prova de que nenhum fornecedor foi pago);
+    //   · e o débito já passou do cutoff geral (45min), então nenhum retry
+    //     vivo ainda pode resolvê-lo.
+    // Qualquer outra combinação continua caindo no `continue` de sempre.
+    if (!birthRow) {
+      const debitAt = textField((debit as { created_at?: unknown }).created_at)
+      if (!debitAt) continue
+      const t = new Date(debitAt).getTime()
+      const { data: orphan, error: orphanError } = await db
+        .from('events')
+        .select('user_id, metadata')
+        .eq('name', CINEMATIC_CLAIM_EVENT)
+        .eq('user_id', userId)
+        .eq('metadata->>status', 'pending')
+        .gte('created_at', new Date(t - 60_000).toISOString())
+        .lte('created_at', new Date(t + 60_000).toISOString())
+        .limit(1)
+        .maybeSingle()
+      if (orphanError || !orphan) continue // ambíguo → fail closed de verdade
+      const orphanMeta = metadataOf(orphan)
+      if (textField(orphanMeta.fal_request_ids)) continue // chegou a despachar → não é órfão
+      const amount = await refundRenderCredits(billingReference)
+      if (amount <= 0) continue
+      result.refunded += 1
+      result.creditsReturned += amount
+      await db.from('events').insert({
+        user_id: userId,
+        name: 'credits_refunded',
+        path: '/api/cron/refund-sweep',
+        metadata: {
+          billing_reference: billingReference,
+          amount,
+          reason: 'pending_orphan_no_dispatch',
+        },
+      })
+      continue
+    }
 
     const birthMeta = metadataOf(birthRow)
     // Only a `settled` claim carries a live upfront debit. `released` already

@@ -5201,17 +5201,47 @@ export default function GenerateClient({
     let analyzeHttpStatus: number | null = null
     let analyzeResponded = false
     try {
-      const res = await fetch('/api/analyze-idea', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // Push #064 — pass duration so analyze-idea can size word count
-        // and scene count to match the user's selection.
-        // Push #411 — pass scriptMode so 'Use my script as is' keeps the
-        // user's words VERBATIM in the AI engines too (server splits scenes
-        // in code; GPT only generates the visual layer).
-        body: JSON.stringify({ prompt: source, duration, language, scriptMode }),
-        signal: controller.signal,
-      })
+      // ═══ KINEO-ANALYZE-RETRY-2026-08-24 ═══════════════════════════════════
+      // Um retry silencioso quando o PRÓPRIO fetch estoura (rede caiu no exato
+      // clique — "Failed to fetch"). Medido: 8 pessoas em 7 dias, cada uma
+      // EXATAMENTE UMA vez, espalhadas por dias e países — perfil de blip de
+      // rede, não de rota quebrada. Só que este blip acerta o pior lugar do
+      // funil: o clique de gerar, muitas vezes o PRIMEIRO da conta — e a
+      // pessoa que vê "Could not analyze" no primeiro clique não conclui
+      // "minha rede piscou", conclui "o produto não funciona".
+      //
+      // O padrão é o MESMO do broll-plan logo abaixo (KINEO-FAST-RETRY-2026-
+      // 08-02): espera 2s, tenta de novo UMA vez, em silêncio. Regras:
+      //   · SÓ para throw de rede (o catch interno). Resposta HTTP de erro NÃO
+      //     re-tenta — 4xx/5xx é o servidor falando, e repetir contra um 500
+      //     de OpenAI sem saldo só dobraria a conta do fornecedor.
+      //   · AbortError re-lança na hora: abort = os 50s do timeout global
+      //     estouraram, e re-tentar DENTRO de um prazo já vencido é mentirosa
+      //     duas vezes (gasta mais e ainda mascara o analyze_timeout_50s da
+      //     telemetria).
+      //   · O retry usa o MESMO AbortController: o teto continua sendo 50s
+      //     TOTAIS, não 50+50.
+      const analyzeBody = JSON.stringify({ prompt: source, duration, language, scriptMode })
+      const analyzeOnce = () =>
+        fetch('/api/analyze-idea', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          // Push #064 — pass duration so analyze-idea can size word count
+          // and scene count to match the user's selection.
+          // Push #411 — pass scriptMode so 'Use my script as is' keeps the
+          // user's words VERBATIM in the AI engines too (server splits scenes
+          // in code; GPT only generates the visual layer).
+          body: analyzeBody,
+          signal: controller.signal,
+        })
+      let res: Response
+      try {
+        res = await analyzeOnce()
+      } catch (firstErr) {
+        if (firstErr instanceof Error && firstErr.name === 'AbortError') throw firstErr
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+        res = await analyzeOnce()
+      }
       // KINEO-ANALYZE-CEGO-2026-08-14 — a partir daqui o servidor respondeu, e
       // qualquer throw posterior é NOSSO, não da rede nem do fornecedor.
       analyzeResponded = true
