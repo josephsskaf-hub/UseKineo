@@ -179,6 +179,24 @@
 TIKTOK-61 do planner já garante que o corte final passa de 60s. Script menor
 que isso = pedir pro fundador confirmar antes.
 
+## ⚠ REGRA FIXA — formato de entrega de script (fundador 24/08)
+**O bloco de código contém SÓ o script** — nada de config dentro, senão o
+fundador copia as configurações junto para a caixa de texto do Studio.
+A config vem FORA do bloco, logo embaixo, em uma linha compacta:
+⚙ Config: usekineo.com/studio · motor (custo) · duração · script mode · avisos.
+
+## ⚠ REGRA FIXA — respostas de e-mail vão para o RASCUNHO (fundador 24/08)
+Toda resposta que eu preparar para um cliente/parceiro vai DIRETO para os
+rascunhos do Gmail dele, na thread certa (create_draft com replyToMessageId).
+Nunca só mostrar o texto no chat — o fundador revisa e aperta Enviar.
+
+## ⚠ REGRA FIXA — toda entrega vem com a PRÓXIMA JOGADA (fundador 24/08)
+"Você precisa ser minhas ideias novas." Toda entrega termina com jogada(s)
+de crescimento não-óbvias: o quê, como e por quê, tiradas dos dados do dia.
+Exemplos do padrão: pedido de review no pico da alegria (pós-"clips ready"),
+relatório de concorrente virando página /vs, prazo de mercado (morte do Sora
+24/09) virando pauta de imprensa.
+
 ## ⚠ REGRA FIXA — scripts de vídeo (fundador 15/08)
 **Sempre que o fundador pedir uma script de vídeo, entregar JUNTO as configurações de geração** — motor, duração, character, "Use my script as is" vs "Let AI structure", e custo em créditos. Nunca mandar script solta.
 - Script escrita por mim/por ele → sempre "Use my script as is" (narração verbatim)
