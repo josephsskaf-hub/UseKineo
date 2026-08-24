@@ -66,6 +66,33 @@ function usageLabel(p: PersonRow): string {
 // pergunta que abriu esta mudança: "gastou 40 e não fez nada?" — se a coluna
 // da direita mostra `🎞 6 · 🖼 2`, o produto funcionou e a leitura anterior
 // era um ponto cego do painel, não um cliente insatisfeito.
+// #297 — o botão que faltava. Fica na linha da pessoa, e não numa tela
+// separada, porque a decisão de dar crédito nasce olhando o histórico dela
+// ("gastou 40 e não recebeu nada") — obrigar a copiar o e-mail para outro
+// lugar é o atrito que faz a cortesia não acontecer.
+function GrantButton({ email, onClick }: { email: string; onClick: (email: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(email)}
+      title="Dar créditos a esta pessoa"
+      style={{
+        background: 'rgba(41,151,255,.12)',
+        border: '1px solid rgba(41,151,255,.35)',
+        color: '#2997ff',
+        borderRadius: 6,
+        padding: '2px 8px',
+        fontSize: 10,
+        fontWeight: 800,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      + créditos
+    </button>
+  )
+}
+
 function deliveredLabel(p: PersonRow): string {
   const parts: string[] = []
   if (p.made_videos > 0) parts.push(`🎞 ${p.made_videos}`)
@@ -81,6 +108,27 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   const [error, setError] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [showAll, setShowAll] = useState(false)
+  // #297 — estado do concessor de crédito. Ver a nota em
+  // app/api/admin/grant-credits/route.ts: este botão existe porque uma
+  // promessa de 100 créditos morreu por não haver onde clicar.
+  const [grantFor, setGrantFor] = useState<string | null>(null)
+  const [grantAmount, setGrantAmount] = useState('100')
+  const [grantReason, setGrantReason] = useState('')
+  const [granting, setGranting] = useState(false)
+  const [grantMsg, setGrantMsg] = useState<string | null>(null)
+
+  const load = () => {
+    void fetch('/api/admin/people', { cache: 'no-store' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('load failed')
+        return r.json() as Promise<{ people: PersonRow[]; summary: Summary }>
+      })
+      .then((json) => {
+        setPeople(json.people)
+        setSummary(json.summary)
+      })
+      .catch(() => setError('Failed to load people.'))
+  }
 
   useEffect(() => {
     if (denied) return
@@ -102,6 +150,38 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
       cancelled = true
     }
   }, [denied])
+
+  // #297 — concede e RECARREGA a lista: o admin precisa ver o saldo novo na
+  // linha, senão fica sem saber se funcionou e concede duas vezes.
+  const submitGrant = async () => {
+    if (!grantFor || granting) return
+    setGranting(true)
+    setGrantMsg(null)
+    try {
+      const r = await fetch('/api/admin/grant-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: grantFor,
+          amount: Number(grantAmount),
+          reason: grantReason,
+        }),
+      })
+      const json = (await r.json()) as { error?: string; before?: number; after?: number }
+      if (!r.ok) {
+        setGrantMsg(json.error ?? 'Falhou.')
+        return
+      }
+      setGrantMsg(`✓ ${grantFor}: ${json.before} → ${json.after} créditos`)
+      setGrantReason('')
+      setGrantFor(null)
+      load()
+    } catch {
+      setGrantMsg('Falhou ao conceder.')
+    } finally {
+      setGranting(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const base = (people ?? []).filter((p) => !p.is_internal) // fundador/teste fora
@@ -214,7 +294,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             <b style={{ color: '#34d399' }}>sub</b> = paying now (mirrors Stripe) · <b style={{ color: '#f87171' }}>left</b> = subscribed and cancelled (hottest win-back cohort) · <b style={{ color: '#fbbf24' }}>pack</b> = paid once, never subscribed.
           </p>
           <Table
-            head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity']}
+            head={['Email', 'Type', 'Plan', 'First paid', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity', '']}
             border="rgba(52,211,153,.4)"
             empty="No paying customers match."
             rows={buyers.map((p) => [
@@ -230,6 +310,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
+              <GrantButton key="gr" email={p.email} onClick={setGrantFor} />,
             ])}
           />
         </section>
@@ -244,7 +325,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             Every signup, newest first, with the full credit story per person.
           </p>
           <Table
-            head={['Email', 'Signed up', 'Country', 'Plan', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity']}
+            head={['Email', 'Signed up', 'Country', 'Plan', 'Granted', 'Used', 'Left', 'Spent on', 'Got back', 'Last activity', '']}
             border="rgba(255,255,255,.14)"
             empty="No one matches."
             rows={everyone.map((p) => [
@@ -260,6 +341,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
+              <GrantButton key="gr" email={p.email} onClick={setGrantFor} />,
             ])}
           />
           {!showAll && filtered.length > 250 && (
@@ -273,6 +355,151 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
             </button>
           )}
         </section>
+      )}
+
+      {/* #297 — painel de concessão. Aparece sobre a tela com o e-mail JÁ
+          preenchido: quem clicou no botão daquela linha não deve ter que
+          digitar de novo o endereço que estava olhando (é assim que se
+          credita a pessoa errada). */}
+      {grantFor && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,.72)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+          }}
+          onClick={() => !granting && setGrantFor(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: '#131316',
+              border: '1px solid #2a2a2d',
+              borderRadius: 14,
+              padding: 22,
+              width: 420,
+              maxWidth: '92vw',
+            }}
+          >
+            <h3 style={{ color: '#f5f5f7', fontSize: 13, fontWeight: 900, marginBottom: 4 }}>
+              Dar créditos
+            </h3>
+            <p style={{ color: '#86868b', fontSize: 11, marginBottom: 14, wordBreak: 'break-all' }}>
+              {grantFor}
+            </p>
+
+            <label style={{ color: '#86868b', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
+              Quantidade
+            </label>
+            <input
+              type="number"
+              value={grantAmount}
+              onChange={(e) => setGrantAmount(e.target.value)}
+              style={{
+                width: '100%',
+                background: '#0a0a0c',
+                border: '1px solid #2a2a2d',
+                borderRadius: 8,
+                color: '#f5f5f7',
+                padding: '9px 11px',
+                fontSize: 13,
+                marginTop: 5,
+                marginBottom: 12,
+              }}
+            />
+
+            <label style={{ color: '#86868b', fontSize: 10, fontWeight: 800, textTransform: 'uppercase' }}>
+              Motivo (fica no histórico)
+            </label>
+            <input
+              value={grantReason}
+              onChange={(e) => setGrantReason(e.target.value)}
+              placeholder="ex: review no Product Hunt, compensação por falha"
+              style={{
+                width: '100%',
+                background: '#0a0a0c',
+                border: '1px solid #2a2a2d',
+                borderRadius: 8,
+                color: '#f5f5f7',
+                padding: '9px 11px',
+                fontSize: 12,
+                marginTop: 5,
+                marginBottom: 16,
+              }}
+            />
+
+            {grantMsg && (
+              <p style={{ color: grantMsg.startsWith('✓') ? '#34d399' : '#f87171', fontSize: 11, marginBottom: 10 }}>
+                {grantMsg}
+              </p>
+            )}
+
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => void submitGrant()}
+                disabled={granting || grantReason.trim().length < 3}
+                style={{
+                  flex: 1,
+                  background: grantReason.trim().length < 3 ? '#1c1c20' : '#2997ff',
+                  border: 'none',
+                  borderRadius: 8,
+                  color: grantReason.trim().length < 3 ? '#5a5a60' : '#fff',
+                  padding: '10px 0',
+                  fontSize: 12,
+                  fontWeight: 900,
+                  cursor: granting || grantReason.trim().length < 3 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {granting ? 'Dando…' : 'Dar créditos'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setGrantFor(null)}
+                disabled={granting}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #2a2a2d',
+                  borderRadius: 8,
+                  color: '#86868b',
+                  padding: '10px 16px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmação depois de fechar o painel — sem isto o admin não sabe se
+          a concessão pegou e acaba concedendo de novo. */}
+      {!grantFor && grantMsg?.startsWith('✓') && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: 18,
+            right: 18,
+            background: 'rgba(52,211,153,.14)',
+            border: '1px solid rgba(52,211,153,.4)',
+            color: '#34d399',
+            padding: '10px 14px',
+            borderRadius: 10,
+            fontSize: 12,
+            fontWeight: 800,
+            zIndex: 60,
+          }}
+          onClick={() => setGrantMsg(null)}
+        >
+          {grantMsg}
+        </div>
       )}
     </Shell>
   )
