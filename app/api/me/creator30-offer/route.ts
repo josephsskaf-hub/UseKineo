@@ -20,7 +20,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
-/** Os 10 do print de 24/08. Case-insensitive. */
+/** Os 10 do 1º print de 24/08 (30%). Case-insensitive. */
 const COHORT = new Set([
   'mauricejerry1@gmail.com',
   'n.kraam@googlemail.com',
@@ -34,6 +34,27 @@ const COHORT = new Set([
   'a0929138683@gmail.com',
 ])
 
+// KINEO-CREATOR50-2026-08-24 — 2º print do fundador no mesmo dia, ordem: 50%
+// no 1º mês do Creator. Os 3 nomes que aparecem nos DOIS prints
+// (mauricejerry1, n.kraam, londonugochukwu0) ficam de propósito SÓ na lista
+// de 30%: receberam o e-mail de 30% às 14:15 de hoje, e mostrar 50% na tela
+// duas horas depois ensinaria que esperar aumenta o desconto — além de trair
+// quem comprou rápido. Se não converterem até 27/08, escalar para 50% aí sim
+// (escada temporal parece natural; contradição no mesmo dia parece desespero).
+const COHORT50 = new Set([
+  'yousseffouad122005@gmail.com',
+  'tstarfemoria@gmail.com',
+  'ramadanabdullahi2028@gmail.com',
+  'dkzehri07@gmail.com',
+  'vivaciousyogjalandhar@gmail.com',
+  'alexandraugwuc@gmail.com',
+  'sharanwork007@gmail.com',
+  'priyojeet143@gmail.com',
+  'collinskamu699@gmail.com',
+  'marinarobot69@gmail.com',
+  'seemakhalid0088@gmail.com',
+])
+
 /** A oferta morre sozinha em 31/08 — código pode ficar, campanha não. */
 const OFFER_ENDS_MS = Date.UTC(2026, 7, 31, 23, 59, 59)
 
@@ -43,7 +64,10 @@ export async function GET() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     const email = (user?.email ?? '').trim().toLowerCase()
-    if (!email || !COHORT.has(email)) return NextResponse.json({ eligible: false })
+    // COHORT50 tem precedência — mas por construção as listas não se cruzam
+    // (os 3 overlaps do 2º print ficaram só no 30%; ver nota acima).
+    const promo = COHORT50.has(email) ? 'CREATOR50' : COHORT.has(email) ? 'CREATOR30' : null
+    if (!email || !promo) return NextResponse.json({ eligible: false })
     // Quem já paga não precisa de desconto de primeira fatura.
     const { data: prof } = await supabase
       .from('profiles')
@@ -51,7 +75,12 @@ export async function GET() {
       .eq('id', user!.id)
       .maybeSingle()
     if (prof?.has_paid === true) return NextResponse.json({ eligible: false })
-    return NextResponse.json({ eligible: true, endsAt: OFFER_ENDS_MS })
+    return NextResponse.json({
+      eligible: true,
+      endsAt: OFFER_ENDS_MS,
+      promo,
+      percent: promo === 'CREATOR50' ? 50 : 30,
+    })
   } catch {
     // Falha de leitura nunca pode virar modal errado: na dúvida, não mostra.
     return NextResponse.json({ eligible: false })

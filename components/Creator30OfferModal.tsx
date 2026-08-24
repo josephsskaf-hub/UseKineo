@@ -25,6 +25,12 @@ const SEEN_KEY = 'kineo_creator30_seen'
 
 export default function Creator30OfferModal() {
   const [open, setOpen] = useState(false)
+  // KINEO-CREATOR50-2026-08-24 — o modal virou bilíngue de desconto: o
+  // servidor diz QUAL oferta esta conta tem (CREATOR30 ou CREATOR50) e o
+  // percentual. A tela nunca decide desconto sozinha — mesma disciplina do
+  // preço derivado (#296): o modal só repete o que o caixa sabe cobrar.
+  const [promo, setPromo] = useState<'CREATOR30' | 'CREATOR50'>('CREATOR30')
+  const [percent, setPercent] = useState(30)
 
   useEffect(() => {
     try {
@@ -34,9 +40,12 @@ export default function Creator30OfferModal() {
     }
     let cancelled = false
     void fetch('/api/me/creator30-offer', { cache: 'no-store' })
-      .then((r) => (r.ok ? (r.json() as Promise<{ eligible?: boolean }>) : { eligible: false }))
+      .then((r) => (r.ok ? (r.json() as Promise<{ eligible?: boolean; promo?: string; percent?: number }>) : { eligible: false }))
       .then((json) => {
-        if (!cancelled && json?.eligible === true) setOpen(true)
+        if (cancelled || json?.eligible !== true) return
+        if (json.promo === 'CREATOR50') setPromo('CREATOR50')
+        if (typeof json.percent === 'number' && json.percent > 0 && json.percent < 100) setPercent(json.percent)
+        setOpen(true)
       })
       .catch(() => undefined)
     return () => {
@@ -56,7 +65,7 @@ export default function Creator30OfferModal() {
   if (!open) return null
 
   const full = formatCheckoutMoney('usd', TIER_PRICES.basic.usd)
-  const discounted = formatCheckoutMoney('usd', Math.round(TIER_PRICES.basic.usd * 0.7))
+  const discounted = formatCheckoutMoney('usd', Math.round(TIER_PRICES.basic.usd * (1 - percent / 100)))
 
   return (
     <div
@@ -83,7 +92,7 @@ export default function Creator30OfferModal() {
           Only for your account · ends Aug 31
         </p>
         <h2 style={{ color: '#f5f5f7', fontSize: 22, fontWeight: 900, lineHeight: 1.2, marginBottom: 10 }}>
-          30% off your first month of Creator
+          {percent}% off your first month of Creator
         </h2>
         <p style={{ color: '#a1a1a8', fontSize: 14, lineHeight: 1.55, marginBottom: 6 }}>
           Your first videos deserved a smoother start than we gave you. So here it is, made right:
@@ -96,7 +105,7 @@ export default function Creator30OfferModal() {
         </p>
         <div style={{ display: 'flex', gap: 10 }}>
           <a
-            href="/pricing?promo=CREATOR30&utm_source=creator30_modal"
+            href={`/pricing?promo=${promo}&utm_source=${promo.toLowerCase()}_modal`}
             style={{
               flex: 1, textAlign: 'center', textDecoration: 'none',
               background: '#2997ff', color: '#fff',

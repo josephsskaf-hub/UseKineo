@@ -1270,6 +1270,44 @@ async function buildAndRedirect(
   // mal atendida; o desconto é o pedido de desculpas com prazo. Mesmo gate
   // estreito do CREATOR20 (Studio fora, Starter fora, anual fora) e mesmo
   // auto-provisionamento: impossível o e-mail prometer cupom que não existe.
+  // KINEO-CREATOR50-2026-08-24 — segunda ordem do fundador no mesmo dia
+  // ("50% de desconto no plano creator no 1 mês" para o print das 14 contas
+  // de trial queimado/parado). Mesmo gate estreito e mesmo auto-provisionamento
+  // dos irmãos CREATOR20/30. Os 3 nomes do print que JÁ tinham recebido o
+  // e-mail de 30% às 14:15 ficam no 30% — dois descontos diferentes no mesmo
+  // dia ensinariam que esperar aumenta o desconto.
+  if (publicPromo === 'CREATOR50' && !privatePackPromo && (tier !== 'basic' || isAnnual)) {
+    console.warn(`[stripe/checkout] CREATOR50 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === 'CREATOR50' && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
+      try {
+        const CREATOR50_COUPON_ID = 'KINEO_CREATOR50'
+        try {
+          await stripe.coupons.retrieve(CREATOR50_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: CREATOR50_COUPON_ID,
+            percent_off: 50,
+            duration: 'once',
+            name: '50% off first month (Creator)',
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: CREATOR50_COUPON_ID, code: 'CREATOR50' })
+        } catch {
+          // já existe — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: 'CREATOR50', active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log('[stripe/checkout] CREATOR50 self-provisioned/resolved')
+      } catch (e) {
+        console.warn('[stripe/checkout] CREATOR50 self-provision falhou (checkout segue a preço cheio):', e)
+      }
+    }
+  }
   if (publicPromo === 'CREATOR30' && !privatePackPromo && (tier !== 'basic' || isAnnual)) {
     console.warn(`[stripe/checkout] CREATOR30 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator mensal`)
     resolvedPromo = null
