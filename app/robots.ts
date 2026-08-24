@@ -32,7 +32,10 @@ const AI_CRAWLERS = [
 // quem estamos prospectando. A página também emite noindex no <head>; esta
 // linha é a segunda tranca, porque robots.txt sozinho NÃO desindexa e noindex
 // sozinho não impede o crawl aparecer em logs de terceiros.
-const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2', '/create', '/revive']
+// KINEO-STUDIO-UNIFICACAO-2026-08-24 — '/studio/create' entrou: é a casa de
+// máquinas (o antigo /generate remontado; ver #301). App logado não ranqueia
+// e só queima crawl budget. '/studio' raiz NÃO entra: é a vitrine do cockpit.
+const DISALLOW = ['/api/', '/generate', '/history', '/checkout/', '/admin', '/v2', '/create', '/revive', '/studio/create']
 
 // KINEO-AEO-FACTS — duas rotas de aquisição por motor de resposta que PRECISAM
 // ficar rastreáveis:

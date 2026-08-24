@@ -134,6 +134,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // 0.9 como as outras cabeças de cluster de intenção; as 5 páginas de motor
     // são acrescentadas logo abaixo em 0.9 (são elas que casam com a busca).
     { path: '/ai-video-generator', priority: 0.9, freq: 'weekly' },
+    // KINEO-REVIEWS-2026-08-24 — a resposta para "is Kineo legit / Kineo
+    // reviews", a pergunta pré-compra que toda LLM recebe. 0.8 como as outras
+    // páginas de objeção (/can-you-monetize-ai-videos).
+    { path: '/reviews', priority: 0.8, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]
