@@ -1325,6 +1325,23 @@ export default function PricingClient() {
         {/* Push #099 — FAQ accordion. Five evergreen objections lifted from
             support tickets and the homepage CRO copy. Pure client-side
             useState toggle so the page stays static-renderable. */}
+        {/* KINEO-QUOTE-PRICING-2026-08-24 (pacote noturno, UI#5) — a voz real
+            na página onde 44 pessoas morreram no preço. Quem hesita no valor
+            lê um assinante de verdade, com nome e link verificável (mesmas
+            regras da home #304: só citação autorizada, sem parede de estrelas). */}
+        <figure className="mx-auto mt-14 max-w-2xl text-center">
+          <blockquote className="text-balance text-lg italic leading-8 text-white/80">
+            “Too many good ideas die in the mind. This is a product that gives them an escape
+            route.”
+          </blockquote>
+          <figcaption className="mt-3 text-sm text-white/50">
+            — Rick Crossley, subscriber ·{' '}
+            <a href="/reviews" className="text-[#2997ff] transition hover:text-white">
+              our honest reviews →
+            </a>
+          </figcaption>
+        </figure>
+
         <div className="mt-16">
           <div className="mb-6 text-center">
             <div className="mb-2 text-[11px] font-extrabold uppercase tracking-[.16em] text-[#2997ff]">

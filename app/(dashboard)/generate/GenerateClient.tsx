@@ -12901,6 +12901,28 @@ function ShortPackageSection({
       className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
       style={{ background: '#131316', border: '1px solid var(--border)' }}
     >
+      {/* ═══ KINEO-REVIEW-NO-PICO-2026-08-24 (pacote noturno, AQ#1) ═══════════
+          A lição do Rick, industrializada. Hoje o pedido de review é e-mail
+          dias depois — o momento certo são ESTES 10 segundos: a pessoa acabou
+          de ver o filme dela nascer. O TAAFT é o canal que mais converte da
+          casa e reviews lá sobem o ranking (efeito composto). A promessa dos
+          25 créditos é CUMPRÍVEL: o botão #297 existe e o fundador varre as
+          respostas (SLA agendado). Track no clique para medir o funil. */}
+      <a
+        href="https://theresanaiforthat.com/ai/kineo/"
+        target="_blank"
+        rel="noreferrer"
+        onClick={() => { void trackEvent('review_peak_cta_clicked', { placement: 'short_package' }) }}
+        className="mb-4 flex items-center justify-between gap-3 rounded-xl px-4 py-3"
+        style={{ background: 'rgba(52,211,153,.08)', border: '1px solid rgba(52,211,153,.35)', textDecoration: 'none' }}
+      >
+        <span style={{ color: '#c7c7cc', fontSize: 13, lineHeight: 1.45 }}>
+          <b style={{ color: '#34d399' }}>Loved the result?</b> A 30-second honest review on
+          There&apos;s An AI For That gets you <b style={{ color: '#f5f5f7' }}>+25 credits</b> —
+          reply to any of our emails after posting it and they land the same day.
+        </span>
+        <span style={{ color: '#34d399', fontWeight: 900, fontSize: 13, whiteSpace: 'nowrap' }}>Review →</span>
+      </a>
       <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
         <div>
           <div

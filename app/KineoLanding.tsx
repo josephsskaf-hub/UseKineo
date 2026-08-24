@@ -924,6 +924,25 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           </div>
           {/* #3 (aprovado 15/08) — a prova real de volta: numeros medidos do
               banco + os dois selos de lancamento, numa linha fina. */}
+          {/* KINEO-SORA-BANNER-2026-08-24 (pacote noturno, UI#1) — faixa com
+              PRAZO REAL: a API do Sora morre em 24/09 (fonte OpenAI, ver
+              /sora-alternative). Auto-expira no dia seguinte ao deadline —
+              banner de urgência que sobrevive ao próprio prazo vira mentira
+              de site desesperado. */}
+          {Date.now() < Date.UTC(2026, 8, 25) && (
+            <a
+              href="/sora-alternative"
+              style={{
+                display: 'block', textAlign: 'center', textDecoration: 'none',
+                margin: '0 auto 14px', maxWidth: 640,
+                background: 'rgba(251,146,60,.10)', border: '1px solid rgba(251,146,60,.35)',
+                borderRadius: 10, padding: '8px 14px',
+                color: '#fdba74', fontSize: 13, fontWeight: 700,
+              }}
+            >
+              OpenAI is shutting Sora down on Sept 24 — see where creators are migrating →
+            </a>
+          )}
           <div className="proofline">
             <LiveStatsBadge />
             <span className="pl-badge">#2 Product of the Day on Fazier</span>

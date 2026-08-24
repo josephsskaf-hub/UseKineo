@@ -88,8 +88,11 @@ export default function Creator30OfferModal() {
           maxWidth: '94vw',
         }}
       >
+        {/* KINEO-OFERTA-RELOGIO-2026-08-24 (pacote noturno, UI#3) — prazo em
+            DIAS, calculado, não escrito: "ends Aug 31" parado na tela é
+            papel de parede; "4 days left" é um relógio andando. */}
         <p style={{ color: '#2997ff', fontSize: 11, fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Only for your account · ends Aug 31
+          Only for your account · {Math.max(1, Math.ceil((Date.UTC(2026, 7, 31, 23, 59) - Date.now()) / 86400000))} day{Math.ceil((Date.UTC(2026, 7, 31, 23, 59) - Date.now()) / 86400000) > 1 ? 's' : ''} left
         </p>
         <h2 style={{ color: '#f5f5f7', fontSize: 22, fontWeight: 900, lineHeight: 1.2, marginBottom: 10 }}>
           {percent}% off your first month of Creator
@@ -100,6 +103,12 @@ export default function Creator30OfferModal() {
           <s style={{ color: '#5a5a60' }}>{full}</s> in the first month — 140 credits, every engine,
           watermark-free exports.
         </p>
+        {/* UI#3 — os três fatos que vendem, em vez de prosa corrida. */}
+        <ul style={{ color: '#c7c7cc', fontSize: 12.5, lineHeight: 1.7, margin: '0 0 14px', paddingLeft: 18 }}>
+          <li>140 credits — a month of daily Shorts, or 3 full cinematic films</li>
+          <li>Every engine, including Kling 3 &amp; MiniMax H3 (characters speak with lip sync)</li>
+          <li>Watermark-free exports + AI images, audio studio and HD enhance</li>
+        </ul>
         <p style={{ color: '#86868b', fontSize: 12, lineHeight: 1.5, marginBottom: 20 }}>
           Renews at the normal price after that. Cancel anytime. Discount applies automatically at checkout.
         </p>

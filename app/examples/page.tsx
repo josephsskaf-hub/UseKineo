@@ -8,6 +8,22 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // "Start free": a página tratava assinante como estranho. O header agora
 // pergunta ao servidor quem está olhando.
 import { createClient } from '@/lib/supabase/server'
+// KINEO-CUSTO-NO-CARD-2026-08-24 (pacote noturno, UI#2) — cada card da prova
+// ganha o PREÇO em créditos do motor que o fez. Prova de qualidade + prova de
+// preço no mesmo pixel: "isto custou ~20 créditos" transforma o catálogo numa
+// tabela de custo viva — o argumento que nenhum concorrente mostra. Derivado
+// de creditCostFor (a função que o caixa usa, #296) — nunca escrito à mão.
+import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
+
+const BADGE_QUALITY: Record<string, Quality> = {
+  'KINEO 1': 'fast', 'SEEDANCE 1.5': 'cinematic_ai', 'KLING 2.5': 'cinematic_kling',
+  'VEO 3.1': 'cinematic_veo', 'KLING 3': 'cinematic_hollywood', 'MINIMAX H3': 'cinematic_h3',
+  'AVATAR': 'presenter', 'AI PRESENTER': 'presenter',
+}
+function costFor(badge: string): number | null {
+  const q = BADGE_QUALITY[(badge ?? '').toUpperCase().trim()]
+  return q ? creditCostFor(q, true) : null
+}
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -94,6 +110,12 @@ export default async function ExamplesPage() {
                 <span className="absolute left-2.5 top-2.5 z-10 rounded-md border border-white/20 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-[0.08em] backdrop-blur">
                   {v.badge}
                 </span>
+                {/* KINEO-CUSTO-NO-CARD-2026-08-24 — o preço mora ao lado da prova. */}
+                {costFor(v.badge) !== null && (
+                  <span className="absolute right-2.5 top-2.5 z-10 rounded-md border border-[#2997ff]/40 bg-black/60 px-2 py-0.5 text-[9.5px] font-bold text-[#7cc0ff] backdrop-blur">
+                    {costFor(v.badge)} cr
+                  </span>
+                )}
               </div>
               <p className="p-2.5 text-[11.5px] font-semibold leading-snug text-white/85">{v.title}</p>
             </Link>
