@@ -179,6 +179,15 @@
 TIKTOK-61 do planner já garante que o corte final passa de 60s. Script menor
 que isso = pedir pro fundador confirmar antes.
 
+## ⚠ REGRA FIXA — DRY-RUN ANTES DE TODO RENDER PAGO (fundador 24/08)
+"Não posso gastar mais 7 dólares a cada teste." Todo script de Kling 3/H3
+passa PRIMEIRO pelo validador de $0: POST /api/generate-video-cinematic com
+`dry_run:true` + `script_mode:'verbatim'` (só contas do fundador). Devolve o
+plano cena a cena (segundos, palavras, texto falado) com veredito PASS/FAIL
+(mudo ≤6s e duração ≥95% do alvo) e estorna sozinho. Só se gasta crédito com
+PASS na mão. Regra-irmã: ~150-165 palavras para 60s (79-85s de plano é a
+faixa dos filmes bons: Mandel 68s, Pompeia 78s, Cyclops 75s).
+
 ## ⚠ REGRA FIXA — formato de entrega de script (fundador 24/08)
 **O bloco de código contém SÓ o script** — nada de config dentro, senão o
 fundador copia as configurações junto para a caixa de texto do Studio.
