@@ -929,6 +929,26 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
             <span className="pl-badge">#2 Product of the Day on Fazier</span>
             <a href="https://theresanaiforthat.com/ai/kineo/?ref=featured&v=11418043" target="_blank" rel="nofollow noreferrer" className="pl-badge">Featured on There&apos;s An AI For That</a>
           </div>
+          {/* KINEO-REVIEW-HOME-2026-08-24 — a citação REAL na home (pergunta do
+              fundador: "reviews na home mudariam as coisas?"). Regras: (1) só
+              citação verdadeira com autorização escrita — Rick autorizou por
+              e-mail em 19/08 ("use any of my blatherings"); (2) UMA citação
+              com nome e link verificável vale mais que seis anônimas — parede
+              de estrelas sem fonte é o padrão visual de site que mente; (3) o
+              link aponta para /reviews, onde a honestidade "early days" mora,
+              e de lá para o Product Hunt real. Quando houver 3+ reviews,
+              promover a carrossel — não antes. */}
+          <div style={{ maxWidth: 680, margin: '14px auto 0', textAlign: 'center' }}>
+            <p style={{ fontSize: 15.5, fontStyle: 'italic', color: '#c7c7cc', lineHeight: 1.5, margin: 0 }}>
+              “Too many good ideas die in the mind. This is a product that gives them an escape route.”
+            </p>
+            <p style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>
+              — Rick Crossley, subscriber, on{' '}
+              <a href="/reviews" style={{ color: '#2997ff', textDecoration: 'none' }}>
+                Product Hunt →
+              </a>
+            </p>
+          </div>
                   </div>
       </header>
 
