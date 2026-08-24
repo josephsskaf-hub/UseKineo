@@ -833,7 +833,9 @@ export async function POST(req: NextRequest) {
     // `brollScenes[].userFootageUrl` (My Footage, same contract as
     // generate-video-fast) is the prepared hook for demo scenes using the
     // user's own clips.
-    let body: { generationId?: string; prompt?: string; duration?: number; engine?: string; language?: string; vertical?: string; characterId?: string; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
+    // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24: `script_mode` ('verbatim'|'ai')
+    // e `dry_run` (validador de $0, só contas do fundador) entram no contrato.
+    let body: { generationId?: string; prompt?: string; duration?: number; engine?: string; language?: string; vertical?: string; characterId?: string; script_mode?: string; dry_run?: boolean; brollScenes?: Array<{ sceneNumber?: number; brollPrompt?: string; shotType?: string; negativePrompt?: string; userFootageUrl?: string }>; globalStyle?: { mood?: string; lighting?: string; cameraStyle?: string } }
     try {
       body = await req.json()
     } catch {
@@ -1692,7 +1694,20 @@ export async function POST(req: NextRequest) {
 
     // Parse script for verbatim mode
     const parsedScript = parseUserScript(prompt)
-    const verbatim = parsedScript.hasMarkers && parsedScript.segments.length > 0
+    // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═════════════════════════════
+    // O Contrato C1 dizia "com script verbatim, o texto falado é o roteiro do
+    // usuário" — mas a porta de entrada do contrato era `hasMarkers`: só
+    // roteiro no formato da casa (HOOK/MICRO REWARD) contava como verbatim.
+    // Quem clicava "Use my script as is" com PROSA LIMPA (o caso mais comum de
+    // roteiro próprio) caía no caminho antigo: o GPT planejava as cenas E
+    // escolhia o que falar — no render do fundador desta noite, usou 4 de 9
+    // cenas e descartou justamente o clímax (Proteus/Nereus, a frase final, o
+    // gancho do próximo episódio). 24s de filme mudo, 150cr, $7 de fal.
+    // Agora o pedido explícito do usuário TAMBÉM liga o contrato: verbatim =
+    // formato da casa OU botão apertado. `script_mode` chega do client (que
+    // sempre soube — só não contava).
+    const userSaysVerbatim = ((body.script_mode ?? '') as string).toLowerCase() === 'verbatim'
+    const verbatim = (parsedScript.hasMarkers && parsedScript.segments.length > 0) || userSaysVerbatim
 
     // ═══ KINEO-NARRACAO-ENCHE-2026-08-22 — A TRAVA, E ELA VEM ANTES DO DÉBITO ══
     //
@@ -1869,8 +1884,15 @@ export async function POST(req: NextRequest) {
     // intentionally NOT applied — fictional people are the point here. The
     // era-lock suffix IS kept (period accuracy still matters).
     if (hollywoodPath) {
-      const hollywoodVoiceover = verbatim && parsedScript.narration
-        ? parsedScript.narration
+      // KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 — no verbatim sem marcadores,
+      // parsedScript.narration vem vazio (não há segmentos para extrair); o
+      // roteiro é o PROMPT INTEIRO. Sem este fallback, o verbatim recém-ligado
+      // cairia no join dos voiceovers do GPT — o exato texto que o contrato
+      // proíbe de virar trilho.
+      const hollywoodVoiceover = verbatim
+        ? (parsedScript.narration && parsedScript.narration.trim().length > 0
+            ? parsedScript.narration
+            : prompt.trim())
         : scenes.map((s) => s.voiceover).filter(Boolean).join(' ')
 
       // KINEO-HOLLYWOOD-HOST-2026-07-13 — language/vertical hoisted (the host
@@ -2361,19 +2383,22 @@ export async function POST(req: NextRequest) {
         const tally = () => plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
         let t = tally()
         const floor95 = Math.round(hollywoodTarget * 0.95)
-        while (t < floor95 && plan.scenes.length < 10) {
-          plan.scenes.push({
-            index: plan.scenes.length + 1,
-            type: 'support',
-            beat: 'PAYOFF',
-            seconds: Math.max(4, Math.min(10, floor95 - t)),
-            prompt: `slow atmospheric closing shot of ${plan.environmentSheet}, no people, golden light fading, level horizon, stable slow dolly, ${plan.styleSheet}`,
-            voiceover: undefined,
-            needsNarration: false,
-            caption: '',
-          } as PlanScene)
-          t = tally()
-        }
+        // ═══ KINEO-C2-SEM-MUDA-2026-08-24 — A ORDEM INVERTE, E O MUDO GANHA TETO ══
+        //
+        // O CASO (render do fundador, Cyclops, 24/08 21:25): o plano chegou
+        // aqui com 42s falados para um alvo de 60s, e ESTE bloco completou os
+        // 24s que faltavam com cenas atmosféricas SEM VOZ — "rabo com trilha é
+        // melhor que vídeo curto", dizia a justificativa. O fundador assistiu
+        // e deu o veredito que derruba a premissa: 24 segundos de filme mudo É
+        // o "apagão" que ele vem reprovando há semanas. Um suspiro atmosférico
+        // de 4-6s respira; 24s é o filme morrendo em câmera lenta.
+        //
+        // A ORDEM NOVA: (1º) ESTICAR cenas que TÊM fala — a imagem segue
+        // rodando sob narração, custo zero de silêncio; (2º) só depois, no
+        // máximo UM suspiro mudo de até 6s. Se ainda faltar, o filme sai mais
+        // curto — e o log grita, porque déficit grande aqui significa que o C1
+        // deixou texto para trás (a classe de bug que o verbatim-sem-marcador
+        // acabou de consertar), não que faltou atmosfera.
         if (t < floor95) {
           for (const sc of plan.scenes) {
             if (t >= floor95) break
@@ -2384,7 +2409,77 @@ export async function POST(req: NextRequest) {
             }
           }
         }
-        console.log(`[contrato] C2: plano final ${t}s de ${hollywoodTarget}s alvo (piso ${floor95}s, ${plan.scenes.length} cenas)`)
+        const MUTE_BREATHER_MAX_S = 6
+        if (t < floor95) {
+          const breather = Math.max(4, Math.min(MUTE_BREATHER_MAX_S, floor95 - t))
+          plan.scenes.push({
+            index: plan.scenes.length + 1,
+            type: 'support',
+            beat: 'PAYOFF',
+            seconds: breather,
+            prompt: `slow atmospheric closing shot of ${plan.environmentSheet}, no people, golden light fading, level horizon, stable slow dolly, ${plan.styleSheet}`,
+            voiceover: undefined,
+            needsNarration: false,
+            caption: '',
+          } as PlanScene)
+          t = tally()
+        }
+        if (t < floor95) {
+          // Chegou aqui = mesmo esticando tudo E com o suspiro, falta filme.
+          // Isso NUNCA deveria acontecer com a trava de narração (95% do alvo
+          // medido ANTES do débito) + verbatim íntegro. É alarme, não ajuste.
+          console.error(
+            `[contrato] C2 DÉFICIT MUDO: plano fecha em ${t}s de ${hollywoodTarget}s alvo mesmo após esticar+suspiro. ` +
+            `O C1 provavelmente deixou texto para trás — investigar ANTES do próximo render pago.`,
+          )
+        }
+        console.log(`[contrato] C2: plano final ${t}s de ${hollywoodTarget}s alvo (piso ${floor95}s, ${plan.scenes.length} cenas, mudo máx ${MUTE_BREATHER_MAX_S}s)`)
+      }
+
+      // ═══ KINEO-DRY-RUN-2026-08-24 — O VALIDADOR DE $0 ══════════════════════
+      //
+      // ORDEM DO FUNDADOR (24/08, depois do 4º render reprovado): "não posso
+      // gastar mais 7 dólares a cada teste". O padrão dos bugs desta família
+      // (cena muda, roteiro condensado, apagão no fim) é que TODOS são
+      // visíveis NO PLANO — cenas, segundos, narração por cena — e o plano
+      // fica pronto AQUI, antes de qualquer submissão ao fal. Só que até hoje
+      // a única forma de olhar o plano era pagar o render inteiro.
+      //
+      // `dry_run: true` (restrito às contas do fundador) devolve o plano
+      // completo NESTE ponto: por cena — tipo, segundos, palavras e o texto
+      // exato que seria falado — mais os totais que os contratos C1/C2
+      // prometem. Custo: os centavos do GPT do planner. Zero fal, zero
+      // Creatomate, zero TTS, e o débito é estornado na hora pelo mesmo
+      // caminho do FAILFAST. Testar um roteiro passa de $7 para ~$0,02.
+      {
+        const dryRunEmails = new Set(['josephsskaf@gmail.com', 'josephskaf@gmail.com', 'joseph-test@shortsforgeai.com'])
+        if (body.dry_run === true && dryRunEmails.has((user.email ?? '').toLowerCase())) {
+          const wordsOf = (t?: string) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+          const planReport = plan.scenes.map((sc, i) => ({
+            scene: i + 1,
+            type: sc.type,
+            seconds: sc.seconds ?? null,
+            words: wordsOf(sc.type === 'dialogue' ? sc.dialogueLine : sc.voiceover),
+            speech: sc.type === 'dialogue' ? (sc.dialogueLine ?? null) : (sc.voiceover ?? null),
+          }))
+          const spokenSeconds = planReport.reduce((a, r) => a + (r.words > 0 ? (r.seconds ?? 0) : 0), 0)
+          const totalSeconds = planReport.reduce((a, r) => a + (r.seconds ?? 0), 0)
+          const muteSeconds = totalSeconds - spokenSeconds
+          await releaseBirthClaim('dry_run_no_charge')
+          return NextResponse.json({
+            dry_run: true,
+            verbatim,
+            target_seconds: hollywoodTarget,
+            total_seconds: totalSeconds,
+            spoken_seconds: spokenSeconds,
+            mute_seconds: muteSeconds,
+            verdict: muteSeconds <= 6 && totalSeconds >= Math.round(hollywoodTarget * 0.95)
+              ? 'PASS — todos os segundos têm história (mudo ≤6s) e a duração fecha'
+              : `FAIL — ${muteSeconds}s mudos ou duração ${totalSeconds}s abaixo do piso`,
+            scenes: planReport,
+            note: 'Nada foi enviado ao fal e os créditos foram estornados. Custo real: só o GPT do planner.',
+          })
+        }
       }
 
       // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 "UM MUNDO": generate the

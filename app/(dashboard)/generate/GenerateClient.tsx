@@ -6102,6 +6102,16 @@ export default function GenerateClient({
           prompt: trimmed,
           duration,
           language,
+          // ═══ KINEO-VERBATIM-SEM-MARCADOR-2026-08-24 ═══════════════════════
+          // O elo que faltava do Contrato C1. O usuário escolhia "Use my
+          // script as is", MAS este payload nunca contava isso ao servidor —
+          // e lá o verbatim só ligava se o roteiro tivesse marcadores
+          // HOOK/MICRO REWARD. Roteiro em prosa limpa (o caso normal de quem
+          // escreve o próprio texto!) caía no caminho do GPT-planeja-tudo,
+          // que usou 4 de 9 cenas e deixou 24s MUDOS no render do fundador
+          // desta noite (Cyclops, 63s, história morta aos 38s). O modo viaja;
+          // o servidor decide com a informação inteira.
+          script_mode: scriptMode,
           vertical: analysis?.niche ?? undefined,
           engine: aiEngine,
           brollScenes: cineBrollScenes,
