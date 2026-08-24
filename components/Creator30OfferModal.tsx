@@ -97,6 +97,15 @@ export default function Creator30OfferModal() {
         <h2 style={{ color: '#f5f5f7', fontSize: 22, fontWeight: 900, lineHeight: 1.2, marginBottom: 10 }}>
           {percent}% off your first month of Creator
         </h2>
+        {/* KINEO-OFERTA-VITRINE-2026-08-24 (pacote noturno 2, UI#3) — o padrão
+            dos modais da casa (#273): a pessoa vê O QUE está comprando no
+            quadro em que decide. Clipe curado do Kling 3 (o mesmo da home),
+            muted/loop, 104-244KB — barato e prova mais que mil palavras. */}
+        <video
+          src="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4"
+          muted loop autoPlay playsInline preload="metadata"
+          style={{ width: '100%', borderRadius: 10, marginBottom: 14, border: '1px solid #2a2a2d', maxHeight: 180, objectFit: 'cover' }}
+        />
         <p style={{ color: '#a1a1a8', fontSize: 14, lineHeight: 1.55, marginBottom: 6 }}>
           Your first videos deserved a smoother start than we gave you. So here it is, made right:
           Creator for <b style={{ color: '#f5f5f7' }}>{discounted}</b>{' '}

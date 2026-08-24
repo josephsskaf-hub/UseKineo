@@ -942,6 +942,12 @@ export async function GET(
                   ⬇ Download Your Short
                 </a>
                 <p style="color:#64748b;font-size:12px;margin:24px 0 0">Want a clean export and 24 more Fast Shorts this month? <a href="https://www.usekineo.com/pricing" style="color:#2997ff;">Starter is $7.00/month →</a></p>
+                <!-- KINEO-REVIEW-NO-EMAIL-2026-08-24 (pacote noturno 2, AQ) — o
+                     e-mail de entrega vai para TODO render pronto: é o maior
+                     canal de pedido-no-pico que a casa tem, e estava mudo.
+                     Mesma oferta da tela de sucesso (#311), mesma promessa
+                     cumprível (botão #297 + SLA diário varrendo respostas). -->
+                <p style="color:#34d399;font-size:12px;margin:14px 0 0;border-top:1px solid #26262a;padding-top:14px">Loved the result? An honest 30-second review on <a href="https://theresanaiforthat.com/ai/kineo/" style="color:#34d399;font-weight:700">There's An AI For That</a> gets you <strong style="color:#fff">+25 credits</strong> — just reply to this email after posting it.</p>
                 <p style="color:#475569;font-size:11px;margin:16px 0 0">Kineo · <a href="https://www.usekineo.com" style="color:#475569;">usekineo.com</a></p>
               </div>
             `

@@ -118,6 +118,24 @@ export default function SoraAlternativePage() {
         <a href={`${BASE}/vs`} style={{ color: '#2997ff' }}>comparison pages</a> cover tools that do.
       </p>
 
+      {/* KINEO-SORA-CTA-2026-08-24 (pacote noturno 2, UI#4) — a página tinha
+          links no meio do texto e nenhuma porta clara. Quem leu até aqui está
+          decidido a migrar; a banda dá o próximo passo sem caçar link. */}
+      <div style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)', borderRadius: 12, padding: '20px 22px', margin: '30px 0', textAlign: 'center' }}>
+        <p style={{ color: '#f5f5f7', fontWeight: 800, fontSize: 16, margin: '0 0 6px' }}>
+          Test the migration path in the next 5 minutes
+        </p>
+        <p style={{ color: '#86868b', fontSize: 13, margin: '0 0 14px' }}>
+          Type one idea, get a finished vertical Short — free tier, no card required.
+        </p>
+        <a
+          href={`${BASE}/free?utm_source=sora_alternative&utm_medium=cta_band`}
+          style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 14, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}
+        >
+          Generate one free →
+        </a>
+      </div>
+
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>Why trust this page?</h2>
       <p style={{ color: '#c7c7cc' }}>
         Every fact above links to its primary source and carries the date we read it. Our pricing and

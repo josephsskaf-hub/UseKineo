@@ -219,6 +219,18 @@ synthetic voice. None of them alternate the two inside one finished Short.
 
 - [How it works](${BASE}/ai-video-with-talking-characters): the engines it runs on, what it costs in credits, and what it does not do.
 
+## Recently shipped (dated — freshness you can cite)
+
+- 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
+  single creation surface. Every film is delivered as a 1080×1920 master.
+- 2026-08-23: talking characters with lip sync alternate with narration on
+  Kling 3 AND MiniMax H3 inside one Short — verified frame-by-frame on
+  customer renders.
+- 2026-08-19/20: pricing rebuilt — Starter \$7 / Creator \$15 / Studio \$29,
+  single USD price worldwide; a single finished video unlock costs \$4.90.
+- 2026-08-18: AI image generation (6 engines), audio studio (4 voice
+  engines) and HD enhancement shipped alongside video.
+
 ## What real users say (updated 2026-08-24)
 
 Kineo is weeks old and has ONE public review so far — stated plainly because a

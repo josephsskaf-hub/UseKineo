@@ -38,6 +38,7 @@ import {
   cinematicSceneModel,
   type CinematicFamily,
   mentionsRealPerson,
+  sanitizeRealPeople,
   planHollywoodScenes,
   logHollywoodCost,
   type HollywoodPlan,
@@ -921,8 +922,19 @@ export async function POST(req: NextRequest) {
     // fictional people with native voice, so a prompt naming a real person is
     // blocked outright (cheap check, before any credit/plan work).
     if (hollywoodPath && mentionsRealPerson(prompt)) {
+      // KINEO-FIX-IT-FOR-ME-2026-08-24 (pacote noturno 2, UI#1) — a trava
+      // devolvia o problema pro cliente ("descreva uma pessoa fictícia") sem
+      // dizer qual nome travou nem como consertar. O fundador bateu nela hoje
+      // com o Cyclops (George Worley/Wilson) e precisou de MIM para reescrever
+      // — cliente do trial não tem um eu e desiste. A lib JÁ TINHA o
+      // sanitizador (sanitizeRealPeople); agora a resposta carrega a versão
+      // corrigida e o client oferece "Fix it for me" de 1 clique.
       return NextResponse.json(
-        { error: "Hollywood Mode can't depict real people. Describe a fictional person instead." },
+        {
+          error: "Hollywood Mode can't depict real people. Describe a fictional person instead.",
+          reason: 'real_person_blocked',
+          sanitized_prompt: sanitizeRealPeople(prompt),
+        },
         { status: 400 },
       )
     }

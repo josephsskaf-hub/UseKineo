@@ -10283,6 +10283,34 @@ export default function GenerateClient({
                   : 'No credits were charged for this attempt.'}
                 {' '}You can retry safely.
               </div>
+              {/* ═══ KINEO-FIX-IT-FOR-ME-2026-08-24 (pacote noturno 2, UI#1) ══
+                  A trava anti-deepfake dizia "descreva uma pessoa fictícia" e
+                  largava o cliente com o problema. O fundador bateu nela hoje
+                  (Cyclops: capitão Worley/Wilson) e precisou de um engenheiro
+                  para reescrever — cliente do trial desiste. sanitizeRealPeople
+                  é regex pura (client-safe): o botão conserta o roteiro AQUI e
+                  retenta na hora. O nome real vira "a fictional period-accurate
+                  figure" — história intacta, trava satisfeita, zero digitação. */}
+              {/(depict real people|real person)/i.test(error ?? '') && (
+                <button
+                  onClick={() => {
+                    // Import inline para não pesar o bundle de quem nunca vê a trava.
+                    void import('@/lib/hollywood/router').then(({ sanitizeRealPeople }) => {
+                      const fixed = sanitizeRealPeople(prompt)
+                      if (fixed && fixed !== prompt) {
+                        setPrompt(fixed)
+                        void trackEvent('real_person_autofix_clicked', {})
+                        // O retry sai no próximo tick, já com o prompt corrigido.
+                        setTimeout(() => handleGenerateGuarded(), 60)
+                      }
+                    })
+                  }}
+                  className="rounded-xl px-5 py-2.5 text-sm font-bold text-white mt-2 mr-2"
+                  style={{ background: '#34d399', border: 'none', cursor: 'pointer', color: '#04130d' }}
+                >
+                  ✨ Fix it for me &amp; retry
+                </button>
+              )}
               <button
                 onClick={handleGenerateGuarded}
                 className="rounded-xl px-5 py-2.5 text-sm font-bold text-white mt-2"

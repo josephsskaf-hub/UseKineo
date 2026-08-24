@@ -855,7 +855,10 @@ export default function PricingClient() {
           </p>
         )}
         {billing === 'monthly' && arrivedWithPromo && (
-          <p className="mx-auto mt-5 max-w-2xl text-center text-[11.5px] leading-relaxed text-[#86868b]">
+          <p
+            className="mx-auto mt-5 max-w-2xl rounded-xl px-4 py-3 text-center text-[13px] font-bold leading-relaxed"
+            style={{ background: 'rgba(52,211,153,.10)', border: '1px solid rgba(52,211,153,.4)', color: '#34d399' }}
+          >
             {/* 2ª passada: a 1ª versão dizia "your code IS APPLIED" — afirmação
                 sobre o RESULTADO, falsa se o código estiver expirado ou não
                 cobrir o plano clicado. A frase abaixo afirma só o que ESTE
