@@ -213,12 +213,26 @@ export async function GET() {
           if (names.has('pricing_view') || names.has('inline_pricing_currency_resolved')) did.push('💰 viu preço')
           if (names.has('upgrade_modal_opened') || [...names].some((n) => n.includes('topup'))) did.push('⚡ modal de crédito')
           if ([...names].some((n) => n.startsWith('images_') || n === 'image_generated')) did.push('🖼 imagens')
+          // KINEO-GUARD-VISIVEL-2026-08-25 (caso Pedro) — o bloqueio educativo
+          // de roteiro-curto agora tem nome próprio e vira um chip legível em
+          // vez de FAILED genérico. "crédito devolvido" é verdade desde o #325.
+          if (names.has('narration_guard_blocked')) did.push('✋ roteiro curto — barrado, crédito devolvido')
           if (did.length === 0) did.push('👀 navegando')
 
           // KINEO-LIVE-V2-2026-08-19 — o estado que faltava para a tela ser
           // legível. 'rendering' é o que explica "crédito gasto, zero vídeo".
-          const rendering =
-            names.has('video_generation_started') && !names.has('video_generation_completed')
+          // KINEO-RENDERING-HONESTO-2026-08-25 (caso Pedro): started sem
+          // completed ficava 'RENDERING' PARA SEMPRE mesmo depois do FAILED —
+          // o fundador olhou a tela e não conseguiu saber se o render estava
+          // vivo. Agora a ORDEM decide: só é rendering se o último started
+          // veio DEPOIS do último completed/failed.
+          // row.events vem em ordem DESC (query newest-first): indexOf = a
+          // ocorrência MAIS RECENTE; índice menor = mais novo.
+          const newestIdx = (name: string) => row.events.indexOf(name)
+          const iStart = newestIdx('video_generation_started')
+          const iDoneCandidates = [newestIdx('video_generation_completed'), newestIdx('video_generation_failed')].filter((i) => i >= 0)
+          const iDone = iDoneCandidates.length > 0 ? Math.min(...iDoneCandidates) : -1
+          const rendering = iStart >= 0 && (iDone === -1 || iStart < iDone)
           const failed = row.events.filter((n) => n === 'video_generation_failed').length
           const lastEngine =
             [...names].find((n) => n.startsWith('engine_')) ?? null

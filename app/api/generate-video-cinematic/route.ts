@@ -1793,6 +1793,18 @@ export async function POST(req: NextRequest) {
         // metade do trial confiscada por uma recusa didática. O release é o
         // mesmo caminho do dry-run/FAILFAST: estorna e libera na hora.
         await releaseBirthClaim('narration_too_short_no_charge')
+        // KINEO-GUARD-VISIVEL-2026-08-25 (fundador: "isso precisa refletir pra
+        // mim no adm") — o bloqueio educativo ganha um evento com NOME próprio,
+        // porque o /admin/live só enxerga nomes: sem isto, o guard aparecia
+        // como um FAILED genérico + RENDERING eterno, ilegível. Fire-and-forget.
+        try {
+          await cinematicAdmin.from('events').insert({
+            user_id: user.id,
+            name: 'narration_guard_blocked',
+            path: '/api/generate-video-cinematic',
+            metadata: { speech_seconds: Math.round(fit.speech), target_seconds: duration, missing_words: fit.missingWords, refunded: true },
+          })
+        } catch { /* telemetria nunca derruba a resposta */ }
         console.warn(
           `[narracao] RECUSADO (claim liberado, crédito devolvido): ${Math.round(fit.speech)}s de fala para ` +
           `alvo de ${duration}s (cobertura ${(fit.coverage * 100).toFixed(0)}%, ` +

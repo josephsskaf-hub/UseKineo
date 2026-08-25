@@ -93,6 +93,54 @@ function GrantButton({ email, onClick }: { email: string; onClick: (email: strin
   )
 }
 
+// ═══ KINEO-PERSON-MEDIA-2026-08-25 — "abrir um espaço e ver TODOS os vídeos
+// que aquele cliente já fez" (fundador, 25/08, preocupado com trials de 25cr
+// zerando sem vídeo visível). O botão 🎬 abre a obra inteira da pessoa:
+// cada vídeo clicável com motor real, status e data, mais as entregas que
+// nunca viram linha em `videos` (imagens/áudios/animações — o ponto cego do
+// #295) e os bloqueios do guard de roteiro (o caso Pedro).
+interface PersonMedia {
+  email: string
+  credits: number | null
+  plan: string | null
+  trial: { granted: number; used: number } | null
+  signup_at: string | null
+  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; quality: string | null; status: string | null; created_at: string }>
+  images_total: number
+  audios_total: number
+  animations_delivered: number
+  guard_blocks: Array<{ at: string; detail: { speech_seconds?: number; target_seconds?: number } | null }>
+}
+
+const MEDIA_ENGINE_LABEL: Record<string, string> = {
+  fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5', cinematic_veo: 'Veo 3.1',
+  cinematic_h3: 'MiniMax H3', cinematic_hollywood: 'Kling 3', cinematic_omni: 'Omni Flash',
+  avatar: 'Avatar', presenter: 'Presenter',
+}
+
+function MediaButton({ email, onClick }: { email: string; onClick: (email: string) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(email)}
+      title="Ver todos os vídeos desta pessoa"
+      style={{
+        background: 'rgba(167,139,250,.12)',
+        border: '1px solid rgba(167,139,250,.35)',
+        color: '#a78bfa',
+        borderRadius: 6,
+        padding: '2px 8px',
+        fontSize: 10,
+        fontWeight: 800,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      🎬 vídeos
+    </button>
+  )
+}
+
 function deliveredLabel(p: PersonRow): string {
   const parts: string[] = []
   if (p.made_videos > 0) parts.push(`🎞 ${p.made_videos}`)
@@ -116,6 +164,25 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
   const [grantReason, setGrantReason] = useState('')
   const [granting, setGranting] = useState(false)
   const [grantMsg, setGrantMsg] = useState<string | null>(null)
+  // KINEO-PERSON-MEDIA-2026-08-25 — o raio-X de mídia da pessoa clicada.
+  const [mediaFor, setMediaFor] = useState<string | null>(null)
+  const [media, setMedia] = useState<PersonMedia | null>(null)
+  const [mediaError, setMediaError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!mediaFor) { setMedia(null); setMediaError(null); return }
+    let cancelled = false
+    setMedia(null)
+    setMediaError(null)
+    void fetch(`/api/admin/person-media?email=${encodeURIComponent(mediaFor)}`, { cache: 'no-store' })
+      .then(async (r) => {
+        if (!r.ok) throw new Error('load failed')
+        return r.json() as Promise<PersonMedia>
+      })
+      .then((json) => { if (!cancelled) setMedia(json) })
+      .catch(() => { if (!cancelled) setMediaError('Falhou ao carregar a mídia desta pessoa.') })
+    return () => { cancelled = true }
+  }, [mediaFor])
 
   const load = () => {
     void fetch('/api/admin/people', { cache: 'no-store' })
@@ -310,7 +377,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
-              <GrantButton key="gr" email={p.email} onClick={setGrantFor} />,
+              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
             ])}
           />
         </section>
@@ -341,7 +408,7 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 {p.burned_nothing_delivered ? '⚠ nothing' : deliveredLabel(p)}
               </span>,
               fmtDate(p.last_use),
-              <GrantButton key="gr" email={p.email} onClick={setGrantFor} />,
+              <span key="gr" style={{ display: 'inline-flex', gap: 4 }}><GrantButton email={p.email} onClick={setGrantFor} /><MediaButton email={p.email} onClick={setMediaFor} /></span>,
             ])}
           />
           {!showAll && filtered.length > 250 && (
@@ -475,6 +542,75 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ KINEO-PERSON-MEDIA-2026-08-25 — o espaço com TODOS os vídeos da
+          pessoa (independente do tempo), clicáveis. Clicar fora fecha. */}
+      {mediaFor && (
+        <div
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setMediaFor(null) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,.72)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '40px 16px' }}
+        >
+          <div style={{ ...CARD, width: '100%', maxWidth: 860, padding: '22px 24px', margin: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+              <h3 style={{ color: '#f5f5f7', fontSize: 13, fontWeight: 900 }}>🎬 Tudo que esta pessoa fez</h3>
+              <button type="button" onClick={() => setMediaFor(null)} style={{ background: 'transparent', border: 'none', color: '#86868b', fontSize: 18, cursor: 'pointer' }}>×</button>
+            </div>
+            <p style={{ color: '#86868b', fontSize: 11, marginBottom: 12, wordBreak: 'break-all' }}>{mediaFor}</p>
+
+            {!media && !mediaError && <p style={{ color: '#86868b', fontSize: 12 }}>Carregando…</p>}
+            {mediaError && <p style={{ color: '#f87171', fontSize: 12 }}>{mediaError}</p>}
+
+            {media && (
+              <>
+                <p style={{ color: '#c7c7cc', fontSize: 11.5, marginBottom: 12 }}>
+                  Saldo <b style={{ color: '#2997ff' }}>{media.credits ?? '—'} cr</b>
+                  {media.trial ? <> · trial {media.trial.granted} concedidos, {media.trial.used} no contador</> : null}
+                  {media.plan ? <> · plano {media.plan}</> : null}
+                  {' '}· 🎞 {media.videos.length} vídeos · 🖼 {media.images_total} imagens · 🔊 {media.audios_total} áudios · 🌀 {media.animations_delivered} animações
+                </p>
+
+                {media.guard_blocks.length > 0 && (
+                  <p style={{ color: '#fbbf24', fontSize: 11, marginBottom: 12 }}>
+                    ✋ {media.guard_blocks.length}× barrado pelo guard de roteiro curto (crédito devolvido automaticamente desde o #325)
+                    {media.guard_blocks[0]?.detail?.speech_seconds != null ? ` — último: ${media.guard_blocks[0].detail.speech_seconds}s de fala para pedido de ${media.guard_blocks[0].detail.target_seconds}s` : ''}
+                  </p>
+                )}
+
+                {media.videos.length === 0 ? (
+                  <p style={{ color: '#86868b', fontSize: 12 }}>
+                    Nenhum vídeo na conta — os créditos (se gastos) foram em imagens/áudio/animação, ou as gerações falharam/foram barradas e estornadas.
+                  </p>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+                    {media.videos.map((v) => (
+                      <a
+                        key={v.id}
+                        href={v.url ?? undefined}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'block', textDecoration: 'none', background: '#0a0a0c', border: '1px solid #2a2a2d', borderRadius: 10, overflow: 'hidden', opacity: v.url ? 1 : 0.55 }}
+                      >
+                        <div style={{ aspectRatio: '9/16', maxHeight: 190, background: v.thumb ? `url(${v.thumb}) center/cover` : '#131316', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {!v.thumb && <span style={{ fontSize: 22 }}>{v.url ? '▶' : '⏳'}</span>}
+                        </div>
+                        <div style={{ padding: '7px 9px' }}>
+                          <div style={{ color: '#a78bfa', fontSize: 9.5, fontWeight: 800, textTransform: 'uppercase' }}>
+                            {MEDIA_ENGINE_LABEL[v.quality ?? ''] ?? v.quality ?? '—'}{v.status && v.status !== 'completed' ? ` · ${v.status}` : ''}
+                          </div>
+                          <div style={{ color: '#c7c7cc', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
+                            {v.topic ?? 'Untitled'}
+                          </div>
+                          <div style={{ color: '#5a5a60', fontSize: 9.5, marginTop: 3 }}>{fmtDate(v.created_at)}</div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
