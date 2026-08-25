@@ -19,11 +19,22 @@ const POSTER: Record<string, string> = {
   cinematic_kling: '/posters/hero-kling25.webp',
   cinematic_veo: '/posters/hero-veo31.webp',
   cinematic_hollywood: '/posters/hero-kling3.webp',
+  // KINEO-VITRINE-FIX-25/08 — posters dos cards novos: o frame de abertura do
+  // clipe curado nº1 de cada um (robôs p/ Omni, aérea noturna p/ H3).
+  cinematic_h3: '/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg',
+  cinematic_omni: '/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg',
 }
 
 // KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (fonte:
 // generate-video-cinematic/route.ts). Pares: bento em KineoLanding.tsx.
 const META: Record<string, { name: string; desc: string; href: string }> = {
+  // ⚠️ KINEO-VITRINE-FIX-25/08 — A LIÇÃO DO CARD FANTASMA: o hero do #335
+  // mandava 4 cards do servidor, mas este mapa não conhecia cinematic_h3 nem
+  // cinematic_omni e o `if (!meta) return null` ENGOLIA os dois no cliente —
+  // a home abriu com 2 cards gigantes e o fundador viu na hora. Motor novo na
+  // vitrine = par obrigatório AQUI (META + POSTER), não só no engineWall.
+  cinematic_h3: { name: 'MiniMax H3', desc: 'Cinematic film — 9-image consistency', href: '/studio?engine=h3&intent_campaign=hero_engine' },
+  cinematic_omni: { name: 'Omni Flash', desc: '#1-ranked video model — Aug 2026 arena', href: '/studio?engine=omni&intent_campaign=hero_engine' },
   cinematic_veo: { name: 'Veo 3.1', desc: "Google's flagship cinematic engine", href: '/studio?engine=veo&intent_campaign=hero_engine' },
   cinematic_kling: { name: 'Kling 2.5', desc: 'Cinematic motion and camera work', href: '/studio?engine=kling&intent_campaign=hero_engine' },
   cinematic_hollywood: { name: 'Kling 3', desc: 'Film scenes, native voice & lip sync', href: '/studio?engine=hollywood&intent_campaign=hero_engine' },
