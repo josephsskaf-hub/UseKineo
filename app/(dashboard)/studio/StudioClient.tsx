@@ -28,6 +28,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
   veo: 'cinematic_veo',
   hollywood: 'cinematic_hollywood',
   h3: 'cinematic_h3',
+  omni: 'cinematic_omni', // KINEO-OMNI-2026-08-25
   avatar: 'avatar',
   presenter: 'presenter',
 }
@@ -38,7 +39,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // para a mesma decisão, e é o mesmo defeito estrutural do dia: a mesma verdade
 // morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
 // o motor existir nos dois.
-type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'
+type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna
@@ -70,6 +71,12 @@ const ENGINES: {
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
   { key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'New', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
+  // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
+  // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
+  // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
+  // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
+  // render de validação (vitrine com clipe de outro motor quebraria o selo).
+  { key: 'omni', icon: 'OF', name: 'Omni Flash', tag: 'New · #1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina

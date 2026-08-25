@@ -915,8 +915,11 @@ export async function POST(req: NextRequest) {
     // duração, a narração verbatim e a variedade determinística. `family` só
     // decide QUAL modelo cada cena chama.
     const wantsH3 = body.engine === 'h3'
-    const hollywoodPath = wantsHollywood || wantsH3
-    const family: CinematicFamily = wantsH3 ? 'h3' : 'hollywood'
+    // KINEO-OMNI-2026-08-25 — Gemini Omni Flash: #1 do ranking de agosto,
+    // mesma estrada do Hollywood/H3 (familia nova, nunca caminho novo).
+    const wantsOmni = body.engine === 'omni'
+    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni
+    const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : 'hollywood'
 
     // KINEO-HOLLYWOOD-2026-07-09 — anti-deepfake gate. Hollywood renders REAL
     // fictional people with native voice, so a prompt naming a real person is
@@ -1065,6 +1068,8 @@ export async function POST(req: NextRequest) {
     // margem justamente no formato que todo mundo passaria a escolher.
     const costQuality: Quality = wantsH3
       ? 'cinematic_h3'
+      : wantsOmni
+        ? 'cinematic_omni'
       : wantsHollywood
         ? 'cinematic_hollywood'
         : wantsKling
@@ -1215,6 +1220,8 @@ export async function POST(req: NextRequest) {
 
     const claimQuality = wantsH3
       ? 'cinematic_h3'
+      : wantsOmni
+      ? 'cinematic_omni'
       : wantsHollywood
       ? 'cinematic_hollywood'
       : wantsKling
@@ -2584,9 +2591,16 @@ export async function POST(req: NextRequest) {
       // faltava dirigir. Agora o H3 usa o MESMO desenho do Kling 3: cena de
       // dialogo fala sozinha (audio nativo, narracao null), o resto e narrado.
       // C1 preservado: a dialogueLine vem do roteiro redistribuido em codigo.
+      // KINEO-OMNI-2026-08-25 — V1 do Omni roda TUDO narrado (inclusive a
+      // cena de dialogo, usando a propria fala como narracao): ate o render
+      // de validacao provar que o audio nativo dele fala alto e claro, filme
+      // 100% narrado > aposta em fala que nao veio (a mesma escada do H3:
+      // mudo primeiro, dialogo nativo religado depois via #281).
       const hNarrations = wantsH3
         ? plan.scenes.map((s) => (s.type === 'dialogue' ? null : (s.voiceover ?? null)))
-        : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
+        : wantsOmni
+          ? plan.scenes.map((s) => (s.type === 'dialogue' ? (s.dialogueLine ?? s.voiceover ?? null) : (s.voiceover ?? null)))
+          : plan.scenes.map((s) => (s.needsNarration && s.voiceover ? s.voiceover : null))
       const hVoiceoverScript =
         hNarrations.filter(Boolean).join(' ') ||
         plan.scenes.map((s) => s.dialogueLine ?? '').filter(Boolean).join(' ') ||

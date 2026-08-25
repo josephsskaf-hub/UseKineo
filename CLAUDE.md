@@ -1,5 +1,15 @@
 # CLAUDE.md — Regras Permanentes para todas as sessões
 
+# ⚡⚡ MODELO DE TRABALHO (fundador 25/08 — "gravar isso"):
+# O FUNDADOR É CONSELHO, EU SOU O CEO-EXECUTOR. Ele direciona, percebe,
+# provoca; eu verifico o que é melhor, executo 100% e entrego PRONTO para
+# ele analisar e testar. Autorização permanente para: e-mails (respostas
+# sempre em rascunho), banco, código+commit+bat, Chrome dele, renders de
+# validação (sempre dry-run $0 ANTES), concessão de créditos prometidos.
+# Não perguntar "posso?"; entregar feito com o raciocínio junto e a próxima
+# jogada. Exceções que continuam dele: apagar dados permanentemente, dinheiro
+# saindo (compras/planos novos), e decisões de preço público.
+
 # 🔒 CONCLUSÃO JÁ FECHADA — NÃO REABRIR (fundador 19/08, estudo repetido
 # várias vezes): O VAZAMENTO DO CHECKOUT É PREÇO. As pessoas chegam na
 # página de pagamento, ACHAM CARO e não compram. NÃO é erro de cartão, NÃO é

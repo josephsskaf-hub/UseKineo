@@ -38,9 +38,12 @@ const KLING_I2V_MODEL = 'fal-ai/kling-video/v2.5-turbo/pro/image-to-video'
 // conserto mínimo é adicionar os dois endpoints do H3.
 const H3_T2V_MODEL = 'minimax/h3/text-to-video'
 const H3_I2V_MODEL = 'minimax/h3/image-to-video'
+// KINEO-OMNI-2026-08-25 — o #1 do ranking entra no allowlist assinado (licao #279).
+const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
 const ALLOWED_MODELS = new Set([
   H3_T2V_MODEL,
   H3_I2V_MODEL,
+  OMNI_I2V_MODEL,
   SEEDANCE_MODEL,
   KLING_MODEL,
   VEO_MODEL,

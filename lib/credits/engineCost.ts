@@ -20,6 +20,7 @@ export type Quality =
   | 'cinematic_sora'
   | 'cinematic_hollywood'
   | 'cinematic_h3'
+  | 'cinematic_omni'
   | 'avatar'
   | 'presenter'
 
@@ -123,6 +124,14 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // KINEO-REBASE-2026-07-10 — Hollywood = 150 créditos: preço FINAL aprovado
       // 10/07. Keep in sync with HOLLYWOOD_CREDIT_COST in generate-video-cinematic.
       return 150
+    case 'cinematic_omni':
+      // KINEO-OMNI-2026-08-25 — Gemini Omni Flash: #1 do ranking cego de
+      // agosto (1245 Elo) a $0.13/s no fal — MAIS BARATO que o Kling 3
+      // ($0.168/s). Mesma etiqueta de 150cr do Kling 3 = filme de 65s rende
+      // $16 de receita sobre ~$8.50 de fal → margem ~47% contra ~30% do
+      // Kling 3. O topo do catálogo fica com o topo do ranking, e a margem
+      // melhora 17pp sem o cliente pagar um centavo a mais.
+      return 150
     case 'pro':
       // KINEO-REBASE-2026-07-10 — legacy 20 → 10.
       return 10
@@ -198,6 +207,7 @@ export function normalizeQuality(raw: string | null | undefined): Quality {
     case 'cinematic_sora':
     case 'cinematic_hollywood':
     case 'cinematic_h3': // KINEO-H3-2026-08-19
+    case 'cinematic_omni': // KINEO-OMNI-2026-08-25
     case 'avatar':
     case 'presenter':
       return q

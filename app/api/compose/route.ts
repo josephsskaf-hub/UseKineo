@@ -295,7 +295,7 @@ async function logCreatomateRejection(
 // Checkpoint 1: no credit cost wired yet (billing lands in checkpoint 2).
 // KINEO-HOLLYWOOD-2026-07-09 — 'cinematic_hollywood' added (per-scene engines,
 // native audio, block TTS).
-type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'avatar' | 'presenter'
+type Quality = 'fast' | 'basic' | 'basic_ai' | 'pro' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_sora' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'avatar' | 'presenter'
 
 type SubmissionCacheEntry = { promise: Promise<string>; expiresAt: number }
 const composeSubmissionCache = new Map<string, SubmissionCacheEntry>()
@@ -611,7 +611,7 @@ export async function POST(req: NextRequest) {
       // KINEO-HOLLYWOOD-2026-07-09 — cinematic_hollywood accepted.
       // KINEO-H3-FIX-2026-08-19 — sem 'cinematic_h3' aqui o normalize colapsava
       // o render H3 para 'basic_ai' (8 creditos) e a composicao errada.
-      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' ? q : 'basic_ai'
+      return q === 'fast' || q === 'basic' || q === 'pro' || q === 'cinematic_ai' || q === 'cinematic_kling' || q === 'cinematic_veo' || q === 'cinematic_sora' || q === 'cinematic_hollywood' || q === 'cinematic_h3' || q === 'cinematic_omni' ? q : 'basic_ai'
     })()
 
     // Push #316 — output language. OpenAI TTS auto-detects from the script text.
@@ -655,7 +655,7 @@ export async function POST(req: NextRequest) {
     cinematicBirthClaim = cinematicClaimLoad.claim
     const cinematicQualities = new Set<Quality>([
       'cinematic_ai', 'cinematic_kling', 'cinematic_veo',
-      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3',
+      'cinematic_sora', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni',
     ])
     const clientRequestedCinematic = cinematicQualities.has(quality)
     if (cinematicBirthClaim) {
@@ -1252,7 +1252,7 @@ export async function POST(req: NextRequest) {
       : undefined
     // Map render quality → narration tier so premium/cinematic users get better personas.
     const narrationTier: 'free' | 'premium' | 'cinematic' =
-      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free'
+      quality === 'cinematic_ai' || quality === 'cinematic_kling' || quality === 'cinematic_veo' || quality === 'cinematic_sora' || quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' ? 'cinematic' : quality === 'pro' ? 'premium' : 'free'
 
     // Push #235 — explicit user speed. When supplied (verbatim mode), the
     // narration is the user's exact text spoken at this rate; we don't rewrite
@@ -1278,7 +1278,7 @@ export async function POST(req: NextRequest) {
     // KINEO-HOLLYWOOD-2026-07-09 — cinematic_hollywood is credit-based (Studio
     // gate enforced upstream in generate-video-cinematic), so it's exempt here
     // like the other fal engines.
-    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'avatar' && quality !== 'presenter') {
+    if (quality !== 'fast' && quality !== 'cinematic_ai' && quality !== 'cinematic_kling' && quality !== 'cinematic_veo' && quality !== 'cinematic_sora' && quality !== 'cinematic_hollywood' && quality !== 'cinematic_h3' && quality !== 'cinematic_omni' && quality !== 'avatar' && quality !== 'presenter') {
       const plan = await fetchUserPlan(supabase, user.id)
       if (!plan.isPro) {
         return NextResponse.json(
@@ -1474,7 +1474,7 @@ export async function POST(req: NextRequest) {
     const isCreditBilledQuality =
       quality === 'cinematic_ai' || quality === 'cinematic_kling' ||
       quality === 'cinematic_veo' || quality === 'cinematic_sora' ||
-      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'avatar' ||
+      quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni' || quality === 'avatar' ||
       quality === 'presenter' || (quality === 'fast' && !isFreePlanFast)
     if (isCreditBilledQuality && !ownsSubmissionClaim) {
       if (cinematicUpstreamDebited || avatarUpstreamDebited) {
@@ -1555,7 +1555,7 @@ export async function POST(req: NextRequest) {
     // KINEO-H3-FIX-2026-08-19 — o H3 compoe pelo MESMO caminho hollywood
     // (cenas paralelas com scene_engines/scene_narrations); a diferenca — tudo
     // narrado, nada de fala nativa — ja chega resolvida da rota de geracao.
-    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3') {
+    if (quality === 'cinematic_hollywood' || quality === 'cinematic_h3' || quality === 'cinematic_omni') {
       const rawEngines = Array.isArray(body.scene_engines) ? body.scene_engines : []
       const rawNarrations = Array.isArray(body.scene_narrations) ? body.scene_narrations : []
       const rawSeconds = Array.isArray(body.scene_seconds) ? body.scene_seconds : []
@@ -1830,7 +1830,7 @@ export async function POST(req: NextRequest) {
           endCard: forced,
           musicUrl: hollywoodMusicUrl,
         // KINEO-H3-AUDIO-2026-08-20 — ver o comentário no builder.
-        muteClipAudio: quality === 'cinematic_h3',
+        muteClipAudio: quality === 'cinematic_h3' || quality === 'cinematic_omni', // KINEO-OMNI-2026-08-25: V1 mudo+TTS ate o render de validacao provar o audio nativo
         })
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)

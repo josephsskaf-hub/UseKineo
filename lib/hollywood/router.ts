@@ -138,8 +138,30 @@ export const H3_I2V_MODEL = 'minimax/h3/image-to-video'
 export const H3_USD_PER_SECOND = 0.06
 export const H3_RESOLUTION = '768P' as const
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-OMNI-2026-08-25 — GEMINI OMNI FLASH: O #1 DO RANKING ENTRA NA ESTRADA.
+// ═══════════════════════════════════════════════════════════════════════════
+// Mesma decisão de arquitetura do H3 (acima): família nova na estrada
+// EXISTENTE, nunca um caminho paralelo — as quatro proteções do Contrato
+// (verbatim, piso 95%, variedade, watermark) vêm de graça.
+//
+// POR QUE ESTE MOTOR (estudo em docs/MOTOR-OMNI-FLASH-2026-08-25.md):
+//   · #1 do ranking cego de agosto/2026 (1245 Elo) — acima do NOSSO H3 (#2)
+//   · $0.13/s no fal em 720p — MAIS BARATO que o Kling 3 ($0.168/s): mesmo
+//     preço de 150cr ao cliente = margem 17pp melhor
+//   · é o modelo que o mercado está buscando AGORA (lançamento quente)
+//
+// V1 CONSERVADORA DE PROPÓSITO (a lição do H3 de 19/08): até o render de
+// validação PROVAR que o áudio nativo dele fala alto e claro, o Omni roda
+// MUDO + TTS em toda cena (inclusive diálogo) — filme 100% narrado é sempre
+// melhor que aposta em fala que não veio. Depois do teste, religa-se o
+// diálogo nativo pelo mesmo caminho do #281.
+export const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
+// fal, ago/2026: ~$0.13/s em 720p (fonte: fal.ai/models/google/gemini-omni-flash).
+export const OMNI_USD_PER_SECOND = 0.13
+
 /** Família de motor do caminho cinematográfico. */
-export type CinematicFamily = 'hollywood' | 'h3'
+export type CinematicFamily = 'hollywood' | 'h3' | 'omni'
 
 /**
  * PONTO ÚNICO de escolha de modelo por cena. Os quatro lugares do route que
@@ -153,12 +175,18 @@ export function cinematicSceneModel(
   hasAnchor: boolean,
 ): string {
   if (family === 'h3') return hasAnchor ? H3_I2V_MODEL : H3_MODELS[type]
+  // KINEO-OMNI-2026-08-25 — o fal só expõe Omni em i2v/edit (sem t2v). Com
+  // âncora (o caminho normal do 3.0), toda cena é Omni; SEM âncora o fallback
+  // é o Kling t2v — look uniforme, e nunca um filme morto por falta de rota.
+  if (family === 'omni') return hasAnchor ? OMNI_I2V_MODEL : HOLLYWOOD_MODELS[type]
   return hasAnchor ? KLING3_I2V_MODEL : HOLLYWOOD_MODELS[type]
 }
 
 /** Custo por segundo da família — usado na estimativa e nos logs. */
 export function cinematicUsdPerSecond(family: CinematicFamily, type: HollywoodSceneType): number {
-  return family === 'h3' ? H3_USD_PER_SECOND : HOLLYWOOD_USD_PER_SECOND[type]
+  if (family === 'h3') return H3_USD_PER_SECOND
+  if (family === 'omni') return OMNI_USD_PER_SECOND
+  return HOLLYWOOD_USD_PER_SECOND[type]
 }
 
 // KINEO-HOLLYWOOD-22-2026-07-10 — fal pricing, jul/2026: Kling 3 Pro audio-on

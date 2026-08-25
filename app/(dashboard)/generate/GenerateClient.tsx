@@ -916,7 +916,7 @@ export default function GenerateClient({
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
   // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
-  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3'>('seedance')
+  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni'>('seedance')
 
   // KINEO-ENGINE-DEEPLINK-2026-08-15 — o "depois do clique" do padrao
   // Higgsfield: os cards de motor da home aterrissam AQUI com o motor JA
@@ -929,9 +929,9 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3'].includes(engine)) {
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni'].includes(engine)) {
       setMode('cinematic_ai')
-      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3')
+      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -2509,7 +2509,7 @@ export default function GenerateClient({
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
             const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3'].includes(urlEnginePick)
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni'].includes(urlEnginePick)
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
@@ -5076,7 +5076,7 @@ export default function GenerateClient({
     // genérico — o defeito descrito no comentário logo acima, que já custou
     // caro uma vez. O motor novo herda a proteção junto com o resto do
     // Contrato, que é o motivo inteiro de ele entrar por esta estrada.
-    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3')
+    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni')
     const needsStructuring = isHollywoodRaw
       ? false
       : scriptMode === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
@@ -5674,8 +5674,8 @@ export default function GenerateClient({
     const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
     if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
     if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
-      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'); return }
-      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'); return }
+      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'); return }
+      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'); return }
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
     if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
@@ -7820,7 +7820,7 @@ export default function GenerateClient({
         : aiEngine === 'veo' ? 'cinematic_veo'
         : aiEngine === 'sora' ? 'cinematic_sora'
         : aiEngine === 'hollywood' ? 'cinematic_hollywood'
-        : aiEngine === 'h3' ? 'cinematic_h3'
+        : aiEngine === 'h3' ? 'cinematic_h3' : aiEngine === 'omni' ? 'cinematic_omni'
         : 'cinematic_ai'
       return creditCostForDuration(q, isPaidAccount, d)
     }
@@ -13606,8 +13606,8 @@ function ModeSelector({
   credits: number | null
   freeAiUsed: boolean | null
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
-  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3'
-  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3') => void
+  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni'
+  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni') => void
   isStarter: boolean
   isCreator: boolean
   isStudio: boolean
