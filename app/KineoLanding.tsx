@@ -29,6 +29,7 @@ import { filmsAndScenes } from '@/lib/marketingPrice'
 const usdPrice = (cents: number) => (cents / 100).toFixed(2)
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
+import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -771,6 +772,10 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
       <style dangerouslySetInnerHTML={{ __html: KLP_CSS.replace(/\/\*[\s\S]*?\*\//g, '') }} />
       <LandingViewTracker signedIn={Boolean(initialUser)} />
       <RevealOnScroll />
+      {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
+          site") — convite com nome, 20% no 1º mês de Creator/Studio, 5s após
+          o load, 1×/72h por browser, pagante nunca vê. */}
+      <WelcomeOfferModal />
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />

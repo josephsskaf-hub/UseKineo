@@ -11,6 +11,7 @@ import CreditRebaseBanner from '@/components/CreditRebaseBanner'
 // fatura). Auto-contido: elegibilidade vem de /api/me/creator30-offer e o
 // componente some sozinho depois de 31/08.
 import Creator30OfferModal from '@/components/Creator30OfferModal'
+import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import { usePathname } from 'next/navigation'
 
 interface DashboardShellProps {
@@ -115,6 +116,9 @@ export default function DashboardShell({
             localStorage kineo_rebase_seen, hard-stops after 2026-07-24) */}
         <CreditRebaseBanner />
         <Creator30OfferModal />
+        {/* KINEO-WELCOME20-2026-08-25 — convite de boas-vindas com nome:
+            20% no 1º mês de Creator/Studio, 1×/72h, pagante nunca vê. */}
+        <WelcomeOfferModal />
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
         <AvatarLaunchBanner />
         {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra

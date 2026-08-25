@@ -1281,6 +1281,45 @@ async function buildAndRedirect(
     resolvedPromo = null
     promoBlocked = true
   }
+  // KINEO-WELCOME20-2026-08-25 — autorização do fundador (25/08, fim de
+  // tarde): "20% off no primeiro mês pra todo mundo que entrar no site",
+  // fechando Creator OU Studio. É o promo de boas-vindas do WelcomeOfferModal
+  // (o modal com o nome da pessoa). Gate: Creator/Studio MENSAL — Starter fora
+  // (entrada não cobre inferência), anual fora (já embute 2 meses grátis).
+  // NOTA DE REGISTRO: isto revoga, por ordem direta do fundador, o "sem 1º mês
+  // com desconto" do V5 (17/08) para estes dois planos.
+  if (publicPromo === 'WELCOME20' && !privatePackPromo && ((tier !== 'basic' && tier !== 'pro') || isAnnual)) {
+    console.warn(`[stripe/checkout] WELCOME20 ignorado (tier=${tier}, annual=${isAnnual}) — válido só para Creator/Studio mensal`)
+    resolvedPromo = null
+    promoBlocked = true
+  }
+  if (publicPromo === 'WELCOME20' && !privatePackPromo && !promoBlocked) {
+    if (!resolvedPromo) {
+      try {
+        const WELCOME20_COUPON_ID = 'KINEO_WELCOME20'
+        try {
+          await stripe.coupons.retrieve(WELCOME20_COUPON_ID)
+        } catch {
+          await stripe.coupons.create({
+            id: WELCOME20_COUPON_ID,
+            percent_off: 20,
+            duration: 'once',
+            name: '20% off first month (welcome)',
+          })
+        }
+        try {
+          await stripe.promotionCodes.create({ coupon: WELCOME20_COUPON_ID, code: 'WELCOME20' })
+        } catch {
+          // já existe — o list abaixo resolve
+        }
+        resolvedPromo =
+          (await stripe.promotionCodes.list({ code: 'WELCOME20', active: true, limit: 1 })).data[0] ?? null
+        if (resolvedPromo) console.log('[stripe/checkout] WELCOME20 self-provisioned/resolved')
+      } catch (e) {
+        console.warn('[stripe/checkout] WELCOME20 self-provision falhou (checkout segue a preço cheio):', e)
+      }
+    }
+  }
   if (publicPromo === 'CREATOR50' && !privatePackPromo && !promoBlocked) {
     if (!resolvedPromo) {
       try {
