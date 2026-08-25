@@ -1783,8 +1783,18 @@ export async function POST(req: NextRequest) {
     if (verbatim && parsedScript.narration) {
       const fit = narrationFit(parsedScript.narration, duration)
       if (!fit.ok) {
+        // ═══ KINEO-GUARD-DEVOLVE-2026-08-25 — O GUARD COBRAVA E NÃO DEVOLVIA ═══
+        // O comentário acima dizia "antes do débito", mas o claim+débito
+        // migraram para ANTES deste ponto (linha ~1448) e a promessa
+        // envelheceu virando prisão: pedrohscordeiro (trial de 25cr, 25/08
+        // 14:03) escreveu roteiro de 25s, pediu 35s, levou o 422 educativo —
+        // e ficou com 12cr PRESOS num claim pending eterno, que o painel
+        // ainda mostrava como "RENDERING". Primeiro contato com o produto:
+        // metade do trial confiscada por uma recusa didática. O release é o
+        // mesmo caminho do dry-run/FAILFAST: estorna e libera na hora.
+        await releaseBirthClaim('narration_too_short_no_charge')
         console.warn(
-          `[narracao] RECUSADO antes do débito: ${Math.round(fit.speech)}s de fala para ` +
+          `[narracao] RECUSADO (claim liberado, crédito devolvido): ${Math.round(fit.speech)}s de fala para ` +
           `alvo de ${duration}s (cobertura ${(fit.coverage * 100).toFixed(0)}%, ` +
           `mínimo ${(MIN_COVERAGE * 100).toFixed(0)}%).`,
         )
