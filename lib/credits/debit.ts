@@ -25,12 +25,25 @@ export interface DebitResult {
 
 export async function debitVideoCredits(
   supabase: SupabaseClient,
-  args: { userId: string; renderId: string; cost: number },
+  // KINEO-SERVICE-DEBIT-2026-08-25 — `service: true` = chamador é o finisher
+  // (cron, client admin, SEM sessão): auth.uid() é nulo e o RPC de sessão
+  // levanta 'not authenticated'. Medido: TODO resgate premium do cron desde
+  // 19/08 falhou o débito e RECUSOU a entrega (~96 usuários,
+  // PREMIUM-DEBIT-FAILED em loop). A variante _service recebe o usuário
+  // explícito e só o service_role executa (grants na migration). Mesma
+  // idempotência, mesmo custo autoritativo de render_jobs.
+  args: { userId: string; renderId: string; cost: number; service?: boolean },
 ): Promise<DebitResult> {
-  const { data, error } = await supabase.rpc('debit_video_credits', {
-    p_render: args.renderId,
-    p_cost: args.cost,
-  })
+  const { data, error } = args.service
+    ? await supabase.rpc('debit_video_credits_service', {
+        p_render: args.renderId,
+        p_cost: args.cost,
+        p_user: args.userId,
+      })
+    : await supabase.rpc('debit_video_credits', {
+        p_render: args.renderId,
+        p_cost: args.cost,
+      })
   const balance = typeof data === 'number' ? data : null
 
   // Contabilidade do trial SÓ depois de débito confirmado (error nulo E saldo

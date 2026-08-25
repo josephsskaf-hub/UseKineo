@@ -683,10 +683,15 @@ export async function GET(
               deductionAttempted = true
               // Every clean export settles its full signed intent cost. There is
               // no premium free trial and no zero-balance Fast exception.
+              // KINEO-SERVICE-DEBIT-2026-08-25 — no modo serviço (finisher/cron)
+              // o client é admin sem sessão: o RPC de sessão levanta 'not
+              // authenticated' e este bloco recusava a entrega EM LOOP (~96
+              // usuários desde 19/08). A flag roteia pra variante _service.
               const { data: newBalance, error: rpcErr } = await debitVideoCredits(supabase, {
                 userId: user.id,
                 renderId,
                 cost,
+                service: isServiceFinish,
               })
               if (!rpcErr && typeof newBalance === 'number') {
                 creditsDeducted = true
