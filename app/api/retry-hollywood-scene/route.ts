@@ -12,6 +12,44 @@ import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
 import { retargetCinematicRequestId, validCinematicGenerationId } from '@/lib/cinematic/claim'
 
 import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION } from '@/lib/hollywood/router'
+import { openai } from '@/lib/openai'
+
+// ═══ KINEO-CENA-SUAVIZADA-2026-08-25 (decisão do fundador: "quando a pessoa
+// escreve palavras que não podem, nosso sistema precisa arrumar e entregar um
+// vídeo próximo ao que está escrito") ════════════════════════════════════════
+// O caso medido HOJE (15:34): duas cenas do filme dos robôs levaram 422
+// invalid_request da moderação do fal ("Could not generate a video with the
+// given inputs") e o retry re-enviou o MESMO prompt — mesma recusa, cena morta.
+// Agora a 2ª rodada de retry chega com sanitize:true e ESTA função reescreve o
+// prompt VISUAL numa versão que passa na moderação preservando o máximo:
+// mesmo sujeito, mesmo cenário, mesma câmera/cinematografia. A NARRAÇÃO do
+// cliente nunca passa por aqui — ela é TTS, palavras dele intactas (C1).
+// Falhou a reescrita? Devolve o original: o retry segue valendo como antes.
+async function softenPromptForModeration(prompt: string): Promise<string> {
+  try {
+    const r = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0.3,
+      max_tokens: 900,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'A video-generation provider rejected the following SCENE PROMPT for content-policy reasons. Rewrite it so it passes moderation while staying AS CLOSE AS POSSIBLE to the original scene. Rules: keep the same subject, setting, era, mood, camera directions and cinematography lines VERBATIM where they are not the problem. Soften or replace only what typically trips moderation: graphic violence/injury (imply aftermath instead), weapons pointed at people (holstered/lowered), gore/blood (remove), destruction of people (make it property/landscape), real people/brands (make generic), anything sexual (remove). Never add new story elements. Output ONLY the rewritten prompt, no explanation.',
+        },
+        { role: 'user', content: prompt },
+      ],
+    })
+    const out = (r.choices[0]?.message?.content ?? '').trim()
+    // Sanidade: reescrita vazia ou desproporcional = fica o original. O teto
+    // de 6000 espelha a validação de prompt da rota (nunca devolver algo que
+    // a própria rota rejeitaria na linha seguinte).
+    if (out.length >= 20 && out.length <= Math.min(prompt.length * 1.5, 6000)) return out
+    return prompt
+  } catch {
+    return prompt
+  }
+}
 
 // Fonte única de modelos: o router do Hollywood.
 const KLING3_I2V = KLING3_I2V_MODEL
@@ -34,14 +72,23 @@ export async function POST(req: NextRequest) {
   if (!falKey) return NextResponse.json({ error: 'Provider not configured' }, { status: 500 })
   fal.config({ credentials: falKey })
 
-  let body: { prompt?: string; anchorUrl?: string | null; seconds?: number; model?: string; generationId?: string; oldRequestId?: string | null; sceneIndex?: number }
+  let body: { prompt?: string; anchorUrl?: string | null; seconds?: number; model?: string; generationId?: string; oldRequestId?: string | null; sceneIndex?: number; sanitize?: boolean }
   try {
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
   }
 
-  const prompt = String(body.prompt ?? '').trim()
+  let prompt = String(body.prompt ?? '').trim()
+  // KINEO-CENA-SUAVIZADA-2026-08-25 — 2ª rodada de retry: o prompt original
+  // já falhou DUAS vezes no fornecedor; suaviza antes de re-submeter.
+  if (body.sanitize === true && prompt.length >= 20) {
+    const softened = await softenPromptForModeration(prompt)
+    if (softened !== prompt) {
+      console.log(`[retry-hollywood-scene] prompt suavizado p/ moderação (${prompt.length}→${softened.length} chars)`)
+      prompt = softened
+    }
+  }
   // 4000→6000: o prompt agora é o SUBMETIDO completo (upright+era+mouth+spectacle+sharp), maior que o cru.
   if (prompt.length < 20 || prompt.length > 6000) {
     return NextResponse.json({ error: 'Invalid prompt' }, { status: 400 })

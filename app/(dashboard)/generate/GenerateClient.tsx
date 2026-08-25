@@ -1715,7 +1715,9 @@ export default function GenerateClient({
   // trava de "ja tentei" (1 rodada de retry por geracao).
   const scenePromptsRef = useRef<string[]>([])
   const sceneAnchorsRef = useRef<(string | null)[]>([])
-  const hollyRetriedRef = useRef(false)
+  // KINEO-CENA-SUAVIZADA-2026-08-25 — de boolean pra CONTADOR: rodada 1 =
+  // prompt original (transiente), rodada 2 = sanitize (moderação). Ver #3263.
+  const hollyRetriedRef = useRef(0)
   const sceneNarrationsRef = useRef<(string | null)[]>([])
   const sceneSecondsRef = useRef<number[]>([])
   // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — the EXACT spoken line per dialogue
@@ -3248,13 +3250,23 @@ export default function GenerateClient({
           const failedIdx: number[] = (data.clips ?? [])
             .map((c: { status: string }, i: number) => (c.status === 'failed' ? i : -1))
             .filter((i: number) => i >= 0)
+          // KINEO-CENA-SUAVIZADA-2026-08-25 (fundador: "palavras que não podem
+          // → o sistema arruma e entrega o mais próximo do que está escrito").
+          // O retry agora tem DUAS rodadas: a 1ª re-submete o prompt ORIGINAL
+          // (fiel — cobre falha transiente do fornecedor); se a cena falhar DE
+          // NOVO, a 2ª manda sanitize:true e o servidor reescreve o prompt
+          // visual suavizado pra passar na moderação (narração do cliente
+          // intacta — só a imagem se ajusta). Caso real de hoje 15:34: duas
+          // cenas dos robôs recusadas pela moderação e o retry antigo
+          // re-enviava o MESMO prompt — mesma recusa, cena morta no filme.
           if (
             failedIdx.length > 0 &&
             scenePromptsRef.current.length > 0 &&
-            !hollyRetriedRef.current &&
+            hollyRetriedRef.current < 2 &&
             !cancelled
           ) {
-            hollyRetriedRef.current = true
+            hollyRetriedRef.current += 1
+            const sanitizeRound = hollyRetriedRef.current === 2
             const nextIds = [...falRequestIds]
             let changed = false
             for (const fi of failedIdx) {
@@ -3275,6 +3287,8 @@ export default function GenerateClient({
                     generationId,
                     sceneIndex: fi,
                     oldRequestId: falRequestIds[fi] ?? null,
+                    // 2ª rodada = o original já falhou 2×: suaviza no servidor.
+                    sanitize: sanitizeRound,
                   }),
                 })
                 const rj = await rr.json().catch(() => ({}))
@@ -6355,7 +6369,7 @@ export default function GenerateClient({
         sceneEnginesRef.current = Array.isArray(data.scene_engines) ? data.scene_engines.filter((e: unknown): e is string => typeof e === 'string') : []
         scenePromptsRef.current = Array.isArray(data.scene_prompts) ? data.scene_prompts.map((x: unknown) => (typeof x === 'string' ? x : '')) : []
         sceneAnchorsRef.current = Array.isArray(data.scene_anchor_urls) ? data.scene_anchor_urls.map((x: unknown) => (typeof x === 'string' ? x : null)) : []
-        hollyRetriedRef.current = false
+        hollyRetriedRef.current = 0 // KINEO-CENA-SUAVIZADA — contador, era boolean
         sceneNarrationsRef.current = Array.isArray(data.scene_narrations) ? data.scene_narrations.map((n: unknown) => (typeof n === 'string' ? n : null)) : []
         sceneSecondsRef.current = Array.isArray(data.scene_seconds) ? data.scene_seconds.map((s: unknown) => (typeof s === 'number' ? s : 10)) : []
         // KINEO-HOLLYWOOD-21-2026-07-10 (bug b) — real dialogue line per scene.
