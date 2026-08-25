@@ -4976,6 +4976,28 @@ export default function GenerateClient({
     }
   }
 
+  // ═══ KINEO-AUTO-COMPLETAR-2026-08-25 (decisão do fundador, caso do cliente
+  // alemão): "dar a opção pro software redesenhar a script o mais rente
+  // possível do cliente". O caso medido: 19joschaschuetz96 foi barrado DUAS
+  // vezes pelo guard (2s de fala pra 60s), viu o botão "Finish it for me" e
+  // NÃO clicou nenhuma vez — botão parado não resolve frustração. Agora a
+  // expansão DISPARA SOZINHA no momento do bloqueio: quando o texto pronto
+  // chega, o painel de aprovação já está aberto com o roteiro completo.
+  // O Contrato C1 continua intacto — nada renderiza e nada é debitado sem a
+  // pessoa LER e clicar "Use this script". Só morreu o clique do meio.
+  const autoExpandFiredRef = useRef<object | null>(null)
+  useEffect(() => {
+    if (!scriptTooShort || expandedScript || expanding) return
+    if (autoExpandFiredRef.current === scriptTooShort) return
+    autoExpandFiredRef.current = scriptTooShort
+    void trackEvent('script_expand_autostarted', {
+      missing_words: scriptTooShort.missingWords,
+      target_seconds: scriptTooShort.targetSeconds,
+    })
+    void handleExpandScript()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scriptTooShort])
+
   /** A pessoa aprovou o texto completado: ele vira o roteiro e o fluxo segue. */
   function acceptExpandedScript() {
     if (!expandedScript) return
@@ -10239,6 +10261,14 @@ export default function GenerateClient({
                     </button>
                   </div>
                 </>
+              ) : expanding ? (
+                // KINEO-AUTO-COMPLETAR-2026-08-25 — a expansão agora dispara
+                // sozinha (ver o useEffect): enquanto o escritor trabalha, a
+                // tela diz o que está acontecendo em vez de exibir botões.
+                <div className="flex items-center gap-3 text-sm" style={{ color: '#5cb3ff', fontWeight: 700 }}>
+                  <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: '#5cb3ff' }} />
+                  Writing the missing {scriptTooShort.missingWords} words for you — keeping every word you wrote…
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
