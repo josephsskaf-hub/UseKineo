@@ -430,6 +430,13 @@ export async function planHollywoodScenes(args: {
   /** KINEO-DURATIONFIX-2026-08-17 — feedback de replanejamento: total da
    *  tentativa anterior que veio CURTA (o GPT ignora o alvo às vezes). */
   shortRetryFeedback?: string
+  /** KINEO-FACELESS-2026-08-25 — pedido do fundador: "vídeo de cenas de
+   *  guerra, SEM avatar, só efeitos". true = pula a conversão HOOK/PAYOFF-
+   *  on-camera (item 3 do HOST MODE): o filme inteiro fica em cenas de
+   *  ambiente narradas, nenhuma pessoa falando pra lente. Ativado pela tag
+   *  [faceless] no início do script (o route detecta e REMOVE a tag antes
+   *  do plano, então ela nunca vira narração). */
+  faceless?: boolean
   idea: string
   voiceoverScript?: string
   scenes?: Array<{ voiceover?: string; description?: string }>
@@ -756,8 +763,16 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
         `[hollywood-planner] KINEO-HOLLYWOOD-HOST — scene ${sc.index} (beat=${sc.beat}) converted ${prevType} → dialogue (host on camera, ${lineWords} words → ${sc.seconds}s)`,
       )
     }
-    forceHostOnCamera(outScenes[0])
-    forceHostOnCamera(outScenes[outScenes.length - 1])
+    // KINEO-FACELESS-2026-08-25 — com [faceless] no script, NINGUÉM fala pra
+    // lente: hook e payoff continuam como o planner os tipou (support/
+    // cinematic narrados). O mouthSuffix/mouthPrefix do dispatch já garante
+    // boca fechada em toda cena não-dialogue — o filme sai 100% sem avatar.
+    if (!args.faceless) {
+      forceHostOnCamera(outScenes[0])
+      forceHostOnCamera(outScenes[outScenes.length - 1])
+    } else {
+      console.log('[hollywood-planner] KINEO-FACELESS — conversão host-on-camera PULADA (tag [faceless])')
+    }
   }
 
   // KINEO-HOLLYWOOD-24-2026-07-10 (i) — support scenes SIZED BY THEIR FINAL

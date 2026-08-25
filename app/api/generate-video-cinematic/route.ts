@@ -864,7 +864,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
     }
 
-    const prompt = (body.prompt ?? '').trim()
+    // KINEO-FACELESS-2026-08-25 — tag [faceless] no script = filme SEM avatar:
+    // desliga a conversão HOOK/PAYOFF-on-camera no planner. A tag é REMOVIDA
+    // aqui, antes de tudo (verbatim, fingerprint, narração) — nunca é falada.
+    const promptRaw = (body.prompt ?? '').trim()
+    const facelessRequested = /\[faceless\]/i.test(promptRaw)
+    const prompt = promptRaw.replace(/\[faceless\]/gi, '').trim()
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
     }
@@ -2140,6 +2145,7 @@ export async function POST(req: NextRequest) {
       let plan: HollywoodPlan
       try {
         plan = await planHollywoodScenes({
+          faceless: facelessRequested,
           idea: prompt,
           voiceoverScript: hollywoodVoiceover || undefined,
           scenes: scenes.map((s) => ({ voiceover: s.voiceover, description: s.aiPrompt || s.description })),
@@ -2192,6 +2198,7 @@ export async function POST(req: NextRequest) {
           console.warn(`[cinematic] hollywood scenes ${dup[0]} and ${dup[1]} are near-identical — replanning once for subject variety`)
           try {
             const replanned = await planHollywoodScenes({
+          faceless: facelessRequested,
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -2245,6 +2252,7 @@ export async function POST(req: NextRequest) {
           console.warn(`[cinematic] hollywood plan too short: ${total}s of ${target}s target — replanning once`)
           try {
             const replanned = await planHollywoodScenes({
+          faceless: facelessRequested,
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
@@ -2294,6 +2302,7 @@ export async function POST(req: NextRequest) {
           console.warn(`[cinematic] hollywood plan ${total}s apos esticar ate o limite da fala — replan por MAIS CENAS`)
           try {
             const replanned = await planHollywoodScenes({
+          faceless: facelessRequested,
               idea: prompt,
               voiceoverScript: hollywoodVoiceover || undefined,
               scenes: scenes.map((sc) => ({ voiceover: sc.voiceover, description: sc.aiPrompt || sc.description })),
