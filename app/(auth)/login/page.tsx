@@ -17,7 +17,9 @@ import AuthReel from '@/components/AuthReel'
 function getRedirect(): string {
   if (typeof window === 'undefined') return '/dashboard'
   const params = new URLSearchParams(window.location.search)
-  return resolveAuthRedirect(params.get('redirect'))
+  // KINEO-POUSO-VITRINE-2026-08-25 — sem redirect explícito, o login pousa na
+  // HOME (a vitrine dos 4 motores), espelhando o auth/callback.
+  return resolveAuthRedirect(params.get('redirect'), '/')
 }
 
 // KINEO-CHECKOUT-RESUME-2026-07-07 — when checkout bounces a buyer here

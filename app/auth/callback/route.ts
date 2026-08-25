@@ -35,7 +35,15 @@ export async function GET(request: Request) {
       // checkout endpoint came from a buy click that bounced on auth. Resuming
       // the purchase beats the activation flow (they're about to PAY); every
       // other new user keeps the /generate?signup=1 onboarding.
-      const safeNext = resolveAuthRedirect(rawNext)
+      // KINEO-POUSO-VITRINE-2026-08-25 (fundador, print na mão: "gostaria que
+      // entrasse sempre na tela onde estão os quatro") — o pouso padrão do
+      // login vira a HOME (vitrine dos 4 motores), não mais o /generate com o
+      // onboarding. `next` explícito (prompt da home, checkout, campanha)
+      // continua mandando. A conversão de cadastro do Ads (?signup=1) que
+      // morava no GenerateClient agora TAMBÉM dispara na home via
+      // SignupConversionTracker — mover o pouso sem mover o disparo seria
+      // comprar clique e não contar o cadastro.
+      const safeNext = resolveAuthRedirect(rawNext, '/')
       const isCheckoutNext =
         safeNext.startsWith('/api/stripe/checkout') || safeNext.startsWith('/api/paypal/checkout')
       let destinationPath = safeNext
