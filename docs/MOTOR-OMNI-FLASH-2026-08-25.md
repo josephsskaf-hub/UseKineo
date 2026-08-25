@@ -43,3 +43,17 @@ Studio ganha "the #1-ranked video model, included".
 
 **Recomendação: GO esta semana.** É upside quase puro (pay-per-use), demanda
 de busca no pico, e vira o argumento de venda do Studio no dia do launch.
+
+## ✅ VALIDAÇÃO EXECUTADA (25/08, 13:35Z) — MOTOR APROVADO
+Render 2 (gen 68be67ce, após #320-#322): **72,08s, 1080×1920, 36,8MB.**
+Bateria ffmpeg: 2 silêncios naturais (1,7s/1,6s — teto 6s ✓), **zero frames
+pretos**, volume vivo em TODOS os blocos de 9s (-27 a -32dB), últimos 12s
+-28,7dB (apagão morto). Frames auditados: narrador fotorrealista nítido,
+horizonte em pé, karaokê sincronizado, visual casando com a narração até o
+gancho da Mary Celeste. Débito correto (150cr), custo fal ~$10,40 (80s
+despachados × $0.13).
+Caminho até o PASS: 422 image_url → teto 10s → salvage-cadáver (300cr
+vazados e estornados) → rede final. 5 dry-runs, ~$0,10 de estudo total.
+PRÓXIMO: fundador assiste e aprova → preview na vitrine + páginas públicas
+(kineoFacts/comparisons/pricing) ganham o motor; áudio nativo do Omni como
+ambiência = V2 (medir antes).
