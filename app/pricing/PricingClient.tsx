@@ -751,24 +751,71 @@ export default function PricingClient() {
                     número grande ser honesto. */}
                 {isPaid && 'tier' in p && (p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro') && (() => {
                   const cr = p.tier === 'starter' ? TIER_CREDITS.starter : p.tier === 'basic' ? TIER_CREDITS.basic : TIER_CREDITS.pro
-                  const rows: [string, string][] = [
-                    ['⚡', `${Math.floor(cr / 5)} quick videos`],
-                    ['🎬', `${Math.floor(cr / 20)} AI engine films`],
-                    // KINEO-OMNI-2026-08-25 — o tier flagship agora tem DOIS
-                    // motores de 150cr (Kling 3 e Omni Flash, o #1 do ranking);
-                    // o card diz isso sem inflar o número (é 1 filme, à escolha).
-                    ['🎥', p.tier === 'pro' ? `${Math.floor(cr / 150)} Kling 3 or Omni Flash film + ${Math.floor((cr % 150) / 45)} MiniMax H3` : `${Math.floor(cr / 45)} MiniMax H3 film${Math.floor(cr / 45) === 1 ? '' : 's'}`],
-                    ['🎨', `up to ${cr} AI images`],
-                    ['🎙', `${Math.floor(cr / 2)} voiceovers`],
-                    ['✨', `${Math.floor(cr / 10)} HD enhances${p.tier === 'pro' ? ' (+2 free)' : ''}`],
+                  // ═══ KINEO-CARD-PILHA-2026-08-25 (fundador, referência
+                  // Higgsfield v2: "encher os cards, ficar maior, a pessoa dar
+                  // mais valor ao que está comprando") — cada MOTOR com nome e
+                  // quantidade mensal, e as linhas que NÃO cabem no tier
+                  // aparecem BLOQUEADAS com o plano que destrava (inveja
+                  // vende; esconder o topo do catálogo não). Tudo derivado de
+                  // TIER_CREDITS ÷ creditCostFor — régua do caixa, #296.
+                  const costFast = creditCostFor('fast', true)
+                  const costSeed = creditCostFor('cinematic_ai')
+                  const costH3 = creditCostFor('cinematic_h3')
+                  const costKling25 = creditCostFor('cinematic_kling')
+                  const costVeo = creditCostFor('cinematic_veo')
+                  const costFlag = creditCostFor('cinematic_hollywood')
+                  const costPres = creditCostFor('presenter')
+                  const tierFor = (cost: number) => cost <= TIER_CREDITS.starter ? 'Starter' : cost <= TIER_CREDITS.basic ? 'Creator' : 'Studio'
+                  const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
+                    { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
+                    { ic: '🎬', name: 'Seedance 1.5 films', cost: costSeed },
+                    { ic: '🎥', name: 'MiniMax H3 films · lip-sync', cost: costH3 },
+                    { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
+                    { ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres },
+                    { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
+                    { ic: '🏆', name: 'Kling 3 · Omni Flash (#1 ranked)', cost: costFlag },
                   ]
                   return (
-                    <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1">
-                      {rows.map(([ic, tx]) => (
-                        <span key={tx} className="text-[11.5px] font-semibold text-[#c7c7cc]">
-                          {ic} {tx}
+                    <div className="mb-3">
+                      <div className="mb-1 text-[10px] font-black uppercase tracking-[.14em] text-[#5a5a60]">
+                        Your {cr} credits every month =
+                      </div>
+                      <div className="flex flex-col gap-[3px]">
+                        {engineRows.map((r) => {
+                          const n = Math.floor(cr / r.cost)
+                          const locked = n < 1
+                          return (
+                            <span
+                              key={r.name}
+                              className="flex items-baseline justify-between text-[11.5px] font-semibold"
+                              style={{ color: locked ? '#5a5a60' : '#c7c7cc' }}
+                            >
+                              <span>{r.ic} {r.name}</span>
+                              {locked ? (
+                                <span className="text-[9.5px] font-black uppercase" style={{ color: '#fb923c' }}>{tierFor(r.cost)} plan</span>
+                              ) : (
+                                <b style={{ color: '#2997ff' }}>{n}×</b>
+                              )}
+                            </span>
+                          )
+                        })}
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
+                          <span>🎨 AI images · 6 engines</span><b style={{ color: '#2997ff' }}>up to {cr}</b>
                         </span>
-                      ))}
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
+                          <span>🎙 AI voiceovers · 4 voices</span><b style={{ color: '#2997ff' }}>{Math.floor(cr / 2)}×</b>
+                        </span>
+                        <span className="flex items-baseline justify-between text-[11.5px] font-semibold text-[#c7c7cc]">
+                          <span>✨ HD Enhance{p.tier === 'pro' ? ' (+2 free)' : ''}</span><b style={{ color: '#2997ff' }}>{Math.floor(cr / 10)}×</b>
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-col gap-[2px] text-[10.5px] text-[#86868b]">
+                        <span>✓ 1080×1920 Full HD master on every film</span>
+                        <span>✓ Script, voiceover, karaoke captions &amp; soundtrack included</span>
+                        <span>✓ Characters that speak your lines with lip sync (Kling 3 · H3)</span>
+                        <span>✓ Character Lock — same face in every video</span>
+                        <span>✓ Animate a Photo · AI Thumbnails · Viral Now topics</span>
+                      </div>
                     </div>
                   )
                 })()}
