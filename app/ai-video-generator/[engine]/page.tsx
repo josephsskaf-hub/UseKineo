@@ -107,17 +107,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_ai',
     name: 'Seedance 1.5',
     model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video',
-    credits: '20 credits per video',
+    credits: '25 credits per video',
     tier: 'Creator',
     h1: 'Seedance 1.5 AI video generator — every scene generated, not stock',
     intro:
-      'Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. 20 credits per video, and it is included in the Creator trial.',
+      'Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. 25 credits per video — and the free trial grants exactly enough for one.',
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
     tradeoff: 'Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.',
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs 20 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(20)} Seedance ${trialFilmsForEngine(20) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
+        a: `Seedance costs 25 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(25)} Seedance ${trialFilmsForEngine(25) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -125,7 +125,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: 'Seedance is the best value per generated video (20 credits) and handles most faceless Shorts. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.',
+        a: 'Seedance is the lowest-cost generated video (25 credits) and handles most faceless Shorts; Kling 2.5 at 50 credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.',
       },
     ],
   },
@@ -161,17 +161,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_veo',
     name: 'Veo 3.1',
     model: 'fal-ai/veo3.1/fast',
-    credits: '90 credits per video',
+    credits: '100 credits per video',
     tier: 'Studio',
     h1: 'Veo 3.1 AI video generator — Google’s flagship, wired into a finished Short',
     intro:
-      'Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. 90 credits per video on the Studio plan.',
+      'Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. 100 credits per video, from the Creator plan up.',
     bestFor: 'The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit.',
-    tradeoff: 'The most expensive engine after Kling 3 (90 credits) and Studio-only. It is not the engine for posting daily — pair it with Kineo 1 for volume.',
+    tradeoff: 'The most expensive engine after the 150-credit flagships (100 credits), from the Creator plan up. It is not the engine for posting daily — pair it with Kineo 1 for volume.',
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `Yes — Veo 3.1 is unlocked on every account at 90 credits per video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes a plan or a top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
+        a: `Yes — Veo 3.1 is unlocked on every account at 100 credits per video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes a plan or a top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
@@ -179,7 +179,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Veo 3.1 or Kling 3?',
-        a: 'Veo 3.1 (90 credits) is the stronger general-purpose flagship. Kling 3 (150 credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync.',
+        a: 'Veo 3.1 (100 credits) is the stronger general-purpose flagship. Kling 3 (150 credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync.',
       },
     ],
   },
@@ -237,7 +237,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'How much does a MiniMax H3 video cost on Kineo?',
-        a: '45 credits per finished film. On the Creator plan (90 credits) that is two films a month; on Studio (180 credits) it is four.',
+        a: '45 credits per finished film. On the Creator plan (140 credits) that is three films a month; on Studio (320 credits) it is seven.',
       },
       {
         q: 'Why choose MiniMax H3 over Kling 3?',

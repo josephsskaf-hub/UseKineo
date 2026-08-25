@@ -91,9 +91,14 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // AVATAR_CREDIT_COST in generate-avatar.
       return 70
     case 'cinematic_ai':
-      // KINEO-REBASE-2026-07-10 — 40 → 20 (2:1 rebase). Keep in sync with
-      // SEEDANCE_CREDIT_COST in generate-video-cinematic.
-      return 20
+      // KINEO-REBASE-2026-07-10 — 40 → 20 (2:1 rebase).
+      // KINEO-V6.1-2026-08-25 (fundador autorizou) — 20 → 25. A fatura de
+      // agosto mediu $3.30/render TUDO-DENTRO (âncoras+retries) contra ~$2.15
+      // de receita a 20cr: o motor MAIS USADO da casa rodava no VERMELHO. A
+      // 25cr + fixes de retry/salvage de hoje, sai do prejuízo. O trial de
+      // 25cr segue comprando EXATAMENTE 1 Seedance — storytelling intacto.
+      // (O espelho SEEDANCE_CREDIT_COST da rota agora LÊ esta função.)
+      return 25
     case 'cinematic_kling':
       // KINEO-KLING-90-2026-07-06 margin math intact.
       // KINEO-REBASE-2026-07-10 — 90 → 45 (2:1 rebase; same USD value).
@@ -113,9 +118,11 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // cabe no plano vale zero.
       return 45
     case 'cinematic_veo':
-      // #489/#491 — Veo 3.1 Fast premium. Keep in sync with VEO_CREDIT_COST.
-      // KINEO-REBASE-2026-07-10 — 180 → 90.
-      return 90
+      // #489/#491 — Veo 3.1 Fast premium. KINEO-REBASE — 180 → 90.
+      // KINEO-V6.1-2026-08-25 — 90 → 100: custo fal ~$9.75/render vs ~$9.65
+      // de receita = zero a zero. Ninguém escolhe Veo por $1 de diferença;
+      // escolhe pelo nome Google. (Espelho VEO_CREDIT_COST agora lê daqui.)
+      return 100
     case 'cinematic_sora':
       // #491 — Sora 2 premium (engine still BLOCKED upstream).
       // KINEO-REBASE-2026-07-10 — 200 → 100.

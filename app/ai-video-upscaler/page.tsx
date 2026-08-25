@@ -40,7 +40,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 20 credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
+    a: `Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 25 credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
   },
 ]
 

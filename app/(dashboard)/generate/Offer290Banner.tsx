@@ -136,7 +136,7 @@ export default function Offer290Banner() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: '1 1 240px' }}>
         {/* KINEO-PRICING-V3D-2026-07-26 — the offer used to read "10 Fast
             videos", which is 10 credits and zero AI-generated videos. The
-            grant is now 20 credits, exactly one Seedance render, so the
+            grant is now 25 credits, exactly one Seedance render (V6.1), so the
             cheapest thing we sell finally buys the thing we advertise. */}
         <span style={{ color: '#fbbf24', fontWeight: 800, fontSize: 14 }}>
           🔥 First pack:{' '}

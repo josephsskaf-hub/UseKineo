@@ -10387,7 +10387,7 @@ export default function GenerateClient({
                   {finalVideoSeconds ?? duration}s · YouTube Shorts / TikTok 9:16
                 </p>
                 {/* ROBO-ENTRY-495 — honest credits line at the win moment. AI
-                    Generated (Seedance) costs 20 credits (KINEO-REBASE-2026-07-10) and Fast Mode is free,
+                    Generated (Seedance) costs creditCostFor('cinematic_ai') credits (V6.1) and Fast Mode is free,
                     so we state both plainly instead of a vague "low credits"
                     nudge. Renders for any signed-in user; guests (credits null
                     after 401) see nothing. */}
@@ -10951,7 +10951,7 @@ export default function GenerateClient({
                   </div>
                   <p className="text-xs mb-2.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                     Publish this video on YouTube, TikTok or Instagram, paste the link, and we add
-                    20 credits — enough for one more film. One reward per video.
+                    20 credits toward your next film. One reward per video.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
@@ -13743,7 +13743,7 @@ function ModeSelector({
           quality={2}
           features={aiFeatures}
           badge={seedanceUnlocked ? (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}>20 credits</span>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(41,151,255,.18)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}>{creditCostFor('cinematic_ai')} credits</span>
           ) : (
             <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded" style={{ background: 'rgba(41,151,255,.15)', color: '#2997ff', border: '1px solid rgba(41,151,255,.3)' }}>🔒 Paid</span>
           )}

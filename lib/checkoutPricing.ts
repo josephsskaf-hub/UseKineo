@@ -411,7 +411,7 @@ export const PACK_CREDITS = {
   /** ?pack=starter — the $4.90 First Pack. */
   starter: 30,
   /** ?pack=starter290 — the dormant $2.90 offer (lib/flags.ts OFFER_290_ENABLED). */
-  starter290: 20,
+  starter290: 25,
 } as const
 
 // KINEO-VENDER-O-VIDEO-2026-08-21 — o preço do pacote avulso mora aqui porque

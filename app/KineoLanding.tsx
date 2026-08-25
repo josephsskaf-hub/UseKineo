@@ -1034,7 +1034,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Seedance 1.5</h3>
                   <p>The workhorse AI video engine</p>
-                  <span className="tcredits">20 credits / video</span>
+                  <span className="tcredits">25 credits / video</span>
                 </span>
               </Link>
               <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
@@ -1058,7 +1058,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Veo 3.1</h3>
                   <p>Google&rsquo;s flagship, on Studio</p>
-                  <span className="tcredits">90 credits / video</span>
+                  <span className="tcredits">100 credits / video</span>
                 </span>
               </Link>
               <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">

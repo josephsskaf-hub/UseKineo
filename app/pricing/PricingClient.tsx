@@ -112,7 +112,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // KINEO-PRICING-V3D-2026-07-26 — the discounted first month of Creator
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
-    a: `Think in films: 1 film with Seedance = 20 credits, Kling 2.5 = 50, Veo 3.1 = 90, Kling 3 = 150. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${Math.floor(TIER_CREDITS.starter / 20)} engine films), Creator includes ${TIER_CREDITS.basic} (≈${Math.floor(TIER_CREDITS.basic / 20)} films), Studio includes ${TIER_CREDITS.pro} (≈${Math.floor(TIER_CREDITS.pro / 20)} films, or one Kling 3 film with room to spare); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
+    a: `Think in films: 1 film with Seedance = ${creditCostFor('cinematic_ai')} credits, Kling 2.5 = ${creditCostFor('cinematic_kling')}, Veo 3.1 = ${creditCostFor('cinematic_veo')}, Kling 3 or Omni Flash = ${creditCostFor('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${Math.floor(TIER_CREDITS.starter / creditCostFor('cinematic_ai'))} engine films), Creator includes ${TIER_CREDITS.basic} (≈${Math.floor(TIER_CREDITS.basic / creditCostFor('cinematic_ai'))} films), Studio includes ${TIER_CREDITS.pro} (≈${Math.floor(TIER_CREDITS.pro / 20)} films, or one Kling 3 film with room to spare); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
@@ -169,7 +169,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // duplicar a mesma informação em dois lugares é exatamente o que fez os
       // grants de crédito derivarem antes (ver KINEO-PRICING-V3D).
       // KINEO-PRICING-V5-2026-08-17 — 60cr: o card fala em RESULTADO.
-      outcome: `Every engine unlocked. ${TIER_CREDITS.starter} quick videos or ${Math.floor(TIER_CREDITS.starter / 20)} engine films — voice, captions and score included.`,
+      outcome: `Every engine unlocked. ${TIER_CREDITS.starter} quick videos or ${Math.floor(TIER_CREDITS.starter / creditCostFor('cinematic_ai'))} engine films — voice, captions and score included.`,
       videosPerMonth: filmsAndScenes('starter'),
       storageLine: '100 projects · 90-day storage',
       cta: { label: 'Get Started', href: '#checkout' },

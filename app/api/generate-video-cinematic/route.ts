@@ -3,7 +3,7 @@
 // Client polls /api/cinematic-clip-status until all clips are ready, then
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
-import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
@@ -119,11 +119,12 @@ const cinematicSubmissionCache = new Map<string, CachedCinematicSubmission>()
 // (Seedance 40→20, Kling 90→45, Veo 180→90, Sora 200→100). USD value per video
 // is unchanged because plan credits halved in lockstep (lib/pricing.ts).
 // Free trial only ever uses Seedance.
-const SEEDANCE_CREDIT_COST = 20
+// KINEO-V6.1-2026-08-25 — o espelho morre: a rota LÊ a régua única (#296).
+const SEEDANCE_CREDIT_COST = creditCostFor('cinematic_ai')
 const KLING_CREDIT_COST = 50 // KINEO-PRICING-V3B-2026-07-10 — 45 → 50 cr (margin bump). Keep in sync with creditCostFor('cinematic_kling') in compose/status.
 // Push #489/#491 — premium cinematic engines (Veo 3.1 Fast, Sora 2) via fal.
 // KINEO-REBASE-2026-07-10 — 90/100 new credits = 180/200 old (same USD value).
-const VEO_CREDIT_COST = 90
+const VEO_CREDIT_COST = creditCostFor('cinematic_veo') // KINEO-V6.1: lê a régua
 const SORA_CREDIT_COST = 100 // Sora segue BLOQUEADO (KINEO-SORA-REMOVED) — valor só por consistência.
 // KINEO-HOLLYWOOD-22-2026-07-10 — custo real: support saiu do Seedance
 // ($0.052/s) e foi pro Kling 3 ($0.168/s) pela coerência visual. Típico 55s
@@ -2603,6 +2604,31 @@ export async function POST(req: NextRequest) {
           })
           console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(tail).length} viram apoio de ${tailSeconds}s`)
         }
+      }
+
+      // ═══ KINEO-OMNI-ALVO-CRAVADO-2026-08-25 (V6.1, fundador aprovou) ═══
+      // O Omni cobra $0.13/s DESPACHADO: overshoot é margem indo embora
+      // (80s despachados no 1º render = ~23% de margem; 68s = ~35%). Este
+      // passe apara SÓ FOLGA — cena não-dialogue cujos segundos excedem o
+      // que a própria fala sustenta (~2.3 pal/s +1 respiro). Verbatim não
+      // tem folga (C1 dimensiona tudo pela palavra) → no-op; plano do GPT
+      // com gordura → enxuga até alvo+4. Nenhuma palavra é tocada, nunca.
+      if (family === 'omni') {
+        const wordsOf2 = (t?: string | null) => (t ?? '').trim().split(/\s+/).filter(Boolean).length
+        let total2 = plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)
+        const ceiling = hollywoodTarget + 4
+        let guard2 = 40
+        while (total2 > ceiling && guard2-- > 0) {
+          const slacky = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) > Math.max(4, Math.round(wordsOf2(sc.voiceover) / 2.3) + 1))
+          if (slacky.length === 0) break
+          for (const sc of slacky) {
+            if (total2 <= ceiling) break
+            sc.seconds = (sc.seconds || 0) - 1
+            total2 -= 1
+          }
+        }
+        if (total2 < plan.scenes.reduce((a, sc) => a + (sc.seconds || 0), 0)) { /* unreachable, log below */ }
+        console.log(`[cinematic] KINEO-OMNI-ALVO: plano final ${total2}s (teto ${ceiling}s) — folga aparada sem tocar palavra`)
       }
 
       // `dry_run: true` (restrito às contas do fundador) devolve o plano
