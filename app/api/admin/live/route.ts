@@ -144,13 +144,9 @@ export async function GET() {
       // trial). A verdade sobre USO mora em dois lugares que a tela agora lê:
       // profiles.trial_credits_used (o contador oficial do trial) e os claims
       // de consumo (o que cada débito realmente comprou, por motor).
-      const claimsPromise = admin
-        .from('events')
-        .select('user_id, metadata')
-        .in('name', ['compose_submission_claim', 'cinematic_submission_claim'])
-        .in('user_id', ids)
-        .gte('created_at', new Date(now - 24 * 60 * 60 * 1000).toISOString())
-        .limit(2000)
+      // KINEO-EXTRATO-VERDADE-2026-08-25 — os claims SAÍRAM do extrato (caso
+      // Pedro: tentativa barrada+estornada aparecia como "vídeo comprado").
+      // A fonte agora é credit_debits+render_jobs, mais abaixo.
       // KINEO-SPEND-FULL-2026-08-20 (fundador: "quero saber onde os créditos
       // foram gastos, se foi em fotos, vídeos ou áudios"). Vídeo vem dos
       // claims acima; FOTO e ÁUDIO vêm das próprias tabelas — cada linha é
@@ -176,14 +172,14 @@ export async function GET() {
       const purchasesPromise = admin
         .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
       const debitsPromise = admin
-        .from('credit_debits').select('user_id, amount, refunded_at').in('user_id', ids).limit(4000)
+        .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids).limit(4000)
       const [profRes, vidRes] = await Promise.all([
         admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
-      const [claimsRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise])
+      const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise])
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
       const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number; revoked: number }>()
       const led = (uid: string) => {
@@ -239,18 +235,44 @@ export async function GET() {
         cinematic_omni: 'Omni', // KINEO-OMNI-2026-08-25
         avatar: 'Avatar', presenter: 'Presenter',
       }
+      // ═══ KINEO-EXTRATO-VERDADE-2026-08-25 (fundador, print do Pedro na mão:
+      // "2 vídeos no Seedance · 24 créditos — as contas não estão batendo").
+      // DOIS defeitos na versão antiga (que lia os CLAIMS):
+      //   1. As 2 "vídeos no Seedance" do Pedro eram as 2 TENTATIVAS BARRADAS
+      //      pelo guard — débito estornado depois via refunded_at, mas o claim
+      //      nunca soube ('released' era o único estorno que ele enxergava).
+      //      Tentativa devolvida aparecia como vídeo comprado.
+      //   2. Fonte diferente da equação do saldo = números que não conversam.
+      // AGORA: o extrato lê credit_debits (24h, refunded_at IS NULL — só o que
+      // foi COBRADO de fato) + render_jobs para o motor. MESMA fonte do termo
+      // "gastos" da equação — os dois números batem por construção. Valores
+      // seguem sendo os da época (trocar reescreveria o passado); vídeo de 35s
+      // custa 60% do base — por isso 12/15 e não 20/25.
       const spentBy = new Map<string, Map<string, { n: number; cr: number }>>()
-      for (const c of claimsRes.data ?? []) {
-        const uid = (c as { user_id: string }).user_id
-        const md = (c as { metadata: { quality?: string; cost?: number; credit_cost?: number; status?: string } }).metadata ?? {}
-        // claim 'released' = estornado: não é consumo, é tentativa devolvida.
-        if (md.status === 'released') continue
-        const q = md.quality ?? '?'
-        const cr = typeof md.cost === 'number' ? md.cost : typeof md.credit_cost === 'number' ? md.credit_cost : 0
-        const m = spentBy.get(uid) ?? new Map()
-        const cur = m.get(q) ?? { n: 0, cr: 0 }
-        cur.n += 1; cur.cr += cr
-        m.set(q, cur); spentBy.set(uid, m)
+      {
+        const dayDebits = (debitsRes.data ?? []).filter((d) => {
+          const dd = d as { created_at?: string; refunded_at?: string | null }
+          return !dd.refunded_at && dd.created_at && Date.parse(dd.created_at) >= now - 24 * 60 * 60 * 1000
+        }) as Array<{ user_id: string; render_id: string; amount: number }>
+        const renderIds = dayDebits.map((d) => d.render_id).filter(Boolean)
+        const jobQuality = new Map<string, string>()
+        if (renderIds.length > 0) {
+          const { data: jobs } = await admin
+            .from('render_jobs').select('render_id, quality').in('render_id', renderIds).limit(2000)
+          for (const j of jobs ?? []) {
+            const rid = (j as { render_id?: string }).render_id
+            const q = (j as { quality?: string }).quality
+            if (rid && q) jobQuality.set(String(rid), q)
+          }
+        }
+        for (const d of dayDebits) {
+          if (!d.user_id || !Number.isFinite(d.amount)) continue
+          const q = jobQuality.get(String(d.render_id)) ?? '?'
+          const m = spentBy.get(d.user_id) ?? new Map()
+          const cur = m.get(q) ?? { n: 0, cr: 0 }
+          cur.n += 1; cur.cr += d.amount
+          m.set(q, cur); spentBy.set(d.user_id, m)
+        }
       }
       const vidCount = new Map<string, number>()
       for (const v of vidRes.data ?? []) {
