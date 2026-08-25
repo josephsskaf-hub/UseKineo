@@ -17,12 +17,16 @@ interface AuthModalProps {
 function getModalDestination(explicitRedirect?: string): string {
   const explicit = normalizeInternalRedirect(explicitRedirect)
   if (explicit) return explicit
-  if (typeof window === 'undefined') return '/generate'
+  // KINEO-POUSO-VITRINE-2026-08-25 b (fundador, computador antigo: "está
+  // logando na página do generation antigo") — o #339 mudou o pouso do
+  // auth/callback, mas ESTE modal ainda tinha '/generate' como default nos
+  // dois fallbacks. O pouso padrão agora é a HOME (os 4 cards) em toda porta.
+  if (typeof window === 'undefined') return '/'
 
   const current = normalizeInternalRedirect(
     `${window.location.pathname}${window.location.search}${window.location.hash}`
   )
-  if (!current || /^\/(?:login|signup)(?:[/?#]|$)/.test(current)) return '/generate'
+  if (!current || /^\/(?:login|signup)(?:[/?#]|$)/.test(current)) return '/'
   return current
 }
 
@@ -36,7 +40,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
   const [error, setError] = useState<string | null>(null)
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
-  const [destination, setDestination] = useState('/generate')
+  const [destination, setDestination] = useState('/') // KINEO-POUSO-VITRINE b
 
   function switchTab(t: 'login' | 'signup') {
     setTab(t)

@@ -43,7 +43,12 @@ function activationRedirectFromSearch(search: string): string {
   if (language === 'en' || language === 'pt' || language === 'es') {
     activationParams.set('language', language)
   }
-  return `/generate?${activationParams.toString()}`
+  // KINEO-POUSO-VITRINE-2026-08-25 b — COM prompt (ideia digitada na home) o
+  // destino segue /generate: a ideia tem que virar render, é fluxo de dinheiro.
+  // SEM prompt, o cadastro pousa na HOME (os 4 cards — ordem do fundador),
+  // levando junto welcome/utm/intent pra atribuição continuar inteira.
+  if (prompt) return `/generate?${activationParams.toString()}`
+  return `/?${activationParams.toString()}`
 }
 
 /**

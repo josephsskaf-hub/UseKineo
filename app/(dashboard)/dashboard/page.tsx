@@ -13,7 +13,10 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    redirect('/login?redirect=/generate')
+    // KINEO-POUSO-VITRINE-2026-08-25 b — deslogado no /dashboard ia pro login
+    // com redirect=/generate explícito (vencia o pouso novo do #339). Sem
+    // redirect, o fallback do login já é a home dos 4 cards.
+    redirect('/login')
   }
   redirect('/generate')
 }
