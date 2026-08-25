@@ -4072,7 +4072,10 @@ export default function GenerateClient({
             // recebia 9 cenas sem narração nenhuma → filme MUDO de 90s (clipes
             // inteiros, sem trilho de voz). Par do servidor: compose route
             // linha ~1558 aceita hollywood E h3 — agora o cliente também.
-            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3') && sceneEnginesRef.current.length > 0
+            // KINEO-OMNI-2026-08-25 — omni entra na MESMA condição: sem isto o
+            // compose não recebe scene_narrations/engines e o filme sai MUDO
+            // (o bug exato do #280 no H3, repetido pelo motor novo).
+            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni') && sceneEnginesRef.current.length > 0
               ? {
                   scene_engines: sceneEnginesRef.current,
                   scene_narrations: sceneNarrationsRef.current,
@@ -6319,7 +6322,11 @@ export default function GenerateClient({
         // generation" (claim h3/45cr ≠ pedido ai/20cr). Mesmo defeito que o
         // normalize do servidor teve em 19/08 — o espelho do cliente ficou
         // para trás. Allowlist explícita, com fallback seguro.
-        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : 'cinematic_ai'
+        // KINEO-OMNI-2026-08-25 — 'cinematic_omni' faltava neste mapa (o MESMO
+        // buraco do #279 com o h3): a coerção jogava o omni em 'cinematic_ai',
+        // o compose cobrava 20 em vez de 150 e — pior — NÃO ligava o
+        // muteClipAudio: o áudio nativo do Omni tocaria por cima da narração.
+        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_omni' ? 'cinematic_omni' : 'cinematic_ai'
         // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (empty arrays for
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
@@ -7791,7 +7798,12 @@ export default function GenerateClient({
                 ? 'cinematic_hollywood'
                 : aiEngine === 'h3'
                   ? 'cinematic_h3'
-                  : 'cinematic_ai',
+                  // KINEO-OMNI-CUSTO-2026-08-25 — sem este caso o omni caía em
+                  // cinematic_ai: botão E banner de estorno diziam "20
+                  // credits" num filme de 150 (visto no 1º render, 25/08).
+                  : aiEngine === 'omni'
+                    ? 'cinematic_omni'
+                    : 'cinematic_ai',
         isPaidAccount,
         duration,
       )

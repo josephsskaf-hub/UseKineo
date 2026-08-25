@@ -35,6 +35,8 @@ import {
   H3_I2V_MODEL,
   H3_MODELS,
   H3_RESOLUTION,
+  OMNI_I2V_MODEL, // KINEO-OMNI-2026-08-25
+
   cinematicSceneModel,
   type CinematicFamily,
   mentionsRealPerson,
@@ -263,6 +265,25 @@ function buildFalInput(
   // uma voz que ele não escreveu dizendo algo que ele não pediu.
   // A trilha dele como AMBIÊNCIA sob a nossa narração é ganho real e fica para
   // a segunda rodada — depois de medir, não junto com a estreia do motor.
+  // ═══ KINEO-OMNI-2026-08-25 — GEMINI OMNI FLASH i2v ════════════════════════
+  // A AUSÊNCIA deste ramo foi a causa do primeiro render reprovado (25/08,
+  // 12:42Z): sem ramo, o modelo caía no builder default e o payload ia SEM
+  // image_url → 422 "Field required" em 8 de 8 cenas, $0 gasto (FAILFAST
+  // estornou os 150). Schema oficial (fal.ai/models/google/gemini-omni-flash/
+  // image-to-video/api, lido 25/08): prompt* + image_url* obrigatórios;
+  // aspect_ratio enum 16:9|9:16 com DEFAULT 16:9 — ao contrário do Kling, NÃO
+  // herda a proporção da âncora, então o 9:16 vai EXPLÍCITO ou o filme sai
+  // deitado; duration INTEIRO 3-10 (o teto 10 também governa o planner via
+  // SCENE_CAP/DIALOGUE_CAP). Sem generate_audio no schema: o áudio nativo vem
+  // sempre — o mute V1 vive no compose (muteClipAudio), não aqui.
+  if (model === OMNI_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      aspect_ratio: '9:16',
+      duration: Math.max(3, Math.min(10, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8))),
+    }
+  }
   if (model === H3_I2V_MODEL) {
     return {
       image_url: imageUrl,
@@ -920,6 +941,17 @@ export async function POST(req: NextRequest) {
     const wantsOmni = body.engine === 'omni'
     const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni
     const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : 'hollywood'
+    // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
+    // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
+    // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
+    // planejada de 12s viraria clipe de 10s = 2s de apagão POR CENA — o
+    // fantasma do #310 voltando pela porta do motor novo. O teto de cena vira
+    // PROPRIEDADE DA FAMÍLIA e todo dimensionamento do C2 usa estas constantes
+    // (nunca um 12/15 literal novo): omni=10, resto mantém 12 (apoio) e 15
+    // (fala nativa). Fonte: fal.ai/models/google/gemini-omni-flash/
+    // image-to-video/api, lido em 25/08 — "Supports 3-10 second durations".
+    const SCENE_CAP = family === 'omni' ? 10 : 12
+    const DIALOGUE_CAP = family === 'omni' ? 10 : 15
 
     // KINEO-HOLLYWOOD-2026-07-09 — anti-deepfake gate. Hollywood renders REAL
     // fictional people with native voice, so a prompt naming a real person is
@@ -2200,7 +2232,7 @@ export async function POST(req: NextRequest) {
         const capFor = (sc: { type: string; voiceover?: string | null }) =>
           sc.type === 'cinematic'
             ? 8
-            : Math.min(12, Math.max(5, Math.round(wordsOf(sc) / 2.3) + 1))
+            : Math.min(SCENE_CAP, Math.max(5, Math.round(wordsOf(sc) / 2.3) + 1)) // KINEO-OMNI-TETO10
         let guard = 60
         while (total < target && guard-- > 0) {
           const stretchable = plan.scenes.filter((sc) => sc.type !== 'dialogue' && (sc.seconds || 0) < capFor(sc))
@@ -2261,7 +2293,7 @@ export async function POST(req: NextRequest) {
           // índices e o `plan.scenes[i]` passaria a apontar para outra cena.
           const cenasSemFala = new Set<number>()
           const capWords = (sc: PlanScene) =>
-            sc.type === 'dialogue' ? 32 : sc.type === 'cinematic' ? 16 : 26 // KINEO-CONTRATO-FIT-2026-08-18: fala cabe SEMPRE no teto do clipe (26w=11.3s<12s; 16w=7s<8s) — 30/18 deixavam a ultima palavra pro endCap engolir
+            sc.type === 'dialogue' ? (DIALOGUE_CAP >= 15 ? 32 : 22) : sc.type === 'cinematic' ? 16 : (SCENE_CAP >= 12 ? 26 : 20) // KINEO-CONTRATO-FIT-2026-08-18 + KINEO-OMNI-TETO10: fala cabe SEMPRE no teto do clipe da FAMILIA (26w=11.3s<12s; omni: 22w=9.6s<10s, 20w=8.7s<10s)
           const planSecs = plan.scenes.reduce((a, sc) => a + (sc.seconds || 5), 0) || 1
           let si = 0
           for (let i = 0; i < plan.scenes.length; i++) {
@@ -2318,11 +2350,11 @@ export async function POST(req: NextRequest) {
                 : `${sc.prompt} The person looks straight into the lens and says: "${spoken}"`
               sc.voiceover = undefined
               sc.needsNarration = false
-              sc.seconds = Math.max(3, Math.min(15, Math.round(w / 2.3) + 1))
+              sc.seconds = Math.max(3, Math.min(DIALOGUE_CAP, Math.round(w / 2.3) + 1)) // KINEO-OMNI-TETO10
             } else {
               sc.voiceover = text
               sc.needsNarration = true
-              const cap = sc.type === 'cinematic' ? 8 : 12 // Veo entrega no max 8s
+              const cap = sc.type === 'cinematic' ? 8 : SCENE_CAP // Veo entrega no max 8s; KINEO-OMNI-TETO10
               sc.seconds = Math.max(4, Math.min(cap, Math.round(w / 2.3) + 1))
             }
           }
@@ -2371,7 +2403,7 @@ export async function POST(req: NextRequest) {
               index: plan.scenes.length + 1,
               type: 'support',
               beat: 'PAYOFF',
-              seconds: Math.max(4, Math.min(12, Math.round(w / 2.3) + 1)),
+              seconds: Math.max(4, Math.min(SCENE_CAP, Math.round(w / 2.3) + 1)), // KINEO-OMNI-TETO10
               prompt: `slow cinematic insert continuing the story, ${plan.environmentSheet}, level horizon, stable slow dolly detail shot, ${plan.styleSheet}`,
               voiceover: chunk.join(' '),
               needsNarration: true,
@@ -2484,17 +2516,40 @@ export async function POST(req: NextRequest) {
           const spokenSeconds = planReport.reduce((a, r) => a + (r.words > 0 ? (r.seconds ?? 0) : 0), 0)
           const totalSeconds = planReport.reduce((a, r) => a + (r.seconds ?? 0), 0)
           const muteSeconds = totalSeconds - spokenSeconds
+          // ═══ KINEO-DRYRUN-PREFLIGHT-2026-08-25 — O CONTRATO DO FORNECEDOR ═══
+          // O 422 do primeiro render Omni (image_url faltando, 8/8 cenas)
+          // passou LIMPO pelo dry-run porque ele parava no plano e nunca
+          // olhava o payload. Agora o dry-run também simula o DESPACHO: modelo
+          // por cena (com e sem âncora) + violações do schema (teto de
+          // segundos da família, i2v sem imagem). Qualquer violação = FAIL.
+          const sceneCapViolations = planReport.filter((r) => (r.seconds ?? 0) > (r.type === 'dialogue' ? DIALOGUE_CAP : SCENE_CAP))
+          const dispatchPreview = plan.scenes.map((sc, i) => ({
+            scene: i + 1,
+            model_with_anchor: cinematicSceneModel(family, sc.type, true),
+            model_without_anchor: cinematicSceneModel(family, sc.type, false),
+          }))
+          const preflightProblems: string[] = []
+          for (const v of sceneCapViolations) preflightProblems.push(`cena ${v.scene} (${v.type}) tem ${v.seconds}s > teto ${v.type === 'dialogue' ? DIALOGUE_CAP : SCENE_CAP}s da família ${family}`)
+          for (const d of dispatchPreview) {
+            const input = buildFalInput(d.model_with_anchor, 'preflight', false, true, plan.scenes[d.scene - 1].seconds, 'https://preflight.local/anchor.png')
+            if (d.model_with_anchor.includes('image-to-video') && !input.image_url) preflightProblems.push(`cena ${d.scene}: modelo i2v ${d.model_with_anchor} sem image_url no payload`)
+          }
           await releaseBirthClaim('dry_run_no_charge')
           return NextResponse.json({
             dry_run: true,
             verbatim,
+            family,
             target_seconds: hollywoodTarget,
             total_seconds: totalSeconds,
             spoken_seconds: spokenSeconds,
             mute_seconds: muteSeconds,
-            verdict: muteSeconds <= 6 && totalSeconds >= Math.round(hollywoodTarget * 0.95)
-              ? 'PASS — todos os segundos têm história (mudo ≤6s) e a duração fecha'
-              : `FAIL — ${muteSeconds}s mudos ou duração ${totalSeconds}s abaixo do piso`,
+            preflight_problems: preflightProblems,
+            dispatch_preview: dispatchPreview,
+            verdict: muteSeconds <= 6 && totalSeconds >= Math.round(hollywoodTarget * 0.95) && preflightProblems.length === 0
+              ? 'PASS — todos os segundos têm história (mudo ≤6s), a duração fecha e o payload respeita o schema do fornecedor'
+              : preflightProblems.length > 0
+                ? `FAIL — preflight: ${preflightProblems.join(' · ')}`
+                : `FAIL — ${muteSeconds}s mudos ou duração ${totalSeconds}s abaixo do piso`,
             scenes: planReport,
             note: 'Nada foi enviado ao fal e os créditos foram estornados. Custo real: só o GPT do planner.',
           })
