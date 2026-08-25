@@ -210,6 +210,13 @@ plano cena a cena (segundos, palavras, texto falado) com veredito PASS/FAIL
 PASS na mão. Regra-irmã: ~150-165 palavras para 60s (79-85s de plano é a
 faixa dos filmes bons: Mandel 68s, Pompeia 78s, Cyclops 75s).
 
+## ⚠ REGRA FIXA — script SEMPRE vem com título + descrição + usekineo (fundador 25/08)
+Toda entrega de script vem SEGUIDA, na mesma resposta, de: título YT, descrição
+YT, legenda TikTok e comentário fixado — com **usekineo.com nos lugares
+apropriados** (descrição = link + "made with usekineo.com"; fixado = CTA de
+funil; TikTok = menção em texto). O vídeo é conteúdo E anúncio: nunca sai
+script sem o pacote de publicação que converte espectador em cliente.
+
 ## ⚠ REGRA FIXA — formato de entrega de script (fundador 24/08)
 **O bloco de código contém SÓ o script** — nada de config dentro, senão o
 fundador copia as configurações junto para a caixa de texto do Studio.
