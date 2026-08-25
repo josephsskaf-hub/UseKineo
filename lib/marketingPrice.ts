@@ -209,3 +209,40 @@ export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
 // diziam "o preço varia por região" usam esta constante para não voltarem a
 // divergir umas das outras na hora de explicar isso.
 export const SAME_PRICE_WORLDWIDE = 'the same price worldwide'
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-CARD-CHEIO-2026-08-25 (fundador, print do Higgsfield ao lado do nosso:
+// "ainda não tem os nano bananas, as fotos, os áudios"). A seção de preços da
+// HOME seguia com 4 linhas magras enquanto o /pricing já tinha a pilha (#331).
+// Estes helpers dão às superfícies de marketing as QUANTIDADES de imagem,
+// voiceover e filmes-por-motor — derivadas, nunca cravadas.
+// Divisores documentados com a FONTE de cada um (mudou lá, muda aqui junto):
+//   · imagem mais barata = 1cr  (schnell — app/api/images/generate MODELS)
+//   · Nano Banana        = 5cr  (nanobanana — mesmo mapa)
+//   · voiceover TTS      = 2cr  (minimax/eleven — app/api/audio)
+// ═══════════════════════════════════════════════════════════════════════════
+const IMG_CHEAPEST_CR = 1
+const IMG_NANOBANANA_CR = 5
+const VOICE_TTS_CR = 2
+
+/** "até N imagens" no plano — pela imagem mais barata (número honesto: "up to"). */
+export function imagesFor(tier: CheckoutTier): number {
+  return Math.floor(TIER_CREDITS[tier] / IMG_CHEAPEST_CR)
+}
+
+/** Quantas gerações Nano Banana o plano compra (o número que o Higgsfield usa). */
+export function nanoBananasFor(tier: CheckoutTier): number {
+  return Math.floor(TIER_CREDITS[tier] / IMG_NANOBANANA_CR)
+}
+
+/** Quantos voiceovers TTS o plano compra. */
+export function voiceoversFor(tier: CheckoutTier): number {
+  return Math.floor(TIER_CREDITS[tier] / VOICE_TTS_CR)
+}
+
+/** Quantos filmes de um MOTOR específico o plano compra — "2 Omni Flash films"
+ *  no Studio, "2 Kling 2.5" no Creator. Mesma régua do caixa (creditCostFor). */
+export function filmsOn(tier: CheckoutTier, quality: Quality): number {
+  const cost = creditCostFor(quality, true)
+  return cost > 0 ? Math.floor(TIER_CREDITS[tier] / cost) : 0
+}

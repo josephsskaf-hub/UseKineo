@@ -23,7 +23,7 @@ import TrendingRow from '@/components/TrendingRow'
 import LandingPlanPrice from '@/components/LandingPlanPrice'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
 // KINEO-CLIPES-2026-08-19 — filme pronto + cenas, ver lib/marketingPrice.
-import { filmsAndScenes } from '@/lib/marketingPrice'
+import { filmsAndScenes, imagesFor, nanoBananasFor, voiceoversFor, filmsOn } from '@/lib/marketingPrice' // KINEO-CARD-CHEIO-2026-08-25
 
 /** Centavos → "19.90". O FAQ de preco NUNCA digita numero a mao (ver #faq). */
 const usdPrice = (cents: number) => (cents / 100).toFixed(2)
@@ -1296,7 +1296,18 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   em 14d, 17 checkouts, ZERO vendas). A vitrine agora fala o
                   preco da prateleira do visitante. */}
               <div className="pr"><LandingPlanPrice tier="starter" variant="big" /></div>
-              <ul><li><span className="ck">✓</span> <b>{filmsAndScenes('starter')}</b></li><li><span className="ck">✓</span> Every engine · images · voiceovers</li><li><span className="ck">✓</span> Watermark-free MP4</li><li><span className="ck">✓</span> 100 projects · 90-day storage</li></ul>
+              {/* KINEO-CARD-CHEIO-2026-08-25 (fundador, print do Higgsfield:
+                  "ainda não tem os nano bananas, as fotos, os áudios") — o
+                  card da home vira pilha de quantidades REAIS, tudo derivado
+                  de TIER_CREDITS ÷ custo (lib/marketingPrice): reprice muda
+                  os números sozinho. */}
+              <ul>
+                <li><span className="ck">✓</span> <b>{filmsAndScenes('starter')}</b></li>
+                <li><span className="ck">✓</span> Up to <b>{imagesFor('starter')} AI images</b> — {nanoBananasFor('starter')} on Nano Banana</li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('starter')} AI voiceovers</b> · 4 voices</li>
+                <li><span className="ck">✓</span> Every video engine incl. MiniMax H3</li>
+                <li><span className="ck">✓</span> Watermark-free MP4 · 100 projects · 90-day storage</li>
+              </ul>
               <a className="btn btn-w" rel="nofollow" href={starterCheckoutHref}><LandingPlanPrice tier="starter" variant="cta" ctaLabel="Start" /></a>
             </div>
             <div className="plan pop">
@@ -1304,7 +1315,14 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   vs InVideo Plus $25 sem motor premium nenhum. */}
               <div className="pt">Most popular</div><div className="nm">Creator</div>
               <div className="pr"><LandingPlanPrice tier="basic" variant="big" /></div>
-              <ul><li><span className="ck">✓</span> <b>{filmsAndScenes('basic')}</b>, finished</li><li><span className="ck">✓</span> Voice + karaoke captions + score included</li><li><span className="ck">✓</span> 500 projects · forever storage</li><li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li></ul>
+              <ul>
+                <li><span className="ck">✓</span> <b>{filmsAndScenes('basic')}</b>, finished</li>
+                <li><span className="ck">✓</span> Or <b>{filmsOn('basic', 'cinematic_kling')} Kling 2.5 cinematic films</b> — every engine unlocked</li>
+                <li><span className="ck">✓</span> Up to <b>{imagesFor('basic')} AI images</b> — {nanoBananasFor('basic')} on Nano Banana</li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('basic')} AI voiceovers</b> · voice + karaoke captions + score</li>
+                <li><span className="ck">✓</span> 500 projects · forever storage</li>
+                <li><span className="ck">✓</span> Cancel anytime — 7-day money-back</li>
+              </ul>
               <a className="btn btn-w" rel="nofollow" href={creatorCheckoutHref}><LandingPlanPrice tier="basic" variant="cta" ctaLabel="Go Creator" /></a>
             </div>
             <div className="plan">
@@ -1313,7 +1331,14 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   do Higgsfield Plus ($49), entregando filme pronto. */}
               <div className="pt">Best value per film</div><div className="nm">Studio</div>
               <div className="pr"><LandingPlanPrice tier="pro" variant="big" /></div>
-              <ul><li><span className="ck">✓</span> <b>{filmsAndScenes('pro')}</b></li><li><span className="ck">✓</span> 2 free HD enhances every month</li><li><span className="ck">✓</span> Unlimited projects · forever storage</li><li><span className="ck">✓</span> Everything in Creator</li></ul>
+              <ul>
+                <li><span className="ck">✓</span> <b>{filmsAndScenes('pro')}</b></li>
+                <li><span className="ck">✓</span> Or <b>{filmsOn('pro', 'cinematic_omni')} films on Omni Flash</b> — the #1-ranked model</li>
+                <li><span className="ck">✓</span> Up to <b>{imagesFor('pro')} AI images</b> — {nanoBananasFor('pro')} on Nano Banana</li>
+                <li><span className="ck">✓</span> <b>{voiceoversFor('pro')} AI voiceovers</b> · 2 free HD enhances / month</li>
+                <li><span className="ck">✓</span> Unlimited projects · forever storage</li>
+                <li><span className="ck">✓</span> Everything in Creator</li>
+              </ul>
               <a className="btn btn-w" rel="nofollow" href={studioCheckoutHref}><LandingPlanPrice tier="pro" variant="cta" ctaLabel="Go Studio" /></a>
             </div>
           </div>
