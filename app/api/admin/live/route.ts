@@ -164,6 +164,15 @@ export async function GET() {
       // (o saldo é acumulado desde o cadastro; janela de 24h aqui mentiria).
       const grantsPromise = admin
         .from('events').select('user_id, metadata').eq('name', 'admin_credits_granted').in('user_id', ids).limit(2000)
+      // KINEO-LEDGER-V2-2026-08-25 (auditoria das últimas 10 pessoas ativas):
+      // 5 de 10 contas apareciam com "furo" — saldo 0 com gastos mínimos. O
+      // destino era o REVERSE TRIAL: trial_downgraded zera o saldo e grava
+      // credits_revoked no metadata (clajohnson −21, moe −39, pkaze −20...).
+      // Não é dinheiro sumido, é design — mas sem este termo a equação acusava
+      // "sem origem" em metade das linhas e o painel gritava furo onde havia
+      // expiração. O termo "expirado" fecha os livros.
+      const revokesPromise = admin
+        .from('events').select('user_id, metadata').eq('name', 'trial_downgraded').in('user_id', ids).limit(2000)
       const purchasesPromise = admin
         .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
       const debitsPromise = admin
@@ -174,13 +183,18 @@ export async function GET() {
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
-      const [claimsRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise])
-      // Razão por pessoa: bônus, compras, gastos e estornos — números crus.
-      const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number }>()
+      const [claimsRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise])
+      // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
+      const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number; revoked: number }>()
       const led = (uid: string) => {
-        const cur = ledgerBy.get(uid) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0 }
+        const cur = ledgerBy.get(uid) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0, revoked: 0 }
         ledgerBy.set(uid, cur)
         return cur
+      }
+      for (const r of revokesRes.data ?? []) {
+        const uid = (r as { user_id: string | null }).user_id
+        const amt = Number((r as { metadata?: { credits_revoked?: unknown } }).metadata?.credits_revoked ?? 0)
+        if (uid && Number.isFinite(amt)) led(uid).revoked += amt
       }
       for (const g of grantsRes.data ?? []) {
         const uid = (g as { user_id: string | null }).user_id
@@ -360,7 +374,7 @@ export async function GET() {
 
           // KINEO-LEDGER-2026-08-25 — a equação do saldo, termo a termo.
           // Só entra termo ≠ 0: a linha comum fica "= 25 trial − 3 gastos".
-          const lg = ledgerBy.get(p.id as string) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0 }
+          const lg = ledgerBy.get(p.id as string) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0, revoked: 0 }
           const trialGranted = typeof tcg === 'number' ? tcg : 0
           const saldoReal = typeof p.video_credits === 'number' ? p.video_credits : null
           const terms: string[] = []
@@ -369,7 +383,10 @@ export async function GET() {
           if (lg.bought > 0) terms.push(`+ ${lg.bought} compras`)
           if (lg.refunded > 0) terms.push(`+ ${lg.refunded} estorno`)
           if (lg.spent > 0) terms.push(`− ${lg.spent} gastos`)
-          const expected = trialGranted + lg.bonus + lg.bought + lg.refunded - lg.spent
+          // KINEO-LEDGER-V2 — o termo que explicava 5 dos 10 "furos" da
+          // auditoria: reverse trial expira e revoga o que sobrou.
+          if (lg.revoked > 0) terms.push(`− ${lg.revoked} expirado`)
+          const expected = trialGranted + lg.bonus + lg.bought + lg.refunded - lg.spent - lg.revoked
           const ledgerGap = saldoReal === null ? 0 : saldoReal - expected
           const ledger = terms.length > 0 ? `= ${terms.join(' ')}` : null
 

@@ -14516,7 +14516,12 @@ function UpgradeModal({
         {(
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#86868b', textAlign: 'center' }}>
-              {isSubscriber ? 'Out of credits mid-month? Top up instantly — expires at renewal:' : 'Need more videos right now? One-time credit packs:'}
+              {/* KINEO-POPUP-AUDIT-2026-08-25 — "expires at renewal" era MENTIRA:
+                  o webhook só SOMA video_credits; nada expira na renovação. O
+                  CreditsTopupModal sempre disse a verdade ("added instantly, no
+                  subscription change") e esta linha dizia o oposto — assustando
+                  exatamente o assinante no momento de comprar. */}
+              {isSubscriber ? 'Out of credits mid-month? Top up instantly — yours until you use them:' : 'Need more videos right now? One-time credit packs:'}
             </span>
             <div style={{ display: 'flex', gap: 8 }}>
               {[
@@ -14537,22 +14542,28 @@ function UpgradeModal({
                 // preço num traço em vez de escrever dólar e trocar o número na
                 // cara do comprador — a MESMA regra já aplicada às linhas de
                 // plano acima, ao PricingCards e ao TrialDowngradeModal.
+                // KINEO-POPUP-AUDIT-2026-08-25 — o /20 chumbado voltou a mentir
+                // no MESMO DIA em que o Seedance subiu pra 25 (V6.1): topup120
+                // anunciava "3 AI videos" quando 65cr compram DOIS filmes de 25.
+                // É a terceira vez que dígito à mão neste bloco mente em
+                // produção (ver os dois comentários acima) — agora o divisor
+                // vem de creditCostFor, a régua única.
                 {
                   id: 'topup40',
                   label: `+${TOPUP_CREDITS.topup40} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup40 / 20)} AI video`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup40 / creditCostFor('cinematic_ai', true))} AI video`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup40[currency]) : '—',
                 },
                 {
                   id: 'topup120',
                   label: `+${TOPUP_CREDITS.topup120} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup120 / 20)} AI videos`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup120 / creditCostFor('cinematic_ai', true))} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup120[currency]) : '—',
                 },
                 {
                   id: 'topup100',
                   label: `+${TOPUP_CREDITS.topup100} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / 20)} AI videos`,
+                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / creditCostFor('cinematic_ai', true))} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup100[currency]) : '—',
                 },
                 // KINEO-TOPUP300-2026-08-20 — o único pacote que compra o motor

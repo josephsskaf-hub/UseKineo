@@ -35,6 +35,11 @@ const ENGINE_BADGES: Record<string, string> = {
   cinematic_kling: 'KLING 2.5',
   cinematic_hollywood: 'KLING 3',
   cinematic_ai: 'SEEDANCE 1.5',
+  // KINEO-VITRINE-25/08 (fundador: "tirar seedance e kling 2.5 da primeira
+  // tela, substituir por minimax e omni flash") — os dois motores novos entram
+  // na parede com selo honesto: todo clipe destes cards É render real deles.
+  cinematic_h3: 'MINIMAX H3',
+  cinematic_omni: 'OMNI FLASH',
   basic_ai: 'AI',
   fast: 'KINEO 1',
   presenter: 'AVATAR',
@@ -44,12 +49,14 @@ const ENGINE_BADGES: Record<string, string> = {
 // Veo/Kling na frente), Fast fecha provando o dia a dia.
 // Ordem por QUALIDADE crescente (fundador 15/08): comeca no Kineo 1 (motor
 // proprio) e termina no Kling 3 (o mais premium).
-const ENGINE_ORDER = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'presenter']
+const ENGINE_ORDER = ['fast', 'cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni', 'presenter']
 const PER_ENGINE: Record<string, number> = {
   cinematic_veo: 2,
   cinematic_kling: 2,
   cinematic_hollywood: 1,
   cinematic_ai: 2,
+  cinematic_h3: 1,
+  cinematic_omni: 2,
   fast: 1,
   presenter: 1,
 }
@@ -108,6 +115,19 @@ const CURATED: Record<string, string[]> = {
   //   lado a lado com o pescador do tile Kling 3). Volta o apresentador de
   //   estudio — close limpo, contraste total. O narrador segue no hero.
   presenter: ['c21c2456-98dc-4061-bee5-2f02a5180295', 'b6f1524b-e5f6-43b5-89aa-8cca8715e088'],
+  // ═══ KINEO-VITRINE-25/08 (fundador: "esses dois vídeos estão muito bons —
+  // coloca na tela inicial... vai ficar veo 3, kling 3, minimax e omni flash
+  // os 4 na primeira tela com os melhores vídeos") ═══════════════════════════
+  //   OMNI FLASH (#1 do ranking, todos renders de HOJE): a BATALHA DE ROBÔS
+  //   (silhueta com olhos vermelhos subindo do porto, preview 8-16s banda 23%)
+  //   + MARIANA TRENCH (bioluminescência no abismo, 14-22s) + FLIGHT 19 (o
+  //   filme validado da manhã, preview da nav) + EARTH STOPPED SPINNING
+  //   (onda explodindo no mar aberto, 10.5-18.5s — natureza, linha do fundador)
+  cinematic_omni: ['36a04f7b-65f7-42d9-a2ab-198b5a7f115e', '33249fbf-57b6-47cf-8486-88bfb2a02db1', '41924eb2-d81d-4f2c-a5bb-5477c042af04', '6f6786a8-0a3d-49f0-b5cd-1e91c06249d2'],
+  //   MINIMAX H3 (garimpado do acervo 20-23/08): SHAZAM (aérea noturna da
+  //   cidade com rio de luzes, 13-21s) + NAVIO DE 200.000 TONELADAS (proa na
+  //   névoa, 15-23s) + EDMUND FITZGERALD/BERMUDA (mar de tempestade, 6-14s)
+  cinematic_h3: ['8aabb05a-2492-48de-a96a-0a7875c0c8d3', 'b521e565-8549-437f-a850-f2fea8bdba68', '04189a48-45f7-45f4-b98c-27832702e837'],
 }
 
 // NUNCA em pagina publica: avatares de pessoa real reconhecivel (Messi, com
@@ -136,6 +156,15 @@ const PREVIEWS = new Set<string>([
   // 17/08 e — tile Avatar do bento: o render 9:16 inteiro ficava desenquadrado
   // no tile largo; preview 500:280 com o ROSTO centralizado (banda 36%, 1000px).
   'c21c2456-98dc-4061-bee5-2f02a5180295',
+  // 25/08 — KINEO-VITRINE: cards novos Omni Flash + MiniMax H3 (crf20@1400px,
+  // cortados dos masters; janelas documentadas no CURATED acima).
+  '36a04f7b-65f7-42d9-a2ab-198b5a7f115e', // OMNI — batalha de robôs
+  '33249fbf-57b6-47cf-8486-88bfb2a02db1', // OMNI — Mariana Trench
+  '41924eb2-d81d-4f2c-a5bb-5477c042af04', // OMNI — Flight 19 (validado)
+  '6f6786a8-0a3d-49f0-b5cd-1e91c06249d2', // OMNI — Earth stopped spinning
+  '8aabb05a-2492-48de-a96a-0a7875c0c8d3', // H3 — Shazam (aérea noturna)
+  'b521e565-8549-437f-a850-f2fea8bdba68', // H3 — navio 200.000t
+  '04189a48-45f7-45f4-b98c-27832702e837', // H3 — mar de tempestade
 ])
 
 const EXCLUDED = new Set<string>([
@@ -149,6 +178,8 @@ const SHOWCASE_CAPS: Record<string, number> = {
   cinematic_kling: 3,
   cinematic_hollywood: 3,
   cinematic_ai: 4,
+  cinematic_h3: 3,
+  cinematic_omni: 4,
   fast: 0, // os Fast do /examples sao os 10 locais curados (PUBLIC_EXAMPLES)
   presenter: 2,
 }
@@ -162,6 +193,10 @@ const HERO_CAPS: Record<string, number> = {
   // exclusivo do tile Kling 3 do bento (tileVidLast). Ver CURATED.
   cinematic_hollywood: 5,
   cinematic_ai: 4,
+  // 25/08 — os dois cards novos da primeira tela (fundador). Seedance/Kling
+  // 2.5 seguem na lista (caps acima): os tiles do bento ainda leem daqui.
+  cinematic_h3: 3,
+  cinematic_omni: 4,
   fast: 4,
   presenter: 1,
 }
@@ -195,6 +230,8 @@ export function getEngineRenders(engine: string, limit = 8): Promise<WallVideo[]
     cinematic_kling: 0,
     cinematic_veo: 0,
     cinematic_hollywood: 0,
+    cinematic_h3: 0,
+    cinematic_omni: 0,
     presenter: 0,
   }
   if (!(engine in caps)) return Promise.resolve([])
@@ -271,6 +308,8 @@ const TRENDING_CAPS: Record<string, number> = {
   cinematic_kling: 3,
   cinematic_hollywood: 3,
   cinematic_ai: 4,
+  cinematic_h3: 2,
+  cinematic_omni: 3,
   fast: 4,
   presenter: 1,
 }

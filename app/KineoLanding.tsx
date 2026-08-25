@@ -912,14 +912,17 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               YouTube, fazemos pra varias utilidades — seja criativo"): a linha
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line">Type an idea — watch it become a film. <span>Five video engines, six image models, four voices — scripted, scored and captioned. Every card below is a real render.</span></p>
+          <p className="hero-line">Type an idea — watch it become a film. <span>Eight video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
             {(() => {
-              // Hero = so os 4 premium (fundador 15/08): Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3.
-              // O Kineo 1 mora no bento de escolha logo abaixo.
-              const order = ['cinematic_ai', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood']
+              // KINEO-VITRINE-25/08 (fundador): Seedance 1.5 e Kling 2.5 SAEM
+              // da primeira tela; entram MiniMax H3 e Omni Flash (#1 do ranking
+              // de agosto) com os melhores renders da library — inclusive a
+              // batalha de robôs e o Mariana Trench gerados HOJE no Omni.
+              // Seedance/Kling 2.5 continuam nos tiles do bento logo abaixo.
+              const order = ['cinematic_veo', 'cinematic_hollywood', 'cinematic_h3', 'cinematic_omni']
               return order.map((eng, i) => {
                 const vids = engineWall.filter((v) => v.engine === eng).slice(0, 4)
                 if (vids.length === 0) return null
