@@ -109,7 +109,10 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
   const leak = data.checkoutLeak
 
   const body = (
-    <div className="px-4 sm:px-6 py-7 pb-20 max-w-5xl mx-auto">
+    // KINEO-ADMIN-WIDE-2026-08-25 (fundador: "quero que deixe o admin aberto")
+    // — o max-w-5xl (1024px) obrigava a tabela do Live a rolar na horizontal e
+    // escondia metade do extrato. O painel CEO agora usa a tela inteira.
+    <div className="px-4 sm:px-6 py-7 pb-20 w-full max-w-none">
       {/* KINEO-ADMIN-LIVE-2026-08-19 — quem esta no site AGORA fica no TOPO:
           e a unica informacao do painel que perde valor em minutos. */}
       {/* ── Header ───────────────────────────────────────────────────────── */}

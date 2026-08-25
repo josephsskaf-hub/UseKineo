@@ -59,6 +59,24 @@ export interface LiveVisitor {
   failed: number
   /** Motor da última tentativa, para saber o que ela está testando. */
   lastEngine: string | null
+  // ═══ KINEO-LEDGER-2026-08-25 (fundador: "eu nao entendo se eu dou 40
+  // creditos como o cara pode ter 46 — quero melhorar a qualidade dos dados").
+  // O caso concreto: pedrohscordeiro apareceu com 46cr e a tela só contava a
+  // história do trial (25). Os outros 21+ vinham de bônus de admin e de
+  // estornos de débito — invisíveis. A resposta não é esconder: é mostrar a
+  // EQUAÇÃO inteira, de fontes reais (nunca inferência):
+  //   trial (profiles.trial_credits_granted)
+  //   + bônus (events admin_credits_granted, soma por user_id)
+  //   + compras (bulk_purchase_completed.credits_granted)
+  //   + estornos (credit_debits com refunded_at)
+  //   − gastos (credit_debits, todos)
+  //   = saldo esperado
+  // Se não bater com profiles.video_credits, a diferença aparece com ⚠ em vez
+  // de fingir que a conta fecha — é assim que se acha o próximo furo de dados.
+  /** "= 25 trial + 24 bônus + 24 estorno − 27 gastos", pronto pra ler. */
+  ledger: string | null
+  /** saldo real − saldo esperado. 0 = livros fecham. ≠0 = furo visível. */
+  ledgerGap: number
 }
 
 export interface LiveData {
@@ -142,13 +160,46 @@ export async function GET() {
         .from('images').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
       const audiosPromise = admin
         .from('audios').select('user_id, model').in('user_id', ids).gte('created_at', dayIso).limit(2000)
+      // KINEO-LEDGER-2026-08-25 — as três fontes do razão, TODAS all-time
+      // (o saldo é acumulado desde o cadastro; janela de 24h aqui mentiria).
+      const grantsPromise = admin
+        .from('events').select('user_id, metadata').eq('name', 'admin_credits_granted').in('user_id', ids).limit(2000)
+      const purchasesPromise = admin
+        .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
+      const debitsPromise = admin
+        .from('credit_debits').select('user_id, amount, refunded_at').in('user_id', ids).limit(4000)
       const [profRes, vidRes] = await Promise.all([
         admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
       ])
-      const [claimsRes, imagesRes, audiosRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise])
+      const [claimsRes, imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes] = await Promise.all([claimsPromise, imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise])
+      // Razão por pessoa: bônus, compras, gastos e estornos — números crus.
+      const ledgerBy = new Map<string, { bonus: number; bought: number; spent: number; refunded: number }>()
+      const led = (uid: string) => {
+        const cur = ledgerBy.get(uid) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0 }
+        ledgerBy.set(uid, cur)
+        return cur
+      }
+      for (const g of grantsRes.data ?? []) {
+        const uid = (g as { user_id: string | null }).user_id
+        const amt = Number((g as { metadata?: { amount?: unknown } }).metadata?.amount ?? 0)
+        if (uid && Number.isFinite(amt)) led(uid).bonus += amt
+      }
+      for (const b of purchasesRes.data ?? []) {
+        const uid = (b as { user_id: string | null }).user_id
+        const amt = Number((b as { metadata?: { credits_granted?: unknown } }).metadata?.credits_granted ?? 0)
+        if (uid && Number.isFinite(amt)) led(uid).bought += amt
+      }
+      for (const d of debitsRes.data ?? []) {
+        const uid = (d as { user_id: string | null }).user_id
+        const amt = Number((d as { amount?: unknown }).amount ?? 0)
+        if (!uid || !Number.isFinite(amt)) continue
+        const entry = led(uid)
+        entry.spent += amt
+        if ((d as { refunded_at?: string | null }).refunded_at) entry.refunded += amt
+      }
       // "🖼 3 fotos (schnell×2, seedream×1)" — o modelo diz o motor; contamos
       // por pessoa. Custo exato por foto/áudio varia por motor (1-5cr) e mora
       // no biller; aqui o objetivo é LEITURA — o que a pessoa fez, de relance.
@@ -307,6 +358,21 @@ export async function GET() {
           }
           const spentOn = parts.length > 0 ? parts.join(' · ') : null
 
+          // KINEO-LEDGER-2026-08-25 — a equação do saldo, termo a termo.
+          // Só entra termo ≠ 0: a linha comum fica "= 25 trial − 3 gastos".
+          const lg = ledgerBy.get(p.id as string) ?? { bonus: 0, bought: 0, spent: 0, refunded: 0 }
+          const trialGranted = typeof tcg === 'number' ? tcg : 0
+          const saldoReal = typeof p.video_credits === 'number' ? p.video_credits : null
+          const terms: string[] = []
+          if (trialGranted > 0) terms.push(`${trialGranted} trial`)
+          if (lg.bonus > 0) terms.push(`+ ${lg.bonus} bônus`)
+          if (lg.bought > 0) terms.push(`+ ${lg.bought} compras`)
+          if (lg.refunded > 0) terms.push(`+ ${lg.refunded} estorno`)
+          if (lg.spent > 0) terms.push(`− ${lg.spent} gastos`)
+          const expected = trialGranted + lg.bonus + lg.bought + lg.refunded - lg.spent
+          const ledgerGap = saldoReal === null ? 0 : saldoReal - expected
+          const ledger = terms.length > 0 ? `= ${terms.join(' ')}` : null
+
           return {
             user_id: p.id as string,
             email: (p.email as string) ?? '',
@@ -327,6 +393,8 @@ export async function GET() {
             hoursOld,
             failed,
             lastEngine,
+            ledger,
+            ledgerGap,
           }
         })
         .filter((v) => v.email && !internal(v.email))

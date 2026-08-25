@@ -139,7 +139,23 @@ export default function LiveNowPanel() {
                   </td>
                   <td style={{ padding: '9px 12px', color: (v.credits ?? 0) <= 5 ? '#fb923c' : 'var(--text)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                     <span style={{ fontWeight: 700 }}>{v.credits ?? '—'}{v.credits !== null && v.credits !== undefined ? ' cr' : ''}</span>
-                    {v.creditsUsedLabel && (
+                    {/* KINEO-LEDGER-2026-08-25 (fundador: "não entendo como o
+                        cara pode ter 46") — a equação inteira do saldo, de
+                        fontes reais: trial + bônus + compras + estorno − gastos.
+                        Se não bater com o saldo, a diferença ganha ⚠ em vez de
+                        fingir que fecha. Substitui o rótulo antigo do trial,
+                        que contava só um pedaço da história. */}
+                    {v.ledger && (
+                      <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.ledger}</span>
+                    )}
+                    {v.ledgerGap !== 0 && (
+                      <span
+                        title="saldo real menos o que as fontes explicam — furo de dados a investigar (ex.: créditos de plano mensal ainda não entram no razão)"
+                        style={{ color: '#f87171', fontSize: '0.7rem', marginLeft: 6, fontWeight: 800 }}>
+                        ⚠ {v.ledgerGap > 0 ? '+' : ''}{v.ledgerGap} sem origem
+                      </span>
+                    )}
+                    {!v.ledger && v.creditsUsedLabel && (
                       <span style={{ color: 'var(--muted2)', fontSize: '0.7rem', marginLeft: 6 }}>{v.creditsUsedLabel}</span>
                     )}
                     {/* KINEO-LIVE-V3-2026-08-19 — o extrato: EM QUÊ os créditos
