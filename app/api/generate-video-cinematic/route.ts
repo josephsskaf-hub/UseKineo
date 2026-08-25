@@ -1973,7 +1973,14 @@ export async function POST(req: NextRequest) {
       const salvageFp = createHash('md5')
         .update(`${user.id}|hollywood|${Math.round(duration || 60)}|${prompt.trim().toLowerCase()}`)
         .digest('hex')
-      if (salvageDb) {
+      // ═══ KINEO-SALVAGE-DRYRUN-2026-08-25 — DRY-RUN NUNCA ENTRA NO SALVAGE ═══
+      // O caso de 12:56Z: dois dry-runs do MESMO roteiro casaram o fingerprint
+      // do render 422 de 12:41, o salvage devolveu as cenas MORTAS antes do
+      // gate de dry-run rodar, e cada chamada settlou + debitou 150 (300 no
+      // total, estornados à mão via grant-credits). Dry-run é bancada de
+      // estudo: SEMPRE plano fresco, NUNCA toca submissão guardada, NUNCA
+      // despacha — por isso ele pula o salvage inteiro.
+      if (salvageDb && body.dry_run !== true) {
         try {
           const { data: sv } = await salvageDb
             .from('hollywood_resume')
@@ -2021,11 +2028,25 @@ export async function POST(req: NextRequest) {
                 if (rid && falKey) {
                   try {
                     const st = (await fal.queue.status(storedModels[i], { requestId: rid })) as { status?: string }
-                    if (st.status === 'COMPLETED' || st.status === 'IN_PROGRESS' || st.status === 'IN_QUEUE') {
+                    // KINEO-SALVAGE-CADAVER-2026-08-25 — 'COMPLETED' NÃO basta:
+                    // clipe que morreu em 422 (o caso Omni de 12:41, image_url
+                    // faltando) também reporta COMPLETED — completou EM ERRO.
+                    // O salvage revendeu 7 cadáveres como cenas prontas. Agora
+                    // COMPLETED só conta se o RESULT devolver um vídeo de
+                    // verdade; result que lança (o 422 relança aqui) = cena
+                    // morta = re-submete abaixo com o prompt guardado.
+                    if (st.status === 'IN_PROGRESS' || st.status === 'IN_QUEUE') {
                       keep = rid
                       reused++
+                    } else if (st.status === 'COMPLETED') {
+                      const res = (await fal.queue.result(storedModels[i], { requestId: rid })) as { data?: { video?: { url?: string } } }
+                      const vurl = res?.data?.video?.url
+                      if (typeof vurl === 'string' && vurl.startsWith('http')) {
+                        keep = rid
+                        reused++
+                      }
                     }
-                  } catch { /* status irrecuperável → re-submete abaixo */ }
+                  } catch { /* status/result irrecuperável → re-submete abaixo */ }
                 }
                 if (!keep && sPrompts[i]) {
                   try {
