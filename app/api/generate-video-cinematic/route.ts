@@ -2517,6 +2517,55 @@ export async function POST(req: NextRequest) {
       // fica pronto AQUI, antes de qualquer submissão ao fal. Só que até hoje
       // a única forma de olhar o plano era pagar o render inteiro.
       //
+      // ═══ KINEO-TETO-REDE-FINAL-2026-08-25 — A REDE ABAIXO DE TODOS OS CAMINHOS ═══
+      // O preflight do dry-run 4 (25/08) pegou uma cena de 12s no plano final
+      // da família omni: os tetos por família cobrem os dimensionadores
+      // conhecidos do C2, mas o replan-por-mais-cenas (e qualquer caminho
+      // futuro) pode devolver segundos do GPT sem passar por eles. Caçar cada
+      // caminho é a estratégia que perde; esta rede roda SEMPRE, por último,
+      // em código: cena acima do teto da família (a) encolhe até o teto se a
+      // fala couber (~2.3 pal/s), ou (b) é DIVIDIDA — as palavras excedentes
+      // viram uma cena de apoio nova, dimensionada pela própria fala. C1
+      // intacto (nenhuma palavra dropada), C2 intacto (a duração total até
+      // sobe), e nenhum clipe jamais nasce maior do que o fornecedor entrega.
+      {
+        const wordsArr = (t?: string | null) => (t ?? '').trim().split(/\s+/).filter(Boolean)
+        const capOf = (type: string) => type === 'dialogue' ? DIALOGUE_CAP : type === 'cinematic' ? 8 : SCENE_CAP
+        for (let i = 0; i < plan.scenes.length && i < 40; i++) {
+          const sc = plan.scenes[i]
+          const cap = capOf(sc.type)
+          if ((sc.seconds ?? 0) <= cap) continue
+          const isDialogue = sc.type === 'dialogue'
+          const speech = wordsArr(isDialogue ? sc.dialogueLine : sc.voiceover)
+          const fits = Math.max(1, Math.floor((cap - 1) * 2.3))
+          if (speech.length <= fits) {
+            console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) ${sc.seconds}s > teto ${cap}s da família ${family} — encolhida (fala cabe)`)
+            sc.seconds = cap
+            continue
+          }
+          // Fala não cabe no teto: divide — a cena fica com o que cabe, o
+          // excedente vira apoio novo LOGO DEPOIS (ordem da narração intacta).
+          const head = speech.slice(0, fits).join(' ')
+          const tail = speech.slice(fits).join(' ')
+          if (isDialogue) sc.dialogueLine = head
+          else sc.voiceover = head
+          sc.seconds = cap
+          const tailSeconds = Math.max(4, Math.min(SCENE_CAP, Math.round(wordsArr(tail).length / 2.3) + 1))
+          plan.scenes.splice(i + 1, 0, {
+            ...sc,
+            index: sc.index + 1,
+            type: 'support',
+            dialogueLine: undefined,
+            voiceover: tail,
+            needsNarration: true,
+            seconds: tailSeconds,
+            prompt: `slow cinematic insert continuing the story, ${plan.environmentSheet ?? ''}, level horizon, stable slow dolly detail shot, ${plan.styleSheet ?? ''}`,
+            caption: '',
+          })
+          console.warn(`[teto-rede] cena ${i + 1} (${sc.type}) dividida: ${fits} palavras ficam, ${wordsArr(tail).length} viram apoio de ${tailSeconds}s`)
+        }
+      }
+
       // `dry_run: true` (restrito às contas do fundador) devolve o plano
       // completo NESTE ponto: por cena — tipo, segundos, palavras e o texto
       // exato que seria falado — mais os totais que os contratos C1/C2
