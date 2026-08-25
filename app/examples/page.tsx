@@ -18,6 +18,7 @@ import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
 const BADGE_QUALITY: Record<string, Quality> = {
   'KINEO 1': 'fast', 'SEEDANCE 1.5': 'cinematic_ai', 'KLING 2.5': 'cinematic_kling',
   'VEO 3.1': 'cinematic_veo', 'KLING 3': 'cinematic_hollywood', 'MINIMAX H3': 'cinematic_h3',
+  'OMNI FLASH': 'cinematic_omni', // KINEO-OMNI-2026-08-25 — pronto pra quando a vitrine ganhar o 1º clipe aprovado
   'AVATAR': 'presenter', 'AI PRESENTER': 'presenter',
 }
 function costFor(badge: string): number | null {

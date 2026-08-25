@@ -45,6 +45,7 @@ export const runtime = 'nodejs'
 const USD_PER_RENDER: Record<string, number> = {
   cinematic_ai: 3.30,        // Seedance 1.5 — $398.93 / 121 renders (medido)
   cinematic_h3: 3.90,        // MiniMax H3 — $0.06/s × 65s (ainda sem fatura)
+  cinematic_omni: 8.45,      // Omni Flash — $0.13/s × 65s (estimado, sem fatura)
   cinematic_kling: 3.00,
   cinematic_veo: 9.75,
   cinematic_hollywood: 10.92,
@@ -55,6 +56,7 @@ const ENGINE_LABEL: Record<string, string> = {
   cinematic_ai: 'Seedance 1.5',
   cinematic_kling: 'Kling 2.5',
   cinematic_h3: 'MiniMax H3',
+  cinematic_omni: 'Omni Flash',
   cinematic_veo: 'Veo 3.1',
   cinematic_hollywood: 'Kling 3',
 }

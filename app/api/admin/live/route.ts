@@ -171,6 +171,7 @@ export async function GET() {
       const ENGINE_SHORT: Record<string, string> = {
         fast: 'Kineo 1', cinematic_ai: 'Seedance', cinematic_kling: 'Kling 2.5',
         cinematic_h3: 'H3', cinematic_veo: 'Veo', cinematic_hollywood: 'Kling 3',
+        cinematic_omni: 'Omni', // KINEO-OMNI-2026-08-25
         avatar: 'Avatar', presenter: 'Presenter',
       }
       const spentBy = new Map<string, Map<string, { n: number; cr: number }>>()
