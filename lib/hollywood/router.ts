@@ -330,6 +330,16 @@ export type HollywoodPlan = {
   styleSheet: string
   scenes: HollywoodScene[]
   estimatedCostUsd: number
+  // KINEO-UNIVERSAL-2026-08-25 (fundador: "não adianta ser assertivo só pra
+  // mim, precisa ser pra todo mundo") — o planner LÊ o roteiro e decide:
+  /** false = apresentador na lente quebraria o filme (ficção/espetáculo puro)
+   *  → a conversão HOOK/PAYOFF-on-camera é pulada automaticamente. Default
+   *  true (comportamento histórico) — na dúvida, nada muda. */
+  hostFits: boolean
+  /** true = estética VFX/CGI/estilizada (robôs gigantes, fantasia, sci-fi)
+   *  → os termos anti-CGI ('3d render' etc.) saem do negative_prompt, que
+   *  senão lutaria CONTRA o visual pedido. Default false. */
+  stylized: boolean
 }
 
 const REALISM_DIRECTIVES =
@@ -465,7 +475,8 @@ VIRAL STRUCTURE (mandatory — the house timeline, every video follows it):
 - ESCALATION (8-20s, then 20-35s): each escalation raises the stakes with a STRONGER, more surprising fact than the scene before it.
 - PAYOFF (35-50s): the final scene RESOLVES the open question the hook planted + lands a memorable closing line.
 Label EVERY scene with its "beat": "HOOK" | "MICRO_REWARD" | "ESCALATION" | "PAYOFF". Scene 1 MUST have beat "HOOK"; the LAST scene MUST have beat "PAYOFF". The dialogue lines and narration lines EXECUTE these beats — they carry the hook, the reward, the escalations and the payoff in the actual spoken words.
-HOOK AND PAYOFF ON CAMERA (mandatory): the HOOK scene (scene 1) and the PAYOFF scene (the last scene) are ALWAYS "dialogue" — the host speaks them straight into the lens. B-roll belongs in the middle of the video, never at its first or last words.
+HOST FIT DECISION (mandatory — output "hostFits" boolean): decide whether a HUMAN HOST speaking into the lens FITS this film. hostFits=true for documentary/story-telling content where a narrator persona works (mysteries, history, facts, finance, product explainers). hostFits=false when a person on camera would BREAK the film: pure spectacle/fiction with no narrator character (giant robots, monsters, nature fury, abstract VFX showcases, war machinery, fantasy worlds with no human storyteller). When hostFits=true: the HOOK scene (scene 1) and the PAYOFF scene (the last scene) are ALWAYS "dialogue" — the host speaks them straight into the lens; b-roll belongs in the middle. When hostFits=false: output ZERO "dialogue" scenes — every scene is "cinematic" or "support" with narration, and the hook/payoff live in the narration lines.
+STYLIZED DECISION (mandatory — output "stylized" boolean): stylized=true when the film's aesthetic is deliberately VFX/CGI/fantastical (giant robots, creatures, sci-fi, animation-adjacent spectacle) — the pipeline will then stop suppressing CGI looks. stylized=false for realistic/documentary aesthetics.
 
 DEMO / SHOWCASE (only when the topic IS a specific product, app, website, tool or service — e.g. "explain Kineo", "why everyone uses this app"): include 1-2 "support" scenes that DEMONSTRATE the subject in use while the narration continues — close-up of hands actively using the device or product, over-the-shoulder shot of someone mid-interaction, macro details of the experience. The demonstration reads through ACTION and FRAMING only: screens/interfaces appear as soft glowing abstract shapes, blurred and unreadable (the zero-readable-text rule still applies). Mark these scenes with "demo": true. Demo scenes follow every other "support" rule (voiceover, sizing, stable composition). For any topic that is NOT a product/app/site/tool, output NO demo scenes.
 
@@ -497,7 +508,7 @@ OTHER HARD RULES:
 - Each scene gets a short on-screen "caption" (max 6 words, punchy).
 
 Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
-{"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
+{"hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
 
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
@@ -526,7 +537,13 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
     environmentSheet?: unknown
     styleSheet?: unknown
     scenes?: unknown
+    hostFits?: unknown
+    stylized?: unknown
   }
+  // KINEO-UNIVERSAL-2026-08-25 — defaults SEGUROS: só muda comportamento com
+  // sinal explícito do planner ([faceless] do usuário força false por cima).
+  const hostFits = args.faceless === true ? false : data.hostFits !== false
+  const stylized = data.stylized === true
 
   const characterSheet = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
   const environmentSheet = sanitizeRealPeople(typeof data.environmentSheet === 'string' ? data.environmentSheet : '')
@@ -767,11 +784,11 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
     // lente: hook e payoff continuam como o planner os tipou (support/
     // cinematic narrados). O mouthSuffix/mouthPrefix do dispatch já garante
     // boca fechada em toda cena não-dialogue — o filme sai 100% sem avatar.
-    if (!args.faceless) {
+    if (hostFits) {
       forceHostOnCamera(outScenes[0])
       forceHostOnCamera(outScenes[outScenes.length - 1])
     } else {
-      console.log('[hollywood-planner] KINEO-FACELESS — conversão host-on-camera PULADA (tag [faceless])')
+      console.log(`[hollywood-planner] KINEO-UNIVERSAL — host-on-camera PULADO (${args.faceless ? 'tag [faceless] do usuário' : 'planner decidiu: apresentador quebraria este filme'})`)
     }
   }
 
@@ -819,7 +836,9 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
   const estimatedCostUsd =
     Math.round(outScenes.reduce((s, sc) => s + sc.seconds * HOLLYWOOD_USD_PER_SECOND[sc.type], 0) * 100) / 100
 
-  return { characterSheet, environmentSheet, styleSheet, scenes: outScenes, estimatedCostUsd }
+  return {
+    hostFits,
+    stylized, characterSheet, environmentSheet, styleSheet, scenes: outScenes, estimatedCostUsd }
 }
 
 // ── Cost logging ─────────────────────────────────────────────────────────────

@@ -243,6 +243,12 @@ function buildFalInput(
   // Fast). Only added when provided → every existing call stays byte-identical,
   // and Hollywood (which never passes it) is untouched.
   seed?: number,
+  // KINEO-UNIVERSAL-2026-08-25 — true quando o PLANNER decidiu que o filme é
+  // deliberadamente VFX/CGI (robôs, criaturas, sci-fi): os termos anti-CGI
+  // saem do negative_prompt, que senão lutaria contra o visual pedido.
+  // ÚLTIMO parâmetro de propósito: os call sites posicionais existentes
+  // (seed em 7º) continuam byte-idênticos.
+  stylized?: boolean,
 ): Record<string, unknown> {
   // KINEO-HOLLYWOOD-30-2026-07-10 — HOLLYWOOD 3.0 anchored scenes. Kling O3
   // Pro image-to-video: `image_url` (confirmed — NOT `start_image_url`) is the
@@ -325,6 +331,8 @@ function buildFalInput(
   // 'support' scenes (Seedance is out): same model, prompt is visual-only (no
   // quoted line), so generate_audio:true yields ambient sound, not speech.
   // Duration snap ≤6s→'5' covers both dialogue (exact 5|10) and support.
+  // KINEO-UNIVERSAL-2026-08-25 — negativos anti-CGI viram condicionais.
+  const antiCgi = stylized ? '' : 'cartoon, anime, illustration, 3d render, '
   if (model === KLING3_MODEL) {
     // KINEO-MOTORMAX-2026-08-16 — schema oficial: duration aceita QUALQUER
     // inteiro 3-15 (o snap 5|10 criava dead air ou fala cortada) e cfg_scale
@@ -335,7 +343,7 @@ function buildFalInput(
       aspect_ratio: '9:16',
       generate_audio: true,
       cfg_scale: 0.6,
-      negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
+      negative_prompt: antiCgi + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
     }
   }
   if (model === SORA_MODEL) {
@@ -363,7 +371,7 @@ function buildFalInput(
         // antes do TAAFT (decisao do fundador 16/08). Creditos inalterados.
         resolution: '1080p',
         generate_audio: true,
-        negative_prompt: 'cartoon, anime, illustration, 3d render, blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
+        negative_prompt: antiCgi + 'blur, distort, low quality, watermark, text, logo, caption, chinese text, foreign text, on-screen text, readable signs, subtitles, captions, phone screen with text, rotated frame, sideways composition, vertical horizon, tilted horizon, soft focus, out of focus',
       }
     }
     return {
@@ -632,11 +640,11 @@ function deterministicSeed(input: string): number {
 // (audio-on variants); defaults keep every existing call byte-identical.
 // KINEO-HOLLYWOOD-30-2026-07-10 — `imageUrl` forwarded to buildFalInput (Kling
 // O3 i2v anchor); default keeps every existing call byte-identical.
-async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number): Promise<string | null> {
+async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: boolean = true, hollywood: boolean = false, seconds?: number, imageUrl?: string, seed?: number, stylized?: boolean): Promise<string | null> {
   try {
     return await submitFalQueueOnce(
       model,
-      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed),
+      buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized),
     )
   } catch (err) {
     // #366 — surface the FULL fal error (status + body + message) so a model /
@@ -2965,7 +2973,7 @@ export async function POST(req: NextRequest) {
           const scenePrompt = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
           submittedPrompt = scenePrompt
           try {
-            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor)
+            id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized)
           } catch (e) {
             if (
               e instanceof FalQueueSubmitError && e.ambiguous &&
