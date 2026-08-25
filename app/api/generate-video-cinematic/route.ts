@@ -2648,6 +2648,10 @@ export async function POST(req: NextRequest) {
             dry_run: true,
             verbatim,
             family,
+            // KINEO-UNIVERSAL-2026-08-25 — a DECISÃO DE DIREÇÃO no relatório:
+            // é o que permite validar 5 gêneros opostos a $0 (o teste do
+            // 'sistema perfeito pra qualquer assunto' que o fundador pediu).
+            direction: { genre: plan.genre, hostFits: plan.hostFits, stylized: plan.stylized },
             target_seconds: hollywoodTarget,
             total_seconds: totalSeconds,
             spoken_seconds: spokenSeconds,

@@ -336,6 +336,8 @@ export type HollywoodPlan = {
    *  → a conversão HOOK/PAYOFF-on-camera é pulada automaticamente. Default
    *  true (comportamento histórico) — na dúvida, nada muda. */
   hostFits: boolean
+  /** Leitura de gênero do planner — telemetria hoje, voz/música amanhã. */
+  genre: string
   /** true = estética VFX/CGI/estilizada (robôs gigantes, fantasia, sci-fi)
    *  → os termos anti-CGI ('3d render' etc.) saem do negative_prompt, que
    *  senão lutaria CONTRA o visual pedido. Default false. */
@@ -476,17 +478,18 @@ VIRAL STRUCTURE (mandatory — the house timeline, every video follows it):
 - PAYOFF (35-50s): the final scene RESOLVES the open question the hook planted + lands a memorable closing line.
 Label EVERY scene with its "beat": "HOOK" | "MICRO_REWARD" | "ESCALATION" | "PAYOFF". Scene 1 MUST have beat "HOOK"; the LAST scene MUST have beat "PAYOFF". The dialogue lines and narration lines EXECUTE these beats — they carry the hook, the reward, the escalations and the payoff in the actual spoken words.
 HOST FIT DECISION (mandatory — output "hostFits" boolean): decide whether a HUMAN HOST speaking into the lens FITS this film. hostFits=true for documentary/story-telling content where a narrator persona works (mysteries, history, facts, finance, product explainers). hostFits=false when a person on camera would BREAK the film: pure spectacle/fiction with no narrator character (giant robots, monsters, nature fury, abstract VFX showcases, war machinery, fantasy worlds with no human storyteller). When hostFits=true: the HOOK scene (scene 1) and the PAYOFF scene (the last scene) are ALWAYS "dialogue" — the host speaks them straight into the lens; b-roll belongs in the middle. When hostFits=false: output ZERO "dialogue" scenes — every scene is "cinematic" or "support" with narration, and the hook/payoff live in the narration lines.
+GENRE (mandatory — output "genre" string): one of "documentary" | "mystery" | "history" | "finance" | "product" | "scifi_action" | "fantasy" | "horror" | "nature" | "drama" | "other" — your reading of what the script IS. It drives voice, music and style downstream; be decisive.
 STYLIZED DECISION (mandatory — output "stylized" boolean): stylized=true when the film's aesthetic is deliberately VFX/CGI/fantastical (giant robots, creatures, sci-fi, animation-adjacent spectacle) — the pipeline will then stop suppressing CGI looks. stylized=false for realistic/documentary aesthetics.
 
 DEMO / SHOWCASE (only when the topic IS a specific product, app, website, tool or service — e.g. "explain Kineo", "why everyone uses this app"): include 1-2 "support" scenes that DEMONSTRATE the subject in use while the narration continues — close-up of hands actively using the device or product, over-the-shoulder shot of someone mid-interaction, macro details of the experience. The demonstration reads through ACTION and FRAMING only: screens/interfaces appear as soft glowing abstract shapes, blurred and unreadable (the zero-readable-text rule still applies). Mark these scenes with "demo": true. Demo scenes follow every other "support" rule (voiceover, sizing, stable composition). For any topic that is NOT a product/app/site/tool, output NO demo scenes.
 
-CINEMATOGRAPHY ("styleSheet" — mandatory): output ONE ~30-word photography description shared by the WHOLE film — color palette, light, lens, grain, mood (e.g. "shot on 35mm, teal-orange grade, soft golden backlight, shallow depth of field, light film grain"). It is appended to every scene prompt so ALL engines render the exact same look.
+CINEMATOGRAPHY ("styleSheet" — mandatory): output ONE ~30-word photography description shared by the WHOLE film — color palette, light, lens, grain, mood. IT MUST MATCH THE SCRIPT'S GENRE — never default to documentary aesthetics for fiction. Examples: documentary/history → "shot on 35mm, teal-orange grade, soft golden backlight, shallow depth of field, light film grain"; VFX blockbuster → "IMAX-scale cinematography, crisp digital clarity, volumetric explosions and smoke, metallic specular highlights, deep contrast, lens flares"; horror → "low-key lighting, deep shadows, cold desaturated palette, slow creeping camera, heavy atmosphere"; nature spectacle → "large-format aerial cinematography, rich natural saturation, God rays, pristine detail". It is appended to every scene prompt so ALL engines render the exact same look.
 
 THE FOUR KEYS TO REALISM (mandatory):
 1) NATIVE AUDIO: dialogue scenes carry their spoken line inside the prompt in double quotes; dialogue scenes NEVER have a "voiceover" field.
 2) CONTINUITY: invent EXACTLY ONE fictional person ("characterSheet": ~40 words of precise physical description — age, ethnicity, hair, exact clothing) and EXACTLY ONE environment ("environmentSheet": ~30 words — the place where the PERSON is). Repeat the characterSheet VERBATIM at the start of every scene that shows the person. KINEO-SPECTACLE-2026-08-17 (scoping fix — the old rule glued one environment onto every b-roll and produced the same sea shot five times): repeat the environmentSheet ONLY on scenes physically set in that place. B-roll scenes set ELSEWHERE in the story (another location, another era, a different event) must NOT contain the environmentSheet — they describe their OWN distinct location in full.
-3) REALISTIC IMPERFECTION: every scene prompt includes directives like "${REALISM_DIRECTIVES}, occasional off-axis glance" — vary the wording scene to scene so it never reads templated.
-4) PHYSICS: only simple, well-executed movements (walking, gesturing, pouring coffee, wind in clothes, turning the head). NO complex action, stunts, sports moves, or acrobatics.
+3) CAMERA CHARACTER (match stylized): when stylized=false, every scene prompt includes realistic-imperfection directives like "${REALISM_DIRECTIVES}, occasional off-axis glance" — vary the wording scene to scene. When stylized=true, use BLOCKBUSTER directives instead: "epic cinematic camera movement, dramatic volumetric lighting, high-production-value VFX, dynamic low-angle framing, motion blur on fast action" — documentary hand-held imperfection would cheapen a VFX film.
+4) PHYSICS & ACTION (match the script's WORLD): for realistic HUMAN stories, only simple, well-executed movements (walking, gesturing, pouring coffee, wind in clothes, turning the head) — no stunts, sports moves or acrobatics on human actors. For stylized/action/VFX scripts (giant robots, creatures, disasters, machinery), LARGE-SCALE PHYSICAL ACTION IS THE POINT — collisions, transformations, explosions, collapsing structures, debris, shockwaves — but each shot stages ONE clear, readable action (a punch landing, a tower falling, a machine rising), never a chaotic multi-action blur.
 
 YOU ARE THE SCREENWRITER (KINEO-HOLLYWOOD-21 — the input is RAW material):
 - The user's input is raw, unprocessed material — it may contain quoted lines, an interview format, loose notes or plain descriptions. Your job is to turn it into a tight, concrete screenplay.
@@ -508,7 +511,7 @@ OTHER HARD RULES:
 - Each scene gets a short on-screen "caption" (max 6 words, punchy).
 
 Output JSON shape ("demo" is optional, only on demo/showcase support scenes):
-{"hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
+{"genre":"documentary","hostFits":true,"stylized":false,"characterSheet":"...","environmentSheet":"...","styleSheet":"...","scenes":[{"index":1,"type":"dialogue","beat":"HOOK","seconds":10,"prompt":"...","dialogueLine":"...","caption":"..."},{"index":2,"type":"support","beat":"MICRO_REWARD","seconds":10,"prompt":"...","voiceover":"...","caption":"...","demo":true}]}`
 
   const userMsg = `Idea/topic: ${String(idea ?? '').slice(0, 600)}
 
@@ -539,11 +542,14 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
     scenes?: unknown
     hostFits?: unknown
     stylized?: unknown
+    genre?: unknown
   }
   // KINEO-UNIVERSAL-2026-08-25 — defaults SEGUROS: só muda comportamento com
   // sinal explícito do planner ([faceless] do usuário força false por cima).
   const hostFits = args.faceless === true ? false : data.hostFits !== false
   const stylized = data.stylized === true
+  const genre = typeof data.genre === 'string' && data.genre.trim() ? data.genre.trim().toLowerCase().slice(0, 24) : 'other'
+  console.log(`[hollywood-planner] KINEO-UNIVERSAL direção: genre=${genre} hostFits=${hostFits} stylized=${stylized}`)
 
   const characterSheet = sanitizeRealPeople(typeof data.characterSheet === 'string' ? data.characterSheet : '')
   const environmentSheet = sanitizeRealPeople(typeof data.environmentSheet === 'string' ? data.environmentSheet : '')
@@ -838,6 +844,7 @@ Target total duration: ${Math.max(45, Math.min(70, Math.round(durationSeconds ||
 
   return {
     hostFits,
+    genre,
     stylized, characterSheet, environmentSheet, styleSheet, scenes: outScenes, estimatedCostUsd }
 }
 
