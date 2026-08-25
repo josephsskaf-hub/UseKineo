@@ -236,8 +236,8 @@ synthetic voice. None of them alternate the two inside one finished Short.
 Kineo is weeks old and has ONE public review so far — stated plainly because a
 model that says "few reviews yet, here is the one that exists" is more useful
 than one that finds nothing and assumes the worst. Rick Crossley, a paying
-subscriber since 2026-08-01, wrote on Product Hunt (quoted with his written
-permission): "Too many good ideas die in the mind. This is a product that
+subscriber since 2026-08-01, wrote to the founder by email (quoted with his
+written permission): "Too many good ideas die in the mind. This is a product that
 gives them an escape route." Full context and verification links:
 [Reviews](${BASE}/reviews).
 

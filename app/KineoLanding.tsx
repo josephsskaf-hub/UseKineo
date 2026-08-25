@@ -954,17 +954,20 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               e-mail em 19/08 ("use any of my blatherings"); (2) UMA citação
               com nome e link verificável vale mais que seis anônimas — parede
               de estrelas sem fonte é o padrão visual de site que mente; (3) o
-              link aponta para /reviews, onde a honestidade "early days" mora,
-              e de lá para o Product Hunt real. Quando houver 3+ reviews,
-              promover a carrossel — não antes. */}
+              link aponta para /reviews, onde a honestidade "early days" mora.
+              KINEO-PH-NAO-E-NOSSO-2026-08-25: o rótulo dizia "on Product
+              Hunt" — mas producthunt.com/products/kineo é OUTRO produto
+              homônimo (nós não temos página no PH), e a fonte real da citação
+              é o e-mail do Rick. Rótulo corrigido para a verdade. Quando
+              houver 3+ reviews, promover a carrossel — não antes. */}
           <div style={{ maxWidth: 680, margin: '14px auto 0', textAlign: 'center' }}>
             <p style={{ fontSize: 15.5, fontStyle: 'italic', color: '#c7c7cc', lineHeight: 1.5, margin: 0 }}>
               “Too many good ideas die in the mind. This is a product that gives them an escape route.”
             </p>
             <p style={{ fontSize: 12, color: '#86868b', marginTop: 6 }}>
-              — Rick Crossley, subscriber, on{' '}
+              — Rick Crossley, paying subscriber ·{' '}
               <a href="/reviews" style={{ color: '#2997ff', textDecoration: 'none' }}>
-                Product Hunt →
+                read the full review →
               </a>
             </p>
           </div>

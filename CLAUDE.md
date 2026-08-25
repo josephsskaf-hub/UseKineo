@@ -10,6 +10,18 @@
 # jogada. Exceções que continuam dele: apagar dados permanentemente, dinheiro
 # saindo (compras/planos novos), e decisões de preço público.
 
+# ⛔⛔ REGRA FIXA — LINK DE REVIEW É SÓ O TAAFT (descoberto 25/08):
+# producthunt.com/products/kineo NÃO É NOSSO — é outro produto homônimo
+# (kineo.studio, "article to video", BYOK WaveSpeed). TODA campanha de review
+# de 19/08 e 24/08 mandou clientes para lá: as reviews do Rick e do Victor
+# foram escritas na página de um CONCORRENTE e não aparecem em lugar nenhum.
+# Nós NÃO temos página no Product Hunt. Link certo, único, para qualquer
+# pedido de review: https://theresanaiforthat.com/ai/kineo/ (nossa página,
+# 5 notas média 3.0, dona = conta do fundador). Victor foi pago (100cr,
+# admin_credits_granted 25/08) e avisado do erro com o link certo no
+# rascunho. Pendência: listing do TAAFT está DESATUALIZADO (fala trial de
+# 40cr e "from $9.90/mo" — hoje é 50cr e $7) — fundador edita no dashboard.
+
 # 🔒 CONCLUSÃO JÁ FECHADA — NÃO REABRIR (fundador 19/08, estudo repetido
 # várias vezes): O VAZAMENTO DO CHECKOUT É PREÇO. As pessoas chegam na
 # página de pagamento, ACHAM CARO e não compram. NÃO é erro de cartão, NÃO é

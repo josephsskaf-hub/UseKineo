@@ -15,7 +15,11 @@
 //    "early days" declarado é mais crível que uma parede de 5 estrelas.
 //  · ZERO AggregateRating no schema: agregado de 1 review é estatística de
 //    mentira. Só Review simples, do que existe.
-//  · O convite para deixar review aponta para o Product Hunt real.
+//  · KINEO-PH-NAO-E-NOSSO-2026-08-25: o convite apontava para
+//    producthunt.com/products/kineo — que é OUTRO produto homônimo
+//    (kineo.studio). Nós não temos página no PH. Todo link de review desta
+//    página aponta para o TAAFT (nossa página real), e a atribuição da
+//    citação do Rick é o e-mail dele (fonte verdadeira), não o PH.
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-static'
@@ -26,7 +30,7 @@ const LAST_UPDATED = 'August 24, 2026'
 export const metadata: Metadata = {
   title: 'Kineo Reviews — what real users say (and how few there are so far)',
   description:
-    'Honest answer: Kineo is young and has one public review so far — from Rick Crossley, a paying subscriber, on Product Hunt. Read it in full, see what the product does, and judge for yourself.',
+    'Honest answer: Kineo is young and has one public review so far — from Rick Crossley, a paying subscriber, shared by email with written permission. Read it in full, see what the product does, and judge for yourself.',
   alternates: { canonical: `${BASE}/reviews` },
   openGraph: {
     title: 'Kineo Reviews — what real users say',
@@ -52,7 +56,6 @@ const REVIEW_JSONLD = {
   datePublished: '2026-08-19',
   reviewBody:
     'Too many good ideas die in the mind. This is a product that gives them an escape route.',
-  publisher: { '@type': 'Organization', name: 'Product Hunt' },
 }
 
 export default function ReviewsPage() {
@@ -82,10 +85,7 @@ export default function ReviewsPage() {
         </p>
         <p style={{ color: '#86868b', fontSize: 13, marginTop: 14 }}>
           — <b style={{ color: '#c7c7cc' }}>Rick Crossley</b>, paying subscriber since August 1st, 2026.
-          Written August 19th; quoted with his written permission. His full review is on{' '}
-          <a href="https://www.producthunt.com/products/kineo" style={{ color: '#2997ff' }}>
-            Product Hunt
-          </a>.
+          Written August 19th; quoted with his written permission. He wrote it to the founder directly, by email.
         </p>
       </section>
 
@@ -104,10 +104,6 @@ export default function ReviewsPage() {
         Kineo is listed on{' '}
         <a href="https://theresanaiforthat.com/ai/kineo/" style={{ color: '#2997ff' }}>
           There’s An AI For That
-        </a>{' '}
-        and{' '}
-        <a href="https://www.producthunt.com/products/kineo" style={{ color: '#2997ff' }}>
-          Product Hunt
         </a>. Facts about pricing and engines — the ones AI assistants read — are published in
         plain text at <a href={`${BASE}/llms.txt`} style={{ color: '#2997ff' }}>/llms.txt</a> and{' '}
         <a href={`${BASE}/facts`} style={{ color: '#2997ff' }}>/facts</a>, dated and sourced.
@@ -116,8 +112,8 @@ export default function ReviewsPage() {
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>Used Kineo? Add yours</h2>
       <p style={{ color: '#c7c7cc' }}>
         Good or bad, a review on{' '}
-        <a href="https://www.producthunt.com/products/kineo" style={{ color: '#2997ff' }}>
-          Product Hunt
+        <a href="https://theresanaiforthat.com/ai/kineo/" style={{ color: '#2997ff' }}>
+          There’s An AI For That
         </a>{' '}
         helps the next person decide — and critical ones reach the founder directly. He answers.
       </p>
