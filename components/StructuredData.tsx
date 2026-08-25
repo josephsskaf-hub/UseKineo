@@ -79,7 +79,7 @@ const softwareApplicationSchema = {
     'Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.',
   featureList: [
     'Topic-to-video: one typed idea becomes a finished 9:16 Short',
-    'Seven AI video engines in one account: Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar',
+    'Eight AI video engines in one account: Omni Flash (Google\u2019s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar',
     'AI script writing with hook and payoff structure',
     'Use your own script word for word, narrated verbatim',
     'AI voiceover narration with word-by-word captions',
@@ -243,7 +243,7 @@ const faqSchema = {
       name: 'Which AI video engines can I use in Kineo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Seven, behind one interface and one balance: Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on the Kineo homepage is a real render from the engine named on the card — the badge always tells the truth about which model made it.',
+        text: 'Eight, behind one interface and one balance: Omni Flash (Google\u2019s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on the Kineo homepage is a real render from the engine named on the card — the badge always tells the truth about which model made it.',
       },
     },
     {

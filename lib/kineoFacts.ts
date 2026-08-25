@@ -312,6 +312,14 @@ export const ENGINE_FACTS: EngineFact[] = [
     what: 'Cinematic multi-scene film at a third of the flagship cost. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration, and reads up to nine reference images so character and style stay consistent across every scene.',
   },
   {
+    // KINEO-OMNI-2026-08-25 — entra APÓS a validação real (render Flight 19,
+    // 72s, auditoria ffmpeg zero-apagão em docs/MOTOR-OMNI-FLASH) — selo
+    // honesto: o llms.txt só fala de motor que a casa viu entregar.
+    name: 'Omni Flash',
+    credits: creditCostFor('cinematic_omni'),
+    what: "Google's Gemini Omni Flash — the #1-ranked video model in the August 2026 blind arena — as a full multi-scene film: image-anchored scenes for consistent characters and world, documentary narration, karaoke captions. Same price tier as Kling 3.",
+  },
+  {
     name: 'Kling 3',
     credits: creditCostFor('cinematic_hollywood'),
     // ⚠️ A frase antiga dizia "One is included each month on Creator" — virou

@@ -51,7 +51,7 @@ export const dynamicParams = false
 
 type Engine = {
   /** Valor aceito por /generate?engine=… (GenerateClient.tsx:762). */
-  param: 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3'
+  param: 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'
   /** quality_mode no banco — chave de getEngineRenders. */
   qualityMode: string
   /** Nome comercial exibido (bate com os selos de lib/engineWall.ts). */
@@ -246,6 +246,37 @@ export const ENGINES: Record<string, Engine> = {
       {
         q: 'Does MiniMax H3 generate its own audio?',
         a: 'The model can, but Kineo keeps it muted on purpose. Your narration is spoken exactly as you wrote it, and letting the model add a second voice on top would break that. The soundtrack you hear is chosen to match the subject of the video.',
+      },
+    ],
+  },
+  // KINEO-OMNI-2026-08-25 — página do motor novo, publicada APÓS a validação
+  // real (Flight 19, 72s, auditoria ffmpeg zero-apagão). "gemini omni flash
+  // video generator" é a busca que nasce com o ranking de agosto — chegar
+  // cedo nela é chegar antes do concorrente ter página.
+  'gemini-omni-flash': {
+    param: 'omni',
+    qualityMode: 'cinematic_omni',
+    name: 'Omni Flash',
+    model: 'google/gemini-omni-flash (image-to-video)',
+    credits: '150 credits per video',
+    tier: 'Studio',
+    h1: "Gemini Omni Flash AI video generator — Google's #1-ranked model, as a finished Short",
+    intro:
+      "Omni Flash is Google's Gemini Omni Flash — the #1-ranked video model in the August 2026 blind arena — running inside Kineo's cinematic pipeline. Every scene is anchored to a generated still image, so characters and world stay consistent across the whole film; Kineo adds the documentary narration, karaoke captions and soundtrack, and delivers a vertical 1080×1920 master. It sits at the same 150-credit tier as Kling 3: the two flagship engines, two different looks.",
+    bestFor: 'Flagship storytelling where motion realism matters most: physical scenes, weather, machines, crowds — the model was ranked #1 for exactly this.',
+    tradeoff: 'Scenes cap at 10 seconds each (the provider limit), so very long single-shot monologues are split across cuts. Kling 3 still wins when a scene needs a character speaking on camera with native lip sync.',
+    faq: [
+      {
+        q: 'How much does an Omni Flash video cost on Kineo?',
+        a: '150 credits per finished film — the same tier as Kling 3. One fits each month on the Studio plan.',
+      },
+      {
+        q: 'Is this really the #1 video model?',
+        a: "Gemini Omni Flash ranked #1 in the August 2026 blind video arena (Elo ratings from anonymous side-by-side voting). Rankings move; this badge reflects the August 2026 standings, and we update it when they change.",
+      },
+      {
+        q: 'Why choose Omni Flash over Kling 3?',
+        a: 'Motion realism and physical grounding — Omni Flash leads the arena on how scenes and subjects behave. Kling 3 wins for on-camera talking characters with native lip sync. Same price, so pick per story: physical spectacle → Omni Flash; a narrator character carrying the film on camera → Kling 3.',
       },
     ],
   },

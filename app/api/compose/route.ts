@@ -1611,7 +1611,8 @@ export async function POST(req: NextRequest) {
             // KINEO-H3-SLOT-2026-08-20 — teto 8→15: no H3 a ex-cena de diálogo vira 'cinematic' com 10s reais; min(8) cortava narração no meio da palavra. Hollywood/Veo planeja cinematic=8s, então nada muda pra eles. MUST mirror.
             : c.engine === 'cinematic'
               ? (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(15, Math.max(4, c.seconds)) : 8)
-              : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(12, Math.max(2, c.seconds)) : 10)
+              // KINEO-TAIL-GROW-2026-08-25 — 12→13: folga p/ a cena crescida cobrir a fala medida (freeze cobre o excedente). MUST mirror (secondsFor).
+              : (Number.isFinite(c.seconds) && c.seconds > 0 ? Math.min(13, Math.max(2, c.seconds)) : 10)
 
       // KINEO-HOLLYWOOD-24-2026-07-10 — one pending TTS entry PER narrated
       // scene (no more contiguous-block grouping), placed at that scene's own
@@ -1726,6 +1727,21 @@ export async function POST(req: NextRequest) {
           const fit = Math.max(3, Math.round((m.dur + 0.6) * 10) / 10)
           if (fit < secondsOf(c)) c.seconds = fit
         }
+        // KINEO-TAIL-GROW-2026-08-25 (parte 2, cenas do MEIO) — o endCap
+        // (cena + 0.5s) guilhotina narração que estourar a cena em QUALQUER
+        // posição, não só na última. Os offsets são computados DEPOIS deste
+        // loop ("Timeline FINAL pós-ajuste"), então crescer cena aqui é
+        // seguro: nada desincroniza. Cena narrada (support/cinematic, em
+        // TODAS as famílias — h3 proíbe encolher, crescer é outro verbo)
+        // cresce até a fala medida + 0.6s; o Creatomate segura o último
+        // frame pelo excedente. Palavra engolida entre cenas morre aqui.
+        if (c && (c.engine === 'support' || c.engine === 'cinematic')) {
+          const need = Math.round((m.dur + 0.6) * 10) / 10
+          if (need > secondsOf(c)) {
+            console.log(`[compose] KINEO-TAIL-GROW meio: cena ${m.sceneIdx + 1} ${secondsOf(c)}s → ${need.toFixed(1)}s (fala medida ${m.dur.toFixed(1)}s)`)
+            c.seconds = need
+          }
+        }
       }
 
       // ═══ KINEO-TAIL-2026-08-20 — O APAGÃO DO FINAL (feedback do Joyita) ═══
@@ -1753,6 +1769,22 @@ export async function POST(req: NextRequest) {
           const totalNow = hollywoodClips.reduce((acc, c) => acc + secondsOf(c), 0)
           const speechEnd = Math.round((lastMeasured.dur + 0.8) * 10) / 10
           const tail = secondsOf(last) - speechEnd
+          // ═══ KINEO-TAIL-GROW-2026-08-25 — O INVERSO DO APAGÃO: A GUILHOTINA ═══
+          // Flagrado pelo fundador no 1º render Omni aprovado (Flight 19):
+          // "falou 'Follow' e cortou". O caso espelho do KINEO-TAIL: a voz
+          // real fala MAIS DEVAGAR que os 2.3 pal/s do plano, a narração da
+          // última cena estoura o fim da cena, e o endCap (cena + 0.5s, logo
+          // abaixo) guilhotina as últimas palavras — que são exatamente o
+          // "follow", o convite mais valioso do vídeo. O gapfix só ENCOLHIA;
+          // agora a ÚLTIMA cena narrada também CRESCE até cobrir a fala
+          // medida (+0.8s de respiro). O clipe não tem footage extra? Não
+          // precisa: o Creatomate segura o último frame, e um hold de 0.5-2s
+          // sob as palavras finais lê como fechamento de cinema, não defeito.
+          if (tail < 0) {
+            const grow = Math.round(-tail * 10) / 10
+            last.seconds = Math.round((secondsOf(last) + grow) * 10) / 10
+            console.log(`[compose] KINEO-TAIL-GROW: última cena cresceu ${grow.toFixed(1)}s para cobrir a fala medida (${lastMeasured.dur.toFixed(1)}s) — nenhuma palavra final guilhotinada`)
+          }
           if (tail > 1) {
             // quanto dá pra aparar sem furar o piso
             const maxTrim = Math.max(0, totalNow - TIKTOK_FLOOR_S)

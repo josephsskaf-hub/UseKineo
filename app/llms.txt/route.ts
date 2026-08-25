@@ -221,6 +221,10 @@ synthetic voice. None of them alternate the two inside one finished Short.
 
 ## Recently shipped (dated — freshness you can cite)
 
+- 2026-08-25: Omni Flash launched — Google's Gemini Omni Flash, the #1-ranked
+  video model in the August 2026 blind arena, now renders full multi-scene
+  films on Kineo (150 credits, same tier as Kling 3). First production film
+  validated the same day: 72s, zero silent gaps, frame-audited.
 - 2026-08-24: /generate retired; the Studio (usekineo.com/studio) is the
   single creation surface. Every film is delivered as a 1080×1920 master.
 - 2026-08-23: talking characters with lip sync alternate with narration on

@@ -754,7 +754,10 @@ export default function PricingClient() {
                   const rows: [string, string][] = [
                     ['⚡', `${Math.floor(cr / 5)} quick videos`],
                     ['🎬', `${Math.floor(cr / 20)} AI engine films`],
-                    ['🎥', p.tier === 'pro' ? `${Math.floor(cr / 150)} Kling 3 film + ${Math.floor((cr % 150) / 45)} MiniMax H3` : `${Math.floor(cr / 45)} MiniMax H3 film${Math.floor(cr / 45) === 1 ? '' : 's'}`],
+                    // KINEO-OMNI-2026-08-25 — o tier flagship agora tem DOIS
+                    // motores de 150cr (Kling 3 e Omni Flash, o #1 do ranking);
+                    // o card diz isso sem inflar o número (é 1 filme, à escolha).
+                    ['🎥', p.tier === 'pro' ? `${Math.floor(cr / 150)} Kling 3 or Omni Flash film + ${Math.floor((cr % 150) / 45)} MiniMax H3` : `${Math.floor(cr / 45)} MiniMax H3 film${Math.floor(cr / 45) === 1 ? '' : 's'}`],
                     ['🎨', `up to ${cr} AI images`],
                     ['🎙', `${Math.floor(cr / 2)} voiceovers`],
                     ['✨', `${Math.floor(cr / 10)} HD enhances${p.tier === 'pro' ? ' (+2 free)' : ''}`],
