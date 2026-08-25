@@ -741,10 +741,37 @@ export default function PricingClient() {
                     {p.outcome}
                   </p>
                 ) : null}
-                {/* KINEO-NOITE2-2026-08-17 (#8) — todo plano leva o toolkit inteiro */}
+                {/* ═══ KINEO-CARD-QUANTIDADES-2026-08-25 (pedido do fundador,
+                    referência Higgsfield) — "quando a pessoa bater o olho, ela
+                    vê que está comprando BASTANTE coisa". A linha genérica
+                    "all included" vira NÚMEROS por tier, todos derivados de
+                    TIER_CREDITS ÷ creditCostFor (a mesma régua do caixa, #296)
+                    — se um preço de motor mudar, os cards mudam sozinhos.
+                    "up to" nos itens de custo variável (imagem 1-5cr) para o
+                    número grande ser honesto. */}
+                {isPaid && 'tier' in p && (p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro') && (() => {
+                  const cr = p.tier === 'starter' ? TIER_CREDITS.starter : p.tier === 'basic' ? TIER_CREDITS.basic : TIER_CREDITS.pro
+                  const rows: [string, string][] = [
+                    ['⚡', `${Math.floor(cr / 5)} quick videos`],
+                    ['🎬', `${Math.floor(cr / 20)} AI engine films`],
+                    ['🎥', p.tier === 'pro' ? `${Math.floor(cr / 150)} Kling 3 film + ${Math.floor((cr % 150) / 45)} MiniMax H3` : `${Math.floor(cr / 45)} MiniMax H3 film${Math.floor(cr / 45) === 1 ? '' : 's'}`],
+                    ['🎨', `up to ${cr} AI images`],
+                    ['🎙', `${Math.floor(cr / 2)} voiceovers`],
+                    ['✨', `${Math.floor(cr / 10)} HD enhances${p.tier === 'pro' ? ' (+2 free)' : ''}`],
+                  ]
+                  return (
+                    <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1">
+                      {rows.map(([ic, tx]) => (
+                        <span key={tx} className="text-[11.5px] font-semibold text-[#c7c7cc]">
+                          {ic} {tx}
+                        </span>
+                      ))}
+                    </div>
+                  )
+                })()}
                 {isPaid && (
-                  <p className="mb-2 text-[11.5px] font-semibold text-[#7cc0ff]">
-                    🎬 Films · 🎨 Images · 🎙 Voices · ✨ HD Enhance — all included
+                  <p className="mb-2 text-[10.5px] text-[#5a5a60]">
+                    Mix &amp; match — one credit pool covers everything
                   </p>
                 )}
                 {/* KINEO-PRICING-V5-2026-08-17 — storage é entitlement visível */}
