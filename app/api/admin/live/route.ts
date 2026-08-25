@@ -293,7 +293,14 @@ export async function GET() {
           // relance — e ordena por proximidade da compra.
           const did: string[] = []
           let heat = 1
-          if ([...names].some((n) => n.startsWith('checkout'))) { did.push('🚨 no checkout'); heat = 3 }
+          // KINEO-FALSO-QUENTE-2026-08-25 (fundador: "0 vídeos e está no
+          // checkout, como?") — o caso Joscha 22:10: a SESSÃO Stripe aberta às
+          // 20:11 expirou sozinha 2h depois, o evento automático
+          // checkout_session_expired começava com "checkout" e acendia o 🚨
+          // como se a pessoa estivesse comprando AGORA. Eco de sessão morta
+          // não é intenção: expired sai do gatilho (cancelled FICA — cancelar
+          // exige estar lá, é sinal quente de verdade).
+          if ([...names].some((n) => n.startsWith('checkout') && n !== 'checkout_session_expired')) { did.push('🚨 no checkout'); heat = 3 }
           if (names.has('video_generation_started') || names.has('generate_started')) { did.push('🎬 gerando vídeo'); heat = Math.max(heat, 2) }
           if (names.has('video_generation_completed')) { did.push('✅ vídeo pronto'); heat = Math.max(heat, 2) }
           if (names.has('video_downloaded')) { did.push('⬇ baixou'); heat = Math.max(heat, 2) }
