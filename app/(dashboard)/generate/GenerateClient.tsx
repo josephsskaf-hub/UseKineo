@@ -11320,11 +11320,19 @@ export default function GenerateClient({
                         ? 'Give 30 credits · Get 30 credits'
                         : 'Share your finished video'}
                     </div>
+                    {/* KINEO-SHARE-RECOMPENSA-NO-TITULO-2026-08-25 — 85 pessoas/7d
+                        viram este card e a recompensa morava no eyebrow de 10px.
+                        Com referral disponível, o TÍTULO passa a carregar o
+                        número; a descrição traduz 30 créditos em produto real,
+                        derivado do caixa (nunca um "1 filme" chumbado que
+                        envelhece quando o preço do motor mudar). */}
                     <h3
                       className="mt-1.5 font-black tracking-tight"
                       style={{ color: 'var(--text)', fontSize: '1.12rem', lineHeight: 1.25 }}
                     >
-                      Send this video to 1 friend for feedback
+                      {shareReferralCode
+                        ? 'Send this to 1 friend — you both get 30 credits'
+                        : 'Send this video to 1 friend for feedback'}
                     </h3>
                     <p
                       id="post-render-referral-description"
@@ -11332,7 +11340,7 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {shareReferralCode
-                        ? 'If they make their first video, you both get 30 credits.'
+                        ? `They make their first video, you each get 30 credits — that's ${Math.floor(30 / creditCostFor('cinematic_ai'))} AI film + ${Math.floor((30 % creditCostFor('cinematic_ai')) / creditCostFor('fast', true))} quick videos, free.`
                         : 'Send your public watch page and ask what they think.'}
                     </p>
                   </div>

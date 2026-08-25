@@ -408,21 +408,31 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         // ÚNICA conversão trial→pago que este produto já teve nasceu neste
         // link de 12px e pulou a página de preço inteira — enquanto todos os
         // e-mails de ciclo de vida da casa apontam para `/pricing`.
-        className="mt-2 inline-flex items-center text-xs font-bold underline"
+        // ═══ KINEO-TRIAL-CTA-VIRA-BOTAO-2026-08-25 ═════════════════════════
+        // A decisão que o comentário acima reservou ("reverter é decisão do
+        // fundador, com a medição no relatório") foi tomada: em 25/08 o
+        // fundador transferiu a execução ("todos são seus, tem autorização pra
+        // tudo") e a medição está madura — as três superfícies disparam o MESMO
+        // checkout e a única diferença estrutural era o peso visual: link 1,0%
+        // vs botão 5,6% por impressão, com 17 pessoas tocando o dispensar de
+        // 44px contra 1 no link de compra. O anúncio continua anúncio (mesma
+        // posição, sem z-index, manchete segue sendo o prazo); só o pedido
+        // deixou de ser o único controle envergonhado da tela. Se em 7 dias a
+        // taxa não subir, volta o link e o comentário acima ganha o desfecho.
+        className="mt-2 inline-flex items-center justify-center rounded-xl px-4 text-xs font-black"
         style={{
-          color: '#5cb3ff',
+          color: '#fff',
+          background: checkout.pending !== null ? 'rgba(41,151,255,.45)' : '#2997ff',
+          border: 0,
           cursor: checkout.pending !== null ? 'wait' : 'pointer',
-          opacity: checkout.pending !== null ? 0.6 : 1,
           // `minHeight` e não `height`: com rótulo longo em moeda local
           // ("Keep Creator after the trial — R$ 99,90") a linha pode quebrar, e
           // altura fixa cortaria o texto em vez de crescer.
           minHeight: 44,
-          // Padding vertical só; o horizontal fica em 0 para o sublinhado
-          // continuar alinhado à esquerda com o texto acima — o alvo cresce
-          // sem que o bloco se desloque.
           paddingTop: 6,
           paddingBottom: 6,
-          textAlign: 'left',
+          textAlign: 'center',
+          boxShadow: checkout.pending !== null ? 'none' : '0 6px 20px rgba(41,151,255,.3)',
         }}
       >
         {checkout.pending !== null

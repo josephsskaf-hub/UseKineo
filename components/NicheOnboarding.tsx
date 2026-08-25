@@ -162,12 +162,56 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           Kineo builds the script, voiceover, footage and captions. <FreeTierCopy legacy="Free access includes up to 3 watermarked Fast videos every 24 hours, with no card." onKey="sentence" />
         </p>
 
-        <div style={{ marginBottom: 18, padding: '17px 18px', borderRadius: 16, border: '1px solid rgba(41,151,255,0.35)', background: 'rgba(41,151,255,0.08)' }}>
-          <div style={{ marginBottom: 7, color: '#f5f5f7', fontSize: '1.05rem', fontWeight: 850, lineHeight: 1.3 }}>
-            {FIRST_VIDEO.topic}
+        {/* KINEO-ONBOARDING-VITRINE-2026-08-25 — 173 pessoas viram esta tela
+            nos últimos 7 dias e a promessa era só texto. Mesmo padrão que
+            funcionou no modal de oferta ("modal virou vitrine"): a pessoa VÊ
+            um render real antes de decidir. O clipe é o curado nº 1 da
+            SEEDANCE (a onda da ilha proibida, escolha do fundador) — o mesmo
+            motor em que o trial abre, então a prova corresponde exatamente ao
+            que o clique dela vai produzir. Selo honesto: preview leve (292KB)
+            de public/previews, muted+loop, some em conexões sem o arquivo
+            (onError esconde — a vitrine nunca quebra o funil). */}
+        <div style={{ marginBottom: 18, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(41,151,255,0.35)', background: 'rgba(41,151,255,0.08)' }}>
+          <div style={{ position: 'relative' }}>
+            <video
+              src="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              onError={(event) => {
+                const wrap = event.currentTarget.parentElement
+                if (wrap) wrap.style.display = 'none'
+              }}
+              style={{ display: 'block', width: '100%', maxHeight: 180, objectFit: 'cover' }}
+            />
+            <span
+              style={{
+                position: 'absolute',
+                left: 10,
+                bottom: 8,
+                padding: '3px 9px',
+                borderRadius: 999,
+                background: 'rgba(0,0,0,0.62)',
+                color: '#e8e8ed',
+                fontSize: '0.66rem',
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                backdropFilter: 'blur(4px)',
+              }}
+            >
+              Made with Kineo · Seedance 1.5
+            </span>
           </div>
-          <div style={{ color: '#a1a1a8', fontSize: '0.82rem', fontStyle: 'italic', lineHeight: 1.45 }}>
-            “{FIRST_VIDEO.hook}”
+          <div style={{ padding: '15px 18px' }}>
+            <div style={{ marginBottom: 7, color: '#f5f5f7', fontSize: '1.05rem', fontWeight: 850, lineHeight: 1.3 }}>
+              {FIRST_VIDEO.topic}
+            </div>
+            <div style={{ color: '#a1a1a8', fontSize: '0.82rem', fontStyle: 'italic', lineHeight: 1.45 }}>
+              “{FIRST_VIDEO.hook}”
+            </div>
           </div>
         </div>
 

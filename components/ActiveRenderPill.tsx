@@ -65,7 +65,11 @@ export default function ActiveRenderPill() {
   const pathname = usePathname()
   const router = useRouter()
   // /generate owns this information already (server-truth resume cards).
-  const suppressed = (pathname ?? '').startsWith('/generate')
+  // KINEO-STUDIO-PORTA-UNICA-2026-08-25: o GenerateClient mora agora em
+  // /studio/create (o /generate virou porteiro) — a supressão acompanha a
+  // mudança, senão o card de resume e a pílula aparecem JUNTOS na mesma tela.
+  const suppressed =
+    (pathname ?? '').startsWith('/generate') || (pathname ?? '').startsWith('/studio/create')
 
   const [probe, setProbe] = useState<Probe>(null)
   const [tick, setTick] = useState(() => Date.now())
@@ -192,9 +196,10 @@ export default function ActiveRenderPill() {
       video_id: probe.state === 'completed' ? probe.videoId : null,
       path: pathname ?? null,
     })
-    // /generate re-probes on mount and shows the resume card that owns the
-    // real polling; /history is where a finished video lives.
-    router.push(probe.state === 'rendering' ? '/generate' : '/history')
+    // O card de resume (dono do polling real) mora em /studio/create desde a
+    // porta única — mandar para /generate sem query cairia no SELETOR do
+    // /studio e o resume sumiria da tela. /history é onde o vídeo pronto vive.
+    router.push(probe.state === 'rendering' ? '/studio/create' : '/history')
   }
 
   function handleDismiss() {
