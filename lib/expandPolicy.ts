@@ -1,0 +1,233 @@
+// ═══ KINEO-P0A-350-POLITICA-DE-EXPANSAO-2026-08-26 ═════════════════════════
+//
+// POR QUE ESTE ARQUIVO EXISTE
+//
+// O #349 matou o loop das duas réguas, mas o canário em produção achou três
+// becos sem saída que sobraram — e um cliente real em cada um deles:
+//
+//   D1  19joschaschuetz96 (Alemanha, 25/08 20:41 e 20:44) escreveu uma IDEIA
+//       de 7s e depois de 2s pedindo 60s de vídeo. O teto de 2,5× tornava a
+//       expansão matematicamente impossível: 2s × 2,5 = 5s, e o mínimo é 57s.
+//       Ele levava 422 sempre, tentasse quantas vezes tentasse.
+//   D2  Qualquer 422 virava texto vermelho sem UM botão. Beco sem saída.
+//   D3  A checagem "o autor foi preservado?" comparava frases do texto CRU —
+//       bullets e `Voice:`/`Music:`/`Format:` inclusos. O GPT reformata linha
+//       de produção, e a expansão inteira era descartada por engano. É o MESMO
+//       bug de duas réguas do #349, na checagem irmã.
+//
+// A DECISÃO DE PRODUTO QUE GOVERNA TUDO AQUI (fundador, 26/08):
+// o teto de 2,5× NÃO sobe e NÃO some. Ideia de 2s virando 60s não é
+// "expansão" — é a IA escrevendo o roteiro inteiro no lugar da pessoa, sem ela
+// pedir. Isso continua proibido em silêncio. O que muda é que agora a gente
+// DESCOBRE ISSO ANTES de gastar a chamada, e oferece o caminho certo: escrever
+// o roteiro completo COM consentimento explícito e preview.
+//
+// Tudo aqui é função pura, sem rede, sem banco, sem relógio — para os testes
+// de scripts/test-expand-policy.mjs exercitarem o contrato REAL, não regex
+// procurando string em arquivo.
+
+import { MIN_COVERAGE, WORDS_PER_SECOND, speechSeconds } from './narrationFit'
+
+/**
+ * Teto de crescimento. NÃO MEXER PARA "FAZER PASSAR".
+ * Acima disso não é completar um roteiro, é escrever outro — e escrever outro
+ * exige clique explícito da pessoa (ver `needsAuthoring`).
+ */
+export const MAX_GROWTH_FACTOR = 2.5
+
+/**
+ * As durações que o seletor do Studio realmente oferece.
+ * FONTE ÚNICA: o cliente derivava de `[90, 60, 45, 35]` e podia sugerir 45s —
+ * uma duração que NÃO existe no seletor desde o #333. Botão que não funciona é
+ * pior que botão ausente, então as duas pontas leem daqui.
+ */
+export const SUPPORTED_DURATIONS = [35, 60, 90] as const
+
+/** Estados de domínio. A UI decide o que mostrar a partir DESTE campo. */
+export type ExpandOutcome =
+  | 'already_fits'            // a fala já enche: nada a fazer
+  | 'expanded_ready'          // expandiu e enche: pode aprovar
+  | 'needs_authoring'         // é uma IDEIA, não um roteiro expansível
+  | 'still_short'             // expandiu, ajudou, ainda não enche
+  | 'author_rewrite_rejected' // o modelo mexeu na fala do autor
+  | 'growth_limit'            // o modelo devolveu texto grande demais
+  | 'transient_failure'       // rede/limite/indisponibilidade: dá para tentar de novo
+
+/** Fala mínima (em segundos) que um vídeo de `target` segundos exige. */
+export function minimumSpeech(targetSeconds: number): number {
+  return targetSeconds * MIN_COVERAGE
+}
+
+/**
+ * Quantas vezes a fala atual precisa crescer para encher o alvo.
+ * Fala zero ⇒ Infinity (nenhum múltiplo de zero chega a lugar nenhum).
+ */
+export function requiredGrowth(currentSpeech: number, targetSeconds: number): number {
+  if (!(currentSpeech > 0)) return Number.POSITIVE_INFINITY
+  return minimumSpeech(targetSeconds) / currentSpeech
+}
+
+/**
+ * É uma IDEIA (precisa ser ESCRITA) em vez de um roteiro a completar?
+ * Este é o preflight: quando dá true, NÃO se chama a OpenAI e NÃO se gasta
+ * rodada — o custo e a espera não teriam como dar certo.
+ */
+export function needsAuthoring(currentSpeech: number, targetSeconds: number): boolean {
+  return requiredGrowth(currentSpeech, targetSeconds) > MAX_GROWTH_FACTOR
+}
+
+/** O candidato cresceu dentro do teto EM RELAÇÃO À BASE ORIGINAL do autor? */
+export function withinGrowthLimit(baseSpeech: number, candidateSpeech: number): boolean {
+  if (!(baseSpeech > 0)) return false
+  return candidateSpeech <= baseSpeech * MAX_GROWTH_FACTOR
+}
+
+/** A maior duração que esta fala consegue encher pela régua canônica. */
+export function maximumFittingDuration(currentSpeech: number): number {
+  return currentSpeech / MIN_COVERAGE
+}
+
+/**
+ * A maior duração DO SELETOR que esta fala enche — ou null.
+ * `null` significa "não existe botão honesto": nenhuma duração oferecida cabe.
+ */
+export function largestFittingDuration(
+  currentSpeech: number,
+  supported: readonly number[] = SUPPORTED_DURATIONS,
+): number | null {
+  const teto = maximumFittingDuration(currentSpeech)
+  const cabem = supported.filter((d) => d <= teto + 1e-9).sort((a, b) => b - a)
+  return cabem.length > 0 ? cabem[0] : null
+}
+
+/** Palavras que faltam para atingir o mínimo (nunca negativo). */
+export function missingWords(currentSpeech: number, targetSeconds: number): number {
+  return Math.max(0, Math.ceil((minimumSpeech(targetSeconds) - currentSpeech) * WORDS_PER_SECOND))
+}
+
+// ─── PRESERVAÇÃO DO AUTOR (D3) ─────────────────────────────────────────────
+//
+// A regra do Contrato C1 protege A FALA. Bullet de produção, `Voice:` e
+// `9:16` não são fala — são recado para o editor. Tratá-los como frase do
+// autor foi o que reprovou 3 de 3 roteiros vindos do ChatGPT.
+
+/**
+ * Normalização à prova de Unicode: NFC, minúsculas, remove cues em colchetes,
+ * descarta pontuação/símbolos de QUALQUER alfabeto e colapsa espaço.
+ * `\p{L}\p{N}\p{M}` mantém acento, cirílico, grego, hebraico, CJK, devanágari.
+ */
+export function normalizeForCompare(texto: string): string {
+  return texto
+    .normalize('NFC')
+    .toLowerCase()
+    .replace(/\[[^\]]*\]/gu, ' ')
+    .replace(/[^\p{L}\p{N}\p{M}\s]/gu, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim()
+}
+
+/**
+ * Frases da fala do autor, na ordem.
+ * ⚠️ SEM filtro de tamanho mínimo. O filtro `>= 5 palavras` que existia deixava
+ * "Ninguém acreditou." passar sem verificação — o modelo podia reescrever a
+ * frase mais curta e mais importante do roteiro e ninguém via.
+ * Corta em fim de frase ocidental e também em 。！？ (CJK).
+ */
+export function authorSentences(narracao: string): string[] {
+  return narracao
+    .split(/(?<=[.!?…。！？])\s+|\n+/u)
+    .map((f) => normalizeForCompare(f))
+    .filter((f) => f.length > 0)
+}
+
+/**
+ * Toda frase da fala original sobreviveu, na ORDEM, dentro da fala expandida?
+ * O cursor só anda para frente: frase reordenada conta como perdida, porque
+ * reordenar narração muda a história.
+ */
+export function authorPreserved(
+  narracaoOriginal: string,
+  narracaoExpandida: string,
+): { ok: boolean; missing: string[] } {
+  const frases = authorSentences(narracaoOriginal)
+  const corpo = normalizeForCompare(narracaoExpandida)
+  const perdidas: string[] = []
+  let cursor = 0
+  for (const frase of frases) {
+    const em = corpo.indexOf(frase, cursor)
+    if (em < 0) {
+      perdidas.push(frase)
+      continue
+    }
+    cursor = em + frase.length
+  }
+  return { ok: perdidas.length === 0, missing: perdidas }
+}
+
+/** Prefixos de linha que são recado de produção, nunca fala. */
+const DIRETIVA = /^\s*(voice|music|format|speed|duration|aspect|resolution|platform|style|tone|language)\s*:/iu
+
+/** Marcadores estruturais do roteiro da casa. */
+const MARCADOR = /^\s*(HOOK|MICRO REWARD|ESCALATION|RHYTHM|PAYOFF|TITLE|DESCRIPTION|HASHTAGS)\b/u
+
+/** Linhas de diretiva/marcador do texto cru, preservadas SEPARADAMENTE da fala. */
+export function directiveLines(bruto: string): string[] {
+  return bruto
+    .split(/\n/u)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && (DIRETIVA.test(l) || MARCADOR.test(l)))
+}
+
+/**
+ * Diretivas do original que sumiram do candidato.
+ * Não reprova a expansão (não é fala): serve para o chamador devolver as
+ * linhas do próprio autor ao texto, em vez de inventar substitutas.
+ */
+export function lostDirectives(bruto: string, candidato: string): string[] {
+  const alvo = normalizeForCompare(candidato)
+  return directiveLines(bruto).filter((l) => {
+    const n = normalizeForCompare(l)
+    return n.length > 0 && !alvo.includes(n)
+  })
+}
+
+// ─── CONTABILIDADE DE RODADAS ──────────────────────────────────────────────
+
+/**
+ * Identidade da tentativa: base imutável + duração.
+ * Trocar a duração ou a base é OUTRA tentativa e merece rodadas novas; insistir
+ * no mesmo par não. FNV-1a, determinístico e sem dependência.
+ */
+export function attemptKey(baseScript: string, targetSeconds: number): string {
+  const s = `${baseScript.trim()}::${targetSeconds}`
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h.toString(16).padStart(8, '0')
+}
+
+/** Teto de chamadas por (base, duração). */
+export const MAX_ROUNDS = 2
+
+/** Falhas que NÃO devem consumir rodada: não foi a pessoa nem o texto que erraram. */
+export function isTransientStatus(status: number): boolean {
+  return status === 408 || status === 429 || status >= 500
+}
+
+/** Uma segunda rodada só se vale a pena: preservou o autor, cresceu e chegou perto. */
+export function deservesSecondRound(args: {
+  outcome: ExpandOutcome
+  round: number
+  grew: boolean
+  coverageAfter: number
+}): boolean {
+  if (args.round >= MAX_ROUNDS) return false
+  if (args.outcome !== 'still_short') return false
+  if (!args.grew) return false
+  return args.coverageAfter >= 0.75 && args.coverageAfter < MIN_COVERAGE
+}
+
+/** Reexporta a régua canônica para quem só importa esta política. */
+export { MIN_COVERAGE, WORDS_PER_SECOND, speechSeconds }

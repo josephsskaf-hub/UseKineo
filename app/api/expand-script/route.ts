@@ -6,6 +6,20 @@ import { narrationFit, speechSeconds, MIN_COVERAGE, WORDS_PER_SECOND } from '@/l
 // (app/api/generate-video-cinematic: `parseUserScript(prompt).narration`).
 // Importar daqui é o que garante que as duas pontas nunca mais divirjam.
 import { parseUserScript } from '@/lib/scriptParser'
+// KINEO-350-POLITICA — as regras puras (teto, preflight, preservação do autor,
+// duração sugerida) moram em lib/expandPolicy para serem testáveis de verdade.
+import {
+  MAX_GROWTH_FACTOR,
+  authorPreserved,
+  largestFittingDuration,
+  lostDirectives,
+  maximumFittingDuration,
+  missingWords,
+  needsAuthoring,
+  requiredGrowth,
+  withinGrowthLimit,
+  type ExpandOutcome,
+} from '@/lib/expandPolicy'
 
 // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ════════════════════════════════════
 //
@@ -44,8 +58,8 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 45
 
-/** Teto de expansão: mais que isto não é "completar", é reescrever. */
-const MAX_GROWTH_FACTOR = 2.5
+// O teto de expansão (MAX_GROWTH_FACTOR) mudou de casa no #350: agora vive em
+// lib/expandPolicy, onde o preflight e os testes o leem da MESMA fonte.
 
 const SISTEMA = `You EXPAND an existing short-form video script so its narration fills the requested duration. You are not rewriting it — you are continuing it.
 
@@ -69,9 +83,9 @@ export async function POST(req: NextRequest) {
     } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
 
-    let body: { script?: string; targetSeconds?: number }
+    let body: { script?: string; targetSeconds?: number; baseScript?: string }
     try {
-      body = (await req.json()) as { script?: string; targetSeconds?: number }
+      body = (await req.json()) as { script?: string; targetSeconds?: number; baseScript?: string }
     } catch {
       return NextResponse.json({ error: 'invalid body' }, { status: 400 })
     }
@@ -82,6 +96,13 @@ export async function POST(req: NextRequest) {
     if (!Number.isFinite(target) || target <= 0) {
       return NextResponse.json({ error: 'targetSeconds is required' }, { status: 400 })
     }
+
+    // KINEO-350-BASE-IMUTAVEL — a BASE do teto de crescimento é sempre o texto
+    // que a PESSOA escreveu, nunca o que a IA já produziu. Sem isto, a 2ª
+    // rodada mediria 2,5× em cima de um texto que já era 2,5× o original:
+    // crescimento composto de 6,25× pela porta dos fundos, que é exatamente o
+    // "a IA escreveu o roteiro inteiro" que o teto existe para impedir.
+    const base = (body.baseScript ?? '').trim() || original
 
     // ═══ KINEO-P0A-MESMA-REGUA-2026-08-26 — A CAUSA DO LOOP INFINITO ═══════
     //
@@ -111,26 +132,65 @@ export async function POST(req: NextRequest) {
     // pela evidência: o roteiro devolvido ERA o original, por decisão da rota.
     const falaOriginal = parseUserScript(original).narration || original
     const antes = narrationFit(falaOriginal, target)
+    const medida = (s: number, alvo: number) => ({
+      words: Math.round(s * WORDS_PER_SECOND),
+      seconds: Math.round(s),
+      coverage: Number((s / alvo).toFixed(2)),
+    })
     // Já enche pela régua do guard: nada a fazer. Devolve o original intacto
     // e DIZ que nada mudou (expanded:false + stillShort:false explícitos), com
     // as medidas — o cliente precisa saber que não houve expansão para não
     // oferecer "Use this script" como se houvesse.
     if (antes.ok) {
       return NextResponse.json({
+        outcome: 'already_fits' as ExpandOutcome,
         script: original,
         expanded: false,
         stillShort: false,
         coverage: antes.coverage,
-        before: {
-          words: Math.round(antes.speech * WORDS_PER_SECOND),
-          seconds: Math.round(antes.speech),
-          coverage: Number(antes.coverage.toFixed(2)),
-        },
-        after: {
-          words: Math.round(antes.speech * WORDS_PER_SECOND),
-          seconds: Math.round(antes.speech),
-          coverage: Number(antes.coverage.toFixed(2)),
-        },
+        before: medida(antes.speech, target),
+        after: medida(antes.speech, target),
+      })
+    }
+
+    // ═══ KINEO-350-PREFLIGHT-IDEIA-vs-ROTEIRO (D1) ════════════════════════
+    //
+    // 19joschaschuetz96, 25/08 20:41 e 20:44: fala de 7s e depois de 2s para um
+    // vídeo de 60s. O mínimo é 57s de fala. Nenhuma expansão dentro do teto de
+    // 2,5× chega lá — 2 × 2,5 = 5. Ele levava 422 e tentava de novo, para sempre.
+    //
+    // A resposta certa NÃO é afrouxar o teto: 2s virando 60s significa a IA
+    // escrevendo 96% do roteiro sem ninguém pedir, e o fundador vetou isso em
+    // 26/08. A resposta certa é reconhecer que ISTO NÃO É UM ROTEIRO CURTO, é
+    // uma IDEIA — e ideia se ESCREVE, com clique e preview, pelo caminho que já
+    // existe (/api/generate-script).
+    //
+    // Então: descobrimos ANTES de gastar a chamada, ANTES de gastar a espera e
+    // ANTES de gastar uma rodada. E devolvemos 200: isto é um resultado
+    // ESPERADO do domínio, não uma falha do servidor. 4xx/5xx ficam reservados
+    // para autenticação, limite e indisponibilidade de verdade.
+    if (needsAuthoring(antes.speech, target)) {
+      const maxCabivel = maximumFittingDuration(antes.speech)
+      console.log(
+        `[expand-script] needs_authoring: fala ${antes.speech.toFixed(1)}s para alvo ${target}s ` +
+        `(precisaria crescer ${requiredGrowth(antes.speech, target).toFixed(1)}x, teto ${MAX_GROWTH_FACTOR}x)`,
+      )
+      return NextResponse.json({
+        outcome: 'needs_authoring' as ExpandOutcome,
+        script: original,
+        expanded: false,
+        stillShort: true,
+        coverage: antes.coverage,
+        before: medida(antes.speech, target),
+        after: medida(antes.speech, target),
+        targetSeconds: target,
+        missingWords: missingWords(antes.speech, target),
+        requiredGrowth: Number(requiredGrowth(antes.speech, target).toFixed(2)),
+        maxGrowthFactor: MAX_GROWTH_FACTOR,
+        maximumFittingSeconds: Number(maxCabivel.toFixed(1)),
+        // Duração VÁLIDA do seletor, ou null. Nunca um número que a tela não
+        // consegue selecionar — botão falso é pior que botão ausente.
+        suggestedDuration: largestFittingDuration(antes.speech),
       })
     }
 
@@ -162,9 +222,22 @@ ${original}`
       { timeout: OPENAI_SCRIPT_TIMEOUT_MS, maxRetries: 0 },
     )
 
-    const expandido = (res.choices[0]?.message?.content ?? '').trim()
+    let expandido = (res.choices[0]?.message?.content ?? '').trim()
     if (!expandido) {
-      return NextResponse.json({ error: 'Could not expand the script. Please try again.' }, { status: 502 })
+      return NextResponse.json(
+        { outcome: 'transient_failure' as ExpandOutcome, error: 'Could not expand the script. Please try again.' },
+        { status: 502 },
+      )
+    }
+
+    // KINEO-350-DIRETIVAS (D3, segunda metade) — `Voice:`, `Music:`, `Format:`
+    // e os marcadores são recado de produção do PRÓPRIO autor. Se o modelo os
+    // engoliu, a gente devolve as linhas DELE de volta — não inventa
+    // substitutas e não reprova a expansão por causa disso, porque nada disso
+    // é fala e o Contrato C1 protege a fala.
+    const diretivasPerdidas = lostDirectives(original, expandido)
+    if (diretivasPerdidas.length > 0) {
+      expandido = `${expandido}\n\n${diretivasPerdidas.join('\n')}`
     }
 
     // ─── VERIFICAÇÕES, porque "o modelo prometeu" não é garantia ────────────
@@ -175,34 +248,47 @@ ${original}`
     const depois = narrationFit(falaExpandida, target)
 
     // (a) Cresceu demais = reescreveu em vez de completar.
-    if (depois.speech > antes.speech * MAX_GROWTH_FACTOR) {
-      console.warn('[expand-script] recusado: crescimento excessivo', {
-        antes: Math.round(antes.speech), depois: Math.round(depois.speech),
+    // KINEO-350 — o teto agora é medido contra a BASE IMUTÁVEL do autor, não
+    // contra o texto da rodada anterior (que já pode ser obra da IA).
+    const falaBase = parseUserScript(base).narration || base
+    const speechBase = speechSeconds(falaBase)
+    if (!withinGrowthLimit(speechBase, depois.speech)) {
+      console.warn('[expand-script] recusado: crescimento excessivo sobre a base', {
+        base: Math.round(speechBase), depois: Math.round(depois.speech), teto: MAX_GROWTH_FACTOR,
       })
       return NextResponse.json(
-        { error: 'The expansion changed too much of your script. Please add the extra lines yourself.' },
+        {
+          outcome: 'growth_limit' as ExpandOutcome,
+          error: 'The expansion changed too much of your script. Please add the extra lines yourself.',
+          before: medida(antes.speech, target),
+          after: medida(depois.speech, target),
+          suggestedDuration: largestFittingDuration(antes.speech),
+        },
         { status: 422 },
       )
     }
 
     // (b) O TEXTO ORIGINAL SOBREVIVEU? Esta é a checagem que protege o C1.
-    // Compara frase a frase, normalizado — se o modelo reescreveu qualquer
-    // linha do autor, a expansão inteira é descartada. Melhor devolver o
-    // problema do que devolver o roteiro dele adulterado.
-    const normaliza = (t: string) =>
-      t.toLowerCase().replace(/\[[^\]]*\]/g, ' ').replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
-    const frasesOriginais = original
-      .split(/(?<=[.!?])\s+/)
-      .map((f) => normaliza(f))
-      .filter((f) => f.split(' ').length >= 5) // frases muito curtas dão falso negativo
-    const corpoExpandido = normaliza(expandido)
-    const perdidas = frasesOriginais.filter((f) => !corpoExpandido.includes(f))
-    if (perdidas.length > 0) {
-      console.warn(`[expand-script] recusado: ${perdidas.length} frase(s) do autor foram alteradas`)
+    //
+    // KINEO-350-MESMA-REGUA-NA-CHECAGEM-IRMA (D3) — antes ela fatiava o texto
+    // CRU e exigia que bullets e `Voice:`/`Format:` voltassem palavra por
+    // palavra. O modelo reformata linha de produção o tempo todo, então
+    // roteiro vindo do ChatGPT era reprovado por engano: 3 de 3 no canário de
+    // hoje. É o MESMO erro de duas réguas do #349, cometido no vizinho.
+    //
+    // Agora compara FALA com FALA, na ordem, com normalização à prova de
+    // Unicode e SEM o filtro de "≥ 5 palavras" — que deixava "Ninguém
+    // acreditou." sair sem verificação nenhuma.
+    const preservado = authorPreserved(falaOriginal, falaExpandida)
+    if (!preservado.ok) {
+      console.warn(`[expand-script] recusado: ${preservado.missing.length} frase(s) do autor foram alteradas`)
       return NextResponse.json(
         {
+          outcome: 'author_rewrite_rejected' as ExpandOutcome,
           error: 'The expansion rewrote part of your script instead of adding to it. Your original was left untouched.',
           rewroteAuthor: true,
+          before: medida(antes.speech, target),
+          suggestedDuration: largestFittingDuration(antes.speech),
         },
         { status: 422 },
       )
@@ -218,9 +304,11 @@ ${original}`
     )
 
     return NextResponse.json({
+      outcome: (depois.ok ? 'expanded_ready' : 'still_short') as ExpandOutcome,
       script: expandido,
       expanded: true,
       stillShort: !depois.ok,
+      restoredDirectives: diretivasPerdidas.length,
       before: {
         words: palavrasAtuais,
         seconds: Math.round(antes.speech),
@@ -231,9 +319,17 @@ ${original}`
         seconds: Math.round(depois.speech),
         coverage: Number(depois.coverage.toFixed(2)),
       },
+      // Sempre presente: se a expansão parar curta, a tela precisa saber se
+      // existe uma duração honesta para oferecer — ou se não existe nenhuma.
+      suggestedDuration: largestFittingDuration(depois.speech),
     })
   } catch (e) {
     console.error('[expand-script]', e instanceof Error ? e.message : String(e))
-    return NextResponse.json({ error: 'Could not expand the script right now.' }, { status: 500 })
+    // Erro de infraestrutura é transitório por definição: a tela deve oferecer
+    // "tentar de novo" e NÃO deve queimar uma das duas rodadas da pessoa.
+    return NextResponse.json(
+      { outcome: 'transient_failure' as ExpandOutcome, error: 'Could not expand the script right now.' },
+      { status: 500 },
+    )
   }
 }

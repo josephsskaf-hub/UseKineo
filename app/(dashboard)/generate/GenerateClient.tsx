@@ -103,6 +103,15 @@ import useReadyBeacon from '@/components/video/useReadyBeacon'
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
 import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'
+// KINEO-350 — as regras de expansão (teto, rodadas, duração honesta) vêm da
+// MESMA fonte que o servidor usa. Antes o cliente tinha a sua própria lista de
+// durações `[90, 60, 45, 35]` e podia oferecer 45s, que não existe no seletor.
+import {
+  MAX_ROUNDS,
+  attemptKey,
+  isTransientStatus,
+  largestFittingDuration,
+} from '@/lib/expandPolicy'
 import NicheOnboarding from '@/components/NicheOnboarding'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -1392,13 +1401,44 @@ export default function GenerateClient({
   /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
   const [expandedScript, setExpandedScript] = useState<string | null>(null)
   const [expanding, setExpanding] = useState(false)
-  // KINEO-P0A-SEM-LOOP-2026-08-26 — por que a expansão terminou sem caminho:
-  // 'nothing_added' (o servidor não tinha o que acrescentar) ou 'still_short'
-  // (expandiu e ainda não enche). Os dois levam à MESMA saída honesta: nada
-  // renderiza, nada debita, e a pessoa escolhe duração menor ou edita.
-  const [expandFailedReason, setExpandFailedReason] = useState<'nothing_added' | 'still_short' | null>(null)
-  /** Rodada de expansão da tentativa atual. Teto de 2 (spec do sprint). */
-  const expandRoundRef = useRef(0)
+  // ═══ KINEO-350-ESTADOS-DISCRIMINADOS-2026-08-26 (D2) ═══════════════════
+  //
+  // Antes existia um booleano-ish ('nothing_added' | 'still_short') e TODO o
+  // resto virava `setError(...)` — texto vermelho sem um único botão. Era o
+  // beco sem saída que o canário de hoje pegou: roteiro vindo do ChatGPT
+  // levava 422 e a pessoa ficava olhando para uma frase.
+  //
+  // Agora cada término tem NOME e cada nome tem saída na tela:
+  //   needs_authoring        → é uma ideia: escrever o roteiro (com consentimento)
+  //   still_short            → expandiu, ajudou, não encheu
+  //   author_rewrite_rejected→ o modelo mexeu na fala: alternativas, sem retry cego
+  //   growth_limit           → veio texto demais: alternativas
+  //   transient_failure      → rede/limite/5xx: RETRY, e sem queimar rodada
+  //   auth_required          → fluxo de autenticação
+  const [expandState, setExpandState] = useState<
+    | null
+    | { kind: 'needs_authoring'; suggestedDuration: number | null; requiredGrowth: number; maxGrowthFactor: number }
+    | { kind: 'still_short'; suggestedDuration: number | null; afterSeconds: number }
+    | { kind: 'author_rewrite_rejected'; suggestedDuration: number | null }
+    | { kind: 'growth_limit'; suggestedDuration: number | null }
+    | { kind: 'transient_failure'; message: string; canRetry: true }
+    | { kind: 'auth_required' }
+  >(null)
+  /**
+   * Rodadas de expansão por (base imutável + duração). Trocar a duração ou
+   * escrever outro texto é OUTRA tentativa e ganha rodadas novas; insistir no
+   * mesmo par, não. Falha transitória NÃO consome rodada.
+   */
+  const expandRoundsRef = useRef<{ key: string; used: number }>({ key: '', used: 0 })
+  /**
+   * A BASE IMUTÁVEL: o texto que a PESSOA escreveu nesta tentativa. O teto de
+   * crescimento é sempre medido contra ela — nunca contra o que a IA já
+   * produziu, senão duas rodadas de 2,5× viram 6,25× pela porta dos fundos.
+   */
+  const expandBaseRef = useRef<string>('')
+  /** Roteiro completo escrito pela IA, esperando leitura e consentimento. */
+  const [authoredScript, setAuthoredScript] = useState<string | null>(null)
+  const [authoring, setAuthoring] = useState(false)
   // #465 — the saved video's DB id, for the public /v/[id] share link on the
   // done screen (share at peak delight → growth loop).
   const [publicVideoId, setPublicVideoId] = useState<string | null>(null)
@@ -4966,16 +5006,27 @@ export default function GenerateClient({
   // de não ser automático (Contrato C1 + o risco de fato inventado).
   async function handleExpandScript() {
     if (!scriptTooShort || expanding) return
-    // KINEO-P0A-SEM-LOOP-2026-08-26 — teto de 2 rodadas por tentativa. A 2ª
-    // parte do texto JÁ EXPANDIDO (structuredScriptRef guarda o aceite), nunca
-    // do original: expandir o mesmo original duas vezes daria o mesmo
-    // resultado e recriaria o loop que este bloco existe para matar.
-    if (expandRoundRef.current >= 2) {
-      setExpandFailedReason('still_short')
-      void trackEvent('script_expand_exhausted', { reason: 'max_rounds', round: expandRoundRef.current })
+    // ═══ KINEO-350-RODADAS-POR-BASE ═══════════════════════════════════════
+    // O teto é por (base imutável, duração). A base é o que a PESSOA escreveu:
+    // expandBaseRef só muda quando ela aceita um texto ou digita outra coisa.
+    const base = expandBaseRef.current || structuredScriptRef.current || prompt
+    const chave = attemptKey(base, scriptTooShort.targetSeconds)
+    if (expandRoundsRef.current.key !== chave) expandRoundsRef.current = { key: chave, used: 0 }
+    if (expandRoundsRef.current.used >= MAX_ROUNDS) {
+      setExpandState({
+        kind: 'still_short',
+        suggestedDuration: largestFittingDuration(scriptTooShort.speechSeconds),
+        afterSeconds: scriptTooShort.speechSeconds,
+      })
+      void trackEvent('script_expand_exhausted', { reason: 'max_rounds', round: expandRoundsRef.current.used })
       return
     }
-    expandRoundRef.current += 1
+    expandRoundsRef.current = { key: chave, used: expandRoundsRef.current.used + 1 }
+    const rodada = expandRoundsRef.current.used
+    /** Falha que não foi culpa da pessoa nem do texto devolve a rodada. */
+    const devolveRodada = () => {
+      expandRoundsRef.current = { key: chave, used: Math.max(0, expandRoundsRef.current.used - 1) }
+    }
     setExpanding(true)
     setError(null)
     try {
@@ -4985,13 +5036,70 @@ export default function GenerateClient({
         credentials: 'same-origin',
         body: JSON.stringify({
           script: structuredScriptRef.current ?? prompt,
+          baseScript: base,
           targetSeconds: scriptTooShort.targetSeconds,
         }),
       })
       const data = await res.json().catch(() => ({}))
+
+      // ── 401: é autenticação, não roteiro. Segue o fluxo de login. ────────
+      if (res.status === 401) {
+        devolveRodada()
+        setExpandState({ kind: 'auth_required' })
+        void trackEvent('script_expand_failed', { http: 401, reason: 'auth_required' })
+        return
+      }
+
+      // ── PREFLIGHT DO SERVIDOR: isto é uma IDEIA, não um roteiro curto. ───
+      // Vem 200 de propósito: é um resultado esperado do domínio. Zero chamada
+      // de expansão foi feita lá, então zero rodada é consumida aqui.
+      if (data?.outcome === 'needs_authoring') {
+        devolveRodada()
+        setExpandState({
+          kind: 'needs_authoring',
+          suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+          requiredGrowth: Number(data?.requiredGrowth) || 0,
+          maxGrowthFactor: Number(data?.maxGrowthFactor) || 2.5,
+        })
+        void trackEvent('script_needs_authoring', {
+          speech_seconds: data?.before?.seconds ?? null,
+          target_seconds: data?.targetSeconds ?? scriptTooShort.targetSeconds,
+          required_growth: data?.requiredGrowth ?? null,
+          suggested_duration: data?.suggestedDuration ?? null,
+        })
+        return
+      }
+
+      // ── Transitório: rede, limite, indisponibilidade. Retry, sem punição. ─
+      if (isTransientStatus(res.status) || data?.outcome === 'transient_failure') {
+        devolveRodada()
+        setExpandState({
+          kind: 'transient_failure',
+          canRetry: true,
+          message: typeof data?.error === 'string' ? data.error : 'The writer is busy right now.',
+        })
+        void trackEvent('script_expand_failed', { http: res.status, reason: 'transient', round: rodada })
+        return
+      }
+
+      // ── 422 determinísticos: sempre com alternativas visíveis na tela. ────
+      if (data?.outcome === 'author_rewrite_rejected' || data?.outcome === 'growth_limit') {
+        setExpandState({
+          kind: data.outcome,
+          suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+        })
+        void trackEvent('script_expand_failed', { http: res.status, reason: data.outcome, round: rodada })
+        return
+      }
+
       if (!res.ok || typeof data?.script !== 'string') {
-        setError(typeof data?.error === 'string' ? data.error : 'Could not expand the script. Please add the lines yourself.')
-        void trackEvent('script_expand_failed', { http: res.status, rewrote_author: data?.rewroteAuthor === true })
+        // Qualquer 4xx que sobrou é determinístico: mostra alternativas, e não
+        // um "Try again" que não tem como dar certo.
+        setExpandState({
+          kind: 'author_rewrite_rejected',
+          suggestedDuration: largestFittingDuration(scriptTooShort.speechSeconds),
+        })
+        void trackEvent('script_expand_failed', { http: res.status, reason: 'unclassified', round: rodada })
         return
       }
       // ═══ KINEO-P0A-SEM-LOOP-2026-08-26 ═══════════════════════════════════
@@ -5009,29 +5117,118 @@ export default function GenerateClient({
         after_coverage: data?.after?.coverage ?? null,
         still_short: aindaCurto,
         expanded: cresceu,
-        round: expandRoundRef.current,
+        round: rodada,
         attempt_id: generationAttemptRef.current ?? null,
       })
       if (!cresceu || aindaCurto) {
         // Saída honesta e terminal: nada renderiza, nada é debitado, e a
-        // pessoa recebe as duas alternativas que SEMPRE funcionam.
-        setExpandedScript(null)
-        setExpandFailedReason(!cresceu ? 'nothing_added' : 'still_short')
+        // pessoa recebe as alternativas que SEMPRE funcionam.
+        // KINEO-350 — o texto expandido continua VISÍVEL e editável mesmo
+        // curto (ela pode terminar na mão); o que não existe é o botão de
+        // renderizar enquanto não encher.
+        setExpandedScript(cresceu && typeof data?.script === 'string' ? data.script : null)
+        setExpandState({
+          kind: 'still_short',
+          suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+          afterSeconds: Number(data?.after?.seconds) || scriptTooShort.speechSeconds,
+        })
         void trackEvent('script_expand_exhausted', {
           reason: !cresceu ? 'nothing_added' : 'still_short',
-          round: expandRoundRef.current,
+          round: rodada,
           after_seconds: data?.after?.seconds ?? null,
           target_seconds: scriptTooShort?.targetSeconds ?? null,
         })
         return
       }
-      setExpandFailedReason(null)
+      setExpandState(null)
       setExpandedScript(data.script)
     } catch {
-      setError('Could not expand the script right now.')
+      // Rede caiu / fetch abortado: transitório por definição. Devolve a
+      // rodada e oferece "tentar de novo" em vez de texto vermelho parado.
+      devolveRodada()
+      setExpandState({
+        kind: 'transient_failure',
+        canRetry: true,
+        message: 'We could not reach the writer. Check your connection and try again.',
+      })
+      void trackEvent('script_expand_failed', { http: 0, reason: 'network', round: rodada })
     } finally {
       setExpanding(false)
     }
+  }
+
+  // ═══ KINEO-350-ESCREVER-O-ROTEIRO (saída do needs_authoring) ═════════════
+  //
+  // Quando o texto é uma IDEIA (2s de fala para 60s de vídeo), completar não
+  // existe: qualquer coisa que encha o vídeo seria a IA escrevendo o roteiro
+  // inteiro. Isso é PERMITIDO — mas só com clique explícito e leitura antes.
+  //
+  // Reusa /api/generate-script, o MESMO escritor do fluxo normal. Nenhum
+  // endpoint novo, nenhum segundo sistema de roteiro. E nada é substituído em
+  // silêncio: o texto aparece para ela aceitar ou descartar.
+  async function handleWriteFullScript() {
+    if (!scriptTooShort || authoring) return
+    const ideia = (structuredScriptRef.current ?? prompt).trim()
+    if (!ideia) return
+    setAuthoring(true)
+    setError(null)
+    void trackEvent('script_authoring_requested', {
+      speech_seconds: scriptTooShort.speechSeconds,
+      target_seconds: scriptTooShort.targetSeconds,
+    })
+    try {
+      const res = await fetch('/api/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ topic: ideia, language }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || typeof data?.script !== 'string' || !data.script.trim()) {
+        setExpandState({
+          kind: 'transient_failure',
+          canRetry: true,
+          message: 'The writer could not finish right now. Try again in a moment.',
+        })
+        void trackEvent('script_authoring_failed', { http: res.status })
+        return
+      }
+      setAuthoredScript(data.script.trim())
+    } catch {
+      setExpandState({
+        kind: 'transient_failure',
+        canRetry: true,
+        message: 'We could not reach the writer. Check your connection and try again.',
+      })
+      void trackEvent('script_authoring_failed', { http: 0 })
+    } finally {
+      setAuthoring(false)
+    }
+  }
+
+  /**
+   * Ela LEU o roteiro completo e aceitou. Só agora ele vira a nova base — e
+   * uma ANÁLISE NOVA começa do zero (rodadas zeradas, guard aplicado de novo).
+   * Nada foi renderizado nem debitado até este clique.
+   */
+  function acceptAuthoredScript() {
+    if (!authoredScript) return
+    const aceito = authoredScript
+    void trackEvent('script_authoring_accepted', {
+      approved_words: aceito.split(/\s+/).filter(Boolean).length,
+      target_seconds: scriptTooShort?.targetSeconds ?? null,
+    })
+    expandBaseRef.current = aceito
+    expandRoundsRef.current = { key: '', used: 0 }
+    structuredScriptRef.current = aceito
+    setPrompt(aceito)
+    setAuthoredScript(null)
+    setExpandedScript(null)
+    setExpandState(null)
+    setScriptTooShort(null)
+    setError(null)
+    setPhase('idle')
+    void handleAnalyze(aceito)
   }
 
   // ═══ KINEO-AUTO-COMPLETAR-2026-08-25 (decisão do fundador, caso do cliente
@@ -5052,13 +5249,18 @@ export default function GenerateClient({
     // (2) teto de rodadas. O guard pode voltar a barrar (novo objeto
     // scriptTooShort ⇒ o ref antigo não segura), então a decisão de NÃO
     // insistir precisa viver aqui também, não só na comparação de objeto.
-    if (expandFailedReason !== null || expandRoundRef.current >= 2) return
+    if (expandState !== null || authoredScript) return
+    {
+      const base = expandBaseRef.current || structuredScriptRef.current || prompt
+      const chave = attemptKey(base, scriptTooShort.targetSeconds)
+      if (expandRoundsRef.current.key === chave && expandRoundsRef.current.used >= MAX_ROUNDS) return
+    }
     autoExpandFiredRef.current = scriptTooShort
     void trackEvent('script_expand_autostarted', {
       missing_words: scriptTooShort.missingWords,
       target_seconds: scriptTooShort.targetSeconds,
       speech_seconds: scriptTooShort.speechSeconds,
-      round: expandRoundRef.current + 1,
+      round: expandRoundsRef.current.used + 1,
       attempt_id: generationAttemptRef.current ?? null,
     })
     void handleExpandScript()
@@ -5074,13 +5276,18 @@ export default function GenerateClient({
     // tela não mostrar uma coisa e enviar outra.
     structuredScriptRef.current = expandedScript
     setPrompt(expandedScript)
+    // KINEO-350 — o texto aceito vira a NOVA BASE IMUTÁVEL: a partir daqui é
+    // ele que a pessoa assumiu como seu, e é contra ele que um eventual
+    // crescimento futuro será medido.
+    expandBaseRef.current = expandedScript
+    expandRoundsRef.current = { key: '', used: 0 }
     setExpandedScript(null)
     setScriptTooShort(null)
-    setExpandFailedReason(null)
+    setExpandState(null)
     setError(null)
     setPhase('idle')
     void trackEvent('script_expand_accepted', {
-      round: expandRoundRef.current,
+      round: expandRoundsRef.current.used,
       attempt_id: generationAttemptRef.current ?? null,
       approved_words: expandedScript.split(/\s+/).filter(Boolean).length,
     })
@@ -5093,8 +5300,12 @@ export default function GenerateClient({
     // KINEO-P0A-2026-08-26 — ideia NOVA começa com as rodadas de expansão
     // zeradas. Sem isto, quem esgotou as duas rodadas num roteiro ficaria sem
     // auto-completar no roteiro seguinte, que é outro problema.
-    expandRoundRef.current = 0
-    setExpandFailedReason(null)
+    // KINEO-350 — e a BASE IMUTÁVEL passa a ser este texto: é ele que a pessoa
+    // escreveu, e é contra ele que o teto de 2,5× será medido nas duas rodadas.
+    expandRoundsRef.current = { key: '', used: 0 }
+    expandBaseRef.current = (overridePrompt ?? prompt ?? '').trim()
+    setExpandState(null)
+    setAuthoredScript(null)
     // Manual, onboarding and URL-triggered analysis all share this gate. A
     // click during the auth lookup must not race a restored composing job and
     // orphan it when the later analysis response commits its own phase.
@@ -6383,16 +6594,15 @@ export default function GenerateClient({
             message: typeof data?.error === 'string' ? data.error : '',
             speechSeconds: Number(data?.speechSeconds) || 0,
             // ⚠️ O servidor sugere um múltiplo de 5 (ex.: 50s), mas o seletor
-            // do produto só tem 35 | 45 | 60 | 90. Oferecer "faça 50s" num
-            // seletor que não tem 50 seria um botão que não funciona — então
-            // a sugestão é encaixada no MAIOR valor do seletor que a narração
-            // ainda enche. Se nem o menor couber, não há alternativa honesta
-            // e o botão não aparece (0).
-            suggestedDuration: (() => {
-              const fala = Number(data?.speechSeconds) || 0
-              const opcoes: Duration[] = [90, 60, 45, 35]
-              return opcoes.find((d) => fala >= d * MIN_COVERAGE) ?? 0
-            })(),
+            // do produto tem uma lista curta. Oferecer "faça 50s" num seletor
+            // que não tem 50 seria um botão que não funciona.
+            //
+            // KINEO-350 — esta lista era `[90, 60, 45, 35]` escrita à mão AQUI,
+            // e 45s saiu do seletor no #333: dava para oferecer uma duração que
+            // a tela não consegue selecionar. Agora vem de
+            // lib/expandPolicy.SUPPORTED_DURATIONS, a mesma fonte do servidor.
+            // Retorna null quando nenhuma duração cabe — e aí não há botão.
+            suggestedDuration: largestFittingDuration(Number(data?.speechSeconds) || 0) ?? 0,
             missingWords: Number(data?.missingWords) || 0,
             targetSeconds: duration,
           })
@@ -10307,7 +10517,154 @@ export default function GenerateClient({
                 {scriptTooShort.message}
               </div>
 
-              {expandedScript ? (
+              {authoredScript ? (
+                // ═══ KINEO-350-ROTEIRO-COMPLETO, COM CONSENTIMENTO ═════════
+                // A pessoa CLICOU para a IA escrever o roteiro (o texto dela
+                // era uma ideia, não um roteiro a completar). Nada foi
+                // substituído em silêncio: ela lê aqui e decide. Zero render e
+                // zero débito até "Use this script".
+                <>
+                  <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
+                    Written from your idea — read it before we render
+                  </div>
+                  <textarea
+                    value={authoredScript}
+                    onChange={(e) => setAuthoredScript(e.target.value)}
+                    rows={12}
+                    className="w-full rounded-xl p-3 text-sm mb-3"
+                    style={{ background: '#0d0d10', border: '1px solid var(--border)', color: 'var(--fg)', lineHeight: 1.6 }}
+                  />
+                  <div className="text-xs mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                    This one was written for you, from your idea — so read it properly and edit anything that is not true or not yours.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={acceptAuthoredScript}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                      style={{ background: '#2997ff', border: 'none' }}
+                    >
+                      Use this script
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthoredScript(null)
+                        void trackEvent('script_authoring_discarded', {})
+                      }}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </>
+              ) : expandState ? (
+                // ═══ KINEO-350-SAIDA-PARA-CADA-TERMINO (D2) ════════════════
+                // Cada estado tem NOME e cada nome tem botão. Nenhum caminho
+                // termina em texto vermelho parado. Nada renderizou, nada
+                // debitou — e isso é dito na tela, não presumido.
+                <>
+                  {expandState.kind === 'still_short' && expandedScript && (
+                    <>
+                      <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
+                        We added what we could — finish it or shorten the video
+                      </div>
+                      <textarea
+                        value={expandedScript}
+                        onChange={(e) => setExpandedScript(e.target.value)}
+                        rows={12}
+                        className="w-full rounded-xl p-3 text-sm mb-3"
+                        style={{ background: '#0d0d10', border: '1px solid var(--border)', color: 'var(--fg)', lineHeight: 1.6 }}
+                      />
+                    </>
+                  )}
+                  <div className="text-sm mb-3" style={{ color: '#e0a458', lineHeight: 1.6 }}>
+                    {expandState.kind === 'needs_authoring' ? (
+                      <>
+                        This is an idea, not a short script — filling {scriptTooShort.targetSeconds}s from it would mean
+                        we write almost the whole thing. We will not do that behind your back.
+                      </>
+                    ) : expandState.kind === 'still_short' ? (
+                      <>We added lines, and it still does not fill the full length.</>
+                    ) : expandState.kind === 'author_rewrite_rejected' ? (
+                      <>The writer changed your own sentences instead of adding to them, so we threw its version away and kept yours.</>
+                    ) : expandState.kind === 'growth_limit' ? (
+                      <>The writer came back with a whole new script instead of finishing yours. We kept yours.</>
+                    ) : expandState.kind === 'auth_required' ? (
+                      <>Your session expired. Sign in again and your text is still here.</>
+                    ) : (
+                      <>{expandState.message}</>
+                    )}{' '}
+                    Nothing was rendered and no credits were used.
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {expandState.kind === 'transient_failure' && (
+                      // Só o transitório ganha "tentar de novo": para o resto,
+                      // insistir não muda o resultado e vira o loop de novo.
+                      <button
+                        onClick={() => { setExpandState(null); void handleExpandScript() }}
+                        disabled={expanding}
+                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                        style={{ background: '#2997ff', border: 'none', opacity: expanding ? 0.6 : 1 }}
+                      >
+                        {expanding ? 'Trying…' : 'Try again'}
+                      </button>
+                    )}
+                    {expandState.kind === 'needs_authoring' && (
+                      <button
+                        onClick={handleWriteFullScript}
+                        disabled={authoring}
+                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                        style={{ background: '#2997ff', border: 'none', opacity: authoring ? 0.6 : 1 }}
+                      >
+                        {authoring ? 'Writing…' : 'Turn this idea into a full script'}
+                      </button>
+                    )}
+                    {expandState.kind !== 'transient_failure' &&
+                      expandState.kind !== 'auth_required' &&
+                      expandState.suggestedDuration !== null && (
+                        // Só aparece quando a duração REALMENTE passa na régua
+                        // canônica — e só com um valor que o seletor tem.
+                        <button
+                          onClick={() => {
+                            const segundos = expandState.suggestedDuration as number
+                            setDuration(segundos as Duration)
+                            setScriptTooShort(null)
+                            setExpandState(null)
+                            setExpandedScript(null)
+                            expandRoundsRef.current = { key: '', used: 0 }
+                            setError(null)
+                            setPhase('idle')
+                            void trackEvent('script_short_used_shorter_duration', {
+                              seconds: segundos,
+                              after_expand_exhausted: true,
+                              from_outcome: expandState.kind,
+                            })
+                          }}
+                          className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                          style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                        >
+                          Make it {expandState.suggestedDuration}s instead — this text fits
+                        </button>
+                      )}
+                    <button
+                      onClick={() => {
+                        setScriptTooShort(null)
+                        setExpandState(null)
+                        setError(null)
+                        setPhase('idle')
+                        void trackEvent('script_short_manual_edit', {
+                          after_expand_exhausted: true,
+                          from_outcome: expandState.kind,
+                        })
+                      }}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                    >
+                      I&apos;ll write more
+                    </button>
+                  </div>
+                </>
+              ) : expandedScript ? (
                 <>
                   {/* O TEXTO APARECE ANTES DE RENDERIZAR. É isto que preserva o
                       Contrato C1 (ela autoriza) e o que impede um fato
@@ -10339,56 +10696,6 @@ export default function GenerateClient({
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                     >
                       Discard
-                    </button>
-                  </div>
-                </>
-              ) : expandFailedReason ? (
-                // ═══ KINEO-P0A-SAIDA-HONESTA-2026-08-26 ═══════════════════
-                // O beco sem saída acabou aqui. Quando não há expansão
-                // possível (ou ela ainda não enche), a pessoa NUNCA fica sem
-                // caminho: as duas alternativas que sempre funcionam ficam na
-                // tela, e nada foi renderizado nem debitado até aqui.
-                <>
-                  <div className="text-sm mb-3" style={{ color: '#e0a458', lineHeight: 1.6 }}>
-                    {expandFailedReason === 'nothing_added'
-                      ? 'We could not add lines to this script without changing what you wrote.'
-                      : 'We added lines, and it still does not fill the full length.'}{' '}
-                    Nothing was rendered and no credits were used. Two ways forward:
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {scriptTooShort.suggestedDuration > 0 && (
-                      <button
-                        onClick={() => {
-                          setDuration(scriptTooShort.suggestedDuration as Duration)
-                          setScriptTooShort(null)
-                          setExpandFailedReason(null)
-                          expandRoundRef.current = 0
-                          setError(null)
-                          setPhase('idle')
-                          void trackEvent('script_short_used_shorter_duration', {
-                            seconds: scriptTooShort.suggestedDuration,
-                            after_expand_exhausted: true,
-                          })
-                        }}
-                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
-                        style={{ background: '#2997ff', border: 'none' }}
-                      >
-                        Make it {scriptTooShort.suggestedDuration}s instead — this script fits
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setScriptTooShort(null)
-                        setExpandFailedReason(null)
-                        expandRoundRef.current = 0
-                        setError(null)
-                        setPhase('idle')
-                        void trackEvent('script_short_manual_edit', { after_expand_exhausted: true })
-                      }}
-                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
-                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
-                    >
-                      Let me add the lines myself
                     </button>
                   </div>
                 </>

@@ -116,14 +116,27 @@ if (todosCurtos && faltamPlausivel && cobre12) {
 }
 
 // ── 7. A UI nunca oferece aprovar expansão insuficiente ───────────────────
+//
+// ⚠️ ESTES DOIS CASOS FORAM REESCRITOS NO #350 — e o motivo importa.
+//
+// Eles falharam quando o #350 subiu. NÃO porque a garantia caiu, mas porque
+// eles checavam NOMES DE VARIÁVEL (`expandRoundRef.current >= 2`,
+// `setExpandedScript(null)`) em vez de comportamento. O #350 renomeou o
+// contador para `expandRoundsRef` (agora com chave por base+duração) e passou
+// a MANTER o texto curto na tela para a pessoa terminar na mão — o que é
+// melhor, não pior: o que nunca aparece é o botão de renderizar.
+//
+// É exatamente a armadilha que o teste de regex cria. A verificação de verdade
+// destas duas garantias mora agora em scripts/test-expand-policy.mjs, que
+// EXECUTA as funções. Aqui ficam só as âncoras estruturais mínimas.
 const cliente = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
-if (/if \(!cresceu \|\| aindaCurto\) \{[\s\S]{0,200}setExpandedScript\(null\)/.test(cliente)) {
-  ok('cliente não abre o painel de aprovação quando não cresceu ou ainda está curto')
+if (/if \(!cresceu \|\| aindaCurto\) \{[\s\S]{0,600}kind: 'still_short'/.test(cliente)) {
+  ok('cliente marca still_short em vez de abrir aprovação quando não enche')
 } else {
   falhou('cliente bloqueia aprovação insuficiente', 'o painel "Use this script" voltaria a aceitar texto que o guard recusa')
 }
-if (/expandRoundRef\.current >= 2/.test(cliente)) {
-  ok('teto de 2 rodadas de expansão por tentativa')
+if (/expandRoundsRef\.current\.used >= MAX_ROUNDS/.test(cliente)) {
+  ok('teto de rodadas de expansão por (base, duração)')
 } else {
   falhou('teto de rodadas', 'sem teto, um roteiro teimoso pode reabrir o ciclo indefinidamente')
 }
