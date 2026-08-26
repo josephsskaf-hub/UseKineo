@@ -53,7 +53,32 @@ export const maxDuration = 60
 
 type Language = 'en' | 'pt' | 'es'
 
-function buildSystemPrompt(language: Language): string {
+// ═══ KINEO-351-DURACAO-E-CONTRATO-2026-08-26 ═══════════════════════════════
+//
+// O #350 mandou a pessoa de uma IDEIA curta para este escritor pelo CTA
+// "Turn this idea into a full script" — e o CTA mandava só { topic, language }.
+// Este arquivo, por sua vez, é calibrado em 60 SEGUNDOS e nada mais: o prompt
+// pede "140-170 spoken words" e o guard de tamanho usa MIN_SCRIPT_WORDS fixo.
+//
+// Consequência que a auditoria pegou: escolher 90s devolvia roteiro curto e
+// escolher 35s devolvia roteiro grande demais. O escritor não cumpria a
+// duração que a pessoa escolheu — ou seja, o caminho novo do #350 levava a
+// pessoa a um texto que o guard ia recusar de novo.
+//
+// A partir daqui o alvo é PARAMÉTRICO, derivado da régua canônica. Sem
+// `targetSeconds` no corpo, TUDO se comporta exatamente como antes (60s), para
+// os outros chamadores não mudarem de comportamento.
+const SUPPORTED_TARGETS = [35, 60, 90] as const
+/** Palavras faladas mínimas para cobrir MIN_COVERAGE de um vídeo de N segundos. */
+function minWordsFor(seconds: number): number {
+  return Math.ceil(seconds * MIN_COVERAGE * WORDS_PER_SECOND)
+}
+/** Teto sugerido: dá folga ao modelo sem convidar a um roteiro de outro tamanho. */
+function maxWordsFor(seconds: number): number {
+  return Math.round(minWordsFor(seconds) * 1.2)
+}
+
+function buildSystemPrompt(language: Language, targetSeconds: number = 60): string {
   const langInstruction =
     language === 'pt'
       ? `LANGUAGE: Write all voiceover sentences in Brazilian Portuguese (pt-BR). Keep [Pexels: ...] cues and section headers (HOOK, MICRO REWARD 1, MICRO REWARD 2, MICRO REWARD 3, ESCALATION, RHYTHM, PAYOFF) in English — the video engine requires them in English. Only the spoken narration text changes language.`
@@ -99,10 +124,11 @@ FACT SELECTION RULES (#407 — this is what separates "huh, cool" from "WAIT, WH
 - Never sacrifice accuracy for surprise: every fact must still be real and verifiable. Do not invent or exaggerate.
 
 VOICEOVER RULES:
-- Total script: 140-170 spoken words. This is a HARD FLOOR, not a style note:
-  at the measured narration rate of 2.3 words per second, 140 words is 61
-  seconds of speech. Anything shorter leaves the film running on music with
-  no story being told, and the video is rejected before it renders.
+- Total script: ${minWordsFor(targetSeconds)}-${maxWordsFor(targetSeconds)} spoken words. This is a HARD FLOOR, not a style note:
+  at the measured narration rate of ${WORDS_PER_SECOND} words per second, ${minWordsFor(targetSeconds)} words is about
+  ${Math.round(minWordsFor(targetSeconds) / WORDS_PER_SECOND)} seconds of speech, and this video is ${targetSeconds} seconds long.
+  Anything shorter leaves the film running on music with no story being told,
+  and the video is rejected before it renders. Anything much longer gets cut off.
   (Do not count the [Pexels: ...] cues or the section headers as words.)
 - Every fact must be specific: names, numbers, dates, places — never vague
 - ESCALATION must feel more intense than MICRO REWARD 3
@@ -233,12 +259,34 @@ export async function POST(req: NextRequest) {
     const language: Language =
       body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
 
-    // If the topic already has viral markers, return it as-is — no GPT call needed
-    if (hasViralMarkers(topic)) {
+    // ═══ KINEO-351 — DURAÇÃO PEDIDA E AUTORIA FORÇADA ═══════════════════════
+    // `targetSeconds` só é aceito se for uma duração REAL do seletor. Qualquer
+    // outra coisa (null, 47, "60", 9999) cai no comportamento histórico de 60s,
+    // então nenhum chamador antigo muda de comportamento.
+    const pedido = Number(body.targetSeconds)
+    const alvoSegundos: number =
+      (SUPPORTED_TARGETS as readonly number[]).includes(pedido) ? pedido : SCRIPT_TARGET_SECONDS
+    const alvoPalavras = minWordsFor(alvoSegundos)
+    /** Só o CTA "Turn this idea into a full script" manda isto. */
+    const forceAuthoring = body.forceAuthoring === true
+
+    // Se o tópico já tem os marcadores virais, devolve como está — sem GPT.
+    //
+    // ⚠️ KINEO-351 — MAS NÃO QUANDO A AUTORIA FOI PEDIDA DE PROPÓSITO.
+    // A auditoria de 26/08 achou aqui um loop que eu tinha declarado morto:
+    // uma IDEIA de poucos segundos que já contenha os cinco marcadores (um
+    // esqueleto colado do ChatGPT, por exemplo) voltava INTACTA, sem OpenAI e
+    // sem ninguém conferir a duração. A pessoa via "roteiro pronto", aceitava,
+    // a análise seguinte reprovava por narração curta, e o fluxo caía no mesmo
+    // `needs_authoring` de onde tinha saído. Volta ao início, para sempre.
+    //
+    // Quem chegou aqui pelo CTA já foi barrado por SER CURTO: devolver o mesmo
+    // texto é a única resposta que com certeza não resolve nada.
+    if (!forceAuthoring && hasViralMarkers(topic)) {
       return NextResponse.json({ script: topic, alreadyStructured: true })
     }
 
-    const SYSTEM_PROMPT = buildSystemPrompt(language)
+    const SYSTEM_PROMPT = buildSystemPrompt(language, alvoSegundos)
 
     const completion = await openai.chat.completions.create(
       {
@@ -269,17 +317,20 @@ export async function POST(req: NextRequest) {
     // delivers (not a tease). If any of the 5 is missing OR the payoff is empty,
     // regenerate ONCE with a targeted reinforcement. If the retry still falls
     // short, proceed with what we have (degraded — never blocks the flow).
+    // KINEO-351 — o "curto" agora é medido contra a duração PEDIDA, não contra
+    // 60s fixos. Sem targetSeconds, alvoPalavras === MIN_SCRIPT_WORDS.
+    const curtoParaOAlvo = (t: string) => scriptWordCount(t) < alvoPalavras
     let missing = missingElements(script)
-    if (missing.length > 0 || payoffIsEmpty(script) || scriptTooShort(script)) {
+    if (missing.length > 0 || payoffIsEmpty(script) || curtoParaOAlvo(script)) {
       const problems: string[] = []
       if (missing.length > 0) problems.push(`missing required section(s): ${missing.join(', ')}`)
       if (payoffIsEmpty(script)) problems.push('the PAYOFF teased instead of delivering a concrete answer')
       // KINEO-ROTEIRO-CURTO-2026-08-22 — o número vai no pedido de correção
       // porque "escreva mais" não é instrução: o GPT precisa do alvo.
-      if (scriptTooShort(script)) {
+      if (curtoParaOAlvo(script)) {
         problems.push(
-          `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${MIN_SCRIPT_WORDS} ` +
-          `to fill a ${SCRIPT_TARGET_SECONDS}-second video with narration instead of silence`,
+          `the script is only ${scriptWordCount(script)} spoken words — it needs at least ${alvoPalavras} ` +
+          `to fill a ${alvoSegundos}-second video with narration instead of silence`,
         )
       }
       console.warn('[generate-script] regenerating once —', problems.join('; '))
@@ -305,16 +356,43 @@ export async function POST(req: NextRequest) {
         if (retryScript) {
           script = retryScript
           missing = missingElements(retryScript)
-          if (missing.length > 0 || payoffIsEmpty(retryScript) || scriptTooShort(retryScript)) {
+          if (missing.length > 0 || payoffIsEmpty(retryScript) || curtoParaOAlvo(retryScript)) {
             console.warn(
               `[generate-script] still imperfect after retry — using it anyway (degraded). ` +
-              `words=${scriptWordCount(retryScript)}/${MIN_SCRIPT_WORDS}`,
+              `words=${scriptWordCount(retryScript)}/${alvoPalavras}`,
             )
           }
         }
       } catch (retryErr) {
         console.warn('[generate-script] regenerate failed:', retryErr instanceof Error ? retryErr.message : String(retryErr))
       }
+    }
+
+    // ═══ KINEO-351 — ESTADO HONESTO NO CAMINHO DA AUTORIA ═══════════════════
+    // Para os chamadores antigos, nada muda: um roteiro degradado segue adiante
+    // (auto-structure é melhoria, não requisito; travar ali seria pior).
+    //
+    // Mas quem veio pelo CTA JÁ FOI BARRADO por narração curta. Entregar um
+    // roteiro que continua curto como se estivesse pronto é mandá-la aceitar um
+    // texto que o guard vai recusar em seguida — o loop de novo, com outro nome.
+    // Então o estado sai declarado, e a tela não apresenta como pronto.
+    if (forceAuthoring) {
+      const palavras = scriptWordCount(script)
+      const aindaCurto = palavras < alvoPalavras
+      if (aindaCurto) {
+        console.warn(
+          `[generate-script] forceAuthoring ainda curto: ${palavras}/${alvoPalavras} palavras para ${alvoSegundos}s`,
+        )
+      }
+      return NextResponse.json({
+        script,
+        alreadyStructured: false,
+        outcome: aindaCurto ? 'authored_still_short' : 'authored_ready',
+        stillShort: aindaCurto,
+        words: palavras,
+        minWords: alvoPalavras,
+        targetSeconds: alvoSegundos,
+      })
     }
 
     return NextResponse.json({ script, alreadyStructured: false })

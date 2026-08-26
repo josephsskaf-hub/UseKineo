@@ -50,6 +50,7 @@ export type ExpandOutcome =
   | 'needs_authoring'         // é uma IDEIA, não um roteiro expansível
   | 'still_short'             // expandiu, ajudou, ainda não enche
   | 'author_rewrite_rejected' // o modelo mexeu na fala do autor
+  | 'structure_lost'          // o modelo perdeu HOOK/PAYOFF: formato quebrado
   | 'growth_limit'            // o modelo devolveu texto grande demais
   | 'transient_failure'       // rede/limite/indisponibilidade: dá para tentar de novo
 
@@ -142,24 +143,43 @@ export function authorSentences(narracao: string): string[] {
 
 /**
  * Toda frase da fala original sobreviveu, na ORDEM, dentro da fala expandida?
- * O cursor só anda para frente: frase reordenada conta como perdida, porque
- * reordenar narração muda a história.
+ *
+ * ⚠️ KINEO-351 — ESTA FUNÇÃO ESTAVA ERRADA E EU NÃO TINHA TESTADO O CASO ÓBVIO.
+ *
+ * A versão do #350 procurava a frase normalizada com `indexOf` dentro do corpo
+ * inteiro, sem fronteira nenhuma. Resultado, reproduzido com o código que
+ * estava em produção:
+ *
+ *     "He ran."      →  "She ran."                  ACEITAVA  ("she ran" contém "he ran")
+ *     "He ran."      →  "He ran fast."              ACEITAVA
+ *     "The cat sat." →  "The cat sat down quietly." ACEITAVA
+ *
+ * Ou seja: a promessa de preservar a fala do autor — que é o Contrato C1
+ * inteiro — não valia para frase curta nem para troca de sujeito. Os 54 testes
+ * do #350 passaram porque eu testei alfabeto, acento e ordem, e não testei
+ * colisão de substring. Teste escrito para confirmar o que eu queria ver.
+ *
+ * A correção: comparar FRASE COM FRASE. Cada frase do autor precisa aparecer
+ * como uma frase INTEIRA da expansão (igualdade após normalizar), e na ordem —
+ * o cursor só anda para frente, porque reordenar narração muda a história.
+ * Pontuação não conta (a normalização a remove), então "He ran." → "He ran!"
+ * continua sendo a mesma frase; mas mudar, cortar ou emendar palavra, não.
  */
 export function authorPreserved(
   narracaoOriginal: string,
   narracaoExpandida: string,
 ): { ok: boolean; missing: string[] } {
   const frases = authorSentences(narracaoOriginal)
-  const corpo = normalizeForCompare(narracaoExpandida)
+  const candidatas = authorSentences(narracaoExpandida)
   const perdidas: string[] = []
   let cursor = 0
   for (const frase of frases) {
-    const em = corpo.indexOf(frase, cursor)
+    const em = candidatas.indexOf(frase, cursor)
     if (em < 0) {
       perdidas.push(frase)
       continue
     }
-    cursor = em + frase.length
+    cursor = em + 1
   }
   return { ok: perdidas.length === 0, missing: perdidas }
 }
@@ -170,12 +190,28 @@ const DIRETIVA = /^\s*(voice|music|format|speed|duration|aspect|resolution|platf
 /** Marcadores estruturais do roteiro da casa. */
 const MARCADOR = /^\s*(HOOK|MICRO REWARD|ESCALATION|RHYTHM|PAYOFF|TITLE|DESCRIPTION|HASHTAGS)\b/u
 
-/** Linhas de diretiva/marcador do texto cru, preservadas SEPARADAMENTE da fala. */
+/**
+ * Linhas de DIRETIVA DE PRODUÇÃO do texto cru (`Voice:`, `Music:`, `Format:`…),
+ * preservadas separadamente da fala.
+ *
+ * ⚠️ KINEO-351 — o #350 metia os MARCADORES (HOOK, PAYOFF…) na mesma lista, e
+ * como esta lista alimenta a restauração, um HOOK perdido voltaria colado em
+ * qualquer lugar. Marcador tem POSIÇÃO na história: ver `structuralMarkers` e
+ * `lostMarkers`, que o chamador trata como falha, não como remendo.
+ */
 export function directiveLines(bruto: string): string[] {
   return bruto
     .split(/\n/u)
     .map((l) => l.trim())
-    .filter((l) => l.length > 0 && (DIRETIVA.test(l) || MARCADOR.test(l)))
+    .filter((l) => l.length > 0 && DIRETIVA.test(l) && !MARCADOR.test(l))
+}
+
+/** Só os marcadores estruturais (HOOK, PAYOFF…), que têm POSIÇÃO na história. */
+export function structuralMarkers(bruto: string): string[] {
+  return bruto
+    .split(/\n/u)
+    .map((l) => l.trim())
+    .filter((l) => MARCADOR.test(l))
 }
 
 /**
@@ -189,6 +225,55 @@ export function lostDirectives(bruto: string, candidato: string): string[] {
     const n = normalizeForCompare(l)
     return n.length > 0 && !alvo.includes(n)
   })
+}
+
+/** Marcadores estruturais do original que sumiram do candidato. */
+export function lostMarkers(bruto: string, candidato: string): string[] {
+  const alvo = normalizeForCompare(candidato)
+  return structuralMarkers(bruto).filter((l) => {
+    const n = normalizeForCompare(l)
+    return n.length > 0 && !alvo.includes(n)
+  })
+}
+
+/**
+ * Devolve ao candidato as DIRETIVAS DE PRODUÇÃO perdidas — na posição em que
+ * o autor as escreveu, não empilhadas no fim do arquivo.
+ *
+ * ⚠️ KINEO-351 — o #350 fazia `candidato + '\n\n' + perdidas.join('\n')`. Para
+ * `Voice:`/`Music:` isso é quase inofensivo; para um HOOK ou um PAYOFF seria
+ * destruir a estrutura do roteiro fingindo consertá-la. Por isso MARCADOR
+ * ESTRUTURAL NÃO É RESTAURADO AQUI: perder um HOOK significa que o modelo
+ * quebrou o formato, e isso o chamador trata como falha, não como remendo.
+ *
+ * A âncora é a linha do autor imediatamente ANTERIOR à diretiva que ainda
+ * exista no candidato; a diretiva volta logo depois dela. Sem âncora (a
+ * diretiva abria o texto), volta ao topo.
+ */
+export function restoreDirectives(bruto: string, candidato: string): string {
+  const perdidas = lostDirectives(bruto, candidato)
+  if (perdidas.length === 0) return candidato
+
+  const linhasOriginais = bruto.split(/\n/u).map((l) => l.trim())
+  const linhasCandidato = candidato.split(/\n/u)
+  const indiceNormalizado = linhasCandidato.map((l) => normalizeForCompare(l))
+
+  for (const diretiva of perdidas) {
+    const posOriginal = linhasOriginais.findIndex((l) => l === diretiva)
+    // Procura, subindo a partir da diretiva, a última linha do autor que
+    // sobreviveu no candidato: é ela que dá o lugar de volta.
+    let destino = -1
+    for (let i = posOriginal - 1; i >= 0 && destino < 0; i--) {
+      const ancora = normalizeForCompare(linhasOriginais[i])
+      if (!ancora) continue
+      const em = indiceNormalizado.findIndex((l) => l === ancora)
+      if (em >= 0) destino = em
+    }
+    const em = destino >= 0 ? destino + 1 : 0
+    linhasCandidato.splice(em, 0, diretiva)
+    indiceNormalizado.splice(em, 0, normalizeForCompare(diretiva))
+  }
+  return linhasCandidato.join('\n')
 }
 
 // ─── CONTABILIDADE DE RODADAS ──────────────────────────────────────────────

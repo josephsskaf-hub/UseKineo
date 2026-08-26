@@ -238,6 +238,132 @@ checa('expandPolicy não importa fal, supabase, stripe nem openai',
 checa('expandPolicy não fala em débito/crédito/render',
   !/(debit|credit_debits|render_jobs|charge)/i.test(fonte))
 
+// ═══ #351 — OS CASOS QUE O #350 DEIXOU PASSAR ═════════════════════════════
+//
+// Cada bloco abaixo nasceu de um achado da auditoria de 26/08. O primeiro é o
+// mais humilhante: `authorPreserved` aceitava "He ran." virando "She ran."
+// porque procurava substring sem fronteira. Meus 54 casos anteriores passaram
+// porque eu testei alfabeto, acento e ordem — e não testei o óbvio.
+
+// ── 17. Colisão de substring: a promessa do C1 valendo de verdade ──────────
+const colisoes = [
+  ['He ran.', 'She ran.', false, 'troca de sujeito por prefixo'],
+  ['He ran.', 'He ran fast.', false, 'frase do autor estendida'],
+  ['The cat sat.', 'The cat sat down quietly.', false, 'frase emendada'],
+  ['I am here.', 'Sami amber.', false, 'colisão sem fronteira'],
+  ['He ran.', 'He ran. Then he stopped.', true, 'adição legítima depois'],
+  ['He ran.', 'Nobody moved. He ran.', true, 'adição legítima antes'],
+  ['He ran!', 'He ran. Then he stopped.', true, 'só a pontuação mudou'],
+  ['Ninguém acreditou.', 'Ninguém acreditou. Nem os geólogos.', true, 'acentuado preservado'],
+  ['Ninguém acreditou.', 'Alguém acreditou.', false, 'acentuado com sujeito trocado'],
+]
+for (const [orig, cand, esperado, porque] of colisoes) {
+  const r = P.authorPreserved(orig, cand)
+  checa(`${esperado ? 'aceita' : 'REJEITA'}: ${JSON.stringify(orig)} -> ${JSON.stringify(cand)} (${porque})`,
+    r.ok === esperado, `ok=${r.ok}, esperado=${esperado}`)
+}
+
+// ── 18. Diretiva volta NA POSIÇÃO, não empilhada no fim ────────────────────
+const comDiretiva = `First line of narration.
+Voice: calm documentary tone
+Second line of narration.`
+const semADiretiva = `First line of narration.
+Second line of narration.
+And a third line the writer added.`
+const restaurado = P.restoreDirectives(comDiretiva, semADiretiva)
+const linhas = restaurado.split('\n')
+checa('diretiva perdida volta logo apos a linha que a precedia',
+  linhas[1].startsWith('Voice:'), `linhas=${JSON.stringify(linhas)}`)
+checa('diretiva NAO fica empilhada no fim do arquivo',
+  !linhas[linhas.length - 1].startsWith('Voice:'))
+checa('restoreDirectives e no-op quando nada se perdeu',
+  P.restoreDirectives(comDiretiva, comDiretiva) === comDiretiva)
+
+// ── 19. Marcador estrutural perdido nao se remenda: vira falha ─────────────
+const comHook = `HOOK
+The hole was sealed.
+PAYOFF
+Nobody explained why.`
+checa('HOOK/PAYOFF sumidos sao detectados como estrutura perdida',
+  P.lostMarkers(comHook, 'The hole was sealed. Nobody explained why.').length === 2)
+checa('marcador presente nao acusa perda',
+  P.lostMarkers(comHook, comHook).length === 0)
+checa('marcador NAO entra na lista de diretivas restauraveis',
+  P.lostDirectives(comHook, 'nada aqui').every((l) => !/^(HOOK|PAYOFF)/.test(l)))
+
+// ── 20. Segunda rodada: existe, e nunca vira terceira ─────────────────────
+checa('rodada 1 com cobertura .88 pede rodada 2',
+  P.deservesSecondRound({ outcome: 'still_short', round: 1, grew: true, coverageAfter: 0.88 }) === true)
+checa('rodada 1 com cobertura .40 NAO pede rodada 2 (longe demais)',
+  P.deservesSecondRound({ outcome: 'still_short', round: 1, grew: true, coverageAfter: 0.40 }) === false)
+checa('nunca existe rodada 3',
+  P.deservesSecondRound({ outcome: 'still_short', round: 2, grew: true, coverageAfter: 0.9 }) === false)
+
+// ── 21. O cliente REALMENTE liga a segunda rodada (o achado 4) ─────────────
+// O #350 escreveu e testou deservesSecondRound sem nunca chamá-la: o teste
+// dava a impressão de uma garantia que o produto não tinha.
+const clienteSrc = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
+checa('cliente importa deservesSecondRound', /deservesSecondRound,/.test(clienteSrc))
+checa('cliente CHAMA deservesSecondRound', /deservesSecondRound\(\{/.test(clienteSrc))
+checa('2a rodada parte do candidato da 1a', /expandCandidateRef\.current \?\? structuredScriptRef/.test(clienteSrc))
+checa('2a rodada continua medindo contra a base imutavel', /baseScript: base,/.test(clienteSrc))
+checa('already_fits e tratado explicitamente', /outcome === 'already_fits'/.test(clienteSrc))
+checa('retry chama a operacao que falhou', /op === 'authoring'\) void handleWriteFullScript\(\)/.test(clienteSrc))
+checa('auth_required tem acao de login', /Sign in again/.test(clienteSrc))
+checa('encurtar preserva o candidato', /kept_candidate: expandedScript !== null/.test(clienteSrc))
+checa('telemetria do aceite grava a rodada real', /round: rodadaDoAceite/.test(clienteSrc))
+checa('CTA de autoria manda targetSeconds', /targetSeconds: scriptTooShort\.targetSeconds,\n\s*forceAuthoring: true/.test(clienteSrc))
+
+// ── 22. CONTRATO DA ROTA generate-script (achados 2 e 3) ───────────────────
+const rotaScript = readFileSync(join(raiz, 'app/api/generate-script/route.ts'), 'utf8')
+checa('early-return de hasViralMarkers nao roda sob forceAuthoring',
+  /if \(!forceAuthoring && hasViralMarkers\(topic\)\)/.test(rotaScript))
+checa('targetSeconds e validado contra as duracoes suportadas',
+  /SUPPORTED_TARGETS as readonly number\[\]\)\.includes\(pedido\)/.test(rotaScript))
+checa('o alvo de palavras vem da regua canonica, nao de 140 chumbado',
+  /minWordsFor\(seconds\)|minWordsFor\(targetSeconds\)/.test(rotaScript))
+checa('forceAuthoring devolve estado honesto quando ainda curto',
+  /authored_still_short/.test(rotaScript))
+// A aritmetica do alvo por duracao — o achado 2 em numeros.
+const minPara = (s) => Math.ceil(s * P.MIN_COVERAGE * P.WORDS_PER_SECOND)
+checa('35s pede ~77 palavras (nao 140)', minPara(35) === 77, `=${minPara(35)}`)
+// ⚠️ Corrigi ESTA ASSERÇÃO, não o código: eu tinha escrito 131 de cabeça e a
+// conta canônica dá ceil(60 × 0,95 × 2,3) = ceil(131,1) = 132 — exatamente o
+// que o MIN_SCRIPT_WORDS histórico já calculava. O comportamento de 60s está
+// preservado; quem estava errado era o número que eu inventei no teste.
+checa('60s continua pedindo 132 palavras (comportamento historico preservado)',
+  minPara(60) === 132, `=${minPara(60)}`)
+checa('90s pede ~197 palavras (nao 140)', minPara(90) === 197, `=${minPara(90)}`)
+for (const d of P.SUPPORTED_DURATIONS) {
+  const texto = 'palavra '.repeat(minPara(d))
+  checa(`roteiro no alvo de ${d}s passa no narrationFit`, narrationFit(texto, d).ok === true)
+}
+
+// ── 23. Ideia estruturada curtissima NAO pode voltar intacta (red/green) ───
+// O esqueleto abaixo tem os CINCO marcadores e ~3 segundos de fala. Antes do
+// #351 ele atravessava /api/generate-script sem OpenAI e sem conferir duracao.
+const esqueleto = `HOOK
+The hole.
+MICRO REWARD 1
+Deep.
+MICRO REWARD 2
+Sealed.
+MICRO REWARD 3
+Cold.
+ESCALATION
+Hot rock.
+RHYTHM
+Stuck. Melted. Gone.
+PAYOFF
+Nobody knows.`
+const falaEsqueleto = parseUserScript(esqueleto).narration || esqueleto
+const segundosEsqueleto = speechSeconds(falaEsqueleto)
+checa('o esqueleto de exemplo e mesmo curtissimo', segundosEsqueleto < 12, `${segundosEsqueleto.toFixed(1)}s`)
+checa('RED: esse esqueleto pediria autoria (needs_authoring) para 60s',
+  P.needsAuthoring(segundosEsqueleto, 60) === true)
+checa('GREEN: sob forceAuthoring a rota nao pode devolve-lo intacto',
+  /if \(!forceAuthoring && hasViralMarkers\(topic\)\)/.test(rotaScript))
+
 // ── Resultado ─────────────────────────────────────────────────────────────
 for (const c of casos) {
   console.log(`  ${c.ok ? '✓' : '✗'} ${c.nome}${c.detalhe && !c.ok ? `\n      ${c.detalhe}` : ''}`)

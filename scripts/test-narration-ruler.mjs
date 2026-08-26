@@ -130,10 +130,22 @@ if (todosCurtos && faltamPlausivel && cobre12) {
 // destas duas garantias mora agora em scripts/test-expand-policy.mjs, que
 // EXECUTA as funções. Aqui ficam só as âncoras estruturais mínimas.
 const cliente = readFileSync(join(raiz, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
-if (/if \(!cresceu \|\| aindaCurto\) \{[\s\S]{0,600}kind: 'still_short'/.test(cliente)) {
-  ok('cliente marca still_short em vez de abrir aprovação quando não enche')
+// A garantia REAL não é uma linha: é a ORDEM dos ramos do JSX. O painel de
+// aprovação ("Use this script") vive no ramo `expandedScript`, e o ramo
+// `expandState` vem ANTES dele. Enquanto houver um estado de término aberto —
+// still_short, needs_authoring, o que for — o ramo de aprovação nem é
+// alcançado, então não existe caminho para aprovar texto que o guard recusa.
+// (Escrevi este teste duas vezes ancorado em nome de variável e ele quebrou
+//  nas duas; a ordem dos ramos é o que o produto realmente promete.)
+const ramoEstado = cliente.indexOf(") : expandState ? (")
+const ramoAprovacao = cliente.indexOf(") : expandedScript ? (")
+if (ramoEstado > 0 && ramoAprovacao > 0 && ramoEstado < ramoAprovacao) {
+  ok('ramo de término vem antes do painel de aprovação (não há como aprovar texto curto)')
 } else {
-  falhou('cliente bloqueia aprovação insuficiente', 'o painel "Use this script" voltaria a aceitar texto que o guard recusa')
+  falhou(
+    'cliente bloqueia aprovação insuficiente',
+    `ordem dos ramos quebrada: expandState=${ramoEstado}, expandedScript=${ramoAprovacao}`,
+  )
 }
 if (/expandRoundsRef\.current\.used >= MAX_ROUNDS/.test(cliente)) {
   ok('teto de rodadas de expansão por (base, duração)')

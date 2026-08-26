@@ -13,7 +13,9 @@ import {
   authorPreserved,
   largestFittingDuration,
   lostDirectives,
+  lostMarkers,
   maximumFittingDuration,
+  restoreDirectives,
   missingWords,
   needsAuthoring,
   requiredGrowth,
@@ -231,13 +233,33 @@ ${original}`
     }
 
     // KINEO-350-DIRETIVAS (D3, segunda metade) — `Voice:`, `Music:`, `Format:`
-    // e os marcadores são recado de produção do PRÓPRIO autor. Se o modelo os
-    // engoliu, a gente devolve as linhas DELE de volta — não inventa
-    // substitutas e não reprova a expansão por causa disso, porque nada disso
-    // é fala e o Contrato C1 protege a fala.
+    // são recado de produção do PRÓPRIO autor. Se o modelo os engoliu, a gente
+    // devolve as linhas DELE de volta — não inventa substitutas e não reprova a
+    // expansão por isso, porque não é fala e o Contrato C1 protege a fala.
+    //
+    // KINEO-351 — a volta agora é NA POSIÇÃO ORIGINAL. O #350 empilhava tudo no
+    // fim do arquivo, o que para uma diretiva é feio e para um marcador seria
+    // destruir a estrutura fingindo consertar.
     const diretivasPerdidas = lostDirectives(original, expandido)
-    if (diretivasPerdidas.length > 0) {
-      expandido = `${expandido}\n\n${diretivasPerdidas.join('\n')}`
+    expandido = restoreDirectives(original, expandido)
+
+    // KINEO-351 — MARCADOR ESTRUTURAL PERDIDO NÃO SE REMENDA. Se o modelo comeu
+    // o HOOK ou o PAYOFF, o roteiro que ele devolveu não é o roteiro da pessoa:
+    // reinserir o cabeçalho no fim faria o texto MENTIR sobre a própria forma.
+    // Melhor devolver o problema com alternativas do que entregar isso.
+    const marcadoresPerdidos = lostMarkers(original, expandido)
+    if (marcadoresPerdidos.length > 0) {
+      console.warn('[expand-script] recusado: estrutura perdida', marcadoresPerdidos)
+      return NextResponse.json(
+        {
+          outcome: 'structure_lost' as ExpandOutcome,
+          error: 'The writer dropped part of your script structure. Your original was left untouched.',
+          lostMarkers: marcadoresPerdidos,
+          before: medida(antes.speech, target),
+          suggestedDuration: largestFittingDuration(antes.speech),
+        },
+        { status: 422 },
+      )
     }
 
     // ─── VERIFICAÇÕES, porque "o modelo prometeu" não é garantia ────────────
