@@ -16,6 +16,18 @@ export const dynamic = 'force-dynamic'
 const SERVER_ONLY_EVENTS = new Set([
   'compose_submission_claim',
   'avatar_submission_claim',
+  // ═══ KINEO-353A-2026-08-26 ═══════════════════════════════════════════════
+  // `cinematic_submission_claim` é a AUTORIDADE do dinheiro: é a linha que diz
+  // se um render nasceu, quanto custou e se foi liquidado ou devolvido. Ela
+  // estava de fora desta lista — ou seja, qualquer browser podia cunhar uma
+  // claim falsa no mesmo `events` que eu uso para reconciliar crédito. Foi
+  // essa tabela que usei hoje para provar que o Pedro teve 24 créditos retidos
+  // por mais de 2 horas; se ela for forjável, a prova não vale nada.
+  //
+  // `cinematic_dispatch_result` nasce já protegido: é escrito e AWAITADO
+  // dentro da rota, e é ele que passa a guardar o que a Fal respondeu.
+  'cinematic_submission_claim',
+  'cinematic_dispatch_result',
   'payment_success',
   'checkout_attempted',
   'checkout_auth_required',
