@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
 import { narrationFit, speechSeconds, MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
+// KINEO-P0A-MESMA-REGUA-2026-08-26 — o MESMO extrator de fala que o guard usa
+// (app/api/generate-video-cinematic: `parseUserScript(prompt).narration`).
+// Importar daqui é o que garante que as duas pontas nunca mais divirjam.
+import { parseUserScript } from '@/lib/scriptParser'
 
 // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ════════════════════════════════════
 //
@@ -79,11 +83,55 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'targetSeconds is required' }, { status: 400 })
     }
 
-    const antes = narrationFit(original, target)
-    // Já enche: devolve o original intacto. Expandir aqui só adicionaria
-    // texto que ninguém pediu e aumentaria a chance de invenção à toa.
+    // ═══ KINEO-P0A-MESMA-REGUA-2026-08-26 — A CAUSA DO LOOP INFINITO ═══════
+    //
+    // INCIDENTE (ofirshu555, 26/08 08:31→08:32, vindo do ChatGPT): o guard
+    // barrou com 38s/45s e 12 palavras faltando; o autoexpand disparou; o
+    // servidor respondeu "já enche"; a pessoa aceitou; a geração seguinte
+    // reprovou com EXATAMENTE os mesmos 38s e as mesmas 12 palavras. Duas
+    // voltas em 32 segundos. Ela foi embora sem nenhum vídeo.
+    //
+    // O QUE ESTAVA ERRADO — as duas pontas mediam TEXTOS DIFERENTES com a
+    // mesma régua:
+    //   · o guard mede `parseUserScript(prompt).narration` — só a FALA, depois
+    //     de remover HOOK/PAYOFF, blocos de metadados, [Pexels: ...], prefixos
+    //     de cena e markdown;
+    //   · esta rota media o texto CRU, marcadores e cabeçalhos inclusos.
+    // Num roteiro estruturado o texto cru tem muito mais palavras que a fala,
+    // então `antes.ok` dava TRUE e o early-return devolvia o roteiro
+    // INALTERADO — sem `stillShort`, sem before/after (por isso a produção
+    // registrou still_short:false com after_seconds:null). O cliente exibia o
+    // mesmo texto como se fosse a expansão, a pessoa aprovava, e caía no
+    // mesmo guard. Loop garantido para todo roteiro com marcadores.
+    //
+    // A correção é uma só: DECIDIR pela fala, exatamente como o guard. A
+    // expansão continua operando sobre o roteiro inteiro (para preservar
+    // marcadores e estrutura), mas o veredito usa a mesma medida do dono da
+    // decisão. Hipótese "a geração recebia o roteiro original" — CONTRADITA
+    // pela evidência: o roteiro devolvido ERA o original, por decisão da rota.
+    const falaOriginal = parseUserScript(original).narration || original
+    const antes = narrationFit(falaOriginal, target)
+    // Já enche pela régua do guard: nada a fazer. Devolve o original intacto
+    // e DIZ que nada mudou (expanded:false + stillShort:false explícitos), com
+    // as medidas — o cliente precisa saber que não houve expansão para não
+    // oferecer "Use this script" como se houvesse.
     if (antes.ok) {
-      return NextResponse.json({ script: original, expanded: false, coverage: antes.coverage })
+      return NextResponse.json({
+        script: original,
+        expanded: false,
+        stillShort: false,
+        coverage: antes.coverage,
+        before: {
+          words: Math.round(antes.speech * WORDS_PER_SECOND),
+          seconds: Math.round(antes.speech),
+          coverage: Number(antes.coverage.toFixed(2)),
+        },
+        after: {
+          words: Math.round(antes.speech * WORDS_PER_SECOND),
+          seconds: Math.round(antes.speech),
+          coverage: Number(antes.coverage.toFixed(2)),
+        },
+      })
     }
 
     // Alvo: 100% de cobertura, não o mínimo. Mirar exatamente MIN_COVERAGE
@@ -120,7 +168,11 @@ ${original}`
     }
 
     // ─── VERIFICAÇÕES, porque "o modelo prometeu" não é garantia ────────────
-    const depois = narrationFit(expandido, target)
+    // KINEO-P0A-MESMA-REGUA — o veredito do "depois" também é pela FALA (a
+    // régua do guard). Medir o texto cru aqui aprovaria expansões que o guard
+    // recusaria em seguida: era metade do loop.
+    const falaExpandida = parseUserScript(expandido).narration || expandido
+    const depois = narrationFit(falaExpandida, target)
 
     // (a) Cresceu demais = reescreveu em vez de completar.
     if (depois.speech > antes.speech * MAX_GROWTH_FACTOR) {
@@ -175,7 +227,7 @@ ${original}`
         coverage: Number(antes.coverage.toFixed(2)),
       },
       after: {
-        words: Math.round(speechSeconds(expandido) * WORDS_PER_SECOND),
+        words: Math.round(speechSeconds(falaExpandida) * WORDS_PER_SECOND), // KINEO-P0A: fala, não texto cru
         seconds: Math.round(depois.speech),
         coverage: Number(depois.coverage.toFixed(2)),
       },

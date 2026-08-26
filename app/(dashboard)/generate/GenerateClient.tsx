@@ -1392,6 +1392,13 @@ export default function GenerateClient({
   /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
   const [expandedScript, setExpandedScript] = useState<string | null>(null)
   const [expanding, setExpanding] = useState(false)
+  // KINEO-P0A-SEM-LOOP-2026-08-26 — por que a expansão terminou sem caminho:
+  // 'nothing_added' (o servidor não tinha o que acrescentar) ou 'still_short'
+  // (expandiu e ainda não enche). Os dois levam à MESMA saída honesta: nada
+  // renderiza, nada debita, e a pessoa escolhe duração menor ou edita.
+  const [expandFailedReason, setExpandFailedReason] = useState<'nothing_added' | 'still_short' | null>(null)
+  /** Rodada de expansão da tentativa atual. Teto de 2 (spec do sprint). */
+  const expandRoundRef = useRef(0)
   // #465 — the saved video's DB id, for the public /v/[id] share link on the
   // done screen (share at peak delight → growth loop).
   const [publicVideoId, setPublicVideoId] = useState<string | null>(null)
@@ -4959,6 +4966,16 @@ export default function GenerateClient({
   // de não ser automático (Contrato C1 + o risco de fato inventado).
   async function handleExpandScript() {
     if (!scriptTooShort || expanding) return
+    // KINEO-P0A-SEM-LOOP-2026-08-26 — teto de 2 rodadas por tentativa. A 2ª
+    // parte do texto JÁ EXPANDIDO (structuredScriptRef guarda o aceite), nunca
+    // do original: expandir o mesmo original duas vezes daria o mesmo
+    // resultado e recriaria o loop que este bloco existe para matar.
+    if (expandRoundRef.current >= 2) {
+      setExpandFailedReason('still_short')
+      void trackEvent('script_expand_exhausted', { reason: 'max_rounds', round: expandRoundRef.current })
+      return
+    }
+    expandRoundRef.current += 1
     setExpanding(true)
     setError(null)
     try {
@@ -4977,12 +4994,39 @@ export default function GenerateClient({
         void trackEvent('script_expand_failed', { http: res.status, rewrote_author: data?.rewroteAuthor === true })
         return
       }
-      setExpandedScript(data.script)
+      // ═══ KINEO-P0A-SEM-LOOP-2026-08-26 ═══════════════════════════════════
+      // O painel de aprovação SÓ pode aparecer quando existe expansão REAL e
+      // SUFICIENTE. Antes, qualquer 200 virava "Read it before we render" —
+      // inclusive a resposta "não mudei nada" — e a pessoa aprovava o mesmo
+      // texto que o guard acabara de recusar (caso ofirshu555: duas voltas em
+      // 32s, sempre 38s/12 palavras, zero vídeo).
+      const cresceu = data?.expanded === true
+      const aindaCurto = data?.stillShort === true
       void trackEvent('script_expanded', {
         before_seconds: data?.before?.seconds ?? null,
         after_seconds: data?.after?.seconds ?? null,
-        still_short: data?.stillShort === true,
+        before_coverage: data?.before?.coverage ?? null,
+        after_coverage: data?.after?.coverage ?? null,
+        still_short: aindaCurto,
+        expanded: cresceu,
+        round: expandRoundRef.current,
+        attempt_id: generationAttemptRef.current ?? null,
       })
+      if (!cresceu || aindaCurto) {
+        // Saída honesta e terminal: nada renderiza, nada é debitado, e a
+        // pessoa recebe as duas alternativas que SEMPRE funcionam.
+        setExpandedScript(null)
+        setExpandFailedReason(!cresceu ? 'nothing_added' : 'still_short')
+        void trackEvent('script_expand_exhausted', {
+          reason: !cresceu ? 'nothing_added' : 'still_short',
+          round: expandRoundRef.current,
+          after_seconds: data?.after?.seconds ?? null,
+          target_seconds: scriptTooShort?.targetSeconds ?? null,
+        })
+        return
+      }
+      setExpandFailedReason(null)
+      setExpandedScript(data.script)
     } catch {
       setError('Could not expand the script right now.')
     } finally {
@@ -5003,10 +5047,19 @@ export default function GenerateClient({
   useEffect(() => {
     if (!scriptTooShort || expandedScript || expanding) return
     if (autoExpandFiredRef.current === scriptTooShort) return
+    // KINEO-P0A-SEM-LOOP-2026-08-26 — trava dupla contra o loop do
+    // ofirshu555: (1) já esgotamos as saídas desta tentativa → não redispara;
+    // (2) teto de rodadas. O guard pode voltar a barrar (novo objeto
+    // scriptTooShort ⇒ o ref antigo não segura), então a decisão de NÃO
+    // insistir precisa viver aqui também, não só na comparação de objeto.
+    if (expandFailedReason !== null || expandRoundRef.current >= 2) return
     autoExpandFiredRef.current = scriptTooShort
     void trackEvent('script_expand_autostarted', {
       missing_words: scriptTooShort.missingWords,
       target_seconds: scriptTooShort.targetSeconds,
+      speech_seconds: scriptTooShort.speechSeconds,
+      round: expandRoundRef.current + 1,
+      attempt_id: generationAttemptRef.current ?? null,
     })
     void handleExpandScript()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -5015,19 +5068,33 @@ export default function GenerateClient({
   /** A pessoa aprovou o texto completado: ele vira o roteiro e o fluxo segue. */
   function acceptExpandedScript() {
     if (!expandedScript) return
+    // KINEO-P0A-2026-08-26 — o texto aprovado é EXATAMENTE o que vai ao guard
+    // e à geração: structuredScriptRef é a fonte que handleGenerate lê
+    // (`structuredScriptRef.current ?? prompt`), e o prompt acompanha para a
+    // tela não mostrar uma coisa e enviar outra.
     structuredScriptRef.current = expandedScript
     setPrompt(expandedScript)
     setExpandedScript(null)
     setScriptTooShort(null)
+    setExpandFailedReason(null)
     setError(null)
     setPhase('idle')
-    void trackEvent('script_expand_accepted')
+    void trackEvent('script_expand_accepted', {
+      round: expandRoundRef.current,
+      attempt_id: generationAttemptRef.current ?? null,
+      approved_words: expandedScript.split(/\s+/).filter(Boolean).length,
+    })
   }
 
   async function handleAnalyze(
     overridePrompt?: string,
     opts?: { fromTopic?: boolean; skipPreview?: boolean; structureFirst?: boolean },
   ) {
+    // KINEO-P0A-2026-08-26 — ideia NOVA começa com as rodadas de expansão
+    // zeradas. Sem isto, quem esgotou as duas rodadas num roteiro ficaria sem
+    // auto-completar no roteiro seguinte, que é outro problema.
+    expandRoundRef.current = 0
+    setExpandFailedReason(null)
     // Manual, onboarding and URL-triggered analysis all share this gate. A
     // click during the auth lookup must not race a restored composing job and
     // orphan it when the later analysis response commits its own phase.
@@ -10272,6 +10339,56 @@ export default function GenerateClient({
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                     >
                       Discard
+                    </button>
+                  </div>
+                </>
+              ) : expandFailedReason ? (
+                // ═══ KINEO-P0A-SAIDA-HONESTA-2026-08-26 ═══════════════════
+                // O beco sem saída acabou aqui. Quando não há expansão
+                // possível (ou ela ainda não enche), a pessoa NUNCA fica sem
+                // caminho: as duas alternativas que sempre funcionam ficam na
+                // tela, e nada foi renderizado nem debitado até aqui.
+                <>
+                  <div className="text-sm mb-3" style={{ color: '#e0a458', lineHeight: 1.6 }}>
+                    {expandFailedReason === 'nothing_added'
+                      ? 'We could not add lines to this script without changing what you wrote.'
+                      : 'We added lines, and it still does not fill the full length.'}{' '}
+                    Nothing was rendered and no credits were used. Two ways forward:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {scriptTooShort.suggestedDuration > 0 && (
+                      <button
+                        onClick={() => {
+                          setDuration(scriptTooShort.suggestedDuration as Duration)
+                          setScriptTooShort(null)
+                          setExpandFailedReason(null)
+                          expandRoundRef.current = 0
+                          setError(null)
+                          setPhase('idle')
+                          void trackEvent('script_short_used_shorter_duration', {
+                            seconds: scriptTooShort.suggestedDuration,
+                            after_expand_exhausted: true,
+                          })
+                        }}
+                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                        style={{ background: '#2997ff', border: 'none' }}
+                      >
+                        Make it {scriptTooShort.suggestedDuration}s instead — this script fits
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setScriptTooShort(null)
+                        setExpandFailedReason(null)
+                        expandRoundRef.current = 0
+                        setError(null)
+                        setPhase('idle')
+                        void trackEvent('script_short_manual_edit', { after_expand_exhausted: true })
+                      }}
+                      className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                      style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
+                    >
+                      Let me add the lines myself
                     </button>
                   </div>
                 </>
