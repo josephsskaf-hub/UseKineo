@@ -11,7 +11,7 @@ import { fal } from '@fal-ai/client'
 import { looksExhausted, alertFalExhausted } from '@/lib/falAlert'
 import { retargetCinematicRequestId, validCinematicGenerationId } from '@/lib/cinematic/claim'
 
-import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION } from '@/lib/hollywood/router'
+import { HOLLYWOOD_MODELS, KLING3_I2V_MODEL, H3_MODELS, H3_I2V_MODEL, H3_RESOLUTION, OMNI_I2V_MODEL } from '@/lib/hollywood/router'
 import { openai } from '@/lib/openai'
 
 // ═══ KINEO-CENA-SUAVIZADA-2026-08-25 (decisão do fundador: "quando a pessoa
@@ -59,7 +59,14 @@ const KLING3_T2V = HOLLYWOOD_MODELS.dialogue
 // de OUTRO motor no meio do filme, e pior, com generate_audio:true, ou seja,
 // a VOZ FANTASMA que acabamos de matar voltava pela porta dos fundos do retry.
 const H3_SET = new Set<string>([H3_MODELS.dialogue, H3_MODELS.cinematic, H3_MODELS.support, H3_I2V_MODEL])
-const ALLOWED = new Set<string>([KLING3_I2V, HOLLYWOOD_MODELS.dialogue, HOLLYWOOD_MODELS.cinematic, HOLLYWOOD_MODELS.support, ...H3_SET])
+// ⚠️ KINEO-OMNI-RETRY-2026-08-25 (auditoria de motores, mesmo buraco do H3 em
+// 20/08): esta rota não conhecia o Omni. Uma cena Omni que falhasse caía no
+// `anchorUrl ? KLING3_I2V` e voltava como CLIPE DE KLING 3 no meio de um filme
+// vendido como Omni Flash — selo desonesto (a regra nº1 da vitrine), custo
+// nosso maior ($0.168/s vs $0.13/s) e schema errado (duration string em vez de
+// inteiro 3-10). A família do pedido manda, sempre.
+const OMNI_SET = new Set<string>([OMNI_I2V_MODEL])
+const ALLOWED = new Set<string>([KLING3_I2V, HOLLYWOOD_MODELS.dialogue, HOLLYWOOD_MODELS.cinematic, HOLLYWOOD_MODELS.support, ...H3_SET, ...OMNI_SET])
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -99,7 +106,14 @@ export async function POST(req: NextRequest) {
   // falhou era H3, o retry fica no H3 (i2v se tem âncora). O `anchorUrl ?
   // KLING3_I2V` antigo sequestrava até âncora H3 pro Kling.
   const requestedIsH3 = H3_SET.has(String(body.model))
-  const model = requestedIsH3
+  // KINEO-OMNI-RETRY-2026-08-25 — o Omni só existe em i2v no fal; sem âncora
+  // não há retry honesto possível nesta família (cai no Kling do hollywood,
+  // que é o comportamento herdado — mas COM âncora, que é o caso real de todo
+  // clipe Omni, ele volta no próprio motor).
+  const requestedIsOmni = OMNI_SET.has(String(body.model))
+  const model = requestedIsOmni && anchorUrl
+    ? OMNI_I2V_MODEL
+    : requestedIsH3
     ? (anchorUrl ? H3_I2V_MODEL : (ALLOWED.has(String(body.model)) ? String(body.model) : H3_MODELS.cinematic))
     : anchorUrl ? KLING3_I2V : (ALLOWED.has(String(body.model)) ? String(body.model) : KLING3_T2V)
 
@@ -107,7 +121,19 @@ export async function POST(req: NextRequest) {
   // principal. H3: duration INTEIRO 5-15, resolution 768P, generate_audio
   // SEMPRE false (o H3 ignora e manda áudio mesmo assim — o compose muta —
   // mas o parâmetro fica pelo dia em que o modelo passar a respeitá-lo).
-  const input: Record<string, unknown> = requestedIsH3
+  // KINEO-OMNI-RETRY-2026-08-25 — schema OFICIAL do Omni (fal, lido 25/08):
+  // image_url* + prompt* + aspect_ratio ('9:16' EXPLÍCITO — o default do
+  // fornecedor é 16:9 e sem isto o clipe re-tentado voltaria DEITADO no meio
+  // do filme vertical) + duration INTEIRO 3-10 (o teto do motor; string ou
+  // 12s = 422 na cara do cliente). Espelha buildFalInput do route principal.
+  const input: Record<string, unknown> = model === OMNI_I2V_MODEL
+    ? {
+        image_url: anchorUrl,
+        prompt,
+        aspect_ratio: '9:16',
+        duration: Math.max(3, Math.min(10, Math.round(seconds))),
+      }
+    : requestedIsH3
     ? {
         ...(anchorUrl ? { image_url: anchorUrl } : { aspect_ratio: '9:16' }),
         prompt,

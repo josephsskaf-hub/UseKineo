@@ -435,7 +435,11 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             <span style={{ position: 'absolute', bottom: 8, left: 8, right: 8, fontSize: 11, fontWeight: 600, color: '#fff', textShadow: '0 1px 3px rgba(0,0,0,.9)' }}>Made with Kineo</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {['VEO 3.1', 'KLING 3', 'KLING 2.5', 'SEEDANCE 1.5', 'MINIMAX H3', 'KINEO 1'].map((e) => (
+            {/* KINEO-AUDITORIA-MOTORES-2026-08-25 — o Omni Flash (#1 do ranking
+                de agosto, o motor da campanha) faltava nesta fileira: a última
+                superfície de venda antes da pessoa ir embora mostrava um
+                catálogo menor do que o real. Abre a lista, como na vitrine. */}
+            {['OMNI FLASH · #1', 'VEO 3.1', 'KLING 3', 'MINIMAX H3', 'KLING 2.5', 'SEEDANCE 1.5', 'KINEO 1'].map((e) => (
               <span key={e} style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '0.08em', padding: '4px 9px', borderRadius: 4, background: '#1d1d1f', border: '1px solid #2a2a2d', color: '#a8a8ad' }}>{e}</span>
             ))}
           </div>
