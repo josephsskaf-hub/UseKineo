@@ -74,8 +74,20 @@ export interface SceneOutcome {
 // ─── Padrões de mensagem ───────────────────────────────────────────────────
 // Usados APENAS para desambiguar dentro de um status, nunca para decidir
 // sozinhos. Mensagem de fornecedor muda sem aviso; status é contrato.
-const MODERACAO = /\b(nsfw|moderation|content[_ -]?polic|safety|prohibited|disallow|violat|inappropriate|blocked content)\b/i
-const SALDO = /\b(exhaust|insufficient|balance|quota|billing|payment|top[- ]?up|out of credit|locked)\b/i
+// KINEO-353A.1 — a regex de moderacao tinha `content[_ -]?polic` DENTRO de
+// `\b...\b`: o `\b` final depois de "polic" nunca casava com "content policy"
+// (a palavra continua em "policy"). Ou seja, a frase mais comum de moderacao
+// NAO era reconhecida. Agora "content policy" e "content_policy" casam.
+const MODERACAO = /(nsfw|moderation|content[_ -]?polic|safety[_ -]?(polic|filter)|prohibited|disallow|violat|inappropriate|blocked[_ -]content)/i
+// KINEO-353A.1 — "locked" SAIU desta lista. "model is locked for your account"
+// e falta de ACESSO, nao falta de saldo: a palavra sozinha nao prova nada, e
+// com ela aqui um problema de permissao virava alarme de saldo para o fundador
+// e "estamos com alta demanda" para o cliente. Saldo agora exige evidencia
+// financeira explicita.
+const SALDO = /(exhaust|insufficient|balance|quota|billing|payment|top[- ]?up|out of credit|no credits|credits? remaining|prepay)/i
+// Sinais de ACESSO. Testados ANTES de saldo, porque "locked" aparece nos dois
+// mundos e "model is locked for your account" e o caso real que quebrava.
+const ACESSO = /(model .{0,20}(locked|not available|no access|unauthorized)|locked for your account|not authorized|forbidden for this key|access denied|no access to)/i
 
 /**
  * A pergunta que o `looksExhausted` de hoje responde errado.
@@ -119,11 +131,15 @@ export function classifyProviderFailure(input: {
   if (status === 403) {
     // O ponto exato do bug atual. 403 é "proibido", e proibido tem três
     // causas distintas com três respostas distintas ao cliente.
-    const classe: ReasonClass = SALDO.test(msg)
-      ? 'balance_quota'
-      : MODERACAO.test(msg)
-        ? 'provider_moderation'
-        : 'auth_model_access'
+    // Ordem importa: ACESSO primeiro, porque "model is locked for your
+    // account" contem "locked" e cairia em saldo se saldo viesse antes.
+    const classe: ReasonClass = ACESSO.test(msg)
+      ? 'auth_model_access'
+      : SALDO.test(msg)
+        ? 'balance_quota'
+        : MODERACAO.test(msg)
+          ? 'provider_moderation'
+          : 'auth_model_access'
     return { disposition: 'explicit_reject', reason_class: classe, retry_safety: 'never' }
   }
   if (status === 404) {
@@ -225,9 +241,14 @@ export function resubmittable(outcomes: SceneOutcome[]): SceneOutcome[] {
  * pago no fornecedor. Vai como HMAC truncado — serve para correlacionar duas
  * linhas do nosso lado e é inútil para qualquer outra coisa.
  */
-export function requestIdFingerprint(requestId: string, secret: string): string {
-  if (!requestId) return ''
-  return createHmac('sha256', secret || 'kineo-fallback').update(requestId).digest('hex').slice(0, 12)
+export function requestIdFingerprint(requestId: string): string {
+  // KINEO-353A.1 — FECHA FECHADO. O fallback 'kineo-fallback' do #353A tornava
+  // o fingerprint reversivel por qualquer um que lesse este arquivo, o que e o
+  // mesmo que gravar o id cru com passos extras. Sem segredo dedicado, o campo
+  // simplesmente NAO EXISTE.
+  const secret = process.env.KINEO_FINGERPRINT_SECRET
+  if (!requestId || !secret) return ''
+  return createHmac('sha256', secret).update(requestId).digest('hex').slice(0, 12)
 }
 
 /**

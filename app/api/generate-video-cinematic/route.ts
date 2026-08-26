@@ -13,14 +13,21 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { writeServerEvent } from '@/lib/serverEvents'
 // KINEO-353A — classificacao pura da falha de cena (sem rede, sem banco).
 import {
-  accepted as cenaAceita,
-  failed as cenaFalhou,
+  classifyProviderFailure,
   isBalanceExhausted,
   providerSpendPossible,
   safeLogFields,
-  summarize as resumirDespacho,
   type SceneOutcome,
 } from '@/lib/cinematic/sceneDisposition'
+// KINEO-353A.1 — a orquestracao (retry, fallback de modelo, vetor por cena)
+// vive num modulo importavel para o teste de contrato exercitar ESTA logica.
+import {
+  dispatchOneScene,
+  invarianteFecha,
+  montarPlano,
+  resumirPlano,
+  type AttemptRecord,
+} from '@/lib/cinematic/dispatchScenes'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
@@ -206,10 +213,31 @@ const FAL_MODEL = SEEDANCE_MODEL
 // AGORA: o estado nasce e morre dentro da requisição.
 interface DispatchContext {
   balanceExhausted: boolean
+  /** Disposicoes FINAIS, uma por cena planejada. Preenchido pelo dispatcher. */
   outcomes: SceneOutcome[]
+  /** Historico de tentativas, index-alinhado com `outcomes`. */
+  attempts: AttemptRecord[][]
+  totalPosts: number
+  planned: number
+  /** Identidade e desfecho — preenchidos conforme a requisicao avanca. */
+  userId: string | null
+  generationId: string | null
+  claimId: string | null
+  billingReference: string | null
+  engine: string | null
+  quality: string | null
+  claimAction: string
+  refundConfirmed: boolean | null
+  /** Ja registrou? Impede evento duplicado se algum caminho chamar duas vezes. */
+  registrado: boolean
 }
 function novoContextoDeDespacho(): DispatchContext {
-  return { balanceExhausted: false, outcomes: [] }
+  return {
+    balanceExhausted: false, outcomes: [], attempts: [], totalPosts: 0, planned: 0,
+    userId: null, generationId: null, claimId: null, billingReference: null,
+    engine: null, quality: null, claimAction: 'unknown', refundConfirmed: null,
+    registrado: false,
+  }
 }
 // AsyncLocalStorage e a ferramenta certa aqui: da localidade de requisicao
 // REAL sob concorrencia, sem trocar a assinatura de submitToFal (chamada em
@@ -222,67 +250,70 @@ function ctxDespacho(): DispatchContext {
 }
 
 /**
- * ═══ KINEO-353A-TELEMETRIA-DE-DESPACHO ═══════════════════════════════════
+ * ═══ KINEO-353A.1 — PONTO ÚNICO DE FINALIZAÇÃO ═══════════════════════════
  *
- * O evento que nao existia no dia 26/08 — e por isso a causa das quatro
- * falhas do 19joschaschuetz96 e hoje irrecuperavel.
+ * O #353A gravava telemetria em TRÊS pontos escolhidos a dedo (dois FAILFAST
+ * e o sucesso clássico). Ficaram de fora: sucesso Hollywood, salvage,
+ * ambiguidade e erro genérico do catch externo, e todo return posterior ao
+ * nascimento da claim. Pior: no sucesso clássico ele gravava 200/pending
+ * ANTES de `publishCinematicResponse`, que pode devolver 402, 409 ou 503 e
+ * pode terminar `settled` — ou seja, o banco registrava um desfecho que não
+ * foi o desfecho.
  *
- * Regras que este helper cumpre por construcao:
- *  · server-side e AWAITADO (o /api/events do cliente e forjavel e nao serve
- *    de autoridade para nada que decide dinheiro);
- *  · grava SUCESSO tambem — sem denominador, "5 falhas" nao e uma taxa;
- *  · `app_http_status` (o que devolvemos) SEPARADO de `provider_http_status`
- *    (o que a Fal devolveu). Confundir os dois foi metade da confusao de hoje;
- *  · engine/quality vem do SERVIDOR, nunca do seletor do cliente (foi por
- *    isso que quatro falhas Seedance apareceram como "fast");
- *  · NADA de prompt, URL de midia, chave, header, corpo ou mensagem livre do
- *    fornecedor. Request id nao entra cru: so HMAC truncado.
+ * Agora existe UM finalizador, e ele recebe a Response REALMENTE devolvida.
+ * `app_http_status` é o status final de verdade; `claim_action` é o estado
+ * financeiro realmente alcançado (o corpo da requisição escreve no contexto
+ * conforme avança).
+ *
+ * FAILURE-ISOLATED: telemetria é awaitada, mas nunca transforma uma resposta
+ * válida do cliente em erro. Se o banco de analytics cair, o vídeo segue.
  */
-async function registrarDespacho(input: {
-  userId: string
-  outcome: 'accepted' | 'failfast' | 'blocked'
-  appHttpStatus: number
-  generationId: string
-  claimId: string
-  billingReference: string
-  engine: string
-  quality: string
-  planned: number
-  claimAction: string
-  refundConfirmed: boolean | null
-}): Promise<void> {
-  const contexto = ctxDespacho()
-  const resumo = resumirDespacho(contexto.outcomes, input.planned)
-  const piorClasse = contexto.outcomes.find((o) => o.reason_class !== 'ok')?.reason_class ?? 'ok'
-  const piorStatus = contexto.outcomes.find((o) => o.provider_http_status && o.provider_http_status >= 400)
-    ?.provider_http_status ?? null
-  await writeServerEvent({
-    name: 'cinematic_dispatch_result',
-    userId: input.userId,
-    metadata: {
-      outcome: input.outcome,
-      app_http_status: input.appHttpStatus,
-      provider_http_status: piorStatus,
-      reason_class: piorClasse,
-      generation_id: input.generationId,
-      claim_id: input.claimId,
-      billing_reference: input.billingReference,
-      engine: input.engine,
-      quality: input.quality,
-      deploy_sha: process.env.VERCEL_GIT_COMMIT_SHA ?? 'local',
-      planned: resumo.planned,
-      attempted: resumo.attempted,
-      accepted: resumo.accepted,
-      rejected: resumo.rejected,
-      ambiguous: resumo.ambiguous,
-      not_attempted: resumo.not_attempted,
-      provider_spend_possible: providerSpendPossible(contexto.outcomes),
-      balance_exhausted: contexto.balanceExhausted,
-      claim_action: input.claimAction,
-      refund_confirmed: input.refundConfirmed,
-      scenes: contexto.outcomes.map(safeLogFields),
-    },
-  })
+async function finalizarDespacho(ctx: DispatchContext, res: Response): Promise<void> {
+  if (ctx.registrado) return
+  ctx.registrado = true
+  try {
+    const plano = {
+      outcomes: ctx.outcomes,
+      requestIds: [],
+      models: [],
+      attempts: ctx.attempts,
+      totalPosts: ctx.totalPosts,
+    }
+    const resumo = resumirPlano(plano as never)
+    await writeServerEvent({
+      name: 'cinematic_dispatch_result',
+      userId: ctx.userId ?? undefined,
+      metadata: {
+        app_http_status: res.status,
+        claim_action: ctx.claimAction,
+        refund_confirmed: ctx.refundConfirmed,
+        generation_id: ctx.generationId,
+        claim_id: ctx.claimId,
+        billing_reference: ctx.billingReference,
+        engine: ctx.engine,
+        quality: ctx.quality,
+        deploy_sha: process.env.VERCEL_GIT_COMMIT_SHA ?? 'local',
+        planned: ctx.planned || resumo.planned,
+        attempted: resumo.attempted,
+        accepted: resumo.accepted,
+        rejected: resumo.rejected,
+        ambiguous: resumo.ambiguous,
+        not_attempted: (ctx.planned || resumo.planned) - resumo.accepted - resumo.rejected - resumo.ambiguous,
+        total_posts: resumo.total_posts,
+        // Histogramas: nunca um "representante" pescado com find(), que
+        // juntava reason_class de uma cena com status de outra.
+        reason_histogram: resumo.reason_histogram,
+        provider_status_histogram: resumo.provider_status_histogram,
+        invariant_ok: invarianteFecha({ ...resumo, planned: ctx.planned || resumo.planned }),
+        provider_spend_possible: providerSpendPossible(ctx.outcomes),
+        balance_exhausted: ctx.balanceExhausted,
+        scenes: ctx.outcomes.map(safeLogFields),
+      },
+    })
+  } catch (e) {
+    console.error('[cinematic] telemetria falhou (resposta do cliente preservada):',
+      e instanceof Error ? e.name : 'unknown')
+  }
 }
 // `looksExhausted` tratava QUALQUER 403 como saldo estourado. Um 403 de
 // "modelo sem acesso" virava alarme de saldo para o fundador e "alta demanda"
@@ -748,10 +779,13 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
       model,
       buildFalInput(model, prompt, hd, hollywood, seconds, imageUrl, seed, stylized),
     )
-    // KINEO-353A — aceite tambem e registrado. Sem o sucesso no vetor nao ha
-    // denominador, e sem denominador "5 falhas" nao quer dizer nada.
-    const okCtx = ctxDespacho()
-    okCtx.outcomes.push(cenaAceita(okCtx.outcomes.length, model))
+    // KINEO-353A.1 — NAO empurra mais nada no vetor de cenas aqui.
+    // O #353A fazia `outcomes.push(cenaAceita(outcomes.length, ...))`, e
+    // `outcomes.length` e ORDEM DE CONCLUSAO, nao indice de cena: num pool de
+    // 3, a cena 5 virava "cena 0". Alem disso submitToFal e usada por stills,
+    // Hollywood e salvage — cada push criava uma CENA FANTASMA no vetor do
+    // plano classico. Quem registra cena agora e o dispatcher, com o indice
+    // real vindo do chamador.
     return id
   } catch (err) {
     // #366 — surface the FULL fal error (status + body + message) so a model /
@@ -759,26 +793,27 @@ async function submitToFal(prompt: string, model: string = SEEDANCE_MODEL, hd: b
     // object stringified to "[object]" before, hiding the real cause).
     const e = err as { status?: number; body?: unknown; message?: string; name?: string }
     const status = err instanceof FalQueueSubmitError ? err.status ?? undefined : e?.status
-    const body = err instanceof FalQueueSubmitError ? err.providerBody : e?.body
     // KINEO-353A — REDACAO. O #366 imprimia `body` (o corpo cru da Fal) para
     // diagnosticar de dentro do log da Vercel. Isso some: corpo de fornecedor
     // pode conter prompt, URL de midia e eco de header. O que fica e a
     // CLASSIFICACAO, que e o que a gente realmente precisava ler — e que agora
     // tambem e persistida, em vez de morrer no console em 1 hora.
-    const contexto = ctxDespacho()
-    const disposicao = cenaFalhou({
-      scene_index: contexto.outcomes.length,
-      model,
+    const classe = classifyProviderFailure({
       status: status ?? null,
       ambiguous: err instanceof FalQueueSubmitError ? err.ambiguous : true,
       message: e?.message,
     })
-    contexto.outcomes.push(disposicao)
-    console.error('[cinematic] fal submit falhou:', JSON.stringify(safeLogFields(disposicao)))
+    console.error('[cinematic] fal submit falhou:', JSON.stringify({
+      model,
+      provider_http_status: status ?? null,
+      disposition: classe.disposition,
+      reason_class: classe.reason_class,
+      retry_safety: classe.retry_safety,
+    }))
     // KINEO-FAL-ALARM-2026-07-06 — flag an exhausted-balance failure so the POST
     // handler alerts the founder + soft-queues instead of hard-erroring.
     // KINEO-353A — agora exige a CLASSE saldo; 403 de acesso nao entra mais aqui.
-    if (looksExhausted({ status, message: e?.message })) contexto.balanceExhausted = true
+    if (looksExhausted({ status, message: e?.message })) ctxDespacho().balanceExhausted = true
     // A transport/408/5xx or a success response without an id cannot prove
     // that Fal did not accept the paid job. Never re-POST that scene.
     if (!(err instanceof FalQueueSubmitError) || err.ambiguous) throw err
@@ -949,7 +984,13 @@ async function logCinematicRefusal(
 export async function POST(req: NextRequest) {
   // KINEO-353A — TODO o corpo roda dentro de um contexto proprio. Duas
   // requisicoes simultaneas na mesma instancia nao se enxergam mais.
-  return despacho.run(novoContextoDeDespacho(), () => manipularPost(req))
+  return despacho.run(novoContextoDeDespacho(), async () => {
+    const ctx = ctxDespacho()
+    const res = await manipularPost(req)
+    // A Response REAL — inclusive 402/409/503 vindos do publish/settlement.
+    await finalizarDespacho(ctx, res)
+    return res
+  })
 }
 
 async function manipularPost(req: NextRequest) {
@@ -1388,6 +1429,9 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
+    // KINEO-353A.1 — MOTOR REAL. O #353A gravava `engine: 'hollywood'` no
+    // FAILFAST premium, o que apagava H3 e Omni: os tres viravam a mesma linha
+    // no painel, e a pergunta "qual motor esta falhando?" ficava sem resposta.
     const claimQuality = wantsH3
       ? 'cinematic_h3'
       : wantsOmni
@@ -1473,6 +1517,16 @@ async function manipularPost(req: NextRequest) {
     }
 
     const billingReference = `cinematic-${cinematicClaimId(user.id, generationId)}`
+    // KINEO-353A.1 — identidade no contexto assim que existe. O finalizador
+    // unico le daqui, entao TODO caminho de saida (inclusive o catch externo)
+    // sai identificado, e nao so os tres que eu tinha escolhido a dedo.
+    {
+      const c = ctxDespacho()
+      c.userId = user.id
+      c.generationId = generationId
+      c.claimId = cinematicClaimId(user.id, generationId)
+      c.billingReference = billingReference
+    }
     // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — de onde veio o replay do débito.
     // O débito adiantado (`upfrontDebit`) e a "confirmação idempotente" dentro
     // de settleDebitAndRespond() são o MESMO `billingReference`. Quando os dois
@@ -2240,7 +2294,10 @@ async function manipularPost(req: NextRequest) {
           // '__salvage_skip__' = descarte intencional (render anterior ja
           // completou) — segue pro plano fresco sem alarde.
           if (msg !== '__salvage_skip__') {
-            console.warn('[cinematic] salvage lookup falhou (caminho normal):', msg)
+            // KINEO-353A.1 — sem mensagem livre: pode ser FalQueueSubmitError,
+            // cuja `message` carrega ate 300 chars do corpo do fornecedor.
+            console.warn('[cinematic] salvage lookup falhou (caminho normal):',
+              e instanceof Error ? e.name : 'unknown')
           }
         }
       }
@@ -3181,19 +3238,27 @@ async function manipularPost(req: NextRequest) {
       // KINEO-CONTRATO-C2-2026-08-18 — piso de submissão sobe 60%→90%: com o
       // plano agora fechando >=95% do alvo, aceitar só 60% dele de volta seria
       // reabrir a porta do vídeo curto. Falhou >10% das cenas → aborta+estorna.
+      {
+        // KINEO-353A.1 — H3 e Omni nao sao "hollywood". O motor gravado e o
+        // que a claim resolveu no servidor.
+        const c = ctxDespacho()
+        c.engine = hModels.find(Boolean) ?? String(claimQuality)
+        c.quality = String(claimQuality)
+        c.planned = plan.scenes.length
+      }
       if (hValid.length === 0 || hSubmittedSec < hPlannedSec * 0.9) {
         console.error(
           `[cinematic] hollywood FAILFAST: only ${hValid.length}/${plan.scenes.length} scenes (${hSubmittedSec}s of ${hPlannedSec}s planned) — aborting with refund${ctxDespacho().balanceExhausted ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
         )
         const released = await releaseBirthClaim(ctxDespacho().balanceExhausted ? 'provider_balance_rejected' : 'provider_rejected')
-        await registrarDespacho({
-          userId: user.id, outcome: 'failfast',
-          appHttpStatus: released ? (ctxDespacho().balanceExhausted ? 503 : 502) : 503,
-          generationId, claimId: cinematicClaimId(user.id, generationId), billingReference,
-          engine: 'hollywood', quality: String(claimQuality), planned: plan.scenes.length,
-          claimAction: released ? 'released' : 'release_failed',
-          refundConfirmed: released,
-        })
+        // KINEO-353A.1 — o desfecho vai para o CONTEXTO; quem grava e o
+        // finalizador unico, com a Response real na mao.
+        {
+          const c = ctxDespacho()
+          c.claimAction = released ? 'released' : 'release_failed'
+          c.refundConfirmed = released
+          c.planned = plan.scenes.length
+        }
         if (!released) {
           return NextResponse.json(
             { error: 'No AI scenes started and your automatic refund is still being confirmed. Please retry this same generation.' },
@@ -3397,6 +3462,10 @@ async function manipularPost(req: NextRequest) {
     const submitScene = async (
       scene: { aiPrompt?: string; stockSearchQuery?: string; description: string },
       model: string,
+      // KINEO-353A.1 — o INDICE REAL da cena vem do chamador. Antes o vetor
+      // usava `outcomes.length`, que e ordem de conclusao das promises: num
+      // pool de 3, a cena 5 podia ser gravada como cena 0.
+      sceneIndex: number,
       // KINEO-CINEMATIC-ANCHOR-2026-07-24 — this scene's FLUX still (kling only,
       // flag ON). Undefined → pure t2v (byte-identical to before).
       imageUrl?: string,
@@ -3407,35 +3476,41 @@ async function manipularPost(req: NextRequest) {
       // environment-first b-roll, on-brand for this faceless channel.
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
       const cinematic = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
-      try {
-        // KINEO-CINEMATIC-ANCHOR-2026-07-24 — when this scene has a ready still,
-        // submit it as image-to-video on the engine's i2v counterpart (SAME
-        // shared seed for retry stability). An EXPLICIT (non-ambiguous) i2v
-        // reject falls through to this scene's normal t2v below — the video is
-        // always produced. An AMBIGUOUS i2v throw is surfaced (the clip may
-        // exist) exactly like t2v and is NEVER re-POSTed as a second job.
-        if (imageUrl) {
-          const i2vModel = model === KLING_MODEL ? KLING_I2V_MODEL : model
-          const i2vId = await submitToFal(cinematic, i2vModel, hd, false, undefined, imageUrl, generationSeed)
-          if (i2vId !== null) return { kind: 'id', id: i2vId, model: i2vModel }
-          console.warn('[cinematic-anchor] i2v submit rejected — falling back to t2v for this scene')
-        }
-        // KINEO-SEED-2026-07-24 — every scene shares generationSeed for coherence.
-        let id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
-        if (id === null) {
-          // Explicit non-ambiguous reject: Fal did not accept the job. One real
-          // retry after a short backoff clears a transient burst/rate-limit 4xx
-          // (the historic "submitted 4/5" drop) before we give up on the scene.
-          await new Promise((r) => setTimeout(r, 800))
-          id = await submitToFal(cinematic, model, hd, false, undefined, undefined, generationSeed)
-        }
-        return { kind: 'id', id, model }
-      } catch (e) {
-        // Ambiguous (incl. an ambiguous throw on the retry POST or the i2v POST)
-        // is NOT re-tried and NOT re-POSTed — the job may already exist; surface it.
-        if (e instanceof FalQueueSubmitError && e.ambiguous) return { kind: 'ambiguous', error: e }
-        return { kind: 'fatal', error: e }
+      // ═══ KINEO-353A.1 — O RETRY CEGO MORREU AQUI ══════════════════════
+      // Antes: `if (id === null) { sleep(800); submitToFal(...) }` — re-POST
+      // de QUALQUER rejeicao explicita, inclusive 401/403/404/422. E o
+      // lib/falQueue ja repetia 429 por dentro: dois donos de retry se
+      // multiplicando. Agora o dono e um so (falQueue, que respeita
+      // retry-after), e a ordem dos modelos e i2v -> t2v como TENTATIVA DE
+      // OUTRO MODELO, nunca retry escondido.
+      const modelos = imageUrl
+        ? [model === KLING_MODEL ? KLING_I2V_MODEL : model, model]
+        : [model]
+      const despachoCena = await dispatchOneScene({
+        sceneIndex,
+        models: modelos,
+        submit: async (m, onPost) => submitFalQueueOnce(
+          m,
+          buildFalInput(m, cinematic, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined),
+          onPost,
+        ),
+      })
+      {
+        const c = ctxDespacho()
+        c.outcomes[sceneIndex] = despachoCena.outcome
+        c.attempts[sceneIndex] = despachoCena.attempts
+        c.totalPosts += despachoCena.attempts.length
+        if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true
       }
+      if (despachoCena.requestId) {
+        return { kind: 'id', id: despachoCena.requestId, model: despachoCena.model }
+      }
+      if (despachoCena.outcome.disposition === 'ambiguous') {
+        return { kind: 'ambiguous', error: new FalQueueSubmitError('provider submit ambiguous', {
+          ambiguous: true, status: despachoCena.outcome.provider_http_status,
+        }) }
+      }
+      return { kind: 'id', id: null, model: despachoCena.model }
     }
 
     // KINEO-CINEMATIC-ANCHOR-2026-07-24 — returns per-scene ids AND the model
@@ -3465,7 +3540,7 @@ async function manipularPost(req: NextRequest) {
           const settled = await Promise.all(
             // Seedance/Veo are never anchored, so sceneStills[idx] is null here;
             // passed for uniformity (undefined imageUrl → identical t2v submit).
-            batch.map(async (idx) => ({ idx, res: await submitScene(scenes[idx], model, sceneStills[idx] ?? undefined) })),
+            batch.map(async (idx) => ({ idx, res: await submitScene(scenes[idx], model, idx, sceneStills[idx] ?? undefined) })),
           )
           // An unexpected (non-ambiguous, non-explicit) failure propagates — the
           // outer handler keeps the claim safe. Explicit rejects already became
@@ -3506,7 +3581,7 @@ async function manipularPost(req: NextRequest) {
       for (let i = 0; i < scenes.length; i++) {
         // KINEO-CINEMATIC-ANCHOR-2026-07-24 — anchored Kling scene → its own
         // FLUX still (i2v); null still → per-scene t2v fallback inside submitScene.
-        const res = await submitScene(scenes[i], model, sceneStills[i] ?? undefined)
+        const res = await submitScene(scenes[i], model, i, sceneStills[i] ?? undefined)
         if (res.kind === 'fatal') throw res.error
         if (res.kind === 'ambiguous') {
           if (ids.some((requestId) => requestId !== null)) {
@@ -3527,6 +3602,13 @@ async function manipularPost(req: NextRequest) {
       return { ids, models }
     }
 
+    // KINEO-353A.1 — motor e plano REAIS no contexto, antes de despachar.
+    {
+      const c = ctxDespacho()
+      c.engine = usedModel
+      c.quality = String(claimQuality)
+      c.planned = scenes.length
+    }
     const submittedScenes = await submitAllScenes(usedModel)
     const falRequestIds = submittedScenes.ids
     const usedModels = submittedScenes.models
@@ -3548,14 +3630,11 @@ async function manipularPost(req: NextRequest) {
       const released = await releaseBirthClaim(ctxDespacho().balanceExhausted ? 'provider_balance_rejected' : 'provider_rejected')
       // KINEO-353A — o desfecho vai para o banco ANTES de responder, e vai
       // awaitado. Se a lambda morrer logo depois, a linha ja existe.
-      await registrarDespacho({
-        userId: user.id, outcome: 'failfast',
-        appHttpStatus: released ? (ctxDespacho().balanceExhausted ? 503 : 502) : 503,
-        generationId, claimId: cinematicClaimId(user.id, generationId), billingReference,
-        engine: usedModel, quality: String(claimQuality), planned: scenes.length,
-        claimAction: released ? 'released' : 'release_failed',
-        refundConfirmed: released,
-      })
+      {
+        const c = ctxDespacho()
+        c.claimAction = released ? 'released' : 'release_failed'
+        c.refundConfirmed = released
+      }
       if (!released) {
         return NextResponse.json(
           { error: 'No AI scenes started and your automatic refund is still being confirmed. Please retry this same generation.' },
@@ -3612,20 +3691,22 @@ async function manipularPost(req: NextRequest) {
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
     // `falRequestIds.map(() => usedModel)`.
-    // KINEO-353A — O DENOMINADOR. Sem gravar o sucesso, qualquer contagem de
-    // falha vira numero solto: foi exatamente assim que eu li "60 eventos" e
-    // reportei um incendio que na verdade eram 57 tentativas encerradas em
-    // 20/08 mais quatro de UMA pessoa.
-    await registrarDespacho({
-      userId: user.id, outcome: 'accepted', appHttpStatus: 200,
-      generationId, claimId: cinematicClaimId(user.id, generationId), billingReference,
-      engine: usedModel, quality: String(claimQuality), planned: scenes.length,
-      claimAction: 'pending', refundConfirmed: null,
-    })
+    // KINEO-353A.1 — nada de gravar 200/pending aqui: `publishCinematicResponse`
+    // ainda pode devolver 402/409/503 e ainda pode terminar `settled`. O
+    // desfecho real e lido pelo finalizador, depois da Response existir.
+    { const c = ctxDespacho(); c.claimAction = 'published' }
     return publishCinematicResponse(response, falRequestIds, usedModels)
   } catch (error: unknown) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.error('[cinematic] unexpected error:', msg)
+    // KINEO-353A.1 — REDACAO NO CATCH EXTERNO. Aqui ainda saia `error.message`
+    // livre, e a mensagem de FalQueueSubmitError carrega o `detail` do
+    // fornecedor (ate 300 chars do corpo). Fica so o nome da classe e, quando
+    // houver, o status — o suficiente para triagem, insuficiente para vazar.
+    const errNome = error instanceof Error ? error.name : 'unknown'
+    const errStatus = error instanceof FalQueueSubmitError ? error.status : null
+    const errAmbiguo = error instanceof FalQueueSubmitError ? error.ambiguous : null
+    console.error('[cinematic] unexpected error:', JSON.stringify({
+      name: errNome, provider_http_status: errStatus, ambiguous: errAmbiguo,
+    }))
     if (
       (error instanceof FalQueueSubmitError && error.ambiguous) ||
       (error instanceof AvatarSubmitError && error.ambiguous)

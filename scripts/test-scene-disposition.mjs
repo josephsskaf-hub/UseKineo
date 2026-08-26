@@ -158,12 +158,20 @@ checa('log mantém o que serve para diagnosticar',
 checa('safeLogFields não expõe campo de mensagem', !('message' in campos) && !('body' in campos))
 
 // ── request id nunca entra cru ────────────────────────────────────────────
-const fp = D.requestIdFingerprint('req_abcdef123456789', 'segredo')
+// ⚠️ ASSINATURA MUDOU NO #353A.1, e mudou porque estava errada: o segredo
+// vinha por parâmetro com fallback 'kineo-fallback', o que tornava o
+// fingerprint reversível por quem lesse o arquivo. Agora o segredo é de
+// ambiente, dedicado, e SEM ele o campo simplesmente não é emitido.
+process.env.KINEO_FINGERPRINT_SECRET = 'segredo-de-teste'
+const fp = D.requestIdFingerprint('req_abcdef123456789')
 checa('fingerprint não contém o request id', !fp.includes('abcdef123456789'), fp)
 checa('fingerprint é curto e estável',
-  fp.length === 12 && fp === D.requestIdFingerprint('req_abcdef123456789', 'segredo'))
-checa('fingerprint muda com o id', fp !== D.requestIdFingerprint('req_outro', 'segredo'))
-checa('request id vazio → fingerprint vazio', D.requestIdFingerprint('', 'segredo') === '')
+  fp.length === 12 && fp === D.requestIdFingerprint('req_abcdef123456789'))
+checa('fingerprint muda com o id', fp !== D.requestIdFingerprint('req_outro'))
+checa('request id vazio → fingerprint vazio', D.requestIdFingerprint('') === '')
+delete process.env.KINEO_FINGERPRINT_SECRET
+checa('sem segredo dedicado, fecha fechado (campo omitido)',
+  D.requestIdFingerprint('req_abcdef123456789') === '')
 
 // ── 1. CONCORRÊNCIA: duas requisições não se contaminam ───────────────────
 // Reproduz o desenho da rota: AsyncLocalStorage com um contexto por request.
@@ -198,14 +206,33 @@ checa('FAL_EXHAUSTED global não existe mais',
 checa('a rota usa AsyncLocalStorage', /new AsyncLocalStorage<DispatchContext>\(\)/.test(rota))
 checa('o POST roda dentro do contexto', /despacho\.run\(novoContextoDeDespacho\(\)/.test(rota))
 checa('providerBody saiu do log', !/body,\s*\n\s*\}\)\)/.test(rota) && !/message: e\?\.message, body/.test(rota))
-checa('o log de falha usa safeLogFields', /safeLogFields\(disposicao\)/.test(rota))
-checa('telemetria de despacho é awaitada', /await registrarDespacho\(/.test(rota))
-checa('sucesso também registra', /outcome: 'accepted', appHttpStatus: 200/.test(rota))
-checa('app_http_status e provider_http_status são campos separados',
-  /app_http_status:/.test(rota) && /provider_http_status: piorStatus/.test(rota))
+// ⚠️ AS CINCO ÂNCORAS ABAIXO FORAM REESCRITAS NO #353A.1 — e outra vez o motivo
+// é que o CÓDIGO que elas descreviam estava errado, não o contrário:
+//  · `safeLogFields(disposicao)` saiu do submitToFal porque aquele push usava
+//    `outcomes.length` como índice de cena (ordem de conclusão das promises,
+//    não a cena real) e criava cena fantasma para stills/Hollywood/salvage;
+//  · `registrarDespacho` em três ramos escolhidos a dedo virou UM finalizador
+//    que recebe a Response real — antes, sucesso Hollywood, salvage, catch
+//    externo e todo return pós-claim não geravam evento nenhum;
+//  · `appHttpStatus: 200` era mentira quando o publish devolvia 402/409/503;
+//  · `provider_http_status: piorStatus` juntava a classe de uma cena com o
+//    status de outra, via find(). Virou histograma.
+// A verificação de COMPORTAMENTO destas garantias vive agora em
+// scripts/test-dispatch-contract.mjs, que executa a orquestração real.
+checa('o log de falha continua redigido (classificação, não corpo)',
+  /reason_class: classe\.reason_class/.test(rota))
+checa('safeLogFields segue sendo o formatador do evento',
+  /ctx\.outcomes\.map\(safeLogFields\)/.test(rota))
+checa('existe UM finalizador, awaitado, com a Response real',
+  /await finalizarDespacho\(ctx, res\)/.test(rota))
+checa('o finalizador é idempotente', /if \(ctx\.registrado\) return/.test(rota))
+checa('app_http_status vem da Response real', /app_http_status: res\.status/.test(rota))
+checa('status do fornecedor vai em histograma, sem "representante"',
+  /provider_status_histogram/.test(rota) && !/piorStatus/.test(rota))
 checa('deploy_sha vai no evento', /deploy_sha: process\.env\.VERCEL_GIT_COMMIT_SHA/.test(rota))
 checa('engine/quality vêm do servidor (claimQuality), não do seletor',
-  /quality: String\(claimQuality\)/.test(rota) && !/quality: String\(quality\)/.test(rota))
+  /c\.quality = String\(claimQuality\)/.test(rota) && !/quality: String\(quality\)/.test(rota))
+checa('engine clássico é o modelo real resolvido', /c\.engine = usedModel/.test(rota))
 
 const eventos = readFileSync(join(raiz, 'app/api/events/route.ts'), 'utf8')
 checa('cinematic_submission_claim está na denylist', /'cinematic_submission_claim',/.test(eventos))

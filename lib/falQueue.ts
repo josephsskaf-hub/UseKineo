@@ -26,9 +26,23 @@ export class FalQueueSubmitError extends Error {
   }
 }
 
+/**
+ * KINEO-353A.1 — ESTE MÓDULO É O DONO ÚNICO DO RETRY.
+ *
+ * Antes existiam DOIS donos: aqui (429, com retry-after) e em `submitScene`
+ * da rota, que repetia QUALQUER `null` depois de 800ms. Os dois se
+ * multiplicavam, e pior: a camada de cima repetia 401, 403, 404 e 422 —
+ * status que dizem "não" de forma definitiva. O retry de fora foi removido.
+ *
+ * `onPost` existe para o chamador CONTAR POSTs REAIS ao fornecedor. Sem isso
+ * o `attempt_count` seria uma estimativa, e estimativa em telemetria de
+ * incidente é como não ter telemetria. Parâmetro opcional: todos os
+ * chamadores existentes seguem idênticos.
+ */
 export async function submitFalQueueOnce(
   model: string,
   input: Record<string, unknown>,
+  onPost?: () => void,
 ): Promise<string> {
   const key = process.env.FAL_KEY
   if (!key) {
@@ -56,6 +70,8 @@ export async function submitFalQueueOnce(
 
   for (;;) {
     try {
+      onPost?.() // KINEO-353A.1 — conta ANTES do POST: se a rede cair, o POST
+                 // aconteceu do ponto de vista do fornecedor e precisa contar.
       response = await fetch(`https://queue.fal.run/${model}`, {
         method: 'POST',
         headers: {
