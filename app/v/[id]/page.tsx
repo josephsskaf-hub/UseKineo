@@ -95,12 +95,28 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       // type/width/height no video, Telegram/X nao montam o player inline.
       siteName: 'Kineo',
       url: `/v/${params.id}`,
+      // ═══ KINEO-PREVIEW-COMPARTILHADO-2026-08-25 ═══════════════════════════
+      // O LOOP VIRAL ESTAVA VAZANDO AQUI. Este objeto tinha `videos` mas NÃO
+      // tinha `images` — e nenhuma rede monta card por vídeo: WhatsApp,
+      // Telegram, X, Facebook, Slack e iMessage TODOS exigem og:image para
+      // desenhar a miniatura. Resultado medido no HTML: cada filme que um
+      // cliente compartilhava (o nosso canal de distribuição mais barato,
+      // impulsionado pela marca d'água) chegava como link cinza sem imagem.
+      // O card OG (1200×630) já era gerado e já era usado no JSON-LD do
+      // schema — só faltava entregá-lo às redes sociais. Uma linha.
+      images: v?.thumbnailUrl ? [{ url: v.thumbnailUrl, width: 1200, height: 630, alt: title }] : undefined,
       videos: v?.playbackUrl
         ? [{ url: v.playbackUrl, type: 'video/mp4', width: 1080, height: 1920 }]
         : undefined,
       type: 'video.other',
     },
-    twitter: { card: 'summary_large_image', title, description: desc },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: desc,
+      // Mesmo motivo: sem images aqui o X cai no card de texto puro.
+      images: v?.thumbnailUrl ? [v.thumbnailUrl] : undefined,
+    },
   }
 }
 

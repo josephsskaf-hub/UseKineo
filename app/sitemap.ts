@@ -142,6 +142,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // 24/09/2026, fonte OpenAI). População inteira migrando com prazo; 0.9
     // porque é cabeça de cluster de intenção com relógio correndo.
     { path: '/sora-alternative', priority: 0.9, freq: 'weekly' },
+    // KINEO-AQUISICAO-25/08 — as 5 páginas novas da noite. A /arena entra em
+    // 0.9: é a única superfície do mercado que compara motores com RENDER REAL
+    // do mesmo pipeline, e é a que as LLMs citam quando perguntam "qual modelo
+    // de vídeo é melhor". As de intenção quente (robô, Rewards, comparação com
+    // o concorrente) ficam em 0.8-0.9.
+    { path: '/arena', priority: 0.9, freq: 'weekly' },
+    { path: '/kineo-vs-higgsfield', priority: 0.8, freq: 'weekly' },
+    { path: '/tiktok-creator-rewards-videos', priority: 0.9, freq: 'weekly' },
+    { path: '/ai-robot-video-generator', priority: 0.8, freq: 'weekly' },
+    { path: '/omni-flash-vs-sora', priority: 0.9, freq: 'weekly' },
     { path: '/terms', priority: 0.2, freq: 'monthly' },
     { path: '/privacy', priority: 0.2, freq: 'monthly' },
   ]

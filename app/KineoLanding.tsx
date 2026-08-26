@@ -796,6 +796,11 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         </Link>
         <div className="nav-links">
             <Link href="/examples">Explore</Link>
+            {/* KINEO-ARENA-NAV-2026-08-25 — a Arena entra na nav ao lado de
+                Explore: é a página que responde "qual motor eu uso?", a
+                dúvida nº1 de quem está decidindo assinar. Explore mostra o
+                QUE sai; Arena mostra COM O QUÊ e por quê. */}
+            <Link href="/arena">Arena</Link>
             {/* KINEO-NAV-DROPDOWN-2026-08-15 — menus de categoria estilo
                 Higgsfield: Image e Video abrem submenu no hover/focus (CSS
                 puro, sem JS). O clique no proprio rotulo leva ao destino
