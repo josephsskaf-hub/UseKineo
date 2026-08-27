@@ -1,15 +1,16 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota integrada:** `265ddfc6ea887ae772aefe9eeb4072d2c7b0b04a`
-- **Ponta funcional antes deste documento:** `f62997b`
+- **Base remota publicada e relida:** `94a230ea37fdff4920b014058f68cffdb20c8204`
+- **Ponta funcional publicada:** `94a230ea37fdff4920b014058f68cffdb20c8204`
 - **Workstream:** aquisição, fluxo e conversão em assinatura
-- **Estado neste snapshot:** IMPLEMENTADO e TESTADO LOCALMENTE; a validação em produção deve ser acrescentada ao resumo do turno após o deploy.
+- **Estado neste snapshot:** deploy `READY`; superfícies públicas validadas em produção; Plan Fit IMPLEMENTADO e TESTADO LOCALMENTE, aguardando uma conta elegível real para validação comportamental em produção.
 
 ## 1. Divisão aprovada pelo fundador
 
 - **Codex:** aquisição, fluxo, conversão e novas assinaturas.
 - **Claude:** qualidade do gerador, render, legendas e bugs do pipeline de vídeo.
+- **Plan Fit:** dono único Codex. A versão canônica está em `origin/main` (`4dff13d` + `f62997b`). O protótipo paralelo `3173247` da frente Growth/Claude deve ser abandonado, não integrado.
 - Sobreposição só acontece por pedido explícito do fundador ou por bloqueio registrado neste handoff.
 - Antes de cada turno, os dois lados atualizam e leem `origin/main`, `AGENTS.md`, os documentos canônicos em `docs/` e o handoff mais recente.
 - Nunca duas tarefas escrevendo na mesma working tree.
@@ -108,6 +109,7 @@ Os três foram inspecionados no browser local, desktop e mobile quando aplicáve
 
 - Medir pessoas únicas que viram, escolheram cadência, abriram checkout e assinaram pelo Plan Fit.
 - Continuar as ações de aquisição sem reconstruir superfícies já existentes.
+- Manter o Plan Fit; Claude não deve continuar ou integrar o protótipo `3173247`.
 
 ### Decisão do fundador necessária
 
