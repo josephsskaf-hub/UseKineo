@@ -21,6 +21,12 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
+import {
+  AFFILIATE_DESTINATIONS,
+  RECOMMENDED_AFFILIATE_DESTINATION,
+  buildAffiliateShareLink,
+  getAffiliateDestination,
+} from '@/lib/affiliateDestinations'
 
 // KINEO-ORFAOS-CLIQUE-2026-08-14 — este helper era `fetch('/api/events')` cru,
 // sem `session_id`, e os quatro helpers desta família nasceram um do outro por
@@ -69,6 +75,8 @@ const MUTED = '#86868b'
 const GREEN = '#2997ff'
 const CARD = '#161618'
 const BORDER = '1px solid rgba(255,255,255,0.08)'
+const AFFILIATE_SHARE_DESTINATION =
+  getAffiliateDestination(RECOMMENDED_AFFILIATE_DESTINATION) ?? AFFILIATE_DESTINATIONS[0]
 
 function dollars(cents: number, currency = 'usd'): string {
   const sym = currency && currency.toLowerCase() !== 'usd' ? '' : '$'
@@ -181,12 +189,16 @@ export default function AffiliatePage() {
     }
   }
 
-  function copyLink() {
-    if (!data?.link) return
+  async function copyLink() {
+    const link = buildAffiliateShareLink(data?.link ?? '', RECOMMENDED_AFFILIATE_DESTINATION)
+    if (!link) return
     try {
-      navigator.clipboard.writeText(data.link)
+      await navigator.clipboard.writeText(link)
       setCopied(true)
-      trackAffiliateEvent('affiliate_link_copied', { just_applied: justApplied })
+      trackAffiliateEvent('affiliate_link_copied', {
+        just_applied: justApplied,
+        destination: RECOMMENDED_AFFILIATE_DESTINATION,
+      })
       setTimeout(() => setCopied(false), 2000)
     } catch {
       /* clipboard blocked — ignore */
@@ -253,12 +265,12 @@ export default function AffiliatePage() {
             >
               earn 40% recurring
             </span>{' '}
-            on everyone you bring
+            on eligible payments
           </h1>
           <p className="text-sm mb-6 mx-auto" style={{ color: MUTED, maxWidth: 460, lineHeight: 1.6 }}>
-            Share your link, send people to Kineo, and earn 40% of every payment they make — for
-            as long as they stay subscribed. No review queue: your link is active the second you
-            press the button, and starts tracking clicks immediately.
+            Share your link, send people to Kineo, and earn 40% recurring on eligible subscription
+            payments from customers you bring. No review queue: your link is active the second you
+            press the button, and starts tracking link visits immediately.
           </p>
           <button
             type="button"
@@ -339,9 +351,9 @@ export default function AffiliatePage() {
   // affiliate to go find somewhere to paste it; these hand them a pre-written
   // message. Plain links, no SDKs, no keys. The pitch only claims things the
   // product actually does (free Fast tier, no card — lib/comparisons.ts:305).
-  const link = data.link ?? ''
-  const sharePitch =
-    'I use Kineo to turn one topic into a finished, voiced and captioned 9:16 Short in minutes. Free to try, no card:'
+  const selectedDestination = AFFILIATE_SHARE_DESTINATION
+  const link = buildAffiliateShareLink(data.link ?? '', RECOMMENDED_AFFILIATE_DESTINATION)
+  const sharePitch = selectedDestination.sharePitch
   const shareTargets = link
     ? [
         {
@@ -354,7 +366,7 @@ export default function AffiliatePage() {
         },
         {
           label: 'Email',
-          href: `mailto:?subject=${encodeURIComponent('A faster way to make Shorts')}&body=${encodeURIComponent(`${sharePitch} ${link}`)}`,
+          href: `mailto:?subject=${encodeURIComponent(selectedDestination.emailSubject)}&body=${encodeURIComponent(`${sharePitch} ${link}`)}`,
         },
       ]
     : []
@@ -369,8 +381,8 @@ export default function AffiliatePage() {
           Your affiliate dashboard
         </h1>
         <p className="text-sm" style={{ color: MUTED }}>
-          Earning <span style={{ color: GREEN, fontWeight: 800 }}>{ratePct}</span> recurring on everyone you
-          refer.
+          Earning <span style={{ color: GREEN, fontWeight: 800 }}>{ratePct}</span> recurring on eligible
+          referred subscription payments.
         </p>
       </header>
 
@@ -386,9 +398,9 @@ export default function AffiliatePage() {
             You&apos;re in — your link is already live.
           </div>
           <p className="text-sm" style={{ color: MUTED, lineHeight: 1.6, margin: 0 }}>
-            Nothing is pending and nobody has to approve you. The next click on the link below is
-            tracked, and it stays attributed to you for 90 days. Send it to one person now — the
-            first share is the one nobody gets around to.
+            Nothing is pending and nobody has to approve you. A new visitor who follows the link
+            before creating their account can stay attributed to you for up to 90 days. Send it to
+            one person now — the first share is the one nobody gets around to.
           </p>
         </div>
       ) : null}
@@ -398,13 +410,29 @@ export default function AffiliatePage() {
         className="rounded-2xl p-5 mb-5"
         style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
       >
-        <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: MUTED }}>
-          Your share link
+        <label
+          htmlFor="affiliate-script-share-link"
+          className="block text-[10px] font-black uppercase tracking-widest mb-2"
+          style={{ color: MUTED }}
+        >
+          Your script-generator share link
+        </label>
+        <div
+          className="inline-block rounded-full px-2.5 py-1 mb-2 text-[9px] font-black uppercase tracking-widest"
+          style={{ color: CYAN, background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.28)' }}
+        >
+          Free value before signup
+        </div>
+        <div className="text-xs mb-3" style={{ color: MUTED, lineHeight: 1.5 }}>
+          <strong style={{ color: TEXT }}>{selectedDestination.label}.</strong>{' '}
+          Visitors can generate a useful script before signup instead of landing on the generic homepage.{' '}
+          {selectedDestination.description}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
+            id="affiliate-script-share-link"
             readOnly
-            value={data.link ?? ''}
+            value={link}
             onFocus={(e) => e.currentTarget.select()}
             className="flex-1 rounded-xl px-3 py-2.5 text-xs"
             style={{
@@ -418,6 +446,7 @@ export default function AffiliatePage() {
           <button
             type="button"
             onClick={copyLink}
+            aria-live="polite"
             className="rounded-xl px-5 py-2.5 text-sm font-black text-white"
             style={{
               background: 'linear-gradient(135deg, #2997ff, #2997ff)',
@@ -441,7 +470,13 @@ export default function AffiliatePage() {
                 href={t.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => trackAffiliateEvent('affiliate_share_clicked', { channel: t.label, just_applied: justApplied })}
+                onClick={() =>
+                  trackAffiliateEvent('affiliate_share_clicked', {
+                    channel: t.label,
+                    just_applied: justApplied,
+                    destination: RECOMMENDED_AFFILIATE_DESTINATION,
+                  })
+                }
                 className="rounded-lg px-3 py-1.5 text-xs font-extrabold"
                 style={{
                   background: 'rgba(41,151,255,.12)',
@@ -486,9 +521,9 @@ export default function AffiliatePage() {
             />
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 try {
-                  void navigator.clipboard.writeText(a.coupon_code ?? '')
+                  await navigator.clipboard.writeText(a.coupon_code ?? '')
                   setCouponCopied(true)
                   trackAffiliateEvent('affiliate_coupon_copied', { code: a.coupon_code })
                   setTimeout(() => setCouponCopied(false), 1800)
@@ -514,16 +549,16 @@ export default function AffiliatePage() {
             <span style={{ color: TEXT, fontWeight: 800 }}>
               &ldquo;use code {a.coupon_code} for 20% off&rdquo;
             </span>
-            . They type it at checkout, get 20% off their first month, and you get credited — no link,
-            no bio, no clicking. And it keeps paying: once someone redeems your code, every month they
-            stay counts for you, for as long as they stay subscribed.
+            . An eligible new customer types it at checkout and gets 20% off their first month. When
+            that customer is attributed through your code, eligible subscription payments are credited
+            to you while they remain subscribed — no link in the video required.
           </p>
         </div>
       ) : null}
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-        <Kpi label="Clicks" value={stats.clicks.toLocaleString('en-US')} accent={CYAN} />
+        <Kpi label="Link visits" value={stats.clicks.toLocaleString('en-US')} accent={CYAN} />
         <Kpi label="Signups" value={stats.signups.toLocaleString('en-US')} accent="#2997ff" />
         <Kpi label="Paid customers" value={stats.paid.toLocaleString('en-US')} accent={GREEN} />
         <Kpi label="Pending $" value={dollars(earnings.pending)} accent="#fbbf24" />

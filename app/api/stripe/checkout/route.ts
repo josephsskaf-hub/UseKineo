@@ -58,6 +58,10 @@ import {
   type VerifiedPlanFitCheckoutContext,
 } from '@/lib/growth/planFitCheckout'
 import { engineName } from '@/lib/growth/planFit'
+import {
+  attributeAffiliateForUser,
+  normalizeAffiliateClickId,
+} from '@/lib/affiliateAttribution'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -167,6 +171,39 @@ async function recordCheckoutEvent(
 function browserSessionIdFrom(req: NextRequest): string | undefined {
   const raw = req.cookies.get('kineo_event_session_id')?.value ?? ''
   return /^[A-Za-z0-9_-]{8,64}$/.test(raw) ? raw : undefined
+}
+
+// Close the client-effect race only for the subscription checkout that can
+// create recurring affiliate value. AffiliateAutoTrigger normally stamps the
+// profile after signup, but a fast CTA can reach this route first. The shared
+// server primitive verifies the protected click, creates/reads the canonical
+// referral and confirms the legacy profile cache before Stripe Session create.
+// No entitlement, price or webhook behavior changes here.
+async function resolveCustomAffiliateBeforeSubscription(
+  req: NextRequest,
+  user: { id: string; email?: string | null; created_at?: string | null },
+  profile: { email?: string | null; affiliate_id?: string | null } | null | undefined,
+): Promise<string | null> {
+  const result = await attributeAffiliateForUser(
+    req.cookies.get('sf_aff')?.value,
+    {
+      id: user.id,
+      email: profile?.email ?? user.email ?? null,
+      createdAt: user.created_at,
+    },
+    {
+      allowNewAttribution: true,
+      clickId: normalizeAffiliateClickId(req.cookies.get('sf_aff_click')?.value),
+    },
+  )
+  if (result.ok) return result.affiliateId
+  if (!['invalid_code', 'invalid_click_proof', 'ineligible_existing_account'].includes(result.reason)) {
+    console.warn('[stripe/checkout] affiliate attribution not finalized:', result.reason)
+  }
+  // Preserve established behavior during a transient attribution lookup. The
+  // canonical route normally keeps this cache repaired; this fallback neither
+  // creates a new owner nor changes the checkout's price or entitlement.
+  return profile?.affiliate_id ?? null
 }
 
 // KINEO-CHECKOUT-TRIAGE-2026-07-25 — produção mostrou rajadas de
@@ -1695,10 +1732,11 @@ async function buildAndRedirect(
   // as client_reference_id so Rewardful attributes the subscription to the affiliate.
   // Only when present — Stripe Checkout errors on a blank client_reference_id.
   const rwReferral = req.cookies.get('rewardful_referral')?.value
+  const customAffiliateId = await resolveCustomAffiliateBeforeSubscription(req, user, profile)
   // PUSH #68: only one commission system may own a subscription. Permanent
   // custom first-touch attribution wins; otherwise Rewardful can receive the
   // Checkout reference. Store the choice on the Subscription for renewals.
-  const affiliateSystem = profile.affiliate_id ? 'custom' : rwReferral ? 'rewardful' : 'none'
+  const affiliateSystem = customAffiliateId ? 'custom' : rwReferral ? 'rewardful' : 'none'
   sessionParams.metadata!.affiliate_system = affiliateSystem
   sessionParams.subscription_data!.metadata!.affiliate_system = affiliateSystem
   if (affiliateSystem === 'rewardful' && rwReferral) {
