@@ -108,7 +108,7 @@ export default async function EngineHubPage() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontWeight: 900, fontSize: '1.02rem' }}>{e.name}</div>
                   <div style={{ fontSize: '0.78rem', color: e.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700, margin: '2px 0 6px' }}>
-                    {e.tier === 'Free' ? 'Free · watermarked' : `${e.credits} · ${e.tier}`}
+                    {e.tier === 'Free' ? 'Free · watermarked' : `${e.creditCost} credits / 60s · ${e.tier}`}
                   </div>
                   <p style={{ margin: 0, fontSize: '0.83rem', color: '#86868b', lineHeight: 1.5 }}>{e.bestFor}</p>
                 </div>

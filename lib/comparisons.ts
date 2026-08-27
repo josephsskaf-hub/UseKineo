@@ -36,11 +36,20 @@ import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } fr
 // H3, que existe desde 19/08. Preço escrito à mão numa página pública envelhece
 // em silêncio, e esta linha aparece em 73 páginas (27 de /alternatives + 46 de
 // /vs), incluindo as que o ChatGPT lê para nos comparar.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual;
 // este módulo só é importado por código server-side, ver revisão no SPRINT).
 const OFFER = getFreeTierOffer()
+const KINEO_FAST_COST = creditsPerReferenceVideo('fast')
+const KINEO_SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
+const KINEO_KLING_COST = creditsPerReferenceVideo('cinematic_kling')
+const KINEO_PRESENTER_COST = creditsPerReferenceVideo('presenter')
+const KINEO_KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
+const KINEO_ENGINE_METERING =
+  `Kineo 1 ${KINEO_FAST_COST}, Seedance ${KINEO_SEEDANCE_COST}, ` +
+  `Kling 2.5 ${KINEO_KLING_COST}, AI Presenter ${KINEO_PRESENTER_COST}, ` +
+  `Kling 3 ${KINEO_KLING3_COST} credits per 60-second video`
 
 export const VERIFIED_ON = 'July 26, 2026'
 export const BASE = 'https://www.usekineo.com'
@@ -349,7 +358,7 @@ export const TOOLS: Record<ToolId, Tool> = {
     exportLimits:
       // KINEO-OMNI-2026-08-25 — Omni Flash entra na régua pública após a
       // validação real; custo SEMPRE de creditCostFor (disciplina #296).
-      `Credit-metered: a Kineo 1 video costs ${creditCostFor('fast', true)} credits, Seedance ${creditCostFor('cinematic_ai')}, MiniMax H3 ${creditCostFor('cinematic_h3')}, Kling 2.5 ${creditCostFor('cinematic_kling')}, AI Presenter ${creditCostFor('presenter')}, a Kling 3 film ${creditCostFor('cinematic_hollywood')}, and an Omni Flash film (Google's #1-ranked video model, Aug 2026 arena) ${creditCostFor('cinematic_omni')}. Credits do not roll over between months.`,
+      `Credit-metered per 60-second video: Kineo 1 ${KINEO_FAST_COST} credits, Seedance ${KINEO_SEEDANCE_COST}, MiniMax H3 ${creditsPerReferenceVideo('cinematic_h3')}, Kling 2.5 ${KINEO_KLING_COST}, AI Presenter ${KINEO_PRESENTER_COST}, Kling 3 ${KINEO_KLING3_COST}, and Omni Flash (Google's #1-ranked video model, Aug 2026 arena) ${creditsPerReferenceVideo('cinematic_omni')}. Credits do not roll over between months.`,
     source: BASE + '/pricing',
     homepage: BASE,
     verified: VERIFIED_ON,
@@ -1159,7 +1168,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'How each meters you',
-        p: 'HeyGen sells credits against rendering minutes, with Avatar IV/V at 20 credits per minute and Avatar III at 3 — so the avatar you pick changes the cost of a video sevenfold. Kineo sells credits against render type: a Fast video is 1 credit, AI Generated 20, Cinematic 50, AI Presenter 70, a Hollywood film 150. HeyGen rolls unused credits over for paid subscribers; Kineo credits do not roll over. That is a genuine point against Kineo if your output is lumpy.',
+        p: `HeyGen sells credits against rendering minutes, with Avatar IV/V at 20 credits per minute and Avatar III at 3 — so the avatar you pick changes the cost of a video sevenfold. Kineo sells credits against render type: ${KINEO_ENGINE_METERING}. HeyGen rolls unused credits over for paid subscribers; Kineo credits do not roll over. That is a genuine point against Kineo if your output is lumpy.`,
       },
       {
         h: 'What each refuses to do',
@@ -1253,7 +1262,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Credits mean different things',
-        p: 'OpusClip credits meter clip processing: 60 free a month, 150 on Starter, 3,600 up front on Pro. Kineo credits meter render type: Fast 1, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150, and they do not roll over. Do not read the credit numbers across the table as if they were the same unit.',
+        p: `OpusClip credits meter clip processing: 60 free a month, 150 on Starter, 3,600 up front on Pro. Kineo credits meter render type: ${KINEO_ENGINE_METERING}, and they do not roll over. Do not read the credit numbers across the table as if they were the same unit.`,
       },
     ],
     faq: [
@@ -1307,7 +1316,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On volume, Pictory’s quota is larger and differently shaped',
-        p: `Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, where a Fast video is 1 credit and a Cinematic one is 50. Cheaper per month, and metered by render quality rather than duration.`,
+        p: `Pictory Starter is $29/month, or $25/month annually, for 200 video minutes a month. At 35 seconds a Short that is well over three hundred. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits; a 60-second Kineo 1 video costs ${KINEO_FAST_COST} and Kling 2.5 costs ${KINEO_KLING_COST}. Cheaper per month, and metered by render quality and duration rather than a monthly minute pool.`,
       },
     ],
     pickA: [
@@ -1327,7 +1336,7 @@ export const PAIRS: Pair[] = [
     differences: [
       {
         h: 'Metering: minutes versus render type',
-        p: 'Pictory counts video minutes per month regardless of how the video was made. Kineo counts credits by render engine — Fast 1, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150 — and credits do not roll over. Pictory’s model is easier to predict; Kineo’s lets you spend nothing on drafts and a lot on the one you publish.',
+        p: `Pictory counts video minutes per month regardless of how the video was made. Kineo counts credits by render engine — ${KINEO_ENGINE_METERING} — and credits do not roll over. Pictory’s model is easier to predict; Kineo’s lets you spend nothing on drafts and a lot on the one you publish.`,
       },
       {
         h: 'Aspect ratio',
@@ -1443,7 +1452,7 @@ export const PAIRS: Pair[] = [
       },
       {
         q: 'How many videos a month do I get?',
-        a: 'Submagic Starter: 15 videos a month, up to 2 minutes each. Kineo Starter: 25 credits, and a Fast video costs 1 credit — higher-quality render types cost considerably more, from 20 credits for AI Generated up to 150 for a Hollywood film.',
+        a: `Submagic Starter: 15 videos a month, up to 2 minutes each. Kineo Starter: ${TIER_CREDITS.starter} credits, and a 60-second Kineo 1 video costs ${KINEO_FAST_COST} credits — higher-quality render types cost considerably more, from ${KINEO_SEEDANCE_COST} credits for Seedance up to ${KINEO_KLING3_COST} for Kling 3.`,
       },
       {
         q: 'Can I use both together?',
@@ -3988,7 +3997,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Captions is the more capable tool and the more expensive one',
-        p: `Max at $24.99/month for 500 credits buys curated AI Edit styles, AI actors and digital twins, a chat-based editor, 100+ caption templates and generative music, voiceover, images, video and b-roll. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits. We are not going to pretend Kineo does most of that list, because it does not.`,
+        p: `Max at $24.99/month for 500 credits buys curated AI Edit styles, AI actors and digital twins, a chat-based editor, 100+ caption templates and generative music, voiceover, images, video and b-roll. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for ${TIER_CREDITS.starter} credits. We are not going to pretend Kineo does most of that list, because it does not.`,
       },
       {
         h: 'Kineo’s constraint is the whole product',
@@ -3996,7 +4005,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Credits mean unrelated things and the numbers do not compare',
-        p: 'Captions spends credits across generative music, voiceover, images, video, b-roll and AI actors — 500 on Max up to 5,600 on Scale 4x at $279.99. Kineo spends credits by render engine: Fast 1, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150. Kineo credits do not roll over between months, which is a real point against us if your output is lumpy.',
+        p: `Captions spends credits across generative music, voiceover, images, video, b-roll and AI actors — 500 on Max up to 5,600 on Scale 4x at $279.99. Kineo spends credits by render engine: ${KINEO_ENGINE_METERING}. Kineo credits do not roll over between months, which is a real point against us if your output is lumpy.`,
       },
     ],
     pickA: [
@@ -4074,7 +4083,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Price is not close, and it is not the argument',
-        p: `Creatify Starter is $39/month for 100 credits. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits. That gap is real. It is also irrelevant if you need a media buyer and an ad tracker, because Kineo has neither and never will.`,
+        p: `Creatify Starter is $39/month for 100 credits. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for ${TIER_CREDITS.starter} credits. That gap is real. It is also irrelevant if you need a media buyer and an ad tracker, because Kineo has neither and never will.`,
       },
       {
         h: 'The free tiers reveal what each is sized for',
@@ -4082,7 +4091,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'Duration is capped on one side and priced by engine on the other',
-        p: 'Creatify caps a single video at 2 minutes on Starter and 10 on Pro at $99/month. Kineo does not publish a per-video duration ladder; it prices by render engine — Fast 1 credit, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150 — and credits do not roll over. Two different ways of rationing, and neither is generous by accident.',
+        p: `Creatify caps a single video at 2 minutes on Starter and 10 on Pro at $99/month. Kineo prices by engine and duration — ${KINEO_ENGINE_METERING} — and credits do not roll over. Two different ways of rationing, and neither is generous by accident.`,
       },
     ],
     pickA: [
@@ -4164,7 +4173,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The metering is not comparable and the free tiers are not either',
-        p: `Descript counts media hours ingested — 60 minutes free, 10 hours on Hobbyist at $24/month or $16 annually, 30 on Creator, 40 on Business — plus 400, 800 and 1,500 AI credits a month. Kineo counts render engines: Fast 1 credit, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150, from 25 credits on Starter. Descript Free is 720p watermarked with 100 one-time AI credits; ${ft(OFFER, 'Kineo free is up to 3 watermarked Fast videos every 24 hours, no card.', OFFER.copy.cmpKineoFree)}`,
+        p: `Descript counts media hours ingested — 60 minutes free, 10 hours on Hobbyist at $24/month or $16 annually, 30 on Creator, 40 on Business — plus 400, 800 and 1,500 AI credits a month. Kineo counts render engines: ${KINEO_ENGINE_METERING}, from ${TIER_CREDITS.starter} credits on Starter. Descript Free is 720p watermarked with 100 one-time AI credits; ${ft(OFFER, 'Kineo free is up to 3 watermarked Fast videos every 24 hours, no card.', OFFER.copy.cmpKineoFree)}`,
       },
       {
         h: 'On price at entry Kineo is lower, and that is not the argument',
@@ -4254,7 +4263,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'On price at entry Kineo is lower and the units are unrelated',
-        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for 25 credits, with a Fast video costing 1 credit. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.`,
+        p: `Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, for ${TIER_CREDITS.starter} credits, with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits. quso Lite is $29/month, or $19 annually, for unlimited 1080p clips plus 10GB storage and publishing. Unlimited clips of footage you already have is very hard to beat on value — provided you have the footage.`,
       },
     ],
     pickA: [
@@ -4328,7 +4337,7 @@ export const PAIRS: Pair[] = [
     verdict: [
       {
         h: 'Ten minutes a month is the fact that decides it for creators',
-        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a Fast video costing 1 credit${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
+        p: `Synthesia includes up to 10 minutes of finished video a month on Basic and Starter at $29/month, or $18 billed yearly, and 30 minutes on Creator at $89, or $64. At 35 seconds a Short, 10 minutes is roughly 17 videos — for a whole month. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits${ft(OFFER, ', and its free tier allows up to 3 Fast videos every 24 hours.', `, and every new account starts with a Creator trial: ${TRIAL_GRANT_CREDITS_COPY} free credits.`)}`,
       },
       {
         h: 'Synthesia is the better platform on almost every axis except one',
@@ -4364,7 +4373,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'How each meters you, and where each runs out',
-        p: 'Synthesia meters minutes of finished video and credits: 1,200 credits and 10 minutes on Starter, 3,600 and 30 minutes on Creator. Kineo meters credits by render engine — Fast 1, AI Generated 20, Cinematic 50, AI Presenter 70, Hollywood 150 — and those credits do not roll over. Synthesia publishes both monthly and annual credit allowances; we did not find a rollover guarantee on its page either, so treat both as use-it-or-lose-it unless confirmed.',
+        p: `Synthesia meters minutes of finished video and credits: 1,200 credits and 10 minutes on Starter, 3,600 and 30 minutes on Creator. Kineo meters credits by render engine — ${KINEO_ENGINE_METERING} — and those credits do not roll over. Synthesia publishes both monthly and annual credit allowances; we did not find a rollover guarantee on its page either, so treat both as use-it-or-lose-it unless confirmed.`,
       },
       {
         h: 'Watermark and logo',

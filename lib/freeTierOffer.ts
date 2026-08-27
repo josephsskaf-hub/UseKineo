@@ -1,5 +1,7 @@
 // lib/freeTierOffer.ts — [KINEO-TRIAL-SWAP-2026-08-07] — TROCA ATÔMICA do
 // free tier + copy, decidida por UMA flag.
+
+import { creditCostForDuration } from './credits/engineCost'
 //
 //   KINEO_REVERSE_TRIAL_ENABLED === 'true'  (a MESMA flag de lib/reverseTrial.ts)
 //
@@ -133,10 +135,9 @@ const OFF_COPY: FreeTierCopy = {
 // tela e o menor estava no botão.
 //
 // Por que a constante mora AQUI e não é importada de lib/reverseTrial.ts:
-// este arquivo é FOLHA de propósito (o cabeçalho de reverseTrial.ts registra
-// "lib/freeTierOffer.ts não importa nada — sem ciclo") e entra no bundle do
-// browser via `swapFreeTierCopy`. Importar reverseTrial.ts aqui arrastaria
-// `@supabase/supabase-js` para o cliente e fecharia um ciclo.
+// este arquivo entra no bundle do browser via `swapFreeTierCopy`. Ele só pode
+// importar módulos puros e client-safe como engineCost; importar
+// reverseTrial.ts aqui arrastaria `@supabase/supabase-js` e fecharia um ciclo.
 // A trava fica na direção que já existe: reverseTrial.ts (que JÁ importa este
 // arquivo) carrega uma asserção de tipo que quebra o `tsc` se os dois números
 // divergirem. Mexer no teto sem mexer na copy passa a não compilar.
@@ -156,9 +157,11 @@ const G = TRIAL_GRANT_CREDITS_COPY
 // acabou de chegar; "4 AI films" significa tudo. É a mesma regra que a página
 // de preços já segue (fala em filmes, não em créditos) e agora vale também na
 // porta de entrada — que é onde a pessoa decide se vale a pena criar a conta.
-// Derivado do grant ÷ custo do Seedance (o motor mais caro que o trial abre),
-// nunca digitado: se o grant mudar, o número de filmes acompanha sozinho.
-export const TRIAL_FILMS = Math.floor(TRIAL_GRANT_CREDITS_COPY / 20)
+// Derivado do grant ÷ custo do Seedance de 60s (o motor premium que o grant
+// atual consegue cobrir), nunca digitado: se um dos dois mudar, acompanha.
+export const TRIAL_FILMS = Math.floor(
+  TRIAL_GRANT_CREDITS_COPY / creditCostForDuration('cinematic_ai', true, 60),
+)
 
 // ═══ KINEO-TRIAL-COBRE-MOTOR-2026-08-21 ════════════════════════════════════
 // A auditoria de hoje (grant 80 → 25) achou frases que não ficaram só

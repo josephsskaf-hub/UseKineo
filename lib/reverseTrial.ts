@@ -67,7 +67,7 @@ import {
 } from '@/lib/trialFingerprint'
 // KINEO-TRIAL-BLOCKERS-2026-08-07 — o entitlement efetivo precisa saber qual é
 // o free tier vigente (clamp de duração) para responder o que um NÃO-pago
-// recebe. lib/freeTierOffer.ts não importa nada — sem ciclo.
+// recebe. lib/freeTierOffer.ts importa apenas engineCost (puro) — sem ciclo.
 import { getFreeTierOffer, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // Mesmo idioma de flag dos crons de lifecycle (KINEO_LIFECYCLE_EMAILS_ENABLED):

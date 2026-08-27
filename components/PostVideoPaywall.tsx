@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 // KINEO-PILOT-99-2026-07-26 — em USD, igual ao resto deste card (PLANS.*.priceLabel
 // também é USD fixo). O checkout continua resolvendo a moeda no servidor.
-import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, PACK_CREDITS, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { AUTOPILOT_PILOT_DAYS, AUTOPILOT_PILOT_PRICES, PACK_CREDITS, formatCheckoutMoney, packPriceLabel } from '@/lib/checkoutPricing'
 // KINEO-PRICING-V6-2026-08-19 — contagem de vídeos derivada do grant do plano.
 import { STUDIO_CINEMATIC_FILMS } from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
@@ -218,7 +218,7 @@ export default function PostVideoPaywall({ credits }: PostVideoPaywallProps) {
         ) : (
           <>
             Not ready for a monthly plan?{' '}
-            <span style={{ color: '#2997ff' }}>Start with {PACK_CREDITS.starter} credits for $4.90 →</span>
+            <span style={{ color: '#2997ff' }}>Start with {PACK_CREDITS.starter} credits for {packPriceLabel()} →</span>
             <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 600, color: '#86868b', marginTop: 2 }}>
               One-time · no subscription · credits never expire
             </span>

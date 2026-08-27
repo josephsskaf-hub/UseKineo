@@ -26,9 +26,9 @@
 //      e crédito anterior ao trial SOBREVIVEM ao downgrade. O saldo aqui vem do
 //      mesmo /api/credits que alimenta o badge do topo — dois números da mesma
 //      fonte nunca se contradizem na mesma tela.
-//   3. "Unlimited AI renders while credits lasted". FALSO por um fator de 2:
-//      40 créditos ÷ 20 por render Seedance = 2 vídeos. O número agora é
-//      derivado de `creditCostFor('cinematic_ai')`, nunca redigitado.
+//   3. "Unlimited AI renders while credits lasted". FALSO: a quantidade
+//      depende do grant e do custo Seedance de 60s. O número agora é derivado
+//      das duas fontes canônicas, nunca redigitado.
 //
 // ⚠️ PREÇO: sempre de `lib/checkoutPricing`, por moeda resolvida em /api/geo,
 // NUNCA um literal e NUNCA `lib/pricing.priceLabel` (que é USD fixo). Nenhum
@@ -38,7 +38,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
 // Import de TIPO apenas (apagado no build — nenhum código de servidor viaja).
 // O tipo vem da MESMA definição que o servidor serializa: renomear um campo lá
@@ -98,7 +98,7 @@ const MAX_ADIAMENTOS = 3
 //     nada. Impressão e desfecho contam a mesma unidade: uma por conta.
 const SHOWN_PREFIX = 'kineo_trial_downgrade_shown_v1'
 
-const SEEDANCE_COST = creditCostFor('cinematic_ai')
+const SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 
 interface CreditsPayload {
   trial?: Partial<TrialUiState>

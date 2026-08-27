@@ -7,6 +7,13 @@
 // Flash (id 36a04f7b, 25/08), e o ROTEIRO EXATO que o gerou está publicado ao
 // lado — "this exact text made this film". Nenhum demo reel fabricado.
 import type { Metadata } from 'next'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import {
+  STUDIO_CREDITS,
+  STUDIO_MONTH,
+  creditsPerReferenceVideo,
+  videosPerMonth,
+} from '@/lib/marketingPrice'
 
 export const dynamic = 'force-static'
 
@@ -70,7 +77,7 @@ const FAQ_JSONLD = {
       name: 'How much does a robot battle film cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'On Omni Flash, a full multi-scene film costs 150 credits — the Studio plan ($29/month, 320 credits) fits two flagship films a month plus change. Cheaper engines start at 25 credits per film, and every new account gets 25 free credits with no card.',
+        text: `On Omni Flash, a full 60-second multi-scene film costs ${creditsPerReferenceVideo('cinematic_omni')} credits — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month plus change. Cheaper engines start at ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second film, and every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card.`,
       },
     },
   ],
@@ -119,7 +126,7 @@ export default function RobotVideoPage() {
         >
           Generate your first film free — no card
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>25 free credits on signup · robots, mysteries, horror, history — the same text box directs them all</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{TRIAL_GRANT_CREDITS_COPY} free credits on signup · robots, mysteries, horror, history — the same text box directs them all</p>
       </div>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '30px 0 10px' }}>How it works</h2>

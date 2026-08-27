@@ -13,6 +13,7 @@ import {
   type CheckoutCurrency,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
 type EngineKey = 'fast' | 'ai' | 'cinematic'
 
@@ -23,17 +24,17 @@ const ENGINES: Record<EngineKey, {
 }> = {
   fast: {
     name: 'Fast Mode',
-    creditCost: 1,
+    creditCost: creditsPerReferenceVideo('fast'),
     detail: 'Matched stock footage + AI voiceover',
   },
   ai: {
     name: 'AI Generated',
-    creditCost: 20,
+    creditCost: creditsPerReferenceVideo('cinematic_ai'),
     detail: 'Seedance-generated scenes',
   },
   cinematic: {
     name: 'Cinematic',
-    creditCost: 50,
+    creditCost: creditsPerReferenceVideo('cinematic_kling'),
     detail: 'Premium Kling-generated scenes',
   },
 }

@@ -19,7 +19,8 @@
 //   · Cantos 10px, fundo escuro — padrão vitrine aprovado dos modais (#273).
 
 import { useEffect, useState } from 'react'
-import { formatCheckoutMoney, TIER_PRICES } from '@/lib/checkoutPricing'
+import { formatCheckoutMoney, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
+import { videosPerMonth } from '@/lib/marketingPrice'
 
 const SEEN_KEY = 'kineo_creator30_seen'
 
@@ -109,12 +110,12 @@ export default function Creator30OfferModal() {
         <p style={{ color: '#a1a1a8', fontSize: 14, lineHeight: 1.55, marginBottom: 6 }}>
           Your first videos deserved a smoother start than we gave you. So here it is, made right:
           Creator for <b style={{ color: '#f5f5f7' }}>{discounted}</b>{' '}
-          <s style={{ color: '#5a5a60' }}>{full}</s> in the first month — 140 credits, every engine,
+          <s style={{ color: '#5a5a60' }}>{full}</s> in the first month — {TIER_CREDITS.basic} credits, every engine,
           watermark-free exports.
         </p>
         {/* UI#3 — os três fatos que vendem, em vez de prosa corrida. */}
         <ul style={{ color: '#c7c7cc', fontSize: 12.5, lineHeight: 1.7, margin: '0 0 14px', paddingLeft: 18 }}>
-          <li>140 credits — a month of daily Shorts, or 3 full cinematic films</li>
+          <li>{TIER_CREDITS.basic} credits — {videosPerMonth('basic', 'fast')} Kineo 1 videos, {videosPerMonth('basic', 'cinematic_ai')} Seedance films, or {videosPerMonth('basic', 'cinematic_h3')} MiniMax H3 films</li>
           <li>Every engine, including Kling 3 &amp; MiniMax H3 (characters speak with lip sync)</li>
           <li>Watermark-free exports + AI images, audio studio and HD enhance</li>
         </ul>
@@ -131,7 +132,7 @@ export default function Creator30OfferModal() {
               fontSize: 14, fontWeight: 900,
             }}
           >
-            Claim 30% off →
+            Claim {percent}% off →
           </a>
           <button
             type="button"

@@ -4,7 +4,7 @@
 // time someone reprices an engine. Neither module imports this one, so there
 // is no cycle: engineCost.ts imports nothing, autopilot/config.ts imports only
 // a type from engineCost.ts.
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import { AUTOPILOT_ALLOWED_ENGINES, AUTOPILOT_PILOT_DAYS } from '@/lib/autopilot/config'
 
 export type CheckoutTier = 'starter' | 'basic' | 'pro'
@@ -672,15 +672,23 @@ export function checkPricingInvariants(): string[] {
     }
   }
 
-  // (2) Every one-time entry pack buys at least one real AI video (20 credits)
+  // (2) Every one-time entry pack buys at least one real 60s Seedance video.
   //     and still nets positive against worst-case provider cost.
-  const packSkus: Array<{ id: string; usdMinor: number; credits: number }> = [
-    { id: 'pack:starter', usdMinor: 490, credits: PACK_CREDITS.starter },
-    { id: 'pack:starter290', usdMinor: 290, credits: PACK_CREDITS.starter290 },
+  const packSkus: Array<{
+    id: string
+    usdMinor: number
+    credits: number
+    advertisedQuality: Parameters<typeof creditCostForDuration>[0]
+  }> = [
+    { id: 'pack:starter', usdMinor: 490, credits: PACK_CREDITS.starter, advertisedQuality: 'cinematic_ai' },
+    { id: 'pack:starter290', usdMinor: 290, credits: PACK_CREDITS.starter290, advertisedQuality: 'cinematic_ai' },
   ]
   for (const sku of packSkus) {
-    if (sku.credits < 20) {
-      problems.push(`${sku.id} grants ${sku.credits} credits — below the 20 needed for one AI video.`)
+    const advertisedVideoCost = creditCostForDuration(sku.advertisedQuality, true, 60)
+    if (sku.credits < advertisedVideoCost) {
+      problems.push(
+        `${sku.id} grants ${sku.credits} credits — below the ${advertisedVideoCost} needed for its advertised 60s video.`,
+      )
     }
     const net = netAfterStripeUsd(sku.usdMinor / 100)
     if (net - worstCaseCogsUsd(sku.credits) < 0) {

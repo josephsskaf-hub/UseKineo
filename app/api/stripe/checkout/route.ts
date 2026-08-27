@@ -49,6 +49,7 @@ import {
   type CheckoutPlanTier as PlanTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import { describeSeedanceMix, formatResultCount, videosForCredits } from '@/lib/marketingPrice'
 // KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
 import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
 
@@ -318,10 +319,10 @@ const TIERS: Record<PlanTier, { name: string; description: string; credits: numb
   },
   basic: {
     name: 'Kineo — Creator',
-    // KINEO-PRICING-V3B-2026-07-10 — Creator = 150 credits: 1 Hollywood film
-    // every month included (150 cr), or ~7 AI-generated videos. Metadata
-    // plan_credits follows this value.
-    description: `${TIER_CREDITS.basic} credits / month — 1 Hollywood film included (or ~7 AI-generated videos)`,
+    description:
+      `${TIER_CREDITS.basic} credits / month — ` +
+      `${formatResultCount(videosForCredits(TIER_CREDITS.basic, 'cinematic_ai'), 'Seedance AI film')} or ` +
+      `${formatResultCount(videosForCredits(TIER_CREDITS.basic, 'cinematic_h3'), 'MiniMax H3 film')}`,
     credits: TIER_CREDITS.basic,
   },
   pro: {
@@ -491,7 +492,7 @@ const STARTER_PACK = {
   // $4.458 net → +$1.62 (36.3%). Grant lives in lib/checkoutPricing.ts.
   credits: PACK_CREDITS.starter,
   name: 'Kineo — Starter Pack',
-  description: 'One-time: 30 credits — 1 AI-generated video plus 10 Fast videos. No subscription.',
+  description: `One-time: ${PACK_CREDITS.starter} credits — ${describeSeedanceMix(PACK_CREDITS.starter)}. No subscription.`,
 }
 //   USD $4.90 | BRL R$24.90 | INR ₹399  (same ratios as the plans)
 // KINEO-VENDER-O-VIDEO-2026-08-21 — o usd deixa de ser literal aqui: a tela do
@@ -516,7 +517,7 @@ const PACK_PRICES: Record<Currency, number> = { usd: PACK_PRICE_MINOR.usd, brl: 
 const STARTER290_PACK = {
   credits: PACK_CREDITS.starter290,
   name: 'Kineo — First Pack (24h offer)',
-  description: 'One-time launch offer: 20 credits — enough for 1 AI-generated video. Limited to 1 per account.',
+  description: `One-time launch offer: ${PACK_CREDITS.starter290} credits — ${describeSeedanceMix(PACK_CREDITS.starter290)}. Limited to 1 per account.`,
 }
 //   USD $2.90 | BRL R$14.90 | INR ₹249  (same ratios as the plans)
 const PACK290_PRICES: Record<Currency, number> = { usd: 290, brl: 1490, inr: 24900 }
@@ -578,13 +579,13 @@ function autopilotPilotPriceIdOverride(currency: Currency): string | null {
 // hard-coded in the Generate screen.
 type TopupId = 'topup40' | 'topup120' | 'topup100' | 'topup300'
 const CREDIT_TOPUPS: Record<TopupId, { credits: number; name: string; description: string; prices: Record<Currency, number> }> = {
-  topup40:  { credits: TOPUP_CREDITS.topup40,  name: 'Kineo — +30 credits', description: 'One-time: 30 credits (1 AI-generated video plus 10 Fast videos). No subscription.', prices: TOPUP_PRICES.topup40 },
-  topup120: { credits: TOPUP_CREDITS.topup120, name: 'Kineo — +65 credits', description: 'One-time: 65 credits (3 AI-generated videos plus 5 Fast videos). No subscription.',   prices: TOPUP_PRICES.topup120 },
+  topup40:  { credits: TOPUP_CREDITS.topup40,  name: `Kineo — +${TOPUP_CREDITS.topup40} credits`, description: `One-time: ${TOPUP_CREDITS.topup40} credits (${describeSeedanceMix(TOPUP_CREDITS.topup40)}). No subscription.`, prices: TOPUP_PRICES.topup40 },
+  topup120: { credits: TOPUP_CREDITS.topup120, name: `Kineo — +${TOPUP_CREDITS.topup120} credits`, description: `One-time: ${TOPUP_CREDITS.topup120} credits (${describeSeedanceMix(TOPUP_CREDITS.topup120)}). No subscription.`, prices: TOPUP_PRICES.topup120 },
   // KINEO-TOPUP100-2026-08-17 — o pacote-ancora (ver lib/checkoutPricing).
-  topup100: { credits: TOPUP_CREDITS.topup100, name: 'Kineo — +100 credits', description: 'One-time: 100 credits (5 AI-generated videos). Best value. No subscription.', prices: TOPUP_PRICES.topup100 },
+  topup100: { credits: TOPUP_CREDITS.topup100, name: `Kineo — +${TOPUP_CREDITS.topup100} credits`, description: `One-time: ${TOPUP_CREDITS.topup100} credits (${describeSeedanceMix(TOPUP_CREDITS.topup100)}). No subscription.`, prices: TOPUP_PRICES.topup100 },
   // KINEO-TOPUP300-2026-08-20 — o nome diz o FILME, não o crédito: é o único
   // pacote que compra o motor da vitrine, e é assim que ele se vende.
-  topup300: { credits: TOPUP_CREDITS.topup300, name: 'Kineo — 2 Kling 3 films (300 credits)', description: 'One-time: 300 credits — enough for two full Kling 3 films, our top cinematic engine. Best value per credit. No subscription.', prices: TOPUP_PRICES.topup300 },
+  topup300: { credits: TOPUP_CREDITS.topup300, name: `Kineo — ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'Kling 3 film')} (${TOPUP_CREDITS.topup300} credits)`, description: `One-time: ${TOPUP_CREDITS.topup300} credits — enough for ${formatResultCount(videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood'), 'full Kling 3 film')}, our top cinematic engine. Best value per credit. No subscription.`, prices: TOPUP_PRICES.topup300 },
 }
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time "AI Avatar packs"

@@ -7,10 +7,13 @@
 // avatar palette to match the in-app components.
 import { useState } from 'react'
 import AvatarDemoLoop from '@/components/AvatarDemoLoop'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
+
+const AVATAR_CREDITS = creditsPerReferenceVideo('avatar')
 
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time avatar-pack pricing grid
 // (avatar1/avatar3/avatar10 → ?pack=avatar* checkout) was removed. Those packs
-// sold the now-unspendable avatar_credits balance. AI Avatar videos now cost 120
+// sold the now-unspendable avatar_credits balance. AI Avatar videos now use
 // universal video_credits from any plan, so the pricing section is replaced by a
 // CTA into the generator (/generate?avatar=1). PACKS array removed.
 
@@ -19,7 +22,7 @@ const FAQ = [
   { q: 'Whose photo can I use?', a: 'Yours, or anyone’s with their permission. One sharp, front-facing photo works best. You confirm you have the right to use it on upload.' },
   { q: 'How long does it take?', a: 'About a minute of your time, a few minutes of rendering. No camera, no mic, no editing.' },
   // KINEO-REBASE-2026-07-10 — avatar = 110 credits (220 old, 2:1 rebase; copy said 120, stale).
-  { q: 'How much does it cost?', a: 'An AI Avatar video uses 110 credits from your plan — the same universal credits that power every Kineo video. No separate add-on to buy.' },
+  { q: 'How much does it cost?', a: `A 60-second AI Avatar video uses ${AVATAR_CREDITS} credits from your plan — the same universal credits that power every Kineo video. No separate add-on to buy.` },
   { q: 'What if a render fails?', a: 'You’re never charged for a failed render. Your credits stay in your balance.' },
 ]
 
@@ -77,12 +80,12 @@ export default function AvatarLandingClient() {
 
       {/* Pricing — KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — the one-time avatar-pack
           grid (?pack=avatar*) was removed. AI Avatar videos now run on the same
-          universal credits as every Kineo video (120 credits per avatar video),
+          universal credits as every Kineo video,
           so this section drives to the generator / plans instead of a pack sale. */}
       <section className="mx-auto max-w-3xl px-5 py-10">
         <h2 className="text-center text-2xl font-black" style={{ color: '#a7f3d0' }}>Included with your plan</h2>
         {/* KINEO-REBASE-2026-07-10 — 110 universal credits (was 220; copy said 120, stale) */}
-        <p className="text-center text-xs mt-1 mb-6" style={{ color: '#86868b' }}>No separate add-on. An AI Avatar video uses 110 universal credits — the same credits that power every Kineo video.</p>
+        <p className="text-center text-xs mt-1 mb-6" style={{ color: '#86868b' }}>No separate add-on. A 60-second AI Avatar video uses {AVATAR_CREDITS} universal credits — the same credits that power every Kineo video.</p>
         <div className="flex justify-center">
           <a
             href="/generate?avatar=1&utm_source=avatar_landing_pricing"

@@ -19,7 +19,12 @@ import ExitIntentOffer from '@/components/ExitIntentOffer'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 // KINEO-CLIPES-2026-08-19 — anunciar filme PRONTO e a cena que o compõe. O
 // porquê (e o que NÃO copiar do Higgsfield) está no bloco em lib/marketingPrice.
-import { filmsAndScenes } from '@/lib/marketingPrice'
+import {
+  creditsPerReferenceVideo,
+  filmsAndScenes,
+  formatResultCount,
+  videosPerMonth,
+} from '@/lib/marketingPrice'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
@@ -46,7 +51,6 @@ import {
 } from '@/lib/checkoutPricing'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
-import { creditCostFor } from '@/lib/credits/engineCost'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -105,7 +109,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     q: 'What’s the difference between AI Generated and Cinematic AI?',
     // KINEO-REBASE-2026-07-10 — 2:1 rebase (Seedance 20, Kling 45) + universal
     // engines: every engine is on every paid plan now (no Studio exclusivity).
-    a: 'AI Generated uses the Seedance engine (great quality, 20 credits/video). Cinematic AI uses the premium Kling engine for top-tier cinematic motion (50 credits/video). Every paid plan can access every engine once its balance covers the full cost; you can add extra credits when needed. Fast Mode uses smart stock footage.',
+    a: `AI Generated uses the Seedance engine (great quality, ${creditsPerReferenceVideo('cinematic_ai')} credits per 60-second video). Cinematic AI uses the premium Kling engine for top-tier cinematic motion (${creditsPerReferenceVideo('cinematic_kling')} credits per 60-second video). Every paid plan can access every engine once its balance covers the full cost; you can add extra credits when needed. Fast Mode uses smart stock footage.`,
   },
   {
     q: 'How do credits work?',
@@ -113,7 +117,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // KINEO-PRICING-V3D-2026-07-26 — the discounted first month of Creator
     // grants 50 credits, not 150. Stating it here as well as on the card is
     // the difference between a discount and a bait-and-switch.
-    a: `Think in films: 1 film with Seedance = ${creditCostFor('cinematic_ai')} credits, Kling 2.5 = ${creditCostFor('cinematic_kling')}, Veo 3.1 = ${creditCostFor('cinematic_veo')}, Kling 3 or Omni Flash = ${creditCostFor('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${Math.floor(TIER_CREDITS.starter / creditCostFor('cinematic_ai'))} engine films), Creator includes ${TIER_CREDITS.basic} (≈${Math.floor(TIER_CREDITS.basic / creditCostFor('cinematic_ai'))} films), Studio includes ${TIER_CREDITS.pro} (≈${Math.floor(TIER_CREDITS.pro / 20)} films, or one Kling 3 film with room to spare); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
+    a: `Think in 60-second films: Seedance = ${creditsPerReferenceVideo('cinematic_ai')} credits, Kling 2.5 = ${creditsPerReferenceVideo('cinematic_kling')}, Veo 3.1 = ${creditsPerReferenceVideo('cinematic_veo')}, Kling 3 or Omni Flash = ${creditsPerReferenceVideo('cinematic_hollywood')}. One image = 1-5 credits, one voiceover = 1-2, one HD enhance = 10. Starter includes ${TIER_CREDITS.starter} credits/month (≈${formatResultCount(videosPerMonth('starter', 'cinematic_ai'), 'Seedance film')}), Creator includes ${TIER_CREDITS.basic} (≈${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')}), Studio includes ${TIER_CREDITS.pro} (≈${formatResultCount(videosPerMonth('pro', 'cinematic_ai'), 'Seedance film')}, or ${formatResultCount(videosPerMonth('pro', 'cinematic_hollywood'), 'Kling 3 film')}); Autopilot includes ${TIER_CREDITS.autopilot} on top of the daily Short we publish for you. Credits reset each month (no rollover).`,
   },
   {
     // KINEO-AUTOPILOT-299-2026-07-26
@@ -170,7 +174,7 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
       // duplicar a mesma informação em dois lugares é exatamente o que fez os
       // grants de crédito derivarem antes (ver KINEO-PRICING-V3D).
       // KINEO-PRICING-V5-2026-08-17 — 60cr: o card fala em RESULTADO.
-      outcome: `Every engine unlocked. ${TIER_CREDITS.starter} quick videos or ${Math.floor(TIER_CREDITS.starter / creditCostFor('cinematic_ai'))} engine films — voice, captions and score included.`,
+      outcome: `Every engine unlocked. ${videosPerMonth('starter', 'fast')} quick videos or ${videosPerMonth('starter', 'cinematic_ai')} Seedance film — voice, captions and score included.`,
       videosPerMonth: filmsAndScenes('starter'),
       storageLine: '100 projects · 90-day storage',
       cta: { label: 'Get Started', href: '#checkout' },
@@ -762,13 +766,13 @@ export default function PricingClient() {
                   // aparecem BLOQUEADAS com o plano que destrava (inveja
                   // vende; esconder o topo do catálogo não). Tudo derivado de
                   // TIER_CREDITS ÷ creditCostFor — régua do caixa, #296.
-                  const costFast = creditCostFor('fast', true)
-                  const costSeed = creditCostFor('cinematic_ai')
-                  const costH3 = creditCostFor('cinematic_h3')
-                  const costKling25 = creditCostFor('cinematic_kling')
-                  const costVeo = creditCostFor('cinematic_veo')
-                  const costFlag = creditCostFor('cinematic_hollywood')
-                  const costPres = creditCostFor('presenter')
+                  const costFast = creditsPerReferenceVideo('fast')
+                  const costSeed = creditsPerReferenceVideo('cinematic_ai')
+                  const costH3 = creditsPerReferenceVideo('cinematic_h3')
+                  const costKling25 = creditsPerReferenceVideo('cinematic_kling')
+                  const costVeo = creditsPerReferenceVideo('cinematic_veo')
+                  const costFlag = creditsPerReferenceVideo('cinematic_hollywood')
+                  const costPres = creditsPerReferenceVideo('presenter')
                   const tierFor = (cost: number) => cost <= TIER_CREDITS.starter ? 'Starter' : cost <= TIER_CREDITS.basic ? 'Creator' : 'Studio'
                   const engineRows: { ic: string; name: string; cost: number; note?: string }[] = [
                     { ic: '⚡', name: 'Kineo 1 quick videos', cost: costFast },
@@ -892,10 +896,10 @@ export default function PricingClient() {
         <div className="mx-auto mt-8 max-w-3xl rounded-2xl border border-white/[0.08] bg-[#131316] px-5 py-4">
           <p className="mb-2.5 text-center text-[11px] font-extrabold uppercase tracking-[.14em] text-[#2997ff]">What one credit buys</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12.5px] font-semibold text-[#a1a1a8]">
-            <span>🎬 Film (Seedance) — <b className="text-[#f5f5f7]">20 cr</b></span>
-            <span>🎥 Kling 2.5 — <b className="text-[#f5f5f7]">50 cr</b></span>
-            <span>🌐 Veo 3.1 — <b className="text-[#f5f5f7]">90 cr</b></span>
-            <span>🎞 Kling 3 — <b className="text-[#f5f5f7]">150 cr</b></span>
+            <span>🎬 Film (Seedance) — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_ai')} cr</b></span>
+            <span>🎥 Kling 2.5 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_kling')} cr</b></span>
+            <span>🌐 Veo 3.1 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_veo')} cr</b></span>
+            <span>🎞 Kling 3 — <b className="text-[#f5f5f7]">{creditsPerReferenceVideo('cinematic_hollywood')} cr</b></span>
             <span>🖼 Image — <b className="text-[#f5f5f7]">1-5 cr</b></span>
             <span>🎙 Voiceover — <b className="text-[#f5f5f7]">1-2 cr</b></span>
             <span>✨ HD Enhance — <b className="text-[#f5f5f7]">10 cr</b></span>
@@ -1259,40 +1263,40 @@ export default function PricingClient() {
                   {
                     label: 'Fast mode (smart stock)',
                     free: ft(OFFER, 'Up to 3 / 24h · watermark', '✅ watermark'),
-                    starter: `✅ ${creditCostFor('fast', true)} cr`,
-                    basic: `✅ ${creditCostFor('fast', true)} cr`,
-                    pro: `✅ ${creditCostFor('fast', true)} cr`,
+                    starter: `✅ ${creditsPerReferenceVideo('fast')} cr`,
+                    basic: `✅ ${creditsPerReferenceVideo('fast')} cr`,
+                    pro: `✅ ${creditsPerReferenceVideo('fast')} cr`,
                   },
                   {
-                    label: `AI Generated videos (Seedance, ${creditCostFor('cinematic_ai', true)} cr)`,
+                    label: `AI Generated videos (Seedance, ${creditsPerReferenceVideo('cinematic_ai')} cr)`,
                     free: ft(OFFER, '— Paid only', '✅ watermark'),
                     starter: '✅',
                     basic: '✅',
                     pro: '✅',
                   },
                   {
-                    label: `MiniMax H3 — cinematic (${creditCostFor('cinematic_h3', true)} cr)`,
+                    label: `MiniMax H3 — cinematic (${creditsPerReferenceVideo('cinematic_h3')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),
                     starter: '—',
                     basic: '✅',
                     pro: '✅',
                   },
                   {
-                    label: `Cinematic AI videos (Kling, ${creditCostFor('cinematic_kling', true)} cr)`,
+                    label: `Cinematic AI videos (Kling, ${creditsPerReferenceVideo('cinematic_kling')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),
                     starter: '—',
                     basic: '✅',
                     pro: '✅ 1080p',
                   },
                   {
-                    label: `🎬 AI Presenter — talking avatar (${creditCostFor('presenter', true)} cr)`,
+                    label: `🎬 AI Presenter — talking avatar (${creditsPerReferenceVideo('presenter')} cr)`,
                     free: ft(OFFER, '—', '✅ watermark'),
                     starter: '—',
                     basic: '✅',
                     pro: '✅',
                   },
                   {
-                    label: `🎥 Kling 3 — top cinematic (${creditCostFor('cinematic_hollywood', true)} cr)`,
+                    label: `🎥 Kling 3 — top cinematic (${creditsPerReferenceVideo('cinematic_hollywood')} cr)`,
                     free: ft(OFFER, '—', 'Unlocked · needs credits'),
                     starter: '—',
                     basic: '—',

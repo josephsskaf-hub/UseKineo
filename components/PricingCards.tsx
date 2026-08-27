@@ -47,6 +47,7 @@ import {
   STUDIO_AI_FILMS,
   STUDIO_CINEMATIC_FILMS,
   STUDIO_HOLLYWOOD_FILMS,
+  videosPerMonth,
 } from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
@@ -62,7 +63,7 @@ const FREE_FEATURES = [
 ]
 
 const STARTER_FEATURES = [
-  `${PLANS.starter.credits} Fast Mode renders/month`,
+  `${videosPerMonth('starter', 'fast')} Kineo 1 videos/month`,
   'AI writes script + voiceover',
   'Auto-captions pipeline',
   'Download watermark-free MP4',
@@ -384,7 +385,7 @@ export default function PricingCards({
           price={priceFor('starter')}
           period="/ month"
           renewNote={introNoteFor('starter')}
-          tagline={`${PLANS.starter.credits} credits/month — up to ${PLANS.starter.credits} Fast videos from smart stock footage + AI voiceover.`}
+          tagline={`${PLANS.starter.credits} credits/month — up to ${videosPerMonth('starter', 'fast')} Kineo 1 videos from smart stock footage + AI voiceover.`}
           features={STARTER_FEATURES}
           selected={selectedPlan === 'starter'}
           onSelect={() => setSelectedPlan('starter')}

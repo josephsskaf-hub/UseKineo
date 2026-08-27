@@ -42,7 +42,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent as trackAnalyticsEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
-import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { TRIAL_FILMS, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — "≈ 7 engine films" era literal; ver o comentário
 // no card do Creator, mais abaixo.
 import { CREATOR_AI_FILMS } from '@/lib/marketingPrice'
@@ -370,7 +370,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
               {/* KINEO-GRANT-COPY-UNICA — número derivado; ver lib/freeTierOffer.ts. */}
               <FreeTierCopy
                 legacy="3 free videos every day · no card needed."
-                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for one cinematic AI film plus a couple of fast ones. No card, no special deal for leaving: this is simply what a new account comes with.`}
+                on={`Signing up gets you the standard ${TRIAL_GRANT_CREDITS_COPY} free credits every new account receives — enough for ${TRIAL_FILMS} Seedance ${TRIAL_FILMS === 1 ? 'film' : 'films'}. No card, no special deal for leaving: this is simply what a new account comes with.`}
               />
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 18 }}>

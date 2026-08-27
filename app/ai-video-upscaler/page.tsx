@@ -7,10 +7,14 @@
 // upload avulso que nao existe — CTA leva pro signup + Studio).
 import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { creditsPerReferenceVideo, formatUsd, planCreditSpendUsd } from '@/lib/marketingPrice'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 
 const BASE = 'https://www.usekineo.com'
+const ENHANCE_CREDITS = 10
+const CREATOR_ENHANCE_VALUE = formatUsd(planCreditSpendUsd('basic', ENHANCE_CREDITS))
+const SEEDANCE_CREDITS = creditsPerReferenceVideo('cinematic_ai')
 
 export const metadata: Metadata = {
   title: 'AI Video Upscaler & Enhancer — Make AI Videos Sharper (Topaz-Powered) | Kineo',
@@ -32,7 +36,7 @@ const FAQS = [
   },
   {
     q: 'How does Kineo Enhance work?',
-    a: 'One click on any video in My Videos. Your film is processed with Topaz Proteus — the same restoration technology Hollywood uses to remaster footage — recovering detail, removing compression artifacts and adding subtle film grain. It costs 10 credits and takes a few minutes; the Studio plan includes 2 free enhances every month.',
+    a: `One click on any video in My Videos. Your film is processed with Topaz Proteus — the same restoration technology Hollywood uses to remaster footage — recovering detail, removing compression artifacts and adding subtle film grain. It costs ${ENHANCE_CREDITS} credits and takes a few minutes; the Studio plan includes 2 free enhances every month.`,
   },
   {
     q: 'Can I enhance a video I made in another tool?',
@@ -40,7 +44,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Enhance is 10 credits per video (about $1.50 on the Creator plan). Generating a full film starts at 25 credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
+    a: `Enhance is ${ENHANCE_CREDITS} credits per video (${CREATOR_ENHANCE_VALUE} of Creator-plan credits). Generating a full 60-second film starts at ${SEEDANCE_CREDITS} credits with Seedance. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits on signup.`,
   },
 ]
 

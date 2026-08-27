@@ -14,9 +14,13 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import ShortCostCalculator from './ShortCostCalculator'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
+const FAST_CREDITS = creditsPerReferenceVideo('fast')
+const SEEDANCE_CREDITS = creditsPerReferenceVideo('cinematic_ai')
+const KLING_CREDITS = creditsPerReferenceVideo('cinematic_kling')
 
 const CALCULATOR_CAMPAIGN = 'push77_short_cost_calculator'
 const CALCULATOR_FORM_ID = 'try-costed-workflow'
@@ -42,23 +46,23 @@ export const metadata: Metadata = {
 
 const STEPS: { n: string; t: string; d: string }[] = [
   { n: '1', t: 'Type one idea or topic', d: 'No source footage, no long video to re-clip. One line is enough — "the island too dangerous to visit", "how compound interest works".' },
-  { n: '2', t: 'Pick the right-cost visual engine', d: 'Fast Mode costs 5 credits per video. AI Generated uses 25 credits for original Seedance scenes, while Cinematic uses 50 credits for premium Kling scenes.' },
+  { n: '2', t: 'Pick the right-cost visual engine', d: `For a 60-second video, Fast Mode costs ${FAST_CREDITS} credits. AI Generated uses ${SEEDANCE_CREDITS} credits for original Seedance scenes, while Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
   { n: '3', t: 'Download a ready-to-post Short', d: 'A finished 9:16 video — script, AI voiceover, footage matched to each line and captions — usually in 3–7 minutes. No editor, no timeline.' },
 ]
 
 const WHY_CHEAPER: { t: string; d: string }[] = [
   { t: 'Built only for faceless Shorts', d: 'It does one job — turn an idea into a short-form video — so you’re not paying for a bloated general-purpose video suite you’ll never fully use.' },
-  { t: 'Start at 5 credits with Fast Mode', d: 'You choose the engine. Fast Mode uses matched stock footage for 5 credits per video. Original AI Generated scenes use 20 credits, while premium Cinematic scenes use 50.' },
+  { t: `Start at ${FAST_CREDITS} credits with Fast Mode`, d: `You choose the engine. For a 60-second video, Fast Mode uses matched stock footage for ${FAST_CREDITS} credits. Original AI Generated scenes use ${SEEDANCE_CREDITS} credits, while premium Cinematic scenes use ${KLING_CREDITS}.` },
   { t: 'No camera, no editor, no extra subscriptions', d: 'Script, AI voiceover, footage and captions are all generated in one pass — so the price of a Short is the credits, not a stack of separate tools.' },
   { t: 'Try before you pay anything', d: `${ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24 hours with no credit card, so you can confirm the workflow fits before paying.', OFFER.copy.sentence + ' Confirm the workflow fits before paying.')}` },
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. Kineo Fast Mode uses 5 credits per complete faceless Short, while AI Generated uses 20 and Cinematic uses 50. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current local subscription prices.` },
+  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current local subscription prices.` },
   { q: 'How do I make AI YouTube Shorts cheap?', a: 'Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately.' },
   { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
   { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
-  { q: 'Do I have to use the most expensive AI engine?', a: 'No. You pick the engine per video. Fast Mode uses 5 credits with matched stock footage, AI Generated uses 25 credits for Seedance scenes, and Cinematic uses 50 credits for premium Kling scenes.' },
+  { q: 'Do I have to use the most expensive AI engine?', a: `No. You pick the engine per video. For 60 seconds, Fast Mode uses ${FAST_CREDITS} credits with matched stock footage, AI Generated uses ${SEEDANCE_CREDITS} credits for Seedance scenes, and Cinematic uses ${KLING_CREDITS} credits for premium Kling scenes.` },
   { q: 'Can I really make a Short for free first?', a: `Yes. ${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a credit card.', OFFER.copy.sentence)} Paid plans unlock clean exports and premium AI engines.` },
 ]
 
@@ -141,7 +145,7 @@ export default function CheapestAiShortsMakerPage() {
 
         <h2 style={h2}>Pick the right engine — pay only when you scale up</h2>
         <p style={p}>
-          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>Fast Mode uses 5 credits, AI Generated uses 20, and Cinematic uses 50</strong>. Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>.
+          Every video lets you choose the engine. <strong style={{ color: '#f5f5f7' }}>For 60 seconds, Fast Mode uses {FAST_CREDITS} credits, AI Generated uses {SEEDANCE_CREDITS}, and Cinematic uses {KLING_CREDITS}</strong>. Start with the stock-footage workflow when cost matters most, then use original Seedance or premium Kling scenes only when the creative needs them. Compare the full plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>, or see how it stacks up against other tools under <Link href="/alternatives" style={{ color: '#2997ff' }}>alternatives</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>

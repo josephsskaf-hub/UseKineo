@@ -24,7 +24,8 @@
 //     desconto, não uma mentira com relógio.
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 
 const SEEN_KEY = 'kineo_welcome20_seen'
 const RESHOW_MS = 72 * 60 * 60 * 1000 // 72h
@@ -112,15 +113,15 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
     {
       tier: 'basic',
       name: 'Creator',
-      credits: '140 credits / month',
-      perks: ['≈ 5 full AI films or a month of daily Shorts', 'Every engine incl. MiniMax H3', 'Watermark-free exports you own'],
+      credits: `${TIER_CREDITS.basic} credits / month`,
+      perks: [`${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} or ${formatResultCount(videosPerMonth('basic', 'cinematic_h3'), 'MiniMax H3 film')}`, 'Every engine incl. MiniMax H3', 'Watermark-free exports you own'],
       highlight: false,
     },
     {
       tier: 'pro',
       name: 'Studio',
-      credits: '320 credits / month',
-      perks: ['2 films on Omni Flash — the #1 model — plus change', 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
+      credits: `${TIER_CREDITS.pro} credits / month`,
+      perks: [`${formatResultCount(videosPerMonth('pro', 'cinematic_omni'), 'film')} on Omni Flash — the #1 model — plus change`, 'Kling 3 film scenes with native voice & lip sync', '2 free HD Enhance upscales / month'],
       highlight: true,
     },
   ]

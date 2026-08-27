@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { PACK_CREDITS } from '@/lib/checkoutPricing'
+import { formatResultCount, videosForCredits } from '@/lib/marketingPrice'
 
 const SEEN_KEY = 'kineo_offer290_seen'
 // KINEO-REBASE-2026-07-10 — written by components/ExitIntentOffer.tsx on show.
@@ -142,7 +143,7 @@ export default function Offer290Banner() {
           🔥 First pack:{' '}
           <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>$4.90</span>{' '}
           <span style={{ color: '#fff' }}>$2.90</span> — {PACK_CREDITS.starter290} credits,
-          enough for 1 AI Generated video
+          enough for {formatResultCount(videosForCredits(PACK_CREDITS.starter290, 'cinematic_ai'), 'AI Generated video')}
         </span>
         <span style={{ color: '#fca5a5', fontSize: 13, fontWeight: 600 }}>
           Expires in{' '}

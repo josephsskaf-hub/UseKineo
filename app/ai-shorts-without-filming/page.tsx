@@ -17,7 +17,7 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
-import { STARTER_MONTH } from '@/lib/marketingPrice'
+import { STARTER_MONTH, creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -221,7 +221,7 @@ export default function AiShortsWithoutFilmingPage() {
 
         <h2 style={h2}>Stay anonymous, ship daily</h2>
         <p style={p}>
-          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses 5 credits, AI Generated (Seedance) uses 20, and Cinematic (Kling) uses 50</strong>. {ft(OFFER, 'Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits.', 'After the Creator trial, free accounts keep 1 free Fast video per month without using paid-plan credits.')} Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
+          Because you never appear and never record your voice, you can publish in money, mystery, geography or finance niches without being on camera. Pick the engine per 60-second video — <strong style={{ color: '#f5f5f7' }}>on paid plans, Fast uses {creditsPerReferenceVideo('fast')} credits, AI Generated (Seedance) uses {creditsPerReferenceVideo('cinematic_ai')}, and Cinematic (Kling) uses {creditsPerReferenceVideo('cinematic_kling')}</strong>. {ft(OFFER, 'Free accounts can make up to 3 watermarked Fast videos every 24 hours without using paid-plan credits.', 'After the Creator trial, free accounts keep 1 free Fast video per month without using paid-plan credits.')} Looking for the most affordable path? See the <Link href="/cheapest-ai-shorts-maker" style={{ color: '#2997ff' }}>cheapest AI shorts maker</Link> breakdown, or compare plans on the <Link href="/pricing" style={{ color: '#2997ff' }}>pricing page</Link>.
         </p>
 
         <h2 style={h2}>Frequently asked questions</h2>

@@ -4,6 +4,13 @@
 // resposta que esta página existe para dar — a Google, ao ChatGPT e ao
 // comprador. Casa com /sora-alternative (link cruzado) e com o banner da home.
 import type { Metadata } from 'next'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import {
+  STUDIO_CREDITS,
+  STUDIO_MONTH,
+  creditsPerReferenceVideo,
+  videosPerMonth,
+} from '@/lib/marketingPrice'
 
 export const dynamic = 'force-static'
 
@@ -47,7 +54,7 @@ const FAQ_JSONLD = {
       name: 'What does an Omni Flash film cost on Kineo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: '150 credits per film — the Studio plan ($29/month, 320 credits) fits two flagship films a month. Every new account gets 25 free credits with no card to test the pipeline on the lighter engines first.',
+        text: `${creditsPerReferenceVideo('cinematic_omni')} credits per 60-second film — the Studio plan (${STUDIO_MONTH}, ${STUDIO_CREDITS} credits) fits ${videosPerMonth('pro', 'cinematic_omni')} flagship film a month. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card to test the pipeline on the lighter engines first.`,
       },
     },
   ],
@@ -106,7 +113,7 @@ export default function OmniVsSoraPage() {
         >
           Try the pipeline free — no card
         </a>
-        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>25 free credits on signup · switch before Sept 24</p>
+        <p style={{ color: '#86868b', fontSize: 12, marginTop: 10 }}>{TRIAL_GRANT_CREDITS_COPY} free credits on signup · switch before Sept 24</p>
       </div>
     </main>
   )

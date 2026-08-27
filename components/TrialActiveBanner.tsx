@@ -68,7 +68,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 // Import de TIPO apenas (apagado no build). Vem da MESMA definição que o
 // servidor serializa: renomear um campo lá quebra o build aqui, em vez de fazer
 // o banner sumir em silêncio.
@@ -98,7 +98,7 @@ const DISMISSED_PREFIX = 'kineo_trial_active_banner_dismissed_v1'
 // "uma conta, um dia".
 const SHOWN_PREFIX = 'kineo_trial_active_banner_shown_v1'
 
-const SEEDANCE_COST = creditCostFor('cinematic_ai')
+const SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 
 interface CreditsPayload {
   trial?: Partial<TrialUiState>

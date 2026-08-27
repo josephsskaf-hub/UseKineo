@@ -42,7 +42,13 @@ import {
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
-import { BEST_COST_PER_FILM, CREATOR_AI_FILMS } from '@/lib/marketingPrice'
+import {
+  BEST_COST_PER_FILM,
+  CREATOR_AI_FILMS,
+  creditsPerReferenceVideo,
+  videoMixForCredits,
+  videosForCredits,
+} from '@/lib/marketingPrice'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -8314,8 +8320,8 @@ export default function GenerateClient({
       is_first_video: true,
     })
   }, [showInlineFirstVideo, prompt])
-  const selectedCost = mode === 'creator'
-    ? 0
+  const selectedCost = mode === 'creator' || mode === 'fast'
+    ? creditCostForDuration('fast', isPaidAccount, duration)
     // ⚠️ KINEO-H3-2026-08-19 — ESTA LINHA ERA UM ESPELHO CHUMBADO DA TABELA DE
     // CUSTO, e já estava mentindo: dizia `fast = 1` depois de o Kineo 1 subir
     // para 2 créditos hoje. É o mesmo defeito que passamos o dia consertando em
@@ -8328,8 +8334,6 @@ export default function GenerateClient({
     // botão dizia "Generate · 20 credits" num Seedance de 90s e o servidor
     // debitava 30 — cobrança-surpresa, exatamente o que o comentário em
     // engineCost.ts diz que não pode existir. Uma função dos dois lados.
-    : mode === 'fast'
-    ? creditCostForDuration('fast', isPaidAccount, duration)
     : mode === 'cinematic_ai'
     ? creditCostForDuration(
         aiEngine === 'kling'
@@ -8352,6 +8356,8 @@ export default function GenerateClient({
         duration,
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
+  const seedanceReferenceCost = creditsPerReferenceVideo('cinematic_ai')
+  const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
 
   // ═══ KINEO-CUSTO-VISIVEL-2026-08-23 — o custo de CADA duração, antes do
   // clique. Decisão B do fundador (23/08), e o caso que a motivou: 6 pessoas
@@ -8368,8 +8374,7 @@ export default function GenerateClient({
   // uma tabela local: a tela que promete e o biller que cobra não podem
   // divergir (a lição do "Generate · 20 credits" que debitava 30).
   const costForDurationOption = (d: Duration): number => {
-    if (mode === 'creator') return 0
-    if (mode === 'fast') return creditCostForDuration('fast', isPaidAccount, d)
+    if (mode === 'creator' || mode === 'fast') return creditCostForDuration('fast', isPaidAccount, d)
     if (mode === 'cinematic_ai') {
       const q =
         aiEngine === 'kling' ? 'cinematic_kling'
@@ -9974,6 +9979,7 @@ export default function GenerateClient({
           <ModeSelector
             mode={mode}
             setMode={setMode}
+            duration={duration}
             isPro={planTier === 'pro'}
             cinematicTokens={cinematicTokens}
             credits={credits}
@@ -10111,7 +10117,7 @@ export default function GenerateClient({
             <div>
               <p className="text-xs" style={{ color: 'var(--muted)' }}>
                 {mode === 'creator'
-                  ? `🎬 Creator Mode • review scenes first, then 1 credit • usually 3–7 min.`
+                  ? `🎬 Creator Mode • review scenes first, then ${selectedCost === 0 ? 'Free' : `${selectedCost} credits`} • usually 3–7 min.`
                   : mode === 'fast'
                   ? `⚡ ${selectedCost === 0 ? 'Free' : `${selectedCost} credit`} • Fast Mode • usually ready in 3–7 min.`
                   : mode === 'cinematic_ai'
@@ -11153,9 +11159,9 @@ export default function GenerateClient({
                     {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive` nos dois
                         ramos: durante o trial o Fast é PAGO (1 crédito, export
                         limpo), então a frase correta é a do ramo pago. */}
-                    {credits >= 20
-                      ? `about ${Math.floor(credits / 20)} more AI video${Math.floor(credits / 20) === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : `Paid Fast clean exports use ${creditCostFor('fast', true)} credits each.`}`
-                      : `not enough for another AI video (each takes 20). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : `Paid Fast clean exports use ${creditCostFor('fast', true)} credits each.`}`}
+                    {credits >= seedanceReferenceCost
+                      ? `about ${videosForCredits(credits, 'cinematic_ai')} more 60-second AI video${videosForCredits(credits, 'cinematic_ai') === 1 ? '' : 's'}. ${planTier === 'free' && !hasPaid && !trialActive ? ft(OFFER, 'Free Fast includes up to 3 watermarked previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.') : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`
+                      : `not enough for another 60-second AI video (each takes ${seedanceReferenceCost}). ${planTier === 'free' && !hasPaid && !trialActive ? (freeFastQuotaSpent ? 'Your 3 free watermarked Fast previews for this 24h window are already used.' : ft(OFFER, 'You can still make up to 3 watermarked Fast previews per 24 hours.', 'The free plan includes 1 watermarked Fast video per month.')) : `Paid Fast clean exports use ${creditsPerReferenceVideo('fast')} credits per 60-second video.`}`}
                   </p>
                 )}
                 {/* Push #065 — show the generated title so the user can see
@@ -12105,7 +12111,7 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', lineHeight: 1.5 }}
                     >
                       {shareReferralCode
-                        ? `They make their first video, you each get 30 credits — that's ${Math.floor(30 / creditCostFor('cinematic_ai'))} AI film + ${Math.floor((30 % creditCostFor('cinematic_ai')) / creditCostFor('fast', true))} quick videos, free.`
+                        ? `They make their first video, you each get 30 credits — that's ${shareRewardMix.primary} AI film + ${shareRewardMix.secondary} quick video${shareRewardMix.secondary === 1 ? '' : 's'}, free.`
                         : 'Send your public watch page and ask what they think.'}
                     </p>
                   </div>
@@ -13985,7 +13991,7 @@ function UpsellSection({
           {/* ⚠️ KINEO-PRICING-V6-2026-08-19 — mesma promessa quebrada da linha
               acima. Quem quiser o filme Hollywood precisa do Studio (160 cr);
               o "20 credits each" agora vem de creditCostFor(). */}
-          <li>~{CREATOR_AI_FILMS} AI Generated videos every month ({creditCostFor('cinematic_ai', true)} credits each)</li>
+          <li>~{CREATOR_AI_FILMS} 60-second AI Generated videos every month ({creditsPerReferenceVideo('cinematic_ai')} credits each)</li>
           <li>Every scene generated by AI — cinematic feel</li>
           <li>Download MP4 · Captions included · No watermark</li>
         </ul>
@@ -14411,6 +14417,7 @@ function EngineCard({
 function ModeSelector({
   mode,
   setMode,
+  duration,
   isPro,
   cinematicTokens,
   credits,
@@ -14426,6 +14433,7 @@ function ModeSelector({
 }: {
   mode: GenerationMode
   setMode: (m: GenerationMode) => void
+  duration: Duration
   isPro: boolean
   cinematicTokens: number
   credits: number | null
@@ -14586,15 +14594,15 @@ function ModeSelector({
               // native voice). KINEO-REBASE-2026-07-10 — costs halved (Hollywood
               // 150 = preço FINAL aprovado 10/07) + engines unlocked for ANY
               // paying user (universal gates — no more Studio-only lock).
-              { key: 'hollywood', label: 'Kling 3', sub: 'ultra-realistic people & voice', cr: 150 },
+              { key: 'hollywood', label: 'Kling 3', sub: 'ultra-realistic people & voice', cr: creditCostForDuration('cinematic_hollywood', true, duration) },
               // KINEO-H3-2026-08-19 — MiniMax H3. Entra LOGO ABAIXO do Kling 3 e
               // acima do Veo de proposito: e o filme carro-chefe que CABE no
               // plano. Depois do corte de grants da V6 o Creator (90cr) nao faz
               // nenhum Kling 3 (150cr); a 45cr ele faz dois H3. Se o cliente so
               // enxerga o de 150 ele conclui que filme e coisa de Studio.
-              { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: 45 },
-              { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: 90 },
-              { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: 50 }, // KINEO-PRICING-V3B-2026-07-10
+              { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: creditCostForDuration('cinematic_h3', true, duration) },
+              { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: creditCostForDuration('cinematic_veo', true, duration) },
+              { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
             ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3'; label: string; sub: string; cr: number }[]).map((m) => {
               const active = mode === 'cinematic_ai' && aiEngine === m.key
               return (
@@ -14997,10 +15005,9 @@ function UpgradeModal({
   //      redigitado; agora é derivado, então sobrevive ao próximo reprice.
   //
   // Enquanto `currency` for null nada de dinheiro é escrito.
-  const SEEDANCE_CREDITS = creditCostFor('cinematic_ai')
   function planUnlockLine(tier: 'starter' | 'basic' | 'pro'): string {
     const credits = TIER_CREDITS[tier]
-    const aiVideos = SEEDANCE_CREDITS > 0 ? Math.floor(credits / SEEDANCE_CREDITS) : 0
+    const aiVideos = videosForCredits(credits, 'cinematic_ai')
     const videosPart = aiVideos > 0 ? ` · up to ${aiVideos} AI-generated video${aiVideos === 1 ? '' : 's'}` : ''
     if (!currency) return `${credits} credits / month${videosPart}`
     if (isRegionalTier(tier) && hasIntroOffer(tier, currency, region)) {
@@ -15356,19 +15363,19 @@ function UpgradeModal({
                 {
                   id: 'topup40',
                   label: `+${TOPUP_CREDITS.topup40} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup40 / creditCostFor('cinematic_ai', true))} AI video`,
+                  sub: `${videosForCredits(TOPUP_CREDITS.topup40, 'cinematic_ai')} AI video`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup40[currency]) : '—',
                 },
                 {
                   id: 'topup120',
                   label: `+${TOPUP_CREDITS.topup120} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup120 / creditCostFor('cinematic_ai', true))} AI videos`,
+                  sub: `${videosForCredits(TOPUP_CREDITS.topup120, 'cinematic_ai')} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup120[currency]) : '—',
                 },
                 {
                   id: 'topup100',
                   label: `+${TOPUP_CREDITS.topup100} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup100 / creditCostFor('cinematic_ai', true))} AI videos`,
+                  sub: `${videosForCredits(TOPUP_CREDITS.topup100, 'cinematic_ai')} AI videos`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup100[currency]) : '—',
                 },
                 // KINEO-TOPUP300-2026-08-20 — o único pacote que compra o motor
@@ -15378,7 +15385,7 @@ function UpgradeModal({
                 {
                   id: 'topup300',
                   label: `+${TOPUP_CREDITS.topup300} credits`,
-                  sub: `${Math.floor(TOPUP_CREDITS.topup300 / 150)} Kling 3 films ⭐ best value`,
+                  sub: `${videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood')} Kling 3 films ⭐ best value`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup300[currency]) : '—',
                 },
               ].map((t) => (

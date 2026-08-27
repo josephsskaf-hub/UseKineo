@@ -20,7 +20,7 @@
 // constantes que a rota da Stripe usa para cobrar. Um reprice em
 // checkoutPricing.ts chega nestas páginas sem que ninguém precise abri-las.
 import { TIER_PRICES, TIER_CREDITS, type CheckoutTier } from '@/lib/checkoutPricing'
-import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
+import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 
 /** "7" / "15" / "29" — dólares inteiros, sem centavos zerados. A escada da V6
  *  é redonda de propósito, e a copy de marketing lê melhor como "$7/mo" do que
@@ -72,14 +72,83 @@ export const STUDIO_CREDITS = TIER_CREDITS.pro
 // `isPaidUser = true` porque toda frase deste arquivo descreve o que um
 // ASSINANTE recebe — no plano gratuito o Fast custa 0 e a conta daria ∞.
 
-/** Quantos vídeos de `quality` cabem no grant mensal de `tier`. Arredonda
- *  para baixo: prometer o vídeo que não fecha é exatamente o defeito acima. */
-export function videosPerMonth(tier: CheckoutTier, quality: Quality): number {
-  return Math.floor(TIER_CREDITS[tier] / creditCostFor(quality, true))
+/**
+ * Toda promessa de quantidade usa um filme de 60 segundos. É a mesma duração
+ * de referência do biller; mantê-la explícita impede que uma tela conte o
+ * preço-base enquanto outra conta 35s ou 90s sem dizer.
+ */
+export const MARKETING_REFERENCE_SECONDS = 60
+
+/** Custo que o servidor cobra por um vídeo de referência de 60s. */
+export function creditsPerReferenceVideo(quality: Quality): number {
+  return creditCostForDuration(quality, true, MARKETING_REFERENCE_SECONDS)
 }
 
-/** Seedance (20 cr) — o motor de IA de entrada, é ele que a copy chama de
- *  "engine film". Starter 2 · Creator 4 · Studio 8. */
+/** Quantos vídeos de 60s de `quality` cabem em qualquer saldo. */
+export function videosForCredits(credits: number, quality: Quality): number {
+  const cost = creditsPerReferenceVideo(quality)
+  return cost > 0 ? Math.floor(Math.max(0, credits) / cost) : 0
+}
+
+/** Quantos vídeos de 60s de `quality` cabem no grant mensal de `tier`. */
+export function videosPerMonth(tier: CheckoutTier, quality: Quality): number {
+  return videosForCredits(TIER_CREDITS[tier], quality)
+}
+
+/** Valor proporcional, em USD, de um gasto de créditos dentro de um plano. */
+export function planCreditSpendUsd(tier: CheckoutTier, credits: number): number {
+  const grant = TIER_CREDITS[tier]
+  return grant > 0 ? (TIER_PRICES[tier].usd / 100) * (Math.max(0, credits) / grant) : 0
+}
+
+/** "$1.67" — valor proporcional pronto para copy, sempre com centavos. */
+export function formatUsd(value: number): string {
+  return `$${value.toFixed(2)}`
+}
+
+/** Rótulo com singular/plural seguro para copy derivada. */
+export function formatResultCount(
+  count: number,
+  singular: string,
+  plural = `${singular}s`,
+): string {
+  return `${count} ${count === 1 ? singular : plural}`
+}
+
+/**
+ * Traduz um saldo em um mix honesto: primeiro compra o motor principal e usa
+ * apenas o restante que realmente sobrou no motor secundário.
+ */
+export function videoMixForCredits(
+  credits: number,
+  primary: Quality,
+  secondary: Quality = 'fast',
+): { primary: number; secondary: number; remainingCredits: number } {
+  const safeCredits = Math.max(0, Math.floor(credits))
+  const primaryCost = creditsPerReferenceVideo(primary)
+  const primaryCount = primaryCost > 0 ? Math.floor(safeCredits / primaryCost) : 0
+  const afterPrimary = safeCredits - primaryCount * primaryCost
+  const secondaryCost = creditsPerReferenceVideo(secondary)
+  const secondaryCount = secondaryCost > 0 ? Math.floor(afterPrimary / secondaryCost) : 0
+  return {
+    primary: primaryCount,
+    secondary: secondaryCount,
+    remainingCredits: afterPrimary - secondaryCount * secondaryCost,
+  }
+}
+
+/** Copy de packs/top-ups: omite motores que o saldo não compra. */
+export function describeSeedanceMix(credits: number): string {
+  const mix = videoMixForCredits(credits, 'cinematic_ai', 'fast')
+  const parts: string[] = []
+  if (mix.primary > 0) parts.push(formatResultCount(mix.primary, 'Seedance film'))
+  if (mix.secondary > 0) parts.push(formatResultCount(mix.secondary, 'Kineo 1 video'))
+  return parts.length > 0
+    ? parts.join(' plus ')
+    : formatResultCount(videosForCredits(credits, 'fast'), 'Kineo 1 video')
+}
+
+/** Seedance — o motor de IA de entrada. Quantidades sempre derivadas. */
 export const STARTER_AI_FILMS = videosPerMonth('starter', 'cinematic_ai')
 export const CREATOR_AI_FILMS = videosPerMonth('basic', 'cinematic_ai')
 export const STUDIO_AI_FILMS = videosPerMonth('pro', 'cinematic_ai')
@@ -104,7 +173,8 @@ export function fitsHollywood(tier: CheckoutTier): boolean {
 // ═══════════════════════════════════════════════════════════════════════════
 // Descoberto conferindo a página de preços do Higgsfield ao vivo. O plano topo
 // deles ($99/mês anual) anuncia "~133 Seedance 2.0 videos"; o Plus ($39) anuncia
-// "~44". O nosso Studio anuncia "9 filmes".
+// "~44". O nosso Studio anuncia filmes PRONTOS, e a quantidade agora vem da
+// mesma régua de 60s que a cobrança usa.
 //
 // Os dois números são verdadeiros e medem coisas DIFERENTES: o deles é CLIPE
 // (o Higgsfield é gerador de clipe com controle de câmera — quem escreve,
@@ -113,8 +183,8 @@ export function fitsHollywood(tier: CheckoutTier): boolean {
 //
 // Na mesma unidade a nossa posição é boa: um filme de 65s precisa de ~8 cenas,
 // então os 44 clipes do Plus deles são ~5 filmes de matéria-prima por $39,
-// contra 4 filmes PRONTOS por $29 no nosso Studio. Custo por filme quase
-// idêntico — e a gente faz o trabalho.
+// contra 7 filmes Seedance PRONTOS por $29 no nosso Studio hoje. A gente ainda
+// escreve, narra, legenda e monta o resultado.
 //
 // O PROBLEMA NUNCA FOI O PLANO, FOI A UNIDADE DE MEDIDA. "133 vídeos" ao lado
 // de "9 filmes" parece 14× maior mesmo não sendo, e o cliente que não conhece
@@ -167,18 +237,10 @@ export function filmsAndScenes(tier: CheckoutTier, quality: Quality = 'cinematic
 //
 // Este bloco faz a conta pela pessoa, na unidade dela: FILME PRONTO.
 //
-// ⚠️ ACHADO QUE ESTA FUNÇÃO EXPÔS, e que é decisão do FUNDADOR, não minha:
-// na V6 o custo por filme é praticamente IGUAL nos três planos
-// (Starter $7/2 = $3,50 · Creator $15/4 = $3,75 · Studio $29/8 = $3,63).
-// Ou seja: subir de plano não barateia o filme — em Creator ele fica até um
-// pouco mais caro que em Starter. Uma escada normalmente dá desconto por
-// volume, justamente para PUXAR a pessoa para cima; a nossa não dá motivo
-// aritmético nenhum para sair do Starter.
-// Por isso a copy NÃO imprime este número card a card: lado a lado, ele
-// mostraria que o plano do meio é o pior negócio da grade. O número entra UMA
-// vez, como âncora contra o mundo lá fora (editor freelancer: $30-75 por
-// Short), que é a comparação em que a gente ganha de longe.
-// Registrado para o fundador decidir a escada; nenhum preço foi mexido aqui.
+// Com a régua atual de 60s, a escada realmente dá desconto por volume:
+// Starter $7/1 = $7 · Creator $15/3 = $5 · Studio $29/7 ≈ $4,14 por Seedance.
+// A copy ainda usa a melhor âncora UMA vez contra o mundo lá fora (editor
+// freelancer: $30-75 por Short), sem transformar cada card numa conta.
 
 /** Custo em dólares de um filme pronto de `quality` dentro do plano `tier`.
  *  Deriva de TIER_PRICES ÷ videosPerMonth — as mesmas fontes que a Stripe
@@ -243,6 +305,5 @@ export function voiceoversFor(tier: CheckoutTier): number {
 /** Quantos filmes de um MOTOR específico o plano compra — "2 Omni Flash films"
  *  no Studio, "2 Kling 2.5" no Creator. Mesma régua do caixa (creditCostFor). */
 export function filmsOn(tier: CheckoutTier, quality: Quality): number {
-  const cost = creditCostFor(quality, true)
-  return cost > 0 ? Math.floor(TIER_CREDITS[tier] / cost) : 0
+  return videosPerMonth(tier, quality)
 }

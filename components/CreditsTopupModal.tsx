@@ -23,7 +23,7 @@ import {
   type TopupId,
 } from '@/lib/checkoutPricing'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { creditCostFor } from '@/lib/credits/engineCost'
+import { formatResultCount, videosForCredits } from '@/lib/marketingPrice'
 
 const PACKS: Array<{ id: TopupId; badge?: string }> = [
   { id: 'topup40' },
@@ -136,11 +136,11 @@ export default function CreditsTopupModal({
             // Com o topup100 caindo de 100 → 75 créditos nesta mesma rodada,
             // a linha "≈ N AI films" já mudou de valor sozinha (5 → 3) — que é
             // exatamente o comportamento que se quer de um número derivado.
-            const films = Math.floor(cr / creditCostFor('cinematic_ai', true))
+            const films = videosForCredits(cr, 'cinematic_ai')
             // KINEO-POPUP-AUDIT-2026-08-25 — o rótulo agora vende o OMNI FLASH
             // (mesmos 150cr do Kling 3, mas é o #1 do ranking de agosto e o
             // motor da campanha do dia). Derivado, nunca cravado.
-            const kling3 = Math.floor(cr / creditCostFor('cinematic_omni', true))
+            const kling3 = videosForCredits(cr, 'cinematic_omni')
             const highlighted = !!badge
             return (
               <button
@@ -207,7 +207,9 @@ export default function CreditsTopupModal({
                     </span>
                     <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 800, marginTop: 2 }}>+{cr} credits</span>
                     <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b', marginTop: 2 }}>
-                      {kling3 >= 1 ? `${kling3} Omni Flash ${kling3 === 1 ? 'film' : 'films'} (#1 model)` : `≈ ${films} AI ${films === 1 ? 'film' : 'films'}`}
+                      {kling3 >= 1
+                        ? `${formatResultCount(kling3, 'Omni Flash film')} (#1 model)`
+                        : `≈ ${formatResultCount(films, 'AI film')}`}
                     </span>
                   </>
                 )}

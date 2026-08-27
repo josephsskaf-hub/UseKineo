@@ -21,7 +21,7 @@ import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 // KINEO-PRICING-V6-2026-08-19 — quantos vídeos de IA o grant do Starter paga
 // de verdade. Ver lib/marketingPrice.ts.
-import { STARTER_AI_FILMS } from '@/lib/marketingPrice'
+import { STARTER_AI_FILMS, videosPerMonth } from '@/lib/marketingPrice'
 
 const DISMISSED_KEY = 'kineo_lowcredits_dismissed'
 const THRESHOLD = 5
@@ -108,7 +108,7 @@ export default function LowCreditsUpsell() {
           {/* KINEO-PRICING-V6-2026-08-19 — "or 1 AI Generated video" era um
               literal que subestimava o plano (40 créditos pagam 2 Seedance).
               Derivado, ele acompanha qualquer reprice de grant OU de motor. */}
-          Get {TIER_CREDITS.starter} credits every month — {TIER_CREDITS.starter} Fast
+          Get {TIER_CREDITS.starter} credits every month — {videosPerMonth('starter', 'fast')} Kineo 1
           videos, or {STARTER_AI_FILMS} AI Generated video{STARTER_AI_FILMS === 1 ? '' : 's'}.
           {' '}{STARTER_USD}/mo. Cancel anytime.
         </span>

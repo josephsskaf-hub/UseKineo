@@ -41,10 +41,21 @@ import {
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
-import { STARTER_MONTH } from '@/lib/marketingPrice'
+import {
+  STARTER_MONTH,
+  creditsPerReferenceVideo,
+  videosPerMonth,
+} from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
+const FAST_COST = creditsPerReferenceVideo('fast')
+const SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
+const KLING_COST = creditsPerReferenceVideo('cinematic_kling')
+const VEO_COST = creditsPerReferenceVideo('cinematic_veo')
+const KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
+const H3_COST = creditsPerReferenceVideo('cinematic_h3')
+const OMNI_COST = creditsPerReferenceVideo('cinematic_omni')
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -58,10 +69,10 @@ type Engine = {
   name: string
   /** Endpoint real, verbatim de app/api/generate-video-cinematic/route.ts. */
   model: string
-  /** Custo em créditos — fonte única lib/credits/engineCost.ts. */
-  credits: string
-  /** Plano mínimo. Studio = fora do trial Creator (lib/reverseTrial.ts). */
-  tier: 'Free' | 'Creator' | 'Studio'
+  /** Custo de um vídeo de referência de 60s, derivado do biller. */
+  creditCost: number
+  /** Menor grant mensal que paga um vídeo de referência inteiro. */
+  tier: 'Free' | 'Starter' | 'Creator' | 'Studio'
   h1: string
   intro: string
   bestFor: string
@@ -80,7 +91,7 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'fast',
     name: 'Kineo 1',
     model: 'Kineo’s own stock-footage + TTS pipeline',
-    credits: 'Free (watermarked) · 5 credits for a clean export',
+    creditCost: FAST_COST,
     tier: 'Free',
     h1: 'Kineo 1 — the free AI video generator that finishes the whole Short',
     intro:
@@ -90,7 +101,7 @@ export const ENGINES: Record<string, Engine> = {
     faq: [
       {
         q: 'Is Kineo 1 really free?',
-        a: `Yes — Kineo 1 renders and plays with a watermark at no cost and with no credit card. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free export costs 5 credits on a paid plan.`,
+        a: `Yes — Kineo 1 renders and plays with a watermark at no cost and with no credit card. ${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours.', OFFER.copy.sentence)} A clean, watermark-free 60-second export costs ${FAST_COST} credits on a paid plan.`,
       },
       {
         q: 'How long does a Kineo 1 video take?',
@@ -107,17 +118,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_ai',
     name: 'Seedance 1.5',
     model: 'fal-ai/bytedance/seedance/v1.5/pro/text-to-video',
-    credits: '25 credits per video',
-    tier: 'Creator',
+    creditCost: SEEDANCE_COST,
+    tier: 'Starter',
     h1: 'Seedance 1.5 AI video generator — every scene generated, not stock',
     intro:
-      'Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. 25 credits per video — and the free trial grants exactly enough for one.',
+      `Seedance 1.5 Pro (ByteDance) is the workhorse generative engine inside Kineo: instead of matching stock footage to your script, it generates every scene from the script itself. You still type one idea — Kineo writes the beats, prompts Seedance scene by scene, voices it, captions it and returns a finished vertical Short. ${SEEDANCE_COST} credits per 60-second video — and the free trial grants exactly enough for one.`,
     bestFor: 'Anything that does not exist on a stock site: an abandoned island, a burning crater, a 1922 expedition. Mystery, history and “weird facts” channels live here.',
     tradeoff: 'Generated scenes cost more than stock and take longer than Kineo 1. If your topic is well covered by real footage, Kineo 1 is faster and free.',
     faq: [
       {
         q: 'Can I use Seedance 1.5 without paying?',
-        a: `Seedance costs 25 credits per video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(25)} Seedance ${trialFilmsForEngine(25) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
+        a: `Seedance costs ${SEEDANCE_COST} credits per 60-second video. ${ft(OFFER, 'A new account starts with free watermarked Fast videos; Seedance runs on a paid plan starting at ' + STARTER_MONTH + '.', `Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with no card, and Seedance is included — so your first ${trialFilmsForEngine(SEEDANCE_COST)} Seedance ${trialFilmsForEngine(SEEDANCE_COST) === 1 ? 'film comes' : 'films come'} out of the free credits, watermarked. A plan unlocks the clean download.`)}`,
       },
       {
         q: 'What model is behind Kineo’s Seedance engine?',
@@ -125,7 +136,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Seedance vs Kling vs Veo — which should I pick?',
-        a: 'Seedance is the lowest-cost generated video (25 credits) and handles most faceless Shorts; Kling 2.5 at 50 credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.',
+        a: `Seedance is the lowest-cost generated video (${SEEDANCE_COST} credits per 60 seconds) and handles most faceless Shorts; Kling 2.5 at ${KLING_COST} credits is the house best-value pick for camera motion. Kling 2.5 is stronger on camera movement and physical motion. Veo 3.1 is Google’s flagship and the most expensive. Kling 2.5, Veo 3.1 and Kling 3 are unlocked on every new account — the free credits just have to cover the engine cost.`,
       },
     ],
   },
@@ -134,17 +145,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_kling',
     name: 'Kling 2.5',
     model: 'fal-ai/kling-video/v2.5-turbo/pro/text-to-video',
-    credits: '50 credits per video',
-    tier: 'Studio',
+    creditCost: KLING_COST,
+    tier: 'Creator',
     h1: 'Kling 2.5 AI video generator for vertical Shorts — camera motion that holds up',
     intro:
-      'Kling 2.5 Turbo Pro is the engine to reach for when the shot has to MOVE: a push-in through Roman ruins, a drone climb over a golden mountain, a 50-metre strike in a packed stadium. Kineo drives it from the script — you type the idea, Kineo writes the beats, prompts Kling scene by scene, voices and captions the result, and returns a finished 9:16 Short. 50 credits per video on the Studio plan.',
+      `Kling 2.5 Turbo Pro is the engine to reach for when the shot has to MOVE: a push-in through Roman ruins, a drone climb over a golden mountain, a 50-metre strike in a packed stadium. Kineo drives it from the script — you type the idea, Kineo writes the beats, prompts Kling scene by scene, voices and captions the result, and returns a finished 9:16 Short. A 60-second video costs ${KLING_COST} credits; the Creator monthly grant covers one.`,
     bestFor: 'Sports, action, travel and any topic where the camera itself is part of the storytelling.',
-    tradeoff: 'Studio-plan engine at 50 credits — 2.5× a Seedance video. If the scene is static, Seedance gets you the same story for less.',
+    tradeoff: `At ${KLING_COST} credits per 60 seconds, Kling 2.5 costs ${KLING_COST / SEEDANCE_COST}× a Seedance video. If the scene is static, Seedance gets you the same story for less.`,
     faq: [
       {
         q: 'Is Kling 2.5 free on Kineo?',
-        a: `Yes — every new account unlocks Kling 2.5 along with every other engine. It costs 50 credits per video, and the ${TRIAL_GRANT_CREDITS_COPY} free credits ${trialFilmsForEngine(50) > 0 ? `cover ${trialFilmsForEngine(50)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. Any plan or top-up unlocks Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
+        a: `Yes — every new account unlocks Kling 2.5 along with every other engine. It costs ${KLING_COST} credits per 60-second video, and the ${TRIAL_GRANT_CREDITS_COPY} free credits ${trialFilmsForEngine(KLING_COST) > 0 ? `cover ${trialFilmsForEngine(KLING_COST)}` : 'do not stretch to one — they cover a full Seedance film instead, which is the same pipeline on a cheaper engine'}. A Creator plan or a sufficient top-up covers Kling. Trial films come out watermarked; a plan unlocks the clean download.`,
       },
       {
         q: 'Which Kling model does Kineo use?',
@@ -161,17 +172,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_veo',
     name: 'Veo 3.1',
     model: 'fal-ai/veo3.1/fast',
-    credits: '100 credits per video',
+    creditCost: VEO_COST,
     tier: 'Studio',
     h1: 'Veo 3.1 AI video generator — Google’s flagship, wired into a finished Short',
     intro:
-      'Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. 100 credits per video, from the Creator plan up.',
+      `Veo 3.1 is Google’s flagship video model, and inside Kineo it is not a clip generator you then have to edit: you type one idea and get the whole vertical Short — script, AI voiceover, Veo-generated scenes and captions — assembled and ready to post. A 60-second video costs ${VEO_COST} credits; the Studio monthly grant covers one.`,
     bestFor: 'The hero video of a channel: the one render a week that has to look expensive. Prompt adherence and scene coherence are its strong suit.',
-    tradeoff: 'The most expensive engine after the 150-credit flagships (100 credits), from the Creator plan up. It is not the engine for posting daily — pair it with Kineo 1 for volume.',
+    tradeoff: `The most expensive engine after the ${KLING3_COST}-credit flagships (${VEO_COST} credits per 60 seconds). It is not the engine for posting daily — pair it with Kineo 1 for volume.`,
     faq: [
       {
         q: 'Can I try Veo 3.1 for free?',
-        a: `Yes — Veo 3.1 is unlocked on every account at 100 credits per video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes a plan or a top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
+        a: `Yes — Veo 3.1 is unlocked on every account at ${VEO_COST} credits per 60-second video; the ${TRIAL_GRANT_CREDITS_COPY} free credits do not cover one, so it takes the Studio plan or a sufficient top-up. What you can test at no cost is the pipeline itself: run the same topic through Kineo 1 or Seedance, see the script, voice and captions, then switch engines once you like the format.`,
       },
       {
         q: 'What is different about Veo inside Kineo versus using Veo directly?',
@@ -179,7 +190,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Veo 3.1 or Kling 3?',
-        a: 'Veo 3.1 (100 credits) is the stronger general-purpose flagship. Kling 3 (150 credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync.',
+        a: `Veo 3.1 (${VEO_COST} credits) is the stronger general-purpose flagship. Kling 3 (${KLING3_COST} credits) is the one to use when a scene needs a person speaking on camera with native voice and lip sync.`,
       },
     ],
   },
@@ -188,17 +199,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_hollywood',
     name: 'Kling 3',
     model: 'fal-ai Kling 3 (dialogue / i2v scene routing)',
-    credits: '150 credits per video',
+    creditCost: KLING3_COST,
     tier: 'Studio',
     h1: 'Kling 3 AI video generator — film scenes with native voice and lip sync',
     intro:
-      'Kling 3 is the top of the range: multi-scene films where a character can speak on camera, in their own generated voice, with lip sync — a medieval historian holding a book, a reporter in golden hour on a Manhattan street, a presenter in a futuristic studio. Kineo routes each scene to the right Kling 3 endpoint and returns the finished vertical film. 150 credits per video on the Studio plan.',
+      `Kling 3 is the top of the range: multi-scene films where a character can speak on camera, in their own generated voice, with lip sync — a medieval historian holding a book, a reporter in golden hour on a Manhattan street, a presenter in a futuristic studio. Kineo routes each scene to the right Kling 3 endpoint and returns the finished vertical film. A 60-second video costs ${KLING3_COST} credits; the Studio monthly grant covers one.`,
     bestFor: 'Talking-head storytelling without a camera, a face, or a studio. The renders people say “that does not even look like AI” about.',
-    tradeoff: 'The most expensive engine in the catalogue at 150 credits, and Studio-only. One Kling 3 render costs what seven Seedance renders cost.',
+    tradeoff: `The most expensive engine in the catalogue at ${KLING3_COST} credits per 60 seconds. One Kling 3 render costs what ${Math.floor(KLING3_COST / SEEDANCE_COST)} Seedance renders cost.`,
     faq: [
       {
         q: 'How much does a Kling 3 video cost on Kineo?',
-        a: '150 credits per video, on the Studio plan. It is the most expensive engine in the catalogue and is not part of the free trial.',
+        a: `${KLING3_COST} credits per 60-second video. The Studio monthly grant covers one; the free trial grant does not.`,
       },
       {
         q: 'Can Kling 3 make a character speak on camera?',
@@ -219,7 +230,7 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_h3',
     name: 'MiniMax H3',
     model: 'minimax/h3 (text-to-video / image-to-video)',
-    credits: '45 credits per video',
+    creditCost: H3_COST,
     tier: 'Creator',
     h1: 'MiniMax H3 AI video generator — cinematic film that fits your plan',
     // #293 — KINEO-H3-FALA-NA-PAGINA-2026-08-23. Desde hoje o H3 renderiza
@@ -231,17 +242,17 @@ export const ENGINES: Record<string, Engine> = {
     // demora semanas para ser indexada; página linkada de uma que já ranqueia
     // entra na próxima passada do crawler.
     intro:
-      'MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders multi-scene films at 45 credits, so a Creator plan makes two of them and a Studio plan four — where the top-tier Kling 3, at 150 credits, fits once. Since August 2026 it also renders talking-character scenes: a person on screen speaks your exact line with lip sync while a documentary narrator carries the rest of the film. H3 reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.',
+      `MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders 60-second multi-scene films at ${H3_COST} credits, so a Creator plan makes ${videosPerMonth('basic', 'cinematic_h3')} and a Studio plan ${videosPerMonth('pro', 'cinematic_h3')} — where the top-tier Kling 3, at ${KLING3_COST} credits, fits once. Since August 2026 it also renders talking-character scenes: a person on screen speaks your exact line with lip sync while a documentary narrator carries the rest of the film. H3 reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.`,
     bestFor: 'Series and channels: anything where the same look has to survive across eight scenes and across weeks of episodes.',
     tradeoff: 'Renders at 768p rather than 1080p. For a 9:16 Short that is plenty, and one-click HD Enhance covers the cases where it is not.',
     faq: [
       {
         q: 'How much does a MiniMax H3 video cost on Kineo?',
-        a: '45 credits per finished film. On the Creator plan (140 credits) that is three films a month; on Studio (320 credits) it is seven.',
+        a: `${H3_COST} credits per 60-second finished film. The Creator monthly grant fits ${videosPerMonth('basic', 'cinematic_h3')} films; Studio fits ${videosPerMonth('pro', 'cinematic_h3')}.`,
       },
       {
         q: 'Why choose MiniMax H3 over Kling 3?',
-        a: 'Cost and consistency. Kling 3 costs 150 credits, so only the Studio plan fits one per month. H3 costs 45, and it accepts up to nine reference images at once — which is the difference between a character who looks the same in every scene and one who drifts. Kling 3 still wins when a scene needs a person speaking on camera with native lip sync.',
+        a: `Cost and consistency. Kling 3 costs ${KLING3_COST} credits, so the Studio monthly grant fits one. H3 costs ${H3_COST}, and it accepts up to nine reference images at once — which is the difference between a character who looks the same in every scene and one who drifts. Kling 3 still wins when a scene needs a person speaking on camera with native lip sync.`,
       },
       {
         q: 'Does MiniMax H3 generate its own audio?',
@@ -258,17 +269,17 @@ export const ENGINES: Record<string, Engine> = {
     qualityMode: 'cinematic_omni',
     name: 'Omni Flash',
     model: 'google/gemini-omni-flash (image-to-video)',
-    credits: '150 credits per video',
+    creditCost: OMNI_COST,
     tier: 'Studio',
     h1: "Gemini Omni Flash AI video generator — Google's #1-ranked model, as a finished Short",
     intro:
-      "Omni Flash is Google's Gemini Omni Flash — the #1-ranked video model in the August 2026 blind arena — running inside Kineo's cinematic pipeline. Every scene is anchored to a generated still image, so characters and world stay consistent across the whole film; Kineo adds the documentary narration, karaoke captions and soundtrack, and delivers a vertical 1080×1920 master. It sits at the same 150-credit tier as Kling 3: the two flagship engines, two different looks.",
+      `Omni Flash is Google's Gemini Omni Flash — the #1-ranked video model in the August 2026 blind arena — running inside Kineo's cinematic pipeline. Every scene is anchored to a generated still image, so characters and world stay consistent across the whole film; Kineo adds the documentary narration, karaoke captions and soundtrack, and delivers a vertical 1080×1920 master. It sits at the same ${OMNI_COST}-credit tier as Kling 3: the two flagship engines, two different looks.`,
     bestFor: 'Flagship storytelling where motion realism matters most: physical scenes, weather, machines, crowds — the model was ranked #1 for exactly this.',
     tradeoff: 'Scenes cap at 10 seconds each (the provider limit), so very long single-shot monologues are split across cuts. Kling 3 still wins when a scene needs a character speaking on camera with native lip sync.',
     faq: [
       {
         q: 'How much does an Omni Flash video cost on Kineo?',
-        a: '150 credits per finished film — the same tier as Kling 3. One fits each month on the Studio plan.',
+        a: `${OMNI_COST} credits per 60-second finished film — the same tier as Kling 3. The Studio monthly grant fits ${videosPerMonth('pro', 'cinematic_omni')}.`,
       },
       {
         q: 'Is this really the #1 video model?',
@@ -284,6 +295,12 @@ export const ENGINES: Record<string, Engine> = {
 
 export const ENGINE_SLUGS = Object.keys(ENGINES)
 
+function engineCostLabel(engine: Engine): string {
+  return engine.tier === 'Free'
+    ? `Free with watermark · ${engine.creditCost} credits for a clean 60-second export`
+    : `${engine.creditCost} credits per 60-second video`
+}
+
 export function generateStaticParams() {
   return ENGINE_SLUGS.map((engine) => ({ engine }))
 }
@@ -294,7 +311,7 @@ export function generateMetadata({ params }: { params: { engine: string } }): Me
   const e = ENGINES[params.engine]
   if (!e) return {}
   const title = `${e.name} AI Video Generator for YouTube Shorts | Kineo`
-  const description = `Turn one idea into a finished vertical Short rendered by ${e.name} — script, AI voiceover, scenes and captions, ${e.credits.toLowerCase()}. Watch real user renders made with ${e.name}, not a demo reel.`
+  const description = `Turn one idea into a finished vertical Short rendered by ${e.name} — script, AI voiceover, scenes and captions, ${engineCostLabel(e).toLowerCase()}. Watch real user renders made with ${e.name}, not a demo reel.`
   const url = `${BASE}/ai-video-generator/${params.engine}`
   return {
     metadataBase: new URL(BASE),
@@ -341,12 +358,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
     ],
   }
 
-  const tierNote =
-    e.tier === 'Studio'
-      ? `${e.name} is unlocked on every account — the only limit is whether your credits cover it.`
-      : e.tier === 'Creator'
-        ? ft(OFFER, `${e.name} runs on a paid plan; Starter is ${STARTER_MONTH}.`, `${e.name} is unlocked on every new account — ${TRIAL_GRANT_CREDITS_COPY} free credits, no card. Trial films are watermarked; a plan unlocks the clean download.`)
-        : ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
+  const tierNote = e.tier === 'Free'
+    ? ft(OFFER, 'Free with a watermark · no card', OFFER.copy.chip)
+    : `${e.name} is unlocked on every account. Its ${e.creditCost}-credit 60-second cost is covered by the ${e.tier} monthly grant; the ${TRIAL_GRANT_CREDITS_COPY}-credit trial ${TRIAL_GRANT_CREDITS_COPY >= e.creditCost ? 'covers one' : 'does not cover one'}.`
 
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -365,7 +379,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         {/* Hero */}
         <section style={{ marginTop: 34, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
-            {e.name} · {e.credits}
+            {e.name} · {engineCostLabel(e)}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>{e.h1}</h1>
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
@@ -376,7 +390,9 @@ export default async function EnginePage({ params }: { params: { engine: string 
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
             >
-              Start free with {e.name} →
+              {e.tier === 'Free' || TRIAL_GRANT_CREDITS_COPY >= e.creditCost
+                ? `Start free with ${e.name} →`
+                : 'Start free — try the workflow →'}
             </OrganicCtaLink>
             <Link
               href="/pricing"
@@ -432,8 +448,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
               <tbody>
                 {[
                   ['Model called', e.model],
-                  ['Cost per video', e.credits],
-                  ['Plan needed', e.tier === 'Free' ? 'None — runs on a free account' : e.tier === 'Creator' ? 'Creator (included in the free trial)' : 'Studio'],
+                  ['Cost per video', engineCostLabel(e)],
+                  ['Smallest monthly grant that covers one', e.tier === 'Free' ? 'None — runs on a free account' : e.tier],
                   ['Output', 'Vertical 9:16 MP4, script + AI voiceover + captions already assembled'],
                   ['Typical turnaround', '3–7 minutes from idea to download'],
                   ['Best for', e.bestFor],
@@ -494,7 +510,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
                           <Link href={`/ai-video-generator/${slug}`} style={{ color: '#f5f5f7', textDecoration: 'none' }}>{o.name}</Link>
                         )}
                       </td>
-                      <td style={{ padding: '11px 10px', color: '#d2d2d7', whiteSpace: 'nowrap' }}>{o.tier === 'Free' ? 'Free' : `${o.credits.split(' ')[0]} cr`}</td>
+                      <td style={{ padding: '11px 10px', color: '#d2d2d7', whiteSpace: 'nowrap' }}>{o.tier === 'Free' ? 'Free' : `${o.creditCost} cr`}</td>
                       <td style={{ padding: '11px 10px', color: o.tier === 'Studio' ? '#86868b' : '#2997ff', fontWeight: 700 }}>{o.tier}</td>
                       <td style={{ padding: '11px 14px', color: '#86868b', lineHeight: 1.5 }}>{o.bestFor}</td>
                     </tr>

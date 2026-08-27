@@ -1,5 +1,6 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
+import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -106,7 +107,7 @@ const softwareApplicationSchema = {
         name: 'Creator',
         cents: TIER_PRICES.basic.usd,
         credits: TIER_CREDITS.basic,
-        extra: 'Enough for roughly seven cinematic films a month, or many more Fast renders.',
+        extra: `Enough for ${formatResultCount(videosPerMonth('basic', 'cinematic_ai'), 'Seedance film')} a month, or ${formatResultCount(videosPerMonth('basic', 'fast'), 'Kineo 1 film')}.`,
       },
       {
         name: 'Studio',
