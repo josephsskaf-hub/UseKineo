@@ -71,12 +71,15 @@ Esta decisão também está registrada em `docs/DECISIONS.md`.
 | **Total determinístico** | **615/615** |
 | `checkPricingInvariants()` real | `[]` |
 | `core.whitespace=cr-at-eol diff --check` | limpo |
+| `npm run build` | verde |
 
 **TESTADO LOCALMENTE.** `npx tsc --noEmit` não encontrou erro novo. Permanecem os quatro erros de baseline já existentes:
 
 - `app/api/admin/_shared/mrr.ts`: versão da API Stripe.
 - `app/api/me/subscription/route.ts`: versão da API Stripe.
 - `app/api/stripe/checkout/route.ts`: dois resíduos de `brl` numa tipagem hoje USD-only.
+
+O primeiro build local compilou e parou porque a worktree isolada não lê o segredo `OPENAI_API_KEY`. A repetição usou apenas o valor fictício `build-placeholder-not-a-secret`, sem chamada ao fornecedor, e terminou verde. Os avisos de rotas antigas que usam cookies durante a coleta estática permanecem não bloqueantes.
 
 ## 4. Previews visuais obrigatórios
 
