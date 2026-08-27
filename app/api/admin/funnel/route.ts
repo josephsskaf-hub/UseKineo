@@ -17,6 +17,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
+import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -160,6 +161,9 @@ export interface FunnelData {
   organicRecovery: {
     landingSessions: number
     ctaClicks: number
+    landingVisitors: number
+    handoffOpens: number
+    intentActors: number
     ctaRate: string
     viralNowViews: number
     viralNowClicks: number
@@ -266,6 +270,7 @@ const ORGANIC_EXACT_PATHS = new Set([
   '/free-ai-shorts-generator',
   '/faceless-video-generator',
   '/text-to-video-shorts',
+  '/chatgpt-to-youtube-shorts',
   '/from-saashub',
   '/free-ai-shorts',
   '/alternatives',
@@ -445,7 +450,7 @@ export async function GET(req: Request) {
     // used to join checkout/payment activity back to cohort users.
     const trackedEventNames = [
       'homepage_view', 'generate_page_view', 'analyze_idea_clicked',
-      'landing_session_started', 'organic_cta_clicked', 'organic_topic_submitted',
+      'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
       'viral_now_viewed', 'viral_now_topic_clicked',
       'video_share_clicked', 'video_shared', 'video_share_channel_opened',
       'public_video_cta_clicked',
@@ -541,7 +546,7 @@ export async function GET(req: Request) {
           .from('events')
           .select('name,user_id,created_at,session_id,metadata,path')
           .in('name', [
-            'landing_session_started', 'organic_cta_clicked', 'organic_topic_submitted',
+            'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
             'viral_now_viewed', 'viral_now_topic_clicked',
             'video_share_prompt_viewed', 'video_share_clicked', 'video_shared',
             'video_share_channel_opened', 'video_share_cancelled',
@@ -890,26 +895,12 @@ export async function GET(req: Request) {
     const organicLandingRows = organicEventRows.filter((event) =>
       event.name === 'landing_session_started' && isOrganicLandingPath(event.path)
     )
-    // PUSH #32 — a completed topic form is a stronger organic intent action
-    // than a generic CTA click. Count both paths so the Search Console-led
-    // experiment is visible without changing the established dashboard shape.
-    // KINEO-STARTER-EM-ARTIGO-2026-08-15 — `ctaClicks` abaixo é CONTAGEM DE
-    // LINHAS, não de pessoas. A partir desta sprint o `TopicGeneratorForm`
-    // emite `organic_cta_clicked` ALÉM de `organic_topic_submitted` no MESMO
-    // clique, para que o starter apareça na consulta ad-hoc por
-    // `organic_cta_clicked` que decide se uma página orgânica vive ou morre
-    // (o gate de 14/08 leu "0 cliques em 41 sessões" em /cheapest-ai-shorts-maker
-    // usando essa consulta — e aquela página TEM o starter desde #78; o zero
-    // media o instrumento). Sem o filtro abaixo, UMA ação viraria DUAS linhas e
-    // este painel dobraria `ctaClicks`/`ctaRate` em 17 páginas da noite para o
-    // dia — um número inflado que ninguém pediu e que pareceria resultado.
-    // O evento espelho se declara com `metadata.mirrors`; nenhuma linha
-    // histórica tem essa chave, então o passado não muda de valor.
-    const organicCtaRows = organicEventRows.filter((event) =>
-      (event.name === 'organic_cta_clicked' && !event.metadata?.mirrors) ||
-      event.name === 'organic_topic_submitted' ||
-      event.name === 'viral_now_topic_clicked'
-    )
+    // A rolagem até o formulário mede interesse (`organic_handoff_opened`); o
+    // submit mede intenção. São ações diferentes e cada numerador conta
+    // PESSOAS, não linhas. O helper também ignora o espelho legado emitido pelo
+    // TopicGeneratorForm, impedindo uma pessoa de virar duas conversões.
+    const organicActions = summarizeOrganicActions(organicEventRows)
+    const organicLandingVisitors = uniqueOrganicActorCount(organicLandingRows)
     const viralNowEventRows = organicEventRows.filter((event) => {
       const campaign = event.metadata?.campaign
       return typeof campaign === 'string' && campaign.toLowerCase() === 'push39_viral_now'
@@ -922,10 +913,12 @@ export async function GET(req: Request) {
     }
     const viralNowViews = uniqueViralNowActors('viral_now_viewed')
     const viralNowClicks = uniqueViralNowActors('viral_now_topic_clicked')
-    const organicPageMap = new Map<string, number>()
+    const organicPageMap = new Map<string, EventRow[]>()
     for (const event of organicLandingRows) {
       const path = event.path as string
-      organicPageMap.set(path, (organicPageMap.get(path) ?? 0) + 1)
+      const rows = organicPageMap.get(path) ?? []
+      rows.push(event)
+      organicPageMap.set(path, rows)
     }
     const organicCohort = cohort.filter((profile) => {
       const campaign = (profile.signup_utm_campaign ?? '').toLowerCase()
@@ -938,19 +931,24 @@ export async function GET(req: Request) {
     const organicActivated = organicCohort.filter((profile) => (videoCountByUser.get(profile.id) ?? 0) >= 1).length
     const organicPaid = organicCohort.filter((profile) => paidUserSet.has(profile.id)).length
     const organicRecovery = {
-      landingSessions: organicLandingRows.length,
-      ctaClicks: organicCtaRows.length,
-      ctaRate: pct(organicCtaRows.length, organicLandingRows.length),
+      // Legacy aliases remain for older dashboard clients, but now carry the
+      // corrected unique-person counts.
+      landingSessions: organicLandingVisitors,
+      ctaClicks: organicActions.intentActors,
+      landingVisitors: organicLandingVisitors,
+      handoffOpens: organicActions.handoffOpenActors,
+      intentActors: organicActions.intentActors,
+      ctaRate: pct(organicActions.intentActors, organicLandingVisitors),
       viralNowViews,
       viralNowClicks,
       viralNowViewToClickRate: pct(viralNowClicks, viralNowViews),
       signups: organicCohort.length,
-      signupRate: pct(organicCohort.length, organicCtaRows.length),
+      signupRate: pct(organicCohort.length, organicActions.intentActors),
       activated: organicActivated,
       activationRate: pct(organicActivated, organicCohort.length),
       paid: organicPaid,
       topLandingPages: Array.from(organicPageMap.entries())
-        .map(([path, sessions]) => ({ path, sessions }))
+        .map(([path, rows]) => ({ path, sessions: uniqueOrganicActorCount(rows) }))
         .sort((a, b) => b.sessions - a.sessions)
         .slice(0, 10),
     }

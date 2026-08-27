@@ -646,6 +646,25 @@ export interface FreeToolFact {
   what: string
 }
 
+export interface StartHereFact {
+  audience: string
+  url: string
+  action: string
+  carriesThroughSignup: readonly ['script', 'campaign', 'fast_creation_intent', 'verbatim_mode', 'duration']
+}
+
+/**
+ * The shortest truthful route for the organic audience that arrives with the
+ * writing already done. Shared by /api/facts and /llms.txt so answer engines
+ * never have to infer a generic signup URL from prose.
+ */
+export const START_HERE_FACT: StartHereFact = {
+  audience: 'People who already have a YouTube Shorts script from ChatGPT',
+  url: `${BASE}/chatgpt-to-youtube-shorts`,
+  action: 'Paste the existing script, then continue through signup into a 35-second Fast workflow that preserves the word sequence.',
+  carriesThroughSignup: ['script', 'campaign', 'fast_creation_intent', 'verbatim_mode', 'duration'],
+}
+
 /**
  * Fonte única das duas ferramentas públicas. /llms.txt as descreve em prosa a
  * partir dos MESMOS caminhos; se um dia uma delas passar a exigir conta, este
@@ -703,6 +722,7 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
 
 export interface KineoFactsPayload {
   product: typeof PRODUCT
+  startHere: StartHereFact
   /**
    * Data em que os preços dos CONCORRENTES foram lidos nas páginas deles.
    * Mantido com o nome e o valor históricos por compatibilidade — quem quer a
@@ -767,6 +787,7 @@ export interface KineoFactsPayload {
 export function getKineoFacts(): KineoFactsPayload {
   return {
     product: PRODUCT,
+    startHere: START_HERE_FACT,
     lastVerified: LAST_VERIFIED_ISO,
     lastVerifiedHuman: LAST_VERIFIED_HUMAN,
     competitorPricesVerified: LAST_VERIFIED_ISO,

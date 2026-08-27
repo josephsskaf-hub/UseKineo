@@ -12,6 +12,7 @@ import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { carryCreationHandoff } from '@/lib/creationHandoff'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -26,13 +27,10 @@ function activationRedirectFromSearch(search: string): string {
   // Carry the homepage idea through auth on a local activation URL only.
   // URLSearchParams handles encoding; the cap avoids unbounded callback URLs.
   const activationParams = new URLSearchParams({ welcome: '1' })
-  const prompt = (params.get('prompt') ?? '').trim().slice(0, 1000)
-  if (prompt) activationParams.set('prompt', prompt)
-  // Only an explicit generate-form submission may auto-start a render after
-  // auth. A bare prompt remains a prefill and keeps the normal manual flow.
-  if (prompt && params.get('create_intent') === 'fast') {
-    activationParams.set('create_intent', 'fast')
-  }
+  const handoff = carryCreationHandoff(params, activationParams)
+  const prompt = handoff.prompt
+  // Only explicit, allowlisted creation fields cross auth. A bare prompt
+  // remains a prefill and keeps the normal manual flow.
   // Keep bounded organic attribution attached to the activation event after
   // email signup or OAuth without forwarding arbitrary query parameters.
   for (const key of ['intent_campaign', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {

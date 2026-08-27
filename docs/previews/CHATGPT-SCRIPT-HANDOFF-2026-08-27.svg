@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1755" viewBox="0 0 1600 1755">
+  <defs>
+    <style>
+      .t{font-family:Arial,Helvetica,sans-serif;fill:#f5f5f7}.muted{fill:#a1a1a6}.blue{fill:#2997ff}.green{fill:#34d399}.amber{fill:#fbbf24}.h1{font-size:34px;font-weight:800}.h2{font-size:25px;font-weight:800}.h3{font-size:17px;font-weight:800}.body{font-size:14px}.small{font-size:11px}.caps{font-size:12px;font-weight:800;letter-spacing:2px}.button{font-size:13px;font-weight:800;fill:#000}.stroke{stroke:#2a2a2d;stroke-width:2}.soft{fill:#161618}.panel{fill:#0e0e10}.field{fill:#09090b;stroke:#3a3a3d;stroke-width:2}.afterField{fill:url(#g);stroke:#2997ff;stroke-opacity:.55;stroke-width:2}
+    </style>
+    <linearGradient id="g" x1="0" x2="1"><stop stop-color="#0e2135"/><stop offset="1" stop-color="#161618"/></linearGradient>
+    <radialGradient id="r"><stop stop-color="#163b61"/><stop offset="1" stop-color="#0c0c0e"/></radialGradient>
+  </defs>
+  <rect width="1600" height="1755" fill="#070708"/>
+  <text x="64" y="54" class="t caps blue">GROWTH PREVIEW · 27 AUGUST 2026</text>
+  <text x="64" y="98" class="t h1">ChatGPT script handoff — before / after</text>
+  <text x="64" y="130" class="t body muted">Hero, handoff, middle CTA and final CTA · desktop and mobile</text>
+
+  <!-- desktop labels -->
+  <rect x="50" y="165" width="730" height="850" rx="22" class="panel stroke"/>
+  <rect x="820" y="165" width="730" height="850" rx="22" class="panel stroke"/>
+  <line x1="50" y1="215" x2="780" y2="215" stroke="#2a2a2d" stroke-width="2"/>
+  <line x1="820" y1="215" x2="1550" y2="215" stroke="#2a2a2d" stroke-width="2"/>
+  <text x="76" y="197" class="t caps amber">BEFORE · DESKTOP</text>
+  <text x="846" y="197" class="t caps green">AFTER · DESKTOP</text>
+
+  <!-- before desktop -->
+  <text x="80" y="258" class="t caps blue">WORKFLOW GUIDE</text>
+  <text x="80" y="302" class="t h2">ChatGPT to YouTube Shorts</text>
+  <text x="80" y="332" class="t body muted">You asked ChatGPT for a Short and it gave you words.</text>
+  <rect x="80" y="356" width="208" height="42" rx="21" fill="#f5f5f7"/><text x="100" y="382" class="t button">Make a Fast video free →</text>
+  <rect x="300" y="356" width="146" height="42" rx="21" fill="none" stroke="#48484a"/><text x="318" y="382" class="t body">Get a script first</text>
+  <text x="80" y="420" class="t small blue">UP TO 3 WATERMARKED FAST VIDEOS / 24H · NO CARD</text>
+  <text x="80" y="463" class="t h3">What happened after the click</text>
+  <rect x="80" y="478" width="670" height="120" rx="14" class="soft stroke"/>
+  <text x="100" y="510" class="t h3">Signup opened without a prompt.</text>
+  <text x="100" y="538" class="t body muted">The visitor had to paste the same script again inside Studio.</text>
+  <text x="100" y="570" class="t small">CTA</text><text x="136" y="570" class="t small blue">→</text><text x="154" y="570" class="t small muted">signup</text><text x="202" y="570" class="t small blue">→</text><text x="220" y="570" class="t small muted">empty Studio</text>
+  <text x="80" y="640" class="t h3">Middle CTA</text>
+  <rect x="80" y="654" width="670" height="130" rx="14" class="soft stroke"/>
+  <text x="100" y="686" class="t h3">Turn your ChatGPT script into a video</text>
+  <text x="100" y="714" class="t body muted">Voice, footage, captions and MP4 in one pass.</text>
+  <rect x="100" y="730" width="110" height="36" rx="18" fill="#2997ff"/><text x="125" y="753" class="t button">Start free →</text>
+  <text x="80" y="825" class="t h3">Final CTA</text>
+  <rect x="80" y="840" width="670" height="140" rx="14" fill="url(#r)" stroke="#2a2a2d" stroke-width="2"/>
+  <text x="285" y="875" class="t h3">You already have the script.</text>
+  <text x="238" y="903" class="t body muted">Up to 3 watermarked Fast videos every 24 hours.</text>
+  <rect x="319" y="920" width="190" height="40" rx="20" fill="#f5f5f7"/><text x="355" y="945" class="t button">Render it now →</text>
+
+  <!-- after desktop -->
+  <text x="850" y="258" class="t caps blue">WORKFLOW GUIDE</text>
+  <text x="850" y="302" class="t h2">ChatGPT to YouTube Shorts</text>
+  <text x="850" y="332" class="t body muted">You asked ChatGPT for a Short and it gave you words.</text>
+  <rect x="850" y="356" width="222" height="42" rx="21" fill="#f5f5f7"/><text x="870" y="382" class="t button">Paste my ChatGPT script ↓</text>
+  <rect x="1084" y="356" width="146" height="42" rx="21" fill="none" stroke="#48484a"/><text x="1102" y="382" class="t body">Get a script first</text>
+  <text x="850" y="420" class="t small blue">UP TO 3 WATERMARKED FAST VIDEOS / 24H · NO CARD</text>
+  <text x="850" y="463" class="t h3">Already have the script? Paste it here.</text>
+  <text x="850" y="489" class="t body muted">Your script stays attached through signup. No second copy.</text>
+  <rect x="850" y="506" width="670" height="265" rx="16" class="afterField"/>
+  <text x="874" y="536" class="t body" font-weight="800">Paste the script ChatGPT wrote</text>
+  <rect x="874" y="550" width="622" height="115" rx="12" class="field"/>
+  <text x="892" y="574" class="t small muted">HOOK: ...</text><text x="892" y="593" class="t small muted">MICRO REWARD: ...</text><text x="892" y="612" class="t small muted">ESCALATION: ...</text><text x="892" y="631" class="t small muted">RHYTHM: ...</text><text x="892" y="650" class="t small muted">PAYOFF: ...</text>
+  <rect x="874" y="677" width="622" height="40" rx="20" fill="#f5f5f7"/><text x="1080" y="702" class="t button">Turn this script into a Short →</text>
+  <text x="874" y="741" class="t small muted">Words + verbatim + 35s + campaign + Fast intent stay attached.</text>
+  <text x="850" y="790" class="t h3">Middle CTA</text>
+  <rect x="850" y="805" width="670" height="90" rx="14" class="soft stroke"/>
+  <text x="872" y="836" class="t h3">Turn your ChatGPT script into a video</text>
+  <rect x="1250" y="824" width="240" height="42" rx="21" fill="#2997ff"/><text x="1302" y="850" class="t button">Paste my script ↓</text>
+  <text x="850" y="930" class="t h3">Final CTA</text>
+  <rect x="850" y="945" width="670" height="55" rx="14" fill="url(#r)" stroke="#2a2a2d" stroke-width="2"/>
+  <text x="875" y="978" class="t h3">You already have the script.</text>
+  <rect x="1273" y="953" width="220" height="39" rx="20" fill="#f5f5f7"/><text x="1311" y="978" class="t button">Paste and render it ↓</text>
+
+  <!-- mobile section -->
+  <text x="64" y="1065" class="t h2">Mobile comparison</text>
+  <rect x="335" y="1100" width="390" height="500" rx="32" fill="#0e0e10" stroke="#252528" stroke-width="8"/>
+  <rect x="875" y="1100" width="390" height="500" rx="32" fill="#0e0e10" stroke="#252528" stroke-width="8"/>
+  <text x="360" y="1132" class="t caps amber">BEFORE · MOBILE</text><text x="900" y="1132" class="t caps green">AFTER · MOBILE</text>
+  <text x="360" y="1170" class="t h3">ChatGPT to YouTube Shorts</text><text x="900" y="1170" class="t h3">ChatGPT to YouTube Shorts</text>
+  <rect x="360" y="1190" width="340" height="40" rx="20" fill="#f5f5f7"/><text x="431" y="1215" class="t button">Make a Fast video free →</text>
+  <rect x="900" y="1190" width="340" height="40" rx="20" fill="#f5f5f7"/><text x="965" y="1215" class="t button">Paste my ChatGPT script ↓</text>
+  <text x="360" y="1260" class="t h3">Middle CTA</text><rect x="360" y="1275" width="340" height="65" rx="12" class="soft stroke"/><text x="380" y="1305" class="t body">Turn your script into a video</text><text x="380" y="1327" class="t small blue">Start free →</text>
+  <text x="900" y="1260" class="t h3">Paste the script here</text><rect x="900" y="1275" width="340" height="120" rx="12" class="afterField"/><rect x="916" y="1292" width="308" height="48" rx="9" class="field"/><text x="930" y="1315" class="t small muted">HOOK: ... · MICRO REWARD: ...</text><rect x="916" y="1348" width="308" height="32" rx="16" fill="#f5f5f7"/><text x="974" y="1369" class="t button">Turn this script into a Short →</text>
+  <text x="360" y="1375" class="t h3">Final CTA</text><rect x="360" y="1390" width="340" height="82" rx="12" fill="url(#r)"/><text x="412" y="1420" class="t body">You already have the script.</text><rect x="429" y="1431" width="202" height="30" rx="15" fill="#f5f5f7"/><text x="468" y="1451" class="t button">Render it now →</text>
+  <text x="900" y="1425" class="t h3">Middle CTA</text><rect x="900" y="1438" width="340" height="55" rx="12" class="soft stroke"/><text x="918" y="1461" class="t small">Turn your script into a video</text><rect x="1080" y="1448" width="140" height="32" rx="16" fill="#2997ff"/><text x="1104" y="1469" class="t button">Paste script ↓</text>
+  <text x="900" y="1520" class="t h3">Final CTA</text><rect x="900" y="1533" width="340" height="50" rx="12" fill="url(#r)"/><text x="916" y="1563" class="t small">You have the script.</text><rect x="1066" y="1542" width="158" height="32" rx="16" fill="#f5f5f7"/><text x="1088" y="1563" class="t button">Paste and render ↓</text>
+  <text x="64" y="1630" class="t body green">AFTER: one script handoff · verbatim words · 35-second target · one explicit Fast intent</text>
+
+  <!-- admin metric semantics -->
+  <text x="64" y="1670" class="t h3">Admin measurement · the same person is never two conversions</text>
+  <rect x="64" y="1685" width="700" height="50" rx="12" class="soft stroke"/>
+  <text x="84" y="1716" class="t body amber">BEFORE · scroll + submit = 2 conversion rows</text>
+  <rect x="788" y="1685" width="748" height="50" rx="12" fill="#10251f" stroke="#34d399" stroke-opacity=".45" stroke-width="2"/>
+  <text x="808" y="1716" class="t body green">AFTER · 1 handoff opener · 1 intent person</text>
+</svg>

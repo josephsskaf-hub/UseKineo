@@ -106,7 +106,8 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   const steps = data.funnelSteps ?? []
   const leak = data.biggestLeak ?? null
   const organic = data.organicRecovery ?? {
-    landingSessions: 0, ctaClicks: 0, ctaRate: '—', signups: 0,
+    landingSessions: 0, ctaClicks: 0, landingVisitors: 0, handoffOpens: 0,
+    intentActors: 0, ctaRate: '—', signups: 0,
     viralNowViews: 0, viralNowClicks: 0, viralNowViewToClickRate: '—',
     signupRate: '—', activated: 0, activationRate: '—', paid: 0,
     topLandingPages: [],
@@ -608,21 +609,27 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
 
       <Section title={`SEO landing pages · organic · ${days === 'all' ? 'all time' : `${days}d`}`}>
         <Card
-          label="SEO landing sessions"
-          value={fmt(organic.landingSessions)}
-          hint="high-intent public pages"
+          label="SEO landing visitors"
+          value={fmt(organic.landingVisitors)}
+          hint="unique external people"
           accent="#22d3ee"
         />
         <Card
-          label="Organic intent actions"
-          value={fmt(organic.ctaClicks)}
-          hint="CTA clicks + topic submits"
+          label="Script handoff opens"
+          value={fmt(organic.handoffOpens)}
+          hint="unique people who opened the paste form"
+          accent="#2997ff"
+        />
+        <Card
+          label="Organic intent people"
+          value={fmt(organic.intentActors)}
+          hint="unique people who submitted or left for the product"
           accent="#a78bfa"
         />
         <RateCard
-          label="Landing → CTA"
+          label="Landing → Intent"
           value={organic.ctaRate}
-          sub={`${organic.ctaClicks} / ${organic.landingSessions}`}
+          sub={`${organic.intentActors} / ${organic.landingVisitors}`}
         />
         <Card
           label="Viral Now visitors"
@@ -648,9 +655,9 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           accent="#22d3ee"
         />
         <RateCard
-          label="CTA → Signup"
+          label="Intent → Signup"
           value={organic.signupRate}
-          sub={`${organic.signups} / ${organic.ctaClicks}`}
+          sub={`${organic.signups} / ${organic.intentActors}`}
         />
         <RateCard
           label="Signup → Video"

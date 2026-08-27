@@ -15,7 +15,7 @@
 // Regras respeitadas: nenhum preço literal (preço vive em lib/checkoutPricing.ts),
 // nenhuma menção a desconto/cupom, e a promessa do free tier é o literal exato
 // das páginas irmãs via ft(OFFER, ...). Server component, zero client JS além do
-// OrganicCtaLink que as irmãs já usam.
+// OrganicCtaLink e TopicGeneratorForm que as irmãs já usam.
 //
 // Fontes citadas (mesmas de /how-to-start-a-faceless-youtube-channel):
 //  - Limite de 3 minutos do Shorts: support.google.com/youtube/answer/10059070
@@ -29,6 +29,7 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -38,8 +39,8 @@ export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'chatgpt_to_shorts'
+const HANDOFF_ID = 'chatgpt-script-handoff'
 const UPDATED = 'August 2026'
-const SIGNUP_URL = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&intent_campaign=${CAMPAIGN}&create_intent=fast`
 
 const SHORTS_SPEC = 'https://support.google.com/youtube/answer/10059070?hl=en'
 const MONETIZATION_POLICY = 'https://support.google.com/youtube/answer/1311392?hl=en'
@@ -166,6 +167,7 @@ one label per line:
 HOOK: one sentence under 12 words that opens a question in the viewer's head.
 MICRO REWARD: one concrete, checkable fact that pays that question off immediately.
 ESCALATION: two sentences that raise the stakes using a specific number, name, place or date.
+RHYTHM: one short bridge sentence that changes the pace before the reveal.
 PAYOFF: one closing sentence that closes the loop the hook opened.
 
 Rules:
@@ -365,12 +367,14 @@ export default function ChatGptToYouTubeShortsPage() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 26 }}>
           <OrganicCtaLink
-            href={SIGNUP_URL}
+            href={`#${HANDOFF_ID}`}
             source={CAMPAIGN}
             placement="hero"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={HANDOFF_ID}
             style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}
           >
-            {ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}
+            Paste my ChatGPT script ↓
           </OrganicCtaLink>
           <Link
             href="/free-script-generator"
@@ -382,6 +386,34 @@ export default function ChatGptToYouTubeShortsPage() {
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card
         </p>
+
+        <section aria-labelledby={`${HANDOFF_ID}-title`} style={{ margin: '34px 0 0' }}>
+          <h2 id={`${HANDOFF_ID}-title`} style={{ ...h2, margin: '0 0 8px' }}>
+            Already have the script? Paste it here.
+          </h2>
+          <p style={p}>
+            Your script stays attached through signup and arrives in Kineo ready for the Fast workflow. You do not
+            need to copy it a second time.
+          </p>
+          <TopicGeneratorForm
+            campaign={CAMPAIGN}
+            source={CAMPAIGN}
+            placement="chatgpt_script_handoff"
+            utmSource="seo"
+            utmMedium="organic"
+            scriptMode="verbatim"
+            duration={35}
+            examples={[]}
+            formId={HANDOFF_ID}
+            copy={{
+              label: 'Paste the script ChatGPT wrote',
+              placeholder: 'HOOK: ...\nMICRO REWARD: ...\nESCALATION: ...\nRHYTHM: ...\nPAYOFF: ...',
+              submit: 'Turn this script into a Short →',
+              examplesLabel: 'Script examples',
+              note: 'Your words, 35-second target, campaign and Fast creation intent stay attached through signup. Kineo may adjust punctuation for voice pacing, but it will not rewrite your wording.',
+            }}
+          />
+        </section>
 
         <h2 style={h2}>Where ChatGPT stops</h2>
         <p style={p}>
@@ -508,7 +540,8 @@ export default function ChatGptToYouTubeShortsPage() {
           Kineo is the second half of this workflow. Paste the narration you already have — or type the topic and let
           it write one — and it produces the AI voiceover, picks footage line by line from what is actually being said,
           burns in captions and exports a ready-to-post 9:16 MP4, usually in 3-7 minutes. It does not need you to
-          abandon the script you liked: a script written in ChatGPT goes in as-is.
+          abandon the script you liked: it keeps the words ChatGPT wrote. Kineo may adjust punctuation to pace the
+          voice, but any result that changes the word sequence is rejected in code.
         </p>
         <p style={p}>
           What stays yours is the part that decides whether the channel works — the topic, the angle, the hook and the
@@ -525,12 +558,14 @@ export default function ChatGptToYouTubeShortsPage() {
             without a watermark and the premium engines.
           </p>
           <OrganicCtaLink
-            href={SIGNUP_URL}
+            href={`#${HANDOFF_ID}`}
             source={CAMPAIGN}
             placement="mid"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={HANDOFF_ID}
             style={{ display: 'inline-block', background: ACCENT, color: '#000', fontWeight: 800, padding: '12px 24px', borderRadius: 980, textDecoration: 'none', fontSize: '0.95rem' }}
           >
-            Start free →
+            Paste my script ↓
           </OrganicCtaLink>
         </section>
 
@@ -602,12 +637,14 @@ export default function ChatGptToYouTubeShortsPage() {
             {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
-            href={SIGNUP_URL}
+            href={`#${HANDOFF_ID}`}
             source={CAMPAIGN}
             placement="final"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={HANDOFF_ID}
             style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}
           >
-            Render it now →
+            Paste and render it ↓
           </OrganicCtaLink>
         </div>
       </div>

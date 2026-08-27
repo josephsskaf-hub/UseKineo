@@ -23,6 +23,7 @@ import {
   LAST_VERIFIED_HUMAN,
   LAST_VERIFIED_ISO,
   OFFER_EFFECTIVE,
+  START_HERE_FACT,
 } from '@/lib/kineoFacts'
 
 // force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
@@ -151,6 +152,10 @@ narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}
 Aspect ratio: ${PRODUCT.aspectRatio}.
 It does not clip or repurpose a long video you already recorded — there is no
 footage to upload and no editing timeline.
+
+## Start here if you already have a ChatGPT script
+
+- [Paste the script and continue](${START_HERE_FACT.url}): ${START_HERE_FACT.action}
 
 Fast Mode renders are ${PRODUCT.fastGenerationTime} end to end (measured median
 ${PRODUCT.fastGenerationMedianMinutes} minutes, p90 ${PRODUCT.fastGenerationP90Minutes} minutes across ${PRODUCT.fastGenerationSample}).

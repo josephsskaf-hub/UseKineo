@@ -72,6 +72,11 @@ import { POST_HANDOFF_ENABLED } from '@/lib/flags'
 // silêncio; agora quebra o build.
 import { peekFirstWinHandshake, clearFirstWinHandshake } from '@/lib/firstWinHandshake'
 import {
+  readCreationHandoff,
+  resolveActivationCreationContract,
+  type ActivationCreationContract,
+} from '@/lib/creationHandoff'
+import {
   CURRENCY_DISPLAY,
   TOPUP_CREDITS,
   // KINEO-REGIONAL-PRICING-2026-08-04 — esta tela PROMETE um preço ("X hoje,
@@ -782,6 +787,7 @@ export default function GenerateClient({
   const activationAutoGenerateRef = useRef(false)
   const activationAutostartSawProcessingRef = useRef(false)
   const activationAutostartPromptRef = useRef<string | null>(null)
+  const activationCreationContractRef = useRef<ActivationCreationContract | null>(null)
   const activationAutostartContextRef = useRef<Record<string, unknown> | null>(null)
   // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o autostart nasceu para ATIVAÇÃO DE
   // FREE, e por isso as três guardas abaixo pulam qualquer conta paga. Depois
@@ -971,13 +977,12 @@ export default function GenerateClient({
   // KINEO-STUDIO-SCRIPTMODE-2026-08-17 — o Studio manda ?script_mode=
   // verbatim|ai ('Use my script as is' vs 'Let AI structure my text').
   useEffect(() => {
-    const sm = (searchParams.get('script_mode') ?? '').toLowerCase()
-    if (sm === 'verbatim' || sm === 'ai') setScriptMode(sm)
+    const handoff = readCreationHandoff(searchParams)
+    if (handoff.scriptMode) setScriptMode(handoff.scriptMode)
     // KINEO-STUDIO-DURATION-2026-08-17 — BUG pego pelo fundador no 1o teste:
     // clicou 60s no Studio e saiu video de 45 — o Studio nao enviava a
     // duracao e o default daqui (45) vencia. Agora ?duration= viaja e e lido.
-    const d = Number(searchParams.get('duration') ?? '')
-    if (d === 35 || d === 45 || d === 60 || d === 90) setDuration(d)
+    if (handoff.duration) setDuration(handoff.duration)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   // KINEO-CHARACTER-LOCK-2026-07-10 — My Characters: saved presenters the user
@@ -2726,9 +2731,10 @@ export default function GenerateClient({
   // entitlement checks and active-render restoration before consuming it.
   useEffect(() => {
     if (activationAutostartDecisionRef.current) return
-    if (searchParams.get('create_intent') !== 'fast') return
+    const activationContract = resolveActivationCreationContract(searchParams)
+    if (activationContract.createIntent !== 'fast') return
 
-    const explicitPrompt = (searchParams.get('prompt') ?? '').trim().slice(0, 1000)
+    const explicitPrompt = activationContract.prompt
     // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o par exato que /checkout/success
     // escreve no href dos 3 cards (app/checkout/success/page.tsx). Exigir os
     // DOIS campos evita que um utm_source=checkout_success solto numa campanha
@@ -2771,6 +2777,8 @@ export default function GenerateClient({
         searchParams.get('utm_campaign') ??
         'unknown'
       ).slice(0, 64),
+      script_mode: activationContract.scriptMode,
+      target_duration: activationContract.duration,
     }
 
     const consumeAndSkip = (reason: string) => {
@@ -2957,6 +2965,7 @@ export default function GenerateClient({
     void trackEvent('activation_autostart_eligible', metadata)
     activationAutostartContextRef.current = metadata
     activationAutostartPromptRef.current = explicitPrompt
+    activationCreationContractRef.current = activationContract
     activationAutoGenerateRef.current = true
     activationAutostartSawProcessingRef.current = false
     onboardingAutoGenerateRef.current = false
@@ -2964,6 +2973,8 @@ export default function GenerateClient({
     setPrompt(explicitPrompt)
     setMode('fast')
     setQuality('fast')
+    setScriptMode(activationContract.scriptMode)
+    setDuration(activationContract.duration)
     setShowNicheOnboarding(false)
     setActivationAutostartArmed(true)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -2986,7 +2997,14 @@ export default function GenerateClient({
   // Commit Fast mode before analysis so a prior dashboard engine selection can
   // never leak into this free activation path.
   useEffect(() => {
-    if (!activationAutostartArmed || mode !== 'fast') return
+    const activationContract = activationCreationContractRef.current
+    if (
+      !activationAutostartArmed ||
+      mode !== 'fast' ||
+      !activationContract ||
+      scriptMode !== activationContract.scriptMode ||
+      duration !== activationContract.duration
+    ) return
     setActivationAutostartArmed(false)
 
     const metadata = activationAutostartContextRef.current ?? {
@@ -2998,6 +3016,7 @@ export default function GenerateClient({
       activationAutoGenerateRef.current = false
       activationAutostartSawProcessingRef.current = false
       activationAutostartPromptRef.current = null
+      activationCreationContractRef.current = null
       activationAutostartContextRef.current = null
       // KINEO-FIRST-PAID-MINUTE-2026-08-11 — ver o comentário em consumeAndSkip.
       activationAutostartFirstWinRef.current = false
@@ -3048,11 +3067,18 @@ export default function GenerateClient({
       return
     }
 
-    void handleAnalyze(topic, { fromTopic: true, skipPreview: true, structureFirst: true })
+    activationCreationContractRef.current = null
+    void handleAnalyze(topic, {
+      fromTopic: true,
+      skipPreview: true,
+      structureFirst: activationContract.structureFirst,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     activationAutostartArmed,
     mode,
+    scriptMode,
+    duration,
     activationAccountStatus,
     hasPaid,
     planTier,

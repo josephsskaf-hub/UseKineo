@@ -11,6 +11,16 @@ type OrganicCtaLinkProps = {
   children: ReactNode
   className?: string
   style?: CSSProperties
+  /**
+   * In-page handoffs measure interest separately from an action that leaves
+   * the page. The default preserves all existing organic links.
+   */
+  analyticsEvent?: 'organic_cta_clicked' | 'organic_handoff_opened'
+  /**
+   * Optional in-page handoff. When present, the link scrolls to this element
+   * and focuses its first form control instead of leaving the page.
+   */
+  focusTargetId?: string
 }
 
 // PUSH #22 — one event name for every organic landing CTA. The destination
@@ -23,17 +33,33 @@ export default function OrganicCtaLink({
   children,
   className,
   style,
+  analyticsEvent = 'organic_cta_clicked',
+  focusTargetId,
 }: OrganicCtaLinkProps) {
   return (
     <Link
       href={href}
       className={className}
       style={style}
-      onClick={() => {
-        void trackEvent('organic_cta_clicked', {
+      aria-controls={focusTargetId}
+      onClick={(event) => {
+        void trackEvent(analyticsEvent, {
           source,
           placement,
           destination: href.split('?')[0],
+        })
+
+        if (!focusTargetId) return
+
+        const target = document.getElementById(focusTargetId)
+        if (!target) return
+
+        event.preventDefault()
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        window.history.replaceState(null, '', `#${encodeURIComponent(focusTargetId)}`)
+        window.requestAnimationFrame(() => {
+          const control = target.querySelector<HTMLElement>('textarea, input, button')
+          control?.focus({ preventScroll: true })
         })
       }}
     >

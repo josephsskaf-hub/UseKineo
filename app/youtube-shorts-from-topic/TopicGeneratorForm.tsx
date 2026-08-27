@@ -12,9 +12,14 @@ const TOPIC_EXAMPLES = [
 type TopicGeneratorFormProps = {
   campaign?: string
   source?: string
+  placement?: string
+  utmSource?: string
+  utmMedium?: string
   examples?: readonly string[]
   formId?: string
   language?: 'en' | 'pt' | 'es'
+  scriptMode?: 'ai' | 'verbatim'
+  duration?: 35 | 45 | 60 | 90
   copy?: {
     label: string
     placeholder: string
@@ -27,9 +32,14 @@ type TopicGeneratorFormProps = {
 export default function TopicGeneratorForm({
   campaign = 'push70_youtube_topic_one_click',
   source = 'push70_youtube_topic_one_click',
+  placement = 'hero_form',
+  utmSource,
+  utmMedium,
   examples = TOPIC_EXAMPLES,
   formId = 'try-a-topic',
   language,
+  scriptMode,
+  duration,
   copy = {
     label: 'What should your Short be about?',
     placeholder: 'Type one topic or paste your script',
@@ -65,10 +75,9 @@ export default function TopicGeneratorForm({
     // `keepalive: true` em trackEvent (lib/analytics.ts:428) é o que faz este
     // evento sobreviver ao window.location.assign logo abaixo.
     //
-    // `mirrors` NÃO é enfeite: um clique agora escreve DUAS linhas, e
-    // app/api/admin/funnel/route.ts conta LINHAS em `ctaClicks`. A chave é o
-    // que faz o painel do fundador ignorar o espelho em vez de dobrar o número
-    // em 17 páginas. Consulta ad-hoc por `organic_cta_clicked` continua exata.
+    // `mirrors` NÃO é enfeite: um clique escreve DUAS linhas para preservar a
+    // consulta histórica por `organic_cta_clicked`. O painel do fundador
+    // ignora o espelho e deduplica por pessoa; uma ação continua uma intenção.
     void trackEvent('organic_cta_clicked', {
       ...metadata,
       destination: '/signup',
@@ -79,7 +88,12 @@ export default function TopicGeneratorForm({
       create_intent: 'fast',
       intent_campaign: campaign,
     })
+    if (utmSource) params.set('utm_source', utmSource)
+    if (utmMedium) params.set('utm_medium', utmMedium)
+    if (utmSource || utmMedium) params.set('utm_campaign', campaign)
     if (language) params.set('language', language)
+    if (scriptMode) params.set('script_mode', scriptMode)
+    if (duration) params.set('duration', String(duration))
     window.location.assign(`/signup?${params.toString()}`)
   }
 
@@ -102,15 +116,15 @@ export default function TopicGeneratorForm({
           rememberSignupCampaign(campaign)
           const submitMetadata = {
             source,
-            placement: 'hero_form',
+            placement,
             topic_length: topic.trim().length,
             ...(language ? { language } : {}),
           }
           void trackEvent('organic_topic_submitted', submitMetadata)
           // Mesma razão do starter acima: digitar o próprio tema e apertar o
           // botão é a saída para o produto, e precisa aparecer na consulta que
-          // decide se uma página orgânica vive ou morre. `mirrors` pelo mesmo
-          // motivo de sempre — o painel conta linhas.
+          // decide se uma página orgânica vive ou morre. `mirrors` preserva a
+          // série histórica; o painel deduplica a intenção por pessoa.
           void trackEvent('organic_cta_clicked', {
             ...submitMetadata,
             destination: '/signup',
@@ -149,7 +163,12 @@ export default function TopicGeneratorForm({
         />
         <input type="hidden" name="create_intent" value="fast" />
         <input type="hidden" name="intent_campaign" value={campaign} />
+        {utmSource && <input type="hidden" name="utm_source" value={utmSource} />}
+        {utmMedium && <input type="hidden" name="utm_medium" value={utmMedium} />}
+        {(utmSource || utmMedium) && <input type="hidden" name="utm_campaign" value={campaign} />}
         {language && <input type="hidden" name="language" value={language} />}
+        {scriptMode && <input type="hidden" name="script_mode" value={scriptMode} />}
+        {duration && <input type="hidden" name="duration" value={duration} />}
         <button
           type="submit"
           style={{
@@ -170,26 +189,28 @@ export default function TopicGeneratorForm({
         </button>
       </form>
 
-      <div aria-label={copy.examplesLabel} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 13 }}>
-        {examples.map((example, exampleIndex) => (
-          <button
-            key={example}
-            type="button"
-            onClick={() => startWithExample(example, exampleIndex)}
-            style={{
-              border: '1px solid #343438',
-              borderRadius: 999,
-              background: '#161618',
-              color: '#a1a1a6',
-              padding: '7px 10px',
-              fontSize: 12,
-              cursor: 'pointer',
-            }}
-          >
-            {example} →
-          </button>
-        ))}
-      </div>
+      {examples.length > 0 && (
+        <div aria-label={copy.examplesLabel} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 13 }}>
+          {examples.map((example, exampleIndex) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => startWithExample(example, exampleIndex)}
+              style={{
+                border: '1px solid #343438',
+                borderRadius: 999,
+                background: '#161618',
+                color: '#a1a1a6',
+                padding: '7px 10px',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              {example} →
+            </button>
+          ))}
+        </div>
+      )}
 
       <p style={{ margin: '13px 0 0', color: '#86868b', fontSize: 12, lineHeight: 1.5 }}>
         {copy.note}
