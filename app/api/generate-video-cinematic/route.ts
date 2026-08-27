@@ -32,7 +32,8 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
-import { decidirFormato, permiteApresentador, TAG_FACELESS } from '@/lib/cinematic/visualMode'
+import { decidirFormato, permiteApresentador, TAG_FACELESS, proibidosPorModo } from '@/lib/cinematic/visualMode'
+import { montarContrato, aplicarContrato, severidadeDe } from '@/lib/cinematic/sceneTruth'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
@@ -3056,7 +3057,14 @@ async function manipularPost(req: NextRequest) {
       // terror que o fundador viu DUAS vezes), o DNA de nitidez e o horizonte
       // em pé. Agora guardamos o prompt EXATO que foi pro fal, cena a cena.
       const hSubmittedPrompts: string[] = []
-      for (const hs of plan.scenes) {
+      // Veredito do Contrato Cena Verdadeira, cena a cena. Vai para o claim
+      // junto com o resto — sem isso o gate corrige no escuro e ninguem
+      // consegue auditar depois se ele acertou ou estragou.
+      const contratoRelato: Array<{
+        cena: number; antes: string; depois: string; cobertura: string
+        acoes: string[]; motivo: string
+      }> = []
+      for (const [idx, hs] of plan.scenes.entries()) {
         // `sceneModel`/`sceneEngine` (NOT `usedModel` — that name belongs to
         // the classic single-model path below and must not be shadowed).
         let sceneModel: string = cinematicSceneModel(family, hs.type, Boolean(anchors))
@@ -3205,7 +3213,42 @@ async function manipularPost(req: NextRequest) {
           const uprightPrefix = hs.type !== 'dialogue' && !sceneAnchor
             ? 'Vertical 9:16 composition, camera upright, horizon perfectly LEVEL and horizontal across the frame. '
             : ''
-          const scenePrompt = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          const scenePromptBruto = mouthPrefix + uprightPrefix + hs.prompt + eraSuffix + mouthSuffix + spectacleSuffix
+          // ═══ CONTRATO CENA VERDADEIRA — o gate roda AQUI, com o prompt que
+          // vai de fato ao motor, imediatamente antes do POST pago. Na
+          // primeira versao esta biblioteca subiu SEM CALLER: 24 testes verdes
+          // que nao provavam nada do caminho real. Este bloco e a correcao.
+          //
+          // Ele NUNCA bloqueia o render. Corrige o prompt (tira o proibido,
+          // injeta a representacao que falta) e registra o veredito. O guard
+          // de narracao curta ja ensinou o preco de um portao que barra
+          // cliente real: falso negativo custa uma cena; falso positivo custa
+          // a pessoa inteira.
+          let scenePrompt = scenePromptBruto
+          try {
+            const contrato = montarContrato({
+              indice: idx + 1,
+              falaFinal: hs.voiceover ?? '',
+              promptFinal: scenePromptBruto,
+              elementosProibidos: proibidosPorModo(formatoVisual.modo),
+            })
+            const r = aplicarContrato(contrato)
+            if (severidadeDe(r.antes.veredicto) !== 'ok') {
+              console.log(`[contrato-cena] cena ${idx + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`)
+              contratoRelato.push({
+                cena: idx + 1,
+                antes: r.antes.veredicto,
+                depois: r.depois.veredicto,
+                cobertura: r.antes.cobertura,
+                acoes: r.acoes,
+                motivo: r.antes.motivo,
+              })
+            }
+            scenePrompt = r.promptCorrigido
+          } catch (e) {
+            // Gate quebrado nao pode derrubar render pago: segue com o bruto.
+            console.warn('[contrato-cena] falhou, seguindo sem corrigir:', (e as Error)?.message)
+          }
           submittedPrompt = scenePrompt
           try {
             id = await submitToFal(scenePrompt, sceneModel, false, true, hs.seconds, sceneAnchor, undefined, plan.stylized)
@@ -3343,6 +3386,12 @@ async function manipularPost(req: NextRequest) {
         // âncora de cada cena pra re-submeter UMA vez as que falharem no
         // fornecedor (conserto do vídeo curto de 34s).
         scene_prompts: hSubmittedPrompts, // prompt EXATO submetido (upright+era+mouth+spectacle) — retry/salvage fiéis
+        // Contrato Cena Verdadeira: so as cenas que NAO passaram limpas.
+        // Vazio = todas passaram. Sem este campo o gate corrigiria no
+        // escuro, e a auditoria nao teria como saber se ele ajudou ou
+        // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
+        contrato_cena: contratoRelato,
+        visual_mode: formatoVisual.modo,
         // KINEO-SPECTACLE-2026-08-17 — espelha a regra do submit loop: ambiente
         // só pra cena que o planner situou no mundo do narrador (environmentSheet
         // presente no prompt); b-roll de outros lugares re-tenta em t2v sem âncora.

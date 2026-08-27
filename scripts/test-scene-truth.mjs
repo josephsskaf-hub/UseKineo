@@ -184,11 +184,15 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
     promptFinal: 'abstract dark water texture, slow drift, moody light',
     elementosProibidos: PROIBIDOS,
   })
-  checa('fala sem entidade concreta nao exige nada',
-    ST.verificarContrato(generica).veredicto === 'aprovada')
-  checa('e nao extrai sujeito do nada',
-    ST.montarContrato({ indice: 7, falaFinal: 'And that is why nobody knows.', promptFinal: 'x' })
-      .sujeitoObrigatorio.length === 0)
+  // A ancora generica TEM falsos positivos — narracao abstrata sobre imagem
+  // abstrata pode nao partilhar palavra nenhuma. Por isso o veredito dela e
+  // AVISO: registra e segue. O que este teste garante e que uma cena assim
+  // NUNCA e tratada como algo a corrigir.
+  const rg = ST.verificarContrato(generica)
+  checa('fala abstrata nunca vira correcao',
+    ST.severidadeDe(rg.veredicto) !== 'corrigir', `${rg.veredicto} — ${rg.motivo}`)
+  checa('e o prompt sai intocado',
+    ST.aplicarContrato(generica).promptCorrigido === generica.promptFinal)
 }
 
 // ── satelite e coast guard, as outras entidades do mesmo roteiro ─────────
@@ -230,7 +234,131 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
     ST.verificarContrato(cg).veredicto === 'aprovada', ST.verificarContrato(cg).motivo)
 }
 
+// ══════════════════════════════════════════════════════════════════════════
+// D1 — O CALLER EXISTE E ESTA NO LUGAR CERTO (inspecao estatica da rota)
+//
+// Este bloco existe porque a primeira versao passou 24 verificacoes com a
+// biblioteca DESLIGADA em producao. Teste de biblioteca nao prova produto.
+// Aqui a gente le o arquivo da rota e prova que a chamada acontece ANTES do
+// POST pago, com a fala certa, e que o prompt enviado e o CORRIGIDO.
+{
+  const rota = readFileSync(join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
+  // Comentarios fora: assercao ja casou no proprio comentario explicativo
+  // quatro vezes neste repositorio.
+  const codigo = rota.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n')
+
+  checa('D1 rota importa sceneTruth', /import \{[^}]*aplicarContrato[^}]*\} from '@\/lib\/cinematic\/sceneTruth'/.test(codigo))
+  checa('D1 rota chama montarContrato', /montarContrato\(\{/.test(codigo))
+  checa('D1 rota chama aplicarContrato', /aplicarContrato\(contrato\)/.test(codigo))
+
+  const iAplica = codigo.indexOf('aplicarContrato(contrato)')
+  const iPost = codigo.indexOf('await submitToFal(scenePrompt,')
+  checa('D1 aplicarContrato vem ANTES do submitToFal', iAplica > 0 && iPost > 0 && iAplica < iPost,
+    `aplicar=${iAplica} post=${iPost}`)
+
+  checa('D1 o prompt submetido e o CORRIGIDO', /scenePrompt = r\.promptCorrigido/.test(codigo))
+  checa('D1 a fala usada e o voiceover da cena', /falaFinal: hs\.voiceover/.test(codigo))
+  checa('D1 o veredito vai para o claim', /contrato_cena: contratoRelato/.test(codigo))
+  checa('D1 o gate NAO derruba render pago', /seguindo sem corrigir/.test(rota))
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// D2 — acaoObrigatoria E PREENCHIDA E VERIFICADA (era null fixo)
+{
+  checa('D2 acao extraida da fala', ST.extrairAcao('A German U-boat sank it in 1942.') === 'sank')
+  checa('D2 fala sem acao conhecida devolve null', ST.extrairAcao('The team studied the data.') === null)
+
+  const c = ST.montarContrato({
+    indice: 1,
+    falaFinal: 'A German U-boat sank it in 1942.',
+    promptFinal: 'a rusted submarine hull on the seabed, sonar sweep',
+    elementosProibidos: PROIBIDOS,
+  })
+  checa('D2 montarContrato NAO grava null quando a acao existe', c.acaoObrigatoria === 'sank', String(c.acaoObrigatoria))
+
+  const contrariado = ST.montarContrato({
+    indice: 2,
+    falaFinal: 'A German U-boat sank it in 1942.',
+    promptFinal: 'a submarine and a pristine ship sailing on the surface at full steam',
+    elementosProibidos: PROIBIDOS,
+  })
+  const rc = ST.verificarContrato(contrariado)
+  checa('D2 imagem que contradiz a acao REPROVA', rc.veredicto === 'acao_contrariada', `${rc.veredicto} — ${rc.motivo}`)
+  checa('D2 e nomeia a contradicao', rc.contradicoesDeAcao.length > 0, JSON.stringify(rc.contradicoesDeAcao))
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// D3 — SUJEITO FORA DO LEXICO NAO PASSA MAIS EM SILENCIO
+//
+// O lexico cobre 5 entidades. Antes, QUALQUER outro assunto produzia
+// contrato vazio e era aprovado por definicao — o gate era cego para quase
+// todo o produto. Agora entra a ancora generica.
+{
+  const fora = ST.montarContrato({
+    indice: 1,
+    falaFinal: 'The pyramid of Giza still hides a sealed corridor.',
+    promptFinal: 'a golden retriever running on a suburban lawn at sunset',
+    elementosProibidos: PROIBIDOS,
+  })
+  const rf = ST.verificarContrato(fora)
+  checa('D3 fala e imagem sem NADA em comum reprovam', rf.veredicto === 'sem_ancora_comum', `${rf.veredicto} — ${rf.motivo}`)
+  checa('D3 cobertura declarada como generica', rf.cobertura === 'generica', rf.cobertura)
+
+  const coerente = ST.montarContrato({
+    indice: 2,
+    falaFinal: 'The pyramid of Giza still hides a sealed corridor.',
+    promptFinal: 'the great pyramid at Giza, a narrow sealed corridor lit by a single beam',
+    elementosProibidos: PROIBIDOS,
+  })
+  const rco = ST.verificarContrato(coerente)
+  checa('D3 imagem coerente fora do lexico APROVA', rco.veredicto === 'aprovada', rco.motivo)
+
+  const abstrata = ST.montarContrato({
+    indice: 3,
+    falaFinal: 'And then it was over.',
+    promptFinal: 'an empty corridor, dust in the light',
+    elementosProibidos: PROIBIDOS,
+  })
+  const ra = ST.verificarContrato(abstrata)
+  checa('D3 fala abstrata nao inventa exigencia', ra.veredicto === 'aprovada', ra.motivo)
+  checa('D3 e declara cobertura nenhuma', ra.cobertura === 'nenhuma', ra.cobertura)
+
+  checa('D3 sem_ancora_comum e AVISO, nao reprovacao', ST.severidadeDe('sem_ancora_comum') === 'aviso')
+  checa('D3 elemento_proibido manda corrigir', ST.severidadeDe('elemento_proibido') === 'corrigir')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// A CORRECAO — o menino da bolha morre mesmo se o texto se corromper de novo
+{
+  const bolha = ST.montarContrato({
+    indice: 4,
+    falaFinal: 'A German U-boat sank it in 1942.',
+    promptFinal: 'a boy underwater, bubbles from mouth, deep blue water',
+    elementosProibidos: PROIBIDOS,
+  })
+  const r = ST.aplicarContrato(bolha)
+  checa('correcao: entrada era reprovada', ST.severidadeDe(r.antes.veredicto) === 'corrigir', r.antes.veredicto)
+  checa('correcao: o menino saiu do prompt', !/\bboy\b/i.test(r.promptCorrigido), r.promptCorrigido)
+  checa('correcao: as bolhas sairam', !/bubbles from mouth/i.test(r.promptCorrigido), r.promptCorrigido)
+  checa('correcao: o submarino entrou', /submarine/i.test(r.promptCorrigido), r.promptCorrigido)
+  checa('correcao: entrou no INICIO (token inicial pesa mais)',
+    r.promptCorrigido.toLowerCase().indexOf('submarine') < 12, r.promptCorrigido)
+  checa('correcao: o resultado passa no proprio gate', r.depois.veredicto === 'aprovada', r.depois.motivo)
+  checa('correcao: as acoes ficam registradas', r.acoes.length >= 2, JSON.stringify(r.acoes))
+
+  const limpo = ST.montarContrato({
+    indice: 5,
+    falaFinal: 'A German U-boat sank it in 1942.',
+    promptFinal: 'a rusted submarine hull resting on the seabed, sonar sweep passing over it',
+    elementosProibidos: PROIBIDOS,
+  })
+  const rl = ST.aplicarContrato(limpo)
+  checa('correcao: cena boa passa INTOCADA', rl.promptCorrigido === limpo.promptFinal)
+  checa('correcao: e sem acoes', rl.acoes.length === 0)
+}
+
+
 console.log(falhas === 0
-  ? `\n${total} VERIFICACOES OK — GATE 1 e GATE 2 fechados.\n`
+  ? `\n${total} VERIFICACOES OK — D1+D2+D3 fechados, com o caller provado na rota.\n`
   : `\n${falhas} FALHAS em ${total} verificacoes.\n`)
 process.exit(falhas === 0 ? 0 : 1)
