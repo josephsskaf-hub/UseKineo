@@ -358,7 +358,55 @@ const PROIBIDOS = VM.proibidosPorModo('documentary_faceless')
 }
 
 
+// ══════════════════════════════════════════════════════════════════════════
+// D4 — O GATE COBRE OS 8 MOTORES (caminho classico + caminho hollywood)
+//
+// MEDIDO em producao: `hollywoodPath = wantsHollywood || wantsH3 || wantsOmni`
+// cobria 3 motores. VEO, KLING 2.5, SEEDANCE e KINEO 1 iam pelo caminho
+// classico, SEM verificacao fala x imagem — e foram 349 das 350 entregas dos
+// ultimos 14 dias. Prova do buraco: o render 705368ff (Veo, 9/9 aceitas)
+// gravou visual_mode e contrato_cena NULOS.
+{
+  const rota = readFileSync(join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
+  const codigo = rota.split('\n').filter((l) => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+
+  // Os DOIS caminhos chamam o contrato.
+  const chamadas = (codigo.match(/aplicarContrato\(contrato\)/g) ?? []).length
+  checa('D4 aplicarContrato e chamado em DOIS lugares', chamadas === 2, `achei ${chamadas}`)
+
+  // O classico usa a fala da cena.
+  checa('D4 classico usa scene.voiceover como fala',
+    /falaFinal: scene\.voiceover \?\? ''/.test(codigo))
+  // O hollywood usa a fala da cena dele.
+  checa('D4 hollywood usa hs.voiceover como fala',
+    /falaFinal: hs\.voiceover \?\? ''/.test(codigo))
+
+  // O prompt submetido no classico e o CORRIGIDO.
+  checa('D4 classico submete o prompt corrigido',
+    /cinematic = r\.promptCorrigido/.test(codigo))
+  // e o bruto virou variavel separada (prova de que nao ficou sobrescrito).
+  checa('D4 classico separa bruto de corrigido',
+    /const cinematicBruto = buildFacelessCinematicPrompt/.test(codigo))
+
+  // ORDEM: o gate roda ANTES do POST pago no classico.
+  const iGateClassico = codigo.indexOf('cinematic = r.promptCorrigido')
+  const iPostClassico = codigo.indexOf('dispatchOneSceneWithSafeVisualRetry({')
+  checa('D4 no classico o gate vem ANTES do despacho',
+    iGateClassico > 0 && iPostClassico > 0 && iGateClassico < iPostClassico,
+    `gate=${iGateClassico} post=${iPostClassico}`)
+
+  // Auditavel: os DOIS caminhos gravam o veredito no claim.
+  checa('D4 hollywood grava contrato_cena no claim', /contrato_cena: contratoRelato,/.test(codigo))
+  checa('D4 classico grava contrato_cena no claim', /contrato_cena: contratoRelatoClassico,/.test(codigo))
+  checa('D4 os dois gravam visual_mode', (codigo.match(/visual_mode: formatoVisual\.modo/g) ?? []).length === 2)
+
+  // NUNCA bloqueia: os dois tem try/catch que segue com o prompt bruto.
+  checa('D4 os dois caminhos seguem em caso de falha do gate',
+    (rota.match(/seguindo sem corrigir/g) ?? []).length === 2)
+}
+
+
 console.log(falhas === 0
-  ? `\n${total} VERIFICACOES OK — D1+D2+D3 fechados, com o caller provado na rota.\n`
+  ? `\n${total} VERIFICACOES OK — D1..D4 fechados — o gate cobre os 8 motores, provado na rota.\n`
   : `\n${falhas} FALHAS em ${total} verificacoes.\n`)
 process.exit(falhas === 0 ? 0 : 1)

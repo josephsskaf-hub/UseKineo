@@ -3449,6 +3449,15 @@ async function manipularPost(req: NextRequest) {
     }
     // ── end KINEO-HOLLYWOOD-2026-07-09 ──────────────────────────────────────
 
+    // Veredito do Contrato de Cena no caminho CLASSICO, cena a cena. So as
+    // que NAO passaram limpas. Vazio = todas passaram. Sem isto o gate
+    // corrigiria no escuro e a auditoria nao teria como saber se ajudou ou
+    // estragou — o defeito que o #353A cometeu ao instrumentar sem ligar.
+    const contratoRelatoClassico: Array<{
+      cena: number; antes: string; depois: string; cobertura: string
+      acoes: string[]; motivo: string
+    }> = []
+
     // ── KINEO-CINEMATIC-ANCHOR-2026-07-24 — cross-scene consistency (CLASSIC) ─
     // Flag-gated (OFF by default → this whole block is skipped and the path
     // below is BYTE-IDENTICAL pure t2v). When ON, this applies ONLY to
@@ -3533,7 +3542,11 @@ async function manipularPost(req: NextRequest) {
       | { kind: 'ambiguous'; error: FalQueueSubmitError }
       | { kind: 'fatal'; error: unknown }
     const submitScene = async (
-      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string },
+      // `voiceover` entrou no tipo para o Contrato de Cena poder comparar a
+      // FALA com a IMAGEM. Ele ja existia no objeto (scenes[] o carrega desde
+      // a linha ~2081) — so nao estava declarado aqui, entao o caminho
+      // classico nao tinha como enxergar a narracao.
+      scene: { aiPrompt?: string; stockSearchQuery?: string; description: string; voiceover?: string },
       model: string,
       // KINEO-353A.1 — o INDICE REAL da cena vem do chamador. Antes o vetor
       // usava `outcomes.length`, que e ordem de conclusao das promises: num
@@ -3548,7 +3561,49 @@ async function manipularPost(req: NextRequest) {
       // buildFacelessCinematicPrompt then strips any person nouns + forces
       // environment-first b-roll, on-brand for this faceless channel.
       const visualPrompt = scene.aiPrompt || scene.stockSearchQuery || scene.description
-      const cinematic = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
+      const cinematicBruto = buildFacelessCinematicPrompt(visualPrompt) + eraSuffix + styleSuffix
+      // ═══ CONTRATO CENA VERDADEIRA NO CAMINHO CLASSICO — 2026-08-27 ═══════
+      //
+      // MEDIDO EM PRODUCAO: `hollywoodPath = wantsHollywood || wantsH3 ||
+      // wantsOmni` (linha ~1142). O gate ligado hoje de manha roda DENTRO
+      // daquele laco, entao cobria 3 dos 8 motores. VEO, KLING 2.5, SEEDANCE e
+      // KINEO 1 passam por AQUI — e nas ultimas 2 semanas foram 349 das 350
+      // entregas. Ou seja: quase todo o produto rodava sem ninguem perguntar
+      // "a imagem mostra o que a frase diz?".
+      //
+      // Prova de que estava descoberto: o render 705368ff (Veo, 9/9 cenas
+      // aceitas) gravou `visual_mode` e `contrato_cena` NULOS no claim.
+      //
+      // MESMO COMPORTAMENTO DO OUTRO CAMINHO, de proposito: corrige o prompt,
+      // NUNCA bloqueia o render. O guard de narracao curta (#349/#350) ja
+      // ensinou o preco de um portao rigido — barrou cliente real em looping
+      // ate virar incidente. Falso negativo custa uma cena; falso positivo
+      // custa a pessoa inteira.
+      let cinematic = cinematicBruto
+      try {
+        const contrato = montarContrato({
+          indice: sceneIndex + 1,
+          falaFinal: scene.voiceover ?? '',
+          promptFinal: cinematicBruto,
+          elementosProibidos: proibidosPorModo(formatoVisual.modo),
+        })
+        const r = aplicarContrato(contrato)
+        if (severidadeDe(r.antes.veredicto) !== 'ok') {
+          console.log(`[contrato-cena/classico] cena ${sceneIndex + 1} ${r.antes.veredicto} (cobertura=${r.antes.cobertura}) — ${r.antes.motivo}${r.acoes.length ? ` | acoes: ${r.acoes.join('; ')}` : ''}`)
+          contratoRelatoClassico.push({
+            cena: sceneIndex + 1,
+            antes: r.antes.veredicto,
+            depois: r.depois.veredicto,
+            cobertura: r.antes.cobertura,
+            acoes: r.acoes,
+            motivo: r.antes.motivo,
+          })
+        }
+        cinematic = r.promptCorrigido
+      } catch (e) {
+        // Gate quebrado nao pode derrubar render pago: segue com o bruto.
+        console.warn('[contrato-cena/classico] falhou, seguindo sem corrigir:', (e as Error)?.message)
+      }
       // ═══ KINEO-353A.1 — O RETRY CEGO MORREU AQUI ══════════════════════
       // Antes: `if (id === null) { sleep(800); submitToFal(...) }` — re-POST
       // de QUALQUER rejeicao explicita, inclusive 401/403/404/422. E o
@@ -3758,6 +3813,12 @@ async function manipularPost(req: NextRequest) {
       quality: claimQuality,
       verbatim,
       speed: parsedScript.speed,
+      // Contrato de Cena no caminho classico (Veo, Kling 2.5, Seedance,
+      // Kineo 1). Mesmos campos do caminho hollywood, para o placar medir a
+      // cobertura REAL do gate sem precisar adivinhar por qual estrada o
+      // render passou.
+      contrato_cena: contratoRelatoClassico,
+      visual_mode: formatoVisual.modo,
     }
     // The signed claim records the ACTUAL per-scene model (usedModels). When
     // anchoring is OFF these are all `usedModel`, identical to the previous
