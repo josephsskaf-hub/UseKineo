@@ -25,6 +25,7 @@ import {
   OFFER_EFFECTIVE,
   START_HERE_FACT,
 } from '@/lib/kineoFacts'
+import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 
 // force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
 // build time — não há banco, fetch nem header de request envolvido. Duas
@@ -78,6 +79,13 @@ function buildLlmsTxt(): string {
   ).join('\n')
 
   const plans = PLAN_FACTS.map(planLine).join('\n')
+
+  const agencyPackLines = BULK_PACK_IDS.map((id) => {
+    const pack = BULK_PACKS[id]
+    const price = formatCheckoutMoney('usd', pack.usdMinor)
+    const perVideo = formatCheckoutMoney('usd', Math.round(pack.usdMinor / pack.videos))
+    return `- **${pack.videos} Fast Shorts** — ${price} once (${perVideo} per Fast Short), ${pack.credits} universal credits.`
+  }).join('\n')
 
   const notAFit = NOT_A_FIT.map(
     (item) => `- **${item.situation}**\n  Use instead: ${item.useInstead}`,
@@ -185,6 +193,14 @@ ${plans}
 - Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
 - Credits refresh each billing month and do **not** roll over.
 - Checkout currencies: ${PRODUCT.currencies.join(', ')}.
+
+## One-time packs for agencies, freelancers and businesses
+
+- [AI Shorts for agencies](${BASE}/ai-shorts-for-agencies): buy a commercial batch without a subscription or sales call.
+${agencyPackLines}
+- The named video count refers to Fast Mode. Credits are universal; premium generative engines spend more credits per video and reduce the output count.
+- Commercial delivery is allowed. The buyer owns the finished MP4s and can provide them to clients.
+- These are self-service packs for one Kineo account, not team seats, approval routing, a client portal or white-label software.
 
 ## Engines and what a video costs
 

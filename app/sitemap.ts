@@ -38,7 +38,7 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-ENGINE-SEO-2026-08-15 — advanced from 2026-08-03: the cluster gained
 // six pages (/ai-video-generator hub + 5 engine pages). Same test the comment
 // above sets — the cluster materially changed, so the old date is now a lie.
-const LAST_MODIFIED = new Date('2026-08-15T13:00:00.000Z')
+const LAST_MODIFIED = new Date('2026-08-27T23:30:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -130,6 +130,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // outras cabeças de cluster de intenção (/youtube-shorts-from-topic,
     // /text-to-video-shorts), não 0.8, porque é entrada de canal nº1.
     { path: '/chatgpt-to-youtube-shorts', priority: 0.9, freq: 'weekly' },
+    // KINEO-B2B-BULK-2026-08-27 — the checkout and four approved one-time
+    // agency packs existed without a single public caller. This is the first
+    // indexable door for freelancers, agencies and businesses buying batches.
+    { path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' },
     // KINEO-ENGINE-SEO-2026-08-15 (docs/SPRINT-2026-08-15-10H.md, seção 5) —
     // desde 15/08 a home vende pelos NOMES dos motores e o site não tinha uma
     // única página mirando esses nomes, que são o cluster mais disputado da

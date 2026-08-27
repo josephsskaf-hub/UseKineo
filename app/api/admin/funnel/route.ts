@@ -77,6 +77,9 @@ export interface FunnelData {
     basic_checkout_clicked: number
     pro_checkout_clicked: number
     starter_checkout_clicked?: number
+    agency_bulk_page_viewed?: number
+    agency_bulk_pack_clicked?: number
+    bulk_checkout_started?: number
     checkout_attempted?: number
     checkout_attempted_raw?: number
     checkout_authenticated_attempted?: number
@@ -464,6 +467,7 @@ export async function GET(req: Request) {
       'first_video_generation_failed_from_viral_onboarding',
       'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
       'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
+      'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
       'generate_started', 'video_generation_started',
       'generate_completed', 'video_generation_completed',
       'generate_failed', 'video_generation_failed',
@@ -484,6 +488,7 @@ export async function GET(req: Request) {
       'checkout_auth_confirmation_required', 'checkout_auth_completed',
       'auth_callback_completed', 'auth_callback_failed',
       'checkout_started', 'payment_success',
+      'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
     ]
     let eventsAvailable = false
@@ -1329,6 +1334,11 @@ export async function GET(req: Request) {
         basic_checkout_clicked: (eventCounts.get('basic_checkout_clicked') ?? 0) + (eventCounts.get('checkout_basic_click') ?? 0),
         pro_checkout_clicked: (eventCounts.get('pro_checkout_clicked') ?? 0) + (eventCounts.get('checkout_pro_click') ?? 0),
         starter_checkout_clicked: (eventCounts.get('starter_checkout_clicked') ?? 0) + (eventCounts.get('starter_pack_checkout_clicked') ?? 0),
+        // B2B pack stages count identifiable people/sessions, never raw event
+        // rows. A reload or a second click cannot masquerade as another buyer.
+        agency_bulk_page_viewed: uniqueCheckoutActors('agency_bulk_page_viewed'),
+        agency_bulk_pack_clicked: uniqueCheckoutActors('agency_bulk_pack_clicked'),
+        bulk_checkout_started: uniqueCheckoutActors('bulk_checkout_started'),
         // Buyer-intent stages are unique identifiable actors. Keep raw totals
         // alongside them so crawler/QA pressure remains visible but cannot be
         // mistaken for human checkout abandonment.

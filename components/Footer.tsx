@@ -87,6 +87,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/state-of-ai-shorts-2026', label: 'State of AI Shorts 2026' },
       // KINEO-CASE-STUDY-2026-07-31 — prova viva: canal real no Autopilot, numeros semanais.
       { href: '/youtube-automation-case-study', label: 'Live case study: our channel on Autopilot' },
+      { href: '/ai-shorts-for-agencies', label: 'AI Shorts for agencies & client work' },
       { href: '/partners', label: 'Affiliate program - 40% recurring' },
       // ═══════════════════════════════════════════════════════════════════════
       // KINEO-AFFILIATE-DEDUPE-2026-07-30 — o segundo link foi REMOVIDO daqui.
