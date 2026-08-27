@@ -463,6 +463,7 @@ export async function GET(req: Request) {
       'first_video_generation_completed_from_viral_onboarding',
       'first_video_generation_failed_from_viral_onboarding',
       'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
+      'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
       'generate_started', 'video_generation_started',
       'generate_completed', 'video_generation_completed',
       'generate_failed', 'video_generation_failed',
@@ -574,6 +575,7 @@ export async function GET(req: Request) {
             'first_video_generation_completed_from_viral_onboarding',
             'first_video_generation_failed_from_viral_onboarding',
             'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
+            'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
           ])
           .order('created_at', { ascending: false })
           .limit(5000)

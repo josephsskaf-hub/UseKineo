@@ -15,6 +15,11 @@ import {
   PUBLIC_VIDEO_SHARING_ENABLED,
 } from '@/lib/videoShare'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import AffiliateMomentumCard from '@/components/AffiliateMomentumCard'
+import {
+  isAffiliateMomentumEligible,
+  isHistorySubscriptionOfferEligible,
+} from '@/lib/affiliateActivation'
 // KINEO-PRICING-V6-2026-08-19 — esta tela vendia Starter com "$9.90/month" e
 // "60 credits" DIGITADOS em três lugares, e os três estavam errados no dia
 // seguinte ao reprice. USD fixo aqui (o checkout re-resolve a moeda pelo IP no
@@ -295,7 +300,9 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // that asset carries the Kineo watermark; payment unlocks a clean export.
   // Fail open so a plan lookup problem never hides an owned file.
   const [cleanExportLocked, setCleanExportLocked] = useState<boolean | null>(null)
-  const repeatOfferTracked = useRef(false)
+  const [subscriptionOfferEligible, setSubscriptionOfferEligible] = useState<boolean | null>(null)
+  const [affiliateMomentumEligible, setAffiliateMomentumEligible] = useState(false)
+  const subscriptionOfferTracked = useRef(false)
   const latestVideo = completedVideos[0] ?? null
   useEffect(() => {
     let cancelled = false
@@ -315,6 +322,20 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           d.trialActive === true ||
           (d.hasPaid === true && balance > 0)
         setCleanExportLocked(!cleanAccess)
+        setSubscriptionOfferEligible(isHistorySubscriptionOfferEligible({
+          completedVideoCount: completedVideos.length,
+          isStarter: d.isStarter === true,
+          isCreator: d.isCreator === true,
+          isStudio: d.isStudio === true,
+        }))
+        // Affiliate activation belongs after proven value and a real payment,
+        // never while the subscription decision is still the primary job.
+        setAffiliateMomentumEligible(isAffiliateMomentumEligible({
+          completedVideoCount: completedVideos.length,
+          isStarter: d.isStarter === true,
+          isCreator: d.isCreator === true,
+          isStudio: d.isStudio === true,
+        }))
       })
       .catch(() => {/* fail open */})
     if (PUBLIC_VIDEO_SHARING_ENABLED) {
@@ -355,23 +376,25 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   }, [latestVideo?.id, referralCode])
 
   useEffect(() => {
-    if (repeatOfferTracked.current || cleanExportLocked !== true || completedVideos.length < 2) return
-    repeatOfferTracked.current = true
-    void trackEvent('history_repeat_offer_viewed', {
-      version: 'push28_repeat_creator',
+    if (subscriptionOfferTracked.current || subscriptionOfferEligible !== true || completedVideos.length < 1) return
+    subscriptionOfferTracked.current = true
+    const firstVideo = completedVideos.length === 1
+    void trackEvent(firstVideo ? 'history_first_video_offer_viewed' : 'history_repeat_offer_viewed', {
+      version: firstVideo ? 'growth_first_video_recovery_2026_08_27' : 'push28_repeat_creator',
       completed_video_count: completedVideos.length,
     })
-  }, [cleanExportLocked, completedVideos.length])
+  }, [completedVideos.length, subscriptionOfferEligible])
 
-  function handleStarterCheckout(source: 'history_repeat_offer' | 'history_lightbox' = 'history_lightbox') {
+  function handleStarterCheckout(source: 'history_first_video_offer' | 'history_repeat_offer' | 'history_lightbox' = 'history_lightbox') {
     const started = checkout.launch(source, '/api/stripe/checkout?tier=starter&intro=1', {
       tier: 'starter',
       intro: true,
       pricing_surface: source,
     })
     if (!started) return
-    void trackEvent('history_repeat_offer_clicked', {
-      version: 'push28_repeat_creator',
+    const firstVideo = source === 'history_first_video_offer'
+    void trackEvent(firstVideo ? 'history_first_video_offer_clicked' : 'history_repeat_offer_clicked', {
+      version: firstVideo ? 'growth_first_video_recovery_2026_08_27' : 'push28_repeat_creator',
       source,
       completed_video_count: completedVideos.length,
     })
@@ -726,7 +749,8 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   const followUpHref = firstVideoTitle === 'Untitled Short'
     ? '/generate'
     : buildSeriesContinuationHref(firstVideoTitle, 'history_milestone')
-  const showRepeatCreatorOffer = cleanExportLocked === true && completedVideos.length >= 2
+  const showSubscriptionOffer = subscriptionOfferEligible === true && completedVideos.length >= 1
+  const firstVideoSubscriptionRecovery = showSubscriptionOffer && completedVideos.length === 1
 
   /* ── Main ── */
   return (
@@ -768,16 +792,16 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           watermark-free. */}
       {completedVideos.length >= 1 && (
         <section
-          aria-label={showRepeatCreatorOffer ? 'Make future exports watermark-free' : 'Create your second Short'}
+          aria-label={showSubscriptionOffer ? 'Continue creating with Starter' : 'Create your second Short'}
           className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           style={{
-            background: showRepeatCreatorOffer
+            background: showSubscriptionOffer
               ? 'linear-gradient(135deg, rgba(41,151,255,.15), rgba(41,151,255,.05))'
               : 'linear-gradient(135deg, rgba(41,151,255,.14), rgba(41,151,255,.04))',
-            border: showRepeatCreatorOffer
+            border: showSubscriptionOffer
               ? '1px solid rgba(41,151,255,.45)'
               : '1px solid rgba(41,151,255,.42)',
-            boxShadow: showRepeatCreatorOffer
+            boxShadow: showSubscriptionOffer
               ? '0 10px 32px rgba(41,151,255,.10)'
               : '0 10px 32px rgba(41,151,255,.10)',
           }}
@@ -785,29 +809,33 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
           <div style={{ minWidth: 0 }}>
             <div
               className="font-black uppercase tracking-[.16em] mb-1.5"
-              style={{ fontSize: '0.62rem', color: showRepeatCreatorOffer ? '#5cb3ff' : '#5cb3ff' }}
+              style={{ fontSize: '0.62rem', color: '#5cb3ff' }}
             >
-              {showRepeatCreatorOffer
-                ? `${completedVideos.length} Shorts complete · repeat creator`
+              {showSubscriptionOffer
+                ? firstVideoSubscriptionRecovery
+                  ? 'First Short complete · keep publishing'
+                  : `${completedVideos.length} Shorts complete · repeat creator`
                 : completedVideos.length === 1
                   ? 'First Short complete'
                   : 'Keep your show moving'}
             </div>
             <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
-              {showRepeatCreatorOffer
-                ? 'Publish your next Short without the Kineo watermark'
+              {showSubscriptionOffer
+                ? firstVideoSubscriptionRecovery
+                  ? 'Keep the workflow that made your first Short'
+                  : 'Publish your next Short without the Kineo watermark'
                 : completedVideos.length === 1
                   ? 'Turn it into episode 2'
                   : 'Create the next episode'}
             </h2>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
-              {showRepeatCreatorOffer
+              {showSubscriptionOffer
                 ? `Starter includes ${TIER_CREDITS.starter} credits each month and clean exports for new videos. ${STARTER_PRICE_USD}/month. Cancel anytime.`
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
-            {showRepeatCreatorOffer ? (
+            {showSubscriptionOffer ? (
               <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}>
-                Your existing watermarked files stay available. The upgrade applies to new exports.
+                Your existing files stay available. Starter applies to new exports after checkout.
               </p>
             ) : cleanExportLocked === true ? (
               <p className="text-xs leading-relaxed mt-2" style={{ color: '#5cb3ff', marginBottom: 0 }}>
@@ -816,10 +844,10 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             ) : null}
           </div>
           <div className="flex flex-col gap-2 w-full sm:w-auto flex-shrink-0">
-            {showRepeatCreatorOffer && (
+            {showSubscriptionOffer && (
               <button
                 type="button"
-                onClick={() => handleStarterCheckout('history_repeat_offer')}
+                onClick={() => handleStarterCheckout(firstVideoSubscriptionRecovery ? 'history_first_video_offer' : 'history_repeat_offer')}
                 disabled={checkout.pending !== null}
                 className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
                 style={{
@@ -830,12 +858,12 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                   boxShadow: '0 6px 22px rgba(41,151,255,.30)',
                 }}
               >
-                {checkout.pending === 'history_repeat_offer'
+                {checkout.pending === (firstVideoSubscriptionRecovery ? 'history_first_video_offer' : 'history_repeat_offer')
                   ? 'Loading…'
-                  : `Make new exports clean · ${STARTER_PRICE_USD} →`}
+                  : `Continue with Starter · ${STARTER_PRICE_USD} →`}
               </button>
             )}
-            {showRepeatCreatorOffer && checkout.error && (
+            {showSubscriptionOffer && checkout.error && (
               <p role="alert" className="text-xs font-semibold" style={{ color: '#ff6b6b' }}>
                 {checkout.error}
               </p>
@@ -851,17 +879,21 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               }}
               className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
               style={{
-                background: showRepeatCreatorOffer ? 'rgba(255,255,255,.08)' : 'linear-gradient(135deg, #2997ff, #1d6fe0)',
-                border: showRepeatCreatorOffer ? '1px solid rgba(255,255,255,.14)' : '1px solid transparent',
+                background: showSubscriptionOffer ? 'rgba(255,255,255,.08)' : 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+                border: showSubscriptionOffer ? '1px solid rgba(255,255,255,.14)' : '1px solid transparent',
                 textDecoration: 'none',
-                boxShadow: showRepeatCreatorOffer ? 'none' : '0 6px 22px rgba(41,151,255,.30)',
+                boxShadow: showSubscriptionOffer ? 'none' : '0 6px 22px rgba(41,151,255,.30)',
               }}
             >
-              {showRepeatCreatorOffer ? 'Keep testing with watermark' : 'Build Next Episode →'}
+              {showSubscriptionOffer ? 'Build Next Episode First' : 'Build Next Episode →'}
             </Link>
           </div>
         </section>
       )}
+
+      {affiliateMomentumEligible ? (
+        <AffiliateMomentumCard completedVideoCount={completedVideos.length} />
+      ) : null}
 
       {latestVideo && PUBLIC_VIDEO_SHARING_ENABLED && (
         <section
