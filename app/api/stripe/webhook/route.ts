@@ -27,6 +27,14 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { TRIAL_GRANT_CREDITS } from '@/lib/reverseTrial'
+import {
+  AffiliateLedgerIntegrityError,
+  calculateAffiliateCommission,
+  commitAffiliateCommission,
+  normalizeAffiliateCurrency,
+  type AffiliateCommissionRecord,
+  type ExistingAffiliateCommission,
+} from '@/lib/affiliateLedger'
 
 // KINEO-PILOT-99-2026-07-26 — fallback por valor para o piloto de $99, QUALIFICADO
 // POR MOEDA. Sem a moeda isto seria um bug de caixa: topup40 em INR custa 49900 e
@@ -63,6 +71,13 @@ class RetryableEntitlementError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'RetryableEntitlementError'
+  }
+}
+
+class RetryableAffiliateLedgerError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RetryableAffiliateLedgerError'
   }
 }
 
@@ -151,14 +166,14 @@ async function resolveAffiliateByCoupon(
       .eq('coupon_code', codeUpper)
       .limit(2)
     if (buscaErro) {
-      console.error('[affiliate coupon] busca falhou:', buscaErro.message)
-      return null
+      throw new AffiliateLedgerIntegrityError('Could not resolve affiliate coupon owner')
     }
     // Dois afiliados com o mesmo texto = ambiguidade. Pagar ao "primeiro" seria
     // sortear o dono do dinheiro; melhor não pagar e deixar rastro no log.
     if (!candidatos || candidatos.length !== 1) {
       if (candidatos && candidatos.length > 1) {
         console.error(`[affiliate coupon] AMBIGUO: ${candidatos.length} afiliados com o cupom ${codeUpper}`)
+        throw new AffiliateLedgerIntegrityError('Affiliate coupon has more than one owner')
       }
       return null
     }
@@ -177,8 +192,8 @@ async function resolveAffiliateByCoupon(
     }
     return aff.id as string
   } catch (err) {
-    console.error('[affiliate coupon] resolve failed:', err)
-    return null
+    if (err instanceof AffiliateLedgerIntegrityError) throw err
+    throw new AffiliateLedgerIntegrityError('Could not verify Stripe affiliate coupon')
   }
 }
 
@@ -190,13 +205,20 @@ async function recordAffiliateCommission(
   supabase: AdminClient,
   args: { userId: string; externalId: string; amountGross: number; currency: string; type: 'initial' | 'recurring'; attributionSystem?: string | null; session?: Stripe.Checkout.Session }
 ): Promise<void> {
-  try {
-    // Rewardful owns this charge. Suppress the custom ledger so the same
-    // initial payment or renewal can never create two affiliate liabilities.
-    if (args.attributionSystem === 'rewardful') return
-    if (!args.userId || !args.externalId) return
+  // Rewardful owns this charge. Suppress the custom ledger so the same
+  // initial payment or renewal can never create two affiliate liabilities.
+  if (args.attributionSystem === 'rewardful') return
+  if (!args.userId || !args.externalId) return
 
-    const { data: prof } = await supabase.from('profiles').select('affiliate_id').eq('id', args.userId).single()
+  try {
+    const { data: prof, error: profileError } = await supabase
+      .from('profiles')
+      .select('affiliate_id')
+      .eq('id', args.userId)
+      .single()
+    if (profileError) {
+      throw new AffiliateLedgerIntegrityError('Could not read paying user affiliate attribution')
+    }
     let affiliateId = (prof?.affiliate_id as string | null | undefined) ?? null
 
     // ⚠ ESTE BLOCO FICA ANTES DO GUARD DE VALOR, DE PROPÓSITO.
@@ -214,11 +236,14 @@ async function recordAffiliateCommission(
         // afiliado (como estava) não enxergava a indicação de OUTRO criador e
         // deixava o cupom sequestrar uma indicação que já tinha dono — o link
         // de A viraria comissão vitalícia de B por um código digitado.
-        const { data: indicacaoExistente } = await supabase
+        const { data: indicacaoExistente, error: indicacaoErro } = await supabase
           .from('affiliate_referrals')
           .select('id, affiliate_id')
           .eq('referred_user_id', args.userId)
           .maybeSingle()
+        if (indicacaoErro) {
+          throw new AffiliateLedgerIntegrityError('Could not verify first-touch affiliate referral')
+        }
 
         if (indicacaoExistente && indicacaoExistente.affiliate_id !== affiliateId) {
           // Já tem dono e é outro. First-touch vence: honra o primeiro e
@@ -229,69 +254,119 @@ async function recordAffiliateCommission(
           )
           affiliateId = indicacaoExistente.affiliate_id as string
         } else {
-          const { error: carimboErro } = await supabase
-            .from('profiles')
-            .update({ affiliate_id: affiliateId })
-            .eq('id', args.userId)
-          if (carimboErro) {
-            // Sem carimbo não há renovação creditada. Melhor abortar o caminho
-            // do cupom e deixar rastro do que registrar uma comissão de entrada
-            // que nunca teria continuidade.
-            console.error('[affiliate coupon] carimbo do perfil falhou:', carimboErro.message)
-            affiliateId = null
-          } else if (!indicacaoExistente) {
+          if (!indicacaoExistente) {
             const { error: insErro } = await supabase
               .from('affiliate_referrals')
               .insert({ affiliate_id: affiliateId, referred_user_id: args.userId, status: 'signup' })
-            if (insErro) console.error('[affiliate coupon] insert da indicacao falhou:', insErro.message)
-          }
-          if (affiliateId) {
-            console.log(`[affiliate coupon] user ${args.userId} → affiliate ${affiliateId} (sem link, via cupom)`)
+            if (insErro && insErro.code !== '23505') {
+              throw new AffiliateLedgerIntegrityError('Could not create coupon affiliate referral')
+            }
+            if (insErro?.code === '23505') {
+              const { data: raceWinner, error: raceError } = await supabase
+                .from('affiliate_referrals')
+                .select('id, affiliate_id')
+                .eq('referred_user_id', args.userId)
+                .single()
+              if (raceError || !raceWinner?.affiliate_id) {
+                throw new AffiliateLedgerIntegrityError('Could not reconcile affiliate referral race')
+              }
+              affiliateId = raceWinner.affiliate_id as string
+            }
           }
         }
+
+        // Stamp the canonical first-touch owner, including the case where a
+        // coupon lost to an older referral. Renewals only know this profile
+        // field, so skipping the repair loses every later commission.
+        const { data: stampedProfile, error: carimboErro } = await supabase
+          .from('profiles')
+          .update({ affiliate_id: affiliateId })
+          .eq('id', args.userId)
+          .select('id')
+          .maybeSingle()
+        if (carimboErro || !stampedProfile?.id) {
+          throw new AffiliateLedgerIntegrityError('Could not persist canonical affiliate attribution')
+        }
+        console.log(`[affiliate coupon] user ${args.userId} → affiliate ${affiliateId} (sem link, via cupom)`)
       }
     }
     if (!affiliateId) return
     // Só AGORA o valor importa: atribuição já está gravada acima, e o que este
     // guard evita é lançar uma comissão de valor zero ou negativo.
     if (!args.amountGross || args.amountGross <= 0) return
-    const { data: aff } = await supabase.from('affiliates').select('id, commission_rate, status').eq('id', affiliateId).single()
+    const currency = normalizeAffiliateCurrency(args.currency || 'usd')
+    const { data: aff, error: affiliateError } = await supabase
+      .from('affiliates')
+      .select('id, commission_rate, status')
+      .eq('id', affiliateId)
+      .single()
+    if (affiliateError) {
+      throw new AffiliateLedgerIntegrityError('Could not read affiliate commission terms')
+    }
     if (!aff || aff.status !== 'active') return
     const rate = Number(aff.commission_rate ?? 0)
-    if (!(rate > 0)) return
-    const commission = Math.round(args.amountGross * rate)
-    if (commission <= 0) return
+    const commission = calculateAffiliateCommission(args.amountGross, rate)
 
-    // Link to the referral row + mark it paid (best-effort).
-    const { data: ref } = await supabase
+    const { data: ref, error: referralError } = await supabase
       .from('affiliate_referrals')
       .select('id, status')
       .eq('affiliate_id', affiliateId)
       .eq('referred_user_id', args.userId)
       .maybeSingle()
-    if (ref && ref.status !== 'paid') {
-      await supabase.from('affiliate_referrals').update({ status: 'paid', converted_at: new Date().toISOString() }).eq('id', ref.id)
+    if (referralError) {
+      throw new AffiliateLedgerIntegrityError('Could not read affiliate referral for commission')
     }
 
-    const { error } = await supabase.from('affiliate_commissions').insert({
+    const row: AffiliateCommissionRecord = {
       affiliate_id: affiliateId,
       referral_id: ref?.id ?? null,
       provider: 'stripe',
       external_id: args.externalId,
       type: args.type,
       amount_gross: args.amountGross,
-      currency: args.currency || 'usd',
+      currency,
       commission_amount: commission,
       status: 'pending',
       period: new Date().toISOString().slice(0, 10),
-    })
-    if (error && error.code !== '23505') {
-      console.error('[affiliate commission] insert error:', error.code, error.message)
-    } else if (!error) {
+    }
+
+    const outcome = await commitAffiliateCommission({
+      async find(provider, externalId) {
+        const { data, error } = await supabase
+          .from('affiliate_commissions')
+          .select('affiliate_id, referral_id, provider, external_id, type, amount_gross, currency, commission_amount')
+          .eq('provider', provider)
+          .eq('external_id', externalId)
+          .maybeSingle()
+        if (error) throw new AffiliateLedgerIntegrityError('Could not reconcile affiliate commission')
+        return (data as ExistingAffiliateCommission | null) ?? null
+      },
+      async insert(value) {
+        const { error } = await supabase.from('affiliate_commissions').insert(value)
+        if (!error) return 'inserted'
+        if (error.code === '23505') return 'duplicate'
+        throw new AffiliateLedgerIntegrityError('Could not insert affiliate commission')
+      },
+      async markReferralPaid(referralId, convertedAt) {
+        const { data, error } = await supabase
+          .from('affiliate_referrals')
+          .update({ status: 'paid', converted_at: convertedAt })
+          .eq('id', referralId)
+          .select('id')
+          .maybeSingle()
+        if (error || !data?.id) {
+          throw new AffiliateLedgerIntegrityError('Could not reconcile paid affiliate referral')
+        }
+      },
+    }, row, new Date().toISOString())
+
+    if (outcome === 'inserted') {
       console.log(`[affiliate commission] +${commission} (${args.type}) affiliate ${affiliateId} ← user ${args.userId}`)
     }
   } catch (err) {
-    console.error('[affiliate commission] unexpected:', err)
+    const reason = err instanceof AffiliateLedgerIntegrityError ? err.message : 'Unexpected affiliate ledger failure'
+    console.error('[affiliate commission] retry required:', reason)
+    throw new RetryableAffiliateLedgerError(reason)
   }
 }
 
@@ -769,6 +844,20 @@ export async function POST(req: NextRequest) {
             )
           }
 
+          // Legacy pack grants are additive. Record/reconcile the idempotent
+          // commission before changing the balance, so a ledger failure can
+          // safely release both guards and ask Stripe to retry without adding
+          // the same credits twice.
+          await recordAffiliateCommission(supabase, {
+            userId,
+            externalId: session.id,
+            amountGross: session.amount_total ?? 0,
+            currency: session.currency ?? 'usd',
+            type: 'initial',
+            attributionSystem: session.metadata?.affiliate_system,
+            session,
+          })
+
           const { data: profile, error: fetchErr } = await supabase
             .from('profiles')
             .select('video_credits')
@@ -861,7 +950,6 @@ export async function POST(req: NextRequest) {
           // (o ramo de erro lança antes). Um pack/piloto comprado durante ou
           // logo após o trial também é conversão.
           await markTrialConverted(supabase, userId, { source: 'checkout_payment', stripeRef: session.id })
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
           break
         }
 
@@ -1890,9 +1978,11 @@ export async function POST(req: NextRequest) {
       error instanceof RetryableEntitlementError &&
       entitlementPending &&
       !entitlementConfirmed
+    const shouldRetryAffiliateLedger = error instanceof RetryableAffiliateLedgerError
+    const shouldRetryWebhook = shouldRetryEntitlement || shouldRetryAffiliateLedger
 
     let checkoutGuardReleased = !checkoutFulfillmentGuardAcquired
-    if (shouldRetryEntitlement && checkoutFulfillmentGuardAcquired && checkoutFulfillmentGuard) {
+    if (shouldRetryWebhook && checkoutFulfillmentGuardAcquired && checkoutFulfillmentGuard) {
       try {
         const { error: fulfillmentReleaseError } = await supabase
           .from('stripe_events')
@@ -1914,7 +2004,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (shouldRetryEntitlement && dedupeRowAcquired && checkoutGuardReleased) {
+    if (shouldRetryWebhook && dedupeRowAcquired && checkoutGuardReleased) {
       try {
         const { error: releaseError } = await supabase
           .from('stripe_events')

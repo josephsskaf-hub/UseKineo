@@ -9,6 +9,10 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import {
+  AffiliateLedgerIntegrityError,
+  normalizeAffiliateAdminUpdate,
+} from '@/lib/affiliateLedger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -70,13 +74,16 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       update.status = 'active'
     }
 
-    if (typeof body.commission_rate === 'number' && !Number.isNaN(body.commission_rate)) {
-      update.commission_rate = body.commission_rate
-    }
-
-    if (typeof body.coupon_code === 'string') {
-      const trimmed = body.coupon_code.trim()
-      update.coupon_code = trimmed.length ? trimmed : null
+    try {
+      Object.assign(update, normalizeAffiliateAdminUpdate({
+        commission_rate: body.commission_rate,
+        coupon_code: body.coupon_code,
+      }))
+    } catch (error) {
+      if (error instanceof AffiliateLedgerIntegrityError) {
+        return NextResponse.json({ error: error.message }, { status: 400 })
+      }
+      throw error
     }
 
     if (Object.keys(update).length === 0) {
