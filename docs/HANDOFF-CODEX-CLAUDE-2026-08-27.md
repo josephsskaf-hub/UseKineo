@@ -1,10 +1,10 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
-**Data do snapshot:** 2026-08-27, America/Sao_Paulo  
-**Base remota integrada:** `265ddfc6ea887ae772aefe9eeb4072d2c7b0b04a`  
-**Ponta funcional antes deste documento:** `f62997b`  
-**Workstream:** aquisição, fluxo e conversão em assinatura  
-**Estado neste snapshot:** IMPLEMENTADO e TESTADO LOCALMENTE; a validação em produção deve ser acrescentada ao resumo do turno após o deploy.
+- **Data do snapshot:** 2026-08-27, America/Sao_Paulo
+- **Base remota integrada:** `265ddfc6ea887ae772aefe9eeb4072d2c7b0b04a`
+- **Ponta funcional antes deste documento:** `f62997b`
+- **Workstream:** aquisição, fluxo e conversão em assinatura
+- **Estado neste snapshot:** IMPLEMENTADO e TESTADO LOCALMENTE; a validação em produção deve ser acrescentada ao resumo do turno após o deploy.
 
 ## 1. Divisão aprovada pelo fundador
 
