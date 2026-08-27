@@ -32,6 +32,7 @@ import {
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
+import { decidirFormato, permiteApresentador, TAG_FACELESS } from '@/lib/cinematic/visualMode'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
@@ -1046,8 +1047,23 @@ async function manipularPost(req: NextRequest) {
     // desliga a conversão HOOK/PAYOFF-on-camera no planner. A tag é REMOVIDA
     // aqui, antes de tudo (verbatim, fingerprint, narração) — nunca é falada.
     const promptRaw = (body.prompt ?? '').trim()
-    const facelessRequested = /\[faceless\]/i.test(promptRaw)
+    const tagFacelessPresente = TAG_FACELESS.test(promptRaw)
     const prompt = promptRaw.replace(/\[faceless\]/gi, '').trim()
+    // ═══ DIRETOR DE FORMATO — 2026-08-27 ═════════════════════════════════
+    // ANTES: `facelessRequested` so era true com a tag `[faceless]` escrita a
+    // mao. Nenhum cliente conhece essa tag, entao o padrao de fabrica era
+    // APRESENTADOR PARA TODO MUNDO — e o prompt de sistema do planner ainda
+    // reforcava (`hostFits=true for documentary/mysteries/history/facts`),
+    // com default true no parse. Resultado medido no render 37c8d832: um
+    // roteiro de misterio/noticia sobre naufragios da Segunda Guerra ganhou
+    // host falando na lente e rostos humanos em cenas de apoio, sem que o
+    // roteiro pedisse nada disso.
+    // AGORA: o formato e inferido do CONTEUDO. Documentario, misterio,
+    // ciencia e noticia nascem faceless; apresentador so por pedido
+    // explicito. A tag antiga continua valendo para quem ja a usa.
+    const formatoVisual = decidirFormato(prompt, tagFacelessPresente)
+    const facelessRequested = !permiteApresentador(formatoVisual.modo)
+    console.log(`[formato] visual_mode=${formatoVisual.modo} — ${formatoVisual.motivo}`)
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
     }
