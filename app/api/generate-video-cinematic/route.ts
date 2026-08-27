@@ -31,6 +31,7 @@ import {
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
 import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
+import { aplicarEixoVisual } from '@/lib/hollywood/varietyAxis'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
@@ -2415,9 +2416,15 @@ async function manipularPost(req: NextRequest) {
               let d: [number, number] | null = null
               while ((d = dupPair(plan)) !== null && axed < 4) {
                 const sc = plan.scenes[d[1] - 1]
-                const stripped = plan.environmentSheet ? sc.prompt.split(plan.environmentSheet).join(' ') : sc.prompt
-                const head = stripped.replace(/\s+/g, ' ').trim().split(' ').slice(0, 14).join(' ')
-                sc.prompt = `${AXES[axed % AXES.length]}, ${head}, ${plan.styleSheet}`
+                // KINEO-VARIEDADE-SEM-AMPUTAR-2026-08-27 — o `.slice(0, 14)`
+                // que estava aqui cortava o prompt por CONTAGEM DE PALAVRAS.
+                // No render 37c8d832 a palavra 14 era `Mouth`: a proibicao
+                // "Mouth closed, not speaking, no lip movement." foi decapitada
+                // e o motor entregou um rosto submerso fazendo bolhas numa cena
+                // sobre um submarino alemao. E os 4 sufixos de protecao
+                // (boca fechada, sem texto, nitidez, horizonte estavel) iam
+                // junto para o lixo. Agora o eixo e PREFIXADO e nada e amputado.
+                sc.prompt = aplicarEixoVisual(sc.prompt, plan.environmentSheet, AXES[axed % AXES.length])
                 console.warn(`[contrato] C3 variety enforced in code: scene ${d[1]} re-axed`)
                 axed++
               }
