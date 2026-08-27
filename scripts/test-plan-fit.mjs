@@ -1,0 +1,299 @@
+// A2 Plan Fit — deterministic contract tests.
+// No network, database, credentials or production writes.
+
+import { execFileSync } from 'node:child_process'
+import { createRequire } from 'node:module'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+function findTsc(base) {
+  let dir = base
+  for (let depth = 0; depth < 8; depth++) {
+    const candidate = join(dir, 'node_modules', 'typescript', 'bin', 'tsc')
+    if (existsSync(candidate)) return candidate
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  throw new Error('TypeScript compiler not found')
+}
+
+const temp = mkdtempSync(join(tmpdir(), 'kineo-plan-fit-'))
+const sourceDir = join(temp, 'src')
+const outDir = join(temp, 'out')
+mkdirSync(sourceDir, { recursive: true })
+
+const files = [
+  ['lib/growth/planFit.ts', 'planFit.ts'],
+  ['lib/checkoutPricing.ts', 'checkoutPricing.ts'],
+  ['lib/credits/engineCost.ts', 'engineCost.ts'],
+  ['lib/autopilot/config.ts', 'autopilotConfig.ts'],
+]
+
+for (const [source, destination] of files) {
+  const content = readFileSync(join(root, source), 'utf8')
+    .replace(/from '@\/lib\/checkoutPricing'/g, "from './checkoutPricing'")
+    .replace(/from '@\/lib\/credits\/engineCost'/g, "from './engineCost'")
+    .replace(/from '@\/lib\/autopilot\/config'/g, "from './autopilotConfig'")
+  writeFileSync(join(sourceDir, destination), content)
+}
+
+execFileSync(process.execPath, [
+  findTsc(root),
+  ...files.map(([, file]) => join(sourceDir, file)),
+  '--outDir', outDir,
+  '--rootDir', sourceDir,
+  '--module', 'commonjs',
+  '--target', 'es2022',
+  '--moduleResolution', 'node',
+  '--skipLibCheck',
+], { stdio: 'pipe' })
+writeFileSync(join(outDir, 'package.json'), JSON.stringify({ type: 'commonjs' }))
+
+const requireFromTemp = createRequire(join(outDir, 'runner.cjs'))
+const planFit = requireFromTemp(join(outDir, 'planFit.js'))
+const pricing = requireFromTemp(join(outDir, 'checkoutPricing.js'))
+const costs = requireFromTemp(join(outDir, 'engineCost.js'))
+
+let total = 0
+let failed = 0
+function check(name, condition, detail = '') {
+  total += 1
+  if (condition) return
+  failed += 1
+  console.error(`FAIL ${name}${detail ? ` — ${detail}` : ''}`)
+}
+
+console.log('\nKINEO A2 — Plan Fit\n')
+
+// 1. Monthly, canonical arithmetic. No weekly conversion exists.
+check('monthly presets are explicit', JSON.stringify(planFit.MONTHLY_CADENCES) === JSON.stringify([1, 4, 8, 12]))
+const seedanceFour = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 4, currency: 'usd' })
+check('Seedance cost comes from canonical duration cost', seedanceFour.filmCredits === costs.creditCostForDuration('cinematic_ai', true, 60))
+check('monthly credits are exact multiplication', seedanceFour.monthlyCredits === seedanceFour.filmCredits * 4)
+check('current recommendation covers its target', seedanceFour.plan !== null && seedanceFour.plan.credits >= seedanceFour.monthlyCredits)
+check('recommended grant is canonical', seedanceFour.plan?.credits === pricing.TIER_CREDITS[seedanceFour.plan?.tier])
+const tiersBeforeRecommendation = planFit.tiersByPrice('usd').slice(
+  0,
+  planFit.tiersByPrice('usd').indexOf(seedanceFour.plan?.tier),
+)
+check('no less expensive plan covers the target', tiersBeforeRecommendation.every((tier) => pricing.TIER_CREDITS[tier] < seedanceFour.monthlyCredits))
+
+// 2. Free projection uses the paid cost without claiming the free film spent it.
+const freeProjection = planFit.calculatePlanFit({ quality: 'fast', seconds: 60, monthlyFilms: 4, currency: 'usd' })
+check('free Kineo 1 is zero today', costs.creditCostForDuration('fast', false, 60) === 0)
+check('Plan Fit projects paid Kineo 1 cost', freeProjection.filmCredits === costs.creditCostForDuration('fast', true, 60))
+check('paid projection is nonzero', freeProjection.filmCredits > 0)
+check('free projection can recommend a plan', freeProjection.plan !== null)
+
+// 3. No-plan result always carries honest, actionable exits.
+const selfServeTiers = ['starter', 'basic', 'pro']
+const maximumGrant = Math.max(...selfServeTiers.map((tier) => pricing.TIER_CREDITS[tier]))
+const seedancePaidCost = costs.creditCostForDuration('cinematic_ai', true, 60)
+const noPlanCadence = Math.min(60, Math.floor(maximumGrant / seedancePaidCost) + 1)
+const seedanceNoPlan = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: noPlanCadence, currency: 'usd' })
+check('fixture is dynamically above every current self-serve grant', noPlanCadence * seedancePaidCost > maximumGrant)
+check('no self-serve plan is signaled', seedanceNoPlan.noSelfServePlan && seedanceNoPlan.plan === null)
+check('maximum same-engine capacity is derived', seedanceNoPlan.maximumSameEngineFilms === Math.floor(maximumGrant / seedanceNoPlan.filmCredits))
+const fastAlternativeShouldFit = costs.creditCostForDuration('fast', true, 60) * noPlanCadence <= maximumGrant
+check('faster alternative exists exactly when it fits', Boolean(seedanceNoPlan.fastAlternative) === fastAlternativeShouldFit)
+if (seedanceNoPlan.fastAlternative) {
+  check('fast alternative keeps exact monthly cadence', seedanceNoPlan.fastAlternative.monthlyCredits === costs.creditCostForDuration('fast', true, 60) * noPlanCadence)
+  check('alternative grant covers exact combination', seedanceNoPlan.fastAlternative.plan.credits >= seedanceNoPlan.fastAlternative.monthlyCredits)
+}
+
+// This is a relationship test, not a frozen commercial mismatch: changing a
+// grant legitimately is allowed as long as the result and exits remain true.
+for (const cadence of planFit.MONTHLY_CADENCES) {
+  const result = planFit.calculatePlanFit({ quality: 'cinematic_h3', seconds: 60, monthlyFilms: cadence, currency: 'usd' })
+  if (result.plan) {
+    check(`H3 ${cadence}/month recommended plan covers`, result.plan.credits >= result.monthlyCredits)
+  } else {
+    check(`H3 ${cadence}/month no-plan has an exit`, result.maximumSameEngineFilms > 0 || result.fastAlternative !== null)
+  }
+}
+
+const sellablePlanFitQualities = [
+  'fast',
+  'basic',
+  'basic_ai',
+  'pro',
+  'cinematic_ai',
+  'cinematic_kling',
+  'cinematic_veo',
+  'cinematic_hollywood',
+  'cinematic_h3',
+  'cinematic_omni',
+]
+for (const quality of sellablePlanFitQualities) {
+  for (const seconds of [35, 60, 90]) {
+    for (const cadence of planFit.MONTHLY_CADENCES) {
+      const result = planFit.calculatePlanFit({ quality, seconds, monthlyFilms: cadence, currency: 'usd' })
+      check(
+        `actionable result ${quality}/${seconds}s/${cadence}mo`,
+        result.plan !== null || result.maximumSameEngineFilms > 0 || result.fastAlternative !== null,
+      )
+    }
+  }
+}
+
+// 4. Account cohorts are mutually exclusive, and subscriber always wins.
+const account = (overrides) => planFit.classifyPlanFitAccount({
+  entitlementsResolved: true,
+  commercialPlan: 'free',
+  hasPaid: false,
+  trialParticipant: false,
+  ...overrides,
+})
+check('free cohort', account({}) === 'free')
+check('active/ending trial cohort', account({ trialParticipant: true }) === 'trial')
+check('pack cohort', account({ hasPaid: true }) === 'pack')
+check('paid-balance cohort wins over simultaneous trial state', account({ hasPaid: true, trialParticipant: true }) === 'pack')
+check('Starter subscriber hidden even when hasPaid', account({ commercialPlan: 'starter', hasPaid: true }) === 'subscriber')
+check('Autopilot subscriber hidden', account({ commercialPlan: 'autopilot', hasPaid: true }) === 'subscriber')
+check('subscriber wins over trial state', account({ commercialPlan: 'basic', trialParticipant: true }) === 'subscriber')
+check('unresolved entitlement fails closed', account({ entitlementsResolved: false }) === 'unknown')
+check('missing plan fails closed', account({ commercialPlan: null }) === 'unknown')
+
+// 5. First delivery is proved by exact owner history, never event volume.
+const evidence = (overrides) => planFit.isConfirmedFirstDelivery({
+  historyReliable: true,
+  evidenceForVideoId: 'current',
+  completedCount: 1,
+  recentVideos: [{ id: 'current', status: 'completed' }],
+  currentVideoId: 'current',
+  ...overrides,
+})
+check('refreshed sole current delivery accepted', evidence({}) === true)
+check('initial zero-video state before persistence is not a delivery', evidence({
+  evidenceForVideoId: null,
+  completedCount: 0,
+  recentVideos: [],
+  currentVideoId: null,
+}) === false)
+check('stale zero-video snapshot never mounts for delivery one', evidence({
+  evidenceForVideoId: null,
+  completedCount: 0,
+  recentVideos: [],
+}) === false)
+check('contradictory count zero after a persisted id fails closed', evidence({
+  completedCount: 0,
+  recentVideos: [],
+}) === false)
+check('video one evidence cannot qualify video two before refresh', evidence({
+  currentVideoId: 'second',
+}) === false)
+check('video two refresh proves it is no longer first delivery', evidence({
+  evidenceForVideoId: 'second',
+  completedCount: 2,
+  recentVideos: [
+    { id: 'second', status: 'completed' },
+    { id: 'current', status: 'completed' },
+  ],
+  currentVideoId: 'second',
+}) === false)
+check('one previous video is not first delivery', evidence({ completedCount: 1, recentVideos: [{ id: 'previous', status: 'completed' }] }) === false)
+check('second completed delivery is rejected', evidence({ completedCount: 2, recentVideos: [{ id: 'current', status: 'completed' }, { id: 'previous', status: 'completed' }] }) === false)
+check('degraded history fails closed', evidence({ historyReliable: false }) === false)
+check('missing current video id fails closed', evidence({ currentVideoId: null }) === false)
+const reserveSlot = (overrides) => planFit.shouldReservePlanFitRecurringSlot({
+  candidate: true,
+  eligible: false,
+  historyCheckedForVideoId: null,
+  currentVideoId: 'first',
+  ...overrides,
+})
+check('new video reserves recurring slot while exact history is pending', reserveSlot({}) === true)
+check('confirmed first delivery keeps the recurring slot', reserveSlot({
+  eligible: true,
+  historyCheckedForVideoId: 'first',
+}) === true)
+check('failed lookup releases legacy offers after a definitive answer', reserveSlot({
+  historyCheckedForVideoId: 'first',
+}) === false)
+check('video two cannot reuse the decision for video one', reserveSlot({
+  historyCheckedForVideoId: 'first',
+  currentVideoId: 'second',
+}) === true)
+check('confirmed non-first video releases legacy offers', reserveSlot({
+  historyCheckedForVideoId: 'second',
+  currentVideoId: 'second',
+}) === false)
+check('non-candidate never reserves the recurring slot', reserveSlot({ candidate: false }) === false)
+
+// 6. The current commercial contract is one global USD price. Geography is
+// tested through the canonical resolver, never by recreating BRL/INR tables.
+check('Brazil resolves to canonical global USD', pricing.resolveCheckoutCurrency('BR') === 'usd')
+check('India resolves to canonical global USD', pricing.resolveCheckoutCurrency('IN') === 'usd')
+check('unknown country resolves to canonical global USD', pricing.resolveCheckoutCurrency(null) === 'usd')
+const expectedUsdOrder = [...selfServeTiers].sort(
+  (left, right) => pricing.TIER_PRICES[left].usd - pricing.TIER_PRICES[right].usd,
+)
+check('known currency recommendation is price ordered', JSON.stringify(planFit.tiersByPrice('usd')) === JSON.stringify(expectedUsdOrder))
+const unresolvedCurrency = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 4, currency: null })
+check('unresolved currency still has an honest capacity answer', unresolvedCurrency.plan !== null && unresolvedCurrency.plan.credits >= unresolvedCurrency.monthlyCredits)
+check('unresolved currency does not change paid credit math', unresolvedCurrency.monthlyCredits === seedanceFour.monthlyCredits)
+
+// 7. Fixed-billing/blocked Avatar family is outside Plan Fit.
+check('Avatar excluded', planFit.supportsPlanFitQuality('avatar') === false)
+check('Presenter excluded', planFit.supportsPlanFitQuality('presenter') === false)
+check('blocked Sora excluded', planFit.supportsPlanFitQuality('cinematic_sora') === false)
+check('Kineo 1 supported', planFit.supportsPlanFitQuality('fast') === true)
+
+// 8. Product wiring: viewport impression, protected checkout, intent and order.
+const component = readFileSync(join(root, 'components/growth/PlanFitCard.tsx'), 'utf8')
+const generate = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
+const videosRoute = readFileSync(join(root, 'app/api/videos/route.ts'), 'utf8')
+const composeStatus = readFileSync(join(root, 'app/api/compose/status/[renderId]/route.ts'), 'utf8')
+
+check('viewport uses IntersectionObserver', component.includes('new IntersectionObserver'))
+check('impression threshold is enforced', component.includes('entry.intersectionRatio < IMPRESSION_THRESHOLD'))
+check('impression is keyed by current video', component.includes('kineo_plan_fit_impression:${exposureKey}'))
+check('event actor is authenticated user', component.includes("actor_unit: 'authenticated_user'"))
+check('event unit is first completed video', component.includes("event_unit: 'first_completed_video'"))
+check('card never says this film used credits', !/film used|used \{.*credits/i.test(component))
+check('card has no top-up promise', !/top-?up|TOPUP_/i.test(component))
+check('card has no literal dollar price', (component.match(/\$\d+(?:\.\d+)?/g) ?? []).length === 0)
+check('card has no hardcoded USD calculation', !component.includes("formatCheckoutMoney('usd'"))
+check('card receives canonical nullable currency', component.includes('currency: CheckoutCurrency | null'))
+check('unresolved currency gets neutral checkout copy', component.includes('See secure checkout'))
+check('money is conditional on resolved currency', component.includes('? `Get ${planName(result.plan.tier)}'))
+check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
+check('checkout error is visible', component.includes('role="alert"'))
+
+check('caller uses dedicated protected launcher', generate.includes("useCheckoutLaunch('generate_plan_fit')"))
+check('caller launches through protected hook', generate.includes('planFitCheckout.launch('))
+check('caller preserves intent campaign', generate.includes("withIntentCampaign(`/api/stripe/checkout?tier=${tier}`)"))
+check('caller passes checkout pending state', generate.includes('checkoutPending={planFitCheckout.pending}'))
+check('caller passes checkout error state', generate.includes('checkoutError={planFitCheckout.error}'))
+check('caller passes resolved canonical currency', generate.includes('currency={postVideoCurrency}'))
+check('caller requires confirmed first delivery', generate.includes('planFitFirstDelivery &&'))
+check('caller requires a sellable non-subscriber cohort', generate.includes('planFitSellableCohort &&'))
+check('Plan Fit follows NextShorts retention', generate.indexOf('<NextShortsSection') < generate.indexOf('<PlanFitCard'))
+check('Plan Fit precedes the generic recurring upsell', generate.indexOf('<PlanFitCard') < generate.indexOf('<UpsellSection'))
+check('trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
+check('trial recurring impression is replaced too', generate.includes('const eligible = trialOfferPhaseForImpression !== null && !planFitOwnsRecurringSlot'))
+check('generic recurring upsell is replaced by Plan Fit', generate.includes("!planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current)"))
+check('Plan Fit prevents a false no-offer event', generate.includes('if (planFitOwnsRecurringSlot) return'))
+check('clean-export job remains available independently', generate.includes('{showPostVideoExportChoice && ('))
+
+check('history count is exact and head-only', videosRoute.includes("select('id', { count: 'exact', head: true })"))
+check('history count is owner-filtered', videosRoute.includes(".eq('user_id', userId)"))
+check('history count is completed-only', videosRoute.includes(".eq('status', 'completed')"))
+check('history degradation is explicit', videosRoute.includes('historyReliable: false'))
+check('history refreshes on every persisted video id', generate.includes('}, [publicVideoId])'))
+check('history evidence is bound to fetched video id', generate.includes('setHistoryEvidenceForVideoId(reliable ? evidenceVideoId : null)'))
+check('history records definitive failures for legacy fallback', generate.includes('setHistoryCheckedForVideoId(evidenceVideoId)'))
+check('first-delivery gate receives the evidence id', generate.includes('evidenceForVideoId: historyEvidenceForVideoId'))
+check('compose persists success rows as completed', composeStatus.includes("status: 'completed'"))
+check('client video id comes from persisted/completed lookup', composeStatus.includes('const videoId = persistedVideoId ?? await findCompletedVideoId(user.id, renderId)'))
+check('done response returns that persisted video id', composeStatus.includes('video_id: videoId'))
+
+console.log(failed === 0
+  ? `\n${total}/${total} checks passed.\n`
+  : `\n${failed} failed of ${total}.\n`)
+process.exit(failed === 0 ? 0 : 1)

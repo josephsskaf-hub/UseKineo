@@ -140,6 +140,16 @@ export async function GET() {
     // generic select() return type doesn't unify between the wide and
     // narrow column shapes.
     const userId = user.id
+    // Plan Fit needs server evidence that the just-delivered film is truly the
+    // owner's first completed video. Events and localStorage are not evidence:
+    // both can be duplicated or cleared. Start an exact, owner-filtered count
+    // alongside the list query. Existing clients ignore the extra fields.
+    const completedCountPromise = supabase
+      .from('videos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+
     async function runSelect(columns: string) {
       return supabase
         .from('videos')
@@ -154,21 +164,35 @@ export async function GET() {
       !!q.error && /column .* does not exist|42703/.test(q.error.message ?? '')
     if (colMissing(query)) query = await runSelect(midColumns)
     if (colMissing(query)) query = await runSelect(narrowColumns)
+    const completedCountResult = await completedCountPromise
 
     if (query.error) {
       // Table may not exist yet in this staging DB — treat as empty rather
       // than 500ing so the UI shows the empty-state card.
       console.warn('[videos GET] supabase error:', query.error.message)
-      return NextResponse.json({ videos: [] })
+      return NextResponse.json({ videos: [], completedCount: null, historyReliable: false })
     }
 
     const rows: RawRow[] = Array.isArray(query.data)
       ? (query.data as unknown as RawRow[])
       : []
-    return NextResponse.json({ videos: rows.map(toListItem) })
+    if (completedCountResult.error || typeof completedCountResult.count !== 'number') {
+      console.warn('[videos GET] completed count unavailable:', completedCountResult.error?.message ?? 'missing count')
+      return NextResponse.json({
+        videos: rows.map(toListItem),
+        completedCount: null,
+        historyReliable: false,
+      })
+    }
+
+    return NextResponse.json({
+      videos: rows.map(toListItem),
+      completedCount: completedCountResult.count,
+      historyReliable: true,
+    })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[videos GET] unexpected error:', msg)
-    return NextResponse.json({ videos: [] })
+    return NextResponse.json({ videos: [], completedCount: null, historyReliable: false })
   }
 }

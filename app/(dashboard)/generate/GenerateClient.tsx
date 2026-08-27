@@ -28,7 +28,17 @@ import { PLAN_LIST } from '@/lib/pricing'
 // import, nenhum segredo): é a fonte única do custo por motor, e o modal de
 // upgrade passou a DERIVAR "quantos vídeos de IA este plano compra" dele em vez
 // de redigitar o número.
-import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
+import {
+  creditCostFor,
+  creditCostForDuration,
+  normalizeQuality,
+} from '@/lib/credits/engineCost'
+import {
+  classifyPlanFitAccount,
+  isConfirmedFirstDelivery,
+  shouldReservePlanFitRecurringSlot,
+  supportsPlanFitQuality,
+} from '@/lib/growth/planFit'
 // KINEO-PRICING-V6-2026-08-19 — "1 Hollywood film included" e "~7 AI videos"
 // eram literais em três caixas de venda desta tela. Ver o bloco "QUANTOS FILMES
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
@@ -98,6 +108,7 @@ import {
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
+import PlanFitCard, { type PlanFitCheckoutMetadata } from '@/components/growth/PlanFitCard'
 // KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
 import WaitingShowcase from '@/components/video/WaitingShowcase'
@@ -1522,6 +1533,11 @@ export default function GenerateClient({
   // Push #087 — user plan tier ('free' | 'basic' | 'pro'). Drives the
   // Cinematic-mode lock UI; null while we're loading the value.
   const [planTier, setPlanTier] = useState<'free' | 'basic' | 'pro' | null>(null)
+  // Plan Fit must distinguish a one-time pack buyer (plan='free', hasPaid)
+  // from every active recurring/managed plan. `planTier` cannot do that: its
+  // legacy normalizer collapses Starter and Autopilot to 'free'. Keep the raw,
+  // server-authenticated commercial plan solely for this classification.
+  const [commercialPlan, setCommercialPlan] = useState<string | null>(null)
   // Push #088 — cinematic tokens remaining this month. Pro = 1/month,
   // everyone else = 0. We render a separate "no tokens left, resets
   // monthly" state when the user IS pro but has spent their token.
@@ -1581,6 +1597,9 @@ export default function GenerateClient({
   // superfície deixaria de significar o que significava.
   const trialPostVideoCheckout = useCheckoutLaunch('generate_trial_post_video')
   const upsellSectionCheckout = useCheckoutLaunch('generate_upsell_section')
+  // A2 Plan Fit owns a separate checkout surface so its first-delivery cohort,
+  // suppressed double-clicks and stalled-checkout rescue remain measurable.
+  const planFitCheckout = useCheckoutLaunch('generate_plan_fit')
 
   // Push #109 — stronger urgency variant for free users who just used
   // their last credit. Countdown is persisted in localStorage so reloading
@@ -1605,6 +1624,16 @@ export default function GenerateClient({
   // from /api/videos. Empty array = empty state; null only during initial
   // load. We never block the page on this — failures degrade to empty.
   const [recentVideos, setRecentVideos] = useState<RecentVideo[] | null>(null)
+  // Exact owner-filtered server evidence for the first-delivery Plan Fit gate.
+  // Unlike `recentVideos.length`, the count is not capped by the visual list.
+  // A degraded query deliberately hides the card instead of guessing.
+  const [completedVideoCount, setCompletedVideoCount] = useState<number | null>(null)
+  const [videoHistoryReliable, setVideoHistoryReliable] = useState(false)
+  const [historyEvidenceForVideoId, setHistoryEvidenceForVideoId] = useState<string | null>(null)
+  // Records that the current ID received a definitive success/failure answer.
+  // Unlike `historyEvidenceForVideoId`, this is also set on a failed lookup so
+  // legacy offers can resume instead of staying hidden indefinitely.
+  const [historyCheckedForVideoId, setHistoryCheckedForVideoId] = useState<string | null>(null)
   // KINEO-AI-SCENE-VISIBLE-2026-08-03 — ver comentário no dispatch do Fast.
   const [hadAiScene, setHadAiScene] = useState(false)
 // Push #095 — player resilience. When the B2/Creatomate CDN returns a 503
@@ -2415,12 +2444,14 @@ export default function GenerateClient({
           if (!cancelled) {
             setCredits(null)
             setActivationAccountStatus('unavailable')
+            setCommercialPlan(null)
           }
           return
         }
         const data = await res.json()
         if (!cancelled) {
           const normalizedPlan = typeof data.plan === 'string' ? data.plan.toLowerCase() : null
+          setCommercialPlan(normalizedPlan)
           const hasEntitlementFields =
             data.entitlementsResolved === true &&
             (typeof data.hasPaid === 'boolean' ||
@@ -2592,6 +2623,7 @@ export default function GenerateClient({
         if (!cancelled) {
           setCredits(null)
           setActivationAccountStatus('unavailable')
+          setCommercialPlan(null)
         }
       } finally {
         if (!cancelled) setCreditsLoading(false)
@@ -3075,25 +3107,58 @@ export default function GenerateClient({
   }, [credits])
 
   // Push #048 — pull the user's recent videos for the Visual History
-  // section. We listen on `creditsChanged` (fired after every successful
-  // generation) so the list refreshes automatically when a new video
-  // finishes. Defensive: failures degrade to empty state, never break the
-  // page.
+  // section. We listen on `creditsChanged`, but Plan Fit cannot rely on it:
+  // free Fast completion may not debit and therefore may not emit that event.
+  // `publicVideoId` is the durable post-persistence handle, so every new ID
+  // forces a fresh count and binds the evidence to that exact video. A stale
+  // count from video #1 can never qualify video #2 in the same SPA.
   useEffect(() => {
     let cancelled = false
+    const evidenceVideoId = publicVideoId
+    setVideoHistoryReliable(false)
+    setHistoryEvidenceForVideoId(null)
     async function fetchVideos() {
       try {
         const res = await fetch('/api/videos', { cache: 'no-store' })
         if (res.status === 401) {
-          if (!cancelled) setRecentVideos([])
+          if (!cancelled) {
+            setRecentVideos([])
+            setCompletedVideoCount(null)
+            setVideoHistoryReliable(false)
+            setHistoryEvidenceForVideoId(null)
+            setHistoryCheckedForVideoId(evidenceVideoId)
+          }
+          return
+        }
+        if (!res.ok) {
+          if (!cancelled) {
+            setCompletedVideoCount(null)
+            setVideoHistoryReliable(false)
+            setHistoryEvidenceForVideoId(null)
+            setHistoryCheckedForVideoId(evidenceVideoId)
+          }
           return
         }
         const data = await res.json()
         if (!cancelled) {
           setRecentVideos(Array.isArray(data.videos) ? data.videos : [])
+          const exactCount = typeof data.completedCount === 'number' && Number.isInteger(data.completedCount)
+            ? data.completedCount
+            : null
+          setCompletedVideoCount(exactCount)
+          const reliable = data.historyReliable === true && exactCount !== null
+          setVideoHistoryReliable(reliable)
+          setHistoryEvidenceForVideoId(reliable ? evidenceVideoId : null)
+          setHistoryCheckedForVideoId(evidenceVideoId)
         }
       } catch {
-        if (!cancelled) setRecentVideos([])
+        if (!cancelled) {
+          setRecentVideos([])
+          setCompletedVideoCount(null)
+          setVideoHistoryReliable(false)
+          setHistoryEvidenceForVideoId(null)
+          setHistoryCheckedForVideoId(evidenceVideoId)
+        }
       }
     }
     fetchVideos()
@@ -3102,7 +3167,7 @@ export default function GenerateClient({
       cancelled = true
       window.removeEventListener('creditsChanged', fetchVideos)
     }
-  }, [])
+  }, [publicVideoId])
 
   // Activation nudge — first-time users (no videos yet) hit a blank page, which
   // kills activation (only ~25% of signups ever generate). Pre-fill a proven
@@ -3821,6 +3886,60 @@ export default function GenerateClient({
     return () => observer.disconnect()
   }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, trialUi, wmUnlocking, intentCampaign, postVideoCurrency])
 
+  // A2 PLAN FIT — derive the replacement gate before any legacy-offer
+  // observer. The same boolean governs render and measurement, so a recurring
+  // card hidden by Plan Fit cannot leave a ghost impression behind. This does
+  // not suppress the clean-export choice: that sells the already-delivered
+  // asset, while Plan Fit answers the separate monthly-workflow question.
+  const planFitTrialParticipant =
+    trialActive === true ||
+    (trialUi?.phase === 'active' &&
+      typeof trialUi.cap === 'number' &&
+      trialUi.cap > 0) ||
+    (trialUi?.phase === 'ending' &&
+      typeof trialUi.creditsGranted === 'number' &&
+      trialUi.creditsGranted > 0)
+  const planFitAccountCohort = classifyPlanFitAccount({
+    entitlementsResolved: activationAccountStatus === 'free' || activationAccountStatus === 'paid',
+    commercialPlan,
+    hasPaid,
+    trialParticipant: planFitTrialParticipant,
+  })
+  const planFitSellableCohort =
+    planFitAccountCohort === 'free' || planFitAccountCohort === 'trial' || planFitAccountCohort === 'pack'
+      ? planFitAccountCohort
+      : null
+  const planFitNormalizedQuality = normalizeQuality(
+    falUsedRef.current
+      ? falQualityRef.current
+      : mode === 'fast' || mode === 'creator'
+        ? 'fast'
+        : quality,
+  )
+  const planFitQuality = supportsPlanFitQuality(planFitNormalizedQuality)
+    ? planFitNormalizedQuality
+    : null
+  const planFitFirstDelivery = isConfirmedFirstDelivery({
+    historyReliable: videoHistoryReliable,
+    evidenceForVideoId: historyEvidenceForVideoId,
+    completedCount: completedVideoCount,
+    recentVideos,
+    currentVideoId: publicVideoId,
+  })
+  const planFitOfferCandidate =
+    phase === 'done' &&
+    Boolean(finalVideoUrl) &&
+    Boolean(publicVideoId) &&
+    planFitQuality !== null &&
+    planFitSellableCohort !== null
+  const planFitOfferEligible = planFitOfferCandidate && planFitFirstDelivery
+  const planFitOwnsRecurringSlot = shouldReservePlanFitRecurringSlot({
+    candidate: planFitOfferCandidate,
+    eligible: planFitOfferEligible,
+    historyCheckedForVideoId,
+    currentVideoId: publicVideoId,
+  })
+
   // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — carimba a chegada em `done`. É o
   // relógio contra o qual a leitura do trial é julgada fresca ou velha (ver
   // `trialDoneAtRef`). Efeito, e não uma linha dentro do poll: `setPhase('done')`
@@ -3861,7 +3980,7 @@ export default function GenerateClient({
               ? 'ending'
               : null)
         : null
-    const eligible = trialOfferPhaseForImpression !== null
+    const eligible = trialOfferPhaseForImpression !== null && !planFitOwnsRecurringSlot
     const element = trialPostVideoOfferRef.current
     const offerKey = publicVideoId || finalVideoUrl
     // ⚠️ PASSADA 2 — a chave de deduplicação passou a incluir a FASE. Antes era
@@ -3964,7 +4083,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign])
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot])
 
   // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
   // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
@@ -4003,6 +4122,9 @@ export default function GenerateClient({
     const SETTLE_MS = 4000
 
     if (phase !== 'done' || !finalVideoUrl) return
+    // Plan Fit is itself the recurring offer for this exact first-delivery
+    // cohort. Calling this screen "no offer" would poison the denominator.
+    if (planFitOwnsRecurringSlot) return
     // Sobre quem paga esta medida não afirma nada — a ausência de oferta é o
     // comportamento CORRETO ali, e contá-la envenenaria o denominador.
     if (hasPaid || isStarter || isCreator || isStudio) return
@@ -4080,7 +4202,7 @@ export default function GenerateClient({
       })
     }, SETTLE_MS)
     return () => clearTimeout(timer)
-  }, [phase, finalVideoUrl, publicVideoId, planTier, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, wmUnlocking, postVideoCurrency, intentCampaign])
+  }, [phase, finalVideoUrl, publicVideoId, planTier, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, wmUnlocking, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot])
 
   // ────────────────────────────────────────────────────────────────────────
   // PHASE: clips_ready  →  fire /api/compose once, then transition to composing
@@ -8566,7 +8688,7 @@ export default function GenerateClient({
             ? 'ending'
             : null)
       : null
-  const showTrialPostVideoOffer = trialPostVideoPhase !== null
+  const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
   // POR QUE o trial acabou. Só tem sentido em 'ending'.
   //
   // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1 — a comparação é contra o CONCEDIDO, não
@@ -12738,6 +12860,41 @@ export default function GenerateClient({
             />
           )}
 
+          {/* A2 PLAN FIT — intentionally AFTER NextShorts. Retention earns the
+              next decision before the subscription ask appears, so this card
+              cannot block the second-video path. It is scoped to a
+              server-confirmed first delivery and never mounts for an active
+              subscriber, an unknown entitlement, Avatar, Presenter or Sora. */}
+          {planFitOfferEligible && publicVideoId && planFitFirstDelivery &&
+            planFitQuality && planFitSellableCohort && (
+              <PlanFitCard
+                key={publicVideoId}
+                quality={planFitQuality}
+                seconds={duration}
+                accountCohort={planFitSellableCohort}
+                currency={postVideoCurrency}
+                exposureKey={publicVideoId}
+                checkoutPending={planFitCheckout.pending}
+                checkoutError={planFitCheckout.error}
+                onEvent={(name, metadata) => {
+                  try { void trackEvent(name, metadata) } catch { /* analytics never blocks delivery */ }
+                }}
+                onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
+                  const started = planFitCheckout.launch(
+                    tier,
+                    withIntentCampaign(`/api/stripe/checkout?tier=${tier}`),
+                    {
+                      ...metadata,
+                      intent_campaign: intentCampaign,
+                    },
+                  )
+                  if (!started) return false
+                  trackCheckoutClick(tier)
+                  return true
+                }}
+              />
+            )}
+
           {/* Push #311 — Performance tracking nudge. After the video is done,
               prompt the user to come back and track how it performed on YouTube.
               Simple clipboard copy of a reminder — no backend needed yet. */}
@@ -12795,7 +12952,7 @@ export default function GenerateClient({
             // pitches Pro by name and shows a credit-urgency line when
             // they're at ≤1. Paid users keep the lighter
             // NextActionSection (their main action is "make another one").
-            planTier === 'free' && (hasPaid || !lastFastRenderRef.current) ? (
+            !planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current) ? (
               // KINEO-SPRINT-OFFER-2026-07-14 — BUG FIX: the button said
               // "Upgrade to Creator — $24.90/mo" but passed tier 'pro'
               // (Studio $37.90) to the obsolete POST checkout path, dumping

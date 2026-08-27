@@ -1,0 +1,345 @@
+'use client'
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  MONTHLY_CADENCES,
+  calculatePlanFit,
+  engineName,
+  planName,
+  type PlanFitAccountCohort,
+  type PlanFitQuality,
+} from '@/lib/growth/planFit'
+import {
+  formatCheckoutMoney,
+  getTierPrice,
+  type CheckoutCurrency,
+  type CheckoutTier,
+} from '@/lib/checkoutPricing'
+
+export interface PlanFitCheckoutMetadata {
+  account_cohort: Exclude<PlanFitAccountCohort, 'subscriber' | 'unknown'>
+  source_engine: PlanFitQuality
+  planned_engine: PlanFitQuality
+  monthly_videos: number
+  monthly_credits: number
+  recommended_tier: CheckoutTier
+  display_currency: CheckoutCurrency | null
+  first_delivery: true
+}
+
+export interface PlanFitCardProps {
+  quality: PlanFitQuality
+  seconds: number
+  accountCohort: Exclude<PlanFitAccountCohort, 'subscriber' | 'unknown'>
+  /** Canonical checkout display currency; null means no money may be shown. */
+  currency: CheckoutCurrency | null
+  /** Stable current videos.id. It is also the once-per-tab impression key. */
+  exposureKey: string
+  checkoutPending: string | null
+  checkoutError: string | null
+  onEvent?: (name: string, metadata: Record<string, unknown>) => void
+  onCheckout: (tier: CheckoutTier, metadata: PlanFitCheckoutMetadata) => boolean
+}
+
+const IMPRESSION_THRESHOLD = 0.35
+
+function priceLabel(tier: CheckoutTier, currency: CheckoutCurrency): string {
+  return formatCheckoutMoney(currency, getTierPrice(tier, currency))
+}
+
+function cohortIntro(cohort: PlanFitCardProps['accountCohort']): string {
+  if (cohort === 'free') return 'Your free preview stays free.'
+  if (cohort === 'trial') return 'Your trial is the test run.'
+  return 'You have paid credits, but no active subscription.'
+}
+
+export default function PlanFitCard({
+  quality,
+  seconds,
+  accountCohort,
+  currency,
+  exposureKey,
+  checkoutPending,
+  checkoutError,
+  onEvent,
+  onCheckout,
+}: PlanFitCardProps) {
+  const [monthlyFilms, setMonthlyFilms] = useState<number | null>(null)
+  const [plannedQuality, setPlannedQuality] = useState<PlanFitQuality>(quality)
+  const [dismissed, setDismissed] = useState(false)
+  const cardRef = useRef<HTMLElement | null>(null)
+  const impressionSentRef = useRef(false)
+  const eventRef = useRef(onEvent)
+
+  useEffect(() => {
+    eventRef.current = onEvent
+  }, [onEvent])
+
+  const probe = useMemo(
+    () => calculatePlanFit({ quality, seconds, monthlyFilms: 1, currency }),
+    [quality, seconds, currency],
+  )
+  const result = useMemo(
+    () => monthlyFilms === null
+      ? null
+      : calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency }),
+    [plannedQuality, seconds, monthlyFilms, currency],
+  )
+
+  useEffect(() => {
+    if (dismissed || impressionSentRef.current || !cardRef.current) return
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const node = cardRef.current
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry?.isIntersecting || entry.intersectionRatio < IMPRESSION_THRESHOLD) return
+      observer.disconnect()
+
+      const storageKey = `kineo_plan_fit_impression:${exposureKey}`
+      try {
+        if (sessionStorage.getItem(storageKey) === '1') {
+          impressionSentRef.current = true
+          return
+        }
+        sessionStorage.setItem(storageKey, '1')
+      } catch {
+        // The in-memory latch still protects the uninterrupted browser path.
+      }
+
+      impressionSentRef.current = true
+      eventRef.current?.('plan_fit_impression', {
+        actor_unit: 'authenticated_user',
+        event_unit: 'first_completed_video',
+        account_cohort: accountCohort,
+        video_id: exposureKey,
+        source_engine: quality,
+        seconds,
+        paid_film_credits: probe.filmCredits,
+        display_currency: currency,
+        currency_resolved: currency !== null,
+      })
+    }, { threshold: [IMPRESSION_THRESHOLD] })
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, currency])
+
+  if (dismissed) return null
+
+  const sourceMotor = engineName(quality)
+  const plannedMotor = engineName(plannedQuality)
+  const checkoutBusy = checkoutPending !== null
+
+  function emit(name: string, metadata: Record<string, unknown>) {
+    eventRef.current?.(name, {
+      actor_unit: 'authenticated_user',
+      event_unit: 'first_completed_video',
+      account_cohort: accountCohort,
+      video_id: exposureKey,
+      ...metadata,
+    })
+  }
+
+  function chooseCadence(value: number, source: 'preset' | 'same_engine_capacity' = 'preset') {
+    setMonthlyFilms(value)
+    const next = calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms: value, currency })
+    emit('plan_fit_monthly_target_selected', {
+      selection_source: source,
+      source_engine: quality,
+      planned_engine: plannedQuality,
+      monthly_videos: next.monthlyFilms,
+      paid_film_credits: next.filmCredits,
+      monthly_credits: next.monthlyCredits,
+      recommended_tier: next.plan?.tier ?? null,
+      no_self_serve_plan: next.noSelfServePlan,
+      display_currency: currency,
+      currency_resolved: currency !== null,
+    })
+  }
+
+  function chooseFastAlternative() {
+    if (!result?.fastAlternative || monthlyFilms === null) return
+    setPlannedQuality('fast')
+    emit('plan_fit_engine_alternative_selected', {
+      source_engine: quality,
+      planned_engine: 'fast',
+      monthly_videos: monthlyFilms,
+      monthly_credits: result.fastAlternative.monthlyCredits,
+      recommended_tier: result.fastAlternative.plan.tier,
+      display_currency: currency,
+      currency_resolved: currency !== null,
+    })
+  }
+
+  function startCheckout(tier: CheckoutTier) {
+    if (!result || checkoutBusy) return
+    const metadata: PlanFitCheckoutMetadata = {
+      account_cohort: accountCohort,
+      source_engine: quality,
+      planned_engine: result.quality,
+      monthly_videos: result.monthlyFilms,
+      monthly_credits: result.monthlyCredits,
+      recommended_tier: tier,
+      display_currency: currency,
+      first_delivery: true,
+    }
+    if (!onCheckout(tier, metadata)) return
+    emit('plan_fit_checkout_started', { ...metadata })
+  }
+
+  return (
+    <section
+      ref={cardRef}
+      aria-labelledby="plan-fit-title"
+      className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
+      style={{
+        background: 'linear-gradient(145deg, rgba(41,151,255,.12), rgba(17,17,20,.98) 62%)',
+        border: '1px solid rgba(92,179,255,.34)',
+        boxShadow: '0 18px 48px rgba(0,0,0,.22)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5" style={{ color: '#5cb3ff' }}>
+            Your first finished video
+          </div>
+          <h3 id="plan-fit-title" className="font-black text-lg sm:text-xl" style={{ color: 'var(--text)', margin: 0 }}>
+            Make the next month fit before you subscribe
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setDismissed(true)
+            emit('plan_fit_dismissed', { source_engine: quality, selected_target: monthlyFilms })
+          }}
+          aria-label="Dismiss plan recommendation"
+          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold"
+          style={{ background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: 'var(--muted2)', cursor: 'pointer' }}
+        >
+          Not now
+        </button>
+      </div>
+
+      <p className="text-sm mb-4" style={{ color: 'var(--muted2)', lineHeight: 1.6, maxWidth: 690 }}>
+        {cohortIntro(accountCohort)} On a paid plan, a {seconds}s {sourceMotor} film like this costs{' '}
+        <strong style={{ color: 'var(--text)' }}>{probe.filmCredits} credits</strong>. Pick a monthly target and Kineo will do the plan math.
+      </p>
+
+      <div className="flex flex-wrap gap-2" aria-label="Videos per month">
+        {MONTHLY_CADENCES.map((cadence) => (
+          <button
+            key={cadence}
+            type="button"
+            onClick={() => chooseCadence(cadence)}
+            disabled={checkoutBusy}
+            aria-pressed={monthlyFilms === cadence}
+            className="rounded-full px-4 py-2.5 text-xs sm:text-sm font-black"
+            style={{
+              background: monthlyFilms === cadence ? '#2997ff' : 'rgba(255,255,255,.04)',
+              border: monthlyFilms === cadence ? '1px solid #5cb3ff' : '1px solid rgba(255,255,255,.12)',
+              color: monthlyFilms === cadence ? '#fff' : 'var(--text)',
+              cursor: checkoutBusy ? 'wait' : 'pointer',
+              opacity: checkoutBusy ? 0.65 : 1,
+            }}
+          >
+            {cadence} / month
+          </button>
+        ))}
+      </div>
+
+      {result && (
+        <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,.09)' }}>
+          {plannedQuality !== quality && (
+            <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+              <span className="text-xs font-bold" style={{ color: '#5cb3ff' }}>
+                Comparing the same monthly target with {plannedMotor}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPlannedQuality(quality)}
+                disabled={checkoutBusy}
+                className="text-xs font-bold"
+                style={{ background: 'transparent', border: 0, color: 'var(--muted2)', textDecoration: 'underline', cursor: checkoutBusy ? 'wait' : 'pointer' }}
+              >
+                Back to {sourceMotor}
+              </button>
+            </div>
+          )}
+
+          {result.plan ? (
+            <div>
+              <p className="text-sm mb-4" style={{ color: 'var(--muted2)', lineHeight: 1.65 }}>
+                {result.monthlyFilms} {plannedMotor} film{result.monthlyFilms === 1 ? '' : 's'} per month need{' '}
+                <strong style={{ color: 'var(--text)' }}>{result.monthlyCredits} credits</strong>.{' '}
+                <strong style={{ color: '#5cb3ff' }}>{planName(result.plan.tier)}</strong> includes {result.plan.credits} — {currency
+                  ? 'the least expensive self-serve plan that covers that target.'
+                  : 'enough to cover that target. Secure checkout confirms the price.'}
+              </p>
+              <button
+                type="button"
+                onClick={() => startCheckout(result.plan!.tier)}
+                disabled={checkoutBusy}
+                className="rounded-xl px-5 py-3 text-sm font-black text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+                  border: 'none',
+                  cursor: checkoutBusy ? 'wait' : 'pointer',
+                  opacity: checkoutBusy ? 0.68 : 1,
+                  boxShadow: '0 8px 24px rgba(41,151,255,.3)',
+                }}
+              >
+                {checkoutPending === result.plan.tier
+                  ? 'Opening secure checkout…'
+                  : currency
+                    ? `Get ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`
+                    : `Choose ${planName(result.plan.tier)} · See secure checkout`}
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-sm mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.65 }}>
+                {result.monthlyFilms} {plannedMotor} films need{' '}
+                <strong style={{ color: 'var(--text)' }}>{result.monthlyCredits} credits per month</strong>. No self-serve plan includes that much. Studio includes {result.maximumPlan.credits} credits —{' '}
+                {result.maximumSameEngineFilms > 0
+                  ? `enough for ${result.maximumSameEngineFilms} of these films per month.`
+                  : `not enough for one ${seconds}s film on this engine.`}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {result.maximumSameEngineFilms > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => chooseCadence(result.maximumSameEngineFilms, 'same_engine_capacity')}
+                    disabled={checkoutBusy}
+                    className="rounded-xl px-4 py-2.5 text-xs sm:text-sm font-black"
+                    style={{ background: '#2997ff', border: '1px solid #5cb3ff', color: '#fff', cursor: checkoutBusy ? 'wait' : 'pointer' }}
+                  >
+                    Plan for {result.maximumSameEngineFilms}/month on {plannedMotor}
+                  </button>
+                )}
+                {result.fastAlternative && (
+                  <button
+                    type="button"
+                    onClick={chooseFastAlternative}
+                    disabled={checkoutBusy}
+                    className="rounded-xl px-4 py-2.5 text-xs sm:text-sm font-black"
+                    style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.16)', color: 'var(--text)', cursor: checkoutBusy ? 'wait' : 'pointer' }}
+                  >
+                    Keep {result.monthlyFilms}/month with Kineo 1
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {checkoutError && (
+            <p role="alert" className="text-xs font-bold mt-3" style={{ color: '#ff7b7b', lineHeight: 1.5 }}>
+              {checkoutError}
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
