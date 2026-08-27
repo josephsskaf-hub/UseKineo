@@ -17,6 +17,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { isAdminEmail, serviceClient } from '../_shared/db'
+import { INTERNAL_EXACT_EMAILS, INTERNAL_LIKE_PATTERNS, isInternalEmail } from '@/lib/internalAccounts'
+import { isPaidPlan } from '../_shared/mrr'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -107,19 +109,48 @@ export async function GET() {
     const D7 = 7 * H24
     const ONLINE = ONLINE_WINDOW_MIN * 60 * 1000
 
-    // ── Contagens (RPC-free: uma leitura por janela, colunas mínimas) ───────
-    const [ev7d, ev24h, evOnline, sign7d, sign24h, vids24h, ck24h] = await Promise.all([
-      admin.from('events').select('session_id').gte('created_at', iso(D7)).limit(60000),
-      admin.from('events').select('session_id').gte('created_at', iso(H24)).limit(60000),
+    // ── KINEO-PAINEL-VERDADE-2026-08-27 — as contagens saíram do Node ───────
+    //
+    // O QUE ESTAVA ERRADO. Este bloco lia `events` com `.limit(60000)` e
+    // contava session_id distintos com `new Set()` em JavaScript. Mas o
+    // PostgREST deste projeto tem `db.max_rows = 1000` (documentado em
+    // _shared/db.ts): ele CORTA a resposta em 1000 linhas e NÃO devolve erro.
+    // O `.limit(60000)` nunca teve efeito nenhum.
+    // Consequência medida em 27/08: VISITORS 7D e VISITORS 24H mostravam
+    // 435 OS DOIS — porque as duas janelas liam as MESMAS 1000 linhas mais
+    // recentes. O real era 1.820 e 574. O painel errava por 4x e parecia
+    // saudável, que é o pior tipo de erro de número.
+    //
+    // Segundo defeito, na mesma linha: NENHUMA das cinco contagens excluía
+    // conta interna. VIDEOS 24H mostrava 13 quando o cliente tinha feito 9 —
+    // os outros 4 eram render de teste do fundador. E a MESMA tela, no card
+    // do CEO, mostrava 9 (compute.ts exclui). Dois números da mesma coisa,
+    // brigando na mesma página.
+    //
+    // A CURA. Não trazer linha nenhuma para o Node: contar no banco, com uma
+    // chamada só. A lista de contas internas continua morando SÓ em
+    // lib/internalAccounts.ts e viaja por parâmetro — duplicá-la em SQL seria
+    // criar o segundo 150 que a casa já caçou uma vez.
+    const [counters, evOnline] = await Promise.all([
+      admin.rpc('admin_live_counters', {
+        p_exact_emails: INTERNAL_EXACT_EMAILS,
+        p_like_patterns: INTERNAL_LIKE_PATTERNS,
+      }),
       admin.from('events').select('user_id, session_id, name, path, created_at').gte('created_at', iso(ONLINE)).order('created_at', { ascending: false }).limit(3000),
-      admin.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', iso(D7)),
-      admin.from('profiles').select('id', { count: 'exact', head: true }).gte('created_at', iso(H24)),
-      admin.from('videos').select('id', { count: 'exact', head: true }).gte('created_at', iso(H24)),
-      admin.from('events').select('id', { count: 'exact', head: true }).eq('name', 'checkout_started').gte('created_at', iso(H24)),
     ])
 
-    const uniq = (rows: Array<{ session_id?: string | null }> | null) =>
-      new Set((rows ?? []).map((r) => r.session_id).filter(Boolean)).size
+    type Counters = {
+      visitors_7d: number; visitors_24h: number
+      signups_7d: number; signups_24h: number
+      videos_24h: number; checkouts_24h: number
+    }
+    // A RPC devolve UMA linha. Se ela falhar, preferimos zero a um número
+    // inventado: o painel mostrando 0 é um defeito visível; o painel mostrando
+    // 435 falso é um defeito que ninguém enxerga — foi exatamente assim que
+    // este bug sobreviveu.
+    if (counters.error) console.warn('[admin/live] admin_live_counters falhou:', counters.error.message)
+    const c = ((counters.data ?? [])[0] ?? {}) as Partial<Counters>
+    const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
 
     // ── Quem está online: último evento por usuário logado ─────────────────
     type OnlineRow = { user_id: string | null; name: string; path: string | null; created_at: string }
@@ -279,11 +310,22 @@ export async function GET() {
         const uid = (v as { user_id: string }).user_id
         vidCount.set(uid, (vidCount.get(uid) ?? 0) + 1)
       }
-      const PAID_PLANS = new Set(['starter', 'basic', 'pro', 'autopilot'])
-      const internal = (e: string) => {
-        const s = e.toLowerCase()
-        return s.startsWith('josephsskaf') || s.startsWith('josephskaf') || s.endsWith('@shortsforgeai.com')
-      }
+      // KINEO-PAINEL-VERDADE-2026-08-27 — duas cópias locais morreram aqui.
+      //
+      // `PAID_PLANS` era uma lista escrita à mão que NÃO tinha os planos
+      // `*_trial`, `creator`, `studio` nem `autopilot_pilot`. Quem estava em
+      // trial pago aparecia como grátis na lista de quem está online — a tela
+      // que serve justamente para decidir com quem falar.
+      //
+      // `internal()` era um filtro à mão que só pegava 3 padrões dos 14 reais:
+      // não cobria victoriaskaf96@, joseph+teste01@, %@theresanaiforthat.com,
+      // test%, %mailinator%, smoketest%. A irmã do fundador e a conta do
+      // TAAFT apareciam como cliente.
+      //
+      // Agora os dois vêm da fonte canônica: isPaidPlan() de _shared/mrr.ts e
+      // isInternalEmail() de lib/internalAccounts.ts. Regra da casa: nenhuma
+      // definição de "quem paga" ou "quem é interno" nasce dentro de uma rota.
+      const internal = (e: string) => isInternalEmail(e)
 
       online = (profRes.data ?? [])
         .map((p) => {
@@ -428,7 +470,7 @@ export async function GET() {
             last_page: row.last.path ?? null,
             credits: typeof p.video_credits === 'number' ? p.video_credits : null,
             plan: (p.plan as string | null) ?? null,
-            is_paid: PAID_PLANS.has(((p.plan as string) ?? '').toLowerCase()),
+            is_paid: isPaidPlan((p.plan as string) ?? null),
             videos: vidCount.get(p.id as string) ?? 0,
             did,
             heat,
@@ -448,12 +490,12 @@ export async function GET() {
     }
 
     const data: LiveData = {
-      visitors_7d: uniq(ev7d.data as Array<{ session_id?: string | null }> | null),
-      visitors_24h: uniq(ev24h.data as Array<{ session_id?: string | null }> | null),
-      signups_7d: sign7d.count ?? 0,
-      signups_24h: sign24h.count ?? 0,
-      videos_24h: vids24h.count ?? 0,
-      checkouts_24h: ck24h.count ?? 0,
+      visitors_7d: num(c.visitors_7d),
+      visitors_24h: num(c.visitors_24h),
+      signups_7d: num(c.signups_7d),
+      signups_24h: num(c.signups_24h),
+      videos_24h: num(c.videos_24h),
+      checkouts_24h: num(c.checkouts_24h),
       online_now: online.length,
       online,
       generated_at: new Date().toISOString(),

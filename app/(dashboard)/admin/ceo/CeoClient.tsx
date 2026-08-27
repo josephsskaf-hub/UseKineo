@@ -302,18 +302,31 @@ export default function CeoClient({ data: initialData, viewerEmail, denied, home
             <div className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color: '#f87171' }}>
               🚨 Checkout leak
             </div>
+            {/* KINEO-PAINEL-VERDADE-2026-08-27 — o número grande passou a ser
+                quem REALMENTE clicou em comprar. `stuckFree` (contas com
+                stripe_customer_id ainda no free) continua na tela, mas como
+                contexto e com o nome certo: auditado em 27/08, das 36 contas
+                nessa condição UMA tinha disparado `checkout_started` e 16 não
+                tinham NENHUM evento. Prefetch de navegador cria customer no
+                Stripe sozinho (PUSH #97) — customer não é intenção de compra.
+                O texto antigo afirmava que todas as 37 "digitaram o e-mail
+                numa página de pagamento", e isso era falso para ~35 delas. */}
             <div className="font-black" style={{ fontSize: '2rem', lineHeight: 1.05, color: '#f87171' }}>
-              {fmt(leak.stuckFree)}
+              {fmt(Math.max(leak.reachedCheckout - leak.reachedCheckoutPaid, 0))}
             </div>
             <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
-              reached Stripe and are STILL on free
+              clicked buy and did NOT pay
             </p>
           </div>
           <div className="flex-1 min-w-[220px]">
             <p className="text-sm" style={{ color: 'var(--text)' }}>
-              {fmt(leak.openedCheckout)} accounts have a Stripe customer, {fmt(leak.payingActive)}{' '}
-              actually pay — <strong style={{ color: '#f87171' }}>{leak.conversion}</strong> close rate.
-              Every one of the {fmt(leak.stuckFree)} typed their email into a payment page and walked away.
+              {fmt(leak.reachedCheckout)} people actually hit checkout, {fmt(leak.reachedCheckoutPaid)}{' '}
+              paid — <strong style={{ color: '#f87171' }}>{leak.realConversion}</strong> close rate.
+            </p>
+            <p className="text-[11px] mt-1" style={{ color: 'var(--muted2)' }}>
+              Separately, {fmt(leak.openedCheckout)} accounts carry a Stripe customer id and{' '}
+              {fmt(leak.stuckFree)} of those are still on free — but a customer id can be created by
+              browser prefetch, so treat that list as cold, not as abandoned buyers.
             </p>
             <Link href="/admin/leads" className="text-[12px] font-bold" style={{ color: '#2997ff' }}>
               work the leads →

@@ -108,10 +108,20 @@ export interface CeoData {
 
   // ── The leak: Stripe customer created, still not paying ──────────────────
   checkoutLeak: {
+    /** Contas com stripe_customer_id. NÃO é "abriu checkout" — ver o comentário
+     *  em torno do cálculo. É o universo de quem tem cadastro no Stripe. */
     openedCheckout: number
     stuckFree: number
     payingActive: number
     conversion: string
+    /** KINEO-PAINEL-VERDADE-2026-08-27 — pessoas que REALMENTE dispararam
+     *  `checkout_started` alguma vez. Esta é a base honesta da taxa de
+     *  fechamento; `openedCheckout` nunca foi. */
+    reachedCheckout: number
+    /** Quantas delas pagam hoje. */
+    reachedCheckoutPaid: number
+    /** reachedCheckoutPaid / reachedCheckout. */
+    realConversion: string
   }
 
   // ── At-risk paid users (credits ≤ 2) ─────────────────────────────────────
@@ -320,6 +330,34 @@ export async function computeCeoData(): Promise<CeoData | null> {
   const openedCheckout = external.filter((p) => p.stripe_customer_id).length
   const stuckFree = external.filter((p) => p.stripe_customer_id && !isPaidPlan(p.plan)).length
 
+  // ── KINEO-PAINEL-VERDADE-2026-08-27 — o card estava contando fantasma ─────
+  //
+  // O texto do card afirmava: "cada uma das 37 digitou o e-mail numa página de
+  // pagamento e foi embora". Auditado no banco em 27/08: das 36 contas com
+  // stripe_customer_id e ainda no free, UMA disparou `checkout_started`.
+  // Dezesseis não têm NENHUM evento registrado — nunca clicaram em nada.
+  //
+  // O motivo é conhecido e já está documentado no PUSH #97: prefetch de
+  // navegador e varredor de link abrem a rota de checkout sozinhos e o Stripe
+  // cria o customer. Ter `stripe_customer_id` prova que uma SESSÃO existiu,
+  // não que uma PESSOA quis comprar.
+  //
+  // Isso não é preciosismo: `conversion` = 7/44 = 15.9% era a taxa de
+  // fechamento que a casa estava usando para decidir campanha. A taxa contra a
+  // base real de quem tentou comprar é outra, e a lista de "leads" mandava
+  // e-mail de resgate para gente que nunca viu uma página de preço — o jeito
+  // mais rápido de queimar domínio em spam.
+  //
+  // `checkout_started` é o fato: só o clique do cliente o emite.
+  const checkoutEvents = await fetchAllRows<{ user_id: string | null }>(
+    admin, 'events', 'id, user_id', { column: 'name', values: ['checkout_started'] },
+  )
+  const reachedIds = new Set(
+    checkoutEvents.map((e) => e.user_id).filter((id): id is string => !!id && externalIds.has(id)),
+  )
+  const reachedCheckout = reachedIds.size
+  const reachedCheckoutPaid = external.filter((p) => reachedIds.has(p.id) && isPaidPlan(p.plan)).length
+
   // ── Stripe abandoned checkouts ────────────────────────────────────────────
   let checkoutCreated = 0
   let checkoutCompleted = 0
@@ -327,17 +365,31 @@ export async function computeCeoData(): Promise<CeoData | null> {
   const leadMap = new Map<string, CeoData['abandonedLeads'][number]>()
   try {
     if (process.env.STRIPE_SECRET_KEY) {
-      const sessions = await stripe.checkout.sessions.list({ limit: 100 })
-      for (const s of sessions.data) {
+      // ── KINEO-PAINEL-VERDADE-2026-08-27 — dois defeitos nesta leitura ─────
+      //
+      // 1) `list({ limit: 100 })` sem paginação: 100 é o MÁXIMO por página da
+      //    API da Stripe, não o total. "Abandoned 65" e "Checkout → paid 4.0%"
+      //    eram calculados sobre as 100 sessões mais recentes e apresentados
+      //    como se fossem a história inteira. Agora paginamos com
+      //    autoPagingEach, com teto explícito para não travar a rota.
+      // 2) Os contadores subiam ANTES de checar o e-mail — as sessões de teste
+      //    do fundador entravam na taxa que a casa usa para decidir preço.
+      //    Agora a conta interna é descartada primeiro, para TODOS os três
+      //    contadores, e não só para a lista de leads.
+      const MAX_SESSOES = 1000
+      let lidas = 0
+      await stripe.checkout.sessions.list({ limit: 100 }).autoPagingEach((s) => {
+        if (++lidas > MAX_SESSOES) return false
+        const custEmail = (s.customer_details?.email ?? '').toLowerCase()
+        if (custEmail && isInternalEmail(custEmail)) return
         checkoutCreated += 1
         if (s.status === 'complete') {
           checkoutCompleted += 1
-          continue
+          return
         }
-        if (s.status !== 'expired') continue
+        if (s.status !== 'expired') return
         checkoutAbandoned += 1
-        const custEmail = (s.customer_details?.email ?? '').toLowerCase()
-        if (!custEmail || isInternalEmail(custEmail)) continue
+        if (!custEmail) return
         const at = new Date(s.expires_at * 1000).toISOString()
         const lead = {
           email: custEmail,
@@ -347,7 +399,7 @@ export async function computeCeoData(): Promise<CeoData | null> {
         }
         const existing = leadMap.get(custEmail)
         if (!existing || lead.daysAgo < existing.daysAgo) leadMap.set(custEmail, lead)
-      }
+      })
     }
   } catch (e) {
     console.warn('[admin/ceo] Stripe query failed:', e instanceof Error ? e.message : String(e))
@@ -399,6 +451,9 @@ export async function computeCeoData(): Promise<CeoData | null> {
       stuckFree,
       payingActive,
       conversion: pct(payingActive, openedCheckout),
+      reachedCheckout,
+      reachedCheckoutPaid,
+      realConversion: pct(reachedCheckoutPaid, reachedCheckout),
     },
 
     atRiskCount: atRiskUsers.length,

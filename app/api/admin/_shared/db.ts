@@ -42,7 +42,17 @@ export interface InFilter {
   values: string[]
 }
 
-/** Read an entire table (selected columns) in 1000-row pages. */
+/**
+ * Read an entire table (selected columns) in 1000-row pages.
+ *
+ * KINEO-PAINEL-VERDADE-2026-08-27 — the pages are now ORDERED, and that is
+ * not cosmetic. `.range(from, to)` becomes OFFSET/LIMIT in Postgres, and
+ * OFFSET without ORDER BY has NO defined row order: the planner is free to
+ * return the same row on page 0 and page 1, or to skip one entirely. With
+ * 1,468 profiles (2 pages) every CEO number downstream — SIGNED UP, MRR,
+ * activation, the leak — was riding on undefined behaviour that happened to
+ * work. Ordering by the primary key makes the paging total and stable.
+ */
 export async function fetchAllRows<T>(
   admin: SupabaseClient,
   table: string,
@@ -52,7 +62,11 @@ export async function fetchAllRows<T>(
   const out: T[] = []
   for (let from = 0; from < HARD_CAP; from += CHUNK) {
     const base = admin.from(table).select(columns)
-    const query = inFilter ? base.in(inFilter.column, inFilter.values) : base
+    const filtered = inFilter ? base.in(inFilter.column, inFilter.values) : base
+    // `id` exists on every table this helper is used with. If a future table
+    // lacks it, PostgREST errors loudly here instead of silently mis-paging —
+    // which is the failure mode we want.
+    const query = filtered.order('id', { ascending: true })
     const { data, error } = await query.range(from, from + CHUNK - 1)
     if (error) {
       console.warn(`[admin/_shared] ${table} page @${from} failed:`, error.message)
