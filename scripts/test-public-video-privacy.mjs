@@ -179,6 +179,9 @@ const scriptVertical = read('app/scripts/[vertical]/page.tsx')
 check(scriptVertical.includes("if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) redirect('/scripts')"), 'private script verticals must redirect to the honest hub')
 const sitemapRoute = read('app/sitemap.ts')
 check(sitemapRoute.includes('CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS.map'), 'private script shelves must leave the sitemap')
-check(sitemapRoute.includes("CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED\n      ? [{ path: '/scripts'"), 'private script hub must leave the sitemap')
+check(
+  /\.\.\.\(CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED\s*\?\s*\[\{ path: '\/scripts'[\s\S]*?\}\]\s*:\s*\[\]\)/.test(sitemapRoute),
+  'private script hub must leave the sitemap',
+)
 
 console.log(`public-video-privacy: ${checks}/${checks} checks passed`)
