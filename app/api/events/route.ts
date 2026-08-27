@@ -90,6 +90,27 @@ const SERVER_ONLY_EVENTS = new Set([
   // viral_onboarding_viewed (9,7x) e generate_arrived_server (2,7x).
   'bulk_checkout_started',
   'bulk_purchase_completed',
+  // ═══ HOTFIX-EVENTS-LOCKDOWN — 2026-08-26 ═════════════════════════════════
+  // A migration irmã fecha a escrita direta pela Data API. Estes nomes também
+  // precisam ser recusados neste sink público: são escritos apenas no servidor
+  // e lidos como claim, lock, dedupe, alarme ou auditoria financeira.
+  'animate_submission_claim',
+  'animate_job_submitted',
+  'animate_job_settled',
+  'supplier_alarm_fired',
+  'supplier_alarm_reminder',
+  'supplier_alarm_cleared',
+  'supplier_burn_projection',
+  'storage_capacity_threshold',
+  'storage_capacity_projection',
+  'cap_hit_sent',
+  'admin_credits_granted',
+  'blackout_winback_sent',
+  'compose_refused',
+  'hot_upsell_sent',
+  'narration_guard_blocked',
+  'oneoff_unlock_emailed',
+  'trial_downgraded',
 ])
 
 export async function POST(req: NextRequest) {

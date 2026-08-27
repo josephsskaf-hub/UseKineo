@@ -63,7 +63,7 @@ export interface PersonRow {
   // como zero.
   /** Vídeos realmente entregues (linhas em `videos`). */
   made_videos: number
-  /** Animações entregues (animate_job_settled outcome=delivered, distintas). */
+  /** Animações observadas como entregues pelo cliente ou liquidadas pelo servidor. */
   made_animations: number
   /** Imagens entregues (linhas em `images`). */
   made_images: number
@@ -131,8 +131,9 @@ export async function GET() {
       fetchAllRows<{ user_id: string | null }>(admin, 'videos', 'user_id'),
       fetchAllRows<{ user_id: string | null }>(admin, 'images', 'user_id'),
       fetchAllRows<{ user_id: string | null }>(admin, 'audios', 'user_id'),
-      // Animação não tem tabela própria: a entrega vive no evento, e o mesmo
-      // job aparece uma vez POR POLLING (medido: 1.801 eventos para 39 jobs).
+      // Animação não tem tabela própria. O nome antigo permanece no histórico;
+      // novos polls usam `animate_client_poll_observed`, separado da autoridade
+      // financeira `animate_job_settled`, que agora é exclusiva do servidor.
       // Por isso conta-se `session_id` DISTINTO, não linhas — contar linhas
       // aqui publicaria "1.801 animações" e destruiria a credibilidade do
       // painel inteiro.
@@ -140,7 +141,7 @@ export async function GET() {
         admin,
         'events',
         'user_id, session_id, metadata',
-        { column: 'name', values: ['animate_job_settled'] },
+        { column: 'name', values: ['animate_job_settled', 'animate_client_poll_observed'] },
       ),
     ])
 

@@ -58,7 +58,7 @@ export async function GET(req: Request) {
         .from('events')
         .select('session_id, created_at')
         .eq('user_id', uid)
-        .eq('name', 'animate_job_settled')
+        .in('name', ['animate_job_settled', 'animate_client_poll_observed'])
         .contains('metadata', { outcome: 'delivered' })
         .limit(500),
       admin

@@ -360,7 +360,10 @@ export default function AnimateClient({ isLoggedIn, userId }: { isLoggedIn: bool
   function reportAnimateOutcome(outcome: string, extra: Record<string, unknown> = {}) {
     if (terminalReportedRef.current) return
     terminalReportedRef.current = true
-    void trackEvent('animate_job_settled', {
+    // `animate_job_settled` governa a deduplicação do sweep de crédito e agora
+    // é autoridade exclusiva do servidor. O browser registra apenas o que a
+    // interface observou; nunca pode liquidar financeiramente um job.
+    void trackEvent('animate_client_poll_observed', {
       outcome,
       settled_by: 'client_poll',
       elapsed_ms: Math.max(0, Date.now() - (pollStartedAtRef.current || Date.now())),
