@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1120" viewBox="0 0 1200 1120">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#070811"/><stop offset="1" stop-color="#11152a"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#14243c"/><stop offset="1" stop-color="#101526"/></linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#2997ff"/><stop offset="1" stop-color="#0a6fd8"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity=".35"/></filter>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif}.white{fill:#f7f8ff}.muted{fill:#9ba5bc}.blue{fill:#67b9ff}.green{fill:#70e6a7}.red{fill:#ff9b9b}.small{font-size:13px}.tiny{font-size:11px}.bold{font-weight:800}.black{font-weight:900}.center{text-anchor:middle}
+    </style>
+  </defs>
+  <rect width="1200" height="1120" fill="url(#bg)"/>
+  <text x="54" y="53" class="blue tiny black" letter-spacing="2">KINEO · CONVERSION SURFACE</text>
+  <text x="54" y="91" class="white black" font-size="28">Trial offer after the film is delivered</text>
+  <text x="54" y="118" class="muted small">Before/after visual review · price and credits remain canonical</text>
+
+  <rect x="48" y="150" width="536" height="488" rx="24" fill="#0c0e18" stroke="#292f44"/>
+  <text x="76" y="184" class="red small black" letter-spacing="1.5">BEFORE · 3 COMPETING DECISIONS</text>
+  <rect x="86" y="208" width="460" height="392" rx="18" fill="url(#card)" stroke="#2997ff" stroke-opacity=".55" filter="url(#shadow)"/>
+  <text x="316" y="243" class="blue tiny black center" letter-spacing="2">YOUR CREATOR TRIAL</text>
+  <text x="316" y="276" class="white black center" font-size="20">2 days left</text>
+  <text x="316" y="311" class="muted small center">Creator picks up where the trial ends —</text>
+  <text x="316" y="330" class="muted small center">90 credits every month.</text>
+  <text x="316" y="360" class="blue small bold center">$15/month · cancel anytime</text>
+  <rect x="112" y="382" width="408" height="52" rx="12" fill="url(#blue)"/>
+  <text x="316" y="414" class="white small black center">Continue on Creator</text>
+  <rect x="112" y="445" width="408" height="48" rx="12" fill="none" stroke="#394158"/>
+  <text x="316" y="475" class="muted small bold center">Just this one video — one-time</text>
+  <text x="316" y="520" class="blue small bold center">or start at $7/month →</text>
+  <text x="316" y="555" class="muted tiny center">Your trial keeps working until it ends</text>
+  <text x="316" y="573" class="muted tiny center">secure checkout · cancel anytime</text>
+
+  <rect x="616" y="150" width="536" height="488" rx="24" fill="#0c0e18" stroke="#292f44"/>
+  <text x="644" y="184" class="green small black" letter-spacing="1.5">AFTER · ONE PRIMARY DECISION</text>
+  <rect x="654" y="208" width="460" height="392" rx="18" fill="url(#card)" stroke="#2997ff" stroke-opacity=".55" filter="url(#shadow)"/>
+  <text x="884" y="243" class="blue tiny black center" letter-spacing="2">YOUR CREATOR TRIAL</text>
+  <text x="884" y="273" class="blue small bold center">2 days left</text>
+  <text x="884" y="315" class="white black center" font-size="20">Get a clean version of this film</text>
+  <text x="884" y="359" class="muted small center">Creator includes 90 credits every month.</text>
+  <text x="884" y="387" class="blue small bold center">$15/month · cancel anytime</text>
+  <rect x="680" y="409" width="408" height="56" rx="12" fill="url(#blue)"/>
+  <text x="884" y="443" class="white small black center">Get the clean version + continue on Creator →</text>
+  <text x="884" y="500" class="blue small bold center">▶ Other options</text>
+  <text x="884" y="548" class="muted tiny center">Your trial keeps working until it ends</text>
+  <text x="884" y="566" class="muted tiny center">secure checkout · cancel anytime</text>
+
+  <text x="54" y="682" class="muted tiny black" letter-spacing="1.5">FULL TRIAL SCREEN ORDER — ALL TOUCHED SECTIONS</text>
+  <text x="178" y="714" class="red tiny black">BEFORE</text>
+  <rect x="178" y="728" width="320" height="30" rx="9" fill="#17833d"/><text x="338" y="748" class="white tiny black center">Download clean Short</text>
+  <rect x="178" y="766" width="320" height="27" rx="8" fill="#141a29" stroke="#394158"/><text x="338" y="784" class="muted tiny center">Post it, get 20 credits</text>
+  <rect x="178" y="801" width="320" height="27" rx="8" fill="#141a29" stroke="#394158"/><text x="338" y="819" class="muted tiny center">Your next episode is written</text>
+  <rect x="178" y="836" width="320" height="31" rx="9" fill="#14243c" stroke="#2997ff"/><text x="338" y="857" class="blue tiny black center">Subscription offer</text>
+  <text x="702" y="714" class="green tiny black">AFTER</text>
+  <rect x="702" y="728" width="320" height="30" rx="9" fill="#17833d"/><text x="862" y="748" class="white tiny black center">Download my film</text>
+  <text x="862" y="774" class="muted tiny center">Trial copy · small Kineo watermark</text>
+  <rect x="702" y="788" width="320" height="40" rx="9" fill="#14243c" stroke="#2997ff"/><text x="862" y="813" class="blue tiny black center">One primary subscription offer</text>
+  <rect x="702" y="838" width="320" height="29" rx="8" fill="none" stroke="#31445a" stroke-dasharray="5 4"/><text x="862" y="857" class="muted tiny center">Reward + next episode hidden in this state</text>
+
+  <text x="54" y="912" class="muted tiny black" letter-spacing="1.5">MOBILE HIERARCHY</text>
+  <rect x="290" y="936" width="260" height="144" rx="25" fill="#0b0d17" stroke="#343a50"/>
+  <text x="420" y="960" class="red tiny black center">BEFORE</text>
+  <text x="420" y="986" class="white small black center">Continue on Creator</text>
+  <rect x="318" y="998" width="204" height="34" rx="9" fill="url(#blue)"/><text x="420" y="1020" class="white tiny black center">Continue on Creator</text>
+  <rect x="318" y="1042" width="204" height="25" rx="8" fill="none" stroke="#394158"/><text x="420" y="1059" class="muted tiny center">Just this video</text>
+  <rect x="650" y="936" width="260" height="144" rx="25" fill="#0b0d17" stroke="#343a50"/>
+  <text x="780" y="960" class="green tiny black center">AFTER</text>
+  <text x="780" y="986" class="white tiny black center">Get a clean version of this film</text>
+  <rect x="678" y="998" width="204" height="42" rx="9" fill="url(#blue)"/><text x="780" y="1015" class="white tiny black center">Get the clean version +</text><text x="780" y="1030" class="white tiny black center">continue on Creator →</text>
+  <text x="780" y="1063" class="blue tiny bold center">▶ Other options</text>
+  <text x="54" y="1105" class="muted tiny">Download stays first; asset label, adjacent cards, subscription hierarchy and mobile state are all shown.</text>
+</svg>

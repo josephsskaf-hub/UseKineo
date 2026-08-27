@@ -3879,6 +3879,36 @@ export default function GenerateClient({
     return () => { cancelled = true }
   }, [postVideoCurrency])
 
+  // KINEO-POSTVIDEO-SINGLE-PRIMARY-2026-08-27 — verdade compartilhada pelas
+  // superfícies, pelos rótulos do download e pelos observers. O defeito antigo
+  // calculava cada uma em um ponto diferente: quando o trial morria dentro da
+  // request, o card genérico de watermark e o card do trial apareciam juntos.
+  const trialCreditsCap = trialUi && typeof trialUi.cap === 'number' ? trialUi.cap : 0
+  const trialPostVideoPhase: 'active' | 'ending' | null =
+    phase === 'done' &&
+    Boolean(finalVideoUrl) &&
+    hasPaid !== true &&
+    isStarter !== true &&
+    isCreator !== true &&
+    isStudio !== true &&
+    trialCreditsCap > 0
+      ? (trialActive === true && trialUi?.phase === 'active'
+          ? 'active'
+          : (trialUi?.phase === 'ending' &&
+             typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0)
+            ? 'ending'
+            : null)
+      : null
+  // Hoje apenas o Fast de conta free/trial recebe watermark no compose. O
+  // Seedance (`cinematic_ai`) e os demais motores Fal saem limpos; por isso
+  // `falUsedRef` faz parte da verdade do asset, não da conta.
+  const currentResultHasWatermark =
+    planTier === 'free' && !hasPaid && quality === 'fast' &&
+    !falUsedRef.current && Boolean(lastFastRenderRef.current)
+  const showPostVideoExportChoice =
+    phase === 'done' && Boolean(finalVideoUrl) && currentResultHasWatermark &&
+    !trialActive && !wmUnlocking && trialPostVideoPhase === null
+
   // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — a emissão de
   // `post_video_currency_resolved` saiu do efeito acima DE PROPÓSITO, e este é
   // o ponto todo: o evento significa "um usuário free chegou à decisão de
@@ -3898,13 +3928,9 @@ export default function GenerateClient({
     // guarda, falhas de geo passariam a injetar `country: 'unknown'` numa série
     // histórica que nunca teve essa categoria.
     if (resolvedCountryRef.current === null) return
-    // KINEO-TRIAL-BLOCKERS-2026-08-07 — mesma coorte de showPostVideoExportChoice:
-    // se a oferta de export limpo não aparece para o trial, a impressão dela
-    // também não pode ser contada (métrica de oferta que conta quem nunca a viu
-    // é ruído puro na conversão do A/B 3d vs 7d).
-    const cleanExportEligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
-      !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
-    if (!cleanExportEligible) return
+    // A mesma condição governa JSX e medição. Premium clean e qualquer fase do
+    // trial não podem deixar uma impressão fantasma do card de watermark.
+    if (!showPostVideoExportChoice) return
     postVideoCurrencyTrackedRef.current = true
     void trackEvent('post_video_currency_resolved', {
       currency: postVideoCurrency,
@@ -3912,19 +3938,16 @@ export default function GenerateClient({
       country: resolvedCountryRef.current,
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
     })
-  }, [postVideoCurrency, postVideoRegion, phase, finalVideoUrl, planTier, hasPaid, trialActive, wmUnlocking, intentCampaign])
+  }, [postVideoCurrency, postVideoRegion, showPostVideoExportChoice, intentCampaign])
 
   // PUSH #25 — measure a real offer impression, not merely an eligible render.
   // The result player is tall on mobile, so the clean-export card can exist
   // below the fold without ever being seen. Count it only after at least half
   // of the card enters the viewport, once per finished asset.
   useEffect(() => {
-    // KINEO-TRIAL-BLOCKERS-2026-08-07 — ver cleanExportEligible acima.
-    const eligible = phase === 'done' && Boolean(finalVideoUrl) && planTier === 'free' &&
-      !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current) && Boolean(postVideoCurrency)
     const element = postVideoOfferRef.current
     const offerKey = publicVideoId || finalVideoUrl
-    if (!eligible || !element || !offerKey || postVideoOfferTrackedKeyRef.current === offerKey) return
+    if (!showPostVideoExportChoice || !postVideoCurrency || !element || !offerKey || postVideoOfferTrackedKeyRef.current === offerKey) return
 
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
@@ -3947,7 +3970,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, planTier, hasPaid, trialActive, trialUi, wmUnlocking, intentCampaign, postVideoCurrency])
+  }, [showPostVideoExportChoice, finalVideoUrl, publicVideoId, trialUi, intentCampaign, postVideoCurrency])
 
   // A2 PLAN FIT — derive the replacement gate before any legacy-offer
   // observer. The same boolean governs render and measurement, so a recurring
@@ -4065,6 +4088,15 @@ export default function GenerateClient({
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
         offer: 'creator_monthly',
+        offer_layout: 'single_primary_v1',
+        // Este useEffect vive antes das constantes visuais (TDZ). Repete a
+        // condição mínima que permite prometer uma reconstrução limpa: só Fast
+        // do trial recebe watermark hoje, e o retorno precisa dos inputs.
+        immediate_benefit:
+          planTier === 'free' && !hasPaid && quality === 'fast' &&
+          !falUsedRef.current && Boolean(lastFastRenderRef.current)
+            ? 'current_clean_version'
+            : 'monthly_creation',
         // KINEO-TRIAL-DEATH-OFFER-2026-08-08 — a caixa passou a ter DUAS
         // manchetes possíveis para duas situações opostas ("2 days left" vs
         // "All 40 trial credits used"). Sem este campo as 28 impressões que já
@@ -4146,7 +4178,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot])
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier])
 
   // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
   // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
@@ -7503,10 +7535,9 @@ export default function GenerateClient({
     if (!finalVideoUrl) return
     const slug = slugifyTitle(analysis?.title)
     const filename = slug ? `${slug}.mp4` : `kineo-${finalVideoSeconds ?? duration}s.mp4`
-    // KINEO-TRIAL-BLOCKERS-2026-08-07 — o download de uma conta em trial é
-    // CLEAN de verdade agora; rotulá-lo 'watermarked' contaminaria a série que
-    // mede a pressão do watermark sobre a conversão.
-    const exportType = planTier === 'free' && !hasPaid && !trialActive
+    // O tipo descreve o ASSET entregue, não o estado atual da conta. Um trial
+    // pode acabar entre composição e clique sem mudar os pixels do MP4.
+    const exportType = currentResultHasWatermark
       ? 'watermarked'
       : planTier === null && !hasPaid
         ? 'current_asset'
@@ -7920,6 +7951,26 @@ export default function GenerateClient({
     trackEvent('post_video_single_unlock_clicked', {
       source: 'result_export_choice',
       offer: 'starter_pack_one_time',
+      watermarked_downloaded: watermarkedDownloadConfirmed,
+      ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+      ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+    })
+  }
+
+  // O vídeo premium do trial já pode sair limpo. Nesse caso o mesmo SKU avulso
+  // continua útil como pacote de créditos, mas não pode usar `return=wm` nem
+  // prometer uma recomposta que perderia metadados do motor.
+  function handleBuyCreditsOnly() {
+    const started = wmCheckout.launch(
+      'starter_pack',
+      withIntentCampaign('/api/stripe/checkout?pack=starter'),
+      { pack: 'starter', from: 'trial_post_video_credits' },
+    )
+    if (!started) return
+    trackCheckoutClick('starter')
+    trackEvent('post_video_single_unlock_clicked', {
+      source: 'result_trial_other_options',
+      offer: 'starter_pack_credits_only',
       watermarked_downloaded: watermarkedDownloadConfirmed,
       ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -8463,44 +8514,11 @@ export default function GenerateClient({
   const nextStepsDescription = nextStepsDescriptionBase
     ? buildBrandedYouTubeDescription(nextStepsDescriptionBase, { isFreePlan: !isPaidAccount })
     : ''
-  // KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive`: esta é a caixa que VENDE
-  // a remoção da marca d'água ($4.90). Depois da correção do servidor o Fast de
-  // uma conta em trial já sai limpo, então oferecer "pague para tirar a marca
-  // d'água" seria cobrar por algo que a pessoa já tem — o pior desfecho
-  // possível desta tela.
-  // ⚠️ KINEO-TRIAL-DEATH-OFFER-2026-08-08 — DECISÃO DE NÃO FAZER, e ela custou
-  // a melhor parte da ideia. A passada 1 desta mudança suprimia esta caixa em
-  // 'ending', para que a morte do trial não ligasse a oferta de $4.90 no mesmo
-  // instante em que liga a de assinatura. A revisão adversarial mostrou o preço
-  // escondido: suprimi-la LIGA o ramo `{!showPostVideoExportChoice && …}`, que
-  // é OUTRO botão de download, e cujo rótulo em `!trialActive` promete
-  // "Download with Kineo watermark". Se o arquivo composto na request que MATOU
-  // o trial sai limpo ou marcado depende de `hasPaidEntitlement` dentro de
-  // app/api/compose — e marca d'água é proibição dura desta sessão, não posso
-  // nem verificar mexendo nem arriscar rotular errado o arquivo que a pessoa
-  // acabou de esperar. Trocar a UI de DOWNLOAD para consertar uma UI de OFERTA
-  // é apostar a entrega para ganhar o upsell, e a entrega vem primeiro
-  // (KINEO-DELIVER-FIRST; a sprint de hoje mediu 33% de falha de download no
-  // mobile).
-  //
-  // ⚠️ PASSADA 2 — CORREÇÃO DO PRÓPRIO COMENTÁRIO. A passada 1 escreveu aqui
-  // que as duas caixas ficam "em posições diferentes da tela, ambas
-  // verdadeiras", e o revisor mostrou que a frase é FALSA no código: os dois
-  // cards são ADJACENTES e visualmente GÊMEOS (mesmo gradiente, mesma borda
-  // rgba(41,151,255,.5), mesmo boxShadow, mesmo rounded-2xl px-5 py-5), e o
-  // único elemento entre eles — o <a> de download — é suprimido justamente por
-  // `showPostVideoExportChoice`. Em 'ending' a pessoa vê dois cartões azuis
-  // iguais, empilhados, cada um com um botão de checkout de tier DIFERENTE
-  // ($4.90 avulso e Creator mensal), nenhum mencionando o outro. Isso é um
-  // custo real que este commit ACEITA de olhos abertos, não uma coisa que ele
-  // resolve: entre entregar o arquivo com rótulo certo e ter uma oferta só na
-  // tela, a entrega ganha. Fica registrado como o próximo defeito a matar.
-  //
-  // E o instrumento para matá-lo entra AGORA, senão a decisão volta a ser
-  // intuição: `trial_phase` passa a viajar também no evento da caixa de $4.90,
-  // que antes não tinha campo nenhum de trial. Com ele dá para perguntar se a
-  // caixa avulsa rouba clique da assinatura em 'ending' — e aí a supressão
-  // volta com número.
+  // KINEO-POSTVIDEO-SINGLE-PRIMARY-2026-08-27 — a verdade do asset e a fase do
+  // trial agora são calculadas antes dos observers e governam todos os ramos.
+  // Em `ending`, o card genérico de watermark não pode reaparecer ao lado do
+  // card de assinatura. Nos motores Fal, que saem limpos, ele também não pode
+  // existir só porque `lastFastRenderRef` guarda os inputs de recomposição.
   // ═══ KINEO-PROXIMO-EPISODIO-2026-08-21 ═════════════════════════════════
   // Ver o bloco longo em app/api/next-episode/route.ts para o porquê. Resumo:
   // 164 pessoas em 14 dias fizeram UM filme e sumiram, 76 delas com crédito
@@ -8617,8 +8635,6 @@ export default function GenerateClient({
     void handleAnalyze(s, { fromTopic: true, skipPreview: true, structureFirst: false })
   }
 
-  const showPostVideoExportChoice = phase === 'done' && planTier === 'free' &&
-    !hasPaid && !trialActive && !wmUnlocking && Boolean(lastFastRenderRef.current)
   // KINEO-REGIONAL-PRICING-2026-08-04 — na regiao `value` o Starter nao tem 1o
   // mes com desconto (preco de lista JA e o preco de entrada), entao
   // postVideoHasIntro fica false e a copy abaixo troca de forma em vez de
@@ -8653,10 +8669,11 @@ export default function GenerateClient({
   //     volume de `video_ready_viewed` — porque `showPostVideoExportChoice`
   //     ganhou `!trialActive` nesta manhã (KINEO-TRIAL-BLOCKERS-2026-08-07).
   //
-  // Aquele `!trialActive` está CERTO e não se mexe: a caixa dele vende a
-  // remoção da marca d'água por $4.90, e o Fast de uma conta em trial já sai
-  // limpo — cobrar por algo que a pessoa já tem é o pior desfecho da tela.
-  // O defeito é o que ficou no lugar: NADA. Com a flag ligada, todo cadastro
+  // A caixa genérica vende a remoção da marca d'água. Ela não pode decidir por
+  // saldo ou por `lastFastRenderRef`: o Fast do trial pode estar marcado e os
+  // motores Fal podem estar limpos. A verdade compartilhada do asset acima
+  // decide se ela existe; a fase do trial reserva a decisão para esta caixa.
+  // Antes dessa oferta dedicada, com a flag ligada todo cadastro
   // novo nasce em trial, então a coorte inteira de contas novas termina o
   // vídeo — o instante de maior intenção de compra do produto — e a tela não
   // menciona que o trial acaba, quanto já foi consumido, nem que existe plano.
@@ -8679,7 +8696,6 @@ export default function GenerateClient({
   //  5. `finalVideoUrl` — a oferta só existe com o arquivo entregue. É a regra
   //     KINEO-DELIVER-FIRST, e por isso ela é RENDERIZADA depois do download.
   // ═══════════════════════════════════════════════════════════════════════
-  const trialCreditsCap = trialUi && typeof trialUi.cap === 'number' ? trialUi.cap : 0
   // Só é impresso com prova de frescor — ver o comentário de `trialDoneAtRef`.
   const trialCreditsCounterLabel =
     trialUi &&
@@ -8722,34 +8738,6 @@ export default function GenerateClient({
   // pessoa só volta por navegação nova, e aí o modal monta e faz o pedido.
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
-  const trialPostVideoPhase: 'active' | 'ending' | null =
-    phase === 'done' &&
-    Boolean(finalVideoUrl) &&
-    hasPaid !== true &&
-    isStarter !== true &&
-    isCreator !== true &&
-    isStudio !== true &&
-    trialCreditsCap > 0
-      // 'active' preserva a guarda DUPLA original (entitlement do servidor E
-      // fase). 'ending' não pode exigir `trialActive`: `isTrialActive` já é
-      // false, e é justamente essa queda que define a fase.
-      ? (trialActive === true && trialUi?.phase === 'active'
-          ? 'active'
-          // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1, DEFEITO GRAVE MEU:
-          // `creditsGranted > 0`. Diferente de 'active', o ramo 'ending' faz
-          // AFIRMAÇÃO DE PERDA ("has ended", "All N trial credits used"), e
-          // lib/reverseTrial centraliza esta guarda justamente para isso — o
-          // comentário de lá diz, com todas as letras, "só fala de PERDA quem
-          // comprovadamente RECEBEU", e é por ela que `showDowngradeModal` já
-          // não abre para linha sem concessão. Gravar `trial_credits_granted`
-          // na ativação foi mudança POSTERIOR ao início do trial, então linha
-          // legada com 0 existe de verdade. Sem esta guarda, uma conta que
-          // nunca recebeu crédito leria que gastou os 40.
-          : (trialUi?.phase === 'ending' &&
-             typeof trialUi?.creditsGranted === 'number' && trialUi.creditsGranted > 0)
-            ? 'ending'
-            : null)
-      : null
   const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
   // POR QUE o trial acabou. Só tem sentido em 'ending'.
   //
@@ -8851,6 +8839,33 @@ export default function GenerateClient({
   // Rótulos da escada. `primary` é quem ganha o botão azul; `secondary` é a
   // saída de texto logo abaixo. Ambos os preços saem de getTierPrice().
   const ladderPrimaryTier: 'starter' | 'basic' = valueLadderFlip ? 'starter' : 'basic'
+  const ladderPrimaryPlanLabel = valueLadderFlip ? 'Starter' : 'Creator'
+  const trialPrimaryUnlocksCurrentFilm =
+    trialPostVideoPhase !== null && currentResultHasWatermark
+  const prepareTrialCleanCheckout = (surface: 'monthly' | 'one_time'): boolean => {
+    const checkout = surface === 'monthly' ? trialPostVideoCheckout : wmCheckout
+    checkout.setError(null)
+    if (!trialPrimaryUnlocksCurrentFilm) return true
+    const inputs = lastFastRenderRef.current
+    if (!inputs) {
+      checkout.setError('The clean-film handoff is not ready yet. Please wait a moment and try again.')
+      return false
+    }
+    try {
+      const serialized = JSON.stringify(inputs)
+      localStorage.setItem('kineo_wm_unlock', serialized)
+      if (localStorage.getItem('kineo_wm_unlock') !== serialized) throw new Error('storage verification failed')
+      return true
+    } catch {
+      checkout.setError('Your browser blocked the clean-film handoff. Allow site storage, then try again.')
+      void trackEvent('trial_post_video_unlock_handoff_failed', {
+        source: 'result_trial_continue',
+        surface,
+        engine: 'fast',
+      })
+      return false
+    }
+  }
   const ladderSecondaryLabel = valueLadderFlip
     ? (trialOfferFullPrice ? `need more credits? Creator is ${trialOfferFullPrice}/month →` : null)
     : (trialStarterPrice ? `or start at ${trialStarterPrice}/month →` : null)
@@ -11670,7 +11685,7 @@ export default function GenerateClient({
                     download={`${slugifyTitle(analysis?.title) || `kineo-${duration}s`}.mp4`}
                     target="_blank"
                     rel="noreferrer"
-                    title={planTier === 'free' && !hasPaid && !trialActive
+                    title={currentResultHasWatermark
                       ? 'Download MP4 with Kineo watermark'
                       : planTier === null && !hasPaid
                         ? 'Download MP4'
@@ -11685,10 +11700,8 @@ export default function GenerateClient({
                     }}
                   >
                     <span style={{ fontSize: '1.15rem' }}>⬇</span>
-                    {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — `!trialActive`: o MP4 do
-                        trial não tem marca d'água (o servidor decide por
-                        isFreePlanFast, que agora exclui o trial). O botão não
-                        pode prometer o contrário. */}
+                    {/* A mesma verdade por asset usada no evento do download.
+                        Fast free/trial é watermarked; premium e pago são clean. */}
                     {/* ⚠️ #287 — KINEO-BOTAO-NAO-VENDE-CONTRA-SI-2026-08-23.
                         MEDIDO (funil 7d): 150 pessoas TERMINARAM um filme e só
                         64 baixaram — 86 filmes prontos abandonados, o maior
@@ -11703,16 +11716,20 @@ export default function GenerateClient({
                         e honesta (regra do selo honesto), só deixa de ser
                         manchete. Deliver-first intacto: o download grátis
                         continua primeiro, sem pedágio. */}
-                    {planTier === 'free' && !hasPaid && !trialActive
+                    {currentResultHasWatermark
+                      ? `Download my film (${finalVideoSeconds ?? duration}s · MP4)`
+                      : planTier === 'free' && !hasPaid && !trialActive && trialPostVideoPhase === null
                       ? `Download my film (${finalVideoSeconds ?? duration}s · MP4)`
                       : planTier === null && !hasPaid
                         ? `Download Your Short (${finalVideoSeconds ?? duration}s · MP4)`
                         : `Download clean Short (${finalVideoSeconds ?? duration}s · MP4)`}
                   </a>
                 )}
-                {!showPostVideoExportChoice && planTier === 'free' && !hasPaid && !trialActive && (
+                {!showPostVideoExportChoice && currentResultHasWatermark && (
                   <p className="text-center" style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45, marginTop: -4 }}>
-                    Free copy — carries a small Kineo watermark. Yours to post anywhere.
+                    {trialPostVideoPhase !== null
+                      ? 'Trial copy — includes a small Kineo watermark. The clean version is available below.'
+                      : 'Free copy — carries a small Kineo watermark. Yours to post anywhere.'}
                   </p>
                 )}
 
@@ -11747,7 +11764,7 @@ export default function GenerateClient({
                   é quem carrega a marca d'água. Oferecer isto a um assinante
                   seria pagar por um outdoor que não existe: o filme dele sai
                   limpo, sem o nosso domínio em lugar nenhum. */}
-              {phase === 'done' && planTier === 'free' && !hasPaid && (
+              {phase === 'done' && planTier === 'free' && !hasPaid && !showTrialPostVideoOffer && (
                 <div
                   className="mt-7 w-full rounded-2xl p-4"
                   style={{
@@ -11814,7 +11831,7 @@ export default function GenerateClient({
                   o próximo, em vez de pedir a próxima ideia. Aparece DEPOIS do
                   download e do paywall de propósito: primeiro a pessoa resolve
                   o vídeo que ela veio fazer, aí a gente oferece o seguinte. */}
-              {(nextEpisode || nextEpisodeLoading) && (
+              {!showTrialPostVideoOffer && (nextEpisode || nextEpisodeLoading) && (
                 <div
                   className="mt-7 w-full rounded-2xl p-4"
                   style={{
@@ -11891,17 +11908,9 @@ export default function GenerateClient({
                             de ser um trial que corre. */}
                         {trialPostVideoPhase === 'ending' ? 'Your Creator trial has ended' : 'Your Creator trial'}
                       </div>
-                      <h3
-                        className="font-black tracking-tight"
-                        style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.25 }}
-                      >
-                        {/* KINEO-TRIAL-OFFER-SCARCITY-2026-08-08 — o prazo lidera.
-                            Ver o bloco de `trialOfferHeadline`: em 9 das 14
-                            impressões desta caixa a manchete era "1..5 of 40
-                            trial credits used", um argumento contra a compra
-                            escrito pela própria oferta. */}
+                      <p className="text-xs mt-1 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.4 }}>
                         {trialOfferHeadline}
-                      </h3>
+                      </p>
                       {/* O contador só é impresso quando argumenta A FAVOR de
                           comprar (metade da concessão ou mais). Abaixo disso ele
                           não some por conveniência: ele deixa de ser manchete e
@@ -11912,31 +11921,25 @@ export default function GenerateClient({
                           {trialCreditsCounterLabel}
                         </p>
                       )}
-                      {/* REVISÃO ADVERSARIAL, PASSADA 1 — a frase não afirma o
-                          que acontece com o SALDO no fim do trial. O cron de
-                          downgrade revoga, mas ele já falhou uma vez em produção
-                          (smoke 07/08 03:00Z, linha elegível não processada), e
-                          uma promessa de produto não pode depender de um cron
-                          com incidente aberto. "Picks up where the trial ends" é
-                          verdadeiro nos dois desfechos. */}
+                      {/* KINEO-POSTVIDEO-SINGLE-PRIMARY-2026-08-27 — MEDIDO EM
+                          PRODUÇÃO: 33 pessoas viram esta caixa em 7 dias e só
+                          uma escolheu qualquer opção. A oferta falava do fim do
+                          trial, embora o checkout já consiga resolver o desejo
+                          presente: reconstruir ESTE filme limpo via `return=wm`.
+                          O benefício imediato lidera; créditos e preço continuam
+                          derivados das fontes canônicas, sem promessa de motor. */}
+                      <h3
+                        className="font-black tracking-tight mt-2"
+                        style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.3 }}
+                      >
+                        {trialPrimaryUnlocksCurrentFilm
+                          ? 'Get a clean version of this film'
+                          : `Keep creating on ${ladderPrimaryPlanLabel}`}
+                      </h3>
                       <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                        {/* KINEO-TRIAL-DEATH-OFFER-2026-08-08 — "picks up where
-                            the trial ends" está no futuro e fica errado para
-                            quem já acabou. A promessa NÃO muda de conteúdo em
-                            nenhuma das duas: continua sem prometer motor algum
-                            (Kling/Veo/Hollywood seguem "🔒 Studio") e continua
-                            interpolando TIER_CREDITS, nunca um número novo. */}
-                        {/* KINEO-VALUE-LADDER-FLIP-2026-08-19 — em região
-                            `value` a frase descreve o plano que o botão
-                            realmente abre (Starter), com o número de créditos
-                            vindo de TIER_CREDITS como sempre. */}
-                        {valueLadderFlip
-                          ? (trialPostVideoPhase === 'ending'
-                              ? `Starter picks up from here — ${TIER_CREDITS.starter} credits every month.`
-                              : `Starter picks up where the trial ends — ${TIER_CREDITS.starter} credits every month.`)
-                          : (trialPostVideoPhase === 'ending'
-                              ? `Creator picks up from here — ${TIER_CREDITS.basic} credits every month.`
-                              : `Creator picks up where the trial ends — ${TIER_CREDITS.basic} credits every month.`)}
+                        {trialPrimaryUnlocksCurrentFilm ? 'Return here after checkout. ' : ''}
+                        {ladderPrimaryPlanLabel} includes{' '}
+                        {valueLadderFlip ? TIER_CREDITS.starter : TIER_CREDITS.basic} credits every month.
                       </p>
                       {trialOfferPriceNote && (
                         <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
@@ -11955,7 +11958,11 @@ export default function GenerateClient({
                         // `checkout_cta_suppressed` no ramo recusado.
                         void trackEvent('trial_post_video_offer_clicked', {
                           source: 'result_trial_continue',
-                          tier: 'basic',
+                          tier: ladderPrimaryTier,
+                          offer_layout: 'single_primary_v1',
+                          immediate_benefit: trialPrimaryUnlocksCurrentFilm
+                            ? 'current_clean_version'
+                            : 'monthly_creation',
                           // O evento carrega o número CRU do último payload,
                           // fresco ou não, e um booleano dizendo se a pessoa
                           // chegou a LER esse número na tela. Sem o booleano, a
@@ -12002,18 +12009,18 @@ export default function GenerateClient({
                         // pagava e continuava com a marca no arquivo que queria.
                         // O stash em localStorage é a outra metade do par: sem
                         // ele o `?wm_unlock=1` volta sem nada para reconstruir.
-                        try {
-                          if (lastFastRenderRef.current) {
-                            localStorage.setItem('kineo_wm_unlock', JSON.stringify(lastFastRenderRef.current))
-                          }
-                        } catch {
-                          // storage bloqueado: a assinatura ativa igual; só o
-                          // re-render deste vídeo não resume NESTE browser.
-                        }
+                        if (!prepareTrialCleanCheckout('monthly')) return
                         const started = trialPostVideoCheckout.launch(
                           ladderPrimaryTier,
-                          withIntentCampaign(`/api/stripe/checkout?tier=${ladderPrimaryTier}&intro=1&return=wm`),
-                          { tier: ladderPrimaryTier, intro: true, from: 'trial_post_video', return_to: 'watermark_unlock' },
+                          withIntentCampaign(
+                            `/api/stripe/checkout?tier=${ladderPrimaryTier}&intro=1${trialPrimaryUnlocksCurrentFilm ? '&return=wm' : ''}`,
+                          ),
+                          {
+                            tier: ladderPrimaryTier,
+                            intro: true,
+                            from: 'trial_post_video',
+                            ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
+                          },
                         )
                         if (!started) return
                         trackCheckoutClick(ladderPrimaryTier)
@@ -12030,78 +12037,106 @@ export default function GenerateClient({
                     >
                       {trialPostVideoCheckout.pending !== null
                         ? 'Opening checkout…'
-                        : valueLadderFlip ? 'Continue on Starter' : 'Continue on Creator'}
+                        : trialPrimaryUnlocksCurrentFilm
+                          ? `Get the clean version + continue on ${ladderPrimaryPlanLabel} →`
+                          : `Continue creating on ${ladderPrimaryPlanLabel} →`}
                     </button>
                     {trialPostVideoCheckout.error && (
-                      <p className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
+                      <p role="alert" className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
                         {trialPostVideoCheckout.error}
                       </p>
                     )}
-                    {/* KINEO-VENDER-O-VIDEO-2026-08-21 — a régua também aqui.
-                        A auditoria mostrou que o trial via SÓ assinatura mensal
-                        — justamente a objeção que o avulso existe para
-                        contornar ("eu vou usar isso todo mês?"). E com a flag
-                        do reverse trial ligada, TODA conta nova nasce em trial:
-                        essa era a coorte inteira de gente nova sem alternativa. */}
-                    <button
-                      type="button"
-                      onClick={handleBuyThisVideoOnly}
-                      disabled={wmCheckout.pending !== null}
-                      className="flex flex-col items-center justify-center w-full rounded-xl mt-2 py-2.5 px-3 text-xs font-bold text-center"
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--border)',
-                        color: 'var(--muted2)',
-                        cursor: wmCheckout.pending ? 'wait' : 'pointer',
-                        opacity: wmCheckout.pending ? 0.7 : 1,
-                      }}
-                    >
-                      <span>Just this one video — {packPriceLabel()}, no subscription</span>
-                      <span style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.8, marginTop: 2 }}>
-                        One-time · this exact video clean · {PACK_CREDITS.starter} credits
-                      </span>
-                    </button>
-                    {/* KINEO-STARTER-ESCAPE-2026-08-19 — a escada de preço no
-                        ponto de decisão: quem acha o Creator caro sai por aqui
-                        em vez de sair do site (o caso kanishka, IN). Mesmo
-                        hook de checkout (telemetria + guarda de duplo clique);
-                        surface separada no evento para medir o resgate. */}
-                    {ladderSecondaryLabel && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          // O degrau secundário é o OUTRO tier da escada: em
-                          // região `value` ele sobe para Creator, em `standard`
-                          // ele desce para Starter. A surface do evento diz qual
-                          // dos dois foi, senão os dois viram a mesma linha.
-                          const secondary: 'starter' | 'basic' = valueLadderFlip ? 'basic' : 'starter'
-                          const started = trialPostVideoCheckout.launch(
-                            secondary,
-                            withIntentCampaign(`/api/stripe/checkout?tier=${secondary}&intro=1`),
-                            {
-                              tier: secondary,
-                              intro: true,
-                              from: valueLadderFlip
-                                ? 'trial_post_video_creator_upgrade'
-                                : 'trial_post_video_starter_escape',
-                            },
-                          )
-                          if (!started) return
-                          trackCheckoutClick(secondary)
-                        }}
-                        disabled={trialPostVideoCheckout.pending !== null}
-                        className="block w-full text-center mt-2.5 text-xs font-bold"
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#7cc0ff',
-                          cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
-                          padding: '4px 0',
-                        }}
+                    {/* As alternativas continuam disponíveis, mas não competem
+                        mais com a única decisão que esta superfície deve pedir.
+                        `<details>` preserva acesso sem JS, teclado e leitor de
+                        tela; fechado por padrão, reduz três CTAs simultâneos a
+                        um CTA principal + uma saída explícita. */}
+                    <details className="mt-3 group">
+                      <summary
+                        className="text-center text-xs font-bold"
+                        style={{ color: '#7cc0ff', cursor: 'pointer', listStylePosition: 'inside' }}
                       >
-                        {ladderSecondaryLabel}
-                      </button>
-                    )}
+                        Other options
+                      </summary>
+                      <div className="mt-2">
+                        {/* KINEO-VENDER-O-VIDEO-2026-08-21 — a opção avulsa
+                            permanece para quem não quer compromisso mensal. */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (trialPrimaryUnlocksCurrentFilm) {
+                              if (!prepareTrialCleanCheckout('one_time')) return
+                              handleBuyThisVideoOnly()
+                              return
+                            }
+                            handleBuyCreditsOnly()
+                          }}
+                          disabled={wmCheckout.pending !== null}
+                          className="flex flex-col items-center justify-center w-full rounded-xl py-2.5 px-3 text-xs font-bold text-center"
+                          style={{
+                            background: 'transparent',
+                            border: '1px solid var(--border)',
+                            color: 'var(--muted2)',
+                            cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                            opacity: wmCheckout.pending ? 0.7 : 1,
+                          }}
+                        >
+                          <span>
+                            {trialPrimaryUnlocksCurrentFilm
+                              ? `Just this one video — ${packPriceLabel()}, no subscription`
+                              : `${PACK_CREDITS.starter} credits — ${packPriceLabel()}, one-time`}
+                          </span>
+                          <span style={{ fontSize: '0.66rem', fontWeight: 600, opacity: 0.8, marginTop: 2 }}>
+                            {trialPrimaryUnlocksCurrentFilm
+                              ? `Clean version · ${PACK_CREDITS.starter} credits included`
+                              : 'No subscription · use them on your next videos'}
+                          </span>
+                        </button>
+                        {wmCheckout.error && (
+                          <p role="alert" className="text-xs mt-2 font-semibold" style={{ color: '#ff6b6b', lineHeight: 1.45 }}>
+                            {wmCheckout.error}
+                          </p>
+                        )}
+                        {/* KINEO-STARTER-ESCAPE-2026-08-19 — o outro degrau da
+                            escada continua acessível dentro das alternativas. */}
+                        {ladderSecondaryLabel && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const secondary: 'starter' | 'basic' = valueLadderFlip ? 'basic' : 'starter'
+                              if (!prepareTrialCleanCheckout('monthly')) return
+                              const started = trialPostVideoCheckout.launch(
+                                secondary,
+                                withIntentCampaign(
+                                  `/api/stripe/checkout?tier=${secondary}&intro=1${trialPrimaryUnlocksCurrentFilm ? '&return=wm' : ''}`,
+                                ),
+                                {
+                                  tier: secondary,
+                                  intro: true,
+                                  from: valueLadderFlip
+                                    ? 'trial_post_video_creator_upgrade'
+                                    : 'trial_post_video_starter_escape',
+                                  ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
+                                },
+                              )
+                              if (!started) return
+                              trackCheckoutClick(secondary)
+                            }}
+                            disabled={trialPostVideoCheckout.pending !== null}
+                            className="block w-full text-center mt-2.5 text-xs font-bold"
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#7cc0ff',
+                              cursor: trialPostVideoCheckout.pending !== null ? 'wait' : 'pointer',
+                              padding: '4px 0',
+                            }}
+                          >
+                            {ladderSecondaryLabel}
+                          </button>
+                        )}
+                      </div>
+                    </details>
                     <p
                       className="text-center mt-2"
                       style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.45 }}
