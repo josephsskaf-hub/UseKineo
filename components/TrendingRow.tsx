@@ -20,7 +20,7 @@ export default function TrendingRow({ videos }: { videos: WallVideo[] }) {
       <button type="button" className="tr-nav tr-prev" aria-label="Scroll back" onClick={() => nudge(-1)}>‹</button>
       <div className="tr-row" ref={rowRef}>
         {videos.map((v) => (
-          <Link key={v.id} href={`/v/${v.id}`} className="tr-card">
+          <Link key={v.id} href={v.href ?? `/v/${v.id}`} className="tr-card">
             <span className="tr-media" aria-hidden="true"><WallMedia src={v.videoUrl} /></span>
             <span className="tr-badge">{v.badge}</span>
             <span className="tr-title">{v.title}</span>

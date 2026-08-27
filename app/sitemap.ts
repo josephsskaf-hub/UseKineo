@@ -4,6 +4,7 @@ import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { CANONICAL_SLUGS } from '@/lib/comparisons'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 // KINEO-ENGINE-SEO-2026-08-15 — cluster por MOTOR (hub + 5 páginas).
 import { ENGINE_SLUGS } from './ai-video-generator/[engine]/page'
 
@@ -51,7 +52,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // KINEO-SCRIPT-LIBRARY-2026-08-03 — hub for the ~572 public /v/[id] script
     // pages that were orphaned (no hub, no internal links, 8 search clicks in
     // site history). The per-vertical shelves are appended below.
-    { path: '/scripts', priority: 0.9, freq: 'daily' },
+    ...(CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED
+      ? [{ path: '/scripts', priority: 0.9, freq: 'daily' as const }]
+      : []),
     // PUSH #92 — removed leftover `{ path: '/pt', priority: 0.9, freq:
     // 'weekly' }` entry: it contradicted the English-only decision recorded
     // in the comments below (KINEO-2026-07-25) — every other PT/ES sitemap
@@ -214,12 +217,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // thin renders with robots:noindex of its own accord (the page decides), and
   // self-corrects the moment it clears the threshold — the sitemap listing it
   // early costs nothing, while a DB outage that empties the sitemap would.
-  const scriptShelfEntries = SCRIPT_VERTICAL_SLUGS.map((slug) => ({
+  const scriptShelfEntries = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS.map((slug) => ({
     url: `${BASE}/scripts/${slug}`,
     lastModified: LAST_MODIFIED,
     changeFrequency: 'daily' as const,
     priority: 0.8,
-  }))
+  })) : []
   return [
     ...staticEntries,
     ...nicheEntries,

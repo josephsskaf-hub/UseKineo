@@ -9,7 +9,11 @@ import { trackEvent } from '@/lib/analytics'
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
-import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
+import {
+  buildPublicVideoSharePath,
+  PUBLIC_VIDEO_SHARE_VERSION,
+  PUBLIC_VIDEO_SHARING_ENABLED,
+} from '@/lib/videoShare'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 // KINEO-PRICING-V6-2026-08-19 — esta tela vendia Starter com "$9.90/month" e
 // "60 credits" DIGITADOS em três lugares, e os três estavam errados no dia
@@ -313,14 +317,16 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         setCleanExportLocked(!cleanAccess)
       })
       .catch(() => {/* fail open */})
-    fetch('/api/referral', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (cancelled) return
-        const code = typeof d?.code === 'string' ? d.code.trim() : ''
-        if (/^[A-HJ-NP-Z2-9]{8}$/.test(code)) setReferralCode(code)
-      })
-      .catch(() => {/* sharing still works without a referral code */})
+    if (PUBLIC_VIDEO_SHARING_ENABLED) {
+      fetch('/api/referral', { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (cancelled) return
+          const code = typeof d?.code === 'string' ? d.code.trim() : ''
+          if (/^[A-HJ-NP-Z2-9]{8}$/.test(code)) setReferralCode(code)
+        })
+        .catch(() => {/* sharing still works without a referral code */})
+    }
     return () => { cancelled = true }
   }, [])
 
@@ -328,6 +334,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // every returning creator, including the existing back-catalogue. Count the
   // prompt only when the spotlight actually enters the viewport.
   useEffect(() => {
+    if (!PUBLIC_VIDEO_SHARING_ENABLED) return
     const element = sharePromptRef.current
     const key = latestVideo?.id ?? null
     if (!element || !key || sharePromptTrackedKeyRef.current === key) return
@@ -507,12 +514,13 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     }
   }
 
-  function publicSharePath(video: Video): string {
-    return buildPublicVideoSharePath(video.id, referralCode) ?? `/v/${video.id}`
+  function publicSharePath(video: Video): string | null {
+    return buildPublicVideoSharePath(video.id, referralCode)
   }
 
-  function publicShareUrl(video: Video): string {
-    return new URL(publicSharePath(video), window.location.origin).toString()
+  function publicShareUrl(video: Video): string | null {
+    const path = publicSharePath(video)
+    return path ? new URL(path, window.location.origin).toString() : null
   }
 
   // #459/#464/#PUSH29 — share the public video page by COPYING the link. WhatsApp only
@@ -521,6 +529,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // a landing that brings a new (pre-warmed) visitor.
   async function handleShare(video: Video, where: 'history' | 'history_spotlight' = 'history') {
     const url = publicShareUrl(video)
+    if (!url) return
     const metadata = {
       version: PUBLIC_VIDEO_SHARE_VERSION,
       video_id: video.id,
@@ -547,6 +556,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
 
   function handleShareChannel(video: Video, channel: 'whatsapp' | 'x') {
     const url = publicShareUrl(video)
+    if (!url) return
     const metadata = {
       version: PUBLIC_VIDEO_SHARE_VERSION,
       video_id: video.id,
@@ -853,7 +863,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         </section>
       )}
 
-      {latestVideo && (
+      {latestVideo && PUBLIC_VIDEO_SHARING_ENABLED && (
         <section
           ref={sharePromptRef}
           aria-label="Share your latest Short for feedback"
@@ -907,7 +917,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               WhatsApp
             </button>
             <a
-              href={publicSharePath(latestVideo)}
+              href={publicSharePath(latestVideo) ?? '#'}
               target="_blank"
               rel="noreferrer"
               className="rounded-xl px-4 py-3 text-sm font-black"
@@ -921,6 +931,27 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               Preview
             </a>
           </div>
+        </section>
+      )}
+
+      {latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED && (
+        <section
+          aria-label="Private sharing notice"
+          className="rounded-2xl p-5 sm:p-6 mb-6"
+          style={{
+            background: 'rgba(41,151,255,.06)',
+            border: '1px solid rgba(41,151,255,.24)',
+          }}
+        >
+          <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#7cc0ff' }}>
+            Private by default
+          </div>
+          <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
+            Public watch links are temporarily paused
+          </h2>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
+            Your video stays in your account. Download the MP4 if you want to send it directly; Kineo will not publish a public page without an explicit visibility choice.
+          </p>
         </section>
       )}
 
@@ -1297,27 +1328,40 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                   )}
 
                   {/* #459 — share the public /v/[id] page */}
-                  <button
-                    onClick={() => handleShare(video)}
-                    title="Share public link"
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 3,
-                      padding: '5px 4px',
-                      borderRadius: 6,
-                      background: 'rgba(41,151,255,0.1)',
-                      border: '1px solid rgba(41,151,255,0.25)',
-                      color: '#2997ff',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {sharedId === video.id ? '✓ Copied' : '🔗 Copy'}
-                  </button>
+                  {PUBLIC_VIDEO_SHARING_ENABLED ? (
+                    <button
+                      onClick={() => handleShare(video)}
+                      title="Share public link"
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 3,
+                        padding: '5px 4px',
+                        borderRadius: 6,
+                        background: 'rgba(41,151,255,0.1)',
+                        border: '1px solid rgba(41,151,255,0.25)',
+                        color: '#2997ff',
+                        fontSize: '0.6rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {sharedId === video.id ? '✓ Copied' : '🔗 Copy'}
+                    </button>
+                  ) : (
+                    <span
+                      title="Public links are paused; download the MP4 to share directly"
+                      style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        padding: '5px 4px', borderRadius: 6, background: 'rgba(255,255,255,.05)',
+                        border: '1px solid var(--border)', color: 'var(--muted2)', fontSize: '0.6rem', fontWeight: 700,
+                      }}
+                    >
+                      Private
+                    </span>
+                  )}
 
                   <a
                     href="https://studio.youtube.com"

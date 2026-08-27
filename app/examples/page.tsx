@@ -89,13 +89,12 @@ export default async function ExamplesPage() {
             Watch what Kineo actually makes.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-7 text-white/65 sm:text-lg">
-            The 20 best renders in the building — hand-picked from real user output across every engine. The badge on each card is the exact model that made it. Open one to watch and remix the format.
+            Six Kineo-owned demo previews, stored with the site and selected for public use. Customer videos stay private; open any sample to watch and remix the format with your own topic.
           </p>
         </div>
 
-        {/* KINEO-BEST20-2026-08-15 — pedido do fundador: "os 20 melhores que a
-            gente tem". Grade unica, curada a dedo (mesma curadoria do hero +
-            Fast + Avatar), selo do motor real em cada card. */}
+        {/* P0 PRIVACY CONTAINMENT (2026-08-27): repository-owned samples only.
+            A completed customer render is not publication consent. */}
         <div className="mt-12 grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
           {/* Modelo aprovado pelo fundador (print 15/08): card menor, video
               LIMPO (as legendas queimadas do proprio render sao a info) e o
@@ -103,7 +102,7 @@ export default async function ExamplesPage() {
           {best.map((v) => (
             <Link
               key={v.id}
-              href={`/v/${v.id}`}
+              href={v.href ?? `/v/${v.id}`}
               className="group block overflow-hidden rounded-[16px] border border-white/10 bg-white/[0.03] transition hover:-translate-y-1 hover:border-[#2997ff]/60"
             >
               <div className="relative aspect-[9/16] overflow-hidden bg-black">
@@ -123,10 +122,8 @@ export default async function ExamplesPage() {
           ))}
         </div>
 
-        {/* KINEO-EXPLORE-2026-08-15 — pedido do fundador: 20+ exemplos.
-            10 locais curados acima + os renders REAIS do banco por motor
-            abaixo, cada um com o selo do modelo que o gerou (mesma honestidade
-            da Engine Wall da home). */}
+        {/* Dynamic customer renders are intentionally absent until an explicit
+            public visibility choice exists in the durable data model. */}
         
         {/* KINEO-EXAMPLES-REVIEWS-2026-08-24 — pedido do fundador: "coloca
             todos os reviews que temos". Todos = UM (Rick, autorização escrita

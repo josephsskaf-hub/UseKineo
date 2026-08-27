@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { notFound } from 'next/navigation'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 // #462 — dynamically generated OG preview image for /v/[id]. The static
 // og-image.png fallback didn't exist, so WhatsApp/Twitter showed no card at all.
@@ -32,6 +34,9 @@ async function getTitle(id: string): Promise<string> {
 }
 
 export default async function OgImage({ params }: { params: { id: string } }) {
+  // This route used to bypass the page gate. Deny before `getTitle` can create
+  // a service-role client or read a customer title.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) notFound()
   const title = await getTitle(params.id)
   return new ImageResponse(
     (

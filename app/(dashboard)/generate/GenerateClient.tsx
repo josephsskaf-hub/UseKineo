@@ -90,7 +90,11 @@ import {
   buildSeriesContinuationPrompt,
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
-import { buildPublicVideoSharePath, PUBLIC_VIDEO_SHARE_VERSION } from '@/lib/videoShare'
+import {
+  buildPublicVideoSharePath,
+  PUBLIC_VIDEO_SHARE_VERSION,
+  PUBLIC_VIDEO_SHARING_ENABLED,
+} from '@/lib/videoShare'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
@@ -2210,6 +2214,7 @@ export default function GenerateClient({
   // Clipboard require a live click gesture; awaiting a network request inside
   // handleSharePublic can consume that gesture and make both APIs fail.
   useEffect(() => {
+    if (!PUBLIC_VIDEO_SHARING_ENABLED) return
     // AQUISICAO 4 (14/08) — o fetch esperava composing/done: quem copiava o
     // link ANTES do fetch resolver compartilhava SEM ref e a atribuicao era
     // perdida para sempre (evento referral_attached:false confirmava). Agora
@@ -2233,6 +2238,7 @@ export default function GenerateClient({
   // the legacy prompt event for the existing funnel and emit a granular event
   // for this WhatsApp-first experiment alongside it.
   useEffect(() => {
+    if (!PUBLIC_VIDEO_SHARING_ENABLED) return
     const element = sharePromptRef.current
     const key = publicVideoId
     if (phase !== 'done' || !element || !key || sharePromptTrackedKeyRef.current === key) return
@@ -11938,6 +11944,7 @@ export default function GenerateClient({
                     after the clean-vs-watermarked choice; paid users see it after
                     their primary download. Sharing stays opt-in and uses the
                     canonical /v page, with referral when available. */}
+                {PUBLIC_VIDEO_SHARING_ENABLED ? (
                 <div
                   ref={sharePromptRef}
                   className="w-full rounded-2xl px-5 py-5"
@@ -12035,6 +12042,23 @@ export default function GenerateClient({
                         : 'Referral rewards are unavailable right now. Your public watch link still works.'}
                   </p>
                 </div>
+                ) : (
+                  <div
+                    data-public-sharing-state="disabled"
+                    className="w-full rounded-2xl px-5 py-4 text-center"
+                    style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.24)' }}
+                  >
+                    <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: '#7cc0ff' }}>
+                      Private by default
+                    </div>
+                    <h3 className="mt-1.5 font-black tracking-tight" style={{ color: 'var(--text)', fontSize: '1rem' }}>
+                      Public watch links are temporarily paused
+                    </h3>
+                    <p className="mt-2 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
+                      Download the MP4 to share it directly. Kineo will not publish a public page without an explicit visibility choice.
+                    </p>
+                  </div>
+                )}
 
                 <button
                   type="button"

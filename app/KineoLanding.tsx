@@ -952,8 +952,18 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
           <p className="hero-line">Type an idea — watch it become a film. <span>Eight video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
-          <div id="samples" className="ftr-row hero-ftr" aria-label="Kineo engines — real renders">
+          <div
+            id="samples"
+            className="ftr-row hero-ftr"
+            aria-label={engineWall.some((v) => v.engine === 'static_example') ? 'Kineo-owned video examples' : 'Kineo engines — real renders'}
+          >
             {(() => {
+              const staticExamples = engineWall.filter((v) => v.engine === 'static_example')
+              if (staticExamples.length > 0) {
+                return staticExamples.slice(0, 4).map((video, index) => (
+                  <EngineCycleCard key={video.id} videos={[video]} index={index} />
+                ))
+              }
               // KINEO-VITRINE-25/08 (fundador): Seedance 1.5 e Kling 2.5 SAEM
               // da primeira tela; entram MiniMax H3 e Omni Flash (#1 do ranking
               // de agosto) com os melhores renders da library — inclusive a
@@ -1139,7 +1149,9 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         <section id="trending" style={{ paddingTop: 10 }}>
           <div className="ew-wrap">
             <div className="tr-head">
-              <span className="sec-eyebrow">Trending now</span>
+              <span className="sec-eyebrow">
+                {trending.some((v) => v.engine === 'static_example') ? 'Kineo-owned examples' : 'Trending now'}
+              </span>
               <Link href="/examples" className="link tr-all">Explore all →</Link>
             </div>
             <TrendingRow videos={trending} />

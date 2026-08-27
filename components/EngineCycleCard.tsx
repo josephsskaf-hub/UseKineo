@@ -41,6 +41,7 @@ const META: Record<string, { name: string; desc: string; href: string }> = {
   cinematic_ai: { name: 'Seedance 1.5', desc: 'The workhorse AI video engine', href: '/studio?engine=seedance&intent_campaign=hero_engine' },
   presenter: { name: 'Avatar', desc: 'Talking video from one photo', href: '/avatar?intent_campaign=hero_engine' },
   fast: { name: 'Kineo 1', desc: 'Kineo’s own engine — 3–7 min', href: '/studio?engine=fast&intent_campaign=hero_engine' },
+  static_example: { name: 'Kineo sample', desc: 'Kineo-owned finished-video preview', href: '/examples' },
 }
 
 const srcOf = (v: WallVideo) => v.previewUrl ?? v.videoUrl
@@ -180,14 +181,16 @@ export default function EngineCycleCard({ videos, index = 0 }: { videos: WallVid
   return (
     <Link
       ref={boxRef}
-      href={meta.href}
+      href={v.href ?? meta.href}
       className="ftr ec-ftr"
-      aria-label={`${meta.name} — ${meta.desc}. Open the generator with this engine selected.`}
+      aria-label={v.engine === 'static_example'
+        ? `${v.title} — open the Kineo-owned sample.`
+        : `${meta.name} — ${meta.desc}. Open the generator with this engine selected.`}
     >
       <span className="ftr-media">
-        {POSTER[v.engine] && (
+        {(v.posterUrl ?? POSTER[v.engine]) && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={POSTER[v.engine]} alt="" className="ec-poster" loading="eager" fetchPriority={index === 0 ? 'high' : 'auto'} />
+          <img src={v.posterUrl ?? POSTER[v.engine]} alt="" className="ec-poster" loading="eager" fetchPriority={index === 0 ? 'high' : 'auto'} />
         )}
         {started && renderSlot(0)}
         {started && len > 1 && renderSlot(1)}

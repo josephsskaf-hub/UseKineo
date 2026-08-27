@@ -30,7 +30,7 @@
 //    substance.
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import {
@@ -45,6 +45,7 @@ import {
   type LibraryScript,
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -63,6 +64,13 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { vertical: string } }): Promise<Metadata> {
   const v = getScriptVertical(params.vertical)
   if (!v) return {}
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
+    return {
+      title: `Create an original ${v.label} Short | Kineo`,
+      description: `Generate your own original ${v.noun} Short. Customer scripts are private by default.`,
+      robots: { index: false, follow: true, noarchive: true },
+    }
+  }
   const lib = await getScriptLibrary()
   const count = lib.counts[v.slug] ?? 0
   const url = `${PUBLIC_BASE_URL}/scripts/${v.slug}`
@@ -122,6 +130,7 @@ function ScriptCard({ script, campaign }: { script: LibraryScript; campaign: str
 export default async function ScriptVerticalPage({ params }: { params: { vertical: string } }) {
   const v = getScriptVertical(params.vertical)
   if (!v) notFound()
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) redirect('/scripts')
 
   const lib = await getScriptLibrary()
   const all = lib.byVertical[v.slug] ?? []

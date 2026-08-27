@@ -13,6 +13,8 @@
 //  · falha de banco ⇒ lista vazia ⇒ a seção não renderiza. Nunca quebra a home.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cleanTitleLine } from '@/lib/publicVideos'
+import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 export type WallVideo = {
   id: string
@@ -24,6 +26,22 @@ export type WallVideo = {
   engine: string
   /** Rótulo curto do selo, estilo Higgsfield: caps, seco. */
   badge: string
+  /** Explicit destination for founder-owned static examples. */
+  href?: string
+  /** Static poster for repository-owned examples. */
+  posterUrl?: string
+}
+
+function staticExampleWall(): WallVideo[] {
+  return PUBLIC_EXAMPLES.map((example) => ({
+    id: example.slug,
+    title: example.shortTitle,
+    videoUrl: example.videoPath,
+    engine: 'static_example',
+    badge: 'KINEO SAMPLE',
+    href: `/examples/${example.slug}`,
+    posterUrl: posterWebpPath(example.posterPath),
+  }))
 }
 
 // KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (medidos em
@@ -202,14 +220,17 @@ const HERO_CAPS: Record<string, number> = {
 }
 
 export function getEngineHero(): Promise<WallVideo[]> {
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve(staticExampleWall())
   return buildWall(HERO_CAPS)
 }
 
 export function getEngineShowcase(): Promise<WallVideo[]> {
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve(staticExampleWall())
   return buildWall(SHOWCASE_CAPS)
 }
 
 export function getEngineWall(): Promise<WallVideo[]> {
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve(staticExampleWall())
   return buildWall(PER_ENGINE)
 }
 
@@ -224,6 +245,10 @@ export function getEngineWall(): Promise<WallVideo[]> {
 // laço `for (const engine of ENGINE_ORDER)` sair na primeira comparação
 // (`0 >= 0`), então nenhum motor alheio entra. Nenhum call site existente muda.
 export function getEngineRenders(engine: string, limit = 8): Promise<WallVideo[]> {
+  // A generic Kineo-owned sample cannot honestly be attributed to a selected
+  // provider. Keep engine-specific SEO galleries empty until rows carry an
+  // explicit public visibility decision.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve([])
   const caps: Record<string, number> = {
     fast: 0,
     cinematic_ai: 0,
@@ -266,6 +291,9 @@ const EXAMPLES_BEST: string[] = [
 ]
 
 export async function getExamplesBest(): Promise<WallVideo[]> {
+  // P0 PRIVACY CONTAINMENT (2026-08-27): only founder-owned, repository
+  // assets. A hand-picked customer row is still not publication consent.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return staticExampleWall()
   try {
     const db = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,
@@ -315,6 +343,8 @@ const TRENDING_CAPS: Record<string, number> = {
 }
 
 export async function getTrending(): Promise<WallVideo[]> {
+  // Preserve public proof without presenting customer output as a live feed.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return staticExampleWall()
   // Filtro anti-prompt (medido no mobile 15/08): renders cujo "titulo" e o
   // PROMPT do usuario ("Use the uploaded clear person photo as the ONLY...")
   // vazavam pra vitrine. Instrucao tecnica nao e titulo de video.
@@ -344,6 +374,11 @@ export async function getTrending(): Promise<WallVideo[]> {
 }
 
 async function buildWall(caps: Record<string, number>, skipCurated = false): Promise<WallVideo[]> {
+  // P0 PRIVACY CONTAINMENT (2026-08-27): completed customer renders are not a
+  // public catalogue. Keep the historical implementation in place so it can be
+  // reconnected only after an auditable visibility field exists, but do not
+  // even create a service-role client today.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []
   try {
     const db = createAdminClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL as string,

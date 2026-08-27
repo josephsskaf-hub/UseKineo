@@ -33,6 +33,7 @@ import {
   type LibraryScript,
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -44,7 +45,7 @@ const MUTED = '#86868b'
 const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 const CAMPAIGN = 'script_library_hub'
 
-export const metadata: Metadata = {
+export const metadata: Metadata = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? {
   metadataBase: new URL(PUBLIC_BASE_URL),
   title: 'Free YouTube Shorts Scripts — the Kineo Shorts Script Library',
   description:
@@ -62,6 +63,12 @@ export const metadata: Metadata = {
     title: 'Free YouTube Shorts Scripts — Kineo',
     description: 'Hundreds of complete YouTube Shorts scripts, sorted by topic. Free to read and reuse.',
   },
+} : {
+  metadataBase: new URL(PUBLIC_BASE_URL),
+  title: 'Create an original YouTube Shorts script | Kineo',
+  description: 'Generate your own original Short with a hook, middle beats and payoff. Customer scripts are private by default.',
+  alternates: { canonical: '/scripts' },
+  robots: { index: false, follow: true, noarchive: true },
 }
 
 function ScriptCard({ script }: { script: LibraryScript }) {
@@ -89,6 +96,46 @@ function ScriptCard({ script }: { script: LibraryScript }) {
 }
 
 export default async function ScriptsHubPage() {
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
+    return (
+      <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ maxWidth: 760, margin: '0 auto', padding: '28px 18px 72px' }}>
+          <nav aria-label="Breadcrumb" style={{ marginBottom: 34 }}>
+            <Link href="/" style={{ color: BLUE, fontWeight: 800, textDecoration: 'none', fontSize: '1.05rem' }}>Kineo</Link>
+            <span style={{ color: MUTED, fontSize: '0.85rem' }}> / Scripts</span>
+          </nav>
+          <section
+            data-customer-script-library="private"
+            style={{ textAlign: 'center', padding: '42px 22px', borderRadius: 20, ...CARD }}
+          >
+            <p style={{ color: BLUE, fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.14em', textTransform: 'uppercase', margin: 0 }}>
+              Private by default
+            </p>
+            <h1 style={{ fontSize: 'clamp(1.9rem, 5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.15, margin: '14px 0 0' }}>
+              Create an original Shorts script
+            </h1>
+            <p style={{ fontSize: '1rem', color: '#CBD5E1', lineHeight: 1.65, margin: '18px auto 0', maxWidth: 600 }}>
+              Customer videos and scripts are not published to a shared library. Start with your own idea and Kineo will build the hook, middle beats and payoff for you.
+            </p>
+            <OrganicCtaLink
+              href={generateFromScriptHref('A viral YouTube Short about a surprising fact', CAMPAIGN)}
+              source={CAMPAIGN}
+              placement="private_state"
+              style={{ display: 'inline-block', marginTop: 24, background: BLUE, color: '#000', fontWeight: 900, padding: '15px 30px', borderRadius: 14, textDecoration: 'none' }}
+            >
+              Generate your own script →
+            </OrganicCtaLink>
+            <p style={{ margin: '16px 0 0', fontSize: '0.86rem' }}>
+              <Link href="/examples" style={{ color: '#CBD5E1', textDecoration: 'none' }}>
+                Watch Kineo-owned examples instead →
+              </Link>
+            </p>
+          </section>
+        </div>
+        <Footer />
+      </main>
+    )
+  }
   const lib = await getScriptLibrary()
   const recent = lib.scripts.slice(0, HUB_RECENT_COUNT)
   // Only verticals with enough substance to be worth a click are promoted; the

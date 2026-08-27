@@ -33,13 +33,17 @@ const OFFER = getFreeTierOffer()
 //      carve-out. So the page now carries the video's OWN script as readable
 //      prose, its runtime, its description and hashtags: substance unique to
 //      each URL that a human would actually read.
-//   2. It was `force-dynamic`, so every crawl hit Supabase. It is now ISR
-//      (revalidate below), rendered once per hour per id.
+//   2. The historical public implementation used ISR. Privacy containment
+//      below disables shared revalidation and returns the same denied result
+//      for every session; owners use authenticated dashboard surfaces.
 //
 // Which videos are public, and which are indexable, is decided ONLY in
 // lib/publicVideos.ts — shared with app/video-sitemap.xml/route.ts so the
 // sitemap can never advertise a page that renders `noindex`.
-export const revalidate = 3600
+// Universal fail-closed result: do not vary this anonymous page by owner
+// session inside a shared ISR cache. Owners use authenticated dashboard pages.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 const BLUE = '#2997ff'
 const MUTED = '#86868b'

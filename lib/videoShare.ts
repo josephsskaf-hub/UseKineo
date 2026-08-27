@@ -3,12 +3,18 @@
 
 export const PUBLIC_VIDEO_SHARE_VERSION = 'push29_share_delivery'
 
+// P0 PRIVACY CONTAINMENT (2026-08-27): no versioned visibility/token contract
+// exists yet. Dashboard surfaces must explain the temporary pause instead of
+// manufacturing a public URL from the persistent database id.
+export const PUBLIC_VIDEO_SHARING_ENABLED = false as const
+
 const REFERRAL_CODE = /^[A-HJ-NP-Z2-9]{8}$/
 
 export function buildPublicVideoSharePath(
   videoId: string | null | undefined,
   referralCode?: string | null,
 ): string | null {
+  if (!PUBLIC_VIDEO_SHARING_ENABLED) return null
   const id = (videoId ?? '').trim()
   if (!id) return null
 

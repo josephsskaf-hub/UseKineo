@@ -1,5 +1,6 @@
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripScriptMarkers } from '@/lib/scriptParser'
+import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 // PUSH #96+ — Shared source of truth for the PUBLIC video surface (`/v/[id]`).
 //
@@ -589,6 +590,9 @@ export type PublicVideoResult =
 const PGRST_NO_ROWS = 'PGRST116'
 
 export async function getPublicVideoResult(id: string): Promise<PublicVideoResult> {
+  // P0 PRIVACY CONTAINMENT (2026-08-27): a completed render has no versioned,
+  // auditable publication consent. Fail before creating the service-role client.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return { status: 'missing' }
   // Reject anything that is not a UUID before touching the database.
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
     return { status: 'missing' }
@@ -628,6 +632,9 @@ export async function getPublicVideo(id: string): Promise<PublicVideo | null> {
 export async function listIndexablePublicVideos(
   limit: number = SITEMAP_MAX_VIDEOS,
 ): Promise<PublicVideo[]> {
+  // The same gate owns libraries, rails, sitemaps and IndexNow. Most
+  // importantly, it runs before `adminClient()` so private rows are not read.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []
   const admin = adminClient()
   if (!admin) return []
   try {
