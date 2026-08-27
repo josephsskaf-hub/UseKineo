@@ -11,13 +11,35 @@
 // Rodar: node scripts/test-variety-axis.mjs   (sem rede, sem custo)
 
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// Achar o tsc SEM depender de `npm install` dentro da worktree.
+// Worktree de git nao tem node_modules propria; a arvore principal tem.
+// Sem isso o teste so roda com symlink na mao — e no Windows do fundador,
+// nem isso. Procura na worktree, no repo principal e nos pais.
+function acharTsc(base) {
+  const tentativas = []
+  let dir = base
+  for (let i = 0; i < 6; i++) {
+    tentativas.push(join(dir, 'node_modules', 'typescript', 'bin', 'tsc'))
+    const pai = dirname(dir)
+    if (pai === dir) break
+    dir = pai
+  }
+  // Worktrees vivem em <repo>/.claude/worktrees/<nome> — o repo esta 3 acima,
+  // e ja e coberto pela subida acima; esta linha e so explicitude.
+  for (const t of tentativas) if (existsSync(t)) return t
+  console.error('Nao achei o typescript. Rode `npm install` na pasta do projeto.\nProcurei em:\n  ' + tentativas.join('\n  '))
+  process.exit(1)
+}
+const TSC = acharTsc(raiz)
+
 const saida = mkdtempSync(join(tmpdir(), 'kineo-variety-'))
 const requerer = createRequire(join(saida, 'x.cjs'))
 mkdirSync(join(saida, 'src'), { recursive: true })
@@ -25,7 +47,7 @@ writeFileSync(join(saida, 'src', 'varietyAxis.ts'),
   readFileSync(join(raiz, 'lib/hollywood/varietyAxis.ts'), 'utf8'))
 try {
   execFileSync(process.execPath, [
-    join(raiz, 'node_modules', 'typescript', 'bin', 'tsc'),
+    TSC,
     join(saida, 'src', 'varietyAxis.ts'),
     '--outDir', join(saida, 'out'), '--module', 'commonjs', '--target', 'es2022',
     '--moduleResolution', 'node', '--skipLibCheck', '--rootDir', join(saida, 'src'),
