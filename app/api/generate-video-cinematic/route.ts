@@ -30,6 +30,7 @@ import {
   resumirPlano,
   type AttemptRecord,
 } from '@/lib/cinematic/dispatchScenes'
+import { resolveVerbatimSegments } from '@/lib/cinematic/verbatimBeats'
 import { fal } from '@fal-ai/client'
 import { generateScenes, shortCaptionFromVoiceover } from '@/lib/runway'
 // KINEO-CAPACITY-2026-08-08 — teto GLOBAL diário de renders de IA (disjuntor).
@@ -2052,13 +2053,11 @@ async function manipularPost(req: NextRequest) {
       // including the first (hook) and last (payoff) so the opening and the
       // payoff each get their OWN distinct clip. The old slice(0, 5) dropped the
       // RHYTHM + PAYOFF beats, so the payoff narrated over an escalation clip.
-      const segs = parsedScript.segments
-      const picked =
-        segs.length <= clipCount
-          ? segs
-          : Array.from({ length: clipCount }, (_, i) =>
-              segs[Math.round((i * (segs.length - 1)) / (clipCount - 1))],
-            )
+      // Texto livre não tem [Pexels: ...], portanto o parser não produz
+      // segmentos. O botão "Use my script as is" ainda precisa gerar cenas:
+      // dividimos somente a cópia visual em beats; `voiceover_script` continua
+      // sendo a narração integral e verbatim do autor.
+      const picked = resolveVerbatimSegments(parsedScript, clipCount)
       scenes = picked.map((seg) => ({
         description: seg.pexelsQuery,
         voiceover: seg.voiceover,
