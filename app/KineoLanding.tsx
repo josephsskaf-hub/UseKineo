@@ -13,6 +13,7 @@ import LandingViewTracker from '@/components/LandingViewTracker'
 import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
 import type { WallVideo } from '@/lib/engineWall'
+import { creditCostFor } from '@/lib/credits/engineCost'
 import WallMedia from '@/components/WallMedia'
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
@@ -27,6 +28,28 @@ import { filmsAndScenes, imagesFor, nanoBananasFor, voiceoversFor, filmsOn } fro
 
 /** Centavos → "19.90". O FAQ de preco NUNCA digita numero a mao (ver #faq). */
 const usdPrice = (cents: number) => (cents / 100).toFixed(2)
+
+// ⚠️ KINEO-CREDITO-VITRINE-2026-08-27 (fundador: "no site aparece que e free,
+// mas nao e free — e fica confuso, tira credibilidade").
+//
+// A vitrine escrevia o custo de cada motor A MAO em JSX. Dois textos estavam
+// MENTINDO na primeira tela:
+//   · Kineo 1  : "Free · watermark"     — o custo real e 5 creditos
+//   · Avatar   : "from 70 credits"      — o custo real e 110
+// O cliente lia "free" na home, comecava a gerar e via 5 creditos sendo
+// debitados. Promessa quebrada na porta de entrada.
+//
+// AGORA a etiqueta e DERIVADA de creditCostFor(), a mesma funcao que o
+// servidor usa para cobrar. Se um custo mudar amanha, a vitrine muda junto —
+// e nao ha mais como a home e o caixa discordarem.
+//
+// Nota sobre o Kineo 1: ele e 0 para conta nunca-paga (com marca d'agua) e 5
+// para trial/pagante. A vitrine mostra o custo do TRIAL, porque e o que a
+// pessoa vive ao criar a conta — 25 creditos de trial = 5 filmes Kineo 1.
+// O "gratis" continua verdadeiro e continua dito, mas no lugar certo: na
+// linha do trial, nao na etiqueta de preco do motor.
+const creditLabel = (quality: Parameters<typeof creditCostFor>[0]) =>
+  `${creditCostFor(quality, true)} credits / video`
 // KINEO-NAV-MEGA-PREVIEW-2026-08-17 — item de motor com mini-clipe no hover.
 import NavEngineItem from '@/components/NavEngineItem'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
@@ -862,7 +885,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <span className="nd-menu nd-mega">
                 <span className="nm-col">
                   <span className="nm-h">Engines</span>
-                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — free" icon="⚡" />
+                  <NavEngineItem href="/studio?engine=fast&intent_campaign=nav_mega" name="Kineo 1" desc="Kineo’s own engine — fastest" icon="⚡" />
                   <NavEngineItem href="/studio?engine=seedance&intent_campaign=nav_mega" name="Seedance 1.5" desc="The workhorse AI engine" chip="TOP" icon="S" preview="/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4" />
                   <NavEngineItem href="/studio?engine=kling&intent_campaign=nav_mega" name="Kling 2.5" desc="Cinematic motion & camera" icon="K" preview="/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4" />
                   <NavEngineItem href="/studio?engine=veo&intent_campaign=nav_mega" name="Veo 3.1" desc="Google’s flagship engine" chip="STUDIO" icon="G" preview="/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4" />
@@ -1039,7 +1062,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Kineo 1</h3>
                   <p>Kineo&rsquo;s own engine &mdash; 3&ndash;7 min</p>
-                  <span className="tcredits">Free &middot; watermark</span>
+                  <span className="tcredits">{creditLabel('fast')}</span>
                 </span>
               </Link>
               <Link href="/studio?engine=seedance&intent_campaign=engine_tile" className="tile hot">
@@ -1051,7 +1074,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Seedance 1.5</h3>
                   <p>The workhorse AI video engine</p>
-                  <span className="tcredits">25 credits / video</span>
+                  <span className="tcredits">{creditLabel('cinematic_ai')}</span>
                 </span>
               </Link>
               <Link href="/studio?engine=kling&intent_campaign=engine_tile" className="tile">
@@ -1063,7 +1086,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Kling 2.5</h3>
                   <p>Cinematic motion &amp; camera</p>
-                  <span className="tcredits">50 credits / video</span>
+                  <span className="tcredits">{creditLabel('cinematic_kling')}</span>
                 </span>
               </Link>
               <Link href="/studio?engine=veo&intent_campaign=engine_tile" className="tile">
@@ -1075,7 +1098,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Veo 3.1</h3>
                   <p>Google&rsquo;s flagship, on Studio</p>
-                  <span className="tcredits">100 credits / video</span>
+                  <span className="tcredits">{creditLabel('cinematic_veo')}</span>
                 </span>
               </Link>
               <Link href="/studio?engine=hollywood&intent_campaign=engine_tile" className="tile">
@@ -1087,7 +1110,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Kling 3</h3>
                   <p>Film scenes, native voice &amp; lip sync</p>
-                  <span className="tcredits">150 credits / video</span>
+                  <span className="tcredits">{creditLabel('cinematic_hollywood')}</span>
                 </span>
               </Link>
               <Link href="/avatar" className="tile">
@@ -1099,7 +1122,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <span className="tbody">
                   <h3>Avatar</h3>
                   <p>Talking video from one photo</p>
-                  <span className="tcredits">from 70 credits</span>
+                  <span className="tcredits">{creditLabel('avatar')}</span>
                 </span>
               </Link>
             </div>

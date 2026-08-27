@@ -105,7 +105,7 @@ interface PersonMedia {
   plan: string | null
   trial: { granted: number; used: number } | null
   signup_at: string | null
-  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; quality: string | null; status: string | null; created_at: string }>
+  videos: Array<{ id: string; url: string | null; thumb: string | null; topic: string | null; quality: string | null; status: string | null; created_at: string; credits: number | null; seconds: number | null }>
   images_total: number
   audios_total: number
   animations_delivered: number
@@ -603,7 +603,15 @@ export default function PeopleClient({ denied }: { denied?: boolean }) {
                           <div style={{ color: '#c7c7cc', fontSize: 10.5, lineHeight: 1.35, maxHeight: 42, overflow: 'hidden' }}>
                             {v.topic ?? 'Untitled'}
                           </div>
-                          <div style={{ color: '#5a5a60', fontSize: 9.5, marginTop: 3 }}>{fmtDate(v.created_at)}</div>
+                          <div style={{ color: '#5a5a60', fontSize: 9.5, marginTop: 3 }}>
+                            {fmtDate(v.created_at)}
+                            {/* Custo SEMPRE com a duracao ao lado: o Kineo 1 e
+                                5 cr por 60s, mas 4 por 45s e 3 por 30s. Ver o
+                                "4" sozinho parece erro de cobranca; ver
+                                "4 cr · 45s" e a conta certa. */}
+                            {v.credits != null ? ` · ${v.credits} cr` : ''}
+                            {v.seconds != null ? ` · ${v.seconds}s` : ''}
+                          </div>
                         </div>
                       </a>
                     ))}

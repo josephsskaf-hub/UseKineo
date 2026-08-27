@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     const [vids, imgs, auds, animates, guardBlocks] = await Promise.all([
       admin
         .from('videos')
-        .select('id, video_url, thumbnail_url, topic, quality_mode, status, created_at')
+        .select('id, video_url, thumbnail_url, topic, quality_mode, status, created_at, credits_used, duration')
         .eq('user_id', uid)
         .order('created_at', { ascending: false })
         .limit(200),
@@ -88,6 +88,18 @@ export async function GET(req: Request) {
         thumb: v.thumbnail_url ?? null,
         topic: typeof v.topic === 'string' ? v.topic.slice(0, 120) : null,
         quality: v.quality_mode ?? null,
+        // ⚠️ KINEO-ADMIN-CUSTO-2026-08-27 (fundador: "parece que ela gastou 4
+        // creditos no Kineo 1 e nao e 4, e 5"). O painel mostrava o motor e
+        // NAO mostrava o custo — entao qualquer numero visto em outro lugar
+        // parecia divergir. Nao havia bug de cobranca: o custo ESCALA COM A
+        // DURACAO (creditCostForDuration = ceil(base x seg/60)), entao o
+        // mesmo Kineo 1 custa 3 em 30s, 4 em 45s, 5 em 60s e 8 em 90s.
+        // Custo e duracao agora viajam JUNTOS: numero sozinho vira suspeita.
+        credits: v.credits_used ?? null,
+        // `duration` e nao `duration_seconds`: MEDIDO em 27/08, duration_seconds
+        // e NULL em 248 de 248 videos (coluna existe e nunca foi gravada, igual
+        // ao thumbnail_url). `duration` esta preenchida em 248 de 248.
+        seconds: v.duration ?? null,
         status: v.status ?? null,
         created_at: v.created_at,
       })),
