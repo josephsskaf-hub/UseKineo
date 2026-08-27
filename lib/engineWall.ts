@@ -13,7 +13,7 @@
 //  · falha de banco ⇒ lista vazia ⇒ a seção não renderiza. Nunca quebra a home.
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { cleanTitleLine } from '@/lib/publicVideos'
-import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
+import { PUBLIC_ENGINE_EXAMPLES, PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
 
 export type WallVideo = {
@@ -30,6 +30,8 @@ export type WallVideo = {
   href?: string
   /** Static poster for repository-owned examples. */
   posterUrl?: string
+  /** Auditable reason this static asset can appear on an anonymous surface. */
+  publicSource?: 'founder_owned_generic_example' | 'founder_owned_engine_example'
 }
 
 function staticExampleWall(): WallVideo[] {
@@ -41,7 +43,54 @@ function staticExampleWall(): WallVideo[] {
     badge: 'KINEO SAMPLE',
     href: `/examples/${example.slug}`,
     posterUrl: posterWebpPath(example.posterPath),
+    publicSource: 'founder_owned_generic_example',
   }))
+}
+
+const REPOSITORY_ENGINE_HREFS: Record<string, string> = {
+  fast: '/studio?engine=fast&intent_campaign=home_curated',
+  cinematic_ai: '/studio?engine=seedance&intent_campaign=home_curated',
+  cinematic_kling: '/studio?engine=kling&intent_campaign=home_curated',
+  cinematic_veo: '/studio?engine=veo&intent_campaign=home_curated',
+  cinematic_hollywood: '/studio?engine=hollywood&intent_campaign=home_curated',
+  cinematic_h3: '/studio?engine=h3&intent_campaign=home_curated',
+  cinematic_omni: '/studio?engine=omni&intent_campaign=home_curated',
+  presenter: '/avatar?intent_campaign=home_curated',
+}
+
+type PublicEngineClip = (typeof PUBLIC_ENGINE_EXAMPLES)[number]
+
+function repositoryOwnedEngineWall(
+  caps: Record<string, number>,
+  rotateFirst = false,
+): WallVideo[] {
+  const clips: Record<string, PublicEngineClip[]> = {}
+  for (const example of PUBLIC_ENGINE_EXAMPLES) {
+    const list = clips[example.engine] ?? []
+    list.push(example)
+    clips[example.engine] = list
+  }
+
+  const wall: WallVideo[] = []
+  for (const engine of ENGINE_ORDER) {
+    const source = clips[engine] ?? []
+    const ordered = rotateFirst && source.length > 1
+      ? [...source.slice(1), source[0]]
+      : source
+    for (const clip of ordered.slice(0, caps[engine] ?? 0)) {
+      wall.push({
+        id: clip.id,
+        title: clip.title,
+        videoUrl: clip.videoPath,
+        engine,
+        badge: ENGINE_BADGES[engine] ?? 'AI',
+        href: REPOSITORY_ENGINE_HREFS[engine],
+        posterUrl: 'posterPath' in clip ? clip.posterPath : undefined,
+        publicSource: 'founder_owned_engine_example',
+      })
+    }
+  }
+  return wall
 }
 
 // KINEO-ENGINE-NAMES-2026-08-15 — nomes REAIS dos modelos (medidos em
@@ -220,7 +269,7 @@ const HERO_CAPS: Record<string, number> = {
 }
 
 export function getEngineHero(): Promise<WallVideo[]> {
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve(staticExampleWall())
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return Promise.resolve(repositoryOwnedEngineWall(HERO_CAPS))
   return buildWall(HERO_CAPS)
 }
 
@@ -343,8 +392,33 @@ const TRENDING_CAPS: Record<string, number> = {
 }
 
 export async function getTrending(): Promise<WallVideo[]> {
-  // Preserve public proof without presenting customer output as a live feed.
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return staticExampleWall()
+  // Preserve the founder-approved, multi-engine home without presenting new
+  // customer output as a live feed. Rotating the first clip keeps this row
+  // visually distinct from the hero; every URL is explicitly allow-listed
+  // and every card has an explicit safe destination.
+  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
+    const repositoryWall = repositoryOwnedEngineWall(TRENDING_CAPS, true)
+    const byEngine = new Map<string, WallVideo[]>()
+    for (const video of repositoryWall) {
+      const list = byEngine.get(video.engine) ?? []
+      list.push(video)
+      byEngine.set(video.engine, list)
+    }
+    const interleaved: WallVideo[] = []
+    let added = true
+    while (added && interleaved.length < 14) {
+      added = false
+      for (const engine of ENGINE_ORDER) {
+        if (interleaved.length >= 14) break
+        const list = byEngine.get(engine)
+        if (list && list.length > 0) {
+          interleaved.push(list.shift() as WallVideo)
+          added = true
+        }
+      }
+    }
+    return interleaved
+  }
   // Filtro anti-prompt (medido no mobile 15/08): renders cujo "titulo" e o
   // PROMPT do usuario ("Use the uploaded clear person photo as the ONLY...")
   // vazavam pra vitrine. Instrucao tecnica nao e titulo de video.

@@ -1142,15 +1142,19 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         </section>
       )}
 
-      {/* #4 (aprovado 15/08) — TRENDING NOW: os renders reais mais recentes
-          que NAO estao no hero (skipCurated), com titulo + selo do motor.
-          Muda sozinha conforme usuarios geram. */}
+      {/* Quando o catálogo de clientes está fechado, esta fileira recebe só a
+          allowlist estática de renders cuja exibição o fundador autorizou. Não a
+          chame de "Trending": ela não muda conforme clientes geram. */}
       {trending.length >= 6 && (
         <section id="trending" style={{ paddingTop: 10 }}>
           <div className="ew-wrap">
             <div className="tr-head">
               <span className="sec-eyebrow">
-                {trending.some((v) => v.engine === 'static_example') ? 'Kineo-owned examples' : 'Trending now'}
+                {trending.every((v) => v.publicSource === 'founder_owned_engine_example')
+                  ? 'Made with Kineo — every engine'
+                  : trending.some((v) => v.engine === 'static_example')
+                    ? 'Kineo-owned examples'
+                    : 'Trending now'}
               </span>
               <Link href="/examples" className="link tr-all">Explore all →</Link>
             </div>

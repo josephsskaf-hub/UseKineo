@@ -38,6 +38,9 @@ const policy = executeTs('lib/publicSurfacePolicy.ts')
 check(policy.CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED === false, 'customer video surface must default OFF')
 const publicExamplesModule = executeTs('lib/publicExamples.ts')
 check(publicExamplesModule.PUBLIC_EXAMPLES.length === 6, 'honest examples copy must match the six static allow-listed assets')
+check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.length === 26, 'engine showcase must match the founder-confirmed static allowlist')
+check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.every((item) => item.ownershipEvidence === 'founder_confirmed_owned'), 'engine showcase must record founder ownership confirmation')
+check(publicExamplesModule.PUBLIC_ENGINE_EXAMPLES.every((item) => item.ownershipVerifiedAt === '2026-08-27'), 'engine showcase must record when production ownership was verified')
 
 // Execute the real product functions with a mocked Supabase factory. A wrong
 // gate/order increments the counter (or throws), so this proves the service-role
@@ -58,10 +61,15 @@ let wallAdminCreates = 0
 const sample = {
   slug: 'founder-sample', shortTitle: 'Founder sample', videoPath: '/videos/founder.mp4', posterPath: '/videos/founder.jpg',
 }
+const internalEngineSample = {
+  id: 'internal-fast-sample', title: 'Internal Fast sample', engine: 'fast',
+  videoPath: '/previews/internal-fast.webm', posterPath: '/posters/internal-fast.jpg',
+  ownershipEvidence: 'founder_confirmed_owned', ownershipVerifiedAt: '2026-08-27',
+}
 const wallModule = executeTs('lib/engineWall.ts', {
   '@supabase/supabase-js': { createClient: () => { wallAdminCreates++; throw new Error('private wall read') } },
   '@/lib/publicVideos': { cleanTitleLine: (value) => value },
-  '@/lib/publicExamples': { PUBLIC_EXAMPLES: [sample], posterWebpPath: (value) => value.replace(/\.jpg$/, '.webp') },
+  '@/lib/publicExamples': { PUBLIC_EXAMPLES: [sample], PUBLIC_ENGINE_EXAMPLES: [internalEngineSample], posterWebpPath: (value) => value.replace(/\.jpg$/, '.webp') },
   '@/lib/publicSurfacePolicy': policy,
 })
 const staticHero = await wallModule.getEngineHero()
@@ -71,12 +79,15 @@ const deniedEngineRenders = await wallModule.getEngineRenders('cinematic_veo')
 const staticTrending = await wallModule.getTrending()
 const staticWall = await wallModule.getExamplesBest()
 for (const [name, result] of [
-  ['hero', staticHero],
   ['showcase', staticShowcase],
   ['general wall', staticGeneralWall],
-  ['trending', staticTrending],
 ]) {
   check(result.length === 1 && result[0].engine === 'static_example', `real ${name} must use only static examples`)
+}
+for (const [name, result] of [['hero', staticHero], ['engine showcase', staticTrending]]) {
+  check(result.length === 1 && result[0].id === internalEngineSample.id, `real ${name} must use only the founder-confirmed engine allowlist`)
+  check(result[0].publicSource === 'founder_owned_engine_example', `real ${name} must explain why the static engine asset is public`)
+  check(result[0].href && !result[0].href.startsWith('/v/'), `real ${name} must never manufacture a customer watch URL`)
 }
 check(deniedEngineRenders.length === 0, 'engine-specific pages must not misattribute a generic static sample')
 check(staticWall.length === 1 && staticWall[0].href === '/examples/founder-sample', 'real examples wall must use static assets')
@@ -111,11 +122,18 @@ check(wallBlock.indexOf('if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) return []')
 const bestBlock = engineWall.slice(engineWall.indexOf('export async function getExamplesBest'), engineWall.indexOf('export async function getTrending'))
 check(bestBlock.includes('return staticExampleWall()'), '/examples must fall back to repository-owned static assets')
 check(engineWall.includes("href: `/examples/${example.slug}`"), 'static examples must link to static example routes')
-for (const wrapper of ['getEngineHero', 'getEngineShowcase', 'getEngineWall', 'getTrending']) {
+for (const wrapper of ['getEngineShowcase', 'getEngineWall']) {
   const start = engineWall.indexOf(`${wrapper}(`)
   const end = engineWall.indexOf('\n}', start)
   check(engineWall.slice(start, end).includes('staticExampleWall()'), `${wrapper} must preserve static public proof`)
 }
+for (const wrapper of ['getEngineHero', 'getTrending']) {
+  const start = engineWall.indexOf(`${wrapper}(`)
+  const end = engineWall.indexOf('\n}', start)
+  check(engineWall.slice(start, end).includes('repositoryOwnedEngineWall('), `${wrapper} must use only the explicit founder-confirmed engine allowlist`)
+}
+check(engineWall.includes('PUBLIC_ENGINE_EXAMPLES'), 'engine wall must consume the canonical founder-confirmed allowlist')
+check(!engineWall.includes("PUBLIC_EXAMPLES.slice(0, 4)"), 'generic examples must never be relabeled as Kineo 1')
 const engineRendersStart = engineWall.indexOf('getEngineRenders(')
 const engineRendersEnd = engineWall.indexOf('const caps:', engineRendersStart)
 check(engineWall.slice(engineRendersStart, engineRendersEnd).includes('return Promise.resolve([])'), 'engine-specific gallery must stay empty while sharing is off')
@@ -125,7 +143,8 @@ check(examplesPage.includes('Customer videos stay private'), '/examples must sta
 
 const landing = read('app/KineoLanding.tsx')
 check(landing.includes("engineWall.filter((v) => v.engine === 'static_example')"), 'home hero must render static examples without engine attribution')
-check(landing.includes("'Kineo-owned examples' : 'Trending now'"), 'home must not label the static fallback as live trending')
+check(landing.includes("? 'Made with Kineo — every engine'"), 'verified internal engine samples must be labeled as a static Kineo showcase')
+check(landing.includes("? 'Kineo-owned examples'"), 'generic static fallback must be labeled as Kineo-owned examples')
 const cycleCard = read('components/EngineCycleCard.tsx')
 check(cycleCard.includes('href={v.href ?? meta.href}'), 'hero static samples must use their explicit safe destination')
 check(cycleCard.includes('v.posterUrl ?? POSTER[v.engine]'), 'hero static samples must keep a local poster')
