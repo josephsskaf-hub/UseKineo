@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1760" viewBox="0 0 1440 1760">
+  <defs>
+    <style>
+      .bg{fill:#07080d}.panel{fill:#10121a;stroke:#2b3040;stroke-width:1}.card{fill:#151720;stroke:#303544;stroke-width:1}.white{fill:#f5f5f7;font-family:Arial,sans-serif}.muted{fill:#aab0be;font-family:Arial,sans-serif}.blue{fill:#63b6ff;font-family:Arial,sans-serif}.green{fill:#69dda1;font-family:Arial,sans-serif}.red{fill:#ff8d95;font-family:Arial,sans-serif}.amber{fill:#e3ab65;font-family:Arial,sans-serif}.small{font-size:13px}.tiny{font-size:11px}.bold{font-weight:700}.heavy{font-weight:900}.badge{fill:#050506;fill-opacity:.78}.cta{fill:#2997ff}.offer{fill:#0d1b2b;stroke:#2b6595}.crop{rx:12;ry:12}
+    </style>
+    <clipPath id="c1"><rect x="394" y="244" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c2"><rect x="640" y="244" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c3"><rect x="886" y="244" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c4"><rect x="1132" y="244" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c5"><rect x="394" y="530" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c6"><rect x="640" y="530" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="c7"><rect x="886" y="530" width="232" height="142" rx="12"/></clipPath>
+    <clipPath id="m1"><rect x="1015" y="1115" width="280" height="174" rx="12"/></clipPath>
+    <clipPath id="m2"><rect x="1015" y="1360" width="280" height="174" rx="12"/></clipPath>
+  </defs>
+  <rect class="bg" width="1440" height="1760"/>
+  <text x="54" y="62" class="blue heavy small" letter-spacing="2">KINEO · ORGANIC ENGINE ARENA · 27 AUG 2026</text>
+  <text x="54" y="108" class="white heavy" font-size="34">Seven real engines, honest trade-offs, one organic landing page.</text>
+  <text x="54" y="141" class="muted" font-size="16">Static before/after proof: all media cards, final subscription band, FAQ correction and explicit mobile layout.</text>
+
+  <rect x="54" y="190" width="300" height="710" rx="20" class="panel"/>
+  <text x="76" y="224" class="red heavy small" letter-spacing="1.5">BEFORE · BROKEN / RISKY</text>
+  <rect x="76" y="244" width="256" height="230" rx="14" fill="#12131a" stroke="#50444c" stroke-dasharray="8 7"/>
+  <text x="204" y="344" text-anchor="middle" class="red heavy" font-size="38">404</text>
+  <text x="204" y="372" text-anchor="middle" class="muted small">Kineo 1 preview missing</text>
+  <text x="76" y="515" class="white bold small">The old page could:</text>
+  <text x="76" y="548" class="muted small">• autoplay a 48 MB render</text>
+  <text x="76" y="575" class="muted small">• hardcode posters outside allowlist</text>
+  <text x="76" y="602" class="muted small">• promise “nine-image consistency”</text>
+  <text x="76" y="629" class="muted small">• call Kling 3 the only lip-sync engine</text>
+  <text x="76" y="656" class="muted small">• lose final CTA attribution via /free</text>
+  <rect x="76" y="700" width="256" height="152" rx="12" fill="#17131a" stroke="#4b353c"/>
+  <text x="92" y="728" class="red bold small">Commercial consequence</text>
+  <text x="92" y="756" class="muted small">A comparison page can win a search</text>
+  <text x="92" y="778" class="muted small">and still lose trust or speed before</text>
+  <text x="92" y="800" class="muted small">the visitor reaches the 25-credit trial.</text>
+
+  <rect x="374" y="190" width="1012" height="710" rx="20" class="panel"/>
+  <text x="394" y="224" class="green heavy small" letter-spacing="1.5">AFTER · SEVEN ALLOWLISTED, CLICK-TO-PLAY PREVIEWS</text>
+
+  <g>
+    <rect x="394" y="244" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg" x="394" y="244" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c1)"/>
+    <rect x="404" y="254" width="86" height="24" rx="6" class="badge"/><text x="414" y="270" class="white heavy tiny">OMNI FLASH</text>
+    <text x="408" y="411" class="white bold small">Physical realism</text><text x="408" y="434" class="muted tiny">Metal, glass, fire and impact.</text><text x="408" y="457" class="amber tiny">Trade-off: 10s scene cap.</text><text x="408" y="488" class="muted tiny">150 credits / film</text>
+  </g>
+  <g>
+    <rect x="640" y="244" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/hero-veo31.webp" x="640" y="244" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c2)"/>
+    <rect x="650" y="254" width="72" height="24" rx="6" class="badge"/><text x="660" y="270" class="white heavy tiny">VEO 3.1</text>
+    <text x="654" y="411" class="white bold small">Film-like light</text><text x="654" y="434" class="muted tiny">Landscapes and interiors.</text><text x="654" y="457" class="amber tiny">More than H3/Seedance/K2.5.</text><text x="654" y="488" class="muted tiny">100 credits / film</text>
+  </g>
+  <g>
+    <rect x="886" y="244" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/hero-kling3.webp" x="886" y="244" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c3)"/>
+    <rect x="896" y="254" width="72" height="24" rx="6" class="badge"/><text x="906" y="270" class="white heavy tiny">KLING 3</text>
+    <text x="900" y="411" class="white bold small">Voice + lip sync</text><text x="900" y="434" class="muted tiny">Dialogue scenes with native voice.</text><text x="900" y="457" class="amber tiny">Trade-off: premium tier.</text><text x="900" y="488" class="muted tiny">150 credits / film</text>
+  </g>
+  <g>
+    <rect x="1132" y="244" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg" x="1132" y="244" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c4)"/>
+    <rect x="1142" y="254" width="96" height="24" rx="6" class="badge"/><text x="1152" y="270" class="white heavy tiny">MINIMAX H3</text>
+    <text x="1146" y="411" class="white bold small">Lower-cost dialogue</text><text x="1146" y="434" class="muted tiny">Directed talking-character scenes.</text><text x="1146" y="457" class="amber tiny">One anchor; identity may drift.</text><text x="1146" y="488" class="muted tiny">25 credits / film</text>
+  </g>
+  <g>
+    <rect x="394" y="530" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/hero-kling25.webp" x="394" y="530" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c5)"/>
+    <rect x="404" y="540" width="82" height="24" rx="6" class="badge"/><text x="414" y="556" class="white heavy tiny">KLING 2.5</text>
+    <text x="408" y="697" class="white bold small">Cinematic movement</text><text x="408" y="720" class="muted tiny">Dolly, crane and orbit shots.</text><text x="408" y="743" class="amber tiny">No directed lip-sync.</text><text x="408" y="774" class="muted tiny">50 credits / film</text>
+  </g>
+  <g>
+    <rect x="640" y="530" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/hero-seedance.webp" x="640" y="530" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c6)"/>
+    <rect x="650" y="540" width="94" height="24" rx="6" class="badge"/><text x="660" y="556" class="white heavy tiny">SEEDANCE 1.5</text>
+    <text x="654" y="697" class="white bold small">Fast full AI film</text><text x="654" y="720" class="muted tiny">Dependable volume engine.</text><text x="654" y="743" class="amber tiny">Simpler premium motion.</text><text x="654" y="774" class="muted tiny">25 credits / film</text>
+  </g>
+  <g>
+    <rect x="886" y="530" width="232" height="264" rx="12" class="card"/>
+    <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/videos/example-turkmenistan.jpg" x="886" y="530" width="232" height="142" preserveAspectRatio="xMidYMid slice" clip-path="url(#c7)"/>
+    <rect x="896" y="540" width="70" height="24" rx="6" class="badge"/><text x="906" y="556" class="white heavy tiny">KINEO 1</text>
+    <text x="900" y="697" class="white bold small">Real footage + captions</text><text x="900" y="720" class="muted tiny">Reality cut to narration.</text><text x="900" y="743" class="amber tiny">No imagined spectacle.</text><text x="900" y="774" class="muted tiny">5 credits / film</text>
+  </g>
+  <rect x="1132" y="530" width="232" height="264" rx="12" class="offer"/>
+  <text x="1248" y="586" text-anchor="middle" class="white heavy" font-size="18">One subscription.</text>
+  <text x="1248" y="610" text-anchor="middle" class="white heavy" font-size="18">All seven.</text>
+  <text x="1248" y="654" text-anchor="middle" class="muted small">Plans from $7/month</text>
+  <text x="1248" y="678" text-anchor="middle" class="muted small">25 free credits · no card</text>
+  <rect x="1170" y="712" width="156" height="40" rx="10" class="cta"/><text x="1248" y="737" text-anchor="middle" class="white heavy small">Render free →</text>
+  <rect x="394" y="814" width="970" height="66" rx="12" fill="#11151f" stroke="#2c3343"/>
+  <text x="414" y="840" class="white bold small">FAQ corrected:</text>
+  <text x="414" y="862" class="muted small">Kling 3 and MiniMax H3 both support directed lip-sync; H3 uses one planned anchor per scene and identity can still drift.</text>
+
+  <text x="54" y="958" class="blue heavy small" letter-spacing="1.5">WHAT THE FIX GUARANTEES</text>
+  <g>
+    <rect x="54" y="980" width="316" height="106" rx="14" class="panel"/><text x="74" y="1011" class="white bold small">Performance contract</text><text x="74" y="1037" class="muted small">7 local previews · each &lt;2 MB</text><text x="74" y="1061" class="muted small">preload none · no autoplay / loop</text>
+    <rect x="386" y="980" width="316" height="106" rx="14" class="panel"/><text x="406" y="1011" class="white bold small">Media allowlist</text><text x="406" y="1037" class="muted small">Poster + preview resolve from one</text><text x="406" y="1061" class="muted small">founder-approved source of truth.</text>
+    <rect x="718" y="980" width="316" height="106" rx="14" class="panel"/><text x="738" y="1011" class="white bold small">Commercial truth</text><text x="738" y="1037" class="muted small">Price and trial grant come from</text><text x="738" y="1061" class="muted small">canonical helpers, not JSX literals.</text>
+    <rect x="1050" y="980" width="336" height="106" rx="14" class="panel"/><text x="1070" y="1011" class="white bold small">Attribution preserved</text><text x="1070" y="1037" class="muted small">Final CTA goes directly to Studio</text><text x="1070" y="1061" class="muted small">with Arena campaign parameters.</text>
+  </g>
+
+  <rect x="54" y="1110" width="900" height="520" rx="20" class="panel"/>
+  <text x="78" y="1148" class="green heavy small" letter-spacing="1.5">EXPLICIT MOBILE COMPARISON</text>
+  <text x="78" y="1184" class="white heavy" font-size="25">The corrected experience survives phone width.</text>
+  <text x="78" y="1222" class="muted small">• Real poster frames remain legible; videos require intentional play.</text>
+  <text x="78" y="1252" class="muted small">• Strength, trade-off, credit cost and engine CTA stay together.</text>
+  <text x="78" y="1282" class="muted small">• The subscription band and corrected FAQ remain in flow.</text>
+  <text x="78" y="1312" class="muted small">• No hidden desktop-only claim or action is introduced.</text>
+  <rect x="78" y="1360" width="820" height="220" rx="16" fill="#0c1928" stroke="#285981"/>
+  <text x="106" y="1398" class="white heavy" font-size="20">Why this can acquire subscribers organically</text>
+  <text x="106" y="1436" class="muted small">A searcher asking “Veo vs Kling” sees real output, honest constraints and exact credit cost.</text>
+  <text x="106" y="1465" class="muted small">The CTA carries the chosen engine into Studio, so the trial starts with the visitor’s intent intact.</text>
+  <text x="106" y="1494" class="muted small">The $7 / 25-credit offer is visible only after the comparison has earned the ask.</text>
+  <rect x="106" y="1524" width="190" height="38" rx="9" class="cta"/><text x="201" y="1548" text-anchor="middle" class="white heavy small">Render your script free →</text>
+
+  <rect x="984" y="1110" width="342" height="570" rx="38" fill="#020203" stroke="#30333f" stroke-width="10"/>
+  <text x="1015" y="1150" class="blue heavy tiny" letter-spacing="1.4">KINEO · ENGINE ARENA</text>
+  <text x="1015" y="1190" class="white heavy" font-size="23">Seven engines.</text><text x="1015" y="1217" class="blue heavy" font-size="23">Real renders.</text>
+  <image href="file:///C:/Users/josep/OneDrive/%C3%81rea%20de%20Trabalho/Usekineo/.claude/worktrees/codex-growth-1839/public/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg" x="1015" y="1240" width="280" height="174" preserveAspectRatio="xMidYMid slice" clip-path="url(#m1)"/>
+  <rect x="1025" y="1250" width="88" height="24" rx="6" class="badge"/><text x="1035" y="1266" class="white heavy tiny">OMNI FLASH</text>
+  <rect x="1015" y="1416" width="280" height="78" rx="10" class="card"/><text x="1031" y="1444" class="white bold small">Physical realism</text><text x="1031" y="1468" class="amber tiny">10s scenes · 150 credits</text>
+  <rect x="1015" y="1510" width="280" height="126" rx="12" class="offer"/><text x="1155" y="1545" text-anchor="middle" class="white heavy" font-size="17">One plan. All seven.</text><text x="1155" y="1572" text-anchor="middle" class="muted small">$7/month · 25 free credits</text><rect x="1081" y="1588" width="148" height="32" rx="8" class="cta"/><text x="1155" y="1609" text-anchor="middle" class="white heavy tiny">Render free →</text>
+  <text x="720" y="1720" text-anchor="middle" class="muted tiny">Static audit artifact · actual founder-approved poster frames from the repository · desktop and mobile</text>
+</svg>

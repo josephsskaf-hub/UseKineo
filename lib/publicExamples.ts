@@ -16,6 +16,9 @@ export interface PublicEngineExample {
   engine: 'fast' | 'cinematic_ai' | 'cinematic_kling' | 'cinematic_veo' | 'cinematic_hollywood' | 'cinematic_h3' | 'cinematic_omni' | 'presenter'
   videoPath: string
   posterPath?: string
+  /** Lightweight media used by /arena without changing the founder's home curation. */
+  arenaPreviewPath?: string
+  arenaPosterPath?: string
   ownershipEvidence: 'founder_confirmed_owned'
   ownershipVerifiedAt: '2026-08-27'
 }
@@ -136,28 +139,33 @@ export const PUBLIC_ENGINE_EXAMPLES = [
     title: 'The world’s untouched natural wonders',
     engine: 'fast',
     videoPath: 'https://cqqukkvjjrguayiyjvhh.supabase.co/storage/v1/object/public/renders/0e175818-2758-4c73-a1dc-52404b99874c/3dd8a945-c01d-4522-921b-f64705029815.mp4',
+    // /arena shows seven videos on one page. Use the already-approved 5s Kineo
+    // 1 sample there instead of auto-loading this 48 MB full render. The home
+    // keeps the founder-selected mountains video above unchanged.
+    arenaPreviewPath: '/videos/example-turkmenistan.mp4',
+    arenaPosterPath: '/videos/example-turkmenistan.jpg',
   },
-  { ...FOUNDER_OWNERSHIP, id: '75728dfb-3b29-47fa-aea8-b806d549a2b9', title: 'The wave at North Sentinel Island', engine: 'cinematic_ai', videoPath: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4' },
+  { ...FOUNDER_OWNERSHIP, id: '75728dfb-3b29-47fa-aea8-b806d549a2b9', title: 'The wave at North Sentinel Island', engine: 'cinematic_ai', videoPath: '/previews/75728dfb-3b29-47fa-aea8-b806d549a2b9.mp4', arenaPosterPath: '/posters/hero-seedance.webp' },
   { ...FOUNDER_OWNERSHIP, id: 'd8157290-65db-4d1d-b914-268d54f92087', title: 'AI Japan after dark', engine: 'cinematic_ai', videoPath: '/previews/d8157290-65db-4d1d-b914-268d54f92087.mp4' },
   { ...FOUNDER_OWNERSHIP, id: 'a88b7564-3592-4b12-9560-1646ea998e78', title: 'The forbidden island from above', engine: 'cinematic_ai', videoPath: '/previews/a88b7564-3592-4b12-9560-1646ea998e78.mp4' },
   { ...FOUNDER_OWNERSHIP, id: '86653d2d-8d31-4937-8d98-e56c50706fd2', title: 'The Darvaza fire crater', engine: 'cinematic_ai', videoPath: '/previews/86653d2d-8d31-4937-8d98-e56c50706fd2.mp4' },
-  { ...FOUNDER_OWNERSHIP, id: 'c4e4fbab-0978-4daa-9fcf-119096370210', title: 'Ancient Rome in gold', engine: 'cinematic_kling', videoPath: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4' },
+  { ...FOUNDER_OWNERSHIP, id: 'c4e4fbab-0978-4daa-9fcf-119096370210', title: 'Ancient Rome in gold', engine: 'cinematic_kling', videoPath: '/previews/c4e4fbab-0978-4daa-9fcf-119096370210.mp4', arenaPosterPath: '/posters/hero-kling25.webp' },
   { ...FOUNDER_OWNERSHIP, id: '26d25419-6719-47ab-b24b-df214e007fbd', title: 'The golden mountain', engine: 'cinematic_kling', videoPath: '/previews/26d25419-6719-47ab-b24b-df214e007fbd.mp4' },
   { ...FOUNDER_OWNERSHIP, id: 'c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a', title: 'The impossible stadium kick', engine: 'cinematic_kling', videoPath: '/previews/c6bdbcfb-ffc2-48e1-be15-e26fb048fe9a.mp4' },
   { ...FOUNDER_OWNERSHIP, id: '8b38c8d1-764c-4bff-94ee-f1b2721c7551', title: 'A cinematic journey', engine: 'cinematic_kling', videoPath: '/previews/8b38c8d1-764c-4bff-94ee-f1b2721c7551.mp4' },
-  { ...FOUNDER_OWNERSHIP, id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', title: 'The Runit Island nuclear dome', engine: 'cinematic_veo', videoPath: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4' },
+  { ...FOUNDER_OWNERSHIP, id: '9bbd5d98-33e5-423f-b9cb-82f7af6c67ba', title: 'The Runit Island nuclear dome', engine: 'cinematic_veo', videoPath: '/previews/9bbd5d98-33e5-423f-b9cb-82f7af6c67ba.mp4', arenaPosterPath: '/posters/hero-veo31.webp' },
   { ...FOUNDER_OWNERSHIP, id: '98a5ac54-3c28-4a8f-8ba2-4071bc0388c4', title: 'Red server racks', engine: 'cinematic_veo', videoPath: '/previews/98a5ac54-3c28-4a8f-8ba2-4071bc0388c4.mp4' },
   { ...FOUNDER_OWNERSHIP, id: 'dc0fe3a6-f34d-40cb-91f4-da15841a2970', title: 'A lantern in the fog', engine: 'cinematic_veo', videoPath: '/previews/dc0fe3a6-f34d-40cb-91f4-da15841a2970.mp4' },
   { ...FOUNDER_OWNERSHIP, id: 'b9572715-484e-4471-bc03-f4321fa8ec01', title: 'A rainy noir street', engine: 'cinematic_veo', videoPath: '/previews/b9572715-484e-4471-bc03-f4321fa8ec01.mp4' },
-  { ...FOUNDER_OWNERSHIP, id: '4b12925e-16e6-4b56-af5a-7047f9ae7a28', title: 'Storm over Lake Maracaibo', engine: 'cinematic_hollywood', videoPath: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4' },
+  { ...FOUNDER_OWNERSHIP, id: '4b12925e-16e6-4b56-af5a-7047f9ae7a28', title: 'Storm over Lake Maracaibo', engine: 'cinematic_hollywood', videoPath: '/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4', arenaPosterPath: '/posters/hero-kling3.webp' },
   { ...FOUNDER_OWNERSHIP, id: '216cbed2-b95f-47e7-98bc-e4c3fc3010a9', title: 'The face that looks real', engine: 'cinematic_hollywood', videoPath: '/previews/216cbed2-b95f-47e7-98bc-e4c3fc3010a9.mp4' },
   { ...FOUNDER_OWNERSHIP, id: '99818ab0-0960-4089-a784-12b241736868', title: 'Tunguska from above', engine: 'cinematic_hollywood', videoPath: '/previews/99818ab0-0960-4089-a784-12b241736868.mp4' },
   { ...FOUNDER_OWNERSHIP, id: '501d1ef7-5df5-4462-9341-c58ea01f0042', title: 'Krakatoa’s last witness', engine: 'cinematic_hollywood', videoPath: '/previews/501d1ef7-5df5-4462-9341-c58ea01f0042.mp4' },
   { ...FOUNDER_OWNERSHIP, id: 'e487a011-8781-482f-913e-445ef5ad22bf', title: 'The Lituya Bay fisherman', engine: 'cinematic_hollywood', videoPath: '/previews/e487a011-8781-482f-913e-445ef5ad22bf.mp4' },
-  { ...FOUNDER_OWNERSHIP, id: '8aabb05a-2492-48de-a96a-0a7875c0c8d3', title: 'Shazam over the city', engine: 'cinematic_h3', videoPath: '/previews/8aabb05a-2492-48de-a96a-0a7875c0c8d3.mp4', posterPath: '/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg' },
+  { ...FOUNDER_OWNERSHIP, id: '8aabb05a-2492-48de-a96a-0a7875c0c8d3', title: 'Shazam over the city', engine: 'cinematic_h3', videoPath: '/previews/8aabb05a-2492-48de-a96a-0a7875c0c8d3.mp4', posterPath: '/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg', arenaPosterPath: '/posters/8aabb05a-2492-48de-a96a-0a7875c0c8d3.jpg' },
   { ...FOUNDER_OWNERSHIP, id: 'b521e565-8549-437f-a850-f2fea8bdba68', title: 'The 200,000-ton ship', engine: 'cinematic_h3', videoPath: '/previews/b521e565-8549-437f-a850-f2fea8bdba68.mp4', posterPath: '/posters/b521e565-8549-437f-a850-f2fea8bdba68.jpg' },
   { ...FOUNDER_OWNERSHIP, id: '04189a48-45f7-45f4-b98c-27832702e837', title: 'The ship beneath the storm', engine: 'cinematic_h3', videoPath: '/previews/04189a48-45f7-45f4-b98c-27832702e837.mp4', posterPath: '/posters/04189a48-45f7-45f4-b98c-27832702e837.jpg' },
-  { ...FOUNDER_OWNERSHIP, id: '36a04f7b-65f7-42d9-a2ab-198b5a7f115e', title: 'The robot rising from the harbor', engine: 'cinematic_omni', videoPath: '/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4', posterPath: '/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg' },
+  { ...FOUNDER_OWNERSHIP, id: '36a04f7b-65f7-42d9-a2ab-198b5a7f115e', title: 'The robot rising from the harbor', engine: 'cinematic_omni', videoPath: '/previews/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.mp4', posterPath: '/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg', arenaPosterPath: '/posters/36a04f7b-65f7-42d9-a2ab-198b5a7f115e.jpg' },
   { ...FOUNDER_OWNERSHIP, id: '33249fbf-57b6-47cf-8486-88bfb2a02db1', title: 'Life in the Mariana Trench', engine: 'cinematic_omni', videoPath: '/previews/33249fbf-57b6-47cf-8486-88bfb2a02db1.mp4', posterPath: '/posters/33249fbf-57b6-47cf-8486-88bfb2a02db1.jpg' },
   { ...FOUNDER_OWNERSHIP, id: '41924eb2-d81d-4f2c-a5bb-5477c042af04', title: 'The mystery of Flight 19', engine: 'cinematic_omni', videoPath: '/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4', posterPath: '/posters/41924eb2-d81d-4f2c-a5bb-5477c042af04.jpg' },
   { ...FOUNDER_OWNERSHIP, id: '6f6786a8-0a3d-49f0-b5cd-1e91c06249d2', title: 'The day Earth stopped spinning', engine: 'cinematic_omni', videoPath: '/previews/6f6786a8-0a3d-49f0-b5cd-1e91c06249d2.mp4', posterPath: '/posters/6f6786a8-0a3d-49f0-b5cd-1e91c06249d2.jpg' },
@@ -166,4 +174,13 @@ export const PUBLIC_ENGINE_EXAMPLES = [
 
 export function getPublicExample(slug: string): PublicExample | undefined {
   return PUBLIC_EXAMPLES.find((example) => example.slug === slug)
+}
+
+/**
+ * Single lookup for public engine surfaces. Pages such as /arena must resolve
+ * their media through the founder-approved allowlist instead of duplicating a
+ * preview URL that can silently disappear.
+ */
+export function getPublicEngineExample(id: string): PublicEngineExample | undefined {
+  return PUBLIC_ENGINE_EXAMPLES.find((example) => example.id === id)
 }

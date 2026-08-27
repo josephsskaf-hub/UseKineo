@@ -242,8 +242,8 @@ export const ENGINES: Record<string, Engine> = {
     // demora semanas para ser indexada; página linkada de uma que já ranqueia
     // entra na próxima passada do crawler.
     intro:
-      `MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders 60-second multi-scene films at ${H3_COST} credits, so a Creator plan makes ${videosPerMonth('basic', 'cinematic_h3')} and a Studio plan ${videosPerMonth('pro', 'cinematic_h3')} — where the top-tier Kling 3, at ${KLING3_COST} credits, fits once. Since August 2026 it also renders talking-character scenes: a person on screen speaks your exact line with lip sync while a documentary narrator carries the rest of the film. H3 reads up to nine reference images in a single context, which is what keeps a character and a visual style consistent from the first scene to the last.`,
-    bestFor: 'Series and channels: anything where the same look has to survive across eight scenes and across weeks of episodes.',
+      `MiniMax H3 is the cinematic engine you can actually afford to use more than once a month. It renders 60-second multi-scene films at ${H3_COST} credits, so a Creator plan makes ${videosPerMonth('basic', 'cinematic_h3')} and a Studio plan ${videosPerMonth('pro', 'cinematic_h3')} — where the top-tier Kling 3, at ${KLING3_COST} credits, fits once. Since August 2026 it also renders talking-character scenes: a person on screen speaks your exact line with lip sync while a documentary narrator carries the rest of the film. Kineo seeds each H3 scene with its own planned anchor image; that helps the shot follow the storyboard, but identity can still drift between scenes.`,
+    bestFor: 'Dialogue-led explainers and frequent cinematic publishing where lower credit cost matters more than perfect identity continuity.',
     tradeoff: 'Renders at 768p rather than 1080p. For a 9:16 Short that is plenty, and one-click HD Enhance covers the cases where it is not.',
     faq: [
       {
@@ -252,7 +252,7 @@ export const ENGINES: Record<string, Engine> = {
       },
       {
         q: 'Why choose MiniMax H3 over Kling 3?',
-        a: `Cost and consistency. Kling 3 costs ${KLING3_COST} credits, so the Studio monthly grant fits one. H3 costs ${H3_COST}, and it accepts up to nine reference images at once — which is the difference between a character who looks the same in every scene and one who drifts. Kling 3 still wins when a scene needs a person speaking on camera with native lip sync.`,
+        a: `Cost and directed dialogue. Kling 3 costs ${KLING3_COST} credits, so the Studio monthly grant fits one. H3 costs ${H3_COST}, supports image-anchored scenes and can alternate lip-synced dialogue with documentary narration. Kling 3 still wins when native generated voice and the strongest dialogue scene matter most.`,
       },
       {
         q: 'Does MiniMax H3 generate its own audio?',

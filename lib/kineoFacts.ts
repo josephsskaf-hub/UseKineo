@@ -309,7 +309,7 @@ export const ENGINE_FACTS: EngineFact[] = [
     // ferramenta usar.
     name: 'MiniMax H3',
     credits: creditsPerReferenceVideo('cinematic_h3'),
-    what: 'Cinematic multi-scene film at a third of the flagship cost. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration, and reads up to nine reference images so character and style stay consistent across every scene.',
+    what: 'Lower-credit cinematic multi-scene film. Renders talking-character scenes — a person on screen speaks the exact scripted line with lip sync — alternating with documentary narration. Kineo seeds each scene with one planned anchor image; identity can still drift between shots.',
   },
   {
     // KINEO-OMNI-2026-08-25 — entra APÓS a validação real (render Flight 19,
