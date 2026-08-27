@@ -6,9 +6,9 @@ import {
 
 // Push #061 — shared client-side event tracking helper.
 //
-// `trackEvent` is fire-and-forget: it posts to /api/events but never
-// awaits the response and never throws. Callers should NOT `await` it —
-// just call it inline before navigation or alongside state changes.
+// `trackEvent` never throws and ordinary callers may keep using it as
+// fire-and-forget. The boolean result exists for the few measurements whose
+// own dedupe may only close after the server actually accepted the event.
 
 // #377 — UTM / gclid first-touch preservation. Capture attribution params into
 // sessionStorage so they survive the whole funnel (landing → signup → generate
@@ -407,7 +407,7 @@ export async function trackEvent(
   event_name: string,
   metadata?: Record<string, unknown>,
   path?: string,
-): Promise<void> {
+): Promise<boolean> {
   try {
     captureUtmsOnce()
     captureSourceOnce() // KINEO-SOURCE-TRACK-2026-07-06 — first-touch acquisition source
@@ -419,13 +419,15 @@ export async function trackEvent(
       path: path ?? (typeof window !== 'undefined' ? window.location?.pathname : undefined),
       session_id: eventSessionId(),
     })
-    await fetch('/api/events', {
+    const response = await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body,
       keepalive: true,
     })
+    return response.ok
   } catch {
     // silent — analytics must never break the calling page
+    return false
   }
 }

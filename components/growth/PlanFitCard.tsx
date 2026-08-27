@@ -37,7 +37,9 @@ export interface PlanFitCardProps {
   exposureKey: string
   checkoutPending: string | null
   checkoutError: string | null
-  onEvent?: (name: string, metadata: Record<string, unknown>) => void
+  onEvent?: (name: string, metadata: Record<string, unknown>) => boolean | Promise<boolean>
+  /** Re-check exact owner history immediately before an impression or sale. */
+  verifyEligibility: () => Promise<boolean>
   onCheckout: (tier: CheckoutTier, metadata: PlanFitCheckoutMetadata) => boolean
 }
 
@@ -62,13 +64,17 @@ export default function PlanFitCard({
   checkoutPending,
   checkoutError,
   onEvent,
+  verifyEligibility,
   onCheckout,
 }: PlanFitCardProps) {
   const [monthlyFilms, setMonthlyFilms] = useState<number | null>(null)
   const [plannedQuality, setPlannedQuality] = useState<PlanFitQuality>(quality)
   const [dismissed, setDismissed] = useState(false)
+  const [eligibilityPending, setEligibilityPending] = useState(false)
   const cardRef = useRef<HTMLElement | null>(null)
   const impressionSentRef = useRef(false)
+  const impressionPendingRef = useRef(false)
+  const eligibilityPendingRef = useRef(false)
   const eventRef = useRef(onEvent)
 
   useEffect(() => {
@@ -91,24 +97,32 @@ export default function PlanFitCard({
     if (typeof IntersectionObserver === 'undefined') return
 
     const node = cardRef.current
-    const observer = new IntersectionObserver((entries) => {
+    const observer = new IntersectionObserver(async (entries) => {
       const entry = entries[0]
       if (!entry?.isIntersecting || entry.intersectionRatio < IMPRESSION_THRESHOLD) return
-      observer.disconnect()
+      if (impressionPendingRef.current) return
+      impressionPendingRef.current = true
 
       const storageKey = `kineo_plan_fit_impression:${exposureKey}`
       try {
         if (sessionStorage.getItem(storageKey) === '1') {
           impressionSentRef.current = true
+          impressionPendingRef.current = false
+          observer.disconnect()
           return
         }
-        sessionStorage.setItem(storageKey, '1')
       } catch {
         // The in-memory latch still protects the uninterrupted browser path.
       }
 
-      impressionSentRef.current = true
-      eventRef.current?.('plan_fit_impression', {
+      // Another tab can complete a video without emitting this tab's custom
+      // event. Never label an exposure "first delivery" from a stale snapshot.
+      if (!(await verifyEligibility())) {
+        impressionPendingRef.current = false
+        return
+      }
+
+      const recorded = await eventRef.current?.('plan_fit_impression', {
         actor_unit: 'authenticated_user',
         event_unit: 'first_completed_video',
         account_cohort: accountCohort,
@@ -119,17 +133,27 @@ export default function PlanFitCard({
         display_currency: currency,
         currency_resolved: currency !== null,
       })
+      // A failed analytics POST must not poison the once-per-session key. The
+      // next real viewport entry may retry safely.
+      if (recorded !== true) {
+        impressionPendingRef.current = false
+        return
+      }
+      impressionSentRef.current = true
+      impressionPendingRef.current = false
+      try { sessionStorage.setItem(storageKey, '1') } catch { /* in-memory latch remains */ }
+      observer.disconnect()
     }, { threshold: [IMPRESSION_THRESHOLD] })
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, currency])
+  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, currency, verifyEligibility])
 
   if (dismissed) return null
 
   const sourceMotor = engineName(quality)
   const plannedMotor = engineName(plannedQuality)
-  const checkoutBusy = checkoutPending !== null
+  const checkoutBusy = checkoutPending !== null || eligibilityPending
 
   function emit(name: string, metadata: Record<string, unknown>) {
     eventRef.current?.(name, {
@@ -172,8 +196,16 @@ export default function PlanFitCard({
     })
   }
 
-  function startCheckout(tier: CheckoutTier) {
-    if (!result || checkoutBusy) return
+  async function startCheckout(tier: CheckoutTier) {
+    if (!result || checkoutBusy || eligibilityPendingRef.current) return
+    eligibilityPendingRef.current = true
+    setEligibilityPending(true)
+    const stillEligible = await verifyEligibility()
+    if (!stillEligible) {
+      eligibilityPendingRef.current = false
+      setEligibilityPending(false)
+      return
+    }
     const metadata: PlanFitCheckoutMetadata = {
       account_cohort: accountCohort,
       source_engine: quality,
@@ -184,7 +216,15 @@ export default function PlanFitCard({
       display_currency: currency,
       first_delivery: true,
     }
-    if (!onCheckout(tier, metadata)) return
+    if (!onCheckout(tier, metadata)) {
+      eligibilityPendingRef.current = false
+      setEligibilityPending(false)
+      return
+    }
+    // The protected checkout hook owns the latch from this point onward. Do
+    // not leave this local preflight latch stuck when pageshow restores the tab.
+    eligibilityPendingRef.current = false
+    setEligibilityPending(false)
     emit('plan_fit_checkout_started', { ...metadata })
   }
 
@@ -210,13 +250,14 @@ export default function PlanFitCard({
         </div>
         <button
           type="button"
+          disabled={checkoutBusy}
           onClick={() => {
             setDismissed(true)
             emit('plan_fit_dismissed', { source_engine: quality, selected_target: monthlyFilms })
           }}
           aria-label="Dismiss plan recommendation"
           className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold"
-          style={{ background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: 'var(--muted2)', cursor: 'pointer' }}
+          style={{ background: 'transparent', border: '1px solid rgba(255,255,255,.1)', color: 'var(--muted2)', cursor: checkoutBusy ? 'wait' : 'pointer', opacity: checkoutBusy ? 0.65 : 1 }}
         >
           Not now
         </button>
@@ -290,7 +331,9 @@ export default function PlanFitCard({
                   boxShadow: '0 8px 24px rgba(41,151,255,.3)',
                 }}
               >
-                {checkoutPending === result.plan.tier
+                {eligibilityPending
+                  ? 'Checking your latest video history…'
+                  : checkoutPending === result.plan.tier
                   ? 'Opening secure checkout…'
                   : currency
                     ? `Get ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`

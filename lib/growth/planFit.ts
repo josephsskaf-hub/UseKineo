@@ -74,9 +74,11 @@ export function isConfirmedFirstDelivery(evidence: FirstDeliveryEvidence): boole
   if (evidence.evidenceForVideoId !== evidence.currentVideoId) return false
   if (!Number.isInteger(evidence.completedCount) || (evidence.completedCount ?? -1) < 0) return false
   if (evidence.completedCount !== 1 || !evidence.recentVideos) return false
-  return evidence.recentVideos.some(
-    (video) => video.status === 'completed' && video.id === evidence.currentVideoId,
-  )
+  // The list and exact count are separate PostgREST requests. Reject a mixed
+  // snapshot (count=1 but list already contains two completed rows) instead of
+  // letting a race manufacture a "first" delivery.
+  const completed = evidence.recentVideos.filter((video) => video.status === 'completed')
+  return completed.length === 1 && completed[0]?.id === evidence.currentVideoId
 }
 
 export interface PlanFitRecurringSlotInput {

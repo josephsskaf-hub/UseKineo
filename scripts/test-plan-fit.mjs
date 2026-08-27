@@ -198,6 +198,13 @@ check('video two refresh proves it is no longer first delivery', evidence({
 }) === false)
 check('one previous video is not first delivery', evidence({ completedCount: 1, recentVideos: [{ id: 'previous', status: 'completed' }] }) === false)
 check('second completed delivery is rejected', evidence({ completedCount: 2, recentVideos: [{ id: 'current', status: 'completed' }, { id: 'previous', status: 'completed' }] }) === false)
+check('mixed snapshot count one plus two completed rows is rejected', evidence({
+  completedCount: 1,
+  recentVideos: [
+    { id: 'current', status: 'completed' },
+    { id: 'raced-in', status: 'completed' },
+  ],
+}) === false)
 check('degraded history fails closed', evidence({ historyReliable: false }) === false)
 check('missing current video id fails closed', evidence({ currentVideoId: null }) === false)
 const reserveSlot = (overrides) => planFit.shouldReservePlanFitRecurringSlot({
@@ -249,10 +256,14 @@ const component = readFileSync(join(root, 'components/growth/PlanFitCard.tsx'), 
 const generate = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const videosRoute = readFileSync(join(root, 'app/api/videos/route.ts'), 'utf8')
 const composeStatus = readFileSync(join(root, 'app/api/compose/status/[renderId]/route.ts'), 'utf8')
+const analytics = readFileSync(join(root, 'lib/analytics.ts'), 'utf8')
 
 check('viewport uses IntersectionObserver', component.includes('new IntersectionObserver'))
 check('impression threshold is enforced', component.includes('entry.intersectionRatio < IMPRESSION_THRESHOLD'))
 check('impression is keyed by current video', component.includes('kineo_plan_fit_impression:${exposureKey}'))
+check('impression revalidates server evidence first', component.indexOf('await verifyEligibility()') < component.indexOf("eventRef.current?.('plan_fit_impression'"))
+check('impression dedupe closes only after accepted event', component.indexOf("eventRef.current?.('plan_fit_impression'") < component.indexOf("sessionStorage.setItem(storageKey, '1')"))
+check('failed impression remains retryable', component.includes('if (recorded !== true)'))
 check('event actor is authenticated user', component.includes("actor_unit: 'authenticated_user'"))
 check('event unit is first completed video', component.includes("event_unit: 'first_completed_video'"))
 check('card never says this film used credits', !/film used|used \{.*credits/i.test(component))
@@ -264,12 +275,15 @@ check('unresolved currency gets neutral checkout copy', component.includes('See 
 check('money is conditional on resolved currency', component.includes('? `Get ${planName(result.plan.tier)}'))
 check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
 check('checkout error is visible', component.includes('role="alert"'))
+check('checkout revalidates before protected launch', (component.match(/await verifyEligibility\(\)/g) ?? []).length >= 2)
+check('analytics reports whether the event endpoint accepted', analytics.includes('): Promise<boolean>') && analytics.includes('return response.ok'))
 
 check('caller uses dedicated protected launcher', generate.includes("useCheckoutLaunch('generate_plan_fit')"))
 check('caller launches through protected hook', generate.includes('planFitCheckout.launch('))
 check('caller preserves intent campaign', generate.includes("withIntentCampaign(`/api/stripe/checkout?tier=${tier}`)"))
 check('caller passes checkout pending state', generate.includes('checkoutPending={planFitCheckout.pending}'))
 check('caller passes checkout error state', generate.includes('checkoutError={planFitCheckout.error}'))
+check('caller passes fresh eligibility verifier', generate.includes('verifyEligibility={verifyPlanFitEligibility}'))
 check('caller passes resolved canonical currency', generate.includes('currency={postVideoCurrency}'))
 check('caller requires confirmed first delivery', generate.includes('planFitFirstDelivery &&'))
 check('caller requires a sellable non-subscriber cohort', generate.includes('planFitSellableCohort &&'))
@@ -285,7 +299,12 @@ check('history count is exact and head-only', videosRoute.includes("select('id',
 check('history count is owner-filtered', videosRoute.includes(".eq('user_id', userId)"))
 check('history count is completed-only', videosRoute.includes(".eq('status', 'completed')"))
 check('history degradation is explicit', videosRoute.includes('historyReliable: false'))
-check('history refreshes on every persisted video id', generate.includes('}, [publicVideoId])'))
+check('history refreshes on every persisted video id', generate.includes('}, [publicVideoId, refreshVideoHistory])'))
+check('history revalidates when the tab regains focus', generate.includes("window.addEventListener('focus', refresh)"))
+check('history revalidates when the tab becomes visible', generate.includes("document.addEventListener('visibilitychange', refreshWhenVisible)"))
+check('new completion notifies other tabs', generate.includes('localStorage.setItem(PLAN_FIT_HISTORY_SYNC_KEY'))
+check('other-tab completion forces a refresh', generate.includes("window.addEventListener('storage', refreshFromAnotherTab)"))
+check('history requests abort stale responses', generate.includes('videoHistoryAbortRef.current?.abort()'))
 check('history evidence is bound to fetched video id', generate.includes('setHistoryEvidenceForVideoId(reliable ? evidenceVideoId : null)'))
 check('history records definitive failures for legacy fallback', generate.includes('setHistoryCheckedForVideoId(evidenceVideoId)'))
 check('first-delivery gate receives the evidence id', generate.includes('evidenceForVideoId: historyEvidenceForVideoId'))

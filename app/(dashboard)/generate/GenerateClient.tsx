@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-STUDIO-CORTINA-2026-08-17 — tela de espera vestida com o kit.
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -159,6 +159,7 @@ import Offer290Banner from './Offer290Banner'
 // leitura de amanhã compararia duas mensagens diferentes achando que compara
 // uma só — o erro de coorte que o PROMPT-DIARIO já cobrou duas vezes.
 const POST_RENDER_SHARE_VARIANT = 'whatsapp_imitation_30_30_v2'
+const PLAN_FIT_HISTORY_SYNC_KEY = 'kineo_plan_fit_history_changed_v1'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-PRICING-V6-2026-08-19 — OS PREÇOS EM DÓLAR DESTA TELA, DERIVADOS.
@@ -1640,6 +1641,11 @@ export default function GenerateClient({
   // Unlike `historyEvidenceForVideoId`, this is also set on a failed lookup so
   // legacy offers can resume instead of staying hidden indefinitely.
   const [historyCheckedForVideoId, setHistoryCheckedForVideoId] = useState<string | null>(null)
+  // Cross-tab completions do not emit this tab's `creditsChanged` event. A
+  // sequenced, abortable refresh lets focus/visibility and the Plan Fit card
+  // re-check the server without an older response restoring stale evidence.
+  const videoHistoryRequestRef = useRef(0)
+  const videoHistoryAbortRef = useRef<AbortController | null>(null)
   // KINEO-AI-SCENE-VISIBLE-2026-08-03 — ver comentário no dispatch do Fast.
   const [hadAiScene, setHadAiScene] = useState(false)
 // Push #095 — player resilience. When the B2/Creatomate CDN returns a 503
@@ -3112,68 +3118,118 @@ export default function GenerateClient({
     }
   }, [credits])
 
-  // Push #048 — pull the user's recent videos for the Visual History
-  // section. We listen on `creditsChanged`, but Plan Fit cannot rely on it:
-  // free Fast completion may not debit and therefore may not emit that event.
-  // `publicVideoId` is the durable post-persistence handle, so every new ID
-  // forces a fresh count and binds the evidence to that exact video. A stale
-  // count from video #1 can never qualify video #2 in the same SPA.
-  useEffect(() => {
-    let cancelled = false
-    const evidenceVideoId = publicVideoId
-    setVideoHistoryReliable(false)
-    setHistoryEvidenceForVideoId(null)
-    async function fetchVideos() {
-      try {
-        const res = await fetch('/api/videos', { cache: 'no-store' })
-        if (res.status === 401) {
-          if (!cancelled) {
-            setRecentVideos([])
-            setCompletedVideoCount(null)
-            setVideoHistoryReliable(false)
-            setHistoryEvidenceForVideoId(null)
-            setHistoryCheckedForVideoId(evidenceVideoId)
-          }
-          return
-        }
-        if (!res.ok) {
-          if (!cancelled) {
-            setCompletedVideoCount(null)
-            setVideoHistoryReliable(false)
-            setHistoryEvidenceForVideoId(null)
-            setHistoryCheckedForVideoId(evidenceVideoId)
-          }
-          return
-        }
-        const data = await res.json()
-        if (!cancelled) {
-          setRecentVideos(Array.isArray(data.videos) ? data.videos : [])
-          const exactCount = typeof data.completedCount === 'number' && Number.isInteger(data.completedCount)
-            ? data.completedCount
-            : null
-          setCompletedVideoCount(exactCount)
-          const reliable = data.historyReliable === true && exactCount !== null
-          setVideoHistoryReliable(reliable)
-          setHistoryEvidenceForVideoId(reliable ? evidenceVideoId : null)
-          setHistoryCheckedForVideoId(evidenceVideoId)
-        }
-      } catch {
-        if (!cancelled) {
-          setRecentVideos([])
-          setCompletedVideoCount(null)
-          setVideoHistoryReliable(false)
-          setHistoryEvidenceForVideoId(null)
-          setHistoryCheckedForVideoId(evidenceVideoId)
-        }
+  // Push #048 — pull the user's recent videos for Visual History and Plan Fit.
+  // `publicVideoId` is the durable post-persistence handle. `focus` and
+  // `visibilitychange` matter too: a free completion in another tab neither
+  // debits credits nor dispatches this tab's CustomEvent. Every request is
+  // sequenced and aborts the older one, so a late snapshot cannot restore
+  // first-delivery eligibility after a newer response rejected it.
+  const refreshVideoHistory = useCallback(async (
+    evidenceVideoId: string | null,
+    options: { markPending?: boolean } = {},
+  ): Promise<boolean> => {
+    const requestId = videoHistoryRequestRef.current + 1
+    videoHistoryRequestRef.current = requestId
+    videoHistoryAbortRef.current?.abort()
+    const controller = new AbortController()
+    videoHistoryAbortRef.current = controller
+
+    if (options.markPending !== false) {
+      setVideoHistoryReliable(false)
+      setHistoryEvidenceForVideoId(null)
+      setHistoryCheckedForVideoId(null)
+    }
+
+    const commitFailure = () => {
+      // Keep an already-rendered history list on a transient refresh failure;
+      // only the Plan Fit evidence fails closed. Initial load still resolves to
+      // an empty visual state instead of spinning forever.
+      setRecentVideos((current) => current ?? [])
+      setCompletedVideoCount(null)
+      setVideoHistoryReliable(false)
+      setHistoryEvidenceForVideoId(null)
+      setHistoryCheckedForVideoId(evidenceVideoId)
+    }
+
+    try {
+      const res = await fetch('/api/videos', {
+        cache: 'no-store',
+        signal: controller.signal,
+      })
+      if (requestId !== videoHistoryRequestRef.current) return false
+      if (!res.ok) {
+        commitFailure()
+        return false
+      }
+
+      const data = await res.json()
+      if (requestId !== videoHistoryRequestRef.current) return false
+      const videos: RecentVideo[] = Array.isArray(data.videos) ? data.videos : []
+      const exactCount = typeof data.completedCount === 'number' && Number.isInteger(data.completedCount)
+        ? data.completedCount
+        : null
+      const reliable = data.historyReliable === true && exactCount !== null
+
+      setRecentVideos(videos)
+      setCompletedVideoCount(exactCount)
+      setVideoHistoryReliable(reliable)
+      setHistoryEvidenceForVideoId(reliable ? evidenceVideoId : null)
+      setHistoryCheckedForVideoId(evidenceVideoId)
+
+      return isConfirmedFirstDelivery({
+        historyReliable: reliable,
+        evidenceForVideoId: reliable ? evidenceVideoId : null,
+        completedCount: exactCount,
+        recentVideos: videos,
+        currentVideoId: evidenceVideoId,
+      })
+    } catch (error) {
+      if (
+        requestId !== videoHistoryRequestRef.current ||
+        (error instanceof Error && error.name === 'AbortError')
+      ) return false
+      commitFailure()
+      return false
+    } finally {
+      if (requestId === videoHistoryRequestRef.current) {
+        videoHistoryAbortRef.current = null
       }
     }
-    fetchVideos()
-    window.addEventListener('creditsChanged', fetchVideos)
-    return () => {
-      cancelled = true
-      window.removeEventListener('creditsChanged', fetchVideos)
+  }, [])
+
+  useEffect(() => {
+    const evidenceVideoId = publicVideoId
+    const refresh = () => { void refreshVideoHistory(evidenceVideoId) }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refresh()
     }
-  }, [publicVideoId])
+    const refreshFromAnotherTab = (event: StorageEvent) => {
+      if (event.key === PLAN_FIT_HISTORY_SYNC_KEY) refresh()
+    }
+
+    refresh()
+    window.addEventListener('creditsChanged', refresh)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('storage', refreshFromAnotherTab)
+    document.addEventListener('visibilitychange', refreshWhenVisible)
+    if (evidenceVideoId) {
+      try { localStorage.setItem(PLAN_FIT_HISTORY_SYNC_KEY, `${Date.now()}:${Math.random()}`) } catch { /* fail closed on focus/checkout */ }
+    }
+    return () => {
+      window.removeEventListener('creditsChanged', refresh)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('storage', refreshFromAnotherTab)
+      document.removeEventListener('visibilitychange', refreshWhenVisible)
+      videoHistoryRequestRef.current += 1
+      videoHistoryAbortRef.current?.abort()
+      videoHistoryAbortRef.current = null
+    }
+  }, [publicVideoId, refreshVideoHistory])
+
+  const verifyPlanFitEligibility = useCallback(
+    () => refreshVideoHistory(publicVideoId, { markPending: false }),
+    [publicVideoId, refreshVideoHistory],
+  )
 
   // Activation nudge — first-time users (no videos yet) hit a blank page, which
   // kills activation (only ~25% of signups ever generate). Pre-fill a proven
@@ -12882,9 +12938,8 @@ export default function GenerateClient({
                 exposureKey={publicVideoId}
                 checkoutPending={planFitCheckout.pending}
                 checkoutError={planFitCheckout.error}
-                onEvent={(name, metadata) => {
-                  try { void trackEvent(name, metadata) } catch { /* analytics never blocks delivery */ }
-                }}
+                verifyEligibility={verifyPlanFitEligibility}
+                onEvent={(name, metadata) => trackEvent(name, metadata)}
                 onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
                   const started = planFitCheckout.launch(
                     tier,
