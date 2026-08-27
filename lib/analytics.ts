@@ -425,7 +425,9 @@ export async function trackEvent(
       body,
       keepalive: true,
     })
-    return response.ok
+    if (!response.ok) return false
+    const result = await response.json().catch(() => null) as { stored?: unknown } | null
+    return result?.stored === true
   } catch {
     // silent — analytics must never break the calling page
     return false

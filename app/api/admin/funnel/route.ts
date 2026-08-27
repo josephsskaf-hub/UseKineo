@@ -181,6 +181,17 @@ export interface FunnelData {
     clickToCheckoutRate: string
     checkoutToPaidRate: string
   }
+  planFitOffer: {
+    eventsAvailable: boolean
+    stripeAvailable: boolean
+    exposedPeople: number
+    selectedPeople: number
+    checkoutPeople: number
+    paidPeople: number
+    exposureToSelectionRate: string
+    selectionToCheckoutRate: string
+    checkoutToPaidRate: string
+  }
   creatorLoop: {
     completedVideos: number
     completedCreators: number
@@ -457,6 +468,7 @@ export async function GET(req: Request) {
       'checkout_auth_confirmation_required', 'checkout_auth_completed',
       'checkout_started',
       'payment_success', 'checkout_cancelled', 'checkout_canceled',
+      'plan_fit_impression', 'plan_fit_monthly_target_selected',
     ]
     const identityEventNames = [
       'basic_checkout_clicked', 'checkout_basic_click', 'pro_checkout_clicked',
@@ -466,8 +478,10 @@ export async function GET(req: Request) {
       'checkout_auth_confirmation_required', 'checkout_auth_completed',
       'auth_callback_completed', 'auth_callback_failed',
       'checkout_started', 'payment_success',
+      'plan_fit_impression', 'plan_fit_monthly_target_selected',
     ]
     let eventsAvailable = false
+    let planFitEventsAvailable = false
     let eventRows: EventRow[] = []
     let organicEventRows: EventRow[] = []
     let retentionEventRows: EventRow[] = []
@@ -502,6 +516,7 @@ export async function GET(req: Request) {
         if (!identities.error && Array.isArray(identities.data)) {
           eventRows = (identities.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
+          planFitEventsAvailable = true
         }
 
         let postVideoQuery = admin
@@ -1074,6 +1089,50 @@ export async function GET(req: Request) {
       checkoutToPaidRate: pct(postVideoPaymentRows.length, postVideoCheckoutRows.length),
     }
 
+    // A2 Plan Fit — people, not event rows. Checkout and payment are counted
+    // only from server/Stripe-authoritative rows carrying the verified origin.
+    const planFitPeople = (name: string) => new Set(
+      eventRows
+        .filter((event) => event.name === name)
+        .map((event) => event.user_id)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    )
+    const planFitImpressed = planFitPeople('plan_fit_impression')
+    const planFitSelected = planFitPeople('plan_fit_monthly_target_selected')
+    const planFitStripeSessions = externalSubscriptionSessions.filter(
+      (session) => session.metadata?.checkout_origin === 'plan_fit_first_delivery',
+    )
+    const planFitCheckout = new Set<string>()
+    const planFitPaid = new Set<string>()
+    for (const session of planFitStripeSessions) {
+      const userId = userIdForSession(session)
+      if (!userId) continue
+      // Verified Stripe metadata is stronger than a best-effort browser
+      // beacon. A Plan Fit checkout proves that cadence was selected even if
+      // the selection event was dropped or fell outside the 5k event window.
+      planFitSelected.add(userId)
+      planFitCheckout.add(userId)
+      if (session.status === 'complete' && (
+        session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
+      )) {
+        planFitPaid.add(userId)
+      }
+    }
+    // A cadence click or verified checkout is itself proof that the card was
+    // visible. This keeps all stages nested without depending on beacon order.
+    const planFitExposed = new Set([...planFitImpressed, ...planFitSelected])
+    const planFitOffer = {
+      eventsAvailable: planFitEventsAvailable,
+      stripeAvailable: stripeSessionsAvailable,
+      exposedPeople: planFitExposed.size,
+      selectedPeople: planFitSelected.size,
+      checkoutPeople: planFitCheckout.size,
+      paidPeople: planFitPaid.size,
+      exposureToSelectionRate: planFitEventsAvailable ? pct(planFitSelected.size, planFitExposed.size) : '—',
+      selectionToCheckoutRate: planFitEventsAvailable && stripeSessionsAvailable ? pct(planFitCheckout.size, planFitSelected.size) : '—',
+      checkoutToPaidRate: stripeSessionsAvailable ? pct(planFitPaid.size, planFitCheckout.size) : '—',
+    }
+
     // PUSH #23 — creator distribution loop. A completed video only becomes an
     // acquisition asset when the creator shares its public page, a visitor
     // clicks the CTA, signs up and eventually pays. Every stage is measured
@@ -1292,7 +1351,7 @@ export async function GET(req: Request) {
         checkout_cancelled: (eventCounts.get('checkout_cancelled') ?? 0) + (eventCounts.get('checkout_canceled') ?? 0),
       },
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, planFitOffer, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })

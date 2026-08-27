@@ -52,6 +52,12 @@ import {
 import { describeSeedanceMix, formatResultCount, videosForCredits } from '@/lib/marketingPrice'
 // KINEO-PILOT-99-2026-07-26 — plan name + expiry math shared with the cron.
 import { AUTOPILOT_PILOT_PLAN, isAutopilotEntitled } from '@/lib/autopilot/config'
+import {
+  verifyPlanFitCheckoutContext,
+  planFitRetrySearchParams,
+  type VerifiedPlanFitCheckoutContext,
+} from '@/lib/growth/planFitCheckout'
+import { engineName } from '@/lib/growth/planFit'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -695,6 +701,9 @@ async function buildAndRedirect(
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
+  const requestedPlanFitContext = verifyPlanFitCheckoutContext(req.nextUrl.searchParams, tier, currency)
+  let planFitContext: VerifiedPlanFitCheckoutContext | null = null
+  let checkoutOrigin = returnToWatermark ? 'post_video_clean_export' : 'standard'
   // ═══ KINEO-TRIAL-CARTAO-2026-08-20 — O TRIAL PASSA A PEDIR CARTÃO ════════
   // Decisão do fundador, e ela corrige um erro meu de raciocínio: eu vinha
   // defendendo trial mais generoso com base em "quem faz 4 vídeos converte
@@ -768,7 +777,7 @@ async function buildAndRedirect(
   // fatura IMEDIATA só do item avulso; a mensalidade continua começando ao
   // fim do trial. É o padrão "paid trial" suportado nativamente.
   const TRIAL_ENTRY_FEE_CENTS = 100
-  const checkoutMetadata = {
+  let checkoutMetadata: Record<string, unknown> = {
     tier,
     billing,
     currency,
@@ -779,7 +788,7 @@ async function buildAndRedirect(
     intro_requested: intro,
     offer_requested: privatePackPromo ? 'kineo5_pack_upgrade' : null,
     return_to: returnToWatermark ? 'watermark_moment' : 'checkout_success',
-    checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
+    checkout_origin: checkoutOrigin,
     checkout_recovery: checkoutRecovery,
     intent_campaign: intentCampaign ?? null,
   }
@@ -827,6 +836,37 @@ async function buildAndRedirect(
     return isGet
       ? redirectError('Your account is still being prepared. Please refresh and try again.')
       : jsonError('Your account is still being prepared. Please refresh and try again.', 503)
+  }
+
+  // A valid arithmetic payload is still only a request until the authenticated
+  // owner proves this is their first completed delivery. This query reads at
+  // most two ids and fails open for the sale but closed for attribution:
+  // an unavailable history never blocks checkout and never claims Plan Fit.
+  if (requestedPlanFitContext && !returnToWatermark) {
+    const { data: completedRows, error: completedRowsError } = await supabase
+      .from('videos')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('status', 'completed')
+      .limit(2)
+    if (completedRowsError) {
+      const message = 'We could not verify your Plan Fit yet. Please try again.'
+      return isGet ? redirectError(message) : jsonError(message, 503)
+    }
+    if (
+      completedRows?.length !== 1 ||
+      completedRows[0]?.id !== requestedPlanFitContext.plan_fit_video_id
+    ) {
+      const message = 'This Plan Fit offer is no longer available. Refresh your videos and try again.'
+      return isGet ? redirectError(message) : jsonError(message, 409)
+    }
+    planFitContext = requestedPlanFitContext
+    checkoutOrigin = planFitContext.checkout_origin
+    checkoutMetadata = {
+      ...checkoutMetadata,
+      ...planFitContext,
+    }
+    failureContext = { ...checkoutMetadata }
   }
 
   const originalCustomerId = profile.stripe_customer_id as string | null
@@ -1078,13 +1118,19 @@ async function buildAndRedirect(
           currency,
           product_data: {
             name: isAnnual ? `${plan.name} (Annual)` : plan.name,
-            description: plan.description,
+            description: planFitContext?.plan_fit_selected_tier_matches === '1'
+              ? `${plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
+              : plan.description,
           },
           unit_amount: unitAmount,
           recurring: { interval },
         },
         quantity: 1,
       }
+
+  const planFitRetryParam = planFitContext
+    ? `&${planFitRetrySearchParams(planFitContext)}`
+    : ''
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     customer: customerId,
@@ -1114,7 +1160,7 @@ async function buildAndRedirect(
     // da REGIÃO: sem este parâmetro, o comprador brasileiro que desiste do
     // Starter a R$24,90 aterrissa numa tela que promete R$49,90 e a única
     // superfície de recuperação que temos passa a trabalhar CONTRA a venda.
-    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}`,
+    cancel_url: `${appUrl}/checkout/cancelled?tier=${tier}&billing=${billing}&currency=${currency}&region=${region}${intro ? '&intro=1' : ''}${requestedPromo ? `&promo=${encodeURIComponent(requestedPromo)}` : ''}${returnToWatermark ? '&return=wm' : ''}${intentCampaignParam}${planFitRetryParam}`,
     metadata: {
       supabase_user_id: user.id,
       tier,
@@ -1155,9 +1201,10 @@ async function buildAndRedirect(
       // ANTES da parede — mas quem for decidir algo grande com isto lê
       // `payment_status` junto.
       ip_country: country,
-      checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
+      checkout_origin: checkoutOrigin,
       checkout_recovery: checkoutRecovery ? '1' : '0',
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+      ...(planFitContext ?? {}),
     },
     subscription_data: {
       // KINEO-TRIAL-CARTAO-2026-08-20 — 7 dias grátis com cartão em mãos. O
@@ -1189,10 +1236,11 @@ async function buildAndRedirect(
         tier,
         price_region: region,
         plan_credits: String(plan.credits),
-        checkout_origin: returnToWatermark ? 'post_video_clean_export' : 'standard',
+        checkout_origin: checkoutOrigin,
         checkout_recovery: checkoutRecovery ? '1' : '0',
         ...(wantsTrial && !isAnnual ? { card_trial: '1', trial_days: String(TRIAL_DAYS) } : {}),
         ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+        ...(planFitContext ?? {}),
       },
     },
     // Cartão é obrigatório mesmo sem cobrança agora — é o ponto do modelo.
@@ -1694,6 +1742,10 @@ async function buildAndRedirect(
       checkout_origin: sessionParams.metadata?.checkout_origin ?? 'standard',
       checkout_recovery: sessionParams.metadata?.checkout_recovery ?? '0',
       intent_campaign: sessionParams.metadata?.intent_campaign ?? null,
+      // Preserve the exact pre-Plan-Fit signature for ordinary checkouts.
+      // Otherwise an in-flight retry crossing this deploy would create a
+      // second Stripe Session even though its commercial intent did not move.
+      ...(planFitContext ? { plan_fit: planFitContext } : {}),
       after_expiration: sessionParams.after_expiration,
       window: checkoutWindow,
     })

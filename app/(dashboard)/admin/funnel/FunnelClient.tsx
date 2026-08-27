@@ -129,6 +129,12 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     checkoutStarts: 0, payments: 0, viewToClickRate: '—',
     clickToCheckoutRate: '—', checkoutToPaidRate: '—',
   }
+  const planFitOffer = data.planFitOffer ?? {
+    eventsAvailable: false,
+    stripeAvailable: false,
+    exposedPeople: 0, selectedPeople: 0, checkoutPeople: 0, paidPeople: 0,
+    exposureToSelectionRate: '—', selectionToCheckoutRate: '—', checkoutToPaidRate: '—',
+  }
   const creatorLoop = data.creatorLoop ?? {
     completedVideos: 0, completedCreators: 0, shareClicks: 0, shareUsers: 0,
     deliveryPromptActors: 0, deliveryClickActors: 0, deliveryShareActors: 0,
@@ -513,6 +519,48 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Dispatch → Complete"
           value={firstVideoOnboarding.dispatchToCompleteRate}
           sub={`${firstVideoOnboarding.completed} / ${firstVideoOnboarding.dispatched}`}
+        />
+      </Section>
+
+      <Section title={`Plan Fit · first delivery → subscription · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card
+          label="People exposed"
+          value={planFitOffer.eventsAvailable ? fmt(planFitOffer.exposedPeople) : '—'}
+          hint={planFitOffer.eventsAvailable ? 'first completed video · card actually visible' : 'Events data unavailable — not zero'}
+          accent="#22d3ee"
+        />
+        <Card
+          label="Cadence selected"
+          value={planFitOffer.eventsAvailable ? fmt(planFitOffer.selectedPeople) : '—'}
+          hint={planFitOffer.eventsAvailable ? 'unique people who chose a monthly target' : 'Events data unavailable — not zero'}
+          accent="#4ade80"
+        />
+        <RateCard
+          label="Exposure → Selection"
+          value={planFitOffer.exposureToSelectionRate}
+          sub={`${planFitOffer.selectedPeople} / ${planFitOffer.exposedPeople} people`}
+        />
+        <Card
+          label="Stripe checkouts"
+          value={planFitOffer.stripeAvailable ? fmt(planFitOffer.checkoutPeople) : '—'}
+          hint={planFitOffer.stripeAvailable ? 'unique people · verified Stripe sessions' : 'Stripe data unavailable — not zero'}
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Selection → Checkout"
+          value={planFitOffer.selectionToCheckoutRate}
+          sub={`${planFitOffer.checkoutPeople} / ${planFitOffer.selectedPeople} people`}
+        />
+        <Card
+          label="New subscriptions"
+          value={planFitOffer.stripeAvailable ? fmt(planFitOffer.paidPeople) : '—'}
+          hint={planFitOffer.stripeAvailable ? 'unique people · completed Stripe checkout' : 'Stripe data unavailable — not zero'}
+          accent={planFitOffer.paidPeople > 0 ? '#22d3ee' : '#fbbf24'}
+        />
+        <RateCard
+          label="Checkout → Paid"
+          value={planFitOffer.checkoutToPaidRate}
+          sub={`${planFitOffer.paidPeople} / ${planFitOffer.checkoutPeople} people`}
         />
       </Section>
 

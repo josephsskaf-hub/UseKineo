@@ -115,6 +115,7 @@ import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
 import PlanFitCard, { type PlanFitCheckoutMetadata } from '@/components/growth/PlanFitCard'
+import { withPlanFitCheckoutContext } from '@/lib/growth/planFitCheckout'
 // KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
 import WaitingShowcase from '@/components/video/WaitingShowcase'
@@ -12943,7 +12944,10 @@ export default function GenerateClient({
                 onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
                   const started = planFitCheckout.launch(
                     tier,
-                    withIntentCampaign(`/api/stripe/checkout?tier=${tier}`),
+                    withIntentCampaign(withPlanFitCheckoutContext(
+                      `/api/stripe/checkout?tier=${tier}`,
+                      metadata,
+                    )),
                     {
                       ...metadata,
                       intent_campaign: intentCampaign,

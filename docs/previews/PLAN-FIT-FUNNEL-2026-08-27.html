@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan Fit funnel — before / after</title>
+<style>
+  *{box-sizing:border-box} body{margin:0;background:#08090c;color:#f6f7fb;font:14px/1.45 Arial,sans-serif;padding:28px}
+  h1{font-size:22px;margin:0 0 6px} p{color:#9399a8;margin:0 0 24px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .frame{background:#101217;border:1px solid #252a35;border-radius:18px;padding:18px;min-height:305px}.tag{font-size:11px;font-weight:800;letter-spacing:.14em;color:#a78bfa;margin-bottom:16px}
+  .empty{border:1px dashed #343a47;border-radius:14px;height:220px;display:grid;place-items:center;text-align:center;color:#7e8594;padding:24px}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{background:#171a21;border:1px solid #2b303b;border-radius:12px;padding:13px;min-height:93px}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#8d94a4}.value{font-size:26px;font-weight:900;margin:5px 0;color:#22d3ee}.hint{font-size:11px;color:#7f8694}.rate .value{color:#a78bfa}
+  @media(max-width:760px){body{padding:14px}.pair{grid-template-columns:1fr}.cards{grid-template-columns:1fr 1fr}.frame{min-height:auto}}
+</style>
+<h1>Admin Funnel · Plan Fit</h1>
+<p>Same dashboard system, with the missing first-delivery-to-subscription cohort made visible.</p>
+<div class="pair">
+  <section class="frame"><div class="tag">BEFORE</div><div class="empty">Plan Fit events existed, but no dashboard section consumed them.<br>Checkout and payment outcome were invisible.</div></section>
+  <section class="frame"><div class="tag">AFTER</div><div class="cards">
+    <div class="card"><div class="label">People exposed</div><div class="value">0</div><div class="hint">card actually visible</div></div>
+    <div class="card"><div class="label">Cadence selected</div><div class="value">0</div><div class="hint">unique people</div></div>
+    <div class="card rate"><div class="label">Exposure → Selection</div><div class="value">—</div><div class="hint">people / people</div></div>
+    <div class="card"><div class="label">Stripe checkouts</div><div class="value">0</div><div class="hint">verified Stripe sessions</div></div>
+    <div class="card"><div class="label">New subscriptions</div><div class="value" style="color:#fbbf24">0</div><div class="hint">completed Stripe checkout</div></div>
+    <div class="card rate"><div class="label">Checkout → Paid</div><div class="value">—</div><div class="hint">people / people</div></div>
+  </div></section>
+</div>
+</html>

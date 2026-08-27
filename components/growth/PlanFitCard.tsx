@@ -22,9 +22,11 @@ export interface PlanFitCheckoutMetadata {
   planned_engine: PlanFitQuality
   monthly_videos: number
   monthly_credits: number
+  seconds: number
   recommended_tier: CheckoutTier
   display_currency: CheckoutCurrency | null
   first_delivery: true
+  video_id: string
 }
 
 export interface PlanFitCardProps {
@@ -212,9 +214,11 @@ export default function PlanFitCard({
       planned_engine: result.quality,
       monthly_videos: result.monthlyFilms,
       monthly_credits: result.monthlyCredits,
+      seconds,
       recommended_tier: tier,
       display_currency: currency,
       first_delivery: true,
+      video_id: exposureKey,
     }
     if (!onCheckout(tier, metadata)) {
       eligibilityPendingRef.current = false

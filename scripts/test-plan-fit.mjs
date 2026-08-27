@@ -29,6 +29,7 @@ mkdirSync(sourceDir, { recursive: true })
 
 const files = [
   ['lib/growth/planFit.ts', 'planFit.ts'],
+  ['lib/growth/planFitCheckout.ts', 'planFitCheckout.ts'],
   ['lib/checkoutPricing.ts', 'checkoutPricing.ts'],
   ['lib/credits/engineCost.ts', 'engineCost.ts'],
   ['lib/autopilot/config.ts', 'autopilotConfig.ts'],
@@ -39,6 +40,7 @@ for (const [source, destination] of files) {
     .replace(/from '@\/lib\/checkoutPricing'/g, "from './checkoutPricing'")
     .replace(/from '@\/lib\/credits\/engineCost'/g, "from './engineCost'")
     .replace(/from '@\/lib\/autopilot\/config'/g, "from './autopilotConfig'")
+    .replace(/from '@\/lib\/growth\/planFit'/g, "from './planFit'")
   writeFileSync(join(sourceDir, destination), content)
 }
 
@@ -58,6 +60,7 @@ const requireFromTemp = createRequire(join(outDir, 'runner.cjs'))
 const planFit = requireFromTemp(join(outDir, 'planFit.js'))
 const pricing = requireFromTemp(join(outDir, 'checkoutPricing.js'))
 const costs = requireFromTemp(join(outDir, 'engineCost.js'))
+const checkout = requireFromTemp(join(outDir, 'planFitCheckout.js'))
 
 let total = 0
 let failed = 0
@@ -251,12 +254,63 @@ check('Presenter excluded', planFit.supportsPlanFitQuality('presenter') === fals
 check('blocked Sora excluded', planFit.supportsPlanFitQuality('cinematic_sora') === false)
 check('Kineo 1 supported', planFit.supportsPlanFitQuality('fast') === true)
 
-// 8. Product wiring: viewport impression, protected checkout, intent and order.
+// 8. Checkout context is transported by the client but recomputed by server.
+const validContextUrl = checkout.withPlanFitCheckoutContext(`/api/stripe/checkout?tier=${seedanceFour.plan.tier}`, {
+  planned_engine: 'cinematic_ai',
+  monthly_videos: 4,
+  seconds: 60,
+  recommended_tier: seedanceFour.plan.tier,
+  video_id: '11111111-1111-4111-8111-111111111111',
+})
+const validContext = checkout.verifyPlanFitCheckoutContext(
+  new URL(validContextUrl, 'https://www.usekineo.com').searchParams,
+  seedanceFour.plan.tier,
+  'usd',
+)
+check('valid context reaches authoritative checkout', validContext?.checkout_origin === 'plan_fit_first_delivery')
+check('monthly credits are recomputed canonically', Number(validContext?.plan_fit_monthly_credits) === seedanceFour.monthlyCredits)
+const cheaperContext = checkout.verifyPlanFitCheckoutContext(
+  new URL(validContextUrl, 'https://www.usekineo.com').searchParams,
+  'starter',
+  'usd',
+)
+check('honest downsell preserves origin', cheaperContext?.checkout_origin === 'plan_fit_first_delivery')
+check('honest downsell cannot claim recommended fit', cheaperContext?.plan_fit_selected_tier_matches === '0')
+const forgedTier = new URL(validContextUrl, 'https://www.usekineo.com')
+forgedTier.searchParams.set('pf_tier', 'starter')
+check('hand-edited recommendation fails closed', checkout.verifyPlanFitCheckoutContext(forgedTier.searchParams, seedanceFour.plan.tier, 'usd') === null)
+const tampered = new URL(validContextUrl, 'https://www.usekineo.com')
+tampered.searchParams.set('pf_monthly_videos', '999')
+check('hand-edited cadence fails closed', checkout.verifyPlanFitCheckoutContext(tampered.searchParams, seedanceFour.plan.tier, 'usd') === null)
+tampered.searchParams.set('pf_monthly_videos', '4')
+tampered.searchParams.set('pf_engine', 'invented_engine')
+check('unknown engine fails closed', checkout.verifyPlanFitCheckoutContext(tampered.searchParams, seedanceFour.plan.tier, 'usd') === null)
+tampered.searchParams.set('pf_engine', 'cinematic_ai')
+tampered.searchParams.set('pf_seconds', '30')
+check('non-Plan-Fit duration fails closed', checkout.verifyPlanFitCheckoutContext(tampered.searchParams, seedanceFour.plan.tier, 'usd') === null)
+const forgedCredits = new URL(validContextUrl, 'https://www.usekineo.com')
+forgedCredits.searchParams.set('plan_fit_monthly_credits', '1')
+check('client cannot forge monthly credits', Number(checkout.verifyPlanFitCheckoutContext(
+  forgedCredits.searchParams,
+  seedanceFour.plan.tier,
+  'usd',
+)?.plan_fit_monthly_credits) === seedanceFour.monthlyCredits)
+check('Stripe retry metadata rehydrates closed context', checkout.planFitRetrySearchParamsFromMetadata(validContext) === checkout.planFitRetrySearchParams(validContext))
+check('Stripe retry rejects arbitrary origin', checkout.planFitRetrySearchParamsFromMetadata({ ...validContext, checkout_origin: 'forged' }) === null)
+const originOnly = new URL('/api/stripe/checkout?checkout_origin=plan_fit_first_delivery', 'https://www.usekineo.com')
+check('origin without complete contract fails closed', checkout.verifyPlanFitCheckoutContext(originOnly.searchParams, 'basic', 'usd') === null)
+
+// 9. Product wiring: viewport impression, protected checkout, intent and order.
 const component = readFileSync(join(root, 'components/growth/PlanFitCard.tsx'), 'utf8')
 const generate = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const videosRoute = readFileSync(join(root, 'app/api/videos/route.ts'), 'utf8')
 const composeStatus = readFileSync(join(root, 'app/api/compose/status/[renderId]/route.ts'), 'utf8')
 const analytics = readFileSync(join(root, 'lib/analytics.ts'), 'utf8')
+const checkoutRoute = readFileSync(join(root, 'app/api/stripe/checkout/route.ts'), 'utf8')
+const checkoutWebhook = readFileSync(join(root, 'app/api/stripe/webhook/route.ts'), 'utf8')
+const checkoutResume = readFileSync(join(root, 'app/api/stripe/checkout/resume/route.ts'), 'utf8')
+const funnelRoute = readFileSync(join(root, 'app/api/admin/funnel/route.ts'), 'utf8')
+const funnelClient = readFileSync(join(root, 'app/(dashboard)/admin/funnel/FunnelClient.tsx'), 'utf8')
 
 check('viewport uses IntersectionObserver', component.includes('new IntersectionObserver'))
 check('impression threshold is enforced', component.includes('entry.intersectionRatio < IMPRESSION_THRESHOLD'))
@@ -276,11 +330,34 @@ check('money is conditional on resolved currency', component.includes('? `Get ${
 check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
 check('checkout error is visible', component.includes('role="alert"'))
 check('checkout revalidates before protected launch', (component.match(/await verifyEligibility\(\)/g) ?? []).length >= 2)
-check('analytics reports whether the event endpoint accepted', analytics.includes('): Promise<boolean>') && analytics.includes('return response.ok'))
+check('analytics reports whether the event was actually stored', analytics.includes('): Promise<boolean>') && analytics.includes('return result?.stored === true'))
 
 check('caller uses dedicated protected launcher', generate.includes("useCheckoutLaunch('generate_plan_fit')"))
 check('caller launches through protected hook', generate.includes('planFitCheckout.launch('))
-check('caller preserves intent campaign', generate.includes("withIntentCampaign(`/api/stripe/checkout?tier=${tier}`)"))
+check('caller preserves intent campaign', generate.includes('withIntentCampaign(withPlanFitCheckoutContext('))
+check('caller transports Plan Fit context to checkout', generate.includes('withPlanFitCheckoutContext('))
+check('checkout verifies context server-side', checkoutRoute.includes('verifyPlanFitCheckoutContext(req.nextUrl.searchParams, tier, currency)'))
+check('checkout verifies exact first delivery for owner', checkoutRoute.includes(".eq('user_id', user.id)") && checkoutRoute.includes(".eq('status', 'completed')") && checkoutRoute.includes('completedRows?.length !== 1'))
+check('checkout binds context to the exact completed video', checkoutRoute.includes('completedRows[0]?.id !== requestedPlanFitContext.plan_fit_video_id'))
+check('history failure stops before Stripe without a raw GET error', checkoutRoute.includes("const message = 'We could not verify your Plan Fit yet. Please try again.'") && checkoutRoute.includes('return isGet ? redirectError(message) : jsonError(message, 503)'))
+check('stale first-delivery context stops before Stripe', checkoutRoute.includes("const message = 'This Plan Fit offer is no longer available. Refresh your videos and try again.'") && checkoutRoute.includes('return isGet ? redirectError(message) : jsonError(message, 409)'))
+check('verified context reaches Stripe session and subscription', (checkoutRoute.match(/\.\.\.\(planFitContext \?\? \{\}\)/g) ?? []).length >= 2)
+check('verified context replaces provisional checkout metadata', checkoutRoute.includes('checkoutMetadata = {') && checkoutRoute.includes('...planFitContext,'))
+check('idempotency includes Plan Fit only when verified', checkoutRoute.includes('...(planFitContext ? { plan_fit: planFitContext } : {})'))
+check('Stripe line item explains the selected fit', checkoutRoute.includes('Covers your ${planFitContext.plan_fit_monthly_videos}'))
+check('payment webhook preserves verified origin', checkoutWebhook.includes('plan_fit_recommended_tier: session.metadata?.plan_fit_recommended_tier'))
+check('expired checkout preserves Plan Fit recovery context', checkoutWebhook.includes('plan_fit_recommended_tier: expiredSession.metadata?.plan_fit_recommended_tier'))
+const cancelledPage = readFileSync(join(root, 'app/checkout/cancelled/page.tsx'), 'utf8')
+check('cancelled checkout preserves Plan Fit retry contract', cancelledPage.includes("'pf_video_id'") && checkoutRoute.includes('planFitRetrySearchParams(planFitContext)'))
+check('cancelled checkout preserves origin through honest downsell', cancelledPage.includes('if (value) cheaperParams.set(key, value)'))
+check('internal checkout recovery preserves Plan Fit context', checkoutResume.includes('planFitRetrySearchParamsFromMetadata(session.metadata)'))
+check('admin cadence selection is also proof of exposure', funnelRoute.includes('new Set([...planFitImpressed, ...planFitSelected])'))
+check('verified Stripe checkout repairs a dropped selection beacon', funnelRoute.includes('planFitSelected.add(userId)') && funnelRoute.includes('planFitCheckout.add(userId)'))
+check('admin checkout stage uses verified Stripe origin', funnelRoute.includes("session.metadata?.checkout_origin === 'plan_fit_first_delivery'"))
+check('admin paid stage uses completed Stripe sessions', funnelRoute.includes("session.status === 'complete'") && funnelRoute.includes("session.payment_status === 'paid'"))
+check('admin identity query failure stays unknown, not zero', funnelRoute.includes('let planFitEventsAvailable = false') && funnelRoute.includes('planFitEventsAvailable = true') && funnelRoute.includes('eventsAvailable: planFitEventsAvailable'))
+check('admin never renders unavailable Stripe data as zero', funnelRoute.includes('stripeAvailable: stripeSessionsAvailable') && funnelClient.includes("Events data unavailable — not zero") && funnelClient.includes("Stripe data unavailable — not zero"))
+check('admin renders Plan Fit control panel', funnelClient.includes('Plan Fit · first delivery → subscription') && funnelClient.includes('planFitOffer.checkoutPeople'))
 check('caller passes checkout pending state', generate.includes('checkoutPending={planFitCheckout.pending}'))
 check('caller passes checkout error state', generate.includes('checkoutError={planFitCheckout.error}'))
 check('caller passes fresh eligibility verifier', generate.includes('verifyEligibility={verifyPlanFitEligibility}'))

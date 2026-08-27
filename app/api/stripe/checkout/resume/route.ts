@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
+import { planFitRetrySearchParamsFromMetadata } from '@/lib/growth/planFitCheckout'
 import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
 
 export const dynamic = 'force-dynamic'
@@ -195,6 +196,10 @@ function internalRetryUrl(req: NextRequest, session: Stripe.Checkout.Session): s
   }
   if (session.metadata?.checkout_origin === 'post_video_clean_export') {
     params.set('return', 'wm')
+  }
+  const planFitParams = planFitRetrySearchParamsFromMetadata(session.metadata)
+  if (planFitParams) {
+    new URLSearchParams(planFitParams).forEach((value, key) => params.set(key, value))
   }
   return new URL(`/api/stripe/checkout?${params.toString()}`, req.url).toString()
 }

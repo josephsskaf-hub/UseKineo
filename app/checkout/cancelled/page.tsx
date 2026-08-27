@@ -24,6 +24,15 @@ import {
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
+const PLAN_FIT_RETRY_PARAM_KEYS = [
+  'checkout_origin',
+  'pf_engine',
+  'pf_monthly_videos',
+  'pf_seconds',
+  'pf_tier',
+  'pf_video_id',
+] as const
+
 // Push #175 — use checkout GET route instead of hardcoded Stripe links.
 // KINEO-SPRINT-FIX-2026-07-15 — plan/offer preservation: buyers who abandon an
 // intro-month checkout land HERE via cancel_url, and the old retry link
@@ -75,6 +84,10 @@ function CheckoutCancelledContent() {
   if (promo) retryParams.set('promo', promo)
   if (returnToWatermark) retryParams.set('return', 'wm')
   if (intentCampaign) retryParams.set('intent_campaign', intentCampaign)
+  for (const key of PLAN_FIT_RETRY_PARAM_KEYS) {
+    const value = searchParams.get(key)
+    if (value) retryParams.set(key, value)
+  }
   const retryHref = `/api/stripe/checkout?${retryParams.toString()}`
   const planName = tier === 'starter' ? 'Starter' : tier === 'pro' ? 'Studio' : 'Creator'
   // ═══════════════════════════════════════════════════════════════════════
@@ -132,6 +145,10 @@ function CheckoutCancelledContent() {
   if (cheaperIntro) cheaperParams.set('intro', '1')
   if (returnToWatermark) cheaperParams.set('return', 'wm')
   if (intentCampaign) cheaperParams.set('intent_campaign', intentCampaign)
+  for (const key of PLAN_FIT_RETRY_PARAM_KEYS) {
+    const value = searchParams.get(key)
+    if (value) cheaperParams.set(key, value)
+  }
   const cheaperHref = `/api/stripe/checkout?${cheaperParams.toString()}`
 
   useEffect(() => {
