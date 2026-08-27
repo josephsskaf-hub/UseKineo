@@ -312,7 +312,8 @@ checa('retry chama a operacao que falhou', /op === 'authoring'\) void handleWrit
 checa('auth_required tem acao de login', /Sign in again/.test(clienteSrc))
 checa('encurtar preserva o candidato', /kept_candidate: expandedScript !== null/.test(clienteSrc))
 checa('telemetria do aceite grava a rodada real', /round: rodadaDoAceite/.test(clienteSrc))
-checa('CTA de autoria manda targetSeconds', /targetSeconds: scriptTooShort\.targetSeconds,\n\s*forceAuthoring: true/.test(clienteSrc))
+// Windows faz checkout CRLF; o contrato não pode depender do terminador de linha.
+checa('CTA de autoria manda targetSeconds', /targetSeconds: scriptTooShort\.targetSeconds,\r?\n\s*forceAuthoring: true/.test(clienteSrc))
 
 // ── 22. CONTRATO DA ROTA generate-script (achados 2 e 3) ───────────────────
 const rotaScript = readFileSync(join(raiz, 'app/api/generate-script/route.ts'), 'utf8')

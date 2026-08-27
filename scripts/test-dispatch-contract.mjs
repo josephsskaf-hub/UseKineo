@@ -70,6 +70,99 @@ function falFalsa(roteiro) {
 
 console.log('\nKINEO #353A.1 — contrato da orquestração (a mesma que a rota chama)\n')
 
+// ── Retry visual seguro: no máximo UMA segunda submissão ──────────────────
+async function dispatchVisual(roteiro, original = 'original visual', safe = 'safe visual') {
+  const calls = []
+  const submit = async (model, visualPrompt, onPost) => {
+    onPost()
+    calls.push({ model, visualPrompt })
+    const passo = roteiro[calls.length - 1] ?? roteiro[roteiro.length - 1]
+    if (passo.ok) return `req_${calls.length}`
+    const err = new Error(passo.message ?? 'fal rejected')
+    err.status = passo.status ?? null
+    err.ambiguous = passo.ambiguous === true
+    throw err
+  }
+  const result = await O.dispatchOneSceneWithSafeVisualRetry({
+    sceneIndex: 4, models: ['m'], visualPrompt: original, safeVisualPrompt: safe, submit,
+  })
+  return { result, calls }
+}
+
+for (const [nome, status, message] of [
+  ['moderação', 400, 'safety filter triggered'],
+  ['payload', 422, 'invalid prompt payload'],
+]) {
+  const { result, calls } = await dispatchVisual([
+    { ok: false, status, message },
+    { ok: true },
+  ])
+  checa(`${nome} explícita → exatamente uma segunda submissão`, calls.length === 2, `posts=${calls.length}`)
+  checa(`${nome} explícita → retry usa prompt visual seguro`, calls[1].visualPrompt === 'safe visual')
+  checa(`${nome} explícita → histórico e POSTs mesclados`, result.attempts.length === 2 && result.posts === 2)
+  checa(`${nome} explícita → request id do retry preservado`, result.requestId === 'req_2')
+}
+
+for (const [nome, passo] of [
+  ['aceite', { ok: true }],
+  ['auth', { ok: false, status: 401 }],
+  ['saldo', { ok: false, status: 402 }],
+  ['acesso', { ok: false, status: 403, message: 'model is locked for your account' }],
+  ['ambíguo', { ok: false, status: 503, ambiguous: true }],
+]) {
+  const { calls } = await dispatchVisual([passo, { ok: true }])
+  checa(`${nome} → nunca recebe retry visual`, calls.length === 1, `posts=${calls.length}`)
+}
+
+{
+  const { result, calls } = await dispatchVisual([
+    { ok: false, status: 400, message: 'safety filter triggered' },
+    { ok: false, status: 503, ambiguous: true },
+    { ok: true },
+  ])
+  checa('retry visual ambíguo → para em dois POSTs', calls.length === 2)
+  checa('retry visual ambíguo → desfecho final continua ambíguo', result.outcome.disposition === 'ambiguous')
+}
+
+{
+  let submissions = 0
+  const submit = async (_model, _prompt, onPost) => {
+    submissions += 1
+    onPost()
+    if (submissions === 1) {
+      // Simula o retry-after interno do falQueue: dois POSTs, uma só tentativa
+      // visível para esta camada, seguida de rejeição explícita final.
+      onPost()
+      const err = new Error('safety filter triggered')
+      err.status = 400
+      err.ambiguous = false
+      throw err
+    }
+    return 'req_after_safe_retry'
+  }
+  const result = await O.dispatchOneSceneWithSafeVisualRetry({
+    sceneIndex: 1, models: ['m'], visualPrompt: 'original', safeVisualPrompt: 'safe', submit,
+  })
+  checa('POSTs internos + retry visual são somados sem usar attempts.length',
+    result.posts === 3 && result.outcome.attempt_count === 3 && result.attempts.length === 2,
+    JSON.stringify({ posts: result.posts, attempts: result.attempts.length, count: result.outcome.attempt_count }))
+}
+
+{
+  const safe = O.buildContextualSafeVisualPrompt('bloody murder with a gun https://example.test secret@example.test')
+  checa('fallback visual remove termos sensíveis e URLs',
+    !/(blood|murder|gun|https|@)/i.test(safe), safe)
+  checa('fallback visual é curto e determinístico',
+    safe === O.buildContextualSafeVisualPrompt('bloody murder with a gun https://example.test secret@example.test') && safe.length < 600)
+}
+
+checa('lote clássico sem nenhum ID continua irrecuperável',
+  O.hasRenderableClassicScene([null, null, null]) === false)
+checa('um único ID torna o lote clássico renderizável',
+  O.hasRenderableClassicScene([null, 'req_paid_scene', null]) === true)
+checa('lista vazia não inventa cobertura',
+  O.hasRenderableClassicScene([]) === false)
+
 // ── Terminais: EXATAMENTE UM POST ─────────────────────────────────────────
 for (const status of [400, 401, 402, 403, 404, 422]) {
   const fal = falFalsa([{ ok: false, status, message: 'no' }])
@@ -229,7 +322,13 @@ checa('"insufficient balance" dispara alarme de saldo',
 // ── A ROTA usa mesmo tudo isto (âncoras estruturais mínimas) ─────────────
 const rota = readFileSync(join(raiz, 'app/api/generate-video-cinematic/route.ts'), 'utf8')
 checa('o retry cego de 800ms foi removido', !/setTimeout\(r, 800\)/.test(rota))
-checa('a rota chama dispatchOneScene', /await dispatchOneScene\(\{/.test(rota))
+checa('a rota chama o dispatcher com retry visual seguro', /await dispatchOneSceneWithSafeVisualRetry\(\{/.test(rota))
+checa('o retry seguro recebe contexto visual, nunca narração',
+  /buildContextualSafeVisualPrompt\(\s*sanitizeRealPeople\(scene\.stockSearchQuery \|\| scene\.aiPrompt \|\| scene\.description\)/.test(rota))
+checa('a rota usa a política executável de cobertura clássica',
+  /if \(!hasRenderableClassicScene\(falRequestIds\)\)/.test(rota))
+checa('o piso morto de 50% foi removido',
+  !/validIds\.length < Math\.ceil\(scenes\.length \* 0\.5\)/.test(rota))
 checa('submitScene recebe sceneIndex explícito', /sceneIndex: number,/.test(rota))
 checa('o vetor NÃO usa mais outcomes.length como índice', !/scene_index: contexto\.outcomes\.length/.test(rota))
 checa('existe UM ponto de finalização', /async function finalizarDespacho\(/.test(rota))

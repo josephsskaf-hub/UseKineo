@@ -239,8 +239,8 @@ checa('cinematic_submission_claim está na denylist', /'cinematic_submission_cla
 checa('cinematic_dispatch_result está na denylist', /'cinematic_dispatch_result',/.test(eventos))
 
 // ── 8. o comportamento financeiro atual continua coberto ──────────────────
-checa('FAILFAST clássico ainda libera a claim e estorna',
-  /classic FAILFAST[\s\S]{0,400}releaseBirthClaim\(ctxDespacho\(\)\.balanceExhausted/.test(rota))
+checa('FAILFAST clássico só libera a claim quando nenhum ID é renderizável',
+  /if \(!hasRenderableClassicScene\(falRequestIds\)\)[\s\S]{0,500}releaseBirthClaim\(ctxDespacho\(\)\.balanceExhausted/.test(rota))
 checa('FAILFAST hollywood ainda libera a claim e estorna',
   /hollywood FAILFAST[\s\S]{0,400}releaseBirthClaim\(ctxDespacho\(\)\.balanceExhausted/.test(rota))
 checa('#353A NÃO cria submitting/recoverable', !/'submitting'|'recoverable'/.test(rota))

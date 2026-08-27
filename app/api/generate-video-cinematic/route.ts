@@ -22,7 +22,9 @@ import {
 // KINEO-353A.1 — a orquestracao (retry, fallback de modelo, vetor por cena)
 // vive num modulo importavel para o teste de contrato exercitar ESTA logica.
 import {
-  dispatchOneScene,
+  buildContextualSafeVisualPrompt,
+  dispatchOneSceneWithSafeVisualRetry,
+  hasRenderableClassicScene,
   invarianteFecha,
   montarPlano,
   resumirPlano,
@@ -3486,12 +3488,17 @@ async function manipularPost(req: NextRequest) {
       const modelos = imageUrl
         ? [model === KLING_MODEL ? KLING_I2V_MODEL : model, model]
         : [model]
-      const despachoCena = await dispatchOneScene({
+      const safeVisualPrompt = buildContextualSafeVisualPrompt(
+        sanitizeRealPeople(scene.stockSearchQuery || scene.aiPrompt || scene.description),
+      )
+      const despachoCena = await dispatchOneSceneWithSafeVisualRetry({
         sceneIndex,
         models: modelos,
-        submit: async (m, onPost) => submitFalQueueOnce(
+        visualPrompt: cinematic,
+        safeVisualPrompt,
+        submit: async (m, promptForAttempt, onPost) => submitFalQueueOnce(
           m,
-          buildFalInput(m, cinematic, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined),
+          buildFalInput(m, promptForAttempt, hd, false, undefined, m === modelos[0] ? imageUrl : undefined, generationSeed, undefined),
           onPost,
         ),
       })
@@ -3499,7 +3506,7 @@ async function manipularPost(req: NextRequest) {
         const c = ctxDespacho()
         c.outcomes[sceneIndex] = despachoCena.outcome
         c.attempts[sceneIndex] = despachoCena.attempts
-        c.totalPosts += despachoCena.attempts.length
+        c.totalPosts += despachoCena.posts
         if (despachoCena.outcome.reason_class === 'balance_quota') c.balanceExhausted = true
       }
       if (despachoCena.requestId) {
@@ -3617,16 +3624,9 @@ async function manipularPost(req: NextRequest) {
     // Do not silently downgrade Kling to Seedance after the signed cost/engine
     // claim is born. A rejected premium submit is retriable and never charged.
 
-    // KINEO-FAILFAST-2026-08-17 — mesmo piso do Hollywood no caminho classico:
-    // menos da METADE das cenas aceitas (ex.: saldo do fal estourando no meio
-    // da fila) = render condenado a sair curto. Aborta com estorno em vez de
-    // compor um toco e cobrar o cliente.
-    if (validIds.length === 0 || validIds.length < Math.ceil(scenes.length * 0.5)) {
-      if (validIds.length > 0) {
-        console.error(
-          `[cinematic] classic FAILFAST: only ${validIds.length}/${scenes.length} scenes submitted — aborting with refund${ctxDespacho().balanceExhausted ? ' (FAL BALANCE EXHAUSTED)' : ''}`,
-        )
-      }
+    // Um único clipe aceito já é renderizável: o compose o recicla até cobrir
+    // toda a duração. Nunca descarte/refunde jobs pagos só por cobertura <50%.
+    if (!hasRenderableClassicScene(falRequestIds)) {
       const released = await releaseBirthClaim(ctxDespacho().balanceExhausted ? 'provider_balance_rejected' : 'provider_rejected')
       // KINEO-353A — o desfecho vai para o banco ANTES de responder, e vai
       // awaitado. Se a lambda morrer logo depois, a linha ja existe.

@@ -67,6 +67,8 @@ export interface SceneDispatch {
   model: string
   /** Histórico completo — nunca misturado ao resumo. */
   attempts: AttemptRecord[]
+  /** POSTs reais, inclusive retry-after de 429 feito dentro de falQueue. */
+  posts: number
 }
 
 function lerErro(e: unknown): ProviderSubmitError {
@@ -97,7 +99,7 @@ export async function dispatchOneScene(args: {
   const contar = () => { posts += 1 }
 
   if (models.length === 0) {
-    return { outcome: notAttempted(sceneIndex, ''), requestId: null, model: '', attempts }
+    return { outcome: notAttempted(sceneIndex, ''), requestId: null, model: '', attempts, posts }
   }
 
   let ultimo: SceneOutcome | null = null
@@ -111,6 +113,7 @@ export async function dispatchOneScene(args: {
         requestId: id,
         model,
         attempts,
+        posts,
       }
     } catch (e) {
       const err = lerErro(e)
@@ -144,6 +147,98 @@ export async function dispatchOneScene(args: {
     requestId: null,
     model: attempts[attempts.length - 1]?.model ?? models[0],
     attempts,
+    posts,
+  }
+}
+
+const SENSITIVE_VISUAL_TERMS = /\b(?:blood(?:y)?|gore|corpse|dead body|murder|kill(?:ing|ed)?|assassin(?:ate|ated|ation)?|shoot(?:ing|er|s)?|stab(?:bing|bed)?|suicide|torture|violent|violence|injur(?:y|ed)|abuse|weapon|gun|rifle|pistol|knife|bomb|explosive|explosion|missile|nuclear|attack|battle|war|warfare|terror(?:ism|ist)?|nude|nudity|naked|sexual|porn(?:ography)?|rape|cocaine|heroin|meth(?:amphetamine)?|drug use)\b/gi
+
+/**
+ * Fallback visual determinístico. Nunca recebe narração nem chama outro modelo:
+ * reduz o contexto visual a uma dica curta e neutra, e remove termos que mais
+ * frequentemente acionam moderação. O teto também elimina 400/422 por prompt
+ * excessivo. É deliberadamente menos específico que o primeiro prompt.
+ */
+export function buildContextualSafeVisualPrompt(rawVisualContext: string): string {
+  const context = (rawVisualContext || '')
+    .normalize('NFKC')
+    .replace(/https?:\/\/\S+|www\.\S+|\S+@\S+/gi, ' ')
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .replace(SENSITIVE_VISUAL_TERMS, 'event')
+    .replace(/[^\p{L}\p{N}\s,.'-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(' ')
+    .slice(0, 24)
+    .join(' ')
+
+  const subject = context || 'the story topic'
+  return (
+    `Family-safe neutral cinematic documentary b-roll representing ${subject}. ` +
+    'Show only an empty environment, ordinary objects, architecture, landscape, light and weather. ' +
+    'No people, faces, identities or readable text. Calm photorealistic establishing shot, smooth camera motion, 9:16 vertical.'
+  )
+}
+
+/**
+ * O compositor padrão consegue preencher a duração inteira repetindo os
+ * clipes aceitos. Portanto o lote clássico só é irrecuperável quando nenhum
+ * request id existe; cobertura abaixo de 50% é degradação, não falha técnica.
+ */
+export function hasRenderableClassicScene(requestIds: Array<string | null>): boolean {
+  return requestIds.some((requestId) => typeof requestId === 'string' && requestId.length > 0)
+}
+
+export type SubmitVisualOnce = (
+  model: string,
+  visualPrompt: string,
+  onPost: () => void,
+) => Promise<string>
+
+/**
+ * Uma única segunda chance com prompt visual neutro, apenas depois de uma
+ * recusa explícita de moderação/payload. Aceite e ambiguidade são terminais;
+ * a segunda chance usa só o modelo final, portanto acrescenta no máximo um
+ * POST desta camada (o retry de 429 continua pertencendo ao falQueue).
+ */
+export async function dispatchOneSceneWithSafeVisualRetry(args: {
+  sceneIndex: number
+  models: string[]
+  visualPrompt: string
+  safeVisualPrompt: string
+  submit: SubmitVisualOnce
+}): Promise<SceneDispatch> {
+  const first = await dispatchOneScene({
+    sceneIndex: args.sceneIndex,
+    models: args.models,
+    submit: (model, onPost) => args.submit(model, args.visualPrompt, onPost),
+  })
+
+  const retryableReason = first.outcome.reason_class === 'provider_moderation'
+    || first.outcome.reason_class === 'invalid_payload'
+  const safePrompt = args.safeVisualPrompt.trim()
+  if (
+    first.requestId !== null
+    || first.outcome.disposition !== 'explicit_reject'
+    || !retryableReason
+    || !safePrompt
+    || safePrompt === args.visualPrompt.trim()
+    || !first.model
+  ) {
+    return first
+  }
+
+  const second = await dispatchOneScene({
+    sceneIndex: args.sceneIndex,
+    models: [first.model],
+    submit: (model, onPost) => args.submit(model, safePrompt, onPost),
+  })
+  const posts = first.posts + second.posts
+  return {
+    ...second,
+    outcome: { ...second.outcome, attempt_count: posts },
+    attempts: [...first.attempts, ...second.attempts],
+    posts,
   }
 }
 
@@ -184,7 +279,7 @@ export function montarPlano(
       requestIds.push(r.requestId)
       models.push(r.model || modeloPadrao)
       attempts.push(r.attempts)
-      totalPosts += r.attempts.length
+      totalPosts += r.posts
     } else {
       outcomes.push(notAttempted(i, modeloPadrao))
       requestIds.push(null)
