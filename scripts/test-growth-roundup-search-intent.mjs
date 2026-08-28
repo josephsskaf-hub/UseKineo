@@ -24,6 +24,8 @@ check(roundup.includes('A faceless channel to automate'), 'autopilot intent is m
 check(roundup.includes('A long video or podcast'), 're-clipping intent is mapped')
 check(roundup.includes('A presenter on screen'), 'avatar intent is mapped')
 check(roundup.includes('A finished clip that needs polish'), 'editing intent is mapped')
+check(!roundup.includes('the only tool on this list'), 'roundup does not claim false exclusivity')
+check(!/All \d+ tool comparisons/.test(roundup), 'comparison hub link cannot freeze a stale count')
 
 // The three tool names came from production query rows, so each must be in the
 // actual TOOLS data rather than only mentioned in metadata or prose.

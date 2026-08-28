@@ -71,7 +71,7 @@ const TOOLS: Tool[] = [
     slug: null,
     category: 'From-scratch faceless Short generator',
     take:
-      'Kineo is the only tool on this list that turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script or add a talking AI Presenter. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.',
+      'Kineo turns a single typed topic into a finished faceless Short — script, AI voiceover, matched visuals and captions — with no footage, no camera and no timeline. Fast Mode renders usually land in about 3–7 minutes, and you can also paste your own script, choose among several video engines or add a talking AI Presenter. It is narrow on purpose: it does one job, idea-to-postable-Short, and does not try to be a general editor.',
     bestFor: 'Faceless creators starting from just an idea, with no source video to work from.',
     fromScratch: 'Yes',
     freeTier: `${ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)}, no card`,
@@ -574,10 +574,10 @@ export default function BestAiShortsGeneratorsPage() {
             Why Kineo tops the list for from-scratch Shorts
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
-            Most tools here assume you already have something — a long video to clip, a script to
-            narrate, a clip to caption, or an avatar to render. Kineo is the one that starts from
-            nothing but a topic and hands you a finished, ready-to-post 9:16 Short: hook-first
-            script, AI voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
+            Many tools here assume you already have something — a long video to clip, a script to
+            narrate, a clip to caption, or an avatar to render. Kineo starts from nothing but a
+            topic and hands you a finished, ready-to-post 9:16 Short: hook-first script, AI
+            voiceover, matched visuals and captions, usually in about 3–7 minutes. Test
             it free — {ft(OFFER, 'up to 3 watermarked Fast videos every 24 hours, no credit card.', `every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked, no card — films come out watermarked until you upgrade.`)}
           </p>
           {/* KINEO-STARTER-EM-ARTIGO-2026-08-15 — aqui havia um `<a href={CTA_URL}>`
@@ -636,7 +636,7 @@ export default function BestAiShortsGeneratorsPage() {
         <ul style={{ color: MUTED, lineHeight: 1.9, fontSize: '0.95rem', paddingLeft: 20, margin: '0 0 40px' }}>
           <li>
             <a href="/alternatives" style={{ color: ACCENT, textDecoration: 'none' }}>
-              All 27 tool comparisons
+              All AI tool comparisons
             </a>{' '}
             — head-to-head pages for every generator, re-clipper, avatar and editor above.
           </li>
