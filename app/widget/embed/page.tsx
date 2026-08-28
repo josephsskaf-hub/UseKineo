@@ -9,6 +9,7 @@
 // 360x200 iframe.
 
 import type { Metadata } from 'next'
+import { buildAffiliateWidgetCta } from '@/lib/growth/affiliateWidget'
 
 export const revalidate = 3600
 
@@ -68,8 +69,16 @@ function ideaOfTheDay(): { idea: string; index: number } {
 const ACCENT = '#2997ff'
 const MUTED = '#86868b'
 
-export default function WidgetEmbedPage() {
+export default function WidgetEmbedPage({
+  searchParams,
+}: {
+  searchParams?: { affiliate?: string | string[] }
+}) {
   const { idea } = ideaOfTheDay()
+  const affiliateCode = typeof searchParams?.affiliate === 'string'
+    ? searchParams.affiliate
+    : null
+  const ctaHref = buildAffiliateWidgetCta(affiliateCode)
 
   return (
     <main
@@ -119,7 +128,7 @@ export default function WidgetEmbedPage() {
           {idea}
         </p>
         <a
-          href="https://www.usekineo.com/?utm_source=widget&utm_medium=embed&utm_campaign=acq5"
+          href={ctaHref}
           target="_blank"
           rel="noopener"
           style={{

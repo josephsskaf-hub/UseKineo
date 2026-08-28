@@ -38,8 +38,13 @@ const destinations = executeTs('lib/affiliateDestinations.ts')
 const firstClick = executeTs('lib/affiliateFirstClick.ts', {
   '@/lib/affiliateDestinations': destinations,
 })
+const affiliateCode = executeTs('lib/affiliateCode.ts')
 const attribution = executeTs('lib/affiliateAttribution.ts', {
   '@supabase/supabase-js': { createClient: () => { throw new Error('not used') } },
+  '@/lib/affiliateCode': affiliateCode,
+})
+const affiliateWidget = executeTs('lib/growth/affiliateWidget.ts', {
+  '@/lib/affiliateCode': affiliateCode,
 })
 const CODE = 'ABCD2345'
 const OLD_CODE = 'WXYZ2345'
@@ -117,6 +122,22 @@ equal(share.pathname, `/a/${CODE}`, 'share link keeps only a validated affiliate
 equal(share.searchParams.toString(), 'to=script', 'share link carries only allowlisted destination')
 equal(destinations.buildAffiliateShareLink('https://evil.example/free-script-generator', 'script'), '', 'arbitrary path cannot become copied link')
 equal(destinations.buildAffiliateShareLink('not a URL', 'script'), '', 'invalid base link fails closed')
+
+const widgetUrl = new URL(affiliateWidget.buildAffiliateWidgetEmbedUrl(`https://preview.invalid/a/${CODE}?old=1#x`))
+equal(widgetUrl.origin, 'https://www.usekineo.com', 'affiliate widget canonicalizes the production host')
+equal(widgetUrl.pathname, '/widget/embed', 'affiliate widget uses the existing embed surface')
+equal(widgetUrl.searchParams.toString(), `affiliate=${CODE}`, 'affiliate widget carries only the normalized public code')
+const widgetSnippet = affiliateWidget.buildAffiliateWidgetSnippet(`https://preview.invalid/a/${CODE}`)
+check(widgetSnippet.startsWith('<iframe src="https://www.usekineo.com/widget/embed?affiliate='), 'widget asset is a copy-paste iframe')
+check(widgetSnippet.includes('width="360" height="200"'), 'widget preserves the proven embed dimensions')
+check(!widgetSnippet.includes('preview.invalid'), 'untrusted API host never reaches widget snippet')
+equal(affiliateWidget.buildAffiliateWidgetEmbedUrl('https://evil.example/not-an-affiliate-link'), '', 'non-affiliate path cannot mint widget asset')
+equal(affiliateWidget.buildAffiliateWidgetEmbedUrl('https://www.usekineo.com/a/ABCD2345/extra'), '', 'extra affiliate path segments fail closed')
+equal(affiliateWidget.buildAffiliateWidgetSnippet('javascript:alert(1)'), '', 'unsafe URL cannot become an iframe')
+equal(affiliateWidget.buildAffiliateWidgetCta('abcd2345'), `https://www.usekineo.com/a/${CODE}?to=script`, 'valid embed click enters existing affiliate attribution')
+const genericWidgetCta = new URL(affiliateWidget.buildAffiliateWidgetCta('<script>'))
+equal(genericWidgetCta.origin, 'https://www.usekineo.com', 'invalid embed code stays first-party')
+equal(genericWidgetCta.searchParams.get('utm_source'), 'widget', 'invalid embed code preserves generic widget acquisition')
 
 for (const ua of ['Twitterbot/1.0', 'facebookexternalhit/1.1', 'WhatsApp/2.0', 'Slackbot-LinkExpanding 1.0', 'Googlebot']) {
   equal(destinations.isAffiliatePreviewBot(ua), true, `${ua} is excluded from acquisition visits`)
@@ -340,6 +361,15 @@ check(dashboard.includes('first_click_mission: needsFirstClick'), 'share actions
 check(dashboard.includes('id="partner-campaign-kit"'), 'cross-dashboard nudge lands on the exact campaign kit')
 check(dashboard.includes('Ready-to-post caption'), 'dashboard supplies ready-to-post copy')
 check(dashboard.includes('Short speaking script'), 'dashboard supplies a short spoken pitch without promising exact timing')
+check(dashboard.includes('buildAffiliateWidgetSnippet(data.link ??'), 'affiliate widget is derived from the owner-only canonical link')
+check(dashboard.includes("copyCampaignAsset('widget', widgetSnippet)"), 'widget copy reuses measured campaign asset action')
+check(dashboard.includes('Your attributed embed code'), 'widget snippet has a programmatic label')
+check(dashboard.includes('No secret is included.'), 'dashboard explains the public-code security boundary')
+
+const widgetEmbed = read('app/widget/embed/page.tsx')
+check(widgetEmbed.includes('buildAffiliateWidgetCta(affiliateCode)'), 'real embed governs CTA through strict affiliate helper')
+check(widgetEmbed.includes('href={ctaHref}'), 'real powered-by click uses the attributed CTA')
+check(!widgetEmbed.includes('searchParams?.redirect'), 'embed accepts no arbitrary redirect')
 
 const partners = read('app/partners/page.tsx')
 check(partners.includes('A campaign kit, not just a link'), 'public recruiting page promises the implemented kit')
@@ -394,5 +424,12 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(firstClickPreview.includes('11 external active affiliates · 7 with zero lifetime clicks · 0 referrals'), 'first-click preview carries dated production evidence')
 check(firstClickPreview.includes('The nudge is rendered only for authenticated, active affiliates'), 'preview states the exact eligibility boundary')
+
+const widgetPreview = read('docs/previews/AFFILIATE-ATTRIBUTED-WIDGET-2026-08-28.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(widgetPreview.includes(label), `affiliate-widget preview includes ${label}`)
+}
+check(widgetPreview.includes('11 active external affiliates · 7 with zero lifetime clicks'), 'widget preview carries dated production evidence')
+check(widgetPreview.includes('adds no Supabase read or write'), 'widget preview states the capacity-incident boundary')
 
 console.log(`PASS — ${checks}/${checks} affiliate destination checks`)

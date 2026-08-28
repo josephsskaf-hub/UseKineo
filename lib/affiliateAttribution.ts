@@ -1,4 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { normalizeAffiliateCode } from '@/lib/affiliateCode'
+
+export { normalizeAffiliateCode } from '@/lib/affiliateCode'
 
 type AffiliateAttributionReason =
   | 'invalid_code'
@@ -28,11 +31,6 @@ const AFFILIATE_CLICK_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000
 // Both timestamps are server-owned (Postgres/Auth), so reverse clock skew must
 // never let an already-existing account become a paid acquisition after click.
 const AFFILIATE_CLICK_CLOCK_SKEW_MS = 0
-
-export function normalizeAffiliateCode(value: string | null | undefined): string | null {
-  const code = (value ?? '').trim().toUpperCase()
-  return /^[A-HJ-NP-Z2-9]{8}$/.test(code) ? code : null
-}
 
 export function normalizeAffiliateClickId(value: string | null | undefined): string | null {
   const clickId = (value ?? '').trim().toLowerCase()

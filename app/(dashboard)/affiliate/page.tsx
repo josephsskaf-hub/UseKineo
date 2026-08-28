@@ -28,6 +28,10 @@ import {
   getAffiliateDestination,
   type AffiliateDestinationKey,
 } from '@/lib/affiliateDestinations'
+import {
+  buildAffiliateWidgetEmbedUrl,
+  buildAffiliateWidgetSnippet,
+} from '@/lib/growth/affiliateWidget'
 
 // KINEO-ORFAOS-CLIQUE-2026-08-14 — este helper era `fetch('/api/events')` cru,
 // sem `session_id`, e os quatro helpers desta família nasceram um do outro por
@@ -131,7 +135,7 @@ export default function AffiliatePage() {
   const [applying, setApplying] = useState(false)
   const [copied, setCopied] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
-  const [copiedAsset, setCopiedAsset] = useState<'caption' | 'spoken' | null>(null)
+  const [copiedAsset, setCopiedAsset] = useState<'caption' | 'spoken' | 'widget' | null>(null)
   const [selectedDestinationKey, setSelectedDestinationKey] =
     useState<AffiliateDestinationKey>(RECOMMENDED_AFFILIATE_DESTINATION)
   // PUSH #101 — true only for the render right after a successful apply in
@@ -375,6 +379,8 @@ export default function AffiliatePage() {
     : ''
   const readyCaption = `${sharePitch} ${link}${couponLine}`.trim()
   const spokenScript = `${selectedDestination.spokenPitch}${couponLine}`.trim()
+  const widgetEmbedUrl = buildAffiliateWidgetEmbedUrl(data.link ?? '')
+  const widgetSnippet = buildAffiliateWidgetSnippet(data.link ?? '')
   const shareTargets = link
     ? [
         {
@@ -392,7 +398,7 @@ export default function AffiliatePage() {
       ]
     : []
 
-  async function copyCampaignAsset(asset: 'caption' | 'spoken', value: string) {
+  async function copyCampaignAsset(asset: 'caption' | 'spoken' | 'widget', value: string) {
     try {
       await navigator.clipboard.writeText(value)
       setCopiedAsset(asset)
@@ -620,6 +626,65 @@ export default function AffiliatePage() {
           </div>
         ))}
       </section>
+
+      {widgetSnippet ? (
+        <section
+          className="rounded-2xl p-5 mb-5"
+          aria-labelledby="affiliate-widget-heading"
+          style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
+        >
+          <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: CYAN }}>
+            Website traffic that keeps working
+          </div>
+          <h2 id="affiliate-widget-heading" className="font-black tracking-tight mb-1" style={{ color: TEXT, fontSize: '1.08rem' }}>
+            Put your affiliate link inside a daily Shorts idea
+          </h2>
+          <p className="text-xs mb-4" style={{ color: MUTED, lineHeight: 1.55 }}>
+            Paste this once into a blog, resource page or creator site. The idea rotates daily; when a reader clicks Kineo,
+            your existing partner attribution sends them to the free script generator.
+          </p>
+          <div
+            className="rounded-xl p-3 mb-3 flex justify-center"
+            style={{ background: '#000', border: BORDER }}
+          >
+            <iframe
+              src={widgetEmbedUrl}
+              width={360}
+              height={200}
+              title="Your attributed Shorts Idea of the Day widget"
+              style={{ border: 0, borderRadius: 10, maxWidth: '100%' }}
+            />
+          </div>
+          <label
+            htmlFor="affiliate-widget-snippet"
+            className="block text-[10px] font-black uppercase tracking-widest mb-2"
+            style={{ color: MUTED }}
+          >
+            Your attributed embed code
+          </label>
+          <textarea
+            id="affiliate-widget-snippet"
+            readOnly
+            value={widgetSnippet}
+            onFocus={(event) => event.currentTarget.select()}
+            rows={4}
+            className="w-full rounded-xl p-3 text-xs leading-relaxed resize-none"
+            style={{ background: 'rgba(13,13,28,.85)', border: BORDER, color: TEXT, outline: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={() => void copyCampaignAsset('widget', widgetSnippet)}
+            aria-live="polite"
+            className="w-full rounded-xl px-4 py-2.5 mt-2 text-xs font-black"
+            style={{ background: 'rgba(41,151,255,.14)', border: '1px solid rgba(41,151,255,.3)', color: CYAN }}
+          >
+            {copiedAsset === 'widget' ? '✓ Embed code copied' : 'Copy attributed widget'}
+          </button>
+          <p className="text-[10px] mt-3 mb-0" style={{ color: MUTED, lineHeight: 1.5 }}>
+            No secret is included. The public partner code already used by your share links is the only identifier in the snippet.
+          </p>
+        </section>
+      ) : null}
 
       {/* KINEO-CUPOM-AFILIADO-2026-08-21 — o cupom deixa de ser rodapé.
           Num vídeo de TikTok/Reels/Shorts não existe link clicável: o criador
