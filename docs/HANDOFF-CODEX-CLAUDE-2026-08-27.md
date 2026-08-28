@@ -1035,3 +1035,21 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** copy visual, quatro vídeos, `GenerateClient.tsx`, Supabase, Storage, migration, banco, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, e-mail, outreach, TAAFT pago ou anúncio.
 
 **PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir de `eb2a9f3` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade e o pipeline de render. Ambos devem executar `git fetch origin` antes de nova worktree; não reconstruir a ponte ChatGPT/TAAFT.
+
+## 17. Distribuição orgânica — recrawl único da entidade `cineo` (28/08/2026)
+
+**BASE DE CÓDIGO:** `68bbebc626e0a09fa6d5b14352660ccdf2a0a5bc`, igual a `origin/main` no início da ação.
+
+**EVIDÊNCIA DE PRODUÇÃO QUE MOTIVOU A AÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** a consulta exata `cineo` tinha 27 impressões, zero clique e posição média 77,6, todas atribuídas a `https://www.usekineo.com/pricing`. A correção funcional `80fbd412` passou a declarar `Cineo`/`Cineo AI` nos dados estruturados da home e de `/pricing`, mas a seção 13 registrava que o Google ainda não havia recebido pedido de nova leitura. Impressões não são pessoas, cadastros ou assinaturas.
+
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026, entre 20:20 e 20:24 BRT):** a inspeção confirmou para `https://www.usekineo.com/` e `https://www.usekineo.com/pricing` os estados `O URL está no Google`, `A página está indexada` e `A página é exibida por HTTPS`. Codex solicitou indexação uma única vez em cada URL. Para ambas, o painel confirmou `Indexação solicitada` e informou: `O URL foi adicionado a uma fila de rastreamento prioritário. Enviar uma página diversas vezes não alterará a posição ou a prioridade dela na fila.`
+
+**ESCOPO E LIMITE DA PROVA:** nenhuma nova URL, sitemap inteiro ou repetição foi submetida. A ação somente pede ao Google que releia o HTML já publicado; não garante data de rastreamento, posição, impressão, clique, cadastro, checkout ou assinatura. Não repetir agora.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta ação não acessou Supabase, Storage, banco, migration, autenticação ou render. Os `402` permanecem classificados como indisponibilidade de capacidade, nunca como abandono voluntário.
+
+**NÃO TOCADO:** código funcional, UI, copy, preço, oferta, grant, checkout, evento, Supabase, Storage, render, motor, cena, legenda, e-mail, outreach, TAAFT ou anúncio.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará o novo rastreamento e se a consulta `cineo` ganhará posição ou clique. Medir somente após nova janela do Search Console; recrawl solicitado não será chamado de aquisição.
+
+**PRÓXIMO DONO:** Codex segue aquisição/fluxo/assinaturas a partir da ponta atual de `origin/main`. Claude segue o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; esta seção é documentação da ação externa e não altera o produto.
