@@ -34,6 +34,10 @@ import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import Footer from '@/components/Footer'
+import {
+  AFFILIATE_COMPARISON_VERIFIED_HUMAN,
+  AFFILIATE_PROGRAM_COMPARISON,
+} from '@/lib/growth/affiliateProgramComparison'
 
 // KINEO-PRICING-V6-2026-08-19 — a ilustração de ganhos é CALCULADA, não
 // digitada. 40% é a taxa que app/api/affiliate/apply/route.ts grava
@@ -56,13 +60,13 @@ export const dynamic = 'force-static'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
-  title: 'AI Video Affiliate Program - Earn 40% Recurring | Kineo',
+  title: 'AI Video Affiliate Program — 40% Recurring, Compared | Kineo',
   description:
-    'Promote Kineo and earn 40% on recurring payments from referred subscribers. First-touch tracking lasts 90 days and your link goes live the moment you apply.',
+    'Compare Kineo’s 40% recurring affiliate program with official terms from OpusClip, InVideo and VEED. Your Kineo link goes live the moment you apply.',
   alternates: { canonical: 'https://www.usekineo.com/partners' },
   openGraph: {
-    title: 'AI Video Affiliate Program - Earn 40% Recurring | Kineo',
-    description: 'Send creators a topic-to-Short workflow and earn 40% on recurring payments while they remain subscribed.',
+    title: 'AI Video Affiliate Program — 40% Recurring, Compared | Kineo',
+    description: 'Compare the commission shape, duration and activation path before choosing an AI video affiliate program.',
     url: 'https://www.usekineo.com/partners',
     type: 'website',
   },
@@ -85,6 +89,7 @@ export default function PartnersPage() {
   const faq = [
     { q: 'Do I have to be approved first?', a: 'No. There is no review queue and no waiting. The moment you submit the application your affiliate link is active — it starts logging clicks and setting the 90-day attribution cookie on the very first visitor you send.' },
     { q: 'How much do I earn?', a: 'Affiliates earn 40% of each eligible payment from customers they refer, including recurring payments while the customer remains subscribed and the affiliate account remains active. First-touch tracking lasts 90 days.' },
+    { q: 'How does Kineo compare with other AI video affiliate programs?', a: `Rates are not directly comparable unless duration is included. As verified ${AFFILIATE_COMPARISON_VERIFIED_HUMAN}, Kineo publishes 40% recurring while the referred customer stays subscribed; OpusClip publishes 25% recurring through the first year; InVideo publishes 50% on monthly or 25% on annual purchases for the first billing cycle only; and VEED publishes a 20% recurring base with performance bonuses up to 50%. The comparison on this page links every official source.` },
     { q: 'Can I test Kineo first?', a: 'Yes. The free Fast workflow requires no card and creates watermarked previews. If you need extra demo access for a specific audience or tutorial, email us and we will sort it out with you.' },
     { q: 'What do I promote?', a: 'Kineo turns one topic or script into a finished 9:16 Short with script structure, AI voice, matched visuals and captions. Paid plans unlock clean exports and recurring-show tools.' },
     { q: 'How is attribution tracked?', a: 'Your Kineo affiliate link records first-touch clicks, signups, payments and renewals in your affiliate dashboard. The first affiliate link a visitor touches wins, and that attribution holds for 90 days.' },
@@ -112,7 +117,7 @@ export default function PartnersPage() {
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>Affiliate program</div>
           <h1 style={{ fontSize: 'clamp(1.9rem, 5.5vw, 2.7rem)', fontWeight: 900, lineHeight: 1.12, margin: '16px 0 0' }}>AI Video Affiliate Program: Earn 40% Recurring</h1>
           <p style={{ fontSize: '1.05rem', color: '#CBD5E1', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 600 }}>
-            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>40% of eligible payments</b> while referred customers stay subscribed. Most AI video tools pay affiliates 20–30%; 40% recurring is the highest rate we know of in this niche. Track with a link (90-day first touch) <b style={{ color: '#fff' }}>or with a coupon code your viewers just type</b> — so it works in video, where links do not.
+            Send creators a tool that turns one topic into a scripted, voiced and captioned 9:16 Short — and earn <b style={{ color: '#fff' }}>40% of eligible payments</b> while referred customers stay subscribed. Some competitors advertise a larger first-payment percentage; the table below separates headline rate from recurring duration. Track with a link (90-day first touch) <b style={{ color: '#fff' }}>or with a coupon code your viewers just type</b> — so it works in video, where links do not.
           </p>
           <OrganicCtaLink href={APPLY} source="partners" placement="hero" style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}>Apply in Kineo →</OrganicCtaLink>
           <div style={{ marginTop: 14 }}>
@@ -153,6 +158,48 @@ export default function PartnersPage() {
 Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Same price worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
         </section>
 
+        <section id="ai-video-affiliate-program-comparison" style={{ marginTop: 46 }}>
+          <div style={{ textAlign: 'center', maxWidth: 650, margin: '0 auto 18px' }}>
+            <div style={{ color: '#7cc0ff', fontWeight: 900, fontSize: '0.72rem', letterSpacing: '.09em', textTransform: 'uppercase' }}>Official terms, side by side</div>
+            <h2 style={{ fontSize: '1.45rem', fontWeight: 900, margin: '8px 0' }}>A high first commission is not always a recurring commission</h2>
+            <p style={{ color: '#94A3B8', fontSize: '0.9rem', lineHeight: 1.6, margin: 0 }}>
+              This compares published program structure — not likely earnings or product quality. Every competitor claim links to its official source and carries a verification date.
+            </p>
+          </div>
+          <div style={{ overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(124,192,255,.2)' }}>
+            <table style={{ width: '100%', minWidth: 720, borderCollapse: 'collapse', background: 'rgba(11,17,32,.82)', fontSize: '0.79rem', lineHeight: 1.45 }}>
+              <thead>
+                <tr style={{ background: 'rgba(41,151,255,.1)', color: '#CBD5E1', textAlign: 'left' }}>
+                  {['Program', 'Published commission', 'How long it pays', 'Activation', 'Distribution'].map((heading) => (
+                    <th key={heading} style={{ padding: '13px 12px', borderBottom: '1px solid rgba(255,255,255,.1)', whiteSpace: 'nowrap' }}>{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {AFFILIATE_PROGRAM_COMPARISON.map((row) => (
+                  <tr key={row.program} style={{ background: row.kineo ? 'rgba(41,151,255,.075)' : 'transparent' }}>
+                    <td style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,.07)', verticalAlign: 'top' }}>
+                      <div style={{ fontWeight: 900, color: row.kineo ? '#7cc0ff' : '#F1F5F9' }}>{row.program}{row.kineo ? ' · this program' : ''}</div>
+                      <a href={row.sourceUrl} rel={row.kineo ? undefined : 'noopener noreferrer'} target={row.kineo ? undefined : '_blank'} style={{ color: '#64748B', fontSize: '0.7rem' }}>{row.sourceLabel} ↗</a>
+                    </td>
+                    <td style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,.07)', verticalAlign: 'top', fontWeight: 800, color: '#F8FAFC' }}>{row.commission}</td>
+                    <td style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,.07)', verticalAlign: 'top', color: '#CBD5E1' }}>{row.recurrence}</td>
+                    <td style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,.07)', verticalAlign: 'top', color: '#94A3B8' }}>{row.activation}</td>
+                    <td style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,.07)', verticalAlign: 'top', color: '#94A3B8' }}>{row.distribution}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ ...CARD, marginTop: 14, borderRadius: 14, padding: '16px 18px', textAlign: 'center' }}>
+            <div style={{ fontWeight: 900, color: '#F8FAFC' }}>Kineo’s wager is retention, not a one-payment headline.</div>
+            <p style={{ margin: '6px auto 13px', color: '#94A3B8', fontSize: '0.82rem', lineHeight: 1.55, maxWidth: 610 }}>
+              You get 40% recurring, instant self-serve activation, and both a tracked link and a spoken coupon for TikTok, Reels and Shorts. Terms verified {AFFILIATE_COMPARISON_VERIFIED_HUMAN}; competitor programs can change.
+            </p>
+            <OrganicCtaLink href={APPLY} source="partners" placement="comparison" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '11px 22px', borderRadius: 11, textDecoration: 'none', fontSize: '0.9rem' }}>Activate my 40% recurring link →</OrganicCtaLink>
+          </div>
+        </section>
+
         {/* How */}
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
@@ -191,7 +238,7 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
         </section>
 
         {/* FAQ */}
-        <section style={{ marginTop: 44 }}>
+        <section id="affiliate-program-faq" style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>Questions, answered</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {faq.map((f) => (
