@@ -25,6 +25,12 @@ import {
 // seguinte ao reprice. USD fixo aqui (o checkout re-resolve a moeda pelo IP no
 // servidor), mas nunca mais um dígito à mão.
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import {
+  HISTORY_REFERRAL_MISSION_VARIANT,
+  historyReferralMissionCopy,
+  normalizeReferralInviteUrl,
+  normalizeReferralRewardCredits,
+} from '@/lib/historyReferralMission'
 
 const STARTER_PRICE_USD = formatCheckoutMoney('usd', TIER_PRICES.starter.usd)
 
@@ -294,8 +300,13 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // #459 — share the public /v/[id] page (native share on mobile, copy on desktop)
   const [sharedId, setSharedId] = useState<string | null>(null)
   const [referralCode, setReferralCode] = useState<string | null>(null)
+  const [referralRewardCredits, setReferralRewardCredits] = useState<number | null>(null)
+  const [referralInviteUrl, setReferralInviteUrl] = useState<string | null>(null)
+  const [referralInviteCopied, setReferralInviteCopied] = useState(false)
   const sharePromptRef = useRef<HTMLElement | null>(null)
   const sharePromptTrackedKeyRef = useRef<string | null>(null)
+  const referralMissionRef = useRef<HTMLElement | null>(null)
+  const referralMissionTrackedRef = useRef(false)
   // Commercial truth: the current MP4 is always downloadable. For free users
   // that asset carries the Kineo watermark; payment unlocks a clean export.
   // Fail open so a plan lookup problem never hides an owned file.
@@ -338,15 +349,21 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         }))
       })
       .catch(() => {/* fail open */})
-    if (PUBLIC_VIDEO_SHARING_ENABLED) {
+    if (latestVideo) {
       fetch('/api/referral', { cache: 'no-store' })
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
           if (cancelled) return
           const code = typeof d?.code === 'string' ? d.code.trim() : ''
-          if (/^[A-HJ-NP-Z2-9]{8}$/.test(code)) setReferralCode(code)
+          const rewardCredits = normalizeReferralRewardCredits(d?.rewardCredits)
+          const inviteUrl = normalizeReferralInviteUrl(d?.url, code)
+          if (inviteUrl && rewardCredits !== null) {
+            setReferralCode(code)
+            setReferralRewardCredits(rewardCredits)
+            setReferralInviteUrl(inviteUrl)
+          }
         })
-        .catch(() => {/* sharing still works without a referral code */})
+        .catch(() => {/* keep the existing private notice if referral is unavailable */})
     }
     return () => { cancelled = true }
   }, [])
@@ -374,6 +391,34 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     observer.observe(element)
     return () => observer.disconnect()
   }, [latestVideo?.id, referralCode])
+
+  // KINEO-HISTORY-REFERRAL-MISSION-2026-08-28 — public /v links are disabled
+  // for privacy containment. This is a separate acquisition action: it shares
+  // only the creator's root referral URL and never exposes a video id or asset.
+  useEffect(() => {
+    if (
+      PUBLIC_VIDEO_SHARING_ENABLED || referralMissionTrackedRef.current ||
+      !latestVideo || !referralInviteUrl || referralRewardCredits === null
+    ) return
+    const element = referralMissionRef.current
+    if (!element) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
+      referralMissionTrackedRef.current = true
+      void trackEvent('video_share_prompt_viewed', {
+        version: PUBLIC_VIDEO_SHARE_VERSION,
+        variant: HISTORY_REFERRAL_MISSION_VARIANT,
+        where: 'history_private_referral',
+        referral_attached: true,
+        incentive_available: true,
+        incentive_credits_each: referralRewardCredits,
+      })
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [latestVideo, referralInviteUrl, referralRewardCredits])
 
   useEffect(() => {
     if (subscriptionOfferTracked.current || subscriptionOfferEligible !== true || completedVideos.length < 1) return
@@ -599,6 +644,50 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     void trackEvent('video_share_channel_opened', metadata)
   }
 
+  function historyReferralMetadata(channel: 'whatsapp' | 'copy_link') {
+    return {
+      version: PUBLIC_VIDEO_SHARE_VERSION,
+      variant: HISTORY_REFERRAL_MISSION_VARIANT,
+      where: 'history_private_referral',
+      channel,
+      referral_attached: true,
+      incentive_available: true,
+      incentive_credits_each: referralRewardCredits,
+    }
+  }
+
+  async function handleReferralInviteCopy() {
+    if (!referralInviteUrl || referralRewardCredits === null) return
+    const metadata = historyReferralMetadata('copy_link')
+    void trackEvent('video_share_clicked', metadata)
+    let copied = false
+    try {
+      await navigator.clipboard.writeText(referralInviteUrl)
+      copied = true
+    } catch {
+      try { window.prompt('Copy your Kineo invite link:', referralInviteUrl) } catch {}
+    }
+    setReferralInviteCopied(true)
+    setTimeout(() => setReferralInviteCopied(false), 1800)
+    void trackEvent(copied ? 'video_shared' : 'video_share_manual_copy_shown', {
+      ...metadata,
+      method: copied ? 'clipboard' : 'manual_prompt',
+    })
+  }
+
+  function handleReferralInviteWhatsApp() {
+    if (!referralInviteUrl || referralRewardCredits === null) return
+    const metadata = historyReferralMetadata('whatsapp')
+    const copy = historyReferralMissionCopy(referralRewardCredits)
+    void trackEvent('video_share_clicked', metadata)
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(`${copy.whatsappMessage} ${referralInviteUrl}`)}`,
+      '_blank',
+      'noopener,noreferrer',
+    )
+    void trackEvent('video_share_channel_opened', metadata)
+  }
+
   // Push #421 — open (or fetch, then open) the YouTube summary panel.
   // 1st click on an old video calls /api/video-summary (GPT generates and the
   // row caches it); every later click — this session or any future one — is
@@ -675,6 +764,9 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
   // botao ja mudava, mas o olho esta no video, nao no botao). Um por vez,
   // some sozinho em 2.2s. Rollback: remover showToast + o JSX do fim.
   const [toast, setToast] = useState<string | null>(null)
+  const historyReferralCopy = referralRewardCredits === null
+    ? null
+    : historyReferralMissionCopy(referralRewardCredits)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   function showToast(msg: string) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
@@ -966,7 +1058,62 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         </section>
       )}
 
-      {latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED && (
+      {latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED && historyReferralCopy && referralInviteUrl ? (
+        <section
+          ref={referralMissionRef}
+          aria-label="Invite one creator while keeping your video private"
+          className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+          style={{
+            background: 'linear-gradient(135deg, rgba(37,211,102,.15), rgba(41,151,255,.08))',
+            border: '1px solid rgba(37,211,102,.46)',
+            boxShadow: '0 10px 32px rgba(37,211,102,.10)',
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div className="font-black uppercase tracking-[.16em] mb-1.5" style={{ fontSize: '0.62rem', color: '#5cb3ff' }}>
+              {historyReferralCopy.eyebrow}
+            </div>
+            <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
+              {historyReferralCopy.headline}
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 680 }}>
+              {historyReferralCopy.description}
+            </p>
+            <p className="text-xs leading-relaxed mt-2" style={{ color: '#8ecbff', marginBottom: 0, maxWidth: 680 }}>
+              🔒 {historyReferralCopy.privacyNote}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto flex-shrink-0">
+            <button
+              type="button"
+              onClick={handleReferralInviteWhatsApp}
+              className="flex-1 sm:flex-none rounded-xl px-5 py-3 text-sm font-black text-white"
+              style={{
+                minWidth: 150,
+                background: 'linear-gradient(135deg, #25D366, #128C4A)',
+                border: '1px solid rgba(37,211,102,.45)',
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px rgba(37,211,102,.24)',
+              }}
+            >
+              {historyReferralCopy.primaryAction}
+            </button>
+            <button
+              type="button"
+              onClick={handleReferralInviteCopy}
+              className="flex-1 sm:flex-none rounded-xl px-4 py-3 text-sm font-black"
+              style={{
+                background: 'rgba(255,255,255,.06)',
+                border: '1px solid var(--border)',
+                color: 'var(--text)',
+                cursor: 'pointer',
+              }}
+            >
+              {referralInviteCopied ? '✓ Invite link copied' : 'Copy invite link'}
+            </button>
+          </div>
+        </section>
+      ) : latestVideo && !PUBLIC_VIDEO_SHARING_ENABLED ? (
         <section
           aria-label="Private sharing notice"
           className="rounded-2xl p-5 sm:p-6 mb-6"
@@ -985,7 +1132,7 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             Your video stays in your account. Download the MP4 if you want to send it directly; Kineo will not publish a public page without an explicit visibility choice.
           </p>
         </section>
-      )}
+      ) : null}
 
       {/* Stats */}
       <div
