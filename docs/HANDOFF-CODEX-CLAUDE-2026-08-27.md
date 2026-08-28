@@ -506,6 +506,21 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe pessoa externa observada em `business_planner → signup → completed → checkout → paid`. Plano gerado, CTA exposto, cadastro e vídeo concluído não serão chamados de assinatura. Medir pessoas somente depois do incidente de capacidade e com amostra externa.
 - **NÃO TOCADO:** Supabase, Storage, migration, analytics, render, cena, legenda, motor, preço, grant, oferta, e-mail, outreach, tráfego pago e páginas autenticadas.
 
+### 2.35 Escolha do motor atravessa signup até o Studio
+
+**FATO CONFIRMADO / IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO EM PRODUÇÃO (28/08/2026).** Commit funcional `6610450608b81b1b8b2580ac22a3287057cc57d4`.
+
+- **FATO CONFIRMADO:** as sete páginas `/ai-video-generator/[engine]` anunciavam “Start free with [motor]”, mas o CTA principal colocava `engine=` como parâmetro solto de `/signup`. `activationRedirectFromSearch` só preserva um `redirect` interno validado ou campos allow-listed de criação; portanto, `engine` era descartado. Visitante novo sem prompt terminava na home e usuário já autenticado no dashboard, sem o motor prometido (`app/ai-video-generator/[engine]/page.tsx`, versão anterior a `6610450`; `app/(auth)/signup/page.tsx:24-25`; `lib/supabase/middleware.ts`).
+- `lib/growth/engineLandingIntent.ts:1-57` governa os sete parâmetros reais (`fast`, `seedance`, `kling`, `veo`, `hollywood`, `h3`, `omni`). O CTA agora carrega `redirect=/studio?engine=<motor>&intent_campaign=<campanha>` por `/signup`, com UTM orgânica preservada (`app/ai-video-generator/[engine]/page.tsx:344-345`).
+- O Studio já lê e aplica `engine` e `intent_campaign` (`app/(dashboard)/studio/StudioClient.tsx:180-187`). O novo contrato apenas conduz a pessoa ao cockpit com a escolha mantida: não envia prompt, não define `create_intent`, não define `autoanalyze` e não inicia render. O link secundário de quem já possui conta também vai direto ao Studio, sem o hop legado de `/generate` (`app/ai-video-generator/[engine]/page.tsx:561`).
+- Hero, CTA final e sticky CTA compartilham o mesmo href corrigido (`app/ai-video-generator/[engine]/page.tsx:393,552,592`). Entrada inválida falha fechada para o motor gratuito `fast` e campanha limitada `seo_engine`; URL externa nunca é aceita.
+- **TESTADO LOCALMENTE:** contrato de intenção `109/109`; regressão Arena `81/81`; verdade comercial `305/305`; planner B2B `145/145`; total de 640 verificações. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega. Comparação visual obrigatória: `docs/previews/ENGINE-LANDING-INTENT-2026-08-28.html`, com antes/depois desktop e mobile.
+- **PUBLICADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_hT3NYTLaFSCP5cexb313Jyb8JUjE` em estado `READY`, SHA `6610450608b81b1b8b2580ac22a3287057cc57d4`, aliasado em `www.usekineo.com`.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Claude conduz o incidente. O Codex não abriu página autenticada, não consultou o Supabase por ferramenta e não iniciou render. A geração estática dessas páginas continua usando `getEngineRenders`, comportamento preexistente não alterado por esta entrega.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** a travessia visual real `landing → signup/OAuth → Studio com motor selecionado` não foi executada durante o incidente. O deploy `READY` e o teste determinístico provam o contrato publicado, mas não substituem um smoke pós-auth. Validar uma vez após a capacidade normalizar, sem apertar Generate.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não existe pessoa externa observada pós-deploy. Medir pessoas por campanha `seo_engine_<slug>` em `landing CTA → signup → Studio → completed → checkout → paid`; clique, cadastro, Studio aberto e vídeo concluído não serão chamados de assinatura.
+- **NÃO TOCADO:** `GenerateClient`, seletor de motores, custo, grant, preço, Supabase, Storage, migration, render, cena, legenda, fornecedor, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
