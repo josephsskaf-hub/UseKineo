@@ -11,9 +11,11 @@ import {
   paypalFetch,
   ensurePlan,
   PAYPAL_PACK,
-  type PayPalTier,
-  type PayPalBilling,
 } from '@/lib/paypal'
+import {
+  paypalCheckoutLoginPath,
+  resolvePaypalCheckoutIntent,
+} from '@/lib/paypalCheckoutIntent'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,20 +32,26 @@ export async function GET(req: NextRequest) {
     return redirectError('PayPal is not configured yet. Please use card checkout.')
   }
 
+  const intent = resolvePaypalCheckoutIntent(req.nextUrl.searchParams)
+  if (!intent) return redirectError('Invalid plan.')
+
   const supabase = createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    return NextResponse.redirect(`${appUrl()}/signup?redirect=${encodeURIComponent('/pricing')}`)
+    // KINEO-PAYPAL-RECOVERY-AUTH-2026-08-28 — recovery is sent to an existing
+    // account. The old signup → pricing fallback dropped the selected plan and
+    // forced the buyer to find checkout again. Resume the exact allow-listed
+    // PayPal intent through the proven login/OAuth handoff. `resumed=1` keeps a
+    // stale cookie from bouncing login ↔ checkout forever.
+    if (intent.resumed) {
+      return redirectError('We could not confirm your sign-in. Please sign in and try again.')
+    }
+    return NextResponse.redirect(`${appUrl()}${paypalCheckoutLoginPath(intent)}`)
   }
-
-  const params = req.nextUrl.searchParams
-  const pack = params.get('pack')
-  const tierParam = params.get('tier')
-  const billing: PayPalBilling = params.get('billing') === 'annual' ? 'annual' : 'monthly'
 
   try {
     // ── One-time Starter Pack ────────────────────────────────────────────────
-    if (pack === 'starter') {
+    if (intent.kind === 'pack') {
       const order = await paypalFetch('/v2/checkout/orders', {
         method: 'POST',
         body: JSON.stringify({
@@ -71,10 +79,7 @@ export async function GET(req: NextRequest) {
     }
 
     // ── Subscription ─────────────────────────────────────────────────────────
-    const tier = (['starter', 'basic', 'pro'] as const).includes(tierParam as PayPalTier)
-      ? (tierParam as PayPalTier)
-      : null
-    if (!tier) return redirectError('Invalid plan.')
+    const { tier, billing } = intent
 
     const admin = paypalAdminClient()
     const planId = await ensurePlan(admin, tier, billing)

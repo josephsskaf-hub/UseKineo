@@ -32,6 +32,7 @@ const checkout = loadTs('lib/checkoutPricing.ts', {
   '@/lib/autopilot/config': autopilot,
 })
 const catalog = loadTs('lib/paypalCatalog.ts', { '@/lib/checkoutPricing': checkout })
+const checkoutIntent = loadTs('lib/paypalCheckoutIntent.ts', { '@/lib/paypalCatalog': catalog })
 
 let checks = 0
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks++ }
@@ -60,6 +61,7 @@ equal(catalog.PAYPAL_PACK.usd, (checkout.PACK_PRICE_MINOR.usd / 100).toFixed(2),
 equal(catalog.PAYPAL_PACK.credits, checkout.PACK_CREDITS.starter, 'PayPal First Pack grant is canonical')
 
 const paypalSource = source('lib/paypal.ts')
+const paypalCheckoutSource = source('app/api/paypal/checkout/route.ts')
 const recoverySource = source('app/api/cron/send-recovery/route.ts')
 const pricingSource = source('app/pricing/PricingClient.tsx')
 
@@ -70,6 +72,102 @@ ok(!paypalSource.includes("monthly: '9.90'"), 'retired Starter price is absent f
 ok(!paypalSource.includes('starter: 25'), 'retired Starter grant is absent from PayPal provider source')
 ok(recoverySource.includes('/api/paypal/checkout?tier=${tier}'), 'abandoned-checkout email still uses the corrected PayPal route')
 ok(pricingSource.includes('const PAYPAL_ENABLED = false'), 'public PayPal buttons remain disabled pending a real paid canary')
+
+const monthlyIntent = checkoutIntent.resolvePaypalCheckoutIntent(new URLSearchParams('tier=basic&utm_source=attacker'))
+equal(monthlyIntent, {
+  kind: 'subscription',
+  tier: 'basic',
+  billing: 'monthly',
+  resumed: false,
+  resumePath: '/api/paypal/checkout?tier=basic&billing=monthly&resumed=1',
+}, 'Creator recovery preserves the plan, defaults monthly, and drops arbitrary query fields')
+equal(
+  checkoutIntent.paypalCheckoutLoginPath(monthlyIntent),
+  '/login?reason=checkout&redirect=%2Fapi%2Fpaypal%2Fcheckout%3Ftier%3Dbasic%26billing%3Dmonthly%26resumed%3D1',
+  'logged-out Creator buyer enters the proven checkout login handoff',
+)
+
+const annualIntent = checkoutIntent.resolvePaypalCheckoutIntent(new URLSearchParams('tier=pro&billing=annual'))
+equal(annualIntent.billing, 'annual', 'annual Studio cadence survives the auth hop')
+equal(annualIntent.resumePath, '/api/paypal/checkout?tier=pro&billing=annual&resumed=1', 'annual Studio return path is exact')
+
+const packIntent = checkoutIntent.resolvePaypalCheckoutIntent(new URLSearchParams('pack=starter&billing=annual&extra=1'))
+equal(packIntent, {
+  kind: 'pack',
+  pack: 'starter',
+  resumed: false,
+  resumePath: '/api/paypal/checkout?pack=starter&resumed=1',
+}, 'First Pack survives auth without unrelated subscription fields')
+equal(
+  checkoutIntent.resolvePaypalCheckoutIntent(new URLSearchParams('tier=enterprise')),
+  null,
+  'unknown tier never reaches auth or PayPal',
+)
+equal(
+  checkoutIntent.resolvePaypalCheckoutIntent(new URLSearchParams('tier=starter&resumed=1')).resumed,
+  true,
+  'resume guard is recognized deterministically',
+)
+
+ok(paypalCheckoutSource.includes('resolvePaypalCheckoutIntent(req.nextUrl.searchParams)'), 'live route executes the allow-listed intent resolver')
+ok(paypalCheckoutSource.includes('paypalCheckoutLoginPath(intent)'), 'live route executes the login handoff builder')
+ok(paypalCheckoutSource.includes('if (intent.resumed)'), 'live route terminates a stale-session loop')
+ok(!paypalCheckoutSource.includes("/signup?redirect=${encodeURIComponent('/pricing')}"), 'live route no longer drops a buyer at signup/pricing')
+ok(recoverySource.includes('/login?reason=checkout'), 'recovery source documents the executable login contract')
+
+let providerCallsFromAnonymousRoute = 0
+const checkoutRoute = loadTs('app/api/paypal/checkout/route.ts', {
+  'next/server': {
+    NextResponse: {
+      redirect: (location) => ({ location: String(location) }),
+    },
+  },
+  '@/lib/supabase/server': {
+    createClient: () => ({
+      auth: {
+        getUser: async () => ({ data: { user: null }, error: null }),
+      },
+    }),
+  },
+  '@/lib/paypal': {
+    paypalAdminClient: () => { providerCallsFromAnonymousRoute++; throw new Error('provider must not be reached') },
+    paypalFetch: async () => { providerCallsFromAnonymousRoute++; throw new Error('provider must not be reached') },
+    ensurePlan: async () => { providerCallsFromAnonymousRoute++; throw new Error('provider must not be reached') },
+    PAYPAL_PACK: catalog.PAYPAL_PACK,
+  },
+  '@/lib/paypalCheckoutIntent': checkoutIntent,
+})
+
+const routeClientId = process.env.PAYPAL_CLIENT_ID
+const routeClientSecret = process.env.PAYPAL_CLIENT_SECRET
+process.env.PAYPAL_CLIENT_ID = 'route-test-client'
+process.env.PAYPAL_CLIENT_SECRET = 'route-test-secret'
+try {
+  const loggedOutRecovery = await checkoutRoute.GET({
+    nextUrl: { searchParams: new URLSearchParams('tier=basic') },
+  })
+  equal(
+    loggedOutRecovery.location,
+    'https://www.usekineo.com/login?reason=checkout&redirect=%2Fapi%2Fpaypal%2Fcheckout%3Ftier%3Dbasic%26billing%3Dmonthly%26resumed%3D1',
+    'executed route sends a logged-out recovery buyer to login with the exact Creator checkout',
+  )
+
+  const staleResume = await checkoutRoute.GET({
+    nextUrl: { searchParams: new URLSearchParams('tier=basic&billing=monthly&resumed=1') },
+  })
+  ok(staleResume.location.startsWith('https://www.usekineo.com/pricing?checkout_error='), 'executed route stops a stale-session auth loop at pricing')
+
+  const invalidPlan = await checkoutRoute.GET({
+    nextUrl: { searchParams: new URLSearchParams('tier=enterprise') },
+  })
+  ok(invalidPlan.location.includes('checkout_error=Invalid%20plan.'), 'executed route rejects an unknown tier before auth/provider')
+  equal(providerCallsFromAnonymousRoute, 0, 'anonymous, stale, and invalid requests create zero provider objects')
+} finally {
+  if (routeClientId === undefined) delete process.env.PAYPAL_CLIENT_ID
+  else process.env.PAYPAL_CLIENT_ID = routeClientId
+  if (routeClientSecret === undefined) delete process.env.PAYPAL_CLIENT_SECRET
+  else process.env.PAYPAL_CLIENT_SECRET = routeClientSecret
+}
 
 const paypal = loadTs('lib/paypal.ts', {
   '@/lib/paypalCatalog': catalog,

@@ -192,8 +192,9 @@ function isAuthorized(req: NextRequest): boolean {
 // KINEO-ORDEM-2-2026-08-02 — PayPal no momento do decline: ~40% dos pagamentos
 // da história são "malsucedido" (decline de banco, Índia/Paquistão fortes).
 // PayPal JÁ existe (rotas /api/paypal/*); o e-mail só precisava oferecer.
-// O link exige login: usuário deslogado cai em /signup?redirect=/pricing, onde
-// os botões PayPal existem — fallback aceitável, nunca um beco sem saída.
+// O link exige login: usuário deslogado cai em /login?reason=checkout levando
+// tier/billing até a mesma rota PayPal. O fluxo não depende de a pessoa achar o
+// plano novamente em /pricing e usa o guard `resumed=1` contra loop de cookie.
 const PAYPAL_TIERS = new Set(['starter', 'basic', 'pro'])
 function paypalLink(tier: string): string {
   return PAYPAL_TIERS.has(tier)
