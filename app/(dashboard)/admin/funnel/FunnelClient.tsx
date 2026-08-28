@@ -8,6 +8,7 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { FunnelData } from '@/app/api/admin/funnel/route'
+import { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
 
 export type { FunnelData }
 
@@ -636,7 +637,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
       </Section>
 
       <Section title={`ChatGPT quick-start · source → right input mode → video · ${days === 'all' ? 'all time' : `${days}d`}`}>
-        <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? 'unique actors · quickstart_v1' : 'Events unavailable — not zero'} accent="#22d3ee" />
+        <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? `unique actors · ${CHATGPT_QUICKSTART_VARIANT}` : 'Events unavailable — not zero'} accent="#22d3ee" />
         <Card label="Mode selections" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.selections) : '—'} hint={chatGptQuickstart.eventsAvailable ? `${chatGptQuickstart.scriptSelections} script · ${chatGptQuickstart.ideaSelections} idea` : 'Events unavailable — not zero'} accent="#2997ff" />
         <RateCard label="View → Choice" value={chatGptQuickstart.viewToSelectionRate} sub={`${chatGptQuickstart.selections} / ${chatGptQuickstart.views} people`} />
         <Card label="Generation starts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.starts) : '—'} hint="after the same actor's choice" accent="#a78bfa" />
