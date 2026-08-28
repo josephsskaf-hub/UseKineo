@@ -1054,7 +1054,35 @@ PRÓXIMO DONO:
 
 **PRÓXIMO DONO:** Codex segue aquisição/fluxo/assinaturas a partir da ponta atual de `origin/main`. Claude segue o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; esta seção é documentação da ação externa e não altera o produto.
 
-## 18. Distribuição orgânica — recrawl único de `#viralnow` (28/08/2026)
+## 18. Aquisição orgânica/AI Answers — comparação Synthesia honesta e citável (28/08/2026)
+
+**BASE LIDA:** `9aa747672ac6849a488d34560a037655b99b4ab1`.
+
+**SHA FUNCIONAL:** `772df7461af36a7cf49c89acd18695da79c56f29`.
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** o relatório beta de recursos generativos de IA mostrou 35 impressões no total. `/alternatives/synthesia` recebeu 4 impressões — a maior contagem entre as páginas editoriais do relatório; somente a home, com 16, e `/pricing`, com 6, ficaram acima. São impressões, não pessoas, cliques, cadastros, checkouts ou assinaturas.
+
+**FATO CONFIRMADO / PROBLEMA DE VERDADE COMERCIAL:** antes de `772df74`, `app/alternatives/[competitor]/page.tsx` descrevia a Synthesia como um fluxo que parava no avatar/talking head e dizia que Kineo “finishes the job”. A página oficial `https://www.synthesia.io/features/ai-video-generator`, consultada em 28/08/2026, declara geração completa de vídeo e assets gerados por IA. A mesma página da Kineo prometia `perfect lip-sync` e apresentava equivalência ampla; o contrato real do produto é um apresentador opcional 720p a partir de foto adequada, não uma biblioteca de avatares nem um workspace empresarial de governança.
+
+**IMPLEMENTADO:** a página passa a responder primeiro à decisão de compra: `Kineo is an alternative for the Short — not for the enterprise avatar workspace`. O H1 esclarece que não é substituição direta. A comparação separa o trabalho de creator — um Short faceless 9:16 com roteiro, narração, motor visual e legendas — do trabalho empresarial da Synthesia — avatares, localização multilíngue, revisão em equipe, Brand Kit, SCORM e controles de governança. As afirmações instáveis sobre a concorrente ficam acompanhadas por links para `https://www.synthesia.io/pricing` e `https://www.synthesia.io/features/ai-video-generator`, com data de conferência e aviso de que planos/limites podem mudar. Nenhum preço da Synthesia foi congelado no código.
+
+**FATO CONFIRMADO / OFERTA:** preço e grant da Kineo continuam derivados das fontes canônicas (`STARTER_MO` e `OFFER.copy.sentence`); nenhum preço foi escrito como literal novo. A campanha existente `push22_alternative_synthesia` foi preservada para não fragmentar atribuição. Não foi criado evento, campanha, cookie, API ou acesso novo ao banco.
+
+**TESTADO LOCALMENTE:** `test-synthesia-ai-answer` 33/33 e `test-growth-invideo-free-intent` 29/29; whitespace limpo com `core.whitespace=cr-at-eol`. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/synthesia-ai-answer-2026-08-28.html` contém antes/depois desktop e mobile. O preview isolado `dpl_9yM99dgGS1P5hcwhZzVpyr3x8bfv` foi inspecionado visualmente em 28/08/2026. No desktop, a resposta curta e os dois critérios de escolha aparecem antes da tabela; no viewport real de 390 × 844, os cards empilham, o texto permanece legível e `scrollWidth = clientWidth = 390`, sem overflow horizontal.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_F2WWGo1UTBwk2z6yDStvyrDcTpc8` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `772df746`. Um GET público sem JavaScript respondeu `200`, `x-matched-path: /alternatives/synthesia`, title/H1 novos, canonical `https://www.usekineo.com/alternatives/synthesia`, resposta curta e links oficiais presentes. A Vercel registrou zero erro de runtime agrupado para `/alternatives/synthesia` nos 15 minutos consultados.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega e sua validação não acessaram Supabase, Storage, banco, migration, autenticação ou render. O GET foi sem JavaScript e não executou os eventos client-side existentes. `402` permanece capacidade indisponível, não abandono voluntário nem falha atribuída a esta página; não declarar que renders estão perfeitos.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhum clique, pessoa, cadastro, checkout ou assinatura foi atribuído à comparação nova. A evidência prova uma superfície já exibida em respostas generativas, uma mensagem anterior materialmente imprecisa e a correção publicada; não prova aquisição. Medir a URL na próxima janela do relatório generativo e no funil já existente, sem adicionar telemetria durante o incidente.
+
+**NÃO TOCADO:** Supabase, Storage, migration, autenticação, `GenerateClient.tsx`, render, motor, cena, legenda, crédito, preço, grant, SKU, checkout, e-mail, outreach, TAAFT pago ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `772df746` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade e qualidade do pipeline. Ambos devem executar `git fetch origin` antes de nova worktree; não reconstruir esta comparação nem voltar à promessa de substituição direta.
+
+## 19. Distribuição orgânica — recrawl único de `#viralnow` (28/08/2026)
 
 **BASE DE CÓDIGO:** `7ca4b6ec4fe6b66db93d44a50723e827008603f7`, igual a `origin/main` no início da ação.
 
