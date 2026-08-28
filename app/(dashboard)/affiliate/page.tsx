@@ -18,7 +18,7 @@
 //    zeros. `justApplied` turns it into one concrete next action: send the
 //    link to one person, right now, with one tap.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -138,6 +138,7 @@ export default function AffiliatePage() {
   // THIS session, so the "your link is live, use it now" block is a moment and
   // not permanent dashboard furniture.
   const [justApplied, setJustApplied] = useState(false)
+  const firstClickMissionTracked = useRef(false)
 
   async function load() {
     try {
@@ -160,6 +161,17 @@ export default function AffiliatePage() {
     load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  useEffect(() => {
+    const active = data?.affiliate?.status?.toLowerCase() === 'active'
+    const zeroClicks = data?.stats?.clicks === 0
+    if (!active || !zeroClicks || firstClickMissionTracked.current) return
+    firstClickMissionTracked.current = true
+    trackAffiliateEvent('affiliate_first_click_mission_viewed', {
+      link_visits: 0,
+      just_applied: justApplied,
+    })
+  }, [data, justApplied])
 
   async function apply() {
     setApplying(true)
@@ -199,6 +211,7 @@ export default function AffiliatePage() {
       trackAffiliateEvent('affiliate_link_copied', {
         just_applied: justApplied,
         destination: selectedDestinationKey,
+        first_click_mission: data?.stats?.clicks === 0,
       })
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -347,6 +360,7 @@ export default function AffiliatePage() {
   const earnings = data.earnings ?? { pending: 0, approved: 0, paid: 0, total: 0 }
   const recent = data.recent ?? []
   const ratePct = `${Math.round((a.commission_rate ?? 0) * 100)}%`
+  const needsFirstClick = stats.clicks === 0
 
   // PUSH #101 — one-tap first share. Copy-to-clipboard alone still leaves the
   // affiliate to go find somewhere to paste it; these hand them a pre-written
@@ -386,6 +400,7 @@ export default function AffiliatePage() {
         asset,
         destination: selectedDestinationKey,
         coupon_attached: Boolean(a.coupon_code),
+        first_click_mission: needsFirstClick,
       })
       setTimeout(() => setCopiedAsset(null), 1800)
     } catch {
@@ -411,19 +426,27 @@ export default function AffiliatePage() {
       {/* PUSH #101 — the moment right after applying. Peak intent, and the
           only thing standing between them and their first tracked click is
           sending the link to one person. */}
-      {justApplied ? (
+      {justApplied || needsFirstClick ? (
         <div
           className="rounded-2xl p-5 mb-4"
           style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)' }}
         >
+          <div className="text-[10px] font-black uppercase tracking-[.16em] mb-2" style={{ color: CYAN }}>
+            First-click mission · 0 link visits
+          </div>
           <div className="font-black mb-1" style={{ fontSize: '1.05rem', color: TEXT }}>
-            You&apos;re in — your link is already live.
+            {justApplied ? 'You\'re in — your link is already live.' : 'Get one real person through your link.'}
           </div>
           <p className="text-sm" style={{ color: MUTED, lineHeight: 1.6, margin: 0 }}>
-            Nothing is pending and nobody has to approve you. A new visitor who follows the link
-            before creating their account can stay attributed to you for up to 90 days. Send it to
-            one person now — the first share is the one nobody gets around to.
+            Nothing is pending. Choose the closest audience below, copy the prepared post and place it
+            where that audience already asks about AI video. This mission closes after the first eligible
+            link visit; a visitor who arrives before signup can stay attributed to you for up to 90 days.
           </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs font-bold">
+            <div className="rounded-lg px-3 py-2" style={{ color: '#86efac', background: 'rgba(16,185,129,.1)' }}>✓ Partner link live</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: CYAN, background: 'rgba(41,151,255,.12)' }}>2 · Publish the ready post</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: MUTED, background: 'rgba(255,255,255,.035)' }}>3 · First eligible visit</div>
+          </div>
         </div>
       ) : null}
 
@@ -431,6 +454,7 @@ export default function AffiliatePage() {
           assets; this keeps attribution first-party and gives each audience a
           useful pre-signup destination instead. */}
       <div
+        id="partner-campaign-kit"
         className="rounded-2xl p-5 mb-5"
         style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
       >
@@ -544,6 +568,7 @@ export default function AffiliatePage() {
                     channel: t.label,
                     just_applied: justApplied,
                     destination: selectedDestinationKey,
+                    first_click_mission: needsFirstClick,
                   })
                 }
                 className="rounded-lg px-3 py-1.5 text-xs font-extrabold"

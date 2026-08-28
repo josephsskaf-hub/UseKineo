@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar'
 import TopBar from '@/components/TopBar'
 import MobileNav from '@/components/MobileNav'
 import AvatarLaunchBanner from '@/components/AvatarLaunchBanner'
+import AffiliateFirstClickNudge from '@/components/AffiliateFirstClickNudge'
 // KINEO-REBASE-2026-07-10 — one-time 2:1 credit-rebase notice (self-expires 24/07)
 import CreditRebaseBanner from '@/components/CreditRebaseBanner'
 // KINEO-CREATOR30-2026-08-24 — modal da coorte do print (30% Creator, 1ª
@@ -132,7 +133,10 @@ export default function DashboardShell({
             entao nao depende do JIT gerar nada novo) e cobre 62+34+6=102px com
             folga. `md:pb-0` inalterado: no desktop a MobileNav e md:hidden e
             nada muda. */}
-        <main className="flex-1 overflow-y-auto pb-28 md:pb-0">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-28 md:pb-0">
+          <AffiliateFirstClickNudge pathname={pathname} isLoggedIn={isLoggedIn} />
+          {children}
+        </main>
         <MobileNav isLoggedIn={isLoggedIn} />
       </div>
     </div>
