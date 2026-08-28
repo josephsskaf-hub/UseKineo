@@ -35,6 +35,9 @@ function executeTs(file, mocks = {}, env = {}) {
 }
 
 const destinations = executeTs('lib/affiliateDestinations.ts')
+const firstClick = executeTs('lib/affiliateFirstClick.ts', {
+  '@/lib/affiliateDestinations': destinations,
+})
 const attribution = executeTs('lib/affiliateAttribution.ts', {
   '@supabase/supabase-js': { createClient: () => { throw new Error('not used') } },
 })
@@ -42,6 +45,30 @@ const CODE = 'ABCD2345'
 const OLD_CODE = 'WXYZ2345'
 const CLICK_ID = '11111111-1111-4111-8111-111111111111'
 const OLD_CLICK_ID = '22222222-2222-4222-8222-222222222222'
+
+const zeroClickPayload = (overrides = {}) => ({
+  isAffiliate: true,
+  affiliate: { status: 'active', coupon_code: null },
+  link: `https://www.usekineo.com/a/${CODE}`,
+  stats: { clicks: 0 },
+  ...overrides,
+})
+
+equal(firstClick.buildAffiliateFirstClickOffer(null), null, 'missing affiliate state never shows activation nudge')
+equal(firstClick.buildAffiliateFirstClickOffer({ isAffiliate: false }), null, 'non-affiliate never sees first-click mission')
+equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ affiliate: { status: 'pending' } })), null, 'pending affiliate cannot distribute')
+equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ stats: {} })), null, 'unknown click count fails closed')
+equal(firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ stats: { clicks: 1 } })), null, 'mission disappears after first eligible visit')
+const canonicalizedHostOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({ link: 'https://evil.example/a/ABCD2345' }))
+check(canonicalizedHostOffer.caption.includes('https://www.usekineo.com/a/ABCD2345?to=script'), 'untrusted API host is rewritten to canonical Kineo host')
+const firstClickOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload())
+equal(firstClickOffer.destination, 'script', 'first-click mission uses recommended free-value destination')
+check(firstClickOffer.caption.includes(`https://www.usekineo.com/a/${CODE}?to=script`), 'ready post carries canonical tracked deep link')
+check(!firstClickOffer.caption.includes('Use code'), 'coupon sentence stays absent when coupon is unavailable')
+const couponOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({
+  affiliate: { status: 'ACTIVE', coupon_code: 'SAVE20' },
+}))
+check(couponOffer.caption.includes('Use code SAVE20 for 20% off the first month.'), 'ready post attaches the available first-month coupon')
 
 equal(destinations.AFFILIATE_DESTINATIONS.length, 3, 'three audience-specific first-party destinations are enabled')
 equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
@@ -307,6 +334,10 @@ check(dashboard.includes('role="group"'), 'campaign selector exposes a semantic 
 check(dashboard.includes('aria-pressed={selected}'), 'campaign selector exposes selected state')
 check(dashboard.includes('affiliate_campaign_selected'), 'campaign choice is measured')
 check(dashboard.includes('affiliate_campaign_asset_copied'), 'campaign asset usage is measured')
+check(dashboard.includes('affiliate_first_click_mission_viewed'), 'zero-click mission impression is measured')
+check(dashboard.includes('First-click mission · 0 link visits'), 'zero-click affiliate receives a persistent named mission')
+check(dashboard.includes('first_click_mission: needsFirstClick'), 'share actions preserve first-click context')
+check(dashboard.includes('id="partner-campaign-kit"'), 'cross-dashboard nudge lands on the exact campaign kit')
 check(dashboard.includes('Ready-to-post caption'), 'dashboard supplies ready-to-post copy')
 check(dashboard.includes('Short speaking script'), 'dashboard supplies a short spoken pitch without promising exact timing')
 
@@ -324,6 +355,17 @@ check(adminRoute.includes('destinationClicks'), 'admin response exposes destinat
 const adminPage = read('app/(dashboard)/admin/affiliates/page.tsx')
 check(adminPage.includes('Affiliate click destinations'), 'admin UI labels the destination breakdown')
 check(adminPage.includes('raw link visits'), 'admin does not mislabel raw visits as people')
+
+const firstClickNudge = read('components/AffiliateFirstClickNudge.tsx')
+const dashboardShell = read('app/(dashboard)/DashboardShell.tsx')
+check(firstClickNudge.includes("new Set(['/studio', '/history'])"), 'zero-click nudge is limited to two high-intent dashboard surfaces')
+check(firstClickNudge.includes("fetch('/api/affiliate/me'"), 'nudge reads owner-only canonical affiliate state')
+check(firstClickNudge.includes('buildAffiliateFirstClickOffer(payload)'), 'rendered nudge is governed by executable zero-click policy')
+check(firstClickNudge.includes('affiliate_first_click_nudge_viewed'), 'cross-dashboard impression is measured')
+check(firstClickNudge.includes('affiliate_first_click_nudge_copied'), 'ready-post copy is measured')
+check(firstClickNudge.includes('affiliate_first_click_nudge_opened'), 'partner-kit continuation is measured')
+check(firstClickNudge.includes('await navigator.clipboard.writeText(readyCaption)'), 'copy success is awaited before conversion event')
+check(dashboardShell.includes('<AffiliateFirstClickNudge pathname={pathname} isLoggedIn={isLoggedIn} />'), 'real dashboard shell mounts zero-click activation')
 
 const routeSource = read('app/a/[code]/route.ts')
 check(routeSource.includes('isAffiliatePreviewBot'), 'real route filters preview bots')
@@ -345,5 +387,12 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
   check(campaignPreview.includes(label), `campaign-kit preview includes ${label}`)
 }
 check(campaignPreview.includes('11 affiliates externos, 17 cliques, 0 signup atribuído'), 'campaign preview carries dated production evidence')
+
+const firstClickPreview = read('docs/previews/AFFILIATE-FIRST-CLICK-MISSION-2026-08-28.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(firstClickPreview.includes(label), `first-click preview includes ${label}`)
+}
+check(firstClickPreview.includes('11 external active affiliates · 7 with zero lifetime clicks · 0 referrals'), 'first-click preview carries dated production evidence')
+check(firstClickPreview.includes('The nudge is rendered only for authenticated, active affiliates'), 'preview states the exact eligibility boundary')
 
 console.log(`PASS — ${checks}/${checks} affiliate destination checks`)
