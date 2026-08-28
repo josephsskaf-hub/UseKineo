@@ -132,6 +132,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     checkoutStarts: 0, payments: 0, viewToClickRate: '—',
     clickToCheckoutRate: '—', checkoutToPaidRate: '—',
   }
+  const trialPostVideoOffer = data.trialPostVideoOffer ?? {
+    views: 0, clicks: 0, checkoutStarts: 0, payments: 0,
+    noClickViewers: 0, checkoutAfterViewWithoutClick: 0,
+    singlePrimaryViews: 0, singlePrimaryClicks: 0,
+    viewToClickRate: '—', clickToCheckoutRate: '—', checkoutToPaidRate: '—',
+    sourceBreakdown: [],
+  }
   const planFitOffer = data.planFitOffer ?? {
     eventsAvailable: false,
     stripeAvailable: false,
@@ -775,6 +782,80 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           value={postVideoOffer.checkoutToPaidRate}
           sub={`${postVideoOffer.payments} / ${postVideoOffer.checkoutStarts}`}
         />
+      </Section>
+
+      <Section title={`Trial subscription offer · causal by person · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card
+          label="Offer viewers"
+          value={fmt(trialPostVideoOffer.views)}
+          hint="unique external actors"
+          accent="#22d3ee"
+        />
+        <Card
+          label="Single-primary viewers"
+          value={fmt(trialPostVideoOffer.singlePrimaryViews)}
+          hint="new post-video layout only"
+          accent="#c4b5fd"
+        />
+        <Card
+          label="Offer clicks"
+          value={fmt(trialPostVideoOffer.clicks)}
+          hint={`${fmt(trialPostVideoOffer.noClickViewers)} viewers did not click`}
+          accent="#4ade80"
+        />
+        <RateCard
+          label="View → Click"
+          value={trialPostVideoOffer.viewToClickRate}
+          sub={`${trialPostVideoOffer.clicks} / ${trialPostVideoOffer.views} people`}
+        />
+        <Card
+          label="Checkout after click"
+          value={fmt(trialPostVideoOffer.checkoutStarts)}
+          hint="same actor, ordered journey"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Click → Checkout"
+          value={trialPostVideoOffer.clickToCheckoutRate}
+          sub={`${trialPostVideoOffer.checkoutStarts} / ${trialPostVideoOffer.clicks} people`}
+        />
+        <Card
+          label="Payment after checkout"
+          value={fmt(trialPostVideoOffer.payments)}
+          hint={`${fmt(trialPostVideoOffer.checkoutAfterViewWithoutClick)} checkout elsewhere after viewing`}
+          accent={trialPostVideoOffer.payments > 0 ? '#22d3ee' : '#fbbf24'}
+        />
+        <RateCard
+          label="Checkout → Paid"
+          value={trialPostVideoOffer.checkoutToPaidRate}
+          sub={`${trialPostVideoOffer.payments} / ${trialPostVideoOffer.checkoutStarts} people`}
+        />
+        {trialPostVideoOffer.sourceBreakdown.length > 0 ? (
+          <div className="col-span-full rounded-xl overflow-x-auto" style={{ border: '1px solid var(--border)' }}>
+            <table className="w-full text-left text-xs" style={{ minWidth: 540 }}>
+              <thead style={{ color: 'var(--muted)' }}>
+                <tr>
+                  <th className="px-3 py-2 font-bold">Source</th>
+                  <th className="px-3 py-2 font-bold">Viewed</th>
+                  <th className="px-3 py-2 font-bold">Clicked</th>
+                  <th className="px-3 py-2 font-bold">Checkout</th>
+                  <th className="px-3 py-2 font-bold">Paid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trialPostVideoOffer.sourceBreakdown.map((row) => (
+                  <tr key={row.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
+                    <td className="px-3 py-2 font-bold" style={{ color: 'var(--text)' }}>{row.source}</td>
+                    <td className="px-3 py-2">{fmt(row.views)}</td>
+                    <td className="px-3 py-2">{fmt(row.clicks)}</td>
+                    <td className="px-3 py-2">{fmt(row.checkoutStarts)}</td>
+                    <td className="px-3 py-2">{fmt(row.payments)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </Section>
 
       <Section title={`Creator loop · ${days === 'all' ? 'all time' : `${days}d`}`}>

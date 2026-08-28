@@ -19,6 +19,7 @@ import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
 import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
+import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -204,6 +205,7 @@ export interface FunnelData {
     clickToCheckoutRate: string
     checkoutToPaidRate: string
   }
+  trialPostVideoOffer: TrialPostVideoFunnel
   planFitOffer: {
     eventsAvailable: boolean
     stripeAvailable: boolean
@@ -562,6 +564,7 @@ export async function GET(req: Request) {
           .select('name,user_id,created_at,session_id,metadata,path')
           .in('name', [
             'post_video_offer_viewed', 'post_video_clean_export_clicked',
+            'trial_post_video_offer_viewed', 'trial_post_video_offer_clicked',
             'video_downloaded',
             'checkout_started', 'payment_success',
           ])
@@ -1144,6 +1147,14 @@ export async function GET(req: Request) {
       checkoutToPaidRate: pct(postVideoPaymentRows.length, postVideoCheckoutRows.length),
     }
 
+    // The recurring trial offer is a different commercial surface from the
+    // one-time clean-export card above. Attribution is person-level and causal:
+    // the same actor must view, click, reach checkout, then pay in that order.
+    const profileSourceByUserId = new Map(
+      externalProfiles.map((profile) => [profile.id, sourceForProfile(profile)]),
+    )
+    const trialPostVideoOffer = buildTrialPostVideoFunnel(postVideoEventRows, profileSourceByUserId)
+
     // A2 Plan Fit — people, not event rows. Checkout and payment are counted
     // only from server/Stripe-authoritative rows carrying the verified origin.
     const planFitPeople = (name: string) => new Set(
@@ -1434,7 +1445,7 @@ export async function GET(req: Request) {
         checkout_cancelled: (eventCounts.get('checkout_cancelled') ?? 0) + (eventCounts.get('checkout_canceled') ?? 0),
       },
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, planFitOffer, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })
