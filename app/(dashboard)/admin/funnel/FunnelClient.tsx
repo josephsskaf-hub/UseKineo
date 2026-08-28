@@ -529,7 +529,43 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           hint={`${fmt(data.counts.bulk_checkout_started ?? 0)} Stripe sessions created`}
           accent="#34d399"
         />
+        <Card
+          label="Business brief viewers"
+          value={fmt(data.counts.b2b_brief_viewed ?? 0)}
+          hint="unique people / sessions"
+          accent="#a78bfa"
+        />
+        <Card
+          label="Recorded business briefs"
+          value={fmt(data.b2bLeadInbox?.total ?? 0)}
+          hint={`${fmt(data.counts.b2b_brief_submitted ?? 0)} client success events`}
+          accent="#c4b5fd"
+        />
       </Section>
+
+      {(data.b2bLeadInbox?.leads.length ?? 0) > 0 ? (
+        <section className="mb-6 rounded-xl p-4" style={{ background: 'rgba(167,139,250,.06)', border: '1px solid rgba(167,139,250,.25)' }}>
+          <h3 className="text-xs font-black uppercase tracking-widest mb-3" style={{ color: '#c4b5fd' }}>
+            Business brief inbox · {days === 'all' ? 'all time' : `${days}d`}
+          </h3>
+          <div className="grid gap-2">
+            {data.b2bLeadInbox?.leads.slice(0, 20).map((lead) => (
+              <div key={lead.email} className="rounded-lg px-3 py-2.5 flex flex-wrap items-center justify-between gap-2" style={{ background: 'rgba(11,17,32,.8)', border: '1px solid rgba(255,255,255,.07)' }}>
+                <a href={`mailto:${lead.email}`} className="text-sm font-bold break-all" style={{ color: '#f5f5f7' }}>{lead.email}</a>
+                <div className="text-right">
+                  <div className="text-xs font-bold" style={{ color: '#a78bfa' }}>{lead.monthlyVolume}</div>
+                  <div className="text-[10px]" style={{ color: 'var(--muted)' }}>
+                    {lead.createdAt ? new Date(lead.createdAt).toLocaleString() : 'date unavailable'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] mt-3" style={{ color: 'var(--muted)' }}>
+            Contact is not automatic. Review fit and obtain founder approval before sending any message.
+          </p>
+        </section>
+      ) : null}
 
       <Section title={`First-video handoff · PUSH #27 · ${days === 'all' ? 'all time' : `${days}d`}`}>
         <Card

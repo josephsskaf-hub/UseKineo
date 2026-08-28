@@ -21,6 +21,11 @@ import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicF
 import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
 import { buildChatGptQuickstartFunnel, type ChatGptQuickstartFunnel } from '@/lib/admin/chatgptQuickstartFunnel'
+import {
+  B2B_LEAD_SOURCE,
+  B2B_VOLUME_OPTIONS,
+  readB2BVolumeStorageKey,
+} from '@/lib/growth/b2bLead'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -85,6 +90,8 @@ export interface FunnelData {
     agency_margin_pack_selected?: number
     agency_bulk_pack_clicked?: number
     bulk_checkout_started?: number
+    b2b_brief_viewed?: number
+    b2b_brief_submitted?: number
     trust_page_viewed?: number
     trust_cta_clicked?: number
     checkout_attempted?: number
@@ -101,6 +108,14 @@ export interface FunnelData {
     checkout_started?: number
     payment_success: number
     checkout_cancelled: number
+  }
+  b2bLeadInbox?: {
+    total: number
+    leads: Array<{
+      email: string
+      monthlyVolume: string
+      createdAt: string | null
+    }>
   }
   // ── #475 cohort analytics (gated by ?days=) ──────────────────────────────
   cohort: {
@@ -432,6 +447,40 @@ export async function GET(req: Request) {
       ...externalProfiles.map((profile) => profile.id),
     ])
 
+    // A business brief is a unique e-mail row, not a client-side event. This
+    // inbox is the commercial source of truth; the events below only explain
+    // whether people saw and completed the form.
+    let b2bLeadInbox: NonNullable<FunnelData['b2bLeadInbox']> = { total: 0, leads: [] }
+    try {
+      let leadQuery = admin
+        .from('leads')
+        .select('email,magnet,created_at')
+        .eq('source', B2B_LEAD_SOURCE)
+        .order('created_at', { ascending: false })
+        .limit(100)
+      if (days !== 'all') {
+        leadQuery = leadQuery.gte('created_at', new Date(cohortCutoff).toISOString())
+      }
+      const { data: leadRows, error: leadError } = await leadQuery
+      if (!leadError && Array.isArray(leadRows)) {
+        const externalLeads = leadRows.filter((row) => !isInternalEmail(row.email))
+        b2bLeadInbox = {
+          total: externalLeads.length,
+          leads: externalLeads.map((row) => {
+            const volumeId = readB2BVolumeStorageKey(row.magnet)
+            return {
+              email: row.email,
+              monthlyVolume: B2B_VOLUME_OPTIONS.find((option) => option.id === volumeId)?.label ?? 'Unknown volume',
+              createdAt: row.created_at,
+            }
+          }),
+        }
+      }
+    } catch {
+      // The rest of the growth dashboard remains available if the lead inbox
+      // is temporarily unavailable.
+    }
+
     let newThisWeek = 0, newThisMonth = 0
     for (const userRow of authUsers) {
       const t = userRow.created_at ? new Date(userRow.created_at).getTime() : 0
@@ -506,6 +555,7 @@ export async function GET(req: Request) {
       'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
       'agency_bulk_page_viewed', 'agency_margin_calculator_viewed', 'agency_margin_pack_selected',
       'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'b2b_brief_viewed', 'b2b_brief_submitted', 'b2b_brief_failed',
       'trust_page_viewed', 'trust_cta_clicked',
       'generate_started', 'video_generation_started',
       'generate_completed', 'video_generation_completed',
@@ -531,6 +581,7 @@ export async function GET(req: Request) {
       'checkout_started', 'payment_success',
       'agency_bulk_page_viewed', 'agency_margin_calculator_viewed', 'agency_margin_pack_selected',
       'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'b2b_brief_viewed', 'b2b_brief_submitted', 'b2b_brief_failed',
       'trust_page_viewed', 'trust_cta_clicked',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
       'example_remix_form_viewed', 'example_remix_topic_submitted',
@@ -1490,6 +1541,8 @@ export async function GET(req: Request) {
         agency_margin_pack_selected: uniqueCheckoutActors('agency_margin_pack_selected'),
         agency_bulk_pack_clicked: uniqueCheckoutActors('agency_bulk_pack_clicked'),
         bulk_checkout_started: uniqueCheckoutActors('bulk_checkout_started'),
+        b2b_brief_viewed: uniqueCheckoutActors('b2b_brief_viewed'),
+        b2b_brief_submitted: uniqueCheckoutActors('b2b_brief_submitted'),
         // Trust stages count identifiable people/sessions. A reload is not a
         // second prospect, and destination stays in event metadata.
         trust_page_viewed: uniqueCheckoutActors('trust_page_viewed'),
@@ -1515,6 +1568,7 @@ export async function GET(req: Request) {
         payment_success: stripeSessionsAvailable ? checkoutCompleted : (eventCounts.get('payment_success') ?? 0),
         checkout_cancelled: (eventCounts.get('checkout_cancelled') ?? 0) + (eventCounts.get('checkout_canceled') ?? 0),
       },
+      b2bLeadInbox,
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
       funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }

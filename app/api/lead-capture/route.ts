@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import {
+  B2B_LEAD_INTENT,
+  B2B_LEAD_SOURCE,
+  b2bVolumeStorageKey,
+  normalizeLeadEmail,
+  parseB2BLeadInput,
+} from '@/lib/growth/b2bLead'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = atual).
 const OFFER = getFreeTierOffer()
@@ -85,10 +92,33 @@ usekineo.com`
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => ({}))
-    const raw = typeof body?.email === 'string' ? body.email : ''
-    const email = raw.trim().toLowerCase()
-    if (!email || !email.includes('@') || email.length > 200) {
+    const declaredLength = Number(req.headers.get('content-length') ?? '0')
+    if (Number.isFinite(declaredLength) && declaredLength > 4096) {
+      return NextResponse.json({ error: 'request too large' }, { status: 413 })
+    }
+    const rawBody = await req.text()
+    if (rawBody.length > 4096) {
+      return NextResponse.json({ error: 'request too large' }, { status: 413 })
+    }
+    const body = (() => {
+      try {
+        return JSON.parse(rawBody) as Record<string, unknown>
+      } catch {
+        return {}
+      }
+    })()
+
+    // A hidden field catches basic form bots without revealing whether an
+    // address was stored. The unique lower(email) index remains the final
+    // duplicate guard in production.
+    if (typeof body.website === 'string' && body.website.trim()) {
+      return NextResponse.json({ ok: true })
+    }
+
+    const isB2BBrief = body.intent === B2B_LEAD_INTENT
+    const b2bInput = isB2BBrief ? parseB2BLeadInput(body) : null
+    const email = b2bInput?.email ?? normalizeLeadEmail(body.email)
+    if (!email || (isB2BBrief && !b2bInput)) {
       return NextResponse.json({ error: 'invalid email' }, { status: 400 })
     }
 
@@ -96,7 +126,9 @@ export async function POST(req: NextRequest) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseUrl || !serviceKey) {
       console.error('[lead-capture] Supabase service env missing')
-      return NextResponse.json({ ok: true, saved: false })
+      return isB2BBrief
+        ? NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })
+        : NextResponse.json({ ok: true, saved: false })
     }
 
     const admin = createAdminClient(supabaseUrl, serviceKey, {
@@ -104,27 +136,56 @@ export async function POST(req: NextRequest) {
     })
 
     const country = req.headers.get('x-vercel-ip-country') ?? null
-    const source = typeof body?.source === 'string' ? body.source.slice(0, 60) : 'unknown'
-    const magnet = typeof body?.magnet === 'string' ? body.magnet.slice(0, 60) : null
+    // Business intent is fixed by the server. A caller cannot smuggle an
+    // arbitrary source or free-form brief into the lead inbox.
+    const source = isB2BBrief
+      ? B2B_LEAD_SOURCE
+      : typeof body.source === 'string'
+        ? body.source.slice(0, 60)
+        : 'unknown'
+    const magnet = isB2BBrief && b2bInput
+      ? b2bVolumeStorageKey(b2bInput.volume)
+      : typeof body.magnet === 'string'
+        ? body.magnet.slice(0, 60)
+        : null
 
     const { error } = await admin
       .from('leads')
       .insert({ email, source, magnet, signup_country: country })
 
+    const duplicate = error?.code === '23505' || Boolean(error && /duplicate|unique/i.test(error.message))
     const isNewLead = !error
-    if (error && !/duplicate|unique/i.test(error.message)) {
+    if (error && !duplicate) {
       console.error('[lead-capture] insert error:', error.message)
     }
 
+    // An address may have requested the B2C lead magnet earlier. Business
+    // intent must not disappear behind the unique e-mail index, so the newer,
+    // explicit B2B request becomes the inbox classification.
+    if (isB2BBrief && duplicate) {
+      const { error: updateError } = await admin
+        .from('leads')
+        .update({ source, magnet })
+        .eq('email', email)
+      if (updateError) {
+        console.error('[lead-capture] business lead update error:', updateError.message)
+        return NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })
+      }
+    }
+
+    if (isB2BBrief && error && !duplicate) {
+      return NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })
+    }
+
     // #461 — only email on a brand-new lead (never re-spam a returning one).
-    if (isNewLead) {
+    if (isNewLead && !isB2BBrief) {
       await sendLeadMagnet(email)
     }
 
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, saved: isNewLead || (isB2BBrief && duplicate) })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[lead-capture] error:', msg)
-    return NextResponse.json({ ok: true, saved: false })
+    return NextResponse.json({ error: 'temporarily unavailable' }, { status: 503 })
   }
 }
