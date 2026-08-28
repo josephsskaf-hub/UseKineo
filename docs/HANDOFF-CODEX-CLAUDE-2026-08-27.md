@@ -813,3 +813,29 @@ NÃO TOCADO:
 PENDÊNCIAS / RISCOS:
 PRÓXIMO DONO:
 ```
+
+## 9. Atualização Codex Growth — resposta exata para demanda de exoplaneta (28/08/2026)
+
+**BASE LIDA:** `7c67712d73f2ba3d18398e85cc33132c15767c0a`.
+
+**SHA FUNCIONAL FINAL:** `aa34c69968426bb17732c802fa3d02cbdaa62cec` (inclui `7fcbb050fb46819e3dc505a672210348d7ea8bc8`).
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; janela 30/07–26/08/2026):** a consulta exata `youtube shorts exoplanet life script 40 seconds` teve 44 impressões, zero clique e posição média 5,5. Todas as 44 impressões foram atribuídas a `/scripts/space`. São impressões, não pessoas, cadastros ou vendas.
+
+**IMPLEMENTADO:** `/scripts/space` agora responde antes do CTA com um roteiro editorial de 90 palavras, cerca de 40 segundos, estruturado em `HOOK`, `MICRO REWARD`, `ESCALATION` e `PAYOFF`. O visitante pode copiar o texto ou abrir o rascunho exato no gerador. O handoff carrega quebras de linha, `script_mode=verbatim`, `duration=45` e `autoanalyze=1`; não carrega `create_intent`, portanto não inicia render nem gasta crédito. As afirmações científicas visíveis apontam para duas fontes oficiais da NASA.
+
+**FATO CONFIRMADO / PRIVACIDADE:** o primeiro smoke de produção do commit `7fcbb050` revelou que o lockdown `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED=false` redirecionava toda `/scripts/[vertical]` para `/scripts`; portanto, o deploy estava verde, mas a resposta não era acessível. O forward-fix `aa34c699` mantém somente `/scripts/space` como resposta editorial estática, sem chamar `getScriptLibrary()`, sem enumerar rows e sem expor links `/v/`. Todas as demais prateleiras continuam fail-closed. O sitemap contém `/scripts/space` e não contém `/scripts/money` enquanto o lockdown estiver ativo.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_6as3Y6eZfLR9WBbGevQbJnH6LZL5` READY, production, alias `www.usekineo.com`, SHA `aa34c699`. `/scripts/space` respondeu 200, canonical correto, sem `noindex`, com `CreativeWork`, zero links de vídeo de cliente e todos os elementos visíveis (90 palavras, copiar, CTA e fontes NASA). O sitemap respondeu 200 com a URL estática e sem a prateleira privada de money. O Vercel registrou zero runtime errors para `/scripts/space` nos 15 minutos verificados.
+
+**TESTADO LOCALMENTE:** `test-growth-space-intent` 38/38; `test-seo-form-handoff` 48/48; `test-chatgpt-script-handoff` 69/69; `test-signup-creation-proof` 44/44; `test-text-to-video-intent-router` 47/47; `test-growth-roundup-search-intent` 34/34. `npx tsc --noEmit --pretty false --incremental false` mostrou somente os quatro erros baseline em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/space-intent-2026-08-28.html` contém antes/depois desktop e mobile 390px. A página pública foi inspecionada visualmente em desktop e ficou legível, sem corte. **QUESTÃO PENDENTE / DESCONHECIDO:** o controle de Chrome desta sessão não expôs redimensionamento real para 390px; o contrato móvel está no preview e no layout flexível, mas não foi visualmente inspecionado num viewport real de 390px.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders estão retornando 402. Joseph e Claude estão tratando o incidente de capacidade. Codex não acessou Supabase, Storage, banco, render ou pipeline nesta entrega. Para Growth, 402 deve ser classificado como incidente de capacidade, não como abandono voluntário; não declarar que renders estão perfeitos enquanto isso estiver aberto.
+
+**NÃO TOCADO:** Supabase, Storage, migration, banco, render, motor, legenda, composição, crédito, preço, oferta, `GenerateClient.tsx`, e-mail, outreach ou tráfego pago.
+
+**HIPÓTESE:** uma resposta exata acima da dobra e um handoff que preserva o trabalho podem recuperar parte do CTR perdido e transformar intenção orgânica em cadastro. **QUESTÃO PENDENTE / DESCONHECIDO:** aguardar nova janela do Search Console e medir cliques/cadastros pelo campaign `script_library_space_exoplanet_40s`; publicação não é aquisição e nenhum assinante foi atribuído a esta mudança.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas. Claude continua o incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin` e partir de `aa34c699` ou da ponta posterior de `origin/main`.
