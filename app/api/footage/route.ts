@@ -8,6 +8,7 @@
 // DELETE → ?id= removes row + storage object
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import {
   ensureFootageBucket,
   footageAdminClient,
@@ -150,11 +151,20 @@ export async function POST(req: NextRequest) {
     // sempre caiu no 402 aqui, e transformá-lo em 503 seria mudança de
     // comportamento com a flag OFF — justamente o que este diff promete não
     // fazer. O 503 cobre só a falha de LEITURA (coluna/permissão/rede).
-    const { data: profile, error: profileAccessError } = await supabase
+    let { data: profile, error: profileAccessError } = await supabase
       .from('profiles')
       .select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`)
       .eq('id', user.id)
       .single()
+    // KINEO-JWT-SKEW-2026-08-28 — mesmo resgate do /api/compose: durante o
+    // skew de relógio do Supabase (PGRST303) esta leitura falhava para todo
+    // token fresco e o 503 abaixo barrava upload de gente com crédito na mão.
+    if (profileAccessError && profileAccessError.code !== 'PGRST116') {
+      const rescued = await retryOwnReadOnSkew(profileAccessError, 'footage', (admin) =>
+        admin.from('profiles').select(`has_paid, plan, ${TRIAL_ENTITLEMENT_COLUMNS}`).eq('id', user.id).single(),
+      )
+      if (rescued) { profile = rescued as typeof profile; profileAccessError = null }
+    }
     if (profileAccessError && profileAccessError.code !== 'PGRST116') {
       console.error('[footage] entitlement lookup failed:', profileAccessError.message)
       await logFootageRefusal('entitlement_unverified', user.id, {

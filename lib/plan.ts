@@ -1,4 +1,5 @@
 // Push #087 — single source of truth for "what plan tier is this user on?"
+import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 // used by server routes (gating Cinematic/Runway to Pro) and the client
 // (locking the Cinematic card and upgrade prompts).
 //
@@ -29,11 +30,24 @@ export async function fetchUserPlan(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<PlanInfo> {
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('profiles')
     .select('plan, is_pro, video_credits')
     .eq('id', userId)
     .single()
+
+  // KINEO-JWT-SKEW-2026-08-28 — "defaulting to free" é o pior fallback
+  // possível durante o skew de relógio do Supabase (PGRST303): em 28/08 o
+  // PRÓPRIO FUNDADOR, plano pago, abriu o app e foi tratado como free porque
+  // esta função engoliu o erro de JWT e devolveu free. Antes de degradar,
+  // tenta a mesma leitura pela chave de serviço (id já verificado pelo
+  // chamador via auth.getUser). Racional em lib/jwtSkewFallback.ts.
+  if (error) {
+    const rescued = await retryOwnReadOnSkew(error, 'plan', (admin) =>
+      admin.from('profiles').select('plan, is_pro, video_credits').eq('id', userId).single(),
+    )
+    if (rescued) { data = rescued as typeof data; error = null }
+  }
 
   if (error) {
     if (error.code === 'PGRST116') return { tier: 'free', isPro: false }

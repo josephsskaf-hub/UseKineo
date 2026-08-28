@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import {
   buildCreatomateSource,
@@ -1310,7 +1311,7 @@ export async function POST(req: NextRequest) {
     let isTrialRender = false
     let withEndCard = false
     if (quality === 'cinematic_ai' || quality === 'fast') {
-      const { data: prof, error: profileAccessError } = await supabase
+      let { data: prof, error: profileAccessError } = await supabase
         .from('profiles')
         // KINEO-TRIAL-BLOCKERS-2026-08-07 — colunas de trial no SELECT: é
         // delas que sai `ent` abaixo. Constante compartilhada em vez de lista
@@ -1319,6 +1320,23 @@ export async function POST(req: NextRequest) {
         .select(`video_credits, plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
         .eq('id', user.id)
         .single()
+      // KINEO-JWT-SKEW-2026-08-28 — em 28/08 o PostgREST recusou todo token
+      // recém-emitido (PGRST303 "JWT issued at future", relógio do Supabase
+      // adiantado) e ESTE 503 derrubou 100% dos cadastros novos que tentaram
+      // gerar: 3 pessoas vindas do ChatGPT bateram 24 vezes em "could not be
+      // verified" com os 25 créditos intactos na conta. O usuário JÁ passou
+      // por auth.getUser() (que não usa PostgREST); a releitura via chave de
+      // serviço, filtrada pelo id verificado, lê o mesmo dado por um túnel
+      // cujo relógio não quebra. Racional completo em lib/jwtSkewFallback.ts.
+      if (profileAccessError) {
+        const rescued = await retryOwnReadOnSkew(profileAccessError, 'compose', (admin) =>
+          admin.from('profiles')
+            .select(`video_credits, plan, has_paid, ${TRIAL_ENTITLEMENT_COLUMNS}`)
+            .eq('id', user.id)
+            .single(),
+        )
+        if (rescued) { prof = rescued as typeof prof; profileAccessError = null }
+      }
       if (profileAccessError) {
         console.error('[compose] entitlement lookup failed:', profileAccessError.message)
         return NextResponse.json(

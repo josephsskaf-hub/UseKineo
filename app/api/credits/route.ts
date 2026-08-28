@@ -2,6 +2,7 @@
 // ALTER TABLE profiles ADD COLUMN IF NOT EXISTS video_credits integer DEFAULT 2;
 
 import { NextResponse } from 'next/server'
+import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import { createClient } from '@/lib/supabase/server'
 import { OFFER_290_ENABLED } from '@/lib/flags'
 // KINEO-REVERSE-TRIAL-P1-2026-08-06 — reverse trial surface para a UI do
@@ -37,11 +38,20 @@ export async function GET(req: Request) {
       }
     } catch { /* non-blocking */ }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('profiles')
       .select('video_credits, plan')
       .eq('id', user.id)
       .single()
+    // KINEO-JWT-SKEW-2026-08-28 — sem isto, o skew de relógio do Supabase
+    // (PGRST303) transformava esta rota em 500 e o topo da tela em "0 credits"
+    // para TODO usuário logado com token fresco. Ver lib/jwtSkewFallback.ts.
+    if (error) {
+      const rescued = await retryOwnReadOnSkew(error, 'credits', (admin) =>
+        admin.from('profiles').select('video_credits, plan').eq('id', user.id).single(),
+      )
+      if (rescued) { data = rescued as typeof data; error = null }
+    }
 
     // feature/ai-avatar CP2 — avatar_credits queried SEPARATELY and best-effort,
     // so the main balance never breaks if this code reaches an environment

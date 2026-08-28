@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { isJwtSkewError, skewFallbackClient } from '@/lib/jwtSkewFallback'
 
 export const maxDuration = 10
 // Reads cookies via supabase auth — mark explicitly dynamic so Next.js
@@ -151,12 +152,33 @@ export async function GET() {
       .eq('status', 'completed')
 
     async function runSelect(columns: string) {
-      return supabase
+      const r = await supabase
         .from('videos')
         .select(columns)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(48)
+      // KINEO-JWT-SKEW-2026-08-28 — em 28/08 o Supabase recusou todo token
+      // fresco (PGRST303 "JWT issued at future") e esta rota devolveu lista
+      // VAZIA em silêncio: o fundador abriu My Videos, viu "No videos yet" e
+      // achou que os 327 vídeos dele tinham sido apagados. Estavam todos no
+      // banco — a leitura é que falhava e o catch abaixo mascara erro como
+      // "sem vídeos". Durante o skew, refaz a MESMA query (filtrada pelo
+      // userId já verificado no auth) pela chave de serviço, que tem token
+      // antigo e não sofre do relógio. Ver lib/jwtSkewFallback.ts.
+      if (r.error && isJwtSkewError(r.error)) {
+        const admin = skewFallbackClient()
+        if (admin) {
+          console.warn('[videos GET] PGRST303 jwt-skew: retrying own list via service key')
+          return admin
+            .from('videos')
+            .select(columns)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(48)
+        }
+      }
+      return r
     }
 
     let query = await runSelect(wideColumns)
