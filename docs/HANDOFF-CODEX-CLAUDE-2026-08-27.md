@@ -291,6 +291,19 @@
 - **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_HA9yfAiUpZv4WZXAU8LyBFbbkCV5` em estado `READY`, aliasado em `www.usekineo.com`. A página respondeu com exatamente um `#study-start-a-short` e a ordem de títulos `Key findings → Test the data yourself — free → How long an AI Short actually takes`. Nenhum formulário foi submetido na validação e nenhum erro runtime da rota apareceu na janela consultada.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** a mudança de posição ainda não tem amostra humana. Comparar pessoas — não eventos espelhados — por variante e seguir até cadastro, vídeo e checkout antes de mudar novamente o estudo.
 
+### 2.21 Construtor de ângulo original na objeção de monetização
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `d86901dc7d1e35752a8b691462cf42dc6ac3b604`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 15 a 28/08/2026, contas internas excluídas):** `/can-you-monetize-ai-videos` registrou 32 atores únicos em `landing_session_started`, 0 pessoa em intenção orgânica na própria página e 0 cadastro com `signup_utm_source=monetize-policy`. A página era a maior URL orgânica específica ainda sem ação observada fora das superfícies genéricas `/`, `/signup` e `/studio`.
+- **FATO CONFIRMADO:** a única porta comercial ficava depois do artigo e era um `<a>` cru para outra página SEO, `/free-ai-shorts-generator`; não emitia `organic_cta_clicked`, não carregava um trabalho iniciado e criava outro passo antes do produto (`app/can-you-monetize-ai-videos/page.tsx`).
+- A página agora transforma o checklist de política em uma ferramenta: a pessoa escreve o tema e escolhe entre quatro valores ao espectador — explicar a surpresa, mito versus fato, história com payoff ou breakdown prático. `lib/growth/originalityRecipe.ts` monta uma instrução de 45 segundos com ângulo distinto, detalhes concretos e proibição explícita de prometer monetização.
+- O formulário carrega a receita para o fluxo Fast por `/signup`, preserva campanha e duração, e mede `monetization_originality_recipe_submitted`, `organic_topic_submitted` e o espelho deduplicável `organic_cta_clicked`. Nenhum tema ou prompt é enviado para analytics. O CTA inferior virou handoff interno medido por `organic_handoff_opened`, em vez de mandar a pessoa para outra página SEO (`app/can-you-monetize-ai-videos/OriginalityRecipeBuilder.tsx`; `components/OrganicCtaLink.tsx`).
+- Teste determinístico `scripts/test-monetization-originality-builder.mjs`: `30/30`. Whitespace limpo. O TypeScript continua com os mesmos cinco erros preexistentes, nenhum nos arquivos desta entrega.
+- Preview obrigatório: `docs/previews/MONETIZATION-ORIGINALITY-BUILDER-2026-08-28.html`. O SHA foi publicado primeiro no preview remoto `dpl_FJhhcEBnkkEyWsjm13DsaYXvWAVE`. A primeira inspeção desktop encontrou a grade 3+1; ela foi corrigida antes de `main`. A versão final passou em desktop 1440×1000 e mobile 390×844, com grade 2×2 e uma coluna, respectivamente.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_12cmXinHtBJccybtUEaEwXQYoWgb` em estado `READY`, aliasado em `www.usekineo.com`. O smoke confirmou uma única ferramenta, ausência do destino SEO antigo, handoff interno e aviso de não garantia. Nenhum formulário foi submetido e nenhum erro runtime da rota apareceu na janela de 20 minutos consultada.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe submissão humana da campanha `starter_monetization_originality_2026_08_28`. Não alterar novamente essa página antes de observar pessoas em receita → cadastro → vídeo → checkout.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
