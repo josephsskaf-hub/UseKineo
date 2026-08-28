@@ -46,6 +46,11 @@ import {
   creditsPerReferenceVideo,
   videosPerMonth,
 } from '@/lib/marketingPrice'
+import {
+  buildEngineLandingDestination,
+  buildEngineLandingSignupHref,
+  type EngineLandingParam,
+} from '@/lib/growth/engineLandingIntent'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -62,7 +67,7 @@ export const dynamicParams = false
 
 type Engine = {
   /** Valor aceito por /generate?engine=… (GenerateClient.tsx:762). */
-  param: 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'
+  param: EngineLandingParam
   /** quality_mode no banco — chave de getEngineRenders. */
   qualityMode: string
   /** Nome comercial exibido (bate com os selos de lib/engineWall.ts). */
@@ -336,8 +341,8 @@ export default async function EnginePage({ params }: { params: { engine: string 
   const renders = await getEngineRenders(e.qualityMode, 8)
 
   const campaign = `seo_engine_${params.engine}`
-  const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${campaign}&intent_campaign=${campaign}&engine=${e.param}`
-  const generateUrl = `/generate?engine=${e.param}&intent_campaign=${campaign}`
+  const studioUrl = buildEngineLandingDestination({ engine: e.param, campaign })
+  const signupUrl = buildEngineLandingSignupHref({ engine: e.param, campaign })
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -553,7 +558,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           </OrganicCtaLink>
           <p style={{ margin: '14px 0 0', fontSize: '0.82rem', color: '#6e6e73' }}>
             Already have an account?{' '}
-            <Link href={generateUrl} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>
+            <Link href={studioUrl} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>
               Open the generator with {e.name} selected →
             </Link>
           </p>

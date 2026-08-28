@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo engine landing intent — before/after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#050506;color:#f5f5f7;font:14px/1.5 Arial,sans-serif}.wrap{max-width:1180px;margin:auto;padding:30px 18px 60px}h1{font-size:30px;margin:0 0 7px}.muted{color:#9a9aa1}.boundary{margin:20px 0;padding:13px 15px;border:1px solid #28445c;border-radius:12px;background:#08131d;color:#a9d8ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{background:#111216;border:1px solid #292b31;border-radius:18px;padding:20px}.label{font-size:11px;font-weight:900;letter-spacing:.12em;color:#7cc0ff}.title{font-size:24px;line-height:1.08;margin:10px 0 6px}.flow{display:grid;gap:8px;margin-top:17px}.step{padding:12px;border-radius:11px;background:#181a20;border:1px solid #30333b}.broken{color:#fda4af}.fixed{color:#86efac}.cta{margin-top:15px;padding:12px;border-radius:999px;text-align:center;background:#f5f5f7;color:#050506;font-weight:900}.mobile{max-width:390px;margin:18px auto 0}.mobile .title{font-size:21px}@media(max-width:820px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Engine landing → signup → Studio</h1>
+    <p class="muted">The visible CTA stays the same. The before/after shows the product state after the click, in desktop and mobile.</p>
+    <div class="boundary"><strong>Supabase incident boundary · 28 Aug 2026:</strong> deterministic URL contract only. No database query, authenticated smoke or render. No automatic render; the visitor reviews engine and cost in Studio before spending.</div>
+    <section class="grid">
+      <article class="panel">
+        <div class="label">BEFORE · DESKTOP</div>
+        <h2 class="title">Start free with MiniMax H3</h2>
+        <div class="flow">
+          <div class="step">1 · Visitor chooses MiniMax H3</div>
+          <div class="step">2 · Signup receives <code>engine=h3</code> as an unsupported top-level field</div>
+          <div class="step broken">3 · Engine disappears; visitor lands on Home or Dashboard</div>
+        </div>
+        <div class="cta">Start free with MiniMax H3 →</div>
+      </article>
+      <article class="panel">
+        <div class="label">AFTER · DESKTOP</div>
+        <h2 class="title">Start free with MiniMax H3</h2>
+        <div class="flow">
+          <div class="step">1 · Visitor chooses MiniMax H3</div>
+          <div class="step">2 · Signup carries a validated <code>redirect=/studio?engine=h3</code></div>
+          <div class="step fixed">3 · Studio opens with MiniMax H3 selected and waits for the visitor</div>
+        </div>
+        <div class="cta">Start free with MiniMax H3 →</div>
+      </article>
+      <article class="panel mobile">
+        <div class="label">BEFORE · MOBILE</div>
+        <h2 class="title">Kling 3 selected</h2>
+        <div class="flow"><div class="step">Signup</div><div class="step broken">Generic home · choice lost</div></div>
+        <div class="cta">Start free →</div>
+      </article>
+      <article class="panel mobile">
+        <div class="label">AFTER · MOBILE</div>
+        <h2 class="title">Kling 3 selected</h2>
+        <div class="flow"><div class="step">Signup</div><div class="step fixed">Studio · Kling 3 still selected</div><div class="step">Human reviews cost, then chooses Generate</div></div>
+        <div class="cta">Start free →</div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
