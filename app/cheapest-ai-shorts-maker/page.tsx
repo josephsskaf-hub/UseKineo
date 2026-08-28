@@ -13,6 +13,7 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import ShortCostCalculator from './ShortCostCalculator'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 
@@ -111,6 +112,8 @@ export default function CheapestAiShortsMakerPage() {
             note: 'Your topic stays attached through signup. Fast Mode creates a complete watermarked test without a card.',
           }}
         />
+
+        <AgencyVolumeBridge entry="cost_page" />
 
         <h2 style={h2}>Make AI YouTube Shorts cheap in 3 steps</h2>
         <div style={{ display: 'grid', gap: 12 }}>

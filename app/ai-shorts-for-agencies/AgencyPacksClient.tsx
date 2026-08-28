@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { trackEvent } from '@/lib/analytics'
+import { readAgencyDistributionEntry } from '@/lib/agencyDistribution'
 
 export interface AgencyPackView {
   id: 'bulk10' | 'bulk20' | 'bulk30' | 'bulk50'
@@ -12,20 +13,23 @@ export interface AgencyPackView {
   perVideo: string
 }
 
-const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v1'
+const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v2'
 
 export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }) {
   useEffect(() => {
+    const entry = readAgencyDistributionEntry(window.location.search)
+    const marker = `${VIEW_MARKER}:${entry ?? 'direct'}`
     try {
-      if (sessionStorage.getItem(VIEW_MARKER) === '1') return
-      sessionStorage.setItem(VIEW_MARKER, '1')
+      if (sessionStorage.getItem(marker) === '1') return
+      sessionStorage.setItem(marker, '1')
     } catch {
       // Privacy modes can deny sessionStorage. The page must still sell.
     }
     void trackEvent('agency_bulk_page_viewed', {
-      version: 'agency_bulk_v1_2026_08_27',
+      version: 'agency_bulk_v2_2026_08_27',
       pack_count: packs.length,
       surface: 'ai_shorts_for_agencies',
+      entry: entry ?? 'direct',
     })
   }, [packs.length])
 

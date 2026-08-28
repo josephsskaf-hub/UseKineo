@@ -26,6 +26,7 @@ import {
   videosPerMonth,
 } from '@/lib/marketingPrice'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -923,6 +924,10 @@ export default function PricingClient() {
           </Link>
           .
         </p>
+
+        <div className="mx-auto max-w-3xl">
+          <AgencyVolumeBridge entry="pricing" />
+        </div>
 
         {/* KINEO-PRICING-CLARITY-2026-08-03 — TODA a letra miúda que saiu dos
             cards vive aqui, uma vez só, abaixo da grade. Mantém a divulgação

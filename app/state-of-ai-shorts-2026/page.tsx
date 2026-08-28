@@ -30,6 +30,7 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // páginas de intenção usam, nunca uma cópia. Ver o bloco de comentário no corpo.
 // Client island; o resto da página segue server e a revalidação diária vale.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -313,6 +314,8 @@ export default async function StateOfAiShortsPage() {
             </li>
           ))}
         </ol>
+
+        <AgencyVolumeBridge entry="state_report" />
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 6px' }}>
           The 2026 faceless niche demand ranking

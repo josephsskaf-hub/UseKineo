@@ -71,7 +71,11 @@ ok(!/\$\s*(99|179|249|379)(?!\d)/.test(page), 'page contains no duplicated comme
 ok(client.includes('href={`/api/stripe/checkout?pack=${pack.id}`}'), 'each CTA enters the existing safe bulk checkout')
 ok(client.includes('agency_bulk_page_viewed'), 'page view has a named event')
 ok(client.includes('agency_bulk_pack_clicked'), 'pack choice has a named event')
-ok(client.includes('sessionStorage.getItem(VIEW_MARKER)'), 'page impression dedupes within the browser session')
+// KINEO-B2B-DISTRIBUTION-2026-08-27 — the marker is now scoped to an
+// allowlisted internal entry. The old anchor checked a variable name, not the
+// guarantee: one impression per entry/browser session.
+ok(client.includes('sessionStorage.getItem(marker)'), 'page impression dedupes within the browser session and entry')
+ok(client.includes("`${VIEW_MARKER}:${entry ?? 'direct'}`"), 'entry-scoped marker preserves source attribution')
 ok(client.includes('premium generative engines use more credits per video'), 'credit universality cannot overpromise the Fast count')
 ok(page.includes('not team seats, approval routing, a client portal or white-label software') || page.includes('team seats, separate client workspaces, approval routing or a white-label portal'), 'missing B2B features are disclosed')
 ok(page.includes('Commercial use is included'), 'commercial delivery is stated')
