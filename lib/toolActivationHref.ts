@@ -56,6 +56,10 @@ export type ToolActivationOptions = {
   campaign: string
   /** Analisar sozinho ao chegar. NUNCA dispara render (isso é create_intent). */
   autoanalyze?: boolean
+  /** Preserve a finished script instead of asking the writer to restructure it. */
+  scriptMode?: 'ai' | 'verbatim'
+  /** Open the closest supported duration preset with the saved work. */
+  duration?: 35 | 45 | 60 | 90
 }
 
 /**
@@ -68,6 +72,8 @@ export function toolActivationHref({
   prompt,
   campaign,
   autoanalyze = true,
+  scriptMode,
+  duration,
 }: ToolActivationOptions): string {
   const signup = new URLSearchParams({
     utm_source: 'seo',
@@ -75,10 +81,18 @@ export function toolActivationHref({
     utm_campaign: campaign,
   })
 
-  const clean = (prompt ?? '').replace(/\s+/g, ' ').trim().slice(0, PROMPT_MAX)
+  const raw = (prompt ?? '').trim().slice(0, PROMPT_MAX)
+  // A finished, structured script needs its line boundaries: the parser uses
+  // HOOK / MICRO REWARD / ESCALATION / PAYOFF as real section markers. Simple
+  // tool results remain one-line prompts, preserving every existing caller.
+  const clean = scriptMode === 'verbatim'
+    ? raw.replace(/\r\n?/g, '\n').replace(/[\t ]+/g, ' ')
+    : raw.replace(/\s+/g, ' ')
   if (clean) {
     const generate = new URLSearchParams({ prompt: clean })
     if (autoanalyze) generate.set('autoanalyze', '1')
+    if (scriptMode) generate.set('script_mode', scriptMode)
+    if (duration) generate.set('duration', String(duration))
     signup.set('redirect', `/generate?${generate.toString()}`)
   }
 

@@ -33,6 +33,7 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import CopyButton from '@/components/CopyButton'
 import {
   CARDS_PER_VERTICAL,
   generateFromScriptHref,
@@ -46,6 +47,7 @@ import {
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED } from '@/lib/publicSurfacePolicy'
+import { toolActivationHref } from '@/lib/toolActivationHref'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -56,6 +58,110 @@ export const dynamicParams = false
 const BLUE = '#2997ff'
 const MUTED = '#86868b'
 const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
+
+// EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026; janela
+// 30/07–26/08): esta URL apareceu 44 vezes para a consulta exata
+// "youtube shorts exoplanet life script 40 seconds", posição média 5,5, e
+// recebeu zero clique. A resposta abaixo é deliberadamente específica: entrega
+// primeiro o que a pessoa procurou e só depois oferece o produto.
+const SPACE_EXOPLANET_CAMPAIGN = 'script_library_space_exoplanet_40s'
+const SPACE_EXOPLANET_SCRIPT = `HOOK: The first message from alien life may not be a message at all.
+MICRO REWARD: When a planet crosses its star, a thin ring of starlight passes through the atmosphere and leaves chemical fingerprints.
+ESCALATION: NASA says Webb can study gases such as water, carbon dioxide, oxygen, and methane. But one gas is not proof. Scientists need several clues, repeat observations, and years of modeling to rule out lifeless chemistry.
+PAYOFF: So the first evidence of life beyond Earth may arrive as a suspicious recipe in light from a world we can never touch.`
+const SPACE_EXOPLANET_SPOKEN_WORDS = SPACE_EXOPLANET_SCRIPT
+  .replace(/^(?:HOOK|MICRO REWARD|ESCALATION|PAYOFF):\s*/gm, '')
+  .trim()
+  .split(/\s+/)
+  .length
+
+function SpaceSearchIntentSpotlight() {
+  const createHref = toolActivationHref({
+    prompt: SPACE_EXOPLANET_SCRIPT,
+    campaign: SPACE_EXOPLANET_CAMPAIGN,
+    scriptMode: 'verbatim',
+    duration: 45,
+  })
+
+  return (
+    <section
+      aria-labelledby="exoplanet-script-title"
+      style={{
+        marginTop: 34,
+        padding: 'clamp(20px, 4vw, 30px)',
+        borderRadius: 18,
+        background: 'linear-gradient(145deg, rgba(19,35,65,.96), rgba(8,12,24,.96))',
+        border: '1px solid rgba(92,179,255,.32)',
+        boxShadow: '0 18px 60px rgba(0,0,0,.28)',
+      }}
+    >
+      <div style={{ color: '#5cb3ff', fontSize: '0.75rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Exact 40-second example · free to use
+      </div>
+      <h2 id="exoplanet-script-title" style={{ margin: '8px 0 8px', fontSize: 'clamp(1.25rem, 3.5vw, 1.7rem)', lineHeight: 1.2 }}>
+        YouTube Shorts exoplanet life script (about 40 seconds)
+      </h2>
+      <p style={{ margin: 0, color: '#b8c4d8', lineHeight: 1.65, fontSize: '0.92rem' }}>
+        {SPACE_EXOPLANET_SPOKEN_WORDS} spoken words. The hook opens a mystery, the middle gives the mechanism, and the payoff closes on the idea that alien life may first appear as chemistry—not a signal.
+      </p>
+
+      <pre
+        style={{
+          whiteSpace: 'pre-wrap',
+          overflowWrap: 'anywhere',
+          margin: '18px 0 14px',
+          padding: 18,
+          borderRadius: 13,
+          background: 'rgba(0,0,0,.38)',
+          border: '1px solid rgba(255,255,255,.09)',
+          color: '#f5f5f7',
+          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+          fontSize: '0.86rem',
+          lineHeight: 1.72,
+        }}
+      >
+        {SPACE_EXOPLANET_SCRIPT}
+      </pre>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <CopyButton text={SPACE_EXOPLANET_SCRIPT} label="Copy the 40-second script" />
+        <OrganicCtaLink
+          href={createHref}
+          source={SPACE_EXOPLANET_CAMPAIGN}
+          placement="exact_answer"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            minHeight: 38,
+            background: BLUE,
+            color: '#000',
+            fontWeight: 900,
+            padding: '8px 15px',
+            borderRadius: 9,
+            textDecoration: 'none',
+            fontSize: '0.82rem',
+          }}
+        >
+          Turn this exact script into a video →
+        </OrganicCtaLink>
+      </div>
+      <p style={{ margin: '12px 0 0', color: MUTED, lineHeight: 1.55, fontSize: '0.78rem' }}>
+        The video handoff keeps the words unchanged and opens the closest supported preset (45 seconds) so there is room for natural pacing. Review before generating; nothing renders from this page.
+      </p>
+      <p style={{ margin: '14px 0 0', color: '#657087', lineHeight: 1.55, fontSize: '0.75rem' }}>
+        Fact basis:{' '}
+        <a href="https://science.nasa.gov/exoplanets/can-we-find-life/" target="_blank" rel="noreferrer" style={{ color: '#8cc8ff' }}>
+          NASA on atmospheric biosignatures
+        </a>{' '}
+        and{' '}
+        <a href="https://science.nasa.gov/mission/webb/science-overview/science-explainers/what-would-earths-atmosphere-look-like-from-the-james-webb-space-telescope/" target="_blank" rel="noreferrer" style={{ color: '#8cc8ff' }}>
+          Webb transmission spectroscopy
+        </a>
+        . NASA cautions that one signal is not a discovery; confirmation needs multiple lines of evidence.
+      </p>
+    </section>
+  )
+}
 
 export function generateStaticParams() {
   return SCRIPT_VERTICAL_SLUGS.map((vertical) => ({ vertical }))
@@ -78,10 +184,14 @@ export async function generateMetadata({ params }: { params: { vertical: string 
   // The title is written to match the search, not to be clever: the head term
   // ("free youtube shorts scripts about X") plus the number, which is the thing
   // that earns the click in a SERP full of listicles.
-  const title = count
+  const title = v.slug === 'space'
+    ? '40-Second Exoplanet Life Script (Free) | Kineo'
+    : count
     ? `Free YouTube Shorts scripts about ${v.noun} — ${count} full scripts you can use`
     : `Free YouTube Shorts scripts about ${v.noun} — Kineo`
-  const description = count
+  const description = v.slug === 'space'
+    ? `Copy a complete 90-word YouTube Shorts script about exoplanet life, written for about 40 seconds, or open the exact draft in Kineo.`
+    : count
     ? `${count} complete ${v.noun} Shorts scripts, free to read and reuse. Each one is the full narration of a real vertical video — hook, middle beats and payoff — with the finished Short next to it.`
     : `Complete ${v.noun} Shorts scripts, free to read and reuse — hook, middle beats and payoff, with the finished Short next to each one.`
 
@@ -194,7 +304,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
 
         <header>
           <h1 style={{ fontSize: 'clamp(1.7rem, 4.6vw, 2.4rem)', fontWeight: 900, lineHeight: 1.18, margin: 0 }}>
-            {v.h1}
+            {v.slug === 'space' ? 'Free space scripts for YouTube Shorts' : v.h1}
           </h1>
           <p style={{ fontSize: '1rem', color: '#CBD5E1', lineHeight: 1.65, margin: '16px 0 0', maxWidth: 660 }}>
             {v.intro}
@@ -229,6 +339,8 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
             Generate a {v.label} Short free →
           </OrganicCtaLink>
         </header>
+
+        {v.slug === 'space' && <SpaceSearchIntentSpotlight />}
 
         {cards.length > 0 ? (
           <section style={{ marginTop: 44 }}>
