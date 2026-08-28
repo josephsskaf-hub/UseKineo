@@ -11,37 +11,28 @@
 // and persisted in the paypal_config table — zero extra env vars.
 
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import {
+  PAYPAL_PACK,
+  PAYPAL_PLAN_CREDITS,
+  PAYPAL_TIER_USD,
+  paypalPlanConfigKey,
+  paypalPlanRequestId,
+  type PayPalBilling,
+  type PayPalTier,
+} from '@/lib/paypalCatalog'
 
-export type PayPalTier = 'starter' | 'basic' | 'pro'
-export type PayPalBilling = 'monthly' | 'annual'
+export {
+  PAYPAL_PACK,
+  PAYPAL_PLAN_CREDITS,
+  PAYPAL_TIER_USD,
+  type PayPalBilling,
+  type PayPalTier,
+} from '@/lib/paypalCatalog'
 
 export const PAYPAL_BASE =
   process.env.PAYPAL_ENV === 'sandbox'
     ? 'https://api-m.sandbox.paypal.com'
     : 'https://api-m.paypal.com'
-
-// USD prices — MUST mirror TIER_PRICES/ANNUAL_PRICES in api/stripe/checkout.
-// KINEO-PRICING-V3B-2026-07-10 — Creator monthly 19.90 → 24.90 (annual left
-// as-is, mirroring the Stripe ANNUAL_PRICES which was not changed in V3B).
-export const PAYPAL_TIER_USD: Record<PayPalTier, { monthly: string; annual: string; name: string }> = {
-  starter: { monthly: '9.90',  annual: '99.00',  name: 'Kineo — Starter' },
-  basic:   { monthly: '24.90', annual: '199.00', name: 'Kineo — Creator' },
-  pro:     { monthly: '37.90', annual: '379.00', name: 'Kineo — Studio' },
-}
-
-// Credits granted — MUST mirror the Stripe webhook.
-// KINEO-STUDIO-400-2026-07-06 — pro aligned 600→400 (see pricing.ts + webhook).
-// KINEO-PRICING-V3B-2026-07-10 — Creator = 150 credits (mirrors Stripe webhook).
-// pro/starter alinhados ao rebase 2:1 (200/25) — mesmos valores do webhook Stripe.
-export const PAYPAL_PLAN_CREDITS: Record<PayPalTier, number> = {
-  starter: 25,
-  basic: 150,
-  pro: 200,
-}
-
-// KINEO-PACK-25-2026-07-06 — 25 Fast Shorts for $4.90 (was 10).
-// KINEO-PRICING-V3C-2026-07-10 — back to 10 credits (mirrors Stripe STARTER_PACK).
-export const PAYPAL_PACK = { credits: 10, usd: '4.90', name: 'Kineo — Starter Pack (10 videos)' }
 
 export function paypalAdminClient() {
   return createSupabaseAdmin(
@@ -123,14 +114,19 @@ async function ensureProduct(admin: Admin, tier: PayPalTier): Promise<string> {
 }
 
 export async function ensurePlan(admin: Admin, tier: PayPalTier, billing: PayPalBilling): Promise<string> {
-  const cfgKey = `plan_${tier}_${billing}`
+  // KINEO-PAYPAL-CANONICAL-2026-08-28 — PayPal plan prices cannot be edited
+  // after creation. The old unversioned keys still point to $9.90/$24.90/
+  // $37.90 plans with 25/150/200 credits. Reusing one would charge and grant a
+  // different offer from Stripe. The canonical fingerprint forces one new
+  // PayPal plan only when price/grant changes, then caches it normally.
+  const cfgKey = paypalPlanConfigKey(tier, billing)
   const existing = await getPaypalConfig(admin, cfgKey)
   if (existing) return existing
   const productId = await ensureProduct(admin, tier)
   const price = billing === 'annual' ? PAYPAL_TIER_USD[tier].annual : PAYPAL_TIER_USD[tier].monthly
   const plan = await paypalFetch('/v1/billing/plans', {
     method: 'POST',
-    idempotencyKey: `kineo-plan-${tier}-${billing}-v1`,
+    idempotencyKey: paypalPlanRequestId(tier, billing),
     body: JSON.stringify({
       product_id: productId,
       name: `${PAYPAL_TIER_USD[tier].name} (${billing === 'annual' ? 'Annual' : 'Monthly'})`,
