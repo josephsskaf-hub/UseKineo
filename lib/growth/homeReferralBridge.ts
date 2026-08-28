@@ -1,4 +1,4 @@
-import { sanitizeAcquisitionUtmSource } from '@/lib/acquisitionSource'
+import { acquisitionSource } from '@/lib/acquisitionSource'
 
 export type HomeReferralBridgeSource = 'chatgpt' | 'taaft'
 
@@ -32,9 +32,17 @@ function first(value: SearchValue): string | null {
  */
 export function homeReferralBridgeSource(
   searchParams: Record<string, SearchValue> | undefined,
+  referrer?: string | null,
 ): HomeReferralBridgeSource | null {
-  const source = sanitizeAcquisitionUtmSource(first(searchParams?.utm_source))
-    ?? sanitizeAcquisitionUtmSource(first(searchParams?.ref))
+  // ChatGPT and TAAFT do not always append a UTM parameter. Reuse the same
+  // first-touch policy as the acquisition ledger so an ordinary HTTP Referer
+  // activates the same value-first bridge without inventing a second source
+  // taxonomy. An explicit UTM remains authoritative over the header.
+  const source = acquisitionSource({
+    utmSource: first(searchParams?.utm_source),
+    legacyUtmSource: first(searchParams?.ref),
+    referrer,
+  })
 
   return source === 'chatgpt' || source === 'taaft' ? source : null
 }

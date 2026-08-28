@@ -50,6 +50,11 @@ equal(resolve({ utm_source: 'theresanaiforthat.com' }), 'taaft', 'TAAFT hostname
 equal(resolve({ utm_source: 'https://www.theresanaiforthat.com/ai/kineo/' }), 'taaft', 'full TAAFT URL activates bridge')
 equal(resolve({ ref: 'taaft' }), 'taaft', 'legacy TAAFT ref activates bridge')
 equal(resolve({ utm_source: 'chatgpt', ref: 'taaft' }), 'chatgpt', 'explicit UTM wins over legacy ref')
+equal(resolve(undefined, 'https://chatgpt.com/c/abc123'), 'chatgpt', 'ordinary ChatGPT referrer activates bridge without UTM')
+equal(resolve({}, 'https://www.theresanaiforthat.com/ai/kineo/'), 'taaft', 'ordinary TAAFT referrer activates bridge without UTM')
+equal(resolve({ utm_source: 'google' }, 'https://chatgpt.com/c/abc123'), null, 'explicit non-target UTM remains authoritative over referrer')
+equal(resolve({}, 'https://www.usekineo.com/pricing'), null, 'self-referrer never activates bridge')
+equal(resolve({}, 'not a url'), null, 'malformed referrer fails closed')
 
 for (const params of [
   undefined,
@@ -75,9 +80,11 @@ const page = read('app/page.tsx')
 const landing = read('app/KineoLanding.tsx')
 const form = read('app/HomeTopicForm.tsx')
 
-check(page.includes('homeReferralBridgeSource(searchParams)'), 'server page resolves the bridge from landing query')
+check(page.includes("import { headers } from 'next/headers'"), 'server page can read the ordinary HTTP referrer')
+check(page.includes("headers().get('referer')"), 'server page reads only the request referrer header')
+check(page.includes('homeReferralBridgeSource(\n    searchParams,'), 'server page resolves the bridge from query and referrer')
 check(page.includes('initialAcquisitionSource={initialAcquisitionSource}'), 'server page passes canonical source to landing')
-check(page.indexOf('homeReferralBridgeSource(searchParams)') < page.indexOf('await supabase.auth.getUser()'), 'source resolution requires no Supabase result')
+check(page.indexOf('homeReferralBridgeSource(') < page.indexOf('await supabase.auth.getUser()'), 'source resolution requires no Supabase result')
 
 equal((landing.match(/<HomeTopicForm/g) ?? []).length, 1, 'landing has one pre-signup value form')
 check(landing.includes('referralBridge ? ('), 'bridge is absent for direct and non-target traffic')

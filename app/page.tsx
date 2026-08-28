@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
@@ -75,7 +76,13 @@ export default async function HomePage({
   searchParams?: Record<string, string | string[] | undefined>
 }) {
   const supabase = createClient()
-  const initialAcquisitionSource = homeReferralBridgeSource(searchParams)
+  // Recommendation engines do not consistently append UTMs. The request
+  // referrer lets a normal ChatGPT/TAAFT click receive the same value-first
+  // bridge while the canonical acquisition policy keeps self-referrals out.
+  const initialAcquisitionSource = homeReferralBridgeSource(
+    searchParams,
+    headers().get('referer'),
+  )
 
   const {
     data: { user },
