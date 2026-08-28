@@ -27,6 +27,7 @@ import {
 } from '@/lib/marketingPrice'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
+import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -586,7 +587,9 @@ export default function PricingClient() {
             with just 1 viral Short" were unverifiable promises (nobody can
             guarantee views) sitting right above the buy buttons — classic
             trust-killer for the skeptical buyer. The plan cards are the
-            hero now; nothing stands between the headline and them. */}
+             hero now; nothing stands between the headline and them. */}
+
+        <PricingSavedCheckout />
 
         {/* Push #267 — Free banner removed with Free card */}
 

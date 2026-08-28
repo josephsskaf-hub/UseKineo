@@ -5,6 +5,10 @@ import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
 import { planFitRetrySearchParamsFromMetadata } from '@/lib/growth/planFitCheckout'
 import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
+import {
+  parseCheckoutResumeSurface,
+  shouldBlockDismissedCheckoutResume,
+} from '@/lib/checkoutResumeSurface'
 
 export const dynamic = 'force-dynamic'
 
@@ -351,6 +355,7 @@ async function resolveCandidate(
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const go = req.nextUrl.searchParams.get('go') === '1'
+  const surface = parseCheckoutResumeSurface(req.nextUrl.searchParams.get('surface'))
 
   if (!process.env.STRIPE_SECRET_KEY) {
     return unavailableResponse(req, go, 'billing_unavailable', { status: go ? undefined : 503 })
@@ -418,7 +423,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // `isSpeculativeRequest()` NAO detecta scanner corporativo — seria uma guarda
   // com justificativa falsa. Se um dia o custo das leituras Stripe deste hop
   // pesar, a guarda certa cobre `go` e `!go` e nasce com evento proprio.
-  if (!go && req.cookies.get(DISMISSED_COOKIE)?.value === '1') {
+  if (shouldBlockDismissedCheckoutResume({
+    go,
+    dismissed: req.cookies.get(DISMISSED_COOKIE)?.value === '1',
+    surface,
+  })) {
     return unavailableResponse(req, false, 'dismissed')
   }
 

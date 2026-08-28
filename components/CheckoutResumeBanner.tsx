@@ -4,18 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
-
-type ResumeOffer = {
-  available: true
-  resumeUrl: string
-  destinationKind: 'open_session' | 'stripe_recovery' | 'internal_retry'
-  planName: string
-  tier: 'starter' | 'basic' | 'pro'
-  billing: 'monthly' | 'annual'
-  currency: string
-  firstChargeAmount: number
-  renewalAmount: number
-}
+import { formatCheckoutResumeMoney, type CheckoutResumeOffer } from '@/lib/checkoutResumeSurface'
 
 const HIDDEN_PATHS = [
   '/login',
@@ -25,6 +14,9 @@ const HIDDEN_PATHS = [
   '/auth',
   '/checkout/success',
   '/checkout/cancelled',
+  // The pricing page owns a calmer, contextual recovery surface. Showing both
+  // would ask the same buyer to resume twice in the same viewport.
+  '/pricing',
   // ONDA4 #16 (14/08) — /v/[id] e pagina de aquisicao para anonimo em 4G:
   // nada de fetch de resume nem banner de compra la.
   '/v',
@@ -34,20 +26,9 @@ function shouldHide(pathname: string): boolean {
   return HIDDEN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
-function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('en-US', { // KINEO-USD-ONLY-2026-08-19
-      style: 'currency',
-      currency: currency.toUpperCase(),
-    }).format(amount / 100)
-  } catch {
-    return `${currency.toUpperCase()} ${(amount / 100).toFixed(2)}`
-  }
-}
-
 export default function CheckoutResumeBanner() {
   const pathname = usePathname()
-  const [offer, setOffer] = useState<ResumeOffer | null>(null)
+  const [offer, setOffer] = useState<CheckoutResumeOffer | null>(null)
   const viewedKey = useRef<string | null>(null)
   const checkout = useCheckoutLaunch('checkout_resume_banner')
   // KINEO-CHECKOUT-REDIRECT-2026-08-08 — os dois cards ocupam o MESMO canto.
@@ -71,7 +52,7 @@ export default function CheckoutResumeBanner() {
     })
       .then(async (response) => {
         if (!response.ok) return null
-        return response.json() as Promise<ResumeOffer | { available: false }>
+        return response.json() as Promise<CheckoutResumeOffer | { available: false }>
       })
       .then((result) => {
         if (!result || result.available !== true) {
@@ -108,8 +89,8 @@ export default function CheckoutResumeBanner() {
 
   if (!offer || shouldHide(pathname) || stalled) return null
 
-  const firstCharge = formatMoney(offer.firstChargeAmount, offer.currency)
-  const renewal = formatMoney(offer.renewalAmount, offer.currency)
+  const firstCharge = formatCheckoutResumeMoney(offer.firstChargeAmount, offer.currency)
+  const renewal = formatCheckoutResumeMoney(offer.renewalAmount, offer.currency)
   const renewalUnit = offer.billing === 'annual' ? 'year' : 'month'
   const eventMetadata = {
     tier: offer.tier,

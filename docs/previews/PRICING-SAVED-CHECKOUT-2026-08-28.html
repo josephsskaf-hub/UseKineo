@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo · Pricing saved checkout · before/after</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#08090b;color:#f5f5f7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .wrap{max-width:1240px;margin:0 auto;padding:34px 24px 70px}.head{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:26px}.eyebrow{font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#2997ff}.title{font-size:32px;font-weight:950;letter-spacing:-.04em;margin:6px 0 0}.note{max-width:520px;color:#8f98a8;font-size:13px;line-height:1.55}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.frame{border:1px solid #272a31;border-radius:24px;overflow:hidden;background:#000;box-shadow:0 22px 70px rgba(0,0,0,.35)}.label{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;background:#111318;border-bottom:1px solid #272a31;font-size:11px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.label b{color:#2997ff}.screen{min-height:520px;padding-bottom:36px;background:radial-gradient(circle at 85% -15%,rgba(41,151,255,.1),transparent 42%),#000}.nav{height:54px;padding:0 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(22,22,24,.92)}.brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:900}.bolt{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;border:1px solid rgba(41,151,255,.45);color:#2997ff}.back{font-size:11px;color:#86868b;font-weight:700}.hero{text-align:center;padding:42px 25px 24px}.hero small{color:#2997ff;font-size:9px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.hero h2{font-size:31px;line-height:1.04;letter-spacing:-.04em;margin:8px auto 15px;max-width:500px}.trust{font-size:10px;color:#858b96;font-weight:700}.proof{font-size:9px;color:#555b65;margin-top:10px}.toggle{width:max-content;margin:18px auto 18px;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:3px;background:rgba(255,255,255,.04);font-size:10px;font-weight:800}.toggle span{display:inline-block;padding:6px 13px;border-radius:999px}.toggle .on{background:#2997ff;color:#fff}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;padding:0 22px}.plan{height:150px;padding:18px;border:1px solid rgba(255,255,255,.09);background:#161618;border-radius:15px}.plan:nth-child(2){border-color:#2997ff;background:linear-gradient(#1e1e22,#151517);transform:translateY(-4px)}.plan strong{font-size:14px}.price{font-size:23px;font-weight:950;margin-top:15px}.line{height:6px;border-radius:5px;background:#292b31;margin-top:9px}.line.short{width:62%}.saved{margin:4px 22px 24px;border:1px solid rgba(41,151,255,.46);border-radius:17px;background:linear-gradient(90deg,#111d2c,#111820 55%,#141416);box-shadow:0 20px 65px -35px rgba(41,151,255,.75);padding:17px 18px;display:flex;gap:18px;align-items:center;justify-content:space-between}.saved .tag{display:inline-flex;gap:6px;padding:4px 8px;border:1px solid rgba(41,151,255,.3);background:rgba(41,151,255,.1);border-radius:999px;color:#62b3ff;font-size:8px;font-weight:950;letter-spacing:.14em;text-transform:uppercase}.saved h3{margin:8px 0 4px;font-size:16px;letter-spacing:-.02em}.saved p{margin:0;color:#a9b4c5;font-size:10px;line-height:1.45}.cta{flex:none;padding:10px 14px;border-radius:10px;background:#2997ff;color:#fff;font-size:10px;font-weight:950;white-space:nowrap}.mobileRow{margin-top:30px;display:grid;grid-template-columns:330px 330px;gap:22px;justify-content:center}.phone .screen{min-height:585px}.phone .hero{padding:32px 18px 20px}.phone .hero h2{font-size:27px}.phone .plans{grid-template-columns:1fr;padding:0 15px}.phone .plan:not(:first-child){display:none}.phone .saved{margin:0 15px 22px;display:block;padding:16px}.phone .cta{margin-top:13px;text-align:center;width:100%}
+    @media(max-width:900px){.head{display:block}.note{margin-top:12px}.grid{grid-template-columns:1fr}.mobileRow{grid-template-columns:1fr}.phone{max-width:360px;margin:0 auto}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="head">
+      <div><div class="eyebrow">Kineo · Growth sprint</div><h1 class="title">Saved checkout on Pricing</h1></div>
+      <div class="note">Static design proof. The amounts shown are an example of values returned by the buyer-owned Stripe session; production copy does not hardcode plan prices.</div>
+    </header>
+
+    <section class="grid" aria-label="Desktop comparison">
+      <article class="frame"><div class="label">Before <span>Desktop</span></div><div class="screen">
+        <div class="nav"><div class="brand"><span class="bolt">ϟ</span>Kineo</div><div class="back">← Back to Home</div></div>
+        <div class="hero"><small>Pricing</small><h2>Simple monthly plans.<br>Cancel anytime.</h2><div class="trust">✓ Cancel anytime &nbsp;&nbsp; ✓ 7-day money-back guarantee</div><div class="proof">900+ creators · 450+ Shorts rendered · featured on TAAFT</div></div>
+        <div class="toggle"><span class="on">Monthly</span><span>Annual · 2 months free</span></div>
+        <div class="plans"><div class="plan"><strong>Starter</strong><div class="price">$7</div><div class="line"></div><div class="line short"></div></div><div class="plan"><strong>Creator</strong><div class="price">$15</div><div class="line"></div><div class="line short"></div></div><div class="plan"><strong>Studio</strong><div class="price">$29</div><div class="line"></div><div class="line short"></div></div></div>
+      </div></article>
+
+      <article class="frame"><div class="label"><b>After</b><span>Desktop</span></div><div class="screen">
+        <div class="nav"><div class="brand"><span class="bolt">ϟ</span>Kineo</div><div class="back">← Back to Home</div></div>
+        <div class="hero"><small>Pricing</small><h2>Simple monthly plans.<br>Cancel anytime.</h2><div class="trust">✓ Cancel anytime &nbsp;&nbsp; ✓ 7-day money-back guarantee</div><div class="proof">900+ creators · 450+ Shorts rendered · featured on TAAFT</div></div>
+        <div class="saved"><div><span class="tag">✓ Saved securely</span><h3>Continue your Creator checkout</h3><p>Your choice is still here: first charge $15.00, then $15.00/month.<br>No need to choose the plan again.</p></div><div class="cta">Continue securely →</div></div>
+        <div class="toggle"><span class="on">Monthly</span><span>Annual · 2 months free</span></div>
+        <div class="plans"><div class="plan"><strong>Starter</strong><div class="price">$7</div><div class="line"></div></div><div class="plan"><strong>Creator</strong><div class="price">$15</div><div class="line"></div></div><div class="plan"><strong>Studio</strong><div class="price">$29</div><div class="line"></div></div></div>
+      </div></article>
+    </section>
+
+    <section class="mobileRow" aria-label="Mobile comparison">
+      <article class="frame phone"><div class="label">Before <span>Mobile</span></div><div class="screen"><div class="nav"><div class="brand"><span class="bolt">ϟ</span>Kineo</div><div class="back">Home</div></div><div class="hero"><small>Pricing</small><h2>Simple monthly plans. Cancel anytime.</h2><div class="trust">✓ Cancel anytime<br>✓ 7-day guarantee</div></div><div class="toggle"><span class="on">Monthly</span><span>Annual</span></div><div class="plans"><div class="plan"><strong>Starter</strong><div class="price">$7</div><div class="line"></div></div></div></div></article>
+      <article class="frame phone"><div class="label"><b>After</b><span>Mobile</span></div><div class="screen"><div class="nav"><div class="brand"><span class="bolt">ϟ</span>Kineo</div><div class="back">Home</div></div><div class="hero"><small>Pricing</small><h2>Simple monthly plans. Cancel anytime.</h2><div class="trust">✓ Cancel anytime<br>✓ 7-day guarantee</div></div><div class="saved"><div><span class="tag">✓ Saved securely</span><h3>Continue your Creator checkout</h3><p>First charge $15.00, then $15.00/month. No need to choose again.</p></div><div class="cta">Continue securely →</div></div><div class="toggle"><span class="on">Monthly</span><span>Annual</span></div><div class="plans"><div class="plan"><strong>Starter</strong><div class="price">$7</div><div class="line"></div></div></div></div></article>
+    </section>
+  </main>
+</body>
+</html>
