@@ -12,6 +12,8 @@ type PublicVideoCtaLinkProps = {
   style?: CSSProperties
   /** Rótulo de posição na página — separa a CTA da dobra da do rodapé. */
   placement?: string
+  /** Real next step. The CTA may now deliver value before asking for signup. */
+  destination?: string
 }
 
 // KINEO-SHARE-LANDING-CEGA-2026-08-17 — POR QUE ESTE ARQUIVO GANHOU UM OBSERVER.
@@ -40,14 +42,15 @@ type PublicVideoCtaLinkProps = {
 // "qual delas a pessoa realmente alcança".
 const seenImpressions = new Set<string>()
 
-// PUSH #23 — measures the public-video landing → signup-intent step before
-// navigation. The signup URL already preserves first-touch UTM/referral data.
+// PUSH #23 — measures the public-video landing → next-value-step before
+// navigation. `destination` keeps signup and no-signup remix CTAs distinct.
 export default function PublicVideoCtaLink({
   href,
   videoId,
   children,
   style,
   placement = 'unknown',
+  destination = '/signup',
 }: PublicVideoCtaLinkProps) {
   const ref = useRef<HTMLAnchorElement | null>(null)
 
@@ -70,7 +73,7 @@ export default function PublicVideoCtaLink({
         void trackEvent('public_video_cta_viewed', {
           video_id: videoId,
           placement,
-          destination: '/signup',
+          destination,
         })
         observer.disconnect()
       },
@@ -78,7 +81,7 @@ export default function PublicVideoCtaLink({
     )
     observer.observe(element)
     return () => observer.disconnect()
-  }, [videoId, placement])
+  }, [videoId, placement, destination])
 
   return (
     <Link
@@ -89,7 +92,7 @@ export default function PublicVideoCtaLink({
         void trackEvent('public_video_cta_clicked', {
           video_id: videoId,
           placement,
-          destination: '/signup',
+          destination,
         })
       }}
     >

@@ -3,12 +3,11 @@
 // #484 — Interactive free script tool. Calls the public, rate-limited
 // /api/demo-script (no auth) and renders the structured result, then pushes the
 // visitor to signup to turn the script into a finished video. No browser storage.
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import { trackEvent } from '@/lib/analytics'
 
-const SIGNUP = '/signup?utm_source=seo&utm_medium=organic&utm_campaign=push22_script_generator'
 const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 
 const EXAMPLES = [
@@ -20,8 +19,12 @@ const EXAMPLES = [
 
 type Line = { label: string; text: string }
 
-function activationHref(lines: Line[]): string {
-  if (lines.length === 0) return SIGNUP
+function activationHref(lines: Line[], fromPublicVideo: boolean): string {
+  const source = fromPublicVideo ? 'public_video' : 'seo'
+  const campaign = fromPublicVideo ? 'public_video_remix_script' : 'push22_script_generator'
+  if (lines.length === 0) {
+    return `/signup?${new URLSearchParams({ utm_source: source, utm_medium: fromPublicVideo ? 'share' : 'organic', utm_campaign: campaign }).toString()}`
+  }
 
   // The public result uses reader-friendly FACT labels. Translate those into
   // the markers understood by /generate so the approved script survives
@@ -45,9 +48,9 @@ function activationHref(lines: Line[]): string {
     .join('\n')
   const destination = `/generate?${new URLSearchParams({ prompt: script, autoanalyze: '1' }).toString()}`
   const signup = new URLSearchParams({
-    utm_source: 'seo',
-    utm_medium: 'organic',
-    utm_campaign: 'push22_script_generator',
+    utm_source: source,
+    utm_medium: fromPublicVideo ? 'share' : 'organic',
+    utm_campaign: campaign,
     redirect: destination,
   })
   return `/signup?${signup.toString()}`
@@ -65,12 +68,46 @@ function parseScript(raw: string): Line[] {
     })
 }
 
-export default function FreeScriptClient() {
-  const [topic, setTopic] = useState('')
+type Props = {
+  initialTopic?: string
+  sourceVideoId?: string
+  fromPublicVideo?: boolean
+}
+
+export default function FreeScriptClient({
+  initialTopic = '',
+  sourceVideoId = '',
+  fromPublicVideo = false,
+}: Props) {
+  const [topic, setTopic] = useState(initialTopic)
   const [lines, setLines] = useState<Line[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const createShortHref = activationHref(lines)
+  const arrivalSentRef = useRef(false)
+  const createShortHref = activationHref(lines, fromPublicVideo)
+
+  useEffect(() => {
+    if (!fromPublicVideo || arrivalSentRef.current) return
+    const marker = `kineo_public_video_remix_arrived:${sourceVideoId || initialTopic}`
+    try {
+      if (sessionStorage.getItem(marker) === '1') return
+      sessionStorage.setItem(marker, '1')
+    } catch {
+      // The in-memory latch still protects the uninterrupted render.
+    }
+    arrivalSentRef.current = true
+    void trackEvent('public_video_remix_arrived', {
+      source_video_id: sourceVideoId || null,
+      topic_prefilled: Boolean(initialTopic),
+    })
+  }, [fromPublicVideo, initialTopic, sourceVideoId])
+
+  useEffect(() => {
+    if (!initialTopic) return
+    setTopic(initialTopic)
+    setLines([])
+    setError('')
+  }, [initialTopic, sourceVideoId])
 
   async function generate(t?: string) {
     const q = (t ?? topic).trim()
@@ -92,7 +129,14 @@ export default function FreeScriptClient() {
         setError(data?.error || 'Could not generate. Try again.')
         return
       }
-      setLines(parseScript(data.script || ''))
+      const parsed = parseScript(data.script || '')
+      setLines(parsed)
+      if (fromPublicVideo && parsed.length > 0) {
+        void trackEvent('public_video_remix_script_generated', {
+          source_video_id: sourceVideoId || null,
+          topic_prefilled: Boolean(initialTopic),
+        })
+      }
     } catch {
       setError('Network error. Try again.')
     } finally {
@@ -163,7 +207,7 @@ export default function FreeScriptClient() {
             <div style={{ marginTop: 18, padding: '16px', borderRadius: 12, background: 'rgba(41,151,255,0.08)', border: '1px solid rgba(41,151,255,0.25)', textAlign: 'center' }}>
               <div style={{ fontWeight: 800, marginBottom: 4 }}>Now turn this into a finished video 🎬</div>
               <p style={{ color: '#86868b', fontSize: '0.88rem', margin: '0 0 12px' }}>AI adds the voiceover, footage and captions — a ready-to-post 9:16 Short in a few minutes. Your script comes with you after signup.</p>
-              <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: 'generate', autoanalyze: true }); void trackEvent('organic_cta_clicked', { source: 'push22_script_generator', placement: 'result' }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create this Short from my script →</Link>
+              <Link href={createShortHref} onClick={() => { void trackEvent('free_script_to_signup_clicked', { destination: 'generate', autoanalyze: true, source: fromPublicVideo ? 'public_video_remix' : 'push22_script_generator' }); if (fromPublicVideo) void trackEvent('public_video_remix_signup_clicked', { source_video_id: sourceVideoId || null }); void trackEvent('organic_cta_clicked', { source: fromPublicVideo ? 'public_video_remix' : 'push22_script_generator', placement: 'result' }) }} style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}>Create this Short from my script →</Link>
             </div>
           </section>
         )}

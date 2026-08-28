@@ -143,6 +143,8 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     deliveryPublicLandings: 0, deliveryPublicCtaClicks: 0,
     shareRate: '—', sharesCompleted: 0, publicVideoLandings: 0,
     publicVideoCtaClicks: 0, landingToCtaRate: '—', referredSignups: 0,
+    remixArrivals: 0, remixScripts: 0, remixSignupClicks: 0,
+    ctaToRemixRate: '—', remixToScriptRate: '—', scriptToSignupClickRate: '—',
     ctaToSignupRate: '—', qualifiedReferrals: 0, referredPaid: 0,
     signupToPaidRate: '—',
   }
@@ -781,7 +783,40 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <RateCard
           label="Landing → CTA"
           value={creatorLoop.landingToCtaRate}
-          sub={`${creatorLoop.publicVideoCtaClicks} / ${creatorLoop.publicVideoLandings}`}
+          sub={`${creatorLoop.publicVideoCtaClicks} / ${creatorLoop.publicVideoLandings} unique actors`}
+        />
+        <Card
+          label="Remix tool arrivals"
+          value={fmt(creatorLoop.remixArrivals)}
+          hint="prefilled · no signup"
+          accent="#22d3ee"
+        />
+        <RateCard
+          label="CTA → Remix"
+          value={creatorLoop.ctaToRemixRate}
+          sub={`${creatorLoop.remixArrivals} / ${creatorLoop.publicVideoCtaClicks} unique actors`}
+        />
+        <Card
+          label="Remix scripts made"
+          value={fmt(creatorLoop.remixScripts)}
+          hint="useful result delivered"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Remix → Script"
+          value={creatorLoop.remixToScriptRate}
+          sub={`${creatorLoop.remixScripts} / ${creatorLoop.remixArrivals} unique actors`}
+        />
+        <Card
+          label="Remix signup intent"
+          value={fmt(creatorLoop.remixSignupClicks)}
+          hint="script carried into Studio"
+          accent="#22d3ee"
+        />
+        <RateCard
+          label="Script → Signup click"
+          value={creatorLoop.scriptToSignupClickRate}
+          sub={`${creatorLoop.remixSignupClicks} / ${creatorLoop.remixScripts} unique actors`}
         />
         <Card
           label="Referred signups"
@@ -792,7 +827,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <RateCard
           label="CTA → Signup"
           value={creatorLoop.ctaToSignupRate}
-          sub={`${creatorLoop.referredSignups} / ${creatorLoop.publicVideoCtaClicks}`}
+          sub={`${creatorLoop.referredSignups} / ${creatorLoop.remixSignupClicks || creatorLoop.publicVideoCtaClicks}`}
         />
         <Card
           label="Referred subscribers"

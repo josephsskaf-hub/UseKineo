@@ -218,6 +218,12 @@ export interface FunnelData {
     publicVideoLandings: number
     publicVideoCtaClicks: number
     landingToCtaRate: string
+    remixArrivals: number
+    remixScripts: number
+    remixSignupClicks: number
+    ctaToRemixRate: string
+    remixToScriptRate: string
+    scriptToSignupClickRate: string
     referredSignups: number
     ctaToSignupRate: string
     qualifiedReferrals: number
@@ -458,7 +464,8 @@ export async function GET(req: Request) {
       'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
       'viral_now_viewed', 'viral_now_topic_clicked',
       'video_share_clicked', 'video_shared', 'video_share_channel_opened',
-      'public_video_cta_clicked',
+      'public_video_cta_clicked', 'public_video_remix_arrived',
+      'public_video_remix_script_generated', 'public_video_remix_signup_clicked',
       'series_continue_clicked', 'series_continuation_landed',
       'auth_callback_completed', 'auth_callback_failed', 'email_signup_completed',
       'generate_arrived_server', 'generate_activation_auth_missing',
@@ -560,7 +567,8 @@ export async function GET(req: Request) {
             'viral_now_viewed', 'viral_now_topic_clicked',
             'video_share_prompt_viewed', 'video_share_clicked', 'video_shared',
             'video_share_channel_opened', 'video_share_cancelled',
-            'public_video_cta_clicked',
+            'public_video_cta_clicked', 'public_video_remix_arrived',
+            'public_video_remix_script_generated', 'public_video_remix_signup_clicked',
           ])
           .order('created_at', { ascending: false })
           .limit(5000)
@@ -1167,6 +1175,17 @@ export async function GET(req: Request) {
       event.name === 'landing_session_started' && Boolean(event.path?.startsWith('/v/'))
     )
     const publicVideoCtaRows = organicEventRows.filter((event) => event.name === 'public_video_cta_clicked')
+    const publicVideoRemixArrivalRows = organicEventRows.filter((event) => event.name === 'public_video_remix_arrived')
+    const publicVideoRemixScriptRows = organicEventRows.filter((event) => event.name === 'public_video_remix_script_generated')
+    const publicVideoRemixSignupRows = organicEventRows.filter((event) => event.name === 'public_video_remix_signup_clicked')
+    // Public acquisition is anonymous until signup. Count one browser actor,
+    // not raw rows: retries, React remounts and multiple CTA placements must
+    // not make one person look like several prospects.
+    const publicVideoLandingActors = uniqueOrganicActorCount(publicVideoLandingRows)
+    const publicVideoCtaActors = uniqueOrganicActorCount(publicVideoCtaRows)
+    const publicVideoRemixArrivalActors = uniqueOrganicActorCount(publicVideoRemixArrivalRows)
+    const publicVideoRemixScriptActors = uniqueOrganicActorCount(publicVideoRemixScriptRows)
+    const publicVideoRemixSignupActors = uniqueOrganicActorCount(publicVideoRemixSignupRows)
     const deliveryRows = organicEventRows.filter((event) =>
       event.metadata?.version === 'push29_share_delivery' ||
       event.metadata?.utm_content === 'push29_share_delivery'
@@ -1213,11 +1232,17 @@ export async function GET(req: Request) {
       shareUsers: creatorShareUserIds.size,
       shareRate: pct(creatorShareUserIds.size, completedCreatorIds.size),
       sharesCompleted: creatorSharedRows.length,
-      publicVideoLandings: publicVideoLandingRows.length,
-      publicVideoCtaClicks: publicVideoCtaRows.length,
-      landingToCtaRate: pct(publicVideoCtaRows.length, publicVideoLandingRows.length),
+      publicVideoLandings: publicVideoLandingActors,
+      publicVideoCtaClicks: publicVideoCtaActors,
+      landingToCtaRate: pct(publicVideoCtaActors, publicVideoLandingActors),
+      remixArrivals: publicVideoRemixArrivalActors,
+      remixScripts: publicVideoRemixScriptActors,
+      remixSignupClicks: publicVideoRemixSignupActors,
+      ctaToRemixRate: pct(publicVideoRemixArrivalActors, publicVideoCtaActors),
+      remixToScriptRate: pct(publicVideoRemixScriptActors, publicVideoRemixArrivalActors),
+      scriptToSignupClickRate: pct(publicVideoRemixSignupActors, publicVideoRemixScriptActors),
       referredSignups: referredProfiles.length,
-      ctaToSignupRate: pct(referredProfiles.length, publicVideoCtaRows.length),
+      ctaToSignupRate: pct(referredProfiles.length, publicVideoRemixSignupActors || publicVideoCtaActors),
       qualifiedReferrals,
       referredPaid,
       signupToPaidRate: pct(referredPaid, referredProfiles.length),

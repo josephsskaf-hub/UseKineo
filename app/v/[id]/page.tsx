@@ -16,6 +16,7 @@ import {
   type LibraryScript,
 } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { publicVideoRemixHref } from '@/lib/publicVideoRemix'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -47,30 +48,6 @@ export const revalidate = 0
 
 const BLUE = '#2997ff'
 const MUTED = '#86868b'
-
-function signupHrefFor(v: PublicVideo | null): string {
-  const query = new URLSearchParams({
-    utm_source: 'public_video',
-    utm_medium: 'share',
-    utm_campaign: 'make_one_like_this',
-  })
-  // Signup already accepts `prompt` and carries it through email/OAuth to the
-  // local /generate activation URL. URLSearchParams encodes untrusted text and
-  // a short title-sized cap keeps the CTA URL bounded.
-  // Remix the idea, not the entire stored script: seeding the whole script
-  // would create a duplicate instead of a fresh episode.
-  const prompt = v ? v.title.trim().slice(0, 160) : ''
-  if (prompt) {
-    query.set('prompt', prompt)
-    // ONDA4 #1 (14/08) — com create_intent=fast o signup empurra o visitante
-    // DIRETO para a geracao com o topico semeado (mesmo caminho rapido do CTA
-    // secundario). Sem isso, o botao mais clicado da pagina caia num signup
-    // generico.
-    query.set('create_intent', 'fast')
-  }
-  query.set('intent_campaign', 'public_video_remix')
-  return `/signup?${query.toString()}`
-}
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const result = await getPublicVideoResult(params.id)
@@ -189,7 +166,12 @@ export default async function PublicVideoPage({ params }: { params: { id: string
   const v = result.status === 'ok' ? result.video : null
   const ready = !!v?.playbackUrl
   const title = v?.title ?? 'AI YouTube Short'
-  const signupHref = signupHrefFor(v)
+  // The old CTA asked for an account before giving the visitor anything to do.
+  // Production evidence on 2026-08-27: 76 public-video landing actors and zero
+  // CTA actors in 30 days. The next step now remixes the visible topic in the
+  // existing no-signup script tool; signup happens only after a useful script
+  // exists and is carried into Studio.
+  const remixHref = publicVideoRemixHref(v?.title ?? title, params.id)
 
   // KINEO-SCRIPT-LIBRARY-2026-08-03 — sibling scripts. Only members of the
   // library are returned and every member has already cleared the quality gate
@@ -299,9 +281,10 @@ export default async function PublicVideoPage({ params }: { params: { id: string
                   O beco sem saida agora tem a unica porta que importa. */}
               <span>This preview expired.</span>
               <PublicVideoCtaLink
-                href={signupHref}
+                href={remixHref}
                 videoId={params.id}
                 placement="expired_preview"
+                destination="/free-script-generator"
                 style={{
                   display: 'inline-block',
                   background: BLUE,
@@ -313,7 +296,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
                   fontSize: '0.9rem',
                 }}
               >
-                Make yours — free →
+                Remix the idea — no signup →
               </PublicVideoCtaLink>
             </div>
           )}
@@ -338,9 +321,10 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             {ft(OFFER, 'Create, share and download up to 3 watermarked Fast videos every 24 hours — upgrade only when you want a clean export.', OFFER.copy.headline + ' Upgrade only when you want more.')}
           </p>
           <PublicVideoCtaLink
-            href={signupHref}
+            href={remixHref}
             videoId={params.id}
             placement="under_player"
+            destination="/free-script-generator"
             style={{
               display: 'inline-block',
               background: BLUE,
@@ -352,7 +336,7 @@ export default async function PublicVideoPage({ params }: { params: { id: string
               fontSize: '1rem',
             }}
           >
-            Make one like this →
+            Remix this topic — no signup →
           </PublicVideoCtaLink>
           <ShareVideoButton title={v?.title ?? 'A Short made with Kineo'} />
         </div>
@@ -550,9 +534,10 @@ export default async function PublicVideoPage({ params }: { params: { id: string
         }}
       >
         <PublicVideoCtaLink
-          href={signupHref}
+          href={remixHref}
           videoId={params.id}
           placement="sticky_bar"
+          destination="/free-script-generator"
           style={{
             display: 'block',
             width: 'min(420px, 100%)',
@@ -566,60 +551,10 @@ export default async function PublicVideoPage({ params }: { params: { id: string
             fontSize: '1rem',
           }}
         >
-          Make one like this — free →
+          Remix this topic free →
         </PublicVideoCtaLink>
       </div>
 
-      {/* ═══ #291 — KINEO-CTA-ALCANCAVEL-2026-08-23 ═══════════════════════════
-          O DENOMINADOR QUE O OBSERVER DE 17/08 FOI BUSCAR (ver a nota longa em
-          components/PublicVideoCtaLink.tsx): 234 sessões → 7 cliques → 0 contas.
-          Aquele commit instrumentou a pergunta "ela não quis, ou ela nunca
-          viu?" e a própria nota já dizia que a geometria era suspeita POR
-          CONSTRUÇÃO: acima da primeira CTA existem breadcrumb, H1, subtítulo e
-          um player 9:16 que, num telefone de 380px, tem ~675px de altura — a
-          CTA começa depois da dobra, sempre.
-          Esta barra resolve a geometria sem tocar no conteúdo: fixa no rodapé,
-          SÓ no celular (`media (max-width: 768px)`), sempre alcançável com o
-          polegar. `placement="sticky_mobile"` mantém a medição separada das
-          outras três posições — se ela converter e as outras não, a resposta
-          era geometria; se nenhuma converter, era a oferta. A instrumentação
-          continua respondendo a pergunta, agora com a variável certa isolada.
-          `pb` extra no <main> impede que a barra cubra o último parágrafo. */}
-      <style>{`
-        .kineo-sticky-cta { display: none; }
-        @media (max-width: 768px) {
-          .kineo-sticky-cta {
-            display: block;
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            z-index: 60;
-            padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
-            background: rgba(0,0,0,0.92);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-          }
-          .kineo-sticky-cta a { width: 100%; text-align: center; }
-        }
-      `}</style>
-      <div className="kineo-sticky-cta">
-        <PublicVideoCtaLink
-          href={signupHref}
-          videoId={params.id}
-          placement="sticky_mobile"
-          style={{
-            display: 'block',
-            background: BLUE,
-            color: '#000',
-            fontWeight: 900,
-            padding: '14px 18px',
-            borderRadius: 12,
-            textDecoration: 'none',
-            fontSize: '0.95rem',
-          }}
-        >
-          Make one like this — free →
-        </PublicVideoCtaLink>
-      </div>
     </main>
   )
 }

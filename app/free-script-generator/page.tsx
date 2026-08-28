@@ -11,6 +11,11 @@ import Footer from '@/components/Footer'
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
+import {
+  PUBLIC_VIDEO_REMIX_CAMPAIGN,
+  sanitizePublicVideoId,
+  sanitizePublicVideoRemixTopic,
+} from '@/lib/publicVideoRemix'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -50,14 +55,28 @@ const TOOL_JSON_LD = {
   creator: { '@type': 'Organization', name: 'Kineo', url: 'https://www.usekineo.com' },
 }
 
-export default function FreeScriptGeneratorPage() {
+type SearchParams = Record<string, string | string[] | undefined>
+
+function first(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? (value[0] ?? '') : (value ?? '')
+}
+
+export default function FreeScriptGeneratorPage({ searchParams }: { searchParams?: SearchParams }) {
+  const initialTopic = sanitizePublicVideoRemixTopic(first(searchParams?.topic))
+  const sourceVideoId = sanitizePublicVideoId(first(searchParams?.source_video_id))
+  const fromPublicVideo = first(searchParams?.utm_source) === 'public_video' &&
+    first(searchParams?.utm_campaign) === PUBLIC_VIDEO_REMIX_CAMPAIGN
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(TOOL_JSON_LD) }}
       />
-      <FreeScriptClient />
+      <FreeScriptClient
+        initialTopic={initialTopic}
+        sourceVideoId={fromPublicVideo ? sourceVideoId : ''}
+        fromPublicVideo={fromPublicVideo}
+      />
       {/* AQUISICAO T3 (14/08) — prova viva na melhor porta da casa (67% de
           clique para o produto): quem acabou de gerar um roteiro ve TRES
           exports reais tocando — a distancia entre o texto que recebeu e o
