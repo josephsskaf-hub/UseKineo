@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import ExampleCta from '../ExampleCta'
+import ExampleRemixForm from '../ExampleRemixForm'
 import ExampleVideoPlayer from '../ExampleVideoPlayer'
 import { PUBLIC_EXAMPLES, getPublicExample } from '@/lib/publicExamples'
 
@@ -44,7 +45,6 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
   if (!example) notFound()
 
   const canonical = `${BASE}/examples/${example.slug}`
-  const generateHref = `/generate?prompt=${encodeURIComponent(example.prompt)}&utm_source=example_watch&utm_medium=proof&utm_campaign=push31&utm_content=${encodeURIComponent(example.slug)}`
   const pricingHref = `/pricing?utm_source=example_watch&utm_medium=proof&utm_campaign=push31&utm_content=${encodeURIComponent(example.slug)}`
   const videoObject = {
     '@context': 'https://schema.org',
@@ -84,7 +84,8 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
             title={example.title}
             src={example.videoPath}
             poster={example.posterPath}
-            ctaHref={generateHref}
+            ctaHref="#remix-this-example"
+            ctaTarget="remix_form"
           />
         </div>
 
@@ -109,6 +110,8 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
             <p className="mt-2 text-sm leading-6 text-white/75">“{example.prompt}”</p>
           </div>
 
+          <ExampleRemixForm slug={example.slug} referencePrompt={example.prompt} />
+
           {/* KINEO-EXAMPLES-PROVA-SEM-PORTA-2026-08-14 — UMA oferta nesta tela.
               Dos 16 cliques que estas paginas produziram em 30 dias, 10 foram
               para /pricing e 6 para o produto: com dois botoes do mesmo peso, a
@@ -119,8 +122,7 @@ export default function ExampleWatchPage({ params }: { params: { slug: string } 
               para FAZER, nunca para pagar. O preco continua a um toque de
               distancia, como link, para quem foi ali procurar preco. Nenhum
               valor, moeda ou rota de checkout foi tocado. */}
-          <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <ExampleCta href={generateHref} slug={example.slug} target="generate">Make a Short from this prompt →</ExampleCta>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
             <ExampleCta
               href={pricingHref}
               slug={example.slug}

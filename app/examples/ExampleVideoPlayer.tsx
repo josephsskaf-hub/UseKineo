@@ -18,6 +18,7 @@ interface ExampleVideoPlayerProps {
    */
   ctaHref?: string
   ctaLabel?: string
+  ctaTarget?: 'generate' | 'remix_form'
 }
 
 // KINEO-EXAMPLES-PROVA-SEM-PORTA-2026-08-14
@@ -46,7 +47,8 @@ export default function ExampleVideoPlayer({
   placement = 'example_watch',
   version = 'push31',
   ctaHref,
-  ctaLabel = 'Make this Short with my topic →',
+  ctaLabel = 'Remix this format with my topic →',
+  ctaTarget = 'generate',
 }: ExampleVideoPlayerProps) {
   const played = useRef(false)
   const endedTracked = useRef(false)
@@ -115,7 +117,7 @@ export default function ExampleVideoPlayer({
               void trackEvent('example_watch_cta_click', {
                 version,
                 example_slug: slug,
-                target: 'generate',
+                target: ctaTarget,
                 placement: 'preview_ended',
               })
               void trackEvent('organic_cta_clicked', {

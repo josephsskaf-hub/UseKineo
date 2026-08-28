@@ -145,6 +145,11 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     exposedPeople: 0, selectedPeople: 0, checkoutPeople: 0, paidPeople: 0,
     exposureToSelectionRate: '—', selectionToCheckoutRate: '—', checkoutToPaidRate: '—',
   }
+  const exampleRemix = data.exampleRemix ?? {
+    eventsAvailable: false,
+    formViewers: 0, topicSubmitters: 0, attributedSignups: 0, completedCreators: 0,
+    viewToSubmitRate: '—', submitToSignupRate: '—', signupToCompleteRate: '—',
+  }
   const creatorLoop = data.creatorLoop ?? {
     completedVideos: 0, completedCreators: 0, shareClicks: 0, shareUsers: 0,
     deliveryPromptActors: 0, deliveryClickActors: 0, deliveryShareActors: 0,
@@ -733,6 +738,48 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           value={fmt(organic.paid)}
           hint="verified active / trialing"
           accent={organic.paid > 0 ? '#22d3ee' : '#fbbf24'}
+        />
+      </Section>
+
+      <Section title={`Example remix · proof → topic → signup · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card
+          label="Remix form viewers"
+          value={exampleRemix.eventsAvailable ? fmt(exampleRemix.formViewers) : '—'}
+          hint="unique external actors · form 50% visible"
+          accent="#22d3ee"
+        />
+        <Card
+          label="Topics submitted"
+          value={exampleRemix.eventsAvailable ? fmt(exampleRemix.topicSubmitters) : '—'}
+          hint="unique people who entered their own story"
+          accent="#2997ff"
+        />
+        <RateCard
+          label="View → Topic"
+          value={exampleRemix.viewToSubmitRate}
+          sub={`${exampleRemix.topicSubmitters} / ${exampleRemix.formViewers} people`}
+        />
+        <Card
+          label="Attributed signups"
+          value={fmt(exampleRemix.attributedSignups)}
+          hint="profile campaign example_remix_v1"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Topic → Signup"
+          value={exampleRemix.submitToSignupRate}
+          sub={`${exampleRemix.attributedSignups} / ${exampleRemix.topicSubmitters} people`}
+        />
+        <Card
+          label="Completed creators"
+          value={fmt(exampleRemix.completedCreators)}
+          hint="attributed people with a completed video"
+          accent={exampleRemix.completedCreators > 0 ? '#22d3ee' : '#fbbf24'}
+        />
+        <RateCard
+          label="Signup → Video"
+          value={exampleRemix.signupToCompleteRate}
+          sub={`${exampleRemix.completedCreators} / ${exampleRemix.attributedSignups} people`}
         />
       </Section>
 

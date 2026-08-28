@@ -217,6 +217,16 @@ export interface FunnelData {
     selectionToCheckoutRate: string
     checkoutToPaidRate: string
   }
+  exampleRemix: {
+    eventsAvailable: boolean
+    formViewers: number
+    topicSubmitters: number
+    attributedSignups: number
+    completedCreators: number
+    viewToSubmitRate: string
+    submitToSignupRate: string
+    signupToCompleteRate: string
+  }
   creatorLoop: {
     completedVideos: number
     completedCreators: number
@@ -506,6 +516,7 @@ export async function GET(req: Request) {
       'checkout_started',
       'payment_success', 'checkout_cancelled', 'checkout_canceled',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
+      'example_remix_form_viewed', 'example_remix_topic_submitted',
     ]
     const identityEventNames = [
       'basic_checkout_clicked', 'checkout_basic_click', 'pro_checkout_clicked',
@@ -519,6 +530,7 @@ export async function GET(req: Request) {
       'agency_bulk_pack_clicked', 'bulk_checkout_started',
       'trust_page_viewed', 'trust_cta_clicked',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
+      'example_remix_form_viewed', 'example_remix_topic_submitted',
     ]
     let eventsAvailable = false
     let planFitEventsAvailable = false
@@ -1199,6 +1211,51 @@ export async function GET(req: Request) {
       checkoutToPaidRate: stripeSessionsAvailable ? pct(planFitPaid.size, planFitCheckout.size) : '—',
     }
 
+    // Example Remix v1 — a proof page now asks for the visitor's own topic.
+    // Every browser stage is a unique identifiable actor, while signup and
+    // completion come from profiles/videos so a remount cannot inflate them.
+    const exampleRemixPeople = (name: string) => new Set(
+      eventRows
+        .filter((event) =>
+          event.name === name && event.metadata?.version === 'example_remix_v1'
+        )
+        .map(checkoutActorKey)
+        .filter((actor): actor is string => actor !== null),
+    )
+    const exampleRemixViewers = exampleRemixPeople('example_remix_form_viewed')
+    const exampleRemixSubmitters = exampleRemixPeople('example_remix_topic_submitted')
+    const exampleRemixSignupIds = new Set(
+      externalProfiles
+        .filter((profile) =>
+          profile.signup_utm_source?.trim().toLowerCase() === 'example_watch' &&
+          profile.signup_utm_campaign?.trim().toLowerCase() === 'example_remix_v1' &&
+          (days === 'all' || (
+            Boolean(profile.created_at) &&
+            new Date(profile.created_at as string).getTime() >= cohortCutoff
+          ))
+        )
+        .map((profile) => profile.id),
+    )
+    const exampleRemixCompletedIds = new Set(
+      allVideos
+        .filter((video) =>
+          video.status === 'completed' &&
+          Boolean(video.user_id && exampleRemixSignupIds.has(video.user_id))
+        )
+        .map((video) => video.user_id)
+        .filter((id): id is string => Boolean(id)),
+    )
+    const exampleRemix = {
+      eventsAvailable: planFitEventsAvailable,
+      formViewers: exampleRemixViewers.size,
+      topicSubmitters: exampleRemixSubmitters.size,
+      attributedSignups: exampleRemixSignupIds.size,
+      completedCreators: exampleRemixCompletedIds.size,
+      viewToSubmitRate: planFitEventsAvailable ? pct(exampleRemixSubmitters.size, exampleRemixViewers.size) : '—',
+      submitToSignupRate: planFitEventsAvailable ? pct(exampleRemixSignupIds.size, exampleRemixSubmitters.size) : '—',
+      signupToCompleteRate: pct(exampleRemixCompletedIds.size, exampleRemixSignupIds.size),
+    }
+
     // PUSH #23 — creator distribution loop. A completed video only becomes an
     // acquisition asset when the creator shares its public page, a visitor
     // clicks the CTA, signs up and eventually pays. Every stage is measured
@@ -1445,7 +1502,7 @@ export async function GET(req: Request) {
         checkout_cancelled: (eventCounts.get('checkout_cancelled') ?? 0) + (eventCounts.get('checkout_canceled') ?? 0),
       },
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })
