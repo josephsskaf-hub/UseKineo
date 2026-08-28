@@ -182,6 +182,43 @@ export default async function StateOfAiShortsPage() {
     ],
   }
 
+  // KINEO-GROWTH-STATE-STARTER-2026-08-28 — production evidence showed the
+  // embedded starter converts when it is reached, but it sat after the entire
+  // study. Keep one starter and one campaign; move that same useful action to
+  // the first natural decision point, immediately after the key findings.
+  // `placement` and `analyticsVariant` distinguish the new position without
+  // changing the historical campaign or counting mirrored events as people.
+  const starterSection = (
+    <section style={{ ...CARD, padding: '20px 20px', margin: '0 0 48px', borderColor: ACCENT }}>
+      <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
+        Test the data yourself — free
+      </h2>
+      <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
+        Start with one of the three leading niches in this study — or type your own topic. Expect
+        about {s.medianMinutes} minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
+      </p>
+      <TopicGeneratorForm
+        campaign="starter_state_of_ai_shorts"
+        source="starter_state_of_ai_shorts"
+        placement="after_key_findings"
+        analyticsVariant="state_study_starter_after_findings_2026_08_28"
+        formId="study-start-a-short"
+        examples={[
+          'The animal with a survival trick science still cannot explain',
+          'The country almost nobody is allowed to enter',
+          'The empire that collapsed in a single generation',
+        ]}
+        copy={{
+          label: 'Start with one of the top niches — or your own topic',
+          placeholder: 'Type one topic — e.g. the animal that outlived the dinosaurs',
+          submit: 'Turn this topic into a Short →',
+          examplesLabel: 'Top-ranked niches from this study',
+          note: `Median finish time in the data above is ${s.medianMinutes} minutes. Your topic stays attached through signup. No card required for the free Fast workflow.`,
+        }}
+      />
+    </section>
+  )
+
   return (
     <main
       style={{
@@ -248,6 +285,8 @@ export default async function StateOfAiShortsPage() {
             </section>
           ))}
         </div>
+
+        {starterSection}
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 6px' }}>
           How long an AI Short actually takes
@@ -395,57 +434,6 @@ export default async function StateOfAiShortsPage() {
             </p>
           </section>
         </div>
-
-        <section style={{ ...CARD, padding: '20px 20px', margin: '0 0 48px', borderColor: ACCENT }}>
-          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
-            Test the data yourself — free
-          </h2>
-          <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 4px' }}>
-            Pick one of the top-3 niches above — or type your own topic. Expect
-            about {s.medianMinutes} minutes. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card.', OFFER.copy.headline)}
-          </p>
-          {/* ── KINEO-STARTER-EM-ARTIGO-2026-08-15 ────────────────────────────
-              A sprint de 14/08 pôs uma PORTA aqui (o `OrganicCtaLink` que
-              ocupava este lugar, "Generate a free Short →", source
-              `seo_state_of_ai_shorts`, placement `study_cta`). Ela consertou os
-              três defeitos certos — mas a medição seguinte, de 15/08 16h,
-              mostrou que ter porta não é a variável:
-
-                | superfície                      | pessoas | ativação |
-                | home one-click starters (#69)   |   278   |   68%    |
-                | páginas de artigo COM porta     |   316 sessões | 0 cliques |
-
-              O que separa 68% de 0% é a página deixar a pessoa FAZER alguma
-              coisa antes de pedir qualquer coisa. Uma porta pergunta; um
-              starter já começa. Então a porta virou o starter — o MESMO
-              componente da home/#70 (`TopicGeneratorForm`), com os três nichos
-              que ESTA página acabou de rankear como exemplos, para que o
-              primeiro clique carregue o tema do próprio leitor.
-
-              UMA variável trocada, e só uma: destino, utm e create_intent=fast
-              são os de sempre. A porta antiga NÃO fica ao lado — duas ofertas
-              na mesma tela é o defeito que /examples pagou em 14/08 (10 dos 16
-              cliques iam para /pricing antes do primeiro vídeo). O histórico de
-              `seo_state_of_ai_shorts` continua no banco; o depois se lê pelo
-              `source` novo abaixo. */}
-          <TopicGeneratorForm
-            campaign="starter_state_of_ai_shorts"
-            source="starter_state_of_ai_shorts"
-            formId="study-start-a-short"
-            examples={[
-              'The animal with a survival trick science still cannot explain',
-              'The country almost nobody is allowed to enter',
-              'The empire that collapsed in a single generation',
-            ]}
-            copy={{
-              label: 'Start with one of the top niches — or your own topic',
-              placeholder: 'Type one topic — e.g. the animal that outlived the dinosaurs',
-              submit: 'Turn this topic into a Short →',
-              examplesLabel: 'Top-ranked niches from this study',
-              note: `Median finish time in the data above is ${s.medianMinutes} minutes. Your topic stays attached through signup. No card required for the free Fast workflow.`,
-            }}
-          />
-        </section>
 
         <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 12px' }}>Methodology</h2>
         <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.7, margin: '0 0 10px' }}>
