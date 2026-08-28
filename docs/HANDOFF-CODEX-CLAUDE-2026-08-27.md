@@ -363,6 +363,21 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não houve um afiliado externo zero-clique observado na nova missão depois do deploy. Medir pessoas em `mission/nudge viewed → copied/opened → primeira linha em affiliate_clicks → referral` antes de mudar novamente a interface. O deploy reduz a distância até a distribuição; não prova aquisição nem assinatura.
 - **NÃO TOCADO:** render, cena, legenda, motor, preço, oferta, comissão, e-mail, outreach e escrita de banco.
 
+### 2.26 Rota de decisão TikTok versus YouTube até o primeiro vídeo
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit funcional `0bc15a9a3c7263e8034dae6e10367889fbbf44e8`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 30 dias lida em 28/08/2026 06:32 UTC):** `/tiktok-vs-youtube-shorts-monetization` teve 16 atores deduplicados por usuário ou sessão e zero ator em qualquer ação registrada na página. Contas internas vinculadas a usuário foram excluídas; sessões anônimas sem usuário não podem ser classificadas por e-mail. A página já tinha um CTA genérico sem instrumentação própria.
+- Páginas orgânicas maiores não foram reeditadas: estudo, exemplos, monetização de IA e comparador de custo receberam experiências recentes e ainda não têm amostra pós-deploy suficiente. O cluster `/vs` e `/alternatives` teve tráfego fragmentado por muitas URLs; não justificou uma intervenção transversal nesta rodada.
+- `lib/platformDecision.ts` governa nove combinações de objetivo (`reach|revenue|customers`) e conteúdo (`stories|expertise|business`). Cada combinação termina em `TikTok first`, `YouTube Shorts first` ou `Publish to both`, com razão, segundo movimento, duração suportada e conceito inicial editável.
+- O card genérico da página virou uma decisão em dois cliques. O CTA leva prompt, `create_intent=fast`, campanha, UTM e duração até `/signup`; nada é gerado antes da pessoa revisar e nenhum fornecedor é chamado (`app/tiktok-vs-youtube-shorts-monetization/PlatformDecisionClient.tsx`; `app/tiktok-vs-youtube-shorts-monetization/page.tsx`).
+- A telemetria separa objetivo, rota concluída e clique final (`platform_route_goal_selected`, `platform_route_completed`, `platform_route_cta_clicked`) e espelha somente a intenção final no funil canônico `organic_cta_clicked`. Nenhum tema livre, e-mail ou identificador entra nos metadados.
+- Teste executável `scripts/test-platform-decision.mjs`: `60/60`, cobrindo as nove combinações, contrato até signup, campanha, duração, ausência de API e caller real. Whitespace limpo e checklist React aplicado. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- Preview visual obrigatório: `docs/previews/PLATFORM-DECISION-ROUTE-2026-08-28.html`, com antes/depois em desktop e mobile. A branch foi construída no deploy `dpl_Bx6X1SKr7bHu8CiQAEgdwdRPgysG` (`READY`); o fluxo real foi exercitado em desktop e 390 px, com as duas recomendações, CTA visível, query completa e zero overflow horizontal.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_EimbktFz7hi3duoopjiy1jygY7V3` em estado `READY`, aliasado em `www.usekineo.com`. O host canônico respondeu HTTP 200, continha o novo título e o chunk cliente e não continha o card antigo. Nenhum erro runtime da rota apareceu na janela de 30 minutos consultada. O smoke não submeteu formulário nem iniciou geração.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe ator humano observado na nova rota. Medir pessoas em `goal selected → route completed → CTA → signup → completed video → checkout → payment` antes de alterar novamente a página. Deploy e clique não serão chamados de assinatura.
+- **NÃO TOCADO:** render, cena, legenda, motor, preço, oferta, e-mail, outreach, tráfego pago e escrita de banco.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
