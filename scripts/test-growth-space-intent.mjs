@@ -4,6 +4,7 @@ import { toolActivationHref } from '../lib/toolActivationHref.ts'
 
 const page = fs.readFileSync('app/scripts/[vertical]/page.tsx', 'utf8')
 const helper = fs.readFileSync('lib/toolActivationHref.ts', 'utf8')
+const sitemap = fs.readFileSync('app/sitemap.ts', 'utf8')
 const preview = fs.readFileSync('docs/previews/space-intent-2026-08-28.html', 'utf8')
 
 let checks = 0
@@ -36,6 +37,12 @@ check(page.includes('source={SPACE_EXOPLANET_CAMPAIGN}'), 'conversion click has 
 check(page.includes('placement="exact_answer"'), 'conversion click has a dedicated placement')
 check(page.includes('science.nasa.gov/exoplanets/can-we-find-life/'), 'biosignature claim cites NASA')
 check(page.includes('what-would-earths-atmosphere-look-like-from-the-james-webb-space-telescope'), 'spectroscopy claim cites NASA')
+check(page.includes("if (!customerLibraryEnabled && !isStaticSpaceAnswer) redirect('/scripts')"), 'privacy redirect exempts only the static space answer')
+check(page.includes('const lib = customerLibraryEnabled ? await getScriptLibrary() : null'), 'static answer cannot invoke the customer-library loader')
+check(page.includes("'@type': 'CreativeWork'"), 'static answer has matching CreativeWork data')
+check(page.includes("robots: isStaticSpaceAnswer || count >= MIN_SCRIPTS_TO_INDEX ? undefined"), 'static answer remains indexable without customer rows')
+check(sitemap.includes("CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS : ['space']"), 'sitemap keeps only the safe static shelf during lockdown')
+check(!page.includes("if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) redirect('/scripts')"), 'blanket redirect cannot hide the static answer')
 
 // Runtime contract: the exact multi-line script survives signup, opens in
 // verbatim mode and selects the nearest supported duration. It must never add

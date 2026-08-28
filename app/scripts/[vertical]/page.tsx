@@ -65,6 +65,8 @@ const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,25
 // recebeu zero clique. A resposta abaixo é deliberadamente específica: entrega
 // primeiro o que a pessoa procurou e só depois oferece o produto.
 const SPACE_EXOPLANET_CAMPAIGN = 'script_library_space_exoplanet_40s'
+const SPACE_EXOPLANET_TITLE = '40-Second Exoplanet Life Script (Free) | Kineo'
+const SPACE_EXOPLANET_DESCRIPTION = 'Copy a complete 90-word YouTube Shorts script about exoplanet life, written for about 40 seconds, or open the exact draft in Kineo.'
 const SPACE_EXOPLANET_SCRIPT = `HOOK: The first message from alien life may not be a message at all.
 MICRO REWARD: When a planet crosses its star, a thin ring of starlight passes through the atmosphere and leaves chemical fingerprints.
 ESCALATION: NASA says Webb can study gases such as water, carbon dioxide, oxygen, and methane. But one gas is not proof. Scientists need several clues, repeat observations, and years of modeling to rule out lifeless chemistry.
@@ -170,27 +172,33 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: { vertical: string } }): Promise<Metadata> {
   const v = getScriptVertical(params.vertical)
   if (!v) return {}
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) {
+  const customerLibraryEnabled = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED as boolean
+  const isStaticSpaceAnswer = v.slug === 'space'
+  const url = `${PUBLIC_BASE_URL}/scripts/${v.slug}`
+
+  // The privacy lockdown disables enumeration of customer scripts, not
+  // founder-authored editorial answers. /scripts/space remains public with one
+  // static script and zero database reads; every other shelf stays fail-closed.
+  if (!customerLibraryEnabled && !isStaticSpaceAnswer) {
     return {
       title: `Create an original ${v.label} Short | Kineo`,
       description: `Generate your own original ${v.noun} Short. Customer scripts are private by default.`,
       robots: { index: false, follow: true, noarchive: true },
     }
   }
-  const lib = await getScriptLibrary()
-  const count = lib.counts[v.slug] ?? 0
-  const url = `${PUBLIC_BASE_URL}/scripts/${v.slug}`
+  const lib = customerLibraryEnabled ? await getScriptLibrary() : null
+  const count = lib?.counts[v.slug] ?? 0
 
   // The title is written to match the search, not to be clever: the head term
   // ("free youtube shorts scripts about X") plus the number, which is the thing
   // that earns the click in a SERP full of listicles.
-  const title = v.slug === 'space'
-    ? '40-Second Exoplanet Life Script (Free) | Kineo'
+  const title = isStaticSpaceAnswer
+    ? SPACE_EXOPLANET_TITLE
     : count
     ? `Free YouTube Shorts scripts about ${v.noun} — ${count} full scripts you can use`
     : `Free YouTube Shorts scripts about ${v.noun} — Kineo`
-  const description = v.slug === 'space'
-    ? `Copy a complete 90-word YouTube Shorts script about exoplanet life, written for about 40 seconds, or open the exact draft in Kineo.`
+  const description = isStaticSpaceAnswer
+    ? SPACE_EXOPLANET_DESCRIPTION
     : count
     ? `${count} complete ${v.noun} Shorts scripts, free to read and reuse. Each one is the full narration of a real vertical video — hook, middle beats and payoff — with the finished Short next to it.`
     : `Complete ${v.noun} Shorts scripts, free to read and reuse — hook, middle beats and payoff, with the finished Short next to each one.`
@@ -201,7 +209,7 @@ export async function generateMetadata({ params }: { params: { vertical: string 
     description,
     alternates: { canonical: `/scripts/${v.slug}` },
     // Thin category → rendered, linked, but never offered to the index.
-    robots: count >= MIN_SCRIPTS_TO_INDEX ? undefined : { index: false, follow: true },
+    robots: isStaticSpaceAnswer || count >= MIN_SCRIPTS_TO_INDEX ? undefined : { index: false, follow: true },
     openGraph: { title, description, url, type: 'website' },
     twitter: { card: 'summary_large_image', title, description },
   }
@@ -240,14 +248,20 @@ function ScriptCard({ script, campaign }: { script: LibraryScript; campaign: str
 export default async function ScriptVerticalPage({ params }: { params: { vertical: string } }) {
   const v = getScriptVertical(params.vertical)
   if (!v) notFound()
-  if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) redirect('/scripts')
+  const customerLibraryEnabled = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED as boolean
+  const isStaticSpaceAnswer = v.slug === 'space'
+  if (!customerLibraryEnabled && !isStaticSpaceAnswer) redirect('/scripts')
 
-  const lib = await getScriptLibrary()
-  const all = lib.byVertical[v.slug] ?? []
+  // Privacy invariant: the static answer path does not even invoke the
+  // customer-library loader while public customer surfaces are disabled.
+  const lib = customerLibraryEnabled ? await getScriptLibrary() : null
+  const all = lib?.byVertical[v.slug] ?? []
   const cards = all.slice(0, CARDS_PER_VERTICAL)
   const rest = all.slice(CARDS_PER_VERTICAL)
   const campaign = `script_library_${v.slug}`
-  const others = SCRIPT_VERTICALS.filter((o) => o.slug !== v.slug && (lib.counts[o.slug] ?? 0) >= MIN_SCRIPTS_TO_INDEX)
+  const others = lib
+    ? SCRIPT_VERTICALS.filter((o) => o.slug !== v.slug && (lib.counts[o.slug] ?? 0) >= MIN_SCRIPTS_TO_INDEX)
+    : []
 
   const itemListJsonLd = {
     '@context': 'https://schema.org',
@@ -277,6 +291,21 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
     ],
   }
 
+  const exactScriptJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CreativeWork',
+    name: '40-second YouTube Shorts script about exoplanet life',
+    description: SPACE_EXOPLANET_DESCRIPTION,
+    text: SPACE_EXOPLANET_SCRIPT,
+    inLanguage: 'en',
+    url: `${PUBLIC_BASE_URL}/scripts/space`,
+    author: { '@type': 'Organization', name: 'Kineo', url: PUBLIC_BASE_URL },
+    isBasedOn: [
+      'https://science.nasa.gov/exoplanets/can-we-find-life/',
+      'https://science.nasa.gov/mission/webb/science-overview/science-explainers/what-would-earths-atmosphere-look-like-from-the-james-webb-space-telescope/',
+    ],
+  }
+
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {all.length >= MIN_SCRIPTS_TO_INDEX && (
@@ -289,6 +318,12 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
       />
+      {isStaticSpaceAnswer && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(exactScriptJsonLd).replace(/</g, '\\u003c') }}
+        />
+      )}
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '28px 18px 64px' }}>
         <nav aria-label="Breadcrumb" style={{ marginBottom: 26 }}>
@@ -310,7 +345,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
             {v.intro}
           </p>
           <p style={{ fontSize: '0.86rem', color: MUTED, margin: '12px 0 0' }}>
-            {all.length} script{all.length === 1 ? '' : 's'} in this topic · free to read, no sign-up
+            {lib ? `${all.length} script${all.length === 1 ? '' : 's'} in this topic` : '1 editorial script'} · free to read, no sign-up
             {v.hasNichePage && (
               <>
                 {' · '}
@@ -320,29 +355,31 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
               </>
             )}
           </p>
-          <OrganicCtaLink
-            href={generateFromScriptHref(cards[0]?.title ?? v.h1, campaign)}
-            source={campaign}
-            placement="hero"
-            style={{
-              display: 'inline-block',
-              marginTop: 20,
-              background: BLUE,
-              color: '#000',
-              fontWeight: 900,
-              padding: '14px 28px',
-              borderRadius: 13,
-              textDecoration: 'none',
-              fontSize: '1rem',
-            }}
-          >
-            Generate a {v.label} Short free →
-          </OrganicCtaLink>
+          {lib && (
+            <OrganicCtaLink
+              href={generateFromScriptHref(cards[0]?.title ?? v.h1, campaign)}
+              source={campaign}
+              placement="hero"
+              style={{
+                display: 'inline-block',
+                marginTop: 20,
+                background: BLUE,
+                color: '#000',
+                fontWeight: 900,
+                padding: '14px 28px',
+                borderRadius: 13,
+                textDecoration: 'none',
+                fontSize: '1rem',
+              }}
+            >
+              Generate a {v.label} Short free →
+            </OrganicCtaLink>
+          )}
         </header>
 
         {v.slug === 'space' && <SpaceSearchIntentSpotlight />}
 
-        {cards.length > 0 ? (
+        {lib && (cards.length > 0 ? (
           <section style={{ marginTop: 44 }}>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 900, margin: '0 0 16px' }}>
               {rest.length > 0 ? `The ${cards.length} newest ${v.noun} scripts` : `All ${cards.length} ${v.noun} scripts`}
@@ -364,7 +401,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
               has {lib.total} scripts across every other topic.
             </p>
           </section>
-        )}
+        ))}
 
         {/* Every remaining script in this vertical, as plain links. Bounded HTML,
             zero orphans: a crawler reaches all of them from this one page. */}
@@ -388,7 +425,7 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
           </section>
         )}
 
-        <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
+        {lib && <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
           <h2 style={{ fontSize: '1.35rem', fontWeight: 900, margin: 0 }}>Make a {v.label} Short from any of these</h2>
           <p style={{ color: '#CBD5E1', margin: '10px 0 18px', fontSize: '0.94rem', lineHeight: 1.6 }}>
             Kineo writes the script, records the voiceover, burns in the captions and matches footage to every beat.
@@ -411,11 +448,11 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
           >
             Start free →
           </OrganicCtaLink>
-        </section>
+        </section>}
 
         {/* Cross-links: sideways to the other verticals, and across to the
             matching /free-ai-shorts/[niche] generator pages. */}
-        <section style={{ marginTop: 42 }}>
+        {lib && <section style={{ marginTop: 42 }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: '0 0 10px' }}>Other script topics</h2>
           <p style={{ fontSize: '0.88rem', lineHeight: 2, margin: 0 }}>
             {others.map((o, i) => (
@@ -428,16 +465,18 @@ export default async function ScriptVerticalPage({ params }: { params: { vertica
               </span>
             ))}
           </p>
-        </section>
+        </section>}
 
         <nav style={{ marginTop: 30, fontSize: '0.85rem', lineHeight: 2 }}>
           <span style={{ color: MUTED }}>Also useful: </span>
-          <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none' }}>
-            All {lib.total} scripts
-          </Link>
+          {lib && (
+            <Link href="/scripts" style={{ color: BLUE, textDecoration: 'none' }}>
+              All {lib.total} scripts
+            </Link>
+          )}
           {v.hasNichePage && (
             <>
-              <span style={{ color: '#374151' }}> · </span>
+              {lib && <span style={{ color: '#374151' }}> · </span>}
               <Link href={`/free-ai-shorts/${v.slug}`} style={{ color: BLUE, textDecoration: 'none' }}>
                 Free {v.label} Shorts generator
               </Link>

@@ -231,12 +231,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // thin renders with robots:noindex of its own accord (the page decides), and
   // self-corrects the moment it clears the threshold — the sitemap listing it
   // early costs nothing, while a DB outage that empties the sitemap would.
-  const scriptShelfEntries = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS.map((slug) => ({
+  // Customer shelves stay absent during the privacy lockdown. The one
+  // exception is /scripts/space: it is a founder-authored static answer with
+  // zero customer rows and zero Supabase reads, so it remains safely public.
+  const publicScriptShelfSlugs = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS : ['space']
+  const scriptShelfEntries = publicScriptShelfSlugs.map((slug) => ({
     url: `${BASE}/scripts/${slug}`,
     lastModified: LAST_MODIFIED,
     changeFrequency: 'daily' as const,
     priority: 0.8,
-  })) : []
+  }))
   return [
     ...staticEntries,
     ...nicheEntries,
