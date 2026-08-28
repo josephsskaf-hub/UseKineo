@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
+import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -150,6 +151,17 @@ export interface FunnelData {
     dispatched: number
     completed: number
     failed: number
+    goalRouterViews: number
+    goalRouterClicks: number
+    goalSelections: number
+    goalRouterViewToClickRate: string
+    goalBreakdown: Array<{
+      id: string
+      label: string
+      clicks: number
+      dispatched: number
+      completed: number
+    }>
     viewToClickRate: string
     clickToDispatchRate: string
     dispatchToCompleteRate: string
@@ -470,7 +482,7 @@ export async function GET(req: Request) {
       'auth_callback_completed', 'auth_callback_failed', 'email_signup_completed',
       'generate_arrived_server', 'generate_activation_auth_missing',
       'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
-      'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
+      'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
       'first_video_generation_dispatched_from_viral_onboarding',
       'first_video_generation_completed_from_viral_onboarding',
       'first_video_generation_failed_from_viral_onboarding',
@@ -587,7 +599,7 @@ export async function GET(req: Request) {
             'series_continue_clicked', 'series_continuation_landed',
             'generate_started', 'generate_completed',
             'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
-            'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
+            'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
             'first_video_generation_dispatched_from_viral_onboarding',
             'first_video_generation_completed_from_viral_onboarding',
             'first_video_generation_failed_from_viral_onboarding',
@@ -976,14 +988,25 @@ export async function GET(req: Request) {
     // handoff. User id wins; session id is the anonymous-safe fallback. A
     // generated fallback key keeps rows measurable if an older beacon lacks
     // both without joining on prompt, email or other personal data.
+    const onboardingActorKey = (event: EventRow, index: number): string =>
+      event.user_id || event.session_id || `${event.created_at ?? 'unknown'}:${index}`
+    const onboardingRows = retentionEventRows.filter((event) =>
+      event.metadata?.version === 'push27_single_choice'
+    )
     const uniqueOnboardingActors = (name: string): number => {
-      const rows = retentionEventRows.filter((event) =>
-        event.name === name && event.metadata?.version === 'push27_single_choice'
-      )
-      return new Set(rows.map((event, index) =>
-        event.user_id || event.session_id || `${event.created_at ?? 'unknown'}:${index}`
-      )).size
+      const rows = onboardingRows.filter((event) => event.name === name)
+      return new Set(rows.map(onboardingActorKey)).size
     }
+    const uniqueGoalRouterActors = (name: string, goalId?: string): number => {
+      const rows = onboardingRows.filter((event) =>
+        event.name === name &&
+        event.metadata?.variant === ONBOARDING_GOAL_VARIANT &&
+        (!goalId || (isOnboardingGoalId(event.metadata?.selected_goal) && event.metadata?.selected_goal === goalId))
+      )
+      return new Set(rows.map(onboardingActorKey)).size
+    }
+    const goalRouterViews = uniqueGoalRouterActors('viral_onboarding_viewed')
+    const goalRouterClicks = uniqueGoalRouterActors('viral_onboarding_primary_clicked')
     const firstVideoOnboarding = {
       views: uniqueOnboardingActors('viral_onboarding_viewed'),
       primaryClicks: uniqueOnboardingActors('viral_onboarding_primary_clicked'),
@@ -991,6 +1014,17 @@ export async function GET(req: Request) {
       dispatched: uniqueOnboardingActors('first_video_generation_dispatched_from_viral_onboarding'),
       completed: uniqueOnboardingActors('first_video_generation_completed_from_viral_onboarding'),
       failed: uniqueOnboardingActors('first_video_generation_failed_from_viral_onboarding'),
+      goalRouterViews,
+      goalRouterClicks,
+      goalSelections: uniqueGoalRouterActors('viral_onboarding_goal_selected'),
+      goalRouterViewToClickRate: pct(goalRouterClicks, goalRouterViews),
+      goalBreakdown: ONBOARDING_GOALS.map((goal) => ({
+        id: goal.id,
+        label: goal.shortLabel,
+        clicks: uniqueGoalRouterActors('viral_onboarding_primary_clicked', goal.id),
+        dispatched: uniqueGoalRouterActors('first_video_generation_dispatched_from_viral_onboarding', goal.id),
+        completed: uniqueGoalRouterActors('first_video_generation_completed_from_viral_onboarding', goal.id),
+      })),
       viewToClickRate: pct(
         uniqueOnboardingActors('viral_onboarding_primary_clicked'),
         uniqueOnboardingActors('viral_onboarding_viewed'),

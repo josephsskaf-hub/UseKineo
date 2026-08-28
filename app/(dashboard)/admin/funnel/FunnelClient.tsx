@@ -119,6 +119,8 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   }
   const firstVideoOnboarding = data.firstVideoOnboarding ?? {
     views: 0, primaryClicks: 0, skips: 0, dispatched: 0, completed: 0, failed: 0,
+    goalRouterViews: 0, goalRouterClicks: 0, goalSelections: 0,
+    goalRouterViewToClickRate: '—', goalBreakdown: [],
     viewToClickRate: '—', clickToDispatchRate: '—', dispatchToCompleteRate: '—',
   }
   const repeatCreatorOffer = data.repeatCreatorOffer ?? {
@@ -523,6 +525,32 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           value={firstVideoOnboarding.dispatchToCompleteRate}
           sub={`${firstVideoOnboarding.completed} / ${firstVideoOnboarding.dispatched}`}
         />
+        <Card
+          label="Goal router exposed"
+          value={fmt(firstVideoOnboarding.goalRouterViews)}
+          hint="new creator / business / client variant"
+          accent="#22d3ee"
+        />
+        <Card
+          label="Changed default goal"
+          value={fmt(firstVideoOnboarding.goalSelections)}
+          hint="unique people; channel stays one-click by default"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Goal router view → click"
+          value={firstVideoOnboarding.goalRouterViewToClickRate}
+          sub={`${firstVideoOnboarding.goalRouterClicks} / ${firstVideoOnboarding.goalRouterViews}`}
+        />
+        {firstVideoOnboarding.goalBreakdown.map((goal) => (
+          <Card
+            key={goal.id}
+            label={`Goal · ${goal.label}`}
+            value={fmt(goal.clicks)}
+            hint={`${fmt(goal.dispatched)} dispatched · ${fmt(goal.completed)} completed`}
+            accent={goal.clicks > 0 ? '#4ade80' : '#71717a'}
+          />
+        ))}
       </Section>
 
       <Section title={`Plan Fit · first delivery → subscription · ${days === 'all' ? 'all time' : `${days}d`}`}>

@@ -141,6 +141,12 @@ import {
   largestFittingDuration,
 } from '@/lib/expandPolicy'
 import NicheOnboarding from '@/components/NicheOnboarding'
+import {
+  ONBOARDING_GOAL_VARIANT,
+  isOnboardingGoalId,
+  type OnboardingGoal,
+  type OnboardingGoalId,
+} from '@/lib/growth/onboardingGoals'
 import { FreeTierCopy, useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 // KINEO-AVATAR-PACKS-RETIRED-2026-07-06 — AvatarPaywallModal import removed.
@@ -665,6 +671,7 @@ const VIRAL_STARTER_TOPICS = [
   'the Roman city of Pompeii, buried by a volcano in a single day',
 ]
 const PUSH27_ONBOARDING_RENDER_SESSION_KEY = 'kineo_push27_onboarding_render_dispatched'
+const PUSH27_ONBOARDING_GOAL_SESSION_KEY = 'kineo_push27_onboarding_goal'
 // PUSH #96 — the active-render restore gate used to retry a failing
 // supabase.auth.getUser() every 1500ms forever, leaving the Generate button
 // permanently dead. Bound the retries so the gate always resolves.
@@ -782,6 +789,7 @@ export default function GenerateClient({
   const [showNicheOnboarding, setShowNicheOnboarding] = useState(false)
   const onboardingAutoGenerateRef = useRef(false)
   const onboardingGenerationDispatchedRef = useRef(false)
+  const onboardingGoalRef = useRef<OnboardingGoalId | null>(null)
   const inlineFirstVideoViewedRef = useRef(false)
   const activationAutostartDecisionRef = useRef(false)
   const activationAutoGenerateRef = useRef(false)
@@ -843,9 +851,26 @@ export default function GenerateClient({
     try { localStorage.setItem('sf_onboarded', '1') } catch {}
     setShowNicheOnboarding(false)
   }
-  function onboardingPick(topic: string) {
+  function onboardingGoalId(): OnboardingGoalId | null {
+    if (onboardingGoalRef.current) return onboardingGoalRef.current
+    try {
+      const stored = sessionStorage.getItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY)
+      if (isOnboardingGoalId(stored)) {
+        onboardingGoalRef.current = stored
+        return stored
+      }
+    } catch { /* the in-memory ref covers the uninterrupted path */ }
+    return null
+  }
+  function clearOnboardingGoal() {
+    onboardingGoalRef.current = null
+    try { sessionStorage.removeItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY) } catch {}
+  }
+  function onboardingPick(goal: OnboardingGoal) {
     onboardingAutoGenerateRef.current = true
-    setPrompt(topic)
+    onboardingGoalRef.current = goal.id
+    try { sessionStorage.setItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY, goal.id) } catch {}
+    setPrompt(goal.topic)
     // KINEO-PRIMEIRA-IMPRESSAO-2026-08-21 — era `setMode('fast')` com o
     // comentário "first video = Fast = zero friction". A intenção era boa e o
     // resultado, medido, foi o contrário: a fricção que importa não é escolher
@@ -875,7 +900,7 @@ export default function GenerateClient({
       setMode('fast')
     }
     finishOnboarding()
-    void handleAnalyze(topic, { fromTopic: true, skipPreview: true, structureFirst: true })
+    void handleAnalyze(goal.topic, { fromTopic: true, skipPreview: true, structureFirst: true })
   }
 
   function redirectToLoginPreservingPrompt() {
@@ -4712,13 +4737,17 @@ export default function GenerateClient({
               sessionStorage.getItem(PUSH27_ONBOARDING_RENDER_SESSION_KEY) === '1'
           } catch { /* the in-memory ref is enough for the normal path */ }
           if (completedFromOnboarding) {
+            const selectedGoal = onboardingGoalId()
             onboardingGenerationDispatchedRef.current = false
             try { sessionStorage.removeItem(PUSH27_ONBOARDING_RENDER_SESSION_KEY) } catch {}
             trackEvent('first_video_generation_completed_from_viral_onboarding', {
               ...completionMetadata,
               source: 'viral_onboarding',
               version: 'push27_single_choice',
+              variant: ONBOARDING_GOAL_VARIANT,
+              selected_goal: selectedGoal,
             })
+            clearOnboardingGoal()
           }
           return
         }
@@ -7429,6 +7458,7 @@ export default function GenerateClient({
     }
     if (phase === 'failed') {
       onboardingAutoGenerateRef.current = false
+      clearOnboardingGoal()
       return
     }
     if (phase !== 'options' || !analysis) return
@@ -7502,6 +7532,7 @@ export default function GenerateClient({
       // desliga o CTA inline e a pessoa fica sem nenhum caminho.
       if (!onboardingPending) return
       onboardingAutoGenerateRef.current = false
+      clearOnboardingGoal()
       return
     }
     onboardingAutoGenerateRef.current = false
@@ -7514,6 +7545,8 @@ export default function GenerateClient({
       // decisao, nao esta.
       engine: mode === 'cinematic_ai' ? aiEngine : 'fast',
       version: 'push27_single_choice',
+      variant: ONBOARDING_GOAL_VARIANT,
+      selected_goal: onboardingGoalId(),
     })
     void handleGenerate()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -7531,13 +7564,17 @@ export default function GenerateClient({
 
   useEffect(() => {
     if (phase !== 'failed' || !onboardingGenerationDispatchedRef.current) return
+    const selectedGoal = onboardingGoalId()
     onboardingGenerationDispatchedRef.current = false
     try { sessionStorage.removeItem(PUSH27_ONBOARDING_RENDER_SESSION_KEY) } catch {}
     trackEvent('first_video_generation_failed_from_viral_onboarding', {
       source: 'viral_onboarding',
       version: 'push27_single_choice',
+      variant: ONBOARDING_GOAL_VARIANT,
+      selected_goal: selectedGoal,
       engine: 'fast',
     })
+    clearOnboardingGoal()
   }, [phase])
 
   // #383d — download with a title-based filename. The video lives on Supabase
@@ -9366,7 +9403,7 @@ export default function GenerateClient({
       {/* #467 — onboarding niche picker overlay for brand-new signups */}
       {showNicheOnboarding && (
         <NicheOnboarding
-          onPick={(topic) => onboardingPick(topic)}
+          onPick={(goal) => onboardingPick(goal)}
           onClose={finishOnboarding}
         />
       )}
