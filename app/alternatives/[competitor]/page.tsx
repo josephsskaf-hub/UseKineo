@@ -28,6 +28,11 @@ import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
 
+const INVIDEO_FREE_SOURCE = 'https://help.invideo.io/en/articles/9380226-can-i-use-invideo-ai-for-free'
+const INVIDEO_PRICING_SOURCE = 'https://invideo.io/pricing/'
+const INVIDEO_FACTS_CHECKED = 'August 28, 2026'
+const INVIDEO_INTENT_CAMPAIGN = 'growth_invideo_free_intent_20260828'
+
 export const dynamic = 'force-static'
 export const dynamicParams = false
 
@@ -82,13 +87,15 @@ export const COMPETITORS: Record<string, Competitor> = {
   },
   invideo: {
     name: 'InVideo AI',
-    h1: 'The InVideo AI Alternative Built Specifically for Faceless Shorts',
+    h1: 'A Free InVideo AI Alternative for Faceless Shorts',
     intro:
-      `InVideo AI is a powerful general-purpose video generator. Kineo is narrower on purpose: it’s built only for faceless short-form (9:16) with a viral hook structure baked into every script. One idea in, a ready-to-post YouTube Short, TikTok or Reel out — script, voiceover, footage and captions done usually in 3–7 minutes, starting at ${STARTER_MO}.`,
+      `Yes — you can try both InVideo AI and Kineo without a card. The useful difference is the workflow: InVideo is a broad video creator, while Kineo is built specifically for faceless 9:16 Shorts. One idea becomes a hook-driven script, voiceover, footage and captions, usually in 3–7 minutes. ${ft(OFFER, 'Kineo free access includes up to 3 watermarked Fast videos every 24 hours.', `Kineo starts with ${TRIAL_GRANT_CREDITS_COPY} free credits and every engine unlocked; trial films are watermarked.`)}`,
     theyDo: 'InVideo AI is a broad, general-purpose AI video maker for many formats.',
     pickThem:
       'Pick InVideo if you need long-form, horizontal, or many different video formats from one tool. Pick Kineo if your whole game is posting faceless Shorts daily and you want them optimized for retention out of the box.',
     rows: [
+      { feature: 'Free access without a card', sfa: true, them: true },
+      { feature: 'Free allowance', sfa: ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', `${TRIAL_GRANT_CREDITS_COPY} credits; every engine unlocked`), them: 'Limited credits; resets weekly' },
       { feature: 'Creates the full video from just an idea', sfa: true, them: true },
       { feature: 'Purpose-built for faceless 9:16 Shorts', sfa: true, them: 'General-purpose' },
       { feature: 'Viral hook structure baked into the script', sfa: true, them: false },
@@ -96,9 +103,13 @@ export const COMPETITORS: Record<string, Competitor> = {
       { feature: 'Finds & matches the footage automatically', sfa: true, them: true },
       { feature: 'One-tap, no timeline to learn', sfa: true, them: 'Editor-style' },
       { feature: 'Ready-to-post 9:16 in a few minutes', sfa: true, them: true },
-      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
+      { feature: 'Paid starting price', sfa: `From ${STARTER_MO}`, them: 'See current pricing' },
     ],
     faq: [
+      {
+        q: 'Is there a free InVideo AI alternative?',
+        a: `Yes. Kineo can be started without a card and is focused on faceless vertical Shorts. ${ft(OFFER, 'Free access includes up to 3 watermarked Fast videos every 24 hours.', `A new account receives ${TRIAL_GRANT_CREDITS_COPY} free credits with every engine unlocked; trial films are watermarked.`)} InVideo also has a no-card free plan with limited credits that reset weekly, according to its official help center checked ${INVIDEO_FACTS_CHECKED}.`,
+      },
       {
         q: 'What is the best InVideo alternative for faceless YouTube Shorts?',
         a: `Kineo is purpose-built for faceless short-form: it writes a hook-driven script, voices it, finds footage and renders a 9:16 Short from one idea usually in 3–7 minutes, starting at ${STARTER_MONTH}.`,
@@ -816,12 +827,17 @@ export function generateMetadata({ params }: { params: { competitor: string } })
   const c = COMPETITORS[params.competitor]
   if (!c) return {}
   const isQuso = params.competitor === 'quso'
+  const isInVideo = params.competitor === 'invideo'
   const title = isQuso
     ? 'Vidyo.ai Pricing (Now Quso.ai) vs Kineo — 2026'
-    : `${c.name} Alternative for Faceless Creators — Kineo`
+    : isInVideo
+      ? 'Free InVideo AI Alternative for Faceless Shorts — Kineo'
+      : `${c.name} Alternative for Faceless Creators — Kineo`
   const description = isQuso
     ? 'Vidyo.ai is now Quso.ai. See Quso’s current Free, Lite, Essential and Growth prices, credits and an honest workflow comparison with Kineo.'
-    : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.', OFFER.copy.headline)}`
+    : isInVideo
+      ? `Looking for a free InVideo AI alternative? Compare both no-card free paths, then try Kineo’s faceless Shorts workflow. ${OFFER.copy.headline}`
+      : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.', OFFER.copy.headline)}`
   const url = `https://www.usekineo.com/alternatives/${params.competitor}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
@@ -869,6 +885,50 @@ function Cell({ v }: { v: boolean | string }) {
   return <span style={{ fontSize: '0.82rem', color: '#86868b' }}>{currentKineoOffer(v)}</span>
 }
 
+function InVideoFreeDecision({ signupUrl, campaign }: { signupUrl: string; campaign: string }) {
+  return (
+    <section aria-labelledby="invideo-free-answer" style={{ marginTop: 36, background: 'linear-gradient(145deg, rgba(16,35,62,0.96), rgba(9,14,28,0.96))', border: '1px solid rgba(41,151,255,0.34)', borderRadius: 18, padding: 'clamp(20px, 4vw, 30px)' }}>
+      <div style={{ color: '#5cb3ff', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Free-plan answer · checked {INVIDEO_FACTS_CHECKED}
+      </div>
+      <h2 id="invideo-free-answer" style={{ fontSize: 'clamp(1.35rem, 3vw, 1.8rem)', lineHeight: 1.2, margin: '9px 0 10px' }}>
+        Is there a free InVideo AI alternative?
+      </h2>
+      <p style={{ margin: 0, color: '#c4cad4', lineHeight: 1.65 }}>
+        Yes. Both products let you start without a card. InVideo’s official help center says its free plan has limited credits that reset weekly. Kineo’s free path is narrower: it is designed to turn one idea into a faceless vertical Short, with the script, voiceover, footage and captions handled together.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginTop: 20 }}>
+        <article style={{ background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, padding: 16 }}>
+          <div style={{ color: '#2997ff', fontWeight: 900, marginBottom: 6 }}>Kineo free path</div>
+          <p style={{ margin: 0, color: '#b9c0cb', lineHeight: 1.55, fontSize: '0.9rem' }}>{OFFER.copy.sentence}</p>
+        </article>
+        <article style={{ background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, padding: 16 }}>
+          <div style={{ color: '#f5f5f7', fontWeight: 900, marginBottom: 6 }}>InVideo free plan</div>
+          <p style={{ margin: 0, color: '#b9c0cb', lineHeight: 1.55, fontSize: '0.9rem' }}>No card, limited credits, and a quota that resets each Monday at 00:00 UTC. Exact limits can change, so verify the official pricing page before choosing.</p>
+        </article>
+      </div>
+
+      <p style={{ margin: '18px 0 0', color: '#f5f5f7', lineHeight: 1.55, fontWeight: 800 }}>
+        Pick InVideo to explore a broad creation suite. Pick Kineo when your job is one faceless Short from one idea.
+      </p>
+      <OrganicCtaLink
+        href={signupUrl}
+        source={campaign}
+        placement="free_answer"
+        style={{ display: 'inline-block', marginTop: 16, background: '#2997ff', color: '#000', fontWeight: 900, padding: '13px 20px', borderRadius: 980, textDecoration: 'none' }}
+      >
+        Try the faceless-Short workflow free →
+      </OrganicCtaLink>
+      <p style={{ margin: '13px 0 0', color: '#727884', fontSize: '0.74rem', lineHeight: 1.5 }}>
+        InVideo facts checked against its{' '}
+        <a href={INVIDEO_FREE_SOURCE} target="_blank" rel="noreferrer" style={{ color: '#9bcaff' }}>official free-plan help article</a>
+        {' '}and <a href={INVIDEO_PRICING_SOURCE} target="_blank" rel="noreferrer" style={{ color: '#9bcaff' }}>pricing page</a>. Kineo terms come from the offer shown in this deployment.
+      </p>
+    </section>
+  )
+}
+
 export default function AlternativePage({ params }: { params: { competitor: string } }) {
   const c = COMPETITORS[params.competitor]
   if (!c) notFound()
@@ -882,7 +942,12 @@ export default function AlternativePage({ params }: { params: { competitor: stri
   const vsPairs = vsToolId ? pairsForTool(vsToolId) : []
 
   const isQuso = params.competitor === 'quso'
-  const campaign = isQuso ? QUSO_INTENT_CAMPAIGN : `push22_alternative_${params.competitor}`
+  const isInVideo = params.competitor === 'invideo'
+  const campaign = isQuso
+    ? QUSO_INTENT_CAMPAIGN
+    : isInVideo
+      ? INVIDEO_INTENT_CAMPAIGN
+      : `push22_alternative_${params.competitor}`
   const signupUrl = isQuso
     ? '#try-quso-alternative-topic'
     : buildBlankStudioSignupHref({ campaign })
@@ -929,7 +994,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         {/* Hero */}
         <section style={{ marginTop: 36, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
-            {isQuso ? 'Vidyo.ai pricing · checked July 2026' : `${c.name} alternative`}
+            {isQuso ? 'Vidyo.ai pricing · checked July 2026' : isInVideo ? 'Free InVideo AI alternative' : `${c.name} alternative`}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>
             {c.h1}
@@ -961,6 +1026,8 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · no card · Starter <b style={{ color: '#2997ff' }}>{STARTER_MO}</b>
           </p>
         </section>
+
+        {isInVideo && <InVideoFreeDecision signupUrl={signupUrl} campaign={campaign} />}
 
         {isQuso && <QusoDecisionSections />}
 
