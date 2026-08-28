@@ -610,6 +610,21 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa externa foi observada na nova sequência `arrival → script requested → script succeeded → signup → completed → checkout → paid`. Deploy, script exposto, CTA exposto e cadastro não serão chamados de aquisição ou assinatura.
 - **NÃO TOCADO:** vídeos da home, curadoria, Supabase, Storage, migration, autenticação, `GenerateClient`, render, cena, legenda, motor, preço, grant, oferta, e-mail, outreach e tráfego pago.
 
+### 2.42 O cadastro mostra o roteiro ou a ideia que já atravessava invisível
+
+**FATO CONFIRMADO / IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO EM PRODUÇÃO (28/08/2026).** Commit funcional `4a9ae4c758c1035439622ba1f4fa8d503f298d46`.
+
+- **FATO CONFIRMADO:** o handoff de criação já preservava `prompt`, `script_mode`, duração, idioma e destino até `/generate`, mas a versão anterior a `4a9ae4c` mostrava no cadastro somente “Create your AI Short”. A pessoa não recebia prova visual de que seu trabalho tinha sobrevivido ao auth wall (`app/(auth)/signup/page.tsx`; `lib/growth/creationHandoff.ts`).
+- O cadastro agora reconhece um handoff válido e mostra “Your script/idea is ready to continue”, três linhas limitadas da criação e a promessa estrita “continue without starting over” (`lib/growth/signupCreationPreview.ts:49-74`; `app/(auth)/signup/page.tsx:198-207,449-498`). A classificação usa `script_mode=verbatim` ou pelo menos dois marcadores estruturais suportados; o conteúdo permanece texto puro escapado pelo React.
+- O preview é limitado a três linhas, 120 caracteres por linha e 280 no total. Não existe renderização de HTML do visitante. Checkout retomado continua com prioridade e não recebe essa superfície; redirect interno explícito também falha fechado para evitar prometer um destino diferente (`lib/growth/signupCreationPreview.ts:21-27,49-74`; `app/(auth)/signup/page.tsx:198-207`).
+- Depois da confirmação por e-mail, a tela também informa que o roteiro ou ideia continua salvo. O transporte e o redirect preexistentes não mudaram; nenhum evento novo foi criado e nenhum endpoint, banco ou operação de Supabase foi adicionado (`app/(auth)/signup/page.tsx:427-433`).
+- **TESTADO LOCALMENTE:** prova do cadastro `44/44`; handoff ChatGPT `69/69`; ponte da home `59/59`; intenção pública `60/60`; total de 232 verificações. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- **VALIDAÇÃO VISUAL:** `docs/previews/SIGNUP-SAVED-CREATION-2026-08-28.html` compara antes/depois em desktop e mobile, com roteiro no desktop e ideia no mobile. Foi servido somente em localhost, retornou `200`, teve DOM e captura integral conferidos; o servidor local foi encerrado.
+- **PUBLICADO EM PRODUÇÃO (28/08/2026):** o status público do commit no GitHub retornou `Vercel: success`, target `46YaWs88WAW5qtLxcfx5FMW9DeUy`. Não houve smoke autenticado, execução de JavaScript em produção nem GET da experiência durante o incidente de capacidade.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; fundador e Claude conduzem o incidente. O Codex não consultou Supabase, Storage, sessão autenticada ou render. Esses `402` são incidente de capacidade, não abandono atribuído a esta superfície de Growth.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa externa foi observada atravessando a sequência nova `script/ideia visível no cadastro → signup → generate → completed → checkout → paid`. Build verde e UI publicada não serão chamados de conversão ou assinatura.
+- **NÃO TOCADO:** checkout, preço, grant, oferta, Supabase, Storage, migration, autenticação, `GenerateClient`, render, cena, legenda, motor, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
