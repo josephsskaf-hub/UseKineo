@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada depois da entrega mais recente:** `8837edeb0aeddb04331186702f524f0f2090cae0`
+- **Base remota confirmada depois da entrega mais recente:** `f8514666da27a27a93f6ccb44b218d9bbbe440d0`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -264,6 +264,20 @@
 - Preview visual obrigatório: `docs/previews/TEXT-TO-VIDEO-INTENT-ROUTER-2026-08-28.html`, inspecionado em desktop e mobile. O formulário real também foi inspecionado em produção nos dois viewports.
 - **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_FBma6kj9Qj2R2ZZUHkLWMGL6d34f` em estado `READY`. O smoke em `www.usekineo.com/text-to-video-shorts` confirmou o default `ai/45s` e a troca explícita para `verbatim/35s`; não submeteu formulário, não criou cadastro e não iniciou render. Analytics e Vercel Insights foram bloqueados no navegador de teste. A consulta final retornou zero linha da sessão sintética e zero submissão da nova variante. Nenhum erro runtime foi encontrado em `/text-to-video-shorts` ou `/signup` na janela consultada.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe submissão humana observada da variante `text_to_video_intent_v1_2026_08_28`. Não alterar novamente o formulário antes de obter amostra; a próxima rodada deve ampliar distribuição qualificada e observar a passagem `modo → cadastro → vídeo → checkout`.
+
+### 2.19 Roteador de criação para motores de resposta
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `f8514666da27a27a93f6ccb44b218d9bbbe440d0`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 15 a 28/08/2026, contas internas excluídas):** o estudo `/state-of-ai-shorts-2026` registrou 105 atores únicos na página, 12 pessoas no starter, 8 cadastros atribuídos à campanha `starter_state_of_ai_shorts`, 5 pessoas com vídeo concluído, 1 pessoa no checkout e 0 pessoa com sinal `paid-like`. Eventos espelhados de clique não foram contados como pessoas adicionais.
+- A infraestrutura AEO já tinha regras explícitas para GPTBot/OAI-SearchBot em `robots`, `/llms.txt`, `/api/facts` e submissão por IndexNow; ela não foi reconstruída. O fato ausente era a escolha exata entre ideia e roteiro pronto.
+- `lib/growth/answerEngineCreationRouter.ts` deriva a decisão da mesma configuração executável usada pela interface. `/api/facts` expõe `creationRouter` em JSON e `/llms.txt` publica: ideia → `ai/45s`; roteiro terminado → `verbatim/35s`; ambos apontam para a âncora específica da página e preservam a campanha `push58_text_to_video_shorts`.
+- Testes: roteador `47/47`; handoff ChatGPT `69/69`; quick-start `48/48`; distribuição B2B `31/31`; total relacionado `195/195`. Whitespace limpo.
+- **TESTADO LOCALMENTE:** o TypeScript continua com os mesmos cinco erros preexistentes, nenhum nos arquivos desta entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_8qySJsSh9jDTu763ygnNcX28pZZW` em estado `READY`. `https://www.usekineo.com/llms.txt` e `https://www.usekineo.com/api/facts` responderam HTTP 200 com modos, durações, URL e campanha correspondentes. Nenhum erro runtime dessas rotas apareceu na janela de 20 minutos consultada.
+- **EVIDÊNCIA DE DISTRIBUIÇÃO (28/08/2026 04:18:44 UTC):** o IndexNow aceitou 171 URLs canônicas do sitemap, HTTP 200. A página `/text-to-video-shorts` e `/facts` foram reenviadas; `/llms.txt` e `/api/facts` não fazem parte do sitemap e não devem ser contadas nessa submissão.
+- A mudança visual que moveria o starter do estudo foi descartada integralmente: a política de segurança do navegador bloqueou o preview local e o gate visual do `AGENTS.md` não pôde ser satisfeito. O arquivo da página voltou byte a byte ao `HEAD`; nenhuma alteração visual foi publicada.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não há evidência de recrawl, recomendação adicional do ChatGPT ou impacto em cadastro/assinatura. HTTP 200 prova distribuição técnica, não receita. A próxima rodada deve observar submissões humanas e origem ChatGPT sem alterar novamente o contrato antes de obter amostra.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
