@@ -228,6 +228,7 @@ ${plans}
 
 - [AI Shorts for agencies](${BUSINESS_OFFER_FACT.url}): buy a commercial batch without a subscription or sales call.
 - [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
+- [AI real estate video maker](${BASE}/real-estate-video-maker): create faceless vertical market updates, neighborhood guides and buyer or seller education from facts the agent supplies and verifies. It is not an MLS-photo tour, a faithful property walkthrough or a digital-twin workflow.
 ${agencyPackLines}
 ${BUSINESS_OFFER_FACT.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
 

@@ -66,6 +66,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/comment-to-video', priority: 0.8, freq: 'weekly' },
     { path: '/product-to-video-script', priority: 0.8, freq: 'weekly' },
     { path: '/business-video-content-plan', priority: 0.8, freq: 'weekly' },
+    { path: '/real-estate-video-maker', priority: 0.8, freq: 'weekly' },
     { path: '/free-hook-generator', priority: 0.8, freq: 'weekly' },
     { path: '/viral-score', priority: 0.8, freq: 'weekly' },
     { path: '/ai-avatar', priority: 0.8, freq: 'weekly' },
