@@ -59,6 +59,7 @@ import {
 } from '@/lib/growth/planFitCheckout'
 import { engineName } from '@/lib/growth/planFit'
 import { buildAgencyCheckoutCancelUrl } from '@/lib/growth/agencyCheckoutReturn'
+import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -2437,7 +2438,9 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
     ],
     client_reference_id: user.id,
     success_url: `${appUrl}/autopilot?success=true&pack=autopilot_pilot&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/pricing`,
+    // Keep the exact one-time Autopilot product at the reversible exit. The
+    // generic pricing return used to erase the pilot and its no-renewal terms.
+    cancel_url: buildAutopilotPilotCancelUrl(appUrl),
     metadata: {
       supabase_user_id: user.id,
       // `pack` is what webhook Path A branches on. `pack_credits` is the

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo — Autopilot checkout recovery comparison</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#08090b;color:#f5f5f7}
+    *{box-sizing:border-box}body{margin:0;padding:32px;background:radial-gradient(circle at top,#172033 0,#08090b 42%)}
+    h1{max-width:1100px;margin:0 auto 8px;font-size:30px;letter-spacing:-.04em}body>p{max-width:1100px;margin:0 auto 28px;color:#9da1aa;line-height:1.55}
+    .grid{max-width:1100px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:26px}.case{min-width:0}.label{margin:0 0 9px;font-size:11px;font-weight:900;letter-spacing:.13em;color:#7f8794}.label.after{color:#6ee7b7}
+    .viewport{min-height:650px;padding:28px;border:1px solid #2a2d34;border-radius:20px;background:#0b0c0f;display:flex;align-items:center;justify-content:center;box-shadow:0 18px 50px #0008}.viewport.mobile{min-height:720px;max-width:390px;margin:auto;padding:18px}
+    .card{width:100%;max-width:520px;padding:30px;border:1px solid #2a2d34;border-radius:22px;background:#131316;box-shadow:0 16px 55px #0009}.mobile .card{padding:22px;border-radius:18px}
+    .status{text-align:center}.status h2{margin:0;font-size:27px;letter-spacing:-.03em}.mobile .status h2{font-size:23px}.status p{margin:9px 0 0;color:#9da1aa;font-size:14px;line-height:1.5}.saved{color:#2997ff!important;font-weight:800!important}
+    .offer{margin-top:20px;padding:18px;border:1px solid #2997ff55;border-radius:16px;background:linear-gradient(135deg,#2997ff19,#2997ff0c)}.offer strong{display:block;font-size:15px}.offer p{margin:6px 0 14px;color:#9da1aa;font-size:13px;line-height:1.45}.button{display:block;padding:13px 14px;border-radius:12px;background:linear-gradient(135deg,#2997ff,#1d6fe0);color:white;text-align:center;font-size:14px;font-weight:900}.trust{margin:10px 0 0!important;text-align:center;font-size:12px!important;font-weight:700}
+    .objection{margin-top:16px;padding:16px;border:1px solid #2a2d34;border-radius:14px;background:#ffffff08}.objection h3{margin:0;font-size:14px}.objection p{margin:7px 0 12px;color:#9da1aa;font-size:13px;line-height:1.5}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}.chip{padding:8px 11px;border:1px solid #343840;border-radius:999px;background:#ffffff08;color:#e7e8eb;font-size:12px;font-weight:750}.wrong{border-color:#ef444466;background:#ef44440d}.wrong .saved{color:#f87171!important}.right{border-color:#34d39955}.right .saved{color:#6ee7b7!important}.note{margin:12px 0 0;font-size:12px;color:#7f8794;line-height:1.45}
+    @media(max-width:820px){body{padding:22px 14px}.grid{grid-template-columns:1fr}.desktop-only{display:none}}
+  </style>
+</head>
+<body>
+  <h1>Autopilot checkout recovery</h1>
+  <p>Before: both the $299 monthly Autopilot and the $99 one-time pilot lost their product identity after Stripe was closed. After: the exact product, billing model, price source and next-best action stay intact.</p>
+  <div class="grid">
+    <section class="case desktop-only">
+      <div class="label">BEFORE · DESKTOP</div>
+      <div class="viewport"><div class="card wrong">
+        <div class="status"><h2>Payment was not completed.</h2><p>Your card was not charged.</p><p class="saved">Wrong product substituted</p></div>
+        <div class="offer"><strong>Creator — $15.00/month</strong><p>Renews at $15.00/month. Cancel anytime.</p><span class="button">Try secure checkout again →</span><p class="trust">7-day money-back guarantee</p></div>
+        <div class="objection"><h3>What happened?</h3><p>The incoming <code>tier=autopilot</code> was not allowed, so the page silently defaulted to Creator. The one-time pilot returned to generic pricing.</p></div>
+      </div></div>
+    </section>
+    <section class="case desktop-only">
+      <div class="label after">AFTER · DESKTOP</div>
+      <div class="viewport"><div class="card right">
+        <div class="status"><h2>Payment was not completed.</h2><p>Your card was not charged.</p><p class="saved">Your selected plan is saved below.</p></div>
+        <div class="offer"><strong>Autopilot — $299.00/month</strong><p>Renews at $299.00/month. Cancel anytime.</p><span class="button">Try secure checkout again →</span><p class="trust">7-day money-back guarantee · cancel anytime</p></div>
+        <div class="objection"><h3>Too expensive?</h3><p>Try the same Autopilot for one week: 7 Shorts published to your YouTube channel for $99.00 once. No subscription.</p><span class="button">Start the 7-day pilot →</span></div>
+      </div></div>
+    </section>
+    <section class="case">
+      <div class="label">BEFORE · MOBILE</div>
+      <div class="viewport mobile"><div class="card wrong">
+        <div class="status"><h2>Payment was not completed.</h2><p class="saved">Selection lost</p></div>
+        <div class="offer"><strong>Creator — $15.00/month</strong><p>The $99 pilot disappeared into generic pricing.</p><span class="button">Try checkout again →</span></div>
+        <div class="chips"><span class="chip">Too expensive</span><span class="chip">Not sure which plan</span><span class="chip">I had questions</span></div>
+      </div></div>
+    </section>
+    <section class="case">
+      <div class="label after">AFTER · MOBILE</div>
+      <div class="viewport mobile"><div class="card right">
+        <div class="status"><h2>Payment was not completed.</h2><p class="saved">Exact one-time product preserved</p></div>
+        <div class="offer"><strong>Autopilot Pilot — $99.00 once</strong><p>One-time payment. Nothing renews; the pilot ends after 7 days.</p><span class="button">Try secure checkout again →</span><p class="trust">Secure Stripe checkout · no auto-renew</p></div>
+        <div class="objection"><h3>Not sure which plan?</h3><p>Pilot and monthly are compared as the same done-for-you workflow, not mixed with self-serve credit plans.</p><span class="button">Compare both Autopilot options →</span></div>
+      </div></div>
+    </section>
+  </div>
+</body>
+</html>
