@@ -33,7 +33,11 @@ import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { STARTER_MO } from '@/lib/marketingPrice'
-import { CHATGPT_QUICKSTARTS, CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
+import {
+  CHATGPT_QUICKSTARTS,
+  CHATGPT_QUICKSTART_VARIANT,
+  type ChatGptQuickstartChoice,
+} from '@/lib/growth/chatgptQuickstart'
 
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
 const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
@@ -83,6 +87,33 @@ export default function ChatGptWelcomeBanner() {
   if (!show) return null
 
   return (
+    <ChatGptWelcomeCard
+      onSelect={(choice) => {
+        try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* best effort */ }
+        void trackEvent('chatgpt_quickstart_selected', {
+          variant: CHATGPT_QUICKSTART_VARIANT,
+          input_type: choice,
+          destination: '/studio/create',
+        })
+      }}
+      onDismiss={() => {
+        setShow(false)
+        try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* ok */ }
+        void trackEvent('chatgpt_welcome_banner_dismissed', { variant: CHATGPT_QUICKSTART_VARIANT })
+      }}
+    />
+  )
+}
+
+export function ChatGptWelcomeCard({
+  onSelect,
+  onDismiss,
+}: {
+  onSelect: (choice: ChatGptQuickstartChoice) => void
+  onDismiss: () => void
+}) {
+
+  return (
     <section
       role="region"
       aria-label="ChatGPT quick start"
@@ -99,14 +130,7 @@ export default function ChatGptWelcomeBanner() {
               key={option.choice}
               href={option.href}
               className={`cgpt-option${index === 0 ? ' cgpt-option-primary' : ''}`}
-              onClick={() => {
-                try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* best effort */ }
-                void trackEvent('chatgpt_quickstart_selected', {
-                  variant: CHATGPT_QUICKSTART_VARIANT,
-                  input_type: option.choice,
-                  destination: '/studio/create',
-                })
-              }}
+              onClick={() => onSelect(option.choice)}
             >
               <span className="cgpt-option-label">{option.label}</span>
               <span className="cgpt-option-detail">{option.detail}</span>
@@ -120,11 +144,7 @@ export default function ChatGptWelcomeBanner() {
         type="button"
         aria-label="Dismiss"
         className="cgpt-dismiss"
-        onClick={() => {
-          setShow(false)
-          try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* ok */ }
-          void trackEvent('chatgpt_welcome_banner_dismissed', { variant: CHATGPT_QUICKSTART_VARIANT })
-        }}
+        onClick={onDismiss}
       >
         ×
       </button>
