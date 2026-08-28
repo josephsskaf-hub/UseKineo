@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada antes desta atualização:** `027afdb9889d127a1a9190e3a22f7cb1cabea1cc`
+- **Base remota confirmada antes da entrega mais recente:** `b7ac683cbea48812ab2cae5302fee0ed7ee02231`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -155,6 +155,22 @@
 - Preview visual obrigatório: `docs/previews/AFFILIATE-CAMPAIGN-KIT-2026-08-27.html`, inspecionado em desktop e mobile.
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_DDpM3VXJSWsUQUaB9n75FTb9kjtd` em estado `READY`, aliasado em `www.usekineo.com`; `/partners` mostrou o kit e `/free-script-generator`, `/free-ai-shorts-generator` e `/faceless-video-generator` carregaram com o conteúdo correto; zero erro runtime nas rotas observadas.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum link financeiro de afiliado real foi clicado no smoke de produção e nenhuma conta alheia foi usada. A rota, os três redirects, a criação de prova, cookies first-touch, dedupe e rejeição de destino inseguro estão cobertos pelo teste executável; o primeiro clique humano de cada variante ainda precisa ser observado no admin.
+
+### 2.12 Distribuição da oferta B2B nas superfícies com tráfego
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `e0111c689b4c3d79254909a44f19adb69bade6b3`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT agregado, 27/08/2026, contas internas excluídas):** desde a publicação da página B2B não havia evento `agency_bulk_page_viewed`, `agency_bulk_pack_clicked`, `bulk_checkout_started` nem `bulk_purchase_completed`. O gargalo observado era anterior ao checkout: zero tráfego medido na oferta.
+- **EVIDÊNCIA DE PRODUÇÃO (janela de 30 dias lida em 27/08/2026):** `/state-of-ai-shorts-2026` teve 140 atores identificáveis, dos quais 120 atribuídos ao ChatGPT; `/cheapest-ai-shorts-maker` teve 71; `/pricing`, 60. Esses números são por página e não foram somados como pessoas distintas.
+- As três páginas agora exibem um `AgencyVolumeBridge` contextual para agências, freelancers e empresas, sem alterar a home (`components/AgencyVolumeBridge.tsx`; páginas citadas acima).
+- A ponte usa somente os quatro packs aprovados e deriva o menor preço por vídeo de `BULK_PACKS`; não repete preço literal nem cria oferta nova (`lib/checkoutPricing.ts`; `components/AgencyVolumeBridge.tsx`).
+- Links internos usam `?entry=state_report|cost_page|pricing`, e não UTM. Assim a origem original ChatGPT/Google não é sobrescrita (`lib/agencyDistribution.ts`).
+- A página B2B lê apenas esse enum allow-listed e grava `entry` em `agency_bulk_page_viewed`; valor arbitrário cai em `direct`. O marcador de sessão é versionado e escopado por entrada (`app/ai-shorts-for-agencies/AgencyPacksClient.tsx`).
+- Testes: `test-b2b-distribution.mjs` `31/31`; `test-b2b-bulk-page.mjs` `30/30`; contrato comercial `305/305`; destinos de afiliado `177/177`; TypeScript com apenas os quatro erros de baseline; whitespace limpo.
+- O build local compilou o código e parou somente na coleta de uma rota preexistente por ausência de `OPENAI_API_KEY` na worktree isolada; nenhum segredo foi lido ou copiado. O build completo da Vercel ficou verde.
+- Preview visual obrigatório: `docs/previews/B2B-DISTRIBUTION-BRIDGES-2026-08-27.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_CswEGJAX19noMq2KYw14TfYnkKiv` em estado `READY`, aliasado em `www.usekineo.com`. GETs sem JavaScript confirmaram HTTP 200, ponte e `entry` exato nas três origens e a oferta na página de destino; nenhum evento artificial foi criado durante o smoke.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe visitante humano observado depois desta variante. Medir atores por `metadata.entry` antes de mexer na oferta ou no checkout B2B.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
