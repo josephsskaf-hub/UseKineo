@@ -923,3 +923,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** Supabase, Storage, migration, banco, render, motor, legenda, composição, crédito, preço, oferta, SKU, checkout, `GenerateClient.tsx`, e-mail, outreach, TAAFT pago ou anúncio.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir da ponta posterior de `origin/main`. Claude continua incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin`; esta entrega não cria sobreposição com pipeline de vídeo.
+
+## 13. Aquisição orgânica — entidade da marca para a busca “cineo” (28/08/2026)
+
+**BASE LIDA:** `517c8712c31da33a964ab79b90939343c81af908`.
+
+**SHA FUNCIONAL:** `80fbd4123c90d49dc5f3a76e48f39b5cf3b55763`.
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** o domínio teve 37 cliques, 2.216 impressões, CTR de 1,7% e posição média 49. A consulta exata `cineo` teve 27 impressões, zero clique e posição média 77,6. Ao filtrar a aba de páginas, o Google atribuiu todas as 27 impressões somente a `https://www.usekineo.com/pricing`. São impressões, não pessoas, cadastros ou assinaturas.
+
+**FATO CONFIRMADO / CAUSA NO CÓDIGO:** a home declarava `Kineo AI`, `UseKineo`, `Cineo` e `Cineo AI` como aliases da organização, mas o schema global servido em `/pricing` declarava apenas `ShortsForgeAI`. Assim, justamente a URL escolhida pelo Google para `cineo` não recebia esse alias. A identidade agora tem fonte única em `lib/brandIdentity.ts:1-16`; a home importa essa fonte em `app/page.tsx:6,44-53`; e o schema global a usa em `components/StructuredData.tsx:4,62-77`.
+
+**IMPLEMENTADO:** `BRAND_NAME`, `BRAND_URL` e `BRAND_ALIASES` passam a ser compartilhados pelos schemas `Organization`, `WebSite` e `SoftwareApplication`. A lista canônica é `Kineo AI`, `UseKineo`, `Cineo`, `Cineo AI` e `ShortsForgeAI`. A mudança é somente JSON-LD: não exibe a grafia errada na copy, não cria doorway `/cineo`, não altera preço, oferta, checkout ou fluxo autenticado.
+
+**TESTADO LOCALMENTE:** `test-brand-entity-aliases` 15/15; whitespace limpo. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_CEHvB3DhwmFP7gictB2Shm37fQjF` em estado `READY`, target `production`, SHA exato `80fbd412`. Home e `/pricing` responderam `200` com o marcador desse deploy. O HTML público das duas páginas contém `Cineo`, `Cineo AI` e `ShortsForgeAI` nos dados estruturados. Os canonicals são `https://www.usekineo.com` e `https://www.usekineo.com/pricing`. A Vercel registrou zero erro de runtime em `/` e `/pricing` nos 30 minutos verificados.
+
+**AÇÃO NÃO EXECUTADA:** não foi solicitada nova indexação da home ou de `/pricing`. Essa ação deve acontecer apenas uma vez, mediante confirmação do fundador no momento da ação; repeti-la não garante posição, clique ou prioridade.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`. Joseph e Claude conduzem o incidente. Codex não consultou nem escreveu em Supabase, Storage, banco, migration ou sessão autenticada nesta entrega. Enquanto o incidente estiver aberto, `402` deve ser separado das métricas de abandono/conversão e classificado como capacidade indisponível; não declarar que renders estão perfeitos.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhum clique, cadastro, checkout ou assinante foi atribuído à correção de entidade. Aguardar novo rastreamento do Google e comparar a consulta exata `cineo` na próxima janela. Publicação e impressão não serão chamadas de aquisição.
+
+**NÃO TOCADO:** copy visível, preço, grant, oferta, SKU, checkout, Supabase, Storage, migration, autenticação, `GenerateClient.tsx`, render, cena, legenda, motor, e-mail, outreach, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `80fbd412` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade do Supabase e qualidade de render. Ambos devem executar `git fetch origin` antes de iniciar uma nova worktree.
