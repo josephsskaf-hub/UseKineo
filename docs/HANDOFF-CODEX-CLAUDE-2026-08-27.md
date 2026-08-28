@@ -949,3 +949,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** copy visível, preço, grant, oferta, SKU, checkout, Supabase, Storage, migration, autenticação, `GenerateClient.tsx`, render, cena, legenda, motor, e-mail, outreach, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `80fbd412` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade do Supabase e qualidade de render. Ambos devem executar `git fetch origin` antes de iniciar uma nova worktree.
+
+## 14. Aquisição orgânica — intenção exata `#viralnow` (28/08/2026)
+
+**BASE LIDA:** `f540ff7e78338a8bbb6ae34959ba600d8cc0bf85`.
+
+**SHA FUNCIONAL:** `2e84934106014e737ffc1e15ab7ae5328a5f7c6f`.
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** a consulta exata `#viralnow` teve 11 impressões, zero clique, CTR de 0% e posição média 14,5. Ao abrir a aba de páginas, todas as 11 impressões estavam atribuídas somente a `https://www.usekineo.com/viral-now`. São impressões, não pessoas, cadastros ou assinaturas.
+
+**FATO CONFIRMADO / GAP:** antes de `2e84934`, o title era `Viral Now: Trending YouTube Shorts Ideas Today | Kineo` e a description dizia que as ideias eram “trending”. O código não detecta tendências ao vivo: `lib/viralTopics.ts:1002-1029` faz um shuffle determinístico de uma biblioteca curada e troca oito entradas a cada bloco UTC de quatro horas. A própria API confirma que não há dependência de persistência (`app/api/viral-now/route.ts:1-14`).
+
+**IMPLEMENTADO:** o title agora responde à grafia exata `#ViralNow` e promete somente o que o código entrega: oito ideias de Shorts para postar hoje. A description chama a fonte de biblioteca curada e a mudança de rotação, não de atualização de tendência. O `ItemList` recebe o mesmo nome, a mesma description e os aliases `Viral Now`/`Viral Now YouTube Shorts ideas` (`app/(dashboard)/viral-now/page.tsx:7-48`).
+
+**ESCOPO:** somente metadata e JSON-LD. H1, cards, CTA, cadastro, handoff da ideia, sessão e UI não mudaram. Não foi adicionado evento, `create_intent`, preço, oferta, checkout ou acesso novo ao Supabase.
+
+**TESTADO LOCALMENTE:** `test-viralnow-search-intent` 14/14; whitespace limpo com `core.whitespace=cr-at-eol`. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_3rzdx8eaATJtuaRk149jhdNwdKvn` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. Um GET público sem JavaScript respondeu `200` com o marcador do deploy, title/description novos, canonical `https://www.usekineo.com/viral-now`, sem `noindex`, com nome e aliases novos no schema e zero `create_intent`. A Vercel registrou zero erro de runtime em `/viral-now` nos 15 minutos consultados.
+
+**TRANSPARÊNCIA OPERACIONAL:** o GET público não executou JavaScript, não criou evento, não usou sessão autenticada e não fez SQL/MCP/Storage. A rota existente chama `supabase.auth.getUser()` no servidor para decidir o destino do CTA; portanto, a validação pode ter produzido uma verificação anônima de autenticação já inerente à página. Nenhuma escrita foi adicionada ou solicitada.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`. Joseph e Claude conduzem o incidente. Esses `402` continuam classificados como indisponibilidade de capacidade, não abandono voluntário nem falha atribuída a esta entrega; não declarar que renders estão perfeitos.
+
+**AÇÃO NÃO EXECUTADA:** não foi solicitada nova indexação de `/viral-now`. Fazer no máximo uma solicitação após confirmação do fundador no momento da ação; repetir não garante posição, clique ou prioridade.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhum clique, cadastro, checkout ou assinante foi atribuído ao novo snippet. Aguardar novo rastreamento e comparar `#viralnow` na próxima janela do Search Console; publicação não será chamada de aquisição.
+
+**NÃO TOCADO:** UI visível, Supabase, Storage, migration, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, `GenerateClient.tsx`, e-mail, outreach, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `2e84934` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade do Supabase e qualidade de render. Ambos devem executar `git fetch origin` antes de iniciar uma nova worktree.
