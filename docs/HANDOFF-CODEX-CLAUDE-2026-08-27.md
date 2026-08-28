@@ -1053,3 +1053,23 @@ PRÓXIMO DONO:
 **QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará o novo rastreamento e se a consulta `cineo` ganhará posição ou clique. Medir somente após nova janela do Search Console; recrawl solicitado não será chamado de aquisição.
 
 **PRÓXIMO DONO:** Codex segue aquisição/fluxo/assinaturas a partir da ponta atual de `origin/main`. Claude segue o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; esta seção é documentação da ação externa e não altera o produto.
+
+## 18. Distribuição orgânica — recrawl único de `#viralnow` (28/08/2026)
+
+**BASE DE CÓDIGO:** `7ca4b6ec4fe6b66db93d44a50723e827008603f7`, igual a `origin/main` no início da ação.
+
+**EVIDÊNCIA DE PRODUÇÃO QUE MOTIVOU A AÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** a consulta exata `#viralnow` tinha 11 impressões, zero clique, CTR de 0% e posição média 14,5, todas atribuídas a `https://www.usekineo.com/viral-now`. A correção funcional `2e849341` passou a responder à grafia exata no title e no schema, mas a seção 14 registrava que o Google ainda não havia recebido pedido de nova leitura. Impressões não são pessoas, cadastros ou assinaturas.
+
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026, entre 20:30 e 20:31 BRT):** a inspeção confirmou para `https://www.usekineo.com/viral-now` os estados `O URL está no Google`, `A página está indexada` e `A página é exibida por HTTPS`. Codex solicitou indexação uma única vez. O painel confirmou `Indexação solicitada` e informou que a URL entrou na fila de rastreamento prioritário e que reenviar não altera posição nem prioridade.
+
+**ESCOPO E LIMITE DA PROVA:** nenhuma página nova, nova copy, novo evento ou repetição foi criada. A ação distribui uma mudança já publicada e não garante data de rastreamento, posição, impressão, clique, cadastro, checkout ou assinatura. Não repetir agora.
+
+**ANTI-DUPLICAÇÃO / EVIDÊNCIA DE PRODUÇÃO:** antes da ação, Codex voltou à tabela de consultas e confirmou que a maior oportunidade aparente — `youtube shorts exoplanet life script 40 seconds`, com 44 impressões, zero clique e posição 5,5 — já foi respondida pela entrega da seção 9. Também rejeitou novas edições para `compare kineo` (posição 69,2) e `ai shorts maker free` (posição 97,4): estão longe demais para justificar reconstrução nesta rodada. Os números são da mesma janela 01/07–26/08/2026.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta ação não acessou Supabase, Storage, banco, migration, autenticação ou render. Os `402` continuam classificados como indisponibilidade de capacidade, nunca como abandono voluntário.
+
+**NÃO TOCADO:** código funcional, UI, copy, preço, oferta, grant, checkout, evento, Supabase, Storage, render, motor, cena, legenda, e-mail, outreach, TAAFT ou anúncio.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará o novo rastreamento e se `#viralnow` ganhará posição ou clique. Medir somente após nova janela do Search Console; recrawl solicitado não será chamado de aquisição.
+
+**PRÓXIMO DONO:** Codex segue aquisição/fluxo/assinaturas a partir da ponta atual de `origin/main`. Claude segue o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; esta seção é documentação da ação externa e não altera o produto.
