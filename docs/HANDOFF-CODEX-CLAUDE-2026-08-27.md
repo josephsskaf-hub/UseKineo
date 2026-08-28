@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada depois da entrega mais recente:** `57f0f326d08b0ec7b199fbe86bdb68cf9504a629`
+- **Base remota confirmada depois da entrega mais recente:** `38ccd95ee6eb5db899c0c34df5026acddadf2c80`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -233,6 +233,22 @@
 - Preview visual obrigatório: `docs/previews/CHATGPT-QUICKSTART-2026-08-28.html`, inspecionado em desktop e mobile.
 - **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_2HP5zyWrD6wv1VwQu5T5Dy24uqxg` em estado `READY`, aliasado em `www.usekineo.com`. GETs sem JavaScript confirmaram que os dois destinos preservam modo, duração e escolha através do redirect para signup; `/api/admin/funnel` respondeu 403 sem sessão. Zero erro/fatal no runtime do deploy nos 15 minutos consultados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum ator externo de `chatgpt_quickstart_v1` foi observado ainda. Não comparar a nova variante com os 194 cadastros históricos até existir amostra pós-deploy.
+
+### 2.17 Porta de brief para volume B2B recorrente
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `38ccd95ee6eb5db899c0c34df5026acddadf2c80`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT agregado, 28/08/2026, contas internas excluídas):** antes da variante, não havia ator identificável nem linha de evento em `agency_bulk_page_viewed`, `agency_margin_calculator_viewed`, `agency_margin_pack_selected`, `agency_bulk_pack_clicked`, `bulk_checkout_started` ou `bulk_purchase_completed` desde 27/08. A tabela `leads` tinha zero linha. O problema observado continuava anterior ao checkout.
+- A página `/ai-shorts-for-agencies` preserva os quatro packs self-service e agora oferece uma segunda porta, depois dos packs, para quem planeja 10–19, 20–49, 50–99 ou 100+ Shorts por mês (`app/ai-shorts-for-agencies/AgencyBriefClient.tsx`; `lib/growth/b2bLead.ts`).
+- O formulário coleta somente faixa de volume allow-listed e e-mail. Não coleta briefing livre, empresa, prompt ou roteiro; a telemetria nunca recebe o e-mail. A impressão exige 50% de visibilidade e é deduplicada por sessão.
+- A rota órfã `/api/lead-capture` passou a distinguir o novo `agency_brief` do lead magnet B2C. A classificação B2B é fixada pelo servidor, o corpo é limitado a 4 KB, há honeypot, validação determinística e falha de banco responde 503. Brief B2B nunca dispara o e-mail automático de ideias virais (`app/api/lead-capture/route.ts`).
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, 28/08/2026):** `public.leads` tem RLS ativo, zero policy, índice único por `lower(email)` e acesso de service role; grants de anon/authenticated existem no catálogo, mas sem policy o RLS bloqueia acesso pela Data API. A rota de servidor usa service role, nunca o cliente.
+- O admin protegido agora mostra visualizações do brief por ator e o inbox canônico por e-mail único, faixa e data. Contato continua manual e a própria UI exige aprovação do fundador antes de qualquer mensagem (`app/api/admin/funnel/route.ts`; `app/(dashboard)/admin/funnel/FunnelClient.tsx`).
+- Testes: brief B2B `61/61`; página B2B `30/30`; calculadora `46/46`; distribuição `31/31`; contrato comercial `305/305`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/B2B-LEAD-INTAKE-2026-08-28.html`, inspecionado em desktop e em viewport real de 390 px. O primeiro preview mobile apertava o quadro desktop; o artefato foi corrigido e revalidado antes do push.
+- **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_7CR6kJdjkCv1ea5CE5ToG8nEquGQ` em estado `READY`, aliasado em `www.usekineo.com`. A página e o formulário renderizaram em desktop e mobile. O smoke POST com honeypot respondeu HTTP 200 antes do banco. Zero erro runtime/fatal foi encontrado no deploy.
+- A validação visual com JavaScript emitiu uma impressão anônima sintética. O registro foi identificado por UUID, sessão, horário e variante e removido isoladamente; a verificação final retornou `lead_rows=0` e `b2b_brief_event_rows=0`. Nenhum dado de cliente foi tocado.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe visitante humano observado na oferta B2B ou no brief. A nova porta impede que uma empresa interessada seja forçada direto ao checkout, mas não prova demanda. O próximo sprint deve aumentar distribuição qualificada ou preparar um lote de prospecção para aprovação, não mudar novamente o formulário sem amostra.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
