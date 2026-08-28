@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 import { freshFetch } from '@/lib/lifecycle/freshFetch'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -301,7 +302,8 @@ export async function GET(req: NextRequest) {
     .eq('name', 'blackout_winback_sent')
     .gte('created_at', new Date(now - DEDUPE_WINDOW_MS).toISOString())
     .limit(2000)
-  for (const a of (already ?? []) as Array<{ user_id?: string | null }>) {
+  // KINEO-TRIPWIRE-1000-2026-08-28 — dedupe truncado = reenvio; aborta.
+  for (const a of dedupeTripwire(already as Array<{ user_id?: string | null }> | null, 'blackout-winback sent')) {
     if (a.user_id) victimIds.delete(a.user_id)
   }
   if (victimIds.size === 0) {

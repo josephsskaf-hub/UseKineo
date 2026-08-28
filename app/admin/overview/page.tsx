@@ -18,6 +18,7 @@
 // ADMIN_EMAILS allowlist, checked server-side before any data is fetched.
 
 import Link from 'next/link'
+import { fetchAllRows } from '@/app/api/admin/_shared/db'
 import type { CSSProperties, ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
@@ -136,26 +137,40 @@ async function loadMetrics(): Promise<Metrics | null> {
     auth: { persistSession: false, autoRefreshToken: false },
   })
 
-  // Small tables (≤ a few hundred rows each as of #482); the explicit limits
-  // are just headroom before pagination is ever needed.
-  const [profilesQ, videosQ, debitsQ, abandQ, clicksQ, eventsQ] = await Promise.all([
-    admin.from('profiles').select('id, email, plan, created_at, utm_source').limit(5000),
-    admin.from('videos').select('user_id, created_at, status, credits_used').limit(5000),
-    admin.from('credit_debits').select('user_id, refunded_at').limit(5000),
-    admin.from('checkout_abandoned').select('user_id').limit(5000),
-    admin.from('click_events').select('user_id, event').limit(5000),
-    admin
-      .from('events')
-      .select('name, user_id')
-      .in('name', [
+  // KINEO-PAINEL-VERDADE-2026-08-28 — o comentário que morava aqui dizia
+  // "Small tables (≤ a few hundred rows each as of #482)". Deixou de ser
+  // verdade sem ninguém avisar: profiles passou de 1.400 e videos de 1.100,
+  // e o `.limit(5000)` era teatro — o PostgREST corta em 1.000 SEM ERRO
+  // (db.max_rows). Resultado medido: o MRR, o ARPU, a ativação e a retenção
+  // W2 desta tela eram calculados sobre as 1.000 primeiras linhas em ordem
+  // FÍSICA (sem ORDER BY, nem estável entre refreshes) — 469 contas
+  // simplesmente não existiam para o painel executivo. Mesma família do
+  // defeito que fez o /admin mostrar 435 visitantes nas duas janelas.
+  // A cura é a mesma da casa: fetchAllRows pagina de 1.000 em 1.000, com
+  // ORDER BY id estável (consertado em 28/08 no próprio helper).
+  const [profilesR, videosR, debitsR, abandR, clicksR, eventsR] = await Promise.all([
+    fetchAllRows<ProfileRow>(admin, 'profiles', 'id, email, plan, created_at, utm_source'),
+    fetchAllRows<VideoRow>(admin, 'videos', 'user_id, created_at, status, credits_used'),
+    fetchAllRows<{ user_id: string | null; refunded_at: string | null }>(admin, 'credit_debits', 'user_id, refunded_at'),
+    fetchAllRows<{ user_id: string | null }>(admin, 'checkout_abandoned', 'user_id'),
+    fetchAllRows<{ user_id: string | null; event: string | null }>(admin, 'click_events', 'user_id, event'),
+    fetchAllRows<{ name: string; user_id: string | null }>(admin, 'events', 'id, name, user_id', {
+      column: 'name',
+      values: [
         'payment_success',
         'starter_checkout_clicked',
         'basic_checkout_clicked',
         'pro_checkout_clicked',
         'starter_pack_checkout_clicked',
-      ])
-      .limit(5000),
+      ],
+    }),
   ])
+  const profilesQ = { data: profilesR, error: null }
+  const videosQ = { data: videosR }
+  const debitsQ = { data: debitsR }
+  const abandQ = { data: abandR }
+  const clicksQ = { data: clicksR }
+  const eventsQ = { data: eventsR }
 
   type ProfileRow = { id: string; email: string | null; plan: string | null; created_at: string | null; utm_source: string | null }
   type VideoRow = { user_id: string | null; created_at: string | null; status: string | null; credits_used: number | null }

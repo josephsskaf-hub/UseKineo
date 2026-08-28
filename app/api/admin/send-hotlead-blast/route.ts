@@ -24,6 +24,7 @@
 // é respeitada: quem levou QUALQUER e-mail da régua nos últimos 3 dias fica
 // de fora desta leva — hot lead não é desculpa para spam.
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -206,7 +207,9 @@ async function collectSegments(): Promise<Record<Segment, Lead[]>> {
     .select('user_id')
     .eq('name', FLAG_EVENT)
     .limit(5000)
-  const alreadySent = new Set((flagged ?? []).map((e) => e.user_id))
+  // KINEO-TRIPWIRE-1000-2026-08-28 — trava de dedupe encostou no teto de
+  // 1000 do PostgREST = lista INCOMPLETA = risco do reenvio 8x. Aborta.
+  const alreadySent = new Set(dedupeTripwire(flagged, 'send-hotlead-blast FLAG_EVENT').map((e) => e.user_id))
 
   // Supressão de lifecycle no PADRÃO DA CASA (24h): ninguém recebe dois
   // e-mails no mesmo dia — mas a régua de ontem não bloqueia o hot lead de

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -222,8 +223,10 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  const queimados = new Set((spam ?? []).map((s) => s.user_id as string))
-  const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
+  // KINEO-TRIPWIRE-1000-2026-08-28 — o comentario acima ("degrada em
+  // silencio") deixou de ser profecia aceita: encostar no teto agora ABORTA.
+  const queimados = new Set(dedupeTripwire(spam, 'first50 oneoff_unlock_emailed').map((s) => s.user_id as string))
+  const jaRecebeu = new Set(dedupeTripwire(stamps, 'first50 STAMP').map((s) => s.user_id as string))
   // #284 — idade do carimbo v1 por pessoa (o mais RECENTE, ordem desc acima).
   const v1Em = new Map<string, number>()
   for (const s of stamps ?? []) {

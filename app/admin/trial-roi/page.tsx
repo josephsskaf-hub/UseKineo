@@ -84,14 +84,34 @@ export default async function TrialRoiPage() {
   if (!admin) return <main style={{ padding: 40, color: '#f5f5f7' }}>Service unavailable</main>
 
   // Consumo real: o claim é o evento que representa cobrança de verdade.
-  const { data: claims } = await admin
-    .from('events')
-    .select('user_id, metadata, created_at')
-    .eq('name', 'compose_submission_claim')
-    .gte('created_at', new Date(Date.now() - 45 * 864e5).toISOString())
-    .limit(20000)
+  //
+  // KINEO-PAINEL-VERDADE-2026-08-28 — esta leitura era `.limit(20000)` SEM
+  // `.order()`. O PostgREST corta em 1.000 sem erro, e OFFSET sem ORDER BY
+  // não tem ordem definida: quais 1.000 claims sobreviviam mudava ENTRE DOIS
+  // REFRESHES da mesma página. Esta é a tela que responde "o trial se paga?"
+  // — e o Custo por Cliente (CAC) dela flutuava por sorteio do planner,
+  // sempre errando para o lado otimista (custo de fornecedor subestimado).
+  // Agora: paginação ordenada por id até esgotar, com teto de segurança.
+  const sinceIso = new Date(Date.now() - 45 * 864e5).toISOString()
+  const claims: ClaimRow[] = []
+  for (let from = 0; from < 60_000; from += 1000) {
+    const { data: page, error: pageErr } = await admin
+      .from('events')
+      .select('id, user_id, metadata, created_at')
+      .eq('name', 'compose_submission_claim')
+      .gte('created_at', sinceIso)
+      .order('id', { ascending: true })
+      .range(from, from + 999)
+    if (pageErr) {
+      console.error('[trial-roi] claims page failed:', pageErr.message)
+      break
+    }
+    if (!page || page.length === 0) break
+    claims.push(...(page as unknown as ClaimRow[]))
+    if (page.length < 1000) break
+  }
 
-  const ids = [...new Set((claims ?? []).map((c) => (c as ClaimRow).user_id).filter(Boolean))] as string[]
+  const ids = [...new Set(claims.map((c) => c.user_id).filter(Boolean))] as string[]
   const { data: profiles } = ids.length
     ? await admin.from('profiles').select('id, email, plan, has_paid, created_at').in('id', ids)
     : { data: [] as ProfRow[] }
@@ -108,7 +128,7 @@ export default async function TrialRoiPage() {
   const people = new Map<string, Person>()
   const byEngine = new Map<string, { renders: number; cost: number; people: Set<string>; converted: Set<string> }>()
 
-  for (const raw of (claims ?? []) as ClaimRow[]) {
+  for (const raw of claims) {
     const uid = raw.user_id
     if (!uid) continue
     const prof = profById.get(uid)

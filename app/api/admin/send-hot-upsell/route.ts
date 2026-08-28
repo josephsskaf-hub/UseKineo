@@ -10,6 +10,7 @@
 // GET sem params = DRY RUN · ?confirm=SEND = dispara (respeita Resend 100/dia
 // — este lote tem ~15, cabe na sobra de hoje).
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -156,8 +157,10 @@ export async function GET(req: NextRequest) {
       .from('events')
       .select('metadata')
       .eq('name', 'hot_upsell_sent')
+    // KINEO-TRIPWIRE-1000-2026-08-28 — sem .limit() nao significa sem teto:
+    // o PostgREST corta em 1000 do mesmo jeito. Encostou = aborta.
     const alreadySent = new Set(
-      (sentRows ?? []).map((r) => {
+      dedupeTripwire(sentRows, 'send-hot-upsell hot_upsell_sent').map((r) => {
         try { return ((r as { metadata: { email?: string } }).metadata?.email ?? '').toLowerCase() } catch { return '' }
       }),
     )

@@ -30,6 +30,7 @@
 // default, ?confirm=SEND&limit=N para disparar, pacing de 600ms, carimbo por
 // usuário marcado SÓ no sucesso — ninguém recebe duas vezes.
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
@@ -255,7 +256,8 @@ export async function GET(req: NextRequest) {
 
     const { data: sentRows } = await admin
       .from('events').select('user_id').eq('name', SENT_EVENT).in('user_id', ids)
-    const alreadySent = new Set((sentRows ?? []).map((r) => r.user_id as string))
+    // KINEO-TRIPWIRE-1000-2026-08-28 — dedupe truncado = reenvio; aborta.
+    const alreadySent = new Set(dedupeTripwire(sentRows, 'checkout-rescue SENT_EVENT').map((r) => r.user_id as string))
 
     const recipients = base
       .map((p) => {

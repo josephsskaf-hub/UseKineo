@@ -204,11 +204,22 @@ export async function GET() {
         .from('events').select('user_id, metadata').eq('name', 'bulk_purchase_completed').in('user_id', ids).limit(500)
       const debitsPromise = admin
         .from('credit_debits').select('user_id, amount, refunded_at, render_id, created_at').in('user_id', ids).limit(4000)
-      const [profRes, vidRes] = await Promise.all([
+      // KINEO-ENTREGAS-TOTAIS-2026-08-28 — a coluna "VIDEOS (TOTAL)" só
+      // contava a tabela `videos`. Animate, Images e Audio NÃO criam linha
+      // lá, então quem usou esses produtos aparecia como "entrou e não fez
+      // nada". Medido hoje: 12 pessoas com entregas reais (9 Animate,
+      // 2 Images, 1 Audio) lidas como zero — a versão em miniatura do ponto
+      // cego que o #295 já tinha consertado no "Got back" (1.801 entregas de
+      // animação invisíveis). Agora a coluna soma as quatro fontes; o rótulo
+      // na tela vira "entregas", não "vídeos".
+      const animateDelivPromise = admin
+        .from('events').select('user_id').eq('name', 'animate_job_settled').in('user_id', ids).limit(1000)
+      const [profRes, vidRes, animateDelivRes] = await Promise.all([
         admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
           .in('id', ids),
         admin.from('videos').select('user_id').in('user_id', ids).limit(2000),
+        animateDelivPromise,
       ])
       const [imagesRes, audiosRes, grantsRes, purchasesRes, debitsRes, revokesRes] = await Promise.all([imagesPromise, audiosPromise, grantsPromise, purchasesPromise, debitsPromise, revokesPromise])
       // Razão por pessoa: bônus, compras, gastos, estornos e expirado — crus.
@@ -306,10 +317,19 @@ export async function GET() {
         }
       }
       const vidCount = new Map<string, number>()
-      for (const v of vidRes.data ?? []) {
-        const uid = (v as { user_id: string }).user_id
-        vidCount.set(uid, (vidCount.get(uid) ?? 0) + 1)
+      const bumpDelivery = (rows: unknown[] | null | undefined) => {
+        for (const v of rows ?? []) {
+          const uid = (v as { user_id: string }).user_id
+          if (uid) vidCount.set(uid, (vidCount.get(uid) ?? 0) + 1)
+        }
       }
+      bumpDelivery(vidRes.data)
+      // As três fontes que a coluna ignorava (ver KINEO-ENTREGAS-TOTAIS acima).
+      // imagesRes/audiosRes já são lidos logo acima para o extrato de gasto —
+      // reusar as MESMAS respostas não custa uma query nova.
+      bumpDelivery(imagesRes.data as unknown[] | null)
+      bumpDelivery(audiosRes.data as unknown[] | null)
+      bumpDelivery(animateDelivRes.data as unknown[] | null)
       // KINEO-PAINEL-VERDADE-2026-08-27 — duas cópias locais morreram aqui.
       //
       // `PAID_PLANS` era uma lista escrita à mão que NÃO tinha os planos

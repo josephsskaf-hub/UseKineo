@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { dedupeTripwire } from '@/lib/truncationTripwire'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { packPriceLabel, PACK_CREDITS } from '@/lib/checkoutPricing'
@@ -179,7 +180,9 @@ export async function GET(req: NextRequest) {
       { status: 503 },
     )
   }
-  const jaRecebeu = new Set((stamps ?? []).map((s) => s.user_id as string))
+  // KINEO-TRIPWIRE-1000-2026-08-28 — trava de dedupe encostou no teto de
+  // 1000 do PostgREST = lista INCOMPLETA = risco do reenvio 8x. Aborta.
+  const jaRecebeu = new Set(dedupeTripwire(stamps, 'send-oneoff-unlock STAMP').map((s) => s.user_id as string))
   const contagem = new Map<string, number>()
   for (const v of vids ?? []) {
     const u = v.user_id as string

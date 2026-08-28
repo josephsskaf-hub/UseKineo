@@ -60,7 +60,7 @@
 // (:05/:35 winback, :10/:40 video-ready, :15/:45 cap-hit, :40 activation,
 // :50 post-nudge, :55 trial-downgrade, :00 autopilot).
 import { NextRequest, NextResponse } from 'next/server'
-import { sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
+import { sweepAbandonedAvatarDebits, sweepAbandonedCinematicDebits, sweepStuckRenderDebits } from '@/lib/credits/refund'
 import { sweepPublishedAnimateJobs, sweepStaleAnimateClaims } from '@/lib/animate/service'
 
 export const dynamic = 'force-dynamic'
@@ -135,7 +135,20 @@ export async function GET(req: NextRequest) {
     console.error('[cron/refund-sweep] published-animate sweep failed:', msg)
   }
 
-  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, errors }))
+  // KINEO-AVATAR-SWEEP-2026-08-28 — o quinto produto entra na rede de
+  // estorno. Antes disto, avatar-% era o ÚNICO débito sem varredura: quem
+  // fechava a aba num avatar falho perdia 70-110cr sem volta (o aviso estava
+  // em docs/GATES-ABERTOS.md:1932 desde 05/08).
+  const avatar = { scanned: 0, refunded: 0, creditsReturned: 0, ambiguous: 0 }
+  try {
+    Object.assign(avatar, await sweepAbandonedAvatarDebits())
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    errors.push(`abandoned_avatar: ${msg}`)
+    console.error('[cron/refund-sweep] abandoned-avatar sweep failed:', msg)
+  }
+
+  console.log('[cron/refund-sweep]', JSON.stringify({ renders, animate, cinematic, animatePublished, avatar, errors }))
 
   // 200 mesmo com erro parcial: as três varreduras são idempotentes e rodam de
   // novo na hora seguinte. Um 5xx aqui só produziria ruído sem ação possível.

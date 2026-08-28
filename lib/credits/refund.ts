@@ -15,6 +15,7 @@ import { COMPOSE_CLAIM_EVENT } from '@/lib/composeClaim'
 import { CINEMATIC_CLAIM_EVENT, releaseCinematicClaim } from '@/lib/cinematic/claim'
 // KINEO-TRIAL-DOUBLECOUNT-2026-08-07 — ver o bloco do estorno em lib/reverseTrial.ts.
 import { recordReverseTrialRefundForRender } from '@/lib/reverseTrial'
+import { refundAvatarBirthDebitForFailedRequest } from '@/lib/avatar/reservation'
 
 function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -449,6 +450,111 @@ export async function sweepAbandonedCinematicDebits(): Promise<{
       `[refund/cinematic-sweep] refunded ${result.refunded} abandoned cinematic render(s), ` +
       `${result.creditsReturned} credits returned (${result.delivered} delivered, untouched)`
     )
+  }
+  return result
+}
+
+// ═══ KINEO-AVATAR-SWEEP-2026-08-28 — o buraco irmão finalmente fecha ═══════
+//
+// docs/GATES-ABERTOS.md:1932 avisava desde 05/08: "avatar-% tem EXATAMENTE o
+// mesmo buraco (debita no submit, refund só ao vivo, excluído do sweep) —
+// prioridade alta — é dinheiro do cliente". O Avatar debita 70-110 créditos
+// ANTES do primeiro POST pago, e o único estorno era o vivo, dentro de
+// /api/avatar-status — que só roda enquanto o cliente está com a aba aberta.
+// Quem fechava a aba num avatar que falhou perdia o crédito PARA SEMPRE:
+// `sweepStuckRenderDebits` exclui 'avatar-%' de propósito (linha ~119) e a
+// varredura cinematográfica só olha 'cinematic-%'.
+//
+// Hoje (28/08) a tabela tem ZERO débitos avatar na história — o produto está
+// invisível nos seletores — então esta varredura nasce protetiva, não
+// corretiva. É exatamente a hora certa: fechar o alçapão ANTES do primeiro
+// cliente cair nele, que é o contrário do que aconteceu com o cinematic
+// (7 clientes presos em 21-24/08 até o ÓRFÃO-PENDENTE fechar).
+//
+// A regra, deliberadamente conservadora:
+//   · débito 'avatar-%', sem estorno, mais velho que 6h (avatar leva minutos;
+//     6h só caem os realmente abandonados — nenhum retry vivo alcança);
+//   · SEM vídeo completed do mesmo dono entre o débito e agora. Avatar
+//     entregue vira filme via /api/compose, que SEMPRE cria linha em
+//     `videos`; existir vídeo na janela = provável entrega → PULA (nunca
+//     estornar entrega de verdade — na dúvida, o caso fica `ambiguous` e
+//     visível no log do cron, o mesmo contrato do sweep cinematográfico);
+//   · o estorno reaproveita refundAvatarBirthDebitForFailedRequest, que é
+//     idempotente por chave de ledger — re-rodar o cron nunca dobra crédito.
+export async function sweepAbandonedAvatarDebits(): Promise<{
+  scanned: number
+  refunded: number
+  creditsReturned: number
+  ambiguous: number
+}> {
+  const result = { scanned: 0, refunded: 0, creditsReturned: 0, ambiguous: 0 }
+  const db = adminClient()
+  if (!db) return result
+
+  const cutoff = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
+  const { data: debits, error } = await db
+    .from('credit_debits')
+    .select('render_id, user_id, amount, created_at')
+    .eq('kind', 'video')
+    .is('refunded_at', null)
+    .like('render_id', 'avatar-%')
+    .lt('created_at', cutoff)
+    .order('created_at', { ascending: false })
+    .limit(200)
+  if (error) {
+    console.error('[refund/avatar-sweep] debit query failed:', error.message)
+    return result
+  }
+  const candidates = debits ?? []
+  result.scanned = candidates.length
+
+  for (const debit of candidates) {
+    const renderId = textField(debit.render_id)
+    const userId = textField(debit.user_id)
+    const debitAt = textField((debit as { created_at?: unknown }).created_at)
+    if (!renderId || !userId || !debitAt) continue
+
+    // Entrega provável? Um avatar que completou vira filme pelo compose e
+    // deixa linha em `videos`. Nunca estornar por cima de entrega.
+    const { data: delivered, error: vidErr } = await db
+      .from('videos')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .gte('created_at', debitAt)
+      .limit(1)
+      .maybeSingle()
+    if (vidErr) {
+      result.ambiguous += 1
+      continue
+    }
+    if (delivered) {
+      result.ambiguous += 1
+      continue
+    }
+
+    // render_id = 'avatar-<requestId>' — ver generate-avatar (debita por essa
+    // chave determinística antes do POST na fal).
+    const requestId = renderId.slice('avatar-'.length)
+    if (!requestId) continue
+    const refunded = await refundAvatarBirthDebitForFailedRequest({ userId, requestId })
+    if (!refunded.ok) {
+      // Claim que não se deixa carregar/estornar é ambiguidade, não silêncio:
+      // aparece no log do cron a cada meia hora até alguém olhar.
+      console.warn(`[refund/avatar-sweep] could not settle ${renderId}: ${refunded.error}`)
+      result.ambiguous += 1
+      continue
+    }
+    if (refunded.credits > 0) {
+      result.refunded += 1
+      result.creditsReturned += refunded.credits
+      await db.from('events').insert({
+        user_id: userId,
+        name: 'credits_refunded',
+        path: '/api/cron/refund-sweep',
+        metadata: { billing_reference: renderId, amount: refunded.credits, reason: 'abandoned_avatar' },
+      })
+    }
   }
   return result
 }
