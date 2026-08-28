@@ -356,7 +356,10 @@ check(dashboard.includes('aria-pressed={selected}'), 'campaign selector exposes 
 check(dashboard.includes('affiliate_campaign_selected'), 'campaign choice is measured')
 check(dashboard.includes('affiliate_campaign_asset_copied'), 'campaign asset usage is measured')
 check(dashboard.includes('affiliate_first_click_mission_viewed'), 'zero-click mission impression is measured')
-check(dashboard.includes('First-click mission · 0 link visits'), 'zero-click affiliate receives a persistent named mission')
+// The literal first-click heading moved into the executable stage policy. The
+// page contract is now that it renders the resolved eyebrow; behavior for all
+// four stages is executed in test-affiliate-funnel-missions.mjs.
+check(dashboard.includes('{nextMission.eyebrow}'), 'affiliate dashboard renders the policy-owned mission name')
 check(dashboard.includes('first_click_mission: needsFirstClick'), 'share actions preserve first-click context')
 check(dashboard.includes('id="partner-campaign-kit"'), 'cross-dashboard nudge lands on the exact campaign kit')
 check(dashboard.includes('Ready-to-post caption'), 'dashboard supplies ready-to-post copy')

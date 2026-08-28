@@ -32,6 +32,7 @@ import {
   buildAffiliateWidgetEmbedUrl,
   buildAffiliateWidgetSnippet,
 } from '@/lib/growth/affiliateWidget'
+import { resolveAffiliateNextMission } from '@/lib/growth/affiliateNextMission'
 
 // KINEO-ORFAOS-CLIQUE-2026-08-14 — este helper era `fetch('/api/events')` cru,
 // sem `session_id`, e os quatro helpers desta família nasceram um do outro por
@@ -136,6 +137,7 @@ export default function AffiliatePage() {
   const [copied, setCopied] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
   const [copiedAsset, setCopiedAsset] = useState<'caption' | 'spoken' | 'widget' | null>(null)
+  const [missionCopied, setMissionCopied] = useState(false)
   const [selectedDestinationKey, setSelectedDestinationKey] =
     useState<AffiliateDestinationKey>(RECOMMENDED_AFFILIATE_DESTINATION)
   // PUSH #101 — true only for the render right after a successful apply in
@@ -143,6 +145,8 @@ export default function AffiliatePage() {
   // not permanent dashboard furniture.
   const [justApplied, setJustApplied] = useState(false)
   const firstClickMissionTracked = useRef(false)
+  const nextMissionTracked = useRef<string | null>(null)
+  const nextMission = resolveAffiliateNextMission(data?.stats)
 
   async function load() {
     try {
@@ -176,6 +180,20 @@ export default function AffiliatePage() {
       just_applied: justApplied,
     })
   }, [data, justApplied])
+
+  useEffect(() => {
+    const active = data?.affiliate?.status?.toLowerCase() === 'active'
+    if (!active || !nextMission || nextMissionTracked.current === nextMission.stage) return
+    nextMissionTracked.current = nextMission.stage
+    trackAffiliateEvent('affiliate_next_mission_viewed', {
+      stage: nextMission.stage,
+      action: nextMission.action,
+      destination: nextMission.destination,
+      link_visits: data?.stats?.clicks ?? null,
+      attributed_signups: data?.stats?.signups ?? null,
+      paid_customers: data?.stats?.paid ?? null,
+    })
+  }, [data, nextMission])
 
   async function apply() {
     setApplying(true)
@@ -381,6 +399,15 @@ export default function AffiliatePage() {
   const spokenScript = `${selectedDestination.spokenPitch}${couponLine}`.trim()
   const widgetEmbedUrl = buildAffiliateWidgetEmbedUrl(data.link ?? '')
   const widgetSnippet = buildAffiliateWidgetSnippet(data.link ?? '')
+  const missionDestination = nextMission
+    ? getAffiliateDestination(nextMission.destination)
+    : null
+  const missionLink = nextMission
+    ? buildAffiliateShareLink(data.link ?? '', nextMission.destination)
+    : ''
+  const missionCaption = missionDestination
+    ? `${missionDestination.sharePitch} ${missionLink}${couponLine}`.trim()
+    : ''
   const shareTargets = link
     ? [
         {
@@ -414,6 +441,26 @@ export default function AffiliatePage() {
     }
   }
 
+  async function copyNextMissionAsset() {
+    if (!nextMission) return
+    const value = nextMission.action === 'widget' ? widgetSnippet : missionCaption
+    if (!value) return
+    try {
+      await navigator.clipboard.writeText(value)
+      setSelectedDestinationKey(nextMission.destination)
+      setMissionCopied(true)
+      trackAffiliateEvent('affiliate_next_mission_copied', {
+        stage: nextMission.stage,
+        action: nextMission.action,
+        destination: nextMission.destination,
+        coupon_attached: Boolean(a.coupon_code),
+      })
+      setTimeout(() => setMissionCopied(false), 1800)
+    } catch {
+      // The complete asset remains available in the campaign kit below.
+    }
+  }
+
   return (
     <div className={wrap}>
       <header className="mb-6">
@@ -429,30 +476,39 @@ export default function AffiliatePage() {
         </p>
       </header>
 
-      {/* PUSH #101 — the moment right after applying. Peak intent, and the
-          only thing standing between them and their first tracked click is
-          sending the link to one person. */}
-      {justApplied || needsFirstClick ? (
+      {/* Growth funnel mission. The same lifetime counters already loaded by
+          /api/affiliate/me now choose exactly one next move: distribution,
+          signup conversion, first paid customer or durable scale. */}
+      {nextMission ? (
         <div
           className="rounded-2xl p-5 mb-4"
           style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.35)' }}
         >
           <div className="text-[10px] font-black uppercase tracking-[.16em] mb-2" style={{ color: CYAN }}>
-            First-click mission · 0 link visits
+            {nextMission.eyebrow}
           </div>
           <div className="font-black mb-1" style={{ fontSize: '1.05rem', color: TEXT }}>
-            {justApplied ? 'You\'re in — your link is already live.' : 'Get one real person through your link.'}
+            {justApplied && nextMission.stage === 'first_click'
+              ? 'You\'re in — your link is already live.'
+              : nextMission.title}
           </div>
           <p className="text-sm" style={{ color: MUTED, lineHeight: 1.6, margin: 0 }}>
-            Nothing is pending. Choose the closest audience below, copy the prepared post and place it
-            where that audience already asks about AI video. This mission closes after the first eligible
-            link visit; a visitor who arrives before signup can stay attributed to you for up to 90 days.
+            {nextMission.description}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4 text-xs font-bold">
-            <div className="rounded-lg px-3 py-2" style={{ color: '#86efac', background: 'rgba(16,185,129,.1)' }}>✓ Partner link live</div>
-            <div className="rounded-lg px-3 py-2" style={{ color: CYAN, background: 'rgba(41,151,255,.12)' }}>2 · Publish the ready post</div>
-            <div className="rounded-lg px-3 py-2" style={{ color: MUTED, background: 'rgba(255,255,255,.035)' }}>3 · First eligible visit</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: '#86efac', background: 'rgba(16,185,129,.1)' }}>✓ {nextMission.steps[0]}</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: CYAN, background: 'rgba(41,151,255,.12)' }}>2 · {nextMission.steps[1]}</div>
+            <div className="rounded-lg px-3 py-2" style={{ color: MUTED, background: 'rgba(255,255,255,.035)' }}>3 · {nextMission.steps[2]}</div>
           </div>
+          <button
+            type="button"
+            onClick={() => void copyNextMissionAsset()}
+            aria-live="polite"
+            className="w-full sm:w-auto rounded-xl px-5 py-2.5 mt-4 text-xs font-black"
+            style={{ background: '#2997ff', border: 'none', color: '#fff', cursor: 'pointer' }}
+          >
+            {missionCopied ? '✓ Copied — publish it where your audience already is' : nextMission.cta}
+          </button>
         </div>
       ) : null}
 
