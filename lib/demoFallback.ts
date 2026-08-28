@@ -172,12 +172,12 @@ PAYOFF: The strongest response is simple... answer directly, show the proof, and
 }
 
 export function fallbackProductScript(product: string): string {
-  const subject = product.replace(/\s+/g, ' ').trim().slice(0, 100) || 'this product'
-  return `HOOK: The cheapest option can hide the most expensive tradeoff.
-PROBLEM: People comparing “${subject}” need to know what problem it actually removes.
-PRODUCT: State the verified feature that solves that problem, in the customer’s own language.
-PROOF: Add [one verified demonstration, specification, review or limitation] before publishing.
-CTA: Compare the real fit... then choose the product whose value you can verify.`
+  const subject = product.replace(/\s+/g, ' ').trim().slice(0, 52) || 'this product'
+  return `HOOK: Stop guessing whether this product belongs in your customer's daily routine.
+PROBLEM: The intended customer needs one clear problem named before any feature sounds useful, believable, or worth comparing.
+PRODUCT: Start with the supplied facts: “${subject}” Connect one verified feature directly to that exact problem.
+PROOF: Add [one verified demonstration, specification, customer quote, or limitation], then remove this placeholder before publishing.
+CTA: Compare the verified fit, review every statement, and choose the next step without a fake deadline or guarantee.`
 }
 
 export function fallbackDemoHooks(topic: string): string[] {

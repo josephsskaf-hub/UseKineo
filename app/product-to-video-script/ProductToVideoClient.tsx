@@ -8,6 +8,7 @@ import {
   normalizeProductAudience,
   normalizeProductFacts,
   parseProductScript,
+  productScriptMeetsDuration,
   type ProductScriptLine,
 } from '@/lib/growth/productToVideo'
 
@@ -71,8 +72,8 @@ export default function ProductToVideoClient() {
         return
       }
       const parsed = parseProductScript(payload?.script ?? '')
-      if (parsed.length !== 5) {
-        setError('The draft was incomplete. Try again.')
+      if (parsed.length !== 5 || !productScriptMeetsDuration(payload?.script ?? '')) {
+        setError('The draft did not fit the 35-second contract. Try again.')
         return
       }
       setLines(parsed)

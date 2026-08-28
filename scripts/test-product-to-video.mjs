@@ -44,15 +44,18 @@ equal(growth.normalizeProductFacts('x'.repeat(900)).length, 700, 'product facts 
 equal(growth.normalizeProductAudience('  remote   workers  '), 'remote workers', 'audience normalizes whitespace')
 equal(growth.normalizeProductAudience('x'.repeat(200)).length, 140, 'audience has a hard 140-character ceiling')
 
-const rawScript = `HOOK: Your desk should not steal half the room.
-PROBLEM: Small desks make fixed lamps feel bigger than the work.
-PRODUCT: This rechargeable lamp folds flat and offers three color temperatures.
-PROOF: Add [verified battery runtime or demonstration] before publishing.
-CTA: Compare the footprint, then choose the light that fits your desk.`
+const rawScript = `HOOK: Your desk should never lose half its useful space to one fixed lamp.
+PROBLEM: Remote workers on small desks need focused light without another bulky object crowding their keyboard and notebook.
+PRODUCT: This rechargeable lamp folds flat, uses touch controls, and offers three color temperatures for different daily tasks.
+PROOF: Add [verified battery runtime, demonstration, customer quote, or limitation], then remove this placeholder before publishing the final video.
+CTA: Compare the folded footprint and verified features, then choose the light that genuinely fits the way you work.`
 const lines = growth.parseProductScript(rawScript)
 equal(lines.length, 5, 'parser keeps exactly five product beats')
 equal(lines[0].label, 'HOOK', 'parser preserves hook')
 equal(lines[4].label, 'CTA', 'parser preserves CTA')
+check(growth.productScriptMeetsDuration(rawScript), '70-90 words with five exact beats satisfies the 35-second contract')
+check(!growth.productScriptMeetsDuration('HOOK: Too short.'), 'thin output cannot masquerade as a 35-second result')
+check(growth.productScriptWordCount(lines) >= 70, 'spoken word count is measured from line text')
 
 const activation = new URL(growth.buildProductToVideoActivationHref(lines), 'https://www.usekineo.com')
 equal(activation.pathname, '/signup', 'product script starts at signup')
@@ -66,10 +69,10 @@ equal(redirect.searchParams.get('duration'), '35', 'product script has a support
 equal(redirect.searchParams.get('autoanalyze'), '1', 'handoff analyzes without auto-rendering')
 equal(redirect.searchParams.get('intent_campaign'), 'product_to_short', 'creator keeps campaign context')
 const carried = redirect.searchParams.get('prompt')
-check(carried.includes('MICRO REWARD 1: Small desks'), 'problem maps to a supported generator marker')
+check(carried.includes('MICRO REWARD 1: Remote workers'), 'problem maps to a supported generator marker')
 check(carried.includes('MICRO REWARD 2: This rechargeable lamp'), 'product maps to a supported generator marker')
 check(carried.includes('ESCALATION: Add [verified battery runtime'), 'proof placeholder survives signup')
-check(carried.includes('PAYOFF: Compare the footprint'), 'CTA maps to the payoff marker')
+check(carried.includes('PAYOFF: Compare the folded footprint'), 'CTA maps to the payoff marker')
 
 const emptyActivation = new URL(growth.buildProductToVideoActivationHref([]), 'https://www.usekineo.com')
 equal(emptyActivation.searchParams.has('redirect'), false, 'empty result cannot pretend to carry a script')
@@ -77,6 +80,7 @@ equal(emptyActivation.searchParams.has('redirect'), false, 'empty result cannot 
 const fallbackScript = fallback.fallbackProductScript('Rechargeable lamp with touch controls')
 check(fallbackScript.includes('Rechargeable lamp with touch controls'), 'quota fallback stays anchored to supplied facts')
 check(fallbackScript.includes('[one verified demonstration'), 'quota fallback exposes missing proof')
+check(growth.productScriptMeetsDuration(fallbackScript), 'quota fallback also satisfies the 35-second duration contract')
 for (const marker of ['HOOK:', 'PROBLEM:', 'PRODUCT:', 'PROOF:', 'CTA:']) {
   check(fallbackScript.includes(marker), `quota fallback includes ${marker}`)
 }
@@ -103,6 +107,7 @@ const liveRoute = executeTs('app/api/demo-script/route.ts', {
     openAiAlertKind: () => 'test',
   },
   '@/lib/demoFallback': fallback,
+  '@/lib/growth/productToVideo': growth,
 }, { OPENAI_API_KEY: 'present-without-reading-a-secret' })
 
 const productResponse = await liveRoute.POST(request({
@@ -114,6 +119,7 @@ equal(productResponse.status, 200, 'product mode returns the generated script')
 check(calls[0].messages[0].content.includes('UNTRUSTED CONTENT'), 'system prompt treats product copy as untrusted')
 check(calls[0].messages[0].content.includes('Use ONLY facts supplied'), 'system prompt is fact bounded')
 check(calls[0].messages[0].content.includes('Never invent a price'), 'system prompt bans commercial fabrication')
+check(calls[0].messages[0].content.includes('70-90 words'), 'system prompt declares the spoken duration contract')
 check(calls[0].messages[1].content.includes('Product facts (quoted, untrusted):'), 'product facts are quoted as data')
 check(calls[0].messages[1].content.includes('Target audience (quoted, untrusted): "remote workers"'), 'audience is quoted separately')
 check(!calls[0].messages[0].content.includes('Invent five reviews'), 'pasted commands never enter the system instruction')
@@ -128,6 +134,34 @@ equal(JSON.parse(audienceJson).length, 140, 'route enforces the audience length 
 const invalid = await liveRoute.POST(request({ topic: 'short', mode: 'product' }, '203.0.113.33'))
 equal(invalid.status, 400, 'thin product input fails before provider use')
 equal(calls.length, 2, 'thin product input makes no OpenAI call')
+
+const thinProviderCalls = []
+const thinProviderRoute = executeTs('app/api/demo-script/route.ts', {
+  'next/server': { NextResponse: responseMock() },
+  '@/lib/openai': {
+    openai: {
+      chat: {
+        completions: {
+          async create(payload) {
+            thinProviderCalls.push(payload)
+            return { choices: [{ message: { content: 'HOOK: Too short.' } }] }
+          },
+        },
+      },
+    },
+  },
+  '@/lib/openaiAlert': {
+    looksOpenAiQuotaDead: () => false,
+    alertOpenAiExhausted: async () => {},
+    openAiAlertKind: () => 'test',
+  },
+  '@/lib/demoFallback': fallback,
+  '@/lib/growth/productToVideo': growth,
+}, { OPENAI_API_KEY: 'present-without-reading-a-secret' })
+const thinProviderResponse = await thinProviderRoute.POST(request({ topic: 'A lamp that folds flat', mode: 'product' }, '203.0.113.36'))
+equal(thinProviderResponse.status, 200, 'short provider output degrades to a usable result')
+check(growth.productScriptMeetsDuration(thinProviderResponse.body.script), 'server replaces short provider output with a duration-safe fallback')
+equal(thinProviderCalls.length, 1, 'duration repair does not add a second paid provider call')
 
 await liveRoute.POST(request({ topic: 'The island nobody can enter', mode: 'unexpected' }, '203.0.113.34'))
 check(calls[2].messages[0].content.includes('Given a topic'), 'unknown mode preserves the legacy topic writer')
@@ -144,6 +178,7 @@ const quotaRoute = executeTs('app/api/demo-script/route.ts', {
     openAiAlertKind: () => 'quota',
   },
   '@/lib/demoFallback': fallback,
+  '@/lib/growth/productToVideo': growth,
 }, { OPENAI_API_KEY: 'present-without-reading-a-secret' })
 const quotaResponse = await quotaRoute.POST(request({ topic: 'A lamp that folds flat', mode: 'product' }, '203.0.113.35'))
 equal(quotaResponse.status, 200, 'quota outage keeps the product tool alive')

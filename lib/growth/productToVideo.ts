@@ -2,6 +2,21 @@ export const PRODUCT_TO_VIDEO_CAMPAIGN = 'product_to_short' as const
 
 export type ProductScriptLine = { label: string; text: string }
 
+const PRODUCT_SCRIPT_LABELS = ['HOOK', 'PROBLEM', 'PRODUCT', 'PROOF', 'CTA'] as const
+const SPOKEN_WORD = /[\p{L}\p{N}]+(?:['’][\p{L}\p{N}]+)*/gu
+
+export function productScriptWordCount(lines: ProductScriptLine[]): number {
+  return lines.reduce((total, line) => total + (line.text.match(SPOKEN_WORD)?.length ?? 0), 0)
+}
+
+export function productScriptMeetsDuration(raw: string): boolean {
+  const lines = parseProductScript(raw)
+  if (lines.length !== PRODUCT_SCRIPT_LABELS.length) return false
+  if (lines.some((line, index) => line.label !== PRODUCT_SCRIPT_LABELS[index])) return false
+  const words = productScriptWordCount(lines)
+  return words >= 70 && words <= 90
+}
+
 export function normalizeProductFacts(value: string | null | undefined): string {
   return (value ?? '').replace(/\s+/g, ' ').trim().slice(0, 700)
 }
