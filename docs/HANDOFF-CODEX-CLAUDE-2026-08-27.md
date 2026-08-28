@@ -427,6 +427,21 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe pessoa externa na variante v2. Comparar pessoas `view → choice → start → completed → checkout → paid` somente após amostra; não chamar impressão, escolha ou geração de assinatura.
 - **NÃO TOCADO:** render, cena, legenda, motor, Storage, migration, preço, grant, oferta, e-mail, outreach e tráfego pago.
 
+### 2.30 Continuidade da recomendação nos três destinos de afiliado
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit funcional `ccd22f2ca9cc99d24ad16f0aee63fcc5c76c0c54`, publicado diretamente sobre `bfff43f0049395711ab194949be17896f60cd71b`.
+
+- **FATO CONFIRMADO:** `/a/[code]` já preservava first-touch em cookies e redirecionava para três destinos allow-listed com `utm_source=affiliate`, `utm_medium=partner` e a campanha canônica do destino (`app/a/[code]/route.ts:20-43`; `lib/affiliateDestinations.ts:57-63`). As três páginas recebiam esses parâmetros, mas não os usavam na apresentação; depois do redirect a recomendação do parceiro desaparecia.
+- `lib/growth/affiliateLandingContext.ts` agora exige a combinação exata `affiliate / partner / affiliate_[destino]`. Campanha trocada, origem orgânica, parâmetros vazios ou outro medium falham fechado e mantêm a página inalterada. Código do afiliado, URL, prompt e texto livre nunca entram no componente ou na telemetria.
+- As três páginas allow-listed exibem uma continuação compacta da recomendação e levam ao formulário gratuito já existente: roteiro (`app/free-script-generator/page.tsx:70`; `app/free-script-generator/FreeScriptClient.tsx:161-179`), vídeo (`app/free-ai-shorts-generator/page.tsx:92-122`) e faceless (`app/faceless-video-generator/page.tsx:84-151`). Não foi criado desconto, preço, crédito, trial ou promessa comercial nova.
+- A medição separa pessoas expostas e cliques voluntários em `affiliate_landing_context_viewed|clicked`, com `variant=affiliate_landing_context_v1` e `destination=script|video|faceless` (`components/AffiliateLandingContext.tsx:16-50`). A impressão é deduplicada por sessão e destino; falha de analytics nunca bloqueia a faixa ou a navegação.
+- O comparativo obrigatório está em `docs/previews/AFFILIATE-LANDING-CONTEXT-V1-2026-08-28.html`. A captura local headless validou desktop e 390 px; o CTA móvel vira uma linha própria e o layout teve overflow horizontal zero.
+- Teste determinístico `scripts/test-affiliate-landing-context.mjs`: `43/43`, incluindo correspondência estrita das três campanhas, rejeição de tráfego orgânico/campanha cruzada, ausência de promessa de trial e callers reais. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos da entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_GkP83WEop55G7536US254QY3u4sz` em estado `READY`, SHA `ccd22f2ca9cc99d24ad16f0aee63fcc5c76c0c54`, aliasado em `www.usekineo.com`. Smoke no Chrome autenticado do fundador confirmou a faixa nas três combinações canônicas, cada anchor apontando para um formulário existente, overflow zero e console sem erro. A URL orgânica de `/free-ai-shorts-generator` mostrou zero faixa. Nenhum CTA foi clicado e nenhum render foi iniciado; eventos do smoke pertencem à conta interna e devem continuar excluídos das coortes externas.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders estão respondendo `402`. Claude conduz esse incidente. O `402` não será classificado como abandono de Growth; esta entrega não consultou o banco, não tocou Storage, migration ou pipeline e não iniciou render.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não há pessoa externa observada na variante. Medir pessoas `affiliate_click → landing_context_viewed → landing_context_clicked → signup → completed → paid` apenas depois de amostra externa; visita crua, impressão, clique, cadastro e assinatura continuam estágios distintos.
+- **NÃO TOCADO:** `/a/[code]`, cookie de atribuição, tabelas de afiliado, Supabase, render, cena, legenda, motor, Storage, migration, preço, grant, oferta, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
