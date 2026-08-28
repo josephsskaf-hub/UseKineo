@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo preview loader</title>
+  <style>html,body,iframe{width:100%;height:100%;margin:0;border:0;background:#08090b}body{overflow:auto}iframe{min-height:2300px;display:block}</style>
+</head>
+<body>
+  <iframe title="Kineo saved checkout before and after"></iframe>
+  <script>
+    fetch('https://raw.githubusercontent.com/josephsskaf-hub/UseKineo/1fafdbf3976bb70a804acdaee00462b2a5e6b514/docs/previews/PRICING-SAVED-CHECKOUT-2026-08-28.html')
+      .then(function (response) { if (!response.ok) throw new Error('preview unavailable'); return response.text() })
+      .then(function (html) { document.querySelector('iframe').srcdoc = html })
+      .catch(function () { document.body.textContent = 'Preview unavailable.' })
+  </script>
+</body>
+</html>
