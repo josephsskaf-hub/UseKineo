@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
+import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 
 // Activation-first: new users go straight to /generate to make their first
 // free Short (up to 3 watermarked Fast previews / 24h) — product value BEFORE
@@ -78,6 +80,56 @@ export async function GET(request: Request) {
             : 'unknown',
         },
       })
+      // ══ KINEO-TRIAL-GRANT-ORFAO-2026-08-28 ═══════════════════════════════
+      //
+      // O DEFEITO. Os créditos de trial NUNCA foram concedidos no cadastro.
+      // Eram concedidos por VISITA A UMA PÁGINA: `/studio/create` chamava
+      // maybeActivateReverseTrial() com o comentário "primeiro ponto SERVIDOR
+      // que toda conta autenticada atravessa". Essa frase deixou de ser
+      // verdade em 25/08, quando o pouso pós-login virou a HOME (a vitrine
+      // dos quatro motores). O outro caminho — /api/track-signup-source — é
+      // um `fetch` fire-and-forget do cliente (lib/analytics.ts): bloqueador
+      // de anúncio, navegação rápida ou aba fechada e o crédito não sai.
+      //
+      // Ou seja: quem se cadastrava e ia para /pricing, para a página de
+      // afiliado, ou para lugar nenhum, ficava com 0 CRÉDITOS e
+      // trial_status NULL. Sem erro, sem aviso, sem nada na tela. A pessoa
+      // via um produto que não podia usar.
+      //
+      // MEDIDO EM PRODUÇÃO (28/08): 25/08 = 0% dos cadastros afetados,
+      // 26/08 = 14%, 27/08 = 17%, 28/08 = 100% (1 de 1). A curva sobe
+      // exatamente a partir da mudança de pouso. O caso que revelou:
+      // felixvasquez15031988 cadastrou, foi direto para os preços e disparou
+      // `checkout_started` COM SALDO ZERO — alguém tentando comprar sem nunca
+      // ter conseguido testar. E `talsadeh91` virou AFILIADO sem nunca ter
+      // feito um vídeo.
+      //
+      // A CURA. Crédito de cadastro pertence ao CADASTRO, não a uma tela.
+      // Este callback é o único ponto de servidor por onde TODA conta nova
+      // passa obrigatoriamente — prova: `auth_callback_completed` existe nas
+      // quatro contas quebradas e em todas as sadias. A ativação continua
+      // idempotente (guarda `.is('trial_status', null)` dentro da função), o
+      // que torna seguro ela também continuar rodando em /studio/create: quem
+      // chegar primeiro concede, o segundo é no-op.
+      //
+      // AWAIT, não `void`: numa função serverless a promessa solta morre com
+      // o congelamento da instância — é exatamente assim que um crédito
+      // "concedido" nunca chega na conta. O custo é uma escrita antes do
+      // redirect; o benefício é o cadastro nunca mais nascer sem saldo.
+      // Nunca quebra o login: erro aqui só vira log.
+      if (data.user) {
+        try {
+          await maybeActivateReverseTrial({
+            userId: data.user.id,
+            email: data.user.email ?? null,
+            userCreatedAt: data.user.created_at ?? null,
+            fingerprintHash: trialFingerprintFromHeaders(request.headers),
+          })
+        } catch (e) {
+          console.error('[auth/callback] reverse-trial non-fatal:', e instanceof Error ? e.message : String(e))
+        }
+      }
+
       const dest = `${origin}${destinationPath}`
       return NextResponse.redirect(dest)
     }
