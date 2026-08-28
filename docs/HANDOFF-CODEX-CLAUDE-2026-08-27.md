@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada depois da entrega mais recente:** `f8514666da27a27a93f6ccb44b218d9bbbe440d0`
+- **Base remota confirmada depois da entrega mais recente:** `06751c15bdbe05c4bb87d5188fbbc5bde52321bf`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -278,6 +278,18 @@
 - **EVIDÊNCIA DE DISTRIBUIÇÃO (28/08/2026 04:18:44 UTC):** o IndexNow aceitou 171 URLs canônicas do sitemap, HTTP 200. A página `/text-to-video-shorts` e `/facts` foram reenviadas; `/llms.txt` e `/api/facts` não fazem parte do sitemap e não devem ser contadas nessa submissão.
 - A mudança visual que moveria o starter do estudo foi descartada integralmente: a política de segurança do navegador bloqueou o preview local e o gate visual do `AGENTS.md` não pôde ser satisfeito. O arquivo da página voltou byte a byte ao `HEAD`; nenhuma alteração visual foi publicada.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não há evidência de recrawl, recomendação adicional do ChatGPT ou impacto em cadastro/assinatura. HTTP 200 prova distribuição técnica, não receita. A próxima rodada deve observar submissões humanas e origem ChatGPT sem alterar novamente o contrato antes de obter amostra.
+
+### 2.20 Starter do estudo no primeiro ponto de decisão
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `06751c15bdbe05c4bb87d5188fbbc5bde52321bf`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 15 a 28/08/2026, contas internas excluídas):** `/state-of-ai-shorts-2026` registrou 105 atores únicos na página, 12 pessoas no starter, 8 cadastros atribuídos a `starter_state_of_ai_shorts`, 5 pessoas com vídeo concluído, 1 pessoa no checkout e 0 pessoa com sinal `paid-like`. O starter já produzia passagem ao produto, mas aparecia depois de todo o corpo do estudo.
+- O mesmo `TopicGeneratorForm`, com a mesma campanha, origem, exemplos e destino, passou a renderizar imediatamente depois dos quatro `Key findings` e antes de `How long an AI Short actually takes`. Não existe segundo CTA concorrente. `placement=after_key_findings` e a variante `state_study_starter_after_findings_2026_08_28` separam a nova posição na telemetria sem quebrar a série histórica.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 21 a 28/08/2026, contas internas excluídas):** o canal de afiliados tinha 11 afiliados externos, apenas 3 visitas cruas de 2 afiliados em 3 dias, 0 referral e 0 perfil cadastrado com `signup_utm_source=affiliate` ou `signup_utm_medium=partner`. Não há cadastro perdido que prove bug de atribuição; o gargalo observado é distribuição. Nenhum código de afiliado foi alterado nesta entrega.
+- Teste determinístico `scripts/test-state-study-starter-position.mjs`: `21/21`. Whitespace limpo. O TypeScript continua com os mesmos cinco erros preexistentes, nenhum nos arquivos desta entrega.
+- Preview obrigatório: `docs/previews/STATE-STUDY-STARTER-POSITION-2026-08-28.html`, com pares antes/depois em desktop e mobile. A limitação registrada no item 2.19 foi superada sem contorno local: o SHA foi publicado primeiro no preview remoto `dpl_26vsusUa1PMkWvBoTEFEzyWjcJgN` e inspecionado visualmente nos dois viewports antes da promoção para `main`.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_HA9yfAiUpZv4WZXAU8LyBFbbkCV5` em estado `READY`, aliasado em `www.usekineo.com`. A página respondeu com exatamente um `#study-start-a-short` e a ordem de títulos `Key findings → Test the data yourself — free → How long an AI Short actually takes`. Nenhum formulário foi submetido na validação e nenhum erro runtime da rota apareceu na janela consultada.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** a mudança de posição ainda não tem amostra humana. Comparar pessoas — não eventos espelhados — por variante e seguir até cadastro, vídeo e checkout antes de mudar novamente o estudo.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
