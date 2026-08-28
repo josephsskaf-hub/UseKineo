@@ -1,4 +1,5 @@
 export const ONBOARDING_GOAL_VARIANT = 'goal_router_v1' as const
+export const HOME_WELCOME_GOAL_CAMPAIGN = 'growth_home_welcome_goal_router_20260828' as const
 
 export type OnboardingGoalId = 'creator' | 'business' | 'agency'
 
@@ -58,4 +59,20 @@ export function isOnboardingGoalId(value: unknown): value is OnboardingGoalId {
 export function getOnboardingGoal(value: unknown): OnboardingGoal {
   if (!isOnboardingGoalId(value)) return DEFAULT_ONBOARDING_GOAL
   return ONBOARDING_GOALS.find((goal) => goal.id === value) ?? DEFAULT_ONBOARDING_GOAL
+}
+
+/**
+ * The post-signup home is a showroom by founder decision. This handoff keeps
+ * that first view intact, then opens the existing Studio with one editable
+ * starter idea. It deliberately omits `create_intent`: choosing a goal may
+ * prepare the script, but it never starts a video render or spends credits.
+ */
+export function buildHomeWelcomeGoalHref(goal: OnboardingGoal): string {
+  const params = new URLSearchParams({
+    prompt: goal.topic,
+    autoanalyze: '1',
+    intent_campaign: HOME_WELCOME_GOAL_CAMPAIGN,
+    onboarding_goal: goal.id,
+  })
+  return `/studio/create?${params.toString()}`
 }

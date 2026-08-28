@@ -57,6 +57,7 @@ import SignupConversionTracker from '@/components/SignupConversionTracker' // KI
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import HomeTopicForm from './HomeTopicForm'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
+import HomeWelcomeGoalRouter from '@/components/HomeWelcomeGoalRouter'
 import {
   HOME_REFERRAL_BRIDGE_COPY,
   type HomeReferralBridgeSource,
@@ -70,6 +71,7 @@ type Props = {
   initialEmail?: string
   initialIsPro?: boolean
   initialAcquisitionSource?: HomeReferralBridgeSource | null
+  showWelcomeGoalRouter?: boolean
 }
 
 const KLP_CSS = `
@@ -789,6 +791,7 @@ function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string 
 export default function KineoLanding({
   initialUser,
   initialAcquisitionSource = null,
+  showWelcomeGoalRouter = false,
   engineWall = [],
   trending = [],
 }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
@@ -1043,6 +1046,11 @@ export default function KineoLanding({
           </div>
                   </div>
       </header>
+
+      {/* The post-signup route intentionally lands on this engine showroom.
+          The router comes AFTER the founder-curated four-video hero, so it
+          connects intent without replacing or rearranging the approved wall. */}
+      {showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}
 
       {referralBridge ? (
         <section

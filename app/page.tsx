@@ -57,6 +57,18 @@ const BRAND_JSON_LD = {
   ],
 }
 
+function firstSearchParam(
+  searchParams: Record<string, string | string[] | undefined> | undefined,
+  key: string,
+): string | null {
+  const value = searchParams?.[key]
+  return typeof value === 'string'
+    ? value
+    : Array.isArray(value) && typeof value[0] === 'string'
+      ? value[0]
+      : null
+}
+
 export default async function HomePage({
   searchParams,
 }: {
@@ -82,6 +94,10 @@ export default async function HomePage({
   }
 
   const [engineWall, trending] = await Promise.all([getEngineHero(), getTrending()])
+  // The founder-approved post-signup destination is the engine showroom. Keep
+  // its four hero videos untouched, then expose the existing creator/business/
+  // agency router only to the authenticated `?welcome=1` handoff.
+  const showWelcomeGoalRouter = Boolean(user && firstSearchParam(searchParams, 'welcome') === '1')
 
   return (
     <>
@@ -96,6 +112,7 @@ export default async function HomePage({
         initialEmail={email}
         initialIsPro={isPro}
         initialAcquisitionSource={initialAcquisitionSource}
+        showWelcomeGoalRouter={showWelcomeGoalRouter}
       />
     </>
   )
