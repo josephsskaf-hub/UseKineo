@@ -378,6 +378,22 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe ator humano observado na nova rota. Medir pessoas em `goal selected → route completed → CTA → signup → completed video → checkout → payment` antes de alterar novamente a página. Deploy e clique não serão chamados de assinatura.
 - **NÃO TOCADO:** render, cena, legenda, motor, preço, oferta, e-mail, outreach, tráfego pago e escrita de banco.
 
+### 2.27 Corrida de perfil no primeiro checkout Stripe
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit funcional `b933158c12728d72eabd39c806a137d22e5d9866`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 14 dias lida em 28/08/2026, contas internas excluídas):** 58 pessoas abriram 63 sessões de Checkout Stripe; 57 sessões de assinatura expiraram sem pagamento, envolvendo 53 pessoas, e 3 pessoas concluíram pagamento. Sessão, pessoa e pagamento permanecem réguas distintas.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase + Stripe, SELECT, 28/08/2026):** uma compradora externa teve o perfil criado às 07:38:34 UTC e o callback OAuth concluído; dois segundos depois o checkout falhou no estágio de redirect com `we_could_not_verify_your_account_please_try_agai`. O perfil passou a existir normalmente, mas não houve Customer, Subscription nem pagamento. É uma corrida observada na leitura do perfil recém-criado, não uma hipótese genérica de abandono.
+- **EVIDÊNCIA DE PRODUÇÃO (Stripe, SELECT, janela de 14 dias lida em 28/08/2026):** depois de excluir a conta interna, a distribuição da Stripe reproduziu exatamente as 63 sessões e 58 atores observados no banco. A configuração usada tem cartão, Apple Pay e Google Pay habilitados; `payment_method_types=["card"]` inclui wallets e não prova configuração quebrada. A rota já omitia `payment_method_types`, conforme o comportamento dinâmico recomendado pela Stripe.
+- **FATO CONFIRMADO:** a rota lia `profiles` uma única vez logo após autenticar e devolvia erro antes das verificações de posse, plano e assinatura. Ela agora executa a mesma consulta com teto fixo de quatro leituras e espera acumulada máxima de 2 segundos somente após falha ou ausência; sucesso continua com uma única leitura e espera zero (`app/api/stripe/checkout/route.ts:860-889`; `lib/stripe/checkoutProfileRead.ts:19-66`).
+- Nenhum perfil é criado ou atualizado por esse helper. Se a leitura continuar falhando, o checkout continua bloqueado. As verificações existentes de Customer, PayPal, Stripe Subscription, Plan Fit e duplicidade permanecem depois do mesmo gate.
+- A telemetria registra `profile_lookup_attempts` e `profile_lookup_recovered`, sem mensagem livre, para que a próxima recuperação humana seja demonstrável por evento e não inferida (`app/api/stripe/checkout/route.ts:875-877`).
+- Testes executáveis: corrida de perfil `25/25`; recuperação de checkout salvo `25/25`; whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- Preview Vercel `dpl_C8yQdSDiJfHXLY8fMvEnLsqsFKzK` e produção `dpl_6ZsoGaJZS4e7Nai8THKz7gdMMXpy` terminaram `READY`; o build de produção concluiu em 42 segundos e não houve erro runtime em `/api/stripe/checkout` na janela de 30 minutos consultada.
+- **IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO EM PRODUÇÃO (28/08/2026):** a recuperação em si ainda não é chamada de `VALIDADA EM PRODUÇÃO`, porque não foi criada outra conta nem iniciado checkout pago para fabricar a condição. A validação fecha quando uma pessoa real emitir `checkout_started` com `profile_lookup_recovered=true`.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o checkout como coorte ainda converte pouco, sobretudo TAAFT: 27 pessoas chegaram ao primeiro checkout atribuído ao canal e 1 pagou. A variante pós-vídeo `single_primary_v1` ainda tinha zero visualização externa na leitura; não alterar preço, oferta ou essa superfície antes de haver amostra humana.
+- **NÃO TOCADO:** render, cena, legenda, motor, preço, grant, oferta, e-mail, outreach, tráfego pago e escrita de banco.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
