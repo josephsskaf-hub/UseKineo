@@ -1,4 +1,5 @@
 export const AGENCY_DISTRIBUTION_ENTRIES = [
+  'home',
   'state_report',
   'cost_page',
   'pricing',

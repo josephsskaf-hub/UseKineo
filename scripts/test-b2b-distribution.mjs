@@ -24,8 +24,8 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 6, 'six evidence-backed bridges are enabled')
-for (const entry of ['state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan']) {
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 7, 'seven evidence-backed bridges are enabled')
+for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)
@@ -43,6 +43,7 @@ check(bridge.includes('commercial-use MP4s'), 'bridge states the approved commer
 check(bridge.includes('Self-service · one account · no recurring contract'), 'bridge states the offer boundaries')
 
 const sources = {
+  home: read('app/KineoLanding.tsx'),
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
   pricing: read('app/pricing/PricingClient.tsx'),

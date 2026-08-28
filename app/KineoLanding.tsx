@@ -56,6 +56,7 @@ import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME2
 import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-POUSO-VITRINE-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import HomeTopicForm from './HomeTopicForm'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import {
   HOME_REFERRAL_BRIDGE_COPY,
   type HomeReferralBridgeSource,
@@ -1213,6 +1214,15 @@ export default function KineoLanding({
           </div>
         </div>
       </section>
+
+      {/* KINEO-GROWTH-HOME-B2B-2026-08-28 — the B2B offer existed, but the
+          highest-level public surface only exposed it in the footer and an
+          unlinked FAQ. Reuse the measured, allow-listed bridge after visitors
+          understand the workflow. This does not touch the approved video wall
+          above or overwrite the visitor's original acquisition attribution. */}
+      <div className="wrap" data-growth-surface="home_b2b_bridge">
+        <AgencyVolumeBridge entry="home" />
+      </div>
 
       <section id="compare">
         <div className="wrap">

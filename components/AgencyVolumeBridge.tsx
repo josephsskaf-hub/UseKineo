@@ -7,6 +7,7 @@ const LOWEST_UNIT_PRICE_MINOR = Math.min(
 )
 
 const CONTEXT: Record<AgencyDistributionEntry, string> = {
+  home: 'Making Shorts for your company or for paying clients?',
   state_report: 'Turning publishing data into a client delivery calendar?',
   cost_page: 'Pricing a recurring content package for a client or your company?',
   pricing: 'Need a batch for clients instead of another monthly subscription?',
