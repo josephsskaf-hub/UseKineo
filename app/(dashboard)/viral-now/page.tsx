@@ -5,9 +5,13 @@ import { getViralNowTopics } from '@/lib/viralTopics'
 import ViralNowClient from './ViralNowClient'
 
 const VIRAL_NOW_URL = 'https://www.usekineo.com/viral-now'
-const TITLE = 'Viral Now: Trending YouTube Shorts Ideas Today | Kineo'
+// Search Console, 28/08/2026 (01/07-26/08): the exact query `#viralnow`
+// already reaches this URL at position 14.5 (11 impressions, 0 clicks). Match
+// the query in the snippet without claiming live trend detection: the source
+// below is a curated catalogue rotated deterministically every four hours.
+const TITLE = '#ViralNow: 8 YouTube Shorts Ideas to Post Today | Kineo'
 const DESCRIPTION =
-  'See 8 trending YouTube Shorts ideas, refreshed every 4 hours. Pick a topic and create a free watermarked faceless Short with AI—no card required.'
+  'Browse 8 ready-to-create YouTube Shorts ideas, rotated every 4 hours from Kineo’s curated library. Pick one and keep it through signup—no card required.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -37,7 +41,9 @@ export default async function ViralNowPage() {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Trending YouTube Shorts ideas today',
+    name: '#ViralNow: 8 YouTube Shorts ideas to post today',
+    alternateName: ['Viral Now', 'Viral Now YouTube Shorts ideas'],
+    description: DESCRIPTION,
     numberOfItems: topics.length,
     itemListElement: topics.map((topic, index) => ({
       '@type': 'ListItem',
