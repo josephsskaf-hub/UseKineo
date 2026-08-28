@@ -3781,6 +3781,28 @@ async function manipularPost(req: NextRequest) {
           { status: 503 },
         )
       }
+      // ═══ KINEO-ZERO-POSTS-2026-08-28 — o ramo que quebrou o Joscha ═══════
+      //
+      // 19joschaschuetz96 falhou SEIS vezes em 25-26/08: claim com
+      // fal_models:[], total_posts=0 — NENHUM POST saiu para o fornecedor —
+      // e a resposta era o genérico "Please try again" logo abaixo. Ele
+      // obedeceu: tentou de novo, e de novo, 6 vezes, achando que a culpa
+      // era dele. Zero POSTs significa que o pedido NUNCA CHEGOU no
+      // fornecedor: é pane do NOSSO lado do balcão (chave, rede da lambda,
+      // client da fal quebrando antes do HTTP) e "tente de novo" é conselho
+      // cruel — vai falhar igual. O tratamento certo é o mesmo do saldo
+      // esgotado: alarme para o fundador + mensagem que acalma e diz a
+      // verdade (nada começou, crédito devolvido, nós fomos avisados).
+      if (ctxDespacho().totalPosts === 0) {
+        await alertFalExhausted(`ZERO_POSTS user=${user.id.slice(0, 8)} engine=${usedModel} planned=${ctxDespacho().planned}`)
+        return NextResponse.json(
+          {
+            queued: true,
+            error: 'Our video provider did not accept the job — this is on our side, not yours. Nothing started, your credits were refunded automatically, and the team was alerted. Please try again in a few minutes.',
+          },
+          { status: 503 },
+        )
+      }
       return NextResponse.json(
         { error: 'Could not submit clips to AI generator. Please try again.' },
         { status: 502 }

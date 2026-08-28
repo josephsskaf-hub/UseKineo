@@ -17,6 +17,7 @@
 //    without a manual page reload.
 
 import Link from 'next/link'
+import { engineLabelFor } from '@/lib/engineLabel'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -116,13 +117,13 @@ function starsFor(score: number): string {
 // Cinematic (Kling) = ~50-65 credits. Returns null when credits_used is
 // missing/zero/outside known ranges so the caller can skip the badge
 // instead of guessing.
-function engineLabelFor(credits: number | null): string | null {
-  if (!credits || credits <= 0) return null
-  if (credits <= 2) return '⚡ Fast'
-  if (credits >= 20 && credits <= 45) return '✨ AI Generated'
-  if (credits >= 50 && credits <= 65) return '🎬 Cinematic'
-  return null
-}
+// KINEO-SELO-MOTOR-2026-08-28 — aqui morava um adivinhador: deduzia o motor
+// pela FAIXA DE PREÇO (credits<=2 = Fast, 20-45 = "AI Generated"...). Era
+// exatamente a adivinhação que o fundador mandou matar — e mentia: Kling 3
+// (150cr) e Veo (100cr) não casavam com faixa nenhuma e ficavam SEM selo, e
+// qualquer mudança de preço rebatizava vídeos antigos. O selo agora vem do
+// quality_mode real via lib/engineLabel.ts (fonte única) — selo honesto é
+// ativo de marca.
 
 function isWatermarkedFastAsset(video: VideoRow): boolean {
   return video.quality_mode === 'fast' && Number(video.credits_used ?? 0) === 0
@@ -444,7 +445,7 @@ function VideoCard({
   // Cinematic), derived from credits_used. Distinct from the quality badge
   // above: this answers "which engine made it", not "how good is it".
   // Renders nothing when credits_used is null/0/unrecognized.
-  const engineText = engineLabelFor(v.credits_used)
+  const engineText = engineLabelFor(v.quality_mode)
 
   const isActive = hovered || isPinned
 
@@ -625,6 +626,31 @@ function VideoCard({
         >
           YouTube Shorts · 9:16
         </span>
+
+        {/* KINEO-SELO-MOTOR-2026-08-28 — o motor que REALMENTE rodou este
+            vídeo, do mapa único em lib/engineLabel.ts. Pedido do fundador:
+            "hoje a pessoa tem que adivinhar". Selo honesto é ativo de marca:
+            sem quality_mode conhecido, nenhum selo — nunca chutar. */}
+        {engineLabelFor(v.quality_mode) && (
+          <span
+            className="absolute"
+            style={{
+              top: 8,
+              right: 8,
+              padding: '3px 8px',
+              borderRadius: 6,
+              background: 'rgba(41,151,255,.85)',
+              color: '#fff',
+              fontSize: '0.62rem',
+              fontWeight: 800,
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              backdropFilter: 'blur(8px)',
+            }}
+          >
+            {engineLabelFor(v.quality_mode)}
+          </span>
+        )}
 
         {/* Bottom-right: duration */}
         <span

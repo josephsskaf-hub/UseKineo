@@ -1025,9 +1025,29 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
     void submitAvatarGeneration(payload, generationId, startedAt)
   }
 
+  // KINEO-AVATAR-PRAZO-2026-08-28 — fecha o GATE #C (docs/GATES-ABERTOS.md
+  // :2284): este poll era um laço PERPÉTUO — o catch fazia
+  // `setTimeout(pollAvatar, 7000)` para sempre, e o ramo de sucesso idem.
+  // Um avatar preso no fornecedor deixava o cliente olhando uma barra de
+  // progresso eterna, sem erro, sem prazo, sem verdade. Um avatar leva
+  // minutos; 15 MINUTOS de poll (~150 voltas) é generosidade — passou disso,
+  // o job está morto e fingir esperança é crueldade. A mensagem final é
+  // honesta e o dinheiro está protegido por fora: a varredura
+  // sweepAbandonedAvatarDebits (28/08) estorna débito de avatar abandonado
+  // em ≤6h mesmo com a aba fechada.
+  const AVATAR_POLL_DEADLINE_MS = 15 * 60 * 1000
   async function pollAvatar() {
     const run = runRef.current
     if (!run?.requestId) return
+    const inicio = avatarRunStartedAtRef.current
+    if (inicio > 0 && Date.now() - inicio > AVATAR_POLL_DEADLINE_MS) {
+      clearAvatarRunSnapshot()
+      runRef.current = null
+      avatarRunStartedAtRef.current = 0
+      setError('This avatar is taking far longer than it should, so we stopped waiting. If it failed, your credits are refunded automatically within a few hours. Please try again — and if it repeats, contact us.')
+      setPhase('failed')
+      return
+    }
     try {
       const res = await fetch(
         `/api/avatar-status?request_id=${encodeURIComponent(run.requestId)}&engine=${run.engine}`,

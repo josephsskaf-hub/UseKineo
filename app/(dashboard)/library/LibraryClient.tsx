@@ -6,12 +6,13 @@
 // medidor de storage do pricing V4), abas Videos/Images/Audio, grades com
 // play/download, links pros ambientes de criacao quando a aba esta vazia.
 import { useEffect, useState } from 'react'
+import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 
 type Tab = 'videos' | 'images' | 'audio'
 
-type Vid = { id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }
+type Vid = { id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null; quality_mode?: string | null }
 type Img = { id: string; url: string; upscaled_url?: string | null; model?: string }
 type Aud = { id: string; url: string; model?: string; voice?: string | null; text?: string | null }
 
@@ -98,6 +99,11 @@ export default function LibraryClient() {
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {v.enhanced_url && (
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.45)', color: '#34d399' }}>✨ HD</span>
+                  )}
+                  {/* KINEO-SELO-MOTOR-2026-08-28 — o motor real do vídeo,
+                      mapa único em lib/engineLabel.ts (pedido do fundador). */}
+                  {engineLabelFor(v.quality_mode) && (
+                    <span style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(41,151,255,0.2)', border: '1px solid rgba(41,151,255,0.5)', color: '#7cc0ff' }}>{engineLabelFor(v.quality_mode)}</span>
                   )}
                   <video
                     src={v.enhanced_url ?? v.video_url ?? undefined}

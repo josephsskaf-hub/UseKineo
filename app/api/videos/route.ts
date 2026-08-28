@@ -28,6 +28,7 @@ interface VideoListItem {
   duration: number | null
   platform: string
   created_at: string
+  quality_mode: string | null
 }
 
 function strOrNull(v: unknown): string | null {
@@ -95,6 +96,9 @@ function toListItem(row: RawRow): VideoListItem {
     enhanced_url: strOrNull(row.enhanced_url),
     thumbnail_url: strOrNull(row.thumbnail_url) ?? strOrNull(row.thumb_url),
     duration: numOrNull(row.duration) ?? numOrNull(row.duration_seconds),
+    // KINEO-SELO-MOTOR-2026-08-28 — o motor real vai junto: /library e
+    // /my-videos mostram o selo via lib/engineLabel.ts (pedido do fundador).
+    quality_mode: strOrNull(row.quality_mode),
     platform:
       strOrNull(row.platform) ?? 'YouTube Shorts',
     created_at: typeof row.created_at === 'string' ? row.created_at : new Date().toISOString(),

@@ -3179,17 +3179,17 @@ export async function submitCreatomateRender(source: Record<string, unknown>): P
           Authorization: `Bearer ${key}`,
           'Content-Type': 'application/json',
         },
-        // KINEO-THUMBNAIL-2026-08-28 — snapshot_time É o conserto do dado
-        // mais constrangedor da auditoria: `select count(thumbnail_url) from
-        // videos` = 0 de 1.129. A coluna é LIDA em 4 telas (/library,
-        // /my-videos, /studio, /generate) e no e-mail de "vídeo pronto", e
-        // NUNCA foi gravada — porque o Creatomate só devolve `snapshot_url`
-        // quando o render é criado pedindo um snapshot, e este POST nunca
-        // pediu. O caminho de gravação sempre existiu e sempre esteve certo
-        // (compose/status persiste data.snapshot_url); faltava a nascente.
-        // 1.2s: depois do primeiro corte/fade-in, cedo o bastante para ser o
-        // gancho do filme — a capa que a biblioteca e o e-mail vão mostrar.
-        body: JSON.stringify({ source, snapshot_time: 1.2 }),
+        // AUDITORIA 28/08 — aqui morou por 3 horas um `snapshot_time: 1.2`
+        // que EU inventei tentando fazer nascer as thumbnails (0 de 1.129
+        // vídeos têm capa). A documentação oficial do POST /v1/renders NÃO
+        // tem esse parâmetro; o Creatomate o ignorou em silêncio (dois
+        // renders completaram normalmente com ele) e nenhuma capa nasceria.
+        // Removido pela minha própria auditoria antes do push. A lição é a
+        // regra dos fornecedores: parâmetro não documentado NÃO EXISTE —
+        // "funcionou sem erro" não é prova de que funcionou.
+        // O plano REAL da capa (pendente): still FLUX dos cinematográficos
+        // (já pago, hoje jogado fora) no settle; fast decide depois.
+        body: JSON.stringify({ source }),
       })
     } catch (error) {
       throw new CreatomateSubmitError(

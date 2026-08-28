@@ -14,6 +14,40 @@ import PricingCards from '@/components/PricingCards'
 // AvatarPaywallModal below).
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent, trackSignupSource } from '@/lib/analytics'
+
+// ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
+//
+// Raio-X de 30 dias no banco: a causa nº 1 de falha VIVA hoje é
+// `TypeError: Failed to fetch` / `Load failed` na etapa `scripting` —
+// 69 PESSOAS em 30 dias, 7 só na última semana. Não é servidor: é o celular
+// trocando de antena, o Safari suspendendo a aba, o wifi piscando por dois
+// segundos. O código tratava essa piscada como derrota definitiva: a pessoa
+// via "erro", culpava o produto e ia embora — sendo que repetir o MESMO
+// pedido meio segundo depois teria funcionado.
+//
+// Este helper repete SOMENTE o erro de rede (TypeError do fetch = o pedido
+// nem chegou ou a resposta se perdeu), com 3 tentativas e espera crescente.
+// Resposta HTTP de verdade — 4xx/5xx — NÃO é repetida aqui: o servidor
+// respondeu, e cada rota já tem seu próprio tratamento.
+//
+// ⚠ USAR SÓ EM ROTA SEM DINHEIRO (generate-script, analyze): são puras e
+// idempotentes — repetir custa nada. O kick do /api/compose debita crédito
+// e tem seu próprio protocolo de claim; NÃO passa por aqui.
+async function fetchResilienteSemDinheiro(url: string, init: RequestInit): Promise<Response> {
+  const esperas = [0, 900, 2200]
+  let ultimoErro: unknown = null
+  for (let i = 0; i < esperas.length; i += 1) {
+    if (esperas[i] > 0) await new Promise((r) => setTimeout(r, esperas[i]))
+    try {
+      return await fetch(url, init)
+    } catch (e) {
+      ultimoErro = e
+      // AbortError = timeout/navegação deliberada do chamador — respeitar, não insistir.
+      if (e instanceof DOMException && e.name === 'AbortError') throw e
+    }
+  }
+  throw ultimoErro
+}
 import { downloadVideoFile } from '@/lib/videoDownload'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import type { BrollPlan } from '@/lib/broll/types'
@@ -1443,6 +1477,12 @@ export default function GenerateClient({
   // do contrato de duração é feature, mas o rótulo mentia. A verdade vem do
   // próprio arquivo: onLoadedMetadata do player entrega os segundos exatos.
   // null até o metadata carregar → os rótulos caem no seletor como fallback.
+  // KINEO-CLAMP-FALADO-2026-08-28 — quando o servidor corta a duração do
+  // free (60s→15s), ele agora CONTA (free_duration_clamped na resposta do
+  // compose). Este estado leva o aviso até a tela de vídeo pronto: sem ele,
+  // a pessoa pedia 60, recebia 15, e concluía "produto quebrado" — o corte
+  // mudo era indistinguível de defeito.
+  const [freeClampNotice, setFreeClampNotice] = useState<{ from: number; to: number } | null>(null)
   const [finalVideoSeconds, setFinalVideoSeconds] = useState<number | null>(null)
   // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a recusa por narração curta e a
   // oferta de completar. `null` = não há recusa pendente.
@@ -2167,6 +2207,12 @@ export default function GenerateClient({
                 body: JSON.stringify(composePayload),
               })
               data = await res.json().catch(() => null) as Record<string, unknown> | null
+              {
+                // KINEO-CLAMP-FALADO-2026-08-28 — o corte do free viaja na resposta
+                // do compose; guardar para avisar na tela de video pronto.
+                const fc = data?.free_duration_clamped as { from?: number; to?: number } | undefined
+                if (fc && typeof fc.from === 'number' && typeof fc.to === 'number') setFreeClampNotice({ from: fc.from, to: fc.to })
+              }
             } catch {
               reconnectAttempt += 1
               await new Promise((resolve) => setTimeout(resolve, reconnectAttempt <= 4 ? 3000 : 10000))
@@ -4591,6 +4637,12 @@ export default function GenerateClient({
               body: JSON.stringify(composePayload),
             })
             data = await res.json().catch(() => null) as Record<string, unknown> | null
+            {
+              // KINEO-CLAMP-FALADO-2026-08-28 — o corte do free viaja na resposta
+              // do compose; guardar para avisar na tela de video pronto.
+              const fc = data?.free_duration_clamped as { from?: number; to?: number } | undefined
+              if (fc && typeof fc.from === 'number' && typeof fc.to === 'number') setFreeClampNotice({ from: fc.from, to: fc.to })
+            }
           } catch (requestError) {
             // Only a server-correlated generation can be retried safely. The
             // distributed claim makes every retry converge on the same render.
@@ -5607,18 +5659,25 @@ export default function GenerateClient({
   // Reusa /api/generate-script, o MESMO escritor do fluxo normal. Nenhum
   // endpoint novo, nenhum segundo sistema de roteiro. E nada é substituído em
   // silêncio: o texto aparece para ela aceitar ou descartar.
-  async function handleWriteFullScript() {
-    if (!scriptTooShort || authoring) return
+  // KINEO-IDEIA-VIRA-ROTEIRO-2026-08-28 — `autoAlvo` existe para o disparo
+  // AUTOMÁTICO no 422 (ver lá): o estado scriptTooShort acabou de ser setado
+  // e ainda não está visível aqui, então o alvo viaja por parâmetro.
+  async function handleWriteFullScript(autoAlvo?: { speechSeconds: number; targetSeconds: number }) {
+    const alvo = autoAlvo ?? scriptTooShort
+    if (!alvo || authoring) return
     const ideia = (structuredScriptRef.current ?? prompt).trim()
     if (!ideia) return
     setAuthoring(true)
     setError(null)
     void trackEvent('script_authoring_requested', {
-      speech_seconds: scriptTooShort.speechSeconds,
-      target_seconds: scriptTooShort.targetSeconds,
+      speech_seconds: alvo.speechSeconds,
+      target_seconds: alvo.targetSeconds,
+      auto: !!autoAlvo,
     })
     try {
-      const res = await fetch('/api/generate-script', {
+      // KINEO-REDE-OSCILA-2026-08-28 — rota pura, sem débito: rede piscou,
+      // tenta de novo sozinho em vez de mostrar erro (ver helper no topo).
+      const res = await fetchResilienteSemDinheiro('/api/generate-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -5629,7 +5688,7 @@ export default function GenerateClient({
         body: JSON.stringify({
           topic: ideia,
           language,
-          targetSeconds: scriptTooShort.targetSeconds,
+          targetSeconds: alvo.targetSeconds,
           forceAuthoring: true,
         }),
       })
@@ -5886,7 +5945,9 @@ export default function GenerateClient({
       // KINEO-FETCH-ARRANCADO-2026-08-15 — relógio do fetch, lido só no catch.
       const sgStartedAt = Date.now()
       try {
-        const sgRes = await fetch('/api/generate-script', {
+        // KINEO-REDE-OSCILA-2026-08-28 — idem: o wifi do cliente não pode
+        // ser sentença de morte de um roteiro que ainda nem custou nada.
+        const sgRes = await fetchResilienteSemDinheiro('/api/generate-script', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ topic: rawSource, language }),
@@ -7070,7 +7131,38 @@ export default function GenerateClient({
         // Oferecer + mostrar antes de renderizar preserva o C1 (ela autoriza)
         // e põe olhos humanos no texto novo antes de virar vídeo.
         if (res.status === 422 && data?.narrationTooShort === true) {
-          setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          // ═══ KINEO-IDEIA-VIRA-ROTEIRO-2026-08-28 ═══════════════════════════
+          //
+          // MEDIDO em 14 dias: 7 pessoas bateram neste muro, ZERO clicaram no
+          // botão "write it for me" que existe logo abaixo, e só 1 das 7
+          // conseguiu um vídeo depois. O aviso-com-botão está tecnicamente
+          // certo e humanamente morto: quem digitou 8 palavras num produto
+          // que promete mágica não lê parágrafo de erro — vai embora.
+          //
+          // A distinção que resolve sem trair o Contrato C1: texto com ≤12s
+          // de fala NÃO É UM ROTEIRO — é uma IDEIA. O C1 ("com 'use meu
+          // roteiro' o GPT nunca escreve fala") protege roteiros; tratar 8
+          // palavras como roteiro-verbatim é erro de categoria. Para IDEIA, o
+          // escritor dispara SOZINHO — e o C1 continua de pé onde importa:
+          // NADA vira vídeo sem a pessoa LER o roteiro pronto e aprovar (o
+          // painel de aprovação é o mesmo de sempre; só o clique inútil de
+          // "pode escrever?" morreu). O risco de fato-inventado (caso 22/08,
+          // "200% de chance de monetização") continua coberto pela leitura
+          // obrigatória antes do render.
+          //
+          // Roteiro DE VERDADE só-um-pouco-curto (>12s de fala) mantém o
+          // fluxo antigo: oferta de completar, palavra por palavra da pessoa
+          // preservada, aprovação explícita.
+          const falaSeg = Number(data?.speechSeconds) || 0
+          const ehIdeia = falaSeg <= 12
+          if (!ehIdeia) setError(typeof data?.error === 'string' ? data.error : GENERIC_ERROR)
+          if (ehIdeia) {
+            void trackEvent('script_authoring_auto_started', {
+              speech_seconds: falaSeg,
+              target_seconds: duration,
+            })
+            void handleWriteFullScript({ speechSeconds: falaSeg, targetSeconds: duration })
+          }
           setScriptTooShort({
             message: typeof data?.error === 'string' ? data.error : '',
             speechSeconds: Number(data?.speechSeconds) || 0,
@@ -11217,7 +11309,7 @@ export default function GenerateClient({
                     )}
                     {expandState.kind === 'needs_authoring' && (
                       <button
-                        onClick={handleWriteFullScript}
+                        onClick={() => void handleWriteFullScript()}
                         disabled={authoring}
                         className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
                         style={{ background: '#2997ff', border: 'none', opacity: authoring ? 0.6 : 1 }}
@@ -11481,6 +11573,16 @@ export default function GenerateClient({
                 <p className="text-xs mt-1.5" style={{ color: 'var(--muted)', letterSpacing: '0.04em' }}>
                   {finalVideoSeconds ?? duration}s · YouTube Shorts / TikTok 9:16
                 </p>
+                {/* KINEO-CLAMP-FALADO-2026-08-28 — a verdade sobre o corte do
+                    free, dita NO momento em que a pessoa perceberia a duração
+                    menor e culparia o produto. Honesta e vendedora: diz o
+                    limite e diz a saída. */}
+                {freeClampNotice && (
+                  <p className="text-xs mt-2" style={{ color: '#fbbf24', lineHeight: 1.5 }}>
+                    Free preview is limited to {freeClampNotice.to}s — you asked for {freeClampNotice.from}s.
+                    Paid plans render the full length on every engine.
+                  </p>
+                )}
                 {/* ROBO-ENTRY-495 — honest credits line at the win moment. AI
                     Generated (Seedance) costs creditCostFor('cinematic_ai') credits (V6.1) and Fast Mode is free,
                     so we state both plainly instead of a vague "low credits"

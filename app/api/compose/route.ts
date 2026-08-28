@@ -1079,7 +1079,13 @@ export async function POST(req: NextRequest) {
       if (reservation.kind !== 'acquired') return reservation.response
 
       const since = new Date(Date.now() - FREE_OFFER.windowMs).toISOString()
-      const [claimsResult, videosResult] = await Promise.all([
+      // KINEO-RETRY-INTERNO-2026-08-28 — este par de leituras devolvia 503
+      // "Please retry" no PRIMEIRO soluço do banco, terceirizando o retry
+      // para o dedo do cliente (o raio-X de 30d mostrou gente obedecendo o
+      // "retry" até 9 vezes seguidas). Blip transiente se resolve com UMA
+      // segunda tentativa 400ms depois, do nosso lado, invisível. Falhou as
+      // duas? Aí sim o 503 é honesto.
+      const auditarQuotaFree = () => Promise.all([
         composeAdmin
           .from('events')
           .select('id,metadata,created_at')
@@ -1097,6 +1103,11 @@ export async function POST(req: NextRequest) {
           .eq('credits_used', 0)
           .gte('created_at', since),
       ])
+      let [claimsResult, videosResult] = await auditarQuotaFree()
+      if (claimsResult.error || videosResult.error) {
+        await new Promise((r) => setTimeout(r, 400))
+        ;[claimsResult, videosResult] = await auditarQuotaFree()
+      }
 
       if (claimsResult.error || videosResult.error) {
         console.error('[compose] free Fast quota audit failed:',
@@ -1301,6 +1312,9 @@ export async function POST(req: NextRequest) {
     // and prior buyers with remaining credits get clean exports and pay the
     // documented credit cost. Premium AI has no free trial.
     let isFreePlanFast = false
+    // KINEO-CLAMP-FALADO-2026-08-28 — preenchida no bloco de entitlement,
+    // lida na resposta final (mesmo padrão do isTrialRender logo abaixo).
+    let freeDurationClamped: { from: number; to: number } | null = null
     // ⚠️ KINEO-TETO-HOTFIX-2026-08-20 — `ent` é declarado dentro do bloco de
     // entitlement (~linha 1271) e NÃO existe no escopo do builder, lá embaixo.
     // Usei `ent.isTrial` direto no `watermark` e derrubei TODO render em
@@ -1466,8 +1480,26 @@ export async function POST(req: NextRequest) {
           // produziu o bloqueador #2.
           const maxFreeSeconds = ent.maxDurationSeconds
           if (maxFreeSeconds !== null && duration > maxFreeSeconds) {
+            // KINEO-CLAMP-FALADO-2026-08-28 — o corte era MUDO: a pessoa
+            // escolhia 60s no seletor, recebia 15s, e a única testemunha era
+            // este console.log que morre com a lambda. Ela lia o vídeo curto
+            // como PRODUTO QUEBRADO — não como limite do plano grátis — e ia
+            // embora sem saber que upgrade resolveria. Agora o corte viaja na
+            // resposta (free_duration_clamped, o cliente avisa) e vira evento
+            // no banco (medível: quantas pessoas batem nesse teto por semana
+            // é exatamente o argumento de preço que a casa nunca teve).
+            freeDurationClamped = { from: duration, to: maxFreeSeconds }
             duration = maxFreeSeconds
             console.log(`[compose] free tier duration clamped to ${duration}s (reverse-trial free tier)`)
+            // AUDITORIA 28/08: era `supabase` (cliente do usuário) — e a
+            // tabela events é service_role-only desde o lockdown de 26/08.
+            // O insert falhava MUDO e a métrica nascia morta. composeAdmin.
+            void composeAdmin.from('events').insert({
+              user_id: user.id,
+              name: 'free_duration_clamped',
+              path: '/api/compose',
+              metadata: freeDurationClamped,
+            }).then(() => undefined, () => undefined)
           }
           const quotaResponse = await reserveFreeFastPreviewSlot()
           if (quotaResponse) return quotaResponse
@@ -2577,6 +2609,10 @@ export async function POST(req: NextRequest) {
       duration,
       voiceover_url: voiceoverUrl,
       persona_id: detectedPersonaId,
+      // KINEO-CLAMP-FALADO-2026-08-28 — presente = o free cortou a duração;
+      // o cliente mostra o aviso honesto em vez de deixar a pessoa achar que
+      // o produto entregou errado.
+      ...(freeDurationClamped ? { free_duration_clamped: freeDurationClamped } : {}),
     })
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)

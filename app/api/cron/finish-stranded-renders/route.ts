@@ -542,5 +542,63 @@ export async function GET(req: NextRequest) {
   }
 
   console.log(`[stranded] checked=${checked} composed=${composed} ready=${ready} rescued=${rescuedCount} fastReady=${fastReady}`)
-  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, results })
+  // ═══ KINEO-LINHA-PERDIDA-2026-08-28 — entrega sem linha na biblioteca ════
+  //
+  // O CASO QUE REVELOU: omargamer2130, 27/08 20:31. O funil dele está
+  // PERFEITO nos eventos — claim, checkpoint, generate_completed,
+  // video_ready_viewed, até o convite de compartilhar. Ele ASSISTIU o vídeo.
+  // Mas o insert canônico em `videos` falhou UMA vez naquela noite (o
+  // [history] insert FAILED foi para um log da Vercel que expira) e não
+  // existia segunda chance: o vídeo dele sumiu do My Videos para sempre, e o
+  // painel ainda o listava como "cobrado sem entrega". Um cliente feliz na
+  // hora, roubado depois.
+  //
+  // O PASSE: toda entrega das últimas 72h (generate_completed com render_id)
+  // que não tem linha em `videos` ganha um poke no MESMO status route que o
+  // resgate fast usa logo acima — a rota refaz o GET no Creatomate e roda o
+  // insert canônico, que é idempotente (videos_render_id_unique). Custo de
+  // fornecedor: zero (o render já foi pago e o GET é grátis). O contrato
+  // vira: NENHUMA entrega fica sem linha por mais de um ciclo do cron.
+  let relinked = 0
+  try {
+    const { data: doneEvents } = await admin
+      .from('events')
+      .select('user_id, metadata')
+      .eq('name', 'generate_completed')
+      .gte('created_at', new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: false })
+      .limit(500)
+    const vistos = new Set<string>()
+    for (const ev of doneEvents ?? []) {
+      const meta = (ev as { metadata?: Record<string, unknown> }).metadata ?? {}
+      const renderId = typeof meta.render_id === 'string' ? meta.render_id : ''
+      const userId = (ev as { user_id?: string | null }).user_id ?? ''
+      if (!renderId || !userId || vistos.has(renderId)) continue
+      vistos.add(renderId)
+      const { data: row } = await admin
+        .from('videos').select('id').eq('render_id', renderId).limit(1).maybeSingle()
+      if (row) continue
+      try {
+        const statusReq = new NextRequest(`${APP_URL}/api/compose/status/${renderId}`, { headers: serviceHeaders(userId) })
+        await composeStatusGet(statusReq, { params: { renderId } })
+        const { data: reborn } = await admin
+          .from('videos').select('id').eq('render_id', renderId).limit(1).maybeSingle()
+        if (reborn) {
+          relinked += 1
+          await admin.from('events').insert({
+            user_id: userId,
+            name: 'video_row_relinked',
+            path: '/api/cron/finish-stranded-renders',
+            metadata: { render_id: renderId, reason: 'delivered_but_row_missing' },
+          })
+        }
+      } catch (e) {
+        console.warn(`[relink] poke failed ${renderId.slice(0, 8)}:`, e instanceof Error ? e.message : String(e))
+      }
+    }
+  } catch (e) {
+    console.error('[relink] pass failed:', e instanceof Error ? e.message : String(e))
+  }
+
+  return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, relinked, results })
 }
