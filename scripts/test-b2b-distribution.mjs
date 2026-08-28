@@ -24,8 +24,8 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 5, 'five evidence-backed bridges are enabled')
-for (const entry of ['state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool']) {
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 6, 'six evidence-backed bridges are enabled')
+for (const entry of ['state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)
@@ -55,6 +55,8 @@ const commentTool = read('app/comment-to-video/CommentToVideoClient.tsx')
 check(commentTool.includes("agencyPacksHref('comment_tool')"), 'comment tool routes qualified client volume through the allowlist')
 const productTool = read('app/product-to-video-script/ProductToVideoClient.tsx')
 check(productTool.includes("agencyPacksHref('product_tool')"), 'product tool routes qualified client volume through the allowlist')
+const contentPlan = read('app/business-video-content-plan/BusinessContentPlanClient.tsx')
+check(contentPlan.includes("agencyPacksHref('content_plan')"), 'business content plan routes qualified volume through the allowlist')
 
 const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the allowlisted entry')

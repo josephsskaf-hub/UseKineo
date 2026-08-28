@@ -211,6 +211,7 @@ ${plans}
 ## One-time packs for agencies, freelancers and businesses
 
 - [AI Shorts for agencies](${BASE}/ai-shorts-for-agencies): buy a commercial batch without a subscription or sales call.
+- [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
 ${agencyPackLines}
 - The named video count refers to Fast Mode. Credits are universal; premium generative engines spend more credits per video and reduce the output count.
 - Commercial delivery is allowed. The buyer owns the finished MP4s and can provide them to clients.

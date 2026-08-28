@@ -140,6 +140,9 @@ export default function AiShortsForAgenciesPage() {
               <Link href="/examples" style={{ color: '#fff', border: '1px solid rgba(255,255,255,.16)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}>
                 Watch real outputs
               </Link>
+              <Link href="/business-video-content-plan" style={{ color: '#c4b5fd', border: '1px solid rgba(167,139,250,.32)', background: 'rgba(167,139,250,.08)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 850, textDecoration: 'none' }}>
+                Plan the week free
+              </Link>
             </div>
           </div>
 

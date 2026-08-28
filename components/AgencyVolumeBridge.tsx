@@ -12,6 +12,7 @@ const CONTEXT: Record<AgencyDistributionEntry, string> = {
   pricing: 'Need a batch for clients instead of another monthly subscription?',
   comment_tool: 'Turning recurring customer questions into a client content queue?',
   product_tool: 'Turning a product catalog into a repeatable Short content queue?',
+  content_plan: 'Turning a weekly business content plan into a production batch?',
 }
 
 export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributionEntry }) {

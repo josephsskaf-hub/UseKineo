@@ -673,6 +673,16 @@ export const START_HERE_FACT: StartHereFact = {
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
+    name: 'Free business video content planner',
+    url: `${BASE}/business-video-content-plan`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Choose a business offer, audience, goal and cadence to get a weekly Short-form content plan. It does not research claims, schedule posts, publish content or render a video.',
+  },
+  {
     name: 'Free product video ad script generator',
     url: `${BASE}/product-to-video-script`,
     output: 'text',

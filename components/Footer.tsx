@@ -140,6 +140,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/free-script-generator', label: 'Free script generator' },
       { href: '/comment-to-video', label: 'Comment to Short script' },
       { href: '/product-to-video-script', label: 'Product video ad script' },
+      { href: '/business-video-content-plan', label: 'Business video content planner' },
       { href: '/free-hook-generator', label: 'Free hook generator' },
       { href: '/viral-score', label: 'Free viral score' },
       { href: '/shorts-money-calculator', label: 'Shorts money calculator' },
