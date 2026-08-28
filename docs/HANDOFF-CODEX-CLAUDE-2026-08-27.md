@@ -394,6 +394,23 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** o checkout como coorte ainda converte pouco, sobretudo TAAFT: 27 pessoas chegaram ao primeiro checkout atribuído ao canal e 1 pagou. A variante pós-vídeo `single_primary_v1` ainda tinha zero visualização externa na leitura; não alterar preço, oferta ou essa superfície antes de haver amostra humana.
 - **NÃO TOCADO:** render, cena, legenda, motor, preço, grant, oferta, e-mail, outreach, tráfego pago e escrita de banco.
 
+### 2.28 Missão de indicação no histórico sem publicar o vídeo
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit funcional `268faa76ba9d9cb771882a89a9a64753253f6834`, reaplicado sobre `eab4ae70e28563125e62de2682ebefeeab6ac1ec` antes da publicação.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 30 dias lida em 28/08/2026, contas internas excluídas):** 327 pessoas viram alguma superfície de compartilhamento, 35 clicaram e 16 emitiram compartilhamento concluído. No `history_spotlight`, 108 pessoas viram, 4 clicaram e 2 compartilharam; o último clique observado era de 18/08, embora a superfície ainda recebesse visualizações em 27/08. Evento e pessoa permanecem réguas distintas.
+- **FATO CONFIRMADO:** a hipótese inicial de melhorar o card público do histórico foi descartada antes do push. `lib/videoShare.ts` mantém `PUBLIC_VIDEO_SHARING_ENABLED = false`; portanto, o ramo `/v/[id]` não era a interface viva e publicar aquela edição teria alterado código morto.
+- A interface viva preserva a privacidade e usa somente a URL individual canônica já devolvida por `/api/referral`: `https://www.usekineo.com/?ref=<code>`. O helper aceita exclusivamente HTTPS, host `www.usekineo.com`, caminho raiz, um único parâmetro `ref` igual ao código e nenhum fragmento. `/v/`, id de vídeo e asset não entram no link nem na telemetria (`lib/historyReferralMission.ts`; `app/(dashboard)/history/HistoryClient.tsx`).
+- O card só aparece quando código, URL e recompensa dinâmica são válidos. Ele declara a qualificação do primeiro vídeo, que o vídeo continua privado e que nada é enviado até a pessoa escolher o destinatário. Se `/api/referral` falhar, a interface volta ao aviso privado anterior; não mostra recompensa ou botão quebrado. A rota existente pode cunhar `referral_code` na própria linha do perfil quando ele ainda não existe; não houve migration, nova tabela ou escrita em Storage.
+- WhatsApp é a ação primária e apenas abre o composer depois de clique humano. Copiar usa clipboard com fallback manual. Nenhuma mensagem foi enviada pelo Codex. Os eventos preservam o funil já consumido pelo admin (`push29_share_delivery`) e acrescentam `variant=history_referral_mission_v1` e `where=history_private_referral`, sem URL, código ou vídeo.
+- Teste determinístico `scripts/test-history-referral-mission.mjs`: `55/55`, incluindo contrato do host, rejeição de `/v/`, recompensa dinâmica, privacidade, caller vivo e medição existente. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos da entrega.
+- Preview visual obrigatório: `docs/previews/HISTORY-REFERRAL-MISSION-2026-08-28.html`, com o aviso privado anterior e a missão nova em desktop/mobile. Preview Vercel `dpl_5GsSdEZYCeNt2MtEHkn7vXa2mbTg` terminou `READY` antes da promoção.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_FvYS9N5oQVkuQopwFQbG4hgrUzun` em estado `READY`, aliasado em `www.usekineo.com`. Smoke autenticado na conta do fundador mostrou `Give 30 credits · Get 30 credits`, o limite de privacidade e os dois botões, enquanto cada vídeo continuou marcado como `Private`. Nenhum botão foi clicado, nenhuma mensagem foi enviada e nenhum render foi iniciado.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o console do smoke mostrou React `#425/#422` durante hidratação. A página permaneceu funcional. `formatDate`, `classifyVideoState` e `formatStarted` já calculavam relógio durante render desde commits de maio/julho, mas isso não prova a causa desses dois erros; não atribuir nem ignorar sem reprodução controlada fora desta sprint.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders estão respondendo `402`. Claude conduz esse incidente. Esta entrega não tocou render, Storage, migration ou pipeline e falha fechada se a leitura de referral estiver indisponível.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe pessoa externa pós-deploy no funil `prompt → click → share → referred_by → first video → paid`. Medir pessoas por `variant=history_referral_mission_v1` antes de alterar novamente o card; visualização e abertura do WhatsApp não serão chamadas de referral ou assinatura.
+- **NÃO TOCADO:** `/v`, sitemap, visibilidade de vídeo, render, cena, legenda, motor, Storage, preço, grant, oferta, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
@@ -430,8 +447,8 @@
 
 - `app/api/admin/_shared/mrr.ts(113,41)`
 - `app/api/me/subscription/route.ts(71,41)`
-- `app/api/stripe/checkout/route.ts(545,76)`
-- `app/api/stripe/checkout/route.ts(566,62)`
+- `app/api/stripe/checkout/route.ts(546,76)`
+- `app/api/stripe/checkout/route.ts(567,62)`
 
 O quinto erro anteriormente registrado em `app/api/analyze-idea/route.ts` não aparece mais na ponta atual. Esta entrega não alterou esse arquivo e não reivindica a correção.
 
