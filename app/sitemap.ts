@@ -134,6 +134,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.
     { path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' },
+    // KINEO-TRUST-CENTER-2026-08-27 — a young domain needs one canonical
+    // verification surface for operator, payments, privacy and commercial
+    // rights. This is an objection page, not an invented social-proof page.
+    { path: '/trust', priority: 0.8, freq: 'monthly' },
     // KINEO-ENGINE-SEO-2026-08-15 (docs/SPRINT-2026-08-15-10H.md, seção 5) —
     // desde 15/08 a home vende pelos NOMES dos motores e o site não tinha uma
     // única página mirando esses nomes, que são o cluster mais disputado da

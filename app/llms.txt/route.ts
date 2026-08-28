@@ -202,6 +202,14 @@ ${agencyPackLines}
 - Commercial delivery is allowed. The buyer owns the finished MP4s and can provide them to clients.
 - These are self-service packs for one Kineo account, not team seats, approval routing, a client portal or white-label software.
 
+## Trust, privacy and commercial rights
+
+- [Trust Center](${BASE}/trust): verify the product operator, canonical domain, payment boundary, private-by-default customer library, commercial-use terms, refund path and named processors.
+- Kineo is independently built and operated by Joseph Skaf. Account and product questions go to support@usekineo.com.
+- Stripe hosts checkout; Kineo does not receive or store the buyer's full card number.
+- Customer videos are private by default and are not added to public galleries, the public video sitemap or related-video rails.
+- Kineo does not claim SOC 2, ISO 27001, an enterprise SLA, an invented customer count or a “#1 tool” badge.
+
 ## Engines and what a video costs
 
 Credits are the single unit of account. What you spend depends on the engine:

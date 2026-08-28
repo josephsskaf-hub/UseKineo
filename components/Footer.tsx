@@ -88,6 +88,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       // KINEO-CASE-STUDY-2026-07-31 — prova viva: canal real no Autopilot, numeros semanais.
       { href: '/youtube-automation-case-study', label: 'Live case study: our channel on Autopilot' },
       { href: '/ai-shorts-for-agencies', label: 'AI Shorts for agencies & client work' },
+      { href: '/trust', label: 'Trust Center — privacy, payments & ownership' },
       { href: '/partners', label: 'Affiliate program - 40% recurring' },
       // ═══════════════════════════════════════════════════════════════════════
       // KINEO-AFFILIATE-DEDUPE-2026-07-30 — o segundo link foi REMOVIDO daqui.
@@ -274,6 +275,12 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
           </span>
           <Link href="/privacy" style={linkStyle}>
             Privacy Policy
+          </Link>
+          <span aria-hidden style={{ opacity: 0.4 }}>
+            ·
+          </span>
+          <Link href="/trust" style={linkStyle}>
+            Trust Center
           </Link>
           <span aria-hidden style={{ opacity: 0.4 }}>
             ·

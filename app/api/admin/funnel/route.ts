@@ -80,6 +80,8 @@ export interface FunnelData {
     agency_bulk_page_viewed?: number
     agency_bulk_pack_clicked?: number
     bulk_checkout_started?: number
+    trust_page_viewed?: number
+    trust_cta_clicked?: number
     checkout_attempted?: number
     checkout_attempted_raw?: number
     checkout_authenticated_attempted?: number
@@ -468,6 +470,7 @@ export async function GET(req: Request) {
       'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
       'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
       'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'trust_page_viewed', 'trust_cta_clicked',
       'generate_started', 'video_generation_started',
       'generate_completed', 'video_generation_completed',
       'generate_failed', 'video_generation_failed',
@@ -489,6 +492,7 @@ export async function GET(req: Request) {
       'auth_callback_completed', 'auth_callback_failed',
       'checkout_started', 'payment_success',
       'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'trust_page_viewed', 'trust_cta_clicked',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
     ]
     let eventsAvailable = false
@@ -1339,6 +1343,10 @@ export async function GET(req: Request) {
         agency_bulk_page_viewed: uniqueCheckoutActors('agency_bulk_page_viewed'),
         agency_bulk_pack_clicked: uniqueCheckoutActors('agency_bulk_pack_clicked'),
         bulk_checkout_started: uniqueCheckoutActors('bulk_checkout_started'),
+        // Trust stages count identifiable people/sessions. A reload is not a
+        // second prospect, and destination stays in event metadata.
+        trust_page_viewed: uniqueCheckoutActors('trust_page_viewed'),
+        trust_cta_clicked: uniqueCheckoutActors('trust_cta_clicked'),
         // Buyer-intent stages are unique identifiable actors. Keep raw totals
         // alongside them so crawler/QA pressure remains visible but cannot be
         // mistaken for human checkout abandonment.
