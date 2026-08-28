@@ -1339,6 +1339,13 @@ export interface CachedVoiceoverEntry {
  * Stable cache key = sha256(finalScript + voice + speed + model). Speed is
  * rounded to 3dp so trivial float noise doesn't fragment the cache.
  */
+// KINEO-PREAQUECER-VOZ-2026-08-28 — a salt da chave do cache de voz morava
+// como const LOCAL dentro de app/api/compose/route.ts. Com o pré-aquecimento
+// (rota /api/prewarm-voiceover) passando a computar a MESMA chave, a salt
+// precisa de fonte única — duplicar a string criaria o dia em que um bump de
+// versão no compose deixa o prewarm aquecendo chaves mortas em silêncio.
+export const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
+
 export function computeVoiceoverCacheKey(parts: {
   script: string
   voice: string

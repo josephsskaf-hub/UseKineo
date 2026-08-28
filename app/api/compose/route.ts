@@ -159,7 +159,9 @@ const DURATION_TOLERANCE_SECONDS = 3
 // or pause insertion, marker stripping, SSML, normalization, chunk boundaries.
 // Anything already part of the hash (script text, voice, speed, model) does NOT
 // need a bump — those invalidate themselves.
-const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'
+// KINEO-PREAQUECER-VOZ-2026-08-28 — a salt migrou para lib/compose (fonte
+// única, compartilhada com /api/prewarm-voiceover). Ver comentário lá.
+import { VOICEOVER_ENGINE_VERSION } from '@/lib/compose'
 
 // FREE_FAST_PREVIEW_LIMIT e FREE_FAST_WINDOW_MS moraram aqui até 06/08/2026.
 // Agora vêm de lib/freeFastQuota.ts, junto da contagem que os usa — o cron

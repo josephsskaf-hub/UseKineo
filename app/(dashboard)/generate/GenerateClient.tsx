@@ -7140,6 +7140,27 @@ export default function GenerateClient({
         const ids = Array.isArray(data.fal_request_ids) ? data.fal_request_ids : []
         setFalRequestIds(ids)
         setFalClipsDone({ done: 0, total: ids.filter((id: string | null) => id !== null).length })
+        // ═══ KINEO-PREAQUECER-VOZ-2026-08-28 ═════════════════════════════════
+        // As cenas vão levar 2-4 min no fornecedor; a narração era sintetizada
+        // só DEPOIS, no compose, somando 15-30s ao fim da espera. Aquecer o
+        // cache de voz AGORA (mesma chave que o compose calcula) faz o compose
+        // dar cache-hit e pular TTS+Whisper. Fire-and-forget deliberado: se
+        // falhar, o compose sintetiza como sempre — o pior caso é o status
+        // quo. Só dispara quando há speed explícito (sem ele o compose
+        // reescala o texto e a chave não é derivável daqui).
+        if (typeof data.voiceover_script === 'string' && typeof data.speed === 'number') {
+          void fetch('/api/prewarm-voiceover', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              script: data.voiceover_script,
+              speed: data.speed,
+              vertical: analysis?.niche ?? undefined,
+              language,
+              quality: falQualityRef.current,
+            }),
+          }).catch(() => {})
+        }
         setPhase('fal_polling')
       } catch (err) {
         console.error('[generate] cinematic-ai threw:', err)
@@ -9241,8 +9262,13 @@ export default function GenerateClient({
       case 'generating':
         return 'Submitting to AI generator…'
       case 'fal_polling':
+        // KINEO-PRAZO-HONESTO-2026-08-28 — a mediana REAL medida no banco em
+        // 28/08 (14 dias, claim→completed) é 2-3 min em TODOS os motores.
+        // Espera com prazo anunciado encolhe na cabeça de quem espera — e
+        // "about 3 minutes" é verdade estatística, não promessa de marketing:
+        // a cauda (resgates) existe e por isso o texto diz "typically".
         return falClipsDone.total > 0
-          ? `🤖 Generating AI clips… ${falClipsDone.done}/${falClipsDone.total} done`
+          ? `🤖 Generating AI clips… ${falClipsDone.done}/${falClipsDone.total} done · typically ready in ~3 min`
           : 'Generating AI clips…'
       case 'avatar_polling':
         return '🎭 Animating your avatar — lip-syncing the script… (this takes a few minutes)'
