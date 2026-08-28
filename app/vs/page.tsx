@@ -354,9 +354,11 @@ export default function ComparisonsHubPage() {
             {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
-            href={`/signup?create_intent=fast&intent_campaign=${CAMPAIGN}`}
+            href={`#${FORM_ID}`}
             source={CAMPAIGN}
             placement="final"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={FORM_ID}
             style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}
           >
             Make my first video →

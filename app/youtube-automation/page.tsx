@@ -23,6 +23,7 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -36,6 +37,7 @@ export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'push96_youtube_automation_hub'
+const FORM_ID = 'youtube-automation-first-video'
 const UPDATED = 'July 2026'
 
 const YPP_REQUIREMENTS = 'https://support.google.com/youtube/answer/72851?hl=en'
@@ -259,9 +261,11 @@ export default function YouTubeAutomationPage() {
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 26 }}>
           <OrganicCtaLink
-            href="/signup?create_intent=fast&intent_campaign=push96_youtube_automation_hub"
+            href={`#${FORM_ID}`}
             source={CAMPAIGN}
             placement="hero"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={FORM_ID}
             style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}
           >
             Make one video free →
@@ -276,6 +280,27 @@ export default function YouTubeAutomationPage() {
         <p style={{ fontSize: 13, color: ACCENT, fontWeight: 700, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · No card · Starter {STARTER_MO}
         </p>
+
+        <TopicGeneratorForm
+          campaign={CAMPAIGN}
+          source={CAMPAIGN}
+          placement="youtube_automation_inline_form"
+          formId={FORM_ID}
+          utmSource="seo"
+          utmMedium="organic"
+          examples={[
+            'The automation mistake that makes a faceless channel feel mass-produced',
+            'What a human should still decide in an AI video workflow',
+            'Why publishing more videos does not automatically grow a channel',
+          ]}
+          copy={{
+            label: 'What should your first faceless Short explain?',
+            placeholder: 'Type one topic or paste the script you want to test',
+            submit: 'Carry this topic into my first Short →',
+            examplesLabel: 'Ideas from this guide',
+            note: 'Your topic stays attached through signup. Nothing starts until you submit it.',
+          }}
+        />
 
         <h2 style={h2}>Three things called &ldquo;YouTube automation&rdquo;</h2>
         <p style={p}>
@@ -490,9 +515,11 @@ export default function YouTubeAutomationPage() {
             {ft(OFFER, 'Up to 3 watermarked Fast videos every 24 hours — no card.', OFFER.copy.headline)}
           </p>
           <OrganicCtaLink
-            href="/signup?create_intent=fast&intent_campaign=push96_youtube_automation_hub"
+            href={`#${FORM_ID}`}
             source={CAMPAIGN}
             placement="final"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId={FORM_ID}
             style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 30px', borderRadius: 980, textDecoration: 'none' }}
           >
             Make my first video →
