@@ -1,6 +1,7 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
+import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -58,21 +59,23 @@ const usd = (cents: number) => (cents / 100).toFixed(2)
 const organizationSchema = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Kineo',
-  // The product shipped as ShortsForgeAI before the rename and is still cited
-  // that way in older articles and directory listings. Declaring the alias keeps
-  // both names resolving to one entity.
-  alternateName: 'ShortsForgeAI',
-  url: 'https://www.usekineo.com',
+  name: BRAND_NAME,
+  // Search Console (3 months ending 26/08/2026) associates the misspelling
+  // `cineo` exclusively with /pricing: 27 impressions, zero clicks, average
+  // position 77.6. The homepage already declared that alias, but this global
+  // schema — the one /pricing actually serves — declared only ShortsForgeAI.
+  // One canonical alias list now keeps every indexed page on the same entity.
+  alternateName: BRAND_ALIASES,
+  url: BRAND_URL,
   logo: 'https://www.usekineo.com/icon-512.png',
 }
 
 const softwareApplicationSchema = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
-  name: 'Kineo',
-  alternateName: 'ShortsForgeAI',
-  url: 'https://www.usekineo.com',
+  name: BRAND_NAME,
+  alternateName: BRAND_ALIASES,
+  url: BRAND_URL,
   applicationCategory: 'MultimediaApplication',
   applicationSubCategory: 'AI Video Generator',
   operatingSystem: 'Web',

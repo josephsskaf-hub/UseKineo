@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
 import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
+import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 
 export const metadata: Metadata = {
   // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
@@ -39,19 +40,19 @@ const BRAND_JSON_LD = {
   '@graph': [
     {
       '@type': 'Organization',
-      '@id': 'https://www.usekineo.com/#org',
-      name: 'Kineo',
-      alternateName: ['Kineo AI', 'UseKineo', 'Cineo', 'Cineo AI'],
-      url: 'https://www.usekineo.com',
+      '@id': `${BRAND_URL}/#org`,
+      name: BRAND_NAME,
+      alternateName: BRAND_ALIASES,
+      url: BRAND_URL,
       logo: 'https://www.usekineo.com/apple-touch-icon.png',
     },
     {
       '@type': 'WebSite',
-      '@id': 'https://www.usekineo.com/#website',
+      '@id': `${BRAND_URL}/#website`,
       name: 'Kineo — AI YouTube Shorts Generator',
-      alternateName: ['Kineo AI', 'Cineo'],
-      url: 'https://www.usekineo.com',
-      publisher: { '@id': 'https://www.usekineo.com/#org' },
+      alternateName: BRAND_ALIASES,
+      url: BRAND_URL,
+      publisher: { '@id': `${BRAND_URL}/#org` },
     },
   ],
 }
