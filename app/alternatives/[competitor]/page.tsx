@@ -32,6 +32,9 @@ const INVIDEO_FREE_SOURCE = 'https://help.invideo.io/en/articles/9380226-can-i-u
 const INVIDEO_PRICING_SOURCE = 'https://invideo.io/pricing/'
 const INVIDEO_FACTS_CHECKED = 'August 28, 2026'
 const INVIDEO_INTENT_CAMPAIGN = 'growth_invideo_free_intent_20260828'
+const SYNTHESIA_PRICING_SOURCE = 'https://www.synthesia.io/pricing'
+const SYNTHESIA_VIDEO_SOURCE = 'https://www.synthesia.io/features/ai-video-generator'
+const SYNTHESIA_FACTS_CHECKED = 'August 28, 2026'
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -481,31 +484,34 @@ export const COMPETITORS: Record<string, Competitor> = {
       { q: 'Should I use Descript or Kineo?', a: `Use Descript if you record podcasts or talking-head video and want text-based editing and voice cloning. Use Kineo if you want a finished faceless Short from a single idea with no recording or editing, from ${STARTER_MO}.` },
     ],
   },
-  // ROBO-SEO-2026-06-30 — Synthesia (avatar) / Canva (design editor) / Kapwing (browser editor)
-  // KINEO-SEO-COMPARE-2026-07-11 — reposicionada pós-AI Presenter (mesma
-  // correção da página do HeyGen: agora temos avatar E o vídeo completo).
+  // EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026; janela
+  // 01/07–26/08): /alternatives/synthesia teve 4 impressões nos recursos de IA
+  // generativa do Google — a maior superfície editorial do relatório. A
+  // resposta abaixo deixa de fingir equivalência e cita somente capacidades
+  // conferidas nas fontes oficiais da Synthesia nesta data.
   synthesia: {
     name: 'Synthesia',
-    h1: 'The Synthesia Alternative for Creators — Presenter Included, Short Included',
+    h1: 'A Synthesia Alternative for Faceless Shorts — Not a Drop-In Replacement',
     intro:
-      `Synthesia is the leading corporate AI-avatar platform: pick a digital presenter, type a script, get a talking-head video. Kineo brings that to creators — an AI Presenter with studio lip-sync from one photo — and then finishes the job: viral script, AI scenes or your own footage, captions and your own voice, delivered as a ready-to-post 9:16 Short. From ${STARTER_MO}.`,
-    theyDo: 'Synthesia creates AI-avatar / talking-head videos with a digital presenter on screen, in 140+ languages.',
+      `These products overlap, but they are built for different jobs. Synthesia is a business-video workspace with stock and personal avatars, 160+ languages and voices, AI-generated assets, collaboration and enterprise controls. Kineo is a creator workflow for turning one topic into one reviewable faceless 9:16 Short, with an optional 720p lip-synced presenter. From ${STARTER_MO}.`,
+    theyDo: 'Synthesia creates complete business videos with AI avatars, AI-generated assets, multilingual voices, collaboration and governance features.',
     pickThem:
-      'Pick Synthesia for corporate training and multilingual explainers at enterprise scale. Pick Kineo if you are a creator: the presenter, the script, the scenes and the captions come out of one prompt, at a price an individual can pay.',
+      'Pick Synthesia when the avatar, multilingual localisation, review workflow, Brand Kit or SCORM export is the job. Pick Kineo when the job is one faceless Short from one chosen topic and you want the script, narration, visuals and captions assembled in one focused workflow.',
     rows: [
-      { feature: 'Talking AI presenter with lip-sync', sfa: true, them: true },
-      { feature: 'Creates the FULL Short from just an idea', sfa: true, them: 'Script → avatar' },
-      { feature: 'Same face across every video (Character Lock)', sfa: true, them: 'Avatar library' },
-      { feature: 'Writes the viral script for you', sfa: true, them: false },
-      { feature: 'Use your own footage as scenes', sfa: true, them: false },
-      { feature: 'Also does fully faceless Shorts (no avatar at all)', sfa: true, them: false },
-      { feature: 'Built for YouTube Shorts / TikTok / Reels', sfa: true, them: 'Corporate / training' },
-      { feature: 'Starting price', sfa: STARTER_MO, them: 'Paid plans' },
+      { feature: 'Creates a complete video from a prompt', sfa: true, them: true },
+      { feature: 'Primary workflow', sfa: 'Faceless 9:16 Shorts', them: 'Business and presenter video' },
+      { feature: 'AI presenter', sfa: 'One photo → 720p lip-sync', them: 'Stock and personal avatars' },
+      { feature: 'AI-generated video assets', sfa: 'Multiple selectable engines', them: true },
+      { feature: 'Voice cloning', sfa: true, them: true },
+      { feature: 'Team review, Brand Kit and SCORM', sfa: false, them: 'Paid / Enterprise features' },
+      { feature: 'Free access without a card', sfa: true, them: true },
+      { feature: 'Starting price', sfa: STARTER_MO, them: 'Free Basic + paid plans' },
     ],
     faq: [
-      { q: 'What is the best Synthesia alternative for YouTube Shorts?', a: `Kineo — it gives creators a talking AI Presenter with studio lip-sync AND the finished Short: viral script, AI scenes or your own footage, captions and your own cloned voice, from ${STARTER_MO}.` },
-      { q: 'Does Kineo have an AI presenter like Synthesia?', a: 'Yes. Kineo’s AI Presenter animates one photo into a talking video with perfect lip-sync, and Character Lock keeps the same face across every video — ideal for a channel host or brand persona.' },
-      { q: 'Is Kineo cheaper than Synthesia?', a: `Kineo Starter is ${STARTER_MONTH}${ft(OFFER, ', and free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)} The bigger difference is scope: Synthesia makes the avatar video, while Kineo delivers the whole ready-to-post Short.` },
+      { q: 'Is Kineo a direct replacement for Synthesia?', a: 'No. Choose Kineo for a focused topic-to-faceless-Short workflow. Choose Synthesia when you need a broad avatar library, multilingual business video, team review, Brand Kit, SCORM or enterprise governance.' },
+      { q: 'Does Kineo have an AI presenter?', a: 'Yes. Kineo can animate one suitable photo into a 720p lip-synced presenter video. It is an optional render type, not a stock-avatar library or an enterprise avatar workspace.' },
+      { q: 'Can both tools create a full video from a prompt?', a: 'Yes. Synthesia combines avatars, templates and AI-generated assets in a business-video workspace. Kineo combines a script, narration, selected visual engine and captions into a faceless vertical Short.' },
+      { q: 'Can I try Kineo and Synthesia without a card?', a: `Yes. ${OFFER.copy.sentence} Synthesia’s official pricing page lists a Basic plan with no card required. Usage and plan terms can change, so verify the current vendor pages before choosing.` },
     ],
   },
   canva: {
@@ -828,15 +834,20 @@ export function generateMetadata({ params }: { params: { competitor: string } })
   if (!c) return {}
   const isQuso = params.competitor === 'quso'
   const isInVideo = params.competitor === 'invideo'
+  const isSynthesia = params.competitor === 'synthesia'
   const title = isQuso
     ? 'Vidyo.ai Pricing (Now Quso.ai) vs Kineo — 2026'
     : isInVideo
       ? 'Free InVideo AI Alternative for Faceless Shorts — Kineo'
-      : `${c.name} Alternative for Faceless Creators — Kineo`
+      : isSynthesia
+        ? 'Synthesia Alternative for Faceless Shorts — Honest 2026 Comparison'
+        : `${c.name} Alternative for Faceless Creators — Kineo`
   const description = isQuso
     ? 'Vidyo.ai is now Quso.ai. See Quso’s current Free, Lite, Essential and Growth prices, credits and an honest workflow comparison with Kineo.'
     : isInVideo
       ? `Looking for a free InVideo AI alternative? Compare both no-card free paths, then try Kineo’s faceless Shorts workflow. ${OFFER.copy.headline}`
+      : isSynthesia
+        ? 'Kineo and Synthesia compared honestly: faceless Shorts versus multilingual avatar and business-video workflows, with official Synthesia sources.'
       : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.', OFFER.copy.headline)}`
   const url = `https://www.usekineo.com/alternatives/${params.competitor}`
   return {
@@ -929,6 +940,58 @@ function InVideoFreeDecision({ signupUrl, campaign }: { signupUrl: string; campa
   )
 }
 
+function SynthesiaDecision() {
+  return (
+    <section
+      aria-labelledby="synthesia-short-answer"
+      style={{
+        marginTop: 36,
+        background: 'linear-gradient(145deg, rgba(28,24,52,0.96), rgba(10,13,27,0.96))',
+        border: '1px solid rgba(142,120,255,0.35)',
+        borderRadius: 18,
+        padding: 'clamp(20px, 4vw, 30px)',
+      }}
+    >
+      <div style={{ color: '#a99bff', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+        Short answer · checked {SYNTHESIA_FACTS_CHECKED}
+      </div>
+      <h2 id="synthesia-short-answer" style={{ fontSize: 'clamp(1.35rem, 3vw, 1.8rem)', lineHeight: 1.2, margin: '9px 0 10px' }}>
+        Kineo is an alternative for the Short — not for the enterprise avatar workspace
+      </h2>
+      <p style={{ margin: 0, color: '#c4cad4', lineHeight: 1.65 }}>
+        Both can create a complete video from a prompt. The buying decision is the workflow around it: Kineo is narrower and starts with one creator choosing one topic for one faceless vertical Short. Synthesia is broader and starts with business video, avatars, languages, collaboration and governance.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12, marginTop: 20 }}>
+        <article style={{ background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(41,151,255,0.25)', borderRadius: 14, padding: 16 }}>
+          <div style={{ color: '#5cb3ff', fontWeight: 900, marginBottom: 7 }}>Choose Kineo when…</div>
+          <p style={{ margin: 0, color: '#b9c0cb', lineHeight: 1.58, fontSize: '0.9rem' }}>
+            Your deliverable is a reviewable faceless 9:16 Short with script, narration, visual engine and captions assembled together. The presenter is optional.
+          </p>
+        </article>
+        <article style={{ background: 'rgba(0,0,0,0.28)', border: '1px solid rgba(169,155,255,0.25)', borderRadius: 14, padding: 16 }}>
+          <div style={{ color: '#c1b8ff', fontWeight: 900, marginBottom: 7 }}>Choose Synthesia when…</div>
+          <p style={{ margin: 0, color: '#b9c0cb', lineHeight: 1.58, fontSize: '0.9rem' }}>
+            The avatar, multilingual localisation, team review, Brand Kit, SCORM export or enterprise controls are part of the requirement.
+          </p>
+        </article>
+      </div>
+
+      <p style={{ margin: '15px 0 0', color: '#777e8c', fontSize: '0.75rem', lineHeight: 1.55 }}>
+        Synthesia facts checked against its{' '}
+        <a href={SYNTHESIA_PRICING_SOURCE} target="_blank" rel="noreferrer" style={{ color: '#b9b0ff' }}>
+          official pricing page
+        </a>{' '}
+        and{' '}
+        <a href={SYNTHESIA_VIDEO_SOURCE} target="_blank" rel="noreferrer" style={{ color: '#b9b0ff' }}>
+          official AI video overview
+        </a>
+        . Vendor features and plan limits can change.
+      </p>
+    </section>
+  )
+}
+
 export default function AlternativePage({ params }: { params: { competitor: string } }) {
   const c = COMPETITORS[params.competitor]
   if (!c) notFound()
@@ -943,6 +1006,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
 
   const isQuso = params.competitor === 'quso'
   const isInVideo = params.competitor === 'invideo'
+  const isSynthesia = params.competitor === 'synthesia'
   const campaign = isQuso
     ? QUSO_INTENT_CAMPAIGN
     : isInVideo
@@ -994,7 +1058,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         {/* Hero */}
         <section style={{ marginTop: 36, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
-            {isQuso ? 'Vidyo.ai pricing · checked July 2026' : isInVideo ? 'Free InVideo AI alternative' : `${c.name} alternative`}
+            {isQuso ? 'Vidyo.ai pricing · checked July 2026' : isInVideo ? 'Free InVideo AI alternative' : isSynthesia ? 'Synthesia comparison · checked August 2026' : `${c.name} alternative`}
           </div>
           <h1 style={{ fontSize: 'clamp(1.8rem, 5vw, 2.6rem)', fontWeight: 900, lineHeight: 1.15, margin: '16px 0 0' }}>
             {c.h1}
@@ -1028,6 +1092,8 @@ export default function AlternativePage({ params }: { params: { competitor: stri
         </section>
 
         {isInVideo && <InVideoFreeDecision signupUrl={signupUrl} campaign={campaign} />}
+
+        {isSynthesia && <SynthesiaDecision />}
 
         {isQuso && <QusoDecisionSections />}
 
