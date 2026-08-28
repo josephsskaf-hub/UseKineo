@@ -7240,7 +7240,19 @@ export default function GenerateClient({
         // falhar, o compose sintetiza como sempre — o pior caso é o status
         // quo. Só dispara quando há speed explícito (sem ele o compose
         // reescala o texto e a chave não é derivável daqui).
-        if (typeof data.voiceover_script === 'string' && typeof data.speed === 'number') {
+        // AUDITORIA 28/08 — dois guards que faltavam, ambos de CUSTO:
+        //   1. hollywood/h3/omni compõem pelo caminho POR CENA (compose
+        //      route.ts ~1621-1990, que retorna ANTES do cache de trilho
+        //      único) — aquecer ali era pagar um TTS inteiro que ninguém
+        //      jamais leria.
+        //   2. voz própria (myVoiceUrl) ou clonada: o compose pula o TTS
+        //      padrão / usa voiceId fora do modelo da chave — mesmo destino.
+        const prewarmUsesSingleTrackCache =
+          falQualityRef.current !== 'cinematic_hollywood' &&
+          falQualityRef.current !== 'cinematic_h3' &&
+          falQualityRef.current !== 'cinematic_omni' &&
+          !myVoiceUrl && !useClonedVoice
+        if (prewarmUsesSingleTrackCache && typeof data.voiceover_script === 'string' && typeof data.speed === 'number') {
           void fetch('/api/prewarm-voiceover', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

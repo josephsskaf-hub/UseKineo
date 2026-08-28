@@ -45,6 +45,7 @@ import {
   VOICEOVER_ENGINE_VERSION,
 } from '@/lib/compose'
 import { ttsModelForTier } from '@/lib/narration/elevenlabs'
+import { stripScriptMarkers, salvageScriptNarration } from '@/lib/scriptParser'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -59,14 +60,24 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ warmed: false, reason: 'auth' }, { status: 401 })
 
     const body = await req.json().catch(() => ({})) as Record<string, unknown>
-    const script = typeof body.script === 'string' ? body.script.trim() : ''
+    // AUDITORIA 28/08 — BUG PEGO ANTES DO PUSH: a primeira versão fazia hash
+    // do texto CRU (`.trim()`), mas o compose faz hash do texto DEPOIS de
+    // stripScriptMarkers() (que tira [marcadores], markdown e colapsa espaços
+    // duplos — route.ts linha ~547). Qualquer script com parágrafos ou
+    // marcadores gerava chave diferente → o cache NUNCA acertava e a casa
+    // pagava o TTS duas vezes, sem nenhum ganho. A derivação abaixo é a MESMA
+    // do compose (strip → salvage); se sobrar vazio, não aquecemos (o compose
+    // cairia no fallback de `topic`, que esta rota não conhece).
+    const raw = typeof body.script === 'string' ? body.script : ''
+    let script = stripScriptMarkers(raw)
+    if (!script && raw.trim()) script = salvageScriptNarration(raw)
     const speedRaw = Number(body.speed)
     const speed = Number.isFinite(speedRaw) && speedRaw > 0 ? Math.max(0.7, Math.min(1.3, speedRaw)) : null
     const vertical = typeof body.vertical === 'string' && body.vertical.trim() ? body.vertical.trim().toLowerCase() : undefined
     const language = body.language === 'pt' || body.language === 'es' ? body.language : 'en'
     const quality = typeof body.quality === 'string' ? body.quality : ''
 
-    if (!script || script.length > 4000) return NextResponse.json({ warmed: false, reason: 'script' })
+    if (!script || raw.length > 4000) return NextResponse.json({ warmed: false, reason: 'script' })
     // Sem speed explícito o compose reescala o texto via GPT antes do hash —
     // a chave não é derivável aqui. Recusar é o correto; chutar aqueceria lixo.
     if (speed == null) return NextResponse.json({ warmed: false, reason: 'no_explicit_speed' })

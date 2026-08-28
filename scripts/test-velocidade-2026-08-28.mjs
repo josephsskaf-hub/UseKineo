@@ -18,7 +18,7 @@ chk('usa EXATAMENTE a mesma chave do compose (salt compartilhada)', pw.includes(
 chk('mesma identidade de voz (resolveTtsVoiceIdentity)', pw.includes('resolveTtsVoiceIdentity(script, speed, vertical, narrationTier, language, model)'))
 chk('hit de cache = retorna sem sintetizar', pw.includes('if (hit) return NextResponse.json({ warmed: true, cached: true })'))
 chk('NUNCA devolve erro fatal (fire-and-forget seguro)', pw.includes("reason: 'error'") && !pw.includes('status: 500'))
-chk('teto anti-abuso no script', pw.includes('script.length > 4000'))
+chk('teto anti-abuso no script', pw.includes('raw.length > 4000'))
 
 console.log('\nB) A salt tem fonte única')
 chk('lib/compose exporta VOICEOVER_ENGINE_VERSION', cod('lib/compose.ts').includes("export const VOICEOVER_ENGINE_VERSION = 'v2-push93-section-ellipsis'"))
@@ -38,6 +38,22 @@ chk('o contador de cenas continua (k/N done)', g.includes('${falClipsDone.done}/
 
 console.log('\nE) Item 3 (Kling paralelo) foi CORTADO por decisão — nada mudou lá')
 chk('submitAllScenes segue com a política serial/paralela original', ler('app/api/generate-video-cinematic/route.ts').includes('kept serial when unsure'))
+
+console.log('\nF) AUDITORIA 28/08 — os 2 bugs pegos antes do push nunca podem voltar')
+// BUG 1: o compose faz hash do script DEPOIS de stripScriptMarkers; a v1 do
+// prewarm fazia hash do CRU → chave sempre diferente → cache nunca acertava
+// e o TTS era pago DUAS vezes. A prova: o prewarm deriva com as MESMAS duas
+// funções do compose, na mesma ordem (strip → salvage).
+chk('prewarm deriva o script com stripScriptMarkers (igual ao compose)', pw.includes('stripScriptMarkers(raw)'))
+chk('prewarm tem o fallback salvage (igual ao compose)', pw.includes('salvageScriptNarration(raw)'))
+chk('prewarm NÃO faz hash do texto cru', !cod('app/api/prewarm-voiceover/route.ts').includes('body.script.trim()'))
+// BUG 2: hollywood/h3/omni narram POR CENA — o compose retorna antes do cache
+// de trilho único. Aquecer ali = um TTS inteiro pago que ninguém lê. Idem com
+// voz própria/clonada. O gatilho do cliente exclui os quatro casos.
+chk('cliente não aquece hollywood', g.includes("falQualityRef.current !== 'cinematic_hollywood'"))
+chk('cliente não aquece h3 nem omni', g.includes("falQualityRef.current !== 'cinematic_h3'") && g.includes("falQualityRef.current !== 'cinematic_omni'"))
+chk('cliente não aquece com voz própria ou clonada', g.includes('!myVoiceUrl && !useClonedVoice'))
+chk('o guard governa o disparo', g.includes('prewarmUsesSingleTrackCache && typeof data.voiceover_script'))
 
 console.log(`\n═══ ${ok} passaram, ${bad} falharam ═══\n`)
 process.exit(bad === 0 ? 0 : 1)
