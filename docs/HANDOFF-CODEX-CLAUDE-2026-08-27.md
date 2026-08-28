@@ -625,6 +625,22 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa externa foi observada atravessando a sequência nova `script/ideia visível no cadastro → signup → generate → completed → checkout → paid`. Build verde e UI publicada não serão chamados de conversão ou assinatura.
 - **NÃO TOCADO:** checkout, preço, grant, oferta, Supabase, Storage, migration, autenticação, `GenerateClient`, render, cena, legenda, motor, e-mail, outreach e tráfego pago.
 
+### 2.43 O segundo vídeo vem antes do paywall para quem ainda não provou repetição
+
+**FATO CONFIRMADO / IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO EM PRODUÇÃO (28/08/2026).** Commit funcional `ef83db57d98df9dcc3774792d12b04a2ce1a0a09`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):** 24 pessoas vindas do ChatGPT tinham exatamente um vídeo concluído e 2 chegaram ao checkout; entre 6 pessoas com dois ou mais vídeos, 3 chegaram ao checkout. **HIPÓTESE:** a repetição de valor antes da cobrança aumenta a propensão a considerar assinatura. A amostra é pequena e observacional; não prova causalidade.
+- **FATO CONFIRMADO:** na versão anterior a `ef83db5`, uma pessoa gratuita com exatamente um vídeo via Starter como botão principal e a continuação da série como secundária. O código já possuía o handoff de episódio 2 e eventos separados, mas a hierarquia contrariava o sinal observado (`app/(dashboard)/history/HistoryClient.tsx`, versão anterior; `lib/seriesContinuation.ts`).
+- A política agora tem três estados executáveis: `episode_primary` para exatamente um vídeo e oferta elegível; `subscription_primary` para dois ou mais vídeos e oferta elegível; `episode_only` para assinantes ou quem não deve receber a oferta (`lib/growth/historyMilestone.ts:1-20`). Contagem inválida ou zero falha fechada sem card.
+- No primeiro vídeo, “Build Episode 2” vira a ação azul principal e Starter permanece visível como alternativa, com créditos e preço derivados das fontes canônicas. A partir do segundo vídeo, Starter continua sendo a ação principal e a continuação permanece secundária. Assinantes com catálogo veem “Build Next Episode”, nunca são rebatizados como episódio 2 (`app/(dashboard)/history/HistoryClient.tsx:844-1014`).
+- O clique de continuação preserva `series_continue_clicked`; o checkout preserva `history_first_video_offer_clicked` e `history_repeat_offer_clicked`. Nenhum evento, endpoint ou operação de banco foi criado. O handoff abre a revisão em `/generate` e não inicia render sozinho (`lib/seriesContinuation.ts:18-33`).
+- **TESTADO LOCALMENTE:** política e caller `44/44`; ativação/recuperação `34/34`; oferta pós-vídeo `45/45`; indicação no histórico `55/55`; verdade comercial `305/305`; total de 483 verificações. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- **VALIDAÇÃO VISUAL:** `docs/previews/HISTORY-SECOND-VIDEO-MILESTONE-2026-08-28.html` compara antes/depois em desktop e mobile. Foi servido somente em localhost, retornou `200`, teve DOM e captura integral conferidos; a revisão encontrou e corrigiu o rótulo de assinantes com mais de um vídeo antes do commit.
+- **PUBLICADO EM PRODUÇÃO (28/08/2026):** o status público do commit no GitHub retornou `Vercel: success`, target `GnKjiZE6dFDiADNv89sSTmnNDVYD`. Não houve smoke autenticado, clique, checkout ou execução de JavaScript em produção durante o incidente de capacidade.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; fundador e Claude conduzem o incidente. O Codex não consultou Supabase, Storage, sessão autenticada ou render. Esses `402` são incidente de capacidade, não abandono atribuído a esta variante.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** não existe pessoa externa observada na variante nova. Depois da normalização, comparar atores em `history_first_video_offer_viewed → series_continue_clicked → series_continuation_landed → generate_completed → checkout_started → payment_success`, sem chamar clique, segundo vídeo ou checkout de assinatura.
+- **NÃO TOCADO:** preço, grant, SKU, termos, checkout, Supabase, Storage, migration, autenticação, `GenerateClient`, pipeline de render, cena, legenda, motor, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
