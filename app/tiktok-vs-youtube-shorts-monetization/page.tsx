@@ -3,14 +3,16 @@
 // monetization" / "which pays more" is dominated by thin micro-sites. This page
 // is an honest, balanced side-by-side of the two monetization models, with a
 // comparison table, an estimated-earnings band (clearly labeled as estimates)
-// and accurate-as-of-2026 program requirements. Server component, force-static,
-// zero client JS. Visual style mirrors app/state-of-ai-shorts-2026 and
+// and accurate-as-of-2026 program requirements. The article stays force-static;
+// one client island turns the comparison into a measured first-video route.
+// Visual style mirrors app/state-of-ai-shorts-2026 and
 // app/facts. JSON-LD: FAQPage (mirrors the visible FAQ) + BreadcrumbList.
 // Verdict is deliberately not a single-platform answer — the honest winner is
 // posting the same 9:16 export to both, which is Kineo's whole pitch.
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import PlatformDecisionClient from './PlatformDecisionClient'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -305,28 +307,14 @@ export default function TikTokVsYouTubeShortsPage() {
 
         <section style={{ ...CARD, padding: '20px 20px', margin: '0 0 48px', borderColor: ACCENT }}>
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
-            Make it once, post it everywhere
+            Pick your first platform — then leave with a video concept
           </h2>
           <p style={{ color: '#d2d2d7', lineHeight: 1.6, fontSize: '0.95rem', margin: '0 0 14px' }}>
-            Kineo turns one typed idea into a finished faceless video and exports one clean
-            9:16 MP4 you post to YouTube Shorts, TikTok <em>and</em> Instagram Reels — no
-            watermark down-ranking, no re-editing per platform. {ft(OFFER, 'Generate up to 3 free videos every 24 hours, no card.', OFFER.copy.headline)}
+            Your best starting platform depends on the result you need and the content you
+            make. Choose both below and get a practical first move — plus a starter concept
+            that follows you into Kineo. {ft(OFFER, 'Generate up to 3 free videos every 24 hours, no card.', OFFER.copy.headline)}
           </p>
-          <a
-            href="https://www.usekineo.com/free-ai-shorts-generator?utm_source=tiktok-vs-shorts&utm_medium=seo&utm_campaign=seo-sprint"
-            style={{
-              display: 'inline-block',
-              background: ACCENT,
-              color: '#000',
-              fontWeight: 700,
-              padding: '12px 22px',
-              borderRadius: 10,
-              textDecoration: 'none',
-              fontSize: '0.95rem',
-            }}
-          >
-            Generate a free Short →
-          </a>
+          <PlatformDecisionClient />
         </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>
