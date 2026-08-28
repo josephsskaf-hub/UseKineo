@@ -9,6 +9,11 @@ import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import AffiliateLandingContext from '@/components/AffiliateLandingContext'
+import {
+  affiliateLandingContext,
+  type PublicSearchParams,
+} from '@/lib/growth/affiliateLandingContext'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -82,8 +87,9 @@ export const metadata: Metadata = {
   },
 }
 
-export default function FreeAiShortsGeneratorPage() {
+export default function FreeAiShortsGeneratorPage({ searchParams }: { searchParams?: PublicSearchParams }) {
   const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&create_intent=fast`
+  const partnerContext = affiliateLandingContext(searchParams, 'video')
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 850, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '16px 18px' }
@@ -113,6 +119,7 @@ export default function FreeAiShortsGeneratorPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, '\\u003c') }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
       <div style={{ maxWidth: 880, margin: '0 auto', padding: '64px 20px 88px' }}>
+        <AffiliateLandingContext context={partnerContext} targetId={FORM_ID} />
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 850, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
           Free AI Shorts Generator
         </span>

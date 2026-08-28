@@ -16,6 +16,7 @@ import {
   sanitizePublicVideoId,
   sanitizePublicVideoRemixTopic,
 } from '@/lib/publicVideoRemix'
+import { affiliateLandingContext } from '@/lib/growth/affiliateLandingContext'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
@@ -66,6 +67,7 @@ export default function FreeScriptGeneratorPage({ searchParams }: { searchParams
   const sourceVideoId = sanitizePublicVideoId(first(searchParams?.source_video_id))
   const fromPublicVideo = first(searchParams?.utm_source) === 'public_video' &&
     first(searchParams?.utm_campaign) === PUBLIC_VIDEO_REMIX_CAMPAIGN
+  const partnerContext = affiliateLandingContext(searchParams, 'script')
   return (
     <>
       <script
@@ -73,6 +75,7 @@ export default function FreeScriptGeneratorPage({ searchParams }: { searchParams
         dangerouslySetInnerHTML={{ __html: JSON.stringify(TOOL_JSON_LD) }}
       />
       <FreeScriptClient
+        affiliateContext={partnerContext}
         initialTopic={initialTopic}
         sourceVideoId={fromPublicVideo ? sourceVideoId : ''}
         fromPublicVideo={fromPublicVideo}

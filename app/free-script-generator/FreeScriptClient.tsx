@@ -6,7 +6,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
+import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import { trackEvent } from '@/lib/analytics'
+import type { AffiliateLandingContextCopy } from '@/lib/growth/affiliateLandingContext'
 
 const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 
@@ -69,12 +71,14 @@ function parseScript(raw: string): Line[] {
 }
 
 type Props = {
+  affiliateContext?: AffiliateLandingContextCopy | null
   initialTopic?: string
   sourceVideoId?: string
   fromPublicVideo?: boolean
 }
 
 export default function FreeScriptClient({
+  affiliateContext = null,
   initialTopic = '',
   sourceVideoId = '',
   fromPublicVideo = false,
@@ -152,6 +156,12 @@ export default function FreeScriptClient({
           <Link href="/pricing" style={{ color: '#86868b', textDecoration: 'none', fontSize: '0.8rem' }}>Pricing</Link>
         </div>
 
+        {affiliateContext ? (
+          <div style={{ marginTop: 24 }}>
+            <AffiliateLandingContext context={affiliateContext} targetId="free-script-generator-tool" />
+          </div>
+        ) : null}
+
         {/* Hero */}
         <section style={{ marginTop: 32, textAlign: 'center' }}>
           <div style={{ display: 'inline-block', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.05em', textTransform: 'uppercase', color: '#2997ff', background: 'rgba(41,151,255,0.1)', borderRadius: 999, padding: '6px 14px' }}>
@@ -166,7 +176,7 @@ export default function FreeScriptClient({
         </section>
 
         {/* Tool */}
-        <section style={{ marginTop: 26, ...CARD, borderRadius: 16, padding: 18 }}>
+        <section id="free-script-generator-tool" style={{ marginTop: 26, ...CARD, borderRadius: 16, padding: 18 }}>
           <textarea
             value={topic}
             onChange={(e) => setTopic(e.target.value)}

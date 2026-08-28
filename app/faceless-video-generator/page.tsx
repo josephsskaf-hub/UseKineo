@@ -11,6 +11,11 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MONTH } from '@/lib/marketingPrice'
+import AffiliateLandingContext from '@/components/AffiliateLandingContext'
+import {
+  affiliateLandingContext,
+  type PublicSearchParams,
+} from '@/lib/growth/affiliateLandingContext'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -71,11 +76,12 @@ export const metadata: Metadata = {
   },
 }
 
-export default function FacelessVideoGeneratorPage() {
+export default function FacelessVideoGeneratorPage({ searchParams }: { searchParams?: PublicSearchParams }) {
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.8rem)', fontWeight: 850, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '17px 18px' }
   const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&create_intent=fast&intent_campaign=${CAMPAIGN}`
+  const partnerContext = affiliateLandingContext(searchParams, 'faceless')
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -142,6 +148,7 @@ export default function FacelessVideoGeneratorPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd).replace(/</g, '\\u003c') }} />
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '64px 20px 88px' }}>
+        <AffiliateLandingContext context={partnerContext} targetId={FORM_ID} />
         <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 850, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#2997ff', border: '1px solid rgba(41,151,255,0.4)', background: 'rgba(41,151,255,0.12)', borderRadius: 999, padding: '6px 12px' }}>
           Faceless video generator
         </span>
