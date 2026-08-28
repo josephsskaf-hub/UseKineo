@@ -979,3 +979,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** UI visível, Supabase, Storage, migration, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, `GenerateClient.tsx`, e-mail, outreach, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `2e84934` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade do Supabase e qualidade de render. Ambos devem executar `git fetch origin` antes de iniciar uma nova worktree.
+
+## 15. Fluxo pós-cadastro — home aprovada com próximo passo por objetivo (28/08/2026)
+
+**BASE LIDA:** `f3ffd95e2939811352c09fc630fc1e0a90c358ed`.
+
+**SHA FUNCIONAL:** `7b7ddc4c5ccfa76459099b6dd7f26532cf0656ad`.
+
+**FATO CONFIRMADO / GARGALO:** o fundador aprovou a home como pouso pós-cadastro para que a pessoa veja primeiro os quatro motores. O cadastro sem ideia preserva isso: `activationRedirectFromSearch()` monta `/?welcome=1` (`app/(auth)/signup/page.tsx:23-50`), e o callback respeita o `next` explícito, acrescentando `signup=1` para conta nova (`app/auth/callback/route.ts:48-59`). Antes deste commit, porém, o roteador creator/business/agency existia somente dentro de `/generate` por `NicheOnboarding`; a conta que pousava na home via o showroom e seguia para seções genéricas, sem próximo passo alinhado ao trabalho que queria concluir.
+
+**IMPLEMENTADO:** somente uma sessão autenticada com `?welcome=1` recebe o novo bloco na home (`app/page.tsx:72-116`). A ordem aprovada do hero permanece Veo 3.1 → Kling 3 → MiniMax H3 → Omni Flash e o roteador entra depois de `</header>` (`app/KineoLanding.tsx:1044-1053`). As três escolhas reutilizam a fonte `ONBOARDING_GOALS`, sem bifurcar copy nem seleção de motor: `Grow my channel`, `Promote my business` e `Create for clients` (`lib/growth/onboardingGoals.ts:20-51`; `components/HomeWelcomeGoalRouter.tsx:8-44`).
+
+**FATO CONFIRMADO / CONVERSÃO SEGURA:** cada escolha abre `/studio/create` com uma ideia editável, `autoanalyze=1`, `intent_campaign=growth_home_welcome_goal_router_20260828` e `onboarding_goal=<creator|business|agency>`. Nenhuma URL contém `create_intent`; escolher um objetivo não inicia render nem gasta crédito (`lib/growth/onboardingGoals.ts:64-77`). O roteador é Server Component de zero JavaScript próprio: não usa hook, `fetch`, analytics, nova API ou evento. Isso evita adicionar escrita ao Supabase durante o incidente de capacidade.
+
+**TESTADO LOCALMENTE:** `test-home-welcome-goal-router` 38/38; whitespace limpo. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/home-welcome-goal-router-2026-08-28.html` contém antes/depois desktop e mobile 390 px. O comparativo foi publicado em deploy preview isolado `dpl_A4mcPro1Wo6kE7sjPCDooMqzEArp`, inspecionado visualmente em 28/08/2026 e nunca enviado para `main`. No desktop, showroom e ordem dos quatro motores permanecem primeiro e o novo bloco tem hierarquia/contraste legíveis; no mobile de 390 px, os três objetivos empilham em uma coluna, sem texto cortado. A página completa apresentou `scrollWidth <= clientWidth`, sem overflow horizontal.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_5xUKQkj7vFPmH3g8e3KDkhj6ZcLT` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. A Vercel registrou zero erro de runtime em `/` nos 15 minutos consultados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** o caminho autenticado real não foi executado em produção nesta rodada. Fazer esse smoke exigiria sessão/Supabase e poderia criar eventos enquanto a capacidade está esgotada; o fundador e Claude conduzem o incidente. A evidência atual prova código, contrato de URL, render visual e deploy, mas a classificação honesta é **IMPLEMENTADO, TESTADO LOCALMENTE E DEPLOY VALIDADO**, não `VALIDADO EM PRODUÇÃO` end-to-end do clique autenticado.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`. Codex não consultou nem escreveu em Supabase, Storage, banco, migration, autenticação ou render nesta entrega. Esses `402` continuam classificados como indisponibilidade de capacidade, não abandono voluntário nem falha atribuída ao roteador; não declarar que renders estão perfeitos.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa, cadastro, checkout ou assinatura foi atribuída ao roteador. Depois da normalização do Supabase, medir pessoas em `intent_campaign=growth_home_welcome_goal_router_20260828` e separar `onboarding_goal`; publicação e deploy não serão chamados de aquisição.
+
+**NÃO TOCADO:** os quatro vídeos e suas fontes, `GenerateClient.tsx`, Supabase, Storage, migration, banco, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, e-mail, outreach, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir de `7b7ddc4` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade e o pipeline de render. Ambos devem executar `git fetch origin` antes de qualquer nova worktree; não duplicar este roteador.
