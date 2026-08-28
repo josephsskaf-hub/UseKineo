@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada depois da entrega mais recente:** `3d52526785e85e7de0e7d17132d36c324b7aa0ff`
+- **Base remota confirmada depois da entrega mais recente:** `57f0f326d08b0ec7b199fbe86bdb68cf9504a629`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -188,6 +188,21 @@
 - O smoke não clicou no CTA nem executou checkout para não fabricar intenção ou sessão Stripe.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum visitante humano foi observado nessa variante ainda. Medir atores do novo funil antes de mudar a oferta B2B outra vez.
 
+### 2.14 Verdade da conversão da oferta de assinatura pós-vídeo
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `57f0f326d08b0ec7b199fbe86bdb68cf9504a629`.
+
+- O painel antigo chamava de “Post-video” apenas a caixa avulsa de exportação limpa e ignorava os eventos da oferta recorrente do trial. As duas superfícies continuam separadas; nenhuma linha bruta foi rebatizada como pessoa (`app/api/admin/funnel/route.ts`; `app/(dashboard)/admin/funnel/FunnelClient.tsx`).
+- O novo funil exige a mesma pessoa e a ordem `trial_post_video_offer_viewed → trial_post_video_offer_clicked → checkout_started → payment_success`. Checkout posterior sem clique aparece como diagnóstico, mas não é atribuído à oferta (`lib/admin/trialPostVideoFunnel.ts`).
+- A tabela separa origem pelo resolvedor canônico `acquisitionSource`: ChatGPT, TAAFT e demais origens não são misturadas.
+- A variante recém-publicada `offer_layout=single_primary_v1` tem contadores próprios. **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, 27/08/2026):** não havia visualização externa dessa variante desde o deploy; portanto, nenhuma nova mudança de copy ou oferta foi feita sem amostra.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 30 dias lida em 27/08/2026, contas internas excluídas):** 231 pessoas viram a oferta recorrente do trial, 22 clicaram, 22 chegaram ao checkout depois do clique e zero `payment_success` ocorreu depois dessa cadeia. Por origem: ChatGPT 79→5→5→0; TAAFT 90→11→11→0; outras origens 62→6→6→0.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 3 dias lida em 27/08/2026):** nove pessoas viram a oferta e nenhuma clicou; dois usuários ChatGPT chegaram a checkout por outra superfície depois de ver o card, e por isso não foram atribuídos a ele.
+- Testes: funil causal `32/32`; regressões de Growth relacionadas `525/525`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/TRIAL-POSTVIDEO-FUNNEL-2026-08-27.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_37NopodYv1qxyPk7ut8GA64YaVwE` em estado `READY`; endpoint sem sessão respondeu HTTP 403, preservando a proteção administrativa; zero erro runtime no projeto nos 15 minutos consultados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o primeiro ator externo da variante `single_primary_v1` ainda não foi observado. Medir antes de alterar a oferta novamente.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
@@ -214,7 +229,8 @@
 - 241 criadores concluíram 402 vídeos.
 - 76 pessoas chegaram a páginas de vídeo público e nenhuma pessoa clicou no CTA antigo.
 - No handoff do primeiro vídeo: 149 pessoas viram, 39 clicaram na ação principal, 29 despacharam e 12 concluíram.
-- Na oferta pós-vídeo: 220 pessoas viram, 1 clicou em exportação limpa, 2 abriram checkout e nenhuma assinatura foi atribuída nessa janela.
+- Na caixa avulsa de exportação limpa: 220 pessoas viram, 1 clicou em exportação limpa, 2 abriram checkout e nenhuma assinatura foi atribuída nessa janela.
+- Na oferta recorrente do trial, medida separadamente e por pessoa: 231 viram, 22 clicaram, 22 chegaram ao checkout depois do clique e nenhuma pagou depois dessa cadeia.
 - **Leitura:** o remix sem cadastro ataca um abandono observado diferente de Plan Fit e da oferta pós-vídeo; não repete essas ações.
 
 ## 4. Validação técnica consolidada
