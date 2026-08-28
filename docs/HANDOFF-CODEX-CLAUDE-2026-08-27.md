@@ -203,6 +203,21 @@
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_37NopodYv1qxyPk7ut8GA64YaVwE` em estado `READY`; endpoint sem sessão respondeu HTTP 403, preservando a proteção administrativa; zero erro runtime no projeto nos 15 minutos consultados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** o primeiro ator externo da variante `single_primary_v1` ainda não foi observado. Medir antes de alterar a oferta novamente.
 
+### 2.15 Remix com tema próprio nas páginas permanentes de exemplo
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `c1adaa71d4a5e5568743e0d4ad34720498e7f893`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 30 dias lida em 27/08/2026, contas internas excluídas):** as seis páginas `/examples/[slug]` tiveram 176 atores e 165 atores deram play. Atribuições anteriores `example_watch`/`examples` somaram três cadastros e dois deles concluíram vídeo; esses números são anteriores à variante nova e não provam causalidade dela.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, 14 dias lidos em 27/08/2026):** o overlay `push31` teve 12 atores, todos deram play, sete chegaram ao fim e nenhum clicou no CTA. A porta dizia “my topic”, mas o código entregava ao Studio o prompt original do exemplo.
+- O fim do vídeo agora aponta para o formulário da própria página, em vez de navegar com o assunto antigo (`app/examples/[slug]/page.tsx:87`; `app/examples/ExampleVideoPlayer.tsx:117`).
+- O visitante informa o próprio tema; o helper sanitiza, limita a 140 caracteres e troca somente o assunto, preservando a estrutura de hook e direção visual do exemplo (`lib/growth/exampleRemix.ts:5-39`). O handoff continua usando `/generate`; nenhum render ou geração automática foi introduzido.
+- O formulário mede impressão somente quando 50% visível e deduplica por sessão. A submissão grava slug e comprimento, nunca o tema bruto (`app/examples/ExampleRemixForm.tsx:21-62`).
+- O admin mede atores identificáveis em `form viewed → topic submitted`; cadastros vêm da UTM persistida no perfil e ativação exige vídeo `completed` (`app/api/admin/funnel/route.ts:1215-1260`; `app/(dashboard)/admin/funnel/FunnelClient.tsx:744`).
+- Testes: `test-example-remix.mjs` `54/54`; regressões relacionadas `220/220`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/EXAMPLE-REMIX-2026-08-27.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (28/08/2026 UTC / 27/08 BRT):** deploy `dpl_4ZVYskTAoDYeEn2gHfQzSfuGox9G` em estado `READY`, aliasado em `www.usekineo.com`. GET sem JavaScript respondeu HTTP 200, encontrou formulário e âncora novos e confirmou ausência do CTA antigo; nenhum evento artificial foi emitido. Zero erro/fatal no runtime do deploy nos 15 minutos consultados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum ator externo da campanha `example_remix_v1` foi observado ainda. Medir `View → Topic → Signup → Video` antes de alterar novamente essa superfície.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
