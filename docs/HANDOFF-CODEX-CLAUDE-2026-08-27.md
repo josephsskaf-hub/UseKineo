@@ -318,6 +318,19 @@
 - **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_E6t8T5iu21umBbNemyPx7wYYKukX` em estado `READY`, aliasado em `www.usekineo.com`. Um GET anônimo em `/api/paypal/checkout?tier=starter` terminou em `/signup`, provando que a rota carregou e o gate de autenticação barrou antes do provedor. `paypal_events` permaneceu em 0 e não houve erro runtime nas rotas `/api/paypal/checkout`, `/api/paypal/webhook` e `/api/paypal/return` nos 30 minutos consultados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum pagamento PayPal real foi executado. Antes de ligar os botões públicos, fazer um canário pago controlado e verificar criação/aprovação, webhook, grant exato e cancelamento/estorno. Não chamar esta integração de `VALIDADA EM PRODUÇÃO` ponta a ponta até essa prova.
 
+### 2.23 Retomada do checkout PayPal depois do login
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `f579851f9dd5f50b96c96aa54df3825c22a72bdc`.
+
+- **FATO CONFIRMADO:** `/api/paypal/checkout` autenticava antes de guardar o pedido. Um destinatário deslogado do e-mail de recuperação era enviado para `/signup?redirect=/pricing`; tier, periodicidade e a própria ação de checkout eram descartados (`app/api/paypal/checkout/route.ts`, estado anterior ao commit).
+- O novo resolvedor aceita somente `starter|basic|pro`, `monthly|annual` e o First Pack. Ele monta um retorno interno canônico e remove qualquer query estranha antes de atravessar autenticação (`lib/paypalCheckoutIntent.ts`).
+- Comprador deslogado agora entra em `/login?reason=checkout&redirect=<checkout PayPal exato>`. O login por senha, Google OAuth, Apple e o middleware já compartilham esse contrato same-origin; nenhuma nova autenticação foi criada.
+- O retorno recebe `resumed=1`. Se a sessão ainda não puder ser confirmada, a rota termina em `/pricing` com erro visível, em vez de alternar login e checkout indefinidamente.
+- O comentário do cron foi corrigido para descrever o caminho executado. O e-mail, destinatários, frequência e texto comercial não mudaram; nenhum e-mail foi enviado nesta sprint.
+- Testes: contrato PayPal `71/71`, agora executando a própria rota com Supabase e provedor mockados. Cobre Creator mensal, Studio anual, pack, tier inválido, remoção de query arbitrária, loop retomado e zero chamada ao provedor nos caminhos anônimos. Contrato comercial `305/305`; whitespace limpo. TypeScript com os mesmos cinco erros preexistentes, nenhum nesta entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_BC5p9s5ahWvRSnNS75EbTit5aHUS` em estado `READY`. GET anônimo em `?tier=basic` respondeu 307 para `/login?reason=checkout&redirect=%2Fapi%2Fpaypal%2Fcheckout%3Ftier%3Dbasic%26billing%3Dmonthly%26resumed%3D1`. O mesmo GET com `resumed=1` respondeu 307 para `/pricing?checkout_error=...`, provando o término do loop. `paypal_events` permaneceu em 0 e não houve erro runtime em checkout/login/pricing nos 20 minutos consultados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o retorno autenticado até a tela de aprovação do PayPal ainda exige o canário pago controlado já registrado no item 2.22. O smoke desta entrega deliberadamente parou antes de autenticar e antes do provedor.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
