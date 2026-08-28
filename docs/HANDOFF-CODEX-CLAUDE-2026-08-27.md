@@ -140,6 +140,22 @@
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_CNtW9mGRaYdTBx2ud3qAGTRow7N5` em estado `READY`, aliasado em `www.usekineo.com`; `origin/main` e o commit entregue coincidem; zero erro runtime em `/generate`, `/studio/create` e `/api/admin/funnel` nos 30 minutos observados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** o navegador de validação não tinha sessão Kineo e foi corretamente redirecionado para `/signup`; portanto, o clique real no modal logado não deve ser classificado como validado em produção até uma sessão autenticada exercitar o fluxo. O contrato executável cobre seleção → análise → despacho → término sem disparar render no teste.
 
+### 2.11 Kit de campanha por audiência para afiliados
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `3f90bf871eeaa6c5fd013c6050bfb81557040f3a`.
+
+- O painel do afiliado deixou de entregar somente um link genérico. Agora o parceiro escolhe entre três destinos allow-listed: gerador gratuito de roteiro, teste gratuito de AI Shorts ou fluxo faceless (`lib/affiliateDestinations.ts`; `app/(dashboard)/affiliate/page.tsx`).
+- Cada destino recebe UTM própria, caption pronta e roteiro falado curto. Quando existe cupom, o código e o desconto real de primeiro mês entram automaticamente nos dois textos.
+- O link continua canônico em `www.usekineo.com/a/[code]`, aceita apenas o enum `script | video | faceless` e preserva o mesmo first-touch de 90 dias. Nenhum redirect arbitrário foi introduzido.
+- Eventos novos: `affiliate_campaign_selected` e `affiliate_campaign_asset_copied`, ambos com destino allow-listed; cópia de link e compartilhamento também carregam o destino selecionado.
+- O admin de afiliados agora separa visitas cruas por destino (`script`, `video`, `faceless`, `legacy`) usando `affiliate_clicks.landing_path`; a UI diz explicitamente “raw link visits”, sem chamar linhas de pessoas (`app/api/admin/affiliates/route.ts`; `app/(dashboard)/admin/affiliates/page.tsx`).
+- A página pública `/partners` explica que o programa entrega um kit por audiência, não apenas um link (`app/partners/page.tsx`).
+- **EVIDÊNCIA DE PRODUÇÃO (lida em 27/08/2026 antes da variante):** 11 afiliados externos, 17 cliques, 0 signup atribuído. Esses números motivaram a entrega e não devem ser atribuídos ao kit novo.
+- Testes: `test-affiliate-destinations.mjs` `177/177`; contrato comercial `305/305`; TypeScript com apenas os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/AFFILIATE-CAMPAIGN-KIT-2026-08-27.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_DDpM3VXJSWsUQUaB9n75FTb9kjtd` em estado `READY`, aliasado em `www.usekineo.com`; `/partners` mostrou o kit e `/free-script-generator`, `/free-ai-shorts-generator` e `/faceless-video-generator` carregaram com o conteúdo correto; zero erro runtime nas rotas observadas.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum link financeiro de afiliado real foi clicado no smoke de produção e nenhuma conta alheia foi usada. A rota, os três redirects, a criação de prova, cookies first-touch, dedupe e rejeição de destino inseguro estão cobertos pelo teste executável; o primeiro clique humano de cada variante ainda precisa ser observado no admin.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
