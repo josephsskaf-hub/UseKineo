@@ -839,3 +839,13 @@ PRÓXIMO DONO:
 **HIPÓTESE:** uma resposta exata acima da dobra e um handoff que preserva o trabalho podem recuperar parte do CTR perdido e transformar intenção orgânica em cadastro. **QUESTÃO PENDENTE / DESCONHECIDO:** aguardar nova janela do Search Console e medir cliques/cadastros pelo campaign `script_library_space_exoplanet_40s`; publicação não é aquisição e nenhum assinante foi atribuído a esta mudança.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas. Claude continua o incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin` e partir de `aa34c699` ou da ponta posterior de `origin/main`.
+
+## 10. Distribuição orgânica — recaptura prioritária no Google (28/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; janela 01/07–26/08/2026):** antes de construir outra página, Codex comparou as consultas seguintes. `how much do youtube shorts pay` teve 22 impressões, zero clique e posição média 46,8, atribuído somente a `/how-much-do-youtube-shorts-pay`; `text to video for youtube shorts` teve 12 impressões, zero clique e posição média 69,3, atribuído somente a `/text-to-video-shorts`; `cineo` teve 27 impressões, zero clique e posição média 77,6, atribuído somente a `/pricing`. As páginas de payout e text-to-video já têm, respectivamente, calculadora + gerador de tópico e formulário + prova em vídeo; não foi feita uma reescrita duplicada para buscas ainda nas posições 46–78.
+
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Search Console, 28/08/2026):** a inspeção de `https://www.usekineo.com/scripts/space` confirmou `O URL está no Google`, `A página está indexada`, HTTPS válido e um breadcrumb válido. Como o conteúdo e a metadata foram materialmente alterados nos commits `7fcbb050`/`aa34c699`, Codex solicitou nova indexação. O painel confirmou `Indexação solicitada` e informou que a URL entrou na fila de rastreamento prioritário.
+
+**LIMITE:** solicitar indexação não muda posição nem prioridade por repetição e não garante clique, cadastro ou venda. Não reenviar a mesma URL; aguardar a nova captura e comparar a consulta exata na próxima janela disponível.
+
+**NÃO TOCADO:** nenhum arquivo de produto, banco, Supabase, render, preço, oferta, e-mail, outreach ou anúncio foi alterado nesta ação. Foi uma ação de distribuição sobre a URL editorial já validada.
