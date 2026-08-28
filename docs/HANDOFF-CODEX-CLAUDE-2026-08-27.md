@@ -1007,3 +1007,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** os quatro vídeos e suas fontes, `GenerateClient.tsx`, Supabase, Storage, migration, banco, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, e-mail, outreach, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir de `7b7ddc4` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade e o pipeline de render. Ambos devem executar `git fetch origin` antes de qualquer nova worktree; não duplicar este roteador.
+
+## 16. Aquisição ChatGPT/TAAFT — referência real ativa a ponte de valor (28/08/2026)
+
+**BASE LIDA:** `6a7288406178c0ca50a8f4c37684fc76cfbe04e1`.
+
+**SHA FUNCIONAL:** `eb2a9f3210b13a55f05d247171169ce7a1c5d2b6`.
+
+**FATO CONFIRMADO / GARGALO:** a home já tinha uma ponte específica que mantém o showroom aprovado e, logo depois, oferece ao visitante vindo de ChatGPT/TAAFT um teste de roteiro antes do cadastro. O detector, porém, lia somente `utm_source` e o parâmetro legado `ref` (`lib/growth/homeReferralBridge.ts`, versão anterior a `eb2a9f3`). Um clique externo normal que chegasse somente com o cabeçalho HTTP `Referer` não ativava a ponte e recebia a home genérica.
+
+**IMPLEMENTADO:** `app/page.tsx` agora passa `headers().get('referer')` ao resolver da ponte. `homeReferralBridgeSource()` reutiliza `acquisitionSource()`, a política canônica já usada pelo ledger de aquisição: UTM explícito continua vencendo, os hosts próprios continuam filtrados, `chatgpt.com` vira `chatgpt` e `theresanaiforthat.com` vira `taaft`. A URL completa de referência não é armazenada, exibida nem enviada; ela é reduzida em memória ao rótulo canônico antes do render.
+
+**FATO CONFIRMADO / ESCOPO:** esta entrega não altera a aparência, copy ou posição da ponte existente; só fecha o caminho de detecção. Não cria evento, API, `fetch`, cookie, sessão, escrita ou leitura adicional no Supabase. A home já era dinâmica e já lia autenticação; ler o cabeçalho não acrescenta dependência de banco.
+
+**TESTADO LOCALMENTE:** `test-home-referral-bridge` 66/66. Os casos executáveis cobrem referência ChatGPT sem UTM, referência TAAFT sem UTM, UTM não alvo vencendo sobre a referência, self-referral bloqueado e valor malformado fail-closed. Whitespace limpo. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**VALIDAÇÃO VISUAL:** não houve edição de UI. A ponte continua usando a comparação visual já aprovada em `docs/previews/HOME-REFERRAL-BRIDGE-2026-08-28.html`; nenhum novo before/after foi criado para uma alteração invisível de roteamento.
+
+**DEPLOY VALIDADO (28/08/2026):** deploy Vercel `dpl_Aw55t1ZNBCm7ynjwU1g7gWGuwSek` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA exato `eb2a9f3`. A Vercel registrou zero erro de runtime em `/` nos 15 minutos consultados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** não foi feito GET sintético com `Referer` em produção. A home chama a autenticação já existente e o fundador pediu que Codex não acessasse Supabase durante o incidente de capacidade; a evidência atual prova função executada, caller, build/deploy e ausência de erro, mas não um smoke HTTP ponta a ponta com o cabeçalho real.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`. Joseph e Claude conduzem o incidente. Codex não consultou nem escreveu em Supabase, Storage, banco, migration, autenticação ou render nesta entrega. `402` continua sendo capacidade indisponível, não abandono voluntário.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhum visitante, cadastro, checkout ou assinante foi atribuído a este forward-fix. Depois da normalização da capacidade, medir pessoas da ponte por `acquisition_source=chatgpt|taaft` e pelos placements existentes; publicação não será chamada de aquisição.
+
+**NÃO TOCADO:** copy visual, quatro vídeos, `GenerateClient.tsx`, Supabase, Storage, migration, banco, render, motor, cena, legenda, crédito, preço, oferta, SKU, checkout, e-mail, outreach, TAAFT pago ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir de `eb2a9f3` ou da ponta posterior de `origin/main`. Claude continua o incidente de capacidade e o pipeline de render. Ambos devem executar `git fetch origin` antes de nova worktree; não reconstruir a ponte ChatGPT/TAAFT.
