@@ -125,6 +125,21 @@
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_CnJ4sTCVwf1hEJFa2XbkoF9a7jeP` em estado `READY`, aliasado em `www.usekineo.com`. O URL de remix carregou o gerador com o tópico pré-preenchido e sem geração automática; zero erro runtime em `/v/[id]`, `/free-script-generator` e `/api/admin/funnel` nos 30 minutos observados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** não existe hoje um `/v/[id]` público ativo para smoke de clique ponta a ponta: a biblioteca do fundador informa “Private by default” e “Public watch links are temporarily paused”. O contrato CTA → URL está coberto pelo teste executável; URL → tópico preenchido foi validado ao vivo. Não classificar um clique real como validado até existir uma escolha de visibilidade pública.
 
+### 2.10 Primeiro vídeo orientado pelo objetivo do cliente
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `b1a789b73bca8627ac0a16fce207d96bfbd2fc81`.
+
+- O onboarding deixou de oferecer o mesmo mistério para todos e agora pergunta o objetivo do primeiro vídeo: crescer o canal, promover a empresa ou criar para clientes (`components/NicheOnboarding.tsx`; `lib/growth/onboardingGoals.ts`).
+- “Grow my channel” continua selecionado por padrão; portanto, o caminho antigo de um clique permanece disponível.
+- Cada objetivo define tópico, hook e CTA próprios, sem alterar motor, preço, crédito, prompt de cena ou pipeline de render.
+- O objetivo selecionado atravessa a fronteira assíncrona até o despacho e os estados terminais. Os eventos `viral_onboarding_goal_selected`, `viral_onboarding_primary_clicked`, `cinematic_generation_started`, `cinematic_job_completed` e falhas recebem `variant=goal_router_v1` e `selected_goal` allow-listed.
+- O admin mede atores únicos, não linhas: visualização, clique, seleção, despacho e conclusão por objetivo (`app/api/admin/funnel/route.ts`; `app/(dashboard)/admin/funnel/FunnelClient.tsx`).
+- **EVIDÊNCIA DE PRODUÇÃO (janela de 30 dias lida em 27/08/2026):** 149 pessoas viram o handoff, 39 clicaram na ação principal, 29 chegaram ao despacho, 12 concluíram e 4 falharam. Esses números motivaram a segmentação; não são atribuídos à variante nova.
+- Testes: `test-onboarding-goal-router.mjs` `58/58`; contrato comercial `305/305`; TypeScript com apenas os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/ONBOARDING-GOAL-ROUTER-2026-08-27.html`, inspecionado em desktop e mobile. No mobile, as três opções ficam empilhadas e o CTA permanece visível.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_CNtW9mGRaYdTBx2ud3qAGTRow7N5` em estado `READY`, aliasado em `www.usekineo.com`; `origin/main` e o commit entregue coincidem; zero erro runtime em `/generate`, `/studio/create` e `/api/admin/funnel` nos 30 minutos observados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o navegador de validação não tinha sessão Kineo e foi corretamente redirecionado para `/signup`; portanto, o clique real no modal logado não deve ser classificado como validado em produção até uma sessão autenticada exercitar o fluxo. O contrato executável cobre seleção → análise → despacho → término sem disparar render no teste.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
