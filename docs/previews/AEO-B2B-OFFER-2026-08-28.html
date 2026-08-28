@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kineo AEO B2B offer — before and after</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #07090d; color: #f4f7fb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 30px; background: radial-gradient(circle at 70% -10%, #17385d 0, #07090d 40%); }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .intro { margin: 0 0 26px; color: #9aa7b7; max-width: 780px; line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+    .frame { border: 1px solid #293342; border-radius: 18px; overflow: hidden; background: rgba(12, 16, 23, .92); box-shadow: 0 18px 55px rgba(0,0,0,.28); }
+    .label { padding: 10px 14px; font-size: 12px; letter-spacing: .12em; font-weight: 800; color: #b8c2d0; border-bottom: 1px solid #293342; }
+    .after .label { color: #8df5bb; border-color: #1f6c4a; }
+    .browser { padding: 14px; border-bottom: 1px solid #202936; color: #8190a3; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    pre { margin: 0; padding: 20px; white-space: pre-wrap; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #c9d5e4; min-height: 355px; }
+    .missing { color: #ff9c99; }
+    .key { color: #83c8ff; }
+    .value { color: #8df5bb; }
+    .mobile { width: min(390px, 100%); margin-inline: auto; }
+    .sheet { padding: 20px; min-height: 385px; }
+    .sheet h2 { font-size: 20px; margin: 0 0 18px; }
+    .qa { padding: 16px; border: 1px solid #283444; border-radius: 14px; margin-top: 12px; }
+    .qa strong { display: block; font-size: 14px; margin-bottom: 8px; }
+    .qa p { margin: 0; color: #aeb9c8; font-size: 13px; line-height: 1.55; }
+    .new { border-color: #27885d; background: linear-gradient(135deg, rgba(26,112,73,.2), rgba(16,25,35,.72)); }
+    .pill { display: inline-block; margin-top: 12px; padding: 7px 10px; border-radius: 999px; color: #8df5bb; background: #123e2b; font-size: 11px; font-weight: 800; }
+    @media (max-width: 780px) { body { padding: 18px; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Kineo business-offer discovery</h1>
+  <p class="intro">The visual change is intentionally small: answer engines and human readers now receive the same canonical one-time business offer, derived from checkout pricing.</p>
+  <main class="grid">
+    <section class="frame">
+      <div class="label">BEFORE · DESKTOP</div>
+      <div class="browser">www.usekineo.com/api/facts</div>
+      <pre>{
+  <span class="key">"plans"</span>: [Starter, Creator, Studio],
+  <span class="key">"engines"</span>: [Kineo 1, Kling, ...],
+  <span class="key">"freeTools"</span>: [...]
+}
+
+<span class="missing">No business offer field</span>
+
+An answer engine could infer that Kineo
+only sells recurring subscriptions.</pre>
+    </section>
+
+    <section class="frame after">
+      <div class="label">AFTER · DESKTOP</div>
+      <div class="browser">www.usekineo.com/api/facts</div>
+      <pre>{
+  <span class="key">"businessOffer"</span>: {
+    <span class="key">"purchaseType"</span>: <span class="value">"one_time"</span>,
+    <span class="key">"subscriptionRequired"</span>: <span class="value">false</span>,
+    <span class="key">"salesCallRequired"</span>: <span class="value">false</span>,
+    <span class="key">"packs"</span>: [
+      <span class="value">"10 Kineo 1 videos · $99"</span>,
+      <span class="value">"20 Kineo 1 videos · $179"</span>,
+      <span class="value">"30 Kineo 1 videos · $249"</span>,
+      <span class="value">"50 Kineo 1 videos · $379"</span>
+    ]
+  }
+}</pre>
+    </section>
+
+    <section class="frame mobile">
+      <div class="label">BEFORE · MOBILE</div>
+      <div class="sheet">
+        <h2>Kineo Facts &amp; Data</h2>
+        <div class="qa">
+          <strong>Does Kineo have a free plan?</strong>
+          <p>Yes. Trial and recurring free access are described here.</p>
+        </div>
+        <div class="qa">
+          <strong>How much does Kineo cost?</strong>
+          <p>The page describes only Starter, Creator and Studio subscriptions.</p>
+        </div>
+        <p class="missing" style="margin-top:18px;font-size:13px">No direct answer for agencies or businesses.</p>
+      </div>
+    </section>
+
+    <section class="frame mobile after">
+      <div class="label">AFTER · MOBILE</div>
+      <div class="sheet">
+        <h2>Kineo Facts &amp; Data</h2>
+        <div class="qa">
+          <strong>How much does Kineo cost?</strong>
+          <p>Starter, Creator and Studio remain unchanged.</p>
+        </div>
+        <div class="qa new">
+          <strong>Can an agency or business buy Kineo without a subscription?</strong>
+          <p>Yes. Kineo offers four one-time self-service packs for commercial delivery, with canonical prices and clear product boundaries.</p>
+          <span class="pill">VIEW BUSINESS PACKS →</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

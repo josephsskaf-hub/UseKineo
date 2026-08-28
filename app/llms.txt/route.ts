@@ -26,8 +26,8 @@ import {
   START_HERE_FACT,
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
+  BUSINESS_OFFER_FACT,
 } from '@/lib/kineoFacts'
-import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 
 // force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
@@ -100,11 +100,8 @@ function buildLlmsTxt(): string {
       })()
     : `- Only the ${RECURRING_FREE_ACCESS.engine} engine is available on recurring free access. Generative engines require a paid credit balance.`
 
-  const agencyPackLines = BULK_PACK_IDS.map((id) => {
-    const pack = BULK_PACKS[id]
-    const price = formatCheckoutMoney('usd', pack.usdMinor)
-    const perVideo = formatCheckoutMoney('usd', Math.round(pack.usdMinor / pack.videos))
-    return `- **${pack.videos} Fast Shorts** — ${price} once (${perVideo} per Fast Short), ${pack.credits} universal credits.`
+  const agencyPackLines = BUSINESS_OFFER_FACT.packs.map((pack) => {
+    return `- **${pack.videos} ${BUSINESS_OFFER_FACT.namedVideoCountEngine} Shorts** — ${pack.priceUsd} once (${pack.pricePerFastVideoUsd} per Short), ${pack.credits} universal credits.`
   }).join('\n')
 
   const creationModeLines = ANSWER_ENGINE_CREATION_ROUTER.modes.map(
@@ -229,12 +226,10 @@ ${plans}
 
 ## One-time packs for agencies, freelancers and businesses
 
-- [AI Shorts for agencies](${BASE}/ai-shorts-for-agencies): buy a commercial batch without a subscription or sales call.
+- [AI Shorts for agencies](${BUSINESS_OFFER_FACT.url}): buy a commercial batch without a subscription or sales call.
 - [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
 ${agencyPackLines}
-- The named video count refers to Fast Mode. Credits are universal; premium generative engines spend more credits per video and reduce the output count.
-- Commercial delivery is allowed. The buyer owns the finished MP4s and can provide them to clients.
-- These are self-service packs for one Kineo account, not team seats, approval routing, a client portal or white-label software.
+${BUSINESS_OFFER_FACT.boundaries.map((boundary) => `- ${boundary}`).join('\n')}
 
 ## Trust, privacy and commercial rights
 

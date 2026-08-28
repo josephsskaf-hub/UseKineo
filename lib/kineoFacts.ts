@@ -43,6 +43,10 @@ import {
   buildRecurringFreeAccessFact,
   buildTrialAccessFact,
 } from './growth/trialAccessFacts'
+import {
+  buildBusinessOfferFact,
+  type BusinessOfferFact,
+} from './growth/businessOfferFacts'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -333,6 +337,20 @@ export const ENGINE_FACTS: EngineFact[] = [
     what: 'The longest, most expensive multi-scene format. Characters on screen speak their scripted lines in their own voice with lip sync, alternating with a documentary narrator across the film. One fits each month on the Studio plan.',
   },
 ]
+
+/* ------------------------------------------------------------------ *
+ * Oferta comercial avulsa — números 100% importados
+ * ------------------------------------------------------------------ */
+
+// A página, o checkout e o llms.txt já vendem estes packs. O campo estruturado
+// existia para planos, motores e ferramentas gratuitas, mas omitira a única
+// oferta feita especificamente para empresas e agências. Um agente consultando
+// /api/facts concluía que Kineo vendia somente assinaturas — mesmo com a página
+// B2B indexada. Preço, quantidade e crédito vêm do mesmo objeto que o checkout.
+export const BUSINESS_OFFER_FACT: BusinessOfferFact = buildBusinessOfferFact(
+  BASE,
+  ENGINE_FACTS[0].name,
+)
 
 /* ------------------------------------------------------------------ *
  * Plano gratuito
@@ -834,6 +852,8 @@ export interface KineoFactsPayload {
    * para que um agente não as recomende como gerador de vídeo grátis.
    */
   freeTools: FreeToolFact[]
+  /** One-time commercial production packs; distinct from recurring plans. */
+  businessOffer: BusinessOfferFact
   plans: PlanFact[]
   engines: EngineFact[]
   competitors: CompetitorFact[]
@@ -886,6 +906,7 @@ export function getKineoFacts(): KineoFactsPayload {
     trialAccess: TRIAL_ACCESS,
     recurringFreeAccess: RECURRING_FREE_ACCESS,
     freeTools: FREE_TOOL_FACTS,
+    businessOffer: BUSINESS_OFFER_FACT,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,
     competitors: COMPETITOR_FACTS,

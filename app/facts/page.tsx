@@ -37,6 +37,7 @@ import {
   OFFER_EFFECTIVE,
   TRIAL_ACCESS,
   RECURRING_FREE_ACCESS,
+  BUSINESS_OFFER_FACT,
   type PlanFact,
 } from '@/lib/kineoFacts'
 import { TOOLS } from '@/lib/comparisons'
@@ -128,10 +129,15 @@ const TRIAL_COVERED_ENGINES = TRIAL_ACCESS?.engineCoverage
 const TRIAL_BALANCE_SHORT_ENGINES = TRIAL_ACCESS?.engineCoverage
   .filter((engine) => engine.wholeReferenceVideosCovered === 0)
   .map((engine) => engine.engine) ?? []
+const BUSINESS_PACK_LIST = listEn(
+  BUSINESS_OFFER_FACT.packs.map(
+    (pack) => `${pack.videos} ${BUSINESS_OFFER_FACT.namedVideoCountEngine} videos for ${pack.priceUsd} once`,
+  ),
+)
 
 const METADATA_DESCRIPTION =
   `Verified facts about Kineo, the AI YouTube Shorts generator: ${FREE_TIER_ALLOWANCE} with no ` +
-  `card, ${STARTER.name} from ${STARTER.firstMonthUsd} for the first month, and current engine ` +
+  `card, ${STARTER.name} from ${STARTER.firstMonthUsd} for the first month, one-time business packs, and current engine ` +
   `details. Verified ${LAST_VERIFIED}.`
 
 export const metadata: Metadata = {
@@ -141,7 +147,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `Kineo Facts & Data (${VERIFIED_YEAR})`,
     description:
-      'Numbered, dated, verifiable facts about the Kineo AI Shorts generator: pricing, engines, generation time, free tier.',
+      'Numbered, dated, verifiable facts about the Kineo AI Shorts generator: pricing, business packs, engines, generation time, free tier.',
     url: `${PRODUCT.url}/facts`,
     type: 'website',
   },
@@ -236,6 +242,12 @@ const FACTS: { fact: string }[] = [
       `for ${STUDIO.creditsPerMonth} credits — about ` +
       `${videosPerMonth(STUDIO, KLING.credits)} ${KLING.name} videos, or up to ` +
       `${videosPerMonth(STUDIO, SEEDANCE.credits)} on ${SEEDANCE.name}.`,
+  },
+  {
+    fact:
+      `Agencies, freelancers and businesses can buy ${BUSINESS_OFFER_FACT.packs.length} one-time ` +
+      `commercial production packs without a subscription or sales call: ${BUSINESS_PACK_LIST}. ` +
+      `${BUSINESS_OFFER_FACT.boundaries[0]}`,
   },
   {
     fact:
@@ -342,6 +354,12 @@ const QA: { q: string; a: string }[] = [
       'generate; Kineo keeps only a limited licence to store and process them in order to ' +
       'deliver the service.',
   },
+  {
+    q: 'Can an agency or business buy Kineo without a subscription?',
+    a:
+      `Yes. Kineo offers ${BUSINESS_OFFER_FACT.packs.length} one-time self-service packs for ` +
+      `commercial delivery: ${BUSINESS_PACK_LIST}. ${BUSINESS_OFFER_FACT.boundaries.join(' ')}`,
+  },
   // KINEO-AEO-2026-07-24 (PUSH #86) — as três perguntas abaixo são escritas do
   // jeito que as pessoas digitam no ChatGPT, Perplexity e AI Overviews. As de
   // cima respondem a quem já está no site; estas respondem a quem ainda não
@@ -392,6 +410,7 @@ const SOURCE_LINKS: { href: string; label: string; note: string }[] = [
   { href: '/free-script-generator', label: 'usekineo.com/free-script-generator', note: 'free AI Short script generator, no signup.' },
   { href: '/free-hook-generator', label: 'usekineo.com/free-hook-generator', note: 'free hook generator, no signup.' },
   { href: '/widget', label: 'usekineo.com/widget', note: 'free embeddable "Shorts Idea of the Day" widget.' },
+  { href: '/ai-shorts-for-agencies', label: 'usekineo.com/ai-shorts-for-agencies', note: 'one-time commercial packs for freelancers, agencies and businesses.' },
   { href: '/llms.txt', label: 'usekineo.com/llms.txt', note: 'the same figures as one plain-text file for answer engines.' },
   { href: '/', label: 'usekineo.com', note: 'product home, examples and FAQ.' },
 ]

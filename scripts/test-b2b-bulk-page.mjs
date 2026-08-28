@@ -87,7 +87,11 @@ ok(webhook.includes('bulkPack.credits'), 'webhook grants canonical pack credits'
 ok(sitemap.includes("path: '/ai-shorts-for-agencies'"), 'B2B page is indexable in sitemap')
 ok(footer.includes("href: '/ai-shorts-for-agencies'"), 'B2B page is not orphaned')
 ok(llms.includes('## One-time packs for agencies, freelancers and businesses'), 'answer engines receive the B2B offer')
-ok(llms.includes('BULK_PACK_IDS.map'), 'answer-engine pack list derives from canonical data')
+// KINEO-B2B-AEO-2026-08-28 — llms.txt now consumes the shared structured
+// business offer instead of rebuilding checkout pricing a second time. The
+// executable contract for that builder lives in test-aeo-business-offer.mjs;
+// this regression anchor verifies that the distribution route uses it.
+ok(llms.includes('BUSINESS_OFFER_FACT.packs.map'), 'answer-engine pack list derives from the shared structured fact')
 ok(funnel.includes("agency_bulk_page_viewed: uniqueCheckoutActors('agency_bulk_page_viewed')"), 'admin counts page viewers as actors')
 ok(funnel.includes("agency_bulk_pack_clicked: uniqueCheckoutActors('agency_bulk_pack_clicked')"), 'admin counts pack selectors as actors')
 ok(funnel.includes("bulk_checkout_started: uniqueCheckoutActors('bulk_checkout_started')"), 'admin counts checkout starts as actors')
