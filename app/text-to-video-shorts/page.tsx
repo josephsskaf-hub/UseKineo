@@ -4,16 +4,17 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
-import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
+import TextToVideoIntentForm from './TextToVideoIntentForm'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
 
 const BASE = 'https://www.usekineo.com'
 const FORM_ID = 'try-text-to-video'
-const CAMPAIGN = 'push58_text_to_video_shorts'
+const CAMPAIGN = TEXT_TO_VIDEO_CAMPAIGN
 const FEATURED_EXAMPLE = PUBLIC_EXAMPLES[0]
 const PUBLICATION_DATE = '2026-07-23T00:00:00.000Z'
 
@@ -139,23 +140,7 @@ export default function TextToVideoShortsPage() {
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
 
-        <TopicGeneratorForm
-          campaign={CAMPAIGN}
-          source={CAMPAIGN}
-          formId={FORM_ID}
-          examples={[
-            'Why the Door to Hell is still burning',
-            'The money mistake most people repeat',
-            'Three facts that make the ocean terrifying',
-          ]}
-          copy={{
-            label: 'What text should become a Short?',
-            placeholder: 'Paste a topic, hook, or complete script',
-            submit: 'Generate my Short',
-            examplesLabel: 'Text to video examples',
-            note: 'Your text is carried into signup so you can generate the first watermarked Fast video without a card.',
-          }}
-        />
+        <TextToVideoIntentForm formId={FORM_ID} />
 
         <section id="real-output" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24, alignItems: 'center', marginTop: 38, padding: 22, background: '#101012', border: '1px solid #2a2a2d', borderRadius: 18 }}>
           <div style={{ width: '100%', maxWidth: 280, margin: '0 auto', aspectRatio: '9 / 16', overflow: 'hidden', borderRadius: 18, background: '#000' }}>

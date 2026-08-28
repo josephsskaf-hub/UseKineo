@@ -20,6 +20,8 @@ type TopicGeneratorFormProps = {
   language?: 'en' | 'pt' | 'es'
   scriptMode?: 'ai' | 'verbatim'
   duration?: 35 | 45 | 60 | 90
+  analyticsVariant?: string
+  marginTop?: number
   copy?: {
     label: string
     placeholder: string
@@ -40,6 +42,8 @@ export default function TopicGeneratorForm({
   language,
   scriptMode,
   duration,
+  analyticsVariant,
+  marginTop = 30,
   copy = {
     label: 'What should your Short be about?',
     placeholder: 'Type one topic or paste your script',
@@ -59,6 +63,9 @@ export default function TopicGeneratorForm({
       example_index: exampleIndex,
       topic_length: example.length,
       ...(language ? { language } : {}),
+      ...(scriptMode ? { script_mode: scriptMode } : {}),
+      ...(duration ? { duration_seconds: duration } : {}),
+      ...(analyticsVariant ? { variant: analyticsVariant } : {}),
     }
     void trackEvent('organic_topic_example_started', metadata)
     void trackEvent('organic_topic_submitted', metadata)
@@ -101,7 +108,7 @@ export default function TopicGeneratorForm({
     <div
       id={formId}
       style={{
-        marginTop: 30,
+        marginTop,
         scrollMarginTop: 24,
         border: '1px solid rgba(41,151,255,0.35)',
         borderRadius: 18,
@@ -119,6 +126,9 @@ export default function TopicGeneratorForm({
             placement,
             topic_length: topic.trim().length,
             ...(language ? { language } : {}),
+            ...(scriptMode ? { script_mode: scriptMode } : {}),
+            ...(duration ? { duration_seconds: duration } : {}),
+            ...(analyticsVariant ? { variant: analyticsVariant } : {}),
           }
           void trackEvent('organic_topic_submitted', submitMetadata)
           // Mesma razão do starter acima: digitar o próprio tema e apertar o
