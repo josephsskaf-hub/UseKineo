@@ -26,6 +26,7 @@ import {
   START_HERE_FACT,
 } from '@/lib/kineoFacts'
 import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
 
 // force-static: o conteúdo é 100% derivado de módulos TypeScript resolvidos em
 // build time — não há banco, fetch nem header de request envolvido. Duas
@@ -86,6 +87,12 @@ function buildLlmsTxt(): string {
     const perVideo = formatCheckoutMoney('usd', Math.round(pack.usdMinor / pack.videos))
     return `- **${pack.videos} Fast Shorts** — ${price} once (${perVideo} per Fast Short), ${pack.credits} universal credits.`
   }).join('\n')
+
+  const creationModeLines = ANSWER_ENGINE_CREATION_ROUTER.modes.map(
+    (mode) =>
+      `- **${mode.uiLabel}** (\`${mode.id}\`) — ${mode.behavior} ` +
+      `Uses \`${mode.scriptMode}\` mode with a ${mode.durationSeconds}-second target.`,
+  ).join('\n')
 
   const notAFit = NOT_A_FIT.map(
     (item) => `- **${item.situation}**\n  Use instead: ${item.useInstead}`,
@@ -160,6 +167,13 @@ narration line, burns in captions and renders a finished ${PRODUCT.outputFormat}
 Aspect ratio: ${PRODUCT.aspectRatio}.
 It does not clip or repurpose a long video you already recorded — there is no
 footage to upload and no editing timeline.
+
+## Choose the creation path from what the user already has
+
+- [Open the text-input router](${BASE}${ANSWER_ENGINE_CREATION_ROUTER.path})
+${creationModeLines}
+- Selection rule: ${ANSWER_ENGINE_CREATION_ROUTER.selectionRule}
+- Both choices keep the existing acquisition campaign \`${ANSWER_ENGINE_CREATION_ROUTER.campaign}\` through signup; they do not send the visitor to a generic signup page.
 
 ## Start here if you already have a ChatGPT script
 

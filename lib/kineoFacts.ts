@@ -38,6 +38,7 @@ import { PLANS } from './pricing'
 import { creditsPerReferenceVideo, videosPerMonth } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { getFreeTierOffer } from './freeTierOffer'
+import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -723,6 +724,7 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   startHere: StartHereFact
+  creationRouter: typeof ANSWER_ENGINE_CREATION_ROUTER & { url: string }
   /**
    * Data em que os preços dos CONCORRENTES foram lidos nas páginas deles.
    * Mantido com o nome e o valor históricos por compatibilidade — quem quer a
@@ -788,6 +790,10 @@ export function getKineoFacts(): KineoFactsPayload {
   return {
     product: PRODUCT,
     startHere: START_HERE_FACT,
+    creationRouter: {
+      ...ANSWER_ENGINE_CREATION_ROUTER,
+      url: `${BASE}${ANSWER_ENGINE_CREATION_ROUTER.path}`,
+    },
     lastVerified: LAST_VERIFIED_ISO,
     lastVerifiedHuman: LAST_VERIFIED_HUMAN,
     competitorPricesVerified: LAST_VERIFIED_ISO,

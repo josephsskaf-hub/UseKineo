@@ -25,6 +25,7 @@ try {
   execFileSync(process.execPath, [
     tsc,
     join(root, 'lib', 'growth', 'textToVideoIntent.ts'),
+    join(root, 'lib', 'growth', 'answerEngineCreationRouter.ts'),
     join(root, 'lib', 'creationHandoff.ts'),
     '--outDir', out,
     '--module', 'commonjs',
@@ -35,6 +36,7 @@ try {
   writeFileSync(join(out, 'package.json'), JSON.stringify({ type: 'commonjs' }))
 
   const intent = requireCompiled(join(out, 'growth', 'textToVideoIntent.js'))
+  const answerRouter = requireCompiled(join(out, 'growth', 'answerEngineCreationRouter.js'))
   const handoff = requireCompiled(join(out, 'creationHandoff.js'))
 
   equal(intent.TEXT_TO_VIDEO_CAMPAIGN, 'push58_text_to_video_shorts', 'existing campaign remains stable')
@@ -48,6 +50,14 @@ try {
   const script = intent.getTextToVideoInputMode('finished_script')
   equal(script.scriptMode, 'verbatim', 'finished script explicitly requests verbatim handling')
   equal(script.duration, 35, 'finished script uses the proven 35-second target')
+
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.modes.length, 2, 'answer engines receive the same two choices')
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.campaign, intent.TEXT_TO_VIDEO_CAMPAIGN, 'answer-engine campaign is the real campaign')
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.modes[0].scriptMode, idea.scriptMode, 'idea fact derives the UI mode')
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.modes[0].durationSeconds, idea.duration, 'idea fact derives the UI duration')
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.modes[1].scriptMode, script.scriptMode, 'script fact derives the UI mode')
+  equal(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.modes[1].durationSeconds, script.duration, 'script fact derives the UI duration')
+  includes(answerRouter.ANSWER_ENGINE_CREATION_ROUTER.path, '#try-text-to-video-mode-heading', 'machine route lands on the visible decision')
 
   for (const mode of intent.TEXT_TO_VIDEO_INPUT_MODES) {
     const publicQuery = new URLSearchParams({
@@ -68,6 +78,8 @@ try {
   const page = read('app/text-to-video-shorts/page.tsx')
   const router = read('app/text-to-video-shorts/TextToVideoIntentForm.tsx')
   const sharedForm = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
+  const facts = read('lib/kineoFacts.ts')
+  const llms = read('app/llms.txt/route.ts')
   includes(page, "import TextToVideoIntentForm from './TextToVideoIntentForm'", 'production page imports the router')
   equal(page.split('<TextToVideoIntentForm').length - 1, 1, 'production page renders one router')
   ok(!page.includes('<TopicGeneratorForm'), 'production page no longer sends both input types through one implicit mode')
@@ -85,6 +97,10 @@ try {
   includes(sharedForm, 'name="duration" value={duration}', 'duration is carried in the signup GET')
   ok(!router.includes('trackEvent('), 'selection alone is not inflated into a conversion event')
   ok(!sharedForm.includes('prompt: topic'), 'telemetry never stores the topic or script')
+  includes(facts, 'creationRouter: typeof ANSWER_ENGINE_CREATION_ROUTER', '/api/facts contract exposes the shared router')
+  includes(facts, '...ANSWER_ENGINE_CREATION_ROUTER', '/api/facts payload derives from the executable router')
+  includes(llms, 'ANSWER_ENGINE_CREATION_ROUTER.modes.map', '/llms.txt renders the executable modes instead of copying them')
+  includes(llms, 'Choose the creation path from what the user already has', '/llms.txt labels the decision for answer engines')
 
   const preview = join(root, 'docs', 'previews', 'TEXT-TO-VIDEO-INTENT-ROUTER-2026-08-28.html')
   ok(existsSync(preview), 'required before/after preview exists')
