@@ -59,7 +59,7 @@ export default function BusinessVideoContentPlanPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
       <BusinessContentPlanClient />
-      <Footer />
+      <Footer showStats={false} />
     </>
   )
 }

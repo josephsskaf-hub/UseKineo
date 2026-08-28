@@ -83,13 +83,13 @@ export function buildBusinessContentPlan(input: {
     },
     {
       angle: 'Objection answered',
-      hook: `The honest answer to the biggest ${offer} objection.`,
+      hook: `The honest answer to the objection buyers raise about ${offer}.`,
       brief: 'Answer the objection directly and include the tradeoff most sellers omit.',
       evidence: 'Quote a real objection; never fabricate a customer comment.',
     },
     {
       angle: 'Feature to use case',
-      hook: `One ${offer} feature only matters in this situation.`,
+      hook: `When one feature of ${offer} actually matters.`,
       brief: 'Connect one supplied feature to one specific use case without exaggeration.',
       evidence: 'Use a verified feature and state who it is not for.',
     },

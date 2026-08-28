@@ -45,6 +45,7 @@ equal(three.map((item) => item.day).join(','), 'Monday,Wednesday,Friday', 'three
 equal(five.map((item) => item.day).join(','), 'Monday,Tuesday,Wednesday,Thursday,Friday', 'five-video cadence stays on weekdays')
 equal(seven[6].day, 'Sunday', 'daily cadence reaches Sunday')
 equal(planner.buildBusinessContentPlan({ ...base, offer: 'short', cadence: 'five' }).length, 0, 'thin offer cannot create a plan')
+check(!five.some((item) => /biggest an |one an /i.test(item.hook)), 'article-led offers do not create broken English hooks')
 
 for (const goal of ['leads', 'explain', 'trust', 'launch']) {
   const plan = planner.buildBusinessContentPlan({ ...base, goal, cadence: 'seven' })
@@ -94,6 +95,7 @@ check(page.includes("canonical: CANONICAL"), 'page publishes its canonical URL')
 check(page.includes("'SoftwareApplication'"), 'page declares the free tool')
 check(page.includes("'FAQPage'"), 'page publishes scheduling and research boundaries')
 check(page.includes('this planner does not schedule or publish posts'), 'structured data refuses a competitor capability Kineo lacks')
+check(page.includes('<Footer showStats={false} />'), 'incident-safe page disables the live database-backed footer badge')
 
 const agencyPage = read('app/ai-shorts-for-agencies/page.tsx')
 check(agencyPage.includes('href="/business-video-content-plan"'), 'live B2B page links to the planner')
