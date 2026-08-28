@@ -719,6 +719,8 @@
 - **HIPÓTESE:** cobrir a linguagem exata já observada e responder mais cedo aumenta descoberta e CTR. Publicação e impressão não serão chamadas de aquisição. **QUESTÃO PENDENTE / DESCONHECIDO:** aguardar nova janela do Search Console para comparar impressões, posição e cliques da URL e observar se as duas páginas específicas entram no índice; nenhuma assinatura foi atribuída a esta entrega.
 - **NÃO TOCADO:** preço, grant, oferta, checkout, Supabase, Storage, migration, autenticação, `GenerateClient`, render, cena, legenda, motor, e-mail, outreach e tráfego pago.
 
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026):** Codex inspecionou as três URLs materialmente alteradas. `/best-ai-shorts-generators` já estava no Google, indexada, em HTTPS e com um breadcrumb válido; a solicitação de nova leitura foi confirmada. `/alternatives/storyshort` e `/alternatives/shortspilot` ainda apareciam como `O URL não está no Google` / `O Google não reconhece o URL`, sem rastreamento anterior ou sitemap de referência detectado; ambas receberam solicitação de indexação e o painel confirmou entrada na fila prioritária. Cada URL foi enviada uma vez; não repetir, porque o próprio painel declara que reenvio não aumenta posição nem prioridade.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
