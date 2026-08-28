@@ -887,3 +887,39 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, oferta, SKU, checkout, Supabase, Storage, migration, autenticação, `GenerateClient.tsx`, render, cena, legenda, motor, e-mail, outreach ou tráfego pago.
 
 **PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir da ponta atual de `origin/main`. Claude continua o incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin`; esta entrega não cria sobreposição com o pipeline de vídeo.
+
+## 12. Aquisição B2B orgânica — porta honesta para real estate (28/08/2026)
+
+**BASE LIDA:** `fe26299f49217152fcbbb8639714da5cbb0bc9b8`.
+
+**SHA FUNCIONAL:** `3bbf8aa68e965be42448c2b765a0d010ca385fd0`.
+
+**FATO CONFIRMADO / PESQUISA DE MERCADO (fontes oficiais lidas em 28/08/2026):** HeyGen mantém uma página vertical de real estate e um playbook recente com market updates, listing spotlights e neighborhood guides; VEED mantém uma página “Real Estate Video Maker”; InVideo publicou um workflow recente de vídeo imobiliário com modelos generativos. Fontes: `https://www.heygen.com/real-estate`, `https://www.heygen.com/tool/real-estate-video-maker`, `https://www.veed.io/create/promo-video/real-estate-video-maker` e `https://invideo.io/blog/how-to-create-real-estate-videos-using-ai/`. Isto prova que concorrentes tratam o vertical como superfície própria; não prova volume de busca, CAC ou conversão da Kineo.
+
+**FATO CONFIRMADO / GAP NO CÓDIGO:** antes de `3bbf8aa`, a Kineo tinha a oferta B2B genérica, o planejador semanal e páginas de produto/comentário, mas nenhuma rota pública ou sitemap para real estate. A busca no diretório `app/` não encontrou página de corretor, realtor ou real estate. A decisão foi criar uma porta estreita compatível com o que o produto entrega, sem copiar as promessas de avatar, upload de fotos ou tour fiel dos concorrentes.
+
+**IMPLEMENTADO:** `/real-estate-video-maker` é um Server Component `force-static` com metadata, canonical, Open Graph, FAQ estruturada e uma resposta direta acima da dobra. A página oferece três trabalhos repetíveis — market update, neighborhood guide e buyer/seller tip — e para cada um declara os dados que o agente deve fornecer e a fronteira factual (`app/real-estate-video-maker/page.tsx`; `lib/growth/realEstateShorts.ts`).
+
+**FATO CONFIRMADO / PROMESSA LIMITADA:** a página diz explicitamente que este workflow não ingere MLS, não preserva geometria de cômodos, não cria walkthrough fiel, não cria digital twin e não verifica estatística, lei ou regulação. Visuais gerados/stock são contexto, nunca prova de propriedade, vista, amenidade, limite ou condição. A Kineo é apresentada para Shorts faceless de fatos e explicações; não para tour de imóvel.
+
+**FATO CONFIRMADO / CONVERSÃO SEGURA:** os dois CTAs usam `buildBlankStudioSignupHref()` com a campanha `growth_real_estate_video_maker_20260828`. O HTML contém zero `create_intent`, portanto abrir ou clicar na página não inicia render automaticamente. A rota B2B usa `agencyPacksHref('real_estate')`; a nova entrada é allow-listed e preserva a origem ChatGPT/Google/TAAFT em vez de sobrescrevê-la com UTM. Nenhum preço é literal na página; o texto gratuito vem de `getFreeTierOffer()` e os packs continuam na fonte existente.
+
+**DISTRIBUIÇÃO:** a URL entrou no sitemap, no rodapé público e na seção B2B de `/llms.txt`, com a mesma fronteira “não é MLS-photo tour / faithful walkthrough / digital twin”. A página não nasce órfã e mecanismos de resposta recebem o trabalho e o limite juntos.
+
+**TESTADO LOCALMENTE:** `test-real-estate-video-maker` 36/36; `test-b2b-distribution` 51/51; whitespace limpo. `npx tsc --noEmit` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo. Checklist React/Next aplicado: rota estática, zero hook, fetch, efeito ou ilha cliente nova.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/real-estate-video-maker-2026-08-28.html` contém antes/depois desktop e mobile 390 px. O preview foi servido em localhost e teve DOM e captura integral conferidos. A rota Next real respondeu `200`; em viewport real de 390 px, `scrollWidth=clientWidth=390`, H1 e resposta direta visíveis, sem overflow horizontal.
+
+**TRANSPARÊNCIA OPERACIONAL:** o smoke visual da rota Next real carregou o layout local e disparou um `POST /api/events` local `200` e um `GET /api/stripe/checkout/resume` local `503`. Codex não leu `.env.local`, não consultou Supabase/MCP/SQL e não sabe se o endpoint local possuía credencial de produção; por isso o possível efeito do único evento fica **QUESTÃO PENDENTE / DESCONHECIDO**. Não houve checkout criado, cobrança ou render. Depois desse achado, a validação de produção foi feita somente por GET do HTML sem JavaScript.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_9YpAqcu2tFXgvizc5k2LzYC48H2d` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. O HTML público respondeu `200`/cache `PRERENDER`, com title, canonical, H1 e campanha corretos, sem `create_intent` e sem `noindex`. `/llms.txt` e `/sitemap.xml` públicos contêm a URL. A Vercel registrou zero erro de runtime para `/real-estate-video-maker` nos 15 minutos consultados.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Codex não tocou em Storage, banco, migration, autenticação, pipeline de vídeo ou capacidade. Os `402` continuam classificados como incidente de capacidade, não abandono da nova página.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa, cadastro, checkout ou assinatura foi atribuída à rota. Depois da normalização da capacidade, medir pessoas em `campaign=growth_real_estate_video_maker_20260828` e a entrada B2B `real_estate`; publicação não será chamada de aquisição até existir ator real.
+
+**TAAFT / DECISÃO DA MESMA RODADA:** o acesso automatizado à ficha pública foi bloqueado pelo próprio site e não houve contorno. O repositório registra que a ficha foi corrigida manualmente em 26/08 e que o pacote pago de US$347 já foi reprovado pelos dados históricos; não houve pagamento, relaunch ou edição duplicada nesta rodada.
+
+**NÃO TOCADO:** Supabase, Storage, migration, banco, render, motor, legenda, composição, crédito, preço, oferta, SKU, checkout, `GenerateClient.tsx`, e-mail, outreach, TAAFT pago ou anúncio.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir da ponta posterior de `origin/main`. Claude continua incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin`; esta entrega não cria sobreposição com pipeline de vídeo.
