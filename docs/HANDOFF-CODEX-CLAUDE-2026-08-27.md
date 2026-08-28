@@ -304,6 +304,20 @@
 - **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_12cmXinHtBJccybtUEaEwXQYoWgb` em estado `READY`, aliasado em `www.usekineo.com`. O smoke confirmou uma única ferramenta, ausência do destino SEO antigo, handoff interno e aviso de não garantia. Nenhum formulário foi submetido e nenhum erro runtime da rota apareceu na janela de 20 minutos consultada.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe submissão humana da campanha `starter_monetization_originality_2026_08_28`. Não alterar novamente essa página antes de observar pessoas em receita → cadastro → vídeo → checkout.
 
+### 2.22 Verdade comercial do PayPal na recuperação de checkout
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `a9e3a5e22d20f909be3a606b1275584d25885236`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 21 a 28/08/2026, contas internas excluídas):** TAAFT atribuiu 37 cadastros, 14 pessoas com vídeo concluído, 11 pessoas em `pricing_view`, 2 pessoas em `checkout_started` e 0 pessoa com sinal de pagamento. `pricing_view` e `checkout_started` são estágios diferentes; as 11 pessoas não foram chamadas de checkout.
+- **EVIDÊNCIA DE PRODUÇÃO (Stripe, SELECT agregado lido em 28/08/2026):** os dois checkouts TAAFT iniciados e não pagos eram um Creator mensal de US$15 com país de IP Paquistão e um Studio mensal de US$29 com país de IP Brasil; ambos estavam expirados e elegíveis para recuperação. Nenhum identificador pessoal foi copiado para este handoff.
+- **FATO CONFIRMADO:** o cron de recuperação já enviava `/api/paypal/checkout?tier=...`, mas `lib/paypal.ts` mantinha preços US$9,90/24,90/37,90, grants 25/150/200 e pack de 10 créditos, enquanto a fonte canônica `lib/checkoutPricing.ts` define US$7/15/29, grants 40/90/180 e pack de 30 créditos por US$4,90. O rail vivo podia criar uma oferta diferente da anunciada.
+- `lib/paypalCatalog.ts` agora deriva preço mensal, anual, grants e pack exclusivamente de `lib/checkoutPricing.ts`. `lib/paypal.ts` deixou de manter tabela comercial paralela.
+- Planos PayPal são objetos comerciais imutáveis. A chave passou a incluir preço e grant (`plan_{tier}_{billing}_usd{minor}_c{credits}_v2`), impedindo que os IDs antigos sejam reutilizados. O lookup do webhook continua reconhecendo planos novos e legados já emitidos.
+- Os botões públicos continuam deliberadamente desligados (`PAYPAL_ENABLED = false`). Esta entrega corrige o caminho de recuperação existente; não declara o PayPal pronto para exposição geral.
+- Testes: contrato PayPal `55/55`, incluindo OAuth/fetch mockado, criação única do plano canônico, cache, preço enviado e lookup novo/legado; contrato comercial `305/305`; whitespace limpo. O TypeScript continua com os mesmos cinco erros preexistentes, nenhum nos três arquivos desta entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_E6t8T5iu21umBbNemyPx7wYYKukX` em estado `READY`, aliasado em `www.usekineo.com`. Um GET anônimo em `/api/paypal/checkout?tier=starter` terminou em `/signup`, provando que a rota carregou e o gate de autenticação barrou antes do provedor. `paypal_events` permaneceu em 0 e não houve erro runtime nas rotas `/api/paypal/checkout`, `/api/paypal/webhook` e `/api/paypal/return` nos 30 minutos consultados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum pagamento PayPal real foi executado. Antes de ligar os botões públicos, fazer um canário pago controlado e verificar criação/aprovação, webhook, grant exato e cancelamento/estorno. Não chamar esta integração de `VALIDADA EM PRODUÇÃO` ponta a ponta até essa prova.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
@@ -351,7 +365,7 @@ O erro de `analyze-idea` já existe em `origin/main`, atribuído ao commit anter
 ## 5. O que não foi tocado
 
 - Nenhum prompt de cena, motor, render, legenda, composição, voiceover ou fallback do gerador.
-- Nenhum preço, grant, SKU ou termo comercial.
+- Nenhum preço, grant, SKU ou termo canônico foi alterado; o adapter PayPal foi alinhado à oferta já aprovada.
 - Nenhum e-mail, DM, outreach ou follow-up foi enviado.
 - Nenhum tráfego pago foi ativado.
 - Nenhuma alteração foi feita na árvore principal divergente.
@@ -373,7 +387,7 @@ O erro de `analyze-idea` já existe em `origin/main`, atribuído ao commit anter
 
 ### Decisões comerciais preservadas
 
-- **CONTRADIÇÃO:** `lib/paypal.ts` mantém uma tabela própria antiga enquanto Stripe usa a fonte canônica. É um rail vivo e não deve ser alterado em silêncio.
+- **FATO CONFIRMADO / IMPLEMENTADO:** a tabela comercial paralela do PayPal foi removida no commit `a9e3a5e`; o adapter deriva da fonte canônica e os IDs antigos não são reutilizados. A ativação pública continua pendente de canário pago real.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** vendas e conversões das superfícies publicadas ainda precisam de tráfego real; deploy e indexação não são receita.
 
 ## 7. Protocolo obrigatório do próximo turno
