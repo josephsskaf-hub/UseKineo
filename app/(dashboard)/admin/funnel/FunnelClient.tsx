@@ -485,6 +485,33 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         />
       </Section>
 
+      <Section title={`B2B agency funnel · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card
+          label="Agency page viewers"
+          value={fmt(data.counts.agency_bulk_page_viewed ?? 0)}
+          hint="unique people / sessions"
+          accent="#34d399"
+        />
+        <Card
+          label="Margin calculator viewers"
+          value={fmt(data.counts.agency_margin_calculator_viewed ?? 0)}
+          hint="unique people / sessions"
+          accent="#5cb3ff"
+        />
+        <Card
+          label="Calculator → pack"
+          value={fmt(data.counts.agency_margin_pack_selected ?? 0)}
+          hint="selected a production pack"
+          accent="#5cb3ff"
+        />
+        <Card
+          label="Pack checkout clicks"
+          value={fmt(data.counts.agency_bulk_pack_clicked ?? 0)}
+          hint={`${fmt(data.counts.bulk_checkout_started ?? 0)} Stripe sessions created`}
+          accent="#34d399"
+        />
+      </Section>
+
       <Section title={`First-video handoff · PUSH #27 · ${days === 'all' ? 'all time' : `${days}d`}`}>
         <Card
           label="Compact handoff viewed"

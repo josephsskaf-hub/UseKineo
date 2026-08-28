@@ -79,6 +79,8 @@ export interface FunnelData {
     pro_checkout_clicked: number
     starter_checkout_clicked?: number
     agency_bulk_page_viewed?: number
+    agency_margin_calculator_viewed?: number
+    agency_margin_pack_selected?: number
     agency_bulk_pack_clicked?: number
     bulk_checkout_started?: number
     trust_page_viewed?: number
@@ -488,7 +490,8 @@ export async function GET(req: Request) {
       'first_video_generation_failed_from_viral_onboarding',
       'history_repeat_offer_viewed', 'history_repeat_offer_clicked',
       'history_first_video_offer_viewed', 'history_first_video_offer_clicked',
-      'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'agency_bulk_page_viewed', 'agency_margin_calculator_viewed', 'agency_margin_pack_selected',
+      'agency_bulk_pack_clicked', 'bulk_checkout_started',
       'trust_page_viewed', 'trust_cta_clicked',
       'generate_started', 'video_generation_started',
       'generate_completed', 'video_generation_completed',
@@ -510,7 +513,8 @@ export async function GET(req: Request) {
       'checkout_auth_confirmation_required', 'checkout_auth_completed',
       'auth_callback_completed', 'auth_callback_failed',
       'checkout_started', 'payment_success',
-      'agency_bulk_page_viewed', 'agency_bulk_pack_clicked', 'bulk_checkout_started',
+      'agency_bulk_page_viewed', 'agency_margin_calculator_viewed', 'agency_margin_pack_selected',
+      'agency_bulk_pack_clicked', 'bulk_checkout_started',
       'trust_page_viewed', 'trust_cta_clicked',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
     ]
@@ -1400,6 +1404,8 @@ export async function GET(req: Request) {
         // B2B pack stages count identifiable people/sessions, never raw event
         // rows. A reload or a second click cannot masquerade as another buyer.
         agency_bulk_page_viewed: uniqueCheckoutActors('agency_bulk_page_viewed'),
+        agency_margin_calculator_viewed: uniqueCheckoutActors('agency_margin_calculator_viewed'),
+        agency_margin_pack_selected: uniqueCheckoutActors('agency_margin_pack_selected'),
         agency_bulk_pack_clicked: uniqueCheckoutActors('agency_bulk_pack_clicked'),
         bulk_checkout_started: uniqueCheckoutActors('bulk_checkout_started'),
         // Trust stages count identifiable people/sessions. A reload is not a

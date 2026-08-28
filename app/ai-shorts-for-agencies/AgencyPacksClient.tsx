@@ -53,6 +53,7 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
           return (
             <article
               key={pack.id}
+              id={`pack-${pack.id}`}
               style={{
                 position: 'relative',
                 display: 'flex',

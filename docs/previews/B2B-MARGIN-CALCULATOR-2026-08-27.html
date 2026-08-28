@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo B2B margin calculator — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#050608;color:#f5f5f7;font-family:Inter,Arial,sans-serif}.wrap{max-width:1460px;margin:auto;padding:38px 22px 64px}.eyebrow{color:#5cb3ff;font-size:11px;font-weight:900;letter-spacing:.13em;text-transform:uppercase}.title{font-size:34px;line-height:1.05;margin:8px 0 10px}.note{color:#9999a2;line-height:1.6;max-width:920px}.compare{display:grid;grid-template-columns:.75fr 1.45fr;gap:18px;margin-top:28px}.panel{border:1px solid #282a31;border-radius:22px;background:#101116;padding:24px;min-width:0}.label{color:#34d399;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px}.old{display:flex;flex-direction:column;justify-content:center;min-height:500px}.old h2{font-size:30px;margin:0 0 10px}.old p{color:#9999a2;line-height:1.6}.gap{margin-top:24px;border:1px dashed #5d3540;color:#fca5a5;border-radius:14px;padding:18px;line-height:1.6;font-size:13px}.calc{border:1px solid rgba(92,179,255,.35);border-radius:20px;padding:24px;background:radial-gradient(circle at 100% 0%,rgba(41,151,255,.17),transparent 38%),#101116}.calc h2{font-size:33px;line-height:1.05;margin:9px 0}.calc>p{color:#aaaab1;line-height:1.55}.inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:20px}.field{font-size:10px;color:#c7c7cc;font-weight:800}.input{margin-top:6px;min-height:44px;border:1px solid #343741;border-radius:10px;background:#090a0d;padding:13px;color:#f5f5f7;font-size:13px}.results{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:14px}.metric{padding:14px;border:1px solid #2b2d34;background:rgba(255,255,255,.035);border-radius:12px}.metric span{display:block;color:#85858c;font-size:9px;font-weight:900;letter-spacing:.08em}.metric b{display:block;font-size:22px;margin-top:7px}.metric.good{border-color:#28604c;background:rgba(52,211,153,.08)}.metric.good b{color:#34d399}.cta{display:inline-flex;margin-top:16px;background:#2997ff;color:white;border-radius:11px;padding:13px 17px;font-size:13px;font-weight:900}.fine{color:#85858c;font-size:10px;line-height:1.55;margin-top:14px}.admin{margin-top:16px;border-top:1px solid #2b2d34;padding-top:16px}.admin-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.admin-card{padding:12px;border-radius:10px;background:#0b1120;border:1px solid #253148}.admin-card span{display:block;color:#85858c;font-size:9px}.admin-card b{display:block;font-size:20px;margin-top:5px;color:#5cb3ff}.mobile{display:none}
+    @media(max-width:900px){.compare{grid-template-columns:1fr}.desktop{display:none}.mobile{display:block}.phone{max-width:390px;margin:auto;border:1px solid #30323a;border-radius:24px;padding:17px;background:#090a0d}.phone h2{font-size:28px;margin:8px 0}.phone .inputs,.phone .results{grid-template-columns:1fr}.phone .metric{display:flex;align-items:center;justify-content:space-between}.phone .metric b{margin:0}.old{min-height:auto}.wrap{padding:26px 13px 48px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="eyebrow">Visual gate · B2B conversion</div>
+    <h1 class="title">From “keep the margin” to showing the arithmetic</h1>
+    <p class="note">The public offer already exposed canonical one-time packs. The new section helps a freelancer or agency test their own client rate and marketplace fee without changing Kineo pricing or promising earnings.</p>
+    <div class="compare">
+      <section class="panel old">
+        <div class="label">Before · unsupported claim</div>
+        <h2>Buy the batch and keep the margin.</h2>
+        <p>The buyer saw Kineo's unit cost, but had to leave the page to calculate marketplace fees, break-even price and cash remaining.</p>
+        <div class="gap">No scenario calculator · no break-even rate · no measurement between page view and pack selection</div>
+      </section>
+      <section class="panel desktop">
+        <div class="label">After · desktop</div>
+        <div class="calc"><span class="eyebrow">Client margin calculator</span><h2>Price the client job before you buy the production</h2><p>Use your real client rate and marketplace fee. Results exclude labor, revisions, taxes and other costs.</p><div class="inputs"><div class="field">DELIVERY VOLUME<div class="input">30 Shorts · $249 Kineo cost</div></div><div class="field">CLIENT PRICE · PER SHORT<div class="input">$25</div></div><div class="field">MARKETPLACE FEE<div class="input">20%</div></div></div><div class="results"><div class="metric"><span>CLIENT REVENUE</span><b>$750</b></div><div class="metric"><span>MARKETPLACE FEE</span><b style="color:#fbbf24">−$150</b></div><div class="metric"><span>KINEO PRODUCTION</span><b style="color:#5cb3ff">−$249</b></div><div class="metric good"><span>LEFT BEFORE LABOR + TAX</span><b>$351</b></div></div><div class="fine">Break-even at this fee: $11 per Short. Arithmetic only — not an earnings forecast.</div><div class="cta">Choose the 30-video pack ↓</div></div>
+        <div class="admin"><div class="eyebrow">Admin visibility</div><div class="admin-grid"><div class="admin-card"><span>PAGE VIEWERS</span><b>0</b></div><div class="admin-card"><span>CALCULATOR VIEWERS</span><b>0</b></div><div class="admin-card"><span>CALCULATOR → PACK</span><b>0</b></div><div class="admin-card"><span>STRIPE SESSIONS</span><b>0</b></div></div></div>
+      </section>
+      <section class="panel mobile">
+        <div class="label">After · mobile</div>
+        <div class="phone"><span class="eyebrow">Client margin calculator</span><h2>Price the client job first</h2><p style="color:#aaaab1;line-height:1.5">Your real rate. Your actual marketplace fee.</p><div class="inputs"><div class="field">VOLUME<div class="input">30 Shorts · $249</div></div><div class="field">CLIENT PRICE<div class="input">$25 per Short</div></div><div class="field">FEE<div class="input">20%</div></div></div><div class="results"><div class="metric"><span>CLIENT REVENUE</span><b>$750</b></div><div class="metric"><span>FEES + KINEO</span><b>−$399</b></div><div class="metric good"><span>LEFT BEFORE LABOR + TAX</span><b>$351</b></div></div><div class="fine">Arithmetic only. Labor, revisions, taxes and acquisition costs are excluded.</div><div class="cta">Choose this pack ↓</div></div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

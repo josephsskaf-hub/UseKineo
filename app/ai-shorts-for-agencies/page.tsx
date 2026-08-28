@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Footer from '@/components/Footer'
 import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import AgencyPacksClient, { type AgencyPackView } from './AgencyPacksClient'
+import AgencyMarginCalculator from './AgencyMarginCalculator'
 
 const CANONICAL = 'https://www.usekineo.com/ai-shorts-for-agencies'
 
@@ -161,6 +162,8 @@ export default function AiShortsForAgenciesPage() {
             </p>
           </div>
         </section>
+
+        <AgencyMarginCalculator packs={PACKS} />
 
         <AgencyPacksClient packs={PACKS} />
 
