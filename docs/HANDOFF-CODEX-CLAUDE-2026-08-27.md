@@ -218,6 +218,22 @@
 - **EVIDÊNCIA DE PRODUÇÃO (28/08/2026 UTC / 27/08 BRT):** deploy `dpl_4ZVYskTAoDYeEn2gHfQzSfuGox9G` em estado `READY`, aliasado em `www.usekineo.com`. GET sem JavaScript respondeu HTTP 200, encontrou formulário e âncora novos e confirmou ausência do CTA antigo; nenhum evento artificial foi emitido. Zero erro/fatal no runtime do deploy nos 15 minutos consultados.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum ator externo da campanha `example_remix_v1` foi observado ainda. Medir `View → Topic → Signup → Video` antes de alterar novamente essa superfície.
 
+### 2.16 Quick-start por tipo de entrada para o tráfego do ChatGPT
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `712ef3b00115f195359aa18c13778469593f79e4`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 30 dias lida em 28/08/2026, contas internas excluídas):** 194 cadastros foram atribuídos ao ChatGPT; 112 dessas pessoas têm ao menos um vídeo `completed` na tabela `videos`; 25 pessoas emitiram `checkout_started` e uma emitiu `payment_success`. O evento de pagamento não foi rebatizado como assinatura.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, mesma janela e coorte):** 190 pessoas chegaram ao criador, 167 iniciaram geração, 106 emitiram conclusão e 40 emitiram falha. A tabela `videos` e o evento de conclusão são réguas diferentes e permanecem separados.
+- A faixa ChatGPT anterior foi vista por 54 atores desde 22/08, mas só informava créditos e preço. Agora pergunta “What did ChatGPT give you?” e oferece dois caminhos allow-listed: roteiro pronto → `verbatim/35s`; ideia → `ai/45s` (`lib/growth/chatgptQuickstart.ts:1-23`; `components/ChatGptWelcomeBanner.tsx:107-139`).
+- A aquisição first-touch não é sobrescrita por uma nova UTM. Nenhum prompt ou roteiro entra na telemetria; somente a escolha allow-listed, a variante e o destino são gravados (`components/ChatGptWelcomeBanner.tsx:117-123`).
+- A impressão da variante é deduplicada por sessão. O dismiss continua reversível na sessão e agora também carrega a variante (`components/ChatGptWelcomeBanner.tsx:73-80,141-146`).
+- O funil causal exige o mesmo ator e ordem cronológica em `view → choice → generation start → completed video → checkout → payment`; geração ou compra antiga não recebe crédito (`lib/admin/chatgptQuickstartFunnel.ts:52-132`).
+- O admin diferencia falta de dados de zero e mostra roteiro versus ideia separadamente (`app/api/admin/funnel/route.ts:621-642,1176-1182`; `app/(dashboard)/admin/funnel/FunnelClient.tsx:602-614`).
+- Testes: `test-chatgpt-quickstart.mjs` `48/48`; regressões relacionadas `249/249`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/CHATGPT-QUICKSTART-2026-08-28.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_2HP5zyWrD6wv1VwQu5T5Dy24uqxg` em estado `READY`, aliasado em `www.usekineo.com`. GETs sem JavaScript confirmaram que os dois destinos preservam modo, duração e escolha através do redirect para signup; `/api/admin/funnel` respondeu 403 sem sessão. Zero erro/fatal no runtime do deploy nos 15 minutos consultados.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum ator externo de `chatgpt_quickstart_v1` foi observado ainda. Não comparar a nova variante com os 194 cadastros históricos até existir amostra pós-deploy.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
