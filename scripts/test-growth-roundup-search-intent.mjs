@@ -52,6 +52,8 @@ for (const slug of ['storyshort', 'shortspilot']) {
   check(new RegExp(`^  ${slug}: \\{$`, 'm').test(alternatives), `${slug} comparison record exists`)
 }
 check(alternatives.includes('export const COMPETITOR_SLUGS = Object.keys(COMPETITORS)'), 'comparison slugs derive from records')
+check(alternatives.includes('publicly described (August 2026)'), 'visible comparison freshness matches the audit date')
+check(!alternatives.includes('publicly described (July 2026)'), 'stale visible comparison date is absent')
 check(sitemap.includes("import { COMPETITOR_SLUGS } from './alternatives/[competitor]/page'"), 'sitemap imports comparison slugs')
 check(sitemap.includes('const altEntries = COMPETITOR_SLUGS.map'), 'sitemap emits every comparison slug')
 check(sitemap.includes("new Date('2026-08-28T18:30:00.000Z')"), 'sitemap freshness advances with the new URLs')

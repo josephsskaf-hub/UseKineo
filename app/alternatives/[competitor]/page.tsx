@@ -990,7 +990,7 @@ export default function AlternativePage({ params }: { params: { competitor: stri
             </table>
           </div>
           <p style={{ fontSize: '0.74rem', color: '#6e6e73', textAlign: 'center', margin: '10px 0 0' }}>
-            Comparison reflects each tool’s core product focus as publicly described (July 2026); features and pricing may change.
+            Comparison reflects each tool’s core product focus as publicly described (August 2026); features and pricing may change.
           </p>
         </section>
 
