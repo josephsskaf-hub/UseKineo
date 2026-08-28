@@ -579,6 +579,21 @@
 - **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o limite de gigabytes do Supabase continua causando alguns `402`; fundador e Claude conduzem o incidente. Esta entrega é estática e não acessou Supabase, Storage, sessão autenticada ou render.
 - **NÃO TOCADO:** pipeline de afiliados financeiro, taxa de 40%, cupom, janela de atribuição, banco, Supabase, Storage, migration, autenticação, `GenerateClient`, render, preço, grant, e-mail, outreach e tráfego pago.
 
+### 2.40 Cancelamento do checkout B2B preserva o pacote escolhido
+
+**FATO CONFIRMADO / IMPLEMENTADO / TESTADO LOCALMENTE / VALIDADO EM PRODUÇÃO (28/08/2026).** Commit funcional `9cc2d1a`.
+
+- **FATO CONFIRMADO:** o login já preservava corretamente `?pack=bulk10|20|30|50`; a hipótese inicial de perda antes da autenticação foi contradita pelo código. O abandono real ocorria depois: o checkout Stripe dos packs avulsos usava `cancel_url=${appUrl}/pricing`, devolvendo um comprador B2B que tinha escolhido volume e compra única para a página genérica de assinaturas (versão anterior a `9cc2d1a` de `app/api/stripe/checkout/route.ts:2593`).
+- A rota agora constrói o retorno somente para quatro IDs allow-listed e envia para `/ai-shorts-for-agencies?checkout=cancelled&pack=<id>#agency-pack-heading` (`lib/growth/agencyCheckoutReturn.ts:15-35`; `app/api/stripe/checkout/route.ts:2597`). Nenhum destino externo ou pack arbitrário é aceito.
+- A página mostra “nothing was charged”, restaura quantidade e preço do pack canônico e oferece retomar exatamente o mesmo checkout ou continuar comparando (`app/ai-shorts-for-agencies/AgencyPacksClient.tsx:45-129`). A compra continua explicitamente avulsa em USD e não vira assinatura.
+- `agency_bulk_checkout_cancelled_return_viewed` e `agency_bulk_checkout_resume_clicked` separam retorno e retomada por pack, quantidade, valor, moeda, superfície e variante (`app/ai-shorts-for-agencies/AgencyPacksClient.tsx:57-65,111-119`). **QUESTÃO PENDENTE / DESCONHECIDO:** os eventos não foram disparados nesta validação por causa do limite atual do Supabase.
+- **TESTADO LOCALMENTE:** retorno do checkout `75/75`; página B2B `30/30`; verdade comercial `305/305`; total de 410 verificações. Whitespace limpo. O TypeScript mantém os mesmos quatro erros preexistentes, deslocados em uma linha no checkout pelo novo import; nenhum arquivo desta entrega introduziu erro.
+- **VALIDAÇÃO VISUAL:** `docs/previews/AGENCY-CHECKOUT-RETURN-2026-08-28.html` compara antes/depois em desktop e mobile. Foi servido somente em localhost; DOM e captura integral foram conferidos. O antes perde pacote, volume e compra única; o depois preserva o pack de 30 vídeos por US$249 e as duas saídas.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** status público do commit retornou `Vercel: success`, target `J8c965WECzJFaihbg118w9byNd7N`. GET HTTP estático, sem executar JavaScript, em `/ai-shorts-for-agencies?checkout=cancelled&pack=bulk30&growth_canary=9cc2d1a` retornou `200` no domínio canônico e publicou a prateleira com o pack de 30 vídeos.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; fundador e Claude conduzem o incidente. O Codex não abriu checkout real, não executou o Client Component em produção, não consultou Supabase/Storage e não iniciou render. `402` será classificado como incidente de capacidade, não como abandono de Growth.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** o retorno visual real `Stripe cancelado → pack restaurado → retomar checkout` ainda precisa de um smoke pós-incidente com sessão externa. Build, testes e HTML publicado provam o contrato; não provam pagamento ou assinatura. Não clicar no CTA enquanto a capacidade não normalizar.
+- **NÃO TOCADO:** preço, SKU, amount, metadata, success URL, assinatura, grant, Supabase, Storage, migration, autenticação, `GenerateClient`, render, cena, legenda, motor, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
@@ -615,8 +630,8 @@
 
 - `app/api/admin/_shared/mrr.ts(113,41)`
 - `app/api/me/subscription/route.ts(71,41)`
-- `app/api/stripe/checkout/route.ts(546,76)`
-- `app/api/stripe/checkout/route.ts(567,62)`
+- `app/api/stripe/checkout/route.ts(547,76)`
+- `app/api/stripe/checkout/route.ts(568,62)`
 
 O quinto erro anteriormente registrado em `app/api/analyze-idea/route.ts` não aparece mais na ponta atual. Esta entrega não alterou esse arquivo e não reivindica a correção.
 
