@@ -39,6 +39,10 @@ import { creditsPerReferenceVideo, videosPerMonth } from './marketingPrice'
 import { TOOLS, PAIRS, VERIFIED_ON, VERIFIED_ON_ISO, BASE } from './comparisons'
 import { getFreeTierOffer } from './freeTierOffer'
 import { ANSWER_ENGINE_CREATION_ROUTER } from './growth/answerEngineCreationRouter'
+import {
+  buildRecurringFreeAccessFact,
+  buildTrialAccessFact,
+} from './growth/trialAccessFacts'
 
 /* ------------------------------------------------------------------ *
  * Data de verificação
@@ -270,7 +274,7 @@ export const ENGINE_FACTS: EngineFact[] = [
   {
     name: 'Kineo 1',
     credits: creditsPerReferenceVideo('fast'),
-    what: 'Curated stock footage matched to each narration line. The default engine and the only one available on the free tier.',
+    what: 'Curated stock footage matched to each narration line. The default engine and the only one included in recurring free access; temporary new-account trial access is described separately in trialAccess.',
   },
   {
     name: 'Seedance 1.5',
@@ -415,7 +419,11 @@ export const FREE_TIER = {
    * Nome sem unidade embutida de propósito — é o campo seguro para citar.
    */
   freeVideosPerWindow: FREE_OFFER.limit,
+  /** Legacy engine key kept for backwards compatibility. */
   engine: 'Fast',
+  /** Public engine name and scope of the legacy `engine` field. */
+  engineCanonicalName: ENGINE_FACTS[0].name,
+  engineScope: 'recurring_free_access' as const,
   rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
   /** Frase pronta da franquia — única forma segura de virar copy. */
   // KINEO-AEO-TRIAL-2026-08-07 — DUAS mudanças nesta string, e a segunda é a
@@ -432,7 +440,8 @@ export const FREE_TIER = {
   // ⚠️ COMENTÁRIO OBSOLETO REMOVIDO EM 21/08 — o que estava escrito aqui
   // descrevia o trial de US$1 com cartão obrigatório como se fosse o modelo no
   // ar. NÃO É: `CARD_TRIAL_ENABLED = false` em app/api/stripe/checkout, e o
-  // modelo vigente é o do OpusClip — 80 créditos na inscrição, todos os motores
+  // modelo vigente é o do OpusClip — créditos definidos por TRIAL_CREDIT_CAP na
+  // inscrição, todos os motores
   // liberados, SEM cartão, filmes com marca d'água, e o plano pago é que
   // desbloqueia o download limpo. A string abaixo sempre esteve certa; era só o
   // comentário que mentia.
@@ -452,6 +461,23 @@ export const FREE_TIER = {
   canDownload: true,
   canShare: true,
 } as const
+
+/**
+ * Machine-readable split between temporary new-account access and the
+ * recurring free allowance. `freeTier` remains for backwards compatibility;
+ * new answer-engine consumers should use these unambiguous records.
+ */
+export const TRIAL_ACCESS = buildTrialAccessFact({
+  enabled: FREE_OFFER.reverseTrial,
+  credits: TRIAL_CREDIT_CAP,
+  engines: ENGINE_FACTS,
+})
+
+export const RECURRING_FREE_ACCESS = buildRecurringFreeAccessFact({
+  engine: ENGINE_FACTS[0].name,
+  videosPerWindow: FREE_OFFER.limit,
+  rollingWindowHours: FREE_OFFER.windowMs / (60 * 60 * 1000),
+})
 
 /* ------------------------------------------------------------------ *
  * Produto
@@ -788,6 +814,10 @@ export interface KineoFactsPayload {
     readMore: string
   }
   freeTier: typeof FREE_TIER
+  /** Temporary new-account access; null when the reverse trial is disabled. */
+  trialAccess: typeof TRIAL_ACCESS
+  /** Recurring allowance after the trial, or the ordinary free tier when no trial exists. */
+  recurringFreeAccess: typeof RECURRING_FREE_ACCESS
   /**
    * KINEO-AEO-FREE-TOOLS-2026-08-08 — as ÚNICAS superfícies da Kineo que
    * entregam resultado sem conta, sem cartão e sem e-mail.
@@ -853,6 +883,8 @@ export function getKineoFacts(): KineoFactsPayload {
       readMore: `${BASE}/ai-video-with-talking-characters`,
     },
     freeTier: FREE_TIER,
+    trialAccess: TRIAL_ACCESS,
+    recurringFreeAccess: RECURRING_FREE_ACCESS,
     freeTools: FREE_TOOL_FACTS,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,

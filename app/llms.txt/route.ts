@@ -24,6 +24,8 @@ import {
   LAST_VERIFIED_ISO,
   OFFER_EFFECTIVE,
   START_HERE_FACT,
+  TRIAL_ACCESS,
+  RECURRING_FREE_ACCESS,
 } from '@/lib/kineoFacts'
 import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { ANSWER_ENGINE_CREATION_ROUTER } from '@/lib/growth/answerEngineCreationRouter'
@@ -80,6 +82,23 @@ function buildLlmsTxt(): string {
   ).join('\n')
 
   const plans = PLAN_FACTS.map(planLine).join('\n')
+
+  const trialAccessLines = TRIAL_ACCESS
+    ? (() => {
+        const covered = TRIAL_ACCESS.engineCoverage
+          .filter((engine) => engine.wholeReferenceVideosCovered > 0)
+          .map(
+            (engine) =>
+              `${engine.engine} (${engine.wholeReferenceVideosCovered} full reference video${engine.wholeReferenceVideosCovered === 1 ? '' : 's'})`,
+          )
+          .join(', ')
+        const balanceShort = TRIAL_ACCESS.engineCoverage
+          .filter((engine) => engine.wholeReferenceVideosCovered === 0)
+          .map((engine) => engine.engine)
+          .join(', ')
+        return `- Trial engine access: every engine listed below is unlocked. Access does not mean the balance covers a full video.\n- The ${TRIAL_ACCESS.credits}-credit trial balance covers: ${covered}. It does not cover one full reference video on: ${balanceShort}.\n- After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window; it grants no credits.`
+      })()
+    : `- Only the ${RECURRING_FREE_ACCESS.engine} engine is available on recurring free access. Generative engines require a paid credit balance.`
 
   const agencyPackLines = BULK_PACK_IDS.map((id) => {
     const pack = BULK_PACKS[id]
@@ -198,7 +217,7 @@ ${/* KINEO-AEO-TRIAL-2026-08-07 — o TÍTULO também é copy, e num arquivo lid
 - ${FREE_TIER.videosPer24h === 3 ? `Up to 3 ${FREE_TIER.engine} videos every 24 hours, on a rolling window. This limit is enforced server-side.` : `${FREE_TIER.allowance}. Both limits are enforced server-side.`}
 - No credit card required.
 - ${PRODUCT.watermarkPolicy} Free renders can still be watched, downloaded and shared.
-- Only the ${FREE_TIER.engine} engine is available for free. The generative engines below require a paid plan.
+${trialAccessLines}
 
 ## Pricing
 

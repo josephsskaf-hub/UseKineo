@@ -35,6 +35,8 @@ import {
   LAST_VERIFIED_HUMAN,
   LAST_VERIFIED_ISO,
   OFFER_EFFECTIVE,
+  TRIAL_ACCESS,
+  RECURRING_FREE_ACCESS,
   type PlanFact,
 } from '@/lib/kineoFacts'
 import { TOOLS } from '@/lib/comparisons'
@@ -120,6 +122,12 @@ const FREE_TIER_ALLOWANCE = FREE_TIER.allowance
 const FREE_TIER_SENTENCE = `${FREE_TIER_ALLOWANCE}, with no credit card`
 
 const OUTPUT_FORMAT = `${PRODUCT.outputFormat}, ${PRODUCT.aspectRatio}`
+const TRIAL_COVERED_ENGINES = TRIAL_ACCESS?.engineCoverage
+  .filter((engine) => engine.wholeReferenceVideosCovered > 0)
+  .map((engine) => engine.engine) ?? []
+const TRIAL_BALANCE_SHORT_ENGINES = TRIAL_ACCESS?.engineCoverage
+  .filter((engine) => engine.wholeReferenceVideosCovered === 0)
+  .map((engine) => engine.engine) ?? []
 
 const METADATA_DESCRIPTION =
   `Verified facts about Kineo, the AI YouTube Shorts generator: ${FREE_TIER_ALLOWANCE} with no ` +
@@ -200,6 +208,16 @@ const FACTS: { fact: string }[] = [
       `A new account can create, watch, download and share ${FREE_TIER_SENTENCE}. ` +
       `${PRODUCT.watermarkPolicy}`,
   },
+  ...(TRIAL_ACCESS
+    ? [{
+        fact:
+          `The new-account trial unlocks every listed engine, but its ${TRIAL_ACCESS.credits}-credit balance ` +
+          `covers a full reference video only on ${listEn(TRIAL_COVERED_ENGINES)}. ` +
+          `${listEn(TRIAL_BALANCE_SHORT_ENGINES)} are selectable but require more credits for a full reference video. ` +
+          `After the trial, recurring free access is ${RECURRING_FREE_ACCESS.videosPerWindow} watermarked ` +
+          `${RECURRING_FREE_ACCESS.engine} video per ${RECURRING_FREE_ACCESS.rollingWindowHours}-hour window.`,
+      }]
+    : []),
   {
     fact:
       `The ${STARTER.name} plan costs ${priceSentence(STARTER)} (or ${STARTER.annualUsd}/year) ` +
@@ -307,6 +325,16 @@ const QA: { q: string; a: string }[] = [
       `Yes. A new account can create, watch, download and share ${FREE_TIER_SENTENCE}. ` +
       `${PRODUCT.watermarkPolicy}`,
   },
+  ...(TRIAL_ACCESS
+    ? [{
+        q: 'Can I try every Kineo video engine for free?',
+        a:
+          `Every engine is unlocked during the new-account trial, with ${TRIAL_ACCESS.credits} credits and no card. ` +
+          `That balance covers a full reference video on ${listEn(TRIAL_COVERED_ENGINES)}. ` +
+          `It does not cover a full reference video on ${listEn(TRIAL_BALANCE_SHORT_ENGINES)}; those engines need a paid plan or sufficient additional credits. ` +
+          `Trial films are watermarked, and a paid plan unlocks the clean download.`,
+      }]
+    : []),
   {
     q: 'Who owns the videos?',
     a:
