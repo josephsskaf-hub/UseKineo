@@ -657,6 +657,21 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa externa foi observada em `home bridge → agency page → pack selected → checkout → purchase`. Depois da normalização, contar pessoas por `metadata.entry=home`; impressão, clique ou checkout não serão chamados de compra.
 - **NÃO TOCADO:** vídeos da home, curadoria, preço, grant, SKU, termos, checkout, Supabase, Storage, migration, autenticação, `GenerateClient`, pipeline de render, cena, legenda, motor, e-mail, outreach e tráfego pago.
 
+### 2.45 O painel do afiliado escolhe uma próxima ação pelo estágio real do funil
+
+**FATO CONFIRMADO / IMPLEMENTADO / TESTADO LOCALMENTE / PUBLICADO EM PRODUÇÃO (28/08/2026).** Commit funcional `4fcd99dcd203d2c04842e12aa36ee76f6eed1f69`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT agregado lido em 28/08/2026 06:01 UTC antes do incidente; contas internas excluídas):** 11 afiliados externos ativos; sete tinham zero visita vitalícia, quatro tinham pelo menos uma visita, o canal somava 17 visitas cruas e nenhum afiliado tinha referral. A missão anterior atacava somente os sete sem visita. Os quatro que já haviam distribuído o link voltavam a um kit genérico, sem uma ação específica para conquistar o primeiro cadastro.
+- `resolveAffiliateNextMission()` transforma somente os contadores já devolvidos por `/api/affiliate/me` em quatro estágios executáveis: `first_click`, `first_signup`, `first_paid_customer` e `scale` (`lib/growth/affiliateNextMission.ts`). Contador ausente, fracionário ou negativo falha fechado; quando linhas legadas se contradizem, o resultado mais profundo confirmado vence — pagamento > cadastro > visita.
+- O card do painel agora entrega uma única ação: zero visita copia o post para o gerador gratuito de roteiro; visita sem cadastro troca a mensagem para valor antes de conta; cadastro sem pagamento troca a prova para o teste completo de vídeo Fast; afiliado com pagante recebe o widget atribuído já existente (`app/(dashboard)/affiliate/page.tsx`). Link, legenda, cupom, três destinos e widget não foram reconstruídos.
+- O clique copia o ativo correspondente e sincroniza o seletor do kit com o destino recomendado. `affiliate_next_mission_viewed` mede estágio, ação, destino e os três contadores observados; `affiliate_next_mission_copied` mede o uso voluntário do ativo. Código do afiliado, URL, e-mail, prompt e texto livre não entram nesses eventos.
+- **TESTADO LOCALMENTE:** missões `63/63`; destinos e atribuição `230/230`; ativação `34/34`; comparação pública `51/51`; total de 378 verificações. Whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- **VALIDAÇÃO VISUAL:** `docs/previews/AFFILIATE-FUNNEL-MISSIONS-2026-08-28.html` compara antes/depois em desktop e mobile e exibe os quatro estágios. Foi servido somente em localhost, retornou `200`, teve DOM, overflow e captura integral conferidos; o servidor e a aba foram encerrados.
+- **PUBLICADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_EiUkyCRKcAb6QTBLmXdBJSMid7eT` em estado `READY`, target `production`, ligado ao SHA funcional exato. `/affiliate` não recebeu GET autenticado ou smoke durante o incidente de capacidade, porque sua carga chama `/api/affiliate/me` e o Supabase.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; fundador e Claude conduzem o incidente. O Codex não consultou Supabase, Storage, sessão autenticada ou render. Esses `402` são incidente de capacidade, não abandono de afiliado.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa externa foi observada na nova missão. Depois da normalização, medir atores por estágio em `mission viewed → copied → affiliate_click → affiliate_referral → paid`; publicação, impressão ou cópia não serão chamadas de cadastro, assinatura ou comissão.
+- **NÃO TOCADO:** `/api/affiliate/me`, queries, tabelas, ledger, taxa de 40%, cupom, janela de atribuição, preço, grant, checkout, Supabase, Storage, migration, autenticação, `GenerateClient`, pipeline de render, cena, legenda, motor, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
