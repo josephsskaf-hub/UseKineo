@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada depois da entrega mais recente:** `38ccd95ee6eb5db899c0c34df5026acddadf2c80`
+- **Base remota confirmada depois da entrega mais recente:** `8837edeb0aeddb04331186702f524f0f2090cae0`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -247,8 +247,23 @@
 - Testes: brief B2B `61/61`; página B2B `30/30`; calculadora `46/46`; distribuição `31/31`; contrato comercial `305/305`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
 - Preview visual obrigatório: `docs/previews/B2B-LEAD-INTAKE-2026-08-28.html`, inspecionado em desktop e em viewport real de 390 px. O primeiro preview mobile apertava o quadro desktop; o artefato foi corrigido e revalidado antes do push.
 - **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_7CR6kJdjkCv1ea5CE5ToG8nEquGQ` em estado `READY`, aliasado em `www.usekineo.com`. A página e o formulário renderizaram em desktop e mobile. O smoke POST com honeypot respondeu HTTP 200 antes do banco. Zero erro runtime/fatal foi encontrado no deploy.
-- A validação visual com JavaScript emitiu uma impressão anônima sintética. O registro foi identificado por UUID, sessão, horário e variante e removido isoladamente; a verificação final retornou `lead_rows=0` e `b2b_brief_event_rows=0`. Nenhum dado de cliente foi tocado.
+- A validação visual com JavaScript emitiu quatro eventos anônimos sintéticos na mesma sessão (`landing_session_started`, `agency_bulk_page_viewed`, `agency_margin_calculator_viewed` e `b2b_brief_viewed`). O primeiro cleanup removeu o brief; a auditoria seguinte identificou e removeu os três resíduos por UUID, sessão, horário e nome. A verificação final retornou `old_synthetic_session_rows=0`. Nenhum lead ou dado de cliente foi tocado.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe visitante humano observado na oferta B2B ou no brief. A nova porta impede que uma empresa interessada seja forçada direto ao checkout, mas não prova demanda. O próximo sprint deve aumentar distribuição qualificada ou preparar um lote de prospecção para aprovação, não mudar novamente o formulário sem amostra.
+
+### 2.18 Roteador pré-cadastro para ideia versus roteiro pronto
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `8837edeb0aeddb04331186702f524f0f2090cae0`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT, janela de 7 dias lida em 28/08/2026, contas internas excluídas):** ChatGPT atribuiu 52 cadastros, 30 pessoas com vídeo concluído, 5 pessoas que abriram checkout e 1 pessoa com sinal `paid-like`. Esse último número é um proxy composto de plano, assinatura ou evento no perfil; não é validação de assinatura ativa no Stripe. Na mesma régua, TAAFT atribuiu 36 cadastros, 14 pessoas com vídeo concluído, 3 pessoas que chegaram a alguma superfície de checkout, 2 com `checkout_started` e nenhuma com sinal `paid-like`.
+- **EVIDÊNCIA DE PRODUÇÃO (mesma consulta e data):** `push58_text_to_video_shorts` é a campanha ChatGPT nomeada mais forte observada: 13 pessoas cadastradas, 9 com vídeo concluído, 3 que abriram checkout e nenhuma com sinal `paid-like`.
+- A página dizia aceitar “topic, prompt, or full script”, mas não enviava `script_mode`; portanto, os três tipos seguiam o default `ai` do contrato existente (`app/text-to-video-shorts/page.tsx`; `lib/creationHandoff.ts`).
+- O formulário agora pergunta explicitamente o ponto de partida antes do cadastro. Ideia ou tópico preserva o comportamento histórico `ai/45s`; roteiro pronto usa o contrato já existente `verbatim/35s`. Os dois caminhos preservam prompt, intenção, campanha, modo e duração até o criador (`app/text-to-video-shorts/TextToVideoIntentForm.tsx`; `lib/growth/textToVideoIntent.ts`).
+- A telemetria existente `organic_topic_submitted` recebe somente modo, duração e variante allow-listed. Prompt e roteiro não são enviados para analytics (`app/youtube-shorts-from-topic/TopicGeneratorForm.tsx`).
+- Testes: roteador `36/36`; handoff ChatGPT `69/69`; quick-start `48/48`; distribuição B2B `31/31`; total relacionado `184/184`. Whitespace limpo e checklist React aplicado.
+- **TESTADO LOCALMENTE:** o TypeScript da ponta atual tem cinco erros preexistentes, nenhum nos arquivos desta entrega. O quinto está em `app/api/analyze-idea/route.ts`, introduzido anteriormente pelo commit `351d4be`; os outros quatro são o baseline já registrado.
+- Preview visual obrigatório: `docs/previews/TEXT-TO-VIDEO-INTENT-ROUTER-2026-08-28.html`, inspecionado em desktop e mobile. O formulário real também foi inspecionado em produção nos dois viewports.
+- **EVIDÊNCIA DE PRODUÇÃO (28/08/2026):** deploy `dpl_FBma6kj9Qj2R2ZZUHkLWMGL6d34f` em estado `READY`. O smoke em `www.usekineo.com/text-to-video-shorts` confirmou o default `ai/45s` e a troca explícita para `verbatim/35s`; não submeteu formulário, não criou cadastro e não iniciou render. Analytics e Vercel Insights foram bloqueados no navegador de teste. A consulta final retornou zero linha da sessão sintética e zero submissão da nova variante. Nenhum erro runtime foi encontrado em `/text-to-video-shorts` ou `/signup` na janela consultada.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe submissão humana observada da variante `text_to_video_intent_v1_2026_08_28`. Não alterar novamente o formulário antes de obter amostra; a próxima rodada deve ampliar distribuição qualificada e observar a passagem `modo → cadastro → vídeo → checkout`.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
@@ -282,12 +297,15 @@
 
 ## 4. Validação técnica consolidada
 
-**TESTADO LOCALMENTE.** Nenhuma entrega de Growth adicionou erro de TypeScript. O baseline continua exatamente em quatro erros preexistentes:
+**TESTADO LOCALMENTE.** Nenhuma entrega de Growth adicionou erro de TypeScript. A ponta atual tem cinco erros preexistentes:
 
+- `app/api/analyze-idea/route.ts(8,13)`
 - `app/api/admin/_shared/mrr.ts(113,41)`
 - `app/api/me/subscription/route.ts(71,41)`
 - `app/api/stripe/checkout/route.ts(545,76)`
 - `app/api/stripe/checkout/route.ts(566,62)`
+
+O erro de `analyze-idea` já existe em `origin/main`, atribuído ao commit anterior `351d4be`; pertence ao pipeline do Claude e não foi alterado pelo Codex.
 
 **FATO CONFIRMADO.** O build de produção ignora erros de tipo e lint; portanto, `npx tsc --noEmit` continua gate manual obrigatório.
 
