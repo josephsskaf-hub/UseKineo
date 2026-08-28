@@ -38,7 +38,10 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-ENGINE-SEO-2026-08-15 — advanced from 2026-08-03: the cluster gained
 // six pages (/ai-video-generator hub + 5 engine pages). Same test the comment
 // above sets — the cluster materially changed, so the old date is now a lie.
-const LAST_MODIFIED = new Date('2026-08-27T23:30:00.000Z')
+// KINEO-SEARCH-INTENT-2026-08-28 — advanced because the comparison cluster
+// gained two real URLs (StoryShort and ShortsPilot) and the 13-tool roundup
+// was materially refreshed from production Search Console demand.
+const LAST_MODIFIED = new Date('2026-08-28T18:30:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [

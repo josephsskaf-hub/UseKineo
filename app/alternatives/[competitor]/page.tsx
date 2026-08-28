@@ -43,7 +43,7 @@ type Competitor = {
 }
 
 // Feature claims are about the PRODUCT CATEGORY each tool is built for, kept
-// honest and current as of June 2026. We only quote our own price (STARTER_MO,
+// honest and current as of August 2026. We only quote our own price (STARTER_MO,
 // derivado de TIER_PRICES em lib/marketingPrice.ts);
 // competitor prices change, so we compare on what each tool fundamentally does.
 export const COMPETITORS: Record<string, Competitor> = {
@@ -627,26 +627,79 @@ export const COMPETITORS: Record<string, Competitor> = {
   // Machine (generative AI clip model), verified live and active tools as of July 2026.
   sendshort: {
     name: 'SendShort',
-    h1: 'The SendShort Alternative Built Around One Idea, Not a Long Video',
+    h1: 'The SendShort Alternative for a Focused Idea-to-Short Workflow',
     intro:
-      'SendShort mainly repurposes long videos and YouTube links into short vertical clips with auto-captions, and also offers a separate faceless video generator on its higher tiers. Kineo is built around a single workflow: give it one idea and it writes the script, records the AI voiceover, finds matching footage and captions it into a finished faceless 9:16 Short usually in 3–7 minutes — no long video to upload, no tier to unlock for faceless output.',
-    theyDo: 'SendShort repurposes long videos/YouTube links into short clips, with a faceless AI video option on its Professional/Business plans.',
+      'SendShort is a broad short-form suite: it can repurpose long videos and YouTube links, add captions and translations, create faceless videos and AI-avatar content, schedule posts, and run automated series. Kineo is narrower on purpose: give it one topic and it writes the script, records the AI voiceover, matches visuals and captions it into a finished 9:16 Short usually in 3–7 minutes. Pick breadth or a focused per-video workflow.',
+    theyDo: 'SendShort combines long-video re-clipping, captions, translation, faceless generation, AI avatars, scheduling and automated series.',
     pickThem:
-      'Pick SendShort if you already have long videos to auto-clip and want scheduled auto-posting across platforms. Pick Kineo if you want a faceless Short generated from just an idea, with no source video and no plan tier to unlock that.',
+      'Pick SendShort if you want long-video re-clipping, faceless generation and scheduling in one broad suite. Pick Kineo if you want a focused workflow that turns one chosen topic into one reviewable finished Short.',
     rows: [
-      { feature: 'Creates the full faceless Short from just an idea', sfa: true, them: 'Higher tiers only' },
-      { feature: 'Writes the script for you', sfa: true, them: false },
+      { feature: 'Creates the full faceless Short from just an idea', sfa: true, them: true },
+      { feature: 'Writes the script for you', sfa: true, them: true },
       { feature: 'AI voiceover included', sfa: true, them: true },
       { feature: 'Auto-captions / subtitles', sfa: true, them: true },
-      { feature: 'Pulls matching footage automatically', sfa: true, them: 'Repurposed clips' },
+      { feature: 'Repurposes a long video into multiple clips', sfa: false, them: true },
+      { feature: 'AI-avatar and automated-series workflows', sfa: false, them: true },
       { feature: 'Needs a long video or YouTube link to start', sfa: 'No', them: 'For repurposing mode' },
       { feature: 'Finished Short in a few minutes', sfa: true, them: true },
-      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'From ~$19/mo' },
+      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
     ],
     faq: [
-      { q: 'What is the best SendShort alternative for faceless YouTube Shorts?', a: 'Kineo is a strong SendShort alternative when you have no source video — it writes the script, adds an AI voice, pulls footage and burns in captions to deliver a faceless 9:16 Short from one idea usually in 3–7 minutes, on every plan.' },
-      { q: 'Does Kineo need a long video or YouTube link like SendShort?', a: 'No. SendShort is primarily built to repurpose a long video or link into clips, with faceless generation as an add-on. Kineo starts from just an idea and writes the script for you, so there is nothing to upload.' },
-      { q: 'Should I use SendShort or Kineo?', a: `Use SendShort if you already publish long-form video and want it auto-clipped and scheduled across platforms. Use Kineo if you are faceless and starting from an idea, and want the whole Short — script included — from ${STARTER_MO}.` },
+      { q: 'What is the best SendShort alternative for a simple idea-to-video workflow?', a: 'Kineo is a strong SendShort alternative when you want one focused path: type a topic and receive a finished 9:16 Short with script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'Does Kineo need a long video or YouTube link?', a: 'No. Kineo starts from a topic or your own script. SendShort can also generate faceless content, but its broader product additionally covers long-video re-clipping, AI avatars, translations, scheduling and automated series.' },
+      { q: 'Should I use SendShort or Kineo?', a: `Use SendShort if you want re-clipping and several short-form workflows in one suite. Use Kineo if you want a narrower topic-to-finished-Short workflow where you choose and review each video, from ${STARTER_MO}.` },
+    ],
+  },
+  // SEARCH-INTENT-ALTERNATIVES-2026-08-28 — added only after Search Console
+  // surfaced real impressions for these exact alternative intents. Category
+  // claims were checked against each vendor's official site on 2026-08-28;
+  // no competitor price is frozen here because those change independently.
+  storyshort: {
+    name: 'StoryShort',
+    h1: 'A StoryShort Alternative for Creators Who Want Per-Video Control',
+    intro:
+      `StoryShort creates faceless videos from a prompt or script with AI-generated visuals, voiceover, captions and music, and it can run recurring series that publish automatically. Kineo focuses on the video in front of you: choose one topic, select the engine and duration, review the result, and download a finished 9:16 Short usually in 3–7 minutes, from ${STARTER_MO}.`,
+    theyDo: 'StoryShort generates faceless short- and long-form videos with AI visuals and can automate recurring series and publishing.',
+    pickThem:
+      'Pick StoryShort if AI-generated visual styles, longer videos and automated publishing are central to your workflow. Pick Kineo if you want to direct and review each Short individually across several video engines.',
+    rows: [
+      { feature: 'Creates a full faceless Short from an idea', sfa: true, them: true },
+      { feature: 'Writes the script and voiceover', sfa: true, them: true },
+      { feature: 'Captions and background music included', sfa: true, them: true },
+      { feature: 'AI-generated visual styles', sfa: 'Multiple video engines', them: true },
+      { feature: 'Long-form documentary generation', sfa: false, them: true },
+      { feature: 'Recurring series with auto-publishing', sfa: false, them: true },
+      { feature: 'Per-video engine and duration control', sfa: true, them: 'Style and format controls' },
+      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Credit-based paid plans' },
+    ],
+    faq: [
+      { q: 'What is a StoryShort alternative for faceless YouTube Shorts?', a: 'Kineo is an alternative for creators who want to choose and review every Short. It turns one topic into a finished 9:16 video with a script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'What is the main difference between StoryShort and Kineo?', a: 'StoryShort emphasizes generated visual styles, longer formats and recurring series that can publish automatically. Kineo emphasizes a focused per-video workflow with multiple selectable video engines and a finished Short you review before posting.' },
+      { q: 'Can both tools make a video from only an idea?', a: `Yes. Both can start from a prompt and produce a complete faceless video. Kineo Starter begins at ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
+    ],
+  },
+  shortspilot: {
+    name: 'ShortsPilot',
+    h1: 'A ShortsPilot Alternative for Choosing Every Topic Yourself',
+    intro:
+      `ShortsPilot is a niche-first faceless channel autopilot: choose a niche and it writes, voices, edits and publishes Shorts to YouTube and TikTok. Kineo is topic-first: choose exactly what the next video is about, select the engine and duration, and receive one reviewable finished Short usually in 3–7 minutes, from ${STARTER_MO}.`,
+    theyDo: 'ShortsPilot runs niche-based faceless channels by generating and publishing short-form videos on autopilot.',
+    pickThem:
+      'Pick ShortsPilot if scheduled, hands-off channel operation is the priority. Pick Kineo if you want to choose every topic, control the generation engine and approve each finished video before it goes out.',
+    rows: [
+      { feature: 'Creates a full faceless Short from an idea', sfa: true, them: true },
+      { feature: 'Writes the script and voiceover', sfa: true, them: true },
+      { feature: 'Captions and editing included', sfa: true, them: true },
+      { feature: 'Niche-based automatic topic selection', sfa: false, them: true },
+      { feature: 'Publishes to YouTube and TikTok automatically', sfa: false, them: true },
+      { feature: 'You choose the topic of every video', sfa: true, them: 'Optional in generation flow' },
+      { feature: 'Multiple selectable video engines', sfa: true, them: 'Visual styles' },
+      { feature: 'Starting price', sfa: `From ${STARTER_MO}`, them: 'Paid plans' },
+    ],
+    faq: [
+      { q: 'What is a ShortsPilot alternative with more per-video control?', a: 'Kineo is an alternative when you want to choose every topic and review every output. It turns one topic into a finished 9:16 Short with script, AI voice, matched visuals and captions, usually in 3–7 minutes.' },
+      { q: 'What is the main difference between ShortsPilot and Kineo?', a: 'ShortsPilot is centered on niche-based channel automation and scheduled publishing. Kineo is centered on producing one deliberately chosen, reviewable Short at a time across several video engines.' },
+      { q: 'Can both tools make faceless Shorts without filming?', a: `Yes. Both generate scripts, voices and visuals without a camera. Kineo starts at ${STARTER_MONTH}${ft(OFFER, '; free access includes up to 3 watermarked Fast videos every 24 hours with no card.', '. ' + OFFER.copy.sentence)}` },
     ],
   },
   luma: {

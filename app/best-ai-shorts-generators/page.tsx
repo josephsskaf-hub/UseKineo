@@ -26,24 +26,24 @@ const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
-const UPDATED = 'July 25, 2026'
+const UPDATED = 'August 28, 2026'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
-  title: 'Best AI YouTube Shorts Generators (2026) — Ranked & Compared',
+  title: '13 Best AI YouTube Shorts Generators (2026) — Compared by Workflow',
   description:
-    'The best AI YouTube Shorts generators in 2026, honestly ranked and compared. From-scratch generators vs re-clippers vs avatar and caption tools — what each does, free tiers and starting prices, so you pick the right one.',
+    'Compare 13 AI YouTube Shorts generators by workflow: idea-to-video, faceless autopilot, long-video clipping, avatars and captions. Includes Kineo, StoryShort, ShortsPilot, SendShort, OpusClip and more.',
   alternates: { canonical: 'https://www.usekineo.com/best-ai-shorts-generators' },
   openGraph: {
-    title: 'Best AI YouTube Shorts Generators (2026) — Ranked & Compared',
+    title: '13 Best AI YouTube Shorts Generators (2026) — Compared by Workflow',
     description:
-      'A ranked, honest roundup of the best AI Shorts generators in 2026: from-scratch vs re-clip, script + voice + captions, free tiers and starting prices.',
+      'An honest comparison of 13 AI Shorts generators: idea-to-video, faceless autopilot, re-clipping, avatars and captions.',
     url: 'https://www.usekineo.com/best-ai-shorts-generators',
     type: 'article',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Best AI YouTube Shorts Generators (2026)',
+    title: '13 Best AI YouTube Shorts Generators (2026)',
     description:
       'The best AI Shorts generators, ranked and compared honestly — from-scratch vs re-clip, free tiers and starting prices.',
   },
@@ -155,6 +155,39 @@ const TOOLS: Tool[] = [
     startingPrice: 'Paid plans',
   },
   {
+    name: 'StoryShort',
+    slug: 'storyshort',
+    category: 'From-scratch faceless video + autopilot',
+    take:
+      'StoryShort turns a prompt or script into a faceless video with AI-written narration, generated visuals, voiceover, captions and music. It also supports recurring series and direct publishing, so it sits between a per-video generator and a channel autopilot. Its broad visual-style and longer-video options make it a strong fit when you want more than stock-footage Shorts.',
+    bestFor: 'Creators who want AI-generated visuals plus the option to automate a recurring faceless series.',
+    fromScratch: 'Yes',
+    freeTier: 'Free entry flow',
+    startingPrice: 'Credit-based paid plans',
+  },
+  {
+    name: 'ShortsPilot',
+    slug: 'shortspilot',
+    category: 'Niche-first faceless channel autopilot',
+    take:
+      'ShortsPilot is built around choosing a niche and letting the system write, voice, edit and publish faceless Shorts to YouTube and TikTok. It emphasizes scheduled channel operation rather than producing one carefully directed video at a time. That makes it a better match for hands-off consistency than for creators who want to choose every topic and approve every Short.',
+    bestFor: 'Creators prioritizing a self-running faceless channel and scheduled publishing.',
+    fromScratch: 'Yes',
+    freeTier: 'Check current offer',
+    startingPrice: 'Paid plans',
+  },
+  {
+    name: 'SendShort',
+    slug: 'sendshort',
+    category: 'Long-video re-clipper + faceless tools',
+    take:
+      'SendShort combines its core long-video clipping workflow with captions, translations, scheduling, faceless generation, AI avatars and automated series. It is the broadest fit for someone who already has long videos but also wants to experiment with generated content. The trade-off is a larger toolbox instead of one narrow idea-to-finished-Short workflow.',
+    bestFor: 'Creators repurposing long videos who also want faceless and scheduling tools in the same product.',
+    fromScratch: 'Yes, plus re-clipping',
+    freeTier: 'Free entry flow, no card',
+    startingPrice: 'Paid plans',
+  },
+  {
     name: 'VEED',
     slug: 'veed',
     category: 'Browser-based video editor with AI tools',
@@ -236,7 +269,7 @@ export default function BestAiShortsGeneratorsPage() {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: 'Best AI YouTube Shorts Generators (2026)',
+    name: '13 Best AI YouTube Shorts Generators (2026)',
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: TOOLS.length,
     itemListElement: TOOLS.map((t, i) => ({
@@ -270,6 +303,23 @@ export default function BestAiShortsGeneratorsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd).replace(/</g, '\\u003c') }}
       />
+      <style>{`
+        .roundup-decision-row {
+          display: grid;
+          grid-template-columns: minmax(150px, .75fr) minmax(190px, 1fr) minmax(240px, 1.4fr);
+          gap: 12px;
+          align-items: start;
+          padding: 12px 14px;
+          background: #0d0d0f;
+          border-radius: 10px;
+        }
+        @media (max-width: 680px) {
+          .roundup-decision-row {
+            grid-template-columns: 1fr;
+            gap: 5px;
+          }
+        }
+      `}</style>
 
       <div style={{ maxWidth: 860, margin: '0 auto' }}>
         <p
@@ -285,7 +335,7 @@ export default function BestAiShortsGeneratorsPage() {
           Roundup — updated {UPDATED}
         </p>
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
-          Best AI YouTube Shorts Generators (2026)
+          13 Best AI YouTube Shorts Generators (2026)
         </h1>
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
           &ldquo;Best AI Shorts generator&rdquo; has no single answer, because these tools
@@ -300,6 +350,38 @@ export default function BestAiShortsGeneratorsPage() {
           real public category as of {UPDATED}. We only quote Kineo&rsquo;s own exact prices;
           competitor prices change, so verify those on their sites.
         </p>
+
+        {/* SEARCH-INTENT-ROUNDUP-2026-08-28 — Search Console showed that this
+            page was already being surfaced for tool-specific alternative
+            searches, but the long ranked list made the answer expensive to
+            find. This answer-first map lets a buyer self-select by starting
+            point before reading thirteen reviews. */}
+        <section style={{ ...CARD, padding: '20px', margin: '0 0 40px', borderColor: '#3a3a3d' }}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 8px' }}>
+            The quick answer: choose by what you already have
+          </h2>
+          <p style={{ color: MUTED, fontSize: '0.92rem', lineHeight: 1.6, margin: '0 0 16px' }}>
+            The best tool changes with your starting point. Use this map before comparing feature lists.
+          </p>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {[
+              ['Only an idea', 'Kineo or StoryShort', 'Both create the script, voice, visuals and captions from scratch.'],
+              ['A faceless channel to automate', 'ShortsPilot, AutoShorts or StoryShort', 'These products center scheduled series and channel operation.'],
+              ['A long video or podcast', 'OpusClip or SendShort', 'They are built to find and reformat moments from footage you already have.'],
+              ['A presenter on screen', 'HeyGen', 'Use an avatar specialist when the deliverable is a talking spokesperson.'],
+              ['A finished clip that needs polish', 'Submagic or VEED', 'Use caption and editing tools when the video already exists.'],
+            ].map(([startingPoint, picks, reason]) => (
+              <div
+                key={startingPoint}
+                className="roundup-decision-row"
+              >
+                <strong style={{ color: '#f5f5f7', fontSize: '0.9rem' }}>{startingPoint}</strong>
+                <span style={{ color: ACCENT, fontWeight: 700, fontSize: '0.9rem' }}>{picks}</span>
+                <span style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.45 }}>{reason}</span>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* How to choose */}
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
@@ -367,7 +449,7 @@ export default function BestAiShortsGeneratorsPage() {
 
         {/* Ranked list */}
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 6px' }}>
-          The ranking: 10 best AI Shorts generators
+          The ranking: 13 best AI Shorts generators
         </h2>
         <p style={{ color: MUTED, fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 20px' }}>
           Ranked for the most common case: a creator who wants to publish faceless Shorts and is
