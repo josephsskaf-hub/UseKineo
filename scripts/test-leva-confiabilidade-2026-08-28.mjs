@@ -74,5 +74,15 @@ chk('o 422 de ≤12s dispara handleWriteFullScript automaticamente', g2.includes
 chk('roteiro real (>12s) mantém o fluxo com aprovação (C1)', g2.includes('if (!ehIdeia) setError('))
 chk('C1 preservado: o auto só ESCREVE — aprovação continua antes do render', g2.includes('setAuthoredScript(data.script.trim())'))
 
+console.log('\n124-FANTASMAS) Painel live conta JOBS de animação, nunca eventos crus')
+// O sweep re-liquidou jobs entregues 1×/hora até 26/08 (erdemtr: 1 animação
+// real = "124 vídeos" na tela). O histórico segue poluído; a contagem tem que
+// deduplicar por billing_reference e ignorar estorno — como o people (#295).
+const lv = ler('app/api/admin/live/route.ts')
+chk('a query do animate traz metadata (sem ele não há dedupe possível)', lv.includes(".select('user_id, metadata').eq('name', 'animate_job_settled')"))
+chk('deduplica por billing_reference', lv.includes('e.metadata?.billing_reference ?? e.metadata?.request_id'))
+chk('estorno não conta como entrega', lv.includes("e.metadata.outcome !== 'delivered'"))
+chk('o bump cru do animate morreu', !lv.includes('bumpDelivery(animateDelivRes.data'))
+
 console.log(`\n═══ ${ok} passaram, ${bad} falharam ═══\n`)
 process.exit(bad === 0 ? 0 : 1)

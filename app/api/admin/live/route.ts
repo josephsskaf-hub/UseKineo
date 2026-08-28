@@ -212,8 +212,14 @@ export async function GET() {
       // cego que o #295 já tinha consertado no "Got back" (1.801 entregas de
       // animação invisíveis). Agora a coluna soma as quatro fontes; o rótulo
       // na tela vira "entregas", não "vídeos".
+      // KINEO-124-FANTASMAS-2026-08-28 — contar EVENTO cru aqui era mentira:
+      // o sweep do Animate re-liquidou jobs entregues 1×/hora até o guarda-
+      // corpo de 26/08 (erdemtr: 1 animação real virou "124 vídeos" na tela).
+      // O histórico segue poluído (jobs com até 139 duplicatas), então a
+      // contagem precisa do metadata para deduplicar por billing_reference e
+      // ignorar estorno — igual ao /admin/people (#295), que já fazia isso.
       const animateDelivPromise = admin
-        .from('events').select('user_id').eq('name', 'animate_job_settled').in('user_id', ids).limit(1000)
+        .from('events').select('user_id, metadata').eq('name', 'animate_job_settled').in('user_id', ids).limit(1000)
       const [profRes, vidRes, animateDelivRes] = await Promise.all([
         admin.from('profiles')
           .select('id, email, name, plan, has_paid, video_credits, trial_credits_used, trial_credits_granted, signup_country, last_country, signup_utm_source, created_at')
@@ -329,7 +335,20 @@ export async function GET() {
       // reusar as MESMAS respostas não custa uma query nova.
       bumpDelivery(imagesRes.data as unknown[] | null)
       bumpDelivery(audiosRes.data as unknown[] | null)
-      bumpDelivery(animateDelivRes.data as unknown[] | null)
+      // Animate NÃO passa por bumpDelivery (ver KINEO-124-FANTASMAS acima):
+      // um job = um billing_reference entregue, nunca um evento.
+      {
+        const animateJobs = new Map<string, Set<string>>()
+        for (const e of (animateDelivRes.data ?? []) as { user_id: string | null; metadata?: { outcome?: string; billing_reference?: string; request_id?: string } | null }[]) {
+          if (!e.user_id) continue
+          if (e.metadata?.outcome && e.metadata.outcome !== 'delivered') continue
+          const ref = e.metadata?.billing_reference ?? e.metadata?.request_id ?? 'sem-ref'
+          const set = animateJobs.get(e.user_id) ?? new Set<string>()
+          set.add(ref)
+          animateJobs.set(e.user_id, set)
+        }
+        for (const [uid, refs] of animateJobs) vidCount.set(uid, (vidCount.get(uid) ?? 0) + refs.size)
+      }
       // KINEO-PAINEL-VERDADE-2026-08-27 — duas cópias locais morreram aqui.
       //
       // `PAID_PLANS` era uma lista escrita à mão que NÃO tinha os planos
