@@ -62,6 +62,7 @@ import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
 } from '@/lib/affiliateAttribution'
+import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -856,11 +857,24 @@ async function buildAndRedirect(
     return NextResponse.redirect(`${appUrl}/signup?reason=checkout&redirect=${encodeURIComponent(resume)}`)
   }
 
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id')
-    .eq('id', user.id)
-    .single()
+  // KINEO-CHECKOUT-PROFILE-RACE-2026-08-28 — production evidence, not a
+  // hypothetical: a new buyer's profile was created, OAuth returned, and the
+  // resumed checkout failed its profile read two seconds later. A second click
+  // would work after the row settled, but the buyer had already been sent back
+  // to pricing. Retry only this read, with a 2s total ceiling. Every ownership,
+  // existing-subscription and customer check below remains unchanged.
+  const profileLookup = await readCheckoutProfileWithRetry(async () => {
+    const result = await supabase
+      .from('profiles')
+      .select('email, stripe_customer_id, is_pro, plan, stripe_subscription_id, paypal_subscription_id, affiliate_id')
+      .eq('id', user.id)
+      .single()
+    return { data: result.data, error: result.error }
+  })
+  const { data: profile, error: profileError } = profileLookup
+  checkoutMetadata.profile_lookup_attempts = profileLookup.attempts
+  checkoutMetadata.profile_lookup_recovered = profileLookup.recovered
+  failureContext = { ...checkoutMetadata }
 
   if (profileError && profileError.code !== 'PGRST116') {
     console.error('[stripe/checkout] Profile fetch error:', profileError.message, profileError.code)
