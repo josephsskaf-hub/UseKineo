@@ -876,6 +876,8 @@ PRÓXIMO DONO:
 
 **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_B5JvTt6Kx3gg5wAzN16nUbHXzgoQ` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. O HTML público com cache-buster respondeu `200`/`HIT`, título `Free InVideo AI Alternative for Faceless Shorts — Kineo`, canonical correto, sem `noindex`, com H1, resposta, campanha e fontes novas. O handoff aponta para `/studio?engine=fast` e o HTML contém zero `create_intent`. A Vercel registrou zero erro de runtime em `/alternatives/invideo` nos 15 minutos consultados.
 
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026):** a inspeção confirmou `O URL está no Google`, `A página está indexada` e HTTPS válido. Como o conteúdo e a metadata foram materialmente alterados, Codex solicitou nova indexação uma única vez. O painel confirmou `Indexação solicitada` e informou que a URL entrou na fila de rastreamento prioritário; reenviar não aumenta posição nem prioridade, portanto não repetir agora.
+
 **EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esses `402` são capacidade, não abandono voluntário atribuído à nova página. Codex não afirma que renders estão perfeitos e não tocou no pipeline.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa, cadastro ou assinatura foi atribuída à variante. Aguardar nova janela do Search Console e contar pessoas em `campaign=growth_invideo_free_intent_20260828`, separando `placement=hero`, `free_answer` e os CTAs finais. Publicação e impressão não serão chamadas de aquisição.
