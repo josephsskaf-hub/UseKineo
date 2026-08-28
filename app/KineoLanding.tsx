@@ -55,6 +55,11 @@ import NavEngineItem from '@/components/NavEngineItem'
 import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME20-2026-08-25
 import SignupConversionTracker from '@/components/SignupConversionTracker' // KINEO-POUSO-VITRINE-2026-08-25
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import HomeTopicForm from './HomeTopicForm'
+import {
+  HOME_REFERRAL_BRIDGE_COPY,
+  type HomeReferralBridgeSource,
+} from '@/lib/growth/homeReferralBridge'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -63,6 +68,7 @@ type Props = {
   initialUser?: { id: string } | null
   initialEmail?: string
   initialIsPro?: boolean
+  initialAcquisitionSource?: HomeReferralBridgeSource | null
 }
 
 const KLP_CSS = `
@@ -779,8 +785,16 @@ function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string 
   return `/signup?reason=checkout&redirect=${encodeURIComponent(resumePath)}`
 }
 
-export default function KineoLanding({ initialUser, engineWall = [], trending = [] }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
+export default function KineoLanding({
+  initialUser,
+  initialAcquisitionSource = null,
+  engineWall = [],
+  trending = [],
+}: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
+  const referralBridge = !isSignedIn && initialAcquisitionSource
+    ? HOME_REFERRAL_BRIDGE_COPY[initialAcquisitionSource]
+    : null
   const starterCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=starter&intro=1', isSignedIn)
   const creatorCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=basic&intro=1', isSignedIn)
   const studioCheckoutHref = pricingCheckoutHref('/api/stripe/checkout?tier=pro', isSignedIn)
@@ -916,7 +930,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         <div className="nav-right">
           {initialUser
             ? <div className="nav-cta"><NavCreditsBadge /><Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/studio">Dashboard</Link></div>
-            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href="/signup?utm_source=nav">Start free</Link>}
+            : <Link className="btn btn-w" style={{ padding: '12px 20px', fontSize: '14px' }} href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav'}>Start free</Link>}
           <div className="nav-toggle-wrap">
             <input type="checkbox" id="nav-toggle" className="nav-toggle-input" aria-label="Menu" aria-controls="mobile-nav-menu" />
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
@@ -933,7 +947,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <a href="#pricing">Pricing</a>
               {initialUser
                 ? <Link className="btn btn-w" href="/studio">Dashboard</Link>
-                : <Link className="btn btn-w" href="/signup?utm_source=nav-mobile">Start free</Link>}
+                : <Link className="btn btn-w" href={referralBridge ? '#try-kineo' : '/signup?utm_source=nav-mobile'}>Start free</Link>}
             </label>
           </div>
         </div>
@@ -1029,6 +1043,32 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                   </div>
       </header>
 
+      {referralBridge ? (
+        <section
+          aria-labelledby="referral-quick-start-heading"
+          data-acquisition-source={initialAcquisitionSource}
+          style={{ padding: '58px 0 70px', background: 'linear-gradient(180deg, rgba(41,151,255,.055), transparent)' }}
+        >
+          <div className="wrap">
+            <div className="hero-center">
+              <span style={{ display: 'inline-flex', color: '#7cc0ff', background: 'rgba(41,151,255,.10)', border: '1px solid rgba(41,151,255,.28)', borderRadius: 999, padding: '7px 12px', fontSize: 11, fontWeight: 850, letterSpacing: '.08em', textTransform: 'uppercase' }}>
+                {referralBridge.eyebrow}
+              </span>
+              <h2 id="referral-quick-start-heading" style={{ margin: '14px auto 0', maxWidth: 760, color: 'var(--txt)', fontSize: 'clamp(1.75rem, 4vw, 2.65rem)', lineHeight: 1.08, letterSpacing: '-.025em' }}>
+                {referralBridge.headline}
+              </h2>
+              <p className="sub" style={{ marginLeft: 'auto', marginRight: 'auto' }}>
+                {referralBridge.body}
+              </p>
+              <HomeTopicForm
+                isSignedIn={isSignedIn}
+                acquisitionSource={initialAcquisitionSource}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       {/* KINEO-ENGINE-WALL-2026-08-15 v2 — o layout do print do fundador:
           featured row (cards largos, titulo caps abaixo da midia) + bento dos
           motores (promo + 6 tiles). Videos e selos 100% reais do banco. */}
@@ -1057,7 +1097,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
               <div className="promo">
                 <h3>Start with the full toolkit</h3>
                 <p>{ft(OFFER, 'Create, download and share up to 3 watermarked Fast videos every 24h — no card.', OFFER.copy.headline)}</p>
-                <Link className="btn btn-w" href={isSignedIn ? '/generate?src=engine_bento' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
+                <Link className="btn btn-w" href={isSignedIn ? '/generate?src=engine_bento' : referralBridge ? '#try-kineo' : '/signup?utm_source=engine_bento'}>{isSignedIn ? 'Open the generator' : 'Start free'}</Link>
                 <span className="pstack" aria-hidden="true">
                   <img src="/posters/hero-veo31.webp" alt="" loading="lazy" />
                   <img src="/posters/hero-kling25.webp" alt="" loading="lazy" />
@@ -1478,7 +1518,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
                 <Link href="/studio?engine=veo&intent_campaign=final_chip">Veo 3.1</Link>
                 <Link href="/studio?engine=hollywood&intent_campaign=final_chip">Kling 3</Link>
               </div>
-              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
+              <div className="fcta"><Link className="btn btn-w" href={isSignedIn ? '/generate' : referralBridge ? '#try-kineo' : '/signup?utm_source=final_cta'}>{isSignedIn ? 'Create a video' : 'Start free'}</Link></div>
               {/* ONDA6 #1 (14/08) — o fechamento ganha a linha de reversao de
                   risco do hero: fecha a pagina com a mesma forca que abre.
                   KINEO-TRIAL-SWAP-LEAK-2026-08-15 — esta linha NASCEU fora da
@@ -1523,7 +1563,7 @@ export default function KineoLanding({ initialUser, engineWall = [], trending = 
         </div>
       </div>
       {/* #5 (aprovado 15/08) — a barra ja existia; agora so para deslogados e com utm da home. */}
-      {!isSignedIn && <StickyFreeShortCTA href="/signup?utm_source=home_sticky_cta" />}
+      {!isSignedIn && <StickyFreeShortCTA href={referralBridge ? '#try-kineo' : '/signup?utm_source=home_sticky_cta'} />}
       {/* KINEO-CRO-2026-07-25 — recover exiting logged-out visitors (was only on /pricing). */}
       {/* KINEO-EXIT-VARIANT-2026-08-03 — na home o exit-intent vende o GRÁTIS
           (cadastro), não deals: visitante que nunca gerou vídeo não deve levar

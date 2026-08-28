@@ -99,7 +99,19 @@ function signupHref(prompt: string): string {
   return `/signup?${params.toString()}`
 }
 
-export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
+type HomeTopicFormProps = {
+  isSignedIn: boolean
+  acquisitionSource?: 'chatgpt' | 'taaft' | null
+}
+
+export default function HomeTopicForm({
+  isSignedIn,
+  acquisitionSource = null,
+}: HomeTopicFormProps) {
+  const trackingPlacement = acquisitionSource ? 'home_referral_bridge' : 'home_hero'
+  const resultPlacement = acquisitionSource
+    ? 'home_referral_bridge_script_result'
+    : 'home_hero_script_result'
   const [prompt, setPrompt] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -125,17 +137,19 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
 
     void trackEvent('home_prompt_first_viewed', {
       source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero',
+      placement: trackingPlacement,
+      acquisition_source: acquisitionSource,
       signed_in: isSignedIn,
     }, '/')
-  }, [isSignedIn])
+  }, [acquisitionSource, isSignedIn, trackingPlacement])
 
   // Anonymous inline generation. Never throws — every exit path clears `pending`
   // and either shows a script or shows an error with a working way forward.
   async function runFreeScript(topic: string) {
     void trackEvent('home_free_script_requested', {
       source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero',
+      placement: trackingPlacement,
+      acquisition_source: acquisitionSource,
       topic_length: topic.length,
     }, '/')
 
@@ -151,7 +165,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
         setError(typeof data?.error === 'string' && data.error ? data.error : 'Could not write your script. Try again.')
         void trackEvent('home_free_script_failed', {
           source: HOME_PROMPT_CAMPAIGN,
-          placement: 'home_hero',
+          placement: trackingPlacement,
+          acquisition_source: acquisitionSource,
           reason: res.status === 429 ? 'rate_limited' : 'http_error',
           status: res.status,
         }, '/')
@@ -163,7 +178,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
         setError('Could not write your script. Try again.')
         void trackEvent('home_free_script_failed', {
           source: HOME_PROMPT_CAMPAIGN,
-          placement: 'home_hero',
+          placement: trackingPlacement,
+          acquisition_source: acquisitionSource,
           reason: 'empty_script',
         }, '/')
         return
@@ -173,7 +189,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
       setScriptTopic(topic)
       void trackEvent('home_free_script_succeeded', {
         source: HOME_PROMPT_CAMPAIGN,
-        placement: 'home_hero',
+        placement: trackingPlacement,
+        acquisition_source: acquisitionSource,
         topic_length: topic.length,
         line_count: parsed.length,
       }, '/')
@@ -188,7 +205,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
       setError('Network error. Try again.')
       void trackEvent('home_free_script_failed', {
         source: HOME_PROMPT_CAMPAIGN,
-        placement: 'home_hero',
+        placement: trackingPlacement,
+        acquisition_source: acquisitionSource,
         reason: 'network_error',
       }, '/')
     } finally {
@@ -219,7 +237,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     if (isSignedIn) {
       void trackEvent('organic_topic_submitted', {
         source: HOME_PROMPT_CAMPAIGN,
-        placement: 'home_hero',
+        placement: trackingPlacement,
+        acquisition_source: acquisitionSource,
         destination: '/generate',
         signed_in: true,
         topic_length: trimmed.length,
@@ -234,7 +253,8 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     rememberSignupCampaign(HOME_PROMPT_CAMPAIGN)
     void trackEvent('organic_topic_submitted', {
       source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero',
+      placement: trackingPlacement,
+      acquisition_source: acquisitionSource,
       destination: 'inline_script',
       signed_in: false,
       topic_length: trimmed.length,
@@ -255,14 +275,16 @@ export default function HomeTopicForm({ isSignedIn }: { isSignedIn: boolean }) {
     rememberSignupCampaign(HOME_PROMPT_CAMPAIGN)
     void trackEvent('home_free_script_cta_clicked', {
       source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero_script_result',
+      placement: resultPlacement,
+      acquisition_source: acquisitionSource,
       destination: '/signup',
       line_count: lines.length,
       script_length: activationPrompt.length,
     }, '/')
     void trackEvent('organic_cta_clicked', {
       source: HOME_PROMPT_CAMPAIGN,
-      placement: 'home_hero_script_result',
+      placement: resultPlacement,
+      acquisition_source: acquisitionSource,
     }, '/')
   }
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
+import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
 
 export const metadata: Metadata = {
   // UX10 #10 (15/08) — o title/description agora vendem o que a pagina VIROU:
@@ -55,8 +56,13 @@ const BRAND_JSON_LD = {
   ],
 }
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
   const supabase = createClient()
+  const initialAcquisitionSource = homeReferralBridgeSource(searchParams)
 
   const {
     data: { user },
@@ -88,6 +94,7 @@ export default async function HomePage() {
         trending={trending}
         initialEmail={email}
         initialIsPro={isPro}
+        initialAcquisitionSource={initialAcquisitionSource}
       />
     </>
   )
