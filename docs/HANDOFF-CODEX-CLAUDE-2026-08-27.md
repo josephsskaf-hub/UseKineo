@@ -442,6 +442,22 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não há pessoa externa observada na variante. Medir pessoas `affiliate_click → landing_context_viewed → landing_context_clicked → signup → completed → paid` apenas depois de amostra externa; visita crua, impressão, clique, cadastro e assinatura continuam estágios distintos.
 - **NÃO TOCADO:** `/a/[code]`, cookie de atribuição, tabelas de afiliado, Supabase, render, cena, legenda, motor, Storage, migration, preço, grant, oferta, e-mail, outreach e tráfego pago.
 
+### 2.31 Widget diário com atribuição do afiliado
+
+**FATO CONFIRMADO / IMPLEMENTADO / VALIDADO EM PRODUÇÃO (28/08/2026).** Commit `b344fb0ec4edac0f2f0168abb72d26c5398bef2f`, publicado diretamente sobre `9592fbbd1a5f0e7ee8ec0e5953c752af75bed427`.
+
+- **FATO CONFIRMADO:** o painel já entregava link, legenda e roteiro falado, enquanto o widget público diário existia apenas com aquisição genérica (`app/(dashboard)/affiliate/page.tsx:379-626`; `app/widget/embed/page.tsx:119-139`). A lacuna era um ativo durável que um afiliado pudesse instalar uma vez em blog/site e manter a própria atribuição.
+- Afiliados ativos agora recebem no painel um iframe pronto, preview e botão de cópia. O snippet deriva somente do link owner-only já devolvido por `/api/affiliate/me`, canoniza para `www.usekineo.com` e carrega apenas o código público de oito caracteres (`app/(dashboard)/affiliate/page.tsx:379-405,630-685`; `lib/growth/affiliateWidget.ts:6-27`).
+- O clique `Powered by Kineo` do iframe atribuído entra no handler existente `/a/CODE?to=script`; portanto, reaproveita a validação de afiliado ativo, prova de clique e first-touch de 90 dias. Código inválido volta ao CTA genérico com `utm_source=widget`, sem aceitar URL ou redirect arbitrário (`app/widget/embed/page.tsx:69-80,128`; `lib/growth/affiliateWidget.ts:29-33`; `app/a/[code]/route.ts:20-43`).
+- A normalização do código foi separada em módulo puro para o painel cliente não importar indiretamente o módulo servidor/Supabase. O export antigo foi preservado, sem mudar o contrato dos callers (`lib/affiliateCode.ts:1-4`; `lib/affiliateAttribution.ts:1-4`).
+- O clique não foi simulado. A cópia do iframe reutiliza `affiliate_campaign_asset_copied` com `asset=widget`, sem código, URL, e-mail ou texto livre na telemetria (`app/(dashboard)/affiliate/page.tsx:398-411,674-681`).
+- Comparação visual obrigatória: `docs/previews/AFFILIATE-ATTRIBUTED-WIDGET-2026-08-28.html` e `.svg`, com antes/depois em desktop e mobile. O preview registra a evidência datada que governou a ação: 11 afiliados externos ativos, 7 com zero visita lifetime e 0 referrals na última leitura anterior ao incidente.
+- **TESTADO LOCALMENTE:** `scripts/test-affiliate-destinations.mjs` passou `230/230`, cobrindo host malicioso, caminho extra, `javascript:`, código inválido, fallback genérico, dimensões do iframe, CTA allow-listed, caller real e preview. Whitespace limpo. TypeScript manteve somente os quatro erros preexistentes, nenhum nos arquivos desta entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_BXtp9MwQ1enmamzeWdMyy1kBsKXF` em estado `READY`, SHA `b344fb0ec4edac0f2f0168abb72d26c5398bef2f`, aliasado em `www.usekineo.com`. Smoke read-only em `/widget/embed?affiliate=ABCD2345` confirmou título, conteúdo, overflow horizontal zero e CTA exato `https://www.usekineo.com/a/ABCD2345?to=script`; com `affiliate=INVALID`, confirmou fallback genérico com UTMs e console sem erro. Nenhum CTA foi clicado.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase está no limite contratado de gigabytes e alguns renders retornam `402`. Por isso o painel autenticado não foi aberto no smoke, nenhuma consulta foi feita e nenhuma linha foi criada. Esta entrega adiciona zero leitura/escrita de Supabase no carregamento do iframe ou na geração do snippet; a rota de atribuição existente só é chamada se um leitor clicar.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** entrega técnica não prova adoção. Medir pessoas externas que copiam `asset=widget` e depois geram visitas/signups/pagamentos somente após o incidente de capacidade e com amostra real; não inferir receita a partir de embed copiado.
+- **NÃO TOCADO:** Supabase, Storage, migration, render, cena, legenda, motor, preço, grant, oferta, desconto, e-mail, outreach, tráfego pago e vídeos da home.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
