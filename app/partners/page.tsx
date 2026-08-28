@@ -171,6 +171,25 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
           </div>
         </section>
 
+        <section style={{ marginTop: 44 }}>
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 8px' }}>A campaign kit, not just a link</h2>
+          <p style={{ color: '#86868b', fontSize: '0.9rem', lineHeight: 1.6, textAlign: 'center', maxWidth: 610, margin: '0 auto 18px' }}>
+            Choose the audience you already have. Kineo gives you the matching landing page, a ready-to-post caption and a short speaking script — with your coupon included when available.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+            {[
+              { t: 'Script-first audience', d: 'Send people who have a topic to the no-signup script generator.' },
+              { t: 'Ready to test video', d: 'Send people who want to judge the complete free Fast workflow.' },
+              { t: 'Faceless creators', d: 'Send channel builders to the narration, visuals and captions workflow.' },
+            ].map((campaign) => (
+              <div key={campaign.t} style={{ ...CARD, borderRadius: 14, padding: 17 }}>
+                <div style={{ color: '#2997ff', fontWeight: 900, marginBottom: 6 }}>{campaign.t}</div>
+                <p style={{ margin: 0, color: '#86868b', fontSize: '0.84rem', lineHeight: 1.55 }}>{campaign.d}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* FAQ */}
         <section style={{ marginTop: 44 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>Questions, answered</h2>

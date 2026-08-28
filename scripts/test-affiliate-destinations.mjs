@@ -43,11 +43,37 @@ const OLD_CODE = 'WXYZ2345'
 const CLICK_ID = '11111111-1111-4111-8111-111111111111'
 const OLD_CLICK_ID = '22222222-2222-4222-8222-222222222222'
 
-equal(destinations.AFFILIATE_DESTINATIONS.length, 1, 'only production-proven destination is enabled')
+equal(destinations.AFFILIATE_DESTINATIONS.length, 3, 'three audience-specific first-party destinations are enabled')
 equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
 const scriptDestination = destinations.getAffiliateDestination(' ScRiPt ')
 equal(scriptDestination.path, '/free-script-generator', 'destination key normalizes')
-for (const unsafe of ['', 'https://evil.example', '//evil.example', '../pricing', 'script&next=evil', 'home']) {
+const expectedDestinations = {
+  script: { path: '/free-script-generator', campaign: 'affiliate_script' },
+  video: { path: '/free-ai-shorts-generator', campaign: 'affiliate_video' },
+  faceless: { path: '/faceless-video-generator', campaign: 'affiliate_faceless' },
+}
+for (const [key, expected] of Object.entries(expectedDestinations)) {
+  const destination = destinations.getAffiliateDestination(key)
+  equal(destination.path, expected.path, `${key} uses the intended acquisition page`)
+  check(destination.audience.length > 20, `${key} declares its audience`)
+  check(destination.sharePitch.length > 40, `${key} has ready-to-post copy`)
+  check(destination.spokenPitch.length > 40, `${key} has a speaking script`)
+  const destinationUrl = destinations.buildAffiliateDestinationUrl('https://www.usekineo.com', key)
+  equal(destinationUrl.origin, 'https://www.usekineo.com', `${key} stays first-party`)
+  equal(destinationUrl.pathname, expected.path, `${key} destination path is exact`)
+  equal(destinationUrl.searchParams.get('utm_source'), 'affiliate', `${key} source UTM is fixed`)
+  equal(destinationUrl.searchParams.get('utm_medium'), 'partner', `${key} medium UTM is fixed`)
+  equal(destinationUrl.searchParams.get('utm_campaign'), expected.campaign, `${key} campaign UTM is fixed`)
+  const campaignShare = new URL(destinations.buildAffiliateShareLink(`http://preview.invalid/a/${CODE}?old=1#x`, key))
+  equal(campaignShare.origin, 'https://www.usekineo.com', `${key} share canonicalizes production host`)
+  equal(campaignShare.pathname, `/a/${CODE}`, `${key} share keeps only the affiliate entry path`)
+  equal(campaignShare.searchParams.toString(), `to=${key}`, `${key} share carries only its allowlisted destination`)
+  equal(destinations.affiliateDestinationBucket(`/a/${CODE}?to=${key}`), key, `${key} click is measurable by destination`)
+}
+for (const legacyPath of [null, '', `/a/${CODE}`, `/a/${CODE}?to=unknown`, 'not a URL%%%']) {
+  equal(destinations.affiliateDestinationBucket(legacyPath), 'legacy', `legacy bucket is explicit for ${legacyPath ?? 'null'}`)
+}
+for (const unsafe of ['', 'https://evil.example', '//evil.example', '../pricing', 'script&next=evil', 'home', 'agency']) {
   equal(destinations.getAffiliateDestination(unsafe), null, `unsafe destination rejected: ${unsafe || '(empty)'}`)
 }
 
@@ -181,6 +207,14 @@ async function runRoute({
   equal(codeCookie.options.maxAge, 90 * 24 * 60 * 60, 'first-touch window is 90 days')
 }
 
+for (const [key, expected] of Object.entries(expectedDestinations)) {
+  const { response, inserts } = await runRoute({ to: key })
+  const location = new URL(response.location)
+  equal(location.pathname, expected.path, `${key} route reaches the matching acquisition surface`)
+  equal(location.searchParams.get('utm_campaign'), expected.campaign, `${key} route preserves campaign attribution`)
+  equal(inserts[0].landing_path, `/a/${CODE}?to=${key}`, `${key} click stores its normalized destination`)
+}
+
 for (const unsafe of [null, 'https://evil.example', '//evil.example', '../checkout', 'home']) {
   const { response, inserts } = await runRoute({ to: unsafe })
   const location = new URL(response.location)
@@ -261,14 +295,35 @@ for (const userAgent of ['Twitterbot/1.0', 'WhatsApp/2.0']) {
 }
 
 const dashboard = read('app/(dashboard)/affiliate/page.tsx')
-check(dashboard.includes('getAffiliateDestination(RECOMMENDED_AFFILIATE_DESTINATION)'), 'copy and link derive from same recommended key')
-check(dashboard.includes("buildAffiliateShareLink(data.link ?? '', RECOMMENDED_AFFILIATE_DESTINATION)"), 'dashboard uses canonical deep-link builder')
+check(dashboard.includes('getAffiliateDestination(selectedDestinationKey)'), 'copy and link derive from the selected allowlisted key')
+check(dashboard.includes("buildAffiliateShareLink(data.link ?? '', selectedDestinationKey)"), 'dashboard uses canonical deep-link builder')
 check(dashboard.includes('async function copyLink()'), 'clipboard success is awaited')
 check(dashboard.includes('await navigator.clipboard.writeText(link)'), 'link copied event cannot fire before clipboard resolves')
 check(dashboard.includes('Link visits'), 'raw rows are not mislabeled people or unique clicks')
 check(dashboard.includes('Free value before signup'), 'visual after-state badge is in product')
-check(dashboard.includes('htmlFor="affiliate-script-share-link"'), 'share input has programmatic label')
+check(dashboard.includes('htmlFor="affiliate-campaign-share-link"'), 'share input has programmatic label')
 check(dashboard.includes('aria-live="polite"'), 'copy confirmation is announced')
+check(dashboard.includes('role="group"'), 'campaign selector exposes a semantic group')
+check(dashboard.includes('aria-pressed={selected}'), 'campaign selector exposes selected state')
+check(dashboard.includes('affiliate_campaign_selected'), 'campaign choice is measured')
+check(dashboard.includes('affiliate_campaign_asset_copied'), 'campaign asset usage is measured')
+check(dashboard.includes('Ready-to-post caption'), 'dashboard supplies ready-to-post copy')
+check(dashboard.includes('Short speaking script'), 'dashboard supplies a short spoken pitch without promising exact timing')
+
+const partners = read('app/partners/page.tsx')
+check(partners.includes('A campaign kit, not just a link'), 'public recruiting page promises the implemented kit')
+check(partners.includes('Script-first audience'), 'public recruiting page names the script audience')
+check(partners.includes('Ready to test video'), 'public recruiting page names the video audience')
+check(partners.includes('Faceless creators'), 'public recruiting page names the faceless audience')
+
+const adminRoute = read('app/api/admin/affiliates/route.ts')
+check(adminRoute.includes("select('affiliate_id, landing_path')"), 'admin reads the canonical click destination field')
+check(adminRoute.includes('affiliateDestinationBucket(row.landing_path)'), 'admin classifies every click through the allowlist helper')
+check(adminRoute.includes('destinationClicks'), 'admin response exposes destination totals')
+
+const adminPage = read('app/(dashboard)/admin/affiliates/page.tsx')
+check(adminPage.includes('Affiliate click destinations'), 'admin UI labels the destination breakdown')
+check(adminPage.includes('raw link visits'), 'admin does not mislabel raw visits as people')
 
 const routeSource = read('app/a/[code]/route.ts')
 check(routeSource.includes('isAffiliatePreviewBot'), 'real route filters preview bots')
@@ -284,5 +339,11 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(previewHtml.includes('Supabase production aggregate SELECT, measured 27 Aug 2026'), 'HTML evidence carries source/date')
 check(previewSvg.includes('Supabase aggregate SELECT, 27 Aug 2026'), 'SVG evidence carries source/date')
+
+const campaignPreview = read('docs/previews/AFFILIATE-CAMPAIGN-KIT-2026-08-27.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(campaignPreview.includes(label), `campaign-kit preview includes ${label}`)
+}
+check(campaignPreview.includes('11 affiliates externos, 17 cliques, 0 signup atribuído'), 'campaign preview carries dated production evidence')
 
 console.log(`PASS — ${checks}/${checks} affiliate destination checks`)

@@ -23,6 +23,20 @@ interface Affiliate {
   owed: number
 }
 
+interface DestinationClicks {
+  script: number
+  video: number
+  faceless: number
+  legacy: number
+}
+
+const EMPTY_DESTINATION_CLICKS: DestinationClicks = {
+  script: 0,
+  video: 0,
+  faceless: 0,
+  legacy: 0,
+}
+
 const BLUE = '#2997ff'
 const TEXT = '#f5f5f7'
 const MUTED = '#86868b'
@@ -59,6 +73,7 @@ export default function AdminAffiliatesPage() {
   const [denied, setDenied] = useState(false)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [destinationClicks, setDestinationClicks] = useState<DestinationClicks>(EMPTY_DESTINATION_CLICKS)
   // Local drafts for the inline rate (%) and coupon inputs, keyed by affiliate id.
   const [rateDraft, setRateDraft] = useState<Record<string, string>>({})
   const [couponDraft, setCouponDraft] = useState<Record<string, string>>({})
@@ -74,6 +89,7 @@ export default function AdminAffiliatesPage() {
         const json = await res.json()
         const list = (json.affiliates ?? []) as Affiliate[]
         setAffiliates(list)
+        setDestinationClicks({ ...EMPTY_DESTINATION_CLICKS, ...(json.destinationClicks ?? {}) })
         // Seed drafts from server values.
         const rd: Record<string, string> = {}
         const cd: Record<string, string> = {}
@@ -183,6 +199,21 @@ export default function AdminAffiliatesPage() {
         {loading && !affiliates ? (
           <div className="rounded-2xl" style={{ background: CARD, border: BORDER, height: 200, borderRadius: 20 }} />
         ) : (
+          <>
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" aria-label="Affiliate click destinations">
+            {[
+              { label: 'Script tool', value: destinationClicks.script },
+              { label: 'Video test', value: destinationClicks.video },
+              { label: 'Faceless', value: destinationClicks.faceless },
+              { label: 'Legacy / home', value: destinationClicks.legacy },
+            ].map((destination) => (
+              <div key={destination.label} className="rounded-xl p-3" style={{ background: CARD, border: BORDER }}>
+                <div className="text-[10px] font-black uppercase tracking-wider" style={{ color: MUTED }}>{destination.label}</div>
+                <div className="text-xl font-black mt-1" style={{ color: destination.value > 0 ? BLUE : TEXT }}>{destination.value.toLocaleString('en-US')}</div>
+                <div className="text-[10px] mt-1" style={{ color: MUTED }}>raw link visits</div>
+              </div>
+            ))}
+          </section>
           <div className="rounded-2xl overflow-x-auto" style={{ background: CARD, border: BORDER, borderRadius: 20 }}>
             <table className="w-full text-left text-xs" style={{ minWidth: 920 }}>
               <thead>
@@ -317,6 +348,7 @@ export default function AdminAffiliatesPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>

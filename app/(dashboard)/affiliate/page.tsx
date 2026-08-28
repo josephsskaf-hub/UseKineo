@@ -26,6 +26,7 @@ import {
   RECOMMENDED_AFFILIATE_DESTINATION,
   buildAffiliateShareLink,
   getAffiliateDestination,
+  type AffiliateDestinationKey,
 } from '@/lib/affiliateDestinations'
 
 // KINEO-ORFAOS-CLIQUE-2026-08-14 — este helper era `fetch('/api/events')` cru,
@@ -75,9 +76,6 @@ const MUTED = '#86868b'
 const GREEN = '#2997ff'
 const CARD = '#161618'
 const BORDER = '1px solid rgba(255,255,255,0.08)'
-const AFFILIATE_SHARE_DESTINATION =
-  getAffiliateDestination(RECOMMENDED_AFFILIATE_DESTINATION) ?? AFFILIATE_DESTINATIONS[0]
-
 function dollars(cents: number, currency = 'usd'): string {
   const sym = currency && currency.toLowerCase() !== 'usd' ? '' : '$'
   const amount = (cents / 100).toFixed(2)
@@ -133,6 +131,9 @@ export default function AffiliatePage() {
   const [applying, setApplying] = useState(false)
   const [copied, setCopied] = useState(false)
   const [couponCopied, setCouponCopied] = useState(false)
+  const [copiedAsset, setCopiedAsset] = useState<'caption' | 'spoken' | null>(null)
+  const [selectedDestinationKey, setSelectedDestinationKey] =
+    useState<AffiliateDestinationKey>(RECOMMENDED_AFFILIATE_DESTINATION)
   // PUSH #101 — true only for the render right after a successful apply in
   // THIS session, so the "your link is live, use it now" block is a moment and
   // not permanent dashboard furniture.
@@ -190,14 +191,14 @@ export default function AffiliatePage() {
   }
 
   async function copyLink() {
-    const link = buildAffiliateShareLink(data?.link ?? '', RECOMMENDED_AFFILIATE_DESTINATION)
+    const link = buildAffiliateShareLink(data?.link ?? '', selectedDestinationKey)
     if (!link) return
     try {
       await navigator.clipboard.writeText(link)
       setCopied(true)
       trackAffiliateEvent('affiliate_link_copied', {
         just_applied: justApplied,
-        destination: RECOMMENDED_AFFILIATE_DESTINATION,
+        destination: selectedDestinationKey,
       })
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -351,9 +352,15 @@ export default function AffiliatePage() {
   // affiliate to go find somewhere to paste it; these hand them a pre-written
   // message. Plain links, no SDKs, no keys. The pitch only claims things the
   // product actually does (free Fast tier, no card — lib/comparisons.ts:305).
-  const selectedDestination = AFFILIATE_SHARE_DESTINATION
-  const link = buildAffiliateShareLink(data.link ?? '', RECOMMENDED_AFFILIATE_DESTINATION)
+  const selectedDestination =
+    getAffiliateDestination(selectedDestinationKey) ?? AFFILIATE_DESTINATIONS[0]
+  const link = buildAffiliateShareLink(data.link ?? '', selectedDestinationKey)
   const sharePitch = selectedDestination.sharePitch
+  const couponLine = a.coupon_code
+    ? ` Use code ${a.coupon_code} for 20% off the first month.`
+    : ''
+  const readyCaption = `${sharePitch} ${link}${couponLine}`.trim()
+  const spokenScript = `${selectedDestination.spokenPitch}${couponLine}`.trim()
   const shareTargets = link
     ? [
         {
@@ -370,6 +377,21 @@ export default function AffiliatePage() {
         },
       ]
     : []
+
+  async function copyCampaignAsset(asset: 'caption' | 'spoken', value: string) {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopiedAsset(asset)
+      trackAffiliateEvent('affiliate_campaign_asset_copied', {
+        asset,
+        destination: selectedDestinationKey,
+        coupon_attached: Boolean(a.coupon_code),
+      })
+      setTimeout(() => setCopiedAsset(null), 1800)
+    } catch {
+      // The readonly text stays selectable when clipboard access is blocked.
+    }
+  }
 
   return (
     <div className={wrap}>
@@ -405,17 +427,64 @@ export default function AffiliatePage() {
         </div>
       ) : null}
 
-      {/* Share link */}
+      {/* Campaign selector. Competitor programs hand partners generic brand
+          assets; this keeps attribution first-party and gives each audience a
+          useful pre-signup destination instead. */}
       <div
         className="rounded-2xl p-5 mb-5"
         style={{ background: CARD, border: '1px solid rgba(41,151,255,.28)', boxShadow: '0 0 30px rgba(41,151,255,.08)' }}
       >
+        <div className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: CYAN }}>
+          Partner campaign kit
+        </div>
+        <h2 className="font-black tracking-tight mb-1" style={{ color: TEXT, fontSize: '1.08rem' }}>
+          Choose who you are sending
+        </h2>
+        <p className="text-xs mb-4" style={{ color: MUTED, lineHeight: 1.55 }}>
+          Every option keeps your 90-day first-touch attribution. Only the useful page and the ready-made message change.
+        </p>
+        <div
+          role="group"
+          aria-label="Affiliate campaign audience"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-5"
+        >
+          {AFFILIATE_DESTINATIONS.map((destination) => {
+            const selected = destination.key === selectedDestinationKey
+            return (
+              <button
+                key={destination.key}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => {
+                  setSelectedDestinationKey(destination.key)
+                  setCopied(false)
+                  setCopiedAsset(null)
+                  trackAffiliateEvent('affiliate_campaign_selected', {
+                    destination: destination.key,
+                  })
+                }}
+                className="rounded-xl p-3 text-left"
+                style={{
+                  background: selected ? 'rgba(41,151,255,.14)' : 'rgba(255,255,255,.035)',
+                  border: selected ? '1px solid rgba(41,151,255,.52)' : BORDER,
+                  color: TEXT,
+                  cursor: 'pointer',
+                }}
+              >
+                <span className="block text-xs font-black mb-1">{destination.label}</span>
+                <span className="block text-[10px] leading-relaxed" style={{ color: MUTED }}>
+                  {destination.audience}
+                </span>
+              </button>
+            )
+          })}
+        </div>
         <label
-          htmlFor="affiliate-script-share-link"
+          htmlFor="affiliate-campaign-share-link"
           className="block text-[10px] font-black uppercase tracking-widest mb-2"
           style={{ color: MUTED }}
         >
-          Your script-generator share link
+          Your {selectedDestination.label.toLowerCase()} link
         </label>
         <div
           className="inline-block rounded-full px-2.5 py-1 mb-2 text-[9px] font-black uppercase tracking-widest"
@@ -430,7 +499,7 @@ export default function AffiliatePage() {
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <input
-            id="affiliate-script-share-link"
+            id="affiliate-campaign-share-link"
             readOnly
             value={link}
             onFocus={(e) => e.currentTarget.select()}
@@ -474,7 +543,7 @@ export default function AffiliatePage() {
                   trackAffiliateEvent('affiliate_share_clicked', {
                     channel: t.label,
                     just_applied: justApplied,
-                    destination: RECOMMENDED_AFFILIATE_DESTINATION,
+                    destination: selectedDestinationKey,
                   })
                 }
                 className="rounded-lg px-3 py-1.5 text-xs font-extrabold"
@@ -491,6 +560,41 @@ export default function AffiliatePage() {
           </div>
         ) : null}
       </div>
+
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5" aria-label="Ready-made affiliate promotion copy">
+        {[
+          { key: 'caption' as const, eyebrow: 'Ready-to-post caption', value: readyCaption },
+          { key: 'spoken' as const, eyebrow: 'Short speaking script', value: spokenScript },
+        ].map((asset) => (
+          <div key={asset.key} className="rounded-2xl p-4" style={{ background: CARD, border: BORDER }}>
+            <label
+              htmlFor={`affiliate-${asset.key}-copy`}
+              className="block text-[10px] font-black uppercase tracking-widest mb-2"
+              style={{ color: MUTED }}
+            >
+              {asset.eyebrow}
+            </label>
+            <textarea
+              id={`affiliate-${asset.key}-copy`}
+              readOnly
+              value={asset.value}
+              onFocus={(event) => event.currentTarget.select()}
+              rows={5}
+              className="w-full rounded-xl p-3 text-xs leading-relaxed resize-none"
+              style={{ background: 'rgba(13,13,28,.85)', border: BORDER, color: TEXT, outline: 'none' }}
+            />
+            <button
+              type="button"
+              onClick={() => void copyCampaignAsset(asset.key, asset.value)}
+              aria-live="polite"
+              className="w-full rounded-xl px-4 py-2.5 mt-2 text-xs font-black"
+              style={{ background: 'rgba(41,151,255,.14)', border: '1px solid rgba(41,151,255,.3)', color: CYAN }}
+            >
+              {copiedAsset === asset.key ? '✓ Copied' : `Copy ${asset.key === 'caption' ? 'caption' : 'speaking script'}`}
+            </button>
+          </div>
+        ))}
+      </section>
 
       {/* KINEO-CUPOM-AFILIADO-2026-08-21 — o cupom deixa de ser rodapé.
           Num vídeo de TikTok/Reels/Shorts não existe link clicável: o criador

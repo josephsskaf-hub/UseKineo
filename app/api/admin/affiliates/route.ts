@@ -6,6 +6,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
+import {
+  AFFILIATE_DESTINATIONS,
+  affiliateDestinationBucket,
+  type AffiliateDestinationBucket,
+} from '@/lib/affiliateDestinations'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -63,16 +68,22 @@ export async function GET() {
     const signupsByAff = new Map<string, number>()
     const paidByAff = new Map<string, number>()
     const owedByAff = new Map<string, number>()
+    const destinationClicks = Object.fromEntries([
+      ...AFFILIATE_DESTINATIONS.map((destination) => [destination.key, 0] as const),
+      ['legacy', 0] as const,
+    ]) as Record<AffiliateDestinationBucket, number>
 
     const [{ data: clicks }, { data: referrals }, { data: commissions }] = await Promise.all([
-      admin.from('affiliate_clicks').select('affiliate_id'),
+      admin.from('affiliate_clicks').select('affiliate_id, landing_path'),
       admin.from('affiliate_referrals').select('affiliate_id, status'),
       admin.from('affiliate_commissions').select('affiliate_id, commission_amount, status'),
     ])
 
-    for (const row of (clicks ?? []) as Array<{ affiliate_id: string | null }>) {
+    for (const row of (clicks ?? []) as Array<{ affiliate_id: string | null; landing_path: string | null }>) {
       if (!row.affiliate_id) continue
       clicksByAff.set(row.affiliate_id, (clicksByAff.get(row.affiliate_id) ?? 0) + 1)
+      const bucket = affiliateDestinationBucket(row.landing_path)
+      destinationClicks[bucket] += 1
     }
     for (const row of (referrals ?? []) as Array<{ affiliate_id: string | null; status: string | null }>) {
       if (!row.affiliate_id) continue
@@ -106,7 +117,7 @@ export async function GET() {
       owed: owedByAff.get(aff.id) ?? 0,
     }))
 
-    return NextResponse.json({ affiliates: result })
+    return NextResponse.json({ affiliates: result, destinationClicks })
   } catch (err) {
     console.error('[admin/affiliates] unexpected:', err)
     return NextResponse.json({ error: 'Failed to load affiliates', affiliates: [] }, { status: 500 })

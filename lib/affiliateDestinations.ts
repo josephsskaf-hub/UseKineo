@@ -7,16 +7,41 @@ export const AFFILIATE_DESTINATIONS = [
   {
     key: 'script',
     label: 'Free script generator',
+    audience: 'People who have a topic but not a script',
     path: '/free-script-generator',
     campaign: 'affiliate_script',
     description: 'Best for people who already have a topic and want a hook-to-payoff draft.',
     sharePitch: 'Try this free AI script generator for Shorts — it can turn one topic into a hook, facts and payoff, no signup:',
+    spokenPitch: 'If you have a Shorts idea but no script, Kineo turns one topic into a hook, facts and payoff before you even create an account.',
     emailSubject: 'Free AI script generator for Shorts',
+  },
+  {
+    key: 'video',
+    label: 'Free AI Shorts generator',
+    audience: 'People ready to test the full video workflow',
+    path: '/free-ai-shorts-generator',
+    campaign: 'affiliate_video',
+    description: 'Best for people who want to see the topic-to-video workflow and start a free Fast test.',
+    sharePitch: 'Turn one idea into a scripted, voiced and captioned AI Short with Kineo — the Fast test needs no card:',
+    spokenPitch: 'Kineo turns one idea into a scripted, voiced and captioned vertical video. The Fast test needs no card, so you can judge the result yourself.',
+    emailSubject: 'Try Kineo’s free AI Shorts workflow',
+  },
+  {
+    key: 'faceless',
+    label: 'Faceless video workflow',
+    audience: 'Faceless YouTube, TikTok and Reels creators',
+    path: '/faceless-video-generator',
+    campaign: 'affiliate_faceless',
+    description: 'Best for creators who want narration, changing visuals and captions without filming themselves.',
+    sharePitch: 'Want to make faceless Shorts without filming? Kineo combines a hook-driven script, AI voice, changing visuals and captions:',
+    spokenPitch: 'For faceless Shorts, Kineo combines a hook-driven script, AI voice, changing visuals and captions without asking you to film yourself.',
+    emailSubject: 'Faceless Shorts without filming',
   },
 ] as const
 
 export type AffiliateDestination = (typeof AFFILIATE_DESTINATIONS)[number]
 export type AffiliateDestinationKey = AffiliateDestination['key']
+export type AffiliateDestinationBucket = AffiliateDestinationKey | 'legacy'
 
 const DESTINATION_BY_KEY = new Map<AffiliateDestinationKey, AffiliateDestination>(
   AFFILIATE_DESTINATIONS.map((destination) => [destination.key, destination]),
@@ -60,6 +85,19 @@ export function buildAffiliateShareLink(baseLink: string, key: AffiliateDestinat
 
 export function affiliateClickLandingPath(code: string, destination: AffiliateDestination | null): string {
   return destination ? `/a/${code}?to=${destination.key}` : `/a/${code}`
+}
+
+export function affiliateDestinationBucket(
+  landingPath: string | null | undefined,
+): AffiliateDestinationBucket {
+  if (!landingPath) return 'legacy'
+  try {
+    const url = new URL(landingPath, 'https://www.usekineo.com')
+    const destination = getAffiliateDestination(url.searchParams.get('to'))
+    return destination?.key ?? 'legacy'
+  } catch {
+    return 'legacy'
+  }
 }
 
 // Social unfurlers request partner links to build a preview, but no human has
