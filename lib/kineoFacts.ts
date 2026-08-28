@@ -673,6 +673,16 @@ export const START_HERE_FACT: StartHereFact = {
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
+    name: 'Free product video ad script generator',
+    url: `${BASE}/product-to-video-script`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: 'per IP, per day',
+    what: 'Paste verified product facts and an optional audience to get a structured faceless Short ad script. It does not scrape URLs, invent missing claims or render a video.',
+  },
+  {
     name: 'Free comment-to-video script generator',
     url: `${BASE}/comment-to-video`,
     output: 'text',

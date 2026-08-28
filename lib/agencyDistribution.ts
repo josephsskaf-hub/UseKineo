@@ -3,6 +3,7 @@ export const AGENCY_DISTRIBUTION_ENTRIES = [
   'cost_page',
   'pricing',
   'comment_tool',
+  'product_tool',
 ] as const
 
 export type AgencyDistributionEntry = (typeof AGENCY_DISTRIBUTION_ENTRIES)[number]

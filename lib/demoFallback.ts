@@ -171,6 +171,15 @@ FACT 3: Name the limitation or tradeoff most replies leave out, then replace any
 PAYOFF: The strongest response is simple... answer directly, show the proof, and invite the next honest question.`
 }
 
+export function fallbackProductScript(product: string): string {
+  const subject = product.replace(/\s+/g, ' ').trim().slice(0, 100) || 'this product'
+  return `HOOK: The cheapest option can hide the most expensive tradeoff.
+PROBLEM: People comparing “${subject}” need to know what problem it actually removes.
+PRODUCT: State the verified feature that solves that problem, in the customer’s own language.
+PROOF: Add [one verified demonstration, specification, review or limitation] before publishing.
+CTA: Compare the real fit... then choose the product whose value you can verify.`
+}
+
 export function fallbackDemoHooks(topic: string): string[] {
   return pickEntry(topic).hooks
 }

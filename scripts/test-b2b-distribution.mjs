@@ -24,8 +24,8 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 4, 'four evidence-backed bridges are enabled')
-for (const entry of ['state_report', 'cost_page', 'pricing', 'comment_tool']) {
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 5, 'five evidence-backed bridges are enabled')
+for (const entry of ['state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)
@@ -53,6 +53,8 @@ for (const [entry, source] of Object.entries(sources)) {
 
 const commentTool = read('app/comment-to-video/CommentToVideoClient.tsx')
 check(commentTool.includes("agencyPacksHref('comment_tool')"), 'comment tool routes qualified client volume through the allowlist')
+const productTool = read('app/product-to-video-script/ProductToVideoClient.tsx')
+check(productTool.includes("agencyPacksHref('product_tool')"), 'product tool routes qualified client volume through the allowlist')
 
 const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the allowlisted entry')
