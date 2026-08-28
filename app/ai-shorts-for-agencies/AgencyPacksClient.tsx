@@ -1,8 +1,13 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { readAgencyDistributionEntry } from '@/lib/agencyDistribution'
+import {
+  AGENCY_CHECKOUT_RETURN_VARIANT,
+  agencyCheckoutResumeHref,
+  readAgencyCheckoutReturn,
+} from '@/lib/growth/agencyCheckoutReturn'
 
 export interface AgencyPackView {
   id: 'bulk10' | 'bulk20' | 'bulk30' | 'bulk50'
@@ -14,8 +19,11 @@ export interface AgencyPackView {
 }
 
 const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v2'
+const CANCEL_RETURN_MARKER = 'kineo:agency-bulk-checkout:cancelled:v1'
 
 export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }) {
+  const [cancelledPackId, setCancelledPackId] = useState<string | null>(null)
+
   useEffect(() => {
     const entry = readAgencyDistributionEntry(window.location.search)
     const marker = `${VIEW_MARKER}:${entry ?? 'direct'}`
@@ -33,6 +41,33 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
     })
   }, [packs.length])
 
+  useEffect(() => {
+    const checkoutReturn = readAgencyCheckoutReturn(window.location.search)
+    if (!checkoutReturn || !packs.some((pack) => pack.id === checkoutReturn.packId)) return
+    setCancelledPackId(checkoutReturn.packId)
+
+    const marker = `${CANCEL_RETURN_MARKER}:${checkoutReturn.packId}`
+    try {
+      if (sessionStorage.getItem(marker) === '1') return
+      sessionStorage.setItem(marker, '1')
+    } catch {
+      // The recovery remains visible even when storage is unavailable.
+    }
+    const pack = packs.find((candidate) => candidate.id === checkoutReturn.packId)
+    void trackEvent('agency_bulk_checkout_cancelled_return_viewed', {
+      variant: AGENCY_CHECKOUT_RETURN_VARIANT,
+      pack: checkoutReturn.packId,
+      videos: pack?.videos ?? null,
+      unit_amount: pack?.priceMinor ?? null,
+      currency: 'usd',
+      surface: 'ai_shorts_for_agencies',
+    })
+  }, [packs])
+
+  const cancelledPack = cancelledPackId
+    ? packs.find((pack) => pack.id === cancelledPackId) ?? null
+    : null
+
   return (
     <section aria-labelledby="agency-pack-heading" style={{ marginTop: 42 }}>
       <div style={{ textAlign: 'center', maxWidth: 760, margin: '0 auto 22px' }}>
@@ -46,6 +81,56 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
           Every pack is paid once in USD. Credits do not expire. The named video count is the Fast workflow; premium generative engines use more credits per video.
         </p>
       </div>
+
+      {cancelledPack ? (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            margin: '0 auto 20px',
+            padding: '17px 18px',
+            maxWidth: 820,
+            borderRadius: 16,
+            border: '1px solid rgba(251,191,36,.38)',
+            background: 'linear-gradient(135deg, rgba(245,158,11,.13), rgba(52,211,153,.06))',
+          }}
+        >
+          <div style={{ color: '#fbbf24', fontSize: 11, fontWeight: 900, letterSpacing: '.11em', textTransform: 'uppercase' }}>
+            Checkout closed · nothing was charged
+          </div>
+          <div style={{ color: '#f5f5f7', fontSize: 17, lineHeight: 1.35, fontWeight: 900, marginTop: 6 }}>
+            Your {cancelledPack.videos}-video pack is still selected at {cancelledPack.price}.
+          </div>
+          <p style={{ color: '#aaaab1', fontSize: 13, lineHeight: 1.55, margin: '7px 0 13px' }}>
+            Resume the same one-time USD checkout, or keep comparing the four packs below. Your selection did not become a subscription.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+            <a
+              href={agencyCheckoutResumeHref(cancelledPack.id)}
+              onClick={() => {
+                void trackEvent('agency_bulk_checkout_resume_clicked', {
+                  variant: AGENCY_CHECKOUT_RETURN_VARIANT,
+                  pack: cancelledPack.id,
+                  videos: cancelledPack.videos,
+                  unit_amount: cancelledPack.priceMinor,
+                  currency: 'usd',
+                  surface: 'ai_shorts_for_agencies',
+                })
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 15px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: 13, fontWeight: 900, textDecoration: 'none' }}
+            >
+              Resume {cancelledPack.videos}-video checkout →
+            </a>
+            <button
+              type="button"
+              onClick={() => setCancelledPackId(null)}
+              style={{ minHeight: 42, padding: '0 15px', borderRadius: 11, border: '1px solid rgba(255,255,255,.16)', background: 'transparent', color: '#d4d4d8', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+            >
+              Keep comparing packs
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
         {packs.map((pack) => {

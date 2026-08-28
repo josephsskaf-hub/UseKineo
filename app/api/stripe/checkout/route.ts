@@ -58,6 +58,7 @@ import {
   type VerifiedPlanFitCheckoutContext,
 } from '@/lib/growth/planFitCheckout'
 import { engineName } from '@/lib/growth/planFit'
+import { buildAgencyCheckoutCancelUrl } from '@/lib/growth/agencyCheckoutReturn'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -2590,7 +2591,10 @@ async function buildBulkPackAndRedirect(
     ],
     client_reference_id: user.id,
     success_url: `${appUrl}/generate?success=true&pack=${bulkId}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/pricing`,
+    // Preserve the exact B2B choice when Stripe is closed. Sending this buyer
+    // to generic subscription pricing erased the pack, volume and one-time
+    // purchase context at the highest-intent reversible exit.
+    cancel_url: buildAgencyCheckoutCancelUrl(appUrl, bulkId),
     metadata: {
       supabase_user_id: user.id,
       // ⚠️ metadata.pack é a ÚNICA coisa que distingue bulk10 de autopilot_pilot:
