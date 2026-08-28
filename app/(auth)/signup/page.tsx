@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
@@ -13,6 +13,7 @@ import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { carryCreationHandoff } from '@/lib/creationHandoff'
+import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -194,6 +195,13 @@ export default function SignupPage() {
 
   const strength = scorePassword(password)
   const isCheckoutResume = new URLSearchParams(authSearch).get('reason') === 'checkout'
+  const savedCreation = useMemo(() => {
+    const params = new URLSearchParams(authSearch)
+    // An explicit, validated redirect owns the post-auth journey. Never show a
+    // saved-work promise when that destination would intentionally win.
+    if (isCheckoutResume || normalizeInternalRedirect(params.get('redirect'))) return null
+    return buildSignupCreationPreview(params)
+  }, [authSearch, isCheckoutResume])
   const loginParams = new URLSearchParams({ redirect: activationRedirect })
   if (isCheckoutResume) loginParams.set('reason', 'checkout')
   const loginHref = `/login?${loginParams.toString()}`
@@ -417,6 +425,11 @@ export default function SignupPage() {
                   <strong style={{ color: 'var(--text2)' }}>{email}</strong>.
                   Click it to activate your account.
                 </p>
+                {savedCreation && (
+                  <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
+                    Your {savedCreation.kind} is still saved. The confirmation link opens it in Kineo.
+                  </p>
+                )}
                 <Link
                   href={loginHref}
                   className="inline-block mt-6 text-sm font-semibold"
@@ -431,13 +444,59 @@ export default function SignupPage() {
                   className="text-2xl font-black mb-1 tracking-tight"
                   style={{ color: 'var(--text)' }}
                 >
-                  {isCheckoutResume ? 'Create your account to continue' : 'Create your AI Short'}
+                  {isCheckoutResume
+                    ? 'Create your account to continue'
+                    : savedCreation
+                      ? `Your ${savedCreation.kind} is ready to continue`
+                      : 'Create your AI Short'}
                 </h1>
                 <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
                   {isCheckoutResume
                     ? 'Your selected plan and intro price are saved. Continue securely below.'
-                    : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
+                    : savedCreation
+                      ? 'Create a free account and continue without starting over.'
+                      : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
+
+                {savedCreation && (
+                  <section
+                    aria-labelledby="saved-creation-heading"
+                    className="rounded-2xl mb-5 p-4"
+                    style={{
+                      background: 'linear-gradient(145deg, rgba(41,151,255,.12), rgba(41,151,255,.035))',
+                      border: '1px solid rgba(41,151,255,.3)',
+                      boxShadow: '0 14px 36px rgba(0,0,0,.22)',
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5"
+                      style={{ color: '#7cc0ff' }}
+                    >
+                      {savedCreation.eyebrow}
+                    </div>
+                    <h2
+                      id="saved-creation-heading"
+                      className="text-sm font-black mb-2"
+                      style={{ color: '#f5f5f7' }}
+                    >
+                      {savedCreation.heading}
+                    </h2>
+                    <div className="flex flex-col gap-1.5 mb-3" aria-label={`Saved ${savedCreation.kind} preview`}>
+                      {savedCreation.excerpt.map((line, index) => (
+                        <p
+                          key={`${index}-${line.slice(0, 24)}`}
+                          className="text-xs leading-relaxed m-0"
+                          style={{ color: index === 0 ? '#e5e7eb' : '#aeb2ba' }}
+                        >
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                    <p className="text-[11px] leading-relaxed m-0" style={{ color: '#8f949e' }}>
+                      {savedCreation.description}
+                    </p>
+                  </section>
+                )}
 
                 {/* KINEO-CHECKOUT-RESUME-2026-07-07 — OAuth signups also resume
                     a pending checkout via the auth callback's ?next param. */}
