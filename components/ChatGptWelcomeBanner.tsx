@@ -29,11 +29,14 @@
 // Números DERIVADOS (TRIAL_GRANT_CREDITS_COPY, STARTER_MO) — a lição
 // permanente das copies que mentiram depois de cada reprice.
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { STARTER_MO } from '@/lib/marketingPrice'
+import { CHATGPT_QUICKSTARTS, CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
 
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
+const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
 
 function firstTouchIsChatGpt(): boolean {
   try {
@@ -70,18 +73,23 @@ export default function ChatGptWelcomeBanner() {
     } catch { /* sem sessionStorage a faixa reaparece por navegação — chato, não grave */ }
     if (!firstTouchIsChatGpt()) return
     setShow(true)
-    void trackEvent('chatgpt_welcome_banner_shown')
+    try {
+      if (sessionStorage.getItem(SHOWN_EVENT_KEY) === '1') return
+      sessionStorage.setItem(SHOWN_EVENT_KEY, '1')
+    } catch { /* analytics best effort */ }
+    void trackEvent('chatgpt_welcome_banner_shown', { variant: CHATGPT_QUICKSTART_VARIANT })
   }, [])
 
   if (!show) return null
 
   return (
     <div
-      role="status"
+      role="region"
+      aria-label="ChatGPT quick start"
       style={{
         background: 'linear-gradient(90deg, rgba(41,151,255,.14), rgba(41,151,255,.05))',
         borderBottom: '1px solid rgba(41,151,255,.35)',
-        padding: '9px 40px 9px 16px',
+        padding: '10px 46px 10px 16px',
         textAlign: 'center',
         fontSize: '13px',
         fontWeight: 600,
@@ -94,16 +102,48 @@ export default function ChatGptWelcomeBanner() {
           origem (confirmação de que a recomendação era certa), diz o que a
           conta JÁ TEM (sem pedir nada), e ancora que o pago começa barato —
           para o preço, quando aparecer, não ser a primeira notícia. */}
-      ChatGPT sent you to the right place — your account starts with{' '}
-      <b>{TRIAL_GRANT_CREDITS_COPY} free credits</b>, every engine unlocked. Plans from{' '}
-      <b>{STARTER_MO}</b> when you need more.
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '8px 12px' }}>
+        <span>
+          <b>What did ChatGPT give you?</b>{' '}
+          Pick the right starting mode. Your account started with {TRIAL_GRANT_CREDITS_COPY} free credits; plans start at {STARTER_MO}.
+        </span>
+        <span style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: 7 }}>
+          {CHATGPT_QUICKSTARTS.map((option, index) => (
+            <Link
+              key={option.choice}
+              href={option.href}
+              onClick={() => {
+                try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* best effort */ }
+                void trackEvent('chatgpt_quickstart_selected', {
+                  variant: CHATGPT_QUICKSTART_VARIANT,
+                  input_type: option.choice,
+                  destination: '/studio/create',
+                })
+              }}
+              style={{
+                display: 'inline-block',
+                borderRadius: 999,
+                padding: '5px 11px',
+                textDecoration: 'none',
+                fontSize: 12,
+                fontWeight: 850,
+                color: index === 0 ? '#001018' : '#dbeafe',
+                background: index === 0 ? '#67e8f9' : 'rgba(255,255,255,.06)',
+                border: index === 0 ? '1px solid #67e8f9' : '1px solid rgba(255,255,255,.18)',
+              }}
+            >
+              {option.label}
+            </Link>
+          ))}
+        </span>
+      </div>
       <button
         type="button"
         aria-label="Dismiss"
         onClick={() => {
           setShow(false)
           try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* ok */ }
-          void trackEvent('chatgpt_welcome_banner_dismissed')
+          void trackEvent('chatgpt_welcome_banner_dismissed', { variant: CHATGPT_QUICKSTART_VARIANT })
         }}
         style={{
           position: 'absolute',

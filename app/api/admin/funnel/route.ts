@@ -20,6 +20,7 @@ import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisition
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
 import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
+import { buildChatGptQuickstartFunnel, type ChatGptQuickstartFunnel } from '@/lib/admin/chatgptQuickstartFunnel'
 import Stripe from 'stripe'
 
 export const dynamic = 'force-dynamic'
@@ -206,6 +207,7 @@ export interface FunnelData {
     checkoutToPaidRate: string
   }
   trialPostVideoOffer: TrialPostVideoFunnel
+  chatGptQuickstart: ChatGptQuickstartFunnel & { eventsAvailable: boolean }
   planFitOffer: {
     eventsAvailable: boolean
     stripeAvailable: boolean
@@ -517,6 +519,7 @@ export async function GET(req: Request) {
       'payment_success', 'checkout_cancelled', 'checkout_canceled',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
       'example_remix_form_viewed', 'example_remix_topic_submitted',
+      'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected',
     ]
     const identityEventNames = [
       'basic_checkout_clicked', 'checkout_basic_click', 'pro_checkout_clicked',
@@ -537,6 +540,7 @@ export async function GET(req: Request) {
     let eventRows: EventRow[] = []
     let organicEventRows: EventRow[] = []
     let retentionEventRows: EventRow[] = []
+    let retentionEventsAvailable = false
     let postVideoEventRows: EventRow[] = []
     const eventCounts = new Map<string, number>()
     try {
@@ -617,6 +621,8 @@ export async function GET(req: Request) {
           .in('name', [
             'series_continue_clicked', 'series_continuation_landed',
             'generate_started', 'generate_completed',
+            'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected',
+            'checkout_started', 'payment_success',
             'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
             'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
             'first_video_generation_dispatched_from_viral_onboarding',
@@ -633,6 +639,7 @@ export async function GET(req: Request) {
         if (!retentionEvents.error && Array.isArray(retentionEvents.data)) {
           retentionEventRows = (retentionEvents.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
+          retentionEventsAvailable = true
         }
       }
     } catch {
@@ -1167,6 +1174,13 @@ export async function GET(req: Request) {
     )
     const trialPostVideoOffer = buildTrialPostVideoFunnel(postVideoEventRows, profileSourceByUserId)
 
+    // ChatGPT Quick-start v1 — strict actor/time ordering prevents an old
+    // generation or unrelated purchase from being credited to a new choice.
+    const chatGptQuickstart = {
+      ...buildChatGptQuickstartFunnel(retentionEventRows),
+      eventsAvailable: retentionEventsAvailable,
+    }
+
     // A2 Plan Fit — people, not event rows. Checkout and payment are counted
     // only from server/Stripe-authoritative rows carrying the verified origin.
     const planFitPeople = (name: string) => new Set(
@@ -1502,7 +1516,7 @@ export async function GET(req: Request) {
         checkout_cancelled: (eventCounts.get('checkout_cancelled') ?? 0) + (eventCounts.get('checkout_canceled') ?? 0),
       },
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })

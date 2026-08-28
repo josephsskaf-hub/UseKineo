@@ -139,6 +139,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     viewToClickRate: '—', clickToCheckoutRate: '—', checkoutToPaidRate: '—',
     sourceBreakdown: [],
   }
+  const chatGptQuickstart = data.chatGptQuickstart ?? {
+    eventsAvailable: false,
+    views: 0, selections: 0, scriptSelections: 0, ideaSelections: 0,
+    starts: 0, completions: 0, checkoutStarts: 0, payments: 0,
+    viewToSelectionRate: '—', selectionToStartRate: '—', startToCompleteRate: '—',
+    completeToCheckoutRate: '—', checkoutToPaidRate: '—',
+  }
   const planFitOffer = data.planFitOffer ?? {
     eventsAvailable: false,
     stripeAvailable: false,
@@ -590,6 +597,20 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
             accent={goal.clicks > 0 ? '#4ade80' : '#71717a'}
           />
         ))}
+      </Section>
+
+      <Section title={`ChatGPT quick-start · source → right input mode → video · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? 'unique actors · quickstart_v1' : 'Events unavailable — not zero'} accent="#22d3ee" />
+        <Card label="Mode selections" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.selections) : '—'} hint={chatGptQuickstart.eventsAvailable ? `${chatGptQuickstart.scriptSelections} script · ${chatGptQuickstart.ideaSelections} idea` : 'Events unavailable — not zero'} accent="#2997ff" />
+        <RateCard label="View → Choice" value={chatGptQuickstart.viewToSelectionRate} sub={`${chatGptQuickstart.selections} / ${chatGptQuickstart.views} people`} />
+        <Card label="Generation starts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.starts) : '—'} hint="after the same actor's choice" accent="#a78bfa" />
+        <RateCard label="Choice → Start" value={chatGptQuickstart.selectionToStartRate} sub={`${chatGptQuickstart.starts} / ${chatGptQuickstart.selections} people`} />
+        <Card label="Completed videos" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.completions) : '—'} hint="after quick-start generation" accent="#22d3ee" />
+        <RateCard label="Start → Video" value={chatGptQuickstart.startToCompleteRate} sub={`${chatGptQuickstart.completions} / ${chatGptQuickstart.starts} people`} />
+        <Card label="Post-video checkouts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.checkoutStarts) : '—'} hint="checkout after completed quick-start video" accent="#f97316" />
+        <RateCard label="Video → Checkout" value={chatGptQuickstart.completeToCheckoutRate} sub={`${chatGptQuickstart.checkoutStarts} / ${chatGptQuickstart.completions} people`} />
+        <Card label="Attributed payments" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.payments) : '—'} hint="payment event after attributed checkout" accent={chatGptQuickstart.payments > 0 ? '#22d3ee' : '#fbbf24'} />
+        <RateCard label="Checkout → Paid" value={chatGptQuickstart.checkoutToPaidRate} sub={`${chatGptQuickstart.payments} / ${chatGptQuickstart.checkoutStarts} people`} />
       </Section>
 
       <Section title={`Plan Fit · first delivery → subscription · ${days === 'all' ? 'all time' : `${days}d`}`}>
