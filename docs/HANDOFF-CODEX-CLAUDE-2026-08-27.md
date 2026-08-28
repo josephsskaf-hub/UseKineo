@@ -849,3 +849,37 @@ PRÓXIMO DONO:
 **LIMITE:** solicitar indexação não muda posição nem prioridade por repetição e não garante clique, cadastro ou venda. Não reenviar a mesma URL; aguardar a nova captura e comparar a consulta exata na próxima janela disponível.
 
 **NÃO TOCADO:** nenhum arquivo de produto, banco, Supabase, render, preço, oferta, e-mail, outreach ou anúncio foi alterado nesta ação. Foi uma ação de distribuição sobre a URL editorial já validada.
+
+## 11. Aquisição orgânica — intenção “free InVideo alternative” (28/08/2026)
+
+**BASE LIDA:** `439afee6080b72ee8c474f56857740f924410b4c`.
+
+**SHA FUNCIONAL:** `10fe9de6651602f8c7749ae500b2049c3a8b392a`.
+
+**EVIDÊNCIA DE PRODUÇÃO (Google Search Console, lida em 28/08/2026; comparação 18–24/08 contra 11–17/08):** `/alternatives/invideo` passou de 6 para 61 impressões, permaneceu com zero clique e ampliou a posição média de 8,3 para 75,5. Na janela mais recente apareceram, entre outras, `invideo ai alternative free` (3 impressões), `invideo alternative free` (3), `invideo alternatives` (2), `alternative of invideo` (1), `invideo ai alternatives` (1) e `invideo ai alternative` (1). São impressões e consultas, não pessoas, cadastros ou assinaturas. **HIPÓTESE:** o Google está expandindo o universo semântico da URL; responder cedo à variante gratuita pode melhorar aderência e CTR, mas a queda de posição impede chamar isso de oportunidade já madura.
+
+**FATO CONFIRMADO:** antes de `10fe9de`, o título, H1, introdução e FAQ respondiam somente “InVideo alternative” e não respondiam “free alternative”. A tabela ainda classificava o InVideo como “Paid plans”, embora o próprio fornecedor ofereça plano gratuito. A página já tinha CTA e comparação honesta, portanto não havia motivo para reconstruí-los (`app/alternatives/[competitor]/page.tsx`, versão anterior a `10fe9de`).
+
+**FATO CONFIRMADO / FONTE PRIMÁRIA (consultada em 28/08/2026):** o help center oficial do InVideo, atualizado em 28/07/2026, declara plano gratuito sem cartão, créditos limitados e reset semanal na segunda-feira às 00:00 UTC. A página visível aponta para esse artigo e para a página oficial de preços; nenhum preço em dólar do concorrente foi congelado no código. Como os limites podem mudar e as superfícies oficiais exibem níveis diferentes de detalhe, a copy manda verificar o preço atual em vez de prometer quantidade fixa.
+
+**IMPLEMENTADO:** metadata, badge e H1 agora respondem explicitamente “Free InVideo AI Alternative for Faceless Shorts”. Um bloco acima da tabela responde a pergunta exata, mostra os dois caminhos gratuitos, declara quando escolher cada produto e liga as fontes oficiais. A tabela reconhece que ambos começam sem cartão e descreve o allowance sem inventar exclusividade (`app/alternatives/[competitor]/page.tsx`).
+
+**FATO CONFIRMADO / VERDADE COMERCIAL:** a oferta Kineo não foi reescrita nem congelada. O bloco usa `getFreeTierOffer()`, `OFFER.copy.sentence`, `TRIAL_GRANT_CREDITS_COPY`, `STARTER_MO` e `STARTER_MONTH`; portanto acompanha a flag e as fontes canônicas do deployment. O InVideo record contém zero preço Kineo literal em dólar.
+
+**FATO CONFIRMADO / MEDIÇÃO:** todos os CTAs da URL usam a campanha exclusiva `growth_invideo_free_intent_20260828`; o CTA do novo bloco adiciona `placement=free_answer`. O destino continua vindo de `buildBlankStudioSignupHref`: abre cadastro e revisão no estúdio Fast em branco. O HTML público contém zero `create_intent`, portanto a página não inicia render nem gasta crédito.
+
+**TESTADO LOCALMENTE:** intenção InVideo `29/29`; roundup `34/34`; handoff de formulário SEO `48/48`; handoff ChatGPT `69/69`; prova pós-signup `44/44`; router text-to-video `47/47`. Whitespace limpo. `npx tsc --noEmit --pretty false` mostrou somente os quatro erros baseline em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2. O build local compilou com sucesso e parou na coleta de `/api/regenerate-scene` porque a worktree isolada não recebeu `OPENAI_API_KEY`; nenhuma `.env.local` foi lida ou copiada.
+
+**VALIDAÇÃO VISUAL:** `docs/previews/invideo-free-intent-2026-08-28.html` contém a seção tocada em pares antes/depois desktop e mobile de 390 px. A rota local respondeu `200`; DOM e captura desktop real foram conferidos, com hierarquia, contraste e dois cards legíveis. O controle do Chrome não expôs redimensionamento real para 390 px; o empilhamento mobile está no preview e no `auto-fit` do produto, mas não será chamado de inspeção visual real em 390 px.
+
+**TRANSPARÊNCIA OPERACIONAL:** a inspeção local executou o JavaScript público da página e os componentes fizeram as chamadas normais `GET /api/stats/public` e `POST /api/events`, ambas `200`; não houve SQL, MCP, consulta direta, Storage, sessão autenticada ou render. Para não repetir tráfego de aplicação durante o incidente de capacidade, a validação pública seguinte foi feita por GET do HTML sem JavaScript.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_B5JvTt6Kx3gg5wAzN16nUbHXzgoQ` em estado `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. O HTML público com cache-buster respondeu `200`/`HIT`, título `Free InVideo AI Alternative for Faceless Shorts — Kineo`, canonical correto, sem `noindex`, com H1, resposta, campanha e fontes novas. O handoff aponta para `/studio?engine=fast` e o HTML contém zero `create_intent`. A Vercel registrou zero erro de runtime em `/alternatives/invideo` nos 15 minutos consultados.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esses `402` são capacidade, não abandono voluntário atribuído à nova página. Codex não afirma que renders estão perfeitos e não tocou no pipeline.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhuma pessoa, cadastro ou assinatura foi atribuída à variante. Aguardar nova janela do Search Console e contar pessoas em `campaign=growth_invideo_free_intent_20260828`, separando `placement=hero`, `free_answer` e os CTAs finais. Publicação e impressão não serão chamadas de aquisição.
+
+**NÃO TOCADO:** preço, grant, oferta, SKU, checkout, Supabase, Storage, migration, autenticação, `GenerateClient.tsx`, render, cena, legenda, motor, e-mail, outreach ou tráfego pago.
+
+**PRÓXIMO DONO:** Codex continua aquisição, fluxo e assinaturas a partir da ponta atual de `origin/main`. Claude continua o incidente 402 e qualidade de render. Antes de qualquer edição concorrente, ambos devem executar `git fetch origin`; esta entrega não cria sobreposição com o pipeline de vídeo.
