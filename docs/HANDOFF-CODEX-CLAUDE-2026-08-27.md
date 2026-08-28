@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada antes da entrega mais recente:** `b7ac683cbea48812ab2cae5302fee0ed7ee02231`
+- **Base remota confirmada depois da entrega mais recente:** `3d52526785e85e7de0e7d17132d36c324b7aa0ff`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -171,6 +171,22 @@
 - Preview visual obrigatório: `docs/previews/B2B-DISTRIBUTION-BRIDGES-2026-08-27.html`, inspecionado em desktop e mobile.
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_CswEGJAX19noMq2KYw14TfYnkKiv` em estado `READY`, aliasado em `www.usekineo.com`. GETs sem JavaScript confirmaram HTTP 200, ponte e `entry` exato nas três origens e a oferta na página de destino; nenhum evento artificial foi criado durante o smoke.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe visitante humano observado depois desta variante. Medir atores por `metadata.entry` antes de mexer na oferta ou no checkout B2B.
+
+### 2.13 Calculadora de margem para agências e freelancers
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `3d52526785e85e7de0e7d17132d36c324b7aa0ff`.
+
+- **EVIDÊNCIA DE MERCADO (páginas oficiais lidas em 27/08/2026):** a Fiverr informa que o freelancer recebe 80% do pedido; a Upwork cobra 0%–15% por contrato e oferece calculadora de valor líquido; a Tasty Edits publica Shorts verticais a US$80–94 cada. Essas referências motivaram transparência de margem, não uma promessa de preço ou rendimento da Kineo.
+- A página `/ai-shorts-for-agencies` agora calcula um cenário com o volume canônico escolhido, o preço que o comprador cobra do próprio cliente e a taxa real do marketplace (`app/ai-shorts-for-agencies/AgencyMarginCalculator.tsx`; `lib/agencyMargin.ts`).
+- A conta expõe receita bruta, taxa do marketplace, custo canônico do pack, caixa restante e preço de equilíbrio. O resultado diz explicitamente que exclui trabalho, revisões, reembolsos, impostos, anúncios e custo de aquisição e que não é previsão de ganhos.
+- Preço e quantidade dos quatro packs continuam vindo de `BULK_PACKS`; nenhum preço, grant, SKU, termo ou desconto da Kineo mudou (`app/ai-shorts-for-agencies/page.tsx`; `lib/checkoutPricing.ts`).
+- O CTA da calculadora leva ao card exato `bulk10|bulk20|bulk30|bulk50`; não abre checkout nem cria sessão Stripe sozinho (`app/ai-shorts-for-agencies/AgencyPacksClient.tsx`).
+- Funil novo por atores: `agency_margin_calculator_viewed` e `agency_margin_pack_selected`. O painel agora mostra página B2B → calculadora → pack → sessão Stripe, sempre como pessoas/sessões identificáveis, não linhas brutas (`app/api/admin/funnel/route.ts`; `app/(dashboard)/admin/funnel/FunnelClient.tsx`).
+- Testes: `test-b2b-margin-calculator.mjs` `46/46`; oferta B2B `30/30`; distribuição B2B `31/31`; contrato comercial `305/305`; destinos de afiliado `177/177`; TypeScript com somente os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/B2B-MARGIN-CALCULATOR-2026-08-27.html`, inspecionado em desktop e mobile; inclui também a nova seção do admin.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_BSvZ2sw218ZybG8XjsBW8LfqDYsg` em estado `READY`, aliasado em `www.usekineo.com`. GET sem JavaScript respondeu HTTP 200 e confirmou calculadora, ressalva de não-previsão e âncora `pack-bulk30`; nenhum erro runtime foi encontrado na rota nos 30 minutos observados.
+- O smoke não clicou no CTA nem executou checkout para não fabricar intenção ou sessão Stripe.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** nenhum visitante humano foi observado nessa variante ainda. Medir atores do novo funil antes de mudar a oferta B2B outra vez.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
