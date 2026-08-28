@@ -1,7 +1,7 @@
 # Handoff Codex ↔ Claude — 2026-08-27
 
 - **Data do snapshot:** 2026-08-27, America/Sao_Paulo
-- **Base remota confirmada antes desta atualização:** `7d68a9d0ab115bc4bcc68726330457ca0a1e5da8`
+- **Base remota confirmada antes desta atualização:** `027afdb9889d127a1a9190e3a22f7cb1cabea1cc`
 - **Workstream Codex:** aquisição, fluxo, conversão, afiliados e vendas B2C/B2B
 - **Workstream Claude:** qualidade do gerador, render, cenas, legendas e bugs do pipeline de vídeo
 - **Estado do ciclo:** execução renovável de 72 horas, com sprints a cada 30 minutos
@@ -37,7 +37,7 @@
 - O momento pós-primeira entrega deixou de competir com várias ofertas simultâneas.
 - A recuperação de assinatura usa uma decisão principal e eventos próprios.
 - Testes: `45/45`; contrato comercial: `305/305`.
-- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_Brw8biGsiV9vCVg2AXyexeDNX` em estado `READY`.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_Brw8biGsiZviT9vCVg2AXyexeDNX` em estado `READY`.
 
 ### 2.2 Arena honesta de motores
 
@@ -92,9 +92,23 @@
 - **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_3ZyRYAHFcvZwX8Q46tcY1x7o7AE2` em estado `READY`; página, sitemap e `/llms.txt` responderam em produção; zero erro de console na página e zero erro runtime nas rotas observadas.
 - O checkout não foi clicado em produção para não criar sessão Stripe artificial. A rota, o contrato dos packs e o webhook foram verificados no código e por testes.
 
-### 2.7 Descoberta orgânica
+### 2.7 Trust Center factual
 
-**EVIDÊNCIA DE PRODUÇÃO (27/08/2026).** O lote IndexNow foi validado e submetido em `2026-08-27T23:47:15.612Z`: HTTP 200, 170 URLs canônicas. A contagem anterior, antes da página B2B, era 169.
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `027afdb9889d127a1a9190e3a22f7cb1cabea1cc`.
+
+- Nova página pública e indexável: `/trust`, com operador, domínio canônico, suporte, fronteira de pagamento, privacidade dos vídeos, uso comercial, processadores e caminho de reembolso.
+- A página recusa explicitamente prova inventada: não declara SOC 2, ISO 27001, SLA empresarial, número inventado de clientes ou selo de “#1”.
+- Stripe hospeda o checkout; a Kineo não recebe nem armazena o número completo do cartão.
+- Vídeos de clientes permanecem privados por padrão; exemplos públicos são uma coleção separada aprovada pelo fundador.
+- A página não está órfã: entrou no footer, sitemap e `/llms.txt`.
+- Funil por atores, não eventos: `trust_page_viewed` e `trust_cta_clicked` (`app/trust/TrustActions.tsx`; `app/api/admin/funnel/route.ts`).
+- Testes: `test-trust-center.mjs` `25/25`; contrato comercial `305/305`; TypeScript com apenas os quatro erros de baseline; whitespace limpo.
+- Preview visual obrigatório: `docs/previews/TRUST-CENTER-2026-08-27.html`, inspecionado em desktop e mobile.
+- **EVIDÊNCIA DE PRODUÇÃO (27/08/2026):** deploy `dpl_AX54AKA1KjoFymjczPSm2jxh8hGg` em estado `READY`; `/trust`, sitemap e `/llms.txt` responderam em produção; zero erro de console e zero erro runtime nas rotas observadas.
+
+### 2.8 Descoberta orgânica
+
+**EVIDÊNCIA DE PRODUÇÃO (27/08/2026, America/Sao_Paulo).** O lote IndexNow foi validado e submetido em `2026-08-28T00:06:33.285Z` (`27/08/2026 21:06:33 BRT`): HTTP 200, 171 URLs canônicas. A contagem anterior, depois da página B2B e antes do Trust Center, era 170.
 
 ## 3. Evidência de funil que governa a próxima rodada
 
@@ -146,7 +160,7 @@
 ### Codex / Growth
 
 - Medir pessoas únicas nos novos eventos, sem transformar ausência inicial em fracasso.
-- Executar o próximo ciclo orgânico: fortalecer menções/links para a porta B2B e preparar listas qualificadas de criadores, agências e empresas.
+- Executar o ciclo renovável de 72 horas: fortalecer menções/links para as portas B2B e de confiança e preparar listas qualificadas de criadores, agências e empresas.
 - Preparar lotes de contato, mas pedir confirmação do fundador no momento do envio.
 - Não duplicar recuperação já enviada aos quatro checkouts ChatGPT sem pagamento.
 
