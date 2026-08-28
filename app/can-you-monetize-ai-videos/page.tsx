@@ -8,7 +8,9 @@
 // requirement. Always link users to YouTube's own policies — rules change.
 
 import type { Metadata } from 'next'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import OriginalityRecipeBuilder from './OriginalityRecipeBuilder'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -257,6 +259,8 @@ export default function CanYouMonetizeAiVideosPage() {
           </div>
         </div>
 
+        <OriginalityRecipeBuilder />
+
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 14px' }}>
           The disclosure rule you should know about
         </h2>
@@ -351,8 +355,12 @@ export default function CanYouMonetizeAiVideosPage() {
             Type a topic and generate a faceless Short with a unique script, your own angle and one
             consistent host. {ft(OFFER, 'Up to 3 watermarked videos every 24 hours, no card required.', OFFER.copy.headline)}
           </p>
-          <a
-            href="/free-ai-shorts-generator?utm_source=monetize-policy&utm_medium=seo&utm_campaign=seo-sprint"
+          <OrganicCtaLink
+            href="#monetization-originality-builder"
+            source="starter_monetization_originality_2026_08_28"
+            placement="where_kineo_fits"
+            analyticsEvent="organic_handoff_opened"
+            focusTargetId="monetization-originality-builder"
             style={{
               display: 'inline-block',
               background: ACCENT,
@@ -364,8 +372,8 @@ export default function CanYouMonetizeAiVideosPage() {
               fontSize: '0.95rem',
             }}
           >
-            Generate a free Short →
-          </a>
+            Build an original Short angle →
+          </OrganicCtaLink>
         </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>
