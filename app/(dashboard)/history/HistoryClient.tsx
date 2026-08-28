@@ -20,6 +20,7 @@ import {
   isAffiliateMomentumEligible,
   isHistorySubscriptionOfferEligible,
 } from '@/lib/affiliateActivation'
+import { resolveHistoryMilestoneMode } from '@/lib/growth/historyMilestone'
 // KINEO-PRICING-V6-2026-08-19 — esta tela vendia Starter com "$9.90/month" e
 // "60 credits" DIGITADOS em três lugares, e os três estavam errados no dia
 // seguinte ao reprice. USD fixo aqui (o checkout re-resolve a moeda pelo IP no
@@ -843,6 +844,12 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     : buildSeriesContinuationHref(firstVideoTitle, 'history_milestone')
   const showSubscriptionOffer = subscriptionOfferEligible === true && completedVideos.length >= 1
   const firstVideoSubscriptionRecovery = showSubscriptionOffer && completedVideos.length === 1
+  const milestoneMode = resolveHistoryMilestoneMode({
+    completedVideoCount: completedVideos.length,
+    subscriptionOfferEligible: showSubscriptionOffer,
+  })
+  const subscriptionIsPrimary = milestoneMode === 'subscription_primary'
+  const episodeIsPrimary = milestoneMode === 'episode_primary' || milestoneMode === 'episode_only'
 
   /* ── Main ── */
   return (
@@ -877,25 +884,26 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
         </Link>
       </div>
 
-      {/* First render keeps activation as the primary action. Once a free user
-          has completed 2+ videos, repeat value is proven: make the honest
-          recurring offer primary while preserving episode creation as a
-          secondary path. Existing files are never presented as retroactively
-          watermark-free. */}
+      {/* One completed video keeps episode two primary. Once a free creator has
+          completed 2+ videos, repeat value is proven: make the honest recurring
+          offer primary while preserving episode creation as a secondary path.
+          Existing files are never presented as retroactively watermark-free. */}
       {completedVideos.length >= 1 && (
         <section
-          aria-label={showSubscriptionOffer ? 'Continue creating with Starter' : 'Create your second Short'}
+          aria-label={subscriptionIsPrimary
+            ? 'Continue creating with Starter'
+            : completedVideos.length === 1
+              ? 'Create your second Short'
+              : 'Create your next episode'}
           className="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
           style={{
-            background: showSubscriptionOffer
+            background: subscriptionIsPrimary
               ? 'linear-gradient(135deg, rgba(41,151,255,.15), rgba(41,151,255,.05))'
               : 'linear-gradient(135deg, rgba(41,151,255,.14), rgba(41,151,255,.04))',
-            border: showSubscriptionOffer
+            border: subscriptionIsPrimary
               ? '1px solid rgba(41,151,255,.45)'
               : '1px solid rgba(41,151,255,.42)',
-            boxShadow: showSubscriptionOffer
-              ? '0 10px 32px rgba(41,151,255,.10)'
-              : '0 10px 32px rgba(41,151,255,.10)',
+            boxShadow: '0 10px 32px rgba(41,151,255,.10)',
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -903,29 +911,33 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
               className="font-black uppercase tracking-[.16em] mb-1.5"
               style={{ fontSize: '0.62rem', color: '#5cb3ff' }}
             >
-              {showSubscriptionOffer
-                ? firstVideoSubscriptionRecovery
-                  ? 'First Short complete · keep publishing'
-                  : `${completedVideos.length} Shorts complete · repeat creator`
+              {milestoneMode === 'episode_primary'
+                ? 'First Short complete · build momentum'
+                : subscriptionIsPrimary
+                  ? `${completedVideos.length} Shorts complete · repeat creator`
                 : completedVideos.length === 1
                   ? 'First Short complete'
                   : 'Keep your show moving'}
             </div>
             <h2 className="font-black tracking-tight mb-1.5" style={{ color: 'var(--text)', fontSize: '1.05rem' }}>
-              {showSubscriptionOffer
-                ? firstVideoSubscriptionRecovery
-                  ? 'Keep the workflow that made your first Short'
-                  : 'Publish your next Short without the Kineo watermark'
+              {milestoneMode === 'episode_primary'
+                ? 'Turn your first Short into episode 2'
+                : subscriptionIsPrimary
+                  ? 'Publish your next Short without the Kineo watermark'
                 : completedVideos.length === 1
                   ? 'Turn it into episode 2'
                   : 'Create the next episode'}
             </h2>
             <p className="text-xs leading-relaxed" style={{ color: 'var(--muted2)', margin: 0, maxWidth: 620 }}>
-              {showSubscriptionOffer
+              {subscriptionIsPrimary
                 ? `Starter includes ${TIER_CREDITS.starter} credits each month and clean exports for new videos. ${STARTER_PRICE_USD}/month. Cancel anytime.`
                 : 'Continue from your latest Short with a fresh hook, new facts and a new payoff. Review the brief and settings before rendering.'}
             </p>
-            {showSubscriptionOffer ? (
+            {milestoneMode === 'episode_primary' ? (
+              <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}>
+                Prefer clean exports now? Starter includes {TIER_CREDITS.starter} credits each month for {STARTER_PRICE_USD}/month. Cancel anytime.
+              </p>
+            ) : subscriptionIsPrimary ? (
               <p className="text-xs leading-relaxed mt-2" style={{ color: 'var(--muted)', marginBottom: 0 }}>
                 Your existing files stay available. Starter applies to new exports after checkout.
               </p>
@@ -936,6 +948,27 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
             ) : null}
           </div>
           <div className="flex flex-col gap-2 w-full sm:w-auto flex-shrink-0">
+            {episodeIsPrimary && (
+              <Link
+                href={followUpHref}
+                onClick={() => {
+                  void trackEvent('series_continue_clicked', {
+                    source: 'history_milestone',
+                    video_id: completedVideos[0]?.id ?? null,
+                    completed_video_count: completedVideos.length,
+                  })
+                }}
+                className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
+                style={{
+                  background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+                  border: '1px solid transparent',
+                  textDecoration: 'none',
+                  boxShadow: '0 6px 22px rgba(41,151,255,.30)',
+                }}
+              >
+                {completedVideos.length === 1 ? 'Build Episode 2 →' : 'Build Next Episode →'}
+              </Link>
+            )}
             {showSubscriptionOffer && (
               <button
                 type="button"
@@ -943,16 +976,18 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                 disabled={checkout.pending !== null}
                 className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
                 style={{
-                  background: '#2997ff',
-                  border: 'none',
+                  background: subscriptionIsPrimary ? '#2997ff' : 'rgba(255,255,255,.08)',
+                  border: subscriptionIsPrimary ? 'none' : '1px solid rgba(255,255,255,.14)',
                   cursor: checkout.pending ? 'wait' : 'pointer',
                   opacity: checkout.pending ? 0.7 : 1,
-                  boxShadow: '0 6px 22px rgba(41,151,255,.30)',
+                  boxShadow: subscriptionIsPrimary ? '0 6px 22px rgba(41,151,255,.30)' : 'none',
                 }}
               >
                 {checkout.pending === (firstVideoSubscriptionRecovery ? 'history_first_video_offer' : 'history_repeat_offer')
                   ? 'Loading…'
-                  : `Continue with Starter · ${STARTER_PRICE_USD} →`}
+                  : subscriptionIsPrimary
+                    ? `Continue with Starter · ${STARTER_PRICE_USD} →`
+                    : `See Starter · ${STARTER_PRICE_USD}/month`}
               </button>
             )}
             {showSubscriptionOffer && checkout.error && (
@@ -960,25 +995,27 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
                 {checkout.error}
               </p>
             )}
-            <Link
-              href={followUpHref}
-              onClick={() => {
-                void trackEvent('series_continue_clicked', {
-                  source: 'history_milestone',
-                  video_id: completedVideos[0]?.id ?? null,
-                  completed_video_count: completedVideos.length,
-                })
-              }}
-              className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
-              style={{
-                background: showSubscriptionOffer ? 'rgba(255,255,255,.08)' : 'linear-gradient(135deg, #2997ff, #1d6fe0)',
-                border: showSubscriptionOffer ? '1px solid rgba(255,255,255,.14)' : '1px solid transparent',
-                textDecoration: 'none',
-                boxShadow: showSubscriptionOffer ? 'none' : '0 6px 22px rgba(41,151,255,.30)',
-              }}
-            >
-              {showSubscriptionOffer ? 'Build Next Episode First' : 'Build Next Episode →'}
-            </Link>
+            {subscriptionIsPrimary && (
+              <Link
+                href={followUpHref}
+                onClick={() => {
+                  void trackEvent('series_continue_clicked', {
+                    source: 'history_milestone',
+                    video_id: completedVideos[0]?.id ?? null,
+                    completed_video_count: completedVideos.length,
+                  })
+                }}
+                className="flex items-center justify-center rounded-xl px-5 py-3 text-sm font-black text-white"
+                style={{
+                  background: 'rgba(255,255,255,.08)',
+                  border: '1px solid rgba(255,255,255,.14)',
+                  textDecoration: 'none',
+                  boxShadow: 'none',
+                }}
+              >
+                Build Next Episode First
+              </Link>
+            )}
           </div>
         </section>
       )}
