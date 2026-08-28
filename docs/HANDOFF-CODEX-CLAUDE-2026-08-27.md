@@ -347,6 +347,22 @@
 - **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_3cpqA3gy2faVVVLn83SVHDBJMX7s` em estado `READY`, aliasado em `www.usekineo.com`. `/pricing` respondeu com título, planos e checkout normal; o card e o banner global ficaram ausentes para o navegador anônimo. `/api/stripe/checkout/resume?surface=pricing` respondeu HTTP 401, `{"available":false,"reason":"signed_out"}`, com `Cache-Control: private, no-store`. Nenhum erro runtime foi encontrado em `/pricing` ou `/api/stripe/checkout/resume` na janela de 10 minutos consultada.
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não houve um comprador humano autenticado com checkout salvo observado no novo card após o deploy. Medir pessoas em `viewed → clicked → checkout_started → payment_success` antes de alterar novamente a superfície. Não atribuir os dois pagamentos históricos a esta variante.
 
+### 2.25 Missão persistente para o primeiro clique do afiliado
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit `5c5561b1a6dfea26ad926af6ad2ad0d209232998`.
+
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT agregado em 28/08/2026 06:01 UTC, contas internas excluídas):** existem 11 afiliados externos ativos. Sete têm zero clique vitalício, quatro têm ao menos um clique, o canal soma 17 visitas cruas e nenhum dos 11 gerou linha em `affiliate_referrals`. Clique cru, pessoa e referral permanecem réguas distintas.
+- **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT agregado em 28/08/2026 06:02 UTC, mesma coorte):** zero dos 11 afiliados era elegível ao card anterior de `/history`, que exigia simultaneamente plano Starter/Creator/Studio e pelo menos dois vídeos concluídos. Logo, a superfície de ativação existente cobria exatamente 0 dos 7 afiliados sem clique.
+- O kit, a atribuição first-touch, o cupom e os três destinos já existiam e não foram duplicados. `lib/affiliateFirstClick.ts` governa o novo estado: somente conta autenticada, afiliado `active`, contagem canônica exatamente igual a zero e link de afiliado validável recebem a oferta. Estado desconhecido falha fechado; o link copiado é reescrito para `https://www.usekineo.com`.
+- `components/AffiliateFirstClickNudge.tsx` usa `/api/affiliate/me` e aparece somente em `/studio` e `/history`. Entrega em um clique a legenda já existente do destino recomendado, com link individual e cupom quando disponível; também oferece continuação para a âncora exata do kit. A superfície desaparece depois da primeira visita elegível registrada.
+- O painel `/affiliate` passou a manter a missão `0 link visits` em retornos futuros, não só no render imediatamente depois da aplicação. Mostra os três passos `link live → publish ready post → first eligible visit` imediatamente antes do kit já existente (`app/(dashboard)/affiliate/page.tsx`).
+- A medição nova separa impressão, cópia e abertura da missão global (`affiliate_first_click_nudge_viewed|copied|opened`) da impressão persistente no painel (`affiliate_first_click_mission_viewed`). Os eventos existentes de cópia e compartilhamento recebem `first_click_mission`; nenhum e-mail, prompt, texto livre ou identificador entra na telemetria.
+- Testes: destinos + política + callers `205/205`; ativação anterior `34/34`; whitespace limpo. O TypeScript tem somente os quatro erros preexistentes de Stripe/preço, nenhum nos arquivos desta entrega.
+- Preview visual obrigatório: `docs/previews/AFFILIATE-FIRST-CLICK-MISSION-2026-08-28.html`, com os dois pontos tocados em pares antes/depois. O SHA funcional foi construído em preview Vercel e inspecionado em desktop e viewport real de 390 px. A página pública auxiliar foi removida da branch antes da integração em `main`.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_GpiQyZja4HMgk8yrikCzwH5f2G7p` em estado `READY`, aliasado em `www.usekineo.com`. `/studio` carregou no host canônico; o navegador anônimo não recebeu a missão. `/api/affiliate/me` respondeu 401 sem sessão e nenhum erro runtime foi encontrado em `/studio` ou `/api/affiliate/me` na janela de 15 minutos consultada.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não houve um afiliado externo zero-clique observado na nova missão depois do deploy. Medir pessoas em `mission/nudge viewed → copied/opened → primeira linha em affiliate_clicks → referral` antes de mudar novamente a interface. O deploy reduz a distância até a distribuição; não prova aquisição nem assinatura.
+- **NÃO TOCADO:** render, cena, legenda, motor, preço, oferta, comissão, e-mail, outreach e escrita de banco.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
@@ -363,8 +379,8 @@
 
 **EVIDÊNCIA DE PRODUÇÃO (medida em 27/08/2026):**
 
-- Afiliados: 12 totais, 11 externos, 17 cliques, 0 signup atribuído, 0 pagante atribuído e 0 comissão antes da nova ativação.
-- Cinco pagantes externos com pelo menos dois vídeos ainda não eram afiliados; são a primeira coorte elegível para o card.
+- Afiliados, atualização de 28/08/2026 06:01 UTC: 11 externos ativos; 7 com zero clique, 4 com pelo menos um clique, 17 visitas cruas e 0 referral. O novo nudge ataca distribuição dos afiliados existentes; recrutamento de novos parceiros é uma etapa distinta.
+- A elegibilidade anterior do card de `/history` cobria 0 dos 11 afiliados externos ativos na leitura de 28/08/2026. Não usar a coorte histórica de cinco pagantes como prova de que os afiliados ativos viam aquele card.
 - Os quatro usuários ChatGPT com checkout sem pagamento já haviam recebido recuperação; não duplicar contato.
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 30 dias lida no admin em 27/08/2026):**
@@ -379,15 +395,14 @@
 
 ## 4. Validação técnica consolidada
 
-**TESTADO LOCALMENTE.** Nenhuma entrega de Growth adicionou erro de TypeScript. A ponta atual tem cinco erros preexistentes:
+**TESTADO LOCALMENTE.** Nenhuma entrega de Growth adicionou erro de TypeScript. A ponta atual tem quatro erros preexistentes:
 
-- `app/api/analyze-idea/route.ts(8,13)`
 - `app/api/admin/_shared/mrr.ts(113,41)`
 - `app/api/me/subscription/route.ts(71,41)`
 - `app/api/stripe/checkout/route.ts(545,76)`
 - `app/api/stripe/checkout/route.ts(566,62)`
 
-O erro de `analyze-idea` já existe em `origin/main`, atribuído ao commit anterior `351d4be`; pertence ao pipeline do Claude e não foi alterado pelo Codex.
+O quinto erro anteriormente registrado em `app/api/analyze-idea/route.ts` não aparece mais na ponta atual. Esta entrega não alterou esse arquivo e não reivindica a correção.
 
 **FATO CONFIRMADO.** O build de produção ignora erros de tipo e lint; portanto, `npx tsc --noEmit` continua gate manual obrigatório.
 
