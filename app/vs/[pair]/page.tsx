@@ -37,6 +37,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import {
   ALL_PAIR_SLUGS,
   ALTERNATIVES_SLUG,
@@ -64,6 +65,7 @@ export const dynamicParams = false
 
 const BASE = 'https://www.usekineo.com'
 const CAMPAIGN = 'vs_comparison_cluster'
+const START_FREE_URL = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
 const ACCENT = '#2997ff'
 const MUTED = '#86868b'
 const CARD: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
@@ -413,7 +415,7 @@ export default function ComparisonPage({ params }: { params: { pair: string } })
           </div>
           <p style={{ color: '#d2d2d7', lineHeight: 1.65, fontSize: '0.95rem', margin: '0 0 16px' }}>{pair.kineo}</p>
           <OrganicCtaLink
-            href={`/signup?create_intent=fast&intent_campaign=${CAMPAIGN}`}
+            href={START_FREE_URL}
             source={CAMPAIGN}
             placement={canonical}
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '12px 24px', borderRadius: 980, textDecoration: 'none' }}

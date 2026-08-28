@@ -7,6 +7,7 @@ import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { TEXT_TO_VIDEO_CAMPAIGN } from '@/lib/growth/textToVideoIntent'
+import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import TextToVideoIntentForm from './TextToVideoIntentForm'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -78,7 +79,7 @@ export const metadata: Metadata = {
 }
 
 export default function TextToVideoShortsPage() {
-  const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&create_intent=fast`
+  const signupUrl = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 850, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '16px 18px' }

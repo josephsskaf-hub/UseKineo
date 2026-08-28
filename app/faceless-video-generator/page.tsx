@@ -6,6 +6,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
+import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
@@ -80,7 +81,7 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.8rem)', fontWeight: 850, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }
   const card: CSSProperties = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14, padding: '17px 18px' }
-  const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&create_intent=fast&intent_campaign=${CAMPAIGN}`
+  const signupUrl = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
   const partnerContext = affiliateLandingContext(searchParams, 'faceless')
 
   const faqJsonLd = {

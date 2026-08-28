@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import QusoDecisionSections, { QUSO_INTENT_CAMPAIGN } from './QusoDecisionSections'
 // KINEO-AEO-PAIRS-2026-08-03 — this route answers "X alternative" and /vs
 // answers "X vs Y". They target the same buyer at two different moments and
@@ -830,8 +831,8 @@ export default function AlternativePage({ params }: { params: { competitor: stri
   const isQuso = params.competitor === 'quso'
   const campaign = isQuso ? QUSO_INTENT_CAMPAIGN : `push22_alternative_${params.competitor}`
   const signupUrl = isQuso
-    ? `/signup?intent_campaign=${encodeURIComponent(campaign)}&create_intent=fast`
-    : `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${campaign}`
+    ? '#try-quso-alternative-topic'
+    : buildBlankStudioSignupHref({ campaign })
   const heroCtaUrl = isQuso ? '#try-quso-alternative-topic' : signupUrl
 
   const faqJsonLd = {

@@ -8,6 +8,7 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 import { PUBLIC_EXAMPLES, posterWebpPath } from '@/lib/publicExamples'
 import ExampleLiveMedia from '@/app/examples/ExampleLiveMedia'
 import ExitIntentOffer from '@/components/ExitIntentOffer'
+import { buildBlankStudioSignupHref } from '@/lib/growth/publicCreationIntent'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import {
@@ -88,7 +89,7 @@ export const metadata: Metadata = {
 }
 
 export default function FreeAiShortsGeneratorPage({ searchParams }: { searchParams?: PublicSearchParams }) {
-  const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${CAMPAIGN}&create_intent=fast`
+  const signupUrl = buildBlankStudioSignupHref({ campaign: CAMPAIGN })
   const partnerContext = affiliateLandingContext(searchParams, 'video')
   const h2: CSSProperties = { fontSize: 'clamp(1.3rem, 3.5vw, 1.75rem)', fontWeight: 850, margin: '44px 0 12px' }
   const p: CSSProperties = { color: '#86868b', fontSize: '1rem', lineHeight: 1.65, margin: '0 0 12px' }

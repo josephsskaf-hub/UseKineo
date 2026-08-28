@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo public creation intent — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#070708;color:#f5f5f7;font:15px/1.45 Inter,system-ui,sans-serif}.wrap{max-width:1180px;margin:auto;padding:36px 20px 60px}h1{font-size:clamp(28px,5vw,54px);line-height:1.03;margin:0 0 12px}.lead{color:#a1a1a6;max-width:760px;margin:0 0 30px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{border:1px solid #2c2c30;border-radius:22px;background:#111114;padding:18px}.label{font-size:11px;letter-spacing:.13em;font-weight:900;color:#8e8e93}.phone{max-width:350px}.hero{margin-top:14px;border-radius:18px;padding:24px;background:linear-gradient(150deg,#18181c,#0c0c0e)}.hero h2{margin:0 0 8px;font-size:26px}.hero p{color:#a1a1a6}.cta{display:inline-flex;margin-top:12px;padding:12px 18px;border-radius:999px;background:#f5f5f7;color:#050506;font-weight:900}.route{margin-top:18px;padding:14px;border-radius:14px;background:#08080a;border:1px solid #29292d;font:13px/1.55 ui-monospace,monospace}.bad{color:#ff6961}.good{color:#4ade80}.flow{display:grid;gap:10px;margin-top:18px}.step{padding:12px 14px;border-radius:12px;background:#19191d;border:1px solid #303036}.split{display:grid;grid-template-columns:1fr 1fr;gap:10px}.note{margin-top:16px;color:#64d2ff;font-weight:750}.mobile{margin-top:20px}.mobile .hero h2{font-size:22px}@media(max-width:760px){.grid{grid-template-columns:1fr}.split{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main class="wrap">
+  <h1>Public creation intent</h1>
+  <p class="lead">The visible CTA does not change. The destination now tells the truth about whether the visitor has supplied the work required for automatic creation.</p>
+  <section class="grid">
+    <article class="panel"><div class="label">BEFORE · DESKTOP</div><div class="hero"><h2>Make one free</h2><p>A visitor clicks without entering an idea.</p><span class="cta">Start free →</span><div class="route bad">/signup?create_intent=fast<br>prompt = missing<br>After auth: intent discarded → home</div></div></article>
+    <article class="panel"><div class="label">AFTER · DESKTOP</div><div class="hero"><h2>Make one free</h2><p>The same promise now has two explicit, bounded routes.</p><div class="split"><div class="step"><strong>Idea exists</strong><br><span class="good">prompt + Fast intent</span></div><div class="step"><strong>No idea yet</strong><br><span class="good">Studio + Fast selected</span></div></div><div class="route good">signup → safe internal redirect → Studio<br>No automatic render</div></div></article>
+    <article class="panel mobile phone"><div class="label">BEFORE · MOBILE</div><div class="hero"><h2>Start from scratch</h2><p>The button carries an automatic command with nothing to create.</p><span class="cta">Start free →</span><div class="route bad">create_intent=fast<br>prompt = ∅<br>promise lost after signup</div></div></article>
+    <article class="panel mobile phone"><div class="label">AFTER · MOBILE</div><div class="hero"><h2>Start from scratch</h2><p>The visitor arrives in the creation cockpit with attribution and the free engine preserved.</p><span class="cta">Start free →</span><div class="flow"><div class="step">Signup</div><div class="step">Studio · Fast selected</div><div class="step">Visitor supplies the idea and chooses Generate</div></div><div class="note">No automatic render</div></div></article>
+  </section>
+</main></body>
+</html>

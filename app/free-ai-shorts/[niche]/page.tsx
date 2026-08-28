@@ -15,6 +15,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { buildPromptedFastSignupHref } from '@/lib/growth/publicCreationIntent'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -512,8 +513,10 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
   if (!n) notFound()
 
   const campaign = `push63_niche_${params.niche}`
-  const signupUrl = `/signup?utm_source=seo&utm_medium=organic&utm_campaign=${campaign}&intent_campaign=${campaign}&create_intent=fast`
-  const signupUrlForIdea = (idea: string) => `${signupUrl}&prompt=${encodeURIComponent(idea)}`
+  const signupUrlForIdea = (idea: string) => buildPromptedFastSignupHref({
+    prompt: idea,
+    campaign,
+  })
   const primaryIdea = n.ideas[0]
 
   return (
