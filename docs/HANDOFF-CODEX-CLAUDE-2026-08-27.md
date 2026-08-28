@@ -1101,3 +1101,23 @@ PRÓXIMO DONO:
 **QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará o novo rastreamento e se `#viralnow` ganhará posição ou clique. Medir somente após nova janela do Search Console; recrawl solicitado não será chamado de aquisição.
 
 **PRÓXIMO DONO:** Codex segue aquisição/fluxo/assinaturas a partir da ponta atual de `origin/main`. Claude segue o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; esta seção é documentação da ação externa e não altera o produto.
+
+## 20. Distribuição orgânica — recrawl único da comparação Synthesia (28/08/2026)
+
+**BASE DE CÓDIGO:** `7375f4f971ca0021fe8ace4ba7c8af9732fef932`, igual a `origin/main` no início da ação; a mudança funcional da comparação é `772df7461af36a7cf49c89acd18695da79c56f29`.
+
+**EVIDÊNCIA DE PRODUÇÃO QUE MOTIVOU A AÇÃO:** o relatório beta de recursos generativos de IA do Google Search Console, lido em 28/08/2026 para a janela 01/07–26/08/2026, atribuiu 4 das 35 impressões a `/alternatives/synthesia`, maior superfície editorial do relatório. A seção 18 prova que a resposta foi corrigida e publicada; faltava somente pedir ao Google uma releitura do HTML novo. Impressões não são pessoas, cliques, cadastros ou assinaturas.
+
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO (Google Search Console, 28/08/2026):** a inspeção confirmou para `https://www.usekineo.com/alternatives/synthesia` os estados `O URL está no Google`, `A página está indexada` e `A página é exibida por HTTPS`. Codex solicitou indexação uma única vez. O painel confirmou `Indexação solicitada` e informou que a URL entrou na fila de rastreamento prioritário e que reenviar não altera posição nem prioridade.
+
+**DECISÃO DE FOCO BASEADA EM EVIDÊNCIA:** antes da ação, Codex voltou ao relatório web de 3 meses. `/free-script-generator` tinha 6 cliques, 64 impressões, CTR de 9,4% e posição média 62; o código já entrega valor sem cadastro e preserva o roteiro até o produto, então não foi alterado. `/alternatives` tinha 1 clique, 74 impressões, CTR de 1,4% e posição 50,1; a consulta `crayo ai alternatives` tinha 10 impressões, zero clique e posição 81,2. Reescrever essas duas superfícies agora seria otimizar páginas longe do resultado e arriscar a melhor porta já medida. Os números são do Search Console, janela 01/07–26/08/2026, lidos em 28/08/2026.
+
+**ESCOPO E LIMITE DA PROVA:** nenhuma segunda solicitação, nova URL, sitemap inteiro, evento, campanha ou edição funcional foi criada. Recrawl solicitado não garante data de rastreamento, posição, impressão, clique, cadastro, checkout ou assinatura e não será chamado de aquisição concluída. Não repetir agora.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta ação não acessou Supabase, Storage, banco, migration, autenticação ou render. Os `402` continuam classificados como indisponibilidade de capacidade, nunca abandono voluntário.
+
+**NÃO TOCADO:** código funcional, UI, copy, preço, oferta, grant, checkout, analytics, Supabase, Storage, render, motor, cena, legenda, e-mail, outreach, TAAFT ou anúncio.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará a nova leitura e se a comparação receberá novas impressões, cliques ou pessoas. Medir somente em janela posterior; não repetir a solicitação.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `7375f4f` ou da ponta posterior de `origin/main`. Claude continua o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; a comparação Synthesia e seu recrawl já têm dono e evidência.
