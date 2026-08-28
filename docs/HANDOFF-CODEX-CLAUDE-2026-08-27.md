@@ -411,6 +411,22 @@
 - **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe pessoa externa pós-deploy no funil `prompt → click → share → referred_by → first video → paid`. Medir pessoas por `variant=history_referral_mission_v1` antes de alterar novamente o card; visualização e abertura do WhatsApp não serão chamadas de referral ou assinatura.
 - **NÃO TOCADO:** `/v`, sitemap, visibilidade de vídeo, render, cena, legenda, motor, Storage, preço, grant, oferta, e-mail, outreach e tráfego pago.
 
+### 2.29 Continuação visual para o tráfego que chega do ChatGPT
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Ponta de produção `ad3ec3ecb8e803314a8b98dd247585477e124c54`, integrada por fast-forward sobre o commit `f520690eec03881b50d63ccb45b62ab18e3ca894` do Claude.
+
+- **EVIDÊNCIA DE PRODUÇÃO (admin autenticado `/admin/funnel?days=30`, lido em 28/08/2026; contas internas excluídas pela própria coorte):** a variante `chatgpt_quickstart_v1` tinha 8 pessoas expostas e zero escolha entre roteiro e ideia. O funil de aquisição total da mesma tela tinha 384 cadastros, 143 pessoas com vídeo concluído, 21 com checkout e 3 pagantes; estes números não são atribuídos ao quick-start.
+- **HIPÓTESE:** a faixa anterior escondia a decisão principal em 13 px, misturada com créditos e preço, e os caminhos pareciam chips sem explicar o resultado. A amostra de oito pessoas é pequena; a mudança é um teste instrumentado, não prova causal.
+- O `chatgpt_quickstart_v2` preserva os mesmos dois destinos allow-listed e a atribuição first-touch: roteiro completo abre `verbatim/35s`; ideia abre `ai/45s`. O card agora nomeia a continuação do trabalho iniciado no ChatGPT, explica o resultado de cada escolha e deixa créditos/preço canônicos como contexto secundário (`lib/growth/chatgptQuickstart.ts`; `components/ChatGptWelcomeBanner.tsx`).
+- O admin mostra a variante corrente a partir da mesma constante usada pelo produto. O helper continua causal por ator: impressão → escolha → geração → conclusão → checkout → pagamento; texto de roteiro, prompt e URL não entram na telemetria (`lib/admin/chatgptQuickstartFunnel.ts`; `app/(dashboard)/admin/funnel/FunnelClient.tsx`).
+- A inspeção visual remota encontrou e impediu um defeito antes de `main`: o primeiro preview estilizado com `styled-jsx` não alcançava os anchors gerados por `next/link`. A versão final usa CSS Module, e o teste trava essa fronteira. Preview Vercel `dpl_B7qa9FRzbAnEYGB2wfrec43sRdNt` terminou `READY` e passou em desktop e 390×844: CTAs de 64 px, grade 2 colunas/1 coluna e overflow horizontal zero.
+- O comparativo obrigatório está em `docs/previews/CHATGPT-QUICKSTART-V2-2026-08-28.html`. A rota auxiliar de preview foi removida antes da promoção; o smoke de produção confirmou 404 canônico e ausência do marcador `PREVIEW ONLY` em `/preview/chatgpt-quickstart`.
+- Teste determinístico `scripts/test-chatgpt-quickstart.mjs`: `55/55`; whitespace limpo. O TypeScript mantém somente os quatro erros preexistentes, nenhum nos arquivos da entrega.
+- **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy `dpl_2Zxwku2PtgAHnb75tALBt3Art1Fo` em estado `READY`, aliasado em `www.usekineo.com`. Smoke autenticado em `/studio?utm_source=chatgpt.com` mostrou o heading novo, os dois destinos e overflow zero. Nenhum CTA foi clicado e nenhum render foi iniciado.
+- **EVIDÊNCIA DE PRODUÇÃO (relato do fundador, 28/08/2026; não verificado pelo Codex):** o Supabase atingiu o limite contratado de gigabytes e alguns renders estão respondendo `402`. Claude conduz o incidente. O `402` não será classificado como abandono de Growth; esta entrega não consultou o banco novamente, não tocou Storage e não executou render.
+- **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe pessoa externa na variante v2. Comparar pessoas `view → choice → start → completed → checkout → paid` somente após amostra; não chamar impressão, escolha ou geração de assinatura.
+- **NÃO TOCADO:** render, cena, legenda, motor, Storage, migration, preço, grant, oferta, e-mail, outreach e tráfego pago.
+
 ## 3. Evidência de funil que governa a próxima rodada
 
 **EVIDÊNCIA DE PRODUÇÃO (janela de 7 dias medida em 27/08/2026; contas internas excluídas):**
