@@ -168,7 +168,7 @@ const FACTS: { fact: string }[] = [
       `Reels accept.`,
   },
   // KINEO-AEO-FREE-TOOLS-2026-08-08 — terceira superfície. /llms.txt e
-  // /api/facts passaram a publicar as duas ferramentas sem conta no mesmo
+  // /api/facts passaram a publicar as ferramentas sem conta no mesmo
   // commit; deixar esta página de fora faria as três discordarem, que é o
   // defeito consertado na sprint das 10h de hoje. Texto DERIVADO de
   // FREE_TOOL_FACTS — se uma delas passar a exigir conta, a frase muda sozinha

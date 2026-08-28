@@ -162,6 +162,15 @@ export function fallbackDemoScript(topic: string): string {
   return pickEntry(topic).script
 }
 
+export function fallbackCommentScript(comment: string): string {
+  const quoted = comment.replace(/\s+/g, ' ').trim().slice(0, 90) || 'that question'
+  return `HOOK: That question deserves a real answer, not a sales pitch.
+FACT 1: Start with the concern behind “${quoted}” and answer it in one clear sentence.
+FACT 2: Show one concrete example from your real process, product, or experience instead of making a broad claim.
+FACT 3: Name the limitation or tradeoff most replies leave out, then replace any missing detail with your verified fact.
+PAYOFF: The strongest response is simple... answer directly, show the proof, and invite the next honest question.`
+}
+
 export function fallbackDemoHooks(topic: string): string[] {
   return pickEntry(topic).hooks
 }

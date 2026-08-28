@@ -667,11 +667,21 @@ export const START_HERE_FACT: StartHereFact = {
 }
 
 /**
- * Fonte única das duas ferramentas públicas. /llms.txt as descreve em prosa a
+ * Fonte única das ferramentas públicas. /llms.txt as descreve em prosa a
  * partir dos MESMOS caminhos; se um dia uma delas passar a exigir conta, este
  * objeto é o lugar onde a mentira aparece primeiro.
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
+  {
+    name: 'Free comment-to-video script generator',
+    url: `${BASE}/comment-to-video`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: 'per IP, per day',
+    what: 'Paste a viewer comment, customer FAQ or sales objection and get a structured response Short script. Text only — it does not render a video.',
+  },
   {
     name: 'Free YouTube Shorts script generator',
     url: `${BASE}/free-script-generator`,
@@ -764,12 +774,12 @@ export interface KineoFactsPayload {
    *
    * Por que isto entra nos FATOS e não só na prosa do /llms.txt: a lição do
    * KINEO-AEO-FACTS-WINDOW (10h de hoje) é que um LLM prefere campo
-   * ESTRUTURADO a prosa. Publicar as duas ferramentas só no texto e não aqui
+   * ESTRUTURADO a prosa. Publicar as ferramentas só no texto e não aqui
    * repetiria o mesmo erro ao contrário — e as três superfícies (/llms.txt,
    * /api/facts, /facts) discordariam entre si, que é exatamente o defeito que
    * a mesma sprint consertou.
    *
-   * NÃO é gateado por flag: as duas ferramentas existem com a flag ligada ou
+   * NÃO é gateado por flag: estas ferramentas existem com a flag ligada ou
    * desligada. Nenhuma delas produz vídeo — `output` diz 'text' de propósito,
    * para que um agente não as recomende como gerador de vídeo grátis.
    */
