@@ -1145,3 +1145,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** código funcional, UI, preço, oferta, checkout, Supabase, Storage, migration, render, motor, cena, legenda, e-mail enviado, anúncio ou dados de cliente.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `4318313` ou da ponta posterior de `origin/main`. Claude continua o incidente `402`. Depois da normalização, reconciliar legacy Rewardful → sistema próprio é uma tarefa conjunta de Growth/Data, não uma mudança cega no checkout.
+
+## 22. Aquisição orgânica — hub dos sete free tools (28/08/2026)
+
+**BASE DE CÓDIGO:** `2c390623`, igual a `origin/main` no início da worktree isolada `codex/growth-free-tools-hub`.
+
+**FATO CONFIRMADO / PADRÃO COMPETITIVO (consultado em 28/08/2026):** CapCut mantém uma coleção pública de ferramentas em `https://www.capcut.com/tools`; InVideo mantém uma porta pública específica em `https://invideo.io/tools/script-generator/`. O padrão útil observado é agregar intenções pequenas e gratuitas em superfícies públicas que devolvem valor antes da conta — não copiar promessa, preço ou interface do concorrente.
+
+**FATO CONFIRMADO / INVENTÁRIO REAL:** `lib/kineoFacts.ts:718` já declarava sete ferramentas públicas que não exigem conta, e-mail ou cartão e retornam texto ou planejamento: script, hooks, viral score, comentário para vídeo, roteiro de produto, plano de conteúdo empresarial e calculadora de receita de Shorts. Antes deste commit não existia `/tools`; a descoberta dependia de páginas isoladas.
+
+**IMPLEMENTADO:** commit funcional `47b7425d89396d8ae8a96543b7de9b3f385ad5f7` cria `app/tools/page.tsx:150` usando `FREE_TOOL_FACTS` como fonte canônica; destaca o gerador de roteiro como primeira ação e distribui para as outras seis. A página diz explicitamente que as ferramentas gratuitas entregam texto ou planejamento, enquanto o vídeo pronto exige conta; não promete render gratuito. Também adiciona o link `All free tools` ao footer, `/tools` ao sitemap (`app/sitemap.ts:66`) e a coleção ao `llms.txt` (`app/llms.txt/route.ts:331,339-341`). Nenhum preço, grant ou promessa comercial foi duplicado em literal.
+
+**TESTADO LOCALMENTE:** as oito páginas (`/tools` + sete destinos) responderam HTTP 200. O hub apresentou sete cards, canonical `https://www.usekineo.com/tools`, primeiro card `I need the complete script`, links exatos para os sete destinos e zero erro/aviso no console. Em 1440 px e 390 px não houve overflow horizontal; no mobile o grid ficou em uma coluna. `npx tsc --noEmit --pretty false --incremental false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo. `git diff --check` limpo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/FREE-TOOLS-HUB-2026-08-29.html` contém o preview autocontido. As evidências renderizadas estão em `docs/previews/FREE-TOOLS-HUB-DESKTOP-2026-08-29.jpg` e `docs/previews/FREE-TOOLS-HUB-MOBILE-2026-08-29.jpg`.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** `origin/main` e a worktree apontam para `47b7425d89396d8ae8a96543b7de9b3f385ad5f7`. O deploy Vercel `dpl_72MuHQE3Am3iqA2GnTVezjzMpdxD` chegou a `READY`, target production e alias `www.usekineo.com`. O browser abriu `https://www.usekineo.com/tools` com o title, H1, canonical, sete cards, sete hrefs e footer corretos, sem overflow e sem erro/aviso no console. Leituras HTTP independentes confirmaram `/tools` presente em `sitemap.xml` e `[Free tools](https://www.usekineo.com/tools)` presente em `llms.txt`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, render, crédito ou evento. O `402` permanece classificado como incidente de capacidade e não como abandono voluntário. Não declarar que os renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio ou outra injeção de tráfego foi executada para o hub enquanto o incidente de capacidade está aberto. O ativo está público e descobrível pelo sitemap/`llms.txt`, mas distribuição ativa fica condicionada à normalização confirmada pelo dono do incidente.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** o hub ainda não tem evidência de impressão, clique, pessoa, cadastro, checkout ou assinatura. Publicação e descoberta técnica foram provadas; aquisição só poderá ser atribuída em janela posterior, excluindo contas internas e contando pessoas, não eventos.
+
+**NÃO TOCADO:** Supabase, Storage, Auth, migration, banco, render, motor, cena, legenda, preço, grant, checkout, evento, e-mail, outreach, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude continua o incidente `402` e qualidade do pipeline. Codex continua aquisição/fluxo/assinaturas sem gerar carga no pipeline até a capacidade voltar. Ambos devem executar `git fetch origin` antes de criar nova worktree; não reconstruir o hub nem duplicar as sete promessas fora de `FREE_TOOL_FACTS`.
