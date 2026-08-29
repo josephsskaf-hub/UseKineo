@@ -1286,7 +1286,7 @@ PRÓXIMO DONO:
 
 **DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A mudança reduz perda de intenção no tráfego que já existe; distribuição ativa aguarda normalização confirmada da capacidade.
 
-**DEPLOY PENDENTE:** o commit funcional está pronto e testado, mas ainda não havia sido publicado no momento desta anotação.
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_5ZDb2M8J5GEmhcoPdcmQaXakCa3W` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA final `8b0c20bb388ca9cc7d2efda50bcd2123acf73761` e contendo o commit funcional `0c80293`. Leituras HTTP pela Vercel, sem executar JavaScript, responderam 200 nas cinco rotas e confirmaram os destinos serializados: imagens → `/images`, vozes → `/audio`, hub → Fast, upscaler → Seedance e talking characters → H3. A última rota também confirmou `Open MiniMax H3`, 25 créditos de trial, custo de 45 créditos, ausência de `Make one free` e cache `HIT`; as demais responderam `HIT` ou `PRERENDER`. A Vercel registrou zero erro de runtime agrupado nas cinco rotas nos 15 minutos consultados.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada pela correção. Depois da normalização da capacidade, medir pessoas por campanha e destino preservado, excluindo contas internas e sem contar eventos como pessoas.
 
