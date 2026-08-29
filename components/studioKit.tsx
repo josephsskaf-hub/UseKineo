@@ -38,6 +38,21 @@ export const STUDIO_KIT_CSS = `
   .stu .grid{grid-template-columns:1fr;gap:16px}
   .stu .rail{position:static}
 }
+/* KINEO-SPRINT-UI-1-2026-08-29 — ergonomia de toque (sprint noturno #1).
+   · textarea 16px no mobile: com fonte <16px o iOS DA ZOOM na pagina inteira
+     ao focar o campo — o cliente escrevia a ideia com o layout estourado e
+     precisava beliscar pra voltar. 16px desarma o zoom na origem.
+   · alvos de toque: pills e tiles de camera com min-height 44px (guideline
+     Apple/Google); dedo erra menos, seletor deixa de ser loteria.
+   · rolagem com inercia e sem "scroll chaining" puxando o body por tras. */
+@media(max-width:900px){
+  .stu textarea{font-size:16px;padding:15px}
+  .stu .pill{min-height:44px;display:inline-flex;align-items:center;padding:10px 16px}
+  .stu .cam{min-height:64px;padding:15px 10px}
+  .stu .mdlbtn{padding:16px}
+  .stu .go{padding:16px 0;font-size:16px}
+  .stu .vrow{grid-template-columns:repeat(2,1fr);gap:10px}
+}
 .stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
 .stu .card:hover{border-color:rgba(255,255,255,.16)}
 .stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}
