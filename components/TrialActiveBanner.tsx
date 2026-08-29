@@ -69,6 +69,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
+import {
+  decideTrialReturnLadder,
+  TRIAL_BALANCE_BRIDGE_VERSION,
+} from '@/lib/growth/trialBalanceBridge'
 // Import de TIPO apenas (apagado no build). Vem da MESMA definição que o
 // servidor serializa: renomear um campo lá quebra o build aqui, em vez de fazer
 // o banner sumir em silêncio.
@@ -97,10 +101,12 @@ const DISMISSED_PREFIX = 'kineo_trial_active_banner_dismissed_v1'
 // mesma unidade, ou a razão entre eles não é taxa de nada. Aqui a unidade é
 // "uma conta, um dia".
 const SHOWN_PREFIX = 'kineo_trial_active_banner_shown_v1'
+const RETURN_LADDER_SHOWN_PREFIX = 'kineo_trial_return_ladder_shown_v1'
 
 const SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 
 interface CreditsPayload {
+  credits?: number
   trial?: Partial<TrialUiState>
   hasPaid?: boolean
   isStarter?: boolean
@@ -141,10 +147,12 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const [open, setOpen] = useState(false)
   const [granted, setGranted] = useState(0)
   const [used, setUsed] = useState(0)
+  const [credits, setCredits] = useState<number | null>(null)
   const [msLeft, setMsLeft] = useState<number | null>(null)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
   const [region, setRegion] = useState<PriceRegion>('standard')
   const checkout = useCheckoutLaunch('trial_active_banner')
+  const returnLadderRef = useRef<HTMLDivElement | null>(null)
   // O dia é carimbado UMA vez, no mount, e reusado nas duas chaves e no evento.
   // Ler `Date.now()` de novo na dispensa deixaria a chave de dispensa num dia
   // diferente da chave de impressão numa navegação à meia-noite — a pessoa
@@ -152,6 +160,8 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const dayRef = useRef(utcDayKey(Date.now()))
   const dismissKey = `${DISMISSED_PREFIX}:${userKey}:${dayRef.current}`
   const shownKey = `${SHOWN_PREFIX}:${userKey}:${dayRef.current}`
+  const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}`
+  const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits })
 
   // ── Elegibilidade: só o servidor decide ────────────────────────────────────
   useEffect(() => {
@@ -195,8 +205,13 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         const left = typeof trial.msLeft === 'number' ? trial.msLeft : null
         if (left === null || left <= 0) return
 
+        const currentCredits = typeof data.credits === 'number' && Number.isFinite(data.credits)
+          ? data.credits
+          : null
+
         setGranted(g)
         setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : 0)
+        setCredits(currentCredits)
         setMsLeft(left)
         setOpen(true)
 
@@ -228,7 +243,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
     return () => {
       cancelled = true
     }
-  }, [dismissKey, shownKey])
+  }, [dismissKey, returnLadderShownKey, shownKey])
 
   // ── Moeda ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -253,6 +268,64 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       cancelled = true
     }
   }, [open])
+
+  // Conta uma visualização apenas quando metade da nova ação realmente entrou
+  // em viewport. O fetch autorizar a superfície não significa que a pessoa a
+  // viu, especialmente quando ela volta a uma rota com scroll restaurado.
+  useEffect(() => {
+    if (!open || msLeft === null || !returnLadder.eligible) return
+    const element = returnLadderRef.current
+    if (!element) return
+
+    let tracked = false
+    const recordView = () => {
+      if (tracked) return
+      tracked = true
+      let alreadyCounted = false
+      try {
+        alreadyCounted = window.localStorage.getItem(returnLadderShownKey) === '1'
+        window.localStorage.setItem(returnLadderShownKey, '1')
+      } catch {
+        // Sem localStorage a impressão pode duplicar; o caminho continua útil.
+      }
+      if (alreadyCounted) return
+      void trackEvent('trial_balance_bridge_viewed', {
+        source: 'trial_active_banner_return',
+        surface: 'persistent_trial_banner',
+        bridge_version: returnLadder.version,
+        target_engine: returnLadder.engine,
+        target_duration: returnLadder.duration,
+        credits_before: returnLadder.creditsBefore,
+        credits_required: returnLadder.cost,
+        credits_after_success: returnLadder.creditsAfterSuccess,
+        ms_left: msLeft,
+      })
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      recordView()
+      return
+    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
+        recordView()
+        observer.disconnect()
+      }
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [
+    open,
+    msLeft,
+    returnLadder.creditsAfterSuccess,
+    returnLadder.creditsBefore,
+    returnLadder.cost,
+    returnLadder.duration,
+    returnLadder.eligible,
+    returnLadder.engine,
+    returnLadder.version,
+    returnLadderShownKey,
+  ])
 
   const dismiss = useCallback(() => {
     // Desfecho ANTES do efeito: ação sem registro é instrumento cego.
@@ -289,6 +362,23 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   // (KINEO-TRIAL-OFFER-SCARCITY-2026-08-08): abaixo dele, dizer "you've used 1
   // of 40" é a própria oferta lembrando que ainda sobra muito.
   const counterRendered = granted > 0 && used * 2 >= granted
+  const continueTrialWithSeedance = () => {
+    if (!returnLadder.eligible) return
+    void trackEvent('trial_balance_bridge_clicked', {
+      source: 'trial_active_banner_return',
+      surface: 'persistent_trial_banner',
+      bridge_version: returnLadder.version,
+      target_engine: returnLadder.engine,
+      target_duration: returnLadder.duration,
+      credits_before: returnLadder.creditsBefore,
+      credits_required: returnLadder.cost,
+      credits_after_success: returnLadder.creditsAfterSuccess,
+      ms_left: msLeft,
+    })
+    window.location.assign(
+      `/studio/create?engine=seedance&duration=${returnLadder.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`,
+    )
+  }
 
   return (
     <div
@@ -331,6 +421,37 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           ×
         </button>
       </div>
+      {returnLadder.eligible && (
+        <div
+          ref={returnLadderRef}
+          data-trial-return-ladder={returnLadder.version}
+          className="mt-3 rounded-xl px-3 py-3"
+          style={{
+            background: 'rgba(255,255,255,.045)',
+            border: '1px solid rgba(92,179,255,.24)',
+          }}
+        >
+          <p className="text-xs font-black" style={{ color: '#f5f5f7', lineHeight: 1.45 }}>
+            {returnLadder.creditsBefore} credits left — enough for a {returnLadder.duration}s Seedance film.
+          </p>
+          <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
+            Use the trial on a premium generated film before it ends. You review the setup before anything starts.
+          </p>
+          <button
+            type="button"
+            onClick={continueTrialWithSeedance}
+            className="mt-2 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-xs font-black"
+            style={{
+              color: '#5cb3ff',
+              background: 'rgba(41,151,255,.10)',
+              border: '1px solid rgba(41,151,255,.38)',
+              cursor: 'pointer',
+            }}
+          >
+            Set up my {returnLadder.duration}s Seedance film →
+          </button>
+        </div>
+      )}
       <button
         type="button"
         onClick={() => {

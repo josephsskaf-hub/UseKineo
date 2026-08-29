@@ -47,6 +47,24 @@ for (const credits of [15, 20, 21, 22, 23, 24]) {
   equal(result.creditsAfterSuccess, credits - 15, `${credits} exposes exact post-success balance`)
 }
 
+for (const credits of [15, 20, 21, 22, 23, 24]) {
+  const result = policy.decideTrialReturnLadder({ trialPhase: 'active', credits })
+  equal(result.eligible, true, `${credits} credits are recoverable after returning to the app`)
+  equal(result.creditsAfterSuccess, credits - 15, `${credits} keeps exact return-ladder math`)
+}
+
+for (const [input, reason] of [
+  [{ trialPhase: null, credits: 20 }, 'not_active'],
+  [{ trialPhase: 'ending', credits: 20 }, 'not_active'],
+  [{ trialPhase: 'active', credits: null }, 'unknown_balance'],
+  [{ trialPhase: 'active', credits: 14 }, 'too_few_credits'],
+  [{ trialPhase: 'active', credits: 25 }, 'full_seedance_already_fits'],
+]) {
+  const result = policy.decideTrialReturnLadder(input)
+  equal(result.eligible, false, `return ladder rejects ${reason}`)
+  equal(result.reason, reason, `return ladder names ${reason}`)
+}
+
 for (const [input, reason] of [
   [{ trialPhase: null, credits: 20, deliveredQuality: 'fast' }, 'not_active'],
   [{ trialPhase: 'ending', credits: 20, deliveredQuality: 'fast' }, 'not_active'],
@@ -124,6 +142,22 @@ check(!handler.includes('handleGenerate'), 'CTA cannot start a render')
 check(!handler.includes('handleAnalyze'), 'CTA cannot spend analysis work')
 check(!handler.includes('studio=1'), 'CTA cannot arm Studio auto-fire')
 
+const banner = read('components/TrialActiveBanner.tsx').replace(/\r\n/g, '\n')
+check(banner.includes('decideTrialReturnLadder'), 'persistent trial banner executes return-ladder policy')
+check(banner.includes("trackEvent('trial_balance_bridge_viewed'"), 'persistent surface joins the existing measured bridge funnel')
+check(banner.includes("trackEvent('trial_balance_bridge_clicked'"), 'persistent CTA emits the existing causal click')
+check(banner.includes("surface: 'persistent_trial_banner'"), 'persistent surface is distinguishable in telemetry')
+check(banner.includes('data-trial-return-ladder={returnLadder.version}'), 'persistent UI names its contract version')
+check(banner.includes('entry.intersectionRatio >= 0.5'), 'persistent view counts only after 50% visibility')
+check(banner.includes('You review the setup before anything starts.'), 'copy denies automatic credit spend')
+check(banner.includes("`/studio/create?engine=seedance&duration=${returnLadder.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`"), 'return CTA lands on the attributed Seedance setup')
+const returnHandlerStart = banner.indexOf('const continueTrialWithSeedance')
+const returnHandlerEnd = banner.indexOf('\n\n  return (', returnHandlerStart)
+check(returnHandlerStart >= 0 && returnHandlerEnd > returnHandlerStart, 'return CTA handler boundaries are found in product code')
+const returnHandler = banner.slice(returnHandlerStart, returnHandlerEnd)
+check(!returnHandler.includes('fetch('), 'return CTA cannot call a provider or mutate credits')
+check(!returnHandler.includes('handleGenerate'), 'return CTA cannot start a render')
+
 const route = read('app/api/admin/funnel/route.ts')
 check(route.includes("'trial_balance_bridge_viewed', 'trial_balance_bridge_clicked'"), 'admin fetches bridge stages')
 check(route.includes("'video_generation_completed'"), 'admin fetches attributed completion')
@@ -145,5 +179,13 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'AFTER · MOBILE'
   check(preview.includes(marker), `preview contains ${marker}`)
 }
 check(!/https?:\/\//i.test(preview), 'preview has no external dependency')
+
+const returnPreviewPath = 'docs/previews/TRIAL-RETURN-LADDER-2026-08-29.html'
+check(fs.existsSync(path.join(root, returnPreviewPath)), 'persistent return-ladder preview exists')
+const returnPreview = read(returnPreviewPath)
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(returnPreview.includes(marker), `persistent preview contains ${marker}`)
+}
+check(!/https?:\/\//i.test(returnPreview), 'persistent preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} trial balance bridge checks`)

@@ -29,6 +29,15 @@ export type TrialBalanceBridgeDecision = {
   version: typeof TRIAL_BALANCE_BRIDGE_VERSION
 }
 
+export type TrialReturnLadderInput = {
+  trialPhase: 'active' | 'ending' | null
+  credits: number | null
+}
+
+export type TrialReturnLadderDecision = Omit<TrialBalanceBridgeDecision, 'reason'> & {
+  reason: 'eligible' | 'not_active' | 'unknown_balance' | 'too_few_credits' | 'full_seedance_already_fits'
+}
+
 /**
  * Turns the measured 20–21 credit post-Fast remainder into one supported
  * 35-second Seedance experience. The bridge never grants credits or starts a
@@ -47,6 +56,42 @@ export function decideTrialBalanceBridge(input: TrialBalanceBridgeInput): TrialB
 
   if (input.trialPhase !== 'active') return { ...base, eligible: false, reason: 'not_active' }
   if (input.deliveredQuality !== 'fast') return { ...base, eligible: false, reason: 'not_fast' }
+  if (input.credits === null || !Number.isFinite(input.credits)) {
+    return { ...base, eligible: false, reason: 'unknown_balance' }
+  }
+  if (input.credits < TRIAL_BALANCE_BRIDGE_COST) {
+    return { ...base, eligible: false, reason: 'too_few_credits' }
+  }
+  if (input.credits >= FULL_SEEDANCE_COST) {
+    return { ...base, eligible: false, reason: 'full_seedance_already_fits' }
+  }
+
+  return {
+    ...base,
+    eligible: true,
+    reason: 'eligible',
+    creditsAfterSuccess: input.credits - TRIAL_BALANCE_BRIDGE_COST,
+  }
+}
+
+/**
+ * Re-exposes the same safe 35-second Seedance step after the user leaves the
+ * result screen. Unlike the result-only bridge, this decision cannot prove the
+ * last delivered engine, so it is governed only by active-trial truth and the
+ * current server balance. It never grants, reserves or spends credits.
+ */
+export function decideTrialReturnLadder(input: TrialReturnLadderInput): TrialReturnLadderDecision {
+  const base = {
+    creditsBefore: input.credits,
+    creditsAfterSuccess: null,
+    cost: TRIAL_BALANCE_BRIDGE_COST,
+    duration: TRIAL_BALANCE_BRIDGE_DURATION,
+    engine: TRIAL_BALANCE_BRIDGE_ENGINE,
+    engineLabel: TRIAL_BALANCE_BRIDGE_ENGINE_LABEL,
+    version: TRIAL_BALANCE_BRIDGE_VERSION,
+  } as const
+
+  if (input.trialPhase !== 'active') return { ...base, eligible: false, reason: 'not_active' }
   if (input.credits === null || !Number.isFinite(input.credits)) {
     return { ...base, eligible: false, reason: 'unknown_balance' }
   }
