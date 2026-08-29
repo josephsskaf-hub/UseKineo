@@ -1531,3 +1531,35 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, desconto, oferta, SKU, sessão Stripe, webhook, Auth, Supabase, Storage, migration, banco, render, motor, duração, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `1b3341c` ou da ponta posterior de `origin/main`. Não reconstruir o degrau de menor custo nem transformar o link de comparação em checkout automático. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 37. Aquisição e conversão — Plan Fit público com todos os motores (29/08/2026)
+
+**BASE DE CÓDIGO:** `c3e09253944de9d84416d29416e1d158417ed71a`, igual a `origin/main` no início da worktree isolada `codex/growth-public-plan-fit`.
+
+**EVIDÊNCIA DE PRODUÇÃO / SEARCH CONSOLE (29/08/2026):** no Chrome conectado do fundador, sem solicitar indexação, a propriedade de produção mostrou 29 cliques, 1.896 impressões, CTR de 1,5% e posição média 52,6 no recorte de 28 dias; no recorte de três meses, 37 cliques e 2.216 impressões. Entre as páginas com impressão e poucos cliques estavam `/best-ai-shorts-generators` (301/1), `/how-much-do-youtube-shorts-pay` (353/0), `/can-you-monetize-ai-videos` (186/0), `/youtube-shorts-rpm-by-niche` (129/0), `/tiktok-vs-youtube-shorts-monetization` (111/0) e `/shorts-money-calculator` (110/0). O relatório de aparições em recursos generativos mostrou 35 impressões: home 16, pricing 6 e superfícies de alternativas entre as demais. Estes números orientam prioridade; não são pessoas nem assinaturas.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `/pricing` já apontava para o calculador público `/cheapest-ai-shorts-maker`, e o produto já possuía o algoritmo canônico `lib/growth/planFit.ts`. Portanto não foi criada nova landing ou uma segunda tabela de preços. A lacuna era que o calculador público duplicava localmente planos e preços e representava somente três grupos amplos (`Fast`, `AI Generated`, `Cinematic`) com duração fixa de 60 segundos, enquanto o produto oferece sete motores e 35/60/90 segundos.
+
+**IMPLEMENTADO:** commit funcional `d6f176d7ea70d5fa765623d94211f38470022cae` faz `app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx` importar `calculatePlanFit`, `engineName`, `planName` e `getTierPrice`. A página pública passa a calcular Kineo 1, Seedance 1.5, MiniMax H3, Kling 2.5, Veo 3.1, Kling 3 e Omni Flash nas durações 35/60/90, usando créditos, grants e preços das mesmas fontes de Checkout. Não existe string paralela de preço ou grant.
+
+**IMPLEMENTADO / SAÍDA HONESTA:** quando a combinação cabe, a tela mostra o plano mensal mais barato e o custo por vídeo. Quando um plano imediatamente inferior comporta uma frequência menor no mesmo motor e duração, `Use that cadence` aplica esse caminho antes da Stripe. Quando nenhum plano self-serve cobre a meta, a página não inventa cobertura: oferece reduzir a cadência no mesmo motor quando possível ou preservar a frequência com Kineo 1. Nenhuma ação inicia render, débito, Checkout Session ou alteração de conta.
+
+**REVISÃO REACT:** seleção, custo e alternativas são derivados no `useMemo` existente; não foi criado fetch, efeito de sincronização, estado duplicado ou API nova. O limite público de frequência foi alinhado ao teto de segurança de 60 filmes do contrato canônico. A telemetria existente preserva os nomes de evento e passa a declarar duração, créditos por filme e origem da escolha por campos limitados.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 307/307 verificações. Os 17 casos novos travam import canônico, ausência de tabela privada, sete motores, três durações, recálculo por duração, alternativa de menor custo, capacidade no mesmo motor, fallback Kineo 1, teto de frequência e telemetria de segundos. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PUBLIC-PLAN-FIT-2026-08-29.html` contém antes/depois autocontido em desktop e mobile. O arquivo e a tela funcional foram servidos localmente e inspecionados no Chrome conectado do fundador. A comparação confirma os sete motores, duração explícita e alternativa de menor custo sem substituir o CTA principal.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** o auto-deploy do push não abriu build; GitHub já mostrava o SHA em `main`, e a Vercel ainda apontava para `c3e0925`. Pelo Chrome autenticado do fundador, foi usado `Create Deployment` → `main` → `Deploy to Production`, sem alterar configuração. O deploy `dpl_C5sMb2g2HGtBB51dcguTWkF3uERp` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `d6f176d7ea70d5fa765623d94211f38470022cae`.
+
+**VALIDADO EM PRODUÇÃO / CHROME REAL (29/08/2026):** em `www.usekineo.com`, a tela mostrou os sete motores e 35/60/90 segundos. O caso Seedance 1.5, 4 vídeos, 60s calculou 100 créditos, Studio a $29/mês e alternativa Creator a 3 vídeos/mês por $15/mês; `Use that cadence` reduziu para 75 créditos e Creator. O caso Kling 3, 4 vídeos, 90s calculou 900 créditos, declarou que nenhum plano self-serve cobre e ofereceu manter 4/mês com Kineo 1. A Vercel registrou zero erro runtime agrupado em `/cheapest-ai-shorts-maker` nos 15 minutos consultados.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. O trabalho converte melhor tráfego orgânico/ChatGPT que já chega à superfície pública.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28–29/08/2026):** Supabase atingiu limite de capacidade e Joseph/Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, crédito ou render; não há declaração de que renders estão perfeitos.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, checkout ou assinatura causada pelo calculador ampliado. Medir pessoas, não eventos, por `short_cost_calculator_viewed`, `short_cost_calculator_recommendation`, seleção e pagamento do mesmo ator, excluindo contas internas.
+
+**NÃO TOCADO:** preço, grant, oferta, SKU, Stripe server-side, webhook, Auth, Supabase, Storage, migration, banco, pipeline de render, motor de render, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `d6f176d` ou da ponta posterior de `origin/main`. Não reconstruir outra calculadora nem criar tabela privada de preço/crédito. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
