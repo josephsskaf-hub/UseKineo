@@ -1621,3 +1621,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, desconto, oferta, SKU, Stripe server-side, webhook, Auth, schema Supabase, migration, Storage, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente. A validação no navegador emitiu apenas a telemetria normal já existente das páginas; nenhum evento ou schema foi alterado.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0e9ee05` ou da ponta posterior de `origin/main`. Não adicionar o planejador a `FREE_TOOL_FACTS` nem criar uma segunda tabela de preço; o contrato próprio `PUBLIC_COST_PLANNER_FACT` existe para preservar a diferença entre texto e `cost_plan`. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 40. Aquisição SEO/AEO — Shorts Pay com autoridade oficial e atualização 2027 (29/08/2026)
+
+**BASE DE CÓDIGO:** f741cd476d7b561b6b22a149f27e02e9d4966591, igual a origin/main no início da worktree isolada codex/growth-shorts-pay-authority.
+
+**EVIDÊNCIA DE PRODUÇÃO / SEARCH CONSOLE (29/08/2026):** no relatório de três meses aberto no Chrome conectado do fundador, a consulta exata “how much do youtube shorts pay” acumulava 22 impressões, zero clique, CTR 0% e posição média 46,8; a única página associada era /how-much-do-youtube-shorts-pay. Impressão não é pessoa nem sessão. O dado orienta prioridade de ranking; não prova conversão.
+
+**EVIDÊNCIA DE PRODUÇÃO / SERP OBSERVADA (29/08/2026):** a busca ao vivo no Google, feita no Chrome do fundador em São Paulo, mostrou AI Overview e resultados que combinavam resposta direta, fonte primária, atualização recente e exemplos ou calculadoras. A Kineo não apareceu na primeira página observada. Esta observação é localizada e pode variar por usuário e região; não é posição universal.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** a página já possuía resposta direta, tabela, o mesmo CalculatorClient da ferramenta pública e o mesmo TopicGeneratorForm do starter (app/how-much-do-youtube-shorts-pay/page.tsx:550,669). Não foi criado outro CTA, calculador, funil, preço ou oferta. O gap era autoridade e atualidade: a superfície dizia “updated July 2026”, não citava fonte primária e não incorporava a mudança oficial do YPP anunciada para fevereiro de 2027.
+
+**FATO CONFIRMADO / FONTES PRIMÁRIAS (consulta em 29/08/2026):** YouTube Help confirma que a receita do Shorts Feed entra em um Creator Pool e que o criador mantém 45% do valor alocado; confirma também a regra vigente de 1.000 inscritos mais 10 milhões de Shorts qualificados em 90 dias ou 4.000 horas long-form em 12 meses. A atualização oficial passa a valer em 01/02/2027: novos criadores precisarão de 1.000 inscritos mais 20 milhões de Shorts qualificados em 90 dias ou 8.000 horas long-form em 365 dias; o status de membros atuais não é removido pela nova regra de entrada, e a remuneração mensal do Creator Pool exigirá manter 10 milhões de Shorts qualificados nos 90 dias anteriores.
+
+**IMPLEMENTADO:** commit funcional 480dbeb7f95b3b81f05bbcee89e598db8058d553 atualiza a data visível, separa Official, Estimated e Already announced, liga três páginas oficiais do YouTube e distingue regra atual da regra de 2027 (app/how-much-do-youtube-shorts-pay/page.tsx:61-67,303-333,393-451,721-745). O intervalo de RPM continua explicitamente estimado; nenhum número foi promovido a taxa oficial.
+
+**IMPLEMENTADO / DADOS ESTRUTURADOS:** a página publica Article JSON-LD com datePublished, dateModified, autor/publisher Kineo, canonical e assuntos (app/how-much-do-youtube-shorts-pay/page.tsx:196-220,239-243). FAQ visível e FAQPage continuam derivados da mesma coleção; metadata declara a atualização 2027 sem retirar as intenções de 1K e 1M views.
+
+**TESTADO LOCALMENTE:** node scripts/test-shorts-pay-authority.mjs executou 40/40 verificações. A suíte trava fontes oficiais, datas, regras atual/futura, Article JSON-LD, distinção oficial/estimativa e preservação de calculadora, starter e CTA. O whitespace ficou limpo. npx tsc --noEmit repetiu somente os quatro erros baseline em app/api/admin/_shared/mrr.ts:113, app/api/me/subscription/route.ts:71 e app/api/stripe/checkout/route.ts:548,569; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** docs/previews/SHORTS-PAY-AUTHORITY-2026-08-29.html contém antes/depois desktop, mobile de 375 px e a separação presente/futuro. O preview e a página Next real foram servidos localmente e inspecionados no Chrome conectado do fundador; hierarquia, quebras e fontes ficaram legíveis.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy automático Vercel dpl_6r9CXt2JqFFi9BTkrKFa8noKqVuf chegou a READY, target production, aliases incluindo www.usekineo.com, ligado ao SHA exato 480dbeb7f95b3b81f05bbcee89e598db8058d553. No Chrome do fundador, a URL canônica exibiu o bloco verificado, regra de 2027, calculadora, starter e fontes. O documento publicou Article com dateModified=2026-08-29 e canonical correto. A Vercel registrou zero erro runtime agrupado na rota nos 15 minutos consultados.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, solicitação de recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. O trabalho melhora a resposta para Google/ChatGPT e a confiança do tráfego que já chega, sem pressionar o incidente de capacidade.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** não existe ainda evidência de clique, pessoa, checkout ou assinatura causada por esta atualização. Search Console pode levar dias para refletir reprocessamento. Medir a consulta e a página em janelas comparáveis e ligar entrada → uso da calculadora/starter → vídeo → checkout → pagamento do mesmo ator, excluindo contas internas.
+
+**NÃO TOCADO:** lib/checkoutPricing.ts, preço, grant, desconto, oferta, SKU, Stripe, Auth, Supabase, Storage, migration, banco, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar git fetch origin e partir de 480dbeb ou da ponta posterior de origin/main. Não remover as fontes primárias nem substituir o intervalo estimado por uma suposta taxa oficial do YouTube. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
