@@ -35,7 +35,13 @@ console.log('\nKINEO — trial post-video single-primary contract\n')
 
 check('trial offer card is found', card.length > 0)
 check('deliver-first remains true', downloadStart >= 0 && downloadStart < cardStart)
-check('clean-film benefit is the heading', /<h3[\s\S]{0,350}'Get a clean version of this film'/.test(card))
+// KINEO-CHATGPT-STARTER-FIRST-2026-08-29 — the heading is now conditional by
+// persisted first touch. Testing one literal alone would call the measured
+// ChatGPT branch a regression, or let the generic branch disappear unnoticed.
+check(
+  'clean-film benefit is the heading in both source variants',
+  /<h3[\s\S]{0,700}'Take this ChatGPT idea to a clean export'[\s\S]{0,350}'Get a clean version of this film'/.test(card),
+)
 check('trial timing is demoted to status', /<p[^>]*>[\s\n ]*\{trialOfferHeadline\}[\s\n ]*<\/p>/.test(card))
 check('copy does not promise exact reproduction', !card.includes('exact film') && !card.includes('exact video'))
 check('copy does not promise instant rebuild', !card.includes('clean now'))
@@ -67,11 +73,11 @@ check('storage failure stops checkout with a visible error', source.includes('if
 check('existing primary event is preserved', card.includes("trackEvent('trial_post_video_offer_clicked'"))
 check('existing checkout event path is preserved', card.includes('trackCheckoutClick(ladderPrimaryTier)'))
 check('monthly checkout error is announced', card.includes('role="alert" className="text-center mt-2 text-xs"'))
-check('new layout is identifiable', card.includes("offer_layout: 'single_primary_v1'"))
+check('source-aware layout is identifiable', card.includes('offer_layout: postVideoOfferDecision.variant'))
 check('click benefit is discriminated by behavior', card.includes("? 'current_clean_version'") && card.includes(": 'monthly_creation'"))
-check('impression carries the new layout', impressionArea.includes("offer_layout: 'single_primary_v1'"))
+check('impression carries the source-aware layout', impressionArea.includes('offer_layout: offerDecision.variant'))
 check('impression carries the same benefit split', impressionArea.includes("? 'current_clean_version'") && impressionArea.includes(": 'monthly_creation'"))
-check('impression effect tracks engine and entitlement changes', source.includes('planFitOwnsRecurringSlot, quality, planTier])'))
+check('impression effect tracks engine, entitlement and source changes', source.includes('planFitOwnsRecurringSlot, quality, planTier, signupUtmSource])'))
 check('other options use native collapsed disclosure', detailsStart >= 0 && detailsEnd > detailsStart)
 check('disclosure is closed by default', !card.slice(detailsStart, card.indexOf('>', detailsStart) + 1).includes(' open'))
 check('one-time option remains available for both asset classes', detailsArea.includes('handleBuyThisVideoOnly()') && detailsArea.includes('handleBuyCreditsOnly()'))
@@ -87,7 +93,7 @@ check('next episode does not compete with trial subscription', source.includes('
 check('download event uses asset truth', source.includes('const exportType = currentResultHasWatermark'))
 check('download title uses asset truth', source.includes('title={currentResultHasWatermark'))
 check('watermark note uses asset truth', source.includes('!showPostVideoExportChoice && currentResultHasWatermark'))
-check('credits remain sourced from TIER_CREDITS', card.includes('TIER_CREDITS.starter') && card.includes('TIER_CREDITS.basic'))
+check('credits follow the tier selected by policy', card.includes('TIER_CREDITS[ladderPrimaryTier]'))
 check('one-time credits remain sourced from PACK_CREDITS', card.includes('PACK_CREDITS.starter'))
 check('price remains sourced from helpers', card.includes('trialOfferPriceNote') && card.includes('packPriceLabel()'))
 check('no literal dollar price was added to card', !/\$\s*\d/.test(card))

@@ -49,6 +49,7 @@ import {
   videoMixForCredits,
   videosForCredits,
 } from '@/lib/marketingPrice'
+import { decidePostVideoOffer } from '@/lib/growth/chatgptPostVideoOffer'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -1571,6 +1572,10 @@ export default function GenerateClient({
   // Push #087 — user plan tier ('free' | 'basic' | 'pro'). Drives the
   // Cinematic-mode lock UI; null while we're loading the value.
   const [planTier, setPlanTier] = useState<'free' | 'basic' | 'pro' | null>(null)
+  // The server-authenticated first-touch source survives signup/OAuth and owns
+  // source-aware post-video experiments. Never infer this from the current URL:
+  // by the delivery moment that URL normally no longer contains the original UTM.
+  const [signupUtmSource, setSignupUtmSource] = useState<string | null>(null)
   // Plan Fit must distinguish a one-time pack buyer (plan='free', hasPaid)
   // from every active recurring/managed plan. `planTier` cannot do that: its
   // legacy normalizer collapses Starter and Autopilot to 'free'. Keep the raw,
@@ -2733,6 +2738,11 @@ export default function GenerateClient({
         if (cancelled) return
         const t = typeof data.plan === 'string' ? data.plan.toLowerCase() : 'free'
         setPlanTier(t === 'pro' || t === 'basic' || t === 'free' ? t : 'free')
+        setSignupUtmSource(
+          typeof data.signup_utm_source === 'string' && data.signup_utm_source.trim()
+            ? data.signup_utm_source
+            : null,
+        )
         const tokens =
           typeof data.cinematic_tokens === 'number' ? data.cinematic_tokens : 0
         setCinematicTokens(Math.max(0, tokens))
@@ -4136,10 +4146,13 @@ export default function GenerateClient({
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
       trialPostVideoOfferTrackedKeyRef.current = offerImpressionKey
+      const offerDecision = decidePostVideoOffer(signupUtmSource)
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
-        offer: 'creator_monthly',
-        offer_layout: 'single_primary_v1',
+        offer: `${offerDecision.primaryTier}_monthly`,
+        offer_layout: offerDecision.variant,
+        first_touch_source: offerDecision.firstTouchSource,
+        ladder_primary_tier: offerDecision.primaryTier,
         // Este useEffect vive antes das constantes visuais (TDZ). Repete a
         // condição mínima que permite prometer uma reconstrução limpa: só Fast
         // do trial recebe watermark hoje, e o retorno precisa dos inputs.
@@ -4229,7 +4242,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier])
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier, signupUtmSource])
 
   // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
   // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
@@ -8887,7 +8900,15 @@ export default function GenerateClient({
   // TAMANHO do primeiro degrau. $19,90 como porta de entrada assustava; $15
   // com $7 ao lado é outra conversa. A inversão era um curativo na
   // apresentação; o preço novo trata a causa.
-  const valueLadderFlip = false
+  // KINEO-CHATGPT-STARTER-FIRST-2026-08-29 — the previous regional flip died
+  // with regional pricing, but the ladder still has one measured channel
+  // mismatch. In the 30-day admin funnel read on 29/08, 27 ChatGPT first-touch
+  // people saw this offer and zero clicked; the generic card put Creator $15
+  // first and hid Starter $7 under “Other options”. The same persisted source
+  // that powers ChatGptWelcomeBanner now chooses the first rung. Prices, grants,
+  // checkout authority and every non-ChatGPT experience remain unchanged.
+  const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource)
+  const starterFirstOffer = postVideoOfferDecision.primaryTier === 'starter'
   const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice
         ? `${trialOfferIntroPrice} first month · then ${trialOfferFullPrice}/month · cancel anytime`
@@ -8896,13 +8917,13 @@ export default function GenerateClient({
   // KINEO-VALUE-LADDER-FLIP-2026-08-19 — a nota de preço acompanha o botão.
   // Deixá-la no Creator enquanto o botão vira Starter seria a mesma
   // desonestidade que este commit está consertando, só que ao contrário.
-  const trialOfferPriceNote = valueLadderFlip
+  const trialOfferPriceNote = starterFirstOffer
     ? `${trialStarterPrice}/month · cancel anytime`
     : trialOfferPriceNoteBasic
   // Rótulos da escada. `primary` é quem ganha o botão azul; `secondary` é a
   // saída de texto logo abaixo. Ambos os preços saem de getTierPrice().
-  const ladderPrimaryTier: 'starter' | 'basic' = valueLadderFlip ? 'starter' : 'basic'
-  const ladderPrimaryPlanLabel = valueLadderFlip ? 'Starter' : 'Creator'
+  const ladderPrimaryTier = postVideoOfferDecision.primaryTier
+  const ladderPrimaryPlanLabel = postVideoOfferDecision.primaryPlanLabel
   const trialPrimaryUnlocksCurrentFilm =
     trialPostVideoPhase !== null && currentResultHasWatermark
   const prepareTrialCleanCheckout = (surface: 'monthly' | 'one_time'): boolean => {
@@ -8929,7 +8950,7 @@ export default function GenerateClient({
       return false
     }
   }
-  const ladderSecondaryLabel = valueLadderFlip
+  const ladderSecondaryLabel = starterFirstOffer
     ? (trialOfferFullPrice ? `need more credits? Creator is ${trialOfferFullPrice}/month →` : null)
     : (trialStarterPrice ? `or start at ${trialStarterPrice}/month →` : null)
   // FRASE DE PRAZO OU NENHUMA. `msLeft` é o restante no instante da RESPOSTA;
@@ -11995,14 +12016,18 @@ export default function GenerateClient({
                         className="font-black tracking-tight mt-2"
                         style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.3 }}
                       >
-                        {trialPrimaryUnlocksCurrentFilm
-                          ? 'Get a clean version of this film'
-                          : `Keep creating on ${ladderPrimaryPlanLabel}`}
+                        {postVideoOfferDecision.chatgptContext
+                          ? (trialPrimaryUnlocksCurrentFilm
+                              ? 'Take this ChatGPT idea to a clean export'
+                              : 'Keep turning ChatGPT ideas into Shorts')
+                          : (trialPrimaryUnlocksCurrentFilm
+                              ? 'Get a clean version of this film'
+                              : `Keep creating on ${ladderPrimaryPlanLabel}`)}
                       </h3>
                       <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                         {trialPrimaryUnlocksCurrentFilm ? 'Return here after checkout. ' : ''}
                         {ladderPrimaryPlanLabel} includes{' '}
-                        {valueLadderFlip ? TIER_CREDITS.starter : TIER_CREDITS.basic} credits every month.
+                        {TIER_CREDITS[ladderPrimaryTier]} credits every month.
                       </p>
                       {trialOfferPriceNote && (
                         <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
@@ -12022,7 +12047,8 @@ export default function GenerateClient({
                         void trackEvent('trial_post_video_offer_clicked', {
                           source: 'result_trial_continue',
                           tier: ladderPrimaryTier,
-                          offer_layout: 'single_primary_v1',
+                          offer_layout: postVideoOfferDecision.variant,
+                          first_touch_source: postVideoOfferDecision.firstTouchSource,
                           immediate_benefit: trialPrimaryUnlocksCurrentFilm
                             ? 'current_clean_version'
                             : 'monthly_creation',
@@ -12058,7 +12084,7 @@ export default function GenerateClient({
                           // continuaria dizendo 'basic' para um clique que abriu
                           // o Starter, e a comparação value × standard (a única
                           // pergunta que decide se a inversão fica) não existiria.
-                          ladder_flip: valueLadderFlip,
+                          ladder_flip: starterFirstOffer,
                           ladder_primary_tier: ladderPrimaryTier,
                           price_region: postVideoRegion,
                           ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
@@ -12081,7 +12107,9 @@ export default function GenerateClient({
                           {
                             tier: ladderPrimaryTier,
                             intro: true,
-                            from: 'trial_post_video',
+                            from: postVideoOfferDecision.chatgptContext
+                              ? 'trial_post_video_chatgpt_starter'
+                              : 'trial_post_video',
                             ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
                           },
                         )
@@ -12101,7 +12129,9 @@ export default function GenerateClient({
                       {trialPostVideoCheckout.pending !== null
                         ? 'Opening checkout…'
                         : trialPrimaryUnlocksCurrentFilm
-                          ? `Get the clean version + continue on ${ladderPrimaryPlanLabel} →`
+                          ? (postVideoOfferDecision.chatgptContext
+                              ? `Get the clean version + start ${ladderPrimaryPlanLabel} →`
+                              : `Get the clean version + continue on ${ladderPrimaryPlanLabel} →`)
                           : `Continue creating on ${ladderPrimaryPlanLabel} →`}
                     </button>
                     {trialPostVideoCheckout.error && (
@@ -12166,7 +12196,7 @@ export default function GenerateClient({
                           <button
                             type="button"
                             onClick={() => {
-                              const secondary: 'starter' | 'basic' = valueLadderFlip ? 'basic' : 'starter'
+                              const secondary = postVideoOfferDecision.secondaryTier
                               if (!prepareTrialCleanCheckout('monthly')) return
                               const started = trialPostVideoCheckout.launch(
                                 secondary,
@@ -12176,7 +12206,7 @@ export default function GenerateClient({
                                 {
                                   tier: secondary,
                                   intro: true,
-                                  from: valueLadderFlip
+                                  from: starterFirstOffer
                                     ? 'trial_post_video_creator_upgrade'
                                     : 'trial_post_video_starter_escape',
                                   ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
