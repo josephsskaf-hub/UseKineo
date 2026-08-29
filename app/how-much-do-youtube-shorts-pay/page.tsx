@@ -5,8 +5,8 @@
 // (TopicGeneratorForm): DUAS ilhas de cliente, resto server e `force-static`.
 // dark theme matching /state-of-ai-shorts-2026 and /facts. Every payout figure
 // is labelled as an ESTIMATED TYPICAL RANGE, never a guarantee — Shorts payouts
-// vary widely by niche and geography. FAQPage + BreadcrumbList JSON-LD mirror
-// the visible FAQ so the markup can never drift from what a human reads.
+// vary widely by niche and geography. FAQPage + BreadcrumbList + Article JSON-LD
+// mirror the visible page so the markup can never drift from what a human reads.
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -58,25 +58,31 @@ const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
-const UPDATED = 'July 2026'
+const UPDATED = 'August 29, 2026'
+const DATE_PUBLISHED = '2026-07-24'
+const DATE_MODIFIED = '2026-08-29'
+const CANONICAL_URL = 'https://www.usekineo.com/how-much-do-youtube-shorts-pay'
+const YOUTUBE_SHORTS_POLICY_URL = 'https://support.google.com/youtube/answer/12504220?hl=en'
+const YOUTUBE_YPP_URL = 'https://support.google.com/youtube/answer/72851?hl=en'
+const YOUTUBE_YPP_2027_URL = 'https://support.google.com/youtube/answer/12843009?hl=en'
 
 export const metadata: Metadata = {
   title: 'How Much Do YouTube Shorts Pay in 2026? (Per 1K & 1M Views)',
   description:
-    'How much do YouTube Shorts pay? A 2026 breakdown of Shorts RPM vs CPM, a payout table from 1K to 10M views, the monetization requirements, and what actually moves your earnings. Estimated ranges, honestly labelled.',
-  alternates: { canonical: 'https://www.usekineo.com/how-much-do-youtube-shorts-pay' },
+    'How much do YouTube Shorts pay? Estimated payouts per 1K and 1M views, the official 45% revenue share, current YPP rules, and the February 2027 changes.',
+  alternates: { canonical: CANONICAL_URL },
   openGraph: {
     title: 'How Much Do YouTube Shorts Pay in 2026? (Per 1K & 1M Views)',
     description:
-      'Shorts RPM vs CPM explained, a realistic payout table from 1K to 10M views, the 2026 monetization requirements, and the levers that actually move your earnings.',
-    url: 'https://www.usekineo.com/how-much-do-youtube-shorts-pay',
+      'Estimated Shorts payouts per 1K and 1M views, what YouTube officially confirms, current YPP requirements, and the February 2027 changes.',
+    url: CANONICAL_URL,
     type: 'article',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'How Much Do YouTube Shorts Pay in 2026?',
     description:
-      'A realistic, honestly-labelled breakdown of Shorts payouts per 1K and 1M views, RPM vs CPM, and the 2026 requirements.',
+      'Estimated Shorts payouts per 1K and 1M views, the official 45% revenue share, current YPP rules, and the February 2027 changes.',
   },
 }
 
@@ -139,8 +145,12 @@ const FAQ: { q: string; a: string }[] = [
     a: 'Shorts are monetized from a shared ad pool that is split across all Shorts views and then divided with creators, rather than earning from ads placed directly in one video. Short clips also carry fewer and lighter ad formats than a multi-minute video with mid-rolls. The result is a much lower RPM per 1,000 views than long-form, which typically earns dollars rather than cents per 1,000 views.',
   },
   {
-    q: 'What are the 2026 requirements to monetize Shorts?',
-    a: 'To join the YouTube Partner Program you need 1,000 subscribers plus either 10 million valid public Shorts views in the last 90 days, or 4,000 valid public watch hours in the last 12 months from long-form and live content. You also need to follow the monetization policies and live in an eligible country.',
+    q: 'What are the current requirements to monetize Shorts?',
+    a: 'Until January 31, 2027, the full ad-revenue entry threshold is 1,000 subscribers plus either 10 million qualified public Shorts views in the last 90 days, or 4,000 qualified public watch hours from long-form videos in the last 12 months. Meeting the numbers does not guarantee acceptance: YouTube still reviews the channel and its policy compliance.',
+  },
+  {
+    q: 'How do YouTube monetization requirements change in 2027?',
+    a: 'YouTube says that starting February 1, 2027, new creators will need 1,000 subscribers plus either 20 million qualified Shorts views in 90 days or 8,000 qualified long-form watch hours in 365 days to enter ad and Premium monetization. Existing YPP members are not removed by the new entry threshold, but Shorts Creator Pool earnings will require maintaining 10 million qualified Shorts views over the previous 90 days.',
   },
   {
     q: 'Is CPM the same as RPM for Shorts?',
@@ -183,6 +193,31 @@ export default function HowMuchDoYouTubeShortsPayPage() {
     ],
   }
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: 'How Much Do YouTube Shorts Pay? (2026)',
+    description: metadata.description,
+    datePublished: DATE_PUBLISHED,
+    dateModified: DATE_MODIFIED,
+    mainEntityOfPage: CANONICAL_URL,
+    author: {
+      '@type': 'Organization',
+      name: 'Kineo',
+      url: 'https://www.usekineo.com',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Kineo',
+      url: 'https://www.usekineo.com',
+    },
+    about: [
+      'YouTube Shorts earnings',
+      'YouTube Partner Program',
+      'Shorts revenue sharing',
+    ],
+  }
+
   return (
     <main
       style={{
@@ -201,6 +236,10 @@ export default function HowMuchDoYouTubeShortsPayPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c') }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd).replace(/</g, '\\u003c') }}
       />
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <nav aria-label="Breadcrumb" style={{ margin: '0 0 20px' }}>
@@ -233,10 +272,74 @@ export default function HowMuchDoYouTubeShortsPayPage() {
           not guarantees. Your real number depends heavily on your niche and where your
           audience lives. Here is exactly how the payout math works, and what moves it.
         </p>
-        <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 40px' }}>
+        <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 18px' }}>
           No figure on this page is a promise of earnings. Shorts RPM varies widely and
           YouTube does not publish per-view rates.
         </p>
+
+        <section
+          aria-labelledby="verified-answer"
+          style={{
+            ...CARD,
+            padding: '20px',
+            margin: '0 0 40px',
+            borderColor: '#264f73',
+            background: 'linear-gradient(135deg, #111b25 0%, #161618 68%)',
+          }}
+        >
+          <p
+            style={{
+              color: ACCENT,
+              fontWeight: 700,
+              fontSize: '0.76rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              margin: '0 0 8px',
+            }}
+          >
+            Verified against YouTube Help · August 29, 2026
+          </p>
+          <h2 id="verified-answer" style={{ fontSize: '1.25rem', fontWeight: 750, margin: '0 0 14px' }}>
+            What YouTube confirms — and what remains an estimate
+          </h2>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div>
+              <strong style={{ color: '#f5f5f7' }}>Official:</strong>{' '}
+              <span style={{ color: '#d2d2d7', lineHeight: 1.65 }}>
+                Shorts Feed ad revenue is pooled. Eligible creators receive 45% of the
+                revenue allocated to them from the Creator Pool.{' '}
+                <a
+                  href={YOUTUBE_SHORTS_POLICY_URL}
+                  rel="noopener noreferrer"
+                  style={{ color: ACCENT, textDecoration: 'none' }}
+                >
+                  YouTube&rsquo;s policy
+                </a>
+              </span>
+            </div>
+            <div>
+              <strong style={{ color: '#f5f5f7' }}>Estimated:</strong>{' '}
+              <span style={{ color: '#d2d2d7', lineHeight: 1.65 }}>
+                YouTube publishes no universal RPM. The $0.03–$0.10 per 1,000-view
+                range on this page is planning guidance, not an official rate.
+              </span>
+            </div>
+            <div>
+              <strong style={{ color: '#f5f5f7' }}>Already announced:</strong>{' '}
+              <span style={{ color: '#d2d2d7', lineHeight: 1.65 }}>
+                New YPP entry thresholds change on February 1, 2027. The current and
+                upcoming rules are separated below.{' '}
+                <a
+                  href={YOUTUBE_YPP_2027_URL}
+                  rel="noopener noreferrer"
+                  style={{ color: ACCENT, textDecoration: 'none' }}
+                >
+                  Official 2027 update
+                </a>
+              </span>
+            </div>
+          </div>
+        </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
           How the Shorts payout model actually works
@@ -290,30 +393,60 @@ export default function HowMuchDoYouTubeShortsPayPage() {
         </p>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 12px' }}>
-          The 2026 requirements to get paid at all
+          Current Shorts monetization requirements
         </h2>
         <p style={{ color: '#d2d2d7', fontSize: '1rem', lineHeight: 1.7, margin: '0 0 14px' }}>
           You earn $0 from Shorts until you are accepted into the YouTube Partner
-          Program. As of 2026 the monetization threshold is:
+          Program and accept the Shorts Monetization Module. Through January 31, 2027,
+          the full ad-revenue entry threshold is:
         </p>
         <ul style={{ color: '#d2d2d7', lineHeight: 1.8, fontSize: '0.98rem', paddingLeft: 20, margin: '0 0 14px' }}>
           <li>
             <strong>1,000 subscribers</strong>, plus
           </li>
           <li>
-            <strong>10 million valid public Shorts views in the last 90 days</strong>,{' '}
+            <strong>10 million qualified public Shorts views in the last 90 days</strong>,{' '}
             <em>or</em>
           </li>
           <li>
-            <strong>4,000 valid public watch hours in the last 12 months</strong> from
-            long-form and live content.
+            <strong>4,000 qualified public watch hours in the last 12 months</strong>{' '}
+            from long-form videos.
           </li>
         </ul>
-        <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 32px' }}>
+        <p style={{ color: MUTED, fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 14px' }}>
           You also need to live in an eligible country and follow YouTube&rsquo;s
-          monetization policies. There is a lower earlier tier for fan funding features,
-          but the numbers above are what unlock ad-share revenue on Shorts.
+          monetization policies. Reaching the numbers starts a channel review; it does
+          not guarantee acceptance.{' '}
+          <a href={YOUTUBE_YPP_URL} rel="noopener noreferrer" style={{ color: ACCENT, textDecoration: 'none' }}>
+            See the current official YPP requirements
+          </a>
         </p>
+        <section style={{ ...CARD, padding: '18px', margin: '0 0 32px', borderColor: '#5b4720' }}>
+          <p
+            style={{
+              color: '#ffcc66',
+              fontWeight: 700,
+              fontSize: '0.76rem',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              margin: '0 0 8px',
+            }}
+          >
+            Effective February 1, 2027
+          </p>
+          <p style={{ color: '#d2d2d7', fontSize: '0.95rem', lineHeight: 1.65, margin: '0 0 10px' }}>
+            For new creators, YouTube says the ad and Premium entry threshold becomes
+            1,000 subscribers plus either <strong>20 million qualified Shorts views in
+            90 days</strong> or <strong>8,000 qualified long-form watch hours in 365
+            days</strong>. Existing YPP members are not removed by this new entry rule.
+          </p>
+          <p style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.6, margin: 0 }}>
+            Separately, monthly Shorts Creator Pool earnings will require maintaining
+            10 million qualified Shorts views over the previous 90 days. Existing
+            creators must accept the updated terms by January 31, 2027 to keep earning
+            from the relevant modules.
+          </p>
+        </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 6px' }}>
           YouTube Shorts payout table (estimated)
@@ -582,6 +715,36 @@ export default function HowMuchDoYouTubeShortsPayPage() {
             — pick a high-value niche and start generating.
           </li>
         </ul>
+
+        <section style={{ ...CARD, padding: '18px', margin: '0 0 24px' }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: '0 0 10px' }}>
+            Primary sources checked
+          </h2>
+          <p style={{ color: MUTED, fontSize: '0.88rem', lineHeight: 1.6, margin: '0 0 10px' }}>
+            Official YouTube Help pages checked on August 29, 2026. YouTube can change
+            program terms; these links are the authority when a rule changes.
+          </p>
+          <ul style={{ color: MUTED, lineHeight: 1.8, fontSize: '0.9rem', paddingLeft: 20, margin: 0 }}>
+            <li>
+              <a href={YOUTUBE_SHORTS_POLICY_URL} rel="noopener noreferrer" style={{ color: ACCENT, textDecoration: 'none' }}>
+                YouTube Shorts monetization policies
+              </a>{' '}
+              — Creator Pool, eligible views, music allocation and the 45% share.
+            </li>
+            <li>
+              <a href={YOUTUBE_YPP_URL} rel="noopener noreferrer" style={{ color: ACCENT, textDecoration: 'none' }}>
+                Current YouTube Partner Program eligibility
+              </a>{' '}
+              — current entry thresholds and channel review.
+            </li>
+            <li>
+              <a href={YOUTUBE_YPP_2027_URL} rel="noopener noreferrer" style={{ color: ACCENT, textDecoration: 'none' }}>
+                Official February 2027 YPP changes
+              </a>{' '}
+              — new entry, activity and Shorts Creator Pool requirements.
+            </li>
+          </ul>
+        </section>
 
         <p style={{ color: MUTED, fontSize: '0.85rem', lineHeight: 1.6 }}>
           All payout figures on this page are estimated typical ranges for illustration,
