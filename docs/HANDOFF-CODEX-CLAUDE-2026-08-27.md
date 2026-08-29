@@ -1121,3 +1121,27 @@ PRÓXIMO DONO:
 **QUESTÃO PENDENTE / DESCONHECIDO:** quando o Google fará a nova leitura e se a comparação receberá novas impressões, cliques ou pessoas. Medir somente em janela posterior; não repetir a solicitação.
 
 **PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `7375f4f` ou da ponta posterior de `origin/main`. Claude continua o incidente 402 e qualidade de render. Ambos devem executar `git fetch origin` antes de editar; a comparação Synthesia e seu recrawl já têm dono e evidência.
+
+## 21. Distribuição ChatGPT/Bing — lote IndexNow mínimo e verdade da Rewardful (28/08/2026)
+
+**BASE DE CÓDIGO:** `4318313d4eecdbbefa2d898d86d4769bf562daa7`, igual a `origin/main` no início da ação.
+
+**FATO CONFIRMADO / PROTOCOLO:** `lib/indexnow.ts:35-49` declara o host canônico `www.usekineo.com`, o endpoint público do IndexNow e a chave publicada na raiz. Em 28/08/2026, um GET sem JavaScript para `https://www.usekineo.com/8ee9f362d6ec4042b723993c3e15936b.txt` respondeu `200` e o conteúdo correspondeu à chave declarada. A documentação oficial `https://www.indexnow.org/documentation` diz que um POST em lote pode conter até 10.000 URLs e que HTTP 200 prova somente que o mecanismo recebeu o conjunto — não que indexou ou ranqueou.
+
+**AÇÃO EXECUTADA / EVIDÊNCIA DE PRODUÇÃO:** em `2026-08-29T00:05:01.6196776Z` (`28/08/2026 21:05:01 BRT`), Codex submeteu somente seis URLs públicas alteradas nesta rodada ao endpoint `https://api.indexnow.org/indexnow`. A resposta foi HTTP `200`: `/scripts/space`, `/alternatives/invideo`, `/real-estate-video-maker`, `/pricing`, `/viral-now` e `/alternatives/synthesia`.
+
+**ESCOPO CONTROLADO:** não foi executado `scripts/submit-indexnow.mjs`, não foi buscado `sitemap.xml` ou `video-sitemap.xml`, e nenhuma rota que enumera vídeos foi chamada. O lote não contém `/v/...`, página autenticada, URL de cliente ou query string. Não reenviar agora; cada URL entrou porque seu HTML público mudou depois do último lote amplo registrado.
+
+**FATO CONFIRMADO / AFILIADOS:** o Gmail contém uma confirmação da Rewardful datada de 28/07/2026 informando cancelamento da assinatura. A documentação oficial da Rewardful (`https://help.rewardful.com/en/articles/11623453-how-to-cancel-your-rewardful-subscription`) afirma que, depois do fim do ciclo, links, integrações e rastreamento de comissão deixam de funcionar. O código ainda carrega `rw.js` e aceita `rewardful_referral` como fallback (`app/layout.tsx:197-218`; `app/api/stripe/checkout/route.ts:1746-1758`), portanto esse fallback não deve ser chamado de operacional sem reativação comprovada.
+
+**FATO CONFIRMADO / LIMITE DO ACHADO:** ColorMango e ToolRiot não dependem desse fallback nas mensagens enviadas. Os e-mails de 03/08/2026 entregaram links do sistema próprio `https://www.usekineo.com/a/<código>`, cuja implementação está em `app/a/[code]/route.ts`. Portanto o cancelamento da Rewardful não prova que o programa próprio está quebrado. Também não há prova de que TopAI.tools tenha promessa de comissão: o Search Console apenas mostrou URLs antigas com `?via=topaitools` e o Gmail mostrou uma confirmação de listing, não um contrato de afiliado.
+
+**DECISÃO OPERACIONAL:** nenhuma nova mensagem foi enviada a creators, diretórios ou empresas enquanto o incidente `402` de capacidade está aberto. ColorMango e ToolRiot já receberam múltiplos contatos em 03, 04, 21 e 24/08; novo follow-up agora seria duplicação, não distribuição. O próximo outreach deve usar somente `/a/<código>` ou `/affiliate`, nunca depender de `?via=` até a Rewardful ser removida, reativada ou migrada com prova.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite contratado de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. A submissão IndexNow e a auditoria de Gmail/código não consultaram Supabase, Storage, banco, migration, autenticação ou render. Os `402` continuam classificados como indisponibilidade de capacidade, nunca abandono voluntário.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** se ainda existe algum parceiro real divulgando `?via=...` com comissão prometida. Isso exige reconciliar a exportação histórica da Rewardful com a tabela do sistema próprio depois que o incidente de capacidade for encerrado. Não inferir de parâmetros indexados pelo Google.
+
+**NÃO TOCADO:** código funcional, UI, preço, oferta, checkout, Supabase, Storage, migration, render, motor, cena, legenda, e-mail enviado, anúncio ou dados de cliente.
+
+**PRÓXIMO DONO:** Codex continua aquisição/fluxo/assinaturas a partir de `4318313` ou da ponta posterior de `origin/main`. Claude continua o incidente `402`. Depois da normalização, reconciliar legacy Rewardful → sistema próprio é uma tarefa conjunta de Growth/Data, não uma mudança cega no checkout.
