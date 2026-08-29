@@ -66,6 +66,7 @@ import {
 } from '@/lib/affiliateAttribution'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
+import { CHECKOUT_VISUAL_PROOF } from '@/lib/growth/checkoutVisualProof'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -841,6 +842,7 @@ async function buildAndRedirect(
     checkout_value_context: checkoutValueContext.version,
     checkout_value_variant: checkoutValueContext.variant,
     checkout_value_output_count: checkoutValueContext.outputCount,
+    checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
   }
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
@@ -1184,6 +1186,9 @@ async function buildAndRedirect(
             description: planFitContext?.plan_fit_selected_tier_matches === '1'
               ? `${plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
               : checkoutValueContext.lineItemDescription ?? plan.description,
+            // Stripe's hosted Checkout shows this beside the line item. Use a
+            // public Kineo-owned asset, never customer footage or a signed URL.
+            images: [CHECKOUT_VISUAL_PROOF.imageUrl],
           },
           unit_amount: unitAmount,
           recurring: { interval },
@@ -1267,6 +1272,7 @@ async function buildAndRedirect(
       checkout_recovery: checkoutRecovery ? '1' : '0',
       checkout_value_context: checkoutValueContext.version,
       checkout_value_variant: checkoutValueContext.variant,
+      checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
       ...(checkoutValueContext.outputCount !== null
         ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
         : {}),
@@ -1307,6 +1313,7 @@ async function buildAndRedirect(
         checkout_recovery: checkoutRecovery ? '1' : '0',
         checkout_value_context: checkoutValueContext.version,
         checkout_value_variant: checkoutValueContext.variant,
+        checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
         ...(checkoutValueContext.outputCount !== null
           ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
           : {}),

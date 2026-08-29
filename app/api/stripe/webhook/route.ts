@@ -445,6 +445,7 @@ async function recordPaymentSuccess(
       checkout_value_context: session.metadata?.checkout_value_context ?? null,
       checkout_value_variant: session.metadata?.checkout_value_variant ?? null,
       checkout_value_output_count: session.metadata?.checkout_value_output_count ?? null,
+      checkout_visual_proof: session.metadata?.checkout_visual_proof ?? null,
       plan_fit_planned_engine: session.metadata?.plan_fit_planned_engine ?? null,
       plan_fit_monthly_videos: session.metadata?.plan_fit_monthly_videos ?? null,
       plan_fit_monthly_credits: session.metadata?.plan_fit_monthly_credits ?? null,
