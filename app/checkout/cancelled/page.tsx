@@ -4,12 +4,11 @@
 // Push #123 — auto-redirect to /pricing after 5 seconds.
 
 import Link from 'next/link'
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { useState } from 'react'
 import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
@@ -29,6 +28,11 @@ import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { readAutopilotCheckoutReturn } from '@/lib/growth/autopilotCheckoutReturn'
 import { readPlanFitCheckoutReturn } from '@/lib/growth/planFitCheckout'
+import {
+  TRIAL_FIRST_DELIVERY_DURATION,
+  TRIAL_FIRST_DELIVERY_VERSION,
+} from '@/lib/growth/trialBalanceBridge'
+import { decideCheckoutCancelledPrimary } from '@/lib/growth/checkoutCancelledRecovery'
 
 const PLAN_FIT_RETRY_PARAM_KEYS = [
   'checkout_origin',
@@ -65,6 +69,10 @@ function CheckoutCancelledContent() {
   const checkout = useCheckoutLaunch('checkout_cancelled')
   // KINEO-CANCEL-REASON-2026-08-03 — ver comentário no bloco do survey.
   const [reasonSent, setReasonSent] = useState<string | null>(null)
+  const [trialResumeProbe, setTrialResumeProbe] = useState<{
+    resolved: boolean
+    reason: string | null
+  }>({ resolved: false, reason: null })
   const searchParams = useSearchParams()
   const autopilotReturn = readAutopilotCheckoutReturn(searchParams)
   const rawTier = searchParams.get('tier')
@@ -186,6 +194,53 @@ function CheckoutCancelledContent() {
   }
   const cheaperHref = `/api/stripe/checkout?${cheaperParams.toString()}`
 
+  const cancelledPrimary = decideCheckoutCancelledPrimary({
+    resolved: trialResumeProbe.resolved,
+    resumeReason: trialResumeProbe.reason,
+  })
+  const firstDeliveryHref = `/studio/create?engine=seedance&duration=${TRIAL_FIRST_DELIVERY_DURATION}&intent_campaign=${TRIAL_FIRST_DELIVERY_VERSION}`
+
+  // The passive recovery endpoint already owns the financial and trial truth.
+  // Reusing its explicit reason keeps this page from inventing a second
+  // eligibility rule. Failures fall back to the established checkout recovery.
+  useEffect(() => {
+    const controller = new AbortController()
+
+    void fetch('/api/stripe/checkout/resume', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return null
+        return response.json() as Promise<{ reason?: unknown }>
+      })
+      .then((payload) => {
+        if (controller.signal.aborted) return
+        setTrialResumeProbe({
+          resolved: true,
+          reason: typeof payload?.reason === 'string' ? payload.reason : null,
+        })
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setTrialResumeProbe({ resolved: true, reason: null })
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    if (cancelledPrimary !== 'first_delivery') return
+    trackEvent('checkout_cancelled_trial_delivery_offered', {
+      tier,
+      billing,
+      version: TRIAL_FIRST_DELIVERY_VERSION,
+      target_engine: 'seedance',
+      target_duration: TRIAL_FIRST_DELIVERY_DURATION,
+    })
+  }, [cancelledPrimary, tier, billing])
+
   useEffect(() => {
     trackEvent('checkout_cancelled', {
       tier,
@@ -207,11 +262,48 @@ function CheckoutCancelledContent() {
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
       <div style={{ width: '100%', maxWidth: 560, background: '#131316', border: '1px solid var(--border)', borderRadius: 22, padding: 'clamp(24px, 5vw, 36px)', boxShadow: '0 16px 60px rgba(0,0,0,.5)' }}>
         <div style={{ textAlign: 'center' }}>
-          <h1 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: 0 }}>Payment was not completed.</h1>
+          <h1 style={{ fontSize: 'clamp(1.5rem, 4.5vw, 1.9rem)', fontWeight: 900, letterSpacing: '-0.02em', margin: 0 }}>
+            {cancelledPrimary === 'first_delivery' ? 'You can try Kineo before deciding.' : 'Payment was not completed.'}
+          </h1>
           <p style={{ marginTop: 10, fontSize: '0.95rem', color: 'var(--muted2)', lineHeight: 1.55 }}>Your card was not charged if checkout was not completed.</p>
-          <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#2997ff', fontWeight: 700 }}>Your selected plan is saved below.</p>
+          <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#2997ff', fontWeight: 700 }}>
+            {cancelledPrimary === 'first_delivery'
+              ? `Your included ${TRIAL_FIRST_DELIVERY_DURATION}s Seedance film is still available.`
+              : 'Your selected plan is saved below.'}
+          </p>
         </div>
         <div style={{ marginTop: 22, background: 'linear-gradient(135deg, rgba(41,151,255,.10), rgba(41,151,255,.06))', border: '1px solid rgba(41,151,255,.30)', borderRadius: 16, padding: 18 }}>
+          {cancelledPrimary === 'checking' ? (
+            <p style={{ margin: 0, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted2)', fontSize: '0.85rem', fontWeight: 750 }}>
+              Checking your included trial…
+            </p>
+          ) : cancelledPrimary === 'first_delivery' ? (
+            <>
+              <p style={{ fontSize: '0.92rem', color: 'var(--text)', fontWeight: 850, margin: 0 }}>
+                Use what is already included — no card
+              </p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '6px 0 14px', lineHeight: 1.55 }}>
+                Your trial covers one full {TRIAL_FIRST_DELIVERY_DURATION}s Seedance film. Build and review the setup first; nothing starts until you choose Generate.
+              </p>
+              <Link
+                href={firstDeliveryHref}
+                onClick={() => trackEvent('checkout_cancelled_trial_delivery_clicked', {
+                  tier,
+                  billing,
+                  version: TRIAL_FIRST_DELIVERY_VERSION,
+                  target_engine: 'seedance',
+                  target_duration: TRIAL_FIRST_DELIVERY_DURATION,
+                })}
+                style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)' }}
+              >
+                Make my included Seedance film →
+              </Link>
+              <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: 'var(--muted2)', textAlign: 'center', fontWeight: 600 }}>
+                No card · no automatic charge · your saved plan stays available
+              </p>
+            </>
+          ) : (
+            <>
           <p style={{ fontSize: '0.92rem', color: 'var(--text)', fontWeight: 700, margin: 0 }}>{planName} — {todayPrice}</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '4px 0 14px', lineHeight: 1.5 }}>{renewalCopy}</p>
           {planFitReturn && (
@@ -284,6 +376,8 @@ function CheckoutCancelledContent() {
               ? 'Secure Stripe checkout · one-time payment · no auto-renew'
               : '7-day money-back guarantee · cancel anytime in one click'}
           </p>
+            </>
+          )}
         </div>
         {/* ═══════════════════════════════════════════════════════════════
             KINEO-OBJECTION-HANDLER-2026-08-04 — O SURVEY ERA UM INSTRUMENTO
@@ -315,7 +409,7 @@ function CheckoutCancelledContent() {
             O evento continua sendo gravado igual — a diferença é que agora o
             usuário tem motivo próprio para clicar. DELIVER-FIRST vale também
             para a superfície que faz uma pergunta. */}
-        <div style={{ marginTop: 16 }}>
+        <div style={{ marginTop: 16, display: cancelledPrimary === 'checkout' ? undefined : 'none' }} aria-hidden={cancelledPrimary !== 'checkout'}>
           {reasonSent === null ? (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', fontWeight: 700, margin: '0 0 10px' }}>
@@ -562,7 +656,18 @@ function CheckoutCancelledContent() {
           )}
         </div>
         <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, fontSize: '0.85rem' }}>
-          <Link href={isAutopilotReturn ? '/pricing#autopilot' : intentCampaign ? `/pricing?intent_campaign=${encodeURIComponent(intentCampaign)}` : '/pricing'} style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}>← Go back to pricing</Link>
+          <Link
+            href={cancelledPrimary === 'first_delivery'
+              ? '/studio'
+              : isAutopilotReturn
+                ? '/pricing#autopilot'
+                : intentCampaign
+                  ? `/pricing?intent_campaign=${encodeURIComponent(intentCampaign)}`
+                  : '/pricing'}
+            style={{ color: '#2997ff', textDecoration: 'none', fontWeight: 700 }}
+          >
+            {cancelledPrimary === 'first_delivery' ? '← Back to studio' : '← Go back to pricing'}
+          </Link>
           <a href="mailto:support@usekineo.com" style={{ color: 'var(--muted2)', textDecoration: 'none', fontWeight: 600 }}>Contact support</a>
         </div>
       </div>

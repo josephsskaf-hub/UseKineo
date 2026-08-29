@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo — checkout cancellation deliver-first comparison</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#070708;color:#f5f5f7;font-family:Inter,Arial,sans-serif}
+    main{max-width:1240px;margin:auto;padding:34px 22px 60px}.eyebrow{color:#62b3ff;font-size:12px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+    h1{font-size:30px;margin:8px 0 10px}.lede{color:#9b9ba2;line-height:1.6;max-width:780px;margin:0 0 28px}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.column{min-width:0}.label{font-size:13px;font-weight:900;margin-bottom:10px}
+    .before .label{color:#ff9a9a}.after .label{color:#74e3ad}.canvas{min-height:610px;background:#0b0b0d;border:1px solid #25252a;border-radius:24px;padding:34px;display:flex;align-items:center;justify-content:center}
+    .panel{width:100%;max-width:500px;background:#131316;border:1px solid #2a2a31;border-radius:22px;padding:34px;box-shadow:0 16px 60px rgba(0,0,0,.5);text-align:center}
+    .panel h2{font-size:26px;letter-spacing:-.02em;margin:0}.muted{color:#92929a;line-height:1.55;font-size:14px}.blue{color:#2997ff;font-weight:800;font-size:13px}
+    .card{margin-top:22px;background:linear-gradient(135deg,rgba(41,151,255,.10),rgba(41,151,255,.06));border:1px solid rgba(41,151,255,.30);border-radius:16px;padding:18px;text-align:left}
+    .card strong{font-size:15px}.cta{display:block;margin-top:14px;background:linear-gradient(135deg,#2997ff,#1d6fe0);border-radius:12px;padding:14px;text-align:center;color:white;font-weight:900;text-decoration:none}
+    .safe{text-align:center;font-size:12px;color:#92929a;font-weight:650}.chips{margin-top:18px;border-top:1px solid #25252a;padding-top:16px}.chips span{display:inline-block;border:1px solid #303038;border-radius:999px;padding:8px 10px;margin:4px;color:#b9b9c1;font-size:11px}
+    .note{margin-top:28px;padding:18px;border:1px solid #25252a;border-radius:16px;color:#b8b8c0;line-height:1.6;font-size:13px}.note strong{color:#fff}
+    .mobile{display:none}
+    @media(max-width:780px){main{padding:24px 14px 50px}.grid{grid-template-columns:1fr}.canvas{min-height:0;padding:14px}.panel{padding:24px 18px}.panel h2{font-size:22px}.desktop{display:none}.mobile{display:inline}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Growth preview · desktop + mobile</div>
+  <h1>After checkout cancellation: retry payment or finish activation?</h1>
+  <p class="lede">The comparison covers the measured case only: an authenticated trial user with zero usage whose passive recovery endpoint returns <code>trial_first_delivery_pending</code>.</p>
+  <div class="grid">
+    <section class="column before">
+      <div class="label">BEFORE — PAYMENT LOOP</div>
+      <div class="canvas">
+        <div class="panel">
+          <h2>Payment was not completed.</h2>
+          <p class="muted">Your card was not charged if checkout was not completed.</p>
+          <p class="blue">Your selected plan is saved below.</p>
+          <div class="card">
+            <strong>Creator — $15/month</strong>
+            <p class="muted">Renews at $15/month. Cancel anytime.</p>
+            <a class="cta">Try secure checkout again →</a>
+            <p class="safe">7-day money-back guarantee · cancel anytime</p>
+          </div>
+          <div class="chips"><span>Too expensive</span><span>Not sure which plan</span><span>Just looking</span></div>
+        </div>
+      </div>
+    </section>
+    <section class="column after">
+      <div class="label">AFTER — DELIVER VALUE FIRST</div>
+      <div class="canvas">
+        <div class="panel">
+          <h2>You can try Kineo before deciding.</h2>
+          <p class="muted">Your card was not charged if checkout was not completed.</p>
+          <p class="blue">Your included 60s Seedance film is still available.</p>
+          <div class="card">
+            <strong>Use what is already included — no card</strong>
+            <p class="muted">Your trial covers one full 60s Seedance film. Build and review the setup first; nothing starts until you choose Generate.</p>
+            <a class="cta">Make my included Seedance film →</a>
+            <p class="safe">No card · no automatic charge · your saved plan stays available</p>
+          </div>
+          <p class="safe">← Back to studio&nbsp;&nbsp;&nbsp; Contact support</p>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="note"><strong>Responsive contract:</strong> both cards collapse to one column below 780px; the content and CTA remain identical on mobile. Existing checkout retry, plan-fit context, Autopilot handling and objection answers remain unchanged for ineligible trials and buyers who already used the product.</div>
+</main>
+</body>
+</html>
