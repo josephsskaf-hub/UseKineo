@@ -63,6 +63,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // in the comments below (KINEO-2026-07-25) — every other PT/ES sitemap
     // entry had already been pulled, this one was missed.
     { path: '/free-script-generator', priority: 0.8, freq: 'weekly' },
+    { path: '/tools', priority: 0.9, freq: 'weekly' },
     { path: '/comment-to-video', priority: 0.8, freq: 'weekly' },
     { path: '/product-to-video-script', priority: 0.8, freq: 'weekly' },
     { path: '/business-video-content-plan', priority: 0.8, freq: 'weekly' },

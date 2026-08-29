@@ -129,6 +129,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
   {
     title: 'Free tools',
     links: [
+      { href: '/tools', label: 'All free tools' },
       { href: '/free-ai-shorts-generator', label: 'Free AI Shorts generator' },
       { href: '/free-ai-shorts', label: 'Free AI Shorts by niche' },
       // KINEO-SCRIPT-LIBRARY-2026-08-03 — the single most valuable link added in
