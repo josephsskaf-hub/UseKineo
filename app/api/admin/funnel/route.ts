@@ -21,6 +21,7 @@ import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicF
 import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
 import { buildChatGptQuickstartFunnel, type ChatGptQuickstartFunnel } from '@/lib/admin/chatgptQuickstartFunnel'
+import { buildSourceConversionFunnel, type SourceConversionRow } from '@/lib/admin/sourceConversionFunnel'
 import {
   B2B_LEAD_SOURCE,
   B2B_VOLUME_OPTIONS,
@@ -154,6 +155,13 @@ export interface FunnelData {
     activationRate: string
     signupToPaid: string
   }>
+  sourceConversion: {
+    profilesAvailable: boolean
+    videosAvailable: boolean
+    checkoutAvailable: boolean
+    paymentsAvailable: boolean
+    rows: SourceConversionRow[]
+  }
   acquisitionAttribution: {
     attributedSignups: number
     attributedActivated: number
@@ -420,13 +428,15 @@ export async function GET(req: Request) {
 
     // ── profiles (plans + cohort) ──────────────────────────────────────────
     let allProfiles: ProfileRow[] = []
+    let profilesAvailable = false
     try {
-      const { data: profs } = await admin
+      const { data: profs, error: profilesError } = await admin
         .from('profiles')
         .select('id,email,created_at,is_pro,plan,stripe_subscription_id,stripe_customer_id,video_credits,utm_source,signup_utm_source,signup_utm_medium,signup_utm_campaign,signup_referrer,signup_country,referred_by,referral_reward_granted,referral_count')
         .limit(5000)
-      if (Array.isArray(profs)) {
+      if (!profilesError && Array.isArray(profs)) {
         allProfiles = profs as ProfileRow[]
+        profilesAvailable = true
       }
     } catch { /* ignore */ }
 
@@ -493,12 +503,14 @@ export async function GET(req: Request) {
     let totalVideos = 0, videosThisWeek = 0
     const userWithVideoSet = new Set<string>()
     let allVideos: VideoRow[] = []
+    let videosAvailable = false
     try {
-      const { data: vids } = await admin
+      const { data: vids, error: videosError } = await admin
         .from('videos')
         .select('user_id,status,quality_mode,topic,niche,created_at')
         .limit(5000)
-      if (Array.isArray(vids)) {
+      if (!videosError && Array.isArray(vids)) {
+        videosAvailable = true
         allVideos = (vids as VideoRow[]).filter((row) => Boolean(row.user_id && externalKnownUserIds.has(row.user_id)))
         for (const row of allVideos) {
           totalVideos++
@@ -512,9 +524,11 @@ export async function GET(req: Request) {
     // ── click_events + checkout_abandoned (cohort signals) ──────────────────
     let allClicks: Array<{ user_id: string | null; created_at: string | null; plan: string | null }> = []
     let allAbandoned: Array<{ user_id: string | null; expired_at: string | null; tier: string | null }> = []
+    let clickEventsAvailable = false
     try {
-      const { data } = await admin.from('click_events').select('user_id,created_at,plan').limit(5000)
-      if (Array.isArray(data)) {
+      const { data, error } = await admin.from('click_events').select('user_id,created_at,plan').limit(5000)
+      if (!error && Array.isArray(data)) {
+        clickEventsAvailable = true
         // Legacy one-time Starter Pack clicks had plan=null. Current recurring
         // Starter attempts are recorded server-side in public.events.
         allClicks = (data as typeof allClicks).filter((row) =>
@@ -588,6 +602,7 @@ export async function GET(req: Request) {
     ]
     let eventsAvailable = false
     let planFitEventsAvailable = false
+    let identityEventsAvailable = false
     let eventRows: EventRow[] = []
     let organicEventRows: EventRow[] = []
     let retentionEventRows: EventRow[] = []
@@ -624,6 +639,7 @@ export async function GET(req: Request) {
           eventRows = (identities.data as unknown as EventRow[])
             .filter((row) => !row.user_id || !internalUserIds.has(row.user_id))
           planFitEventsAvailable = true
+          identityEventsAvailable = true
         }
 
         let postVideoQuery = admin
@@ -875,6 +891,12 @@ export async function GET(req: Request) {
       if (!checkoutIntentEvents.has(event.name)) continue
       if (event.user_id && cohortIds.has(event.user_id)) clickUserSet.add(event.user_id)
     }
+    // A Stripe subscription session is authoritative proof that checkout was
+    // reached even if the browser beacon was lost when the tab navigated away.
+    for (const session of externalSubscriptionSessions) {
+      const sessionUserId = userIdForSession(session)
+      if (sessionUserId && cohortIds.has(sessionUserId)) clickUserSet.add(sessionUserId)
+    }
     const abandonedUserSet = new Set<string>()
     for (const a of allAbandoned) if (a.user_id && cohortIds.has(a.user_id)) abandonedUserSet.add(a.user_id)
     const paidUserSet = new Set<string>()
@@ -988,6 +1010,20 @@ export async function GET(req: Request) {
     const sourceQuality = Array.from(srcMap.values())
       .map((s) => ({ ...s, activationRate: pct(s.activated, s.signups), signupToPaid: pct(s.paid, s.signups) }))
       .sort((a, b) => b.signups - a.signups)
+    const sourceConversion = {
+      profilesAvailable,
+      videosAvailable: profilesAvailable && videosAvailable,
+      checkoutAvailable: profilesAvailable && videosAvailable &&
+        (clickEventsAvailable || identityEventsAvailable || stripeSessionsAvailable),
+      paymentsAvailable: profilesAvailable && videosAvailable &&
+        (identityEventsAvailable || stripeSessionsAvailable || stripeSubscriptionsAvailable),
+      rows: buildSourceConversionFunnel(
+        cohort.map((profile) => ({ id: profile.id, source: sourceForProfile(profile) })),
+        new Set(completedByUser.keys()),
+        clickUserSet,
+        paidUserSet,
+      ),
+    }
     const attributedSources = sourceQuality.filter((source) => source.source !== 'direct')
     const topAttributedSource = attributedSources[0] ?? null
     const acquisitionAttribution = {
@@ -1570,7 +1606,7 @@ export async function GET(req: Request) {
       },
       b2bLeadInbox,
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, sourceConversion, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })

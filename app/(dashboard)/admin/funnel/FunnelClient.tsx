@@ -118,6 +118,13 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     directOrUnknownSignups: 0, correctedSelfReferrals: 0,
     topSource: null, topSourceSignups: 0,
   }
+  const sourceConversion = data.sourceConversion ?? {
+    profilesAvailable: false,
+    videosAvailable: false,
+    checkoutAvailable: false,
+    paymentsAvailable: false,
+    rows: [],
+  }
   const firstVideoOnboarding = data.firstVideoOnboarding ?? {
     views: 0, primaryClicks: 0, skips: 0, dispatched: 0, completed: 0, failed: 0,
     goalRouterViews: 0, goalRouterClicks: 0, goalSelections: 0,
@@ -316,35 +323,51 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         </section>
       )}
 
-      {/* ── #475 — Source quality ─────────────────────────────────────────── */}
-      {data.sourceQuality && data.sourceQuality.length > 0 && (
+      {/* First-touch conversion path. The ChatGPT row is the current growth focus. */}
+      {sourceConversion.rows.length > 0 && (
         <section className="mb-7">
-          <h2 className="font-black tracking-tight mb-3" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            Source / UTM quality
-          </h2>
+          <div className="mb-3">
+            <h2 className="font-black tracking-tight" style={{ fontSize: '0.88rem', color: 'var(--muted2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              First-touch source → delivered video → subscription
+            </h2>
+            <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+              Unique external people. Checkout and paid stay nested inside the completed-video cohort; the ChatGPT row is highlighted.
+            </p>
+          </div>
           <div className="rounded-2xl overflow-x-auto" style={{ background: 'rgba(11,17,32,0.85)', border: '1px solid var(--border)' }}>
-            <table className="w-full text-left text-xs" style={{ minWidth: 560 }}>
+            <table className="w-full text-left text-xs" style={{ minWidth: 860 }}>
               <thead>
                 <tr style={{ color: 'var(--muted)' }}>
                   <th className="px-3 py-2 font-bold">Source</th>
                   <th className="px-3 py-2 font-bold">Signups</th>
-                  <th className="px-3 py-2 font-bold">Activated</th>
-                  <th className="px-3 py-2 font-bold">Paid</th>
-                  <th className="px-3 py-2 font-bold">Activation</th>
-                  <th className="px-3 py-2 font-bold">Signup→Paid</th>
+                  <th className="px-3 py-2 font-bold">Video delivered</th>
+                  <th className="px-3 py-2 font-bold">Video + checkout</th>
+                  <th className="px-3 py-2 font-bold">Video + paid</th>
+                  <th className="px-3 py-2 font-bold">Signup→Video</th>
+                  <th className="px-3 py-2 font-bold">Video→Checkout</th>
+                  <th className="px-3 py-2 font-bold">Checkout→Paid</th>
                 </tr>
               </thead>
               <tbody>
-                {data.sourceQuality.map((src) => (
-                  <tr key={src.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)' }}>
-                    <td className="px-3 py-2" style={{ color: 'var(--text)' }}>{src.source}</td>
-                    <td className="px-3 py-2">{fmt(src.signups)}</td>
-                    <td className="px-3 py-2">{fmt(src.activated)}</td>
-                    <td className="px-3 py-2" style={{ color: src.paid > 0 ? '#a78bfa' : 'var(--muted)' }}>{fmt(src.paid)}</td>
-                    <td className="px-3 py-2">{src.activationRate}</td>
-                    <td className="px-3 py-2">{src.signupToPaid}</td>
+                {sourceConversion.rows.map((src) => {
+                  const isChatGpt = src.source === 'chatgpt'
+                  return (
+                  <tr key={src.source} style={{ borderTop: '1px solid var(--border)', color: 'var(--text2)', background: isChatGpt ? 'rgba(34,211,238,0.07)' : undefined }}>
+                    <td className="px-3 py-2 font-bold" style={{ color: isChatGpt ? '#67e8f9' : 'var(--text)' }}>
+                      {src.source}{isChatGpt ? ' · FOCUS' : ''}
+                    </td>
+                    <td className="px-3 py-2">{sourceConversion.profilesAvailable ? fmt(src.signups) : '—'}</td>
+                    <td className="px-3 py-2">{sourceConversion.videosAvailable ? fmt(src.completedVideos) : '—'}</td>
+                    <td className="px-3 py-2">{sourceConversion.checkoutAvailable ? fmt(src.checkoutAfterVideo) : '—'}</td>
+                    <td className="px-3 py-2" style={{ color: src.paidAfterCheckout > 0 ? '#a78bfa' : 'var(--muted)' }}>
+                      {sourceConversion.paymentsAvailable ? fmt(src.paidAfterCheckout) : '—'}
+                    </td>
+                    <td className="px-3 py-2">{sourceConversion.videosAvailable ? src.signupToVideoRate : '—'}</td>
+                    <td className="px-3 py-2">{sourceConversion.checkoutAvailable ? src.videoToCheckoutRate : '—'}</td>
+                    <td className="px-3 py-2">{sourceConversion.paymentsAvailable ? src.checkoutToPaidRate : '—'}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
