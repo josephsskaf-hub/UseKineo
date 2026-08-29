@@ -15,6 +15,7 @@ import {
   planName,
   type PlanFitQuality,
 } from '@/lib/growth/planFit'
+import { readPublicPlanFitHandoff } from '@/lib/growth/publicPlanFitHandoff'
 
 type PublicEngine = {
   quality: PlanFitQuality
@@ -49,6 +50,7 @@ export default function ShortCostCalculator() {
   const [seconds, setSeconds] = useState<(typeof PUBLIC_DURATIONS)[number]>(60)
   const [videos, setVideos] = useState(12)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
+  const [carriedFromEarnings, setCarriedFromEarnings] = useState(false)
   const result = useMemo(
     () => calculatePlanFit({ quality, seconds, monthlyFilms: videos, currency }),
     [quality, seconds, videos, currency],
@@ -56,6 +58,16 @@ export default function ShortCostCalculator() {
 
   useEffect(() => {
     let cancelled = false
+    const handoff = readPublicPlanFitHandoff(window.location.search)
+    const initialQuality = handoff?.quality ?? 'fast'
+    const initialSeconds = handoff?.seconds ?? 60
+    const initialVideos = handoff?.monthlyVideos ?? 12
+    if (handoff) {
+      setQuality(handoff.quality)
+      setSeconds(handoff.seconds)
+      setVideos(handoff.monthlyVideos)
+      setCarriedFromEarnings(true)
+    }
     void fetch('/api/geo', { cache: 'no-store', credentials: 'same-origin' })
       .then(async (response) => {
         if (!response.ok) throw new Error('geo_lookup_failed')
@@ -66,9 +78,10 @@ export default function ShortCostCalculator() {
         setCurrency(resolved)
         void trackEvent('short_cost_calculator_viewed', {
           display_currency: resolved,
-          default_engine: 'fast',
-          default_seconds: 60,
-          default_videos: 12,
+          default_engine: initialQuality,
+          default_seconds: initialSeconds,
+          default_videos: initialVideos,
+          plan_source: handoff?.source ?? 'direct',
           internal_source: currentInternalSource(),
           intent_campaign: 'push77_short_cost_calculator',
         })
@@ -147,6 +160,17 @@ export default function ShortCostCalculator() {
       <p style={{ margin: '10px 0 0', color: '#86868b', lineHeight: 1.6 }}>
         Pick the exact engine, duration and monthly output. This uses the same credit contract and plan grants as Checkout.
       </p>
+
+      {carriedFromEarnings && (
+        <div
+          role="status"
+          data-public-plan-fit-handoff
+          style={{ marginTop: 18, padding: '12px 14px', borderRadius: 12, border: '1px solid rgba(41,151,255,.34)', background: 'rgba(41,151,255,.09)', color: '#d2d2d7', fontSize: 13, lineHeight: 1.55 }}
+        >
+          <b style={{ color: '#f5f5f7' }}>Publishing target carried over:</b>{' '}
+          {videos} videos/month from your earnings estimate. Now choose the visual engine and duration that fit how you want them to look.
+        </div>
+      )}
 
       <div style={{ marginTop: 24 }}>
         <div style={{ color: '#d2d2d7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>1. Visual engine</div>

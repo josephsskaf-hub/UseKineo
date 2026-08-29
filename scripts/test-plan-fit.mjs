@@ -30,6 +30,7 @@ mkdirSync(sourceDir, { recursive: true })
 const files = [
   ['lib/growth/planFit.ts', 'planFit.ts'],
   ['lib/growth/planFitCheckout.ts', 'planFitCheckout.ts'],
+  ['lib/growth/publicPlanFitHandoff.ts', 'publicPlanFitHandoff.ts'],
   ['lib/checkoutPricing.ts', 'checkoutPricing.ts'],
   ['lib/credits/engineCost.ts', 'engineCost.ts'],
   ['lib/autopilot/config.ts', 'autopilotConfig.ts'],
@@ -61,6 +62,7 @@ const planFit = requireFromTemp(join(outDir, 'planFit.js'))
 const pricing = requireFromTemp(join(outDir, 'checkoutPricing.js'))
 const costs = requireFromTemp(join(outDir, 'engineCost.js'))
 const checkout = requireFromTemp(join(outDir, 'planFitCheckout.js'))
+const publicHandoff = requireFromTemp(join(outDir, 'publicPlanFitHandoff.js'))
 
 let total = 0
 let failed = 0
@@ -448,6 +450,29 @@ check('public calculator renders same-engine no-plan capacity', publicCalculator
 check('public calculator renders Kineo 1 fallback', publicCalculator.includes('result.fastAlternative') && publicCalculator.includes("'fast_alternative'"))
 check('public volume guard matches Plan Fit ceiling', publicCalculator.includes('Math.min(60, Math.round(value))') && (publicCalculator.match(/max=\{60\}/g) ?? []).length === 2)
 check('public CTA telemetry carries duration', (publicCalculator.match(/seconds,/g) ?? []).length >= 3)
+
+// 11. Organic earnings intent carries its exact cadence into the public cost tool.
+const earningsCalculator = readFileSync(join(root, 'app/shorts-money-calculator/CalculatorClient.tsx'), 'utf8')
+const dailySchedule = publicHandoff.buildPublicPlanFitLink({ shortsPerWeek: 7 })
+check('weekly cadence converts conservatively to a monthly integer', dailySchedule.monthlyVideos === 31)
+check('earnings and production handoff share one month constant', publicHandoff.WEEKS_PER_MONTH === 4.345 && !earningsCalculator.includes('const WEEKS_PER_MONTH'))
+check('public handoff defaults to the lowest-cost engine', dailySchedule.quality === 'fast' && dailySchedule.seconds === 60)
+check('public handoff targets the existing calculator anchor', dailySchedule.href.startsWith('/cheapest-ai-shorts-maker?') && dailySchedule.href.endsWith('#short-cost-calculator-title'))
+check('public handoff declares the earnings source', dailySchedule.href.includes('plan_source=shorts_money_calculator') && dailySchedule.href.includes('internal_source=%2Fshorts-money-calculator'))
+check('ordinary schedule is not capped', dailySchedule.capped === false && dailySchedule.requestedMonthlyVideos === 31)
+const oversizedSchedule = publicHandoff.buildPublicPlanFitLink({ shortsPerWeek: 20 })
+check('oversized schedule is capped honestly at the public ceiling', oversizedSchedule.capped === true && oversizedSchedule.monthlyVideos === 60 && oversizedSchedule.requestedMonthlyVideos > 60)
+const roundTrip = publicHandoff.readPublicPlanFitHandoff(new URL(dailySchedule.href, 'https://www.usekineo.com').searchParams)
+check('valid public handoff round-trips engine duration and cadence', roundTrip?.quality === 'fast' && roundTrip?.seconds === 60 && roundTrip?.monthlyVideos === 31)
+check('forged source fails closed', publicHandoff.readPublicPlanFitHandoff('plan_source=forged&engine=fast&seconds=60&monthly_videos=31') === null)
+check('unsupported duration fails closed', publicHandoff.readPublicPlanFitHandoff('plan_source=shorts_money_calculator&engine=fast&seconds=45&monthly_videos=31') === null)
+check('out-of-range cadence fails closed', publicHandoff.readPublicPlanFitHandoff('plan_source=shorts_money_calculator&engine=fast&seconds=60&monthly_videos=61') === null)
+check('unknown engine fails closed', publicHandoff.readPublicPlanFitHandoff('plan_source=shorts_money_calculator&engine=unknown&seconds=60&monthly_videos=31') === null)
+check('earnings calculator uses the executable handoff builder', earningsCalculator.includes('buildPublicPlanFitLink({ shortsPerWeek: Number(shortsPerWeek) || 0 })'))
+check('earnings calculator exposes a secondary cost-planning path', earningsCalculator.includes('result_cost_plan') && earningsCalculator.includes('Price this ${intFmt(productionPlan.monthlyVideos)}-video monthly schedule'))
+check('public calculator reads the bounded handoff', publicCalculator.includes('readPublicPlanFitHandoff(window.location.search)'))
+check('public calculator renders the continuity cue', publicCalculator.includes('data-public-plan-fit-handoff') && publicCalculator.includes('Publishing target carried over:'))
+check('view telemetry reports the real carried defaults', publicCalculator.includes('default_engine: initialQuality') && publicCalculator.includes('default_seconds: initialSeconds') && publicCalculator.includes('default_videos: initialVideos'))
 
 console.log(failed === 0
   ? `\n${total}/${total} checks passed.\n`

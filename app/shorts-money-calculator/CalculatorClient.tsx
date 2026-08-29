@@ -9,13 +9,11 @@
 import { useMemo, useState } from 'react'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { toolActivationHref } from '@/lib/toolActivationHref'
+import { buildPublicPlanFitLink, WEEKS_PER_MONTH } from '@/lib/growth/publicPlanFitHandoff'
 
 const CARD = { background: '#161618', border: '1px solid #2a2a2d', borderRadius: 14 }
 const ACCENT = '#2997ff'
 const MUTED = '#86868b'
-
-// Weeks per month (365.25 / 7 / 12) — keeps monthly and yearly consistent.
-const WEEKS_PER_MONTH = 4.345
 
 // Estimated Shorts RPM bands by niche. These are deliberately conservative,
 // order-of-magnitude estimates for the money paid per 1,000 monetized Shorts
@@ -84,6 +82,10 @@ export default function CalculatorClient() {
       yearlyHigh: high * 12,
     }
   }, [viewsPerShort, shortsPerWeek, niche])
+  const productionPlan = useMemo(
+    () => buildPublicPlanFitLink({ shortsPerWeek: Number(shortsPerWeek) || 0 }),
+    [shortsPerWeek],
+  )
 
   const inputStyle: React.CSSProperties = {
     width: '100%',
@@ -271,6 +273,27 @@ export default function CalculatorClient() {
             <>Kineo makes finished 9:16 Shorts from a topic — voiceover, footage and captions.</>
           )}
         </p>
+        <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #2a2a2d' }}>
+          <OrganicCtaLink
+            href={productionPlan.href}
+            source="acq5_money_calculator"
+            placement="result_cost_plan"
+            style={{
+              color: ACCENT,
+              fontWeight: 750,
+              fontSize: '0.9rem',
+              textDecoration: 'underline',
+              textUnderlineOffset: 3,
+            }}
+          >
+            {productionPlan.capped
+              ? `Price the first ${intFmt(productionPlan.monthlyVideos)} videos/month →`
+              : `Price this ${intFmt(productionPlan.monthlyVideos)}-video monthly schedule →`}
+          </OrganicCtaLink>
+          <p style={{ color: MUTED, fontSize: '0.78rem', lineHeight: 1.5, margin: '7px 0 0' }}>
+            Carries your posting target into Kineo&rsquo;s public cost calculator. You still choose the visual engine and duration before seeing a plan.
+          </p>
+        </div>
       </div>
     </section>
   )
