@@ -1267,3 +1267,29 @@ PRÓXIMO DONO:
 - Previews obrigatórios: `docs/previews/ALTERNATIVES-JOB-CHOOSER-2026-08-28.html`, `docs/previews/ALTERNATIVES-JOB-CHOOSER-2026-08-28.png` e `docs/previews/ALTERNATIVES-JOB-CHOOSER-MOBILE-2026-08-28.png`.
 - **VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_4HAyWR7gx4mSUGNP5mMqZ3iscfy6` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA `0bfbe8fd59934a2d3cdc4247ea218bc4215b0dd1`. Leitura HTTP sem executar JavaScript respondeu 200/`PRERENDER` e confirmou H1 do seletor, quatro estados de trabalho, fontes oficiais e o CTA com `redirect=/studio?engine=fast`, campanha preservada e zero `create_intent`. A Vercel registrou zero erro de runtime em `/alternatives` nos 15 minutos consultados.
 - **DECISÃO APROVADA / BLOQUEIO OPERACIONAL:** o incidente de capacidade reportado pelo fundador em 28/08/2026 continua governando a distribuição. Não houve IndexNow, recrawl, outreach, mídia paga, relançamento em diretório ou outra amplificação.
+
+## 27. Fluxo orgânico — intenção de produto preservada depois do cadastro (28/08/2026)
+
+**BASE DE CÓDIGO:** `4bcf11e5eda8651abce57ac2caea2a731da4606c`, igual a `origin/main` no início da worktree isolada `codex/growth-product-intent`.
+
+**FATO CONFIRMADO / GARGALO:** cinco páginas públicas de alta intenção enviavam seus CTAs para um cadastro genérico e, sem `redirect` explícito, o fluxo autenticado pousava na home/painel: `/ai-image-generator`, `/ai-voice-generator`, `/ai-video-generator`, `/ai-video-upscaler` e `/ai-video-with-talking-characters`. O produto prometido na página não sobrevivia à autenticação. A página de talking characters ainda dizia `Make one free`, embora o grant informado pelo produto seja 25 créditos e o custo canônico de MiniMax H3 por 60 segundos seja 45 créditos.
+
+**IMPLEMENTADO:** commit funcional `0c80293` cria um mapa fechado de destinos em `lib/growth/productSurfaceIntent.ts`. Imagens seguem para `/images`; vozes para `/audio`; o hub de motores para `/studio?engine=fast`; upscaler para `/studio?engine=seedance`; talking characters para `/studio?engine=h3`. O helper preserva `utm_source`, `utm_medium=organic`, `utm_campaign` e `intent_campaign` dentro de tokens limitados, transporta o destino pelo `redirect` interno já validado em `lib/authRedirect.ts` e nunca aceita URL arbitrária nem envia `create_intent` sem trabalho da pessoa.
+
+**FATO CONFIRMADO / VERDADE COMERCIAL:** `app/ai-video-with-talking-characters/page.tsx` agora deriva os custos de H3 e Kling 3 de `creditCostForDuration`, remove a promessa impossível de render gratuito e informa antes do cadastro que 25 créditos de trial não cobrem sozinhos um H3 de 60 segundos/45 créditos. Os CTAs abrem MiniMax H3 selecionado e a copy informa que o Studio exibe o custo antes da submissão. Nenhum preço, grant, SKU ou regra de cobrança foi alterado.
+
+**TESTADO LOCALMENTE:** `node scripts/test-product-surface-intent.mjs` executou 48/48 verificações: os cinco destinos exatos, UTMs/campanhas, ausência de `create_intent`, uso do helper nas cinco páginas, remoção de `Make one free`, divulgação do gap 25→45 e custos derivados da fonte canônica. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental --tsBuildInfoFile .tsbuildinfo-product-intent` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo e o artefato temporário foi removido.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRODUCT-SURFACE-INTENT-2026-08-28.html` contém antes/depois desktop e mobile. As capturas aprovadas estão em `docs/previews/PRODUCT-SURFACE-INTENT-DESKTOP-2026-08-28.png` e `docs/previews/PRODUCT-SURFACE-INTENT-MOBILE-2026-08-28.png`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render. `402` permanece classificado como indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A mudança reduz perda de intenção no tráfego que já existe; distribuição ativa aguarda normalização confirmada da capacidade.
+
+**DEPLOY PENDENTE:** o commit funcional está pronto e testado, mas ainda não havia sido publicado no momento desta anotação.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada pela correção. Depois da normalização da capacidade, medir pessoas por campanha e destino preservado, excluindo contas internas e sem contar eventos como pessoas.
+
+**NÃO TOCADO:** cards ou vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, checkout, e-mail, outreach, IndexNow, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de criar worktree. Codex continua aquisição/fluxo/assinaturas sem amplificar tráfego ativo enquanto a capacidade não for normalizada; não reconstruir estes cinco handoffs nem reintroduzir `Make one free` no H3.
