@@ -1449,3 +1449,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, oferta, SKU, criação de Checkout Session, webhook, Auth, Supabase, Storage, migration, banco, render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ae5113c` ou da ponta posterior de `origin/main`. Não reconstruir a sessão salva nem criar banner concorrente. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 34. Medição — primeiro toque ChatGPT até checkout e assinatura (29/08/2026)
+
+**BASE DE CÓDIGO:** `f9b5f0f44d406db1d1352297fccbc369a1a1da0e`, igual a `origin/main` no início da worktree isolada `codex/growth-chatgpt-first-touch`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (29/08/2026 10:52 BRT):** pessoas vindas do ChatGPT foram observadas entrando, concluindo o primeiro vídeo e, em parte, chegando ao checkout sem assinar. Não foi fornecida contagem; `várias` e `algumas` continuam sem conversão numérica.
+
+**FATO CONFIRMADO / GARGALO DE MEDIÇÃO:** o painel possuía duas visões diferentes, ambas insuficientes para responder ao relato. `sourceQuality` agrupava primeiro toque por origem, mas pulava checkout e usava qualquer vídeo como `activated`; `chatGptQuickstart` media somente quem viu e escolheu o cartão experimental `chatgpt_quickstart_v2`. Portanto uma pessoa de primeiro toque ChatGPT que ignorasse o cartão, concluísse vídeo e abandonasse a Stripe não aparecia no funil detalhado que deveria orientar a conversão.
+
+**IMPLEMENTADO:** commit funcional `33e791098e3ae23dab6cc2e9aa8e67c340a1551b` cria `lib/admin/sourceConversionFunnel.ts`. O helper conta perfis únicos por origem canônica e monta um caminho monotônico por interseção da mesma pessoa: cadastro → vídeo com status `completed` → vídeo concluído + checkout → vídeo concluído + checkout + assinatura. Perfil duplicado não infla o placar; checkout sem vídeo não é fingido como pós-vídeo; denominador zero vira `—`.
+
+**IMPLEMENTADO / CHECKOUT REAL:** `app/api/admin/funnel/route.ts` reaproveita as consultas já existentes; nenhuma chamada Supabase ou Stripe nova foi adicionada. Além dos beacons existentes, uma Checkout Session de assinatura já carregada e mapeada ao usuário passa a provar que aquela pessoa alcançou checkout, inclusive quando a navegação perdeu o evento do navegador. Disponibilidade de profiles, videos, click_events/events e Stripe é declarada separadamente; coluna indisponível aparece como `—`, nunca zero inventado.
+
+**IMPLEMENTADO / INTERFACE:** `app/(dashboard)/admin/funnel/FunnelClient.tsx` substitui a tabela visual incompleta por `First-touch source → delivered video → subscription`, com Signups, Video delivered, Video + checkout, Video + paid e três taxas adjacentes. A linha `chatgpt · FOCUS` recebe destaque visual, mas os demais canais continuam comparáveis. O bloco quick-start permanece separado porque responde à eficácia do cartão, não ao canal inteiro.
+
+**REVISÃO REACT:** a tabela deriva integralmente do response durante render. Nenhum estado, efeito, fetch ou dependência foi adicionado; a chave é a origem canônica e cada linha continua sendo uma pessoa por perfil, não uma linha de evento.
+
+**TESTADO LOCALMENTE:** `node scripts/test-source-conversion-funnel.mjs` executou 23/23 verificações e `node scripts/test-chatgpt-quickstart.mjs` manteve 55/55. As suítes executam contagem única, interseções monotônicas, taxas, checkout sem vídeo, disponibilidade honesta, caller da rota, sessão Stripe e interface. `git diff --check` ficou limpo. `npx tsc --noEmit --pretty false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHATGPT-FIRST-TOUCH-FUNNEL-2026-08-29.html` contém antes/depois desktop e o estado mobile autocontido. O arquivo foi servido por localhost somente leitura e aberto no Chrome conectado do fundador. A inspeção visual confirmou destaque legível do ChatGPT e rolagem horizontal contida no estado de 390 px.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_FUD6r2tTt8sShhfdkiFDBkLsg5QT` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `33e791098e3ae23dab6cc2e9aa8e67c340a1551b`.
+
+**LIMITE DA VALIDAÇÃO:** o painel autenticado `/admin/funnel` não foi aberto em produção nesta rodada porque a tela executaria leituras Supabase e Stripe durante o incidente de capacidade informado pelo fundador. Portanto código, testes, comparação visual, publicação e deploy estão confirmados; os números vivos da nova coorte permanecem `QUESTÃO PENDENTE`, nunca são presumidos como zero.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28–29/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render. `402` continua indisponibilidade de capacidade, não abandono voluntário.
+
+**NÃO TOCADO:** captura de origem, schema, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, criação de Checkout Session, webhook, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `33e7910` ou da ponta posterior de `origin/main`. Não confundir o bloco `chatgpt_quickstart_v2` com o canal completo e não reconstruir esta coorte por contagem de eventos. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas e usará os números vivos somente após a normalização da capacidade.
