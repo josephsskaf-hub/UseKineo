@@ -1366,6 +1366,8 @@ PRÓXIMO DONO:
 
 **DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega melhora apenas a conversão do tráfego B2B que já chega à página.
 
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_HcRjU2cd8o6GxP2g2SkEHa6oo7Vm` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `057883747d87b783bfe29a724712ee39c7cdf586`. Leitura HTTP sem executar JavaScript respondeu 200/`PRERENDER` em `/free-ai-shorts/localbusiness` e confirmou H1, CTA `Build my business ad script`, seção `business-ad-builder`, os cinco campos, limites visíveis e a copy de que nada é gerado ou cobrado antes de continuar. A rota de controle `/free-ai-shorts/mystery` respondeu 200, manteve `Create my free Short` e não contém o builder B2B. A Vercel registrou zero erro de runtime agrupado nas duas rotas nos 15 minutos consultados. O formulário não foi preenchido em produção para não executar analytics/Auth durante o incidente; o handoff interativo segue classificado como testado localmente, não cadastro autenticado end-to-end.
+
 **QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, cadastro, checkout ou assinatura causada pelo briefing. Depois da normalização da capacidade, medir pessoas da campanha `growth_local_business_brief_20260828`, excluindo contas internas e sem contar eventos como pessoas.
 
 **NÃO TOCADO:** pipeline de render, motor, cena, legenda, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, checkout, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
