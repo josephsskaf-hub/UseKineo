@@ -35,15 +35,16 @@ const policy = executeTs('lib/growth/trialBalanceBridge.ts', {
   '@/lib/credits/engineCost': engineCost,
 })
 
-equal(policy.TRIAL_BALANCE_BRIDGE_COST, 19, '45s Seedance costs 19 canonical credits')
+equal(policy.TRIAL_BALANCE_BRIDGE_COST, 15, '35s Seedance costs 15 canonical credits')
 equal(policy.FULL_SEEDANCE_COST, 25, '60s Seedance costs 25 canonical credits')
-equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 45, 'bridge duration is explicit')
+equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 35, 'bridge duration is explicit and visible in the public selector')
 equal(policy.TRIAL_BALANCE_BRIDGE_ENGINE, 'cinematic_ai', 'bridge engine is Seedance quality')
+check(read('lib/expandPolicy.ts').includes('SUPPORTED_DURATIONS = [35, 60, 90]'), '35s is supported by the shared client/server duration contract')
 
-for (const credits of [19, 20, 21, 22, 23, 24]) {
+for (const credits of [15, 20, 21, 22, 23, 24]) {
   const result = policy.decideTrialBalanceBridge({ trialPhase: 'active', credits, deliveredQuality: 'fast' })
   equal(result.eligible, true, `${credits} residual credits are eligible`)
-  equal(result.creditsAfterSuccess, credits - 19, `${credits} exposes exact post-success balance`)
+  equal(result.creditsAfterSuccess, credits - 15, `${credits} exposes exact post-success balance`)
 }
 
 for (const [input, reason] of [
@@ -51,7 +52,7 @@ for (const [input, reason] of [
   [{ trialPhase: 'ending', credits: 20, deliveredQuality: 'fast' }, 'not_active'],
   [{ trialPhase: 'active', credits: 20, deliveredQuality: 'cinematic_ai' }, 'not_fast'],
   [{ trialPhase: 'active', credits: null, deliveredQuality: 'fast' }, 'unknown_balance'],
-  [{ trialPhase: 'active', credits: 18, deliveredQuality: 'fast' }, 'too_few_credits'],
+  [{ trialPhase: 'active', credits: 14, deliveredQuality: 'fast' }, 'too_few_credits'],
   [{ trialPhase: 'active', credits: 25, deliveredQuality: 'fast' }, 'full_seedance_already_fits'],
 ]) {
   const result = policy.decideTrialBalanceBridge(input)
@@ -113,7 +114,7 @@ check(client.includes('showTrialPostVideoOffer && !trialBalanceBridge.eligible')
 check(client.includes('data-trial-balance-bridge={trialBalanceBridge.version}'), 'rendered surface names its version')
 check(client.includes('Nothing starts until you enter the next idea and press Generate.'), 'copy denies automatic spending')
 check(client.includes('setAiEngine(\'seedance\')'), 'CTA selects Seedance')
-check(client.includes('setDuration(trialBalanceBridge.duration)'), 'CTA selects canonical 45-second duration')
+check(client.includes('setDuration(trialBalanceBridge.duration)'), 'CTA selects the canonical supported duration')
 check(client.includes("`/studio/create?engine=seedance&duration=${trialBalanceBridge.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`"), 'CTA lands on canonical creation route with attribution')
 const handler = client.slice(client.indexOf('const handleTrialBalanceBridge'), client.indexOf('// FRASE DE PRAZO'))
 check(!handler.includes('fetch('), 'CTA makes no network mutation')

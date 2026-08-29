@@ -1,9 +1,9 @@
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 
-export const TRIAL_BALANCE_BRIDGE_VERSION = 'trial_balance_seedance_45s_v1' as const
+export const TRIAL_BALANCE_BRIDGE_VERSION = 'trial_balance_seedance_35s_v2' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE = 'cinematic_ai' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE_LABEL = 'Seedance' as const
-export const TRIAL_BALANCE_BRIDGE_DURATION = 45 as const
+export const TRIAL_BALANCE_BRIDGE_DURATION = 35 as const
 export const TRIAL_BALANCE_BRIDGE_COST = creditCostForDuration(
   TRIAL_BALANCE_BRIDGE_ENGINE,
   true,
@@ -30,8 +30,8 @@ export type TrialBalanceBridgeDecision = {
 }
 
 /**
- * Turns the measured 20–21 credit post-Fast remainder into one 45-second
- * Seedance experience. The bridge never grants credits and never starts a
+ * Turns the measured 20–21 credit post-Fast remainder into one supported
+ * 35-second Seedance experience. The bridge never grants credits or starts a
  * render: it only prepares a choice the current balance already covers.
  */
 export function decideTrialBalanceBridge(input: TrialBalanceBridgeInput): TrialBalanceBridgeDecision {
