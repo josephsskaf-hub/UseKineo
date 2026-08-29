@@ -170,3 +170,14 @@ export function planFitRetrySearchParamsFromMetadata(
     pf_video_id: videoId,
   }).toString()
 }
+
+/** Rebuilds the display-only return summary from Stripe's untrusted metadata. */
+export function readPlanFitCheckoutReturnFromMetadata(
+  metadata: Record<string, string> | null | undefined,
+  actualTier: string,
+  currency: CheckoutCurrency,
+): PlanFitCheckoutReturnSummary | null {
+  const params = planFitRetrySearchParamsFromMetadata(metadata)
+  if (!params) return null
+  return readPlanFitCheckoutReturn(new URLSearchParams(params), actualTier, currency)
+}

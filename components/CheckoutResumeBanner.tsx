@@ -4,7 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch, useStalledCheckout } from '@/lib/checkoutTelemetry'
-import { formatCheckoutResumeMoney, type CheckoutResumeOffer } from '@/lib/checkoutResumeSurface'
+import {
+  formatCheckoutResumeMoney,
+  formatCheckoutResumePlanFitGoal,
+  type CheckoutResumeOffer,
+} from '@/lib/checkoutResumeSurface'
 
 const HIDDEN_PATHS = [
   '/login',
@@ -67,6 +71,10 @@ export default function CheckoutResumeBanner() {
           result.firstChargeAmount,
           result.renewalAmount,
           result.destinationKind,
+          result.planFit?.engine ?? 'standard',
+          result.planFit?.monthlyVideos ?? '',
+          result.planFit?.seconds ?? '',
+          result.planFit?.selectedTierMatches ?? '',
         ].join(':')
         if (viewedKey.current !== key) {
           viewedKey.current = key
@@ -77,6 +85,11 @@ export default function CheckoutResumeBanner() {
             first_charge_amount: result.firstChargeAmount,
             renewal_amount: result.renewalAmount,
             destination_kind: result.destinationKind,
+            checkout_origin: result.planFit ? 'plan_fit_first_delivery' : 'standard',
+            plan_fit_engine: result.planFit?.engine ?? null,
+            plan_fit_monthly_videos: result.planFit?.monthlyVideos ?? null,
+            plan_fit_seconds: result.planFit?.seconds ?? null,
+            plan_fit_selected_tier_matches: result.planFit?.selectedTierMatches ?? null,
           })
         }
       })
@@ -92,6 +105,7 @@ export default function CheckoutResumeBanner() {
   const firstCharge = formatCheckoutResumeMoney(offer.firstChargeAmount, offer.currency)
   const renewal = formatCheckoutResumeMoney(offer.renewalAmount, offer.currency)
   const renewalUnit = offer.billing === 'annual' ? 'year' : 'month'
+  const savedGoal = offer.planFit ? formatCheckoutResumePlanFitGoal(offer.planFit) : null
   const eventMetadata = {
     tier: offer.tier,
     billing: offer.billing,
@@ -99,6 +113,11 @@ export default function CheckoutResumeBanner() {
     first_charge_amount: offer.firstChargeAmount,
     renewal_amount: offer.renewalAmount,
     destination_kind: offer.destinationKind,
+    checkout_origin: offer.planFit ? 'plan_fit_first_delivery' : 'standard',
+    plan_fit_engine: offer.planFit?.engine ?? null,
+    plan_fit_monthly_videos: offer.planFit?.monthlyVideos ?? null,
+    plan_fit_seconds: offer.planFit?.seconds ?? null,
+    plan_fit_selected_tier_matches: offer.planFit?.selectedTierMatches ?? null,
   }
 
   const dismiss = () => {
@@ -141,6 +160,11 @@ export default function CheckoutResumeBanner() {
         <div style={{ fontSize: '0.88rem', lineHeight: 1.25, fontWeight: 850 }}>
           Your {offer.planName} checkout is saved
         </div>
+        {savedGoal ? (
+          <div style={{ marginTop: 3, color: '#62b3ff', fontSize: '0.76rem', lineHeight: 1.35, fontWeight: 800 }}>
+            {savedGoal}
+          </div>
+        ) : null}
         <div style={{ marginTop: 3, color: '#aeb9cc', fontSize: '0.76rem', lineHeight: 1.35 }}>
           First charge {firstCharge} · renews at {renewal}/{renewalUnit}. Cancel anytime.
         </div>
@@ -179,7 +203,7 @@ export default function CheckoutResumeBanner() {
           cursor: checkout.pending !== null ? 'wait' : 'pointer',
         }}
       >
-        {checkout.pending !== null ? 'Opening…' : 'Resume checkout'}
+        {checkout.pending !== null ? 'Opening…' : savedGoal ? 'Resume this goal' : 'Resume checkout'}
       </a>
       <button
         type="button"

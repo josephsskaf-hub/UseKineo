@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
-import { formatCheckoutResumeMoney, type CheckoutResumeOffer } from '@/lib/checkoutResumeSurface'
+import {
+  formatCheckoutResumeMoney,
+  formatCheckoutResumePlanFitGoal,
+  type CheckoutResumeOffer,
+} from '@/lib/checkoutResumeSurface'
 
 function offerKey(offer: CheckoutResumeOffer): string {
   return [
@@ -13,6 +17,10 @@ function offerKey(offer: CheckoutResumeOffer): string {
     offer.firstChargeAmount,
     offer.renewalAmount,
     offer.destinationKind,
+    offer.planFit?.engine ?? 'standard',
+    offer.planFit?.monthlyVideos ?? '',
+    offer.planFit?.seconds ?? '',
+    offer.planFit?.selectedTierMatches ?? '',
   ].join(':')
 }
 
@@ -25,6 +33,11 @@ function eventMetadata(offer: CheckoutResumeOffer): Record<string, unknown> {
     first_charge_amount: offer.firstChargeAmount,
     renewal_amount: offer.renewalAmount,
     destination_kind: offer.destinationKind,
+    checkout_origin: offer.planFit ? 'plan_fit_first_delivery' : 'standard',
+    plan_fit_engine: offer.planFit?.engine ?? null,
+    plan_fit_monthly_videos: offer.planFit?.monthlyVideos ?? null,
+    plan_fit_seconds: offer.planFit?.seconds ?? null,
+    plan_fit_selected_tier_matches: offer.planFit?.selectedTierMatches ?? null,
   }
 }
 
@@ -67,6 +80,7 @@ export default function PricingSavedCheckout() {
   const firstCharge = formatCheckoutResumeMoney(offer.firstChargeAmount, offer.currency)
   const renewal = formatCheckoutResumeMoney(offer.renewalAmount, offer.currency)
   const renewalUnit = offer.billing === 'annual' ? 'year' : 'month'
+  const savedGoal = offer.planFit ? formatCheckoutResumePlanFitGoal(offer.planFit) : null
 
   return (
     <section
@@ -83,7 +97,9 @@ export default function PricingSavedCheckout() {
             Continue your {offer.planName} checkout
           </h2>
           <p className="mt-1.5 text-[13px] font-semibold leading-relaxed text-[#a9b4c5]">
-            Your choice is still here: first charge {firstCharge}, then {renewal}/{renewalUnit}. No need to choose the plan again.
+            {savedGoal
+              ? `Your saved goal is ${savedGoal}. First charge ${firstCharge}, then ${renewal}/${renewalUnit}.`
+              : `Your choice is still here: first charge ${firstCharge}, then ${renewal}/${renewalUnit}. No need to choose the plan again.`}
           </p>
           {checkout.error && (
             <p role="alert" className="mt-2 text-[12px] font-bold text-[#ff8f8f]">
@@ -111,7 +127,11 @@ export default function PricingSavedCheckout() {
             cursor: checkout.pending !== null ? 'wait' : 'pointer',
           }}
         >
-          {checkout.pending !== null ? 'Opening secure checkout…' : 'Continue securely →'}
+          {checkout.pending !== null
+            ? 'Opening secure checkout…'
+            : savedGoal
+              ? 'Continue this video plan →'
+              : 'Continue securely →'}
         </a>
       </div>
     </section>

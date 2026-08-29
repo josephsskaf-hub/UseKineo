@@ -1,4 +1,14 @@
+import type { PlanFitQuality } from '@/lib/growth/planFit'
+
 export type CheckoutResumeSurface = 'pricing'
+
+export type CheckoutResumePlanFit = {
+  engine: PlanFitQuality
+  engineLabel: string
+  monthlyVideos: number
+  seconds: number
+  selectedTierMatches: boolean
+}
 
 export type CheckoutResumeOffer = {
   available: true
@@ -10,6 +20,7 @@ export type CheckoutResumeOffer = {
   currency: string
   firstChargeAmount: number
   renewalAmount: number
+  planFit: CheckoutResumePlanFit | null
 }
 
 export function parseCheckoutResumeSurface(value: unknown): CheckoutResumeSurface | null {
@@ -34,4 +45,8 @@ export function formatCheckoutResumeMoney(amount: number, currency: string): str
   } catch {
     return `${currency.toUpperCase()} ${(amount / 100).toFixed(2)}`
   }
+}
+
+export function formatCheckoutResumePlanFitGoal(planFit: CheckoutResumePlanFit): string {
+  return `${planFit.monthlyVideos} × ${planFit.seconds}s ${planFit.engineLabel} video${planFit.monthlyVideos === 1 ? '' : 's'}/month`
 }

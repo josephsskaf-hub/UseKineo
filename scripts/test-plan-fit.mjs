@@ -297,6 +297,10 @@ check('client cannot forge monthly credits', Number(checkout.verifyPlanFitChecko
 )?.plan_fit_monthly_credits) === seedanceFour.monthlyCredits)
 check('Stripe retry metadata rehydrates closed context', checkout.planFitRetrySearchParamsFromMetadata(validContext) === checkout.planFitRetrySearchParams(validContext))
 check('Stripe retry rejects arbitrary origin', checkout.planFitRetrySearchParamsFromMetadata({ ...validContext, checkout_origin: 'forged' }) === null)
+const metadataReturnSummary = checkout.readPlanFitCheckoutReturnFromMetadata(validContext, seedanceFour.plan.tier, 'usd')
+check('saved-session metadata rebuilds the verified engine', metadataReturnSummary?.engineLabel === 'Seedance 1.5')
+check('saved-session metadata rebuilds the verified goal', metadataReturnSummary?.monthlyVideos === 4 && metadataReturnSummary?.seconds === 60)
+check('saved-session metadata rejects a forged origin', checkout.readPlanFitCheckoutReturnFromMetadata({ ...validContext, checkout_origin: 'forged' }, seedanceFour.plan.tier, 'usd') === null)
 const originOnly = new URL('/api/stripe/checkout?checkout_origin=plan_fit_first_delivery', 'https://www.usekineo.com')
 check('origin without complete contract fails closed', checkout.verifyPlanFitCheckoutContext(originOnly.searchParams, 'basic', 'usd') === null)
 

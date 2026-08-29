@@ -3,11 +3,15 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { stripe } from '@/lib/stripe'
 import Stripe from 'stripe'
-import { planFitRetrySearchParamsFromMetadata } from '@/lib/growth/planFitCheckout'
+import {
+  planFitRetrySearchParamsFromMetadata,
+  readPlanFitCheckoutReturnFromMetadata,
+} from '@/lib/growth/planFitCheckout'
 import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
 import {
   parseCheckoutResumeSurface,
   shouldBlockDismissedCheckoutResume,
+  type CheckoutResumePlanFit,
 } from '@/lib/checkoutResumeSurface'
 
 export const dynamic = 'force-dynamic'
@@ -51,6 +55,7 @@ type ResumeResolution = {
   currency: string
   firstChargeAmount: number
   renewalAmount: number
+  planFit: CheckoutResumePlanFit | null
 }
 
 function noStore<T extends NextResponse>(response: T): T {
@@ -342,6 +347,9 @@ async function resolveCandidate(
   }
 
   if (!destination || !destinationKind) return null
+  const planFitReturn = amounts.currency === 'usd'
+    ? readPlanFitCheckoutReturnFromMetadata(session.metadata, tier, 'usd')
+    : null
   return {
     session,
     destination,
@@ -349,6 +357,15 @@ async function resolveCandidate(
     planName: planName(tier),
     tier,
     billing: billingOf(session),
+    planFit: planFitReturn
+      ? {
+          engine: planFitReturn.context.plan_fit_planned_engine,
+          engineLabel: planFitReturn.engineLabel,
+          monthlyVideos: planFitReturn.monthlyVideos,
+          seconds: planFitReturn.seconds,
+          selectedTierMatches: planFitReturn.selectedTierMatches,
+        }
+      : null,
     ...amounts,
   }
 }
@@ -530,6 +547,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     currency: resolution.currency,
     firstChargeAmount: resolution.firstChargeAmount,
     renewalAmount: resolution.renewalAmount,
+    planFit: resolution.planFit,
   }))
 }
 
