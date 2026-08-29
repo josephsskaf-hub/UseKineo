@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Clean export after download — before / after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#09090b;color:#f5f5f7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif}
+    main{max-width:1180px;margin:auto;padding:32px 22px 60px}.eyebrow{color:#5cb3ff;text-transform:uppercase;letter-spacing:.16em;font-size:11px;font-weight:900}
+    h1{font-size:30px;letter-spacing:-.035em;margin:8px 0 8px}.intro{margin:0 0 28px;color:#9a9aa1;max-width:760px;line-height:1.6}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}.case{border:1px solid #29292d;border-radius:18px;background:#111114;padding:18px}
+    .tag{display:inline-flex;border-radius:99px;padding:5px 9px;font-size:10px;font-weight:900;letter-spacing:.12em}.before{background:#2a1c12;color:#ffb66e}.after{background:#10283b;color:#72c4ff}
+    .frame{margin-top:14px;border-radius:15px;border:1px solid #343438;background:#151519;padding:18px}.card{max-width:460px;margin:auto;border-radius:16px;padding:20px;background:linear-gradient(135deg,rgba(41,151,255,.12),rgba(41,151,255,.05));border:1px solid rgba(41,151,255,.5)}
+    .center{text-align:center}.mini{color:#2997ff;font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase}.card h2{font-size:18px;margin:7px 0 5px}.muted{color:#929299;font-size:12px;line-height:1.5}
+    .download{display:block;width:100%;border:1px solid rgba(34,197,94,.35);border-radius:12px;padding:13px;color:#5cb3ff;background:rgba(34,197,94,.1);font-weight:900;text-align:center;margin-top:16px}
+    .divider{display:flex;align-items:center;gap:10px;color:#797980;font-size:10px;font-weight:800;letter-spacing:.08em;margin:14px 0}.divider:before,.divider:after{content:"";height:1px;background:#343438;flex:1}
+    button{font:inherit}.trigger{width:100%;padding:13px;border-radius:10px;border:1px solid rgba(41,151,255,.45);background:rgba(41,151,255,.1);color:#5cb3ff;font-weight:900}.trigger small{display:block;margin-top:4px}
+    .modal{margin-top:14px;border:1px solid #303036;border-radius:10px;background:#131316;padding:20px}.modal h3{font-size:21px;margin:4px 0 7px}.choice{width:100%;padding:14px;border-radius:8px;font-weight:900}.primary{border:0;background:#2997ff;color:#fff}.secondary{margin-top:8px;border:1px solid #343438;background:transparent;color:#c7c7cc}
+    .direct{margin-top:14px;padding:12px;border:1px solid rgba(41,151,255,.34);border-radius:12px;background:rgba(41,151,255,.07)}.direct strong{display:block;text-align:center;font-size:13px;margin-bottom:10px}.choice small{display:block;margin-top:4px}.trust{text-align:center;color:#74747b;font-size:10.5px;margin:9px 0 0}
+    .caption{font-size:12px;color:#aaaab0;line-height:1.55;margin:14px 2px 0}.mobile-row{display:grid;grid-template-columns:375px 375px;gap:20px;justify-content:center;margin-top:28px}.phone{border:1px solid #29292d;border-radius:22px;padding:12px;background:#0e0e11}.phone .card{padding:16px}.phone .modal{padding:16px}
+    @media(max-width:860px){.grid{grid-template-columns:1fr}.mobile-row{grid-template-columns:minmax(0,375px);}.mobile-row .phone:first-child{display:none}}
+  </style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Growth sprint · post-video conversion</div>
+  <h1>After the free download: remove one unnecessary click</h1>
+  <p class="intro">The free watermarked MP4 remains the first action. The change starts only after the download is confirmed: the two existing offers move out of the modal and become transparent one-click checkout choices.</p>
+  <div class="grid">
+    <section class="case">
+      <span class="tag before">Before · desktop</span>
+      <div class="frame">
+        <div class="card">
+          <div class="center"><div class="mini">Want it clean?</div><h2>Downloaded. Post it — it’s yours.</h2><div class="muted">Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds 40 credits.</div></div>
+          <div class="download">✓ Download again (free copy)</div>
+          <div class="divider">OR</div>
+          <button class="trigger">Remove the watermark →<small>This exact video, clean — from $4.90</small></button>
+          <div class="modal">
+            <div class="mini">Remove the watermark</div><h3>Your film, without the mark</h3><p class="muted">A second decision screen appears before checkout.</p>
+            <button class="choice primary">Start Starter — $7 · this video clean + 40 credits/mo</button>
+            <button class="choice secondary">Just this one video — $4.90, one-time</button>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Problem: after waiting for the render and downloading the file, the warmest user still has to open another modal before taking either paid action.</p>
+    </section>
+    <section class="case">
+      <span class="tag after">After · desktop</span>
+      <div class="frame">
+        <div class="card">
+          <div class="center"><div class="mini">Want it clean?</div><h2>Downloaded. Post it — it’s yours.</h2><div class="muted">Want this exact video without the Kineo watermark? Starter rebuilds it clean and adds 40 credits.</div></div>
+          <div class="download">✓ Download again (free copy)</div>
+          <div class="divider">OR</div>
+          <div class="direct">
+            <strong>Your free copy is safe. Choose a clean export when you’re ready.</strong>
+            <button class="choice primary">Start Starter — $7<small>this video clean + 40 credits every month</small></button>
+            <button class="choice secondary">Just this video — $4.90, one-time</button>
+            <p class="trust">Secure Stripe checkout · cancel anytime · 7-day money-back</p>
+          </div>
+        </div>
+      </div>
+      <p class="caption">Result: no automatic paywall and no lost free download. Only the post-download state changes, turning both existing offers into direct, clearly priced actions.</p>
+    </section>
+  </div>
+  <div class="mobile-row">
+    <section class="phone">
+      <span class="tag before">Before · mobile</span>
+      <div class="card">
+        <div class="center"><div class="mini">Want it clean?</div><h2>Downloaded. Post it — it’s yours.</h2></div>
+        <div class="download">✓ Download again</div><div class="divider">OR</div>
+        <button class="trigger">Remove watermark →<small>from $4.90</small></button>
+        <div class="modal"><h3>Your film, without the mark</h3><button class="choice primary">Start Starter — $7</button><button class="choice secondary">One video — $4.90</button></div>
+      </div>
+    </section>
+    <section class="phone">
+      <span class="tag after">After · mobile 375px</span>
+      <div class="card">
+        <div class="center"><div class="mini">Want it clean?</div><h2>Downloaded. Post it — it’s yours.</h2></div>
+        <div class="download">✓ Download again</div><div class="divider">OR</div>
+        <div class="direct"><strong>Your free copy is safe.</strong><button class="choice primary">Start Starter — $7<small>clean video + 40 credits/month</small></button><button class="choice secondary">Just this video — $4.90</button><p class="trust">Stripe · cancel anytime · 7-day money-back</p></div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

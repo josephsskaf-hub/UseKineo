@@ -1540,6 +1540,8 @@ export default function GenerateClient({
   const wmUnlockRanRef = useRef(false)
   const postVideoOfferRef = useRef<HTMLDivElement | null>(null)
   const postVideoOfferTrackedKeyRef = useRef<string | null>(null)
+  const cleanExportDirectRef = useRef<HTMLDivElement | null>(null)
+  const cleanExportDirectTrackedKeyRef = useRef<string | null>(null)
   // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — par próprio para a caixa do trial.
   // Reusar os refs acima faria as duas caixas disputarem a MESMA chave e uma
   // delas nunca contaria, mesmo sendo mutuamente exclusivas hoje.
@@ -4033,6 +4035,46 @@ export default function GenerateClient({
     return () => observer.disconnect()
   }, [showPostVideoExportChoice, finalVideoUrl, publicVideoId, trialUi, intentCampaign, postVideoCurrency])
 
+  // KINEO-GROWTH-DIRECT-CLEAN-2026-08-29 — 70 pessoas viram a decisão de
+  // export em 30d, 56 baixaram a cópia com marca e nenhuma clicou no checkout.
+  // Depois do download a entrega já aconteceu; obrigar um segundo clique para
+  // abrir um modal antes da Stripe só acrescenta abandono. Meça a alternativa
+  // direta apenas quando ela realmente entra no viewport, uma vez por asset.
+  useEffect(() => {
+    const element = cleanExportDirectRef.current
+    const offerKey = publicVideoId || finalVideoUrl
+    if (
+      !showPostVideoExportChoice ||
+      !watermarkedDownloadConfirmed ||
+      !element ||
+      !offerKey ||
+      cleanExportDirectTrackedKeyRef.current === offerKey
+    ) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
+      cleanExportDirectTrackedKeyRef.current = offerKey
+      void trackEvent('clean_export_direct_choices_viewed', {
+        source: 'result_export_choice',
+        offer_layout: 'after_download_direct_v1',
+        primary_offer: 'starter_intro_month',
+        secondary_offer: 'starter_pack_one_time',
+        ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
+        ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+      })
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [
+    showPostVideoExportChoice,
+    watermarkedDownloadConfirmed,
+    finalVideoUrl,
+    publicVideoId,
+    postVideoCurrency,
+    intentCampaign,
+  ])
+
   // A2 PLAN FIT — derive the replacement gate before any legacy-offer
   // observer. The same boolean governs render and measurement, so a recurring
   // card hidden by Plan Fit cannot leave a ghost impression behind. This does
@@ -5763,6 +5805,7 @@ export default function GenerateClient({
     setRenderId(null)
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
+    setShowCleanPaywall(false)
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
     resetPostLoopHandoff()
 
@@ -6726,9 +6769,11 @@ export default function GenerateClient({
     setRenderId(null)
     setFinalVideoUrl(null)
     setWatermarkedDownloadConfirmed(false)
+    setShowCleanPaywall(false)
     // KINEO-DISTRIBUTION-LOOP-2026-08-11 — vida nova, handoff novo.
     resetPostLoopHandoff()
     postVideoOfferTrackedKeyRef.current = null
+    cleanExportDirectTrackedKeyRef.current = null
     // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o par do trial zera junto: sem
     // isto, o 2o video da mesma sessao herdaria a chave do 1o e a impressao
     // nunca mais seria contada.
@@ -7795,6 +7840,7 @@ export default function GenerateClient({
     setPublicVideoId(null)
     setSharedPublic(null)
     postVideoOfferTrackedKeyRef.current = null
+    cleanExportDirectTrackedKeyRef.current = null
     // KINEO-TRIAL-POSTVIDEO-OFFER-2026-08-07 — o par do trial zera junto: sem
     // isto, o 2o video da mesma sessao herdaria a chave do 1o e a impressao
     // nunca mais seria contada.
@@ -7979,6 +8025,9 @@ export default function GenerateClient({
     trackEvent('post_video_clean_export_clicked', {
       source: 'result_export_choice',
       offer: 'starter_intro_month',
+      checkout_path: watermarkedDownloadConfirmed
+        ? 'direct_after_download_v1'
+        : 'modal_before_download_v1',
       watermarked_downloaded: watermarkedDownloadConfirmed,
       ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -8027,6 +8076,9 @@ export default function GenerateClient({
     trackEvent('post_video_single_unlock_clicked', {
       source: 'result_export_choice',
       offer: 'starter_pack_one_time',
+      checkout_path: watermarkedDownloadConfirmed
+        ? 'direct_after_download_v1'
+        : 'modal_before_download_v1',
       watermarked_downloaded: watermarkedDownloadConfirmed,
       ...(postVideoCurrency ? { display_currency: postVideoCurrency } : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -11653,25 +11705,97 @@ export default function GenerateClient({
                       ofertas (Starter recomendado + avulso como régua).
                       O deliver-first fica INTACTO: o download verde continua
                       acima, primeiro e sem pedágio.
-                      ⚠️ risco aceito e monitorável: era 1 clique até o Stripe,
-                      agora são 2. `post_video_offer_viewed` + os eventos do
-                      wmCheckout medem se a vitrine paga o clique extra. */}
-                  <button
-                    type="button"
-                    onClick={() => { setShowCleanPaywall(true); void trackEvent('clean_paywall_opened', { after_download: watermarkedDownloadConfirmed }) }}
-                    className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center"
-                    style={{
-                      background: 'rgba(41,151,255,.10)',
-                      border: '1px solid rgba(41,151,255,.45)',
-                      color: '#5cb3ff',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <span>Remove the watermark →</span>
-                    <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
-                      This exact video, clean — from {packPriceLabel()}
-                    </span>
-                  </button>
+                      Antes do download continuam sendo 2 cliques: a pessoa ainda
+                      não recebeu o arquivo e merece ler as opções sem cair direto
+                      na Stripe. Depois do download confirmado, o bloco abaixo
+                      devolve os dois handlers à própria tela e volta a 1 clique.
+                      `clean_export_direct_choices_viewed` e checkout_path
+                      separam os dois caminhos sem quebrar a série histórica. */}
+                  {watermarkedDownloadConfirmed ? (
+                    <div
+                      ref={cleanExportDirectRef}
+                      className="mt-4 rounded-xl"
+                      style={{
+                        padding: 12,
+                        background: 'rgba(41,151,255,.07)',
+                        border: '1px solid rgba(41,151,255,.34)',
+                      }}
+                    >
+                      <p style={{ margin: '0 0 10px', textAlign: 'center', color: '#f5f5f7', fontSize: 13, fontWeight: 800, lineHeight: 1.45 }}>
+                        Your free copy is safe. Choose a clean export when you&apos;re ready.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleRemoveWatermark}
+                        disabled={wmCheckout.pending !== null}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'center',
+                          background: '#2997ff',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: 14,
+                          fontSize: 14,
+                          fontWeight: 850,
+                          cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                          opacity: wmCheckout.pending ? 0.7 : 1,
+                        }}
+                      >
+                        {wmCheckout.pending
+                          ? 'Opening secure checkout…'
+                          : `Start Starter${postVideoIntroPrice ? ` — ${postVideoIntroPrice}` : ''}`}
+                        {wmCheckout.pending === null && (
+                          <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 700, opacity: 0.92 }}>
+                            this video clean + {TIER_CREDITS.starter} credits every month
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleBuyThisVideoOnly}
+                        disabled={wmCheckout.pending !== null}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'center',
+                          background: 'transparent',
+                          color: '#c7c7cc',
+                          border: '1px solid #343438',
+                          borderRadius: 8,
+                          padding: 11,
+                          fontSize: 12.5,
+                          fontWeight: 750,
+                          cursor: wmCheckout.pending ? 'wait' : 'pointer',
+                          marginTop: 8,
+                          opacity: wmCheckout.pending ? 0.7 : 1,
+                        }}
+                      >
+                        Just this video — {packPriceLabel()}, one-time
+                      </button>
+                      <p style={{ margin: '9px 0 0', textAlign: 'center', color: '#6e6e73', fontSize: 10.5, lineHeight: 1.45 }}>
+                        Secure Stripe checkout · cancel anytime · 7-day money-back
+                      </p>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setShowCleanPaywall(true); void trackEvent('clean_paywall_opened', { after_download: false, offer_layout: 'pre_download_modal_v1' }) }}
+                      className="flex flex-col items-center justify-center w-full rounded-xl mt-4 py-3 px-3 text-sm font-black text-center"
+                      style={{
+                        background: 'rgba(41,151,255,.10)',
+                        border: '1px solid rgba(41,151,255,.45)',
+                        color: '#5cb3ff',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span>See clean export options →</span>
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, opacity: 0.92, marginTop: 3 }}>
+                        This exact video, clean — from {packPriceLabel()}
+                      </span>
+                    </button>
+                  )}
                   {/* ═══ O PAYWALL PÓS-VÍDEO (KINEO-PAYWALL-VITRINE-2026-08-22) ══
                       Aberto só por clique no gatilho acima — nunca sozinho, para
                       não virar pedágio na entrega. Coluna esquerda = O VÍDEO DA
@@ -11681,7 +11805,7 @@ export default function GenerateClient({
                       antes eram botões soltos: Starter recomendado, avulso como
                       régua (KINEO-VENDER-O-VIDEO). Handlers e telemetria dos
                       checkouts reutilizados sem mudança. */}
-                  {showCleanPaywall && finalVideoUrl && (
+                  {!watermarkedDownloadConfirmed && showCleanPaywall && finalVideoUrl && (
                     <div
                       role="dialog"
                       aria-modal="true"
