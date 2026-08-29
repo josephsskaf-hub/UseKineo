@@ -667,8 +667,10 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <Card label="Banner viewers" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.views) : '—'} hint={chatGptQuickstart.eventsAvailable ? `unique actors · ${CHATGPT_QUICKSTART_VARIANT}` : 'Events unavailable — not zero'} accent="#22d3ee" />
         <Card label="Mode selections" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.selections) : '—'} hint={chatGptQuickstart.eventsAvailable ? `${chatGptQuickstart.scriptSelections} script · ${chatGptQuickstart.ideaSelections} idea` : 'Events unavailable — not zero'} accent="#2997ff" />
         <RateCard label="View → Choice" value={chatGptQuickstart.viewToSelectionRate} sub={`${chatGptQuickstart.selections} / ${chatGptQuickstart.views} people`} />
+        <Card label="Studio ready" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.studioReady) : '—'} hint="right field, mode and duration loaded" accent="#67e8f9" />
+        <RateCard label="Choice → Studio" value={chatGptQuickstart.selectionToStudioReadyRate} sub={`${chatGptQuickstart.studioReady} / ${chatGptQuickstart.selections} people`} />
         <Card label="Generation starts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.starts) : '—'} hint="after the same actor's choice" accent="#a78bfa" />
-        <RateCard label="Choice → Start" value={chatGptQuickstart.selectionToStartRate} sub={`${chatGptQuickstart.starts} / ${chatGptQuickstart.selections} people`} />
+        <RateCard label="Studio → Start" value={chatGptQuickstart.studioReadyToStartRate} sub={`${chatGptQuickstart.starts} / ${chatGptQuickstart.studioReady} people`} />
         <Card label="Completed videos" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.completions) : '—'} hint="after quick-start generation" accent="#22d3ee" />
         <RateCard label="Start → Video" value={chatGptQuickstart.startToCompleteRate} sub={`${chatGptQuickstart.completions} / ${chatGptQuickstart.starts} people`} />
         <Card label="Post-video checkouts" value={chatGptQuickstart.eventsAvailable ? fmt(chatGptQuickstart.checkoutStarts) : '—'} hint="checkout after completed quick-start video" accent="#f97316" />

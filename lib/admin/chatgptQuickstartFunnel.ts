@@ -13,11 +13,14 @@ export type ChatGptQuickstartFunnel = {
   selections: number
   scriptSelections: number
   ideaSelections: number
+  studioReady: number
   starts: number
   completions: number
   checkoutStarts: number
   payments: number
   viewToSelectionRate: string
+  selectionToStudioReadyRate: string
+  studioReadyToStartRate: string
   selectionToStartRate: string
   startToCompleteRate: string
   completeToCheckoutRate: string
@@ -68,6 +71,7 @@ export function buildChatGptQuickstartFunnel(events: ChatGptQuickstartEvent[]): 
   let selections = 0
   let scriptSelections = 0
   let ideaSelections = 0
+  let studioReady = 0
   let starts = 0
   let completions = 0
   let checkoutStarts = 0
@@ -93,7 +97,16 @@ export function buildChatGptQuickstartFunnel(events: ChatGptQuickstartEvent[]): 
     if (choice === 'finished_script') scriptSelections += 1
     if (choice === 'idea') ideaSelections += 1
 
-    const start = journey.find((row) => row.event.name === 'generate_started' && row.at >= selection.at)
+    const ready = journey.find((row) =>
+      row.event.name === 'chatgpt_quickstart_studio_ready' &&
+      row.event.metadata?.variant === CHATGPT_QUICKSTART_VARIANT &&
+      quickstartChoice(row.event) === choice &&
+      row.at >= selection.at
+    )
+    if (!ready) continue
+    studioReady += 1
+
+    const start = journey.find((row) => row.event.name === 'generate_started' && row.at >= ready.at)
     if (!start) continue
     starts += 1
 
@@ -114,11 +127,14 @@ export function buildChatGptQuickstartFunnel(events: ChatGptQuickstartEvent[]): 
     selections,
     scriptSelections,
     ideaSelections,
+    studioReady,
     starts,
     completions,
     checkoutStarts,
     payments,
     viewToSelectionRate: pct(selections, views),
+    selectionToStudioReadyRate: pct(studioReady, selections),
+    studioReadyToStartRate: pct(starts, studioReady),
     selectionToStartRate: pct(starts, selections),
     startToCompleteRate: pct(completions, starts),
     completeToCheckoutRate: pct(checkoutStarts, completions),

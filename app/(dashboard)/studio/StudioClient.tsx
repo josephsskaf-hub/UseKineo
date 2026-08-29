@@ -13,11 +13,17 @@
 //   · resumo vivo no card de custo: motor · duração · resolução · aspecto
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import type { Quality } from '@/lib/credits/engineCost'
 import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
+import {
+  CHATGPT_QUICKSTART_VARIANT,
+  isChatGptQuickstartChoice,
+  type ChatGptQuickstartChoice,
+} from '@/lib/growth/chatgptQuickstart'
+import { trackEvent } from '@/lib/analytics'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -112,6 +118,8 @@ const CAMERA_PRESETS: { key: string; label: string; emoji: string; prompt: strin
 
 export default function StudioClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const searchSignature = searchParams.toString()
   const [engine, setEngine] = useState<EngineKey>('seedance')
   const [pickerOpen, setPickerOpen] = useState(false)
   // KINEO-DURACAO-FIX-2026-08-20 — o tipo ficou para trás dos botões (35/60/90)
@@ -148,6 +156,9 @@ export default function StudioClient() {
   // fluxo classico — 'ai' estrutura o texto, 'verbatim' narra palavra por
   // palavra (scripts prontos, como os do canal do fundador).
   const [scriptMode, setScriptMode] = useState<'ai' | 'verbatim'>('ai')
+  const [chatGptQuickstart, setChatGptQuickstart] = useState<ChatGptQuickstartChoice | null>(null)
+  const promptRef = useRef<HTMLTextAreaElement | null>(null)
+  const quickstartReadyTrackedRef = useRef(false)
   const [refName, setRefName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const campaignRef = useRef('studio_v4')
@@ -178,18 +189,44 @@ export default function StudioClient() {
   // do topo apontam pra ca): le ?engine= e ?prompt= da URL pra chegada dos
   // cards do hero/bento/mega-menu ja cair com o motor certo selecionado.
   useEffect(() => {
-    const sp = new URLSearchParams(window.location.search)
+    const sp = new URLSearchParams(searchSignature)
     const e = sp.get('engine')
     if (e && ENGINES.some((x) => x.key === e)) setEngine(e as EngineKey)
     const p = sp.get('prompt')
     if (p) setPrompt(p)
+    const requestedScriptMode = sp.get('script_mode')
+    if (requestedScriptMode === 'ai' || requestedScriptMode === 'verbatim') {
+      setScriptMode(requestedScriptMode)
+    }
+    const requestedDuration = Number(sp.get('duration'))
+    if (requestedDuration === 35 || requestedDuration === 60 || requestedDuration === 90) {
+      setDuration(requestedDuration)
+    }
+    const quickstartChoice = sp.get('chatgpt_quickstart')
+    if (isChatGptQuickstartChoice(quickstartChoice)) {
+      setChatGptQuickstart(quickstartChoice)
+      window.requestAnimationFrame(() => promptRef.current?.focus())
+      if (!quickstartReadyTrackedRef.current) {
+        quickstartReadyTrackedRef.current = true
+        void trackEvent('chatgpt_quickstart_studio_ready', {
+          variant: CHATGPT_QUICKSTART_VARIANT,
+          input_type: quickstartChoice,
+          duration: requestedDuration === 35 || requestedDuration === 60 || requestedDuration === 90
+            ? requestedDuration
+            : null,
+          engine: 'seedance',
+        })
+      }
+    } else {
+      setChatGptQuickstart(null)
+    }
     // KINEO-AUDIT-CAMPAIGN-2026-08-18: a campanha da landing (nav_mega/
     // engine_tile/hero_engine) atravessa o Studio em vez de virar 'studio_v4'.
     const ic = sp.get('intent_campaign')
     if (ic) campaignRef.current = ic
     const onboardingGoal = sp.get('onboarding_goal')
     if (isOnboardingGoalId(onboardingGoal)) onboardingGoalRef.current = onboardingGoal
-  }, [])
+  }, [searchSignature])
 
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
   // Um cálculo só, usado no preço, no botão e no aviso — para os três nunca
@@ -388,7 +425,7 @@ export default function StudioClient() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div>
             <div className="lab" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span><span className="n">4</span>Your idea</span>
+              <span><span className="n">4</span>{chatGptQuickstart === 'finished_script' ? 'Paste your ChatGPT script' : chatGptQuickstart === 'idea' ? 'Paste your ChatGPT idea' : 'Your idea'}</span>
               <button
                 type="button"
                 className="pill"
@@ -401,6 +438,26 @@ export default function StudioClient() {
             {/* KINEO-TEMPLATES-2026-08-18 (roubo com critério dos format cards
                 do InVideo): um clique arma o formato — esqueleto de prompt +
                 modo de script certo. */}
+            {chatGptQuickstart ? (
+              <div
+                data-chatgpt-quickstart={chatGptQuickstart}
+                style={{
+                  marginBottom: 10,
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(103,232,249,.36)',
+                  background: 'linear-gradient(135deg, rgba(103,232,249,.11), rgba(41,151,255,.06))',
+                  color: '#c7d7e5',
+                  fontSize: 12,
+                  lineHeight: 1.5,
+                }}
+              >
+                <b style={{ color: '#67e8f9' }}>Continue exactly where ChatGPT stopped.</b>{' '}
+                {chatGptQuickstart === 'finished_script'
+                  ? 'Paste the full answer below. “Use my script as is” and the 35s target are already selected; review the Seedance cost, then press Generate.'
+                  : 'Paste the idea or one sentence below. Kineo will write the hook, scenes and payoff; Seedance and the 60s target are already selected.'}
+              </div>
+            ) : null}
             <div className="row" style={{ marginBottom: 8 }}>
               {([
                 ['📊 Facts', '5 shocking facts about ', 'ai'],
@@ -414,8 +471,12 @@ export default function StudioClient() {
                 </button>
               ))}
             </div>
-            <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
-              placeholder="What’s your video about? One idea in — a finished film out: voiced, scored and captioned." />
+            <textarea ref={promptRef} value={prompt} onChange={(e) => setPrompt(e.target.value)} rows={7}
+              placeholder={chatGptQuickstart === 'finished_script'
+                ? 'Paste the complete script from ChatGPT here…'
+                : chatGptQuickstart === 'idea'
+                  ? 'Paste the idea from ChatGPT here…'
+                  : 'What’s your video about? One idea in — a finished film out: voiced, scored and captioned.'} />
             <div className="row" style={{ marginTop: 10 }}>
               <button type="button" className={`pill${scriptMode === 'ai' ? ' on' : ''}`} onClick={() => setScriptMode('ai')}>✨ Let AI structure it</button>
               <button type="button" className={`pill${scriptMode === 'verbatim' ? ' on' : ''}`} onClick={() => setScriptMode('verbatim')}>📝 Use my script as is</button>

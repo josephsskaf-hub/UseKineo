@@ -585,7 +585,7 @@ export async function GET(req: Request) {
       'payment_success', 'checkout_cancelled', 'checkout_canceled',
       'plan_fit_impression', 'plan_fit_monthly_target_selected',
       'example_remix_form_viewed', 'example_remix_topic_submitted',
-      'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected',
+      'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected', 'chatgpt_quickstart_studio_ready',
     ]
     const identityEventNames = [
       'basic_checkout_clicked', 'checkout_basic_click', 'pro_checkout_clicked',
@@ -692,7 +692,7 @@ export async function GET(req: Request) {
           .in('name', [
             'series_continue_clicked', 'series_continuation_landed',
             'generate_started', 'generate_completed',
-            'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected',
+            'chatgpt_welcome_banner_shown', 'chatgpt_quickstart_selected', 'chatgpt_quickstart_studio_ready',
             'checkout_started', 'payment_success',
             'viral_onboarding_viewed', 'viral_onboarding_primary_clicked',
             'viral_onboarding_goal_selected', 'viral_onboarding_skipped', 'first_video_started_from_viral_onboarding',
