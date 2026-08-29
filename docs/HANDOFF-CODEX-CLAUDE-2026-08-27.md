@@ -1399,3 +1399,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** página funcional do briefing, handoff de script, signup, Auth, checkout, preço, grant, oferta, SKU, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, evento, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude continua capacidade/render. Codex continua aquisição/fluxo/assinaturas. Depois do push, executar `git fetch origin`; não reconstruir o card fora de `FREE_TOOL_FACTS` e não adicionar tráfego ativo enquanto o incidente estiver aberto.
+
+## 32. Conversão — motivo do Plan Fit preservado depois de fechar o Stripe (29/08/2026)
+
+**BASE DE CÓDIGO:** `1861ff8929d80552b3909ef122ad08cc35d08ba3`, igual a `origin/main` no início da worktree isolada `codex/growth-plan-fit-return`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (29/08/2026 10:52 BRT):** pessoas vindas do ChatGPT foram observadas concluindo o primeiro vídeo e, em parte, chegando ao checkout sem assinar. Não há contagem fornecida; isto orienta prioridade, não calcula taxa.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o checkout já transportava e validava o contrato completo do Plan Fit na `cancel_url`, e a tela já preservava tier, billing, preço canônico, promoção, campanha e URL de retry (`app/api/stripe/checkout/route.ts`; `app/checkout/cancelled/page.tsx`). Portanto não foi criado outro card pós-vídeo, desconto, plano ou mecanismo de retomada. A lacuna era visual: no retorno do Stripe, a pessoa via apenas `Creator — $15.00/month` ou o plano equivalente; motor, duração e cadência que justificaram a recomendação desapareciam.
+
+**IMPLEMENTADO:** commit funcional `ea84c01307c6624b750c3cb32c2fca5b14da222b` adiciona `readPlanFitCheckoutReturn` em `lib/growth/planFitCheckout.ts`. A função aceita somente o contrato fechado já existente, recalcula o Plan Fit pela fonte canônica e devolve uma síntese display-only. Query parcial, duração/cadência fora da allowlist, motor desconhecido ou tier recomendado adulterado falham para a tela genérica. Nada nessa função muda preço, entitlement, desconto ou destino.
+
+**IMPLEMENTADO / CALLER REAL:** `app/checkout/cancelled/page.tsx` mostra, somente em um retorno Plan Fit válido, o bloco `Matched to the video you just made`, com cadência, duração e nome canônico do motor. O CTA passa de `Try secure checkout again` para `Continue with {plan} for this goal`. Um downsell preservado declara honestamente que o plano escolhido está abaixo da recomendação; não promete cobertura integral. O evento `checkout_cancelled` e o clique de retry recebem origem, motor, cadência, duração e aderência do tier por valores limitados.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 270/270 verificações. Os novos casos executam o resumo válido, Seedance 1.5, 4 vídeos, 60s, tier correspondente, downsell sem falsa cobertura e adulteração de cadência fail-closed. `git diff --check` ficou limpo. `npx tsc --noEmit` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-CHECKOUT-RETURN-2026-08-29.html` contém antes/depois autocontido em desktop e mobile. A inspeção real foi feita no Chrome conectado do fundador, não no navegador interno.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_6Fa8f66ppoKxVYrJccEQsaHKtV2w` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `ea84c01307c6624b750c3cb32c2fca5b14da222b`. No Chrome do fundador, o canário canônico `Studio + 4 × 60s Seedance 1.5` mostrou o contexto, a justificativa e o CTA contextual; console sem erro ou warning. Um retorno comum sem Plan Fit manteve o bloco ausente e `Try secure checkout again`, provando isolamento. Uma query Plan Fit com tier incompatível caiu na tela genérica, provando fail-closed. Nenhum botão foi clicado: não houve sessão Stripe, formulário, pagamento, Supabase, render, crédito ou débito. A Vercel registrou zero erro runtime agrupado em `/checkout/cancelled` nos 30 minutos consultados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa que retomou checkout ou assinou por causa deste contexto. Medir pessoas, não eventos, e atribuir somente depois de `checkout_cancelled` com `checkout_origin=plan_fit_first_delivery` seguido de retry e pagamento do mesmo ator.
+
+**NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, oferta, SKU, checkout server-side, Stripe session creation, webhook, Auth, Supabase, Storage, migration, banco, render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ea84c01` ou da ponta posterior de `origin/main`. Não reconstruir a retomada nem adicionar outro card concorrente no pós-vídeo. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
