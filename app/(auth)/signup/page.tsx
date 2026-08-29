@@ -14,6 +14,7 @@ import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { carryCreationHandoff } from '@/lib/creationHandoff'
 import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'
+import { buildSignupProductDestinationPreview } from '@/lib/growth/signupProductDestinationPreview'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -201,6 +202,11 @@ export default function SignupPage() {
     // saved-work promise when that destination would intentionally win.
     if (isCheckoutResume || normalizeInternalRedirect(params.get('redirect'))) return null
     return buildSignupCreationPreview(params)
+  }, [authSearch, isCheckoutResume])
+  const savedProductDestination = useMemo(() => {
+    if (isCheckoutResume) return null
+    const params = new URLSearchParams(authSearch)
+    return buildSignupProductDestinationPreview(params.get('redirect'))
   }, [authSearch, isCheckoutResume])
   const loginParams = new URLSearchParams({ redirect: activationRedirect })
   if (isCheckoutResume) loginParams.set('reason', 'checkout')
@@ -430,6 +436,11 @@ export default function SignupPage() {
                     Your {savedCreation.kind} is still saved. The confirmation link opens it in Kineo.
                   </p>
                 )}
+                {savedProductDestination && (
+                  <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
+                    Your destination is still saved. The confirmation link opens {savedProductDestination.destinationLabel}.
+                  </p>
+                )}
                 <Link
                   href={loginHref}
                   className="inline-block mt-6 text-sm font-semibold"
@@ -446,16 +457,20 @@ export default function SignupPage() {
                 >
                   {isCheckoutResume
                     ? 'Create your account to continue'
-                    : savedCreation
-                      ? `Your ${savedCreation.kind} is ready to continue`
-                      : 'Create your AI Short'}
+                    : savedProductDestination
+                      ? savedProductDestination.heading
+                      : savedCreation
+                        ? `Your ${savedCreation.kind} is ready to continue`
+                        : 'Create your AI Short'}
                 </h1>
                 <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
                   {isCheckoutResume
                     ? 'Your selected plan and intro price are saved. Continue securely below.'
-                    : savedCreation
-                      ? 'Create a free account and continue without starting over.'
-                      : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
+                    : savedProductDestination
+                      ? 'Create a free account and continue to the product you chose.'
+                      : savedCreation
+                        ? 'Create a free account and continue without starting over.'
+                        : ft(OFFER, 'Create, watch, download and share up to 3 watermarked Fast videos every 24h, no card.', OFFER.copy.headline)}
                 </p>
 
                 {savedCreation && (
@@ -494,6 +509,35 @@ export default function SignupPage() {
                     </div>
                     <p className="text-[11px] leading-relaxed m-0" style={{ color: '#8f949e' }}>
                       {savedCreation.description}
+                    </p>
+                  </section>
+                )}
+
+                {savedProductDestination && (
+                  <section
+                    aria-labelledby="saved-product-destination-heading"
+                    className="rounded-2xl mb-5 p-4"
+                    style={{
+                      background: 'linear-gradient(145deg, rgba(52,211,153,.12), rgba(41,151,255,.035))',
+                      border: '1px solid rgba(52,211,153,.3)',
+                      boxShadow: '0 14px 36px rgba(0,0,0,.22)',
+                    }}
+                  >
+                    <div
+                      className="text-[10px] font-black uppercase tracking-[.12em] mb-1.5"
+                      style={{ color: '#6ee7b7' }}
+                    >
+                      {savedProductDestination.eyebrow}
+                    </div>
+                    <h2
+                      id="saved-product-destination-heading"
+                      className="text-sm font-black mb-2"
+                      style={{ color: '#f5f5f7' }}
+                    >
+                      {savedProductDestination.destinationLabel}
+                    </h2>
+                    <p className="text-xs leading-relaxed m-0" style={{ color: '#aeb2ba' }}>
+                      {savedProductDestination.description}
                     </p>
                   </section>
                 )}

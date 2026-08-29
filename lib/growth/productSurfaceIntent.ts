@@ -2,7 +2,7 @@ export const PRODUCT_SURFACES = ['images', 'audio', 'fast', 'seedance', 'h3'] as
 
 export type ProductSurface = (typeof PRODUCT_SURFACES)[number]
 
-const DESTINATION: Record<ProductSurface, string> = {
+export const PRODUCT_SURFACE_DESTINATIONS: Record<ProductSurface, string> = {
   images: '/images',
   audio: '/audio',
   fast: '/studio?engine=fast',
@@ -26,7 +26,7 @@ export function buildProductSurfaceSignupHref(input: {
   utmSource: string
 }): string {
   const campaign = boundedToken(input.campaign, 'organic_product_surface')
-  const destination = new URL(DESTINATION[input.surface], 'https://kineo.local')
+  const destination = new URL(PRODUCT_SURFACE_DESTINATIONS[input.surface], 'https://kineo.local')
   destination.searchParams.set('intent_campaign', campaign)
 
   const signup = new URLSearchParams({
