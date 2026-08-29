@@ -691,6 +691,19 @@ export interface FreeToolFact {
   what: string
 }
 
+export interface PublicCostPlannerFact {
+  name: string
+  url: string
+  /** A structured cost-and-plan result, deliberately distinct from text tools. */
+  output: 'cost_plan'
+  requiresAccount: false
+  requiresCard: false
+  requiresEmail: false
+  rateLimit: null
+  pricingUrl: string
+  what: string
+}
+
 export interface StartHereFact {
   audience: string
   url: string
@@ -711,7 +724,7 @@ export const START_HERE_FACT: StartHereFact = {
 }
 
 /**
- * Fonte única das ferramentas públicas. /llms.txt as descreve em prosa a
+ * Fonte única das ferramentas públicas de texto. /llms.txt as descreve em prosa a
  * partir dos MESMOS caminhos; se um dia uma delas passar a exigir conta, este
  * objeto é o lugar onde a mentira aparece primeiro.
  */
@@ -825,6 +838,25 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
   },
 ]
 
+/**
+ * Public production-cost planner. Kept outside FREE_TOOL_FACTS because those
+ * tools promise a text result and, when unlimited, run entirely in-browser.
+ * This calculator returns a structured plan fit and may use /api/geo only to
+ * select the checkout currency; its pricing math still comes from the same
+ * checkout contract as the product.
+ */
+export const PUBLIC_COST_PLANNER_FACT: PublicCostPlannerFact = {
+  name: 'Kineo Shorts production cost planner',
+  url: `${BASE}/cheapest-ai-shorts-maker`,
+  output: 'cost_plan',
+  requiresAccount: false,
+  requiresCard: false,
+  requiresEmail: false,
+  rateLimit: null,
+  pricingUrl: `${BASE}/pricing`,
+  what: 'Choose a Kineo engine, finished-video duration and monthly publishing cadence to see the credits required, the cheapest current plan that covers the schedule, and an honest lower-volume option when it reduces the plan cost or brings the target within self-serve capacity. It uses the same engine costs and plan grants as checkout; it does not estimate platform earnings or render a video.',
+}
+
 export interface KineoFactsPayload {
   product: typeof PRODUCT
   startHere: StartHereFact
@@ -867,8 +899,9 @@ export interface KineoFactsPayload {
   /** Recurring allowance after the trial, or the ordinary free tier when no trial exists. */
   recurringFreeAccess: typeof RECURRING_FREE_ACCESS
   /**
-   * KINEO-AEO-FREE-TOOLS-2026-08-08 — as ÚNICAS superfícies da Kineo que
-   * entregam resultado sem conta, sem cartão e sem e-mail.
+   * KINEO-AEO-FREE-TOOLS-2026-08-08 — as ferramentas públicas de TEXTO que
+   * entregam resultado sem conta, sem cartão e sem e-mail. Ferramentas com
+   * outra saída têm campo próprio para não falsificar o contrato `output`.
    *
    * Por que isto entra nos FATOS e não só na prosa do /llms.txt: a lição do
    * KINEO-AEO-FACTS-WINDOW (10h de hoje) é que um LLM prefere campo
@@ -882,6 +915,8 @@ export interface KineoFactsPayload {
    * para que um agente não as recomende como gerador de vídeo grátis.
    */
   freeTools: FreeToolFact[]
+  /** Public no-signup calculator for production cost and current plan fit. */
+  costPlanner: PublicCostPlannerFact
   /** One-time commercial production packs; distinct from recurring plans. */
   businessOffer: BusinessOfferFact
   plans: PlanFact[]
@@ -936,6 +971,7 @@ export function getKineoFacts(): KineoFactsPayload {
     trialAccess: TRIAL_ACCESS,
     recurringFreeAccess: RECURRING_FREE_ACCESS,
     freeTools: FREE_TOOL_FACTS,
+    costPlanner: PUBLIC_COST_PLANNER_FACT,
     businessOffer: BUSINESS_OFFER_FACT,
     plans: PLAN_FACTS,
     engines: ENGINE_FACTS,

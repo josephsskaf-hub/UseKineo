@@ -30,6 +30,7 @@ import {
   ENGINE_FACTS,
   FREE_TIER,
   FREE_TOOL_FACTS,
+  PUBLIC_COST_PLANNER_FACT,
   COMPARISON_PAGES,
   COMPETITOR_FACTS,
   LAST_VERIFIED_HUMAN,
@@ -200,6 +201,12 @@ const FACTS: { fact: string }[] = [
         ? `All are rate-limited ${FREE_TOOL_FACTS[0].rateLimit} and output text only — `
         : `All output text only — `) +
       `rendering a finished video requires an account.`,
+  },
+  {
+    fact:
+      `The ${PUBLIC_COST_PLANNER_FACT.name.toLowerCase()} at ${PUBLIC_COST_PLANNER_FACT.url} ` +
+      `also needs no account, card or email. ${PUBLIC_COST_PLANNER_FACT.what} ` +
+      `Current public pricing is at ${PUBLIC_COST_PLANNER_FACT.pricingUrl}.`,
   },
   {
     fact:

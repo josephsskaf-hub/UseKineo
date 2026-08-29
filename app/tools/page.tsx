@@ -1,20 +1,22 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
-import { FREE_TOOL_FACTS } from '@/lib/kineoFacts'
+import { FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT } from '@/lib/kineoFacts'
 
 const BASE = 'https://www.usekineo.com'
+const PUBLIC_TOOL_FACTS = [...FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT]
+type PublicToolFact = (typeof PUBLIC_TOOL_FACTS)[number]
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'Free YouTube Shorts Tools — No Signup or Card | Kineo',
   description:
-    `Use ${FREE_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: ad briefs, scripts, hooks, publishing copy, viral score, content planning and an earnings calculator.`,
+    `Use ${PUBLIC_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: ad briefs, scripts, hooks, publishing copy, viral score, content planning, earnings and production-cost calculators.`,
   alternates: { canonical: `${BASE}/tools` },
   openGraph: {
     title: 'Free YouTube Shorts Tools — No Signup',
     description:
-      `Go from topic, comment, product or business goal to a useful Short plan, script or publishing kit. ${FREE_TOOL_FACTS.length} made-to-order tools, no account or card.`,
+      `Go from topic, comment, product or business goal to a useful Short plan, script, publishing kit or production-cost estimate. ${PUBLIC_TOOL_FACTS.length} made-to-order tools, no account or card.`,
     url: `${BASE}/tools`,
     type: 'website',
     images: [{ url: '/og-card.png', width: 1200, height: 630, alt: 'Kineo free YouTube Shorts tools' }],
@@ -80,6 +82,11 @@ const TOOL_META: Record<string, ToolMeta> = {
     prompt: 'I need an earnings estimate',
     cta: 'Calculate Shorts earnings',
   },
+  '/cheapest-ai-shorts-maker': {
+    eyebrow: 'Start with a publishing schedule',
+    prompt: 'I need the real Kineo production cost',
+    cta: 'Find my cheapest plan',
+  },
 }
 
 const TOOL_ORDER = [
@@ -93,17 +100,18 @@ const TOOL_ORDER = [
   '/free-ai-shorts/localbusiness',
   '/business-video-content-plan',
   '/shorts-money-calculator',
+  '/cheapest-ai-shorts-maker',
 ] as const
 
 function pathFromUrl(url: string): string {
   return new URL(url).pathname
 }
 
-const tools = FREE_TOOL_FACTS.map((tool) => {
+const tools = PUBLIC_TOOL_FACTS.map((tool) => {
   const path = pathFromUrl(tool.url)
   return { ...tool, path, meta: TOOL_META[path] }
 })
-  .filter((tool): tool is (typeof FREE_TOOL_FACTS)[number] & { path: string; meta: ToolMeta } => Boolean(tool.meta))
+  .filter((tool): tool is PublicToolFact & { path: string; meta: ToolMeta } => Boolean(tool.meta))
   .sort((a, b) => TOOL_ORDER.indexOf(a.path as (typeof TOOL_ORDER)[number]) - TOOL_ORDER.indexOf(b.path as (typeof TOOL_ORDER)[number]))
 
 const toolsJsonLd = {
@@ -184,12 +192,12 @@ export default function ToolsPage() {
           <h1>Do the next useful thing for your Short.</h1>
           <p className="tools-intro">
             Do not start with a blank editor. Pick what you already have — a topic, comment,
-            product, business offer, content goal or revenue target — and leave with a made-to-order result.
+            product, business offer, content goal, revenue target or production schedule — and leave with a made-to-order result.
           </p>
           <div className="tools-trust" aria-label="Tool limits">
             <span>{tools.length} free tools</span>
             <span>Made from your input</span>
-            <span>Text and planning only</span>
+            <span>Text, planning and cost estimates</span>
           </div>
         </header>
 
@@ -202,7 +210,13 @@ export default function ToolsPage() {
                 <p className="tool-description">{tool.what}</p>
               </div>
               <div className="tool-footer">
-                <span>{tool.rateLimit ? 'No account · fair-use limit' : 'No account · unlimited in browser'}</span>
+                <span>
+                  {tool.output === 'cost_plan'
+                    ? 'No account · current Kineo plans'
+                    : tool.rateLimit
+                      ? 'No account · fair-use limit'
+                      : 'No account · unlimited in browser'}
+                </span>
                 <Link href={tool.path}>{tool.meta.cta} →</Link>
               </div>
             </article>
@@ -212,7 +226,7 @@ export default function ToolsPage() {
         <section className="tools-boundary" aria-labelledby="finished-video-title">
           <div>
             <p className="tool-eyebrow">Where these tools stop</p>
-            <h2 id="finished-video-title">The free tools return text or planning — not a rendered video.</h2>
+            <h2 id="finished-video-title">The free tools return text, planning or a cost estimate — not a rendered video.</h2>
             <p>
               When your idea is ready, Kineo can turn it into a finished vertical Short with
               voiceover, visuals and captions. That next step requires an account; the free test
