@@ -65,6 +65,7 @@ import {
   normalizeAffiliateClickId,
 } from '@/lib/affiliateAttribution'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
+import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -739,6 +740,12 @@ async function buildAndRedirect(
     ? getAnnualPrice(tier, currency, region)
     : monthlyPriceMinor(tier, currency, region)
   const interval: 'month' | 'year' = isAnnual ? 'year' : 'month'
+  const checkoutValueContext = buildCheckoutValueContext({
+    billing,
+    credits: plan.credits,
+    intentCampaign,
+    tier,
+  })
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
   const requestedPlanFitContext = verifyPlanFitCheckoutContext(req.nextUrl.searchParams, tier, currency)
@@ -831,6 +838,9 @@ async function buildAndRedirect(
     checkout_origin: checkoutOrigin,
     checkout_recovery: checkoutRecovery,
     intent_campaign: intentCampaign ?? null,
+    checkout_value_context: checkoutValueContext.version,
+    checkout_value_variant: checkoutValueContext.variant,
+    checkout_value_output_count: checkoutValueContext.outputCount,
   }
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
@@ -1173,7 +1183,7 @@ async function buildAndRedirect(
             name: isAnnual ? `${plan.name} (Annual)` : plan.name,
             description: planFitContext?.plan_fit_selected_tier_matches === '1'
               ? `${plan.description} · Covers your ${planFitContext.plan_fit_monthly_videos} ${engineName(planFitContext.plan_fit_planned_engine)} video${planFitContext.plan_fit_monthly_videos === '1' ? '' : 's'}/month plan`
-              : plan.description,
+              : checkoutValueContext.lineItemDescription ?? plan.description,
           },
           unit_amount: unitAmount,
           recurring: { interval },
@@ -1192,18 +1202,17 @@ async function buildAndRedirect(
     after_expiration: {
       recovery: { enabled: true },
     },
-    // KINEO-CHECKOUT-REASSURANCE-2026-08-03 — POR QUE ISTO EXISTE.
-    // Autópsia no Stripe (03/08): dos 19 payments "failed" da conta, 13 eram
-    // testes internos de maio e ZERO eram declines de clientes externos
-    // desconhecidos. Quem abre o checkout e não paga está DESISTINDO sem
-    // digitar o cartão (hesitação), não levando recusa. Este texto coloca a
-    // reversão de risco no exato pixel onde a hesitação acontece — embaixo do
-    // botão de pagar, dentro da página do Stripe, o único lugar da jornada que
-    // até hoje não dizia nada. Estático de propósito: não varia por sessão,
-    // então não interfere na idempotencyKey.
+    // KINEO-CHECKOUT-VALUE-CONTEXT-2026-08-29 — production measured 15 people
+    // reaching Stripe after an offer click and zero completing payment. The
+    // old line repeated the guarantee but did not say when credits arrive or
+    // translate the residual-balance Seedance intent into an output count.
+    // The policy changes only display copy; price, grant and entitlement stay
+    // server-authoritative. `custom_text` and `line_items` are both included in
+    // the idempotency signature below because Stripe rejects one key reused
+    // with different parameters.
     custom_text: {
       submit: {
-        message: '7-day money-back guarantee. Cancel anytime from your dashboard in one click.',
+        message: checkoutValueContext.submitMessage,
       },
     },
     success_url: `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`,
@@ -1256,6 +1265,11 @@ async function buildAndRedirect(
       ip_country: country,
       checkout_origin: checkoutOrigin,
       checkout_recovery: checkoutRecovery ? '1' : '0',
+      checkout_value_context: checkoutValueContext.version,
+      checkout_value_variant: checkoutValueContext.variant,
+      ...(checkoutValueContext.outputCount !== null
+        ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
+        : {}),
       ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
       ...(planFitContext ?? {}),
     },
@@ -1291,6 +1305,11 @@ async function buildAndRedirect(
         plan_credits: String(plan.credits),
         checkout_origin: checkoutOrigin,
         checkout_recovery: checkoutRecovery ? '1' : '0',
+        checkout_value_context: checkoutValueContext.version,
+        checkout_value_variant: checkoutValueContext.variant,
+        ...(checkoutValueContext.outputCount !== null
+          ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
+          : {}),
         ...(wantsTrial && !isAnnual ? { card_trial: '1', trial_days: String(TRIAL_DAYS) } : {}),
         ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
         ...(planFitContext ?? {}),
@@ -1777,7 +1796,7 @@ async function buildAndRedirect(
   sessionParams.expires_at = checkoutWindow * 300 + 2 * 60 * 60
   const checkoutIdempotencyKeyFor = (finalCustomerId: string): string => {
     const checkoutSignature = JSON.stringify({
-      version: 5,
+      version: 6,
       user_id: user.id,
       customer_id: finalCustomerId,
       tier,
@@ -1796,14 +1815,16 @@ async function buildAndRedirect(
       checkout_origin: sessionParams.metadata?.checkout_origin ?? 'standard',
       checkout_recovery: sessionParams.metadata?.checkout_recovery ?? '0',
       intent_campaign: sessionParams.metadata?.intent_campaign ?? null,
-      // Preserve the exact pre-Plan-Fit signature for ordinary checkouts.
-      // Otherwise an in-flight retry crossing this deploy would create a
-      // second Stripe Session even though its commercial intent did not move.
+      line_items: sessionParams.line_items,
+      custom_text: sessionParams.custom_text,
+      // Keep Plan Fit out of ordinary checkout signatures after this explicit
+      // v6 display-copy migration. Future Plan Fit-only edits must not change
+      // the idempotency key of a checkout that has no Plan Fit context.
       ...(planFitContext ? { plan_fit: planFitContext } : {}),
       after_expiration: sessionParams.after_expiration,
       window: checkoutWindow,
     })
-    return `kineo-sub-v4:${createHash('sha256').update(checkoutSignature).digest('hex')}`
+    return `kineo-sub-v5:${createHash('sha256').update(checkoutSignature).digest('hex')}`
   }
   const createCheckoutSessionFor = (finalCustomerId: string) => {
     sessionParams.customer = finalCustomerId

@@ -104,7 +104,9 @@ equal(summary.clickToPremiumRate, '66.7%', 'click-to-premium rate is person-leve
 equal(summary.premiumToCheckoutRate, '50.0%', 'premium-to-checkout rate is person-level')
 equal(summary.checkoutToPaidRate, '100.0%', 'checkout-to-paid rate is person-level')
 
-const client = read('app/(dashboard)/generate/GenerateClient.tsx')
+// Worktrees on Windows can materialize tracked text as CRLF. Normalize only
+// the test input so structural assertions do not depend on checkout settings.
+const client = read('app/(dashboard)/generate/GenerateClient.tsx').replace(/\r\n/g, '\n')
 check(client.includes("import {\n  decideTrialBalanceBridge"), 'production client imports executable policy')
 check(client.includes("trackEvent('trial_balance_bridge_viewed'"), 'real impression emits bridge event')
 check(client.includes("trackEvent('trial_balance_bridge_clicked'"), 'real CTA emits bridge click')
