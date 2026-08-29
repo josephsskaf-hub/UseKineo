@@ -23,8 +23,21 @@ export const STUDIO_KIT_CSS = `
 .stu h1{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:0 0 4px;font-family:var(--font-display),var(--font-inter),sans-serif;background:linear-gradient(92deg,#fff 30%,#7cc0ff 85%);-webkit-background-clip:text;background-clip:text;color:transparent;width:fit-content}
 .stu .sub{color:rgba(255,255,255,.52);font-size:14px;margin:0 0 26px}
 .stu .grid{display:grid;grid-template-columns:352px 1fr;gap:22px;align-items:start}
-@media(max-width:900px){.stu .grid{grid-template-columns:1fr}}
 .stu .rail{position:sticky;top:20px;display:flex;flex-direction:column;gap:14px}
+/* KINEO-MOBILE-2026-08-29 — auditoria mobile do fundador ("fica muito
+   esquisito, aparece os motores mas nao aparece do lado pra escrever").
+   CAUSA RAIZ: no celular o grid empilha em 1 coluna, mas o .rail continuava
+   position:sticky — a coluna dos motores GRUDAVA no topo e o resto da pagina
+   (a caixa de escrever!) rolava POR BAIXO dela, texto sobre texto. sticky so
+   faz sentido com duas colunas lado a lado; em pilha ele e o proprio bug.
+   O bloco vale para TODOS os ambientes do kit (Studio/Animate/Audio/Images),
+   pela regra de ouro do arquivo: conserto entra aqui uma vez. */
+@media(max-width:900px){
+  .stu{padding:16px 14px 96px}
+  .stu h1{font-size:27px}
+  .stu .grid{grid-template-columns:1fr;gap:16px}
+  .stu .rail{position:static}
+}
 .stu .card{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:15px 16px;transition:border-color .18s ease}
 .stu .card:hover{border-color:rgba(255,255,255,.16)}
 .stu .lab{display:flex;align-items:center;gap:8px;font-size:10.5px;color:rgba(255,255,255,.55);font-weight:700;text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;font-family:var(--font-display),var(--font-inter),sans-serif}

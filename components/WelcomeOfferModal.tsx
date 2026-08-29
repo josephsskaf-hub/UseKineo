@@ -145,6 +145,10 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
           padding: 1, borderRadius: 18, width: 560, maxWidth: '96vw',
           background: 'linear-gradient(135deg, rgba(41,151,255,.55), rgba(167,139,250,.35) 45%, rgba(41,151,255,.12))',
           boxShadow: '0 0 90px rgba(41,151,255,.14), 0 30px 80px rgba(0,0,0,.6)',
+          // KINEO-MOBILE-2026-08-29 — em tela baixa o modal precisa rolar por
+          // dentro; sem isto o card Studio ficava CORTADO e inclicável no
+          // celular (visto na auditoria mobile do fundador).
+          maxHeight: '92vh', overflowY: 'auto',
         }}
       >
         <div style={{ background: '#101013', borderRadius: 17, padding: '26px 28px 24px', position: 'relative' }}>
@@ -179,7 +183,11 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
             style={{ width: '100%', borderRadius: 12, border: '1px solid #2a2a2d', maxHeight: 170, objectFit: 'cover', marginBottom: 16 }}
           />
 
-          <div style={{ display: 'flex', gap: 10 }}>
+          {/* KINEO-MOBILE-2026-08-29 — flexWrap + base 230px: no celular os
+              dois planos EMPILHAM em vez de estourar pra fora da tela (o
+              Studio ficava cortado à direita, com o botão de comprar
+              inalcançável — perda de venda literal). */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {plans.map((p) => {
               const fullMinor = TIER_PRICES[p.tier].usd
               const full = formatCheckoutMoney('usd', fullMinor)
@@ -190,7 +198,7 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
                   href={`/api/stripe/checkout?tier=${p.tier}&billing=monthly&promo=WELCOME20&checkout_origin=welcome20_modal`}
                   onClick={() => setPending(p.tier)}
                   style={{
-                    flex: 1, display: 'block', textDecoration: 'none',
+                    flex: '1 1 230px', minWidth: 0, display: 'block', textDecoration: 'none',
                     borderRadius: 14, padding: '16px 16px 14px', position: 'relative',
                     background: p.highlight ? 'rgba(41,151,255,.10)' : 'rgba(255,255,255,.03)',
                     border: p.highlight ? '1px solid rgba(41,151,255,.55)' : '1px solid rgba(255,255,255,.10)',
