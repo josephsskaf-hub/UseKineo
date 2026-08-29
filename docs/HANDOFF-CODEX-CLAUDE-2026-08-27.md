@@ -1423,3 +1423,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, oferta, SKU, checkout server-side, Stripe session creation, webhook, Auth, Supabase, Storage, migration, banco, render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ea84c01` ou da ponta posterior de `origin/main`. Não reconstruir a retomada nem adicionar outro card concorrente no pós-vídeo. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 33. Conversão — objetivo do Plan Fit preservado na sessão salva (29/08/2026)
+
+**BASE DE CÓDIGO:** `6734591c7f73b6e1ece8bd5bc18d272afdf05f17`, igual a `origin/main` no início da worktree isolada `codex/growth-plan-fit-saved-resume`.
+
+**FATO CONFIRMADO / GARGALO NÃO DUPLICADO:** a seção 32 corrigiu quem fecha o Stripe pelo botão de voltar e aterrissa em `/checkout/cancelled`. Quem simplesmente fecha a aba recebe outro mecanismo: `/api/stripe/checkout/resume` resolve a sessão Stripe salva e alimenta `PricingSavedCheckout` e `CheckoutResumeBanner`. Antes deste commit, `internalRetryUrl` já preservava o contrato Plan Fit na URL, mas o JSON e as duas interfaces devolviam apenas plano, billing e valores. Motor, duração e cadência voltavam a desaparecer.
+
+**IMPLEMENTADO:** commit funcional `ae5113cd4e9487ab0045b9ab5dbbb75365e598a0` adiciona `readPlanFitCheckoutReturnFromMetadata` à fonte canônica. A rota reconstrói o resumo somente da metadata Stripe da sessão autenticada e possuída já validada, somente em USD canônico; origem, engine, cadência, duração, tier recomendado ou vídeo inválidos resultam em `planFit:null`. O JSON não expõe `video_id`, metadata crua ou conteúdo do roteiro — apenas engine canônico, label, cadência, segundos e aderência do tier.
+
+**IMPLEMENTADO / DUAS SUPERFÍCIES, UMA OFERTA:** `PricingSavedCheckout` passa a dizer `Your saved goal is 4 × 60s Seedance 1.5 videos/month` e usa `Continue this video plan`; o banner global mostra o mesmo objetivo e usa `Resume this goal`. Retomadas comuns continuam com a copy anterior. As duas superfícies usam `formatCheckoutResumePlanFitGoal`, o mesmo response type e os mesmos campos bounded de telemetria. Nenhum fetch, consulta Stripe, consulta Supabase, preço, desconto, oferta ou sessão adicional foi criado.
+
+**REVISÃO REACT:** objetivo e copy são derivados durante render; nenhum estado ou efeito novo foi adicionado. A chave de dedupe e a telemetria usam somente primitivos, evitando rerender/evento duplicado. A página de preços continua dona da superfície contextual e o banner global continua suprimido nela, preservando uma oferta por viewport.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 273/273 verificações e `node scripts/test-pricing-saved-checkout.mjs` executou 33/33. As suítes executam reconstrução por metadata válida, rejeição de origem forjada, formatação singular/plural, contrato da rota, caller das duas interfaces e fallback genérico. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-SAVED-RESUME-2026-08-29.html` contém antes/depois do card de pricing em desktop e do banner global em mobile. O preview foi servido por localhost somente leitura e inspecionado no Chrome conectado do fundador: quatro estados, overflow horizontal zero e console sem erro ou warning; o servidor temporário foi encerrado.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_AWwkHLt6k5KbTuFjtLzxFMtvRrNe` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. `/pricing` respondeu 200/`PRERENDER` com assets presos ao deploy. O chunk publicado de pricing contém `Your saved goal is` e `Continue this video plan`; o chunk do layout contém `Resume this goal`. A Vercel registrou zero erro runtime agrupado em `/pricing` e `/api/stripe/checkout/resume` nos 30 minutos consultados.
+
+**LIMITE DA VALIDAÇÃO:** o endpoint autenticado de resume não foi chamado manualmente, para não consumir leitura Supabase/Stripe durante o incidente de capacidade informado pelo fundador. Portanto publicação do código, contratos, UI e ausência de erro observado estão confirmadas; a aparição com uma sessão real salva permanece `QUESTÃO PENDENTE`, não é chamada de conversão validada.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa que viu o objetivo salvo, retomou ou assinou por causa desta mudança. Medir pessoas, não eventos, em `pricing_saved_checkout_viewed/clicked` e `checkout_resume_banner_viewed/clicked`, segmentando `checkout_origin=plan_fit_first_delivery` e ligando ao pagamento do mesmo ator.
+
+**NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, oferta, SKU, criação de Checkout Session, webhook, Auth, Supabase, Storage, migration, banco, render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ae5113c` ou da ponta posterior de `origin/main`. Não reconstruir a sessão salva nem criar banner concorrente. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
