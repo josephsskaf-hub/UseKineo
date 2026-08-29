@@ -994,7 +994,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <Card
           label="Bridge viewers"
           value={fmt(trialBalanceBridge.viewers)}
-          hint="Fast trial users with 19–24cr left"
+          hint="Fast trial users with 15–24cr left"
           accent="#c084fc"
         />
         <RateCard
@@ -1005,7 +1005,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
         <Card
           label="Premium completers"
           value={fmt(trialBalanceBridge.premiumCompleters)}
-          hint="45s Seedance completed after click"
+          hint="35s Seedance completed after click"
           accent="#22d3ee"
         />
         <RateCard

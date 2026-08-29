@@ -133,6 +133,9 @@ for (const label of ['Bridge viewers', 'Premium completers', 'Checkout after pre
   check(admin.includes(label), `admin displays ${label}`)
 }
 
+check(admin.includes('Fast trial users with 15–24cr left'), 'admin shows the actual eligibility band')
+check(admin.includes('35s Seedance completed after click'), 'admin shows the actual supported bridge duration')
+
 const previewPath = 'docs/previews/TRIAL-BALANCE-BRIDGE-2026-08-29.html'
 check(fs.existsSync(path.join(root, previewPath)), 'before/after preview exists')
 const preview = read(previewPath)
