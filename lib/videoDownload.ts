@@ -122,6 +122,11 @@ export interface DownloadVideoOptions {
   videoId?: string | null
   /** Metadados extras específicos da tela (opcional). */
   extra?: Record<string, unknown>
+  /**
+   * Bytes já baixados, entregues ao caller sem uma segunda transferência.
+   * É best-effort: exceção do callback nunca pode quebrar o download.
+   */
+  onBlobReady?: (blob: Blob) => void
 }
 
 /**
@@ -811,6 +816,12 @@ async function runDownload(
     const res = await fetch(url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const blob = await res.blob()
+    try {
+      opts.onBlobReady?.(blob)
+    } catch {
+      // O arquivo continua sendo entregue mesmo se a superfície opcional de
+      // compartilhamento não conseguir guardar a referência em memória.
+    }
     const blobUrl = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = blobUrl

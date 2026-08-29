@@ -195,9 +195,16 @@ check(scriptsHub.includes('data-customer-script-library="private"'), 'script hub
 check(scriptsHub.includes('Customer videos and scripts are not published'), 'script hub must not promise publication of customer work')
 check(scriptsHub.includes('robots: { index: false'), 'private script hub must be noindex')
 const scriptVertical = read('app/scripts/[vertical]/page.tsx')
-check(scriptVertical.includes("if (!CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED) redirect('/scripts')"), 'private script verticals must redirect to the honest hub')
+// KINEO-SPACE-INTENT-2026-08-29 added one founder-authored static answer at
+// /scripts/space. It contains no customer row and deliberately survives the
+// customer-library gate. The old assertion required every vertical to redirect
+// and became stale; lock the exact bounded exception instead.
+check(scriptVertical.includes("const isStaticSpaceAnswer = v.slug === 'space'"), 'script verticals must name the only static editorial exception')
+check(scriptVertical.includes("if (!customerLibraryEnabled && !isStaticSpaceAnswer) redirect('/scripts')"), 'private customer-script verticals must still redirect to the honest hub')
+check(scriptVertical.includes('const lib = customerLibraryEnabled ? await getScriptLibrary() : null'), 'static answer must skip the customer-library loader while the gate is off')
 const sitemapRoute = read('app/sitemap.ts')
-check(sitemapRoute.includes('CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS.map'), 'private script shelves must leave the sitemap')
+check(sitemapRoute.includes("const publicScriptShelfSlugs = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? SCRIPT_VERTICAL_SLUGS : ['space']"), 'private customer shelves must leave the sitemap while the one static answer remains')
+check(sitemapRoute.includes('const scriptShelfEntries = publicScriptShelfSlugs.map'), 'sitemap must enumerate only the gated shelf allowlist')
 check(
   /\.\.\.\(CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED\s*\?\s*\[\{ path: '\/scripts'[\s\S]*?\}\]\s*:\s*\[\]\)/.test(sitemapRoute),
   'private script hub must leave the sitemap',

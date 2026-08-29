@@ -1513,6 +1513,16 @@ export default function GenerateClient({
   const [shareReferralCode, setShareReferralCode] = useState<string | null>(null)
   const sharePromptRef = useRef<HTMLDivElement | null>(null)
   const sharePromptTrackedKeyRef = useRef<string | null>(null)
+  // KINEO-PRIVATE-FILE-SHARE-2026-08-29 — links públicos de clientes seguem
+  // desligados. Guardamos apenas o blob que o download desta tela JÁ buscou,
+  // até o próximo vídeo, para abrir o seletor nativo sem segunda transferência.
+  const downloadedVideoBlobRef = useRef<Blob | null>(null)
+  const privateFileShareRef = useRef<HTMLDivElement | null>(null)
+  const privateFileShareTrackedKeyRef = useRef<string | null>(null)
+  const [shareableDownloadedFile, setShareableDownloadedFile] = useState(false)
+  const [privateFileShareState, setPrivateFileShareState] = useState<
+    'idle' | 'sharing' | 'shared' | 'unsupported' | 'error'
+  >('idle')
 
   // KINEO-WM-CHECKOUT-2026-07-07 — "watermark moment" inline checkout.
   // A free-plan video ships with a burnt-in watermark. Right after the render
@@ -1777,6 +1787,10 @@ export default function GenerateClient({
     postHandoffScrolledRef.current = false
     postInviteSeenRef.current = false
     postPasteFocusedRef.current = false
+    downloadedVideoBlobRef.current = null
+    privateFileShareTrackedKeyRef.current = null
+    setShareableDownloadedFile(false)
+    setPrivateFileShareState('idle')
   }
 
   async function submitPostedLink() {
@@ -2342,6 +2356,34 @@ export default function GenerateClient({
     observer.observe(element)
     return () => observer.disconnect()
   }, [phase, publicVideoId, shareReferralCode])
+
+  // The privacy-safe loop has its own denominator. A ready blob is not an
+  // impression: count only when at least half of the direct-file card is seen.
+  useEffect(() => {
+    if (PUBLIC_VIDEO_SHARING_ENABLED) return
+    const element = privateFileShareRef.current
+    const key = publicVideoId || finalVideoUrl
+    if (
+      phase !== 'done' ||
+      !shareableDownloadedFile ||
+      !element ||
+      !key ||
+      privateFileShareTrackedKeyRef.current === key
+    ) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
+      privateFileShareTrackedKeyRef.current = key
+      void trackEvent('private_video_file_share_viewed', {
+        surface: 'done_screen',
+        variant: 'native_file_share_v1',
+        public_page_created: false,
+      })
+      observer.disconnect()
+    }, { threshold: [0.5] })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [phase, publicVideoId, finalVideoUrl, shareableDownloadedFile])
 
   // Push #317 — check YouTube connection status once when the done screen appears.
   useEffect(() => {
@@ -7670,6 +7712,11 @@ export default function GenerateClient({
       exportType,
       surface: 'done_screen',
       videoId: publicVideoId ?? null,
+      onBlobReady: (blob) => {
+        downloadedVideoBlobRef.current = blob
+        setShareableDownloadedFile(true)
+        setPrivateFileShareState('idle')
+      },
     })
     // Antes isto só rodava no caminho do blob: quem caísse no fallback ficava
     // com o arquivo aberto na tela e o app achando que não — e é esta flag que
@@ -7774,6 +7821,62 @@ export default function GenerateClient({
     trackEvent('video_share_channel_opened', metadata)
     if (channel === 'whatsapp') {
       trackEvent('video_share_whatsapp_open', metadata)
+    }
+  }
+
+  async function handleShareDownloadedFile() {
+    const blob = downloadedVideoBlobRef.current
+    if (!blob || privateFileShareState === 'sharing') return
+
+    const slug = slugifyTitle(analysis?.title)
+    const filename = slug ? `${slug}.mp4` : `kineo-${finalVideoSeconds ?? duration}s.mp4`
+    const metadata = {
+      version: 'native_file_share_v1',
+      where: 'done_screen',
+      surface: 'post_render_private_file_card',
+      channel: 'native_file',
+      video_id: publicVideoId,
+      public_page_created: false,
+      bytes: blob.size,
+    }
+    void trackEvent('video_share_clicked', metadata)
+    void trackEvent('private_video_file_share_clicked', metadata)
+    setPrivateFileShareState('sharing')
+
+    try {
+      const file = new File([blob], filename, { type: blob.type || 'video/mp4' })
+      if (
+        typeof navigator.share !== 'function' ||
+        typeof navigator.canShare !== 'function' ||
+        !navigator.canShare({ files: [file] })
+      ) {
+        setPrivateFileShareState('unsupported')
+        void trackEvent('private_video_file_share_unavailable', {
+          ...metadata,
+          reason: 'file_share_not_supported',
+        })
+        return
+      }
+
+      await navigator.share({
+        files: [file],
+        title: analysis?.title?.trim() || 'My Kineo Short',
+        text: 'Made with Kineo — https://www.usekineo.com',
+      })
+      setPrivateFileShareState('shared')
+      void trackEvent('video_shared', { ...metadata, method: 'native_file' })
+      void trackEvent('private_video_file_shared', metadata)
+    } catch (error) {
+      const cancelled =
+        typeof error === 'object' &&
+        error !== null &&
+        'name' in error &&
+        error.name === 'AbortError'
+      setPrivateFileShareState(cancelled ? 'idle' : 'error')
+      void trackEvent(
+        cancelled ? 'private_video_file_share_cancelled' : 'private_video_file_share_failed',
+        { ...metadata, reason: cancelled ? 'user_cancelled' : 'share_api_failed' },
+      )
     }
   }
 
@@ -12481,18 +12584,68 @@ export default function GenerateClient({
                 </div>
                 ) : (
                   <div
+                    ref={privateFileShareRef}
                     data-public-sharing-state="disabled"
-                    className="w-full rounded-2xl px-5 py-4 text-center"
-                    style={{ background: 'rgba(41,151,255,.06)', border: '1px solid rgba(41,151,255,.24)' }}
+                    className="w-full rounded-2xl px-5 py-5 text-center"
+                    style={{
+                      background: shareableDownloadedFile
+                        ? 'linear-gradient(145deg, rgba(37,211,102,.12), rgba(41,151,255,.08))'
+                        : 'rgba(41,151,255,.06)',
+                      border: shareableDownloadedFile
+                        ? '1px solid rgba(37,211,102,.38)'
+                        : '1px solid rgba(41,151,255,.24)',
+                    }}
                   >
                     <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: '#7cc0ff' }}>
                       Private by default
                     </div>
                     <h3 className="mt-1.5 font-black tracking-tight" style={{ color: 'var(--text)', fontSize: '1rem' }}>
-                      Public watch links are temporarily paused
+                      {shareableDownloadedFile
+                        ? 'Share the MP4 — without making it public'
+                        : 'Public watch links are temporarily paused'}
                     </h3>
                     <p className="mt-2 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                      Download the MP4 to share it directly. Kineo will not publish a public page without an explicit visibility choice.
+                      {shareableDownloadedFile
+                        ? 'Open your device share sheet and choose the person or app. The video file is attached directly.'
+                        : 'Download the MP4 to share it directly.'}
+                    </p>
+                    {shareableDownloadedFile && (
+                      <button
+                        type="button"
+                        onClick={handleShareDownloadedFile}
+                        disabled={privateFileShareState === 'sharing'}
+                        className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white"
+                        style={{
+                          background: 'linear-gradient(135deg, #25D366, #128C4A)',
+                          border: '1px solid rgba(37,211,102,.55)',
+                          cursor: privateFileShareState === 'sharing' ? 'wait' : 'pointer',
+                          opacity: privateFileShareState === 'sharing' ? 0.7 : 1,
+                          boxShadow: '0 8px 24px rgba(37,211,102,.20)',
+                        }}
+                      >
+                        <span aria-hidden>{privateFileShareState === 'shared' ? '✓' : '↗'}</span>
+                        {privateFileShareState === 'sharing'
+                          ? 'Opening your share sheet…'
+                          : privateFileShareState === 'shared'
+                            ? 'Shared from your device'
+                            : 'Share downloaded MP4'}
+                      </button>
+                    )}
+                    <p
+                      className="mt-2.5 text-center"
+                      aria-live="polite"
+                      style={{ color: 'var(--muted2)', fontSize: '0.68rem', lineHeight: 1.45 }}
+                    >
+                      {privateFileShareState === 'unsupported'
+                        ? 'This browser cannot attach video files. Share it from your Downloads folder.'
+                        : privateFileShareState === 'error'
+                          ? 'The share sheet could not open. Your downloaded file is still safe.'
+                          : privateFileShareState === 'shared'
+                            ? 'Your video was shared; no Kineo watch page was created.'
+                            : 'Nothing is sent until you choose a recipient.'}
+                    </p>
+                    <p className="mt-2 text-center" style={{ color: '#606068', fontSize: '0.64rem', lineHeight: 1.4 }}>
+                      Public watch links are temporarily paused. Kineo will not publish a public page without an explicit visibility choice.
                     </p>
                   </div>
                 )}
