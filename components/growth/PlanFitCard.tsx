@@ -340,9 +340,16 @@ export default function PlanFitCard({
                   : checkoutPending === result.plan.tier
                   ? 'Opening secure checkout…'
                   : currency
-                    ? `Get ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`
-                    : `Choose ${planName(result.plan.tier)} · See secure checkout`}
+                    ? `Continue with ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`
+                    : `Continue with ${planName(result.plan.tier)} · See secure checkout`}
               </button>
+              <p
+                data-plan-fit-checkout-reassurance
+                className="mt-2.5 text-xs font-semibold"
+                style={{ color: 'var(--muted)', lineHeight: 1.5 }}
+              >
+                🔒 Secure Stripe checkout · cancel anytime in one click · 7-day money-back
+              </p>
             </div>
           ) : (
             <div>
