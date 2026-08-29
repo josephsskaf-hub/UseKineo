@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { rememberSignupCampaign, trackEvent } from '@/lib/analytics'
+import type { CreationIntent } from '@/lib/creationHandoff'
 
 const TOPIC_EXAMPLES = [
   'The island too dangerous to visit',
@@ -20,6 +21,7 @@ type TopicGeneratorFormProps = {
   language?: 'en' | 'pt' | 'es'
   scriptMode?: 'ai' | 'verbatim'
   duration?: 35 | 45 | 60 | 90
+  creationIntent?: Exclude<CreationIntent, null>
   analyticsVariant?: string
   marginTop?: number
   copy?: {
@@ -42,6 +44,7 @@ export default function TopicGeneratorForm({
   language,
   scriptMode,
   duration,
+  creationIntent = 'fast',
   analyticsVariant,
   marginTop = 30,
   copy = {
@@ -65,6 +68,7 @@ export default function TopicGeneratorForm({
       ...(language ? { language } : {}),
       ...(scriptMode ? { script_mode: scriptMode } : {}),
       ...(duration ? { duration_seconds: duration } : {}),
+      creation_intent: creationIntent,
       ...(analyticsVariant ? { variant: analyticsVariant } : {}),
     }
     void trackEvent('organic_topic_example_started', metadata)
@@ -92,7 +96,7 @@ export default function TopicGeneratorForm({
     })
     const params = new URLSearchParams({
       prompt: example,
-      create_intent: 'fast',
+      create_intent: creationIntent,
       intent_campaign: campaign,
     })
     if (utmSource) params.set('utm_source', utmSource)
@@ -128,6 +132,7 @@ export default function TopicGeneratorForm({
             ...(language ? { language } : {}),
             ...(scriptMode ? { script_mode: scriptMode } : {}),
             ...(duration ? { duration_seconds: duration } : {}),
+            creation_intent: creationIntent,
             ...(analyticsVariant ? { variant: analyticsVariant } : {}),
           }
           void trackEvent('organic_topic_submitted', submitMetadata)
@@ -171,7 +176,7 @@ export default function TopicGeneratorForm({
             outline: 'none',
           }}
         />
-        <input type="hidden" name="create_intent" value="fast" />
+        <input type="hidden" name="create_intent" value={creationIntent} />
         <input type="hidden" name="intent_campaign" value={campaign} />
         {utmSource && <input type="hidden" name="utm_source" value={utmSource} />}
         {utmMedium && <input type="hidden" name="utm_medium" value={utmMedium} />}

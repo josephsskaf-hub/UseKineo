@@ -89,7 +89,9 @@ for (const page of pages) {
 
 const topicForm = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
 ok(topicForm.includes('name="prompt"'), 'shared form submits the visitor topic')
-ok(topicForm.includes('name="create_intent" value="fast"'), 'shared form couples Fast intent to that submission')
+ok(topicForm.includes("creationIntent = 'fast'"), 'shared form keeps Fast as the default for existing callers')
+ok(topicForm.includes('name="create_intent" value={creationIntent}'), 'shared form couples the selected intent to that submission')
+ok(topicForm.includes('create_intent: creationIntent'), 'example clicks couple the selected intent to that submission')
 ok(topicForm.includes('name="intent_campaign" value={campaign}'), 'shared form submits campaign attribution')
 ok(topicForm.includes('required') && topicForm.includes('minLength={3}'), 'empty or trivial topic cannot submit')
 ok(topicForm.includes('action="/signup"') && topicForm.includes('method="get"'), 'form uses the established resilient signup handoff')

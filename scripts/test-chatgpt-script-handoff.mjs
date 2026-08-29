@@ -67,7 +67,7 @@ try {
   const script = 'HOOK: The radio went silent. MICRO REWARD: The clock kept moving. ESCALATION: Nobody knew why. RHYTHM: Then it rang. PAYOFF: The call came from inside.'
   const publicQuery = new URLSearchParams({
     prompt: script,
-    create_intent: 'fast',
+    create_intent: 'trial_best',
     intent_campaign: 'chatgpt_to_shorts',
     script_mode: 'verbatim',
     duration: '35',
@@ -77,10 +77,11 @@ try {
   const activation = handoff.resolveActivationCreationContract(authDestination)
 
   equal(carried.prompt, script, 'signup carrier keeps the bounded script')
-  equal(authDestination.get('create_intent'), 'fast', 'Fast intent crosses signup')
+  equal(authDestination.get('create_intent'), 'trial_best', 'best eligible trial intent crosses signup')
   equal(authDestination.get('script_mode'), 'verbatim', 'verbatim mode crosses signup')
   equal(authDestination.get('duration'), '35', '35-second target crosses signup')
   equal(activation.prompt, script, 'activation receives the same script')
+  equal(activation.createIntent, 'trial_best', 'activation receives the best eligible trial intent')
   equal(activation.scriptMode, 'verbatim', 'activation commits verbatim mode')
   equal(activation.duration, 35, 'activation commits the requested duration')
   equal(activation.structureFirst, false, 'verbatim activation cannot call the structure-first rewriter')
@@ -119,6 +120,8 @@ try {
   includes(page, "const HANDOFF_ID = 'chatgpt-script-handoff'", 'handoff has a stable anchor')
   includes(page, 'scriptMode="verbatim"', 'landing explicitly requests verbatim handling')
   includes(page, 'duration={35}', 'landing explicitly requests its advertised duration')
+  includes(page, 'creationIntent="trial_best"', 'landing explicitly requests the best eligible trial engine')
+  includes(page, 'otherwise it falls back safely to Fast', 'landing tells the truth about the safe fallback')
   includes(page, 'RHYTHM:', 'published prompt contains the fifth supported section')
   ok(!page.includes('Your exact text'), 'copy does not promise byte-for-byte punctuation')
   ok(!page.includes('goes in as-is'), 'copy does not claim an unqualified as-is path')
@@ -135,7 +138,9 @@ try {
 
   // Form fields and signup both use the shared contract.
   includes(topicForm, 'name="prompt"', 'script is submitted as prompt')
-  includes(topicForm, 'name="create_intent" value="fast"', 'Fast creation intent is explicit')
+  includes(topicForm, "creationIntent = 'fast'", 'shared form preserves Fast as the default for every other caller')
+  includes(topicForm, 'name="create_intent" value={creationIntent}', 'selected creation intent is explicit')
+  includes(topicForm, 'create_intent: creationIntent', 'example clicks carry the selected creation intent too')
   includes(topicForm, 'name="intent_campaign" value={campaign}', 'intent campaign is explicit')
   includes(topicForm, 'name="script_mode" value={scriptMode}', 'script mode is explicit')
   includes(topicForm, 'name="duration" value={duration}', 'duration is explicit')
@@ -170,7 +175,8 @@ try {
   // its complete, honest contract.
   includes(facts, 'export const START_HERE_FACT', 'facts expose a shared start-here record')
   includes(facts, "url: `${BASE}/chatgpt-to-youtube-shorts`", 'start-here points at the handoff page')
-  includes(facts, "['script', 'campaign', 'fast_creation_intent', 'verbatim_mode', 'duration']", 'machine-readable contract lists all carried values')
+  includes(facts, "['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']", 'machine-readable contract lists all carried values')
+  includes(facts, 'Seedance when an active trial balance covers it, otherwise Fast', 'public facts describe the same bounded router')
   includes(facts, 'startHere: START_HERE_FACT', '/api/facts payload includes start-here')
   includes(factsRoute, 'JSON.stringify(getKineoFacts()', '/api/facts serializes the shared payload')
   includes(llms, 'START_HERE_FACT', '/llms.txt imports the shared record')
@@ -184,6 +190,13 @@ try {
   ]) {
     ok(existsSync(join(root, preview)), `${preview} exists`)
   }
+
+  const trialBestPreviewPath = 'docs/previews/CHATGPT-TRIAL-BEST-HANDOFF-2026-08-29.html'
+  ok(existsSync(join(root, trialBestPreviewPath)), `${trialBestPreviewPath} exists`)
+  const trialBestPreview = read(trialBestPreviewPath)
+  includes(trialBestPreview, 'Before · desktop', 'trial-best preview contains the old desktop state')
+  includes(trialBestPreview, 'After · desktop', 'trial-best preview contains the new desktop state')
+  includes(trialBestPreview, 'After · mobile', 'trial-best preview contains the new mobile state')
 
   console.log(`chatgpt-script-handoff: ${checks}/${checks} checks passed`)
 } finally {

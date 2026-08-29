@@ -708,7 +708,7 @@ export interface StartHereFact {
   audience: string
   url: string
   action: string
-  carriesThroughSignup: readonly ['script', 'campaign', 'fast_creation_intent', 'verbatim_mode', 'duration']
+  carriesThroughSignup: readonly ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration']
 }
 
 /**
@@ -719,8 +719,8 @@ export interface StartHereFact {
 export const START_HERE_FACT: StartHereFact = {
   audience: 'People who already have a YouTube Shorts script from ChatGPT',
   url: `${BASE}/chatgpt-to-youtube-shorts`,
-  action: 'Paste the existing script, then continue through signup into a 35-second Fast workflow that preserves the word sequence.',
-  carriesThroughSignup: ['script', 'campaign', 'fast_creation_intent', 'verbatim_mode', 'duration'],
+  action: 'Paste the existing script, then continue through signup into a 35-second best-eligible trial workflow: Seedance when an active trial balance covers it, otherwise Fast. The word sequence is preserved.',
+  carriesThroughSignup: ['script', 'campaign', 'trial_best_creation_intent', 'verbatim_mode', 'duration'],
 }
 
 /**

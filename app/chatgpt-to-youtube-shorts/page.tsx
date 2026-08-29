@@ -392,8 +392,8 @@ export default function ChatGptToYouTubeShortsPage() {
             Already have the script? Paste it here.
           </h2>
           <p style={p}>
-            Your script stays attached through signup and arrives in Kineo ready for the Fast workflow. You do not
-            need to copy it a second time.
+            Your script stays attached through signup and arrives in Kineo ready for the best engine your active trial
+            can cover; otherwise it falls back safely to Fast. You do not need to copy it a second time.
           </p>
           <TopicGeneratorForm
             campaign={CAMPAIGN}
@@ -403,6 +403,7 @@ export default function ChatGptToYouTubeShortsPage() {
             utmMedium="organic"
             scriptMode="verbatim"
             duration={35}
+            creationIntent="trial_best"
             examples={[]}
             formId={HANDOFF_ID}
             copy={{
@@ -410,7 +411,7 @@ export default function ChatGptToYouTubeShortsPage() {
               placeholder: 'HOOK: ...\nMICRO REWARD: ...\nESCALATION: ...\nRHYTHM: ...\nPAYOFF: ...',
               submit: 'Turn this script into a Short →',
               examplesLabel: 'Script examples',
-              note: 'Your words, 35-second target, campaign and Fast creation intent stay attached through signup. Kineo may adjust punctuation for voice pacing, but it will not rewrite your wording.',
+              note: 'Your words, 35-second target, campaign and best eligible trial intent stay attached through signup. Kineo may adjust punctuation for voice pacing, but it will not rewrite your wording.',
             }}
           />
         </section>
