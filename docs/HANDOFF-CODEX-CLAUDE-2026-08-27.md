@@ -1563,3 +1563,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, oferta, SKU, Stripe server-side, webhook, Auth, Supabase, Storage, migration, banco, pipeline de render, motor de render, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `d6f176d` ou da ponta posterior de `origin/main`. Não reconstruir outra calculadora nem criar tabela privada de preço/crédito. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 38. Fluxo orgânico — estimativa de ganhos leva a cadência ao custo real (29/08/2026)
+
+**BASE DE CÓDIGO:** `4e11650ad8c49541bb4bdcdad958724acc197b41`, igual a `origin/main` no início da worktree isolada `codex/growth-earnings-to-cost`.
+
+**EVIDÊNCIA DE PRODUÇÃO / SEARCH CONSOLE (29/08/2026):** `/shorts-money-calculator` acumulava 110 impressões e zero cliques no recorte de 28 dias consultado no Chrome do fundador. O número é de impressões de página no Google, não de pessoas nem uso da calculadora. Ele justifica inspecionar a rota; não prova conversão.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o calculador de ganhos já tinha um CTA funcional para criar o primeiro Short, e o calculador público de custo já existia em `/cheapest-ai-shorts-maker`. Não foi criada terceira ferramenta, outro preço ou CTA concorrente de Checkout. A lacuna era continuidade: quem estimava `7 Shorts/week` e ainda queria conferir a economia precisava abrir a ferramenta de custo separadamente e recebia o padrão de 12 vídeos/mês, perdendo o objetivo declarado.
+
+**IMPLEMENTADO:** commit funcional `b2e2eef3e2116b53dbb052d5544f0201b2fb5364` adiciona `lib/growth/publicPlanFitHandoff.ts`, contrato puro e limitado que converte cadência semanal para mensal pela mesma constante usada na projeção de ganhos, arredonda para cima e limita a 60/mês. A URL transporta somente source allowlisted, motor, duração e cadência; não transporta renda, views, RPM, identidade ou conteúdo.
+
+**IMPLEMENTADO / DUAS FERRAMENTAS, UM OBJETIVO:** `CalculatorClient.tsx` mantém `Make the first of those N Shorts — free` como ação principal e adiciona o link secundário `Price this N-video monthly schedule`. Com 7/semana, ele declara 31/mês. Acima do teto, a copy diz `Price the first 60 videos/month`, sem fingir que calculou tudo. `ShortCostCalculator.tsx` aceita somente o contrato válido, preenche a cadência e mostra `Publishing target carried over`; motor e duração permanecem editáveis. Source, duração e volume adulterados falham para o padrão direto de 12/mês.
+
+**REVISÃO REACT:** a ponte no calculador de ganhos é derivada em `useMemo`; não cria estado, efeito, fetch ou API. O calculador de custo reaproveita o efeito já existente, aplica o prefill depois da hidratação e usa os valores validados na impressão. Nenhum fetch novo foi adicionado.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 324/324 verificações. Os casos executam 7/semana → 31/mês, teto honesto de 60, round-trip, source/duração/motor/cadência inválidos, caller nos dois componentes, continuidade visual e telemetria com defaults reais. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/EARNINGS-TO-COST-HANDOFF-2026-08-29.html` contém antes/depois desktop e mobile. O preview e o fluxo funcional foram inspecionados no Chrome conectado do fundador. A ação gratuita continua visualmente primária; o planejamento de custo aparece como link secundário e o destino explica a continuidade.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** auto-deploy Vercel `dpl_9h3cYVsu64zvhNjjsuN7c7Leud7R` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA exato `b2e2eef3e2116b53dbb052d5544f0201b2fb5364`. No Chrome real, `/shorts-money-calculator` mostrou `Price this 31-video monthly schedule`; o clique abriu a URL limitada, exibiu o aviso de continuidade, preencheu 31, calculou 155 créditos e recomendou Studio a $29/mês. A URL forjada não mostrou aviso, voltou a 12 e manteve Kineo 1. A Vercel registrou zero erro runtime agrupado nas duas rotas nos 15 minutos consultados.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega organiza melhor o tráfego orgânico já existente.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28–29/08/2026):** Supabase atingiu limite de capacidade e Joseph/Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, crédito ou render.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa que percorreu o novo link, abriu preço ou assinou. Medir pessoas, não eventos, ligando `organic_cta_clicked` com `source=acq5_money_calculator` e `placement=result_cost_plan` ao Plan Fit/checkout/pagamento do mesmo ator, excluindo contas internas.
+
+**NÃO TOCADO:** preço, grant, oferta, SKU, Stripe server-side, webhook, Auth, Supabase, Storage, migration, banco, pipeline de render, motores, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b2e2eef` ou da ponta posterior de `origin/main`. Não reconstruir a ponte nem adicionar preço direto no calculador de ganhos; o destino canônico é o Plan Fit público. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
