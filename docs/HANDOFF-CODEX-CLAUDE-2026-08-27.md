@@ -1293,3 +1293,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** cards ou vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, checkout, e-mail, outreach, IndexNow, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de criar worktree. Codex continua aquisição/fluxo/assinaturas sem amplificar tráfego ativo enquanto a capacidade não for normalizada; não reconstruir estes cinco handoffs nem reintroduzir `Make one free` no H3.
+
+## 28. Fluxo de cadastro — comprovante visual do produto escolhido (28/08/2026)
+
+**BASE DE CÓDIGO:** `f74314187a78257224020820579a59e367d65d71`, igual a `origin/main` no início da worktree isolada `codex/growth-signup-destination-proof`.
+
+**FATO CONFIRMADO / GARGALO:** a seção 27 fez o destino técnico sobreviver ao cadastro, mas `app/(auth)/signup/page.tsx` suprimia qualquer preview quando havia um `redirect` interno explícito. Assim, quem clicava em AI Images, AI Voice, Fast, Seedance ou MiniMax H3 via novamente o título genérico `Create your AI Short` sem confirmação de que a escolha estava salva. Checkout precisa dessa supressão; os cinco handoffs de produto não.
+
+**IMPLEMENTADO:** commit funcional `a2c59c7e94ef7126a8dd368fd622b0f6bdf6cc88` cria `lib/growth/signupProductDestinationPreview.ts` e liga o contrato à tela real de cadastro. O preview reconhece somente os cinco destinos da fonte `PRODUCT_SURFACE_DESTINATIONS`, depois de `normalizeInternalRedirect`; checkout, afiliado, URL externa, motor desconhecido e parâmetro extra continuam genéricos. Para os cinco casos, o H1 e um card antes dos métodos de autenticação nomeiam a ferramenta/motor, explicam o pouso pós-login e afirmam que nada começa automaticamente. A confirmação por e-mail repete o destino salvo.
+
+**FATO CONFIRMADO / PRIORIDADES PRESERVADAS:** `reason=checkout` continua com precedência absoluta e nunca recebe o card de produto. O preview existente de ideia/roteiro permanece vivo para handoffs sem redirect. O card renderiza somente strings fixas do código, sem HTML do visitante, URL crua ou promessa financeira nova.
+
+**TESTADO LOCALMENTE:** `node scripts/test-signup-product-destination.mjs` executou 60/60 verificações; `node scripts/test-product-surface-intent.mjs` manteve 48/48. A suite cobre os cinco rótulos/destinos, ausência de início automático, 14 rejeições fail-closed, precedência do checkout, posição antes do Google, confirmação por e-mail e ausência de Supabase/fetch/API no helper. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental --tsBuildInfoFile .tsbuildinfo-signup-destination` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo e o artefato temporário foi removido.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/SIGNUP-PRODUCT-DESTINATION-2026-08-28.html` contém antes/depois desktop e mobile. As capturas aprovadas estão em `docs/previews/SIGNUP-PRODUCT-DESTINATION-DESKTOP-2026-08-28.png` e `docs/previews/SIGNUP-PRODUCT-DESTINATION-MOBILE-2026-08-28.png`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. O teste e o preview são locais/estáticos. Codex não chamou Supabase, Storage, backend de Auth, migration, banco, evento, crédito ou render. `402` permanece indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega melhora somente o tráfego existente.
+
+**DEPLOY PENDENTE:** o commit funcional está pronto e testado, mas ainda não havia sido publicado no momento desta anotação.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** o browser real de produção não foi usado para atravessar o cadastro porque isso executaria Auth/eventos durante o incidente. Até esse smoke seguro, a classificação correta é implementado e testado localmente, não conversão validada. Também não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada pelo card.
+
+**NÃO TOCADO:** backend de Auth, checkout, preço, grant, oferta, SKU, cards/vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, e-mail, outreach, IndexNow, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de nova worktree. Codex continua aquisição/fluxo/assinaturas. Não transformar redirect arbitrário em copy de produto e não remover a precedência do checkout.
