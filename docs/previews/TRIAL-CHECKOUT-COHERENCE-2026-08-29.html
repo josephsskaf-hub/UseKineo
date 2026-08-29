@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trial checkout coherence — before / after</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#05070b;color:#f5f5f7;font:14px Inter,Arial,sans-serif;padding:28px} h1{font-size:24px;margin:0 0 8px} .note{color:#9ba7b9;margin:0 0 24px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}.case{border:1px solid #273144;border-radius:18px;padding:16px;background:#0a0f18}.label{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#62b3ff;font-weight:800;margin-bottom:12px}.screen{position:relative;min-height:430px;border-radius:14px;overflow:hidden;background:linear-gradient(145deg,#0d1421,#080b11);padding:18px}.trial{border:1px solid rgba(41,151,255,.35);background:rgba(41,151,255,.08);border-radius:14px;padding:14px}.trial b{color:#5cb3ff}.first{margin-top:12px;border:1px solid rgba(52,211,153,.3);background:rgba(52,211,153,.07);border-radius:12px;padding:12px}.first strong{display:block}.cta{display:inline-block;margin-top:10px;padding:10px 14px;border-radius:10px;background:#34d399;color:#06281d;font-weight:900}.resume{position:absolute;left:12px;right:12px;bottom:12px;display:flex;gap:12px;align-items:center;border:1px solid rgba(41,151,255,.45);border-radius:14px;background:rgba(11,17,32,.98);padding:12px;box-shadow:0 18px 50px #0008}.resume span{flex:1}.resume a{padding:9px 11px;border-radius:9px;background:#2997ff;color:white;font-weight:850}.ok{margin-top:72px;text-align:center;color:#9be7c8;font-weight:800}@media(max-width:720px){body{padding:14px}.grid{grid-template-columns:1fr}.screen{min-height:470px}}
+  </style>
+</head>
+<body>
+  <h1>Untouched 25-credit trial</h1>
+  <p class="note">Same account, same saved Stripe session. The change removes only the passive contradiction; an explicit checkout resume still works.</p>
+  <div class="grid">
+    <section class="case">
+      <div class="label">Before · desktop and mobile</div>
+      <div class="screen">
+        <div class="trial"><b>You're on the Creator trial</b><div class="first"><strong>Use the premium trial before choosing a plan.</strong><span class="cta">Make my included Seedance film →</span></div></div>
+        <div class="resume"><span><strong>Your Creator checkout is saved</strong><br><small>First charge $15.00 · renews at $19.00/month.</small></span><a>Resume checkout</a></div>
+      </div>
+    </section>
+    <section class="case">
+      <div class="label">After · desktop and mobile</div>
+      <div class="screen">
+        <div class="trial"><b>You're on the Creator trial</b><div class="first"><strong>Use the premium trial before choosing a plan.</strong><span class="cta">Make my included Seedance film →</span></div></div>
+        <div class="ok">One next step. The saved checkout returns after any trial use.<br><small>An explicit resume link remains valid.</small></div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

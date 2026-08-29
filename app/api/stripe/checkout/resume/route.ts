@@ -11,8 +11,11 @@ import type { CheckoutPlanTier } from '@/lib/checkoutPricing'
 import {
   parseCheckoutResumeSurface,
   shouldBlockDismissedCheckoutResume,
+  shouldDeferPassiveCheckoutResumeForTrial,
   type CheckoutResumePlanFit,
 } from '@/lib/checkoutResumeSurface'
+import { decideTrialFirstDelivery } from '@/lib/growth/trialBalanceBridge'
+import { trialUiState } from '@/lib/reverseTrial'
 
 export const dynamic = 'force-dynamic'
 
@@ -450,7 +453,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('is_pro, plan, stripe_customer_id, stripe_subscription_id, paypal_subscription_id')
+    .select('is_pro, plan, stripe_customer_id, stripe_subscription_id, paypal_subscription_id, video_credits, trial_status, trial_ends_at, trial_credits_used, trial_credits_granted, has_paid')
     .eq('id', user.id)
     .single()
 
@@ -484,6 +487,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         return unavailableResponse(req, go, 'billing_state_unavailable')
       }
     }
+  }
+
+  const trial = trialUiState(profile)
+  const firstDelivery = decideTrialFirstDelivery({
+    trialPhase: trial.phase === 'active'
+      ? 'active'
+      : trial.phase === 'ending'
+        ? 'ending'
+        : null,
+    credits: typeof profile.video_credits === 'number' && Number.isFinite(profile.video_credits)
+      ? profile.video_credits
+      : null,
+    creditsUsed: trial.creditsUsedForDisplay,
+  })
+  if (shouldDeferPassiveCheckoutResumeForTrial({
+    go,
+    firstDeliveryEligible: firstDelivery.eligible,
+  })) {
+    return unavailableResponse(req, false, 'trial_first_delivery_pending')
   }
 
   const cookieValue = req.cookies.get(SESSION_COOKIE)?.value

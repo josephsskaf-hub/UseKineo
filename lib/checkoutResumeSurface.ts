@@ -36,6 +36,18 @@ export function shouldBlockDismissedCheckoutResume(input: {
   return input.surface !== 'pricing'
 }
 
+/**
+ * A passive checkout reminder must not compete with the included first film.
+ * An explicit resume remains stronger: the user already chose to continue
+ * paying, so this policy never intercepts go=1.
+ */
+export function shouldDeferPassiveCheckoutResumeForTrial(input: {
+  go: boolean
+  firstDeliveryEligible: boolean
+}): boolean {
+  return !input.go && input.firstDeliveryEligible
+}
+
 export function formatCheckoutResumeMoney(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat('en-US', {
