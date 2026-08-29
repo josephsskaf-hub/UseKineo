@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import {
+  ACTIVATION_HANDOFF_SURFACE_VERSION,
   DEFAULT_ONBOARDING_GOAL,
   ONBOARDING_GOALS,
   ONBOARDING_GOAL_VARIANT,
@@ -64,6 +65,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
     void trackEvent('viral_onboarding_viewed', {
       version: 'push27_single_choice',
       variant: ONBOARDING_GOAL_VARIANT,
+      surface_version: ACTIVATION_HANDOFF_SURFACE_VERSION,
       default_goal: DEFAULT_ONBOARDING_GOAL.id,
       is_first_video: true,
     })
@@ -78,6 +80,7 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
     void trackEvent('viral_onboarding_skipped', {
       version: 'push27_single_choice',
       variant: ONBOARDING_GOAL_VARIANT,
+      surface_version: ACTIVATION_HANDOFF_SURFACE_VERSION,
       selected_goal: selectedGoalRef.current.id,
       action,
     })
@@ -100,18 +103,21 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
     void trackEvent('viral_onboarding_goal_selected', {
       version: 'push27_single_choice',
       variant: ONBOARDING_GOAL_VARIANT,
+      surface_version: ACTIVATION_HANDOFF_SURFACE_VERSION,
       selected_goal: goal.id,
     })
   }
 
-  function createFirstVideo() {
+  function createFirstVideo(ctaPosition: 'primary_above_fold' | 'after_goal_change') {
     if (primaryFiredRef.current) return
     primaryFiredRef.current = true
     const metadata = {
       source: 'viral_onboarding',
       version: 'push27_single_choice',
       variant: ONBOARDING_GOAL_VARIANT,
-      engine: 'fast',
+      surface_version: ACTIVATION_HANDOFF_SURFACE_VERSION,
+      cta_position: ctaPosition,
+      engine_selection: 'entitlement_aware',
       is_first_video: true,
       selected_goal: selectedGoal.id,
       selected_category: selectedGoal.niche,
@@ -176,10 +182,46 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
           Your first video
         </div>
         <h1 id="first-video-title" style={{ margin: '0 0 10px', color: '#f5f5f7', fontSize: 'clamp(1.55rem, 6vw, 2.15rem)', lineHeight: 1.1, letterSpacing: '-0.035em' }}>
-          What should your first video do?
+          Your first video is ready to build.
         </h1>
         <p style={{ margin: '0 0 20px', color: '#a1a1a8', fontSize: '0.94rem', lineHeight: 1.55 }}>
-          Pick the outcome. Kineo supplies a ready-to-make idea, script, voiceover, footage and captions. <FreeTierCopy legacy="Free access includes up to 3 watermarked Fast videos every 24 hours, with no card." onKey="sentence" />
+          We picked the topic and hook. One tap starts the build; you can change the goal or use your own idea below. <FreeTierCopy legacy="Free access includes up to 3 watermarked Fast videos every 24 hours, with no card." onKey="sentence" />
+        </p>
+
+        <div
+          aria-label="Selected first-video brief"
+          style={{ marginBottom: 14, padding: '13px 15px', borderRadius: 14, border: '1px solid rgba(41,151,255,.28)', background: 'rgba(41,151,255,.08)' }}
+        >
+          <div style={{ color: '#f5f5f7', fontSize: '0.98rem', fontWeight: 850, lineHeight: 1.35 }}>
+            {selectedGoal.topic}
+          </div>
+          <div style={{ marginTop: 5, color: '#a1a1a8', fontSize: '0.78rem', fontStyle: 'italic', lineHeight: 1.45 }}>
+            “{selectedGoal.hook}”
+          </div>
+        </div>
+
+        <button
+          type="button"
+          data-activation-primary="above-fold"
+          onClick={() => createFirstVideo('primary_above_fold')}
+          style={{
+            width: '100%',
+            minHeight: 54,
+            padding: '15px 18px',
+            border: 0,
+            borderRadius: 13,
+            background: '#2997ff',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 850,
+            boxShadow: '0 10px 34px rgba(41,151,255,.45)',
+          }}
+        >
+          <FreeTierCopy legacy={selectedGoal.cta} on={selectedGoal.cta} />
+        </button>
+        <p style={{ margin: '9px 0 16px', color: '#8f8f98', fontSize: '0.74rem', lineHeight: 1.45, textAlign: 'center' }}>
+          This starts your first video. No card needed; Kineo uses the best engine already available to this account.
         </p>
 
         <style jsx>{`
@@ -193,35 +235,40 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
             }
           }
         `}</style>
-        <div className="goal-router-options" role="group" aria-label="Choose what this video is for" style={{ gap: 8, marginBottom: 14 }}>
-          {ONBOARDING_GOALS.map((goal) => {
-            const active = goal.id === selectedGoal.id
-            return (
-              <button
-                key={goal.id}
-                type="button"
-                aria-pressed={active}
-                aria-label={`${goal.label}. ${goal.description}`}
-                onClick={() => chooseGoal(goal)}
-                style={{
-                  minHeight: 66,
-                  padding: '10px 8px',
-                  borderRadius: 12,
-                  border: active ? '1px solid #2997ff' : '1px solid #303036',
-                  background: active ? 'rgba(41,151,255,0.14)' : '#19191d',
-                  color: active ? '#fff' : '#b5b5bd',
-                  cursor: 'pointer',
-                  fontSize: '0.76rem',
-                  fontWeight: 800,
-                  lineHeight: 1.25,
-                  boxShadow: active ? '0 0 0 1px rgba(41,151,255,0.12)' : 'none',
-                }}
-              >
-                {goal.shortLabel}
-              </button>
-            )
-          })}
-        </div>
+        <details style={{ marginBottom: 14, border: '1px solid #2a2a2d', borderRadius: 14, background: '#17171b' }}>
+          <summary style={{ minHeight: 46, padding: '13px 15px', color: '#c9c9d0', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 800 }}>
+            Need a different first result?
+          </summary>
+          <div className="goal-router-options" role="group" aria-label="Choose what this video is for" style={{ gap: 8, padding: '0 12px 13px' }}>
+            {ONBOARDING_GOALS.map((goal) => {
+              const active = goal.id === selectedGoal.id
+              return (
+                <button
+                  key={goal.id}
+                  type="button"
+                  aria-pressed={active}
+                  aria-label={`${goal.label}. ${goal.description}`}
+                  onClick={() => chooseGoal(goal)}
+                  style={{
+                    minHeight: 58,
+                    padding: '9px 8px',
+                    borderRadius: 12,
+                    border: active ? '1px solid #2997ff' : '1px solid #303036',
+                    background: active ? 'rgba(41,151,255,0.14)' : '#19191d',
+                    color: active ? '#fff' : '#b5b5bd',
+                    cursor: 'pointer',
+                    fontSize: '0.76rem',
+                    fontWeight: 800,
+                    lineHeight: 1.25,
+                    boxShadow: active ? '0 0 0 1px rgba(41,151,255,0.12)' : 'none',
+                  }}
+                >
+                  {goal.shortLabel}
+                </button>
+              )
+            })}
+          </div>
+        </details>
 
         {/* KINEO-ONBOARDING-VITRINE-2026-08-25 — 173 pessoas viram esta tela
             nos últimos 7 dias e a promessa era só texto. Mesmo padrão que
@@ -278,7 +325,8 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
 
         <button
           type="button"
-          onClick={createFirstVideo}
+          data-activation-primary="after-goal-change"
+          onClick={() => createFirstVideo('after_goal_change')}
           style={{
             width: '100%',
             minHeight: 52,
@@ -293,23 +341,6 @@ export default function NicheOnboarding({ onPick, onClose }: Props) {
             boxShadow: '0 10px 34px rgba(41,151,255,.45)',
           }}
         >
-          {/* KINEO-PRELAUNCH-PATH-2026-08-08 — este e o PRIMEIRO botao que uma
-              conta nova toca. Com a flag ON a conta esta em trial Creator e o
-              MP4 sai LIMPO (GenerateClient afirma isso duas vezes na tela
-              seguinte), entao "free watermarked" era falso justamente para a
-              coorte que a empresa acabou de pagar para trazer. A versao ON NAO
-              troca uma promessa por outra: ela apenas para de afirmar a marca
-              d'agua, porque a mesma tela tambem e vista por quem ja saiu do
-              trial (ai o Fast gratis realmente carimba). Flag OFF devolve a
-              frase atual byte a byte. */}
-          {/* ⚠ "free" saiu do ramo ON. Duas razões, e as duas foram medidas:
-              (1) desde o KINEO-TETO (20/08) o filme do TRIAL também sai COM
-                  marca d'água — o comentário acima, que dizia "sai LIMPO",
-                  está estagnado desde então;
-              (2) com o trial abrindo no Seedance, o clique consome 20 dos 80
-                  créditos. Chamar isso de "free" é a promessa mais cara que
-                  existe: quebra no primeiro clique da pessoa.
-              "Included" é verdade nos dois: o crédito já está na conta dela. */}
           <FreeTierCopy legacy={selectedGoal.cta} on={selectedGoal.cta} />
         </button>
         {/* PUSH #96 — JOB 2(a)/(e): the only escape hatch was a ~17px tall

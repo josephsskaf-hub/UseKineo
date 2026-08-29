@@ -18,7 +18,12 @@ import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
-import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
+import {
+  ACTIVATION_HANDOFF_SURFACE_VERSION,
+  ONBOARDING_GOALS,
+  ONBOARDING_GOAL_VARIANT,
+  isOnboardingGoalId,
+} from '@/lib/growth/onboardingGoals'
 import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
 import { buildTrialBalanceBridgeFunnel, type TrialBalanceBridgeFunnel } from '@/lib/admin/trialBalanceBridgeFunnel'
 import { buildChatGptQuickstartFunnel, type ChatGptQuickstartFunnel } from '@/lib/admin/chatgptQuickstartFunnel'
@@ -183,6 +188,9 @@ export interface FunnelData {
     goalRouterClicks: number
     goalSelections: number
     goalRouterViewToClickRate: string
+    aboveFoldViews: number
+    aboveFoldClicks: number
+    aboveFoldViewToClickRate: string
     goalBreakdown: Array<{
       id: string
       label: string
@@ -1124,6 +1132,15 @@ export async function GET(req: Request) {
     }
     const goalRouterViews = uniqueGoalRouterActors('viral_onboarding_viewed')
     const goalRouterClicks = uniqueGoalRouterActors('viral_onboarding_primary_clicked')
+    const uniqueAboveFoldActors = (name: string): number => {
+      const rows = onboardingRows.filter((event) =>
+        event.name === name &&
+        event.metadata?.surface_version === ACTIVATION_HANDOFF_SURFACE_VERSION
+      )
+      return new Set(rows.map(onboardingActorKey)).size
+    }
+    const aboveFoldViews = uniqueAboveFoldActors('viral_onboarding_viewed')
+    const aboveFoldClicks = uniqueAboveFoldActors('viral_onboarding_primary_clicked')
     const firstVideoOnboarding = {
       views: uniqueOnboardingActors('viral_onboarding_viewed'),
       primaryClicks: uniqueOnboardingActors('viral_onboarding_primary_clicked'),
@@ -1135,6 +1152,9 @@ export async function GET(req: Request) {
       goalRouterClicks,
       goalSelections: uniqueGoalRouterActors('viral_onboarding_goal_selected'),
       goalRouterViewToClickRate: pct(goalRouterClicks, goalRouterViews),
+      aboveFoldViews,
+      aboveFoldClicks,
+      aboveFoldViewToClickRate: pct(aboveFoldClicks, aboveFoldViews),
       goalBreakdown: ONBOARDING_GOALS.map((goal) => ({
         id: goal.id,
         label: goal.shortLabel,

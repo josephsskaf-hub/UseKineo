@@ -1,4 +1,5 @@
 export const ONBOARDING_GOAL_VARIANT = 'goal_router_v1' as const
+export const ACTIVATION_HANDOFF_SURFACE_VERSION = 'activation_handoff_above_fold_v1' as const
 export const HOME_WELCOME_GOAL_CAMPAIGN = 'growth_home_welcome_goal_router_20260828' as const
 
 export type OnboardingGoalId = 'creator' | 'business' | 'agency'

@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import type { FunnelData } from '@/app/api/admin/funnel/route'
 import { CHATGPT_QUICKSTART_VARIANT } from '@/lib/growth/chatgptQuickstart'
+import { ACTIVATION_HANDOFF_SURFACE_VERSION } from '@/lib/growth/onboardingGoals'
 
 export type { FunnelData }
 
@@ -129,6 +130,7 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     views: 0, primaryClicks: 0, skips: 0, dispatched: 0, completed: 0, failed: 0,
     goalRouterViews: 0, goalRouterClicks: 0, goalSelections: 0,
     goalRouterViewToClickRate: '—', goalBreakdown: [],
+    aboveFoldViews: 0, aboveFoldClicks: 0, aboveFoldViewToClickRate: '—',
     viewToClickRate: '—', clickToDispatchRate: '—', dispatchToCompleteRate: '—',
   }
   const repeatCreatorOffer = data.repeatCreatorOffer ?? {
@@ -614,9 +616,26 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           sub={`${firstVideoOnboarding.primaryClicks} / ${firstVideoOnboarding.views}`}
         />
         <Card
+          label="Above-fold CTA viewers"
+          value={fmt(firstVideoOnboarding.aboveFoldViews)}
+          hint={ACTIVATION_HANDOFF_SURFACE_VERSION}
+          accent="#67e8f9"
+        />
+        <Card
+          label="Above-fold CTA clicks"
+          value={fmt(firstVideoOnboarding.aboveFoldClicks)}
+          hint="unique people; either CTA position in the new handoff"
+          accent="#2997ff"
+        />
+        <RateCard
+          label="Above-fold view → click"
+          value={firstVideoOnboarding.aboveFoldViewToClickRate}
+          sub={`${firstVideoOnboarding.aboveFoldClicks} / ${firstVideoOnboarding.aboveFoldViews}`}
+        />
+        <Card
           label="Renders dispatched"
           value={fmt(firstVideoOnboarding.dispatched)}
-          hint="analysis reached Fast generation"
+          hint="analysis reached generation dispatch"
           accent="#22d3ee"
         />
         <RateCard
