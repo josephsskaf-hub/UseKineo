@@ -1,6 +1,7 @@
 import {
   MONTHLY_CADENCES,
   calculatePlanFit,
+  engineName,
   supportsPlanFitQuality,
   type PlanFitQuality,
 } from '@/lib/growth/planFit'
@@ -25,6 +26,14 @@ export interface VerifiedPlanFitCheckoutContext {
   plan_fit_recommended_tier: CheckoutTier
   plan_fit_selected_tier_matches: '0' | '1'
   plan_fit_video_id: string
+}
+
+export interface PlanFitCheckoutReturnSummary {
+  context: VerifiedPlanFitCheckoutContext
+  engineLabel: string
+  monthlyVideos: number
+  seconds: number
+  selectedTierMatches: boolean
 }
 
 const PLAN_FIT_QUALITIES = new Set<PlanFitQuality>([
@@ -99,6 +108,29 @@ export function verifyPlanFitCheckoutContext(
     plan_fit_recommended_tier: result.plan.tier,
     plan_fit_selected_tier_matches: result.plan.tier === actualTier ? '1' : '0',
     plan_fit_video_id: videoId,
+  }
+}
+
+/**
+ * Display-only recovery contract for the Stripe cancellation page. Query
+ * parameters are untrusted, so the summary exists only after the same closed
+ * validation and canonical Plan Fit recalculation used by checkout. It never
+ * changes price, entitlement, discount or the retry destination.
+ */
+export function readPlanFitCheckoutReturn(
+  params: URLSearchParams,
+  actualTier: string,
+  currency: CheckoutCurrency,
+): PlanFitCheckoutReturnSummary | null {
+  const context = verifyPlanFitCheckoutContext(params, actualTier, currency)
+  if (!context) return null
+
+  return {
+    context,
+    engineLabel: engineName(context.plan_fit_planned_engine),
+    monthlyVideos: Number(context.plan_fit_monthly_videos),
+    seconds: Number(context.plan_fit_seconds),
+    selectedTierMatches: context.plan_fit_selected_tier_matches === '1',
   }
 }
 

@@ -28,6 +28,7 @@ import {
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { readAutopilotCheckoutReturn } from '@/lib/growth/autopilotCheckoutReturn'
+import { readPlanFitCheckoutReturn } from '@/lib/growth/planFitCheckout'
 
 const PLAN_FIT_RETRY_PARAM_KEYS = [
   'checkout_origin',
@@ -85,6 +86,12 @@ function CheckoutCancelledContent() {
   // antiga; ignorada de propósito. Existe uma moeda só, e quem manda é o servidor.
   const checkoutCurrency: 'usd' = 'usd'
   void rawCurrency
+  const planFitReturn = readPlanFitCheckoutReturn(searchParams, tier, checkoutCurrency)
+  const planFitCheckoutOrigin = planFitReturn?.context.checkout_origin ?? 'standard'
+  const planFitEngine = planFitReturn?.context.plan_fit_planned_engine ?? null
+  const planFitMonthlyVideos = planFitReturn?.monthlyVideos ?? null
+  const planFitSeconds = planFitReturn?.seconds ?? null
+  const planFitSelectedTierMatches = planFitReturn?.selectedTierMatches ?? null
   const returnToWatermark = searchParams.get('return') === 'wm'
   const rawIntentCampaign = (searchParams.get('intent_campaign') ?? '').trim()
   const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign)
@@ -188,8 +195,13 @@ function CheckoutCancelledContent() {
       private_offer: privatePackPromo,
       return_to_watermark: returnToWatermark,
       intent_campaign: intentCampaign,
+      checkout_origin: planFitCheckoutOrigin,
+      plan_fit_engine: planFitEngine,
+      plan_fit_monthly_videos: planFitMonthlyVideos,
+      plan_fit_seconds: planFitSeconds,
+      plan_fit_selected_tier_matches: planFitSelectedTierMatches,
     })
-  }, [tier, billing, autopilotReturn?.kind, intro, privatePackPromo, returnToWatermark, intentCampaign])
+  }, [tier, billing, autopilotReturn?.kind, intro, privatePackPromo, returnToWatermark, intentCampaign, planFitCheckoutOrigin, planFitEngine, planFitMonthlyVideos, planFitSeconds, planFitSelectedTierMatches])
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
@@ -202,6 +214,24 @@ function CheckoutCancelledContent() {
         <div style={{ marginTop: 22, background: 'linear-gradient(135deg, rgba(41,151,255,.10), rgba(41,151,255,.06))', border: '1px solid rgba(41,151,255,.30)', borderRadius: 16, padding: 18 }}>
           <p style={{ fontSize: '0.92rem', color: 'var(--text)', fontWeight: 700, margin: 0 }}>{planName} — {todayPrice}</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '4px 0 14px', lineHeight: 1.5 }}>{renewalCopy}</p>
+          {planFitReturn && (
+            <div
+              aria-label="Saved Plan Fit goal"
+              style={{ margin: '0 0 14px', padding: '12px 13px', borderRadius: 12, border: '1px solid rgba(98,179,255,.26)', background: 'rgba(41,151,255,.075)' }}
+            >
+              <p style={{ margin: 0, color: '#62b3ff', fontSize: '0.69rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase' }}>
+                Matched to the video you just made
+              </p>
+              <p style={{ margin: '5px 0 0', color: 'var(--text)', fontSize: '0.9rem', fontWeight: 850, lineHeight: 1.4 }}>
+                {planFitReturn.monthlyVideos} × {planFitReturn.seconds}s {planFitReturn.engineLabel} video{planFitReturn.monthlyVideos === 1 ? '' : 's'}/month
+              </p>
+              <p style={{ margin: '4px 0 0', color: 'var(--muted2)', fontSize: '0.77rem', lineHeight: 1.5 }}>
+                {planFitReturn.selectedTierMatches
+                  ? `${planName} was recommended to cover this exact publishing goal.`
+                  : 'This selected plan is one step below the recommendation for the full goal.'}
+              </p>
+            </div>
+          )}
           {/* KINEO-CHECKOUT-TRIAGE-2026-07-25 — the visible href must NOT be the
               checkout API: prefetch, middle-click and link scanners follow it and
               bypass the latch entirely. The real destination stays in
@@ -227,12 +257,20 @@ function CheckoutCancelledContent() {
                 private_offer: privatePackPromo,
                 return_to_watermark: returnToWatermark,
                 intent_campaign: intentCampaign,
+                checkout_origin: planFitCheckoutOrigin,
+                plan_fit_engine: planFitEngine,
+                plan_fit_monthly_videos: planFitMonthlyVideos,
+                plan_fit_seconds: planFitSeconds,
               })
               trackCheckoutClick(checkoutSelection)
             }}
             style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)', opacity: checkout.pending !== null ? 0.7 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
           >
-            {checkout.pending !== null ? 'Opening secure checkout…' : 'Try secure checkout again →'}
+            {checkout.pending !== null
+              ? 'Opening secure checkout…'
+              : planFitReturn
+                ? `Continue with ${planName} for this goal →`
+                : 'Try secure checkout again →'}
           </a>
           {checkout.error && (
             <p role="alert" style={{ marginTop: 10, fontSize: '0.8rem', color: '#ff6b6b', fontWeight: 700, textAlign: 'center' }}>

@@ -350,6 +350,27 @@ check('expired checkout preserves Plan Fit recovery context', checkoutWebhook.in
 const cancelledPage = readFileSync(join(root, 'app/checkout/cancelled/page.tsx'), 'utf8')
 check('cancelled checkout preserves Plan Fit retry contract', cancelledPage.includes("'pf_video_id'") && checkoutRoute.includes('planFitRetrySearchParams(planFitContext)'))
 check('cancelled checkout preserves origin through honest downsell', cancelledPage.includes('if (value) cheaperParams.set(key, value)'))
+const returnSummary = checkout.readPlanFitCheckoutReturn(
+  new URL(validContextUrl, 'https://www.usekineo.com').searchParams,
+  seedanceFour.plan.tier,
+  'usd',
+)
+check('cancel return rebuilds the verified engine label', returnSummary?.engineLabel === 'Seedance 1.5')
+check('cancel return rebuilds the verified monthly cadence', returnSummary?.monthlyVideos === 4)
+check('cancel return rebuilds the verified duration', returnSummary?.seconds === 60)
+check('cancel return marks the recommended tier as matching', returnSummary?.selectedTierMatches === true)
+const downgradedReturnSummary = checkout.readPlanFitCheckoutReturn(
+  new URL(validContextUrl, 'https://www.usekineo.com').searchParams,
+  'starter',
+  'usd',
+)
+check('cancel return labels an honest downsell without claiming full fit', downgradedReturnSummary?.selectedTierMatches === false)
+const tamperedReturn = new URL(validContextUrl, 'https://www.usekineo.com')
+tamperedReturn.searchParams.set('pf_monthly_videos', '60')
+check('cancel return fails closed for a forged cadence', checkout.readPlanFitCheckoutReturn(tamperedReturn.searchParams, seedanceFour.plan.tier, 'usd') === null)
+check('cancelled checkout visibly restores the first-video rationale', cancelledPage.includes('Matched to the video you just made') && cancelledPage.includes('video{planFitReturn.monthlyVideos === 1'))
+check('cancelled checkout CTA resumes the saved goal', cancelledPage.includes('Continue with ${planName} for this goal'))
+check('cancelled checkout records the restored Plan Fit context', cancelledPage.includes('plan_fit_selected_tier_matches: planFitSelectedTierMatches'))
 check('internal checkout recovery preserves Plan Fit context', checkoutResume.includes('planFitRetrySearchParamsFromMetadata(session.metadata)'))
 check('admin cadence selection is also proof of exposure', funnelRoute.includes('new Set([...planFitImpressed, ...planFitSelected])'))
 check('verified Stripe checkout repairs a dropped selection beacon', funnelRoute.includes('planFitSelected.add(userId)') && funnelRoute.includes('planFitCheckout.add(userId)'))
