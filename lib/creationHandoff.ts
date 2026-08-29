@@ -1,19 +1,20 @@
 export type CreationScriptMode = 'ai' | 'verbatim'
 export type CreationDuration = 35 | 45 | 60 | 90
+export type CreationIntent = 'fast' | 'trial_best' | null
 
 type QueryReader = Pick<URLSearchParams, 'get'>
 type QueryWriter = Pick<URLSearchParams, 'set'>
 
 export interface CreationHandoff {
   prompt: string
-  createIntent: 'fast' | null
+  createIntent: CreationIntent
   scriptMode: CreationScriptMode | null
   duration: CreationDuration | null
 }
 
 export interface ActivationCreationContract {
   prompt: string
-  createIntent: 'fast' | null
+  createIntent: CreationIntent
   scriptMode: CreationScriptMode
   duration: CreationDuration
   structureFirst: boolean
@@ -26,12 +27,16 @@ export interface ActivationCreationContract {
  */
 export function readCreationHandoff(params: QueryReader): CreationHandoff {
   const prompt = (params.get('prompt') ?? '').trim().slice(0, 1000)
+  const rawCreateIntent = params.get('create_intent')
   const rawScriptMode = (params.get('script_mode') ?? '').toLowerCase()
   const rawDuration = Number(params.get('duration') ?? '')
 
   return {
     prompt,
-    createIntent: prompt && params.get('create_intent') === 'fast' ? 'fast' : null,
+    createIntent:
+      prompt && (rawCreateIntent === 'fast' || rawCreateIntent === 'trial_best')
+        ? rawCreateIntent
+        : null,
     scriptMode:
       rawScriptMode === 'verbatim' || rawScriptMode === 'ai'
         ? rawScriptMode

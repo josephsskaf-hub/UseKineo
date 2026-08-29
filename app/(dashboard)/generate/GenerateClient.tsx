@@ -84,6 +84,11 @@ import {
   videosForCredits,
 } from '@/lib/marketingPrice'
 import { decidePostVideoOffer } from '@/lib/growth/chatgptPostVideoOffer'
+import {
+  activationRenderEngineIsReady,
+  resolveActivationRenderEngine,
+  type ActivationRenderEngine,
+} from '@/lib/growth/trialActivationIntent'
 // KINEO-POST-TO-EARN-2026-08-04 — regras/copy da recompensa. Módulo puro e
 // client-safe (o motor que credita é lib/postToEarnGrant, server-only), então
 // a promessa mostrada aqui lê a MESMA constante que o servidor executa.
@@ -716,6 +721,7 @@ const MAX_ACTIVE_RENDER_RESTORE_RETRIES = 4
 // driven and needs a once-per-tab marker instead of a useRef latch.
 const PUSH96_INLINE_FIRST_VIDEO_VIEW_MARKER = 'kineo_push96_inline_first_video_viewed'
 const ACTIVATION_AUTOSTART_VARIANT = 'activation_autostart_fast_v1'
+const TRIAL_BEST_AUTOSTART_VARIANT = 'activation_autostart_trial_best_v1'
 const ACTIVATION_AUTOSTART_SESSION_PREFIX = 'kineo_activation_autostart_fast_v1'
 
 type ActivationAccountStatus = 'loading' | 'free' | 'paid' | 'unavailable'
@@ -832,6 +838,7 @@ export default function GenerateClient({
   const activationAutostartPromptRef = useRef<string | null>(null)
   const activationCreationContractRef = useRef<ActivationCreationContract | null>(null)
   const activationAutostartContextRef = useRef<Record<string, unknown> | null>(null)
+  const activationAutostartEngineRef = useRef<ActivationRenderEngine | null>(null)
   // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o autostart nasceu para ATIVAÇÃO DE
   // FREE, e por isso as três guardas abaixo pulam qualquer conta paga. Depois
   // disso a página /checkout/success passou a mandar o comprador para
@@ -2857,7 +2864,7 @@ export default function GenerateClient({
   useEffect(() => {
     if (activationAutostartDecisionRef.current) return
     const activationContract = resolveActivationCreationContract(searchParams)
-    if (activationContract.createIntent !== 'fast') return
+    if (!activationContract.createIntent) return
 
     const explicitPrompt = activationContract.prompt
     // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o par exato que /checkout/success
@@ -2882,13 +2889,24 @@ export default function GenerateClient({
       activationAutostartFirstWinRef.current = true
     }
     const isFirstWinFromCheckout = activationAutostartFirstWinRef.current
+    const activationEngine = resolveActivationRenderEngine({
+      createIntent: activationContract.createIntent,
+      trialActive,
+      credits,
+      seedanceCreditCost: creditCostFor('cinematic_ai'),
+    })
     const metadata: Record<string, unknown> = {
       // Entra no payload de TODO evento deste rail (eligible/skipped/dispatched),
       // que é como o "% de payment_success com vídeo" passa a ser medível sem
       // criar evento novo.
       first_win: isFirstWinFromCheckout,
-      variant: ACTIVATION_AUTOSTART_VARIANT,
-      engine: 'fast',
+      variant:
+        activationContract.createIntent === 'trial_best'
+          ? TRIAL_BEST_AUTOSTART_VARIANT
+          : ACTIVATION_AUTOSTART_VARIANT,
+      engine: activationEngine,
+      requested_intent: activationContract.createIntent,
+      trial_best_eligible: activationEngine === 'seedance',
       prompt_length: explicitPrompt.length,
       activation_entry:
         searchParams.get('signup') === '1'
@@ -2914,6 +2932,7 @@ export default function GenerateClient({
       // silêncio no próximo rail que armasse este effect.
       clearFirstWinHandshake()
       activationAutostartFirstWinRef.current = false
+      activationAutostartEngineRef.current = null
       try {
         sessionStorage.setItem(activationAutostartSessionKey(explicitPrompt), `skipped:${reason}`)
       } catch {}
@@ -3091,13 +3110,19 @@ export default function GenerateClient({
     activationAutostartContextRef.current = metadata
     activationAutostartPromptRef.current = explicitPrompt
     activationCreationContractRef.current = activationContract
+    activationAutostartEngineRef.current = activationEngine
     activationAutoGenerateRef.current = true
     activationAutostartSawProcessingRef.current = false
     onboardingAutoGenerateRef.current = false
     structuredScriptRef.current = null
     setPrompt(explicitPrompt)
-    setMode('fast')
-    setQuality('fast')
+    if (activationEngine === 'seedance') {
+      setMode('cinematic_ai')
+      setAiEngine('seedance')
+    } else {
+      setMode('fast')
+      setQuality('fast')
+    }
     setScriptMode(activationContract.scriptMode)
     setDuration(activationContract.duration)
     setShowNicheOnboarding(false)
@@ -3107,6 +3132,8 @@ export default function GenerateClient({
     searchParams,
     activeRenderRestoreResolved,
     creditsLoading,
+    credits,
+    trialActive,
     activationAccountStatus,
     planTier,
     hasPaid,
@@ -3119,13 +3146,19 @@ export default function GenerateClient({
     activationAutostartWaitTick,
   ])
 
-  // Commit Fast mode before analysis so a prior dashboard engine selection can
-  // never leak into this free activation path.
+  // Commit the resolved activation engine before analysis so a prior dashboard
+  // selection can never leak into this public creation path.
   useEffect(() => {
     const activationContract = activationCreationContractRef.current
+    const activationEngine = activationAutostartEngineRef.current
+    const activationEngineReady = activationRenderEngineIsReady({
+      engine: activationEngine,
+      mode,
+      aiEngine,
+    })
     if (
       !activationAutostartArmed ||
-      mode !== 'fast' ||
+      !activationEngineReady ||
       !activationContract ||
       scriptMode !== activationContract.scriptMode ||
       duration !== activationContract.duration
@@ -3143,6 +3176,7 @@ export default function GenerateClient({
       activationAutostartPromptRef.current = null
       activationCreationContractRef.current = null
       activationAutostartContextRef.current = null
+      activationAutostartEngineRef.current = null
       // KINEO-FIRST-PAID-MINUTE-2026-08-11 — ver o comentário em consumeAndSkip.
       activationAutostartFirstWinRef.current = false
       void trackEvent('activation_autostart_skipped', { ...metadata, reason })
@@ -3202,6 +3236,7 @@ export default function GenerateClient({
   }, [
     activationAutostartArmed,
     mode,
+    aiEngine,
     scriptMode,
     duration,
     activationAccountStatus,
@@ -7643,7 +7678,7 @@ export default function GenerateClient({
   }
 
   // Explicit public create intent and the onboarding CTA both promise a
-  // generated Short, so complete their Fast path after analysis is ready.
+  // generated Short, so complete their resolved path after analysis is ready.
   // Every unmarked prompt still stops at options for an explicit Generate click.
   useEffect(() => {
     const activationPending = activationAutoGenerateRef.current
@@ -7663,6 +7698,7 @@ export default function GenerateClient({
       activationAutostartSawProcessingRef.current = false
       activationAutostartPromptRef.current = null
       activationAutostartContextRef.current = null
+      activationAutostartEngineRef.current = null
       // KINEO-FIRST-PAID-MINUTE-2026-08-11 — o ref E a chave morrem junto com o
       // resto do estado do rail, inclusive no caminho de SUCESSO (este
       // clearActivation() sem `reason` roda logo antes do dispatch, depois de a
@@ -7714,8 +7750,14 @@ export default function GenerateClient({
           isStarter ||
           isCreator ||
           isStudio
+      const activationEngine = activationAutostartEngineRef.current
+      const activationEngineReady = activationRenderEngineIsReady({
+        engine: activationEngine,
+        mode,
+        aiEngine,
+      })
       if (
-        mode !== 'fast' ||
+        !activationEngineReady ||
         planBlocksDispatch ||
         resumedRenderRef.current ||
         generationInFlightRef.current
@@ -7782,6 +7824,7 @@ export default function GenerateClient({
     phase,
     analysis,
     mode,
+    aiEngine,
     activationAccountStatus,
     hasPaid,
     planTier,

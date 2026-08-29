@@ -18,9 +18,11 @@
 // /generate with the same hidden fields, same button label, same proof line.
 //
 // The post-script CTA reuses the EXISTING signup hand-off — /signup?prompt=…&
-// create_intent=fast&intent_campaign=…&utm_source=homepage — which
+// create_intent=trial_best&intent_campaign=…&utm_source=homepage — which
 // activationRedirectFromSearch() in app/(auth)/signup/page.tsx already forwards
-// into /generate. No second carry-forward mechanism is invented here. The FACT
+// into /generate. `trial_best` means Seedance only for a server-confirmed active
+// trial with enough balance; every other state falls back to Fast. It does not
+// change the 25-credit grant or silently spend a paid account. The FACT
 // labels are translated into the engine's section markers (HOOK / MICRO REWARD
 // n / ESCALATION / PAYOFF) exactly as app/free-script-generator/FreeScriptClient.tsx
 // does, so analyze-idea takes its verbatim pre-written-script path instead of
@@ -92,7 +94,7 @@ function buildActivationPrompt(lines: ScriptLine[]): string {
 function signupHref(prompt: string): string {
   const params = new URLSearchParams({
     prompt,
-    create_intent: 'fast',
+    create_intent: 'trial_best',
     intent_campaign: HOME_PROMPT_CAMPAIGN,
     utm_source: 'homepage',
   })
