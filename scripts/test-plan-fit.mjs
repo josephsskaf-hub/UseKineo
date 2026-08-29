@@ -433,6 +433,22 @@ check('compose persists success rows as completed', composeStatus.includes("stat
 check('client video id comes from persisted/completed lookup', composeStatus.includes('const videoId = persistedVideoId ?? await findCompletedVideoId(user.id, renderId)'))
 check('done response returns that persisted video id', composeStatus.includes('video_id: videoId'))
 
+// 10. The public cost calculator is the same contract, not a second pricing model.
+const publicCalculator = readFileSync(join(root, 'app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx'), 'utf8')
+check('public calculator imports canonical Plan Fit', publicCalculator.includes("from '@/lib/growth/planFit'") && publicCalculator.includes('calculatePlanFit({'))
+check('public calculator has no private plan table', !publicCalculator.includes('const PLANS:') && !publicCalculator.includes('TIER_PRICES'))
+check('public calculator has no duplicated engine credit costs', !publicCalculator.includes('creditsPerReferenceVideo'))
+check('public calculator exposes the three supported durations', publicCalculator.includes('const PUBLIC_DURATIONS = [35, 60, 90] as const'))
+for (const quality of ['fast', 'cinematic_ai', 'cinematic_h3', 'cinematic_kling', 'cinematic_veo', 'cinematic_hollywood', 'cinematic_omni']) {
+  check(`public calculator exposes ${quality}`, publicCalculator.includes(`quality: '${quality}'`))
+}
+check('public calculator recalculates cost by duration', publicCalculator.includes('quality, seconds, monthlyFilms: videos, currency'))
+check('public calculator renders the lower-cost plan path', publicCalculator.includes('result.lowerCostAlternative') && publicCalculator.includes("'lower_plan_capacity'"))
+check('public calculator renders same-engine no-plan capacity', publicCalculator.includes('result.maximumSameEngineFilms') && publicCalculator.includes("'same_engine_capacity'"))
+check('public calculator renders Kineo 1 fallback', publicCalculator.includes('result.fastAlternative') && publicCalculator.includes("'fast_alternative'"))
+check('public volume guard matches Plan Fit ceiling', publicCalculator.includes('Math.min(60, Math.round(value))') && (publicCalculator.match(/max=\{60\}/g) ?? []).length === 2)
+check('public CTA telemetry carries duration', (publicCalculator.match(/seconds,/g) ?? []).length >= 3)
+
 console.log(failed === 0
   ? `\n${total}/${total} checks passed.\n`
   : `\n${failed} failed of ${total}.\n`)

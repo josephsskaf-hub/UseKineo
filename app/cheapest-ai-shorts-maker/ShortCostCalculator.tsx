@@ -3,56 +3,39 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
-import { PLANS as PRODUCT_PLANS } from '@/lib/pricing'
 import {
   CURRENCY_DISPLAY,
-  INTRO_PRICES,
-  TIER_PRICES,
-  hasIntroOffer,
   formatCheckoutMoney,
+  getTierPrice,
   type CheckoutCurrency,
-  type CheckoutTier,
 } from '@/lib/checkoutPricing'
-import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
+import {
+  calculatePlanFit,
+  engineName,
+  planName,
+  type PlanFitQuality,
+} from '@/lib/growth/planFit'
 
-type EngineKey = 'fast' | 'ai' | 'cinematic'
-
-const ENGINES: Record<EngineKey, {
-  name: string
-  creditCost: number
+type PublicEngine = {
+  quality: PlanFitQuality
   detail: string
-}> = {
-  fast: {
-    name: 'Fast Mode',
-    creditCost: creditsPerReferenceVideo('fast'),
-    detail: 'Matched stock footage + AI voiceover',
-  },
-  ai: {
-    name: 'AI Generated',
-    creditCost: creditsPerReferenceVideo('cinematic_ai'),
-    detail: 'Seedance-generated scenes',
-  },
-  cinematic: {
-    name: 'Cinematic',
-    creditCost: creditsPerReferenceVideo('cinematic_kling'),
-    detail: 'Premium Kling-generated scenes',
-  },
 }
 
-const PLANS: Array<{
-  tier: CheckoutTier
-  name: string
-  credits: number
-  intro: boolean
-}> = [
-  { tier: 'starter', name: PRODUCT_PLANS.starter.name, credits: PRODUCT_PLANS.starter.credits, intro: true },
-  { tier: 'basic', name: PRODUCT_PLANS.basic.name, credits: PRODUCT_PLANS.basic.credits, intro: true },
-  { tier: 'pro', name: PRODUCT_PLANS.pro.name, credits: PRODUCT_PLANS.pro.credits, intro: false },
+const PUBLIC_ENGINES: readonly PublicEngine[] = [
+  { quality: 'fast', detail: 'Matched stock footage + AI voiceover' },
+  { quality: 'cinematic_ai', detail: 'Seedance 1.5 generated scenes' },
+  { quality: 'cinematic_h3', detail: 'MiniMax H3 with character consistency' },
+  { quality: 'cinematic_kling', detail: 'Kling 2.5 cinematic scenes' },
+  { quality: 'cinematic_veo', detail: 'Google Veo 3.1 cinematic scenes' },
+  { quality: 'cinematic_hollywood', detail: 'Kling 3 with native lip sync' },
+  { quality: 'cinematic_omni', detail: 'Omni Flash, top blind-arena score' },
 ]
+
+const PUBLIC_DURATIONS = [35, 60, 90] as const
 
 function clampVideos(value: number): number {
   if (!Number.isFinite(value)) return 1
-  return Math.max(1, Math.min(200, Math.round(value)))
+  return Math.max(1, Math.min(60, Math.round(value)))
 }
 
 function currentInternalSource(): string {
@@ -62,19 +45,14 @@ function currentInternalSource(): string {
 }
 
 export default function ShortCostCalculator() {
-  const [engineKey, setEngineKey] = useState<EngineKey>('fast')
+  const [quality, setQuality] = useState<PlanFitQuality>('fast')
+  const [seconds, setSeconds] = useState<(typeof PUBLIC_DURATIONS)[number]>(60)
   const [videos, setVideos] = useState(12)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
-  const engine = ENGINES[engineKey]
-  const requiredCredits = videos * engine.creditCost
-
-  const recommendation = useMemo(() => {
-    const eligible = PLANS.filter((plan) => plan.credits >= requiredCredits)
-    if (eligible.length === 0 || !currency) return null
-    return eligible.reduce((best, plan) =>
-      TIER_PRICES[plan.tier][currency] < TIER_PRICES[best.tier][currency] ? plan : best,
-    )
-  }, [requiredCredits, currency])
+  const result = useMemo(
+    () => calculatePlanFit({ quality, seconds, monthlyFilms: videos, currency }),
+    [quality, seconds, videos, currency],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -89,6 +67,7 @@ export default function ShortCostCalculator() {
         void trackEvent('short_cost_calculator_viewed', {
           display_currency: resolved,
           default_engine: 'fast',
+          default_seconds: 60,
           default_videos: 12,
           internal_source: currentInternalSource(),
           intent_campaign: 'push77_short_cost_calculator',
@@ -102,48 +81,50 @@ export default function ShortCostCalculator() {
     }
   }, [])
 
-  function recordChange(nextEngine: EngineKey, nextVideos: number) {
-    const nextRequired = ENGINES[nextEngine].creditCost * nextVideos
-    const nextPlan = PLANS.find((plan) => plan.credits >= nextRequired)
+  function recordChange(
+    nextQuality: PlanFitQuality,
+    nextVideos: number,
+    nextSeconds: number = seconds,
+    selectionSource: 'engine' | 'duration' | 'volume' | 'lower_plan_capacity' | 'same_engine_capacity' | 'fast_alternative' = 'volume',
+  ) {
+    const next = calculatePlanFit({
+      quality: nextQuality,
+      seconds: nextSeconds,
+      monthlyFilms: nextVideos,
+      currency,
+    })
     void trackEvent('short_cost_calculator_changed', {
-      engine: nextEngine,
-      videos: nextVideos,
-      required_credits: nextRequired,
-      minimum_plan: nextPlan?.tier ?? 'above_studio',
+      engine: nextQuality,
+      seconds: nextSeconds,
+      videos: next.monthlyFilms,
+      film_credits: next.filmCredits,
+      required_credits: next.monthlyCredits,
+      minimum_plan: next.plan?.tier ?? 'above_studio',
+      selection_source: selectionSource,
       display_currency: currency ?? 'resolving',
       internal_source: currentInternalSource(),
       intent_campaign: 'push77_short_cost_calculator',
     })
   }
 
-  function chooseEngine(next: EngineKey) {
-    setEngineKey(next)
-    recordChange(next, videos)
+  function chooseEngine(next: PlanFitQuality) {
+    setQuality(next)
+    recordChange(next, videos, seconds, 'engine')
+  }
+
+  function chooseDuration(next: (typeof PUBLIC_DURATIONS)[number]) {
+    setSeconds(next)
+    recordChange(quality, videos, next, 'duration')
   }
 
   function commitVideos(raw: number) {
     const next = clampVideos(raw)
     setVideos(next)
-    recordChange(engineKey, next)
+    recordChange(quality, next, seconds, 'volume')
   }
 
-  const recommendationMonthly = recommendation && currency
-    ? TIER_PRICES[recommendation.tier][currency]
-    : null
-  // KINEO-PRICING-V6-2026-08-19 — `recommendation.intro` só diz que o tier TEM
-  // uma linha em INTRO_PRICES, não que essa linha seja mais barata. Desde que o
-  // 1º mês com desconto morreu, INTRO_PRICES == TIER_PRICES, e esta calculadora
-  // vinha imprimindo um selo azul "First month $7.00" logo abaixo de "$7.00/mo"
-  // — duas vezes o mesmo número, com um dos dois se chamando desconto. Quem
-  // pergunta o preço numa página chamada "cheapest AI shorts maker" é
-  // exatamente quem repara nisso. hasIntroOffer() é a checagem que existe para
-  // isto: ela compara os dois valores em vez de acreditar no rótulo, então o
-  // selo volta sozinho no dia em que houver desconto de verdade.
-  const introTier = recommendation && recommendation.intro
-    ? (recommendation.tier as 'starter' | 'basic')
-    : null
-  const recommendationIntro = introTier && currency && hasIntroOffer(introTier, currency)
-    ? INTRO_PRICES[introTier][currency]
+  const recommendationMonthly = result.plan && currency
+    ? getTierPrice(result.plan.tier, currency)
     : null
 
   return (
@@ -164,21 +145,21 @@ export default function ShortCostCalculator() {
         What would your Shorts actually cost?
       </h2>
       <p style={{ margin: '10px 0 0', color: '#86868b', lineHeight: 1.6 }}>
-        Pick your monthly output and visual engine. We use the same credits and local prices as Checkout.
+        Pick the exact engine, duration and monthly output. This uses the same credit contract and plan grants as Checkout.
       </p>
 
       <div style={{ marginTop: 24 }}>
         <div style={{ color: '#d2d2d7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>1. Visual engine</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-          {(Object.keys(ENGINES) as EngineKey[]).map((key) => {
-            const option = ENGINES[key]
-            const selected = key === engineKey
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+          {PUBLIC_ENGINES.map((option) => {
+            const selected = option.quality === quality
+            const oneFilm = calculatePlanFit({ quality: option.quality, seconds, monthlyFilms: 1, currency })
             return (
               <button
-                key={key}
+                key={option.quality}
                 type="button"
                 aria-pressed={selected}
-                onClick={() => chooseEngine(key)}
+                onClick={() => chooseEngine(option.quality)}
                 style={{
                   textAlign: 'left',
                   padding: '14px 15px',
@@ -189,9 +170,9 @@ export default function ShortCostCalculator() {
                   cursor: 'pointer',
                 }}
               >
-                <span style={{ display: 'block', fontWeight: 800 }}>{option.name}</span>
+                <span style={{ display: 'block', fontWeight: 800 }}>{engineName(option.quality)}</span>
                 <span style={{ display: 'block', marginTop: 4, color: '#86868b', fontSize: 12, lineHeight: 1.4 }}>{option.detail}</span>
-                <span style={{ display: 'block', marginTop: 7, color: '#2997ff', fontSize: 12, fontWeight: 800 }}>{option.creditCost} credit{option.creditCost === 1 ? '' : 's'} / video</span>
+                <span style={{ display: 'block', marginTop: 7, color: '#2997ff', fontSize: 12, fontWeight: 800 }}>{oneFilm.filmCredits} credit{oneFilm.filmCredits === 1 ? '' : 's'} / {seconds}s video</span>
               </button>
             )
           })}
@@ -199,26 +180,52 @@ export default function ShortCostCalculator() {
       </div>
 
       <div style={{ marginTop: 22 }}>
+        <div style={{ color: '#d2d2d7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>2. Duration</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {PUBLIC_DURATIONS.map((duration) => (
+            <button
+              key={duration}
+              type="button"
+              aria-pressed={seconds === duration}
+              onClick={() => chooseDuration(duration)}
+              style={{
+                minWidth: 82,
+                padding: '10px 14px',
+                borderRadius: 999,
+                border: seconds === duration ? '2px solid #2997ff' : '1px solid #3a3a3d',
+                background: seconds === duration ? 'rgba(41,151,255,.10)' : '#161618',
+                color: '#f5f5f7',
+                fontWeight: 800,
+                cursor: 'pointer',
+              }}
+            >
+              {duration}s
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 22 }}>
         <label htmlFor="shorts-per-month" style={{ display: 'block', color: '#d2d2d7', fontSize: 13, fontWeight: 800, marginBottom: 9 }}>
-          2. Shorts per month
+          3. Videos per month
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input
             id="shorts-per-month"
             type="range"
             min={1}
-            max={200}
+            max={60}
             value={videos}
             onChange={(event) => setVideos(clampVideos(Number(event.target.value)))}
-            onPointerUp={() => recordChange(engineKey, videos)}
-            onKeyUp={() => recordChange(engineKey, videos)}
+            onPointerUp={() => recordChange(quality, videos, seconds, 'volume')}
+            onKeyUp={() => recordChange(quality, videos, seconds, 'volume')}
             style={{ flex: 1, accentColor: '#2997ff' }}
           />
           <input
             aria-label="Shorts per month"
             type="number"
             min={1}
-            max={200}
+            max={60}
             value={videos}
             onChange={(event) => setVideos(clampVideos(Number(event.target.value)))}
             onBlur={(event) => commitVideos(Number(event.target.value))}
@@ -227,37 +234,81 @@ export default function ShortCostCalculator() {
         </div>
       </div>
 
-      <div style={{ marginTop: 24, padding: 18, borderRadius: 16, background: '#161618', border: recommendation ? '1px solid rgba(41,151,255,.45)' : '1px solid #3a3a3d' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+      <div style={{ marginTop: 24, padding: 18, borderRadius: 16, background: '#161618', border: result.plan ? '1px solid rgba(41,151,255,.45)' : '1px solid #3a3a3d' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
           <div>
             <div style={{ color: '#86868b', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>Credits required</div>
-            <div style={{ marginTop: 4, fontSize: 26, fontWeight: 900 }}>{requiredCredits}</div>
+            <div style={{ marginTop: 4, fontSize: 26, fontWeight: 900 }}>{result.monthlyCredits}</div>
+            <div style={{ marginTop: 4, color: '#86868b', fontSize: 12 }}>
+              {videos} × {seconds}s {engineName(quality)} video{videos === 1 ? '' : 's'} · {result.filmCredits} credits each
+            </div>
           </div>
           <div style={{ minWidth: 220 }}>
             <div style={{ color: '#86868b', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>Lowest monthly plan that covers it</div>
             {!currency ? (
               <div style={{ marginTop: 6, color: '#d2d2d7', fontWeight: 800 }}>Checking local price…</div>
-            ) : recommendation && recommendationMonthly != null ? (
+            ) : result.plan && recommendationMonthly != null ? (
               <div style={{ marginTop: 5 }}>
-                <div style={{ fontSize: 20, fontWeight: 900 }}>{recommendation.name} · {formatCheckoutMoney(currency, recommendationMonthly)}/mo</div>
-                {recommendationIntro != null && (
-                  <div style={{ marginTop: 4, color: '#2997ff', fontSize: 13, fontWeight: 800 }}>
-                    First month {formatCheckoutMoney(currency, recommendationIntro)}
-                  </div>
-                )}
+                <div style={{ fontSize: 20, fontWeight: 900 }}>{planName(result.plan.tier)} · {formatCheckoutMoney(currency, recommendationMonthly)}/mo</div>
                 <div style={{ marginTop: 5, color: '#86868b', fontSize: 13 }}>
                   {formatCheckoutMoney(currency, recommendationMonthly / videos)} per planned Short at renewal · {CURRENCY_DISPLAY[currency].label}
                 </div>
               </div>
             ) : (
               <div style={{ marginTop: 6, color: '#f5f5f7', fontWeight: 800 }}>
-                Above the {PRODUCT_PLANS.pro.credits} credits included in {PRODUCT_PLANS.pro.name}. Start with a smaller target, then add credits after subscribing.
+                No self-serve plan covers this exact target. Studio includes {result.maximumPlan.credits} credits — enough for {result.maximumSameEngineFilms} of these videos per month.
               </div>
             )}
           </div>
         </div>
+        {result.lowerCostAlternative && currency && (
+          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #2a2a2d', color: '#d2d2d7', fontSize: 13, lineHeight: 1.55 }}>
+            Prefer the lower plan? Keep {engineName(quality)} at {seconds}s and make{' '}
+            <b>{result.lowerCostAlternative.monthlyFilms}/month</b>. That fits{' '}
+            <b style={{ color: '#2997ff' }}>{planName(result.lowerCostAlternative.plan.tier)} at {formatCheckoutMoney(currency, getTierPrice(result.lowerCostAlternative.plan.tier, currency))}/mo</b>.{' '}
+            <button
+              type="button"
+              onClick={() => {
+                const next = result.lowerCostAlternative!.monthlyFilms
+                setVideos(next)
+                recordChange(quality, next, seconds, 'lower_plan_capacity')
+              }}
+              style={{ background: 'transparent', border: 0, padding: 0, color: '#2997ff', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              Use that cadence
+            </button>
+          </div>
+        )}
+        {!result.plan && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16, paddingTop: 14, borderTop: '1px solid #2a2a2d' }}>
+            {result.maximumSameEngineFilms > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setVideos(result.maximumSameEngineFilms)
+                  recordChange(quality, result.maximumSameEngineFilms, seconds, 'same_engine_capacity')
+                }}
+                style={{ padding: '10px 15px', borderRadius: 999, border: '1px solid #2997ff', background: 'rgba(41,151,255,.10)', color: '#f5f5f7', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Plan for {result.maximumSameEngineFilms}/month on {engineName(quality)}
+              </button>
+            )}
+            {result.fastAlternative && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuality('fast')
+                  recordChange('fast', videos, seconds, 'fast_alternative')
+                }}
+                style={{ padding: '10px 15px', borderRadius: 999, border: '1px solid #48484a', background: '#161618', color: '#f5f5f7', fontWeight: 800, cursor: 'pointer' }}
+              >
+                Keep {videos}/month with Kineo 1
+              </button>
+            )}
+          </div>
+        )}
         <p style={{ color: '#86868b', fontSize: 12, lineHeight: 1.5, margin: '14px 0 0' }}>
-          Estimate assumes every planned video uses the selected engine. Credits refresh monthly and unused plan credits do not roll over. The server confirms currency and eligibility again in Checkout.
+          Estimate assumes every planned video uses the selected engine and duration. Credits refresh monthly and unused plan credits do not roll over. Checkout confirms currency and eligibility again.
         </p>
       </div>
 
@@ -311,10 +362,11 @@ export default function ShortCostCalculator() {
           onClick={() => {
             void trackEvent('short_cost_calculator_cta_clicked', {
               destination: 'topic_form',
-              engine: engineKey,
+              engine: quality,
+              seconds,
               videos,
-              required_credits: requiredCredits,
-              recommended_plan: recommendation?.tier ?? 'above_studio',
+              required_credits: result.monthlyCredits,
+              recommended_plan: result.plan?.tier ?? 'above_studio',
               display_currency: currency ?? 'resolving',
               internal_source: currentInternalSource(),
               intent_campaign: 'push77_short_cost_calculator',
@@ -334,10 +386,11 @@ export default function ShortCostCalculator() {
           onClick={() => {
             void trackEvent('short_cost_calculator_cta_clicked', {
               destination: 'pricing',
-              engine: engineKey,
+              engine: quality,
+              seconds,
               videos,
-              required_credits: requiredCredits,
-              recommended_plan: recommendation?.tier ?? 'above_studio',
+              required_credits: result.monthlyCredits,
+              recommended_plan: result.plan?.tier ?? 'above_studio',
               display_currency: currency ?? 'resolving',
               internal_source: currentInternalSource(),
               intent_campaign: 'push77_short_cost_calculator',
