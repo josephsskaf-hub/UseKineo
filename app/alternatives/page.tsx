@@ -19,6 +19,10 @@ import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
 import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
+import {
+  ALTERNATIVE_JOB_PATHS,
+  KINEO_ALTERNATIVES_SIGNUP_HREF,
+} from '@/lib/growth/alternativeJobChooser'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -42,7 +46,7 @@ export const metadata: Metadata = {
 const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
 
 export default function AlternativesIndexPage() {
-  const signupUrl = '/signup?utm_source=seo&utm_medium=organic&utm_campaign=push22_alternatives_hub'
+  const signupUrl = KINEO_ALTERNATIVES_SIGNUP_HREF
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div style={{ maxWidth: 980, margin: '0 auto', padding: '28px 18px 64px' }}>
@@ -78,6 +82,76 @@ export default function AlternativesIndexPage() {
           >
             Calculate your real cost per Short →
           </CostCalculatorLink>
+        </section>
+
+        {/* Job-first chooser: qualify the visitor before showing 27 brand cards. */}
+        <section aria-labelledby="job-chooser-heading" style={{ marginTop: 52 }}>
+          <div style={{ textAlign: 'center', maxWidth: 720, margin: '0 auto 22px' }}>
+            <div style={{ color: '#a78bfa', fontSize: '0.72rem', fontWeight: 900, letterSpacing: '.1em', textTransform: 'uppercase' }}>
+              Start with the job
+            </div>
+            <h2 id="job-chooser-heading" style={{ fontSize: 'clamp(1.45rem, 4vw, 2.05rem)', lineHeight: 1.15, margin: '9px 0 8px' }}>
+              Which kind of video are you actually making?
+            </h2>
+            <p style={{ color: '#909098', lineHeight: 1.6, margin: 0 }}>
+              These tools solve different starting points. Pick yours before comparing feature lists.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 330px), 1fr))', gap: 14 }}>
+            {ALTERNATIVE_JOB_PATHS.map((job) => (
+              <article
+                key={job.id}
+                style={{
+                  ...CARD,
+                  borderColor: job.kineoFit === 'best_fit' ? 'rgba(52,211,153,.55)' : '#2a2a2d',
+                  background: job.kineoFit === 'best_fit' ? 'linear-gradient(145deg, rgba(52,211,153,.12), #111614 70%)' : CARD.background,
+                  borderRadius: 18,
+                  padding: '21px 21px 19px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div style={{ color: job.kineoFit === 'best_fit' ? '#34d399' : '#a78bfa', fontSize: '0.68rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase' }}>
+                  {job.eyebrow}
+                </div>
+                <h3 style={{ fontSize: '1.08rem', lineHeight: 1.3, margin: '8px 0 7px' }}>{job.title}</h3>
+                <p style={{ color: '#97979f', fontSize: '0.86rem', lineHeight: 1.58, margin: 0 }}>{job.description}</p>
+                <p style={{ color: '#d6d6da', fontSize: '0.86rem', lineHeight: 1.58, margin: '12px 0 17px' }}>
+                  <strong>{job.recommendation}</strong>
+                </p>
+                <div style={{ marginTop: 'auto', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+                  {job.kineoFit === 'best_fit' ? (
+                    <OrganicCtaLink
+                      href={job.primaryHref}
+                      source="alternatives_job_chooser"
+                      placement={job.id}
+                      style={{ display: 'inline-flex', color: '#06130e', background: '#34d399', borderRadius: 999, padding: '10px 15px', fontSize: '0.8rem', fontWeight: 900, textDecoration: 'none' }}
+                    >
+                      {job.primaryLabel} →
+                    </OrganicCtaLink>
+                  ) : (
+                    <Link href={job.primaryHref} style={{ color: '#c4b5fd', fontSize: '0.82rem', fontWeight: 850, textDecoration: 'none' }}>
+                      {job.primaryLabel} →
+                    </Link>
+                  )}
+                  {job.secondaryHref && job.secondaryLabel ? (
+                    <Link href={job.secondaryHref} style={{ color: '#9ca3af', fontSize: '0.79rem', fontWeight: 750, textDecoration: 'none' }}>
+                      {job.secondaryLabel} →
+                    </Link>
+                  ) : null}
+                </div>
+                <a
+                  href={job.sourceHref}
+                  target={job.sourceHref.startsWith('http') ? '_blank' : undefined}
+                  rel={job.sourceHref.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  style={{ color: '#6f6f78', fontSize: '0.7rem', marginTop: 14, textDecoration: 'underline', textUnderlineOffset: 3 }}
+                >
+                  Source: {job.sourceLabel}
+                </a>
+              </article>
+            ))}
+          </div>
         </section>
 
         {/* Grid of comparison cards */}
