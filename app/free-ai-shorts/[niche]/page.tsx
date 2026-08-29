@@ -13,6 +13,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 // Router, e é exatamente como `/free-ai-shorts-generator` (a página que
 // converte) já o usa.
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import LocalBusinessAdBrief from './LocalBusinessAdBrief'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { buildPromptedFastSignupHref } from '@/lib/growth/publicCreationIntent'
@@ -518,6 +519,18 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
     campaign,
   })
   const primaryIdea = n.ideas[0]
+  const isLocalBusiness = params.niche === 'localbusiness'
+  const steps = isLocalBusiness
+    ? [
+        { n: '1', t: 'Describe the real offer', d: 'Add the business, service, customer, differentiator and next step. Short factual phrases work best.' },
+        { n: '2', t: 'Review the exact script', d: 'The browser assembles an editable draft without calling AI, creating an account or starting a video.' },
+        { n: '3', t: 'Continue when it is true', d: 'The approved draft reaches the editor in verbatim mode. You still review the setup before generation.' },
+      ]
+    : [
+        { n: '1', t: 'Pick an idea', d: `Type any ${n.label.toLowerCase()} topic — or use one of the ready-made viral ideas below.` },
+        { n: '2', t: 'AI builds the video', d: 'The script, voiceover, on-screen captions and footage are generated automatically.' },
+        { n: '3', t: 'Download & post', d: 'Get a vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok or Reels.' },
+      ]
 
   return (
     <main style={{ minHeight: '100vh', background: '#000', color: '#f5f5f7', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -537,14 +550,23 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
           <p style={{ fontSize: '0.85rem', color: '#86868b', margin: '10px 0 0' }}>
             Script • Voiceover • Captions • Footage • Ready in a few minutes · <b style={{ color: '#2997ff' }}>{ft(OFFER, 'up to 3 watermarked Fast videos / 24h', OFFER.copy.chipLower)}</b>, no card
           </p>
-          <OrganicCtaLink
-            href={signupUrlForIdea(primaryIdea)}
-            source={campaign}
-            placement="hero"
-            style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
-          >
-            Generate a free {n.label} Fast video →
-          </OrganicCtaLink>
+          {isLocalBusiness ? (
+            <Link
+              href="#business-ad-builder"
+              style={{ display: 'inline-block', marginTop: 22, background: '#2997ff', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
+            >
+              Build my business ad script →
+            </Link>
+          ) : (
+            <OrganicCtaLink
+              href={signupUrlForIdea(primaryIdea)}
+              source={campaign}
+              placement="hero"
+              style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
+            >
+              Generate a free {n.label} Fast video →
+            </OrganicCtaLink>
+          )}
 
           {/* ═══════════════════════════════════════════════════════════════
               KINEO-STARTER-NAS-30-2026-08-17 — A FAMÍLIA DE 30 PÁGINAS ERA
@@ -591,30 +613,30 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               páginas e mexer nele no fim da janela é exatamente o caminho do
               `b6fef68`.
           */}
-          <TopicGeneratorForm
-            campaign={campaign}
-            source={campaign}
-            formId={`niche-starter-${params.niche}`}
-            examples={n.ideas.slice(0, 3)}
-            copy={{
-              label: `What should your free ${n.label} Short be about?`,
-              placeholder: `Type any ${n.label.toLowerCase()} topic or paste your script`,
-              submit: 'Create my free Short',
-              examplesLabel: `${n.label} ideas`,
-              note: 'Your idea is carried into signup so the first Fast video can start without a card.',
-            }}
-          />
+          {isLocalBusiness ? (
+            <LocalBusinessAdBrief />
+          ) : (
+            <TopicGeneratorForm
+              campaign={campaign}
+              source={campaign}
+              formId={`niche-starter-${params.niche}`}
+              examples={n.ideas.slice(0, 3)}
+              copy={{
+                label: `What should your free ${n.label} Short be about?`,
+                placeholder: `Type any ${n.label.toLowerCase()} topic or paste your script`,
+                submit: 'Create my free Short',
+                examplesLabel: `${n.label} ideas`,
+                note: 'Your idea is carried into signup so the first Fast video can start without a card.',
+              }}
+            />
+          )}
         </section>
 
         {/* How it works */}
         <section style={{ marginTop: 48 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>How it works</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-            {[
-              { n: '1', t: 'Pick an idea', d: `Type any ${n.label.toLowerCase()} topic — or use one of the ready-made viral ideas below.` },
-              { n: '2', t: 'AI builds the video', d: 'The script, voiceover, on-screen captions and footage are generated automatically.' },
-              { n: '3', t: 'Download & post', d: 'Get a vertical 9:16 MP4 in a few minutes, ready for YouTube Shorts, TikTok or Reels.' },
-            ].map((s) => (
+            {steps.map((s) => (
               <div key={s.n} style={{ ...CARD, borderRadius: 14, padding: 16 }}>
                 <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(41,151,255,0.12)', color: '#2997ff', fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{s.n}</div>
                 <div style={{ fontWeight: 800, marginBottom: 4 }}>{s.t}</div>
@@ -625,7 +647,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
         </section>
 
         {/* Niche ideas */}
-        <section style={{ marginTop: 48 }}>
+        {!isLocalBusiness && <section style={{ marginTop: 48 }}>
           <h2 style={{ fontSize: '1.3rem', fontWeight: 900, textAlign: 'center', margin: '0 0 18px' }}>
             Viral {n.label} ideas to start with
           </h2>
@@ -637,7 +659,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               </OrganicCtaLink>
             ))}
           </div>
-        </section>
+        </section>}
 
         {/* Final CTA */}
         <section style={{ marginTop: 48, textAlign: 'center', ...CARD, borderRadius: 18, padding: '28px 20px' }}>
@@ -646,14 +668,20 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               páginas, então era o erro multiplicado por 30. Agora deriva. */}
           <h2 style={{ fontSize: '1.4rem', fontWeight: 900, margin: 0 }}>{ft(OFFER, `Make a ${n.label} Fast video free`, `Start free — ${TRIAL_GRANT_CREDITS_COPY} Creator credits for ${n.label} Shorts`)}</h2>
           <p style={{ color: '#CBD5E1', margin: '8px 0 18px', fontSize: '0.95rem' }}>{ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card.', OFFER.copy.headline)} Starter is {STARTER_MONTH} when you want clean exports.</p>
-          <OrganicCtaLink
-            href={signupUrlForIdea(primaryIdea)}
-            source={campaign}
-            placement="final"
-            style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}
-          >
-            Start free →
-          </OrganicCtaLink>
+          {isLocalBusiness ? (
+            <Link href="#business-ad-builder" style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}>
+              Build my ad script →
+            </Link>
+          ) : (
+            <OrganicCtaLink
+              href={signupUrlForIdea(primaryIdea)}
+              source={campaign}
+              placement="final"
+              style={{ display: 'inline-block', background: '#2997ff', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 12, textDecoration: 'none', fontSize: '1.02rem' }}
+            >
+              Start free →
+            </OrganicCtaLink>
+          )}
         </section>
 
         {/* KINEO-SCRIPT-LIBRARY-2026-08-03 — reverse link into the script

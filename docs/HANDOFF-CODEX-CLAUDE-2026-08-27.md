@@ -1345,3 +1345,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** backend de Auth, checkout, preço, grant, oferta, SKU, cards/vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, e-mail, outreach, IndexNow, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Claude continua capacidade/render. Depois do push, deve executar `git fetch origin` antes de nova worktree e não reconstruir este contrato. Codex continua aquisição/fluxo/assinaturas.
+
+## 30. Fluxo B2B — briefing real de anúncio para negócio local (29/08/2026)
+
+**BASE DE CÓDIGO:** `78ad68ae9b106dec93451c0c58be74401ab9ff61`, igual a `origin/main` no início da worktree isolada `codex/growth-local-business-brief`.
+
+**EVIDÊNCIA DE PRODUÇÃO (fonte: `docs/SPRINT-2026-08-17-10H.md:190-199`, consulta registrada em 17/08/2026):** a coorte de negócio local/serviço tinha 27 pessoas, 22,2% chegando à Stripe e 1 pagante. São pessoas, não eventos. A página `/free-ai-shorts/localbusiness` existe, mas sua porta principal ainda partia de uma ideia genérica e podia levar ao cadastro sem nome da empresa, serviço, público, diferencial real ou CTA do proprietário.
+
+**FATO CONFIRMADO / PADRÃO COMPETITIVO (páginas oficiais consultadas em 28/08/2026):** CapCut (`https://www.capcut.com/tools/ai-ad-generator`), Creatify (`https://creatify.ai/features/ai-ad-generator`) e Canva (`https://www.canva.com/create/ads/ai-ad-generator/`) pedem insumos do produto ou negócio antes de montar o anúncio. O padrão aproveitado foi preservar fatos reais fornecidos pelo proprietário antes da conta; não foram copiados interface, texto, preço ou promessa.
+
+**IMPLEMENTADO:** `lib/growth/localBusinessAdBrief.ts:1-109` cria no navegador um roteiro estruturado de aproximadamente 35 segundos a partir de cinco fatos limitados: nome, serviço, cliente ideal, diferencial verificável e CTA. O texto contém HOOK, duas micro-recompensas, escalada e payoff, chega ao piso de 77 palavras faladas, cabe no limite de 600 caracteres do handoff e não inventa dinheiro, percentual, garantia ou depoimento. O proprietário pode editar o roteiro completo antes de continuar.
+
+**IMPLEMENTADO / CALLER REAL:** `app/free-ai-shorts/[niche]/page.tsx:522-672` troca somente a variação `localbusiness` pelo novo `LocalBusinessAdBrief`; as outras 29 páginas mantêm `TopicGeneratorForm`. `LocalBusinessAdBrief.tsx:48-93` envia o roteiro exato pelo contrato canônico `toolActivationHref`, com campanha `growth_local_business_brief_20260828`, `script_mode=verbatim`, `duration=35` e `autoanalyze=1`. Não envia `create_intent`. O redirect é validado pelo signup e o editor autenticado restaura prompt, modo e duração; o caller de autostart rejeita qualquer handoff cujo `createIntent` não seja `fast`. Portanto a mudança prepara o editor, mas não dispara render nem débito.
+
+**TESTADO LOCALMENTE:** `node scripts/test-local-business-ad-brief.mjs` executou 46/46 verificações. A suite compila e executa o gerador, `toolActivationHref`, `normalizeInternalRedirect` e `readCreationHandoff`; cobre limites, duração, fatos preservados, ausência de alegações comerciais inventadas, redirect exato, modo verbatim, duração 35, análise sem `create_intent` e caller real da tela. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental --tsBuildInfoFile .tsbuildinfo-local-business` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo e o artefato temporário foi removido.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/LOCAL-BUSINESS-AD-BRIEF-2026-08-28.html` contém antes/depois desktop e o estado mobile. As capturas aprovadas estão em `docs/previews/LOCAL-BUSINESS-AD-BRIEF-DESKTOP-2026-08-28.png` e `docs/previews/LOCAL-BUSINESS-AD-BRIEF-MOBILE-2026-08-28.png`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026, reiterada em 29/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Codex não consultou nem escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render nesta entrega. `402` permanece classificado como indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega melhora apenas a conversão do tráfego B2B que já chega à página.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, cadastro, checkout ou assinatura causada pelo briefing. Depois da normalização da capacidade, medir pessoas da campanha `growth_local_business_brief_20260828`, excluindo contas internas e sem contar eventos como pessoas.
+
+**NÃO TOCADO:** pipeline de render, motor, cena, legenda, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, checkout, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de nova worktree. Codex continua aquisição/fluxo/assinaturas. Não reconstruir este briefing nem adicionar `create_intent` sem uma decisão explícita sobre render automático.
