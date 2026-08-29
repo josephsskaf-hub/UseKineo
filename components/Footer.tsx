@@ -144,6 +144,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/business-video-content-plan', label: 'Business video content planner' },
       { href: '/real-estate-video-maker', label: 'Real estate video maker' },
       { href: '/free-hook-generator', label: 'Free hook generator' },
+      { href: '/youtube-shorts-title-generator', label: 'Shorts title & hashtag generator' },
       { href: '/viral-score', label: 'Free viral score' },
       { href: '/shorts-money-calculator', label: 'Shorts money calculator' },
     ],

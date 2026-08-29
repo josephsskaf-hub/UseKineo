@@ -767,6 +767,16 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
     what: 'Type a topic and get opening hooks for a Short. Text only — it does not render a video.',
   },
   {
+    name: 'Free YouTube Shorts title and hashtag generator',
+    url: `${BASE}/youtube-shorts-title-generator`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Turn one topic into 10 title options, an editable description and up to 10 focused hashtags. It does not upload or render a video.',
+  },
+  {
     name: 'Free viral score for a Short idea',
     url: `${BASE}/viral-score`,
     output: 'text',

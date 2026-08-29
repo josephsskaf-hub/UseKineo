@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'Free YouTube Shorts Tools — No Signup or Card | Kineo',
   description:
-    'Use seven free YouTube Shorts tools without an account or card: script and hook generators, viral score, business content planner, product and comment scripts, and a Shorts earnings calculator.',
+    `Use ${FREE_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: scripts, hooks, publishing copy, viral score, content planning and an earnings calculator.`,
   alternates: { canonical: `${BASE}/tools` },
   openGraph: {
-    title: 'Seven Free YouTube Shorts Tools — No Signup',
+    title: 'Free YouTube Shorts Tools — No Signup',
     description:
-      'Go from topic, comment, product or business goal to a useful Short plan or script. Seven made-to-order tools, no account or card.',
+      `Go from topic, comment, product or business goal to a useful Short plan, script or publishing kit. ${FREE_TOOL_FACTS.length} made-to-order tools, no account or card.`,
     url: `${BASE}/tools`,
     type: 'website',
     images: [{ url: '/og-card.png', width: 1200, height: 630, alt: 'Kineo free YouTube Shorts tools' }],
@@ -39,6 +39,11 @@ const TOOL_META: Record<string, ToolMeta> = {
     eyebrow: 'Start with a topic',
     prompt: 'I need a stronger opening',
     cta: 'Generate five hooks',
+  },
+  '/youtube-shorts-title-generator': {
+    eyebrow: 'Start with a topic',
+    prompt: 'I need titles, a description and hashtags',
+    cta: 'Build my publishing kit',
   },
   '/viral-score': {
     eyebrow: 'Start with an idea',
@@ -70,6 +75,7 @@ const TOOL_META: Record<string, ToolMeta> = {
 const TOOL_ORDER = [
   '/free-script-generator',
   '/free-hook-generator',
+  '/youtube-shorts-title-generator',
   '/viral-score',
   '/comment-to-video',
   '/product-to-video-script',
@@ -93,7 +99,7 @@ const toolsJsonLd = {
   '@type': 'CollectionPage',
   name: 'Free YouTube Shorts tools by Kineo',
   url: `${BASE}/tools`,
-  description: 'Seven free, no-signup tools for planning, writing and evaluating YouTube Shorts.',
+  description: `${tools.length} free, no-signup tools for planning, writing, publishing and evaluating YouTube Shorts.`,
   mainEntity: {
     '@type': 'ItemList',
     numberOfItems: tools.length,
@@ -169,7 +175,7 @@ export default function ToolsPage() {
             product, business goal or revenue target — and leave with a made-to-order result.
           </p>
           <div className="tools-trust" aria-label="Tool limits">
-            <span>7 free tools</span>
+            <span>{tools.length} free tools</span>
             <span>Made from your input</span>
             <span>Text and planning only</span>
           </div>
