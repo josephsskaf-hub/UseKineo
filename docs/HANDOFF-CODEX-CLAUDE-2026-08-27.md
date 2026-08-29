@@ -1338,7 +1338,7 @@ PRÓXIMO DONO:
 
 **DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega reduz perda de intenção no tráfego existente.
 
-**VALIDAÇÃO EM PRODUÇÃO:** pendente de push e deploy deste pacote. A validação será HTTP/Vercel sem executar o app no browser, sem login e sem chamada ao Supabase.
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_DqnHB6X5Uv4mXYZksCcqpqNAF3Zw` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional `d2dff9dc769eae1e14c30ee49259036637568528`. Leitura HTTP sem executar JavaScript da URL de signup com Veo 3.1 respondeu 200, `x-matched-path: /signup`, cache `HIT` e asset do deploy exato. O chunk publicado de signup respondeu 200 e contém os sete rótulos canônicos, `Nothing starts automatically` e a precedência de checkout. A Vercel registrou zero erro de runtime agrupado em `/signup` nos 15 minutos consultados. Isto prova publicação do código e ausência de erro observado, não um cadastro autenticado end-to-end.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada por esta ampliação. Um smoke autenticado continua adiado enquanto o incidente de capacidade estiver aberto.
 
