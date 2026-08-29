@@ -10,6 +10,16 @@ export const ENGINE_LANDING_PARAMS = [
 
 export type EngineLandingParam = (typeof ENGINE_LANDING_PARAMS)[number]
 
+export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
+  fast: 'Kineo 1',
+  seedance: 'Seedance 1.5',
+  kling: 'Kling 2.5',
+  veo: 'Veo 3.1',
+  hollywood: 'Kling 3',
+  h3: 'MiniMax H3',
+  omni: 'Omni Flash',
+}
+
 const DEFAULT_CAMPAIGN = 'seo_engine'
 
 function normalizeEngine(value: string): EngineLandingParam {

@@ -3,16 +3,21 @@ import {
   PRODUCT_SURFACE_DESTINATIONS,
   type ProductSurface,
 } from '@/lib/growth/productSurfaceIntent'
+import {
+  ENGINE_LANDING_LABELS,
+  ENGINE_LANDING_PARAMS,
+  type EngineLandingParam,
+} from '@/lib/growth/engineLandingIntent'
 
 export type SignupProductDestinationPreview = {
-  surface: ProductSurface
+  surface: ProductSurface | EngineLandingParam
   eyebrow: string
   heading: string
   description: string
   destinationLabel: string
 }
 
-const PREVIEW: Record<ProductSurface, Omit<SignupProductDestinationPreview, 'surface'>> = {
+const PREVIEW: Record<'images' | 'audio', Omit<SignupProductDestinationPreview, 'surface'>> = {
   images: {
     eyebrow: 'Destination saved',
     heading: 'Your AI Image Studio is next',
@@ -25,41 +30,25 @@ const PREVIEW: Record<ProductSurface, Omit<SignupProductDestinationPreview, 'sur
     description: 'After sign-in, Kineo opens the voice workspace. Nothing is generated until you choose a voice and submit.',
     destinationLabel: 'AI Voice Studio',
   },
-  fast: {
-    eyebrow: 'Engine saved',
-    heading: 'Kineo 1 Fast is selected',
-    description: 'After sign-in, Kineo opens the Studio with Fast selected. Nothing starts until you review the setup and submit.',
-    destinationLabel: 'Studio · Kineo 1 Fast',
-  },
-  seedance: {
-    eyebrow: 'Engine saved',
-    heading: 'Seedance is selected',
-    description: 'After sign-in, Kineo opens the Studio with Seedance selected. Nothing starts until you review the setup and submit.',
-    destinationLabel: 'Studio · Seedance',
-  },
-  h3: {
-    eyebrow: 'Engine saved',
-    heading: 'MiniMax H3 is selected',
-    description: 'After sign-in, Kineo opens the Studio with MiniMax H3 selected and shows its credit cost before you submit. Nothing starts automatically.',
-    destinationLabel: 'Studio · MiniMax H3',
-  },
 }
 
-function destinationSignature(raw: string): string | null {
+function parsedDestination(raw: string): { pathname: string; engine: string | null } | null {
   const normalized = normalizeInternalRedirect(raw)
   if (!normalized) return null
 
   const parsed = new URL(normalized, 'https://kineo.local')
+  const keys = [...parsed.searchParams.keys()]
+  if (new Set(keys).size !== keys.length) return null
   const allowedKeys = parsed.pathname === '/studio'
     ? new Set(['engine', 'intent_campaign'])
     : new Set(['intent_campaign'])
-  if ([...parsed.searchParams.keys()].some((key) => !allowedKeys.has(key))) return null
+  if (keys.some((key) => !allowedKeys.has(key))) return null
 
   if (parsed.pathname === '/studio') {
     const engine = parsed.searchParams.get('engine')
-    return engine ? `${parsed.pathname}?engine=${engine}` : null
+    return engine ? { pathname: parsed.pathname, engine } : null
   }
-  return parsed.pathname
+  return { pathname: parsed.pathname, engine: null }
 }
 
 /**
@@ -71,11 +60,25 @@ export function buildSignupProductDestinationPreview(
   rawRedirect: string | null | undefined
 ): SignupProductDestinationPreview | null {
   if (!rawRedirect) return null
-  const signature = destinationSignature(rawRedirect)
-  if (!signature) return null
+  const destination = parsedDestination(rawRedirect)
+  if (!destination) return null
 
-  for (const surface of Object.keys(PRODUCT_SURFACE_DESTINATIONS) as ProductSurface[]) {
-    if (destinationSignature(PRODUCT_SURFACE_DESTINATIONS[surface]) === signature) {
+  if (destination.pathname === '/studio' && destination.engine) {
+    if (!ENGINE_LANDING_PARAMS.includes(destination.engine as EngineLandingParam)) return null
+    const engine = destination.engine as EngineLandingParam
+    const label = ENGINE_LANDING_LABELS[engine]
+    return {
+      surface: engine,
+      eyebrow: 'Engine saved',
+      heading: `${label} is selected`,
+      description: `After sign-in, Kineo opens the Studio with ${label} selected and shows its credit cost before you submit. Nothing starts automatically.`,
+      destinationLabel: `Studio · ${label}`,
+    }
+  }
+
+  for (const surface of ['images', 'audio'] as const) {
+    const canonical = parsedDestination(PRODUCT_SURFACE_DESTINATIONS[surface])
+    if (canonical?.pathname === destination.pathname) {
       return { surface, ...PREVIEW[surface] }
     }
   }

@@ -1319,3 +1319,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** backend de Auth, checkout, preço, grant, oferta, SKU, cards/vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, e-mail, outreach, IndexNow, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de nova worktree. Codex continua aquisição/fluxo/assinaturas. Não transformar redirect arbitrário em copy de produto e não remover a precedência do checkout.
+
+## 29. Fluxo de cadastro — confirmação para todos os motores públicos (28/08/2026)
+
+**BASE DE CÓDIGO:** `99c4fd93d396bb09d9d77bde46a010ee4794e3bf`, igual a `origin/main` no início da worktree isolada `codex/growth-engine-signup-proof`.
+
+**FATO CONFIRMADO / GARGALO:** as páginas públicas de motor suportam sete destinos canônicos em `lib/growth/engineLandingIntent.ts`, mas o comprovante visual criado na seção 28 reconhecia somente Fast, Seedance e MiniMax H3. Quem escolhia Kling 2.5, Veo 3.1, Kling 3 ou Omni Flash chegava ao cadastro genérico, embora o redirect técnico preservasse corretamente o motor. Era uma quebra de continuidade na etapa anterior à conta, não um defeito de render.
+
+**IMPLEMENTADO:** `ENGINE_LANDING_LABELS` passa a morar junto do enum canônico dos sete motores em `lib/growth/engineLandingIntent.ts`. `lib/growth/signupProductDestinationPreview.ts` usa essa mesma fonte para nomear Kineo 1, Seedance 1.5, Kling 2.5, Veo 3.1, Kling 3, MiniMax H3 e Omni Flash no cadastro. O card informa que o custo aparecerá antes da submissão e que nada começa automaticamente. Imagem e voz continuam reconhecidas pela fonte `PRODUCT_SURFACE_DESTINATIONS`; checkout continua com precedência na tela real.
+
+**FATO CONFIRMADO / FAIL-CLOSED:** o parser aceita somente redirects internos normalizados. Em `/studio`, aceita apenas uma ocorrência de `engine` e a campanha opcional; motor desconhecido, parâmetro extra ou engine duplicado voltam ao cadastro genérico. Nas demais ferramentas, somente a campanha opcional é aceita. Nenhum texto, URL ou rótulo fornecido pelo visitante é renderizado no comprovante.
+
+**TESTADO LOCALMENTE:** `node scripts/test-signup-product-destination.mjs` executou 109/109 verificações e percorreu o href real de cada uma das sete landing pages até o preview do cadastro, comparando o rótulo com o nome público do motor. `node scripts/test-product-surface-intent.mjs` manteve 48/48. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental --tsBuildInfoFile .tsbuildinfo-engine-signup-proof` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo e o artefato temporário foi removido.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/SIGNUP-ALL-ENGINES-2026-08-28.html` contém antes/depois desktop e o estado mobile. As capturas aprovadas estão em `docs/previews/SIGNUP-ALL-ENGINES-DESKTOP-2026-08-28.png` e `docs/previews/SIGNUP-ALL-ENGINES-MOBILE-2026-08-28.png`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render. `402` permanece indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega reduz perda de intenção no tráfego existente.
+
+**VALIDAÇÃO EM PRODUÇÃO:** pendente de push e deploy deste pacote. A validação será HTTP/Vercel sem executar o app no browser, sem login e sem chamada ao Supabase.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada por esta ampliação. Um smoke autenticado continua adiado enquanto o incidente de capacidade estiver aberto.
+
+**NÃO TOCADO:** backend de Auth, checkout, preço, grant, oferta, SKU, cards/vídeos da home, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, e-mail, outreach, IndexNow, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Claude continua capacidade/render. Depois do push, deve executar `git fetch origin` antes de nova worktree e não reconstruir este contrato. Codex continua aquisição/fluxo/assinaturas.

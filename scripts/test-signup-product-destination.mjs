@@ -36,9 +36,11 @@ const ok = (value, message) => { assert.ok(value, message); checks++ }
 
 const authRedirect = executeTs('lib/authRedirect.ts')
 const productIntent = executeTs('lib/growth/productSurfaceIntent.ts')
+const engineIntent = executeTs('lib/growth/engineLandingIntent.ts')
 const preview = executeTs('lib/growth/signupProductDestinationPreview.ts', {
   '@/lib/authRedirect': authRedirect,
   '@/lib/growth/productSurfaceIntent': productIntent,
+  '@/lib/growth/engineLandingIntent': engineIntent,
 })
 
 const cases = [
@@ -59,16 +61,37 @@ const cases = [
   {
     surface: 'fast',
     redirect: '/studio?engine=fast&intent_campaign=seo_engine_hub',
-    heading: 'Kineo 1 Fast is selected',
-    label: 'Studio · Kineo 1 Fast',
-    phrase: 'Fast selected',
+    heading: 'Kineo 1 is selected',
+    label: 'Studio · Kineo 1',
+    phrase: 'Kineo 1 selected',
   },
   {
     surface: 'seedance',
     redirect: '/studio?engine=seedance&intent_campaign=seo_video_upscaler',
-    heading: 'Seedance is selected',
-    label: 'Studio · Seedance',
-    phrase: 'Seedance selected',
+    heading: 'Seedance 1.5 is selected',
+    label: 'Studio · Seedance 1.5',
+    phrase: 'Seedance 1.5 selected',
+  },
+  {
+    surface: 'kling',
+    redirect: '/studio?engine=kling&intent_campaign=seo_engine_kling_2_5',
+    heading: 'Kling 2.5 is selected',
+    label: 'Studio · Kling 2.5',
+    phrase: 'Kling 2.5 selected',
+  },
+  {
+    surface: 'veo',
+    redirect: '/studio?engine=veo&intent_campaign=seo_engine_veo_3_1',
+    heading: 'Veo 3.1 is selected',
+    label: 'Studio · Veo 3.1',
+    phrase: 'Veo 3.1 selected',
+  },
+  {
+    surface: 'hollywood',
+    redirect: '/studio?engine=hollywood&intent_campaign=seo_engine_kling_3',
+    heading: 'Kling 3 is selected',
+    label: 'Studio · Kling 3',
+    phrase: 'Kling 3 selected',
   },
   {
     surface: 'h3',
@@ -76,6 +99,13 @@ const cases = [
     heading: 'MiniMax H3 is selected',
     label: 'Studio · MiniMax H3',
     phrase: 'credit cost before you submit',
+  },
+  {
+    surface: 'omni',
+    redirect: '/studio?engine=omni&intent_campaign=seo_engine_omni_flash',
+    heading: 'Omni Flash is selected',
+    label: 'Studio · Omni Flash',
+    phrase: 'Omni Flash selected',
   },
 ]
 
@@ -98,6 +128,7 @@ const rejected = [
   '/studio',
   '/studio?engine=unknown',
   '/studio?engine=h3&coupon=free',
+  '/studio?engine=veo&engine=fast',
   '/images?engine=fast',
   '/audio?next=https://evil.example',
   '//evil.example/images',
@@ -129,5 +160,20 @@ ok(!helper.includes('fetch('), 'preview helper has no network call')
 ok(!helper.includes('/api/'), 'preview helper has no API call')
 ok(helper.includes('normalizeInternalRedirect(raw)'), 'preview reuses the canonical internal redirect validator')
 ok(helper.includes('PRODUCT_SURFACE_DESTINATIONS'), 'preview matches the same destination source used by public CTAs')
+ok(helper.includes('ENGINE_LANDING_PARAMS'), 'preview recognizes the same engine enum used by engine landing pages')
+ok(helper.includes('ENGINE_LANDING_LABELS'), 'preview names engines from the engine landing source')
+
+equal(engineIntent.ENGINE_LANDING_PARAMS.length, 7, 'all seven engine landing params execute')
+const enginePage = source('app/ai-video-generator/[engine]/page.tsx')
+for (const engine of engineIntent.ENGINE_LANDING_PARAMS) {
+  const campaign = `test_${engine}`
+  const signupHref = engineIntent.buildEngineLandingSignupHref({ engine, campaign })
+  const signupUrl = new URL(signupHref, 'https://www.usekineo.com')
+  const result = preview.buildSignupProductDestinationPreview(signupUrl.searchParams.get('redirect'))
+  equal(result?.surface, engine, `${engine}: real engine landing href is recognized at signup`)
+  equal(result?.destinationLabel, `Studio · ${engineIntent.ENGINE_LANDING_LABELS[engine]}`, `${engine}: label survives the full handoff`)
+  const pair = new RegExp(`param: '${engine}'[\\s\\S]{0,180}name: '${engineIntent.ENGINE_LANDING_LABELS[engine].replace('.', '\\.')}'`)
+  ok(pair.test(enginePage), `${engine}: public page name matches the signup proof`)
+}
 
 console.log(`signup product destination: ${checks}/${checks} checks passed`)
