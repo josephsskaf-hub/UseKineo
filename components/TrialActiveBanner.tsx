@@ -70,8 +70,10 @@ import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import {
+  decideTrialFirstDelivery,
   decideTrialReturnLadder,
   TRIAL_BALANCE_BRIDGE_VERSION,
+  TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 // Import de TIPO apenas (apagado no build). Vem da MESMA definição que o
 // servidor serializa: renomear um campo lá quebra o build aqui, em vez de fazer
@@ -146,7 +148,7 @@ function formatTimeLeft(msLeft: number): string | null {
 export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const [open, setOpen] = useState(false)
   const [granted, setGranted] = useState(0)
-  const [used, setUsed] = useState(0)
+  const [used, setUsed] = useState<number | null>(null)
   const [credits, setCredits] = useState<number | null>(null)
   const [msLeft, setMsLeft] = useState<number | null>(null)
   const [currency, setCurrency] = useState<CheckoutCurrency | null>(null)
@@ -161,6 +163,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   const dismissKey = `${DISMISSED_PREFIX}:${userKey}:${dayRef.current}`
   const shownKey = `${SHOWN_PREFIX}:${userKey}:${dayRef.current}`
   const returnLadderShownKey = `${RETURN_LADDER_SHOWN_PREFIX}:${userKey}:${dayRef.current}`
+  const firstDelivery = decideTrialFirstDelivery({ trialPhase: open ? 'active' : null, credits, creditsUsed: used })
   const returnLadder = decideTrialReturnLadder({ trialPhase: open ? 'active' : null, credits })
 
   // ── Elegibilidade: só o servidor decide ────────────────────────────────────
@@ -210,7 +213,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           : null
 
         setGranted(g)
-        setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : 0)
+        setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : null)
         setCredits(currentCredits)
         setMsLeft(left)
         setOpen(true)
@@ -361,7 +364,23 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
   // concessão ou mais. Limiar DELIBERADAMENTE igual ao da caixa pós-vídeo
   // (KINEO-TRIAL-OFFER-SCARCITY-2026-08-08): abaixo dele, dizer "you've used 1
   // of 40" é a própria oferta lembrando que ainda sobra muito.
-  const counterRendered = granted > 0 && used * 2 >= granted
+  const counterRendered = granted > 0 && used !== null && used * 2 >= granted
+  const startFirstPremiumDelivery = () => {
+    if (!firstDelivery.eligible) return
+    void trackEvent('trial_first_delivery_clicked', {
+      source: 'trial_active_banner',
+      version: firstDelivery.version,
+      target_engine: firstDelivery.engine,
+      target_duration: firstDelivery.duration,
+      credits_before: firstDelivery.creditsBefore,
+      credits_required: firstDelivery.cost,
+      credits_after_success: firstDelivery.creditsAfterSuccess,
+      ms_left: msLeft,
+    })
+    window.location.assign(
+      '/studio/create?engine=seedance&duration=' + firstDelivery.duration + '&intent_campaign=' + TRIAL_FIRST_DELIVERY_VERSION,
+    )
+  }
   const continueTrialWithSeedance = () => {
     if (!returnLadder.eligible) return
     void trackEvent('trial_balance_bridge_clicked', {
@@ -421,7 +440,38 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           ×
         </button>
       </div>
-      {returnLadder.eligible && (
+      {firstDelivery.eligible && (
+        <div
+          data-trial-first-delivery={firstDelivery.version}
+          className="mt-3 rounded-xl px-3 py-3"
+          style={{
+            background: 'rgba(52,211,153,.07)',
+            border: '1px solid rgba(52,211,153,.28)',
+          }}
+        >
+          <p className="text-xs font-black" style={{ color: '#f5f5f7', lineHeight: 1.45 }}>
+            Use the premium trial before choosing a plan.
+          </p>
+          <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
+            Your {firstDelivery.creditsBefore} credits cover one full {firstDelivery.duration}s Seedance film. No card required. Nothing starts until you review the setup.
+          </p>
+          <button
+            type="button"
+            onClick={startFirstPremiumDelivery}
+            className="mt-2 inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-xs font-black"
+            style={{
+              color: '#06281d',
+              background: '#34d399',
+              border: 0,
+              cursor: 'pointer',
+              boxShadow: '0 6px 20px rgba(52,211,153,.2)',
+            }}
+          >
+            Make my included Seedance film →
+          </button>
+        </div>
+      )}
+      {!firstDelivery.eligible && returnLadder.eligible && (
         <div
           ref={returnLadderRef}
           data-trial-return-ladder={returnLadder.version}
@@ -452,7 +502,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           </button>
         </div>
       )}
-      <button
+      {!firstDelivery.eligible && <button
         type="button"
         onClick={() => {
           // Evento ANTES da navegação: depois do redirect da Stripe não existe
@@ -561,8 +611,8 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           : priceLabel
             ? `Keep Creator after the trial — ${priceLabel}`
             : 'Keep Creator after the trial'}
-      </button>
-      {checkout.error && (
+      </button>}
+      {!firstDelivery.eligible && checkout.error && (
         <p className="mt-1 text-xs" style={{ color: '#ff6b6b' }}>
           {checkout.error}
         </p>

@@ -37,9 +37,28 @@ const policy = executeTs('lib/growth/trialBalanceBridge.ts', {
 
 equal(policy.TRIAL_BALANCE_BRIDGE_COST, 15, '35s Seedance costs 15 canonical credits')
 equal(policy.FULL_SEEDANCE_COST, 25, '60s Seedance costs 25 canonical credits')
+equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 60, 'first delivery uses the full 60s premium experience')
 equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 35, 'bridge duration is explicit and visible in the public selector')
 equal(policy.TRIAL_BALANCE_BRIDGE_ENGINE, 'cinematic_ai', 'bridge engine is Seedance quality')
 check(read('lib/expandPolicy.ts').includes('SUPPORTED_DURATIONS = [35, 60, 90]'), '35s is supported by the shared client/server duration contract')
+
+for (const [input, eligible, reason] of [
+  [{ trialPhase: 'active', credits: 25, creditsUsed: 0 }, true, 'eligible'],
+  [{ trialPhase: 'active', credits: 25, creditsUsed: 4 }, false, 'already_used'],
+  [{ trialPhase: 'active', credits: 24, creditsUsed: 0 }, false, 'insufficient_balance'],
+  [{ trialPhase: 'active', credits: null, creditsUsed: 0 }, false, 'unknown_balance'],
+  [{ trialPhase: 'active', credits: 25, creditsUsed: null }, false, 'unknown_usage'],
+  [{ trialPhase: 'ending', credits: 25, creditsUsed: 0 }, false, 'not_active'],
+]) {
+  const result = policy.decideTrialFirstDelivery(input)
+  equal(result.eligible, eligible, 'first-delivery eligibility names ' + reason)
+  equal(result.reason, reason, 'first-delivery decision returns ' + reason)
+}
+equal(
+  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).creditsAfterSuccess,
+  0,
+  'full premium first delivery intentionally reaches the day-one credit wall',
+)
 
 for (const credits of [15, 20, 21, 22, 23, 24]) {
   const result = policy.decideTrialBalanceBridge({ trialPhase: 'active', credits, deliveredQuality: 'fast' })
@@ -144,6 +163,22 @@ check(!handler.includes('studio=1'), 'CTA cannot arm Studio auto-fire')
 
 const banner = read('components/TrialActiveBanner.tsx').replace(/\r\n/g, '\n')
 check(banner.includes('decideTrialReturnLadder'), 'persistent trial banner executes return-ladder policy')
+check(banner.includes('decideTrialFirstDelivery'), 'persistent trial banner executes activation-before-checkout policy')
+check(banner.includes("trackEvent('trial_first_delivery_clicked'"), 'first-delivery CTA emits a distinct causal event')
+check(banner.includes('data-trial-first-delivery={firstDelivery.version}'), 'first-delivery surface names its contract version')
+check(banner.includes('Use the premium trial before choosing a plan.'), 'zero-use copy sequences value before purchase')
+check(banner.includes('No card required. Nothing starts until you review the setup.'), 'copy states both payment and render boundaries')
+check(banner.includes("{!firstDelivery.eligible && <button"), 'checkout CTA is absent only while the untouched premium delivery fits')
+check(
+  banner.includes("'/studio/create?engine=seedance&duration=' + firstDelivery.duration + '&intent_campaign=' + TRIAL_FIRST_DELIVERY_VERSION"),
+  'first-delivery CTA lands on attributed Seedance setup',
+)
+const firstHandlerStart = banner.indexOf('const startFirstPremiumDelivery')
+const firstHandlerEnd = banner.indexOf('\n  const continueTrialWithSeedance', firstHandlerStart)
+check(firstHandlerStart >= 0 && firstHandlerEnd > firstHandlerStart, 'first-delivery handler boundaries are found')
+const firstHandler = banner.slice(firstHandlerStart, firstHandlerEnd)
+check(!firstHandler.includes('fetch('), 'first-delivery CTA cannot call a provider or mutate credits')
+check(!firstHandler.includes('checkout.launch'), 'first-delivery CTA cannot open Stripe')
 check(banner.includes("trackEvent('trial_balance_bridge_viewed'"), 'persistent surface joins the existing measured bridge funnel')
 check(banner.includes("trackEvent('trial_balance_bridge_clicked'"), 'persistent CTA emits the existing causal click')
 check(banner.includes("surface: 'persistent_trial_banner'"), 'persistent surface is distinguishable in telemetry')
@@ -187,5 +222,14 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE
   check(returnPreview.includes(marker), `persistent preview contains ${marker}`)
 }
 check(!/https?:\/\//i.test(returnPreview), 'persistent preview has no external dependency')
+
+const firstPreviewPath = 'docs/previews/TRIAL-ACTIVATION-BEFORE-CHECKOUT-2026-08-29.html'
+check(fs.existsSync(path.join(root, firstPreviewPath)), 'activation-before-checkout preview exists')
+const firstPreview = read(firstPreviewPath)
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(firstPreview.includes(marker), 'activation preview contains ' + marker)
+}
+check(firstPreview.includes('8 zero-use clicks → 0 paid'), 'preview states the measured reason for the change')
+check(!/https?:\/\//i.test(firstPreview), 'activation preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} trial balance bridge checks`)
