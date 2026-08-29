@@ -1195,3 +1195,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** cards e vídeos da home, ordem dos motores, `GenerateClient.tsx`, Supabase, Storage, Auth, migration, banco, render, motor, cena, legenda, preço, grant, oferta, checkout, evento, e-mail, outreach, IndexNow, TAAFT ou anúncio.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `7a71abd` ou da ponta posterior de `origin/main`; não reconstruir a navegação do hub. Codex continua aquisição/fluxo/assinaturas sem ampliar tráfego ativo enquanto o incidente `402` estiver aberto.
+
+## 24. Aquisição orgânica — YouTube Shorts Publishing Kit gratuito (28/08/2026)
+
+**BASE DE CÓDIGO:** `21fa1ac8de0f00100047498e1cf03f7d580f2c15`, igual a `origin/main` no início da worktree isolada `codex/growth-publish-kit`.
+
+**FATO CONFIRMADO / PADRÃO COMPETITIVO (consultado em 28/08/2026):** InVideo mantém um hub público em `https://invideo.io/tools/`; OpusClip lista gerador de hashtags para YouTube em `https://www.opus.pro/tools`; CapCut mantém superfícies públicas de geração de títulos e criação de Shorts em `https://www.capcut.com/tools`. O padrão aproveitado foi devolver um artefato útil antes da conta. Não foram copiados interface, promessa, preço ou texto.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** uma busca em `app/`, `components/` e `lib/` não encontrou gerador Kineo de título, descrição, hashtags ou publishing kit. O hub já tinha roteiro, hook, viral score, comentário, produto, plano empresarial e calculadora, mas nenhuma ferramenta para o trabalho imediatamente anterior à publicação. A página `/ai-shorts-without-filming`, que tinha 1 clique, 26 impressões e posição média 9,5 no Search Console na janela lida em 28/08/2026, já continha H1, formulário, prova, FAQ e CTA; ela não foi reescrita sem defeito provado. Impressões e cliques não são pessoas nem assinaturas.
+
+**IMPLEMENTADO:** commit funcional `f1ecc845c7331ea15669de09918e03caba498b4c` publica `/youtube-shorts-title-generator`. O algoritmo local gera 10 títulos em quatro tons, corta cada opção em 72 caracteres, cria descrição editável e até 10 hashtags de tema, nicho e plataforma (`lib/growth/shortsPublishKit.ts:16-166`). O cliente permite escolher título e copiar cada bloco; o tema segue para `/signup` com `create_intent=fast` e campanha `growth_publish_kit_20260828`, sem iniciar render (`app/youtube-shorts-title-generator/PublishKitClient.tsx:12-190`). A página é estática, tem canonical, metadata, `FAQPage` e `WebApplication` (`app/youtube-shorts-title-generator/page.tsx:7-145`).
+
+**FATO CONFIRMADO / DESCOBERTA:** a ferramenta entrou na fonte canônica `FREE_TOOL_FACTS` (`lib/kineoFacts.ts:768-778`), no hub com contagem derivada (`app/tools/page.tsx:12-105`), no footer (`components/Footer.tsx:147`), no sitemap (`app/sitemap.ts:72`) e no `llms.txt` (`app/llms.txt/route.ts:331` e lista gerada). Não existe literal novo de preço, grant ou oferta.
+
+**TESTADO LOCALMENTE:** a função compilada e executada passou nos quatro tons: 10 títulos, 10 únicos, máximo de 72 caracteres, takeaway preservado e no máximo 10 hashtags. No navegador, o exemplo Flight 19 gerou 10 opções, descrição, hashtags, seleção alternativa e CTA com tema/UTMs; `/tools` mostrou 8 ferramentas e o novo card; sitemap e `llms.txt` contêm a URL. Desktop e mobile de 390 px tiveram zero overflow. A busca por `fetch(`, `trackEvent`, `supabase` e `render` nos arquivos executáveis da ferramenta retornou zero ocorrência. `git diff --check` ficou limpo. `npx tsc --noEmit --pretty false` mostrou somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/YOUTUBE-SHORTS-PUBLISH-KIT-2026-08-28.html` contém o antes/depois autocontido. As capturas do produto real estão em `docs/previews/YOUTUBE-SHORTS-PUBLISH-KIT-DESKTOP-2026-08-28.jpg` e `docs/previews/YOUTUBE-SHORTS-PUBLISH-KIT-MOBILE-2026-08-28.jpg`.
+
+**VALIDADO EM PRODUÇÃO (28/08/2026):** deploy Vercel `dpl_DescUVMz8rGjAPsAPrHNzwx1GW9b` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato. O browser abriu a URL pública com title, H1 e canonical corretos; o exemplo gerou 10 títulos únicos, máximo de 60 caracteres nessa entrada, 8 hashtags e o CTA preservou tema, intenção e campanha. `/tools` mostrou 8 ferramentas e o novo card. A Vercel registrou zero erro de runtime em `/youtube-shorts-title-generator` e `/tools` nos 15 minutos consultados.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** o Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render. A ferramenta é browser-only. `402` continua classificado como indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou outra ampliação ativa de tráfego foi executada. A URL ficou tecnicamente descobrível pelo sitemap, hub, footer e `llms.txt`; distribuição ativa aguarda normalização confirmada da capacidade.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** a nova ferramenta ainda não tem evidência de impressão, clique, pessoa, cadastro, checkout ou assinatura. Como nenhum evento foi adicionado durante o incidente, a primeira medição segura será por Search Console e pelas campanhas já transportadas no cadastro após a normalização, sempre contando pessoas e excluindo contas internas. Publicação não será chamada de aquisição.
+
+**NÃO TOCADO:** cards ou vídeos da home, ordem de motores, `GenerateClient.tsx`, Supabase, Storage, Auth, migration, banco, render, motor, cena, legenda, preço, grant, oferta, checkout, e-mail, outreach, IndexNow, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `f1ecc845` ou da ponta posterior de `origin/main`; não reconstruir a ferramenta nem adicionar telemetria enquanto o incidente estiver aberto. Claude continua capacidade/render. Codex continua aquisição/fluxo/assinaturas com ativos estáticos e sem ampliar carga no pipeline.
