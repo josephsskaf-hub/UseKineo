@@ -451,7 +451,20 @@ html{scroll-behavior:smooth}
 @media(max-width:520px){.klp .tools{grid-template-columns:1fr}}
 /* Empilhado, a fita "Most popular" (top:-12px) invadiria o card de cima com
    o gap original de 18px. 30px deixa a fita respirar. */
-@media(max-width:880px){.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}}
+@media(max-width:940px){
+.klp .composer{margin-left:auto;margin-right:auto}.klp .price{grid-template-columns:1fr;max-width:400px;margin:0 auto;gap:30px}
+/* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o oitavo destino público ultrapassava
+   o espaço disponível em tablets. A navegação compacta entra antes que os
+   links encostem no CTA; as demais regras mobile continuam em 780px. */
+.klp .nav-links{display:none}
+.klp .nav-toggle-wrap{display:inline-flex;position:relative;width:44px;height:44px;align-items:center;justify-content:center}
+.klp .nav-mobile-menu{position:fixed;top:62px;left:0;right:0;flex-direction:column;background:var(--s0);border-bottom:1px solid var(--line);padding:8px 28px 20px;gap:2px;max-height:calc(100vh - 62px);overflow-y:auto;z-index:49}
+.klp .nav-mobile-menu a{min-height:44px;display:flex;align-items:center;padding:10px 4px;font-size:15px;font-weight:500;color:var(--txt);border-bottom:1px solid var(--line)}
+.klp .nav-mobile-menu a:last-child{border-bottom:none}
+.klp .nav-mobile-menu a:hover,.klp .nav-mobile-menu a:focus-visible{color:var(--blue)}
+.klp .nav-mobile-menu a.btn{margin-top:12px;min-height:48px;justify-content:center;border-bottom:none;color:#000;font-weight:600}
+.klp .nav-mobile-menu a.btn:hover,.klp .nav-mobile-menu a.btn:focus-visible{color:#000}
+}
 @media(max-width:780px){
 .klp .steps{grid-template-columns:1fr}
 .klp .nav-links{display:none}
@@ -837,6 +850,10 @@ export default function KineoLanding({
         </Link>
         <div className="nav-links">
             <Link href="/examples">Explore</Link>
+            {/* KINEO-GROWTH-TOOLS-NAV-2026-08-29 — o hub de aquisição
+                orgânica já existia no sitemap e no rodapé, mas ficava
+                invisível na principal entrada pública do produto. */}
+            <Link href="/tools">Free tools</Link>
             {/* KINEO-ARENA-NAV-2026-08-25 — a Arena entra na nav ao lado de
                 Explore: é a página que responde "qual motor eu uso?", a
                 dúvida nº1 de quem está decidindo assinar. Explore mostra o
@@ -940,6 +957,7 @@ export default function KineoLanding({
             <span className="nav-toggle-btn" aria-hidden="true"><span className="bar" /><span className="bar" /><span className="bar" /></span>
             <label htmlFor="nav-toggle" id="mobile-nav-menu" className="nav-mobile-menu">
               <Link href="/examples">Explore</Link>
+              <Link href="/tools">Free tools</Link>
               <Link href="/studio">🎬 Studio — generate video</Link>
               <Link href="/images">🎨 Images — create image</Link>
               <Link href="/audio">🎙 Audio — text to speech</Link>
