@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(BASE),
   title: 'Free YouTube Shorts Tools — No Signup or Card | Kineo',
   description:
-    `Use ${FREE_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: scripts, hooks, publishing copy, viral score, content planning and an earnings calculator.`,
+    `Use ${FREE_TOOL_FACTS.length} free YouTube Shorts tools without an account or card: ad briefs, scripts, hooks, publishing copy, viral score, content planning and an earnings calculator.`,
   alternates: { canonical: `${BASE}/tools` },
   openGraph: {
     title: 'Free YouTube Shorts Tools — No Signup',
@@ -65,6 +65,11 @@ const TOOL_META: Record<string, ToolMeta> = {
     prompt: 'I need a product video script',
     cta: 'Build my product script',
   },
+  '/free-ai-shorts/localbusiness': {
+    eyebrow: 'Start with a real business offer',
+    prompt: 'I need a local business ad script',
+    cta: 'Build my business ad',
+  },
   '/business-video-content-plan': {
     eyebrow: 'Start with a business goal',
     prompt: 'I need a week of content',
@@ -85,6 +90,7 @@ const TOOL_ORDER = [
   '/viral-score',
   '/comment-to-video',
   '/product-to-video-script',
+  '/free-ai-shorts/localbusiness',
   '/business-video-content-plan',
   '/shorts-money-calculator',
 ] as const
@@ -178,7 +184,7 @@ export default function ToolsPage() {
           <h1>Do the next useful thing for your Short.</h1>
           <p className="tools-intro">
             Do not start with a blank editor. Pick what you already have — a topic, comment,
-            product, business goal or revenue target — and leave with a made-to-order result.
+            product, business offer, content goal or revenue target — and leave with a made-to-order result.
           </p>
           <div className="tools-trust" aria-label="Tool limits">
             <span>{tools.length} free tools</span>

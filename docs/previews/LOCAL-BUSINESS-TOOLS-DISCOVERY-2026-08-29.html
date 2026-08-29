@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Local business tool discovery — before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#020204;color:#f5f5f7;font-family:Inter,system-ui,sans-serif}.page{width:min(1440px,100%);margin:auto;padding:34px}.label{font-size:12px;font-weight:900;letter-spacing:.12em;color:#7cc0ff}.intro{margin:10px 0 24px;color:#aeb8c6;max-width:760px;line-height:1.55}.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:#080b11;border:1px solid #202636;border-radius:24px;padding:24px}.panel.after{border-color:#2997ff;box-shadow:0 0 0 1px rgba(41,151,255,.15),0 24px 70px rgba(0,0,0,.35)}.panel h1{font-size:clamp(28px,3vw,46px);letter-spacing:-.05em;margin:10px 0 8px}.sub{color:#98a3b3;line-height:1.55;margin:0 0 20px}.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.chip{border:1px solid #2a3040;border-radius:99px;padding:7px 10px;color:#cbd5e1;font-size:12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}.card{min-height:148px;border:1px solid #242a38;border-radius:17px;background:linear-gradient(145deg,#0e1422,#060910);padding:17px;display:flex;flex-direction:column;justify-content:space-between}.card strong{font-size:18px;line-height:1.18}.card small{color:#5cb3ff;text-transform:uppercase;font-weight:900;letter-spacing:.09em}.cta{align-self:flex-start;background:#2997ff;color:#000;border-radius:9px;padding:9px 11px;font-weight:900;font-size:12px}.missing{border-style:dashed;background:#07080b;color:#6f7785;justify-content:center;align-items:center;text-align:center}.new{border-color:#2997ff;background:radial-gradient(circle at 90% 10%,rgba(41,151,255,.22),transparent 40%),linear-gradient(145deg,#0e182b,#060910)}.mobile-wrap{margin-top:24px;display:flex;justify-content:center}.mobile{width:390px;background:#080b11;border:1px solid #2997ff;border-radius:26px;padding:18px}.mobile .grid{grid-template-columns:1fr}.mobile .card{min-height:145px}.mobile h2{font-size:28px;letter-spacing:-.04em;margin:9px 0}.note{margin-top:22px;padding:15px;border-radius:14px;background:#0b1220;color:#aeb8c6;line-height:1.5;font-size:13px}@media(max-width:900px){.page{padding:18px}.compare{grid-template-columns:1fr}.mobile{width:100%}.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="label">KINEO · ACQUISITION FLOW · STATIC REVIEW</p>
+    <p class="intro">The new local-business ad builder was live but had no internal caller. This comparison shows the exact discovery change inside the existing Free tools hub.</p>
+    <section class="compare">
+      <article class="panel">
+        <p class="label">BEFORE · 9 tools</p>
+        <h1>Do the next useful thing for your Short.</h1>
+        <p class="sub">Product scripts and weekly business planning were present, but the finished local-business ad brief was invisible.</p>
+        <div class="chips"><span class="chip">9 free tools</span><span class="chip">Text and planning only</span></div>
+        <div class="grid">
+          <div class="card"><small>Verified facts</small><strong>I need a product video script</strong><span class="cta">Build my product script →</span></div>
+          <div class="card missing"><strong>No route to the local-business ad builder</strong></div>
+          <div class="card"><small>Business goal</small><strong>I need a week of content</strong><span class="cta">Plan my business Shorts →</span></div>
+          <div class="card"><small>Your numbers</small><strong>I need an earnings estimate</strong><span class="cta">Calculate earnings →</span></div>
+        </div>
+      </article>
+      <article class="panel after">
+        <p class="label">AFTER · 10 tools</p>
+        <h1>Do the next useful thing for your Short.</h1>
+        <p class="sub">A business owner can now choose between one concrete ad and a wider weekly plan without searching the sitemap.</p>
+        <div class="chips"><span class="chip">10 free tools</span><span class="chip">Made from your input</span></div>
+        <div class="grid">
+          <div class="card"><small>Verified facts</small><strong>I need a product video script</strong><span class="cta">Build my product script →</span></div>
+          <div class="card new"><small>Real business offer</small><strong>I need a local business ad script</strong><span class="cta">Build my business ad →</span></div>
+          <div class="card"><small>Business goal</small><strong>I need a week of content</strong><span class="cta">Plan my business Shorts →</span></div>
+          <div class="card"><small>Your numbers</small><strong>I need an earnings estimate</strong><span class="cta">Calculate earnings →</span></div>
+        </div>
+      </article>
+    </section>
+    <section class="mobile-wrap" data-mobile>
+      <article class="mobile">
+        <p class="label">AFTER · MOBILE 390 PX</p>
+        <h2>Free tools</h2>
+        <p class="sub">The new B2B choice becomes a full-width card with a thumb-sized action.</p>
+        <div class="grid">
+          <div class="card new"><small>Start with a real business offer</small><strong>I need a local business ad script</strong><span class="cta">Build my business ad →</span></div>
+          <div class="card"><small>Start with a business goal</small><strong>I need a week of content</strong><span class="cta">Plan my business Shorts →</span></div>
+        </div>
+      </article>
+    </section>
+    <p class="note">Scope: discoverability only. No new API, event, Supabase call, render, credit action, price, offer, outbound message or traffic amplification.</p>
+  </main>
+</body>
+</html>

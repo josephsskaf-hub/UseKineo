@@ -717,6 +717,16 @@ export const START_HERE_FACT: StartHereFact = {
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
+    name: 'Free local business video ad script builder',
+    url: `${BASE}/free-ai-shorts/localbusiness`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Add the business name, service, best customer, one verified differentiator and a call to action to get an editable 35-second Short ad draft. It does not invent claims, call AI or render a video.',
+  },
+  {
     name: 'Free business video content planner',
     url: `${BASE}/business-video-content-plan`,
     output: 'text',

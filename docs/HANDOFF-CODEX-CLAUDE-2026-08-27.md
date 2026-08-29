@@ -1373,3 +1373,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** pipeline de render, motor, cena, legenda, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, checkout, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude continua capacidade/render e deve executar `git fetch origin` antes de nova worktree. Codex continua aquisição/fluxo/assinaturas. Não reconstruir este briefing nem adicionar `create_intent` sem uma decisão explícita sobre render automático.
+
+## 31. Fluxo B2B — briefing de negócio local descoberto pelo hub público (29/08/2026)
+
+**BASE DE CÓDIGO:** `ff4c128d0a4be62b427f5e912d8c608cf54427ba`, igual a `origin/main` no início da worktree isolada `codex/growth-local-business-discovery`.
+
+**FATO CONFIRMADO / GARGALO:** no SHA de base, uma busca em `app/`, `components/` e `lib/` encontrou zero referência direta a `/free-ai-shorts/localbusiness`. O briefing B2B publicado na seção 30 estava apenas na família dinâmica/sitemap; o hub `/tools`, já ligado à navegação pública da home, listava nove ferramentas e não oferecia essa décima opção. A ferramenta existia, mas o tráfego interno não conseguia escolhê-la.
+
+**IMPLEMENTADO:** `lib/kineoFacts.ts` passa a declarar o briefing local como a décima entrada de `FREE_TOOL_FACTS`, com o mesmo limite verdadeiro da tela: texto editável de 35 segundos, sem conta, cartão, e-mail, IA ou render e sem alegação inventada. `app/tools/page.tsx` deriva dessa fonte o novo card `I need a local business ad script`, posicionando-o entre roteiro de produto e planejamento semanal. Metadata, contagem visível, `ItemList`, `/facts` e `llms.txt` continuam derivados; não há literal paralelo de contagem.
+
+**TESTADO LOCALMENTE:** `node scripts/test-local-business-tool-discovery.mjs` executou 30/30 verificações e o contrato do briefing manteve 46/46. A suite prova a entrada canônica, seis limites, posição do card, caller real, ausência de API/analytics/Supabase/`create_intent`, propagação automática para `/facts` e `llms.txt`, contagens derivadas e preview. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental --tsBuildInfoFile .tsbuildinfo-local-business-discovery` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo e o artefato temporário foi removido.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/LOCAL-BUSINESS-TOOLS-DISCOVERY-2026-08-29.html` compara 9→10 ferramentas em desktop e mostra o estado mobile. As capturas inspecionadas estão em `docs/previews/LOCAL-BUSINESS-TOOLS-DISCOVERY-DESKTOP-2026-08-29.png` e `docs/previews/LOCAL-BUSINESS-TOOLS-DISCOVERY-MOBILE-2026-08-29.png`. O preview respondeu 200 em localhost e mediu overflow horizontal zero em 1440 px e 390 px; servidor, aba e override de viewport foram encerrados.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28–29/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Esta entrega não consultou nem escreveu Supabase, Storage, Auth, migration, banco, evento, crédito ou render. `402` permanece indisponibilidade de capacidade, nunca abandono voluntário; não declarar que renders estão perfeitos.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. O novo card distribui somente o tráfego que já entra no hub público.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de clique, pessoa, cadastro, checkout ou assinatura causada pelo card. Depois da normalização da capacidade, medir pessoas que saem de `/tools` para `/free-ai-shorts/localbusiness` e depois entram na campanha `growth_local_business_brief_20260828`, excluindo contas internas.
+
+**NÃO TOCADO:** página funcional do briefing, handoff de script, signup, Auth, checkout, preço, grant, oferta, SKU, pipeline de render, motor, cena, legenda, Supabase, Storage, migration, banco, evento, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude continua capacidade/render. Codex continua aquisição/fluxo/assinaturas. Depois do push, executar `git fetch origin`; não reconstruir o card fora de `FREE_TOOL_FACTS` e não adicionar tráfego ativo enquanto o incidente estiver aberto.
