@@ -17,6 +17,8 @@ export function uniqueOrganicActorCount(events: readonly OrganicFunnelEvent[]): 
 export function summarizeOrganicActions(events: readonly OrganicFunnelEvent[]): {
   handoffOpenActors: number
   intentActors: number
+  signupHandoffActors: number
+  signupMethodActors: number
 } {
   const handoffOpenRows = events.filter((event) => event.name === 'organic_handoff_opened')
   const intentRows = events.filter((event) =>
@@ -24,9 +26,13 @@ export function summarizeOrganicActions(events: readonly OrganicFunnelEvent[]): 
     event.name === 'viral_now_topic_clicked' ||
     (event.name === 'organic_cta_clicked' && !event.metadata?.mirrors)
   )
+  const signupHandoffRows = events.filter((event) => event.name === 'organic_signup_handoff_viewed')
+  const signupMethodRows = events.filter((event) => event.name === 'organic_signup_method_selected')
 
   return {
     handoffOpenActors: uniqueOrganicActorCount(handoffOpenRows),
     intentActors: uniqueOrganicActorCount(intentRows),
+    signupHandoffActors: uniqueOrganicActorCount(signupHandoffRows),
+    signupMethodActors: uniqueOrganicActorCount(signupMethodRows),
   }
 }

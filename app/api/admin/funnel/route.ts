@@ -18,6 +18,7 @@ import { stripe } from '@/lib/stripe'
 import { INTERNAL_ACCOUNTS_LABEL, isInternalEmail } from '@/lib/internalAccounts'
 import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisitionSource'
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
+import { isOrganicSignupAttribution } from '@/lib/growth/organicSignupTruth'
 import {
   ACTIVATION_HANDOFF_SURFACE_VERSION,
   ONBOARDING_GOALS,
@@ -217,7 +218,11 @@ export interface FunnelData {
     landingVisitors: number
     handoffOpens: number
     intentActors: number
+    signupHandoffViewers: number
+    signupMethodSelectors: number
     ctaRate: string
+    intentToHandoffRate: string
+    handoffToMethodRate: string
     viralNowViews: number
     viralNowClicks: number
     viralNowViewToClickRate: string
@@ -563,6 +568,7 @@ export async function GET(req: Request) {
     const trackedEventNames = [
       'homepage_view', 'generate_page_view', 'analyze_idea_clicked',
       'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
+      'organic_signup_handoff_viewed', 'organic_signup_method_selected', 'organic_signup_completed',
       'viral_now_viewed', 'viral_now_topic_clicked',
       'video_share_clicked', 'video_shared', 'video_share_channel_opened',
       'public_video_cta_clicked', 'public_video_remix_arrived',
@@ -678,6 +684,7 @@ export async function GET(req: Request) {
           .select('name,user_id,created_at,session_id,metadata,path')
           .in('name', [
             'landing_session_started', 'organic_handoff_opened', 'organic_cta_clicked', 'organic_topic_submitted',
+            'organic_signup_handoff_viewed', 'organic_signup_method_selected', 'organic_signup_completed',
             'viral_now_viewed', 'viral_now_topic_clicked',
             'video_share_prompt_viewed', 'video_share_clicked', 'video_shared',
             'video_share_channel_opened', 'video_share_cancelled',
@@ -1077,12 +1084,11 @@ export async function GET(req: Request) {
       organicPageMap.set(path, rows)
     }
     const organicCohort = cohort.filter((profile) => {
-      const campaign = (profile.signup_utm_campaign ?? '').toLowerCase()
-      const source = (profile.signup_utm_source ?? profile.utm_source ?? '').toLowerCase()
-      const medium = (profile.signup_utm_medium ?? '').toLowerCase()
-      return campaign.startsWith('push22_') || campaign.startsWith('push32_') ||
-        campaign.startsWith('push39_') ||
-        (source === 'seo' && medium === 'organic')
+      return isOrganicSignupAttribution({
+        campaign: profile.signup_utm_campaign,
+        source: profile.signup_utm_source ?? profile.utm_source,
+        medium: profile.signup_utm_medium,
+      })
     })
     const organicActivated = organicCohort.filter((profile) => (videoCountByUser.get(profile.id) ?? 0) >= 1).length
     const organicPaid = organicCohort.filter((profile) => paidUserSet.has(profile.id)).length
@@ -1094,7 +1100,11 @@ export async function GET(req: Request) {
       landingVisitors: organicLandingVisitors,
       handoffOpens: organicActions.handoffOpenActors,
       intentActors: organicActions.intentActors,
+      signupHandoffViewers: organicActions.signupHandoffActors,
+      signupMethodSelectors: organicActions.signupMethodActors,
       ctaRate: pct(organicActions.intentActors, organicLandingVisitors),
+      intentToHandoffRate: pct(organicActions.signupHandoffActors, organicActions.intentActors),
+      handoffToMethodRate: pct(organicActions.signupMethodActors, organicActions.signupHandoffActors),
       viralNowViews,
       viralNowClicks,
       viralNowViewToClickRate: pct(viralNowClicks, viralNowViews),

@@ -109,7 +109,8 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
   const leak = data.biggestLeak ?? null
   const organic = data.organicRecovery ?? {
     landingSessions: 0, ctaClicks: 0, landingVisitors: 0, handoffOpens: 0,
-    intentActors: 0, ctaRate: '—', signups: 0,
+    intentActors: 0, signupHandoffViewers: 0, signupMethodSelectors: 0,
+    ctaRate: '—', intentToHandoffRate: '—', handoffToMethodRate: '—', signups: 0,
     viralNowViews: 0, viralNowClicks: 0, viralNowViewToClickRate: '—',
     signupRate: '—', activated: 0, activationRate: '—', paid: 0,
     topLandingPages: [],
@@ -805,6 +806,28 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
           label="Landing → Intent"
           value={organic.ctaRate}
           sub={`${organic.intentActors} / ${organic.landingVisitors}`}
+        />
+        <Card
+          label="Signup page arrivals"
+          value={fmt(organic.signupHandoffViewers)}
+          hint="organic intent preserved into signup"
+          accent="#22d3ee"
+        />
+        <RateCard
+          label="Intent → Signup page"
+          value={organic.intentToHandoffRate}
+          sub={`${organic.signupHandoffViewers} / ${organic.intentActors}`}
+        />
+        <Card
+          label="Auth method selected"
+          value={fmt(organic.signupMethodSelectors)}
+          hint="unique people choosing Google or email"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Signup page → Method"
+          value={organic.handoffToMethodRate}
+          sub={`${organic.signupMethodSelectors} / ${organic.signupHandoffViewers}`}
         />
         <Card
           label="Viral Now visitors"

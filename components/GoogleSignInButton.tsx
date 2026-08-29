@@ -7,15 +7,19 @@ import { trackCheckoutAuthStep, type AuthSurface } from '@/lib/authAnalytics'
 type Props = {
   redirectTo?: string
   onError?: (message: string) => void
+  onSelect?: () => void
   label?: string
   analyticsSurface?: AuthSurface
 }
 
-export default function GoogleSignInButton({ redirectTo, onError, label, analyticsSurface }: Props) {
+export default function GoogleSignInButton({ redirectTo, onError, onSelect, label, analyticsSurface }: Props) {
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
 
   async function handleClick() {
+    // Analytics callbacks must run before the OAuth navigation, but can never
+    // prevent authentication if a caller-side tracker throws.
+    try { onSelect?.() } catch { /* authentication remains available */ }
     setLoading(true)
     if (redirectTo && analyticsSurface) {
       trackCheckoutAuthStep('method_selected', analyticsSurface, redirectTo, 'google')

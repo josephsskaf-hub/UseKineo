@@ -37,6 +37,10 @@ export default function TopicGeneratorForm({
   campaign = 'push70_youtube_topic_one_click',
   source = 'push70_youtube_topic_one_click',
   placement = 'hero_form',
+  // Keep these opt-in. A blanket seo/organic default would overwrite the real
+  // first touch when ChatGPT, a directory or another referral brought the
+  // visitor to a public page. The campaign carries the page handoff while
+  // acquisition UTMs remain truthful.
   utmSource,
   utmMedium,
   examples = TOPIC_EXAMPLES,

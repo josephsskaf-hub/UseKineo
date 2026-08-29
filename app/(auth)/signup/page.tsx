@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
@@ -15,6 +15,10 @@ import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTier
 import { carryCreationHandoff } from '@/lib/creationHandoff'
 import { buildSignupCreationPreview } from '@/lib/growth/signupCreationPreview'
 import { buildSignupProductDestinationPreview } from '@/lib/growth/signupProductDestinationPreview'
+import {
+  organicSignupHandoffContext,
+  type OrganicSignupHandoffContext,
+} from '@/lib/growth/organicSignupTruth'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -114,6 +118,7 @@ export default function SignupPage() {
   // pending checkout redirect survives the hop (state avoids SSR mismatch).
   const [authSearch, setAuthSearch] = useState('')
   const [activationRedirect, setActivationRedirect] = useState('/generate?welcome=1')
+  const organicHandoffRef = useRef<OrganicSignupHandoffContext | null>(null)
   useEffect(() => {
     const nextDestination = activationRedirectFromSearch(window.location.search)
     setAuthSearch(window.location.search)
@@ -123,6 +128,27 @@ export default function SignupPage() {
     // resilience. Count its arrival here, once per browser navigation, so the
     // hero → signup rate is measurable without risking a blocked submit.
     const params = new URLSearchParams(window.location.search)
+    const organicHandoff = organicSignupHandoffContext(params)
+    organicHandoffRef.current = organicHandoff
+    if (organicHandoff) {
+      const navigationId = Math.round(performance.timeOrigin).toString(36)
+      const marker = `kineo_organic_signup_view:${navigationId}`
+      let alreadyTracked = false
+      try {
+        alreadyTracked = sessionStorage.getItem(marker) === '1'
+        sessionStorage.setItem(marker, '1')
+      } catch { /* analytics remains best-effort */ }
+      if (!alreadyTracked) {
+        void trackEvent('organic_signup_handoff_viewed', {
+          version: organicHandoff.version,
+          campaign: organicHandoff.campaign,
+          source: organicHandoff.source,
+          medium: organicHandoff.medium,
+          create_intent: organicHandoff.createIntent,
+          saved_creation: Boolean((params.get('prompt') ?? '').trim()),
+        })
+      }
+    }
     const intentCampaign = params.get('intent_campaign')
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     if (params.get('reason') === 'checkout') {
@@ -139,6 +165,19 @@ export default function SignupPage() {
       } catch { /* analytics must never block signup */ }
     }
   }, [])
+
+  function trackOrganicMethod(method: 'google' | 'email'): void {
+    const organicHandoff = organicHandoffRef.current
+    if (!organicHandoff) return
+    void trackEvent('organic_signup_method_selected', {
+      version: organicHandoff.version,
+      campaign: organicHandoff.campaign,
+      source: organicHandoff.source,
+      medium: organicHandoff.medium,
+      create_intent: organicHandoff.createIntent,
+      method,
+    })
+  }
 
   // KINEO-CHECKOUT-NOLOGIN-2026-07-23 — "sem login": when a logged-out buyer lands
   // here from a plan click (?reason=checkout), auto-start Google one-click so paying
@@ -214,6 +253,7 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
+    trackOrganicMethod('email')
     setLoading(true)
     setError(null)
     const nextDestination = activationRedirectFromSearch(window.location.search)
@@ -306,6 +346,14 @@ export default function SignupPage() {
     // forget; never awaited, never throws — cannot block or break the signup.
     trackSignupSource()
     trackCheckoutAuthStep('completed', 'signup_page', nextDestination, 'email')
+    const organicHandoff = organicHandoffRef.current
+    if (organicHandoff) {
+      void trackEvent('organic_signup_completed', {
+        version: organicHandoff.version,
+        campaign: organicHandoff.campaign,
+        method: 'email',
+      })
+    }
 
     // PUSH #21 — prove the direct email-auth hop on the server before leaving
     // the page. OAuth/email-confirmation callbacks have their own authoritative
@@ -544,7 +592,12 @@ export default function SignupPage() {
 
                 {/* KINEO-CHECKOUT-RESUME-2026-07-07 — OAuth signups also resume
                     a pending checkout via the auth callback's ?next param. */}
-                <GoogleSignInButton redirectTo={activationRedirect} analyticsSurface="signup_page" onError={(msg) => setError(msg)} />
+                <GoogleSignInButton
+                  redirectTo={activationRedirect}
+                  analyticsSurface="signup_page"
+                  onSelect={() => trackOrganicMethod('google')}
+                  onError={(msg) => setError(msg)}
+                />
 
                 {/* Apple Sign In — kept in code, hidden until Apple Developer is configured.
                     Reactivate by setting NEXT_PUBLIC_ENABLE_APPLE=true (see docs/oauth-setup.md). */}
