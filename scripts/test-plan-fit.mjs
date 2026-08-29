@@ -85,6 +85,11 @@ const tiersBeforeRecommendation = planFit.tiersByPrice('usd').slice(
   planFit.tiersByPrice('usd').indexOf(seedanceFour.plan?.tier),
 )
 check('no less expensive plan covers the target', tiersBeforeRecommendation.every((tier) => pricing.TIER_CREDITS[tier] < seedanceFour.monthlyCredits))
+check('Studio recommendation exposes adjacent lower-cost Creator', seedanceFour.lowerCostAlternative?.plan.tier === 'basic')
+check('lower-cost path keeps the exact same engine cost', seedanceFour.lowerCostAlternative?.monthlyCredits === seedanceFour.filmCredits * seedanceFour.lowerCostAlternative?.monthlyFilms)
+check('lower-cost path uses the maximum honest cheaper cadence', seedanceFour.lowerCostAlternative?.monthlyFilms === Math.floor(pricing.TIER_CREDITS.basic / seedanceFour.filmCredits))
+check('lower-cost plan covers its reduced cadence', (seedanceFour.lowerCostAlternative?.plan.credits ?? 0) >= (seedanceFour.lowerCostAlternative?.monthlyCredits ?? Infinity))
+check('lower-cost path actually reduces cadence', (seedanceFour.lowerCostAlternative?.monthlyFilms ?? Infinity) < seedanceFour.monthlyFilms)
 
 // 2. Free projection uses the paid cost without claiming the free film spent it.
 const freeProjection = planFit.calculatePlanFit({ quality: 'fast', seconds: 60, monthlyFilms: 4, currency: 'usd' })
@@ -92,6 +97,10 @@ check('free Kineo 1 is zero today', costs.creditCostForDuration('fast', false, 6
 check('Plan Fit projects paid Kineo 1 cost', freeProjection.filmCredits === costs.creditCostForDuration('fast', true, 60))
 check('paid projection is nonzero', freeProjection.filmCredits > 0)
 check('free projection can recommend a plan', freeProjection.plan !== null)
+check('Starter recommendation has no fictional cheaper subscription', freeProjection.lowerCostAlternative === null)
+
+const fastTwelve = planFit.calculatePlanFit({ quality: 'fast', seconds: 60, monthlyFilms: 12, currency: 'usd' })
+check('Creator recommendation can expose Starter capacity', fastTwelve.lowerCostAlternative?.plan.tier === 'starter' && fastTwelve.lowerCostAlternative.monthlyFilms === 8)
 
 // 3. No-plan result always carries honest, actionable exits.
 const selfServeTiers = ['starter', 'basic', 'pro']
@@ -101,6 +110,7 @@ const noPlanCadence = Math.min(60, Math.floor(maximumGrant / seedancePaidCost) +
 const seedanceNoPlan = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: noPlanCadence, currency: 'usd' })
 check('fixture is dynamically above every current self-serve grant', noPlanCadence * seedancePaidCost > maximumGrant)
 check('no self-serve plan is signaled', seedanceNoPlan.noSelfServePlan && seedanceNoPlan.plan === null)
+check('no-plan branch does not mislabel a lower subscription as covering', seedanceNoPlan.lowerCostAlternative === null)
 check('maximum same-engine capacity is derived', seedanceNoPlan.maximumSameEngineFilms === Math.floor(maximumGrant / seedanceNoPlan.filmCredits))
 const fastAlternativeShouldFit = costs.creditCostForDuration('fast', true, 60) * noPlanCadence <= maximumGrant
 check('faster alternative exists exactly when it fits', Boolean(seedanceNoPlan.fastAlternative) === fastAlternativeShouldFit)
@@ -336,6 +346,10 @@ check('checkout reassurance is attached to the Plan Fit decision', component.inc
 check('checkout reassurance names Stripe', component.includes('Secure Stripe checkout'))
 check('checkout reassurance carries the approved cancellation promise', component.includes('cancel anytime in one click'))
 check('checkout reassurance carries the approved guarantee', component.includes('7-day money-back'))
+check('valid recommendation exposes a lower-cost comparison path', component.includes('data-plan-fit-lower-cost-path'))
+check('lower-cost path preserves engine and duration explicitly', component.includes('Keep {plannedMotor} and {seconds}s'))
+check('lower-cost path changes frequency before checkout', component.includes("'lower_plan_capacity'"))
+check('lower-cost path derives price from canonical formatter', component.includes('priceLabel(result.lowerCostAlternative.plan.tier, currency)'))
 check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
 check('checkout error is visible', component.includes('role="alert"'))
 check('checkout revalidates before protected launch', (component.match(/await verifyEligibility\(\)/g) ?? []).length >= 2)

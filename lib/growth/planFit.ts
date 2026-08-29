@@ -123,6 +123,12 @@ export interface EngineAlternative {
   plan: PlanProjection
 }
 
+export interface LowerCostPlanAlternative {
+  monthlyFilms: number
+  monthlyCredits: number
+  plan: PlanProjection
+}
+
 export interface PlanFitResult {
   quality: PlanFitQuality
   seconds: number
@@ -133,6 +139,7 @@ export interface PlanFitResult {
   noSelfServePlan: boolean
   maximumPlan: PlanProjection
   maximumSameEngineFilms: number
+  lowerCostAlternative: LowerCostPlanAlternative | null
   fastAlternative: EngineAlternative | null
 }
 
@@ -180,7 +187,7 @@ function recommendationFor(
   seconds: number,
   monthlyFilms: number,
   currency: CheckoutCurrency | null,
-): Omit<PlanFitResult, 'fastAlternative'> {
+): Omit<PlanFitResult, 'fastAlternative' | 'lowerCostAlternative'> {
   // Always project the paid cost. A free Kineo 1 preview costs zero today, but
   // the question answered here is what the same monthly workflow costs after
   // subscribing. This never claims that the delivered preview was debited.
@@ -205,17 +212,42 @@ function recommendationFor(
   }
 }
 
+function lowerCostAlternativeFor(
+  result: Omit<PlanFitResult, 'fastAlternative' | 'lowerCostAlternative'>,
+  currency: CheckoutCurrency | null,
+): LowerCostPlanAlternative | null {
+  if (!result.plan) return null
+  const orderedTiers = tiersByPrice(currency)
+  const recommendedIndex = orderedTiers.indexOf(result.plan.tier)
+  if (recommendedIndex <= 0) return null
+
+  // Keep the same engine and duration, and offer only the adjacent cheaper
+  // tier. This is a frequency tradeoff, not a hidden quality downgrade.
+  const cheaperTier = orderedTiers[recommendedIndex - 1]
+  const monthlyFilms = Math.floor(TIER_CREDITS[cheaperTier] / result.filmCredits)
+  if (monthlyFilms < 1 || monthlyFilms >= result.monthlyFilms) return null
+  const monthlyCredits = result.filmCredits * monthlyFilms
+
+  return {
+    monthlyFilms,
+    monthlyCredits,
+    plan: projectionFor(cheaperTier, result.filmCredits, monthlyCredits),
+  }
+}
+
 export function calculatePlanFit(input: PlanFitInput): PlanFitResult {
   const monthlyFilms = safeMonthlyFilms(input.monthlyFilms)
   const result = recommendationFor(input.quality, input.seconds, monthlyFilms, input.currency)
+  const lowerCostAlternative = lowerCostAlternativeFor(result, input.currency)
 
   if (result.plan || input.quality === 'fast') {
-    return { ...result, fastAlternative: null }
+    return { ...result, lowerCostAlternative, fastAlternative: null }
   }
 
   const fast = recommendationFor('fast', input.seconds, monthlyFilms, input.currency)
   return {
     ...result,
+    lowerCostAlternative: null,
     fastAlternative: fast.plan
       ? {
           quality: 'fast',

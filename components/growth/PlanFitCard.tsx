@@ -167,7 +167,10 @@ export default function PlanFitCard({
     })
   }
 
-  function chooseCadence(value: number, source: 'preset' | 'same_engine_capacity' = 'preset') {
+  function chooseCadence(
+    value: number,
+    source: 'preset' | 'same_engine_capacity' | 'lower_plan_capacity' = 'preset',
+  ) {
     setMonthlyFilms(value)
     const next = calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms: value, currency })
     emit('plan_fit_monthly_target_selected', {
@@ -350,6 +353,38 @@ export default function PlanFitCard({
               >
                 🔒 Secure Stripe checkout · cancel anytime in one click · 7-day money-back
               </p>
+              {result.lowerCostAlternative && (
+                <div
+                  data-plan-fit-lower-cost-path
+                  className="mt-4 pt-4"
+                  style={{ borderTop: '1px solid rgba(255,255,255,.09)' }}
+                >
+                  <p className="text-xs mb-2" style={{ color: 'var(--muted2)', lineHeight: 1.55 }}>
+                    Prefer a lower monthly plan? Keep {plannedMotor} and {seconds}s.{' '}
+                    <strong style={{ color: 'var(--text)' }}>
+                      {result.lowerCostAlternative.monthlyFilms}/month fits {planName(result.lowerCostAlternative.plan.tier)}.
+                    </strong>
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => chooseCadence(result.lowerCostAlternative!.monthlyFilms, 'lower_plan_capacity')}
+                    disabled={checkoutBusy}
+                    className="text-xs font-black"
+                    style={{
+                      background: 'transparent',
+                      border: 0,
+                      color: '#5cb3ff',
+                      padding: 0,
+                      textDecoration: 'underline',
+                      cursor: checkoutBusy ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {currency
+                      ? `Compare ${planName(result.lowerCostAlternative.plan.tier)} — ${priceLabel(result.lowerCostAlternative.plan.tier, currency)}/month`
+                      : `Compare ${planName(result.lowerCostAlternative.plan.tier)} in secure checkout`}
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <div>
