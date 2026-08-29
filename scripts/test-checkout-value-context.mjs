@@ -37,7 +37,7 @@ const policy = executeTs('lib/growth/checkoutValueContext.ts', {
   '@/lib/credits/engineCost': engineCost,
 })
 
-equal(policy.CHECKOUT_VALUE_CONTEXT_VERSION, 'checkout_value_context_v2', 'experiment has a stable version')
+equal(policy.CHECKOUT_VALUE_CONTEXT_VERSION, 'checkout_value_context_v3', 'experiment has a stable version')
 
 const creatorBridge = policy.buildCheckoutValueContext({
   billing: 'monthly',
@@ -80,6 +80,8 @@ const creator = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 
 equal(creator.variant, 'standard_result_count', 'ordinary Creator receives result-count copy')
 equal(creator.outputCount, 3, 'Creator derives three Seedance films from canonical 25-credit cost')
 check(creator.lineItemDescription.includes('up to 3 Seedance 60s AI films'), 'Creator names engine, count and duration')
+check(creator.lineItemDescription.includes('or 18 ready-to-post Fast Shorts'), 'Creator also names the high-volume output a Fast user already understands')
+check(creator.lineItemDescription.includes('voiceover, captions and no watermark'), 'Creator keeps finished-output ownership visible after both counts')
 
 const studio = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 180, intentCampaign: undefined, tier: 'pro' })
 equal(studio.outputCount, 1, 'Studio derives one Kling 3 film from canonical 150-credit cost')

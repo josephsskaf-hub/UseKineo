@@ -6,7 +6,7 @@ import {
   TRIAL_BALANCE_BRIDGE_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 
-export const CHECKOUT_VALUE_CONTEXT_VERSION = 'checkout_value_context_v2' as const
+export const CHECKOUT_VALUE_CONTEXT_VERSION = 'checkout_value_context_v3' as const
 
 export type CheckoutValueContextInput = {
   billing: 'monthly' | 'annual'
@@ -42,11 +42,13 @@ function resultCountDescription(input: CheckoutValueContextInput): {
 
   if (input.tier === 'basic') {
     const seedanceCost = creditCostForDuration('cinematic_ai', true, 60)
+    const fastCost = creditCostForDuration('fast', true, 60)
     const outputCount = Math.floor(input.credits / seedanceCost)
+    const fastOutputCount = Math.floor(input.credits / fastCost)
     return {
       lineItemDescription:
         `${input.credits} credits / month — up to ${outputCount} Seedance 60s AI films ` +
-        'with voiceover, captions and no watermark',
+        `or ${fastOutputCount} ready-to-post Fast Shorts, with voiceover, captions and no watermark`,
       outputCount,
     }
   }
