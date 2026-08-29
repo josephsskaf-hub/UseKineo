@@ -17,12 +17,20 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
-import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { STARTER_MONTH } from '@/lib/marketingPrice'
+import { creditCostForDuration } from '@/lib/credits/engineCost'
+import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 
-const OFFER = getFreeTierOffer()
 const BASE = 'https://www.usekineo.com'
 const INTENT_CAMPAIGN = 'seo_talking_characters'
+const H3_60_CREDITS = creditCostForDuration('cinematic_h3', true, 60)
+const KLING3_60_CREDITS = creditCostForDuration('cinematic_hollywood', true, 60)
+const TALKING_CHARACTERS_SIGNUP_HREF = buildProductSurfaceSignupHref({
+  surface: 'h3',
+  campaign: INTENT_CAMPAIGN,
+  utmSource: 'seo',
+})
 
 export const metadata: Metadata = {
   title: 'AI Video With Talking Characters — Lip Sync + Narrator | Kineo',
@@ -59,8 +67,8 @@ const WHY: { t: string; d: string }[] = [
 ]
 
 const ENGINES: { name: string; credits: string; d: string }[] = [
-  { name: 'Kling 3', credits: '150 credits a film', d: 'Native audio, the strongest dialogue scenes, cinematic look. The premium option when the film is the product.' },
-  { name: 'MiniMax H3', credits: '45 credits a film', d: 'Same directed dialogue-plus-narration structure at roughly a third of the cost. The everyday choice for a channel posting daily.' },
+  { name: 'Kling 3', credits: `${KLING3_60_CREDITS} credits / 60s`, d: 'Native audio, the strongest dialogue scenes, cinematic look. The premium option when the film is the product.' },
+  { name: 'MiniMax H3', credits: `${H3_60_CREDITS} credits / 60s`, d: 'Same directed dialogue-plus-narration structure at roughly a third of the cost. The everyday choice for a channel posting daily.' },
 ]
 
 const FAQ: { q: string; a: string }[] = [
@@ -69,7 +77,7 @@ const FAQ: { q: string; a: string }[] = [
   { q: 'Do I need to record or clone a voice?', a: 'No. The character speaks with a voice generated at render time, and the narrator uses a voice matched to the subject of your script. Nothing to record, nothing to upload, no voice cloning step.' },
   { q: 'Will the character say exactly what I wrote?', a: 'If you choose "Use my script as is", yes — the spoken lines come from your text, split into scenes in code rather than rewritten by a model. If you prefer, the AI can structure a one-line idea into a full script first.' },
   { q: 'Which engine should I use for talking characters?', a: 'MiniMax H3 at 45 credits is the everyday choice and covers dialogue plus narration. Kling 3 at 150 credits gives the strongest dialogue scenes and the most cinematic look. Every video is labelled with the engine that actually rendered it.' },
-  { q: 'How much does it cost?', a: `${ft(OFFER, 'A new account can create watermarked Fast videos with no credit card.', OFFER.copy.sentence)} Paid plans start at ${STARTER_MONTH} and unlock clean, watermark-free exports plus the premium engines.` },
+  { q: 'How much does it cost?', a: `A 60-second MiniMax H3 film costs ${H3_60_CREDITS} credits; Kling 3 costs ${KLING3_60_CREDITS}. A new account receives ${TRIAL_GRANT_CREDITS_COPY} trial credits, which does not cover a full 60-second H3 film by itself. Paid plans start at ${STARTER_MONTH}, and the Studio shows the exact engine cost before submission.` },
 ]
 
 export default function TalkingCharactersPage() {
@@ -113,11 +121,14 @@ export default function TalkingCharactersPage() {
           rest are narrated by a documentary voice matched to your subject. One script in, one finished 9:16 MP4 out.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
-          <OrganicCtaLink href="/signup" source={INTENT_CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Make one free →</OrganicCtaLink>
+          <OrganicCtaLink href={TALKING_CHARACTERS_SIGNUP_HREF} source={INTENT_CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>Open MiniMax H3 →</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
           Works on Kling 3 and MiniMax H3 · No avatar to pick · No voice cloning
+        </p>
+        <p style={{ fontSize: 12.5, color: '#86868b', lineHeight: 1.55, margin: '8px 0 0', maxWidth: 650 }}>
+          Your {TRIAL_GRANT_CREDITS_COPY} trial credits apply to your account. A 60-second MiniMax H3 film costs {H3_60_CREDITS} credits, so this specific engine needs additional balance; the Studio shows the selected engine and cost before you submit.
         </p>
 
         <h2 style={h2}>How a talking-character film is built</h2>
@@ -175,10 +186,10 @@ export default function TalkingCharactersPage() {
             Write one script. Get a film that talks back.
           </h2>
           <p style={{ ...p, margin: '0 auto 18px', maxWidth: 520 }}>
-            {ft(OFFER, 'Start free, no card.', OFFER.copy.headline)} Paid plans from {STARTER_MONTH} unlock clean exports and the premium engines.
+            The Studio opens with MiniMax H3 selected and shows the cost before submission. Your {TRIAL_GRANT_CREDITS_COPY} trial credits apply; a 60-second H3 film costs {H3_60_CREDITS}. Paid plans start at {STARTER_MONTH}.
           </p>
-          <OrganicCtaLink href="/signup" source={INTENT_CAMPAIGN} placement="footer" style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '14px 28px', borderRadius: 980, textDecoration: 'none', display: 'inline-block' }}>
-            Start free →
+          <OrganicCtaLink href={TALKING_CHARACTERS_SIGNUP_HREF} source={INTENT_CAMPAIGN} placement="footer" style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '14px 28px', borderRadius: 980, textDecoration: 'none', display: 'inline-block' }}>
+            Open MiniMax H3 →
           </OrganicCtaLink>
         </div>
       </div>

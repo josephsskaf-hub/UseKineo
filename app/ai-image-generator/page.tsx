@@ -7,6 +7,7 @@ import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 // KINEO-PRICING-V6-2026-08-19 — preço E grant derivados de TIER_PRICES/
 // TIER_CREDITS. Esta linha errava os DOIS ($9.90 e 60 créditos) porque foram
 // digitados juntos: quando a escada desceu para $7/40, nada aqui apontava
@@ -14,6 +15,11 @@ import Footer from '@/components/Footer'
 import { STARTER_MONTH, STARTER_CREDITS } from '@/lib/marketingPrice'
 
 const BASE = 'https://www.usekineo.com'
+const IMAGE_SIGNUP_HREF = buildProductSurfaceSignupHref({
+  surface: 'images',
+  campaign: 'seo_image_studio',
+  utmSource: 'img_seo',
+})
 
 export const metadata: Metadata = {
   title: 'AI Image Generator — 6 Engines, One Studio (FLUX, Seedream, Grok, Recraft) | Kineo',
@@ -78,7 +84,7 @@ export default function AiImageGeneratorPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href="/signup?utm_source=img_seo"
+            href={IMAGE_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}

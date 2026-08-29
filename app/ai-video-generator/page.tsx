@@ -11,11 +11,17 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import WallMedia from '@/components/WallMedia'
 import { getEngineRenders } from '@/lib/engineWall'
 import { ENGINES, ENGINE_SLUGS } from './[engine]/page'
+import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 
 export const dynamic = 'force-static'
 
 const BASE = 'https://www.usekineo.com'
 const CARD = { background: '#161618', border: '1px solid #2a2a2d' }
+const ENGINE_HUB_SIGNUP_HREF = buildProductSurfaceSignupHref({
+  surface: 'fast',
+  campaign: 'seo_engine_hub',
+  utmSource: 'seo',
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE),
@@ -83,7 +89,7 @@ export default async function EngineHubPage() {
           </p>
           <div style={{ marginTop: 22 }}>
             <OrganicCtaLink
-              href="/signup?utm_source=seo&utm_medium=organic&utm_campaign=seo_engine_hub&intent_campaign=seo_engine_hub"
+              href={ENGINE_HUB_SIGNUP_HREF}
               source="seo_engine_hub"
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}

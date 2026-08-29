@@ -5,8 +5,14 @@ import type { Metadata } from 'next'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 
 const BASE = 'https://www.usekineo.com'
+const VOICE_SIGNUP_HREF = buildProductSurfaceSignupHref({
+  surface: 'audio',
+  campaign: 'seo_voice_studio',
+  utmSource: 'voice_seo',
+})
 
 export const metadata: Metadata = {
   title: 'AI Voice Generator — Text to Speech with 4 Engines (MiniMax, ElevenLabs) | Kineo',
@@ -71,7 +77,7 @@ export default function AiVoiceGeneratorPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href="/signup?utm_source=voice_seo"
+            href={VOICE_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}

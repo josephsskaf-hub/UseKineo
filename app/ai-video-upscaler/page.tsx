@@ -10,8 +10,14 @@ import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { creditsPerReferenceVideo, formatUsd, planCreditSpendUsd } from '@/lib/marketingPrice'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
+import { buildProductSurfaceSignupHref } from '@/lib/growth/productSurfaceIntent'
 
 const BASE = 'https://www.usekineo.com'
+const UPSCALER_SIGNUP_HREF = buildProductSurfaceSignupHref({
+  surface: 'seedance',
+  campaign: 'seo_video_upscaler',
+  utmSource: 'upscaler',
+})
 const ENHANCE_CREDITS = 10
 const CREATOR_ENHANCE_VALUE = formatUsd(planCreditSpendUsd('basic', ENHANCE_CREDITS))
 const SEEDANCE_CREDITS = creditsPerReferenceVideo('cinematic_ai')
@@ -79,7 +85,7 @@ export default function AiVideoUpscalerPage() {
         </p>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 40 }}>
           <Link
-            href="/signup?utm_source=upscaler"
+            href={UPSCALER_SIGNUP_HREF}
             style={{ background: '#2997ff', color: '#fff', fontWeight: 800, padding: '13px 22px', borderRadius: 12, textDecoration: 'none', boxShadow: '0 8px 24px rgba(41,151,255,.35)' }}
           >
             {`Start free — ${TRIAL_GRANT_CREDITS_COPY} credits →`}
