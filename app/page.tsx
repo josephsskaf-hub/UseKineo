@@ -103,8 +103,14 @@ export default async function HomePage({
   const [engineWall, trending] = await Promise.all([getEngineHero(), getTrending()])
   // The founder-approved post-signup destination is the engine showroom. Keep
   // its four hero videos untouched, then expose the existing creator/business/
-  // agency router only to the authenticated `?welcome=1` handoff.
-  const showWelcomeGoalRouter = Boolean(user && firstSearchParam(searchParams, 'welcome') === '1')
+  // agency router only to authenticated signup handoffs. Email uses
+  // `?welcome=1`; OAuth and modal signup can arrive with `?signup=1`.
+  const showWelcomeGoalRouter = Boolean(
+    user && (
+      firstSearchParam(searchParams, 'welcome') === '1' ||
+      firstSearchParam(searchParams, 'signup') === '1'
+    )
+  )
 
   return (
     <>

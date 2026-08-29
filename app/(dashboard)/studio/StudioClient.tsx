@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import type { Quality } from '@/lib/credits/engineCost'
+import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -150,6 +151,7 @@ export default function StudioClient() {
   const [refName, setRefName] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement | null>(null)
   const campaignRef = useRef('studio_v4')
+  const onboardingGoalRef = useRef<OnboardingGoalId | null>(null)
   // KINEO-STUDIO-MYVIDS-2026-08-17 (pedido do fundador na aprovacao: "colocar
   // na parte de baixo os meus ultimos videos — e o que falta pra completar"):
   // os 6 renders mais recentes do usuario, hover da play, clique abre o filme.
@@ -185,6 +187,8 @@ export default function StudioClient() {
     // engine_tile/hero_engine) atravessa o Studio em vez de virar 'studio_v4'.
     const ic = sp.get('intent_campaign')
     if (ic) campaignRef.current = ic
+    const onboardingGoal = sp.get('onboarding_goal')
+    if (isOnboardingGoalId(onboardingGoal)) onboardingGoalRef.current = onboardingGoal
   }, [])
 
   const eng = useMemo(() => ENGINES.find((e) => e.key === engine)!, [engine])
@@ -208,6 +212,7 @@ export default function StudioClient() {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    if (onboardingGoalRef.current) q.set('onboarding_goal', onboardingGoalRef.current)
     // KINEO-STUDIO-UNIFICACAO-2026-08-24 — a casa de máquinas agora mora em
     // /studio/create (o /generate virou porteiro que redireciona). Apontar
     // direto evita o hop extra do redirect no clique mais quente do produto.

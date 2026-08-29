@@ -69,10 +69,10 @@ export function getOnboardingGoal(value: unknown): OnboardingGoal {
  */
 export function buildHomeWelcomeGoalHref(goal: OnboardingGoal): string {
   const params = new URLSearchParams({
+    engine: 'seedance',
     prompt: goal.topic,
-    autoanalyze: '1',
     intent_campaign: HOME_WELCOME_GOAL_CAMPAIGN,
     onboarding_goal: goal.id,
   })
-  return `/studio/create?${params.toString()}`
+  return `/studio?${params.toString()}`
 }

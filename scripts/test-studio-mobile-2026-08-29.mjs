@@ -22,7 +22,7 @@ chk('desktop mantém o rail sticky (duas colunas lado a lado)',
 chk('mobile DESLIGA o sticky (a causa raiz da sobreposição)',
   /\@media\(max-width:900px\)\{[^}]*\}[\s\S]*?\.stu \.rail\{position:static\}/.test(kit) || kit.includes('.stu .rail{position:static}'))
 chk('o bloco mobile existe dentro de @media 900px',
-  kit.includes('@media(max-width:900px){\n  .stu{padding:16px 14px 96px}'))
+  /@media\(max-width:900px\)\{\s*\.stu\{padding:16px 14px 96px\}/.test(kit))
 chk('grid continua empilhando em 1 coluna no mobile',
   kit.includes('.stu .grid{grid-template-columns:1fr;gap:16px}'))
 chk('padding lateral mobile reduzido (34px era desktop)',

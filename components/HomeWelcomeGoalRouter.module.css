@@ -40,19 +40,100 @@
   line-height: 1.55;
 }
 
-.options {
+.routeGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 14px;
+}
+
+.primary {
+  display: flex;
+  min-height: 230px;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(22px, 4vw, 34px);
+  border: 1px solid rgba(41, 151, 255, 0.62);
+  border-radius: 18px;
+  color: inherit;
+  text-decoration: none;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(41, 151, 255, 0.24), transparent 42%),
+    rgba(41, 151, 255, 0.09);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+}
+
+.primary:hover,
+.primary:focus-visible {
+  border-color: #7cc0ff;
+  background:
+    radial-gradient(circle at 90% 10%, rgba(41, 151, 255, 0.3), transparent 42%),
+    rgba(41, 151, 255, 0.13);
+  transform: translateY(-2px);
+  outline: none;
+}
+
+.recommended {
+  align-self: flex-start;
+  margin-bottom: 14px;
+  padding: 5px 9px;
+  border: 1px solid rgba(124, 192, 255, 0.45);
+  border-radius: 999px;
+  color: #b8dcff;
+  background: rgba(41, 151, 255, 0.16);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.primaryLabel {
+  display: block;
+  max-width: 640px;
+  color: #fff;
+  font-size: clamp(1.2rem, 2.4vw, 1.75rem);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.primaryDetail {
+  display: block;
+  max-width: 620px;
+  margin-top: 10px;
+  color: #b8b8c0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.primaryAction {
+  display: block;
+  margin-top: 22px;
+  color: #fff;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.alternatives {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alternativeHeading {
+  margin: 0 0 2px;
+  color: #8d8d96;
+  font-size: 0.76rem;
+  font-weight: 800;
 }
 
 .option {
   display: flex;
-  min-height: 142px;
-  flex-direction: column;
+  min-height: 100px;
+  align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 19px;
+  gap: 14px;
+  padding: 16px;
   border: 1px solid #303038;
   border-radius: 16px;
   color: inherit;
@@ -86,6 +167,7 @@
 }
 
 .optionAction {
+  flex: none;
   color: #7cc0ff;
   font-size: 0.82rem;
   font-weight: 850;
@@ -108,8 +190,12 @@
     border-radius: 18px;
   }
 
-  .options {
+  .routeGrid {
     grid-template-columns: 1fr;
+  }
+
+  .primary {
+    min-height: 0;
   }
 
   .option {
@@ -119,12 +205,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .option {
+  .option,
+  .primary {
     transition: none;
   }
 
   .option:hover,
-  .option:focus-visible {
+  .option:focus-visible,
+  .primary:hover,
+  .primary:focus-visible {
     transform: none;
   }
 }

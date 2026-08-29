@@ -82,7 +82,7 @@ const form = read('app/HomeTopicForm.tsx')
 
 check(page.includes("import { headers } from 'next/headers'"), 'server page can read the ordinary HTTP referrer')
 check(page.includes("headers().get('referer')"), 'server page reads only the request referrer header')
-check(page.includes('homeReferralBridgeSource(\n    searchParams,'), 'server page resolves the bridge from query and referrer')
+check(/homeReferralBridgeSource\(\s*searchParams,/.test(page), 'server page resolves the bridge from query and referrer')
 check(page.includes('initialAcquisitionSource={initialAcquisitionSource}'), 'server page passes canonical source to landing')
 check(page.indexOf('homeReferralBridgeSource(') < page.indexOf('await supabase.auth.getUser()'), 'source resolution requires no Supabase result')
 

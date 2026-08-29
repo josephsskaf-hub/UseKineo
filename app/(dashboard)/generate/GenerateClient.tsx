@@ -893,6 +893,12 @@ export default function GenerateClient({
     const isNew = searchParams?.get('welcome') === '1' || searchParams?.get('signup') === '1'
     if (isNew) setShowNicheOnboarding(true)
   }, [searchParams])
+  useEffect(() => {
+    const goal = searchParams?.get('onboarding_goal')
+    if (!isOnboardingGoalId(goal)) return
+    onboardingGoalRef.current = goal
+    try { sessionStorage.setItem(PUSH27_ONBOARDING_GOAL_SESSION_KEY, goal) } catch {}
+  }, [searchParams])
   function finishOnboarding() {
     try { localStorage.setItem('sf_onboarded', '1') } catch {}
     setShowNicheOnboarding(false)
