@@ -1479,3 +1479,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** captura de origem, schema, Supabase, Storage, Auth, migration, banco, preço, grant, oferta, SKU, criação de Checkout Session, webhook, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `33e7910` ou da ponta posterior de `origin/main`. Não confundir o bloco `chatgpt_quickstart_v2` com o canal completo e não reconstruir esta coorte por contagem de eventos. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas e usará os números vivos somente após a normalização da capacidade.
+
+## 35. Conversão — confiança no último pixel antes da Stripe (29/08/2026)
+
+**BASE DE CÓDIGO:** `a3ac828b9665f8b679ac11764831f21998a3d93f`, igual a `origin/main` no início da worktree isolada `codex/growth-plan-fit-trust`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (29/08/2026 10:52 BRT):** pessoas vindas do ChatGPT foram observadas concluindo o primeiro vídeo e, em parte, chegando ao checkout sem assinar. Não há contagem fornecida; o relato orienta prioridade, não produz taxa.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `PricingClient`, `checkout/cancelled`, `PricingSavedCheckout`, `CheckoutResumeBanner` e outras ofertas já mostram cancelamento, garantia ou cobrança. O Plan Fit, que salta diretamente da primeira entrega para a Stripe, era a exceção: seu CTA dizia apenas `Get {plan} — {price}/month` e não mostrava processador, cancelamento ou garantia no mesmo viewport. Não foi criado outro card, checkout, desconto ou mecanismo de retorno.
+
+**IMPLEMENTADO:** commit funcional `0e062647bcbdb4068d02d31824738168b7e25f65` muda o CTA do plano calculado para `Continue with {plan} — {price}/month`, preservando tier, preço canônico, moeda e destino. Imediatamente abaixo, a mesma decisão passa a mostrar a promessa já usada e aprovada no produto: `Secure Stripe checkout · cancel anytime in one click · 7-day money-back`.
+
+**FATO CONFIRMADO / VERDADE COMERCIAL:** nenhuma promessa foi inventada. A garantia de sete dias e o cancelamento aparecem em `checkout/cancelled`, `PostVideoPaywall`, `ExitIntentOffer`, comparações e páginas públicas. O preço continua derivado de `lib/checkoutPricing.ts`; não existe literal monetário novo. O checkout continua mensal, sem intro adicionado e sem alteração na sessão Stripe.
+
+**REVISÃO REACT:** somente texto e apresentação derivados do `result.plan` existente foram alterados. Nenhum estado, efeito, fetch, evento ou dependência foi adicionado. A telemetria já existente (`plan_fit_impression`, seleção e checkout iniciado) continua suficiente para comparar exposição → checkout → pagamento por pessoa.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 278/278 verificações e `node scripts/test-pricing-saved-checkout.mjs` manteve 33/33. A suíte trava CTA de continuidade, moeda condicional, marcador do reassurance, Stripe, cancelamento e garantia. `git diff --check` ficou limpo. `npx tsc --noEmit --pretty false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-CHECKOUT-TRUST-2026-08-29.html` contém antes/depois desktop e o estado de 390 px. O preview foi servido por localhost somente leitura e inspecionado no Chrome conectado do fundador; CTA, preço e linha de confiança ficam no mesmo viewport e a copy mobile quebra em duas linhas sem sair do card.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_E1AbbrcyH2ypS721g6kqTqDrj69T` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `0e062647bcbdb4068d02d31824738168b7e25f65`.
+
+**LIMITE DA VALIDAÇÃO:** `/studio/create` vive no layout autenticado que lê Supabase. A tela real não foi aberta em produção durante o incidente de capacidade; o preview visual, os contratos, testes, publicação e deploy estão confirmados, mas não há clique real nem assinatura atribuída à nova copy.
+
+**NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, desconto, oferta, SKU, sessão Stripe, webhook, Auth, Supabase, Storage, migration, banco, eventos, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0e06264` ou da ponta posterior de `origin/main`. Não remover a linha de confiança do Plan Fit nem duplicá-la em outro card; Claude continua capacidade/render e Codex continua aquisição/fluxo/assinaturas.
