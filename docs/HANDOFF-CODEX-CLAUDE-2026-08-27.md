@@ -1593,3 +1593,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, oferta, SKU, Stripe server-side, webhook, Auth, Supabase, Storage, migration, banco, pipeline de render, motores, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b2e2eef` ou da ponta posterior de `origin/main`. Não reconstruir a ponte nem adicionar preço direto no calculador de ganhos; o destino canônico é o Plan Fit público. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 39. Aquisição AEO — planejador de custo vira ferramenta pública citável (29/08/2026)
+
+**BASE DE CÓDIGO:** `141574fd7e8c9d97f7aacbbcaf813a5452a9fb61`, igual a `origin/main` no início da worktree isolada `codex/growth-aeo-cost-planner`.
+
+**EVIDÊNCIA DE PRODUÇÃO / SEARCH CONSOLE (29/08/2026):** o relatório de aparições em recursos generativos consultado no Chrome do fundador mostrou 35 impressões no período selecionado, incluindo 6 para `/pricing`. Impressão não é pessoa, uso do produto nem assinatura; o sinal apenas mostra que motores de resposta já encontram a verdade comercial da Kineo e justifica tornar o calculador canônico de custo explicitamente citável.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `/cheapest-ai-shorts-maker` já existia, usava `calculatePlanFit` e derivava motor, duração, créditos, grants e plano das fontes canônicas. A lacuna era descoberta: o hub `/tools`, `/facts`, `/api/facts` e `/llms.txt` publicavam somente as dez ferramentas de texto e o calculador de ganhos. Não foi criada outra calculadora, landing, tabela de preço ou oferta.
+
+**IMPLEMENTADO:** commit funcional `0e9ee0515e4c9aec3f63bdd8e33433fa40aa9f69` adiciona `PUBLIC_COST_PLANNER_FACT` a `lib/kineoFacts.ts`. O contrato declara saída `cost_plan`, URL do planejador, URL pública de pricing e ausência de conta, cartão, e-mail e limite de uso. Ele fica separado de `FREE_TOOL_FACTS` porque essas dez ferramentas prometem saída de texto; misturar os dois faria `/facts` mentir sobre o tipo de resultado. A descrição não contém preço, grant ou crédito literal e aponta que a matemática usa os mesmos custos de motor e grants do Checkout.
+
+**IMPLEMENTADO / QUATRO SUPERFÍCIES, UM FATO:** `/tools` agora deriva 11 cards e seu JSON-LD `CollectionPage/ItemList` declara 11 itens. O novo card começa por uma agenda de publicação e leva ao Plan Fit público com `Find my cheapest plan`. `/facts`, `/api/facts` e `/llms.txt` publicam o mesmo objeto canônico; a fronteira foi corrigida para “texto, planejamento ou estimativa de custo”, sempre sem afirmar que a ferramenta renderiza vídeo.
+
+**REVISÃO REACT:** `app/tools/page.tsx` continua Server Component. A coleção combinada, contagem, metadata e JSON-LD são derivados em build time; nenhum hook, estado, efeito, fetch, API ou hidratação foi adicionado. A página do calculador não foi modificada nesta rodada.
+
+**TESTADO LOCALMENTE:** `node scripts/test-public-cost-planner-discovery.mjs` executou 37/37 verificações e `node scripts/test-plan-fit.mjs` manteve 324/324. O Next local respondeu 200 em `/tools`, `/cheapest-ai-shorts-maker`, `/facts`, `/api/facts` e `/llms.txt`; o Chrome real confirmou 11 cards, badge, fronteira, JSON-LD=11 e navegação ao calculador. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false --incremental false` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PUBLIC-COST-PLANNER-DISCOVERY-2026-08-29.html` contém antes/depois autocontido das superfícies tocadas em desktop e mobile. Foi servido localmente e inspecionado no Chrome conectado do fundador; a nova rota aparece como próximo passo depois do calculador de ganhos e preserva a hierarquia do hub.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy automático Vercel `dpl_FfDQ6byoKLw8iS1ApgsekRqGc5QF` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `0e9ee0515e4c9aec3f63bdd8e33433fa40aa9f69`. No Chrome do fundador, `/tools` mostrou 11 cards, `CollectionPage.mainEntity.numberOfItems=11`, copy de fronteira correta e link canônico; o clique abriu `/cheapest-ai-shorts-maker`, que carregou o Plan Fit com agenda padrão e a ressalva de confirmação no Checkout. `/facts` exibiu o fato, a ausência de conta/cartão/e-mail e o pricing canônico. Como a extensão do Chrome bloqueia diretamente `.txt` e `/api/*`, `/llms.txt` e `/api/facts` foram conferidos por HTTP público: status 200, `costPlanner.output=cost_plan`, URLs canônicas e contagem de 11 no índice. A Vercel registrou zero erro runtime agrupado nas cinco rotas nos 30 minutos consultados.
+
+**DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega aumenta a clareza para ChatGPT/crawlers e a continuidade do tráfego que já chega.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** ainda não existe evidência de pessoa, checkout ou assinatura causada pelo 11º card ou pela nova citação AEO. Medir pessoas, não eventos, ligando entrada em `/tools`, clique para `/cheapest-ai-shorts-maker`, recomendação, checkout e pagamento do mesmo ator, excluindo contas internas.
+
+**NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, desconto, oferta, SKU, Stripe server-side, webhook, Auth, schema Supabase, migration, Storage, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente. A validação no navegador emitiu apenas a telemetria normal já existente das páginas; nenhum evento ou schema foi alterado.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0e9ee05` ou da ponta posterior de `origin/main`. Não adicionar o planejador a `FREE_TOOL_FACTS` nem criar uma segunda tabela de preço; o contrato próprio `PUBLIC_COST_PLANNER_FACT` existe para preservar a diferença entre texto e `cost_plan`. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
