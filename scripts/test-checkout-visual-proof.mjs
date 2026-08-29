@@ -27,8 +27,8 @@ vm.runInNewContext(output, {
 }, { filename: 'lib/growth/checkoutVisualProof.ts' })
 
 const proof = moduleBox.exports
-equal(proof.CHECKOUT_VISUAL_PROOF_VERSION, 'checkout_visual_proof_v1', 'experiment has a stable version')
-equal(proof.CHECKOUT_VISUAL_PROOF.imageUrl, 'https://www.usekineo.com/og-image.png', 'Stripe receives the canonical public image')
+equal(proof.CHECKOUT_VISUAL_PROOF_VERSION, 'checkout_visual_proof_v2', 'experiment has a stable version')
+equal(proof.CHECKOUT_VISUAL_PROOF.imageUrl, 'https://www.usekineo.com/icon-512.png', 'Stripe receives the canonical square app icon')
 check(proof.CHECKOUT_VISUAL_PROOF.imageUrl.startsWith('https://'), 'image is fetchable over HTTPS')
 check(!/[?&](token|signature|expires)=/i.test(proof.CHECKOUT_VISUAL_PROOF.imageUrl), 'image URL has no signed secret')
 

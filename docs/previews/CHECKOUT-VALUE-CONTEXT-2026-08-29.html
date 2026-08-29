@@ -11,7 +11,7 @@
 <body>
 <main>
   <h1>Stripe checkout · value in outputs, not abstract credits</h1>
-  <p class="intro">The Creator price and 90-credit grant do not change. Only the final explanation changes for the measured Seedance balance journey.</p>
+  <p class="intro">Prices and grants do not change. Every monthly self-serve plan now translates credits into the finished output the buyer can repeat.</p>
   <div class="grid">
     <section class="case">
       <span class="tag">BEFORE · DESKTOP</span>
@@ -24,17 +24,17 @@
     <section class="case after">
       <span class="tag after">AFTER · DESKTOP</span>
       <div class="checkout">
-        <div class="summary"><div class="back">← Kineo</div><div class="price">$15.00</div><div class="cycle">per month</div><div class="product"><strong>Kineo — Creator</strong><div class="description">90 credits / month — up to 6 Seedance 35s films (15 credits each), watermark-free</div></div></div>
+        <div class="summary"><div class="back">← Kineo</div><div class="price">$15.00</div><div class="cycle">per month</div><div class="product"><strong>Kineo — Creator</strong><div class="description">90 credits / month — up to 3 Seedance 60s AI films with voiceover, captions and no watermark</div></div></div>
         <div class="form"><div class="brand">Subscribe to Kineo</div><div class="label" style="margin-top:24px">Card information</div><div class="field"></div><div class="label">Name on card</div><div class="field"></div><button class="pay">Subscribe</button><p class="submit">Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee.</p></div>
       </div>
-      <p class="delta">The last page now continues the exact output the buyer selected and states settlement and renewal plainly.</p>
+      <p class="delta">The last page states a complete repeatable output instead of asking the buyer to convert credits in their head.</p>
     </section>
   </div>
   <div class="mobile-row">
     <section><span class="tag">BEFORE · MOBILE</span><div class="phone"><div class="checkout"><div class="summary"><strong>Kineo — Creator</strong><div class="price">$15.00</div><div class="description">90 credits / month — 3 Seedance AI films</div></div><div class="form"><div class="field"></div><button class="pay">Subscribe</button><p class="submit">7-day money-back guarantee. Cancel anytime.</p></div></div></div></section>
-    <section><span class="tag after">AFTER · MOBILE</span><div class="phone"><div class="checkout"><div class="summary"><strong>Kineo — Creator</strong><div class="price">$15.00</div><div class="description">Up to 6 Seedance 35s films each month · watermark-free</div></div><div class="form"><div class="field"></div><button class="pay">Subscribe</button><p class="submit">Credits after payment · renews monthly · cancel from Account · 7-day money-back.</p></div></div></div></section>
+    <section><span class="tag after">AFTER · MOBILE</span><div class="phone"><div class="checkout"><div class="summary"><strong>Kineo — Creator</strong><div class="price">$15.00</div><div class="description">Up to 3 Seedance 60s AI films · voiceover · captions · no watermark</div></div><div class="form"><div class="field"></div><button class="pay">Subscribe</button><p class="submit">Credits after payment · renews monthly · cancel from Account · 7-day money-back.</p></div></div></div></section>
   </div>
-  <div class="measurement"><strong>MEASUREMENT</strong>Every new Stripe Session carries <code>checkout_value_context_v1</code>; the Seedance bridge also carries <code>trial_balance_seedance</code> and its output count. Compare unique people reaching checkout and payment before/after — never raw event counts.</div>
+  <div class="measurement"><strong>MEASUREMENT</strong>Every new Stripe Session carries <code>checkout_value_context_v2</code> and <code>standard_result_count</code>; the Seedance bridge keeps <code>trial_balance_seedance</code>. Compare unique people reaching checkout and payment — never raw event counts.</div>
 </main>
 </body>
 </html>

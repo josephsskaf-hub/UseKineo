@@ -34,9 +34,10 @@ const bridge = executeTs('lib/growth/trialBalanceBridge.ts', {
 })
 const policy = executeTs('lib/growth/checkoutValueContext.ts', {
   '@/lib/growth/trialBalanceBridge': bridge,
+  '@/lib/credits/engineCost': engineCost,
 })
 
-equal(policy.CHECKOUT_VALUE_CONTEXT_VERSION, 'checkout_value_context_v1', 'experiment has a stable version')
+equal(policy.CHECKOUT_VALUE_CONTEXT_VERSION, 'checkout_value_context_v2', 'experiment has a stable version')
 
 const creatorBridge = policy.buildCheckoutValueContext({
   billing: 'monthly',
@@ -60,17 +61,29 @@ equal(studioBridge.outputCount, 12, 'Studio translates its canonical grant into 
 check(studioBridge.lineItemDescription.includes('180 credits / month'), 'Studio uses the runtime grant')
 
 for (const [input, label] of [
-  [{ billing: 'monthly', credits: 40, intentCampaign: bridge.TRIAL_BALANCE_BRIDGE_VERSION, tier: 'starter' }, 'Starter does not promise premium access'],
   [{ billing: 'monthly', credits: 400, intentCampaign: bridge.TRIAL_BALANCE_BRIDGE_VERSION, tier: 'autopilot' }, 'Autopilot keeps its done-for-you description'],
   [{ billing: 'annual', credits: 90, intentCampaign: bridge.TRIAL_BALANCE_BRIDGE_VERSION, tier: 'basic' }, 'annual checkout does not imply a monthly annual grant'],
-  [{ billing: 'monthly', credits: 90, intentCampaign: 'unrelated', tier: 'basic' }, 'unrelated campaigns remain standard'],
-  [{ billing: 'monthly', credits: 90, intentCampaign: undefined, tier: 'basic' }, 'ordinary checkout remains standard'],
 ]) {
   const result = policy.buildCheckoutValueContext(input)
-  equal(result.variant, 'standard', label)
+  equal(result.variant, 'standard_result_count', label)
   equal(result.lineItemDescription, null, `${label}: line-item copy is untouched`)
   equal(result.outputCount, null, `${label}: no invented output count`)
 }
+
+const starter = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 40, intentCampaign: undefined, tier: 'starter' })
+equal(starter.variant, 'standard_result_count', 'ordinary Starter receives result-count copy')
+equal(starter.outputCount, 8, 'Starter derives eight Fast Shorts from canonical 5-credit cost')
+check(starter.lineItemDescription.includes('up to 8 ready-to-post Fast Shorts'), 'Starter names the output')
+check(starter.lineItemDescription.includes('AI voiceover, captions and no watermark'), 'Starter names the finished-video benefits')
+
+const creator = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 90, intentCampaign: 'unrelated', tier: 'basic' })
+equal(creator.variant, 'standard_result_count', 'ordinary Creator receives result-count copy')
+equal(creator.outputCount, 3, 'Creator derives three Seedance films from canonical 25-credit cost')
+check(creator.lineItemDescription.includes('up to 3 Seedance 60s AI films'), 'Creator names engine, count and duration')
+
+const studio = policy.buildCheckoutValueContext({ billing: 'monthly', credits: 180, intentCampaign: undefined, tier: 'pro' })
+equal(studio.outputCount, 1, 'Studio derives one Kling 3 film from canonical 150-credit cost')
+check(studio.lineItemDescription.includes('1 Kling 3 60s film plus up to 6 Fast Shorts'), 'Studio translates its remainder into usable outputs')
 
 equal(
   creatorBridge.submitMessage,
@@ -88,6 +101,9 @@ check(!policySource.includes('/api/'), 'policy cannot create a checkout or mutat
 check(!/\$\d/.test(policySource), 'policy contains no copied commercial price')
 check(policySource.includes('TRIAL_BALANCE_BRIDGE_COST'), 'output math imports the canonical per-film cost')
 check(policySource.includes('TRIAL_BALANCE_BRIDGE_DURATION'), 'output label imports the canonical duration')
+check(policySource.includes("creditCostForDuration('fast', true, 60)"), 'standard Fast count uses the canonical engine-cost function')
+check(policySource.includes("creditCostForDuration('cinematic_ai', true, 60)"), 'standard Seedance count uses the canonical engine-cost function')
+check(policySource.includes("creditCostForDuration('cinematic_hollywood', true, 60)"), 'standard Kling count uses the canonical engine-cost function')
 
 const route = read('app/api/stripe/checkout/route.ts')
 check(route.includes("import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'"), 'live route imports the executable policy')
