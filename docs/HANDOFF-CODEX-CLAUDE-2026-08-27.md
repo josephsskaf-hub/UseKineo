@@ -1505,3 +1505,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** `lib/checkoutPricing.ts`, preço, grant, desconto, oferta, SKU, sessão Stripe, webhook, Auth, Supabase, Storage, migration, banco, eventos, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0e06264` ou da ponta posterior de `origin/main`. Não remover a linha de confiança do Plan Fit nem duplicá-la em outro card; Claude continua capacidade/render e Codex continua aquisição/fluxo/assinaturas.
+
+## 36. Conversão — degrau de menor custo dentro do Plan Fit (29/08/2026)
+
+**BASE DE CÓDIGO:** `fe9713f9a68ea3853ae278862dd56b2af6ccc71a`, igual a `origin/main` no início da worktree isolada `codex/growth-plan-fit-alternatives`.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (29/08/2026 10:52 BRT):** pessoas vindas do ChatGPT foram observadas concluindo o primeiro vídeo e, em parte, chegando ao checkout sem assinar. Não há contagem fornecida; o relato define prioridade, mas não produz taxa.
+
+**FATO CONFIRMADO / GARGALO NÃO DUPLICADO:** quando nenhum plano self-serve cobria a meta, o Plan Fit já oferecia reduzir a frequência no mesmo motor ou manter a frequência com Kineo 1. Quando a meta cabia em Studio ou Creator, porém, o ramo válido mostrava somente o plano recomendado e a Stripe. Assim, uma pessoa que considerasse o plano alto não via que uma redução pequena de frequência manteria exatamente motor e duração num degrau mais barato (`lib/growth/planFit.ts`; `components/growth/PlanFitCard.tsx`).
+
+**IMPLEMENTADO:** commit funcional `1b3341caedbc74a5b1c9de27887f91462f244bbb` calcula o plano imediatamente mais barato que o recomendado e a maior frequência inteira que ele comporta com o mesmo custo por filme. A alternativa só existe quando esse plano cobre pelo menos um filme e exige frequência menor que a meta escolhida. Starter não inventa um degrau inferior; resultado sem plano continua no fluxo antigo; preço e grant vêm de `lib/checkoutPricing.ts`, e custo por duração continua vindo de `lib/credits/engineCost.ts`.
+
+**IMPLEMENTADO / INTERFACE:** abaixo da ação principal, o card pode mostrar `Prefer a lower monthly plan? Keep {engine} and {seconds}s`. O clique em `Compare` apenas recalcula a frequência com `selection_source=lower_plan_capacity`; não abre Stripe, não troca motor e não escolhe o plano sem confirmação. Depois do recálculo, a pessoa ainda confirma o novo CTA canônico. Exemplo derivado das fontes atuais: 4 vídeos Seedance 1.5 de 60s usam 100 créditos e recomendam Studio; Creator comporta 3 dos mesmos vídeos por mês.
+
+**REVISÃO REACT:** o degrau é derivado no cálculo existente e renderizado condicionalmente. Nenhum estado, efeito, fetch ou dependência foi adicionado; o handler reutiliza `chooseCadence` e a telemetria existente de seleção de meta.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 290/290 verificações e `node scripts/test-pricing-saved-checkout.mjs` manteve 33/33. Os casos executam Studio → Creator, Creator → Starter, Starter sem alternativa fictícia, resultado sem plano isolado, cobertura do grant, redução real de frequência, preço canônico e caller da interface. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-LOWER-COST-PATH-2026-08-29.html` contém antes/depois desktop e estado de 390 px. O preview foi servido por localhost somente leitura e inspecionado no Chrome conectado do fundador; a alternativa fica visualmente secundária, não disputa com o CTA principal e não estoura o card móvel.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026):** deploy Vercel `dpl_8hGVGvAV7qA8e6KULKKhKQFkK9kD` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `1b3341caedbc74a5b1c9de27887f91462f244bbb`.
+
+**LIMITE DA VALIDAÇÃO:** o Plan Fit vive no dashboard autenticado e executa leituras Supabase. Durante o incidente de capacidade informado pelo fundador, a tela real não foi carregada nem houve clique de cliente. Código, cálculo executado, caller, comparação visual no Chrome, publicação e deploy estão confirmados; impacto em checkout e assinatura permanece `QUESTÃO PENDENTE` até existir tráfego elegível depois da normalização.
+
+**NÃO TOCADO:** preço, grant, desconto, oferta, SKU, sessão Stripe, webhook, Auth, Supabase, Storage, migration, banco, render, motor, duração, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `1b3341c` ou da ponta posterior de `origin/main`. Não reconstruir o degrau de menor custo nem transformar o link de comparação em checkout automático. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
