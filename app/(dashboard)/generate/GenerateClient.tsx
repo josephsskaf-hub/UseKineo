@@ -4276,13 +4276,16 @@ export default function GenerateClient({
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
       trialPostVideoOfferTrackedKeyRef.current = offerImpressionKey
-      const offerDecision = decidePostVideoOffer(signupUtmSource)
+      const offerDecision = decidePostVideoOffer(signupUtmSource, quality)
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
         offer: `${offerDecision.primaryTier}_monthly`,
         offer_layout: offerDecision.variant,
         first_touch_source: offerDecision.firstTouchSource,
         ladder_primary_tier: offerDecision.primaryTier,
+        offer_basis: offerDecision.offerBasis,
+        last_video_fit: offerDecision.lastVideoFit,
+        last_video_quality: quality,
         // Este useEffect vive antes das constantes visuais (TDZ). Repete a
         // condição mínima que permite prometer uma reconstrução limpa: só Fast
         // do trial recebe watermark hoje, e o retorno precisa dos inputs.
@@ -9180,14 +9183,14 @@ export default function GenerateClient({
   // TAMANHO do primeiro degrau. $19,90 como porta de entrada assustava; $15
   // com $7 ao lado é outra conversa. A inversão era um curativo na
   // apresentação; o preço novo trata a causa.
-  // KINEO-CHATGPT-STARTER-FIRST-2026-08-29 — the previous regional flip died
-  // with regional pricing, but the ladder still has one measured channel
-  // mismatch. In the 30-day admin funnel read on 29/08, 27 ChatGPT first-touch
-  // people saw this offer and zero clicked; the generic card put Creator $15
-  // first and hid Starter $7 under “Other options”. The same persisted source
-  // that powers ChatGptWelcomeBanner now chooses the first rung. Prices, grants,
-  // checkout authority and every non-ChatGPT experience remain unchanged.
-  const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource)
+  // KINEO-ENGINE-FIT-OFFER-2026-08-29 — source alone is not enough. New
+  // production evidence split the trial into two opposite outcomes: Fast leaves
+  // most of the 25-credit grant unused, while Seedance uses it all. The film
+  // that just proved value now chooses the useful repeat purchase: Starter for
+  // Fast, Creator for premium. Persisted ChatGPT source remains the fallback
+  // when no delivered quality is known. Prices, grants and checkout authority
+  // remain unchanged.
+  const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource, quality)
   const starterFirstOffer = postVideoOfferDecision.primaryTier === 'starter'
   const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice
@@ -9204,6 +9207,11 @@ export default function GenerateClient({
   // saída de texto logo abaixo. Ambos os preços saem de getTierPrice().
   const ladderPrimaryTier = postVideoOfferDecision.primaryTier
   const ladderPrimaryPlanLabel = postVideoOfferDecision.primaryPlanLabel
+  const ladderPrimaryOutputLabel = postVideoOfferDecision.lastVideoFit === 'fast'
+    ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'fast')} Kineo 1 quick videos`
+    : postVideoOfferDecision.lastVideoFit === 'premium'
+      ? `${videosForCredits(TIER_CREDITS[ladderPrimaryTier], 'cinematic_ai')} AI films like this`
+      : null
   const trialPrimaryUnlocksCurrentFilm =
     trialPostVideoPhase !== null && currentResultHasWatermark
   const prepareTrialCleanCheckout = (surface: 'monthly' | 'one_time'): boolean => {
@@ -12394,7 +12402,8 @@ export default function GenerateClient({
                       <p className="text-xs mt-1.5" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                         {trialPrimaryUnlocksCurrentFilm ? 'Return here after checkout. ' : ''}
                         {ladderPrimaryPlanLabel} includes{' '}
-                        {TIER_CREDITS[ladderPrimaryTier]} credits every month.
+                        {TIER_CREDITS[ladderPrimaryTier]} credits every month
+                        {ladderPrimaryOutputLabel ? ` — enough for ${ladderPrimaryOutputLabel}.` : '.'}
                       </p>
                       {trialOfferPriceNote && (
                         <p className="text-xs mt-2 font-bold" style={{ color: '#5cb3ff', lineHeight: 1.45 }}>
@@ -12416,6 +12425,9 @@ export default function GenerateClient({
                           tier: ladderPrimaryTier,
                           offer_layout: postVideoOfferDecision.variant,
                           first_touch_source: postVideoOfferDecision.firstTouchSource,
+                          offer_basis: postVideoOfferDecision.offerBasis,
+                          last_video_fit: postVideoOfferDecision.lastVideoFit,
+                          last_video_quality: quality,
                           immediate_benefit: trialPrimaryUnlocksCurrentFilm
                             ? 'current_clean_version'
                             : 'monthly_creation',
@@ -12475,7 +12487,7 @@ export default function GenerateClient({
                             tier: ladderPrimaryTier,
                             intro: true,
                             from: postVideoOfferDecision.chatgptContext
-                              ? 'trial_post_video_chatgpt_starter'
+                              ? `trial_post_video_chatgpt_${ladderPrimaryTier === 'starter' ? 'starter' : 'creator'}`
                               : 'trial_post_video',
                             ...(trialPrimaryUnlocksCurrentFilm ? { return_to: 'watermark_unlock' } : {}),
                           },

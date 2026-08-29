@@ -1,15 +1,28 @@
 import { acquisitionSource } from '@/lib/acquisitionSource'
 
 export type PostVideoRecurringTier = 'starter' | 'basic'
+export type PostVideoEngineFit = 'fast' | 'premium' | 'unknown'
 
 export type PostVideoOfferDecision = {
   firstTouchSource: string
-  variant: 'chatgpt_starter_first_v1' | 'default_creator_first_v1'
+  variant:
+    | 'engine_fit_starter_first_v1'
+    | 'engine_fit_creator_first_v1'
+    | 'chatgpt_starter_first_v1'
+    | 'default_creator_first_v1'
   primaryTier: PostVideoRecurringTier
   primaryPlanLabel: 'Starter' | 'Creator'
   secondaryTier: PostVideoRecurringTier
   secondaryPlanLabel: 'Starter' | 'Creator'
   chatgptContext: boolean
+  offerBasis: 'last_video_engine' | 'first_touch_source' | 'default'
+  lastVideoFit: PostVideoEngineFit
+}
+
+function engineFitForQuality(lastVideoQuality: string | null | undefined): PostVideoEngineFit {
+  if (lastVideoQuality === 'fast') return 'fast'
+  if (lastVideoQuality?.startsWith('cinematic_')) return 'premium'
+  return 'unknown'
 }
 
 /**
@@ -20,8 +33,43 @@ export type PostVideoOfferDecision = {
  */
 export function decidePostVideoOffer(
   signupUtmSource: string | null | undefined,
+  lastVideoQuality?: string | null,
 ): PostVideoOfferDecision {
   const firstTouchSource = acquisitionSource({ utmSource: signupUtmSource })
+  const chatgptContext = firstTouchSource === 'chatgpt'
+  const lastVideoFit = engineFitForQuality(lastVideoQuality)
+
+  // The film that just proved value is a stronger signal than acquisition
+  // source. Starter buys a useful Fast habit; Creator buys a useful Seedance
+  // habit. Never lead with a plan that cannot repeat the experience on screen.
+  if (lastVideoFit === 'fast') {
+    return {
+      firstTouchSource,
+      variant: 'engine_fit_starter_first_v1',
+      primaryTier: 'starter',
+      primaryPlanLabel: 'Starter',
+      secondaryTier: 'basic',
+      secondaryPlanLabel: 'Creator',
+      chatgptContext,
+      offerBasis: 'last_video_engine',
+      lastVideoFit,
+    }
+  }
+
+  if (lastVideoFit === 'premium') {
+    return {
+      firstTouchSource,
+      variant: 'engine_fit_creator_first_v1',
+      primaryTier: 'basic',
+      primaryPlanLabel: 'Creator',
+      secondaryTier: 'starter',
+      secondaryPlanLabel: 'Starter',
+      chatgptContext,
+      offerBasis: 'last_video_engine',
+      lastVideoFit,
+    }
+  }
+
   if (firstTouchSource === 'chatgpt') {
     return {
       firstTouchSource,
@@ -31,6 +79,8 @@ export function decidePostVideoOffer(
       secondaryTier: 'basic',
       secondaryPlanLabel: 'Creator',
       chatgptContext: true,
+      offerBasis: 'first_touch_source',
+      lastVideoFit,
     }
   }
   return {
@@ -41,5 +91,7 @@ export function decidePostVideoOffer(
     secondaryTier: 'starter',
     secondaryPlanLabel: 'Starter',
     chatgptContext: false,
+    offerBasis: 'default',
+    lastVideoFit,
   }
 }
