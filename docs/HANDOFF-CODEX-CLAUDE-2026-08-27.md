@@ -1312,7 +1312,7 @@ PRÓXIMO DONO:
 
 **DECISÃO OPERACIONAL DE CONTENÇÃO:** nenhuma submissão IndexNow, recrawl, e-mail, outreach, anúncio, TAAFT ou ampliação ativa de tráfego foi executada. A entrega melhora somente o tráfego existente.
 
-**DEPLOY PENDENTE:** o commit funcional está pronto e testado, mas ainda não havia sido publicado no momento desta anotação.
+**DEPLOY VALIDADO (28/08/2026):** deploy Vercel `dpl_DJCK7rV7iwHU9Kp2AXrDe2SXqdEJ` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA final `7d81624cbb085e6a266c1774b399701733975956` e contendo o commit funcional `a2c59c7`. Leitura HTTP sem JavaScript da URL de signup H3 respondeu 200, `x-matched-path: /signup`, cache `HIT` e assets do deploy correto. Como a página lê a query depois da hidratação, o HTML inicial permanece genérico por desenho; o chunk publicado `app/(auth)/signup/page-792b57654b13100f.js` respondeu 200 e contém os contratos H3, Image, Voice, `Nothing starts automatically`, precedência do checkout e leitura de redirect. A Vercel registrou zero erro de runtime agrupado em `/signup` nos 15 minutos consultados. Isto prova publicação do código e ausência de erro de runtime observado, não clique end-to-end autenticado.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** o browser real de produção não foi usado para atravessar o cadastro porque isso executaria Auth/eventos durante o incidente. Até esse smoke seguro, a classificação correta é implementado e testado localmente, não conversão validada. Também não existe evidência de pessoa, cadastro, checkout ou assinatura adicional causada pelo card.
 
