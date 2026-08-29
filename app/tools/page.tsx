@@ -45,6 +45,11 @@ const TOOL_META: Record<string, ToolMeta> = {
     prompt: 'I need titles, a description and hashtags',
     cta: 'Build my publishing kit',
   },
+  '/youtube-shorts-script-timer': {
+    eyebrow: 'Start with a finished draft',
+    prompt: 'I need to know if my script fits',
+    cta: 'Time my narration',
+  },
   '/viral-score': {
     eyebrow: 'Start with an idea',
     prompt: 'I need to pressure-test it',
@@ -76,6 +81,7 @@ const TOOL_ORDER = [
   '/free-script-generator',
   '/free-hook-generator',
   '/youtube-shorts-title-generator',
+  '/youtube-shorts-script-timer',
   '/viral-score',
   '/comment-to-video',
   '/product-to-video-script',

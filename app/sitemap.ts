@@ -70,6 +70,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { path: '/real-estate-video-maker', priority: 0.8, freq: 'weekly' },
     { path: '/free-hook-generator', priority: 0.8, freq: 'weekly' },
     { path: '/youtube-shorts-title-generator', priority: 0.8, freq: 'weekly' },
+    { path: '/youtube-shorts-script-timer', priority: 0.8, freq: 'weekly' },
     { path: '/viral-score', priority: 0.8, freq: 'weekly' },
     { path: '/ai-avatar', priority: 0.8, freq: 'weekly' },
     { path: '/partners', priority: 0.8, freq: 'weekly' },

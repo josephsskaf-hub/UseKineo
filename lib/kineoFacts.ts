@@ -777,6 +777,16 @@ export const FREE_TOOL_FACTS: FreeToolFact[] = [
     what: 'Turn one topic into 10 title options, an editable description and up to 10 focused hashtags. It does not upload or render a video.',
   },
   {
+    name: 'Free YouTube Shorts script timer',
+    url: `${BASE}/youtube-shorts-script-timer`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Paste a production script to estimate spoken duration, see the word gap for 35 or 60 seconds and exclude headings, visual prompts and editing notes from the count.',
+  },
+  {
     name: 'Free viral score for a Short idea',
     url: `${BASE}/viral-score`,
     output: 'text',
