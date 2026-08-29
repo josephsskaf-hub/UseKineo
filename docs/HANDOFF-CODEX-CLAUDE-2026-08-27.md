@@ -1253,3 +1253,17 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** pipeline de render, motor, cena, legenda, Storage, migration, schema, Auth, preço, grant, oferta, checkout, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `4b06baf` ou da ponta posterior de `origin/main`; não reconstruir o timer. Claude continua capacidade/render. Codex continua aquisição/fluxo/assinaturas, sem amplificar tráfego ativo enquanto a capacidade não for normalizada.
+
+## 26. Fluxo de comparação — escolha pelo trabalho antes da marca (28/08/2026)
+
+**FATO CONFIRMADO / IMPLEMENTADO.** Commit funcional `760e748`.
+
+- O hub `/alternatives` exibia primeiro uma CTA genérica e depois uma grade com 27 marcas. A pessoa precisava conhecer o mercado antes de descobrir qual classe de produto resolvia o trabalho dela (`app/alternatives/page.tsx`, versão anterior a `760e748`).
+- A página agora começa a decisão pelo material que a pessoa já tem: ideia/roteiro, vídeo longo, apresentador ou gravação. Só o primeiro estado declara Kineo como melhor encaixe; clipping, avatar e edição de gravação apontam honestamente para as comparações com OpusClip, HeyGen/Synthesia e Descript (`lib/growth/alternativeJobChooser.ts`; `app/alternatives/page.tsx`).
+- As categorias concorrentes foram verificadas em 28/08/2026 nas páginas oficiais: OpusClip descreve vídeo longo → clips; HeyGen descreve avatar/presenter; Synthesia descreve treinamento com avatar; Descript descreve gravação, transcrição e edição por texto. Cada card expõe a fonte oficial, não uma alegação sem prova.
+- O CTA Kineo do hero, do card de encaixe e do fechamento agora usa o contrato bounded `buildBlankStudioSignupHref`. Ele preserva `utm_source=alternatives`, `utm_medium=organic`, campanha `alternatives_job_chooser_20260828` e `redirect=/studio?engine=fast...`; não envia `create_intent` sem uma ideia real (`lib/growth/alternativeJobChooser.ts`; `lib/growth/publicCreationIntent.ts`).
+- O seletor é server-rendered e estático. Ele não adiciona `fetch`, chamada de IA, chamada de render, leitura/escrita no Supabase ou evento de analytics próprio. Os links Kineo mantêm o `OrganicCtaLink` já existente; nenhum tráfego foi disparado.
+- **TESTADO LOCALMENTE:** `node scripts/test-alternatives-job-chooser.mjs` → `24/24`; TypeScript → somente os quatro erros de baseline; `git diff --check` limpo.
+- Previews obrigatórios: `docs/previews/ALTERNATIVES-JOB-CHOOSER-2026-08-28.html`, `docs/previews/ALTERNATIVES-JOB-CHOOSER-2026-08-28.png` e `docs/previews/ALTERNATIVES-JOB-CHOOSER-MOBILE-2026-08-28.png`.
+- **EVIDÊNCIA DE PRODUÇÃO:** pendente de push/deploy no momento desta entrada. Validar HTTP, conteúdo do HTML, runtime errors e SHA do deployment sem abrir a página em navegador enquanto o Supabase estiver no limite.
+- **DECISÃO APROVADA / BLOQUEIO OPERACIONAL:** o incidente de capacidade reportado pelo fundador em 28/08/2026 continua governando a distribuição. Não houve IndexNow, recrawl, outreach, mídia paga, relançamento em diretório ou outra amplificação.
