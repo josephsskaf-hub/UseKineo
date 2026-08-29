@@ -20,6 +20,7 @@ import { acquisitionSource, hasCorrectableSelfReferral } from '@/lib/acquisition
 import { summarizeOrganicActions, uniqueOrganicActorCount } from '@/lib/organicFunnel'
 import { ONBOARDING_GOALS, ONBOARDING_GOAL_VARIANT, isOnboardingGoalId } from '@/lib/growth/onboardingGoals'
 import { buildTrialPostVideoFunnel, type TrialPostVideoFunnel } from '@/lib/admin/trialPostVideoFunnel'
+import { buildTrialBalanceBridgeFunnel, type TrialBalanceBridgeFunnel } from '@/lib/admin/trialBalanceBridgeFunnel'
 import { buildChatGptQuickstartFunnel, type ChatGptQuickstartFunnel } from '@/lib/admin/chatgptQuickstartFunnel'
 import { buildSourceConversionFunnel, type SourceConversionRow } from '@/lib/admin/sourceConversionFunnel'
 import {
@@ -230,6 +231,7 @@ export interface FunnelData {
     checkoutToPaidRate: string
   }
   trialPostVideoOffer: TrialPostVideoFunnel
+  trialBalanceBridge: TrialBalanceBridgeFunnel
   chatGptQuickstart: ChatGptQuickstartFunnel & { eventsAvailable: boolean }
   planFitOffer: {
     eventsAvailable: boolean
@@ -648,6 +650,8 @@ export async function GET(req: Request) {
           .in('name', [
             'post_video_offer_viewed', 'post_video_clean_export_clicked',
             'trial_post_video_offer_viewed', 'trial_post_video_offer_clicked',
+            'trial_balance_bridge_viewed', 'trial_balance_bridge_clicked',
+            'video_generation_completed',
             'video_downloaded',
             'checkout_started', 'payment_success',
           ])
@@ -1260,6 +1264,7 @@ export async function GET(req: Request) {
       externalProfiles.map((profile) => [profile.id, sourceForProfile(profile)]),
     )
     const trialPostVideoOffer = buildTrialPostVideoFunnel(postVideoEventRows, profileSourceByUserId)
+    const trialBalanceBridge = buildTrialBalanceBridgeFunnel(postVideoEventRows)
 
     // ChatGPT Quick-start v1 — strict actor/time ordering prevents an old
     // generation or unrelated purchase from being credited to a new choice.
@@ -1606,7 +1611,7 @@ export async function GET(req: Request) {
       },
       b2bLeadInbox,
       cohort: { signups, createdVideo, completedVideo, checkoutClicked, abandoned, paid: paidCohort },
-      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, sourceConversion, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
+      funnelSteps, biggestLeak, revenueLeaks, hotLeads, sourceQuality, sourceConversion, acquisitionAttribution, firstVideoOnboarding, repeatCreatorOffer, organicRecovery, postVideoOffer, trialPostVideoOffer, trialBalanceBridge, planFitOffer, chatGptQuickstart, exampleRemix, creatorLoop, retentionLoop, topicPerformance, renderHealth, trackingHealth,
     }
 
     return NextResponse.json({ data, updatedAt: new Date().toISOString() })

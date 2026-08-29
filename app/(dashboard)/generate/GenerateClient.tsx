@@ -85,6 +85,10 @@ import {
 } from '@/lib/marketingPrice'
 import { decidePostVideoOffer } from '@/lib/growth/chatgptPostVideoOffer'
 import {
+  decideTrialBalanceBridge,
+  TRIAL_BALANCE_BRIDGE_VERSION,
+} from '@/lib/growth/trialBalanceBridge'
+import {
   activationRenderEngineIsReady,
   resolveActivationRenderEngine,
   type ActivationRenderEngine,
@@ -4305,12 +4309,33 @@ export default function GenerateClient({
     // decide se esta caixa fica de pé seria uma divisão por zero. Com a fase na
     // chave, a virada re-emite: no máximo 2 impressões por vídeo, uma por fase,
     // cada uma com a fase que ela realmente mediu.
-    const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}`
+    const balanceBridgeForImpression = decideTrialBalanceBridge({
+      trialPhase: trialOfferPhaseForImpression,
+      credits,
+      deliveredQuality: quality,
+    })
+    const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}:${balanceBridgeForImpression.eligible ? balanceBridgeForImpression.version : 'subscription'}`
     if (!eligible || !element || !offerKey || trialPostVideoOfferTrackedKeyRef.current === offerImpressionKey) return
 
     const observer = new IntersectionObserver((entries) => {
       if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
       trialPostVideoOfferTrackedKeyRef.current = offerImpressionKey
+      if (balanceBridgeForImpression.eligible) {
+        trackEvent('trial_balance_bridge_viewed', {
+          source: 'result_trial_balance_bridge',
+          bridge_version: balanceBridgeForImpression.version,
+          target_engine: balanceBridgeForImpression.engine,
+          target_duration: balanceBridgeForImpression.duration,
+          credits_before: balanceBridgeForImpression.creditsBefore,
+          credits_required: balanceBridgeForImpression.cost,
+          credits_after_success: balanceBridgeForImpression.creditsAfterSuccess,
+          last_video_quality: quality,
+          first_touch_source: decidePostVideoOffer(signupUtmSource, quality).firstTouchSource,
+          ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+        })
+        observer.disconnect()
+        return
+      }
       const offerDecision = decidePostVideoOffer(signupUtmSource, quality)
       trackEvent('trial_post_video_offer_viewed', {
         source: 'result_trial_continue',
@@ -4410,7 +4435,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier, signupUtmSource])
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits])
 
   // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
   // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
@@ -4912,6 +4937,7 @@ export default function GenerateClient({
             render_id: renderId,
             duration,
             quality: falUsedRef.current ? falQualityRef.current : quality,
+            intent_campaign: intentCampaign || null,
             resumed: resumedRenderRef.current,
             series_continuation: searchParams?.get('series') === '1',
             continuation_source: searchParams?.get('continuation_source') ?? null,
@@ -9234,6 +9260,11 @@ export default function GenerateClient({
   // when no delivered quality is known. Prices, grants and checkout authority
   // remain unchanged.
   const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource, quality)
+  const trialBalanceBridge = decideTrialBalanceBridge({
+    trialPhase: trialPostVideoPhase,
+    credits,
+    deliveredQuality: quality,
+  })
   const starterFirstOffer = postVideoOfferDecision.primaryTier === 'starter'
   const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice
@@ -9284,6 +9315,29 @@ export default function GenerateClient({
   const ladderSecondaryLabel = starterFirstOffer
     ? (trialOfferFullPrice ? `need more credits? Creator is ${trialOfferFullPrice}/month →` : null)
     : (trialStarterPrice ? `or start at ${trialStarterPrice}/month →` : null)
+  const handleTrialBalanceBridge = () => {
+    if (!trialBalanceBridge.eligible) return
+    void trackEvent('trial_balance_bridge_clicked', {
+      source: 'result_trial_balance_bridge',
+      bridge_version: trialBalanceBridge.version,
+      target_engine: trialBalanceBridge.engine,
+      target_duration: trialBalanceBridge.duration,
+      credits_before: trialBalanceBridge.creditsBefore,
+      credits_required: trialBalanceBridge.cost,
+      credits_after_success: trialBalanceBridge.creditsAfterSuccess,
+      last_video_quality: quality,
+      first_touch_source: postVideoOfferDecision.firstTouchSource,
+      previous_intent_campaign: intentCampaign || null,
+    })
+    handleReset()
+    setMode('cinematic_ai')
+    setAiEngine('seedance')
+    setDuration(trialBalanceBridge.duration)
+    router.push(
+      `/studio/create?engine=seedance&duration=${trialBalanceBridge.duration}&intent_campaign=${TRIAL_BALANCE_BRIDGE_VERSION}`,
+    )
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }) } catch { /* navigation still succeeds */ }
+  }
   // FRASE DE PRAZO OU NENHUMA. `msLeft` é o restante no instante da RESPOSTA;
   // descontar o decorrido desde então usa o relógio do cliente só para o delta.
   // Abaixo de 1 hora a frase não é impressa: um "0 hours left" ou um "1 day"
@@ -12389,7 +12443,56 @@ export default function GenerateClient({
                 </div>
               )}
 
-                {showTrialPostVideoOffer && (
+                {showTrialPostVideoOffer && trialBalanceBridge.eligible && (
+                  <div
+                    ref={trialPostVideoOfferRef}
+                    data-trial-balance-bridge={trialBalanceBridge.version}
+                    className="w-full rounded-2xl px-5 py-5"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(168,85,247,.15), rgba(41,151,255,.07))',
+                      border: '1px solid rgba(192,132,252,.55)',
+                      boxShadow: '0 0 30px rgba(168,85,247,.16)',
+                    }}
+                  >
+                    <div className="text-center">
+                      <div
+                        className="text-[10px] font-black uppercase tracking-[.18em] mb-1.5"
+                        style={{ color: '#c084fc' }}
+                      >
+                        Your trial has one stronger test left
+                      </div>
+                      <h3
+                        className="font-black tracking-tight mt-2"
+                        style={{ fontSize: '1.15rem', color: 'var(--text)', lineHeight: 1.3 }}
+                      >
+                        Turn your remaining {trialBalanceBridge.creditsBefore} credits into a Seedance film
+                      </h3>
+                      <p className="text-xs mt-2" style={{ color: 'var(--muted2)', lineHeight: 1.55 }}>
+                        Your Fast video proved the workflow. A {trialBalanceBridge.duration}-second Seedance film uses
+                        AI-generated scenes and costs {trialBalanceBridge.cost} credits. After a successful film,
+                        you&apos;ll have {trialBalanceBridge.creditsAfterSuccess} left.
+                      </p>
+                      <p className="text-xs mt-2 font-bold" style={{ color: '#d8b4fe', lineHeight: 1.45 }}>
+                        No card. No purchase. Nothing starts until you enter the next idea and press Generate.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTrialBalanceBridge}
+                      className="flex items-center justify-center w-full rounded-xl mt-4 py-3.5 text-sm font-black text-white"
+                      style={{
+                        background: 'linear-gradient(135deg, #9333ea, #2563eb)',
+                        border: '1px solid rgba(216,180,254,.65)',
+                        cursor: 'pointer',
+                        boxShadow: '0 8px 24px rgba(147,51,234,.28)',
+                      }}
+                    >
+                      Set up my {trialBalanceBridge.duration}s Seedance film →
+                    </button>
+                  </div>
+                )}
+
+                {showTrialPostVideoOffer && !trialBalanceBridge.eligible && (
                   <div
                     ref={trialPostVideoOfferRef}
                     className="w-full rounded-2xl px-5 py-5"

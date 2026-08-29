@@ -115,7 +115,10 @@ const client = source('app/(dashboard)/admin/funnel/FunnelClient.tsx')
 ok(route.includes("'trial_post_video_offer_viewed', 'trial_post_video_offer_clicked'"), 'API fetches both trial-offer stages')
 ok(route.includes('buildTrialPostVideoFunnel(postVideoEventRows, profileSourceByUserId)'), 'API executes the causal policy on the focused event query')
 ok(route.includes('externalProfiles.map((profile) => [profile.id, sourceForProfile(profile)])'), 'API uses the canonical acquisition source')
-ok(route.includes('trialPostVideoOffer, planFitOffer'), 'API returns the new funnel')
+// KINEO-TRIAL-BALANCE-BRIDGE-2026-08-29 — the balance bridge is intentionally
+// returned between the existing trial offer and Plan Fit. Anchor each field
+// independently so adding another measured funnel cannot fake a regression.
+ok(route.includes('trialPostVideoOffer, trialBalanceBridge, planFitOffer'), 'API returns both trial funnels before Plan Fit')
 ok(client.includes('Trial subscription offer · causal by person'), 'admin labels the measurement as causal and person-level')
 ok(client.includes('singlePrimaryViews'), 'admin separates the newly deployed layout')
 ok(client.includes('checkoutAfterViewWithoutClick'), 'admin exposes unattributed checkouts instead of stealing credit')

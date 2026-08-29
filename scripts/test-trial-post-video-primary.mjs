@@ -19,7 +19,10 @@ function check(name, condition) {
   console.error(`FAIL ${name}`)
 }
 
-const cardStart = source.indexOf('{showTrialPostVideoOffer && (')
+// KINEO-TRIAL-BALANCE-BRIDGE-2026-08-29 — the original subscription card now
+// owns the explicit non-bridge branch. Keep this suite scoped to that card;
+// the bridge has its own executable policy and source-contract suite.
+const cardStart = source.indexOf('{showTrialPostVideoOffer && !trialBalanceBridge.eligible && (')
 const cardEnd = source.indexOf('{/* Keep the revenue/export decision first.', cardStart)
 const card = cardStart >= 0 && cardEnd > cardStart ? source.slice(cardStart, cardEnd) : ''
 const downloadStart = source.indexOf('Download clean Short')
@@ -77,7 +80,7 @@ check('source-aware layout is identifiable', card.includes('offer_layout: postVi
 check('click benefit is discriminated by behavior', card.includes("? 'current_clean_version'") && card.includes(": 'monthly_creation'"))
 check('impression carries the source-aware layout', impressionArea.includes('offer_layout: offerDecision.variant'))
 check('impression carries the same benefit split', impressionArea.includes("? 'current_clean_version'") && impressionArea.includes(": 'monthly_creation'"))
-check('impression effect tracks engine, entitlement and source changes', source.includes('planFitOwnsRecurringSlot, quality, planTier, signupUtmSource])'))
+check('impression effect tracks engine, entitlement, source and live balance changes', source.includes('planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits])'))
 check('other options use native collapsed disclosure', detailsStart >= 0 && detailsEnd > detailsStart)
 check('disclosure is closed by default', !card.slice(detailsStart, card.indexOf('>', detailsStart) + 1).includes(' open'))
 check('one-time option remains available for both asset classes', detailsArea.includes('handleBuyThisVideoOnly()') && detailsArea.includes('handleBuyCreditsOnly()'))

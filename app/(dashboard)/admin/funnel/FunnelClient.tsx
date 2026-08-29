@@ -147,6 +147,10 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
     viewToClickRate: '—', clickToCheckoutRate: '—', checkoutToPaidRate: '—',
     sourceBreakdown: [],
   }
+  const trialBalanceBridge = data.trialBalanceBridge ?? {
+    viewers: 0, clickers: 0, premiumCompleters: 0, checkoutStarters: 0, subscribers: 0,
+    viewToClickRate: '—', clickToPremiumRate: '—', premiumToCheckoutRate: '—', checkoutToPaidRate: '—',
+  }
   const chatGptQuickstart = data.chatGptQuickstart ?? {
     eventsAvailable: false,
     views: 0, selections: 0, scriptSelections: 0, ideaSelections: 0,
@@ -984,6 +988,53 @@ export default function FunnelClient({ data: initialData, viewerEmail, denied }:
             </table>
           </div>
         ) : null}
+      </Section>
+
+      <Section title={`Fast balance → Seedance → subscription · causal by person · ${days === 'all' ? 'all time' : `${days}d`}`}>
+        <Card
+          label="Bridge viewers"
+          value={fmt(trialBalanceBridge.viewers)}
+          hint="Fast trial users with 19–24cr left"
+          accent="#c084fc"
+        />
+        <RateCard
+          label="View → Set up Seedance"
+          value={trialBalanceBridge.viewToClickRate}
+          sub={`${trialBalanceBridge.clickers} / ${trialBalanceBridge.viewers} people`}
+        />
+        <Card
+          label="Premium completers"
+          value={fmt(trialBalanceBridge.premiumCompleters)}
+          hint="45s Seedance completed after click"
+          accent="#22d3ee"
+        />
+        <RateCard
+          label="Set up → Premium complete"
+          value={trialBalanceBridge.clickToPremiumRate}
+          sub={`${trialBalanceBridge.premiumCompleters} / ${trialBalanceBridge.clickers} people`}
+        />
+        <Card
+          label="Checkout after premium"
+          value={fmt(trialBalanceBridge.checkoutStarters)}
+          hint="same actor, ordered journey"
+          accent="#a78bfa"
+        />
+        <RateCard
+          label="Premium → Checkout"
+          value={trialBalanceBridge.premiumToCheckoutRate}
+          sub={`${trialBalanceBridge.checkoutStarters} / ${trialBalanceBridge.premiumCompleters} people`}
+        />
+        <Card
+          label="Subscribers"
+          value={fmt(trialBalanceBridge.subscribers)}
+          hint="payment after the attributed checkout"
+          accent={trialBalanceBridge.subscribers > 0 ? '#22d3ee' : '#fbbf24'}
+        />
+        <RateCard
+          label="Checkout → Paid"
+          value={trialBalanceBridge.checkoutToPaidRate}
+          sub={`${trialBalanceBridge.subscribers} / ${trialBalanceBridge.checkoutStarters} people`}
+        />
       </Section>
 
       <Section title={`Creator loop · ${days === 'all' ? 'all time' : `${days}d`}`}>
