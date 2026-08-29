@@ -1171,3 +1171,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** Supabase, Storage, Auth, migration, banco, render, motor, cena, legenda, preço, grant, checkout, evento, e-mail, outreach, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude continua o incidente `402` e qualidade do pipeline. Codex continua aquisição/fluxo/assinaturas sem gerar carga no pipeline até a capacidade voltar. Ambos devem executar `git fetch origin` antes de criar nova worktree; não reconstruir o hub nem duplicar as sete promessas fora de `FREE_TOOL_FACTS`.
+
+## 23. Fluxo orgânico — hub Free tools na navegação pública (28/08/2026)
+
+**BASE DE CÓDIGO:** `83fd82ae37d25848f3df8067b5e78426168b4540`, igual a `origin/main` no início da worktree isolada `codex/growth-tools-nav`.
+
+**FATO CONFIRMADO / GARGALO:** o hub `/tools` da seção 22 já estava no sitemap, `llms.txt` e rodapé, mas não aparecia na navegação principal da home. O visitante que chegava pela principal superfície pública via `Explore`, `Arena`, categorias de criação, `Avatar` e `Pricing`, mas não recebia a porta agregadora das sete ferramentas gratuitas antes do cadastro.
+
+**IMPLEMENTADO:** commit funcional `7a71abdd185c897a38f12e8727b86c35779e1f01` adiciona `Free tools` à navegação pública desktop (`app/KineoLanding.tsx:856`) e ao menu público mobile (`app/KineoLanding.tsx:960`). Como o oitavo destino encostava nos elementos vizinhos em 800–881 px, o menu compacto passa a entrar em até 940 px (`app/KineoLanding.tsx:454`); em 941 px o teste mediu 16,3 px de folga de cada lado, sem colisão. A navegação autenticada `components/MobileNav.tsx` foi inspecionada e deliberadamente não mudou: ela já é uma barra operacional cheia e não é a superfície de aquisição desta entrega.
+
+**TESTADO LOCALMENTE:** exatamente dois links `/tools` foram encontrados na home. O clique real do menu navegou para `http://localhost:3011/tools`, title `Free YouTube Shorts Tools — No Signup or Card | Kineo`, H1 `Do the next useful thing for your Short.` e zero erro de console. Em 1440 × 900 a navegação desktop ficou legível; em 390 × 844 o menu abriu, exibiu `Free tools` na segunda posição e manteve os demais destinos. Em 940 px entrou a navegação compacta; em 941 px o desktop ficou sem colisão. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit --pretty false` mostrou exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:548,569`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/FREE-TOOLS-NAV-2026-08-29.html` contém antes/depois autocontido. As capturas do produto real estão em `docs/previews/FREE-TOOLS-NAV-DESKTOP-2026-08-29.jpg` e `docs/previews/FREE-TOOLS-NAV-MOBILE-2026-08-29.jpg`.
+
+**DEPLOY VALIDADO (28/08/2026):** deploy Vercel `dpl_7GhAuKqDEMMiwTqwiQP8jAikvJ48` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA funcional exato `7a71abd`. A Vercel registrou zero erro de runtime agrupado para `/` nos 15 minutos consultados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** a home de produção não foi aberta pelo Codex depois do deploy. A rota pública consulta a autenticação existente e o fundador informou que Supabase está no limite de capacidade; para não gerar acesso adicional durante o incidente, a validação de conteúdo ficou no ambiente local e a validação de publicação ficou no deploy. Assim, a classificação honesta é **IMPLEMENTADO, TESTADO LOCALMENTE E DEPLOY VALIDADO**, não clique end-to-end validado em produção.
+
+**EVIDÊNCIA INFORMADA PELO FUNDADOR (28/08/2026):** Supabase atingiu o limite máximo de gigabytes e alguns renders retornam `402`; Joseph e Claude conduzem o incidente. Codex não consultou nem escreveu em Supabase, Storage, Auth, migration, banco, render, crédito ou evento nesta entrega. `402` continua classificado como indisponibilidade de capacidade, nunca abandono voluntário.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** nenhum clique, pessoa, cadastro, checkout ou assinatura foi atribuído ao novo link. Depois da normalização da capacidade, medir pessoas que entram por `/tools` e seguem para os destinos/CTAs existentes; publicação não será chamada de aquisição.
+
+**NÃO TOCADO:** cards e vídeos da home, ordem dos motores, `GenerateClient.tsx`, Supabase, Storage, Auth, migration, banco, render, motor, cena, legenda, preço, grant, oferta, checkout, evento, e-mail, outreach, IndexNow, TAAFT ou anúncio.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `7a71abd` ou da ponta posterior de `origin/main`; não reconstruir a navegação do hub. Codex continua aquisição/fluxo/assinaturas sem ampliar tráfego ativo enquanto o incidente `402` estiver aberto.
