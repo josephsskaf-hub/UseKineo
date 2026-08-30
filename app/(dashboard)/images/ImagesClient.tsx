@@ -39,6 +39,9 @@ export default function ImagesClient() {
   // recarga (packs one-time) em vez de morrer num texto de erro.
   const [showTopup, setShowTopup] = useState(false)
   const [items, setItems] = useState<Item[]>([])
+  // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura da galeria NAO pode se
+  // disfarcar de galeria vazia (mesma mascara do incidente JWT-skew).
+  const [galleryFailed, setGalleryFailed] = useState(false)
 
   // KINEO-IMAGES-PROD-2026-08-17 — o mega-menu Image aponta motores pra ca
   // (?engine=), igual ao padrao do Studio: chegada ja cai com o motor certo.
@@ -50,9 +53,10 @@ export default function ImagesClient() {
   // KINEO-IMAGES-STORE-2026-08-17 (fundador: "precisa ter o storage, obvio"):
   // as imagens agora persistem no nosso bucket + tabela `images` — a grade
   // virou "My Images" e sobrevive ao refresh.
-  useEffect(() => {
+  function loadGallery() {
+    setGalleryFailed(false)
     fetch('/api/images', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : { images: [] }))
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
       .then((d) => {
         if (Array.isArray(d?.images)) {
           setItems(d.images.map((r: { id: string; url: string; upscaled_url?: string | null; model?: string }) => ({
@@ -60,8 +64,9 @@ export default function ImagesClient() {
           })))
         }
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => setGalleryFailed(true))
+  }
+  useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const eng = IMG_ENGINES.find((e) => e.key === model)!
 
@@ -246,6 +251,14 @@ export default function ImagesClient() {
               </p>
             )}
           </div>
+
+          {galleryFailed && (
+            <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
+              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your images right now.</span>
+              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your images and credits are safe — this is just a temporary read hiccup.</span>
+              <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+            </div>
+          )}
 
           {items.length > 0 && (
             <div>

@@ -50,6 +50,8 @@ export default function AudioClient() {
   // recarga (packs one-time) em vez de morrer num texto de erro.
   const [showTopup, setShowTopup] = useState(false)
   const [items, setItems] = useState<Item[]>([])
+  // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura NAO vira galeria vazia.
+  const [galleryFailed, setGalleryFailed] = useState(false)
 
   const eng = AUDIO_ENGINES.find((e) => e.key === model)!
   const credits = useMemo(() => Math.max(1, Math.ceil(Math.max(text.trim().length, 1) / 1000)) * eng.perK, [text, eng])
@@ -61,9 +63,10 @@ export default function AudioClient() {
   }, [])
 
   // Galeria persistente (tabela audios).
-  useEffect(() => {
+  function loadGallery() {
+    setGalleryFailed(false)
     fetch('/api/audio', { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : { audios: [] }))
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
       .then((d) => {
         if (Array.isArray(d?.audios)) {
           setItems(d.audios.map((r: { id: string; url: string; model?: string; voice?: string | null; text?: string | null }) => ({
@@ -71,8 +74,9 @@ export default function AudioClient() {
           })))
         }
       })
-      .catch(() => {})
-  }, [])
+      .catch(() => setGalleryFailed(true))
+  }
+  useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Troca de motor: reseta a voz pro default do novo motor.
   useEffect(() => { setVoice(eng.voices[0]?.id ?? null) }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,6 +207,14 @@ export default function AudioClient() {
               </p>
             )}
           </div>
+
+          {galleryFailed && (
+            <div role="alert" className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
+              <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your audio right now.</span>
+              <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your audio and credits are safe — this is just a temporary read hiccup.</span>
+              <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+            </div>
+          )}
 
           {items.length > 0 && (
             <div>

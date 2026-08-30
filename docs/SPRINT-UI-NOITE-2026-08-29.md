@@ -40,3 +40,19 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     completou 1 video — ativacao imediata), 2 generation_stage_error benignos
     (guardrail: "speech=38s target=45s", produto pedindo mais 12 palavras),
     0 checkouts, 0 downloads, 6 e-mails de trial. Nenhuma causa antiga. Saudavel.
+- [Sprint 5 · 23:25] Images e Audio sem mentira de vazio — as DUAS ultimas
+  telas com a mascara do JWT-skew: /images e /audio engoliam falha de leitura
+  (`r.ok ? json : []` + catch vazio) e mostravam galeria vazia em silencio.
+  Agora falha vira aviso ambar "your images/audio and credits are safe" +
+  Try again que recarrega so a galeria. Com isso, TODAS as telas de biblioteca
+  do produto (library, history, my-videos, images, audio) dizem a verdade
+  quando o banco tosse. 17 verificacoes em
+  scripts/test-images-audio-error-state.mjs.
+  (Rebase: origin/main avancou p/ 1b4732d — Codex fechou atribuicao de
+  afiliado no signup; sprints recriados em cima: #1=d575095 #2=1fad787
+  #3=4df29a1 #4=ec21eaf. Mesma rota do sprint 4: clone local + push interno,
+  o mount OneDrive segue com locks presos.)
+  · Pulso 22:25-23:25 BRT: 0 cadastros, 1 video completed de cliente real,
+    0 erros de render, 0 checkouts, 0 downloads. Eventos: 4 e-mails de trial,
+    3 stranded_compose_attempt→3 stranded_composed (o recovery de compose
+    encalhado esta convertendo), 1 trial_downgraded. Noite calma e saudavel.
