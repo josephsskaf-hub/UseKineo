@@ -142,6 +142,7 @@ const navGroups: { title: string; links: { href: string; label: string; costCalc
       { href: '/comment-to-video', label: 'Comment to Short script' },
       { href: '/product-to-video-script', label: 'Product video ad script' },
       { href: '/business-video-content-plan', label: 'Business video content planner' },
+      { href: '/client-video-brief-generator', label: 'Client video brief generator' },
       { href: '/real-estate-video-maker', label: 'Real estate video maker' },
       { href: '/free-hook-generator', label: 'Free hook generator' },
       { href: '/youtube-shorts-title-generator', label: 'Shorts title & hashtag generator' },

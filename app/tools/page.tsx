@@ -31,6 +31,12 @@ type ToolMeta = {
 }
 
 const TOOL_META: Record<string, ToolMeta> = {
+  '/client-video-brief-generator': {
+    eyebrow: 'Start with a client request',
+    prompt: 'I need an approvable Short brief',
+    cta: 'Build the client brief',
+    featured: true,
+  },
   '/free-script-generator': {
     eyebrow: 'Start with a topic',
     prompt: 'I need the complete script',
@@ -90,6 +96,7 @@ const TOOL_META: Record<string, ToolMeta> = {
 }
 
 const TOOL_ORDER = [
+  '/client-video-brief-generator',
   '/free-script-generator',
   '/free-hook-generator',
   '/youtube-shorts-title-generator',

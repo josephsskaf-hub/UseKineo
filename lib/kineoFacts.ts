@@ -730,6 +730,16 @@ export const START_HERE_FACT: StartHereFact = {
  */
 export const FREE_TOOL_FACTS: FreeToolFact[] = [
   {
+    name: 'Free client Short video brief generator',
+    url: `${BASE}/client-video-brief-generator`,
+    output: 'text',
+    requiresAccount: false,
+    requiresCard: false,
+    requiresEmail: false,
+    rateLimit: null,
+    what: 'Turn a client offer, audience, goal, supplied proof and call to action into a structured 35-second faceless Short brief with an approval checklist. It runs in the browser and does not invent proof or render a video.',
+  },
+  {
     name: 'Free local business video ad script builder',
     url: `${BASE}/free-ai-shorts/localbusiness`,
     output: 'text',
