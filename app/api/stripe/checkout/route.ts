@@ -67,6 +67,12 @@ import {
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
 import { CHECKOUT_VISUAL_PROOF } from '@/lib/growth/checkoutVisualProof'
+import {
+  CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS,
+  RECURRING_CHECKOUT_WINDOW_HOURS,
+  RECURRING_CHECKOUT_WINDOW_VERSION,
+  recurringCheckoutExpiresAt,
+} from '@/lib/growth/checkoutSessionWindow'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -1791,19 +1797,27 @@ async function buildAndRedirect(
   // window. The signature includes every value that can change the price,
   // entitlement, attribution or return behaviour, so another tier, currency,
   // intro/promo, billing period or cancel/success destination stays distinct.
-  const checkoutWindow = Math.floor(Date.now() / (5 * 60 * 1000))
-  // KINEO-FAST-RECOVERY-2026-08-02: sessao expira em ~2h (era 24h default).
-  // POR QUE: o cron send-recovery so age sobre sessao EXPIRADA; com 24h o e-mail
-  // de resgate chegava no dia seguinte, intencao fria. Com 2h, o resgate chega
-  // 2-4h depois do abandono (cron roda a cada 2h) - a janela que recupera 2-3x.
-  // Pedido direto do fundador em 02/08 ("mandar em 3 horas no maximo").
-  // Derivado do checkoutWindow (bucket de 5 min) para ser DETERMINISTICO dentro
-  // da janela de idempotencia - expires_at dinamico com a mesma idempotencyKey
-  // seria rejeitado pelo Stripe. Minimo do Stripe e 30min: 2h passa folgado.
-  sessionParams.expires_at = checkoutWindow * 300 + 2 * 60 * 60
+  const checkoutWindow = Math.floor(
+    Date.now() / (CHECKOUT_IDEMPOTENCY_BUCKET_SECONDS * 1000),
+  )
+  // KINEO-CHECKOUT-24H-2026-08-30 — the old two-hour timer was not neutral.
+  // Live Stripe evidence showed current buyers expiring at that exact boundary,
+  // while the in-app resume cookie promises a saved checkout for much longer.
+  // Keep the purchase usable through a night's sleep. The existing recovery
+  // email still runs after Stripe expiry; this change delays that email instead
+  // of killing the buyer's active payment page to manufacture an early trigger.
+  sessionParams.expires_at = recurringCheckoutExpiresAt(checkoutWindow)
+  sessionParams.metadata!.checkout_session_window_hours =
+    String(RECURRING_CHECKOUT_WINDOW_HOURS)
+  sessionParams.metadata!.checkout_session_window_version =
+    RECURRING_CHECKOUT_WINDOW_VERSION
+  sessionParams.subscription_data!.metadata!.checkout_session_window_hours =
+    String(RECURRING_CHECKOUT_WINDOW_HOURS)
+  sessionParams.subscription_data!.metadata!.checkout_session_window_version =
+    RECURRING_CHECKOUT_WINDOW_VERSION
   const checkoutIdempotencyKeyFor = (finalCustomerId: string): string => {
     const checkoutSignature = JSON.stringify({
-      version: 6,
+      version: 7,
       user_id: user.id,
       customer_id: finalCustomerId,
       tier,
@@ -1824,6 +1838,11 @@ async function buildAndRedirect(
       intent_campaign: sessionParams.metadata?.intent_campaign ?? null,
       line_items: sessionParams.line_items,
       custom_text: sessionParams.custom_text,
+      expires_at: sessionParams.expires_at,
+      checkout_session_window_hours:
+        sessionParams.metadata?.checkout_session_window_hours ?? null,
+      checkout_session_window_version:
+        sessionParams.metadata?.checkout_session_window_version ?? null,
       // Keep Plan Fit out of ordinary checkout signatures after this explicit
       // v6 display-copy migration. Future Plan Fit-only edits must not change
       // the idempotency key of a checkout that has no Plan Fit context.
@@ -1831,7 +1850,7 @@ async function buildAndRedirect(
       after_expiration: sessionParams.after_expiration,
       window: checkoutWindow,
     })
-    return `kineo-sub-v5:${createHash('sha256').update(checkoutSignature).digest('hex')}`
+    return `kineo-sub-v6:${createHash('sha256').update(checkoutSignature).digest('hex')}`
   }
   const createCheckoutSessionFor = (finalCustomerId: string) => {
     sessionParams.customer = finalCustomerId
@@ -1899,6 +1918,8 @@ async function buildAndRedirect(
       intro_applied: discountApplied && intro,
       private_offer_applied: privatePackPromo && discountApplied,
       stripe_session_id: session.id,
+      checkout_session_window_hours: RECURRING_CHECKOUT_WINDOW_HOURS,
+      checkout_session_window_version: RECURRING_CHECKOUT_WINDOW_VERSION,
     },
     browserSessionId ?? undefined,
   )
