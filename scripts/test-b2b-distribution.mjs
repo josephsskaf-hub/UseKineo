@@ -68,6 +68,11 @@ check(destination.includes('readAgencyDistributionEntry(window.location.search)'
 check(destination.includes("entry: entry ?? 'direct'"), 'destination records entry or explicit direct traffic')
 check(destination.includes("viewed:v2"), 'session marker is versioned')
 check(destination.includes("`${VIEW_MARKER}:${entry ?? 'direct'}`"), 'dedupe is scoped to the measured entry')
+check(destination.includes("FREE_BRIEF_BRIDGE_VARIANT = 'agency_free_brief_bridge_v1'"), 'agency free-brief bridge has a stable experiment version')
+check(destination.includes('href="/client-video-brief-generator?entry=agency_page"'), 'agency page routes not-ready buyers to the existing free brief')
+check(destination.includes("trackEvent('agency_free_brief_clicked'"), 'agency bridge records the click before navigation')
+check(destination.includes("placement: 'after_pack_comparison'"), 'agency bridge declares its secondary placement')
+check(destination.indexOf('Buy {pack.videos}-video pack') < destination.indexOf('Need client approval before buying a batch?'), 'free brief remains secondary to the paid pack CTAs')
 
 const preview = read('docs/previews/B2B-DISTRIBUTION-BRIDGES-2026-08-27.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
@@ -75,5 +80,10 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(preview.includes('Supabase production aggregate SELECT · 27 Aug 2026'), 'preview includes dated production evidence')
 check(preview.includes('0 pessoas'), 'preview names the observed B2B traffic baseline')
+
+const bridgePreview = read('docs/previews/AGENCY-FREE-BRIEF-BRIDGE-2026-08-30.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(bridgePreview.includes(label), `agency bridge preview includes ${label}`)
+}
 
 console.log(`PASS — ${checks}/${checks} B2B distribution checks`)

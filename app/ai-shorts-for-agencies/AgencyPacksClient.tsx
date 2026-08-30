@@ -20,6 +20,7 @@ export interface AgencyPackView {
 
 const VIEW_MARKER = 'kineo:agency-bulk-page:viewed:v2'
 const CANCEL_RETURN_MARKER = 'kineo:agency-bulk-checkout:cancelled:v1'
+const FREE_BRIEF_BRIDGE_VARIANT = 'agency_free_brief_bridge_v1'
 
 export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }) {
   const [cancelledPackId, setCancelledPackId] = useState<string | null>(null)
@@ -211,6 +212,40 @@ export default function AgencyPacksClient({ packs }: { packs: AgencyPackView[] }
       <p style={{ maxWidth: 820, margin: '17px auto 0', color: '#85858c', fontSize: 12, lineHeight: 1.6, textAlign: 'center' }}>
         Fast uses stock footage matched to your narration. If you choose Seedance, Kling, Veo or another generative engine, the same universal credits are used at that engine&apos;s published rate and the pack will produce fewer videos.
       </p>
+
+      <div
+        style={{
+          maxWidth: 820,
+          margin: '18px auto 0',
+          padding: '15px 17px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          borderRadius: 15,
+          border: '1px solid rgba(167,139,250,.28)',
+          background: 'rgba(167,139,250,.07)',
+        }}
+      >
+        <div>
+          <div style={{ color: '#f5f5f7', fontSize: 14, fontWeight: 880 }}>Need client approval before buying a batch?</div>
+          <div style={{ color: '#9a9aa1', fontSize: 12, lineHeight: 1.5, marginTop: 3 }}>Turn the offer, audience and verified proof into a client-ready Short brief first.</div>
+        </div>
+        <a
+          href="/client-video-brief-generator?entry=agency_page"
+          onClick={() => {
+            void trackEvent('agency_free_brief_clicked', {
+              version: FREE_BRIEF_BRIDGE_VARIANT,
+              surface: 'ai_shorts_for_agencies',
+              placement: 'after_pack_comparison',
+            })
+          }}
+          style={{ display: 'inline-flex', alignItems: 'center', minHeight: 42, padding: '0 14px', borderRadius: 11, border: '1px solid rgba(167,139,250,.42)', background: 'rgba(167,139,250,.12)', color: '#ddd6fe', fontSize: 13, fontWeight: 850, textDecoration: 'none' }}
+        >
+          Build the free brief →
+        </a>
+      </div>
     </section>
   )
 }
