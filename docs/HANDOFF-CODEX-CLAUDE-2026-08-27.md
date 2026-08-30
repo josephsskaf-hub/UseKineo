@@ -1971,3 +1971,19 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço público, grant, prazo, cupom, Stripe, Supabase, render, motor, cena, legenda, e-mails Claude, contatos ou dados de cliente.
 
 **PRÓXIMO DONO:** Claude deve tratar `lib/checkoutPricing.ts` como fonte e `docs/PRODUCT_AND_OFFER.md` como espelho atualizado. Não restaurar a tabela de julho nem usar comentários históricos como preço atual. Codex usa esta verdade para distribuição externa e aquisição.
+
+## 58. Trial preservado + submissão AllThingsAI (30/08/2026)
+
+**DECISÃO OPERACIONAL:** manter 25 créditos, a validade atual e a escolha de motor. Não aumentar, reduzir, retirar Fast, impor expiração de 24–48 horas ou forçar Seedance enquanto a coorte recém-publicada ainda está imatura. O produto já oferece a sequência correta: missão Seedance de 60s para saldo intacto e ponte Seedance de 35s para o saldo pós-Fast de 20–21 créditos. Mudar grant ou prazo agora misturaria variáveis e impediria saber qual delas converteu.
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** uma consulta agregada em modo somente leitura, com contas internas excluídas, encontrou o primeiro uso externo dos novos rails. O volume ainda é insuficiente para classificar conversão ou falha. Nenhum identificador, e-mail, roteiro, prompt ou número interno da coorte é publicado neste repositório.
+
+**EVIDÊNCIA EXTERNA (fontes oficiais consultadas em 30/08/2026):** Runway oferece um depósito gratuito único que não expira; HeyGen oferece uma quota mensal gratuita; OpusClip usa watermark e limite de exportação como fronteira de upgrade. O padrão relevante é entregar uma experiência demonstrável e reservar a saída limpa/continuidade para o pago, não fabricar urgência antes de haver coorte. A Kineo já segue esse desenho com trial watermarked e export limpo em plano pago.
+
+**EXECUTADO / AQUISIÇÃO EDITORIAL AUTORIZADA:** depois de busca anti-duplicação retornar zero conversa anterior, foi enviada uma única submissão para o diretório gratuito AllThingsAI no contato oficial publicado. A mensagem usa a verdade canônica: 25 créditos sem cartão, todos os motores disponíveis no trial, watermark no trial e planos a partir de $7/mês. UTM: `allthingsai / directory / allthingsai_listing_20260830`.
+
+**ESTADO HONESTO:** mensagem confirmada em Sent; listagem ainda não publicada. Não repetir o contato nem chamar envio de visita, cadastro ou assinatura. Métrica: URL pública aceita e, depois, pessoas por UTM em visita → signup → vídeo → checkout → pagamento.
+
+**VALIDAÇÃO ADJACENTE:** o SHA documental `18a960b97642277ced7eb1c479c59613c189e665` está `READY` no deploy Vercel `dpl_5hke6JuW8hNfdE5vQP1XWBJQg2cv`, target production. Nenhum preço, crédito, entitlement, Stripe, Supabase schema/dado, render, motor, cena, legenda ou e-mail da onda Claude foi alterado.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não duplicar AllThingsAI nem as ondas COMEBACK50/+25 e não mudar grant/prazo durante a formação desta coorte. Codex continua distribuição, ativação e conversão e mede os dois rails por pessoa.
