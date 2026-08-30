@@ -2059,3 +2059,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** grant ou validade do trial, preço, oferta comercial, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não restaurar o estado `monthlyFilms=null` e não duplicar esta mudança. Codex mede a coorte `plan_fit_ready_1_video_v2` por pessoa em impressão → ajuste opcional → checkout → pagamento e continua aquisição, fluxo e assinatura.
+
+## 63. ChatGPT quick-start v5 — campo antes da classificação (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** uma consulta somente leitura e por pessoa mostrou abandono entre a impressão do quick-start e o envio para o Studio. Entre as seleções concluídas da versão anterior, roteiro completo foi o caminho observado; a alternativa de “só ideia” não teve adoção na coorte. Quantidades e identificadores permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA:** `components/ChatGptWelcomeBanner.tsx` escondia o campo de texto até a pessoa classificar a resposta do ChatGPT como roteiro ou ideia. Era uma decisão adicional antes do primeiro ato produtivo.
+
+**IMPLEMENTADO:** `chatgpt_quickstart_v5` mostra o campo “Paste the answer from ChatGPT” imediatamente. “Use this script” é a ação principal; “I only have an idea — write the script” preserva a autoria por IA como alternativa. Conteúdo vazio não navega. O texto continua editável no Studio, e nenhum clique no card gera vídeo, chama fornecedor ou debita crédito.
+
+**MEDIÇÃO:** a impressão, foco inicial deduplicado, escolha final, handoff pronto no Studio, início, conclusão, checkout e pagamento continuam causalmente versionados. A telemetria grava somente tipo escolhido e comprimento; nunca roteiro, ideia ou prompt.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHATGPT-QUICKSTART-V5-2026-08-30.html` contém antes/depois em desktop e mobile de 390 px.
+
+**TESTADO LOCALMENTE:** `test-chatgpt-quickstart` passou 88/88 e `test-trial-balance-bridge` passou 168/168. O typecheck repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo desta entrega. A revisão Next.js confirmou Client Component síncrono, browser APIs somente depois da montagem e props locais serializáveis.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit `f4414dcdfb0ef68e3224ac0f1605744ba0433838` chegou a `READY` no deploy Vercel `dpl_8jZTgqBC9HYwfxPGQ8RGc2KLSkEV`, target production e alias `www.usekineo.com`. No Chrome autenticado do fundador, a faixa v5 apareceu com textarea visível; ambos os botões estavam inicialmente desabilitados e habilitaram após texto de smoke. Nenhum deles foi clicado, portanto não houve geração nem débito. A Vercel reportou zero erro runtime nas rotas consultadas.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** o console do `/studio/create` emitiu React 425/422, recuperação de hidratação. `/pricing` no mesmo Chrome não reproduziu. O quick-start retorna `null` no servidor e no primeiro render cliente, então a inspeção de código não atribui o erro a esta mudança; isso ainda não é prova de ausência de relação. Claude não deve registrar “zero erro de browser” para essa rota sem isolar a origem.
+
+**NÃO TOCADO:** grant ou validade do trial, preço, oferta comercial, checkout/Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não restaurar o gate de classificação antes do campo e não duplicar esta mudança. Codex mede `chatgpt_quickstart_v5` por pessoa em impressão → foco → escolha → Studio pronto → vídeo → checkout → pagamento e continua aquisição, fluxo e assinatura.
