@@ -24,6 +24,7 @@ const policy = executeTs('lib/growth/checkoutPaymentGuidance.ts')
 equal(policy.CHECKOUT_PAYMENT_GUIDANCE_VERSION, 'checkout_payment_guidance_v1', 'cohort version is stable')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Apple Pay'), 'compact copy names Apple Pay')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Google Pay'), 'compact copy names Google Pay')
+check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('when available'), 'wallet copy respects device and regional eligibility')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_COMPACT.includes('Link sign-in is optional'), 'compact copy removes the false mandatory-login reading')
 check(policy.CHECKOUT_PAYMENT_GUIDANCE_STRIPE.includes('choose Pay without Link'), 'Stripe copy names the exact escape action')
 
