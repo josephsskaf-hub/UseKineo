@@ -1908,18 +1908,21 @@ PRÓXIMO DONO:
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir da ponta posterior a esta sincronização. Não mudar o trial nem criar outro rail antes da primeira leitura pós-deploy. Codex mede a coorte e continua aquisição, fluxo e assinatura.
 
-## 55. Aquisição editorial — OverseerOS e DepthHQ contatados (30/08/2026)
+## 55. Aquisição editorial — três parceiros faceless contatados (30/08/2026)
 
 **FATO CONFIRMADO / ENCAIXE PÚBLICO:** o guia do OverseerOS para canais faceless declara que a plataforma cobre pesquisa, planejamento, roteiro, thumbnail e voiceover, mas não gera nem edita o vídeo final. O mesmo artigo aceita parcerias editoriais e o contato oficial aparece em `support@overseeros.com`. A Kineo ocupa exatamente a etapa seguinte, sem competir pelo planejamento.
 
 **FATO CONFIRMADO / ENCAIXE PÚBLICO:** o DepthHQ publica um playbook de automação faceless e vende sistemas com a promessa “receipts over hype”. A página oficial de contato publica `support@depthhq.com`. A abordagem propôs um teste verificável de um brief real até um Short final, sem promessa de resultado comercial.
 
-**ANTI-DUPLICAÇÃO:** buscas no Gmail por ambos os domínios e endereços retornaram zero mensagem anterior antes dos envios. Writenexa foi descartado nesta rodada: o artigo editorial tem encaixe, mas não foi localizado um canal oficial verificável; nenhum endereço foi inferido ou adivinhado.
+**FATO CONFIRMADO / ENCAIXE PÚBLICO:** HowToAI publica um curso de uma hora sobre criação de canal faceless e divulga `partnerships@howtoai.pro` para parcerias e negócios. A proposta usa um brief do próprio curso como prova e menciona somente o programa de afiliados já existente, condicionado à qualidade do teste.
+
+**ANTI-DUPLICAÇÃO:** buscas no Gmail pelos três domínios e endereços retornaram zero mensagem anterior antes dos envios. Writenexa foi descartado nesta rodada: o artigo editorial tem encaixe, mas não foi localizado um canal oficial verificável; nenhum endereço foi inferido ou adivinhado.
 
 **EXECUTADO / COMUNICAÇÃO EXTERNA AUTORIZADA:** duas mensagens individuais foram enviadas por `joseph@usekineo.com`:
 
 - OverseerOS — `support@overseeros.com` — assunto `OverseerOS plans the video — Kineo can finish the Short` — Gmail `1a050f20336ae4ac` — UTM `overseeros / partner_outreach / faceless_stack_20260830`.
 - DepthHQ — `support@depthhq.com` — assunto `One real brief, one finished faceless Short` — Gmail `1a050f1f47cf432c` — UTM `depthhq / partner_outreach / faceless_workflow_20260830`.
+- HowToAI — `partnerships@howtoai.pro` — assunto `One finished Short for your faceless YouTube workflow` — Gmail `1a050f4b085a37ca` — UTM `howtoai / creator_partnership / faceless_course_20260830`.
 
 **PROMESSA LIMITADA:** cada mensagem tem uma única ação: testar um brief ou roteiro real. Não houve blast, integração prometida, pagamento, patrocínio, posição editorial garantida, exclusividade, desconto novo ou mudança no programa de afiliados.
 
@@ -1929,4 +1932,4 @@ PRÓXIMO DONO:
 
 **NÃO TOCADO:** preço, grant, trial, checkout, Stripe, Supabase, render, motor, cena, legenda, e-mails da onda Claude ou contatos já abordados.
 
-**PRÓXIMO DONO:** Claude não deve contatar OverseerOS ou DepthHQ novamente. Codex monitora resposta e atribuição; qualquer pedido pago, integração ou patrocínio volta como decisão separada.
+**PRÓXIMO DONO:** Claude não deve contatar OverseerOS, DepthHQ ou HowToAI novamente. Codex monitora resposta e atribuição; qualquer pedido pago, integração ou patrocínio volta como decisão separada.
