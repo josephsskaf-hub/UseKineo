@@ -1651,3 +1651,51 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** lib/checkoutPricing.ts, preço, grant, desconto, oferta, SKU, Stripe, Auth, Supabase, Storage, migration, banco, pipeline de render, motor, cena, legenda, e-mail, outreach, IndexNow, TAAFT, anúncio ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar git fetch origin e partir de 480dbeb ou da ponta posterior de origin/main. Não remover as fontes primárias nem substituir o intervalo estimado por uma suposta taxa oficial do YouTube. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 41. Decisão do trial — manter 25 créditos e medir premium-first (29/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / COORTES MADURAS (consulta em 29/08/2026):** grants de 25 créditos tiveram 42 pessoas maduras, 17 ativadas, 5 no checkout e 1 paga; 40 créditos tiveram 277, 161, 45 e 2; 50 créditos tiveram 124, 70, 15 e 0; 80 créditos tiveram 27, 16, 5 e 0. Entre 470 trials maduros, 22 zeraram (6 checkout, 1 paga), 257 gastaram parcialmente (46, 2) e 191 não gastaram (18, 0). São pessoas externas, com contas internas excluídas. A relação é direcional e confundida por período/política; não prova que zerar saldo causa compra.
+
+**EVIDÊNCIA DE PRODUÇÃO / ÚLTIMOS 20 EXTERNOS (consulta em 29/08/2026):** 20 cadastros, 11 vídeos concluídos, 9 sem vídeo, 8 primeiros vídeos Fast, 3 premium, 4 pessoas no checkout e 0 pagas. Quinze ainda tinham saldo igual ou superior a 20. O maior volume perdido continua antes da primeira entrega; crédito adicional não ativa quem nunca clicou.
+
+**DECISÃO OPERACIONAL:** manter 25 créditos. Não aumentar, reduzir, retirar Kineo 1 nem adicionar expiração de 24–48h enquanto a política premium-first recém-publicada ainda não formou coorte. Seedance continua recomendado quando elegível; Kineo 1 continua disponível como alternativa. A métrica principal é pagamento por 100 cadastros externos; cortes obrigatórios: primeiro motor, entrega, saldo, oferta, checkout e pagamento por pessoa.
+
+**CONTENÇÃO DE REATIVAÇÃO:** COMEBACK50 pode seguir apenas para os 40 abandonadores de checkout, com dedupe, exclusões e sem empilhamento. Não conceder +25 automaticamente a toda a base de 204 zerados com vídeo. Se a concessão já saiu, isolar a coorte e não reenviar; se não saiu, preferir benefício resgatável, individual e curto. Para quem nunca gastou, enviar ativação para primeira criação, não mais saldo.
+
+**NÃO TOCADO:** preço, grant, expiração, engine entitlement, código, Stripe, Supabase schema, render, e-mail da onda Claude ou lista de destinatários.
+
+## 42. Aquisição B2B — três parceiros complementares contatados (29/08/2026)
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** a busca no Gmail não encontrou conversa anterior com Shortimize, Creator Hooks ou Viral Ideas. As páginas oficiais confirmaram contatos públicos e encaixe complementar: pesquisa/analytics antes da produção ou overflow de agência. Não foi repetido contato com Fyre Interactive, NexLev, VidPros, Feedbird, 1of10, Subscribr, YT Growth, Gundrux, Faceless University, So geht YouTube ou One Frame Media.
+
+**EXECUTADO / COMUNICAÇÃO EXTERNA AUTORIZADA:** três mensagens personalizadas foram enviadas por `joseph@usekineo.com`:
+
+- Shortimize — `support@shortimize.com` — assunto `Shortimize finds the winning Short — Kineo can produce the next one` — Gmail `1a0503d76491ba2a` — UTM `shortimize_partner / founder_outreach / b2b_loop_20260829`.
+- Creator Hooks — `support@creatorhooks.com` — assunto `From a Creator Hooks idea to a finished Short` — Gmail `1a0503d676776be0` — UTM `creatorhooks_partner / founder_outreach / b2b_loop_20260829`.
+- Viral Ideas — `info@viralideamarketing.com` — assunto `A production overflow test for one short-form brief` — Gmail `1a0503d875c25bc3` — UTM `viralideas_partner / founder_outreach / b2b_overflow_20260829`.
+
+**EVIDÊNCIA DE PRODUÇÃO / AFILIADOS (consulta em 29/08/2026):** ColorMango tinha 4 cliques/4 hashes únicos, ToolRiot 0 e os outros afiliados 14 eventos/6 hashes únicos; todos tinham 0 cadastro referido, 0 conversão e 0 comissão. Portanto a lista existente ainda não produziu pessoa ou pagamento referido. Não confundir clique com aquisição.
+
+**PRÓXIMA REGRA:** aguardar resposta ou bounce antes de follow-up; não duplicar esses três envios. Priorizar novos parceiros complementares em vez de aumentar a cadência sobre a lista inativa.
+
+## 43. Conversão pós-vídeo — Plan Fit no primeiro slot comercial (29/08/2026)
+
+**BASE DE CÓDIGO:** `e86710c86b5474a74ee362c46bfd9d313ff8c21c`, igual ao remoto confirmado diretamente no início da worktree isolada `codex/planfit-first-slot`.
+
+**EVIDÊNCIA DE PRODUÇÃO / PRIMEIRA COORTE PREMIUM-FIRST (29/08/2026):** depois do deploy `e86710c`, houve 1 cadastro externo, origem TAAFT. A pessoa clicou no onboarding, iniciou Seedance, superou uma primeira tentativa curta, concluiu o filme às 01:15:40 UTC e gerou `video_ready_viewed` às 01:15:57 UTC. Não houve `trial_post_video_offer_viewed`, `plan_fit_impression`, checkout ou pagamento. O vídeo foi entregue; isto corrige a leitura inicial de falha terminal.
+
+**FATO CONFIRMADO / CAUSA DE INTERFACE:** `planFitOwnsRecurringSlot` suprime corretamente a oferta recorrente do trial e o upsell genérico. Porém o único `<PlanFitCard>` estava depois de compartilhamento, próximo episódio, YouTube, avaliação, próximos passos e `NextShortsSection` em `app/(dashboard)/generate/GenerateClient.tsx`. O componente só registra impressão quando 35% entra no viewport. Assim, o produto podia entregar valor, remover as outras ofertas e deixar a única resposta comercial várias ações abaixo da dobra.
+
+**IMPLEMENTADO:** commit `e41256f88c714779161774612bad825c0ce49b4b` move o mesmo `PlanFitCard` para imediatamente depois do player e do download, antes das ações secundárias. Elegibilidade, cálculo, moeda canônica, telemetria, verificação de primeira entrega e checkout protegido permaneceram idênticos. O link `Not now` continua preservando o restante da tela. Nenhum preço, grant, trial ou oferta foi alterado.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` executou 326/326 verificações; `node scripts/test-trial-post-video-primary.mjs`, 45/45. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-FIRST-SLOT-2026-08-29.html` contém antes/depois desktop e mobile. Foi servido localmente e inspecionado no Chrome conectado do fundador. A comparação confirma: download primeiro; Plan Fit logo abaixo; ações de share/retenção depois; sem duas ofertas recorrentes simultâneas.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026 BRT):** deploy Vercel `dpl_2VWQ3E73atRETtnXiB6fVfzpoFqt` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, ligado ao SHA exato `e41256f88c714779161774612bad825c0ce49b4b`. A página autenticada `/studio/create` carregou no Chrome real. A Vercel encontrou zero erro runtime nos 10 minutos consultados.
+
+**BASELINE PÓS-DEPLOY:** entre 01:34:14 UTC e 01:35:28 UTC ainda havia 0 novo cadastro externo, 0 entrega, 0 impressão Plan Fit, 0 checkout e 0 pagamento. Impacto de conversão permanece `QUESTÃO PENDENTE` até a próxima primeira entrega externa; ausência de tráfego nesse minuto não é reprovação.
+
+**NÃO TOCADO:** `components/growth/PlanFitCard.tsx`, cálculo, preço, grant, desconto, Stripe server-side, webhook, Auth, migration, Storage, render, motor, cena, legenda, e-mail, outreach ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `e41256f` ou da ponta posterior de `origin/main`. Não mover o Plan Fit de volta para depois de `NextShorts` e não reintroduzir outra oferta recorrente no primeiro slot. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
