@@ -461,10 +461,14 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
           }}
         >
           <p className="text-xs font-black" style={{ color: '#f5f5f7', lineHeight: 1.45 }}>
-            Use the premium trial before choosing a plan.
+            Start premium — then prove you can repeat it.
           </p>
           <p className="mt-1 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
-            Your {firstDelivery.creditsBefore} credits cover one full {firstDelivery.duration}s Seedance film. No card required. Nothing starts until you review the setup.
+            Your {firstDelivery.creditsBefore} credits cover a {firstDelivery.duration}s Seedance episode ({firstDelivery.cost} credits)
+            {firstDelivery.fastRepeatsAfterSuccess > 0
+              ? ` and leave ${firstDelivery.creditsAfterSuccess} for ${firstDelivery.fastRepeatsAfterSuccess} Fast ${firstDelivery.fastRepeatDuration}s episode${firstDelivery.fastRepeatsAfterSuccess === 1 ? '' : 's'}.`
+              : '. This uses the premium balance already available in your trial.'}{' '}
+            No card required. Nothing starts until you review the setup.
           </p>
           <button
             type="button"
@@ -478,7 +482,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
               boxShadow: '0 6px 20px rgba(52,211,153,.2)',
             }}
           >
-            Make my included Seedance film →
+            Build my {firstDelivery.duration}s Seedance episode →
           </button>
         </div>
       )}

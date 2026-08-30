@@ -30,6 +30,7 @@ import { readAutopilotCheckoutReturn } from '@/lib/growth/autopilotCheckoutRetur
 import { readPlanFitCheckoutReturn } from '@/lib/growth/planFitCheckout'
 import {
   TRIAL_FIRST_DELIVERY_DURATION,
+  TRIAL_FIRST_DELIVERY_COST,
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { decideCheckoutCancelledPrimary } from '@/lib/growth/checkoutCancelledRecovery'
@@ -338,7 +339,7 @@ function CheckoutCancelledContent() {
           <p style={{ marginTop: 10, fontSize: '0.95rem', color: 'var(--muted2)', lineHeight: 1.55 }}>Your card was not charged if checkout was not completed.</p>
           <p style={{ marginTop: 10, fontSize: '0.88rem', color: '#2997ff', fontWeight: 700 }}>
             {cancelledPrimary === 'first_delivery'
-              ? `Your included ${TRIAL_FIRST_DELIVERY_DURATION}s Seedance film is still available.`
+              ? `Your included ${TRIAL_FIRST_DELIVERY_DURATION}s Seedance episode is still available.`
               : 'Your selected plan is saved below.'}
           </p>
         </div>
@@ -353,7 +354,7 @@ function CheckoutCancelledContent() {
                 Use what is already included — no card
               </p>
               <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '6px 0 14px', lineHeight: 1.55 }}>
-                Your trial covers one full {TRIAL_FIRST_DELIVERY_DURATION}s Seedance film. Build and review the setup first; nothing starts until you choose Generate.
+                Start with a premium {TRIAL_FIRST_DELIVERY_DURATION}s Seedance episode for {TRIAL_FIRST_DELIVERY_COST} credits and keep the rest of your trial for more videos. Nothing starts until you choose Generate.
               </p>
               <Link
                 href={firstDeliveryHref}
@@ -366,7 +367,7 @@ function CheckoutCancelledContent() {
                 })}
                 style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)' }}
               >
-                Make my included Seedance film →
+                Build my {TRIAL_FIRST_DELIVERY_DURATION}s Seedance episode →
               </Link>
               <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: 'var(--muted2)', textAlign: 'center', fontWeight: 600 }}>
                 No card · no automatic charge · your saved plan stays available

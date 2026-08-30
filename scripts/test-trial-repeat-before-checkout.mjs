@@ -74,7 +74,9 @@ equal(decide({ credits: null }).reason, 'unknown_balance', 'unknown balance fail
 equal(decide({ credits: Number.NaN }).reason, 'unknown_balance', 'NaN balance fails closed')
 equal(decide({ credits: -1 }).reason, 'unknown_balance', 'negative balance fails closed')
 
-const client = read('app/(dashboard)/generate/GenerateClient.tsx')
+// Windows worktrees may materialize tracked TSX as CRLF. The contract is the
+// executable import and call, not the checkout-specific line-ending setting.
+const client = read('app/(dashboard)/generate/GenerateClient.tsx').replace(/\r\n/g, '\n')
 check(client.includes("import {\n  decideTrialRepeatBeforeCheckout,"), 'real Generate client imports executable policy')
 check(client.includes('const trialRepeatDecision = decideTrialRepeatBeforeCheckout({'), 'real Generate client executes policy')
 check(client.includes("trialRepeatDecision.action !== 'episode'"), 'funded repeat takes the recurring slot before Plan Fit')

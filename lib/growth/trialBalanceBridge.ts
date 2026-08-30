@@ -1,17 +1,28 @@
 import { creditCostForDuration } from '@/lib/credits/engineCost'
 
 export const TRIAL_BALANCE_BRIDGE_VERSION = 'trial_balance_seedance_35s_v2' as const
-export const TRIAL_FIRST_DELIVERY_VERSION = 'trial_first_seedance_60s_v1' as const
+export const TRIAL_FIRST_DELIVERY_VERSION = 'trial_first_seedance_35s_v2' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE = 'cinematic_ai' as const
 export const TRIAL_BALANCE_BRIDGE_ENGINE_LABEL = 'Seedance' as const
 export const TRIAL_BALANCE_BRIDGE_DURATION = 35 as const
-export const TRIAL_FIRST_DELIVERY_DURATION = 60 as const
+export const TRIAL_FIRST_DELIVERY_DURATION = 35 as const
+export const TRIAL_FIRST_FAST_REPEAT_DURATION = 60 as const
 export const TRIAL_BALANCE_BRIDGE_COST = creditCostForDuration(
   TRIAL_BALANCE_BRIDGE_ENGINE,
   true,
   TRIAL_BALANCE_BRIDGE_DURATION,
 )
 export const FULL_SEEDANCE_COST = creditCostForDuration('cinematic_ai', true, 60)
+export const TRIAL_FIRST_DELIVERY_COST = creditCostForDuration(
+  TRIAL_BALANCE_BRIDGE_ENGINE,
+  true,
+  TRIAL_FIRST_DELIVERY_DURATION,
+)
+export const TRIAL_FIRST_FAST_REPEAT_COST = creditCostForDuration(
+  'fast',
+  true,
+  TRIAL_FIRST_FAST_REPEAT_DURATION,
+)
 export type TrialFirstDeliveryStudioIntentInput = {
   intentCampaign: string
   engine: string
@@ -46,6 +57,9 @@ export type TrialFirstDeliveryDecision = {
   creditsBefore: number | null
   creditsAfterSuccess: number | null
   cost: number
+  fastRepeatCost: number
+  fastRepeatDuration: typeof TRIAL_FIRST_FAST_REPEAT_DURATION
+  fastRepeatsAfterSuccess: number
   duration: typeof TRIAL_FIRST_DELIVERY_DURATION
   engine: typeof TRIAL_BALANCE_BRIDGE_ENGINE
   engineLabel: typeof TRIAL_BALANCE_BRIDGE_ENGINE_LABEL
@@ -55,10 +69,12 @@ export type TrialFirstDeliveryDecision = {
 /**
  * Keeps a brand-new trial user in the value loop before asking for a card.
  *
- * Production evidence on 29/08/2026: eight external people clicked the active
- * trial banner before spending a credit and none paid; four clicked after
- * using the trial and one paid. The decision therefore reserves this banner's
- * primary action for the full premium delivery while usage is still zero.
+ * Production evidence on 30/08/2026: the fresh external signup cohort repeated
+ * after shorter Seedance deliveries, while the full 60-second/25-credit first
+ * delivery produced no repeat. The decision therefore recommends a 35-second
+ * premium first episode and preserves enough of the canonical 25-credit grant
+ * for two 60-second Fast repetitions. Full 60-second Seedance remains available
+ * as a manual choice in Studio.
  * It only prepares the existing Seedance setup route: no render, provider call,
  * credit mutation, price change or checkout is allowed here.
  */
@@ -66,7 +82,10 @@ export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialF
   const base = {
     creditsBefore: input.credits,
     creditsAfterSuccess: null,
-    cost: FULL_SEEDANCE_COST,
+    cost: TRIAL_FIRST_DELIVERY_COST,
+    fastRepeatCost: TRIAL_FIRST_FAST_REPEAT_COST,
+    fastRepeatDuration: TRIAL_FIRST_FAST_REPEAT_DURATION,
+    fastRepeatsAfterSuccess: 0,
     duration: TRIAL_FIRST_DELIVERY_DURATION,
     engine: TRIAL_BALANCE_BRIDGE_ENGINE,
     engineLabel: TRIAL_BALANCE_BRIDGE_ENGINE_LABEL,
@@ -81,7 +100,7 @@ export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialF
   if (input.credits === null || !Number.isFinite(input.credits)) {
     return { ...base, eligible: false, reason: 'unknown_balance' }
   }
-  if (input.credits < FULL_SEEDANCE_COST) {
+  if (input.credits < TRIAL_FIRST_DELIVERY_COST) {
     return { ...base, eligible: false, reason: 'insufficient_balance' }
   }
 
@@ -89,7 +108,10 @@ export function decideTrialFirstDelivery(input: TrialFirstDeliveryInput): TrialF
     ...base,
     eligible: true,
     reason: 'eligible',
-    creditsAfterSuccess: input.credits - FULL_SEEDANCE_COST,
+    creditsAfterSuccess: input.credits - TRIAL_FIRST_DELIVERY_COST,
+    fastRepeatsAfterSuccess: Math.floor(
+      (input.credits - TRIAL_FIRST_DELIVERY_COST) / TRIAL_FIRST_FAST_REPEAT_COST,
+    ),
   }
 }
 

@@ -36,11 +36,18 @@ const engineCost = executeTs('lib/credits/engineCost.ts')
 const policy = executeTs('lib/growth/trialBalanceBridge.ts', {
   '@/lib/credits/engineCost': engineCost,
 })
+const repeatPolicy = executeTs('lib/growth/trialRepeatBeforeCheckout.ts', {
+  '@/lib/credits/engineCost': engineCost,
+  '@/lib/expandPolicy': { SUPPORTED_DURATIONS: [35, 60, 90] },
+})
 const onboardingGoals = executeTs('lib/growth/onboardingGoals.ts')
 
 equal(policy.TRIAL_BALANCE_BRIDGE_COST, 15, '35s Seedance costs 15 canonical credits')
 equal(policy.FULL_SEEDANCE_COST, 25, '60s Seedance costs 25 canonical credits')
-equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 60, 'first delivery uses the full 60s premium experience')
+equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 35, 'first delivery uses the measured shorter premium experience')
+equal(policy.TRIAL_FIRST_DELIVERY_COST, 15, 'first delivery uses 15 canonical Seedance credits')
+equal(policy.TRIAL_FIRST_FAST_REPEAT_DURATION, 60, 'the preserved repeat is a full Fast episode')
+equal(policy.TRIAL_FIRST_FAST_REPEAT_COST, 5, 'a full Fast repeat uses 5 canonical trial credits')
 equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 35, 'bridge duration is explicit and visible in the public selector')
 equal(policy.TRIAL_BALANCE_BRIDGE_ENGINE, 'cinematic_ai', 'bridge engine is Seedance quality')
 check(read('lib/expandPolicy.ts').includes('SUPPORTED_DURATIONS = [35, 60, 90]'), '35s is supported by the shared client/server duration contract')
@@ -59,8 +66,9 @@ for (const input of [
 
 for (const [input, eligible, reason] of [
   [{ trialPhase: 'active', credits: 25, creditsUsed: 0 }, true, 'eligible'],
+  [{ trialPhase: 'active', credits: 15, creditsUsed: 0 }, true, 'eligible'],
   [{ trialPhase: 'active', credits: 25, creditsUsed: 4 }, false, 'already_used'],
-  [{ trialPhase: 'active', credits: 24, creditsUsed: 0 }, false, 'insufficient_balance'],
+  [{ trialPhase: 'active', credits: 14, creditsUsed: 0 }, false, 'insufficient_balance'],
   [{ trialPhase: 'active', credits: null, creditsUsed: 0 }, false, 'unknown_balance'],
   [{ trialPhase: 'active', credits: 25, creditsUsed: null }, false, 'unknown_usage'],
   [{ trialPhase: 'ending', credits: 25, creditsUsed: 0 }, false, 'not_active'],
@@ -71,9 +79,32 @@ for (const [input, eligible, reason] of [
 }
 equal(
   policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).creditsAfterSuccess,
-  0,
-  'full premium first delivery intentionally reaches the day-one credit wall',
+  10,
+  'premium first delivery intentionally preserves the day-one repetition budget',
 )
+equal(
+  policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).fastRepeatsAfterSuccess,
+  2,
+  'the canonical grant preserves two full 60s Fast repetitions',
+)
+const firstRepeat = repeatPolicy.decideTrialRepeatBeforeCheckout({
+  trialPhase: 'active',
+  credits: 10,
+  bridgeEligible: false,
+  preferredDuration: 60,
+})
+equal(firstRepeat.action, 'episode', '10 remaining credits produce the first funded repeat')
+equal(firstRepeat.duration, 60, 'the first funded repeat keeps the full 60s duration')
+equal(firstRepeat.creditsAfterSuccess, 5, 'the first funded repeat leaves the second repeat budget')
+const secondRepeat = repeatPolicy.decideTrialRepeatBeforeCheckout({
+  trialPhase: 'active',
+  credits: firstRepeat.creditsAfterSuccess,
+  bridgeEligible: false,
+  preferredDuration: 60,
+})
+equal(secondRepeat.action, 'episode', '5 remaining credits produce the second funded repeat')
+equal(secondRepeat.duration, 60, 'the second funded repeat keeps the full 60s duration')
+equal(secondRepeat.creditsAfterSuccess, 0, 'the three-video journey reaches the honest credit wall only after repetition')
 
 for (const credits of [15, 20, 21, 22, 23, 24]) {
   const result = policy.decideTrialBalanceBridge({ trialPhase: 'active', credits, deliveredQuality: 'fast' })
@@ -185,8 +216,9 @@ check(banner.includes('decideTrialReturnLadder'), 'persistent trial banner execu
 check(banner.includes('decideTrialFirstDelivery'), 'persistent trial banner executes activation-before-checkout policy')
 check(banner.includes("trackEvent('trial_first_delivery_clicked'"), 'first-delivery CTA emits a distinct causal event')
 check(banner.includes('data-trial-first-delivery={firstDelivery.version}'), 'first-delivery surface names its contract version')
-check(banner.includes('Use the premium trial before choosing a plan.'), 'zero-use copy sequences value before purchase')
+check(banner.includes('Start premium — then prove you can repeat it.'), 'zero-use copy sequences quality and repetition before purchase')
 check(banner.includes('No card required. Nothing starts until you review the setup.'), 'copy states both payment and render boundaries')
+check(banner.includes('firstDelivery.fastRepeatsAfterSuccess'), 'live copy derives the repeat count from the canonical balance decision')
 check(banner.includes("{!firstDelivery.eligible && <button"), 'checkout CTA is absent only while the untouched premium delivery fits')
 check(banner.includes('buildOnboardingGoalStudioHref(DEFAULT_ONBOARDING_GOAL'), 'first-delivery CTA reuses the canonical editable starter brief')
 const firstDeliveryHref = onboardingGoals.buildOnboardingGoalStudioHref(
@@ -196,7 +228,7 @@ const firstDeliveryHref = onboardingGoals.buildOnboardingGoalStudioHref(
 const firstDeliveryUrl = new URL(firstDeliveryHref, 'https://www.usekineo.com')
 equal(firstDeliveryUrl.pathname, '/studio', 'first-delivery CTA opens the visible Studio cockpit')
 equal(firstDeliveryUrl.searchParams.get('engine'), 'seedance', 'first-delivery CTA selects Seedance')
-equal(firstDeliveryUrl.searchParams.get('duration'), '60', 'first-delivery CTA carries the supported duration')
+equal(firstDeliveryUrl.searchParams.get('duration'), '35', 'first-delivery CTA carries the supported duration')
 equal(firstDeliveryUrl.searchParams.get('prompt'), onboardingGoals.DEFAULT_ONBOARDING_GOAL.topic, 'first-delivery CTA carries the canonical editable idea')
 equal(firstDeliveryUrl.searchParams.get('intent_campaign'), policy.TRIAL_FIRST_DELIVERY_VERSION, 'first-delivery CTA preserves isolated attribution')
 check(!firstDeliveryUrl.searchParams.has('autoanalyze'), 'first-delivery CTA cannot start analysis')
@@ -273,6 +305,16 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE
 }
 check(firstPreview.includes('8 zero-use clicks → 0 paid'), 'preview states the measured reason for the change')
 check(!/https?:\/\//i.test(firstPreview), 'activation preview has no external dependency')
+
+const samplerPreviewPath = 'docs/previews/TRIAL-PREMIUM-SAMPLER-2026-08-30.html'
+check(fs.existsSync(path.join(root, samplerPreviewPath)), 'premium-sampler before/after preview exists')
+const samplerPreview = read(samplerPreviewPath)
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(samplerPreview.includes(marker), `premium-sampler preview contains ${marker}`)
+}
+check(samplerPreview.includes('15 credits'), 'preview states the premium episode cost')
+check(samplerPreview.includes('2 Fast 60s episodes'), 'preview states the preserved repetition budget')
+check(!/https?:\/\//i.test(samplerPreview), 'premium-sampler preview has no external dependency')
 
 const precedencePreviewPath = 'docs/previews/TRIAL-BRIDGE-FIRST-SLOT-2026-08-30.html'
 check(fs.existsSync(path.join(root, precedencePreviewPath)), 'bridge-precedence comparison exists')
