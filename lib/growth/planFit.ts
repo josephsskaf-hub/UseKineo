@@ -22,7 +22,7 @@ export const MONTHLY_CADENCES = [1, 4, 8, 12] as const
  * therefore the least expensive plan that can repeat the result they saw.
  */
 export const DEFAULT_PLAN_FIT_MONTHLY_FILMS = MONTHLY_CADENCES[0]
-export const PLAN_FIT_OFFER_VERSION = 'plan_fit_ready_1_video_v2' as const
+export const PLAN_FIT_OFFER_VERSION = 'plan_fit_direct_win_v3' as const
 
 export type MonthlyCadencePreset = (typeof MONTHLY_CADENCES)[number]
 

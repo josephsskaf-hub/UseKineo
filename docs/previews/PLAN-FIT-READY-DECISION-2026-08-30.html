@@ -14,37 +14,38 @@ h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue
 .top{display:flex;justify-content:space-between;gap:16px}.eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.18em;color:var(--blue2)}h3{font-size:20px;line-height:1.2;margin:6px 0 0}.dismiss{border:1px solid #303036;background:transparent;color:var(--muted);border-radius:8px;padding:6px 10px;height:32px}
 .copy{color:var(--muted);margin:18px 0 14px}.copy strong{color:var(--text)}.cadence{display:flex;flex-wrap:wrap;gap:8px}.pill{padding:9px 15px;border:1px solid #34343a;border-radius:999px;background:#19191d;color:var(--text);font-weight:800}.pill.active{background:var(--blue);border-color:var(--blue2)}
 .placeholder,.recommend{margin-top:18px;padding-top:18px;border-top:1px solid #2a2a30}.placeholder{color:#67676e;text-align:center;padding-bottom:14px}.recommend p{color:var(--muted);margin:0 0 14px}.recommend strong{color:var(--text)}.recommend .plan{color:var(--blue2)}.cta{display:inline-block;background:linear-gradient(135deg,var(--blue),#1d6fe0);border:0;border-radius:11px;padding:13px 18px;color:#fff;font-weight:900}.trust{font-size:12px;color:#77777e;margin-top:10px}
-.note{margin-top:14px;border-left:3px solid currentColor;padding-left:12px;color:var(--muted)}.phone-grid{display:grid;grid-template-columns:390px 390px;gap:22px;justify-content:center}.phone{width:390px;padding:12px;border:1px solid #25252b;border-radius:28px;background:#050507}.phone .card{padding:17px}.phone h3{font-size:18px}.phone .copy{font-size:13px}.phone .pill{padding:8px 12px;font-size:12px}.phone .cta{width:100%;text-align:center}.phone .top{gap:8px}
+.advanced{margin-top:16px;padding-top:14px;border-top:1px solid #2a2a30;color:var(--blue2);font-size:12px;font-weight:900}.note{margin-top:14px;border-left:3px solid currentColor;padding-left:12px;color:var(--muted)}.phone-grid{display:grid;grid-template-columns:390px 390px;gap:22px;justify-content:center}.phone{width:390px;padding:12px;border:1px solid #25252b;border-radius:28px;background:#050507}.phone .card{padding:17px}.phone h3{font-size:18px}.phone .copy{font-size:13px}.phone .pill{padding:8px 12px;font-size:12px}.phone .cta{width:100%;text-align:center}.phone .top{gap:8px}
 @media(max-width:900px){.grid{grid-template-columns:1fr}.phone-grid{grid-template-columns:minmax(0,390px)}.phone{width:100%}main{padding:28px 14px}}
 </style>
 </head>
 <body>
 <main>
-<header><h1>Plan Fit — ready decision</h1><p>The video stays first. The commercial decision still follows the download, but no longer waits for a planning click.</p></header>
+<header><h1>Plan Fit — direct win</h1><p>The video stays first. The matched plan and checkout become the decision; the calculator moves behind an optional disclosure.</p></header>
 <h2>Desktop comparison</h2>
 <section class="grid">
-<div class="frame"><div class="label"><span>Before</span><span class="before">extra decision required</span></div>
-<div class="card"><div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Make the next month fit before you subscribe</h3></div><button class="dismiss">Not now</button></div>
-<p class="copy">Your trial is the test run. A 60s Seedance 1.5 film like this costs <strong>25 paid credits</strong>. Pick a monthly target and Kineo will do the plan math.</p>
-<div class="cadence"><span class="pill">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
-<div class="placeholder">No recommendation or checkout exists until a cadence is chosen.</div></div>
-<p class="note before">The visitor must invent a future publishing cadence before seeing any purchasable answer.</p></div>
-<div class="frame"><div class="label"><span>After</span><span class="after">checkout-ready on first view</span></div>
+<div class="frame"><div class="label"><span>Before</span><span class="before">calculator first</span></div>
 <div class="card"><div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Your next film already has a plan</h3></div><button class="dismiss">Not now</button></div>
-<p class="copy">Your trial is the test run. A 60s Seedance 1.5 film like this costs <strong>25 paid credits</strong>. We started with <strong>1 video per month</strong> so your least expensive matching plan is ready below. Change it if you publish more.</p>
+<p class="copy">Your trial is the test run. A 60s Seedance 1.5 film like this costs <strong>25 paid credits</strong>. We started with <strong>1 video per month</strong>. Change it if you publish more.</p>
 <div class="cadence"><span class="pill active">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
-<div class="recommend"><p>1 Seedance 1.5 film per month needs <strong>25 credits</strong>. <strong class="plan">Starter</strong> includes 40 — the least expensive self-serve plan that covers that target.</p><button class="cta">Continue with Starter — $7/month</button><div class="trust">Secure Stripe checkout · cancel anytime in one click · 7-day money-back</div></div></div>
-<p class="note after">The lowest honest cadence is preselected; higher-frequency planning remains optional.</p></div>
+<div class="recommend"><p>1 Seedance 1.5 film per month needs <strong>25 credits</strong>. <strong class="plan">Starter</strong> includes 40.</p><button class="cta">Continue with Starter — &#36;7/month</button><div class="trust">Secure Stripe checkout · cancel anytime</div></div></div>
+<p class="note before">The calculator competes with the checkout decision on the first view.</p></div>
+<div class="frame"><div class="label"><span>After</span><span class="after">matched plan first</span></div>
+<div class="card"><div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Ready to publish every month?</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">Your trial is the test run. You just finished a 60s Seedance 1.5 film. Paid exports are clean and watermark-free, so we matched the smallest plan that covers <strong>one film like this every month</strong>.</p>
+<div class="recommend"><p><strong class="plan">Starter</strong> includes 40 credits. Your Seedance film uses <strong>25</strong> — this is the least expensive plan that covers your goal.</p><button class="cta">Start Starter — &#36;7/month</button><div class="trust">Secure Stripe checkout · Card or wallet when available · Link optional · cancel anytime · 7-day money-back</div></div>
+<div class="advanced">▸ Need a different rhythm? Compare 1, 4, 8 or 12 videos/month</div></div>
+<p class="note after">One plan, one price and one action are visible first. The calculator still exists without competing with checkout.</p></div>
 </section>
 <h2>Mobile comparison · 390px</h2>
 <section class="phone-grid">
-<div class="phone"><div class="label"><span>Before</span><span class="before">blocked</span></div><div class="card">
-<div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Make the next month fit before you subscribe</h3></div><button class="dismiss">Not now</button></div>
-<p class="copy">Pick a monthly target and Kineo will do the plan math.</p><div class="cadence"><span class="pill">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div><div class="placeholder">Choose first</div></div></div>
-<div class="phone"><div class="label"><span>After</span><span class="after">ready</span></div><div class="card">
+<div class="phone"><div class="label"><span>Before</span><span class="before">calculator first</span></div><div class="card">
 <div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Your next film already has a plan</h3></div><button class="dismiss">Not now</button></div>
 <p class="copy">We started with <strong>1 video per month</strong>. Change it if you publish more.</p><div class="cadence"><span class="pill active">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
-<div class="recommend"><p><strong class="plan">Starter</strong> covers this target.</p><button class="cta">Continue with Starter — $7/month</button><div class="trust">Secure Stripe checkout · cancel anytime</div></div></div></div>
+<div class="recommend"><p><strong class="plan">Starter</strong> covers this target.</p><button class="cta">Continue with Starter — &#36;7/month</button><div class="trust">Secure Stripe checkout · cancel anytime</div></div></div></div>
+<div class="phone"><div class="label"><span>After</span><span class="after">direct</span></div><div class="card">
+<div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Ready to publish every month?</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">Paid exports are clean and watermark-free. We matched the smallest plan for <strong>one film like this every month</strong>.</p>
+<div class="recommend"><p><strong class="plan">Starter</strong> includes 40 credits; this film uses 25.</p><button class="cta">Start Starter — &#36;7/month</button><div class="trust">Stripe · Link optional · cancel anytime</div></div><div class="advanced">▸ Compare another rhythm</div></div></div>
 </section>
 </main>
 </body>

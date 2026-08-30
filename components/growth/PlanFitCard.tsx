@@ -17,6 +17,7 @@ import {
   type CheckoutCurrency,
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
+import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 
 export interface PlanFitCheckoutMetadata {
   account_cohort: Exclude<PlanFitAccountCohort, 'subscriber' | 'unknown'>
@@ -79,6 +80,7 @@ export default function PlanFitCard({
   const impressionSentRef = useRef(false)
   const impressionPendingRef = useRef(false)
   const eligibilityPendingRef = useRef(false)
+  const advancedOpenedRef = useRef(false)
   const eventRef = useRef(onEvent)
 
   useEffect(() => {
@@ -213,6 +215,16 @@ export default function PlanFitCard({
 
   async function startCheckout(tier: CheckoutTier) {
     if (checkoutBusy || eligibilityPendingRef.current) return
+    emit('plan_fit_checkout_clicked', {
+      source_engine: quality,
+      planned_engine: result.quality,
+      monthly_videos: result.monthlyFilms,
+      monthly_credits: result.monthlyCredits,
+      recommended_tier: tier,
+      display_currency: currency,
+      currency_resolved: currency !== null,
+      presentation: 'direct_checkout_first',
+    })
     eligibilityPendingRef.current = true
     setEligibilityPending(true)
     const stillEligible = await verifyEligibility()
@@ -262,7 +274,7 @@ export default function PlanFitCard({
             Your first finished video
           </div>
           <h3 id="plan-fit-title" className="font-black text-lg sm:text-xl" style={{ color: 'var(--text)', margin: 0 }}>
-            Your next film already has a plan
+            Ready to publish every month?
           </h3>
         </div>
         <button
@@ -281,35 +293,12 @@ export default function PlanFitCard({
       </div>
 
       <p className="text-sm mb-4" style={{ color: 'var(--muted2)', lineHeight: 1.6, maxWidth: 690 }}>
-        {cohortIntro(accountCohort)} A {seconds}s {sourceMotor} film like this costs{' '}
-        <strong style={{ color: 'var(--text)' }}>{probe.filmCredits} paid credits</strong>. We started with{' '}
-        <strong style={{ color: 'var(--text)' }}>1 video per month</strong> so your least expensive matching plan is ready below. Change it if you publish more.
+        {cohortIntro(accountCohort)} You just finished a {seconds}s {sourceMotor} film. Paid exports are clean and watermark-free, so we matched the smallest plan that covers{' '}
+        <strong style={{ color: 'var(--text)' }}>one film like this every month</strong>.
       </p>
 
-      <div className="flex flex-wrap gap-2" aria-label="Videos per month">
-        {MONTHLY_CADENCES.map((cadence) => (
-          <button
-            key={cadence}
-            type="button"
-            onClick={() => chooseCadence(cadence)}
-            disabled={checkoutBusy}
-            aria-pressed={monthlyFilms === cadence}
-            className="rounded-full px-4 py-2.5 text-xs sm:text-sm font-black"
-            style={{
-              background: monthlyFilms === cadence ? '#2997ff' : 'rgba(255,255,255,.04)',
-              border: monthlyFilms === cadence ? '1px solid #5cb3ff' : '1px solid rgba(255,255,255,.12)',
-              color: monthlyFilms === cadence ? '#fff' : 'var(--text)',
-              cursor: checkoutBusy ? 'wait' : 'pointer',
-              opacity: checkoutBusy ? 0.65 : 1,
-            }}
-          >
-            {cadence} / month
-          </button>
-        ))}
-      </div>
-
       {result && (
-        <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,.09)' }}>
+        <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,.09)' }}>
           {plannedQuality !== quality && (
             <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
               <span className="text-xs font-bold" style={{ color: '#5cb3ff' }}>
@@ -330,11 +319,10 @@ export default function PlanFitCard({
           {result.plan ? (
             <div>
               <p className="text-sm mb-4" style={{ color: 'var(--muted2)', lineHeight: 1.65 }}>
-                {result.monthlyFilms} {plannedMotor} film{result.monthlyFilms === 1 ? '' : 's'} per month need{' '}
-                <strong style={{ color: 'var(--text)' }}>{result.monthlyCredits} credits</strong>.{' '}
-                <strong style={{ color: '#5cb3ff' }}>{planName(result.plan.tier)}</strong> includes {result.plan.credits} — {currency
-                  ? 'the least expensive self-serve plan that covers that target.'
-                  : 'enough to cover that target. Secure checkout confirms the price.'}
+                <strong style={{ color: '#5cb3ff' }}>{planName(result.plan.tier)}</strong> includes {result.plan.credits} credits. Your {result.monthlyFilms} {plannedMotor} film{result.monthlyFilms === 1 ? '' : 's'} {result.monthlyFilms === 1 ? 'uses' : 'use'}{' '}
+                <strong style={{ color: 'var(--text)' }}>{result.monthlyCredits}</strong> — {currency
+                  ? 'this is the least expensive self-serve plan that covers your goal.'
+                  : 'enough to cover your goal. Secure checkout confirms the price.'}
               </p>
               <button
                 type="button"
@@ -354,15 +342,15 @@ export default function PlanFitCard({
                   : checkoutPending === result.plan.tier
                   ? 'Opening secure checkout…'
                   : currency
-                    ? `Continue with ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`
-                    : `Continue with ${planName(result.plan.tier)} · See secure checkout`}
+                    ? `Start ${planName(result.plan.tier)} — ${priceLabel(result.plan.tier, currency)}/month`
+                    : `Start ${planName(result.plan.tier)} · See secure checkout`}
               </button>
               <p
                 data-plan-fit-checkout-reassurance
                 className="mt-2.5 text-xs font-semibold"
                 style={{ color: 'var(--muted)', lineHeight: 1.5 }}
               >
-                🔒 Secure Stripe checkout · cancel anytime in one click · 7-day money-back
+                🔒 Secure Stripe checkout · {CHECKOUT_PAYMENT_GUIDANCE_COMPACT} · cancel anytime in one click · 7-day money-back
               </p>
               {result.lowerCostAlternative && (
                 <div
@@ -438,6 +426,49 @@ export default function PlanFitCard({
               {checkoutError}
             </p>
           )}
+
+          <details
+            data-plan-fit-advanced
+            className="mt-4 pt-4"
+            style={{ borderTop: '1px solid rgba(255,255,255,.09)' }}
+            onToggle={(event) => {
+              if (!event.currentTarget.open || advancedOpenedRef.current) return
+              advancedOpenedRef.current = true
+              emit('plan_fit_advanced_opened', {
+                source_engine: quality,
+                planned_engine: plannedQuality,
+                monthly_videos: monthlyFilms,
+              })
+            }}
+          >
+            <summary
+              className="text-xs font-black"
+              style={{ color: '#5cb3ff', cursor: 'pointer', listStylePosition: 'inside' }}
+            >
+              Need a different rhythm? Compare 1, 4, 8 or 12 videos/month
+            </summary>
+            <div className="flex flex-wrap gap-2 mt-3" aria-label="Videos per month">
+              {MONTHLY_CADENCES.map((cadence) => (
+                <button
+                  key={cadence}
+                  type="button"
+                  onClick={() => chooseCadence(cadence)}
+                  disabled={checkoutBusy}
+                  aria-pressed={monthlyFilms === cadence}
+                  className="rounded-full px-4 py-2.5 text-xs sm:text-sm font-black"
+                  style={{
+                    background: monthlyFilms === cadence ? '#2997ff' : 'rgba(255,255,255,.04)',
+                    border: monthlyFilms === cadence ? '1px solid #5cb3ff' : '1px solid rgba(255,255,255,.12)',
+                    color: monthlyFilms === cadence ? '#fff' : 'var(--text)',
+                    cursor: checkoutBusy ? 'wait' : 'pointer',
+                    opacity: checkoutBusy ? 0.65 : 1,
+                  }}
+                >
+                  {cadence} / month
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
       )}
     </section>
