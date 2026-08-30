@@ -1741,3 +1741,33 @@ PRÓXIMO DONO:
 **LIMITES DA PROMESSA:** os e-mails propõem um exemplo em um brief adequado, não volume, SLA, desconto, comissão, white-label contratual ou resultado de campanha. Content Beta recebeu proposta de overflow sem footage; inBeat, uma faixa faceless complementar aos criadores; Blend, overflow white-label para brief sem gravação. Não foi usado blast nem template idêntico.
 
 **PRÓXIMA REGRA:** não fazer follow-up antes de resposta ou bounce e não repetir estes três contatos. Qualquer reply deve ser tratado como lead humano distinto; abertura não é lead, UTM não é pessoa e resposta positiva ainda não é assinatura. Claude não deve alterar grant, prazo ou premium-first enquanto esta coorte de 72 horas está formando; Codex mede conversão e continua aquisição B2B.
+
+## 46. Aquisição paga — TAAFT sem novo orçamento por enquanto (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a auditoria financeira e de coorte foi feita fora deste repositório público. A listagem TAAFT produz descoberta, cadastro, vídeo e checkout, mas ainda não demonstrou assinatura atribuível suficiente para justificar um segundo relançamento ou PPC. Os números internos e identificadores de e-mail não são publicados aqui.
+
+**FATO CONFIRMADO / SUPERFÍCIE PÚBLICA:** a listagem observada ainda descrevia uma versão antiga da Kineo e menos motores do que o catálogo atual.
+
+**DECISÃO OPERACIONAL:** não comprar outro relançamento e não iniciar PPC agora. Antes de qualquer teste pago futuro, exigir listagem atualizada, UTMs próprias, orçamento limitado e leitura por pessoa de signup → vídeo → checkout → pagamento.
+
+**EXECUTADO / COMUNICAÇÃO EXTERNA AUTORIZADA:** foi enviada uma resposta ao contato comercial da TAAFT pedindo atualização da listagem e confirmação de UTMs customizadas. Nenhum número interno de funil foi compartilhado. Aguardar resposta; não duplicar contato.
+
+## 47. Aquisição ChatGPT — Kineo 1 carrega uma ideia concreta (30/08/2026)
+
+**BASE DE CÓDIGO:** `f775ef276187b0aa18de23e1d5c8bd5577c79038`, remoto confirmado diretamente no início da worktree isolada `codex/kineo1-topic-starter`.
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** no recorte auditado, a campanha da página Kineo 1 ativou proporcionalmente menos pessoas do que as páginas orgânicas que pedem uma ideia antes do cadastro. Os números por campanha permanecem fora deste repositório público. A diferença sustenta uma hipótese de ativação; não prova causalidade de assinatura.
+
+**FATO CONFIRMADO / CAUSA DE FLUXO:** `app/ai-video-generator/[engine]/page.tsx` enviava hero, CTA final e sticky do Kineo 1 ao signup sem prompt. As páginas de maior ativação reutilizam `TopicGeneratorForm`, que transporta prompt, campanha e intenção de criação. O contrato `create_intent=fast` corresponde exatamente a Kineo 1; aplicar o mesmo autostart a páginas premium poderia trocar o motor prometido, por isso a mudança é exclusiva do Fast.
+
+**IMPLEMENTADO:** commit funcional `3a0f4f4b646bd7861a0b897dd2e7986adf1017dc` faz os três CTAs do Kineo 1 apontarem para o starter na própria página. A pessoa digita ou escolhe uma ideia, e o componente compartilhado leva a ideia e a campanha pelo cadastro até a criação automática no Kineo 1. Seedance, Kling, Veo, H3, Omni e Hollywood preservam o caminho anterior; preço, grant e custo de motor não mudaram.
+
+**TESTADO LOCALMENTE:** `test-engine-landing-intent.mjs` passou 121/121; `test-public-creation-intent.mjs`, 64/64; `test-organic-premium-first.mjs`, 24/24. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-TOPIC-STARTER-2026-08-30.html` contém antes/depois desktop e mobile. O Chrome recusou arquivo local por política de URL; não houve tentativa de contorno. A inspeção visual final acontece na URL HTTPS de produção.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** impacto comercial exige nova pessoa externa seguir starter → signup → primeira entrega → ponte de saldo → checkout → pagamento. Não comparar eventos brutos nem promover uma sessão a pessoa.
+
+**NÃO TOCADO:** preço, grant de 25, expiração, checkout, Stripe, Auth server-side, Supabase schema, migration, Storage, render, motor, cena, legenda, e-mail da onda Claude ou vídeo de cliente.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `3a0f4f4` ou da ponta posterior de `origin/main`. Não duplicar o starter no Kineo 1, não aplicá-lo automaticamente aos motores premium e não mexer no grant enquanto a coorte de 72 horas está formando.
