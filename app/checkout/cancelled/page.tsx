@@ -198,7 +198,62 @@ function CheckoutCancelledContent() {
     resolved: trialResumeProbe.resolved,
     resumeReason: trialResumeProbe.reason,
   })
+  const downshiftAvailable =
+    cancelledPrimary === 'checkout' && !isAutopilotReturn && cheaperTier !== null
   const firstDeliveryHref = `/studio/create?engine=seedance&duration=${TRIAL_FIRST_DELIVERY_DURATION}&intent_campaign=${TRIAL_FIRST_DELIVERY_VERSION}`
+
+  const startSavedCheckout = () => {
+    const started = checkout.launch(checkoutSelection, retryHref, {
+      tier,
+      billing,
+      checkout_product: autopilotReturn?.kind ?? 'self_serve',
+      intro,
+      private_offer: privatePackPromo,
+    })
+    if (!started) return
+    trackEvent(isAutopilotPilot ? 'autopilot_pilot_checkout_retry_clicked' : `${tier}_checkout_retry_clicked`, {
+      tier,
+      billing,
+      checkout_product: autopilotReturn?.kind ?? 'self_serve',
+      intro,
+      private_offer: privatePackPromo,
+      return_to_watermark: returnToWatermark,
+      intent_campaign: intentCampaign,
+      checkout_origin: planFitCheckoutOrigin,
+      plan_fit_engine: planFitEngine,
+      plan_fit_monthly_videos: planFitMonthlyVideos,
+      plan_fit_seconds: planFitSeconds,
+    })
+    trackCheckoutClick(checkoutSelection)
+  }
+
+  const startDownshiftCheckout = (placement: 'primary' | 'objection') => {
+    if (!cheaperTier) return
+    const started = checkout.launch(cheaperTier, cheaperHref, {
+      tier: cheaperTier,
+      billing: 'monthly',
+      intro: Boolean(cheaperIntro),
+      private_offer: false,
+      checkout_origin: 'checkout_cancelled_downshift',
+    })
+    if (!started) return
+    const metadata = {
+      from_tier: tier,
+      to_tier: cheaperTier,
+      placement,
+      intro: Boolean(cheaperIntro),
+      monthly_price_minor: getTierPrice(cheaperTier, checkoutCurrency, priceRegion),
+      return_to_watermark: returnToWatermark,
+      intent_campaign: intentCampaign,
+      checkout_origin: planFitCheckoutOrigin,
+      plan_fit_engine: planFitEngine,
+      plan_fit_monthly_videos: planFitMonthlyVideos,
+      plan_fit_seconds: planFitSeconds,
+    }
+    trackEvent('checkout_downshift_offer_clicked', metadata)
+    trackEvent('checkout_downgrade_offer_clicked', metadata)
+    trackCheckoutClick(cheaperTier)
+  }
 
   // The passive recovery endpoint already owns the financial and trial truth.
   // Reusing its explicit reason keeps this page from inventing a second
@@ -240,6 +295,21 @@ function CheckoutCancelledContent() {
       target_duration: TRIAL_FIRST_DELIVERY_DURATION,
     })
   }, [cancelledPrimary, tier, billing])
+
+  useEffect(() => {
+    if (!downshiftAvailable || !cheaperTier) return
+    trackEvent('checkout_downshift_offer_viewed', {
+      from_tier: tier,
+      to_tier: cheaperTier,
+      monthly_price_minor: getTierPrice(cheaperTier, checkoutCurrency, priceRegion),
+      return_to_watermark: returnToWatermark,
+      intent_campaign: intentCampaign,
+      checkout_origin: planFitCheckoutOrigin,
+      plan_fit_engine: planFitEngine,
+      plan_fit_monthly_videos: planFitMonthlyVideos,
+      plan_fit_seconds: planFitSeconds,
+    })
+  }, [downshiftAvailable, cheaperTier, tier, checkoutCurrency, priceRegion, returnToWatermark, intentCampaign, planFitCheckoutOrigin, planFitEngine, planFitMonthlyVideos, planFitSeconds])
 
   useEffect(() => {
     trackEvent('checkout_cancelled', {
@@ -304,6 +374,55 @@ function CheckoutCancelledContent() {
             </>
           ) : (
             <>
+          {downshiftAvailable && cheaperTier ? (
+            <div data-checkout-downshift-primary="true">
+              <p style={{ margin: 0, color: '#62b3ff', fontSize: '0.7rem', fontWeight: 900, letterSpacing: '.09em', textTransform: 'uppercase' }}>
+                Start smaller · same clean exports
+              </p>
+              <p style={{ fontSize: '1rem', color: 'var(--text)', fontWeight: 850, margin: '6px 0 0' }}>
+                {cheaperName} — {monthlyOf(cheaperTier)}/month
+              </p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '6px 0 14px', lineHeight: 1.55 }}>
+                Keep the same watermark-free 9:16 MP4 exports with fewer videos per month. Upgrade whenever you need more.
+              </p>
+              {planFitReturn && (
+                <p style={{ margin: '0 0 14px', padding: '10px 12px', borderRadius: 11, border: '1px solid rgba(98,179,255,.24)', background: 'rgba(41,151,255,.065)', color: 'var(--muted2)', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                  Your original {planName} goal stays saved. This smaller plan is a lighter starting point.
+                </p>
+              )}
+              <a
+                href="/pricing"
+                aria-disabled={checkout.pending !== null}
+                onClick={(e) => {
+                  e.preventDefault()
+                  startDownshiftCheckout('primary')
+                }}
+                style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)', opacity: checkout.pending !== null ? 0.7 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
+              >
+                {checkout.pending !== null ? 'Opening secure checkout…' : `Start ${cheaperName} — ${monthlyOf(cheaperTier)}/month →`}
+              </a>
+              <a
+                href="/pricing"
+                aria-disabled={checkout.pending !== null}
+                onClick={(e) => {
+                  e.preventDefault()
+                  startSavedCheckout()
+                }}
+                style={{ display: 'block', marginTop: 10, textAlign: 'center', textDecoration: 'none', padding: '10px 12px', borderRadius: 11, fontSize: '0.8rem', fontWeight: 800, color: 'var(--muted2)', border: '1px solid var(--border)', opacity: checkout.pending !== null ? 0.65 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
+              >
+                Keep {planName} — {todayPrice}
+              </a>
+              {checkout.error && (
+                <p role="alert" style={{ marginTop: 10, fontSize: '0.8rem', color: '#ff6b6b', fontWeight: 700, textAlign: 'center' }}>
+                  {checkout.error}
+                </p>
+              )}
+              <p style={{ marginTop: 10, fontSize: '0.8rem', color: 'var(--muted2)', textAlign: 'center', fontWeight: 600 }}>
+                7-day money-back guarantee · cancel anytime in one click
+              </p>
+            </div>
+          ) : (
+            <>
           <p style={{ fontSize: '0.92rem', color: 'var(--text)', fontWeight: 700, margin: 0 }}>{planName} — {todayPrice}</p>
           <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', margin: '4px 0 14px', lineHeight: 1.5 }}>{renewalCopy}</p>
           {planFitReturn && (
@@ -333,28 +452,7 @@ function CheckoutCancelledContent() {
             aria-disabled={checkout.pending !== null}
             onClick={(e) => {
               e.preventDefault()
-              const started = checkout.launch(checkoutSelection, retryHref, {
-                tier,
-                billing,
-                checkout_product: autopilotReturn?.kind ?? 'self_serve',
-                intro,
-                private_offer: privatePackPromo,
-              })
-              if (!started) return
-              trackEvent(isAutopilotPilot ? 'autopilot_pilot_checkout_retry_clicked' : `${tier}_checkout_retry_clicked`, {
-                tier,
-                billing,
-                checkout_product: autopilotReturn?.kind ?? 'self_serve',
-                intro,
-                private_offer: privatePackPromo,
-                return_to_watermark: returnToWatermark,
-                intent_campaign: intentCampaign,
-                checkout_origin: planFitCheckoutOrigin,
-                plan_fit_engine: planFitEngine,
-                plan_fit_monthly_videos: planFitMonthlyVideos,
-                plan_fit_seconds: planFitSeconds,
-              })
-              trackCheckoutClick(checkoutSelection)
+              startSavedCheckout()
             }}
             style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '13px 14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)', boxShadow: '0 8px 24px rgba(41,151,255,.28)', opacity: checkout.pending !== null ? 0.7 : 1, cursor: checkout.pending !== null ? 'wait' : 'pointer' }}
           >
@@ -376,6 +474,8 @@ function CheckoutCancelledContent() {
               ? 'Secure Stripe checkout · one-time payment · no auto-renew'
               : '7-day money-back guarantee · cancel anytime in one click'}
           </p>
+            </>
+          )}
             </>
           )}
         </div>
@@ -499,19 +599,7 @@ function CheckoutCancelledContent() {
                       href="/pricing"
                       onClick={(e) => {
                         e.preventDefault()
-                        const started = checkout.launch(cheaperTier, cheaperHref, {
-                          tier: cheaperTier,
-                          billing: 'monthly',
-                          intro: Boolean(cheaperIntro),
-                          private_offer: false,
-                        })
-                        if (!started) return
-                        trackEvent('checkout_downgrade_offer_clicked', {
-                          from_tier: tier,
-                          to_tier: cheaperTier,
-                          intro: Boolean(cheaperIntro),
-                        })
-                        trackCheckoutClick(cheaperTier)
+                        startDownshiftCheckout('objection')
                       }}
                       style={{ display: 'block', textAlign: 'center', textDecoration: 'none', padding: '11px 14px', borderRadius: 12, fontSize: '0.85rem', fontWeight: 900, color: '#fff', background: 'linear-gradient(135deg, #2997ff, #1d6fe0)' }}
                     >

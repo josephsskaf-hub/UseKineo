@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kineo checkout recovery — before and after</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: #07080a; color: #f7f7f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 34px; background: radial-gradient(circle at 50% 0%, #172033 0, #07080a 42%); }
+    header { max-width: 1180px; margin: 0 auto 28px; }
+    h1 { margin: 0 0 8px; font-size: clamp(24px, 4vw, 40px); letter-spacing: -.035em; }
+    header p { margin: 0; color: #9ea2ad; line-height: 1.55; }
+    .grid { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .stage { border: 1px solid #292c33; border-radius: 22px; padding: 22px; background: rgba(12,13,16,.82); }
+    .label { display: inline-flex; margin-bottom: 16px; border-radius: 99px; padding: 6px 10px; font-size: 11px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .before { color: #ffb2b2; background: rgba(255,92,92,.12); border: 1px solid rgba(255,92,92,.28); }
+    .after { color: #8fc8ff; background: rgba(41,151,255,.13); border: 1px solid rgba(41,151,255,.30); }
+    .viewport { min-height: 570px; display: grid; place-items: center; border-radius: 16px; padding: 28px; overflow: hidden; background: #090a0d; }
+    .card { width: min(100%, 500px); padding: 32px; border-radius: 22px; border: 1px solid #2b2d34; background: #131316; box-shadow: 0 18px 55px rgba(0,0,0,.55); }
+    .title { margin: 0; text-align: center; font-size: 27px; letter-spacing: -.025em; }
+    .sub { margin: 10px 0 0; text-align: center; color: #9ea2ad; font-size: 14px; line-height: 1.55; }
+    .saved { margin: 9px 0 0; text-align: center; color: #2997ff; font-size: 13px; font-weight: 800; }
+    .offer { margin-top: 22px; padding: 18px; border-radius: 16px; border: 1px solid rgba(41,151,255,.3); background: linear-gradient(135deg, rgba(41,151,255,.10), rgba(41,151,255,.06)); }
+    .eyebrow { margin: 0; color: #62b3ff; font-size: 11px; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+    .plan { margin: 6px 0 0; font-size: 16px; font-weight: 850; }
+    .copy { margin: 6px 0 14px; color: #9ea2ad; font-size: 13px; line-height: 1.55; }
+    .button { display: block; padding: 13px 14px; border-radius: 12px; text-align: center; color: white; font-size: 14px; font-weight: 900; background: linear-gradient(135deg, #2997ff, #1d6fe0); box-shadow: 0 8px 24px rgba(41,151,255,.28); }
+    .secondary { margin-top: 10px; padding: 10px 12px; border: 1px solid #30323a; border-radius: 11px; color: #9ea2ad; text-align: center; font-size: 13px; font-weight: 800; }
+    .safe { margin: 10px 0 0; color: #9ea2ad; text-align: center; font-size: 12px; font-weight: 650; }
+    .question { margin: 16px 0 0; color: #9ea2ad; text-align: center; font-size: 13px; font-weight: 750; }
+    .chips { margin-top: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+    .chip { padding: 8px 11px; border: 1px solid #30323a; border-radius: 99px; color: #e7e7eb; font-size: 12px; background: rgba(255,255,255,.04); }
+    .mobile-row { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 340px)); justify-content: center; gap: 24px; }
+    .phone { padding: 12px; border-radius: 32px; background: #020203; border: 1px solid #353740; box-shadow: 0 18px 55px rgba(0,0,0,.6); }
+    .phone .viewport { min-height: 620px; padding: 14px; border-radius: 23px; }
+    .phone .card { padding: 22px 18px; border-radius: 18px; }
+    .phone .title { font-size: 22px; }
+    .phone .chips { gap: 5px; }
+    .phone .chip { font-size: 10px; padding: 7px 8px; }
+    @media (max-width: 850px) {
+      body { padding: 20px 12px; }
+      .grid, .mobile-row { grid-template-columns: 1fr; }
+      .stage { padding: 14px; }
+      .viewport { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Checkout recovery: show the smaller commitment first</h1>
+    <p>The saved plan remains available. No discount, new promise, credit change, or Stripe contract is introduced.</p>
+  </header>
+  <main class="grid">
+    <section class="stage">
+      <span class="label before">Before · desktop</span>
+      <div class="viewport"><article class="card">
+        <h2 class="title">Payment was not completed.</h2>
+        <p class="sub">Your card was not charged if checkout was not completed.</p>
+        <p class="saved">Your selected plan is saved below.</p>
+        <div class="offer">
+          <p class="plan">Creator — $15/month</p>
+          <p class="copy">Renews at $15/month in 30 days. Cancel anytime.</p>
+          <div class="button">Try secure checkout again →</div>
+          <p class="safe">7-day money-back guarantee · cancel anytime in one click</p>
+        </div>
+        <p class="question">What stopped you? One tap — we’ll answer it right here.</p>
+        <div class="chips"><span class="chip">Too expensive</span><span class="chip">Not sure which plan</span><span class="chip">I had questions</span><span class="chip">Just looking</span></div>
+      </article></div>
+    </section>
+
+    <section class="stage">
+      <span class="label after">After · desktop</span>
+      <div class="viewport"><article class="card">
+        <h2 class="title">Payment was not completed.</h2>
+        <p class="sub">Your card was not charged if checkout was not completed.</p>
+        <p class="saved">Your selected plan is saved below.</p>
+        <div class="offer">
+          <p class="eyebrow">Start smaller · same clean exports</p>
+          <p class="plan">Starter — $7/month</p>
+          <p class="copy">Keep the same watermark-free 9:16 MP4 exports with fewer videos per month. Upgrade whenever you need more.</p>
+          <div class="button">Start Starter — $7/month →</div>
+          <div class="secondary">Keep Creator — $15/month</div>
+          <p class="safe">7-day money-back guarantee · cancel anytime in one click</p>
+        </div>
+        <p class="question">What stopped you? One tap — we’ll answer it right here.</p>
+        <div class="chips"><span class="chip">Too expensive</span><span class="chip">Not sure which plan</span><span class="chip">I had questions</span><span class="chip">Just looking</span></div>
+      </article></div>
+    </section>
+
+    <section class="mobile-row">
+      <div class="stage"><span class="label before">Before · mobile</span><div class="phone"><div class="viewport"><article class="card">
+        <h2 class="title">Payment was not completed.</h2><p class="sub">Your card was not charged.</p><p class="saved">Your selected plan is saved below.</p>
+        <div class="offer"><p class="plan">Creator — $15/month</p><p class="copy">Renews monthly. Cancel anytime.</p><div class="button">Try secure checkout again →</div><p class="safe">7-day money-back guarantee</p></div>
+        <p class="question">What stopped you?</p><div class="chips"><span class="chip">Too expensive</span><span class="chip">Not sure</span><span class="chip">Questions</span></div>
+      </article></div></div></div>
+      <div class="stage"><span class="label after">After · mobile</span><div class="phone"><div class="viewport"><article class="card">
+        <h2 class="title">Payment was not completed.</h2><p class="sub">Your card was not charged.</p><p class="saved">Your selected plan is saved below.</p>
+        <div class="offer"><p class="eyebrow">Start smaller · same clean exports</p><p class="plan">Starter — $7/month</p><p class="copy">Same watermark-free exports, fewer videos. Upgrade anytime.</p><div class="button">Start Starter — $7/month →</div><div class="secondary">Keep Creator — $15/month</div><p class="safe">7-day money-back guarantee</p></div>
+        <p class="question">What stopped you?</p><div class="chips"><span class="chip">Too expensive</span><span class="chip">Not sure</span><span class="chip">Questions</span></div>
+      </article></div></div></div>
+    </section>
+  </main>
+</body>
+</html>
