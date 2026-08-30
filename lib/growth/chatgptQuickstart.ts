@@ -1,4 +1,4 @@
-export const CHATGPT_QUICKSTART_VARIANT = 'chatgpt_quickstart_v4'
+export const CHATGPT_QUICKSTART_VARIANT = 'chatgpt_quickstart_v5'
 
 export const CHATGPT_QUICKSTART_INPUT_LIMIT = 1000
 

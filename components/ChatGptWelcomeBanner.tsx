@@ -4,38 +4,21 @@
 //
 // O PÚBLICO, medido antes de escrever uma linha (22/08):
 //   150 pessoas chegaram com utm_source=chatgpt.com. Elas são o DOBRO dos
-//   outros grupos em todo passo do funil — 31% baixam vídeo (outros: 15%),
-//   22% usam motor premium (outros: 10%), 14% abrem checkout (outros: 6-10%)
-//   — e ZERO pagaram. Todas.
+// outros grupos em todo passo do funil e ZERO pagaram.
 //
-// O DIAGNÓSTICO que esta faixa ataca: elas caem por LINK PROFUNDO direto no
-// /generate. Nunca veem a home, a vitrine de motores, os exemplos nem a
-// âncora de preço. Chegam com a instrução do ChatGPT ("esta ferramenta faz
-// vídeo grátis"), usam, e quando o preço aparece é a PRIMEIRA notícia de que
-// existe preço — 21 abriram o checkout e nenhuma tentou uma segunda vez.
-// A narrativa de valor do site inteiro é pulada; esta faixa entrega o
-// essencial dela em uma linha, ANTES do choque.
-//
-// POR QUE UMA FAIXA E NÃO UM MODAL: a pessoa veio EXECUTAR uma tarefa que o
-// ChatGPT prometeu. Bloquear a execução com overlay no primeiro segundo é o
-// jeito mais rápido de contradizer a promessa. Faixa informa sem cobrar.
-//
-// COMO DETECTA: lê o FIRST-TOUCH que lib/analytics já persiste (localStorage
-// `kineo_src` + cookie) — a mesma fonte da atribuição de aquisição. Isso
-// resolve o problema do utm se perder no redirect de signup/OAuth: não
-// importa em qual página a pessoa está agora, importa de onde ela CHEGOU.
-// Nenhuma captura nova, nenhuma chave nova de storage para envelhecer.
-//
-// Números DERIVADOS (TRIAL_GRANT_CREDITS_COPY, STARTER_MO) — a lição
-// permanente das copies que mentiram depois de cada reprice.
-import { useEffect, useState } from 'react'
+// KINEO-CHATGPT-QUICKSTART-V5-2026-08-30 — a versão v4 escondia o campo de
+// texto até a pessoa classificar o que tinha. Em produção, por pessoa, 11
+// viram a v4, 5 colaram/avançaram e as 5 escolheram roteiro completo; nenhuma
+// escolheu "só ideia". A v5 remove essa decisão anterior ao trabalho: o campo
+// aparece imediatamente, "usar este roteiro" é primário e autoria por IA
+// continua explícita como alternativa. Nenhum clique daqui gera ou debita.
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { STARTER_MO } from '@/lib/marketingPrice'
 import {
-  CHATGPT_QUICKSTARTS,
   CHATGPT_QUICKSTART_INPUT_LIMIT,
   CHATGPT_QUICKSTART_VARIANT,
   buildChatGptQuickstartHref,
@@ -62,8 +45,6 @@ function firstTouchIsChatGpt(): boolean {
       if ((src.referrer ?? '').includes('chatgpt')) return true
     }
   } catch { /* sem fonte legível = sem faixa */ }
-  // Último degrau: o utm ainda está na URL (primeiro pageview, antes de
-  // qualquer persistência ter rodado).
   try {
     return (new URLSearchParams(window.location.search).get('utm_source') ?? '').includes('chatgpt')
   } catch {
@@ -120,81 +101,61 @@ export function ChatGptWelcomeCard({
   onSelect: (choice: ChatGptQuickstartChoice, input: string) => void
   onDismiss: () => void
 }) {
-  const [choice, setChoice] = useState<ChatGptQuickstartChoice | null>(null)
   const [input, setInput] = useState('')
+  const inputOpenedTracked = useRef(false)
   const ready = input.trim().length > 0
 
-  const choose = (nextChoice: ChatGptQuickstartChoice) => {
-    setChoice(nextChoice)
+  const trackInputOpened = () => {
+    if (inputOpenedTracked.current) return
+    inputOpenedTracked.current = true
     void trackEvent('chatgpt_quickstart_input_opened', {
       variant: CHATGPT_QUICKSTART_VARIANT,
-      input_type: nextChoice,
+      input_type: 'unclassified',
     })
   }
 
   return (
-    <section
-      role="region"
-      aria-label="ChatGPT quick start"
-      className={styles.quickstart}
-    >
+    <section role="region" aria-label="ChatGPT quick start" className={styles.quickstart}>
       <div className={styles.copy}>
         <div className={styles.eyebrow}>Continue from ChatGPT</div>
-        <h2>Turn that answer into a finished Short</h2>
-        <p>Choose what ChatGPT gave you, paste it here once, and Kineo carries it into the right studio mode.</p>
+        <h2>Paste the answer. Make the Short.</h2>
+        <p>Use the script as written, or let Kineo turn a rough idea into the hook, scenes and payoff.</p>
       </div>
-      <div className={styles.options} aria-label="Choose what you have">
-          {CHATGPT_QUICKSTARTS.map((option, index) => (
-            <button
-              type="button"
-              key={option.choice}
-              aria-pressed={choice === option.choice}
-              className={`${styles.option}${index === 0 ? ` ${styles.optionPrimary}` : ''}${choice === option.choice ? ` ${styles.optionSelected}` : ''}`}
-              onClick={() => choose(option.choice)}
-            >
-              <span className={styles.optionLabel}>{option.label}</span>
-              <span className={styles.optionDetail}>{option.detail}</span>
-            </button>
-          ))}
-      </div>
-      {choice ? (
-        <div className={styles.editor}>
-          <label htmlFor="chatgpt-quickstart-input">
-            {choice === 'finished_script' ? 'Paste the complete script' : 'Paste the idea or topic'}
-          </label>
-          <div className={styles.editorRow}>
-            <textarea
-              id="chatgpt-quickstart-input"
-              autoFocus
-              value={input}
-              maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}
-              rows={3}
-              placeholder={choice === 'finished_script'
-                ? 'Paste the script exactly as ChatGPT wrote it…'
-                : 'Example: The lighthouse that kept flashing after its keeper vanished…'}
-              onChange={(event) => setInput(event.target.value)}
-            />
-            <button
-              type="button"
-              className={styles.continueButton}
-              disabled={!ready}
-              onClick={() => onSelect(choice, input)}
-            >
-              {choice === 'finished_script' ? 'Open Studio with this script' : 'Open Studio with this idea'}
-            </button>
-          </div>
-          <span>Your text stays editable before anything is generated.</span>
+      <div className={styles.editor}>
+        <label htmlFor="chatgpt-quickstart-input">Paste the answer from ChatGPT</label>
+        <textarea
+          id="chatgpt-quickstart-input"
+          value={input}
+          maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}
+          rows={3}
+          placeholder="Paste the script, outline or idea here…"
+          onFocus={trackInputOpened}
+          onChange={(event) => setInput(event.target.value)}
+        />
+        <div className={styles.editorActions}>
+          <button
+            type="button"
+            className={styles.continueButton}
+            disabled={!ready}
+            onClick={() => onSelect('finished_script', input)}
+          >
+            Use this script →
+          </button>
+          <button
+            type="button"
+            className={styles.ideaButton}
+            disabled={!ready}
+            onClick={() => onSelect('idea', input)}
+          >
+            I only have an idea — write the script
+          </button>
         </div>
-      ) : null}
+        <span>Your text stays editable in Studio before anything is generated.</span>
+      </div>
       <p className={styles.proof}>
         {TRIAL_GRANT_CREDITS_COPY} trial credits already included · no card to start · plans from {STARTER_MO}
       </p>
-      <button
-        type="button"
-        aria-label="Dismiss"
-        className={styles.dismiss}
-        onClick={onDismiss}
-      >
+      <button type="button" aria-label="Dismiss" className={styles.dismiss} onClick={onDismiss}>
         ×
       </button>
     </section>
