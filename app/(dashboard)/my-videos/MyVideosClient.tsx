@@ -131,6 +131,9 @@ function isWatermarkedFastAsset(video: VideoRow): boolean {
 
 export default function MyVideosClient({ videos, loadError = false }: { videos: VideoRow[]; loadError?: boolean }) {
   const [filter, setFilter] = useState<FilterKey>('all')
+  // sprint-ui #9 (29-30/08) — busca por titulo/prompt. Com dezenas (o fundador
+  // tem 327) de videos, achar UM era rolagem infinita. Client-side, zero rede.
+  const [query, setQuery] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   // Push #100 — mobile tap-to-play: only one card pinned at a time so
@@ -204,13 +207,15 @@ export default function MyVideosClient({ videos, loadError = false }: { videos: 
   }, [videos])
 
   const filtered = useMemo(() => {
-    if (filter === 'all') return videos
-    if (filter === 'completed') return videos.filter((v) => v.status === 'completed')
-    if (filter === 'processing') return videos.filter((v) => v.status === 'processing')
-    if (filter === 'failed')
-      return videos.filter((v) => v.status === 'failed' || v.status === 'cancelled')
-    return videos
-  }, [videos, filter])
+    let base = videos
+    if (filter === 'completed') base = videos.filter((v) => v.status === 'completed')
+    else if (filter === 'processing') base = videos.filter((v) => v.status === 'processing')
+    else if (filter === 'failed')
+      base = videos.filter((v) => v.status === 'failed' || v.status === 'cancelled')
+    const q = query.trim().toLowerCase()
+    if (!q) return base
+    return base.filter((v) => `${v.title} ${v.prompt ?? ''}`.toLowerCase().includes(q))
+  }, [videos, filter, query])
 
   async function handleCopyLink(v: VideoRow) {
     if (!v.video_url) return
@@ -318,6 +323,21 @@ export default function MyVideosClient({ videos, loadError = false }: { videos: 
     <div className="px-4 sm:px-6 py-7 pb-20">
       <Header count={videos.length} />
 
+      {videos.length >= 6 && (
+        <div className="mb-4" style={{ position: 'relative', maxWidth: 420 }}>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search your videos…"
+            aria-label="Search your videos by title"
+            className="w-full rounded-xl"
+            style={{ background: 'var(--card)', border: '1px solid var(--border)', color: 'var(--fg, #f5f5f7)', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none' }}
+          />
+        </div>
+      )}
+
       <FilterTabs filter={filter} counts={counts} onChange={setFilter} />
 
       {filtered.length === 0 ? (
@@ -326,8 +346,18 @@ export default function MyVideosClient({ videos, loadError = false }: { videos: 
           style={{ background: 'var(--card)', border: '1px solid var(--border)' }}
         >
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
-            No videos match this filter.
+            {query.trim() ? <>No videos match &ldquo;{query.trim()}&rdquo;.</> : 'No videos match this filter.'}
           </p>
+          {query.trim() && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="mt-4 rounded-xl px-4 py-2 text-sm font-bold"
+              style={{ background: 'rgba(41,151,255,.12)', border: '1px solid rgba(41,151,255,.4)', color: '#2997ff', cursor: 'pointer' }}
+            >
+              Clear search
+            </button>
+          )}
         </div>
       ) : (
         <div className="mv-grid">

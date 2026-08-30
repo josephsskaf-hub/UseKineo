@@ -107,3 +107,20 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     de render, 0 checkouts, 0 downloads. Eventos: 7 generation_stage_reached,
     5 landing sessions, 4 stranded_ready_sent, 2 organic_signup. Nenhuma
     causa antiga. Madrugada saudavel.
+- [Sprint 9 · 03:45] Busca nos videos: /history e /my-videos ganharam campo
+  "Search your videos…" (titulo + tema/prompt, instantaneo, sem rede). O
+  fundador tem 327 videos e achar UM era rolagem infinita — cliente com 20+
+  sofria igual e desistia de reusar o acervo. So aparece com 6+ videos; zero
+  resultado mostra o termo + botao Clear search; 16px anti-zoom (licao do
+  sprint #1); contadores/abas seguem contando o acervo total. 15 verificacoes
+  em scripts/test-videos-search.mjs.
+  (Rebase: origin/main avancou p/ 9ccdd0b — 4 commits docs do Codex; sprints
+  #1-#8 rebaseados limpos por cima. NOTA DE INFRA: o .git montado via OneDrive
+  recusou unlink/rebase nesta sessao ["Operation not permitted"]; trabalho foi
+  feito em clone /tmp com push de volta so da ref. Sobrou um ref perm-test e
+  um packed-refs.lock orfaos no .git — inofensivos, remover quando o OneDrive
+  soltar os arquivos.)
+  · Pulso 02:45-03:45 BRT: 1 cadastro novo (free, nasceu com 6 creditos — nao
+    e zero, parece variante de oferta; anotado), 1 video completed (dispatch
+    cinematic ok), 0 erros de render, 0 checkouts, 0 downloads, 3 landing
+    sessions, 3 e-mails de ciclo de trial. Noite calma.
