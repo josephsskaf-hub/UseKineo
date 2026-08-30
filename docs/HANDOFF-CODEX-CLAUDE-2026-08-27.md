@@ -2271,3 +2271,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, método Stripe, configuração Link, webhook financeiro, dados do Supabase, pipeline de render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `454f3bef` ou da ponta posterior. Não ligar `PAYPAL_ENABLED`, não desligar Link e não duplicar a orientação. Codex mede `checkout_payment_guidance_v1` por pessoa e segue aquisição/assinaturas.
+
+## 72. Pós-vídeo — Plan Fit vira ponte direta de assinatura (30/08/2026)
+
+**FATO CONFIRMADO / CAUSA NO CÓDIGO:** a versão `plan_fit_ready_1_video_v2` calculava o tier mínimo e deixava checkout disponível, mas apresentava a seleção de quatro cadências antes da recomendação. A primeira leitura misturava planejamento, custo do motor, créditos mensais, alternativa mais barata e CTA.
+
+**IMPLEMENTADO:** o commit funcional `368cd2c6d54913e866ccbd4fa3a4ed3717fbc9d6` cria `plan_fit_direct_win_v3`. A primeira leitura agora mostra filme concluído, benefício de export pago sem watermark, plano mínimo calculado pela fonte canônica, créditos incluídos, consumo do objetivo, preço canônico e um CTA `Start {plan}`. As cadências canônicas 1/4/8/12 continuam disponíveis dentro de `Need a different rhythm?`, depois do checkout. Nenhum tier, crédito ou preço foi hardcodado.
+
+**MEDIÇÃO:** `plan_fit_impression` recebe a nova versão; `plan_fit_checkout_clicked` mede intenção antes do preflight; `plan_fit_checkout_started` continua provando que o lançamento protegido foi aceito; `plan_fit_advanced_opened` separa quem quis planejar outra cadência e tem dedupe por card montado. Avaliar por pessoa, nunca por volume bruto de eventos.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-READY-DECISION-2026-08-30.html` contém antes/depois em desktop e 390px. Foi servido localmente e inspecionado no Chrome conectado do fundador, sem erro de console.
+
+**TESTADO LOCALMENTE:** 531 verificações passaram: Plan Fit 354/354, payment guidance 29/29, checkout value context 59/59, trial post-video primary 57/57 e trial post-video funnel 32/32. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. `git diff --check` ficou limpo.
+
+**DECISÃO DO TRIAL PRESERVADA:** manter grant de 25 créditos, validade vigente e sampler 15+5+5 durante a coorte `trial_first_seedance_35s_v2`. Esta entrega não aumenta, reduz, expira nem redireciona créditos. As ondas COMEBACK50/+25 continuam propriedade do Claude e não foram duplicadas.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, entitlement, Stripe server, configuração Link, PayPal, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**ESTADO ANTES DO PUSH:** IMPLEMENTADO e TESTADO LOCALMENTE. Ainda não classificar como validado em produção nem como conversão. Depois do deploy, verificar o card no produto, runtime errors e a cadeia por pessoa `plan_fit_impression → plan_fit_checkout_clicked → plan_fit_checkout_started → PaymentIntent → payment_success`.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir da ponta posterior ao commit funcional `368cd2c6`. Não restaurar a calculadora na primeira leitura, não duplicar Plan Fit, não ligar PayPal e não alterar o trial durante a coorte.
