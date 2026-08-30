@@ -1699,3 +1699,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** `components/growth/PlanFitCard.tsx`, cálculo, preço, grant, desconto, Stripe server-side, webhook, Auth, migration, Storage, render, motor, cena, legenda, e-mail, outreach ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `e41256f` ou da ponta posterior de `origin/main`. Não mover o Plan Fit de volta para depois de `NextShorts` e não reintroduzir outra oferta recorrente no primeiro slot. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 44. Aquisição por parceiros — atribuição afiliada fecha no cadastro (29/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / ESTOQUE HISTÓRICO (consulta em 29/08/2026):** `affiliate_clicks` tinha 18 linhas para quatro afiliados externos e `affiliate_referrals` tinha zero pessoa. Cinco das 18 linhas declaravam user agents de bot/crawler; os demais cliques não podem ser promovidos a pessoas sem identidade comum. Seis perfis externos nasceram até 15 minutos depois de algum clique, mas traziam fontes TAAFT, ChatGPT, indicação Kineo ou vazias; proximidade temporal não prova atribuição e não foi contada como conversão afiliada.
+
+**FATO CONFIRMADO / CAUSA DE FLUXO:** `AffiliateAutoTrigger` estava montado somente em `app/(dashboard)/layout.tsx`. O cadastro por e-mail já aguardava `/api/auth/activation-completed` e então podia navegar para a home pública; OAuth/confirmação também podiam terminar na home por `app/auth/callback/route.ts`. Portanto uma conta válida podia existir sem aparecer no painel do parceiro até entrar mais tarde no dashboard ou abrir checkout. A prova financeira permanecia em cookie por 90 dias e o checkout tinha fallback, então isto era atraso estrutural de reconhecimento, não prova de perda definitiva de comissão.
+
+**IMPLEMENTADO:** commit funcional `076ca7bb9cddc8d5fabbe79c57265db8d712d27a` adiciona `lib/affiliateSignupFinalization.ts` e chama a mesma primitiva protegida `attributeAffiliateForUser` nos dois pontos autoritativos de criação: callback OAuth/confirmação e ativação aguardada do cadastro por e-mail. A prova continua exigindo click UUID server-owned, conta criada depois do clique, afiliado ativo e first-touch único. O trigger do dashboard e o fallback pré-Stripe permanecem como retries.
+
+**IMPLEMENTADO / FALHA SEGURA:** sucesso e rejeições terminais limpam código, prova e hint; falhas transitórias preservam os cookies para retry. Cadastro sem cookie faz zero consulta e zero evento. A telemetria nova `affiliate_signup_attribution_result` grava apenas `source`, outcome limitado e estado idempotente; não grava código do afiliado, click UUID, e-mail, prompt ou segredo.
+
+**TESTADO LOCALMENTE:** `node scripts/test-affiliate-attribution.mjs` executou 91/91 verificações; `node scripts/test-affiliate-destinations.mjs`, 230/230; `node scripts/test-trial-grant-orfao.mjs`, 14/14. As provas cobrem no-cookie, atribuição nova, first-touch existente, proof inválido, falha transitória, privacidade da telemetria, ordem trial → atribuição → redirect e o caminho direto por e-mail. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
+
+**VALIDADO EM PRODUÇÃO (29/08/2026 BRT):** push remoto confirmado diretamente em `076ca7bb9cddc8d5fabbe79c57265db8d712d27a`. Deploy Vercel `dpl_GedMFcgsoZTR3iSpayor1RFVhjhQ` chegou a `READY`, target `production`, aliases incluindo `www.usekineo.com`, no SHA exato. O Chrome conectado do fundador carregou a produção e a sessão autenticada navegou normalmente para `/studio`. A Vercel encontrou zero erro runtime nas rotas `/auth/callback` e `/api/auth/activation-completed` nos 10 minutos consultados.
+
+**BASELINE PÓS-DEPLOY:** desde 01:57:51 UTC até a consulta imediata havia zero novo clique afiliado, zero signup concluído, zero resultado de atribuição e zero referral. Isto confirma ausência de tráfego elegível na janela, não sucesso comercial. A primeira validação causal exige um novo visitante seguir um link com prova, criar conta no mesmo navegador e produzir exatamente um referral/um evento.
+
+**SEM COMPARAÇÃO VISUAL:** não houve mudança de interface, copy ou layout; a entrega é exclusivamente server-side no momento do cadastro.
+
+**NÃO TOCADO:** preço, grant, expiração, oferta, Stripe Session, webhook, comissão, schema, migration, Storage, render, motor, cena, legenda, e-mail, outreach, vídeo de cliente ou dados existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `076ca7b` ou da ponta posterior de `origin/main`. Não remover os retries do dashboard/checkout nem afrouxar a prova server-owned. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
