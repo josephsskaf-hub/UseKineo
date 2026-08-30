@@ -25,3 +25,18 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
   · Pulso 20:25-21:25 BRT: 0 cadastros, 1 video completed de cliente real
     (fluxo cinematic, dispatch ok), 2 downloads, 0 erros de render, 0
     checkouts, 4 e-mails de ciclo de trial. Noite calma e saudavel.
+- [Sprint 4 · 22:35] My Videos sem mentira de vazio (as DUAS telas): /history
+  e /my-videos ignoravam o `error` do select — a page do /history e a
+  exata tela onde o fundador viu "No videos yet" com 327 videos intactos no
+  incidente JWT-skew. Falha de leitura agora mostra aviso ambar "your videos
+  and credits are safe" + Try again, nos dois lugares. Bonus: o commit do
+  sprint 3 tinha um symlink node_modules commitado por engano — removido no
+  rebase. 16 verificacoes em scripts/test-myvideos-error-state.mjs.
+  (Rebase: origin/main avancou p/ e86710c — sprints recriados em cima:
+  #1=0450a1e #2=5d12c9c #3=5d74676. Obs de infra: o mount OneDrive desta
+  sessao bloqueou DELETE de arquivos; trabalho feito em clone local e
+  devolvido por push interno.)
+  · Pulso 21:35-22:35 BRT: 1 cadastro novo COM credito (25cr, ja gastou 19 e
+    completou 1 video — ativacao imediata), 2 generation_stage_error benignos
+    (guardrail: "speech=38s target=45s", produto pedindo mais 12 palavras),
+    0 checkouts, 0 downloads, 6 e-mails de trial. Nenhuma causa antiga. Saudavel.

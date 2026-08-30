@@ -108,5 +108,7 @@ export default async function MyVideosPage() {
 
   const videos: VideoRow[] = rows.map(toRow)
 
-  return <MyVideosClient videos={videos} />
+  // KINEO-SPRINT-UI4-2026-08-29 — se ate o select estreito falhou, avisar a
+  // tela: lista vazia por ERRO nao pode vestir a roupa de "No videos yet".
+  return <MyVideosClient videos={videos} loadError={Boolean(query.error)} />
 }

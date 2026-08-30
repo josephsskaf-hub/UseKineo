@@ -18,7 +18,11 @@ export default async function MyVideosPage() {
   // backstop — it must show every status, not just 'completed', or a user
   // whose tab died mid-render sees "No videos yet" and assumes the product
   // ate their credit. HistoryClient renders each status distinctly.
-  const { data: videos } = await supabase
+  // KINEO-SPRINT-UI4-2026-08-29 — licao do incidente JWT-skew (28/08): esta
+  // page IGNORAVA o `error` do select, entao falha de leitura virava lista
+  // vazia e o cliente via "No videos yet" com o acervo intacto (o fundador
+  // viu isso com 327 videos). O erro agora chega na tela como erro.
+  const { data: videos, error: loadError } = await supabase
     .from('videos')
     .select('id, video_url, thumbnail_url, topic, youtube_description, hashtags, status, quality_mode, credits_used, created_at, enhanced_url, enhance_request_id')
     .eq('user_id', user.id)
@@ -38,5 +42,9 @@ export default async function MyVideosPage() {
     // 300 volta a doer três vezes mais que o 100 doía. Mexeu num, olha o outro.
     .limit(300)
 
-  return <MyVideosClient videos={videos ?? []} />
+  if (loadError) {
+    console.warn('[history] videos read failed; rendering safety notice instead of empty:', loadError.message)
+  }
+
+  return <MyVideosClient videos={videos ?? []} loadError={Boolean(loadError)} />
 }

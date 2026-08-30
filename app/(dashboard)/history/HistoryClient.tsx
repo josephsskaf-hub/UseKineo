@@ -261,6 +261,8 @@ function tryAgainHref(video: Video): string {
 
 interface Props {
   videos: Video[]
+  // true quando o select da page falhou — a lista vazia NAO significa "sem videos".
+  loadError?: boolean
 }
 
 // Push #421 — per-video YouTube summary (title + description + hashtags),
@@ -271,7 +273,7 @@ interface VideoSummary {
   hashtags: string[]
 }
 
-export default function MyVideosClient({ videos: initialVideos }: Props) {
+export default function MyVideosClient({ videos: initialVideos, loadError = false }: Props) {
   const [videos] = useState(initialVideos)
   // PUSH #92 — `videos` now holds every status. Anything that assumes a
   // finished, playable asset (the share spotlight, the "N Shorts complete"
@@ -773,6 +775,31 @@ export default function MyVideosClient({ videos: initialVideos }: Props) {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     setToast(msg)
     toastTimer.current = setTimeout(() => setToast(null), 2200)
+  }
+
+  /* ── Read-failure state (KINEO-SPRINT-UI4-2026-08-29) ──
+     Licao do incidente JWT-skew (28/08): ESTA tela mostrou "No videos yet" ao
+     fundador com 327 videos intactos. Falha de leitura tem cara de erro. */
+  if (loadError && videos.length === 0) {
+    return (
+      <div className="px-4 sm:px-6 py-7">
+        <div role="alert" className="rounded-2xl p-8 sm:p-12 text-center mx-auto" style={{ maxWidth: 560, marginTop: 40, background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.35)' }}>
+          <div className="text-4xl mb-3">⚠️</div>
+          <h2 className="text-xl font-black mb-2" style={{ color: '#fbbf24' }}>We couldn’t load your videos right now</h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+            Your videos and credits are safe — this is a temporary read hiccup, not a lost library.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white"
+            style={{ background: '#2997ff', boxShadow: '0 6px 28px rgba(41,151,255,.4)', border: 'none', cursor: 'pointer' }}
+          >
+            ↻ Try again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   /* ── Empty state ── */

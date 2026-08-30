@@ -129,7 +129,7 @@ function isWatermarkedFastAsset(video: VideoRow): boolean {
   return video.quality_mode === 'fast' && Number(video.credits_used ?? 0) === 0
 }
 
-export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
+export default function MyVideosClient({ videos, loadError = false }: { videos: VideoRow[]; loadError?: boolean }) {
   const [filter, setFilter] = useState<FilterKey>('all')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
@@ -251,6 +251,31 @@ export default function MyVideosClient({ videos }: { videos: VideoRow[] }) {
     } finally {
       setDownloadingId(null)
     }
+  }
+
+  /* KINEO-SPRINT-UI4-2026-08-29 — falha de leitura nao veste a roupa de
+     "No videos yet" (licao do incidente JWT-skew de 28/08). */
+  if (loadError && videos.length === 0) {
+    return (
+      <div className="px-4 sm:px-6 py-7 pb-20">
+        <Header count={0} />
+        <div role="alert" className="rounded-2xl p-8 sm:p-12 text-center" style={{ background: 'rgba(251,191,36,.06)', border: '1px solid rgba(251,191,36,.35)' }}>
+          <div className="text-4xl mb-3">⚠️</div>
+          <h2 className="text-xl font-black mb-2" style={{ color: '#fbbf24' }}>We couldn’t load your videos right now</h2>
+          <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
+            Your videos and credits are safe — this is a temporary read hiccup, not a lost library.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black text-white"
+            style={{ background: '#2997ff', boxShadow: '0 6px 28px rgba(41,151,255,.4)', border: 'none', cursor: 'pointer' }}
+          >
+            ↻ Try again
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (videos.length === 0) {
