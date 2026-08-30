@@ -2221,3 +2221,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** comissão, cupom, aprovação, payout, atribuição financeira, preço, grant, validade do trial, Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `4374a7c4` ou posterior. Não restaurar a allowlist antiga nem duplicar o nudge/partner kit. Medir por pessoa `affiliate_first_click_nudge_viewed → copied/opened → affiliate_clicks → affiliate_referrals → payment_success → affiliate_commissions`.
+
+## 70. Compartilhamento privado — o MP4 passa a carregar uma indicação atribuível (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a reconciliação por pessoa mostrou que páginas públicas de vídeos compartilhados já trouxeram cadastro e primeira entrega, mas em volume pequeno e sem pagamento observado. Essa via foi desligada corretamente por privacidade. O compartilhamento privado ativo anexava somente o MP4 e uma URL genérica da Kineo, portanto a distribuição não carregava o código do criador e não podia alimentar a atribuição existente. Contagens e identificadores permanecem fora deste repositório público.
+
+**DECISÃO DO TRIAL PRESERVADA:** os dados de 28–29/08 descrevem a jornada anterior às entregas de 30/08. O grant continua em 25 créditos e a validade vigente. Não aumentar, reduzir, expirar, bloquear Fast nem restaurar Seedance 60s enquanto a coorte `trial_first_seedance_35s_v2` ainda não teve exposição suficiente. A jornada publicada permanece 15 créditos no Seedance de 35s + até dois Fast de 5 créditos, antes da parede de assinatura. As ondas COMEBACK50/+25 continuam propriedade do Claude e não foram duplicadas.
+
+**FATO CONFIRMADO / CAUSA:** com `PUBLIC_VIDEO_SHARING_ENABLED=false`, `handleShareDownloadedFile()` anexava o arquivo real, mas usava o texto fixo `Made with Kineo — https://www.usekineo.com`. A rota canônica `/api/referral` já devolvia código, URL raiz e recompensa em runtime; o done screen simplesmente não a consultava no caminho privado.
+
+**IMPLEMENTADO:** o commit funcional `7e897397dc7e6b02679e05f49c5cade5f3b0f181` consulta a rota de indicação uma única vez, somente depois de uma entrega concluída. `privateFileShareReferral()` aceita apenas código válido, recompensa inteira positiva e a URL exata `https://www.usekineo.com/?ref=<código>`; qualquer divergência volta ao fluxo privado anterior. No tratamento elegível, o compartilhamento nativo anexa MP4 + mensagem de convite, e o card oferece `Copy invite message` como alternativa de desktop. O valor da recompensa vem da API, nunca de literal na interface.
+
+**PRIVACIDADE / MEDIÇÃO:** nenhuma página `/v/` é criada ou reativada. O arquivo continua em memória somente depois do download; não há segundo fetch nem persistência local. O evento `native_file_share_referral_v2` registra apenas estado categórico e recompensa numérica. URL, código, mensagem e texto livre não entram na telemetria. A impressão espera a resolução da API, evitando classificar como “sem indicação” um card que atualizaria milissegundos depois.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRIVATE-MP4-REFERRAL-2026-08-30.html` contém antes/depois desktop e mobile. Os quatro estados foram servidos localmente e inspecionados no Chrome conectado do fundador; no mobile, as duas ações ficam empilhadas.
+
+**TESTADO LOCALMENTE:** 204 verificações passaram: compartilhamento privado 83/83, missão de indicação 55/55 e bridge da home 66/66. O typecheck repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o deploy Vercel `dpl_EDbexMqzPnoDBKXzi79MjWqKNNLv` chegou a `READY`, target production, no SHA funcional. `/studio/create` carregou no Chrome autenticado do fundador sem erro de console; o deployment não apresentou log `error` ou `fatal` na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador não tinha um novo resultado baixado neste smoke, portanto o card stateful não foi forçado e nenhum render foi criado. A primeira consulta externa da versão v2 retornou zero exposição. Aquisição só pode ser declarada quando uma pessoa externa seguir `private_video_file_share_viewed → video_share_clicked → private_video_file_shared OU private_video_referral_message_copied → signup referido → primeiro vídeo qualificado → checkout → payment_success`.
+
+**NÃO TOCADO:** preço, grant, validade, trial, entitlement, Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `7e897397` ou da ponta posterior de `origin/main`. Não reativar compartilhamento público de vídeos, não hardcodar 30 créditos e não duplicar esta superfície na tela de resultado. A missão da History continua válida como segunda superfície; esta entrega mede o pico de satisfação imediatamente após download.
