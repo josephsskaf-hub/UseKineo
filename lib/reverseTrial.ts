@@ -858,6 +858,38 @@ export async function maybeActivateReverseTrial(args: {
         userId: args.userId,
         outcome: 'blocked',
       })
+      // KINEO-BLOQUEIO-VISIVEL-2026-08-30 — a conta bloqueada precisa PARECER
+      // bloqueada no banco, não órfã.
+      //
+      // O INCIDENTE (30/08): o farmer VN (digital b01e05b4660b) foi barrado
+      // aqui às 19h em 2 contas. Às 21h11 o auto-reparo de trial órfão do
+      // vigia devolveu 25cr para as DUAS — porque a assinatura de uma conta
+      // bloqueada no banco era `trial_status is null AND
+      // trial_credits_granted = 0`, EXATAMENTE a de um cadastro que perdeu o
+      // grant por bug. Um lê "vítima", o outro escreveu "abusador"; nenhum
+      // dos dois estava errado sozinho. Resultado: o anti-abuso virava um
+      // gerador de crédito — a cada bloqueio, +25 na hora seguinte.
+      //
+      // A cura é escrever a intenção, não confiar em quem lê: marcar
+      // `trial_status = 'blocked'`. Toda varredura de órfão (a de código, a
+      // do vigia, e qualquer futura) filtra por trial_status NULL, então o
+      // bloqueio passa a ser invisível para elas por construção — sem
+      // precisar que cada uma aprenda sobre digitais.
+      //
+      // Não muda nada para o usuário: `maybeActivateReverseTrial` continua
+      // devolvendo fingerprint_limit em silêncio, a conta segue criada e sem
+      // trial (nunca prometido). E o campo passa a contar a verdade no
+      // /admin/trial-abuse, onde 'blocked' aparecia como célula vazia.
+      // Falha-aberto de propósito: se o UPDATE não passar, o bloqueio do
+      // trial continua valendo — só perdemos a etiqueta.
+      const { error: marcaErr } = await db
+        .from('profiles')
+        .update({ trial_status: 'blocked' })
+        .eq('id', args.userId)
+        .is('trial_status', null)
+      if (marcaErr) {
+        console.warn(`[reverse-trial] could not mark blocked profile user=${args.userId.slice(0, 8)}:`, marcaErr.message)
+      }
       await writeServerEvent({
         name: 'trial_blocked_fingerprint',
         userId: args.userId,
