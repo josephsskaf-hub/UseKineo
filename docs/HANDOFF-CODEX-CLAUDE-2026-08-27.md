@@ -2081,3 +2081,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** grant ou validade do trial, preço, oferta comercial, checkout/Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não restaurar o gate de classificação antes do campo e não duplicar esta mudança. Codex mede `chatgpt_quickstart_v5` por pessoa em impressão → foco → escolha → Studio pronto → vídeo → checkout → pagamento e continua aquisição, fluxo e assinatura.
+
+## 64. Checkout cancelado — compromisso menor antes do retry (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a reconstrução deduplicada por pessoa externa confirmou abandono depois da criação da sessão e retorno rápido à página cancelada, sem evidência de falha técnica ou cartão recusado. Quantidades, identificadores e sequências individuais permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA:** `app/checkout/cancelled/page.tsx` preservava corretamente a seleção, mas mostrava como ação principal repetir o mesmo plano. O degrau recorrente menor já existia na fonte canônica e no tratador de objeção “Too expensive”, porém só aparecia depois de uma pergunta opcional.
+
+**IMPLEMENTADO:** em cancelamentos self-serve de Creator e Studio, o primeiro card agora oferece respectivamente Starter e Creator como início menor, com preço derivado de `lib/checkoutPricing.ts`. O plano original permanece logo abaixo como ação secundária. Trial com primeira entrega pendente e todos os retornos Autopilot conservam seus caminhos anteriores e têm precedência sobre a nova recuperação.
+
+**MEDIÇÃO:** `checkout_downshift_offer_viewed` mede exposição; `checkout_downshift_offer_clicked` mede escolha e declara `placement=primary|objection`. A série anterior `checkout_downgrade_offer_clicked` continua sendo emitida para compatibilidade. Nenhum roteiro, prompt ou identificador de cliente entra nesses eventos.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHECKOUT-STARTER-RECOVERY-2026-08-30.html` contém antes/depois em desktop e mobile. O preview e a página real de produção foram inspecionados no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** `node scripts/test-checkout-cancel-deliver-first.mjs` passou 38/38. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `36c45b2ce5e42a2655d34658fe890e437c85aacf` chegou a `READY` no deploy Vercel `dpl_Efc2ukVy1gZaKapaqHS7aqaLnAXo`, target production e alias `www.usekineo.com`. No Chrome autenticado do fundador, Creator mostrou Starter como ação principal e Creator preservado como secundária; Studio mostrou Creator como principal e Studio preservado. Nenhum botão de checkout foi acionado. Console do browser e scan de erros runtime do deployment ficaram limpos.
+
+**DECISÃO DO TRIAL PRESERVADA:** manter 25 créditos e a validade atual enquanto a coorte amadurece. A ponte pós-Fast já existe em `lib/growth/trialBalanceBridge.ts` e usa Seedance de 35s dentro do saldo remanescente; não criar complemento de crédito, outro rail ou premium-first duplicado. A página `/scripts/space` também já recebeu a otimização da consulta de exoplaneta e deve ser monitorada, não reescrita novamente nesta janela.
+
+**NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `36c45b2c` ou posterior. Não duplicar o downshift, a ponte Seedance pós-Fast, a missão premium, o quick-start v5, o Plan Fit v2 nem a otimização de `/scripts/space`. Codex mede exposição → clique do degrau → checkout → pagamento por pessoa externa e continua aquisição/fluxo/assinatura.
