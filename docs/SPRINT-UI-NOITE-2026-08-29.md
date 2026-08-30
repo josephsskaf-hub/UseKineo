@@ -141,3 +141,22 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     checkouts, 0 downloads. Eventos: 4 e-mails de trial, 2 organic_cta,
     2 landing sessions, 1 animate settled. Nenhuma causa antiga. Madrugada
     calma e saudavel.
+- [Sprint 11 · 05:25] Toda aba do navegador ganhou nome: 10 telas do produto
+  (inclusive o cockpit /studio/create, /history, /my-videos, /account,
+  /templates, /channel, /video, /autopilot, /create) mostravam na aba o
+  titulo SEO da landing inteiro — "Kineo — AI YouTube Shorts Generator
+  (Official Site)". Cliente com 3 abas abertas (agora que o acervo tem busca,
+  #9/#10) nao achava a certa; render de 6min roda em aba de fundo SEM nome.
+  Agora cada tela diz o que e: "Create a Video — Kineo", "My Videos — Kineo"…
+  padrao das irmas que ja tinham (Library/Studio/Images/Audio). Redirects
+  (/generate, /dashboard) ficam sem title de proposito. 28 verificacoes em
+  scripts/test-tab-titles.mjs (inclui guarda contra 'use client'+metadata,
+  que o typecheck nao pega).
+  (Base: entrega-atual 409e042 sobre origin/main 9ccdd0b — sem rebase. Mesma
+  rota de infra: clone /tmp + push interno da ref.)
+  · Pulso 04:25-05:25 BRT: 2 cadastros novos, AMBOS com credito (trial 25cr;
+    um ja gastou 15 e tem render em voo — generate_started + 8
+    generation_stage_reached, 0 erros). Funil ChatGPT quickstart ativo:
+    3 selected → 3 studio_ready. 0 videos completed na janela, 0 erros de
+    render, 0 checkouts, 0 downloads. Nenhuma causa antiga. Madrugada
+    saudavel — o handoff do ChatGPT esta trazendo gente as 4h da manha.

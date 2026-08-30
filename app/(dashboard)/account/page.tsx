@@ -9,6 +9,12 @@ import AccountClient from './AccountClient'
 // verdade e resolvida AQUI, no servidor, pela mesma funcao que os gates usam.
 import { REVERSE_TRIAL_ENABLED, isTrialActive, TRIAL_ENTITLEMENT_COLUMNS } from '@/lib/reverseTrial'
 
+// sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
+// mostrava o title SEO da landing ('Kineo — AI YouTube Shorts Generator
+// (Official Site)') em toda tela do produto sem metadata — cliente com 3
+// abas abertas nao achava a certa. Padrao das telas irmas (Library/Studio).
+export const metadata = { title: 'Account — Kineo' }
+
 export default async function AccountPage() {
   const supabase = createClient()
 
