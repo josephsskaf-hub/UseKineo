@@ -55,9 +55,16 @@ check('o callback CHAMA a ativação',
 check('a chamada é AWAITED, não fire-and-forget',
   !/void\s+maybeActivateReverseTrial/.test(cb),
   'promessa solta morre com o congelamento da instância serverless')
+// A atribuição afiliada precisa limpar cookies na própria resposta de redirect,
+// então o handler passou a criar a resposta antes de retorná-la. A garantia do
+// trial é de ORDEM (ativar antes de construir/devolver o redirect), não do nome
+// literal da expressão de retorno.
 check('a ativação acontece ANTES do redirect',
-  cb.indexOf('await maybeActivateReverseTrial({') < cb.indexOf('return NextResponse.redirect(dest)'),
+  cb.indexOf('await maybeActivateReverseTrial({') < cb.indexOf('const response = NextResponse.redirect(dest)'),
   'depois do redirect o handler já devolveu e a instância pode congelar')
+check('o redirect só é devolvido depois das finalizações',
+  cb.indexOf('const response = NextResponse.redirect(dest)') < cb.indexOf('return response'),
+  'construir a resposta não pode antecipar o retorno do handler')
 check('a ativação está dentro do ramo de sessão válida',
   cb.includes('if (data.user) {'),
   'sem usuário não há a quem conceder')

@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
+import {
+  AFFILIATE_ATTRIBUTION_COOKIE_NAMES,
+  finalizeAffiliateSignupAttribution,
+} from '@/lib/affiliateSignupFinalization'
 
 // Activation-first: new users go straight to /generate to make their first
 // free Short (up to 3 watermarked Fast previews / 24h) — product value BEFORE
@@ -130,8 +135,37 @@ export async function GET(request: Request) {
         }
       }
 
+      // A signup can legitimately land on the public homepage, whose layout
+      // does not mount AffiliateAutoTrigger. Finalize the protected click here,
+      // while OAuth/email-confirmation still carries the first-touch cookies;
+      // the dashboard trigger remains a retry for transient failures.
+      const affiliateCookies = cookies()
+      const affiliateFinalization = data.user
+        ? await finalizeAffiliateSignupAttribution({
+          rawCode: affiliateCookies.get('sf_aff')?.value,
+          rawClickId: affiliateCookies.get('sf_aff_click')?.value,
+          user: {
+            id: data.user.id,
+            email: data.user.email ?? null,
+            createdAt: data.user.created_at ?? null,
+          },
+          source: 'auth_callback',
+        })
+        : { attempted: false, clearCookies: false, outcome: 'no_user' }
+
       const dest = `${origin}${destinationPath}`
-      return NextResponse.redirect(dest)
+      const response = NextResponse.redirect(dest)
+      if (affiliateFinalization.clearCookies) {
+        for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES) {
+          response.cookies.set(name, '', {
+            maxAge: 0,
+            path: '/',
+            sameSite: 'lax',
+            secure: true,
+          })
+        }
+      }
+      return response
     }
   }
 

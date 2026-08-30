@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { writeServerEvent } from '@/lib/serverEvents'
+import {
+  AFFILIATE_ATTRIBUTION_COOKIE_NAMES,
+  finalizeAffiliateSignupAttribution,
+} from '@/lib/affiliateSignupFinalization'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,6 +18,20 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ ok: false }, { status: 401 })
     }
+
+    // The email/password path already awaits this route before leaving
+    // /signup. Use that authoritative hop to finalize affiliate first-touch
+    // instead of waiting for a later dashboard mount that may never happen.
+    const affiliateFinalization = await finalizeAffiliateSignupAttribution({
+      rawCode: req.cookies.get('sf_aff')?.value,
+      rawClickId: req.cookies.get('sf_aff_click')?.value,
+      user: {
+        id: user.id,
+        email: user.email ?? null,
+        createdAt: user.created_at ?? null,
+      },
+      source: 'email_activation',
+    })
 
     const body = await req.json().catch(() => ({}))
     const destination = normalizeInternalRedirect(
@@ -40,7 +58,18 @@ export async function POST(req: NextRequest) {
         intent_campaign: intentCampaign,
       },
     })
-    return NextResponse.json({ ok: true, stored })
+    const response = NextResponse.json({ ok: true, stored })
+    if (affiliateFinalization.clearCookies) {
+      for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES) {
+        response.cookies.set(name, '', {
+          maxAge: 0,
+          path: '/',
+          sameSite: 'lax',
+          secure: true,
+        })
+      }
+    }
+    return response
   } catch (error) {
     console.error('[activation-completed] unexpected failure:', error)
     return NextResponse.json({ ok: true, stored: false })

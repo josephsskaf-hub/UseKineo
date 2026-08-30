@@ -122,6 +122,9 @@ function makeState(overrides = {}) {
 
 function load(state, { missingEnv = false, createThrows = false } = {}) {
   return executeTs('lib/affiliateAttribution.ts', {
+    // The production module delegates code syntax to this canonical helper.
+    // Execute the real helper instead of duplicating its regex in the test.
+    '@/lib/affiliateCode': executeTs('lib/affiliateCode.ts'),
     '@supabase/supabase-js': {
       createClient: () => {
         if (createThrows) throw new Error('provider unavailable')
@@ -273,6 +276,89 @@ async function runEndpoint({ code = 'ABCD2345', clickId = CLICK_ID, user = { id:
   const { response } = await runEndpoint({ user: null })
   equal(response.status, 401, 'endpoint requires authentication')
 }
+
+async function runSignupFinalizer({
+  rawCode = 'ABCD2345',
+  rawClickId = CLICK_ID,
+  result = { ok: true, affiliateId: 'private', already: false },
+  eventStored = true,
+} = {}) {
+  let attributionArgs = null
+  const events = []
+  const module = executeTs('lib/affiliateSignupFinalization.ts', {
+    'server-only': {},
+    '@/lib/affiliateAttribution': {
+      normalizeAffiliateClickId: (value) => value === CLICK_ID ? value : null,
+      attributeAffiliateForUser: async (...args) => {
+        attributionArgs = args
+        return result
+      },
+    },
+    '@/lib/serverEvents': {
+      writeServerEvent: async (event) => {
+        events.push(event)
+        return eventStored
+      },
+    },
+  })
+  const finalization = await module.finalizeAffiliateSignupAttribution({
+    rawCode,
+    rawClickId,
+    user: { id: 'buyer', email: 'buyer@example.test', createdAt: iso(-1000) },
+    source: 'auth_callback',
+  })
+  return { module, finalization, attributionArgs, events }
+}
+
+{
+  const { finalization, attributionArgs, events } = await runSignupFinalizer({ rawCode: null })
+  equal(finalization.attempted, false, 'signup without affiliate cookie is a zero-work no-op')
+  equal(attributionArgs, null, 'no-cookie signup never opens the attribution ledger')
+  equal(events.length, 0, 'no-cookie signup does not inflate affiliate telemetry')
+}
+{
+  const { module, finalization, attributionArgs, events } = await runSignupFinalizer()
+  equal(finalization.outcome, 'attributed', 'new protected signup receives an attributed outcome')
+  equal(finalization.clearCookies, true, 'successful signup retires all attribution cookies')
+  equal(attributionArgs[2].clickId, CLICK_ID, 'signup finalizer forwards protected click proof')
+  equal(events.length, 1, 'attempted signup attribution emits one diagnostic event')
+  equal(events[0].metadata.source, 'auth_callback', 'diagnostic identifies the authoritative signup hop')
+  equal(events[0].metadata.outcome, 'attributed', 'diagnostic records the bounded outcome')
+  equal(Object.hasOwn(events[0].metadata, 'code'), false, 'diagnostic never stores affiliate code')
+  equal(Object.hasOwn(events[0].metadata, 'click_id'), false, 'diagnostic never stores protected click UUID')
+  equal(module.AFFILIATE_ATTRIBUTION_COOKIE_NAMES.length, 3, 'code, proof and readable hint share one cleanup list')
+}
+{
+  const { finalization } = await runSignupFinalizer({ result: { ok: false, reason: 'invalid_click_proof' } })
+  equal(finalization.clearCookies, true, 'terminal poisoned proof is cleared at signup')
+}
+{
+  const { finalization } = await runSignupFinalizer({ result: { ok: false, reason: 'lookup_failed' } })
+  equal(finalization.clearCookies, false, 'transient lookup failure preserves proof for dashboard retry')
+}
+{
+  const { finalization, events } = await runSignupFinalizer({
+    result: { ok: true, affiliateId: 'private', already: true },
+    eventStored: false,
+  })
+  equal(finalization.outcome, 'already_attributed', 'existing canonical first-touch stays idempotent')
+  equal(finalization.clearCookies, true, 'analytics failure cannot keep a completed financial cookie alive')
+  equal(events.length, 1, 'analytics failure is attempted once without blocking attribution')
+}
+
+const authCallback = read('app/auth/callback/route.ts')
+check(authCallback.includes('await finalizeAffiliateSignupAttribution({'), 'OAuth/email-confirmation callback finalizes affiliate signup server-side')
+check(authCallback.indexOf('await maybeActivateReverseTrial({') < authCallback.indexOf('await finalizeAffiliateSignupAttribution({'), 'affiliate finalization runs after account/trial profile activation')
+check(authCallback.indexOf('await finalizeAffiliateSignupAttribution({') < authCallback.indexOf('const response = NextResponse.redirect(dest)'), 'affiliate finalization finishes before the callback redirect')
+check(authCallback.includes('for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES)'), 'callback retires the complete financial cookie set')
+
+const emailActivation = read('app/api/auth/activation-completed/route.ts')
+check(emailActivation.includes("source: 'email_activation'"), 'direct email signup uses the awaited activation endpoint')
+check(emailActivation.indexOf('await finalizeAffiliateSignupAttribution({') < emailActivation.indexOf('const response = NextResponse.json({ ok: true, stored })'), 'direct email attribution finishes before activation returns')
+check(emailActivation.includes('for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES)'), 'email activation retires the complete financial cookie set')
+
+const signupPage = read('app/(auth)/signup/page.tsx')
+check(signupPage.indexOf("await fetch('/api/auth/activation-completed'") < signupPage.indexOf('window.location.assign(nextDestination)'), 'email signup awaits server attribution before public-home navigation')
 
 const checkout = read('app/api/stripe/checkout/route.ts')
 check(checkout.includes('resolveCustomAffiliateBeforeSubscription(req, user, profile)'), 'subscription checkout closes the client-effect race server-side')
