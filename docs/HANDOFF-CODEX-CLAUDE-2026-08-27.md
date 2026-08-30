@@ -2039,3 +2039,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** grant de 25, validade do trial, preço, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude ou rankings de concorrentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do próximo SHA e partir da ponta posterior. Não reverter a formulação observada no Search Console e não duplicar ToolScout, SaaSHub, AllThingsAI ou Faceless Directory. Codex acompanha indexação, CTR por pessoa/consulta quando a janela amadurecer e continua aquisição/fluxo/assinatura.
+
+## 62. Plan Fit — decisão comprável na primeira visualização (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** uma consulta somente leitura, deduplicada por pessoa externa, isolou a pergunta de cadência mensal como o ponto de abandono do Plan Fit: a superfície foi exposta, mas a etapa seguinte não avançou. Quantidades, identificadores e detalhes da coorte permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA:** `components/growth/PlanFitCard.tsx` iniciava `monthlyFilms` como `null`. A recomendação, o preço canônico e o botão de checkout só eram renderizados depois de a pessoa escolher 1, 4, 8 ou 12 vídeos por mês. O produto pedia uma decisão de planejamento antes de mostrar qualquer decisão comprável.
+
+**IMPLEMENTADO:** o Plan Fit agora começa com a menor cadência honesta, 1 vídeo por mês, derivada de `MONTHLY_CADENCES`. A recomendação canônica e o CTA ficam prontos na primeira visualização; 4/8/12 continuam disponíveis como ajustes. O download permanece antes do card. Nenhum preço foi literalizado no componente, e todas as contas continuam vindo de `calculatePlanFit` e `lib/checkoutPricing.ts`.
+
+**MEDIÇÃO:** a versão `plan_fit_ready_1_video_v2` entra em todas as ações do card. A impressão declara que a decisão estava pronta, a cadência padrão, os créditos calculados e o tier canônico recomendado. Nenhum conteúdo de vídeo ou cliente entra na telemetria.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PLAN-FIT-READY-DECISION-2026-08-30.html` contém pares antes/depois em desktop e mobile de 390 px. O Chrome conectado recusou a URL local por política de segurança; não houve contorno. A estrutura do preview é coberta pelos testes, mas esta entrega não reivindica smoke visual autenticado de uma nova primeira entrega.
+
+**TESTADO LOCALMENTE:** `node scripts/test-plan-fit.mjs` passou 348/348; `test-trial-balance-bridge` passou 168/168; `test-trial-best-activation` passou 27/27. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. Uma asserção antiga foi reescrita porque embutia LF e falhava no checkout CRLF do Windows; a nova regex verifica a mesma guarda executável sem depender do fim de linha.
+
+**PUBLICADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `22d8c781b97185d7b49035c7f1c9d2bfc6b759df` chegou a `READY` no deploy Vercel `dpl_F4dMDFe4UrR6WCnNf1a1Q7CUVpUH`, target production e alias `www.usekineo.com`. A Vercel encontrou zero erro runtime em `/generate` e `/studio/create` na janela consultada.
+
+**NÃO TOCADO:** grant ou validade do trial, preço, oferta comercial, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não restaurar o estado `monthlyFilms=null` e não duplicar esta mudança. Codex mede a coorte `plan_fit_ready_1_video_v2` por pessoa em impressão → ajuste opcional → checkout → pagamento e continua aquisição, fluxo e assinatura.
