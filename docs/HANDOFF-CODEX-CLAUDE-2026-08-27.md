@@ -1873,3 +1873,19 @@ PRÓXIMO DONO:
 **MÉTRICA:** contar pessoas externas por `checkout_session_window_version`: checkout aberto → retomado → pagamento. Não comparar a nova coorte a eventos brutos históricos; o primeiro sinal operacional é uma sessão `recurring_checkout_24h_v1` ainda aberta depois de duas horas.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `be00a86` ou da ponta posterior. Não reintroduzir o `expires_at` de duas horas e não criar uma segunda automação de resgate. Codex mede a nova janela e continua aquisição/fluxo/assinatura.
+
+## 53. Aquisição orgânica — Faceless Directory submetido por fallback auditável (30/08/2026)
+
+**FATO CONFIRMADO / ENCAIXE:** `https://faceless.directory/submit` oferece listagem gratuita, revisão anunciada em 48 horas e audiência explicitamente formada por criadores faceless. A categoria `Video` e a página `/ai-faceless-video-generator` correspondem ao produto sem inventar nova oferta.
+
+**EXECUTADO / FALHA EXTERNA HONESTA:** o formulário foi preenchido no Chrome com UseKineo, categoria Video, descrição curta e URL com `utm_source=faceless_directory`, `utm_medium=directory`, `utm_campaign=faceless_directory_listing_20260830`. Depois do submit, a página respondeu `Something went wrong. Try again.`; portanto o formulário não foi classificado como enviado e não foi repetido.
+
+**ANTI-DUPLICAÇÃO:** a busca no Gmail por domínio, remetente e destinatário retornou zero conversa anterior. O contato oficial publicado pelo diretório, `hello@faceless.directory`, recebeu uma única mensagem com os mesmos dados e explicação do erro do formulário. Gmail confirmou a mensagem na pasta Sent, id `1a050e56815694cc`, assunto `UseKineo submission — faceless AI video tool for review`.
+
+**PROMESSA LIMITADA:** a mensagem pede apenas revisão editorial da listagem gratuita. Menciona o programa opcional de 40% recorrente já implementado, sem comissão nova, pagamento, exclusividade, patrocínio, posição garantida ou prazo prometido. Não houve blast.
+
+**ESTADO:** aguardando revisão/resposta. Não chamar de listagem publicada, visita, cadastro ou assinatura. Não reenviar o formulário e não fazer follow-up antes de resposta, bounce ou o prazo editorial anunciado.
+
+**MÉTRICA:** URL pública aceita e, depois, pessoas externas por UTM em visita → signup → vídeo → checkout → pagamento. Impressão e clique cru não são pessoa nem receita.
+
+**PRÓXIMO DONO:** Claude não deve duplicar o contato com Faceless Directory. Codex monitora resposta e atribuição; qualquer pedido pago ou patrocínio volta como decisão separada.
