@@ -2127,3 +2127,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ffc4f9d3` ou posterior. Não duplicar este segundo caminho do lembrete nem o downshift da página cancelada. Codex mede `resume_smaller_choice_v1` por pessoa em impressão → retomada exata ou planos menores → checkout → pagamento.
+
+## 66. Trial ativo — outra vitória antes do checkout (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a coorte Stripe de 30 dias, deduplicada por pessoa externa e reconciliada com vídeos concluídos, separou compradores de abandonos pela repetição de valor antes do checkout. Os abandonos concentraram-se após uma única entrega e antes de criar tentativa de pagamento; compradores acumulavam mais entregas antes de pagar. Quantidades e identificadores permanecem fora deste repositório público.
+
+**DECISÃO PRESERVADA:** o trial continua com 25 créditos e a validade vigente. Não aumentamos, reduzimos, expiramos nem bloqueamos o Fast. O bridge Seedance pós-Fast continua com precedência. Quando esse bridge não se aplica e o saldo ativo ainda paga uma duração Fast suportada, a assinatura deixa de ser a ação principal e o episódio seguinte já escrito ocupa o slot.
+
+**FATO CONFIRMADO / CAUSA:** `GenerateClient.tsx` já escrevia o episódio 2 e já conhecia o saldo, mas `showTrialPostVideoOffer` escondia a continuação para mostrar assinatura durante o trial. Depois de uma entrega premium curta, por exemplo, a pessoa podia ter saldo suficiente para Fast e ainda receber o paywall primeiro.
+
+**IMPLEMENTADO:** `lib/growth/trialRepeatBeforeCheckout.ts` escolhe a maior duração Fast suportada, nunca maior que a duração revisada, que o saldo atual cobre. O clique seleciona Fast e a duração derivada, carrega o roteiro editável e chama somente a análise existente. Nada é gerado ou debitado até a pessoa revisar e pressionar Generate. O link secundário “See paid plans” continua disponível e navega para o grid real sem criar Checkout Session.
+
+**MEDIÇÃO:** `trial_repeat_episode_viewed` conta somente viewport real; `trial_repeat_episode_clicked` mede a continuação; `trial_repeat_subscription_clicked` mede a escolha secundária. A versão é `trial_repeat_before_checkout_v1`. Os eventos carregam somente saldo/custo/duração/motor e contexto categórico, nunca roteiro, prompt ou texto livre.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TRIAL-REPEAT-BEFORE-CHECKOUT-2026-08-30.html` contém antes/depois em desktop e mobile. Os dois pares foram inspecionados no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** 652 verificações passaram: trial-repeat 47/47, trial post-video 45/45, balance bridge 168/168, Plan Fit 348/348 e history milestone 44/44. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `3bc197bc582b5d1fe7cccc6d9d41a62a0b5652a6` chegou a `READY` no deploy Vercel `dpl_2Jkjn2hhmFo7zwRFXtrA7JUgLWag`, target production e alias `www.usekineo.com`. O Studio autenticado carregou no Chrome sem erro de console.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador é paga e não pode produzir legitimamente o estado de trial ativo com saldo remanescente. Nenhum grant, vídeo ou checkout artificial foi criado para forçar o card. A política, o caller, a hierarquia visual e a ausência de render/débito no handoff estão cobertos pelos testes; a primeira exposição externa ainda precisa ser observada antes de declarar conversão.
+
+**NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `3bc197bc` ou posterior. Não duplicar premium-first, o bridge Seedance nem esta repetição Fast. Medir por pessoa `trial_repeat_episode_viewed → trial_repeat_episode_clicked → video_generation_completed → checkout_started → payment_success`; comparar com a série de assinatura anterior somente depois de exposição suficiente.
