@@ -8333,9 +8333,30 @@ export default function GenerateClient({
     // Monetization happens at the clean, watermark-free export moment, never here.
     if (mode === 'fast') return false
     if (credits === null) return false
-    if (credits > 0) return false
     if (mode === 'cinematic' && cinematicTokens > 0) return false
-    return true
+    if (credits <= 0) return true
+    // ═══ KINEO-SALDO-INSUFICIENTE-2026-08-30 ════════════════════════════════
+    // A guarda era CEGA AO PREÇO: `credits > 0 → pode clicar`. Quem tinha
+    // saldo PARCIAL — dinheiro na conta, mas menos que o motor escolhido —
+    // passava batido aqui, mandava a request, e levava um 402 do servidor.
+    // Nenhum popup abria: a única superfície que oferece pacote de crédito
+    // (o UpgradeModal com `isSubscriber`, que diz "Out of credits mid-month?
+    // Top up instantly") só é acionada por `outOfCredits()`, e ela dizia não.
+    //
+    // O CASO QUE ACHOU O DEFEITO (30/08): gapozweb — assinante Starter, o
+    // único cliente que já deixou review pública — está com 51 créditos e
+    // queimando 80 por dia. Um Kling 3 (150) ou um Avatar (110) na tela dele
+    // hoje: clique aceito, request enviada, 402 na cara, zero oferta. O
+    // produto sabia o preço, sabia o saldo, e mesmo assim deixava o cliente
+    // bater na parede sozinho — no minuto de MAIOR intenção de compra que
+    // existe.
+    //
+    // Agora a guarda compara com `selectedCost`, o MESMO número que o botão
+    // promete e que o servidor cobra (creditCostForDuration). Efeito: em vez
+    // do 402, abre a caixa que vende crédito — e para o assinante ela já
+    // mostra os pacotes, sem pedir que ele troque de plano.
+    // `selectedCost > 0` mantém intactos os caminhos gratuitos (creator/fast).
+    return selectedCost > 0 && credits < selectedCost
   }
 
   // Push #109 — free users at 0 credits get the urgency modal (with the
