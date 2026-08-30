@@ -2003,3 +2003,17 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** código, UI, preço, grant, trial, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não duplicar ToolScout, AllThingsAI nem as ondas de recuperação. Codex acompanha a revisão e continua aquisição/conversão; Claude continua qualidade/render.
+
+## 60. Aquisição orgânica — SaaSHub submetido gratuitamente (30/08/2026)
+
+**EXECUTADO / CHROME DO FUNDADOR:** a submissão gratuita da UseKineo foi concluída no formulário oficial do SaaSHub. A página final confirmou `UseKineo was submitted successfully` e informou que a ficha aparecerá online somente depois da aprovação. Nenhum pagamento, Priority+, Featured ou compromisso recorrente foi contratado.
+
+**FALHA DE CRAWLER CONTORNADA SEM PROMESSA:** o SaaSHub não conseguiu abrir automaticamente a landing page, mas reconheceu a URL canônica e liberou o cadastro manual completo. O formulário foi preenchido com nome, descrição pública, contato do domínio e UTM `saashub / directory / saashub_listing_20260830`; a falha do crawler não foi tratada como aprovação nem como publicação.
+
+**POSICIONAMENTO:** categorias iniciais `AI Video Generator`, `Text To Video` e `Short Videos`; concorrentes declarados `InVideo.io`, `Pictory` e `HeyGen`. Na etapa de distribuição interna do diretório, foram selecionadas as categorias `AI`, `AI Videos` e `Video Generation`, e o SaaSHub confirmou a associação da UseKineo como alternativa a `VEED`, `Synthesia.io` e `Mivid AI`.
+
+**ESTADO HONESTO:** submissão recebida e pendente de aprovação; ainda não é URL pública, backlink, visita, cadastro ou assinatura. Não reenviar e não comprar prioridade. Métrica: aprovação + URL pública e, depois, pessoas externas pela UTM em visita → signup → vídeo → checkout → pagamento.
+
+**NÃO TOCADO:** código, UI, preço, grant, validade do trial, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails Claude ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do próximo SHA, não duplicar SaaSHub, ToolScout, AllThingsAI nem as ondas COMEBACK50/+25. Codex acompanha aprovações, atribuição e a coorte atual sem mudar grant ou prazo prematuramente.
