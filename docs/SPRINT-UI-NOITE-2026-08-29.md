@@ -56,3 +56,18 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     0 erros de render, 0 checkouts, 0 downloads. Eventos: 4 e-mails de trial,
     3 stranded_compose_attempt→3 stranded_composed (o recovery de compose
     encalhado esta convertendo), 1 trial_downgraded. Noite calma e saudavel.
+- [Sprint 6 · 00:35] /my-videos nunca mais abre congelada: a tela e montada
+  no servidor e ESPERA o banco antes de mostrar 1 pixel — em rede movel isso
+  era segundos de tela morta ao clicar em "My Videos". A /history ja tinha
+  skeleton desde 13/08; a tela irma nao. Agora a navegacao mostra na hora a
+  FORMA do acervo (header + filtros + grade 9:16 shimmer, mesmas colunas
+  responsivas do conteudo real — troca sem salto de layout). 15 verificacoes
+  em scripts/test-myvideos-loading-skeleton.mjs.
+  (Rebase: origin/main avancou p/ e54939c — Codex subiu kit de aquisicao de
+  marketplace + social card; sprints #1-#5 recriados em cima: 83b4e91/999246b/
+  23f1ddd/210b314/1876b83. Mesma rota: clone local + push interno, mount
+  OneDrive segue com locks presos em main/origin-main.)
+  · Pulso 23:35-00:35 BRT: 1 cadastro novo COM credito (25cr trial ok), 0
+    videos, 0 erros de render, 0 checkouts, 0 downloads. Eventos: 4
+    stranded_compose_attempt→4 stranded_composed (recovery 100%), 3 landing
+    sessions, 3 e-mails de trial, 2 chatgpt_quickstart. Nenhuma causa antiga.
