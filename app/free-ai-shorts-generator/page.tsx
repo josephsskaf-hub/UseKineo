@@ -128,7 +128,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
           Create a Faceless AI Short for Free
         </h1>
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. Try the Fast workflow with no credit card.
+          Type one idea and Kineo generates a ready-to-post vertical Short: script, AI voiceover, visuals, captions, and MP4 export. {ft(OFFER, 'Try the Fast workflow with no credit card.', 'Your active trial starts with the best engine it can cover — Seedance when eligible.')}
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={`#${FORM_ID}`} source={CAMPAIGN} placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 850, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>
@@ -146,6 +146,7 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
           campaign={CAMPAIGN}
           source={CAMPAIGN}
           formId={FORM_ID}
+          creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}
           examples={[
             'The island nobody is allowed to visit',
             'The money habit that quietly makes people broke',
@@ -156,7 +157,11 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
             placeholder: 'Type one topic or paste your script',
             submit: 'Create my free Short',
             examplesLabel: 'Free Short ideas',
-            note: 'Your idea is carried into signup so the first Fast video can start without a card.',
+            note: ft(
+              OFFER,
+              'Your idea is carried into signup so the first Fast video can start without a card.',
+              'Your idea stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+            ),
           }}
         />
 

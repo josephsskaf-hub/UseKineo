@@ -16,7 +16,7 @@ import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorFo
 import LocalBusinessAdBrief from './LocalBusinessAdBrief'
 import { SCRIPT_VERTICAL_SLUGS } from '@/lib/scriptLibrary'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
-import { buildPromptedFastSignupHref } from '@/lib/growth/publicCreationIntent'
+import { buildPromptedSignupHref } from '@/lib/growth/publicCreationIntent'
 // KINEO-PRICING-V6-2026-08-19 — preço derivado de TIER_PRICES via
 // lib/marketingPrice.ts. Digitado à mão ele já sobreviveu a duas mudanças
 // de tabela publicando um valor que o checkout não cobrava mais.
@@ -514,9 +514,10 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
   if (!n) notFound()
 
   const campaign = `push63_niche_${params.niche}`
-  const signupUrlForIdea = (idea: string) => buildPromptedFastSignupHref({
+  const signupUrlForIdea = (idea: string) => buildPromptedSignupHref({
     prompt: idea,
     campaign,
+    creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast',
   })
   const primaryIdea = n.ideas[0]
   const isLocalBusiness = params.niche === 'localbusiness'
@@ -564,7 +565,7 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               placement="hero"
               style={{ display: 'inline-block', marginTop: 22, background: 'linear-gradient(135deg,#2997ff,#2997ff)', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 14, textDecoration: 'none', fontSize: '1.05rem' }}
             >
-              Generate a free {n.label} Fast video →
+              {ft(OFFER, `Generate a free ${n.label} Fast video →`, `Make my best ${n.label} film free →`)}
             </OrganicCtaLink>
           )}
 
@@ -620,13 +621,18 @@ export default function NicheLandingPage({ params }: { params: { niche: string }
               campaign={campaign}
               source={campaign}
               formId={`niche-starter-${params.niche}`}
+              creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}
               examples={n.ideas.slice(0, 3)}
               copy={{
                 label: `What should your free ${n.label} Short be about?`,
                 placeholder: `Type any ${n.label.toLowerCase()} topic or paste your script`,
                 submit: 'Create my free Short',
                 examplesLabel: `${n.label} ideas`,
-                note: 'Your idea is carried into signup so the first Fast video can start without a card.',
+                note: ft(
+                  OFFER,
+                  'Your idea is carried into signup so the first Fast video can start without a card.',
+                  'Your idea stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+                ),
               }}
             />
           )}

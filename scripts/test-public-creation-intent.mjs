@@ -56,6 +56,15 @@ equal(prompted.searchParams.get('utm_source'), 'chatgpt.com', 'prompted start pr
 equal(prompted.searchParams.get('utm_medium'), 'organic', 'prompted start defaults organic medium')
 equal(prompted.searchParams.has('redirect'), false, 'prompted start uses the established creation handoff')
 
+const trialBest = new URL(intent.buildPromptedSignupHref({
+  prompt: 'The mystery beneath the ice',
+  campaign: 'seo_trial_best_test',
+  creationIntent: 'trial_best',
+}), 'https://www.usekineo.com')
+equal(trialBest.searchParams.get('prompt'), 'The mystery beneath the ice', 'trial-best start preserves authored work')
+equal(trialBest.searchParams.get('create_intent'), 'trial_best', 'trial-best start requests the eligible premium rail')
+equal(trialBest.searchParams.get('intent_campaign'), 'seo_trial_best_test', 'trial-best start preserves campaign')
+
 assert.throws(
   () => intent.buildPromptedFastSignupHref({ prompt: '   ', campaign: 'bad' }),
   /prompt_required_for_fast_creation/,
@@ -92,8 +101,9 @@ ok(pair.includes('href={START_FREE_URL}'), 'comparison CTA uses that destination
 ok(!pair.includes('/signup?create_intent=fast'), 'comparison CTA no longer loses automatic intent')
 
 const niches = read('app/free-ai-shorts/[niche]/page.tsx')
-ok(niches.includes('buildPromptedFastSignupHref({'), 'thirty niche pages use the prompted contract')
+ok(niches.includes('buildPromptedSignupHref({'), 'thirty niche pages use the prompted contract')
 ok(niches.includes('prompt: idea'), 'the selected niche idea is mandatory input')
+ok(niches.includes("creationIntent: OFFER.reverseTrial ? 'trial_best' : 'fast'"), 'niche ideas follow the active offer atomically')
 // The declaration is `signupUrlForIdea =`, so this count deliberately covers
 // only the three real callers: hero, repeated idea card and final CTA.
 equal((niches.match(/signupUrlForIdea\(/g) ?? []).length, 3, 'hero, idea list and final stay attached to a real idea')
@@ -102,7 +112,10 @@ ok(!niches.includes('const signupUrl ='), 'no promptless base URL can escape by 
 const alternatives = read('app/alternatives/[competitor]/page.tsx')
 ok(alternatives.includes("? '#try-quso-alternative-topic'"), 'Quso keeps visitors on its existing form')
 ok(alternatives.includes(': buildBlankStudioSignupHref({ campaign })'), 'other alternatives cross auth into Studio')
-equal((alternatives.match(/href=\{signupUrl\}/g) ?? []).length, 2, 'final and sticky CTAs share the safe destination')
+// The baseline gained a third legitimate reuse in the free-answer block
+// (commit 772df74). This test previously counted only final + sticky and was
+// already red before this change; assert every current caller instead.
+equal((alternatives.match(/href=\{signupUrl\}/g) ?? []).length, 3, 'free-answer, final and sticky CTAs share the safe destination')
 ok(alternatives.includes('const heroCtaUrl = isQuso ?'), 'hero preserves the Quso form split')
 ok(!alternatives.includes('create_intent=fast'), 'alternative pages never auto-create without work')
 

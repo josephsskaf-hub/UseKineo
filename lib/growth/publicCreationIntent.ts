@@ -36,14 +36,17 @@ export function buildBlankStudioSignupHref(input: {
   return `/signup?${signup.toString()}`
 }
 
+type PromptedCreationIntent = 'fast' | 'trial_best'
+
 /**
- * Automatic Fast creation is reserved for a concrete prompt submitted or
+ * Automatic creation is reserved for a concrete prompt submitted or
  * deliberately selected by the visitor. Empty work fails closed instead of
  * producing a URL whose create_intent authentication will silently discard.
  */
-export function buildPromptedFastSignupHref(input: {
+export function buildPromptedSignupHref(input: {
   prompt: string
   campaign: string
+  creationIntent: PromptedCreationIntent
   utmSource?: string
   utmMedium?: string
 }): string {
@@ -53,11 +56,21 @@ export function buildPromptedFastSignupHref(input: {
   const campaign = campaignToken(input.campaign)
   const signup = new URLSearchParams({
     prompt,
-    create_intent: 'fast',
+    create_intent: input.creationIntent,
     intent_campaign: campaign,
     utm_source: boundedToken(input.utmSource ?? DEFAULT_SOURCE, DEFAULT_SOURCE),
     utm_medium: boundedToken(input.utmMedium ?? DEFAULT_MEDIUM, DEFAULT_MEDIUM),
     utm_campaign: campaign,
   })
   return `/signup?${signup.toString()}`
+}
+
+/** Legacy callers that explicitly promise Fast retain their exact contract. */
+export function buildPromptedFastSignupHref(input: {
+  prompt: string
+  campaign: string
+  utmSource?: string
+  utmMedium?: string
+}): string {
+  return buildPromptedSignupHref({ ...input, creationIntent: 'fast' })
 }

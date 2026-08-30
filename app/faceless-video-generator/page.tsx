@@ -175,6 +175,7 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
           campaign={CAMPAIGN}
           source={CAMPAIGN}
           formId={FORM_ID}
+          creationIntent={OFFER.reverseTrial ? 'trial_best' : 'fast'}
           examples={[
             'Why the Door to Hell is still burning',
             'The money habit that quietly keeps people broke',
@@ -185,7 +186,11 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
             placeholder: 'Type one topic, hook, or complete script',
             submit: 'Create my faceless video',
             examplesLabel: 'Faceless video ideas',
-            note: 'Your topic stays attached through signup so Kineo can start the first watermarked Fast video without a card.',
+            note: ft(
+              OFFER,
+              'Your topic stays attached through signup so Kineo can start the first watermarked Fast video without a card.',
+              'Your topic stays attached through signup. Your active trial starts with Seedance when its balance covers it; otherwise Kineo falls back safely to Fast.',
+            ),
           }}
         />
 
