@@ -44,6 +44,18 @@ equal(policy.TRIAL_FIRST_DELIVERY_DURATION, 60, 'first delivery uses the full 60
 equal(policy.TRIAL_BALANCE_BRIDGE_DURATION, 35, 'bridge duration is explicit and visible in the public selector')
 equal(policy.TRIAL_BALANCE_BRIDGE_ENGINE, 'cinematic_ai', 'bridge engine is Seedance quality')
 check(read('lib/expandPolicy.ts').includes('SUPPORTED_DURATIONS = [35, 60, 90]'), '35s is supported by the shared client/server duration contract')
+equal(
+  policy.trialFirstDeliveryStudioIntent({ intentCampaign: policy.TRIAL_FIRST_DELIVERY_VERSION, engine: 'seedance' }),
+  'trial_best',
+  'reviewed first-delivery Seedance submit attaches the explicit activation contract',
+)
+for (const input of [
+  { intentCampaign: 'another_campaign', engine: 'seedance' },
+  { intentCampaign: policy.TRIAL_FIRST_DELIVERY_VERSION, engine: 'fast' },
+  { intentCampaign: policy.TRIAL_FIRST_DELIVERY_VERSION, engine: 'kling' },
+]) {
+  equal(policy.trialFirstDeliveryStudioIntent(input), null, 'unrelated campaign or manual engine choice stays ordinary')
+}
 
 for (const [input, eligible, reason] of [
   [{ trialPhase: 'active', credits: 25, creditsUsed: 0 }, true, 'eligible'],
@@ -195,6 +207,20 @@ check(firstHandlerStart >= 0 && firstHandlerEnd > firstHandlerStart, 'first-deli
 const firstHandler = banner.slice(firstHandlerStart, firstHandlerEnd)
 check(!firstHandler.includes('fetch('), 'first-delivery CTA cannot call a provider or mutate credits')
 check(!firstHandler.includes('checkout.launch'), 'first-delivery CTA cannot open Stripe')
+const studio = read('app/(dashboard)/studio/StudioClient.tsx').replace(/\r\n/g, '\n')
+check(studio.includes('trialFirstDeliveryStudioIntent({'), 'real Studio submit resolves the first-delivery contract')
+check(studio.includes("q.set('create_intent', trialCreationIntent)"), 'real Studio forwards trial_best to the machine room')
+check(studio.includes("q.delete('autoanalyze')"), 'trial_best removes the competing generic analyze rail')
+check(studio.includes("q.delete('studio')"), 'trial_best removes the competing Studio autofire rail')
+check(studio.includes("sessionStorage.removeItem('kineo:studio:go:v1')"), 'trial_best retires the generic one-click token')
+check(studio.includes("trackEvent('trial_first_delivery_generate_committed'"), 'Generate commitment is measurable between banner click and dispatch')
+const studioGenerateStart = studio.indexOf('const generate = () => {')
+const studioGenerateEnd = studio.indexOf('\n\n  return (', studioGenerateStart)
+check(studioGenerateStart >= 0 && studioGenerateEnd > studioGenerateStart, 'Studio Generate handler boundaries are found')
+const studioGenerate = studio.slice(studioGenerateStart, studioGenerateEnd)
+const setIntentIndex = studioGenerate.indexOf("q.set('create_intent', trialCreationIntent)")
+const routePushIndex = studioGenerate.indexOf('router.push(`/studio/create?${q.toString()}`)')
+check(setIntentIndex >= 0 && routePushIndex > setIntentIndex, 'trial_best is attached before the real Studio route push')
 check(banner.includes("trackEvent('trial_balance_bridge_viewed'"), 'persistent surface joins the existing measured bridge funnel')
 check(banner.includes("trackEvent('trial_balance_bridge_clicked'"), 'persistent CTA emits the existing causal click')
 check(banner.includes("surface: 'persistent_trial_banner'"), 'persistent surface is distinguishable in telemetry')

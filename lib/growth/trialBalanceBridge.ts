@@ -12,6 +12,27 @@ export const TRIAL_BALANCE_BRIDGE_COST = creditCostForDuration(
   TRIAL_BALANCE_BRIDGE_DURATION,
 )
 export const FULL_SEEDANCE_COST = creditCostForDuration('cinematic_ai', true, 60)
+export type TrialFirstDeliveryStudioIntentInput = {
+  intentCampaign: string
+  engine: string
+}
+
+/**
+ * Converts the reviewed Studio submit into the explicit trial_best contract.
+ *
+ * The banner click itself remains non-spending: it only opens the Studio with
+ * an editable idea. The contract is attached later, when the person presses
+ * Generate with Seedance still selected. A manual engine change must win, so
+ * every other engine returns null and follows the ordinary Studio path.
+ */
+export function trialFirstDeliveryStudioIntent(
+  input: TrialFirstDeliveryStudioIntentInput,
+): 'trial_best' | null {
+  return input.intentCampaign === TRIAL_FIRST_DELIVERY_VERSION && input.engine === 'seedance'
+    ? 'trial_best'
+    : null
+}
+
 
 export type TrialFirstDeliveryInput = {
   trialPhase: 'active' | 'ending' | null

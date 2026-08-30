@@ -23,6 +23,10 @@ import {
   isChatGptQuickstartChoice,
   type ChatGptQuickstartChoice,
 } from '@/lib/growth/chatgptQuickstart'
+import {
+  trialFirstDeliveryStudioIntent,
+  TRIAL_FIRST_DELIVERY_VERSION,
+} from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
@@ -249,6 +253,39 @@ export default function StudioClient() {
       sessionStorage.setItem('kineo:studio:go:v1', JSON.stringify({ t: Date.now(), engine, prompt: finalPrompt }))
     } catch {}
     const q = new URLSearchParams({ engine, prompt: finalPrompt, duration: String(duration), script_mode: scriptMode, autoanalyze: '1', studio: '1', intent_campaign: campaignRef.current })
+    // KINEO-TRIAL-FIRST-HANDOFF-2026-08-30 — production showed 4 people
+    // clicking the banner's premium first-delivery CTA, but only 1 completed
+    // Seedance. One later armed the Fast activation contract. Engine/duration
+    // in the Studio URL were presentation state; the machine room's explicit
+    // activation contract (create_intent) was absent.
+    //
+    // Preserve the review boundary: the banner still spends nothing. Only the
+    // person's Generate click may attach trial_best, and only while Seedance
+    // remains selected. If they manually choose another engine, that choice
+    // wins and this helper returns null.
+    const trialCreationIntent = trialFirstDeliveryStudioIntent({
+      intentCampaign: campaignRef.current,
+      engine,
+    })
+    if (trialCreationIntent) {
+      q.set('create_intent', trialCreationIntent)
+      // trial_best already owns analyze + dispatch. Keeping the generic Studio
+      // autoanalyze rail armed as well would let two effects race for the same
+      // Generate click. Remove both generic triggers and their short-lived
+      // session token so exactly one contract owns the request.
+      q.delete('autoanalyze')
+      q.delete('studio')
+      try {
+        sessionStorage.removeItem('kineo:studio:go:v1')
+      } catch {}
+      void trackEvent('trial_first_delivery_generate_committed', {
+        source: 'studio',
+        version: TRIAL_FIRST_DELIVERY_VERSION,
+        engine,
+        duration,
+        credits_required: cost,
+      })
+    }
     if (onboardingGoalRef.current) q.set('onboarding_goal', onboardingGoalRef.current)
     // KINEO-STUDIO-UNIFICACAO-2026-08-24 — a casa de máquinas agora mora em
     // /studio/create (o /generate virou porteiro que redireciona). Apontar
