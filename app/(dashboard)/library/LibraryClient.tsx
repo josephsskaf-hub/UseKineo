@@ -73,6 +73,23 @@ export default function LibraryClient() {
     { key: 'audio', label: 'Audio', count: auds.length },
   ]
 
+  // KINEO-SPRINT-UI10-2026-08-30 — busca na estante (continuacao do sprint
+  // #9): /history e /my-videos ganharam busca; a Library — a UNICA tela que
+  // junta videos, imagens e audio — ficou de fora. Filtro instantaneo em
+  // memoria (zero rede), por aba: video=titulo, imagem=motor, audio=texto/
+  // voz/motor. Contadores das abas seguem contando o acervo TOTAL.
+  const [q, setQ] = useState('')
+  const needle = q.trim().toLowerCase()
+  const fVids = needle ? vids.filter((v) => (v.title ?? '').toLowerCase().includes(needle)) : vids
+  const fImgs = needle ? imgs.filter((im) => (im.model ?? '').toLowerCase().includes(needle)) : imgs
+  const fAuds = needle ? auds.filter((a) => [a.text, a.voice, a.model].filter(Boolean).join(' ').toLowerCase().includes(needle)) : auds
+  const activeCount = tab === 'videos' ? vids.length : tab === 'images' ? imgs.length : auds.length
+  const clearBtn = (
+    <button type="button" className="pill" onClick={() => setQ('')} style={{ color: '#2997ff', borderColor: 'rgba(41,151,255,.4)' }}>
+      Clear search
+    </button>
+  )
+
   return (
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
@@ -89,11 +106,25 @@ export default function LibraryClient() {
 
       <div className="row" style={{ marginBottom: 20 }}>
         {TABS.map((t) => (
-          <button key={t.key} type="button" className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => setTab(t.key)}>
+          <button key={t.key} type="button" className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
             {t.label} · {t.count}
           </button>
         ))}
       </div>
+
+      {loaded && activeCount >= 6 && (
+        <div style={{ position: 'relative', maxWidth: 420, marginBottom: 16 }}>
+          <span aria-hidden="true" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, opacity: 0.55 }}>🔍</span>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={tab === 'videos' ? 'Search your videos…' : tab === 'images' ? 'Search your images…' : 'Search your audio…'}
+            aria-label={tab === 'videos' ? 'Search your videos by title' : tab === 'images' ? 'Search your images by engine' : 'Search your audio by text or voice'}
+            style={{ width: '100%', borderRadius: 12, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: '#f5f5f7', fontSize: 16, padding: '11px 14px 11px 38px', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+      )}
 
       {!loaded && (
         <div aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
@@ -115,9 +146,14 @@ export default function LibraryClient() {
       {loaded && tab === 'videos' && (
         vids.length === 0 ? (
           loadFailed ? null : <p className="sub">No videos yet — <Link href="/studio" style={{ color: '#2997ff' }}>open the Studio</Link> and make your first film.</p>
+        ) : fVids.length === 0 ? (
+          <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+            <p className="sub" style={{ marginBottom: 14 }}>No videos match &ldquo;{q.trim()}&rdquo;.</p>
+            {clearBtn}
+          </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
-            {vids.map((v) => (
+            {fVids.map((v) => (
               <Link key={v.id} href={`/history#v-${v.id}`} className="card" style={{ padding: 8, textDecoration: 'none' }}>
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {v.enhanced_url && (
@@ -153,9 +189,14 @@ export default function LibraryClient() {
       {loaded && tab === 'images' && (
         imgs.length === 0 ? (
           loadFailed ? null : <p className="sub">No images yet — <Link href="/images" style={{ color: '#2997ff' }}>create your first image</Link>.</p>
+        ) : fImgs.length === 0 ? (
+          <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+            <p className="sub" style={{ marginBottom: 14 }}>No images match &ldquo;{q.trim()}&rdquo;.</p>
+            {clearBtn}
+          </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
-            {imgs.map((im) => (
+            {fImgs.map((im) => (
               <div key={im.id} className="card" style={{ padding: 8 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={im.upscaled_url ?? im.url} alt="" style={{ width: '100%', borderRadius: 10, display: 'block' }} />
@@ -172,9 +213,14 @@ export default function LibraryClient() {
       {loaded && tab === 'audio' && (
         auds.length === 0 ? (
           loadFailed ? null : <p className="sub">No audio yet — <Link href="/audio" style={{ color: '#2997ff' }}>generate your first voiceover</Link>.</p>
+        ) : fAuds.length === 0 ? (
+          <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+            <p className="sub" style={{ marginBottom: 14 }}>No audio matches &ldquo;{q.trim()}&rdquo;.</p>
+            {clearBtn}
+          </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 720 }}>
-            {auds.map((a) => (
+            {fAuds.map((a) => (
               <div key={a.id} className="card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <audio controls preload="none" src={a.url} style={{ flex: '1 1 260px', height: 36 }} />
                 <span style={{ fontSize: 11.5, color: 'var(--txt2,#9aa0a6)' }}>{a.model}{a.voice ? ` · ${a.voice}` : ''}</span>

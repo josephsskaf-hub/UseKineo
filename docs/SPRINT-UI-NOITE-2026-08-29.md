@@ -124,3 +124,20 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     e zero, parece variante de oferta; anotado), 1 video completed (dispatch
     cinematic ok), 0 erros de render, 0 checkouts, 0 downloads, 3 landing
     sessions, 3 e-mails de ciclo de trial. Noite calma.
+- [Sprint 10 · 04:25] Busca na Library — a estante oficial era a UNICA sem
+  busca: o sprint #9 deu campo de busca a /history e /my-videos, mas a
+  /library (a tela que junta videos + imagens + audio, linkada do popup da
+  conta) continuava rolagem infinita. Agora as 3 abas filtram na hora, sem
+  rede: video por titulo, imagem por motor, audio por texto/voz/motor. Mesmo
+  padrao do #9: so aparece com 6+ itens, 16px anti-zoom, zero resultado
+  mostra o termo + Clear search (nunca finge acervo vazio — licao JWT-skew),
+  abas seguem contando o total, e trocar de aba limpa a busca. 22
+  verificacoes em scripts/test-library-search.mjs.
+  (Base: entrega-atual 870bf84 ja estava sobre origin/main 9ccdd0b — primeira
+  rodada da noite SEM rebase. Mesma rota de infra: clone /tmp + push interno
+  da ref, o .git no OneDrive segue recusando unlink.)
+  · Pulso 03:25-04:25 BRT: 0 cadastros, 1 video completed de cliente real
+    (video_ready_viewed junto — cliente assistiu), 0 erros de render, 0
+    checkouts, 0 downloads. Eventos: 4 e-mails de trial, 2 organic_cta,
+    2 landing sessions, 1 animate settled. Nenhuma causa antiga. Madrugada
+    calma e saudavel.
