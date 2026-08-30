@@ -1889,3 +1889,21 @@ PRÓXIMO DONO:
 **MÉTRICA:** URL pública aceita e, depois, pessoas externas por UTM em visita → signup → vídeo → checkout → pagamento. Impressão e clique cru não são pessoa nem receita.
 
 **PRÓXIMO DONO:** Claude não deve duplicar o contato com Faceless Directory. Codex monitora resposta e atribuição; qualquer pedido pago ou patrocínio volta como decisão separada.
+
+## 54. Trial — saldo zero não é assinatura; 25 créditos permanecem (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA (Supabase, SELECT agregado em 30/08/2026 BRT, contas internas excluídas):** a coorte madura por primeiro motor não mostrou vantagem de pagamento para `cinematic_ai`; os sinais de pagamento observados estavam no grupo cujo primeiro vídeo foi Fast. Na coorte recente, tanto Fast quanto premium produziram checkout e nenhum dos dois produziu pagamento até a leitura. Os números exatos e identificadores permanecem fora deste repositório público. A associação é observacional e confundida por data/política, mas contradiz a afirmação causal de que zerar no primeiro Seedance já é um caminho comprovado para compra.
+
+**FATO CONFIRMADO / RAIL JÁ PUBLICADO:** `trial_first_seedance_60s_v1` já preenche a primeira missão premium; `trial_balance_seedance_35s_v2` já transforma o saldo pós-Fast em uma segunda experiência Seedance sem cartão. A ponte ganhou precedência sobre Plan Fit no commit `10efc06f`; a missão preenchida chegou no commit `ac59bca1`. Na leitura feita logo após esses deploys ainda não havia pessoa externa observada no evento de visualização da ponte; isso é ausência de amostra pós-deploy, não prova de falha da superfície.
+
+**EVIDÊNCIA EXTERNA (fontes oficiais consultadas em 30/08/2026):** InVideo mantém quota gratuita limitada com reset semanal; OpusClip publica créditos gratuitos que não acumulam; VEED permite testar modelos com quota limitada e mostra custo antes da geração. O padrão competitivo útil é limite transparente e próxima ação clara, não obrigar um motor único nem confundir saldo consumido com conversão.
+
+**DECISÃO OPERACIONAL:** manter grant de 25 créditos, validade atual e escolha de motor. Não aumentar, reduzir, retirar Fast, impor expiração de 24–48 horas ou forçar Seedance. A mudança de maior valor já está publicada: Seedance recomendado e preenchido para a primeira missão, com ponte de 35s para quem começou em Fast. A próxima decisão só ocorre quando houver coorte nova suficiente em `primeiro motor → entrega → saldo → ponte → checkout → pagamento`, por pessoa.
+
+**CONTENÇÃO / ANTI-DUPLICAÇÃO:** não duplicar COMEBACK50 para os abandonadores e não reenviar a onda de créditos conduzida pelo Claude. Se o benefício já foi concedido, isolar essa coorte; saldo promocional adicional não pode ser usado como evidência sobre o grant normal de 25.
+
+**VALIDAÇÃO ADJACENTE:** o checkout recorrente de 24 horas está em produção e validado no commit `be00a86a`; o deploy documental mais recente no SHA `516ce6fe` está `READY`. A próxima coorte mede simultaneamente a missão premium recém-publicada e a janela de checkout corrigida, sem introduzir terceira variável.
+
+**NÃO TOCADO:** preço, grant, prazo, entitlement, crédito, render, motor, Stripe write, Supabase schema/dados, e-mails Claude ou lista de destinatários.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir da ponta posterior a esta sincronização. Não mudar o trial nem criar outro rail antes da primeira leitura pós-deploy. Codex mede a coorte e continua aquisição, fluxo e assinatura.
