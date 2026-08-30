@@ -410,6 +410,7 @@ check('caller passes fresh eligibility verifier', generate.includes('verifyEligi
 check('caller passes resolved canonical currency', generate.includes('currency={postVideoCurrency}'))
 check('caller requires confirmed first delivery', generate.includes('planFitFirstDelivery &&'))
 check('caller requires a sellable non-subscriber cohort', generate.includes('planFitSellableCohort &&'))
+check('already-funded trial bridge precedes Plan Fit', generate.includes('planFitSellableCohort !== null &&\n    !trialBalanceBridge.eligible'))
 // 29/08 production evidence invalidated the original order assertion: the
 // first premium-first user reached `video_ready_viewed` but never exposed
 // `plan_fit_impression`. Plan Fit already suppresses the trial recurring card,
@@ -422,7 +423,7 @@ check('Plan Fit follows the delivered download', deliveredFirstMarkerIndex >= 0 
 check('Plan Fit precedes the referral reward', referralRewardRenderIndex >= 0 && planFitRenderIndex < referralRewardRenderIndex)
 check('Plan Fit precedes NextShorts retention', planFitRenderIndex < generate.indexOf('<NextShortsSection'))
 check('Plan Fit precedes the generic recurring upsell', generate.indexOf('<PlanFitCard') < generate.indexOf('<UpsellSection'))
-check('trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
+check('non-bridge trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
 check('trial recurring impression is replaced too', generate.includes('const eligible = trialOfferPhaseForImpression !== null && !planFitOwnsRecurringSlot'))
 check('generic recurring upsell is replaced by Plan Fit', generate.includes("!planFitOwnsRecurringSlot && planTier === 'free' && (hasPaid || !lastFastRenderRef.current)"))
 check('Plan Fit prevents a false no-offer event', generate.includes('if (planFitOwnsRecurringSlot) return'))

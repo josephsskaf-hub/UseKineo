@@ -4095,6 +4095,18 @@ export default function GenerateClient({
             ? 'ending'
             : null)
       : null
+  // KINEO-TRIAL-BRIDGE-FIRST-2026-08-30 — a free, already-funded next step
+  // must be resolved before Plan Fit reserves the one recurring-offer slot.
+  // Production evidence: 9 recent Fast completers ended with bridge-compatible
+  // balance and 0 people viewed this bridge; Plan Fit reserved the slot first
+  // while also recording 0 impressions. This decision never grants or spends
+  // credits and never starts a render — it only governs which post-delivery
+  // action is allowed to appear.
+  const trialBalanceBridge = decideTrialBalanceBridge({
+    trialPhase: trialPostVideoPhase,
+    credits,
+    deliveredQuality: quality,
+  })
   // Hoje apenas o Fast de conta free/trial recebe watermark no compose. O
   // Seedance (`cinematic_ai`) e os demais motores Fal saem limpos; por isso
   // `falUsedRef` faz parte da verdade do asset, não da conta.
@@ -4253,7 +4265,8 @@ export default function GenerateClient({
     Boolean(finalVideoUrl) &&
     Boolean(publicVideoId) &&
     planFitQuality !== null &&
-    planFitSellableCohort !== null
+    planFitSellableCohort !== null &&
+    !trialBalanceBridge.eligible
   const planFitOfferEligible = planFitOfferCandidate && planFitFirstDelivery
   const planFitOwnsRecurringSlot = shouldReservePlanFitRecurringSlot({
     candidate: planFitOfferCandidate,
@@ -9266,11 +9279,6 @@ export default function GenerateClient({
   // when no delivered quality is known. Prices, grants and checkout authority
   // remain unchanged.
   const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource, quality)
-  const trialBalanceBridge = decideTrialBalanceBridge({
-    trialPhase: trialPostVideoPhase,
-    credits,
-    deliveredQuality: quality,
-  })
   const starterFirstOffer = postVideoOfferDecision.primaryTier === 'starter'
   const trialOfferPriceNoteBasic = trialOfferFullPrice
     ? (trialOfferIntroPrice

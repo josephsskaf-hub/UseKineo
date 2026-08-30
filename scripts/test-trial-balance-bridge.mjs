@@ -150,6 +150,10 @@ check(client.includes("trackEvent('trial_balance_bridge_clicked'"), 'real CTA em
 check(client.includes('intent_campaign: intentCampaign || null'), 'completion preserves bridge campaign')
 check(client.includes('showTrialPostVideoOffer && trialBalanceBridge.eligible'), 'bridge renders only inside the proven trial slot')
 check(client.includes('showTrialPostVideoOffer && !trialBalanceBridge.eligible'), 'subscription offer and bridge are mutually exclusive')
+const bridgeDecisionIndex = client.indexOf('const trialBalanceBridge = decideTrialBalanceBridge({')
+const planFitCandidateIndex = client.indexOf('const planFitOfferCandidate =')
+check(bridgeDecisionIndex >= 0 && bridgeDecisionIndex < planFitCandidateIndex, 'bridge eligibility is resolved before Plan Fit reserves the slot')
+check(client.includes('planFitSellableCohort !== null &&\n    !trialBalanceBridge.eligible'), 'Plan Fit defers to an already-funded bridge')
 check(client.includes('data-trial-balance-bridge={trialBalanceBridge.version}'), 'rendered surface names its version')
 check(client.includes('Nothing starts until you enter the next idea and press Generate.'), 'copy denies automatic spending')
 check(client.includes('setAiEngine(\'seedance\')'), 'CTA selects Seedance')
@@ -231,5 +235,13 @@ for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE
 }
 check(firstPreview.includes('8 zero-use clicks → 0 paid'), 'preview states the measured reason for the change')
 check(!/https?:\/\//i.test(firstPreview), 'activation preview has no external dependency')
+
+const precedencePreviewPath = 'docs/previews/TRIAL-BRIDGE-FIRST-SLOT-2026-08-30.html'
+check(fs.existsSync(path.join(root, precedencePreviewPath)), 'bridge-precedence comparison exists')
+const precedencePreview = read(precedencePreviewPath)
+for (const marker of ['Before · Plan Fit reserves the slot', 'After · Already-funded bridge comes first', 'After · Mobile 390px']) {
+  check(precedencePreview.includes(marker), `bridge-precedence preview contains ${marker}`)
+}
+check(!/https?:\/\//i.test(precedencePreview), 'bridge-precedence preview has no external dependency')
 
 console.log(`PASS — ${checks}/${checks} trial balance bridge checks`)

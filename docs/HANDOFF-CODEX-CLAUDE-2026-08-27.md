@@ -1811,3 +1811,19 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** grant, prazo do trial, preço, oferta pública, Stripe, Supabase, render, motor, cena, legenda, e-mail da onda Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir deste commit ou da ponta posterior de `origin/main`. Não adicionar outro default Seedance, não remover a ponte de 35s e não alterar o grant durante a coorte atual. Codex continua aquisição/fluxo/assinaturas.
+
+## 50. Conversão pós-Fast — ponte gratuita ganha precedência sobre Plan Fit (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** uma auditoria por pessoa, com contas internas excluídas, encontrou usuários com primeira entrega Fast e saldo compatível com a ponte, mas nenhuma impressão da superfície. Os números e identificadores da coorte permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA DE FLUXO:** `planFitOfferCandidate` era calculado antes da decisão `trialBalanceBridge`. Para uma primeira entrega Fast, o Plan Fit reservava `planFitOwnsRecurringSlot`, fazia `showTrialPostVideoOffer` ficar falso e impedia o JSX da ponte de existir. Assim, a oferta mensal podia suprimir a próxima experiência gratuita já financiada pelo saldo do trial. Se o Plan Fit também não entrasse no viewport, a tela terminava sem qualquer ação comercial medida.
+
+**IMPLEMENTADO:** `decideTrialBalanceBridge` agora roda imediatamente após a fase pós-vídeo canônica. Quando a ponte é elegível, `planFitOfferCandidate` fica falso, o slot do trial permanece disponível e o card de Seedance de 35s é a única ação pós-entrega. Plan Fit continua intacto para todas as coortes em que a ponte não se aplica. O CTA apenas prepara Studio com motor e duração; não chama fornecedor, não analisa, não gera, não reserva nem gasta crédito.
+
+**TESTADO LOCALMENTE:** `node scripts/test-trial-balance-bridge.mjs` passou 144/144; `node scripts/test-plan-fit.mjs`, 327/327; `node scripts/test-trial-post-video-primary.mjs`, 45/45. As novas asserções exigem que a ponte seja resolvida antes do candidato Plan Fit e que Plan Fit recue quando o próximo passo já está pago. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TRIAL-BRIDGE-FIRST-SLOT-2026-08-30.html` mostra antes/depois desktop e o estado mobile. Foi servido localmente e inspecionado no Chrome conectado do fundador. Antes: calculadora de assinatura ocupa o primeiro slot mesmo com saldo de trial. Depois: o Seedance já financiado lidera, sem cartão e sem disparo automático.
+
+**NÃO TOCADO:** grant, prazo do trial, preço, Stripe, Supabase schema/dados, Plan Fit matemático, render, motor, cena, legenda, e-mail da onda Claude ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não reintroduzir Plan Fit à frente da ponte, não duplicar o card e não contar impressão como conversão; a primeira prova causal é pessoa elegível ver → clicar → concluir Seedance → iniciar checkout → pagar.
