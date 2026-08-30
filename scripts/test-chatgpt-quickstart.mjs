@@ -55,7 +55,7 @@ for (const option of quickstart.CHATGPT_QUICKSTARTS) {
   equal(url.pathname, '/studio', `${option.choice}: opens the simple Studio input before generation`)
   equal(url.searchParams.get('engine'), 'seedance', `${option.choice}: visual promise and selected engine stay identical`)
   equal(url.searchParams.get('chatgpt_quickstart'), option.choice, `${option.choice}: choice survives the handoff`)
-  equal(url.searchParams.get('intent_campaign'), 'chatgpt_quickstart_v3', `${option.choice}: acquisition continuation stays measurable`)
+  equal(url.searchParams.get('intent_campaign'), quickstart.CHATGPT_QUICKSTART_VARIANT, `${option.choice}: campaign and event variant cannot drift`)
   ok(!url.searchParams.has('utm_source'), `${option.choice}: first-touch acquisition is not overwritten`)
 }
 equal(quickstart.isChatGptQuickstartChoice('finished_script'), true, 'finished script is an allow-listed continuation')

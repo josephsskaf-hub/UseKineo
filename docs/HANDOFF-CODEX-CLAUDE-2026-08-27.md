@@ -1948,6 +1948,8 @@ PRÓXIMO DONO:
 
 **COMPARAÇÃO VISUAL:** `docs/previews/CHATGPT-INLINE-PASTE-2026-08-30.html` mostra antes/depois desktop e o estado mobile de 390 px. Foi servido localmente e inspecionado no Chrome conectado do fundador. O card mantém as duas escolhas, revela um único editor e um único CTA; no mobile, campo e botão empilham sem corte.
 
+**SMOKE PRÉ-VALIDAÇÃO / FORWARD-FIX:** o primeiro smoke real confirmou que o texto chegava preenchido ao Studio, mas encontrou `intent_campaign=chatgpt_quickstart_v3` chumbado nas duas URLs enquanto os eventos já usavam v4. A campanha passou a derivar de `CHATGPT_QUICKSTART_VARIANT`, e o teste agora falha se URL e evento divergirem. Nenhum render foi iniciado.
+
 **NÃO TOCADO:** grant de 25, validade do trial, preço, oferta, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude, contatos ou vídeos existentes.
 
 **MÉTRICA:** por pessoa externa e variante: `view → input_opened → selected → studio_ready → generation_started → completed → checkout → payment`. Clique na opção não é seleção concluída; texto digitado não é telemetria; checkout não é assinatura.
