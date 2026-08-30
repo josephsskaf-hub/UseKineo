@@ -1760,14 +1760,16 @@ PRÓXIMO DONO:
 
 **FATO CONFIRMADO / CAUSA DE FLUXO:** `app/ai-video-generator/[engine]/page.tsx` enviava hero, CTA final e sticky do Kineo 1 ao signup sem prompt. As páginas de maior ativação reutilizam `TopicGeneratorForm`, que transporta prompt, campanha e intenção de criação. O contrato `create_intent=fast` corresponde exatamente a Kineo 1; aplicar o mesmo autostart a páginas premium poderia trocar o motor prometido, por isso a mudança é exclusiva do Fast.
 
-**IMPLEMENTADO:** commit funcional `3a0f4f4b646bd7861a0b897dd2e7986adf1017dc` faz os três CTAs do Kineo 1 apontarem para o starter na própria página. A pessoa digita ou escolhe uma ideia, e o componente compartilhado leva a ideia e a campanha pelo cadastro até a criação automática no Kineo 1. Seedance, Kling, Veo, H3, Omni e Hollywood preservam o caminho anterior; preço, grant e custo de motor não mudaram.
+**IMPLEMENTADO:** commit funcional `3a0f4f4b646bd7861a0b897dd2e7986adf1017dc` faz os três CTAs do Kineo 1 apontarem para o starter na própria página. A pessoa digita ou escolhe uma ideia, e o componente compartilhado leva a ideia e a campanha pelo cadastro até a criação automática no Kineo 1. O smoke encontrou uma borda de sessão já autenticada que pulava o signup e perdia o handoff; o commit `b0b2a774735bc5666db7f5ac041c87f028dded79` adiciona um redirect interno limitado que preserva prompt, Fast e campanha sem mudar os demais callers. Seedance, Kling, Veo, H3, Omni e Hollywood preservam o caminho anterior; preço, grant e custo de motor não mudaram.
 
 **TESTADO LOCALMENTE:** `test-engine-landing-intent.mjs` passou 121/121; `test-public-creation-intent.mjs`, 64/64; `test-organic-premium-first.mjs`, 24/24. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
 
-**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-TOPIC-STARTER-2026-08-30.html` contém antes/depois desktop e mobile. O Chrome recusou arquivo local por política de URL; não houve tentativa de contorno. A inspeção visual final acontece na URL HTTPS de produção.
+**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-TOPIC-STARTER-2026-08-30.html` contém antes/depois desktop e mobile. O Chrome recusou arquivo local por política de URL; não houve tentativa de contorno.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** deploy Vercel `dpl_DYYGP3RFjiwP174pLY1JhszuLf2x` chegou a `READY`, target production, aliases incluindo `www.usekineo.com`, ligado ao SHA `b0b2a774735bc5666db7f5ac041c87f028dded79`. No Chrome autenticado do fundador, a página exibiu o starter; o envio digitado e o exemplo de um clique chegaram a `/studio/create` com o prompt, `intent_campaign=seo_engine_kineo-1` e Fast selecionado. A conta paga não iniciou render automaticamente. A Vercel encontrou zero erro runtime nas rotas consultadas nos 15 minutos.
 
 **QUESTÃO PENDENTE / DESCONHECIDO:** impacto comercial exige nova pessoa externa seguir starter → signup → primeira entrega → ponte de saldo → checkout → pagamento. Não comparar eventos brutos nem promover uma sessão a pessoa.
 
 **NÃO TOCADO:** preço, grant de 25, expiração, checkout, Stripe, Auth server-side, Supabase schema, migration, Storage, render, motor, cena, legenda, e-mail da onda Claude ou vídeo de cliente.
 
-**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `3a0f4f4` ou da ponta posterior de `origin/main`. Não duplicar o starter no Kineo 1, não aplicá-lo automaticamente aos motores premium e não mexer no grant enquanto a coorte de 72 horas está formando.
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b0b2a77` ou da ponta posterior de `origin/main`. Não duplicar o starter no Kineo 1, não aplicá-lo automaticamente aos motores premium e não mexer no grant enquanto a coorte de 72 horas está formando.
