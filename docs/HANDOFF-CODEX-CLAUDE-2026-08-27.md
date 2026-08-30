@@ -2017,3 +2017,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** código, UI, preço, grant, validade do trial, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do próximo SHA, não duplicar SaaSHub, ToolScout, AllThingsAI nem as ondas COMEBACK50/+25. Codex acompanha aprovações, atribuição e a coorte atual sem mudar grant ou prazo prematuramente.
+
+## 61. Aquisição SEO — roundup alinhado à consulta que o Google já entrega (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** o Search Console, na janela de 28 dias e propriedade canônica `usekineo.com`, mostrou que `/best-ai-shorts-generators` já recebe demanda de investigação comercial, mas quase não recebe cliques e ainda aparece longe da primeira página. A consulta mais recorrente usa a formulação “best AI tools for YouTube Shorts”; os números exatos ficam fora deste repositório público.
+
+**FATO CONFIRMADO / DESALINHAMENTO:** a URL respondia com “AI YouTube Shorts generators” no title e H1. O conteúdo era relevante, mas a frase principal não espelhava a linguagem que o próprio Google já associa à página.
+
+**IMPLEMENTADO:** title, description, Open Graph, Twitter, H1, FAQ, breadcrumb, ItemList e título do ranking passaram a compartilhar a formulação canônica “Best AI Tools for YouTube Shorts”. `SEARCH_TITLE`, `PAGE_HEADING` e `SEARCH_DESCRIPTION` evitam nova divergência. A descrição preserva a comparação honesta por ponto de partida: ideia, roteiro, vídeo longo, avatar ou clipe pronto. A data editorial avançou para 30/08/2026.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/SEO-SNIPPET-BEST-AI-SHORTS-2026-08-30.html` mostra o snippet e o H1 antes/depois em desktop e empilha os dois estados no mobile. Layout, ordem do ranking, oferta, preço e CTA funcional não mudaram.
+
+**FORWARD-FIX OPERACIONAL:** o SHA `af8b4301` adicionou `node_modules` ao Git como symlink absoluto para `/sessions/peaceful-jolly-bohr/mnt/Usekineo/node_modules`. Em checkout Windows ele vira um arquivo quebrado e já abortou um rebase limpo. Esta entrega remove somente esse link rastreado; `.gitignore` já ignora `node_modules/`. Nenhuma dependência real da máquina do fundador foi apagada.
+
+**TESTADO LOCALMENTE:** title com 53 caracteres, description com 151; metadata, H1, FAQ, breadcrumb e ItemList usam a mesma intenção. `npx tsc --noEmit` equivalente, executado com o TypeScript já instalado, repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**DISTRIBUIÇÃO SEM ESTADO FALSO:** o TryLaunch ficou como rascunho no passo obrigatório de mídia; o Chrome conectado não autorizou o upload programático dos assets locais. Não houve submit, compra ou listagem. O AlternativeTo também não recebeu cadastro: Google signup estava desabilitado e a sessão GitHub do fundador não estava autenticada; nenhuma credencial foi criada ou inferida. Claude não deve chamar nenhum dos dois de publicado nem duplicar tentativa sem sessão adequada.
+
+**NÃO TOCADO:** grant de 25, validade do trial, preço, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude ou rankings de concorrentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do próximo SHA e partir da ponta posterior. Não reverter a formulação observada no Search Console e não duplicar ToolScout, SaaSHub, AllThingsAI ou Faceless Directory. Codex acompanha indexação, CTR por pessoa/consulta quando a janela amadurecer e continua aquisição/fluxo/assinatura.

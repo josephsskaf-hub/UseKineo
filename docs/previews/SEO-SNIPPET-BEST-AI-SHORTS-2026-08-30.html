@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo — search-intent before and after</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0b0c10; color: #f5f5f7; font: 15px/1.5 Inter, Arial, sans-serif; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 40px auto 72px; }
+    h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 42px); }
+    .lead { color: #a6a6ad; margin: 0 0 30px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .panel { background: #15161b; border: 1px solid #2b2d35; border-radius: 18px; padding: 20px; }
+    .label { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .08em; }
+    .before { background: #34231d; color: #ffb18f; }
+    .after { background: #123428; color: #7bf0b0; }
+    .serp { margin-top: 18px; padding: 18px; border-radius: 14px; background: #fff; color: #202124; }
+    .url { color: #202124; font-size: 13px; }
+    .title { color: #1a0dab; font-size: 20px; line-height: 1.28; margin: 4px 0; }
+    .description { color: #4d5156; font-size: 14px; }
+    .hero { margin-top: 18px; padding: 22px; min-height: 165px; border-radius: 14px; background: #000; border: 1px solid #292a30; display: flex; flex-direction: column; justify-content: center; }
+    .hero small { color: #2997ff; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .hero h2 { margin: 8px 0 0; font-size: 29px; line-height: 1.15; }
+    .note { margin-top: 22px; color: #a6a6ad; }
+    @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } main { margin-top: 22px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Search-intent alignment</h1>
+    <p class="lead">Static review of the Google snippet and visible H1. No layout, offer, pricing or ranking claims changed.</p>
+    <div class="grid">
+      <section class="panel">
+        <span class="label before">BEFORE</span>
+        <div class="serp">
+          <div class="url">https://www.usekineo.com › best-ai-shorts-generators</div>
+          <div class="title">13 Best AI YouTube Shorts Generators (2026) — Compared by Workflow</div>
+          <div class="description">Compare 13 AI YouTube Shorts generators by workflow: idea-to-video, faceless autopilot, long-video clipping, avatars and captions…</div>
+        </div>
+        <div class="hero">
+          <small>Roundup</small>
+          <h2>13 Best AI YouTube Shorts Generators (2026)</h2>
+        </div>
+      </section>
+      <section class="panel">
+        <span class="label after">AFTER</span>
+        <div class="serp">
+          <div class="url">https://www.usekineo.com › best-ai-shorts-generators</div>
+          <div class="title">13 Best AI Tools for YouTube Shorts (2026) — Compared</div>
+          <div class="description">Compare 13 AI tools for YouTube Shorts by starting point: idea, script, long video, avatar or finished clip. See free tiers, prices and best-fit picks.</div>
+        </div>
+        <div class="hero">
+          <small>Roundup</small>
+          <h2>13 Best AI Tools for YouTube Shorts (2026)</h2>
+        </div>
+      </section>
+    </div>
+    <p class="note">The after version mirrors the observed commercial-investigation query while preserving the page’s honest workflow comparison.</p>
+  </main>
+</body>
+</html>

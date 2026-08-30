@@ -26,26 +26,32 @@ const OFFER = getFreeTierOffer()
 
 export const dynamic = 'force-static'
 
-const UPDATED = 'August 28, 2026'
+const UPDATED = 'August 30, 2026'
+
+// KINEO-GSC-INTENT-2026-08-30 — Search Console surfaces this URL most often
+// for "best AI tools for YouTube Shorts" and close variants. Keep the search
+// title, description, H1 and ItemList sourced from the same copy so the result
+// answers that observed intent without drifting into invented ratings.
+const SEARCH_TITLE = '13 Best AI Tools for YouTube Shorts (2026) — Compared'
+const PAGE_HEADING = '13 Best AI Tools for YouTube Shorts (2026)'
+const SEARCH_DESCRIPTION =
+  'Compare 13 AI tools for YouTube Shorts by starting point: idea, script, long video, avatar or finished clip. See free tiers, prices and best-fit picks.'
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.usekineo.com'),
-  title: '13 Best AI YouTube Shorts Generators (2026) — Compared by Workflow',
-  description:
-    'Compare 13 AI YouTube Shorts generators by workflow: idea-to-video, faceless autopilot, long-video clipping, avatars and captions. Includes Kineo, StoryShort, ShortsPilot, SendShort, OpusClip and more.',
+  title: SEARCH_TITLE,
+  description: SEARCH_DESCRIPTION,
   alternates: { canonical: 'https://www.usekineo.com/best-ai-shorts-generators' },
   openGraph: {
-    title: '13 Best AI YouTube Shorts Generators (2026) — Compared by Workflow',
-    description:
-      'An honest comparison of 13 AI Shorts generators: idea-to-video, faceless autopilot, re-clipping, avatars and captions.',
+    title: SEARCH_TITLE,
+    description: SEARCH_DESCRIPTION,
     url: 'https://www.usekineo.com/best-ai-shorts-generators',
     type: 'article',
   },
   twitter: {
     card: 'summary_large_image',
-    title: '13 Best AI YouTube Shorts Generators (2026)',
-    description:
-      'The best AI Shorts generators, ranked and compared honestly — from-scratch vs re-clip, free tiers and starting prices.',
+    title: PAGE_HEADING,
+    description: SEARCH_DESCRIPTION,
   },
 }
 
@@ -213,7 +219,7 @@ const TOOLS: Tool[] = [
 
 const FAQ: { q: string; a: string }[] = [
   {
-    q: 'What is the best AI YouTube Shorts generator in 2026?',
+    q: 'What are the best AI tools for YouTube Shorts in 2026?',
     a: 'It depends on your starting point. If you have no footage and want a finished faceless Short from just a topic, Kineo is the strongest pick — it writes the script, adds an AI voiceover, matches visuals and burns in captions, usually in about 3–7 minutes. If you already record long videos and only want them clipped, a re-clipper like OpusClip is the better fit. If you need a talking presenter on screen, HeyGen is built for that.',
   },
   {
@@ -260,7 +266,7 @@ export default function BestAiShortsGeneratorsPage() {
       {
         '@type': 'ListItem',
         position: 2,
-        name: 'Best AI Shorts Generators',
+        name: 'Best AI Tools for YouTube Shorts',
         item: 'https://www.usekineo.com/best-ai-shorts-generators',
       },
     ],
@@ -269,7 +275,7 @@ export default function BestAiShortsGeneratorsPage() {
   const itemListJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: '13 Best AI YouTube Shorts Generators (2026)',
+    name: PAGE_HEADING,
     itemListOrder: 'https://schema.org/ItemListOrderDescending',
     numberOfItems: TOOLS.length,
     itemListElement: TOOLS.map((t, i) => ({
@@ -335,11 +341,11 @@ export default function BestAiShortsGeneratorsPage() {
           Roundup — updated {UPDATED}
         </p>
         <h1 style={{ fontSize: '2.2rem', fontWeight: 800, lineHeight: 1.15, margin: '0 0 16px' }}>
-          13 Best AI YouTube Shorts Generators (2026)
+          {PAGE_HEADING}
         </h1>
         <p style={{ color: MUTED, fontSize: '1.08rem', lineHeight: 1.6, margin: '0 0 8px' }}>
-          &ldquo;Best AI Shorts generator&rdquo; has no single answer, because these tools
-          are not doing the same job. Some generate a whole video from an idea, some re-clip
+          The best AI tools for YouTube Shorts are not doing the same job. Some generate a
+          whole video from an idea, some re-clip
           a long video you already filmed, some only add captions, and some put a talking
           avatar on screen. The right one depends on what you are starting with. Below is an
           honest, ranked shortlist — what each tool actually does, who it is for, and how they
@@ -449,7 +455,7 @@ export default function BestAiShortsGeneratorsPage() {
 
         {/* Ranked list */}
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 6px' }}>
-          The ranking: 13 best AI Shorts generators
+          The ranking: 13 best AI tools for YouTube Shorts
         </h2>
         <p style={{ color: MUTED, fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 20px' }}>
           Ranked for the most common case: a creator who wants to publish faceless Shorts and is
