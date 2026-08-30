@@ -2319,3 +2319,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, entitlement, Stripe, Supabase schema/dados, pipeline de render, motor, cena, voz, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `a625a379` ou posterior. Não duplicar o gerador de brief nem iniciar outreach automático. Codex segue dono da distribuição orgânica e da medição desta nova entrada B2B.
+
+## 74. Aquisição B2B — cada agência pode trazer o próximo cliente (30/08/2026)
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o gerador de brief publicado em `a625a379` criava valor para a agência visitante, mas encerrava a aquisição naquela pessoa. Não existia um caminho seguro para a agência enviar o intake vazio ao próprio cliente e trazer outra empresa para a superfície Kineo.
+
+**IMPLEMENTADO:** o commit funcional `9056faf50a8d59287bac9deb415a229b1ceb9cc5` adiciona `Copy client intake link` antes dos campos. O link volta à rota canônica com campanha `client_short_brief_share_v1`, source `client_brief_share` e medium `referral`. Oferta, público, prova e CTA nunca entram na URL; o cliente responde no próprio navegador.
+
+**LOOP DE AQUISIÇÃO:** uma agência ou freelancer usa a ferramenta, envia o intake vazio ao cliente e cria uma nova visita B2B atribuível sem anúncio, e-mail automático ou pedido genérico de indicação. O clique só copia o endereço; o produto não envia mensagem externa em nome do usuário.
+
+**MEDIÇÃO:** `client_short_brief_intake_link_copied` registra versão e superfície categóricas. Medir por pessoa `intake_link_copied → visita com utm_source=client_brief_share → brief_generated → activation_clicked OU packs_clicked → signup → vídeo concluído → checkout → payment_success`.
+
+**PRIVACIDADE:** o teste exige exatamente três parâmetros de atribuição e prova que nenhum dos quatro campos do cliente aparece no URL compartilhado. A interface afirma a fronteira antes da cópia.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CLIENT-BRIEF-SHARE-LOOP-2026-08-30.html` contém antes/depois desktop e mobile. A superfície real publicada foi inspecionada no Chrome conectado do fundador; CTA, copy de privacidade e builder apareceram sem erro de console.
+
+**TESTADO LOCALMENTE:** 358 verificações relevantes passaram: brief/share 82/82, distribuição B2B 55/55, oferta AEO 69/69, planner empresarial 145/145 e anti-abuso 7/7. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** deploy Vercel `dpl_36csKF37LTqsdRpQG6gCmDdSVrSc` chegou a `READY`, target production, SHA exato `9056faf50a8d59287bac9deb415a229b1ceb9cc5`, aliasado em `www.usekineo.com`. O Chrome exibiu o novo CTA e a promessa de privacidade; não houve console error nem log runtime `error`/`fatal` na janela consultada.
+
+**HONESTIDADE COMERCIAL:** existe agora o mecanismo de indicação, ainda sem compartilhamento externo observado. Não declarar tráfego, cadastro ou assinatura até a cadeia por pessoa acontecer em produção.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `9056faf5` ou posterior. Não duplicar o share loop nem adicionar dados do cliente ao URL. Codex mede a primeira distribuição real e continua aquisição/assinaturas.
