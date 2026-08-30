@@ -26,6 +26,7 @@ import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import { getEngineRenders } from '@/lib/engineWall'
 import {
   getFreeTierOffer,
@@ -343,6 +344,13 @@ export default async function EnginePage({ params }: { params: { engine: string 
   const campaign = `seo_engine_${params.engine}`
   const studioUrl = buildEngineLandingDestination({ engine: e.param, campaign })
   const signupUrl = buildEngineLandingSignupHref({ engine: e.param, campaign })
+  // EVIDÊNCIA DE PRODUÇÃO (29/08/2026): seo_engine_kineo-1 ativou 7 de 19
+  // cadastros, enquanto as portas orgânicas que carregam uma ideia concreta
+  // ativaram 64–76%. Kineo 1 é o único motor desta página que pode preservar
+  // esse padrão e ainda cumprir exatamente o motor prometido: create_intent=fast
+  // abre o Fast, não troca a escolha e não toca nos motores premium.
+  const kineoOneStarterId = 'try-kineo-1'
+  const primaryCtaHref = e.param === 'fast' ? `#${kineoOneStarterId}` : signupUrl
 
   const faqJsonLd = {
     '@context': 'https://schema.org',
@@ -390,7 +398,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
           <p style={{ fontSize: '1.02rem', color: '#86868b', lineHeight: 1.6, margin: '16px auto 0', maxWidth: 680 }}>{e.intro}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, marginTop: 22 }}>
             <OrganicCtaLink
-              href={signupUrl}
+              href={primaryCtaHref}
               source={campaign}
               placement="hero"
               style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '15px 32px', borderRadius: 980, textDecoration: 'none', fontSize: '1.05rem' }}
@@ -409,6 +417,27 @@ export default async function EnginePage({ params }: { params: { engine: string 
           {/* Honestidade explícita: nunca prometer grátis um motor de Studio. */}
           <p style={{ fontSize: '0.82rem', color: '#86868b', margin: '12px 0 0' }}>{tierNote}</p>
         </section>
+
+        {e.param === 'fast' && (
+          <TopicGeneratorForm
+            campaign={campaign}
+            source={campaign}
+            formId={kineoOneStarterId}
+            creationIntent="fast"
+            examples={[
+              'The island nobody is allowed to visit',
+              'The money habit that quietly keeps people broke',
+              'The strange signal scientists still cannot explain',
+            ]}
+            copy={{
+              label: 'What should Kineo 1 make first?',
+              placeholder: 'Type one topic, fact, story or hook',
+              submit: 'Make this with Kineo 1 →',
+              examplesLabel: 'One-click starter ideas',
+              note: 'Your idea stays attached through signup and starts with Kineo 1. Your remaining trial balance stays available for the next test.',
+            }}
+          />
+        )}
 
         {/* A PROVA — renders reais deste motor */}
         {renders.length > 0 && (
@@ -549,7 +578,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             One idea in, a ready-to-post vertical Short out. No editing timeline, no card to start.
           </p>
           <OrganicCtaLink
-            href={signupUrl}
+            href={primaryCtaHref}
             source={campaign}
             placement="final"
             style={{ display: 'inline-block', background: '#f5f5f7', color: '#000', fontWeight: 900, padding: '14px 30px', borderRadius: 980, textDecoration: 'none', fontSize: '1.02rem' }}
@@ -589,7 +618,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
         </nav>
       </div>
 
-      <StickyFreeShortCTA href={signupUrl} />
+      <StickyFreeShortCTA href={primaryCtaHref} />
       <Footer />
     </main>
   )

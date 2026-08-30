@@ -53,7 +53,13 @@ const page = read('app/ai-video-generator/[engine]/page.tsx')
 check(page.includes("from '@/lib/growth/engineLandingIntent'"), 'real engine page imports the contract')
 check(page.includes('buildEngineLandingSignupHref({ engine: e.param, campaign })'), 'primary CTA uses the signup contract')
 check(page.includes('buildEngineLandingDestination({ engine: e.param, campaign })'), 'member CTA uses the same destination contract')
-equal((page.match(/href=\{signupUrl\}/g) ?? []).length, 3, 'hero, final and sticky CTAs share the corrected signup href')
+equal((page.match(/href=\{primaryCtaHref\}/g) ?? []).length, 3, 'hero, final and sticky CTAs share the engine-aware activation href')
+check(page.includes("const primaryCtaHref = e.param === 'fast' ? \`#\${kineoOneStarterId}\` : signupUrl"), 'only Kineo 1 routes primary CTAs through the starter')
+check(page.includes("e.param === 'fast' && ("), 'starter is gated to the Fast engine instead of changing premium engine promises')
+check(page.includes('<TopicGeneratorForm'), 'real engine page renders the proven topic starter')
+check(page.includes('creationIntent="fast"'), 'Kineo 1 starter preserves the explicitly selected Fast engine')
+check(page.includes('campaign={campaign}'), 'starter keeps the exact engine campaign for cohort measurement')
+check(page.includes('Your remaining trial balance stays available for the next test.'), 'starter explains the residual balance without hardcoded credit amounts')
 check(page.includes('href={studioUrl}'), 'existing member goes directly to the selected engine')
 check(!page.includes('&engine=${e.param}'), 'discarded top-level engine query is gone')
 check(!page.includes('const generateUrl ='), 'legacy generate hop is gone')
@@ -78,5 +84,12 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(preview.includes('No automatic render'), 'preview states the spend boundary')
 check(preview.includes('Supabase incident boundary'), 'preview records the capacity boundary')
+
+const starterPreview = read('docs/previews/KINEO1-TOPIC-STARTER-2026-08-30.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(starterPreview.includes(label), `starter preview includes ${label}`)
+}
+check(starterPreview.includes('What should Kineo 1 make first?'), 'starter preview shows the new idea handoff')
+check(starterPreview.includes('No price, grant or render change'), 'starter preview states the scope boundary')
 
 console.log(`PASS — ${checks}/${checks} engine landing intent checks`)
