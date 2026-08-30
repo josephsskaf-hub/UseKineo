@@ -26,6 +26,8 @@ function executeTs(file, mocks = {}) {
     Date,
     Map,
     Number,
+    URL,
+    URLSearchParams,
   }, { filename: file })
   return moduleBox.exports
 }
@@ -34,6 +36,7 @@ const engineCost = executeTs('lib/credits/engineCost.ts')
 const policy = executeTs('lib/growth/trialBalanceBridge.ts', {
   '@/lib/credits/engineCost': engineCost,
 })
+const onboardingGoals = executeTs('lib/growth/onboardingGoals.ts')
 
 equal(policy.TRIAL_BALANCE_BRIDGE_COST, 15, '35s Seedance costs 15 canonical credits')
 equal(policy.FULL_SEEDANCE_COST, 25, '60s Seedance costs 25 canonical credits')
@@ -173,10 +176,19 @@ check(banner.includes('data-trial-first-delivery={firstDelivery.version}'), 'fir
 check(banner.includes('Use the premium trial before choosing a plan.'), 'zero-use copy sequences value before purchase')
 check(banner.includes('No card required. Nothing starts until you review the setup.'), 'copy states both payment and render boundaries')
 check(banner.includes("{!firstDelivery.eligible && <button"), 'checkout CTA is absent only while the untouched premium delivery fits')
-check(
-  banner.includes("'/studio/create?engine=seedance&duration=' + firstDelivery.duration + '&intent_campaign=' + TRIAL_FIRST_DELIVERY_VERSION"),
-  'first-delivery CTA lands on attributed Seedance setup',
+check(banner.includes('buildOnboardingGoalStudioHref(DEFAULT_ONBOARDING_GOAL'), 'first-delivery CTA reuses the canonical editable starter brief')
+const firstDeliveryHref = onboardingGoals.buildOnboardingGoalStudioHref(
+  onboardingGoals.DEFAULT_ONBOARDING_GOAL,
+  { duration: policy.TRIAL_FIRST_DELIVERY_DURATION, intentCampaign: policy.TRIAL_FIRST_DELIVERY_VERSION },
 )
+const firstDeliveryUrl = new URL(firstDeliveryHref, 'https://www.usekineo.com')
+equal(firstDeliveryUrl.pathname, '/studio', 'first-delivery CTA opens the visible Studio cockpit')
+equal(firstDeliveryUrl.searchParams.get('engine'), 'seedance', 'first-delivery CTA selects Seedance')
+equal(firstDeliveryUrl.searchParams.get('duration'), '60', 'first-delivery CTA carries the supported duration')
+equal(firstDeliveryUrl.searchParams.get('prompt'), onboardingGoals.DEFAULT_ONBOARDING_GOAL.topic, 'first-delivery CTA carries the canonical editable idea')
+equal(firstDeliveryUrl.searchParams.get('intent_campaign'), policy.TRIAL_FIRST_DELIVERY_VERSION, 'first-delivery CTA preserves isolated attribution')
+check(!firstDeliveryUrl.searchParams.has('autoanalyze'), 'first-delivery CTA cannot start analysis')
+check(!firstDeliveryUrl.searchParams.has('create_intent'), 'first-delivery CTA cannot start a render')
 const firstHandlerStart = banner.indexOf('const startFirstPremiumDelivery')
 const firstHandlerEnd = banner.indexOf('\n  const continueTrialWithSeedance', firstHandlerStart)
 check(firstHandlerStart >= 0 && firstHandlerEnd > firstHandlerStart, 'first-delivery handler boundaries are found')

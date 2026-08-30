@@ -75,6 +75,10 @@ import {
   TRIAL_BALANCE_BRIDGE_VERSION,
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
+import {
+  buildOnboardingGoalStudioHref,
+  DEFAULT_ONBOARDING_GOAL,
+} from '@/lib/growth/onboardingGoals'
 // Import de TIPO apenas (apagado no build). Vem da MESMA definição que o
 // servidor serializa: renomear um campo lá quebra o build aqui, em vez de fazer
 // o banner sumir em silêncio.
@@ -377,9 +381,16 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
       credits_after_success: firstDelivery.creditsAfterSuccess,
       ms_left: msLeft,
     })
-    window.location.assign(
-      '/studio/create?engine=seedance&duration=' + firstDelivery.duration + '&intent_campaign=' + TRIAL_FIRST_DELIVERY_VERSION,
-    )
+    // KINEO-TRIAL-FIRST-BRIEF-2026-08-30 — the old CTA chose engine and
+    // duration but opened Studio with a blank idea. That recreated the exact
+    // activation decision this button promised to remove. Reuse the same
+    // editable, founder-approved mystery brief as the home first-win route,
+    // while keeping this trial campaign isolated. Studio remains the review
+    // boundary: no analysis, render, provider call or credit spend starts here.
+    window.location.assign(buildOnboardingGoalStudioHref(DEFAULT_ONBOARDING_GOAL, {
+      duration: firstDelivery.duration,
+      intentCampaign: TRIAL_FIRST_DELIVERY_VERSION,
+    }))
   }
   const continueTrialWithSeedance = () => {
     if (!returnLadder.eligible) return

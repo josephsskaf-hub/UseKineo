@@ -53,6 +53,11 @@ export const ONBOARDING_GOALS: readonly OnboardingGoal[] = [
 
 export const DEFAULT_ONBOARDING_GOAL = ONBOARDING_GOALS[0]
 
+export type OnboardingGoalStudioOptions = {
+  duration?: 35 | 60 | 90
+  intentCampaign?: string
+}
+
 export function isOnboardingGoalId(value: unknown): value is OnboardingGoalId {
   return value === 'creator' || value === 'business' || value === 'agency'
 }
@@ -68,12 +73,20 @@ export function getOnboardingGoal(value: unknown): OnboardingGoal {
  * starter idea. It deliberately omits `create_intent`: choosing a goal may
  * prepare the script, but it never starts a video render or spends credits.
  */
-export function buildHomeWelcomeGoalHref(goal: OnboardingGoal): string {
+export function buildOnboardingGoalStudioHref(
+  goal: OnboardingGoal,
+  options: OnboardingGoalStudioOptions = {},
+): string {
   const params = new URLSearchParams({
     engine: 'seedance',
     prompt: goal.topic,
-    intent_campaign: HOME_WELCOME_GOAL_CAMPAIGN,
+    intent_campaign: options.intentCampaign ?? HOME_WELCOME_GOAL_CAMPAIGN,
     onboarding_goal: goal.id,
   })
+  if (options.duration) params.set('duration', String(options.duration))
   return `/studio?${params.toString()}`
+}
+
+export function buildHomeWelcomeGoalHref(goal: OnboardingGoal): string {
+  return buildOnboardingGoalStudioHref(goal)
 }
