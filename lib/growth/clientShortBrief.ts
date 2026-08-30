@@ -1,4 +1,5 @@
 export const CLIENT_SHORT_BRIEF_CAMPAIGN = 'client_short_brief_v1' as const
+export const CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN = 'client_short_brief_share_v1' as const
 
 export const CLIENT_SHORT_GOALS = [
   { id: 'leads', label: 'Generate qualified leads' },
@@ -134,5 +135,13 @@ export function buildClientShortActivationHref(brief: ClientShortBrief): string 
     utm_medium: 'organic',
     utm_campaign: CLIENT_SHORT_BRIEF_CAMPAIGN,
     redirect: destination,
+  }).toString()}`
+}
+
+export function buildClientShortBriefShareHref(): string {
+  return `/client-video-brief-generator?${new URLSearchParams({
+    utm_source: 'client_brief_share',
+    utm_medium: 'referral',
+    utm_campaign: CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN,
   }).toString()}`
 }

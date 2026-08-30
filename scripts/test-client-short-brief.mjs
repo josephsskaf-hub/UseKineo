@@ -76,12 +76,24 @@ check(maxPrompt.length < 950, 'maximum prompt keeps safety headroom below the ce
 check(maxPrompt.includes('p'.repeat(180)), 'maximum proof survives before the ceiling')
 check(maxPrompt.includes('c'.repeat(100)), 'maximum CTA survives before the ceiling')
 
+const shareHref = briefTool.buildClientShortBriefShareHref()
+const shareUrl = new URL(shareHref, 'https://www.usekineo.com')
+equal(shareUrl.pathname, '/client-video-brief-generator', 'shared intake returns to the canonical free tool')
+equal(shareUrl.searchParams.get('utm_source'), 'client_brief_share', 'shared intake has a dedicated referral source')
+equal(shareUrl.searchParams.get('utm_medium'), 'referral', 'shared intake is classified as referral traffic')
+equal(shareUrl.searchParams.get('utm_campaign'), 'client_short_brief_share_v1', 'shared intake campaign is versioned independently')
+equal([...shareUrl.searchParams.keys()].length, 3, 'shared intake URL contains no client input')
+check(!shareHref.includes(raw.offer) && !shareHref.includes(raw.audience) && !shareHref.includes(raw.proof) && !shareHref.includes(raw.cta), 'shared intake leaks no client data')
+
 const client = read('app/client-video-brief-generator/ClientVideoBriefGenerator.tsx')
 check(client.includes('buildClientShortBrief'), 'real UI executes the brief builder')
 check(client.includes('buildClientShortActivationHref'), 'real CTA carries the approved brief')
 check(client.includes("agencyPacksHref('client_brief')"), 'real B2B CTA uses the allowlisted bridge')
 check(client.includes('client_short_brief_generated'), 'brief generation is measurable')
 check(client.includes('client_short_brief_activation_clicked'), 'activation handoff is measurable')
+check(client.includes('client_short_brief_intake_link_copied'), 'client intake referral loop is measurable')
+check(client.includes('buildClientShortBriefShareHref'), 'real UI copies the privacy-safe intake URL')
+check(client.includes('Their answers stay in their browser and are never added to the URL.'), 'share UI states the privacy boundary')
 check(client.includes('kineo:client-short-brief:viewed:v1'), 'view dedupe survives React remounts within the session')
 check(!client.toLowerCase().includes('supabase'), 'free tool has no Supabase client')
 check(!client.includes('fetch('), 'free brief generation has no provider call or cost')
@@ -105,5 +117,12 @@ const preview = read('docs/previews/CLIENT-SHORT-BRIEF-2026-08-30.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
   check(preview.includes(label), `preview includes ${label}`)
 }
+
+const sharePreview = read('docs/previews/CLIENT-BRIEF-SHARE-LOOP-2026-08-30.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(sharePreview.includes(label), `share-loop preview includes ${label}`)
+}
+check(sharePreview.includes('Copy client intake link'), 'share-loop preview shows the referral CTA')
+check(sharePreview.includes('never the client’s offer, audience, proof or CTA'), 'share-loop preview states its privacy boundary')
 
 console.log(`PASS — ${checks}/${checks} client Short brief checks`)

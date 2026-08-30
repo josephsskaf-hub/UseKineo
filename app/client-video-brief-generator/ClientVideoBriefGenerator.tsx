@@ -7,8 +7,10 @@ import { trackEvent } from '@/lib/analytics'
 import {
   buildClientShortActivationHref,
   buildClientShortBrief,
+  buildClientShortBriefShareHref,
   clientShortBriefAsText,
   CLIENT_SHORT_BRIEF_CAMPAIGN,
+  CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN,
   CLIENT_SHORT_GOALS,
   type ClientShortGoal,
 } from '@/lib/growth/clientShortBrief'
@@ -32,6 +34,7 @@ export default function ClientVideoBriefGenerator() {
   const [goal, setGoal] = useState<ClientShortGoal>('leads')
   const [submitted, setSubmitted] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [intakeLinkCopied, setIntakeLinkCopied] = useState(false)
 
   const brief = submitted ? buildClientShortBrief({ offer, audience, proof, cta, goal }) : null
   const briefText = brief ? clientShortBriefAsText(brief) : ''
@@ -75,6 +78,20 @@ export default function ClientVideoBriefGenerator() {
     }
   }
 
+  async function copyClientIntakeLink() {
+    const shareUrl = new URL(buildClientShortBriefShareHref(), window.location.origin).toString()
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setIntakeLinkCopied(true)
+      void trackEvent('client_short_brief_intake_link_copied', {
+        version: CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN,
+        surface: 'client_video_brief_generator',
+      })
+    } catch {
+      setIntakeLinkCopied(false)
+    }
+  }
+
   function useExample() {
     setOffer(EXAMPLE.offer)
     setAudience(EXAMPLE.audience)
@@ -106,6 +123,15 @@ export default function ClientVideoBriefGenerator() {
         </header>
 
         <section id="client-brief-tool" style={{ ...CARD, marginTop: 32, padding: 'clamp(18px, 4vw, 28px)', borderRadius: 22 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 18, padding: '12px 14px', borderRadius: 13, background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.2)' }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: '#e5e7eb', fontSize: '.84rem', fontWeight: 900 }}>Let the client answer first</div>
+              <div style={{ marginTop: 3, color: '#9696a1', fontSize: '.76rem', lineHeight: 1.45 }}>Copy a blank intake link. Their answers stay in their browser and are never added to the URL.</div>
+            </div>
+            <button type="button" onClick={() => void copyClientIntakeLink()} style={{ minHeight: 40, flex: '0 0 auto', borderRadius: 10, border: '1px solid rgba(41,151,255,.35)', background: 'rgba(41,151,255,.12)', color: '#7cc0ff', padding: '0 13px', fontWeight: 900, cursor: 'pointer' }}>
+              {intakeLinkCopied ? 'Intake link copied ✓' : 'Copy client intake link'}
+            </button>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 15 }}>
             <label style={{ display: 'grid', gap: 7, color: '#d8d8df', fontSize: '.8rem', fontWeight: 850 }}>
               What is the client selling or explaining?
