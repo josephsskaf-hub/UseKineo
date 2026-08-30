@@ -74,7 +74,13 @@ for (const quality of ['cinematic_ai', 'cinematic_h3', 'cinematic_kling', 'cinem
 }
 
 const client = read('app/(dashboard)/generate/GenerateClient.tsx')
-check(client.includes("import { decidePostVideoOffer } from '@/lib/growth/chatgptPostVideoOffer'"), 'production client imports the executable decision')
+// The production import now carries the plan-comparison destination alongside the
+// executable decision. Verify the full caller contract instead of assuming a
+// single-line import shape.
+check(
+  /import\s*\{\s*decidePostVideoOffer,\s*POST_VIDEO_PLAN_COMPARE_HREF,\s*POST_VIDEO_PLAN_COMPARE_VERSION,\s*\}\s*from '@\/lib\/growth\/chatgptPostVideoOffer'/.test(client),
+  'production client imports the executable decision and comparison contract',
+)
 check(client.includes('setSignupUtmSource('), 'server-authenticated signup source is stored')
 check(client.includes('data.signup_utm_source'), 'source comes from the existing plan response')
 check(client.includes('const postVideoOfferDecision = decidePostVideoOffer(signupUtmSource, quality)'), 'visual decision reads persisted first touch and delivered quality')

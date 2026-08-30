@@ -36,6 +36,10 @@ const primaryArea = card.slice(0, detailsStart)
 const detailsArea = card.slice(detailsStart, detailsEnd)
 const impressionStart = source.indexOf("trackEvent('trial_post_video_offer_viewed'")
 const impressionArea = source.slice(impressionStart, impressionStart + 3400)
+const compareClick = card.indexOf("trackEvent('trial_post_video_compare_plans_clicked'")
+const compareRoute = card.indexOf('router.push(POST_VIDEO_PLAN_COMPARE_HREF)', compareClick)
+const compareButtonEnd = card.indexOf('</button>', compareClick)
+const offerPolicy = readFileSync(join(root, 'lib', 'growth', 'chatgptPostVideoOffer.ts'), 'utf8')
 
 console.log('\nKINEO — trial post-video single-primary contract\n')
 
@@ -79,6 +83,13 @@ check('storage failure stops checkout with a visible error', source.includes('if
 check('existing primary event is preserved', card.includes("trackEvent('trial_post_video_offer_clicked'"))
 check('existing checkout event path is preserved', card.includes('trackCheckoutClick(ladderPrimaryTier)'))
 check('monthly checkout error is announced', card.includes('role="alert" className="text-center mt-2 text-xs"'))
+check('comparison is a visible secondary action', card.includes('Compare Starter and Creator first →'))
+check('comparison has a mobile-safe tap target', card.includes('mt-2 flex min-h-11 w-full'))
+check('comparison explains the deliberative value', card.includes('Review monthly credits and included engines before you decide.'))
+check('comparison click is attributable', compareClick >= 0 && card.slice(compareClick, compareRoute).includes('POST_VIDEO_PLAN_COMPARE_VERSION'))
+check('comparison opens the real pricing grid', compareRoute > compareClick && offerPolicy.includes("POST_VIDEO_PLAN_COMPARE_VERSION = 'post_video_plan_compare_v1'") && offerPolicy.includes('#plans'))
+check('comparison creates no Stripe session', compareButtonEnd > compareClick && !card.slice(compareClick, compareButtonEnd).includes('checkout.launch'))
+check('comparison follows direct checkout and precedes collapsed alternatives', compareClick > primaryLaunch && compareClick < detailsStart)
 check('source-aware layout is identifiable', card.includes('offer_layout: postVideoOfferDecision.variant'))
 check('click benefit is discriminated by behavior', card.includes("? 'current_clean_version'") && card.includes(": 'monthly_creation'"))
 check('impression carries the source-aware layout', impressionArea.includes('offer_layout: offerDecision.variant'))
@@ -105,6 +116,12 @@ check('price remains sourced from helpers', card.includes('trialOfferPriceNote')
 check('no literal dollar price was added to card', !/\$\s*\d/.test(card))
 check('no render endpoint was added to offer card', !card.includes('/api/generate-video'))
 check('security/cancellation copy remains visible', card.includes('Secure checkout · cancel anytime'))
+
+const preview = readFileSync(join(root, 'docs', 'previews', 'POST-VIDEO-PLAN-COMPARE-2026-08-30.html'), 'utf8')
+for (const marker of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(`preview includes ${marker}`, preview.includes(marker))
+}
+check('preview contains no external dependency', !/https?:\/\//i.test(preview))
 
 console.log(`${total - failed}/${total} checks passed`)
 if (failed) process.exit(1)

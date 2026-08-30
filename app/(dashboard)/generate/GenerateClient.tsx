@@ -83,7 +83,11 @@ import {
   videoMixForCredits,
   videosForCredits,
 } from '@/lib/marketingPrice'
-import { decidePostVideoOffer } from '@/lib/growth/chatgptPostVideoOffer'
+import {
+  decidePostVideoOffer,
+  POST_VIDEO_PLAN_COMPARE_HREF,
+  POST_VIDEO_PLAN_COMPARE_VERSION,
+} from '@/lib/growth/chatgptPostVideoOffer'
 import {
   decideTrialBalanceBridge,
   TRIAL_BALANCE_BRIDGE_VERSION,
@@ -12840,6 +12844,47 @@ export default function GenerateClient({
                         {trialPostVideoCheckout.error}
                       </p>
                     )}
+                    {/* KINEO-POSTVIDEO-PLAN-COMPARE-2026-08-30 — a 30-day
+                        person-level reconciliation found pricing-page exposure
+                        among nearly every observed payer versus a minority of
+                        abandoners. Keep direct checkout primary, but let deliberate
+                        buyers inspect the real plan grid before entering payment.
+                        This click creates no Checkout Session. */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void trackEvent('trial_post_video_compare_plans_clicked', {
+                          source: 'result_trial_continue',
+                          version: POST_VIDEO_PLAN_COMPARE_VERSION,
+                          destination: 'pricing_plans',
+                          primary_tier: ladderPrimaryTier,
+                          offer_layout: postVideoOfferDecision.variant,
+                          first_touch_source: postVideoOfferDecision.firstTouchSource,
+                          offer_basis: postVideoOfferDecision.offerBasis,
+                          last_video_fit: postVideoOfferDecision.lastVideoFit,
+                          last_video_quality: quality,
+                          ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+                        })
+                        router.push(POST_VIDEO_PLAN_COMPARE_HREF)
+                      }}
+                      className="mt-2 flex min-h-11 w-full items-center justify-center rounded-xl px-3 text-xs font-bold"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#7cc0ff',
+                        cursor: 'pointer',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: 3,
+                      }}
+                    >
+                      Compare Starter and Creator first →
+                    </button>
+                    <p
+                      className="text-center"
+                      style={{ color: 'var(--muted2)', fontSize: '0.68rem', lineHeight: 1.4 }}
+                    >
+                      Review monthly credits and included engines before you decide.
+                    </p>
                     {/* As alternativas continuam disponíveis, mas não competem
                         mais com a única decisão que esta superfície deve pedir.
                         `<details>` preserva acesso sem JS, teclado e leitor de

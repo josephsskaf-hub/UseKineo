@@ -3,6 +3,10 @@ import { acquisitionSource } from '@/lib/acquisitionSource'
 export type PostVideoRecurringTier = 'starter' | 'basic'
 export type PostVideoEngineFit = 'fast' | 'premium' | 'unknown'
 
+export const POST_VIDEO_PLAN_COMPARE_VERSION = 'post_video_plan_compare_v1' as const
+export const POST_VIDEO_PLAN_COMPARE_HREF =
+  `/pricing?intent_campaign=${POST_VIDEO_PLAN_COMPARE_VERSION}#plans` as const
+
 export type PostVideoOfferDecision = {
   firstTouchSource: string
   variant:
