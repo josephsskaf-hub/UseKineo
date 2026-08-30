@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan Fit ready decision — before / after</title>
+<style>
+:root{color-scheme:dark;--bg:#070709;--card:#111114;--line:#2a2a2f;--blue:#2997ff;--blue2:#5cb3ff;--text:#f5f5f7;--muted:#9a9aa0}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#152138 0,#070709 34%);color:var(--text);font:14px/1.5 Inter,Arial,sans-serif}
+main{max-width:1240px;margin:auto;padding:40px 24px 64px}h1{font-size:30px;margin:0 0 8px}header>p{color:var(--muted);margin:0 0 32px}
+h2{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--blue2);margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-bottom:42px}
+.frame{background:#0a0a0c;border:1px solid #232329;border-radius:18px;padding:20px}.label{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-weight:800}.before{color:#ff9c9c}.after{color:#83e6b3}
+.card{background:linear-gradient(145deg,rgba(41,151,255,.12),rgba(17,17,20,.98) 62%);border:1px solid rgba(92,179,255,.34);border-radius:16px;padding:22px;box-shadow:0 18px 48px rgba(0,0,0,.22)}
+.top{display:flex;justify-content:space-between;gap:16px}.eyebrow{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.18em;color:var(--blue2)}h3{font-size:20px;line-height:1.2;margin:6px 0 0}.dismiss{border:1px solid #303036;background:transparent;color:var(--muted);border-radius:8px;padding:6px 10px;height:32px}
+.copy{color:var(--muted);margin:18px 0 14px}.copy strong{color:var(--text)}.cadence{display:flex;flex-wrap:wrap;gap:8px}.pill{padding:9px 15px;border:1px solid #34343a;border-radius:999px;background:#19191d;color:var(--text);font-weight:800}.pill.active{background:var(--blue);border-color:var(--blue2)}
+.placeholder,.recommend{margin-top:18px;padding-top:18px;border-top:1px solid #2a2a30}.placeholder{color:#67676e;text-align:center;padding-bottom:14px}.recommend p{color:var(--muted);margin:0 0 14px}.recommend strong{color:var(--text)}.recommend .plan{color:var(--blue2)}.cta{display:inline-block;background:linear-gradient(135deg,var(--blue),#1d6fe0);border:0;border-radius:11px;padding:13px 18px;color:#fff;font-weight:900}.trust{font-size:12px;color:#77777e;margin-top:10px}
+.note{margin-top:14px;border-left:3px solid currentColor;padding-left:12px;color:var(--muted)}.phone-grid{display:grid;grid-template-columns:390px 390px;gap:22px;justify-content:center}.phone{width:390px;padding:12px;border:1px solid #25252b;border-radius:28px;background:#050507}.phone .card{padding:17px}.phone h3{font-size:18px}.phone .copy{font-size:13px}.phone .pill{padding:8px 12px;font-size:12px}.phone .cta{width:100%;text-align:center}.phone .top{gap:8px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}.phone-grid{grid-template-columns:minmax(0,390px)}.phone{width:100%}main{padding:28px 14px}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Plan Fit — ready decision</h1><p>The video stays first. The commercial decision still follows the download, but no longer waits for a planning click.</p></header>
+<h2>Desktop comparison</h2>
+<section class="grid">
+<div class="frame"><div class="label"><span>Before</span><span class="before">extra decision required</span></div>
+<div class="card"><div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Make the next month fit before you subscribe</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">Your trial is the test run. A 60s Seedance 1.5 film like this costs <strong>25 paid credits</strong>. Pick a monthly target and Kineo will do the plan math.</p>
+<div class="cadence"><span class="pill">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
+<div class="placeholder">No recommendation or checkout exists until a cadence is chosen.</div></div>
+<p class="note before">The visitor must invent a future publishing cadence before seeing any purchasable answer.</p></div>
+<div class="frame"><div class="label"><span>After</span><span class="after">checkout-ready on first view</span></div>
+<div class="card"><div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Your next film already has a plan</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">Your trial is the test run. A 60s Seedance 1.5 film like this costs <strong>25 paid credits</strong>. We started with <strong>1 video per month</strong> so your least expensive matching plan is ready below. Change it if you publish more.</p>
+<div class="cadence"><span class="pill active">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
+<div class="recommend"><p>1 Seedance 1.5 film per month needs <strong>25 credits</strong>. <strong class="plan">Starter</strong> includes 40 — the least expensive self-serve plan that covers that target.</p><button class="cta">Continue with Starter — $7/month</button><div class="trust">Secure Stripe checkout · cancel anytime in one click · 7-day money-back</div></div></div>
+<p class="note after">The lowest honest cadence is preselected; higher-frequency planning remains optional.</p></div>
+</section>
+<h2>Mobile comparison · 390px</h2>
+<section class="phone-grid">
+<div class="phone"><div class="label"><span>Before</span><span class="before">blocked</span></div><div class="card">
+<div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Make the next month fit before you subscribe</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">Pick a monthly target and Kineo will do the plan math.</p><div class="cadence"><span class="pill">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div><div class="placeholder">Choose first</div></div></div>
+<div class="phone"><div class="label"><span>After</span><span class="after">ready</span></div><div class="card">
+<div class="top"><div><div class="eyebrow">Your first finished video</div><h3>Your next film already has a plan</h3></div><button class="dismiss">Not now</button></div>
+<p class="copy">We started with <strong>1 video per month</strong>. Change it if you publish more.</p><div class="cadence"><span class="pill active">1 / month</span><span class="pill">4 / month</span><span class="pill">8 / month</span><span class="pill">12 / month</span></div>
+<div class="recommend"><p><strong class="plan">Starter</strong> covers this target.</p><button class="cta">Continue with Starter — $7/month</button><div class="trust">Secure Stripe checkout · cancel anytime</div></div></div></div>
+</section>
+</main>
+</body>
+</html>

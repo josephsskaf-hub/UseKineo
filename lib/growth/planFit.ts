@@ -16,6 +16,14 @@ import {
  */
 
 export const MONTHLY_CADENCES = [1, 4, 8, 12] as const
+/**
+ * A first-delivery offer must be purchasable before the visitor answers a
+ * planning question. One film per month is the smallest honest cadence and
+ * therefore the least expensive plan that can repeat the result they saw.
+ */
+export const DEFAULT_PLAN_FIT_MONTHLY_FILMS = MONTHLY_CADENCES[0]
+export const PLAN_FIT_OFFER_VERSION = 'plan_fit_ready_1_video_v2' as const
+
 export type MonthlyCadencePreset = (typeof MONTHLY_CADENCES)[number]
 
 export type PlanFitAccountCohort =

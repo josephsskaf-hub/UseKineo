@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  DEFAULT_PLAN_FIT_MONTHLY_FILMS,
+  PLAN_FIT_OFFER_VERSION,
   MONTHLY_CADENCES,
   calculatePlanFit,
   engineName,
@@ -69,7 +71,7 @@ export default function PlanFitCard({
   verifyEligibility,
   onCheckout,
 }: PlanFitCardProps) {
-  const [monthlyFilms, setMonthlyFilms] = useState<number | null>(null)
+  const [monthlyFilms, setMonthlyFilms] = useState<number>(DEFAULT_PLAN_FIT_MONTHLY_FILMS)
   const [plannedQuality, setPlannedQuality] = useState<PlanFitQuality>(quality)
   const [dismissed, setDismissed] = useState(false)
   const [eligibilityPending, setEligibilityPending] = useState(false)
@@ -87,10 +89,12 @@ export default function PlanFitCard({
     () => calculatePlanFit({ quality, seconds, monthlyFilms: 1, currency }),
     [quality, seconds, currency],
   )
+  const defaultResult = useMemo(
+    () => calculatePlanFit({ quality, seconds, monthlyFilms: DEFAULT_PLAN_FIT_MONTHLY_FILMS, currency }),
+    [quality, seconds, currency],
+  )
   const result = useMemo(
-    () => monthlyFilms === null
-      ? null
-      : calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency }),
+    () => calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency }),
     [plannedQuality, seconds, monthlyFilms, currency],
   )
 
@@ -132,6 +136,11 @@ export default function PlanFitCard({
         source_engine: quality,
         seconds,
         paid_film_credits: probe.filmCredits,
+        offer_version: PLAN_FIT_OFFER_VERSION,
+        decision_ready: true,
+        default_monthly_videos: DEFAULT_PLAN_FIT_MONTHLY_FILMS,
+        default_monthly_credits: defaultResult.monthlyCredits,
+        default_recommended_tier: defaultResult.plan?.tier ?? null,
         display_currency: currency,
         currency_resolved: currency !== null,
       })
@@ -149,7 +158,7 @@ export default function PlanFitCard({
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, currency, verifyEligibility])
+  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, defaultResult.monthlyCredits, defaultResult.plan?.tier, currency, verifyEligibility])
 
   if (dismissed) return null
 
@@ -164,6 +173,7 @@ export default function PlanFitCard({
       account_cohort: accountCohort,
       video_id: exposureKey,
       ...metadata,
+      offer_version: PLAN_FIT_OFFER_VERSION,
     })
   }
 
@@ -188,7 +198,7 @@ export default function PlanFitCard({
   }
 
   function chooseFastAlternative() {
-    if (!result?.fastAlternative || monthlyFilms === null) return
+    if (!result.fastAlternative) return
     setPlannedQuality('fast')
     emit('plan_fit_engine_alternative_selected', {
       source_engine: quality,
@@ -202,7 +212,7 @@ export default function PlanFitCard({
   }
 
   async function startCheckout(tier: CheckoutTier) {
-    if (!result || checkoutBusy || eligibilityPendingRef.current) return
+    if (checkoutBusy || eligibilityPendingRef.current) return
     eligibilityPendingRef.current = true
     setEligibilityPending(true)
     const stillEligible = await verifyEligibility()
@@ -252,7 +262,7 @@ export default function PlanFitCard({
             Your first finished video
           </div>
           <h3 id="plan-fit-title" className="font-black text-lg sm:text-xl" style={{ color: 'var(--text)', margin: 0 }}>
-            Make the next month fit before you subscribe
+            Your next film already has a plan
           </h3>
         </div>
         <button
@@ -271,8 +281,9 @@ export default function PlanFitCard({
       </div>
 
       <p className="text-sm mb-4" style={{ color: 'var(--muted2)', lineHeight: 1.6, maxWidth: 690 }}>
-        {cohortIntro(accountCohort)} On a paid plan, a {seconds}s {sourceMotor} film like this costs{' '}
-        <strong style={{ color: 'var(--text)' }}>{probe.filmCredits} credits</strong>. Pick a monthly target and Kineo will do the plan math.
+        {cohortIntro(accountCohort)} A {seconds}s {sourceMotor} film like this costs{' '}
+        <strong style={{ color: 'var(--text)' }}>{probe.filmCredits} paid credits</strong>. We started with{' '}
+        <strong style={{ color: 'var(--text)' }}>1 video per month</strong> so your least expensive matching plan is ready below. Change it if you publish more.
       </p>
 
       <div className="flex flex-wrap gap-2" aria-label="Videos per month">

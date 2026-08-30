@@ -78,6 +78,9 @@ console.log('\nKINEO A2 — Plan Fit\n')
 // 1. Monthly, canonical arithmetic. No weekly conversion exists.
 check('monthly presets are explicit', JSON.stringify(planFit.MONTHLY_CADENCES) === JSON.stringify([1, 4, 8, 12]))
 const seedanceFour = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 4, currency: 'usd' })
+check('first-delivery default is the smallest honest cadence', planFit.DEFAULT_PLAN_FIT_MONTHLY_FILMS === 1)
+check('ready-decision cohort has an explicit version', planFit.PLAN_FIT_OFFER_VERSION === 'plan_fit_ready_1_video_v2')
+
 check('Seedance cost comes from canonical duration cost', seedanceFour.filmCredits === costs.creditCostForDuration('cinematic_ai', true, 60))
 check('monthly credits are exact multiplication', seedanceFour.monthlyCredits === seedanceFour.filmCredits * 4)
 check('current recommendation covers its target', seedanceFour.plan !== null && seedanceFour.plan.credits >= seedanceFour.monthlyCredits)
@@ -317,6 +320,7 @@ const originOnly = new URL('/api/stripe/checkout?checkout_origin=plan_fit_first_
 check('origin without complete contract fails closed', checkout.verifyPlanFitCheckoutContext(originOnly.searchParams, 'basic', 'usd') === null)
 
 // 9. Product wiring: viewport impression, protected checkout, intent and order.
+const preview = readFileSync(join(root, 'docs/previews/PLAN-FIT-READY-DECISION-2026-08-30.html'), 'utf8')
 const component = readFileSync(join(root, 'components/growth/PlanFitCard.tsx'), 'utf8')
 const generate = readFileSync(join(root, 'app/(dashboard)/generate/GenerateClient.tsx'), 'utf8')
 const videosRoute = readFileSync(join(root, 'app/api/videos/route.ts'), 'utf8')
@@ -343,8 +347,28 @@ check('card has no hardcoded USD calculation', !component.includes("formatChecko
 check('card receives canonical nullable currency', component.includes('currency: CheckoutCurrency | null'))
 check('unresolved currency gets neutral checkout copy', component.includes('See secure checkout'))
 check('money is conditional on resolved currency', component.includes('? `Continue with ${planName(result.plan.tier)}'))
+check('visual preview is self-contained HTML', preview.includes('<!doctype html>') && preview.includes('<style>') && !preview.includes('<script'))
+check('visual preview contains desktop comparison', preview.includes('Desktop comparison'))
+check('visual preview contains mobile 390px comparison', preview.includes('Mobile comparison · 390px') && preview.includes('phone-grid'))
+check('visual preview labels before and after states', preview.includes('>Before<') && preview.includes('>After<'))
+check('visual preview preserves the old blocked state', preview.includes('Make the next month fit before you subscribe'))
+check('visual preview shows the ready decision state', preview.includes('Your next film already has a plan'))
+check('visual preview shows the preselected cadence', preview.includes('pill active') && preview.includes('1 / month'))
+check('visual preview shows a primary checkout CTA', preview.includes('Continue with Starter'))
 check('checkout CTA continues the selected goal', component.includes('Continue with ${planName(result.plan.tier)}'))
 check('checkout reassurance is attached to the Plan Fit decision', component.includes('data-plan-fit-checkout-reassurance'))
+check('first view starts with a ready monthly decision', component.includes('useState<number>(DEFAULT_PLAN_FIT_MONTHLY_FILMS)'))
+check('first view does not wait for a cadence click', !component.includes('useState<number | null>(null)') && !component.includes('monthlyFilms === null'))
+check('ready decision calculates immediately', component.includes('calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency })'))
+check('ready decision explains its default', component.includes('We started with') && component.includes('1 video per month'))
+check('ready decision exposes checkout without a selection gate', !component.includes('if (!result || checkoutBusy'))
+check('impression declares the new offer version', component.includes('offer_version: PLAN_FIT_OFFER_VERSION'))
+check('impression declares that the decision is ready', component.includes('decision_ready: true'))
+check('impression records the default cadence', component.includes('default_monthly_videos: DEFAULT_PLAN_FIT_MONTHLY_FILMS'))
+check('impression records canonical default credits', component.includes('default_monthly_credits: defaultResult.monthlyCredits'))
+check('impression records the canonical matching tier', component.includes('default_recommended_tier: defaultResult.plan?.tier ?? null'))
+check('all downstream Plan Fit events inherit the version', component.indexOf('...metadata,') < component.indexOf('offer_version: PLAN_FIT_OFFER_VERSION', component.indexOf('function emit')))
+
 check('checkout reassurance names Stripe', component.includes('Secure Stripe checkout'))
 check('checkout reassurance carries the approved cancellation promise', component.includes('cancel anytime in one click'))
 check('checkout reassurance carries the approved guarantee', component.includes('7-day money-back'))
@@ -410,7 +434,10 @@ check('caller passes fresh eligibility verifier', generate.includes('verifyEligi
 check('caller passes resolved canonical currency', generate.includes('currency={postVideoCurrency}'))
 check('caller requires confirmed first delivery', generate.includes('planFitFirstDelivery &&'))
 check('caller requires a sellable non-subscriber cohort', generate.includes('planFitSellableCohort &&'))
-check('already-funded trial bridge precedes Plan Fit', generate.includes('planFitSellableCohort !== null &&\n    !trialBalanceBridge.eligible'))
+// The old literal embedded LF and failed on the repository's CRLF checkout
+// even though the real guard was intact. Match the executable expression,
+// not the platform line ending.
+check('already-funded trial bridge precedes Plan Fit', /planFitSellableCohort\s*!==\s*null\s*&&\s*!trialBalanceBridge\.eligible/.test(generate))
 // 29/08 production evidence invalidated the original order assertion: the
 // first premium-first user reached `video_ready_viewed` but never exposed
 // `plan_fit_impression`. Plan Fit already suppresses the trial recurring card,
