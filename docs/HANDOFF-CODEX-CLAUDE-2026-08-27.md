@@ -2199,3 +2199,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, entitlement, servidor Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0fb6cc7e` ou posterior. Não duplicar engine-fit, contexto Stripe, comparação pós-vídeo, sampler 15+5+5 ou ondas de recuperação. Medir por pessoa `trial_post_video_offer_viewed → checkout direto OU trial_post_video_compare_plans_clicked → pricing_view → checkout_started → payment_success`.
+
+## 69. Afiliados — missão de primeiro clique nos caminhos reais (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a reconciliação das tabelas canônicas de afiliados mostrou que a maioria dos afiliados ativos ainda não produziu uma visita rastreada e não existe cadastro atribuído na janela medida. A série de analytics do nudge também estava inflada por remontagens de um mesmo usuário. Contagens e identificadores permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA:** `components/AffiliateFirstClickNudge.tsx` só aceitava `/studio` e `/history`. Os fluxos de criação usados pelo produto são `/studio/create` e `/generate`; portanto o nudge global existia, mas não aparecia onde a maior parte do trabalho acontece. O `useRef` deduplicava somente a montagem atual e não sobrevivia à navegação/remontagem do DashboardShell.
+
+**IMPLEMENTADO:** `lib/affiliateFirstClick.ts` passou a governar uma allowlist executável com `/studio`, `/studio/create`, `/generate` e `/history`. A elegibilidade continua fail-closed: autenticado, afiliado ativo, estado conhecido e exatamente zero visitas. Depois da primeira visita o card some pela política existente. A impressão foi deduplicada por sessão do navegador; falha de storage conserva o fallback por montagem sem interferir no workspace.
+
+**MEDIÇÃO:** a versão `affiliate_first_click_reach_v2` entra em impressão, cópia e abertura do kit. `surface_path` só recebe um dos caminhos da allowlist. A impressão agora conta no máximo uma vez por sessão; o card pode continuar visível para a pessoa concluir a missão sem inflar o denominador.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AFFILIATE-FIRST-CLICK-REACH-2026-08-30.html` mostra antes/depois em desktop e mobile nos caminhos Studio/Create e Generate. O preview não publica números internos. Os quatro estados foram inspecionados no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** 547 verificações passaram: destinos 250/250, ativação 34/34, missões 63/63, landing context 43/43, atribuição 91/91 e ledger 66/66. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `4374a7c4fe767869a432260227b1d830454faca8` chegou a `READY` no deploy Vercel `dpl_GoNdcjqUNDn7TNuNtF2sxZgJZ8rk`, target production. `/studio/create` carregou no Chrome autenticado do fundador sem erro de console e o deployment não apresentou log `error` ou `fatal` na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador não produziu legitimamente o estado ativo+zero-visitas no momento do smoke, então o card stateful não apareceu. Nenhum clique, afiliado ou contador foi alterado para forçar o estado. A primeira consulta externa da versão v2 retornou zero exposição; aquisição só pode ser declarada depois de afiliados elegíveis retornarem.
+
+**NÃO TOCADO:** comissão, cupom, aprovação, payout, atribuição financeira, preço, grant, validade do trial, Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `4374a7c4` ou posterior. Não restaurar a allowlist antiga nem duplicar o nudge/partner kit. Medir por pessoa `affiliate_first_click_nudge_viewed → copied/opened → affiliate_clicks → affiliate_referrals → payment_success → affiliate_commissions`.
