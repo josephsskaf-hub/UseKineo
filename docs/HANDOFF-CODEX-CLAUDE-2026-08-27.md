@@ -1721,3 +1721,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, expiração, oferta, Stripe Session, webhook, comissão, schema, migration, Storage, render, motor, cena, legenda, e-mail, outreach, vídeo de cliente ou dados existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `076ca7b` ou da ponta posterior de `origin/main`. Não remover os retries do dashboard/checkout nem afrouxar a prova server-owned. Claude continua capacidade/render; Codex continua aquisição/fluxo/assinaturas.
+
+## 45. Coordenação comercial — trial congelado e segunda onda B2B (29/08/2026)
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO DO TRIAL:** a proposta de tornar Seedance o padrão do trial já estava implementada em `app/(dashboard)/generate/GenerateClient.tsx`: trial elegível e sem escolha explícita abre `cinematic_ai/seedance`; entradas com `engine=` explícito, `create_intent=fast` e Viral Now preservam Fast. Também já estavam em produção os dois caminhos de `lib/growth/trialBalanceBridge.ts`: 25 créditos intactos preparam um Seedance de 60s, e o saldo pós-Fast de 20–21 créditos prepara um Seedance de 35s. Não foi escrita uma terceira implementação.
+
+**EVIDÊNCIA DE PRODUÇÃO / COORTE IMATURA (consulta em 30/08/2026 UTC):** depois de 22:50 UTC de 29/08, apenas uma pessoa externa em trial gerou `trial_active_banner_shown`; ela tinha uso zero. Não houve `trial_first_delivery_clicked`, `trial_balance_bridge_viewed` ou `trial_balance_bridge_clicked` nessa janela. Uma exposição não prova sucesso nem fracasso.
+
+**DECISÃO OPERACIONAL:** manter o grant em 25 créditos e preservar o experimento de prazo existente por 72 horas, sem aumentar, reduzir ou trocar por 24–48h durante a formação da nova coorte. O resultado comercial deve ser lido por pessoa externa na sequência cadastro → primeira entrega/motor → ponte → checkout → pagamento em até 72 horas. Não conceder +25 automaticamente aos 204 usuários zerados com vídeo; se alguma concessão já saiu, não retirar e isolar a coorte. Para os 40 abandonadores de checkout, preservar controle sem desconto se o disparo ainda não tiver ocorrido.
+
+**FATO CONFIRMADO / PESQUISA DE PARCEIROS:** as páginas oficiais confirmaram encaixes complementares e contatos públicos: Content Beta produz short-form para B2B SaaS e AI; inBeat combina UGC, criadores e performance; Blend Collective oferece produção white-label e repurposing para agências. A busca no Gmail por nomes, domínios, remetentes e destinatários encontrou zero conversa anterior com os três.
+
+**EXECUTADO / COMUNICAÇÃO EXTERNA AUTORIZADA:** três mensagens diferentes foram enviadas por `joseph@usekineo.com` e reconfirmadas na pasta Sent:
+
+- Content Beta — `info@contentbeta.com` — assunto `An AI-faceless overflow lane for Content Beta briefs` — Gmail `1a0507378136b69d` — UTM `contentbeta_partner / founder_outreach / b2b_ai_overflow_20260830`.
+- inBeat — `hello@inbeat.agency` — assunto `A faceless test lane beside inBeat’s creator ads` — Gmail `1a05073a54a9d934` — UTM `inbeat_partner / founder_outreach / b2b_creative_test_20260830`.
+- Blend Collective — `info@blendcollective.eu` — assunto `White-label faceless Shorts for briefs without footage` — Gmail `1a05073d5b64beb1` — UTM `blendcollective_partner / founder_outreach / b2b_whitelabel_overflow_20260830`.
+
+**LIMITES DA PROMESSA:** os e-mails propõem um exemplo em um brief adequado, não volume, SLA, desconto, comissão, white-label contratual ou resultado de campanha. Content Beta recebeu proposta de overflow sem footage; inBeat, uma faixa faceless complementar aos criadores; Blend, overflow white-label para brief sem gravação. Não foi usado blast nem template idêntico.
+
+**PRÓXIMA REGRA:** não fazer follow-up antes de resposta ou bounce e não repetir estes três contatos. Qualquer reply deve ser tratado como lead humano distinto; abertura não é lead, UTM não é pessoa e resposta positiva ainda não é assinatura. Claude não deve alterar grant, prazo ou premium-first enquanto esta coorte de 72 horas está formando; Codex mede conversão e continua aquisição B2B.
