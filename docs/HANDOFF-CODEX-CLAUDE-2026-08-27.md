@@ -2245,3 +2245,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, trial, entitlement, Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `7e897397` ou da ponta posterior de `origin/main`. Não reativar compartilhamento público de vídeos, não hardcodar 30 créditos e não duplicar esta superfície na tela de resultado. A missão da History continua válida como segunda superfície; esta entrega mede o pico de satisfação imediatamente após download.
+
+## 71. Checkout final — autenticação Link deixa de parecer obrigatória (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a reconciliação de sessões Stripe recentes por pessoa externa encontrou somente sessões expiradas e não pagas; nenhuma chegou a criar `PaymentIntent`. Sessões com desconto e com preço cheio terminaram do mesmo modo. Isto contradiz “cartão recusado”: a pessoa não submeteu um meio de pagamento. Contagens, países e identificadores ficam fora deste repositório público.
+
+**FATO CONFIRMADO / STRIPE:** a configuração padrão da conta Kineo mantém Cartões, Apple Pay, Google Pay e Link habilitados. No checkout real do fundador, o Stripe colocou primeiro “Confirme que é você” com seis campos de código Link; o caminho de cartão aparecia abaixo como “Pagar sem a Link”. A documentação oficial da Stripe confirma que `payment_method_types=['card']` não desliga Link e que a desativação é controlada por configuração no Dashboard.
+
+**DECISÃO DE CONTENÇÃO:** Link não foi desligado. O painel informa benefício médio para compradores recorrentes e o A/B nativo de formas de pagamento não atende Billing/assinaturas nesta conta. Remover a carteira para 100% do tráfego com um único smoke interno seria trocar um atrito possível por perda não medida.
+
+**PAYPAL REPROVADO:** a integração tem credenciais, webhook, três produtos e seis planos configurados; o GET anônimo chega ao gate de login. No canário autenticado sem pagamento, a rota criou o redirecionamento oficial, mas `paypal.com/webapps/billing/subscriptions?ba_token=…` terminou em `paypal.com/webapps/billing/error` com “Ocorreu um erro”. Nenhuma aprovação ou cobrança ocorreu e `paypal_events` permaneceu em zero. `PAYPAL_ENABLED=false` continua travado; não expor esse rail até o fundador entrar no painel PayPal e resolver a verificação/limitação comercial, seguido de canário pago completo.
+
+**IMPLEMENTADO:** o commit funcional `454f3befef4176b3f067b706abf62f40ba5437ce` mostra `Card, Apple Pay or Google Pay · Link sign-in is optional` nos três planos públicos e no CTA pós-vídeo. O item sempre visível do Stripe acrescenta `Link is optional — choose Pay without Link to enter your card.` A fonte única é `lib/growth/checkoutPaymentGuidance.ts`; preço, grant e métodos continuam provider-owned.
+
+**MEDIÇÃO:** tentativa, Checkout Session, Subscription metadata e `payment_success` carregam `checkout_payment_guidance_v1`. O texto não grava e-mail, telefone, sessão, URL ou texto livre. A comparação válida é por pessoa externa: sessão versionada → PaymentIntent → pagamento, contra a coorte anterior; deploy não é conversão.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHECKOUT-PAYMENT-GUIDANCE-2026-08-30.html` contém antes/depois desktop e mobile e foi inspecionado no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** 28/28 verificações novas, 59/59 contexto de valor, 71/71 PayPal canônico, 57/57 pós-vídeo primário, 111/111 oferta ChatGPT e 47/47 checkout salvo. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo depois da correção de um espaço final no próprio teste antes do push.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** deploy Vercel `dpl_AhYPksiK4JQrYpcT8sVtzCN9rZhA` chegou a `READY`, target production, SHA exato funcional e alias de produção. `/pricing` exibiu a orientação três vezes, sem console error. Um novo checkout Starter chegou a `checkout.stripe.com`, mostrou a orientação completa no line item e preservou “Pagar sem a Link”; a Session ficou `open/unpaid`, sem `PaymentIntent`, com a versão correta. A Vercel não registrou runtime errors na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** desde a fronteira do deploy houve zero pessoa externa na versão; somente o canário interno. Não declarar melhora de conversão até tráfego real. O canário Stripe não foi pago. O PayPal segue bloqueado, não escondidamente “pronto”.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, método Stripe, configuração Link, webhook financeiro, dados do Supabase, pipeline de render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `454f3bef` ou da ponta posterior. Não ligar `PAYPAL_ENABLED`, não desligar Link e não duplicar a orientação. Codex mede `checkout_payment_guidance_v1` por pessoa e segue aquisição/assinaturas.
