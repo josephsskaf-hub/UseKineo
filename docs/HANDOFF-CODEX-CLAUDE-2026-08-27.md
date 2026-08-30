@@ -1824,6 +1824,8 @@ PRÓXIMO DONO:
 
 **COMPARAÇÃO VISUAL:** `docs/previews/TRIAL-BRIDGE-FIRST-SLOT-2026-08-30.html` mostra antes/depois desktop e o estado mobile. Foi servido localmente e inspecionado no Chrome conectado do fundador. Antes: calculadora de assinatura ocupa o primeiro slot mesmo com saldo de trial. Depois: o Seedance já financiado lidera, sem cartão e sem disparo automático.
 
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** commit `10efc06fad93e9af7955ff2ea84ac26bb23c6d8a` chegou a `READY` no deploy Vercel `dpl_C2tASLXDsqERLBfznvuy9gckD7rN`, aliases incluindo `www.usekineo.com`. O Studio abriu no Chrome conectado e a Vercel encontrou zero erro runtime em `/studio` e `/studio/create` nos 15 minutos consultados. Não houve render, reserva ou débito no smoke. A validação causal da nova precedência depende da próxima primeira entrega Fast de um trial externo elegível.
+
 **NÃO TOCADO:** grant, prazo do trial, preço, Stripe, Supabase schema/dados, Plan Fit matemático, render, motor, cena, legenda, e-mail da onda Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não reintroduzir Plan Fit à frente da ponte, não duplicar o card e não contar impressão como conversão; a primeira prova causal é pessoa elegível ver → clicar → concluir Seedance → iniciar checkout → pagar.
