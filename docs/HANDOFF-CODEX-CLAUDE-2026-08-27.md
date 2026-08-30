@@ -2293,3 +2293,29 @@ PRÓXIMO DONO:
 **VALIDADO EM PRODUÇÃO, COM LIMITE EXPLÍCITO (30/08/2026 BRT):** `origin/main` chegou a `a76fd31b9e5cea21b391208569b351c16cf4879d` e o deploy Vercel `dpl_EjBz98qdb3w93Ltk8nQA1WXtW3qw` ficou `READY`, target production. Uma abertura fresca de `/studio` e `/pricing` no Chrome autenticado terminou sem console error; a Vercel não registrou runtime errors nas rotas consultadas. O caminho legado `/generate` redirecionou para `/studio` e apresentou erros React de hidratação 425/422 durante a transição, enquanto a abertura direta do destino ficou limpa. O novo card não renderiza legitimamente na conta paga do fundador; nenhum trial ou render artificial foi criado para forçar o estado. Portanto: deploy e regressões validados, estado visual real do card e conversão ainda pendentes de coorte externa.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir da ponta posterior ao commit funcional `368cd2c6`. Não restaurar a calculadora na primeira leitura, não duplicar Plan Fit, não ligar PayPal e não alterar o trial durante a coorte.
+
+## 73. Aquisição B2B — pedido vago vira brief útil antes da oferta (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a coorte recente confirma que ChatGPT já é uma origem relevante de cadastros e primeira entrega, enquanto as superfícies B2B existentes receberam tráfego pequeno e não geraram lead observado na janela consultada. As contagens exatas e os identificadores ficam fora deste repositório público.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** `/ai-shorts-for-agencies` já oferece packs, calculadora e formulário, mas não existia uma utilidade gratuita que uma agência pudesse usar antes de comprar. A ferramenta oficial da Wyzowl confirma em 30/08/2026 o padrão competitivo de aquisição por gerador de video brief; a Kineo não tinha equivalente conectado ao próprio fluxo de criação.
+
+**IMPLEMENTADO:** o commit funcional `a625a37945bb02ee547c6017ad191a0c842bebb2` publica `/client-video-brief-generator`. A ferramenta recebe oferta, público, objetivo, prova verificável e CTA real; devolve um brief faceless de 35 segundos com direção de hook, cinco beats, limites de prova, direção visual e checklist de aprovação. Roda deterministicamente no navegador, sem cadastro, e-mail, cartão ou chamada de fornecedor.
+
+**AQUISIÇÃO + ATIVAÇÃO:** `Create this Short in Kineo` leva o brief compacto por signup até `/generate`, com `duration=35`, `autoanalyze=1` e campanha `client_short_brief_v1`. Não existe `create_intent`, portanto o handoff nunca autoriza render automático. A página também liga para os packs B2B com entrada allowlisted `client_brief` e entrou em sitemap, footer, hub `/tools`, fatos de ferramentas e `/llms.txt`.
+
+**ACHADO DO SMOKE / CORREÇÃO:** o primeiro handoff podia ultrapassar o teto de 1.000 caracteres preservado pelo signup e perder o final do pedido. O payload foi compactado e os limites de campo foram alinhados; o teste máximo trava o prompt abaixo de 950 caracteres. No Chrome de produção, o exemplo gerou um prompt de 580 caracteres e preservou integralmente prova e CTA até o destino final.
+
+**MEDIÇÃO:** eventos categóricos `client_short_brief_viewed`, `client_short_brief_generated`, `client_short_brief_copied`, `client_short_brief_activation_clicked` e `client_short_brief_packs_clicked`; impressão deduplicada por sessão. Não entra texto de cliente na telemetria.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CLIENT-SHORT-BRIEF-2026-08-30.html` mostra antes/depois desktop e mobile. A página real também foi inspecionada em desktop e 390px no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** 343 verificações relevantes passaram: brief 67/67, distribuição B2B 55/55, oferta AEO B2B 69/69, planner empresarial 145/145 e anti-abuso 7/7. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o deploy Vercel `dpl_B9wwr6q9t93s7BUus4zZwqUh4D9R` chegou a `READY`, target production, SHA exato `a625a37945bb02ee547c6017ad191a0c842bebb2`. A rota respondeu 200/prerender e 304/cache-hit. O fluxo completo no Chrome gerou o resultado e o handoff esperado sem erro de console. A única entrada de nível error na janela do deployment foi um aviso de depreciação `url.parse()` em `/api/next-shorts`, fora desta entrega.
+
+**HONESTIDADE COMERCIAL:** a entrega cria uma nova porta orgânica e uma ponte B2B mensurável; ainda não é assinatura. Só declarar resultado depois de pessoa externa seguir `client_short_brief_viewed → generated → copied OU activation_clicked → signup → primeiro vídeo concluído → checkout → payment_success`. Para packs, medir `client_short_brief_packs_clicked → agency_bulk_page_viewed → bulk_checkout_started → bulk_purchase_completed`.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, entitlement, Stripe, Supabase schema/dados, pipeline de render, motor, cena, voz, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `a625a379` ou posterior. Não duplicar o gerador de brief nem iniciar outreach automático. Codex segue dono da distribuição orgânica e da medição desta nova entrada B2B.
