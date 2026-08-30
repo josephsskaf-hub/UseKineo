@@ -89,6 +89,9 @@ import {
   TRIAL_BALANCE_BRIDGE_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import {
+  decideTrialRepeatBeforeCheckout,
+} from '@/lib/growth/trialRepeatBeforeCheckout'
+import {
   activationRenderEngineIsReady,
   resolveActivationRenderEngine,
   type ActivationRenderEngine,
@@ -4140,6 +4143,18 @@ export default function GenerateClient({
     credits,
     deliveredQuality: quality,
   })
+  // KINEO-TRIAL-REPEAT-BEFORE-CHECKOUT-2026-08-30 — o saldo restante não é
+  // uma objeção de venda; é combustível para provar valor outra vez. A coorte
+  // Stripe de 30d separou abandonos de compradores pela repetição de valor.
+  // Quando o bridge Seedance não é aplicável, um trial
+  // ativo que ainda paga Fast recebe episódio 2 antes da assinatura. A decisão
+  // é pura: não concede, reserva, debita nem inicia render.
+  const trialRepeatDecision = decideTrialRepeatBeforeCheckout({
+    trialPhase: trialPostVideoPhase,
+    credits,
+    bridgeEligible: trialBalanceBridge.eligible,
+    preferredDuration: duration,
+  })
   // Hoje apenas o Fast de conta free/trial recebe watermark no compose. O
   // Seedance (`cinematic_ai`) e os demais motores Fal saem limpos; por isso
   // `falUsedRef` faz parte da verdade do asset, não da conta.
@@ -4299,7 +4314,8 @@ export default function GenerateClient({
     Boolean(publicVideoId) &&
     planFitQuality !== null &&
     planFitSellableCohort !== null &&
-    !trialBalanceBridge.eligible
+    !trialBalanceBridge.eligible &&
+    trialRepeatDecision.action !== 'episode'
   const planFitOfferEligible = planFitOfferCandidate && planFitFirstDelivery
   const planFitOwnsRecurringSlot = shouldReservePlanFitRecurringSlot({
     candidate: planFitOfferCandidate,
@@ -4366,7 +4382,18 @@ export default function GenerateClient({
       credits,
       deliveredQuality: quality,
     })
-    const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}:${balanceBridgeForImpression.eligible ? balanceBridgeForImpression.version : 'subscription'}`
+    const repeatForImpression = decideTrialRepeatBeforeCheckout({
+      trialPhase: trialOfferPhaseForImpression,
+      credits,
+      bridgeEligible: balanceBridgeForImpression.eligible,
+      preferredDuration: duration,
+    })
+    const impressionVariant = balanceBridgeForImpression.eligible
+      ? balanceBridgeForImpression.version
+      : repeatForImpression.action === 'episode'
+        ? repeatForImpression.version
+        : 'subscription'
+    const offerImpressionKey = `${offerKey}:${trialOfferPhaseForImpression}:${impressionVariant}`
     if (!eligible || !element || !offerKey || trialPostVideoOfferTrackedKeyRef.current === offerImpressionKey) return
 
     const observer = new IntersectionObserver((entries) => {
@@ -4381,6 +4408,22 @@ export default function GenerateClient({
           credits_before: balanceBridgeForImpression.creditsBefore,
           credits_required: balanceBridgeForImpression.cost,
           credits_after_success: balanceBridgeForImpression.creditsAfterSuccess,
+          last_video_quality: quality,
+          first_touch_source: decidePostVideoOffer(signupUtmSource, quality).firstTouchSource,
+          ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
+        })
+        observer.disconnect()
+        return
+      }
+      if (repeatForImpression.action === 'episode') {
+        trackEvent('trial_repeat_episode_viewed', {
+          source: 'result_trial_repeat',
+          repeat_version: repeatForImpression.version,
+          target_engine: repeatForImpression.engine,
+          target_duration: repeatForImpression.duration,
+          credits_before: repeatForImpression.creditsBefore,
+          credits_required: repeatForImpression.cost,
+          credits_after_success: repeatForImpression.creditsAfterSuccess,
           last_video_quality: quality,
           first_touch_source: decidePostVideoOffer(signupUtmSource, quality).firstTouchSource,
           ...(intentCampaign ? { intent_campaign: intentCampaign } : {}),
@@ -4487,7 +4530,7 @@ export default function GenerateClient({
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits])
+  }, [phase, finalVideoUrl, publicVideoId, trialActive, trialUi, hasPaid, isStarter, isCreator, isStudio, postVideoCurrency, intentCampaign, planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits, duration])
 
   // ═══ KINEO-DOWNLOAD-WITHOUT-ASK-2026-08-13 — A TELA DO VÍDEO PRONTO SEM ═══
   // ═══ NENHUM PREÇO PASSA A SER UM EVENTO, E NÃO UMA DEDUÇÃO ═══════════════
@@ -9101,9 +9144,28 @@ export default function GenerateClient({
     }
   }
 
-  function startNextEpisode() {
+  function startNextEpisode(options?: { trialRepeat?: boolean }) {
     if (!nextEpisode) return
     trackEvent('next_episode_clicked', { title: nextEpisode.title.slice(0, 80) })
+    if (
+      options?.trialRepeat &&
+      trialRepeatDecision.action === 'episode' &&
+      trialRepeatDecision.duration !== null
+    ) {
+      trackEvent('trial_repeat_episode_clicked', {
+        source: 'result_trial_repeat',
+        repeat_version: trialRepeatDecision.version,
+        target_engine: trialRepeatDecision.engine,
+        target_duration: trialRepeatDecision.duration,
+        credits_before: trialRepeatDecision.creditsBefore,
+        credits_required: trialRepeatDecision.cost,
+        credits_after_success: trialRepeatDecision.creditsAfterSuccess,
+        last_video_quality: quality,
+        previous_intent_campaign: intentCampaign || null,
+      })
+      setMode('fast')
+      setDuration(trialRepeatDecision.duration)
+    }
     const s = nextEpisode.script
     setNextEpisode(null)
     setPrompt(s)
@@ -9219,6 +9281,8 @@ export default function GenerateClient({
   // Incluir 'downgraded' aqui poria duas superfícies pedindo cartão na mesma
   // tela, que é o defeito que esta mudança está consertando, invertido.
   const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot
+  const showTrialRepeatEpisode =
+    showTrialPostVideoOffer && trialRepeatDecision.action === 'episode'
   // POR QUE o trial acabou. Só tem sentido em 'ending'.
   //
   // ⚠️ REVISÃO ADVERSARIAL, PASSADA 1 — a comparação é contra o CONCEDIDO, não
@@ -12474,8 +12538,10 @@ export default function GenerateClient({
                   o próximo, em vez de pedir a próxima ideia. Aparece DEPOIS do
                   download e do paywall de propósito: primeiro a pessoa resolve
                   o vídeo que ela veio fazer, aí a gente oferece o seguinte. */}
-              {!showTrialPostVideoOffer && (nextEpisode || nextEpisodeLoading) && (
+              {(!showTrialPostVideoOffer || showTrialRepeatEpisode) && (nextEpisode || nextEpisodeLoading) && (
                 <div
+                  ref={showTrialRepeatEpisode ? trialPostVideoOfferRef : undefined}
+                  data-trial-repeat={showTrialRepeatEpisode ? trialRepeatDecision.version : undefined}
                   className="mt-7 w-full rounded-2xl p-4"
                   style={{
                     maxWidth: 460,
@@ -12489,7 +12555,7 @@ export default function GenerateClient({
                     className="text-[10px] font-black uppercase tracking-widest mb-2"
                     style={{ color: 'var(--muted2)' }}
                   >
-                    Your next episode is written
+                    {showTrialRepeatEpisode ? 'Your trial can fund another episode' : 'Your next episode is written'}
                   </div>
                   {nextEpisodeLoading && !nextEpisode ? (
                     <p className="text-xs" style={{ color: 'var(--muted2)' }}>
@@ -12515,7 +12581,7 @@ export default function GenerateClient({
                       </p>
                       <button
                         type="button"
-                        onClick={startNextEpisode}
+                        onClick={() => startNextEpisode(showTrialRepeatEpisode ? { trialRepeat: true } : undefined)}
                         className="w-full rounded-xl mt-3 py-2.5 text-sm font-black text-white"
                         style={{
                           background: 'linear-gradient(135deg,#2997ff,#2997ff)',
@@ -12523,8 +12589,31 @@ export default function GenerateClient({
                           cursor: 'pointer',
                         }}
                       >
-                        Make this one too →
+                        {showTrialRepeatEpisode ? 'Make episode 2 with Fast →' : 'Make this one too →'}
                       </button>
+                      {showTrialRepeatEpisode && trialRepeatDecision.action === 'episode' && (
+                        <>
+                          <p className="text-xs mt-2 text-center" style={{ color: 'var(--muted2)', lineHeight: 1.45 }}>
+                            Uses {trialRepeatDecision.cost} of your {trialRepeatDecision.creditsBefore} remaining credits.
+                            Nothing is spent until you review it and press Generate.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void trackEvent('trial_repeat_subscription_clicked', {
+                                source: 'result_trial_repeat',
+                                repeat_version: trialRepeatDecision.version,
+                                credits_before: trialRepeatDecision.creditsBefore,
+                              })
+                              router.push('/pricing?intent_campaign=trial_repeat_secondary_v1#plans')
+                            }}
+                            className="w-full mt-2 py-1.5 text-xs font-bold"
+                            style={{ color: '#5cb3ff', background: 'transparent', border: 'none', cursor: 'pointer' }}
+                          >
+                            Prefer clean exports now? See paid plans →
+                          </button>
+                        </>
+                      )}
                     </>
                   ) : null}
                 </div>
@@ -12579,7 +12668,7 @@ export default function GenerateClient({
                   </div>
                 )}
 
-                {showTrialPostVideoOffer && !trialBalanceBridge.eligible && (
+                {showTrialPostVideoOffer && !trialBalanceBridge.eligible && !showTrialRepeatEpisode && (
                   <div
                     ref={trialPostVideoOfferRef}
                     className="w-full rounded-2xl px-5 py-5"

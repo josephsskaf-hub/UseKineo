@@ -22,7 +22,10 @@ function check(name, condition) {
 // KINEO-TRIAL-BALANCE-BRIDGE-2026-08-29 — the original subscription card now
 // owns the explicit non-bridge branch. Keep this suite scoped to that card;
 // the bridge has its own executable policy and source-contract suite.
-const cardStart = source.indexOf('{showTrialPostVideoOffer && !trialBalanceBridge.eligible && (')
+// KINEO-TRIAL-REPEAT-BEFORE-CHECKOUT-2026-08-30 — the subscription card now
+// owns only the no-bridge, no-funded-repeat branch. The prior anchor described
+// the old hierarchy, so it is updated to the actual rendered contract.
+const cardStart = source.indexOf('{showTrialPostVideoOffer && !trialBalanceBridge.eligible && !showTrialRepeatEpisode && (')
 const cardEnd = source.indexOf('{/* Keep the revenue/export decision first.', cardStart)
 const card = cardStart >= 0 && cardEnd > cardStart ? source.slice(cardStart, cardEnd) : ''
 const downloadStart = source.indexOf('Download clean Short')
@@ -80,7 +83,7 @@ check('source-aware layout is identifiable', card.includes('offer_layout: postVi
 check('click benefit is discriminated by behavior', card.includes("? 'current_clean_version'") && card.includes(": 'monthly_creation'"))
 check('impression carries the source-aware layout', impressionArea.includes('offer_layout: offerDecision.variant'))
 check('impression carries the same benefit split', impressionArea.includes("? 'current_clean_version'") && impressionArea.includes(": 'monthly_creation'"))
-check('impression effect tracks engine, entitlement, source and live balance changes', source.includes('planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits])'))
+check('impression effect tracks engine, entitlement, source, balance and duration changes', source.includes('planFitOwnsRecurringSlot, quality, planTier, signupUtmSource, credits, duration])'))
 check('other options use native collapsed disclosure', detailsStart >= 0 && detailsEnd > detailsStart)
 check('disclosure is closed by default', !card.slice(detailsStart, card.indexOf('>', detailsStart) + 1).includes(' open'))
 check('one-time option remains available for both asset classes', detailsArea.includes('handleBuyThisVideoOnly()') && detailsArea.includes('handleBuyCreditsOnly()'))
@@ -92,7 +95,7 @@ check('premium one-time pack does not request a clean rebuild', source.includes(
 check('premium pack copy sells credits, not film cleaning', card.includes('No subscription · use them on your next videos'))
 check('secondary options follow the primary checkout', detailsStart > primaryLaunch)
 check('post reward does not compete with trial subscription', source.includes("planTier === 'free' && !hasPaid && !showTrialPostVideoOffer"))
-check('next episode does not compete with trial subscription', source.includes('!showTrialPostVideoOffer && (nextEpisode || nextEpisodeLoading)'))
+check('next episode competes only when funded repeat owns the primary slot', source.includes('(!showTrialPostVideoOffer || showTrialRepeatEpisode) && (nextEpisode || nextEpisodeLoading)'))
 check('download event uses asset truth', source.includes('const exportType = currentResultHasWatermark'))
 check('download title uses asset truth', source.includes('title={currentResultHasWatermark'))
 check('watermark note uses asset truth', source.includes('!showPostVideoExportChoice && currentResultHasWatermark'))
