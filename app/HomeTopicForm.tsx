@@ -359,14 +359,13 @@ export default function HomeTopicForm({
             )}
           </p>
         )}
-        {/* KINEO-HOME-TRIAL-BEST-2026-08-30 — the signed-in native form was
-            the last high-intent homepage rail that still forced Kineo 1 even
-            for an active trial with enough balance. `trial_best` does not
-            promise or spend Seedance by itself: the authenticated generator
-            resolves it against server-confirmed trial entitlement and the
-            canonical engine cost, then safely falls back to Fast for every
-            paid, insufficient-balance or uncertain state. The anonymous JS
-            handoff already used the same guarded intent. */}
+        {/* KINEO-HOME-TRIAL-BEST-2026-08-30 — normal JS submission already
+            uses the guarded trial-best handoff. This hidden value governs only
+            the native no-JS fallback of the signed-out ChatGPT/TAAFT bridge:
+            carry the same intent instead of silently degrading to Kineo 1.
+            `trial_best` never promises or spends Seedance by itself; the
+            authenticated generator resolves server-confirmed entitlement and
+            balance, then falls back to Fast for every ineligible state. */}
         <input type="hidden" name="create_intent" value="trial_best" />
         <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
         <input type="hidden" name="utm_source" value="homepage" />

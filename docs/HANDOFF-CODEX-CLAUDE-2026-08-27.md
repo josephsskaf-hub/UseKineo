@@ -1794,15 +1794,17 @@ PRÓXIMO DONO:
 
 **NÃO TOCADO:** preço, grant, trial, expiração, Stripe, Supabase, render, motor, cena, legenda, vídeo de cliente ou e-mail da onda Claude.
 
-## 49. Conversão do trial — a home logada deixa de forçar Kineo 1 (30/08/2026)
+## 49. Conversão do trial — decisão mantida e fallback nativo alinhado (30/08/2026)
 
 **EVIDÊNCIA DE PRODUÇÃO / DECISÃO OPERACIONAL:** o recorte compartilhado pelo fundador separou três problemas: parte das pessoas não inicia vídeo; Seedance consome o trial no primeiro filme; Kineo 1 deixa 20–21 créditos. A coorte ainda está formando e já existe ponte pós-Fast. Portanto o grant permanece em 25 créditos; não aumentar, reduzir nem encurtar a validade durante esta leitura.
 
-**FATO CONFIRMADO / CAUSA DE FLUXO:** o default autenticado do Studio já escolhia Seedance para trial ativo com saldo suficiente, e `lib/growth/trialBalanceBridge.ts` já preparava um Seedance de 35s para o saldo pós-Fast. Porém o formulário principal da home ainda enviava `create_intent=fast` de forma literal em `app/HomeTopicForm.tsx`. Assim, uma pessoa logada em trial que digitasse a ideia na home contornava o default premium e era forçada ao motor barato.
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o default autenticado do Studio já escolhia Seedance para trial ativo com saldo suficiente, e `lib/growth/trialBalanceBridge.ts` já preparava um Seedance de 35s para o saldo pós-Fast. O formulário `HomeTopicForm` é montado somente dentro de `referralBridge`, que exige visitante deslogado; portanto a prop `isSignedIn=true` não é alcançada pelo caller atual. A submissão normal com JavaScript já construía `create_intent=trial_best`. O literal `fast` restante governava apenas o fallback nativo sem JavaScript.
 
-**IMPLEMENTADO:** o formulário da home passa a enviar `create_intent=trial_best`. A política existente `resolveActivationRenderEngine` continua sendo a autoridade: Seedance somente para trial confirmado pelo servidor e saldo suficiente; Fast para conta paga, saldo insuficiente, trial inativo ou estado incerto. Nenhum render parte do formulário, nenhum crédito é reservado e nenhuma escolha explícita de motor é sobrescrita.
+**IMPLEMENTADO / ESCOPO HONESTO:** o fallback nativo do formulário de referência passa a enviar `create_intent=trial_best`, alinhado ao caminho JavaScript já existente. A política `resolveActivationRenderEngine` continua sendo a autoridade: Seedance somente para trial confirmado pelo servidor e saldo suficiente; Fast para estado inelegível ou incerto. Isto é progressive enhancement de borda, não a causa dos sete primeiros vídeos Fast observados e não deve ser promovido como principal ganho de conversão.
 
 **TESTADO LOCALMENTE:** `node scripts/test-trial-best-activation.mjs` passou 27/27; `node scripts/test-home-referral-bridge.mjs`, 66/66; `node scripts/test-public-creation-intent.mjs`, 64/64. O teste novo exige que a home peça o rail protegido e rejeita a volta do literal Fast. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** deploy Vercel `dpl_CPFSVyR6p7bMd32Rrt4ZtqnFxJkL` chegou a `READY` no SHA `430f5104a548727c246a0a67c356b9edaab7c696`, aliases incluindo `www.usekineo.com`. O smoke autenticado mostrou corretamente que o formulário não existe nessa condição, o que derrubou a primeira interpretação e limitou a classificação ao fallback deslogado.
 
 **SEM COMPARAÇÃO VISUAL:** a interface, a copy e o layout não mudaram. A entrega altera somente o valor oculto do contrato de criação e mantém o mesmo botão, formulário e destino.
 
