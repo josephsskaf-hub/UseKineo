@@ -58,6 +58,7 @@ check(page.includes("const primaryCtaHref = e.param === 'fast' ? \`#\${kineoOneS
 check(page.includes("e.param === 'fast' && ("), 'starter is gated to the Fast engine instead of changing premium engine promises')
 check(page.includes('<TopicGeneratorForm'), 'real engine page renders the proven topic starter')
 check(page.includes('creationIntent="fast"'), 'Kineo 1 starter preserves the explicitly selected Fast engine')
+check(page.includes('preserveHandoffForSignedIn'), 'Kineo 1 starter keeps the prompt when an authenticated visitor skips signup')
 check(page.includes('campaign={campaign}'), 'starter keeps the exact engine campaign for cohort measurement')
 check(page.includes('Your remaining trial balance stays available for the next test.'), 'starter explains the residual balance without hardcoded credit amounts')
 check(page.includes('href={studioUrl}'), 'existing member goes directly to the selected engine')
@@ -77,6 +78,12 @@ const studio = read('app/(dashboard)/studio/StudioClient.tsx')
 check(studio.includes("const e = sp.get('engine')"), 'Studio reads the carried engine')
 check(studio.includes('setEngine(e as EngineKey)'), 'Studio applies the carried engine')
 check(studio.includes("const ic = sp.get('intent_campaign')"), 'Studio reads the carried campaign')
+
+const topicForm = read('app/youtube-shorts-from-topic/TopicGeneratorForm.tsx')
+check(topicForm.includes('function authRedirectFor(promptValue: string)'), 'topic starter builds a bounded authenticated redirect')
+check(topicForm.includes("return `/generate?${destination.toString()}`"), 'authenticated redirect lands on the creation surface')
+check(topicForm.includes("params.set('redirect', authRedirect)"), 'one-click examples preserve work for signed-in visitors')
+check(topicForm.includes('name="redirect" value={authRedirectFor(topic)'), 'typed topics preserve work for signed-in visitors')
 
 const preview = read('docs/previews/ENGINE-LANDING-INTENT-2026-08-28.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {

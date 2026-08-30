@@ -22,6 +22,7 @@ type TopicGeneratorFormProps = {
   scriptMode?: 'ai' | 'verbatim'
   duration?: 35 | 45 | 60 | 90
   creationIntent?: Exclude<CreationIntent, null>
+  preserveHandoffForSignedIn?: boolean
   analyticsVariant?: string
   marginTop?: number
   copy?: {
@@ -49,6 +50,7 @@ export default function TopicGeneratorForm({
   scriptMode,
   duration,
   creationIntent = 'fast',
+  preserveHandoffForSignedIn = false,
   analyticsVariant,
   marginTop = 30,
   copy = {
@@ -61,6 +63,21 @@ export default function TopicGeneratorForm({
 }: TopicGeneratorFormProps = {}) {
   const [topic, setTopic] = useState('')
   const inputId = `${formId}-input`
+
+  function authRedirectFor(promptValue: string): string | null {
+    const boundedPrompt = promptValue.trim().slice(0, 1000)
+    if (!preserveHandoffForSignedIn || !boundedPrompt) return null
+    const destination = new URLSearchParams({
+      welcome: '1',
+      prompt: boundedPrompt,
+      create_intent: creationIntent,
+      intent_campaign: campaign,
+    })
+    if (language) destination.set('language', language)
+    if (scriptMode) destination.set('script_mode', scriptMode)
+    if (duration) destination.set('duration', String(duration))
+    return `/generate?${destination.toString()}`
+  }
 
   function startWithExample(example: string, exampleIndex: number) {
     rememberSignupCampaign(campaign)
@@ -109,6 +126,8 @@ export default function TopicGeneratorForm({
     if (language) params.set('language', language)
     if (scriptMode) params.set('script_mode', scriptMode)
     if (duration) params.set('duration', String(duration))
+    const authRedirect = authRedirectFor(example)
+    if (authRedirect) params.set('redirect', authRedirect)
     window.location.assign(`/signup?${params.toString()}`)
   }
 
@@ -182,6 +201,9 @@ export default function TopicGeneratorForm({
         />
         <input type="hidden" name="create_intent" value={creationIntent} />
         <input type="hidden" name="intent_campaign" value={campaign} />
+        {authRedirectFor(topic) && (
+          <input type="hidden" name="redirect" value={authRedirectFor(topic) ?? ''} />
+        )}
         {utmSource && <input type="hidden" name="utm_source" value={utmSource} />}
         {utmMedium && <input type="hidden" name="utm_medium" value={utmMedium} />}
         {(utmSource || utmMedium) && <input type="hidden" name="utm_campaign" value={campaign} />}

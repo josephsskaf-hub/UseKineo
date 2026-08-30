@@ -424,6 +424,7 @@ export default async function EnginePage({ params }: { params: { engine: string 
             source={campaign}
             formId={kineoOneStarterId}
             creationIntent="fast"
+            preserveHandoffForSignedIn
             examples={[
               'The island nobody is allowed to visit',
               'The money habit that quietly keeps people broke',
