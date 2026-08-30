@@ -1933,3 +1933,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, trial, checkout, Stripe, Supabase, render, motor, cena, legenda, e-mails da onda Claude ou contatos já abordados.
 
 **PRÓXIMO DONO:** Claude não deve contatar OverseerOS, DepthHQ ou HowToAI novamente. Codex monitora resposta e atribuição; qualquer pedido pago, integração ou patrocínio volta como decisão separada.
+
+## 56. Ativação ChatGPT — colar uma vez antes do Studio (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** uma leitura agregada por pessoa, com contas internas excluídas, mostrou queda relevante depois da escolha do modo no quick-start e antes do início da geração. Os números e identificadores permanecem fora deste repositório público. Nenhum conteúdo de cliente foi lido ou gravado.
+
+**FATO CONFIRMADO / CAUSA DE FLUXO:** `components/ChatGptWelcomeBanner.tsx` transformava a escolha em navegação imediata. O Studio então focava outro campo vazio e pedia novamente o roteiro ou a ideia. A pessoa precisava decidir numa tela e fornecer o conteúdo em outra, embora a copy prometesse continuidade sem refazer setup.
+
+**IMPLEMENTADO:** a variante `chatgpt_quickstart_v4` mantém a pergunta no card, abre o campo correspondente e só permite continuar depois de texto não vazio. `buildChatGptQuickstartHref` normaliza, limita a 1.000 caracteres, codifica o conteúdo e usa o mesmo contrato `/studio` já existente. Ideia continua em `ai/60s/Seedance`; roteiro pronto continua em `verbatim/35s/Seedance`. O Studio recebe o texto preenchido e editável antes de qualquer ação de geração.
+
+**PRIVACIDADE E MEDIÇÃO:** `chatgpt_quickstart_input_opened` grava somente variante e tipo allow-listed. `chatgpt_quickstart_selected` continua sendo o evento de saída e ganha apenas `input_length`; prompt e roteiro nunca entram na telemetria. A variante avançou de v3 para v4 para impedir mistura de coortes. O first-touch ChatGPT permanece intacto; nenhuma UTM nova é criada.
+
+**TESTADO LOCALMENTE:** `node scripts/test-chatgpt-quickstart.mjs` passou 86/86. O teste executa normalização, limite, encoding, vazio fail-closed, dois modos, funil causal e âncoras do caller real. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline preexistentes; nenhum erro novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHATGPT-INLINE-PASTE-2026-08-30.html` mostra antes/depois desktop e o estado mobile de 390 px. Foi servido localmente e inspecionado no Chrome conectado do fundador. O card mantém as duas escolhas, revela um único editor e um único CTA; no mobile, campo e botão empilham sem corte.
+
+**NÃO TOCADO:** grant de 25, validade do trial, preço, oferta, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude, contatos ou vídeos existentes.
+
+**MÉTRICA:** por pessoa externa e variante: `view → input_opened → selected → studio_ready → generation_started → completed → checkout → payment`. Clique na opção não é seleção concluída; texto digitado não é telemetria; checkout não é assinatura.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do push e não duplicar o input inline, mudar o grant ou alterar a onda de e-mails. Codex mede a coorte v4 e continua aquisição, fluxo e assinatura.

@@ -29,14 +29,16 @@
 // Números DERIVADOS (TRIAL_GRANT_CREDITS_COPY, STARTER_MO) — a lição
 // permanente das copies que mentiram depois de cada reprice.
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import { STARTER_MO } from '@/lib/marketingPrice'
 import {
   CHATGPT_QUICKSTARTS,
+  CHATGPT_QUICKSTART_INPUT_LIMIT,
   CHATGPT_QUICKSTART_VARIANT,
+  buildChatGptQuickstartHref,
   type ChatGptQuickstartChoice,
 } from '@/lib/growth/chatgptQuickstart'
 
@@ -71,6 +73,7 @@ function firstTouchIsChatGpt(): boolean {
 
 export default function ChatGptWelcomeBanner() {
   const [show, setShow] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     try {
@@ -89,13 +92,17 @@ export default function ChatGptWelcomeBanner() {
 
   return (
     <ChatGptWelcomeCard
-      onSelect={(choice) => {
+      onSelect={(choice, input) => {
+        const href = buildChatGptQuickstartHref(choice, input)
+        if (!href) return
         try { sessionStorage.setItem(DISMISS_KEY, '1') } catch { /* best effort */ }
         void trackEvent('chatgpt_quickstart_selected', {
           variant: CHATGPT_QUICKSTART_VARIANT,
           input_type: choice,
+          input_length: input.trim().length,
           destination: '/studio/create',
         })
+        router.push(href)
       }}
       onDismiss={() => {
         setShow(false)
@@ -110,9 +117,20 @@ export function ChatGptWelcomeCard({
   onSelect,
   onDismiss,
 }: {
-  onSelect: (choice: ChatGptQuickstartChoice) => void
+  onSelect: (choice: ChatGptQuickstartChoice, input: string) => void
   onDismiss: () => void
 }) {
+  const [choice, setChoice] = useState<ChatGptQuickstartChoice | null>(null)
+  const [input, setInput] = useState('')
+  const ready = input.trim().length > 0
+
+  const choose = (nextChoice: ChatGptQuickstartChoice) => {
+    setChoice(nextChoice)
+    void trackEvent('chatgpt_quickstart_input_opened', {
+      variant: CHATGPT_QUICKSTART_VARIANT,
+      input_type: nextChoice,
+    })
+  }
 
   return (
     <section
@@ -123,21 +141,51 @@ export function ChatGptWelcomeCard({
       <div className={styles.copy}>
         <div className={styles.eyebrow}>Continue from ChatGPT</div>
         <h2>Turn that answer into a finished Short</h2>
-        <p>Choose what ChatGPT gave you. Kineo opens the right studio mode, with no setup to redo.</p>
+        <p>Choose what ChatGPT gave you, paste it here once, and Kineo carries it into the right studio mode.</p>
       </div>
       <div className={styles.options} aria-label="Choose what you have">
           {CHATGPT_QUICKSTARTS.map((option, index) => (
-            <Link
+            <button
+              type="button"
               key={option.choice}
-              href={option.href}
-              className={`${styles.option}${index === 0 ? ` ${styles.optionPrimary}` : ''}`}
-              onClick={() => onSelect(option.choice)}
+              aria-pressed={choice === option.choice}
+              className={`${styles.option}${index === 0 ? ` ${styles.optionPrimary}` : ''}${choice === option.choice ? ` ${styles.optionSelected}` : ''}`}
+              onClick={() => choose(option.choice)}
             >
               <span className={styles.optionLabel}>{option.label}</span>
               <span className={styles.optionDetail}>{option.detail}</span>
-            </Link>
+            </button>
           ))}
       </div>
+      {choice ? (
+        <div className={styles.editor}>
+          <label htmlFor="chatgpt-quickstart-input">
+            {choice === 'finished_script' ? 'Paste the complete script' : 'Paste the idea or topic'}
+          </label>
+          <div className={styles.editorRow}>
+            <textarea
+              id="chatgpt-quickstart-input"
+              autoFocus
+              value={input}
+              maxLength={CHATGPT_QUICKSTART_INPUT_LIMIT}
+              rows={3}
+              placeholder={choice === 'finished_script'
+                ? 'Paste the script exactly as ChatGPT wrote it…'
+                : 'Example: The lighthouse that kept flashing after its keeper vanished…'}
+              onChange={(event) => setInput(event.target.value)}
+            />
+            <button
+              type="button"
+              className={styles.continueButton}
+              disabled={!ready}
+              onClick={() => onSelect(choice, input)}
+            >
+              {choice === 'finished_script' ? 'Open Studio with this script' : 'Open Studio with this idea'}
+            </button>
+          </div>
+          <span>Your text stays editable before anything is generated.</span>
+        </div>
+      ) : null}
       <p className={styles.proof}>
         {TRIAL_GRANT_CREDITS_COPY} trial credits already included · no card to start · plans from {STARTER_MO}
       </p>

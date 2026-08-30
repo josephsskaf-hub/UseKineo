@@ -29,6 +29,8 @@
   gap: 3px;
   padding: 11px 14px;
   color: #dbeafe;
+  font-family: inherit;
+  text-align: left;
   text-decoration: none;
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -38,9 +40,18 @@
 .option:hover { transform: translateY(-1px); border-color: rgba(103, 232, 249, 0.68); background: rgba(103, 232, 249, 0.10); }
 .optionPrimary { color: #001018; background: linear-gradient(135deg, #67e8f9, #38bdf8); border-color: #67e8f9; }
 .optionPrimary:hover { background: linear-gradient(135deg, #a5f3fc, #67e8f9); }
+.optionSelected { box-shadow: 0 0 0 2px #f5f5f7, 0 0 0 4px rgba(103, 232, 249, 0.34); }
 .optionLabel { font-size: 13px; font-weight: 900; line-height: 1.25; }
 .optionDetail { color: #91a6ba; font-size: 10px; font-weight: 650; line-height: 1.3; }
 .optionPrimary .optionDetail { color: rgba(0, 16, 24, 0.68); }
+.editor { grid-column: 1 / -1; display: grid; gap: 7px; padding: 12px; background: rgba(0, 0, 0, 0.2); border: 1px solid rgba(103, 232, 249, 0.22); border-radius: 13px; }
+.editor label { color: #dbeafe; font-size: 11px; font-weight: 850; }
+.editorRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px; align-items: stretch; }
+.editor textarea { width: 100%; min-height: 76px; resize: vertical; padding: 10px 11px; color: #f5f5f7; font: inherit; font-size: 12px; line-height: 1.45; background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 10px; outline: none; }
+.editor textarea:focus { border-color: #67e8f9; box-shadow: 0 0 0 2px rgba(103, 232, 249, 0.15); }
+.editor span { color: #7890a4; font-size: 10px; }
+.continueButton { min-width: 210px; padding: 10px 14px; color: #001018; font-family: inherit; font-size: 12px; font-weight: 900; cursor: pointer; background: linear-gradient(135deg, #67e8f9, #38bdf8); border: 0; border-radius: 10px; }
+.continueButton:disabled { color: #7890a4; cursor: not-allowed; background: rgba(255, 255, 255, 0.08); }
 .proof { grid-column: 1 / -1; margin: 0; color: #7890a4; font-size: 10px; line-height: 1.35; text-align: right; }
 .dismiss {
   position: absolute;
@@ -59,5 +70,7 @@
 @media (max-width: 860px) {
   .quickstart { grid-template-columns: 1fr; margin: 10px 10px 0; padding: 17px 38px 14px 16px; }
   .options { grid-template-columns: 1fr; }
+  .editorRow { grid-template-columns: 1fr; }
+  .continueButton { min-width: 0; min-height: 44px; }
   .proof { text-align: left; }
 }
