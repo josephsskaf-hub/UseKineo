@@ -1851,3 +1851,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, Stripe, Supabase, render, cena, legenda, e-mails da onda Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ac59bca1` ou da ponta posterior de `origin/main`. Não duplicar o prefill, não adicionar auto-start e não mudar o grant durante a leitura desta coorte. Claude continua com a onda já em execução; Codex continua aquisição, fluxo e assinatura.
+
+## 52. Conversão final — checkout recorrente deixa de morrer em duas horas (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a auditoria ao vivo do Stripe mostrou compradores externos recentes atingindo exatamente o `expires_at` de aproximadamente duas horas configurado pela própria Kineo. Isso significa que “expired” não era uma duração escolhida pela Stripe nem prova de objeção imediata: era a aplicação fechando a página de pagamento. A recuperação por e-mail já produziu algum pagamento posterior e, portanto, foi preservada; os números por pessoa permanecem fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA DE FLUXO:** `app/api/stripe/checkout/route.ts` substituía o prazo padrão por `checkoutWindow * 300 + 2 * 60 * 60`. Ao mesmo tempo, o produto armazenava o checkout para retomada e mostrava uma superfície de “saved checkout”. Depois de duas horas, essa retomada não podia mais abrir a sessão original.
+
+**IMPLEMENTADO:** o checkout recorrente permanece aberto entre 23h55m e 24h, limite aceito pela Stripe. `lib/growth/checkoutSessionWindow.ts` é a fonte única da janela. Sessão, assinatura, `checkout_started` e `payment_success` carregam `checkout_session_window_hours=24` e `checkout_session_window_version=recurring_checkout_24h_v1`. `expires_at` e a versão participam da assinatura de idempotência; payload e namespace avançaram para impedir que uma sessão antiga de duas horas seja reutilizada depois do deploy.
+
+**RECUPERAÇÃO PRESERVADA:** `send-recovery` continua lendo `checkout_abandoned` e mantém o dedupe vitalício existente. O trade-off é explícito: o e-mail sai depois que a sessão realmente expira, enquanto o comprador ganha uma noite inteira para voltar pelo checkout salvo. Nenhum e-mail da onda Claude foi alterado ou duplicado.
+
+**TESTADO LOCALMENTE:** oito suítes somaram 303 verificações verdes: checkout-window 25/25, value-context 59/59, saved-checkout 40/40, visual-proof 17/17, profile-read 25/25, cancelled-first-delivery 26/26, Autopilot return 36/36 e agency return 75/75. `npx tsc --noEmit` repetiu somente os quatro erros baseline; nenhum erro novo. Whitespace limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** commit `be00a86abe934ed35ab07d9bb3552dc86a92f213`, deploy Vercel `dpl_BAemXwJhBvhM7XUsCwJ317peke1C` em `READY`, aliases incluindo `www.usekineo.com`. Um checkout interno real foi criado sem pagamento: `status=open`, `payment_status=unpaid`, duração de 86.105 segundos (23h55m05s), metadata `24 / recurring_checkout_24h_v1`. O Chrome exibiu o checkout hospedado com valor e descrição corretos; saiu sem pagar. Zero erro runtime em `/api/stripe/checkout` e `/api/stripe/webhook` nos 30 minutos consultados.
+
+**SEM COMPARAÇÃO VISUAL:** copy, preço, layout e métodos de pagamento não mudaram. A entrega altera apenas o tempo durante o qual a mesma sessão continua utilizável.
+
+**NÃO TOCADO:** preço, grant, validade do trial, Stripe Tax, método de pagamento, render, cena, legenda, Supabase schema/dados, campanhas ou e-mails Claude.
+
+**MÉTRICA:** contar pessoas externas por `checkout_session_window_version`: checkout aberto → retomado → pagamento. Não comparar a nova coorte a eventos brutos históricos; o primeiro sinal operacional é uma sessão `recurring_checkout_24h_v1` ainda aberta depois de duas horas.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `be00a86` ou da ponta posterior. Não reintroduzir o `expires_at` de duas horas e não criar uma segunda automação de resgate. Codex mede a nova janela e continua aquisição/fluxo/assinatura.
