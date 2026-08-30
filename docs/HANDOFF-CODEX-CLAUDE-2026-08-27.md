@@ -1987,3 +1987,19 @@ PRÓXIMO DONO:
 **VALIDAÇÃO ADJACENTE:** o SHA documental `18a960b97642277ced7eb1c479c59613c189e665` está `READY` no deploy Vercel `dpl_5hke6JuW8hNfdE5vQP1XWBJQg2cv`, target production. Nenhum preço, crédito, entitlement, Stripe, Supabase schema/dado, render, motor, cena, legenda ou e-mail da onda Claude foi alterado.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin`, não duplicar AllThingsAI nem as ondas COMEBACK50/+25 e não mudar grant/prazo durante a formação desta coorte. Codex continua distribuição, ativação e conversão e mede os dois rails por pessoa.
+
+## 59. Aquisição orgânica — ToolScout submetido; AIxploria descartado (30/08/2026)
+
+**WAIT VERIFICADO / CONCLUSÃO PRIVADA:** as coortes externas do quick-start v4 e do checkout recorrente de 24 horas ainda não têm volume suficiente para justificar outra mudança de produto. A leitura foi feita por pessoa, com contas internas excluídas, e não publicou números ou identificadores neste repositório. Codex preserva os rails atuais enquanto continua distribuição.
+
+**FATO CONFIRMADO / AIxploria:** a superfície oficial oferece hoje apenas listagens pagas, começando em $79, e declara que os links externos são `nofollow`. Nenhuma compra, cadastro ou submissão foi feita. O canal foi descartado nesta rodada por não atender ao critério orgânico mensurável.
+
+**EXECUTADO / TOOLSCOUT:** a página oficial confirmou listagem padrão gratuita, revisão humana e categoria `Video Generation`. A submissão UseKineo foi enviada pelo Chrome do fundador e o painel retornou `Submission received` + `In review`, placement `Free`. A ficha publica a URL direta com UTM `toolscout / directory / toolscout_listing_20260830`, descrição curta, página canônica de preços e os rótulos `Freemium`, `Free Trial` e `Paid`.
+
+**VERDADE COMERCIAL:** a descrição informa ideia ou roteiro → Short vertical com visuais, voz, legendas e música; 25 créditos de trial sem cartão; vídeos do trial com watermark; planos a partir de $7/mês. Não promete ranking, aprovação, backlink dofollow, prazo garantido, desconto, afiliado ou resultado de aquisição.
+
+**ESTADO HONESTO:** submetido e em revisão; ainda não é listagem publicada, visita, cadastro ou assinatura. Não reenviar, não comprar Boost/Featured e não fazer contato paralelo enquanto a revisão estiver aberta. Métrica: aprovação + URL pública e, depois, pessoas externas pela UTM em visita → signup → vídeo → checkout → pagamento.
+
+**NÃO TOCADO:** código, UI, preço, grant, trial, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails Claude ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não duplicar ToolScout, AllThingsAI nem as ondas de recuperação. Codex acompanha a revisão e continua aquisição/conversão; Claude continua qualidade/render.
