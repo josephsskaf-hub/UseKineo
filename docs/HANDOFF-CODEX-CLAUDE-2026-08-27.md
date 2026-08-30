@@ -2151,3 +2151,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `3bc197bc` ou posterior. Não duplicar premium-first, o bridge Seedance nem esta repetição Fast. Medir por pessoa `trial_repeat_episode_viewed → trial_repeat_episode_clicked → video_generation_completed → checkout_started → payment_success`; comparar com a série de assinatura anterior somente depois de exposição suficiente.
+
+## 67. Trial premium sampler — qualidade primeiro, repetição antes da parede (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a coorte externa fresca mostrou ativação quase completa até o início da geração; o gargalo atual já não é a pessoa apertar o primeiro botão, e sim repetir depois da primeira entrega. Dentro da mesma janela, a primeira experiência Seedance de 60 segundos que consome os 25 créditos não produziu repetição observada, enquanto entregas Seedance mais curtas produziram. A coorte Stripe de 30 dias já apontava a mesma direção: compradores acumulavam mais entregas antes do checkout do que abandonos. Contagens e identificadores permanecem fora deste repositório público.
+
+**DECISÃO EXPERIMENTAL:** manter exatamente 25 créditos, validade vigente, preço, watermark e todos os motores. Não aumentar, reduzir, expirar, conceder bônus ou bloquear Fast. A opção manual de Seedance 60s continua disponível no Studio; mudou somente o caminho recomendado para um trial intacto.
+
+**IMPLEMENTADO:** `TRIAL_FIRST_DELIVERY_VERSION` agora é `trial_first_seedance_35s_v2`. A primeira missão recomendada prepara Seedance de 35s por 15 créditos e declara o saldo esperado de 10 créditos, suficiente para dois episódios Fast de 60s a 5 créditos cada. O CTA abre o brief editável no Studio; análise, fornecedor, render e débito continuam proibidos até revisão e clique explícito em Generate.
+
+**JORNADA INTEGRADA:** depois do Seedance de 35s, a política já publicada `trial_repeat_before_checkout_v1` oferece o primeiro Fast de 60s; com 5 créditos restantes, oferece o segundo; somente depois da repetição o saldo chega à parede honesta. O bridge pós-Fast para Seedance mantém precedência nos casos em que ele é elegível. Não existe segundo escritor, grant paralelo ou novo endpoint.
+
+**RETOMADA COERENTE:** a página de checkout cancelado usa o mesmo contrato de 35s e explica que o episódio premium usa parte do trial e preserva o restante para mais vídeos. Preço e oferta comercial não foram alterados.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TRIAL-PREMIUM-SAMPLER-2026-08-30.html` contém antes/depois em desktop e mobile, inspecionados no Chrome conectado do fundador. O estado anterior mostra 25 → Seedance 60s → saldo zero; o novo mostra 25 → Seedance 35s + dois Fast 60s.
+
+**TESTADO LOCALMENTE:** 759 verificações do funil passaram: balance bridge/jornada integrada 189/189, checkout cancelado 39/39, repeat-before-checkout 47/47, pós-vídeo 45/45, Plan Fit 348/348, history milestone 44/44 e checkout salvo 47/47. Uma asserção antiga foi normalizada para CRLF porque verificava fim de linha, não comportamento. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `383d744d48a8c81dec646e4cffcd87ce39c33349` chegou a `READY` no deploy Vercel `dpl_8TK6Bt94yxRxM8mt6c7VJ9anPNPC`, target production e alias `www.usekineo.com`. O Studio autenticado carregou no Chrome do fundador sem erro de console e o deployment não apresentou log `error` ou `fatal` na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador é paga; nenhum trial, crédito, vídeo ou checkout artificial foi criado para forçar o banner stateful. A matemática 15+5+5, callers, telemetria, ausência de gasto no handoff e interfaces desktop/mobile estão cobertos pelos testes e pelo preview. Conversão só pode ser declarada depois de exposição externa suficiente.
+
+**NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails COMEBACK50/+25 já executados pelo Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `383d744d` ou posterior. Não restaurar `trial_first_seedance_60s_v1`, não duplicar o rail Fast nem alterar grant/prazo durante esta coorte. Medir por pessoa `trial_first_delivery_clicked → trial_first_delivery_generate_committed → video_generation_completed → trial_repeat_episode_viewed → trial_repeat_episode_clicked → segundo/terceiro vídeo → checkout_started → payment_success`.
