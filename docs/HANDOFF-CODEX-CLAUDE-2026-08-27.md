@@ -1957,3 +1957,17 @@ PRÓXIMO DONO:
 **MÉTRICA:** por pessoa externa e variante: `view → input_opened → selected → studio_ready → generation_started → completed → checkout → payment`. Clique na opção não é seleção concluída; texto digitado não é telemetria; checkout não é assinatura.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` depois do push e não duplicar o input inline, mudar o grant ou alterar a onda de e-mails. Codex mede a coorte v4 e continua aquisição, fluxo e assinatura.
+
+## 57. Verdade comercial — documento canônico volta a acompanhar Checkout (30/08/2026)
+
+**CONTRADIÇÃO CONFIRMADA:** `docs/PRODUCT_AND_OFFER.md` ainda publicava a tabela de 27/07 — Starter $9.90/25, Creator $24.90/150, Studio $37.90/200, três moedas e descontos de primeiro mês — enquanto `lib/checkoutPricing.ts` e a cobrança live já operavam a V6 global em USD. O código era a autoridade e o documento estava errado; isto bloqueou uma submissão editorial que exigia preço verificável.
+
+**IMPLEMENTADO / SEM REPRICE:** o documento agora registra exatamente Starter $7/40, Creator $15/90, Studio $29/180, Autopilot $299/400, anuais $70/$150/$290, ausência de intro ativa, trial de 25 créditos, acesso gratuito recorrente separado, packs e quatro top-ups com seus grants reais. A moeda documentada passou a USD-only. Nenhum valor em código, Stripe, UI, grant, desconto ou checkout foi alterado.
+
+**TESTE CORRIGIDO COM CAUSA:** `scripts/test-money-truth-contract.mjs` inicialmente falhou em três âncoras que ainda procuravam chamadas diretas de `creditsPerReferenceVideo` na calculadora pública. O caller real já usava `calculatePlanFit` para engine + duração + volume. As âncoras migraram para esse contrato executado, `PUBLIC_ENGINES`, `PUBLIC_DURATIONS` e `oneFilm.filmCredits`; não houve mudança para esconder falha econômica.
+
+**TESTADO LOCALMENTE:** `node scripts/test-money-truth-contract.mjs` passou 306/306, incluindo `checkPricingInvariants()`, inventário de superfícies, ausência de literais comerciais antigos e a calculadora ligada ao Plan Fit. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo. `npx tsc --noEmit` repetiu somente os quatro erros baseline preexistentes; nenhum erro novo.
+
+**NÃO TOCADO:** preço público, grant, prazo, cupom, Stripe, Supabase, render, motor, cena, legenda, e-mails Claude, contatos ou dados de cliente.
+
+**PRÓXIMO DONO:** Claude deve tratar `lib/checkoutPricing.ts` como fonte e `docs/PRODUCT_AND_OFFER.md` como espelho atualizado. Não restaurar a tabela de julho nem usar comentários históricos como preço atual. Codex usa esta verdade para distribuição externa e aquisição.

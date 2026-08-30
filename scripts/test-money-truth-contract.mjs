@@ -178,9 +178,14 @@ const requiredReferences = {
     'seedanceReferenceCost',
   ],
   'app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx': [
-    "creditsPerReferenceVideo('fast')",
-    "creditsPerReferenceVideo('cinematic_ai')",
-    "creditsPerReferenceVideo('cinematic_kling')",
+    // The calculator moved from three direct 60s-only lookups to the Plan Fit
+    // contract so engine + 35/60/90s + monthly volume share Checkout's ruler.
+    // Anchoring the removed helper names made this inventory red while the
+    // executed calculation was stronger. These needles describe behavior.
+    'calculatePlanFit({ quality, seconds, monthlyFilms: videos, currency })',
+    'PUBLIC_ENGINES.map',
+    'PUBLIC_DURATIONS.map',
+    'oneFilm.filmCredits',
   ],
   'app/ai-video-upscaler/page.tsx': [
     "creditsPerReferenceVideo('cinematic_ai')",

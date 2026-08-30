@@ -1,41 +1,40 @@
 # PRODUCT_AND_OFFER.md — Preço real, promessa permitida, promessa quebrada
 
-**Data:** 2026-07-27 · **Base:** commit `a517879`
+**Data:** 2026-08-30 · **Base conferida:** commit `e7ce42ed`
 
 ---
 
 ## 1. FONTE ÚNICA DE PREÇO
 
-**`lib/checkoutPricing.ts`.** Nenhuma outra. `checkPricingInvariants()` (`lib/checkoutPricing.ts:236`) protege esses valores — mas **não alcança string literal em JSX**.
+**`lib/checkoutPricing.ts`.** Nenhuma outra. `checkPricingInvariants()` protege os SKUs e a escada econômica; `lib/marketingPrice.ts` é a camada derivada para copy pública. O código vence este documento sempre que houver divergência.
 
 | SKU | USD | Créditos | Linha |
 |---|---:|---:|---|
-| Free | $0 | 3 vídeos Fast/24h, com watermark | — |
-| Starter mensal | **$9,90** | 25 | `:21-25, :131` |
-| Creator mensal | **$24,90** | 150 | `:21-25, :132` |
-| Studio mensal | **$37,90** | 200 | `:21-25, :133` |
-| **Autopilot mensal** | **$299,00** | 400 | `:33, :134` |
-| **Piloto Autopilot** (one-time, 7 dias) | **$99,00** | 60 | `:57, :72` |
-| Intro 1º mês Starter / Creator | $4,90 / $9,90 | 25 / 50 | `:96-99, :146-149` |
-| Anual Starter / Creator / Studio | $99 / $199 / $379 | — | `:88-92` |
-| Pack starter | $4,90 | 30 | `:157-162` |
-| Pack starter290 (**desligado**) | $2,90 | 20 | `lib/flags.ts:13` |
-| Top-up 40 / 120 | $5,90 / $12,90 | 30 / 65 | `:178-181, :291-294` |
+| Trial de nova conta | $0 | **25 créditos**, todos os motores desbloqueados; filmes com watermark | `lib/freeTierOffer.ts:150,230-240` |
+| Acesso gratuito recorrente | $0 | **1 Kineo 1 por janela de 720h**, sem grant de créditos | `lib/kineoFacts.ts:408-485` |
+| Starter mensal | **$7,00** | **40** | `lib/checkoutPricing.ts:94-98,324-375` |
+| Creator mensal | **$15,00** | **90** | `lib/checkoutPricing.ts:94-98,324-375` |
+| Studio mensal | **$29,00** | **180** | `lib/checkoutPricing.ts:94-98,324-375` |
+| **Autopilot mensal** | **$299,00** | **400** | `lib/checkoutPricing.ts:100-103,324-376` |
+| **Piloto Autopilot** (one-time, 7 dias) | **$99,00** | **60** | `lib/checkoutPricing.ts:120-140` |
+| Intro 1º mês Starter / Creator | **não existe desconto ativo**; preço e grant iguais ao mensal | 40 / 90 | `lib/checkoutPricing.ts:166-178,387-397` |
+| Anual Starter / Creator / Studio | **$70 / $150 / $290** | grant mensal do plano | `lib/checkoutPricing.ts:159-164` |
+| Pack starter | **$4,90** | **30** | `lib/checkoutPricing.ts:411-430` |
+| Pack starter290 (**desligado**) | **$2,90** | **25** | `lib/checkoutPricing.ts:413-414`; `lib/flags.ts:7` |
+| Top-up `40` / `120` / `100` / `300` | **$5,90 / $12,90 / $14,90 / $49,90** | **30 / 65 / 75 / 300** | `lib/checkoutPricing.ts:446-476,903-915` |
 
-**Moedas suportadas no checkout:** USD, BRL, INR (`lib/checkoutPricing.ts:21-25`).
+**Moeda suportada no checkout:** somente USD (`CheckoutCurrency = 'usd'`, `lib/checkoutPricing.ts:17-90`). A escolha é global e deliberada; não existe preço regional ativo.
 
 ### 1.1 Preço da tela == preço cobrado?
-**Sim em `/pricing`** — `app/pricing/PricingClient.tsx:19-34` importa direto da fonte.
-
-**Risco residual (SUGESTÃO, não defeito hoje):** as páginas de aquisição repetem preço como **string literal**: `KineoLanding.tsx:386-404`, `faceless-video-generator/page.tsx:37,234`, `from-saashub/page.tsx:90,101`, `best-ai-shorts-generators/page.tsx:67,185`. Conferidas uma a uma em 27/07 — **todas coincidem hoje**. Mas é exatamente o padrão que produziu três vazamentos anteriores.
+**FATO CONFIRMADO (30/08/2026):** `/pricing` usa a fonte canônica. A home importa `TIER_PRICES`/`TIER_CREDITS`, e as páginas de aquisição auditadas usam `lib/marketingPrice.ts`. Comentários históricos ainda citam tabelas antigas, mas não governam a UI nem a Stripe. Não transformar esta verificação pontual em afirmação de que todo o repositório está livre de literal.
 
 ### 1.2 ⚠️ CONTRADIÇÃO — quatro fontes de preço
 | Fonte | Afirma | Veredito |
 |---|---|---|
-| `lib/checkoutPricing.ts` / `lib/pricing.ts` | tabela acima | ✅ **correta** |
+| `lib/checkoutPricing.ts` | tabela acima | ✅ **correta e server-authoritative** |
 | `HANDOFF-13-06-2026.md:54` | "packs $11.90/29.90/79.90" | histórico, ignorar |
-| `app/api/admin/ceo/route.ts:18-19` | `PRO_PRICE = 9.90`, `BASIC_PRICE = 4.90` | ❌ **errado e vivo** — ver `METRICS_AND_FUNNEL.md` §painel |
 | `GOOGLE-ADS-PLAN.md` (17/05) | "Basic R$25/mo, Pro R$50/mo" | obsoleto, marca velha |
+| versão anterior deste documento | "$9.90 / $24.90 / $37.90" e "25 / 150 / 200" | ❌ corrigida em 30/08; não correspondia mais ao código nem à cobrança live |
 
 ---
 
