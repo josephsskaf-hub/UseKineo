@@ -2175,3 +2175,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails COMEBACK50/+25 já executados pelo Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `383d744d` ou posterior. Não restaurar `trial_first_seedance_60s_v1`, não duplicar o rail Fast nem alterar grant/prazo durante esta coorte. Medir por pessoa `trial_first_delivery_clicked → trial_first_delivery_generate_committed → video_generation_completed → trial_repeat_episode_viewed → trial_repeat_episode_clicked → segundo/terceiro vídeo → checkout_started → payment_success`.
+
+## 68. Pós-vídeo — comparar planos antes do Stripe (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a reconciliação de 30 dias, deduplicada por pessoa externa, encontrou visita à página de preços entre quase todos os pagantes, contra uma minoria dos abandonos. Ao mesmo tempo, o CTA pós-vídeo histórico mandava cada clique observado diretamente ao Stripe e não apresentou pagamento posterior na coorte reconciliada. Contagens, identificadores e sequências individuais ficam fora deste repositório público.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** a decisão de tier pós-vídeo já era específica por motor (`Fast → Starter`, premium/Seedance → Creator) em `lib/growth/chatgptPostVideoOffer.ts`; o checkout Stripe já recebia contexto de valor e prova visual por `lib/growth/checkoutValueContext.ts` e `lib/growth/checkoutVisualProof.ts`. Esta entrega não reescreveu nenhum desses três contratos.
+
+**IMPLEMENTADO:** o checkout direto continua sendo a única ação primária do card pós-vídeo. Logo abaixo, a nova ação secundária “Compare Starter and Creator first” abre `/pricing?intent_campaign=post_video_plan_compare_v1#plans`, acompanhada da explicação sobre créditos mensais e motores incluídos. O clique não cria Checkout Session, não escolhe plano, não chama Stripe e não toca em render ou crédito.
+
+**MEDIÇÃO:** `trial_post_video_compare_plans_clicked` registra versão, destino, tier primário já calculado e contexto categórico do offer. A campanha `post_video_plan_compare_v1` permanece na URL do grid para permitir a cadeia comparação → checkout → pagamento. Nenhum roteiro, prompt, texto livre ou identificador do vídeo entra no evento.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/POST-VIDEO-PLAN-COMPARE-2026-08-30.html` contém antes/depois em desktop e mobile. Os quatro estados foram inspecionados no Chrome conectado do fundador; a ação principal continua visualmente dominante e a comparação ocupa o segundo nível.
+
+**TESTADO LOCALMENTE:** 671 verificações passaram: pós-vídeo primário 57/57, funil 32/32, offer ChatGPT 111/111, contexto do checkout 59/59, prova visual 17/17, checkout salvo 47/47 e Plan Fit 348/348. O typecheck repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo. O gate de whitespace ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `0fb6cc7e983ed0876c2460e7c3c1e1f273c7cab0` chegou a `READY` no deploy Vercel `dpl_AuT8h8MmMQx9y6iuBmwDxk6TCFp6`, target production. No Chrome autenticado do fundador, a URL versionada posicionou a grade real Starter/Creator/Studio e não apresentou erro de console. O deployment não apresentou log `error` ou `fatal` na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador é paga e não exibiu legitimamente o card stateful de trial pós-vídeo. Nenhum trial, vídeo ou checkout artificial foi criado para forçar o estado. A primeira consulta externa desde o deploy retornou zero exposição/clique; conversão ainda não está validada e precisa de coorte real.
+
+**DECISÃO DO TRIAL PRESERVADA:** manter 25 créditos e a validade vigente durante a coorte `trial_first_seedance_35s_v2`. Não aumentar, reduzir ou expirar o saldo agora. A hipótese de expiração em 24–48h fica como experimento separado posterior; não misturar com a nova amostra 15+5+5 nem com as ondas COMEBACK50/+25 do Claude.
+
+**NÃO TOCADO:** preço, grant, validade, entitlement, servidor Stripe, Supabase schema/dados, pipeline de render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0fb6cc7e` ou posterior. Não duplicar engine-fit, contexto Stripe, comparação pós-vídeo, sampler 15+5+5 ou ondas de recuperação. Medir por pessoa `trial_post_video_offer_viewed → checkout direto OU trial_post_video_compare_plans_clicked → pricing_view → checkout_started → payment_success`.
