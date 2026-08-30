@@ -97,7 +97,8 @@ equal(
 const home = read('app/HomeTopicForm.tsx')
 const generate = read('app/(dashboard)/generate/GenerateClient.tsx')
 check(home.includes("create_intent: 'trial_best'"), 'anonymous post-script CTA requests trial_best')
-check(home.includes('name="create_intent" value="fast"'), 'signed-in native form keeps explicit Fast')
+check(home.includes('name="create_intent" value="trial_best"'), 'signed-in native form requests the guarded trial-best rail')
+check(!home.includes('name="create_intent" value="fast"'), 'homepage no longer forces Fast for an eligible active trial')
 check(generate.includes('resolveActivationRenderEngine({'), 'real caller executes the engine policy')
 check(generate.includes("seedanceCreditCost: creditCostFor('cinematic_ai')"), 'caller reads the canonical engine cost')
 check(

@@ -359,7 +359,15 @@ export default function HomeTopicForm({
             )}
           </p>
         )}
-        <input type="hidden" name="create_intent" value="fast" />
+        {/* KINEO-HOME-TRIAL-BEST-2026-08-30 — the signed-in native form was
+            the last high-intent homepage rail that still forced Kineo 1 even
+            for an active trial with enough balance. `trial_best` does not
+            promise or spend Seedance by itself: the authenticated generator
+            resolves it against server-confirmed trial entitlement and the
+            canonical engine cost, then safely falls back to Fast for every
+            paid, insufficient-balance or uncertain state. The anonymous JS
+            handoff already used the same guarded intent. */}
+        <input type="hidden" name="create_intent" value="trial_best" />
         <input type="hidden" name="intent_campaign" value={HOME_PROMPT_CAMPAIGN} />
         <input type="hidden" name="utm_source" value="homepage" />
         <button className="btn btn-w cbtn" type="submit" disabled={pending} aria-busy={pending}>
