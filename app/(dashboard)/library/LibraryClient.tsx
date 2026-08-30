@@ -5,7 +5,7 @@
 // (aba Library) vestido no Studio Kit: contadores no topo (primeiro passo do
 // medidor de storage do pricing V4), abas Videos/Images/Audio, grades com
 // play/download, links pros ambientes de criacao quando a aba esta vazia.
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
@@ -22,6 +22,10 @@ export default function LibraryClient() {
   const [imgs, setImgs] = useState<Img[]>([])
   const [auds, setAuds] = useState<Aud[]>([])
   const [loaded, setLoaded] = useState(false)
+  // KINEO-SPRINT-UI3-2026-08-29 — licao do incidente JWT-skew (28/08): a
+  // Library mostrava "No videos yet" quando a LEITURA falhava, com os videos
+  // intactos no banco. Erro de leitura agora tem cara de erro, nao de vazio.
+  const [loadFailed, setLoadFailed] = useState(false)
   // KINEO-NOITE2-2026-08-17 (#2) — o medidor de storage tambem na estante.
   const [usage, setUsage] = useState<{ total: number; limit: number | null; retention: string } | null>(null)
   useEffect(() => {
@@ -46,18 +50,22 @@ export default function LibraryClient() {
     } catch { window.open(url, '_blank', 'noopener') }
   }
 
-  useEffect(() => {
+  const loadAll = useCallback(() => {
+    setLoaded(false)
+    setLoadFailed(false)
     Promise.all([
-      fetch('/api/videos', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { videos: [] })).catch(() => ({ videos: [] })),
-      fetch('/api/images', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { images: [] })).catch(() => ({ images: [] })),
-      fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : { audios: [] })).catch(() => ({ audios: [] })),
+      fetch('/api/videos', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/images', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      fetch('/api/audio', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
     ]).then(([v, i, a]) => {
+      if (v === null || i === null || a === null) setLoadFailed(true)
       if (Array.isArray(v?.videos)) setVids(v.videos.filter((x: Vid) => x.video_url))
       if (Array.isArray(i?.images)) setImgs(i.images)
       if (Array.isArray(a?.audios)) setAuds(a.audios)
       setLoaded(true)
     })
   }, [])
+  useEffect(() => { loadAll() }, [loadAll])
 
   const TABS: { key: Tab; label: string; count: number }[] = [
     { key: 'videos', label: 'Videos', count: vids.length },
@@ -87,11 +95,26 @@ export default function LibraryClient() {
         ))}
       </div>
 
-      {!loaded && <p className="sub">Loading your library…</p>}
+      {!loaded && (
+        <div aria-label="Loading your library" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
+          <style>{'@keyframes libsk{0%{background-position:200% 0}100%{background-position:-200% 0}}'}</style>
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} style={{ aspectRatio: '9/16', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'libsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
+          ))}
+        </div>
+      )}
+
+      {loaded && loadFailed && (
+        <div role="alert" className="card" style={{ padding: '14px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.06)' }}>
+          <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load part of your library right now.</span>
+          <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your videos and credits are safe — this is just a temporary read hiccup.</span>
+          <button type="button" className="pill" onClick={loadAll}>↻ Try again</button>
+        </div>
+      )}
 
       {loaded && tab === 'videos' && (
         vids.length === 0 ? (
-          <p className="sub">No videos yet — <Link href="/studio" style={{ color: '#2997ff' }}>open the Studio</Link> and make your first film.</p>
+          loadFailed ? null : <p className="sub">No videos yet — <Link href="/studio" style={{ color: '#2997ff' }}>open the Studio</Link> and make your first film.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
             {vids.map((v) => (
@@ -129,7 +152,7 @@ export default function LibraryClient() {
 
       {loaded && tab === 'images' && (
         imgs.length === 0 ? (
-          <p className="sub">No images yet — <Link href="/images" style={{ color: '#2997ff' }}>create your first image</Link>.</p>
+          loadFailed ? null : <p className="sub">No images yet — <Link href="/images" style={{ color: '#2997ff' }}>create your first image</Link>.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 12 }}>
             {imgs.map((im) => (
@@ -148,7 +171,7 @@ export default function LibraryClient() {
 
       {loaded && tab === 'audio' && (
         auds.length === 0 ? (
-          <p className="sub">No audio yet — <Link href="/audio" style={{ color: '#2997ff' }}>generate your first voiceover</Link>.</p>
+          loadFailed ? null : <p className="sub">No audio yet — <Link href="/audio" style={{ color: '#2997ff' }}>generate your first voiceover</Link>.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 720 }}>
             {auds.map((a) => (
