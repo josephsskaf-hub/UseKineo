@@ -5,6 +5,23 @@ import {
   type AffiliateDestinationKey,
 } from '@/lib/affiliateDestinations'
 
+export const AFFILIATE_FIRST_CLICK_NUDGE_VERSION = 'affiliate_first_click_reach_v2' as const
+export const AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY =
+  'kineo_affiliate_first_click_nudge_viewed_v2' as const
+
+export const AFFILIATE_FIRST_CLICK_SURFACES = [
+  '/studio',
+  '/studio/create',
+  '/generate',
+  '/history',
+] as const
+
+const AFFILIATE_FIRST_CLICK_SURFACE_SET = new Set<string>(AFFILIATE_FIRST_CLICK_SURFACES)
+
+export function isAffiliateFirstClickSurface(pathname: string): boolean {
+  return AFFILIATE_FIRST_CLICK_SURFACE_SET.has(pathname)
+}
+
 export interface AffiliateFirstClickPayload {
   isAffiliate?: boolean
   affiliate?: {

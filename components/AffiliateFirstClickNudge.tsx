@@ -7,12 +7,13 @@ import {
   RECOMMENDED_AFFILIATE_DESTINATION,
 } from '@/lib/affiliateDestinations'
 import {
+  AFFILIATE_FIRST_CLICK_NUDGE_VERSION,
+  AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY,
   buildAffiliateFirstClickOffer,
+  isAffiliateFirstClickSurface,
   type AffiliateFirstClickOffer,
   type AffiliateFirstClickPayload,
 } from '@/lib/affiliateFirstClick'
-
-const FIRST_CLICK_PATHS = new Set(['/studio', '/history'])
 
 export default function AffiliateFirstClickNudge({
   pathname,
@@ -24,7 +25,7 @@ export default function AffiliateFirstClickNudge({
   const [offer, setOffer] = useState<AffiliateFirstClickOffer | null>(null)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>('idle')
   const viewed = useRef(false)
-  const eligiblePath = FIRST_CLICK_PATHS.has(pathname)
+  const eligiblePath = isAffiliateFirstClickSurface(pathname)
 
   useEffect(() => {
     if (!isLoggedIn || !eligiblePath) {
@@ -51,10 +52,23 @@ export default function AffiliateFirstClickNudge({
   useEffect(() => {
     if (!offer || viewed.current) return
     viewed.current = true
+
+    // DashboardShell can remount while a creator moves between Studio and
+    // History. The nudge may stay visible, but one browser session must not
+    // masquerade as many people in the funnel.
+    try {
+      if (window.sessionStorage.getItem(AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY) === '1') return
+      window.sessionStorage.setItem(AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, '1')
+    } catch {
+      // Storage can be blocked. The ref still deduplicates the current mount.
+    }
+
     void trackEvent('affiliate_first_click_nudge_viewed', {
       source: pathname === '/history' ? 'history' : 'creator_hub',
       destination: RECOMMENDED_AFFILIATE_DESTINATION,
       link_visits: 0,
+      surface_path: pathname,
+      version: AFFILIATE_FIRST_CLICK_NUDGE_VERSION,
     })
   }, [offer, pathname])
 
@@ -69,6 +83,8 @@ export default function AffiliateFirstClickNudge({
         source: pathname === '/history' ? 'history' : 'creator_hub',
         destination: RECOMMENDED_AFFILIATE_DESTINATION,
         link_visits: 0,
+        surface_path: pathname,
+        version: AFFILIATE_FIRST_CLICK_NUDGE_VERSION,
       })
     } catch {
       setCopyState('failed')
@@ -116,6 +132,8 @@ export default function AffiliateFirstClickNudge({
               void trackEvent('affiliate_first_click_nudge_opened', {
                 source: pathname === '/history' ? 'history' : 'creator_hub',
                 link_visits: 0,
+                surface_path: pathname,
+                version: AFFILIATE_FIRST_CLICK_NUDGE_VERSION,
               })
             }}
             className="rounded-xl px-4 py-2.5 text-sm font-black text-center"

@@ -75,6 +75,15 @@ const couponOffer = firstClick.buildAffiliateFirstClickOffer(zeroClickPayload({
 }))
 check(couponOffer.caption.includes('Use code SAVE20 for 20% off the first month.'), 'ready post attaches the available first-month coupon')
 
+for (const surface of ['/studio', '/studio/create', '/generate', '/history']) {
+  equal(firstClick.isAffiliateFirstClickSurface(surface), true, surface + ' exposes the first-click mission')
+}
+for (const unsafeSurface of ['/', '/pricing', '/affiliate', '/studio/create/extra', '/generate?x=1', '']) {
+  equal(firstClick.isAffiliateFirstClickSurface(unsafeSurface), false, (unsafeSurface || '(empty)') + ' fails closed')
+}
+equal(firstClick.AFFILIATE_FIRST_CLICK_NUDGE_VERSION, 'affiliate_first_click_reach_v2', 'reach experiment is versioned')
+equal(firstClick.AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, 'kineo_affiliate_first_click_nudge_viewed_v2', 'view dedupe is version-scoped')
+
 equal(destinations.AFFILIATE_DESTINATIONS.length, 3, 'three audience-specific first-party destinations are enabled')
 equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
 const scriptDestination = destinations.getAffiliateDestination(' ScRiPt ')
@@ -391,9 +400,11 @@ check(adminPage.includes('raw link visits'), 'admin does not mislabel raw visits
 
 const firstClickNudge = read('components/AffiliateFirstClickNudge.tsx')
 const dashboardShell = read('app/(dashboard)/DashboardShell.tsx')
-check(firstClickNudge.includes("new Set(['/studio', '/history'])"), 'zero-click nudge is limited to two high-intent dashboard surfaces')
+check(firstClickNudge.includes('isAffiliateFirstClickSurface(pathname)'), 'real component uses the executable surface policy')
 check(firstClickNudge.includes("fetch('/api/affiliate/me'"), 'nudge reads owner-only canonical affiliate state')
 check(firstClickNudge.includes('buildAffiliateFirstClickOffer(payload)'), 'rendered nudge is governed by executable zero-click policy')
+check(firstClickNudge.includes("window.sessionStorage.getItem(AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY) === '1'"), 'cross-route remounts cannot inflate one browser session')
+check(firstClickNudge.includes("window.sessionStorage.setItem(AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, '1')"), 'first real session exposure is persisted')
 check(firstClickNudge.includes('affiliate_first_click_nudge_viewed'), 'cross-dashboard impression is measured')
 check(firstClickNudge.includes('affiliate_first_click_nudge_copied'), 'ready-post copy is measured')
 check(firstClickNudge.includes('affiliate_first_click_nudge_opened'), 'partner-kit continuation is measured')
@@ -427,6 +438,13 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(firstClickPreview.includes('11 external active affiliates · 7 with zero lifetime clicks · 0 referrals'), 'first-click preview carries dated production evidence')
 check(firstClickPreview.includes('The nudge is rendered only for authenticated, active affiliates'), 'preview states the exact eligibility boundary')
+
+const reachPreview = read('docs/previews/AFFILIATE-FIRST-CLICK-REACH-2026-08-30.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(reachPreview.includes(label), 'reach preview includes ' + label)
+}
+check(reachPreview.includes('Only active affiliates with exactly zero link visits are eligible.'), 'reach preview states only the executable eligibility contract')
+check(!/https?:\/\//i.test(reachPreview), 'reach preview has no external dependency')
 
 const widgetPreview = read('docs/previews/AFFILIATE-ATTRIBUTED-WIDGET-2026-08-28.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
