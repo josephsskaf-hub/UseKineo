@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Kineo private MP4 referral — before / after</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;padding:32px;background:#09090b;color:#f5f5f7;font:14px/1.45 Inter,Arial,sans-serif}
+    h1{margin:0 0 8px;font-size:24px}.intro{margin:0 0 28px;color:#9a9aa2;max-width:820px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;align-items:start}
+    .label{margin:0 0 8px;color:#7cc0ff;font-size:11px;font-weight:900;letter-spacing:.16em}
+    .frame{padding:26px;background:#131316;border:1px solid #29292f;border-radius:22px;min-height:390px}
+    .mobile{max-width:390px;margin:auto;padding:18px}.mobile .actions{flex-direction:column}.card{padding:22px;text-align:center;border-radius:18px;background:linear-gradient(145deg,rgba(37,211,102,.12),rgba(41,151,255,.08));border:1px solid rgba(37,211,102,.38)}
+    .eyebrow{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#7cc0ff}.card h2{font-size:18px;line-height:1.25;margin:7px 0 8px}.card p{font-size:12px;line-height:1.55;color:#aaaab3;margin:0}
+    .actions{display:flex;gap:8px;margin-top:15px}.btn{flex:1;display:flex;justify-content:center;align-items:center;min-height:48px;padding:10px 14px;border-radius:12px;font-weight:900;font-size:13px;border:1px solid #33333a}.primary{color:white;background:linear-gradient(135deg,#25d366,#128c4a);border-color:rgba(37,211,102,.55)}.secondary{background:rgba(255,255,255,.06)}
+    .status{margin-top:10px!important;font-size:11px!important}.privacy{margin-top:8px!important;color:#606068!important;font-size:10px!important}
+    .note{margin-top:14px;padding:12px;border-radius:12px;background:#0d0d10;color:#8d8d95;font-size:11px}
+    @media(max-width:850px){body{padding:20px}.grid{grid-template-columns:1fr}.frame{min-height:auto}.actions{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <h1>Private MP4 sharing → attributed creator invite</h1>
+  <p class="intro">The video remains a direct file. No public watch page is created. The after-state adds the existing, API-validated referral message to the native share and preserves a copy fallback for browsers that cannot attach files.</p>
+  <div class="grid">
+    <section>
+      <p class="label">BEFORE · DESKTOP</p>
+      <div class="frame">
+        <div class="card">
+          <div class="eyebrow">Private by default</div>
+          <h2>Share the MP4 — without making it public</h2>
+          <p>Open your device share sheet and choose the person or app. The video file is attached directly.</p>
+          <div class="actions"><div class="btn primary">↗ Share downloaded MP4</div></div>
+          <p class="status">Nothing is sent until you choose a recipient.</p>
+          <p class="privacy">Public watch links are temporarily paused. Kineo will not publish a public page without an explicit visibility choice.</p>
+        </div>
+        <div class="note">Distribution ends at the recipient. The generic site URL carries no creator attribution.</div>
+      </div>
+    </section>
+    <section>
+      <p class="label">AFTER · DESKTOP</p>
+      <div class="frame">
+        <div class="card">
+          <div class="eyebrow">Private MP4 · reward read from API</div>
+          <h2>Share your MP4. Invite one creator too.</h2>
+          <p>The video stays a direct file. Your Kineo invite goes in the message; after their first video qualifies, you can both receive the current referral reward.</p>
+          <div class="actions"><div class="btn primary">↗ Share MP4 + invite</div><div class="btn secondary">⧉ Copy invite message</div></div>
+          <p class="status">Nothing is sent until you choose a recipient.</p>
+          <p class="privacy">No public video page is created. Invalid referral data falls back to the original private-file flow.</p>
+        </div>
+        <div class="note">One existing action now distributes the creator’s work and an attributable invitation without exposing a customer video URL.</div>
+      </div>
+    </section>
+    <section>
+      <p class="label">BEFORE · MOBILE</p>
+      <div class="frame mobile">
+        <div class="card">
+          <div class="eyebrow">Private by default</div>
+          <h2>Share the MP4 — without making it public</h2>
+          <p>Open your device share sheet and choose the person or app.</p>
+          <div class="actions"><div class="btn primary">↗ Share downloaded MP4</div></div>
+          <p class="status">Nothing is sent until you choose a recipient.</p>
+        </div>
+      </div>
+    </section>
+    <section>
+      <p class="label">AFTER · MOBILE</p>
+      <div class="frame mobile">
+        <div class="card">
+          <div class="eyebrow">Private MP4 · reward read from API</div>
+          <h2>Share your MP4. Invite one creator too.</h2>
+          <p>The video stays a direct file. Your Kineo invite goes in the message after validation.</p>
+          <div class="actions"><div class="btn primary">↗ Share MP4 + invite</div><div class="btn secondary">⧉ Copy invite message</div></div>
+          <p class="status">Nothing is sent until you choose a recipient.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

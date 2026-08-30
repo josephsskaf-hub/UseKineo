@@ -167,6 +167,11 @@ import {
   PUBLIC_VIDEO_SHARE_VERSION,
   PUBLIC_VIDEO_SHARING_ENABLED,
 } from '@/lib/videoShare'
+import {
+  PRIVATE_FILE_SHARE_REFERRAL_VARIANT,
+  privateFileShareReferral,
+  type PrivateFileShareReferral,
+} from '@/lib/historyReferralMission'
 import { buildBrandedYouTubeDescription } from '@/lib/videoDescription'
 import VisualDirector from '@/components/video/VisualDirector'
 import NextShortsSection from '@/components/video/NextShortsSection'
@@ -1575,6 +1580,10 @@ export default function GenerateClient({
   const [publicVideoId, setPublicVideoId] = useState<string | null>(null)
   const [sharedPublic, setSharedPublic] = useState<'copied' | 'ready' | null>(null)
   const [shareReferralCode, setShareReferralCode] = useState<string | null>(null)
+  const [privateReferral, setPrivateReferral] = useState<PrivateFileShareReferral | null>(null)
+  const [privateReferralResolved, setPrivateReferralResolved] = useState(false)
+  const [privateReferralCopied, setPrivateReferralCopied] = useState(false)
+  const privateReferralPreloadAttemptedRef = useRef(false)
   const sharePromptRef = useRef<HTMLDivElement | null>(null)
   const sharePromptTrackedKeyRef = useRef<string | null>(null)
   // KINEO-PRIVATE-FILE-SHARE-2026-08-29 — links públicos de clientes seguem
@@ -2406,16 +2415,13 @@ export default function GenerateClient({
     })
   }, [searchParams])
 
-  // Preload the referral code before the user's win moment. Web Share and
-  // Clipboard require a live click gesture; awaiting a network request inside
-  // handleSharePublic can consume that gesture and make both APIs fail.
+  // Preload the owned referral contract before the user's win moment. Web Share
+  // and Clipboard require a live click gesture; awaiting /api/referral inside a
+  // click handler can consume that gesture. Public video pages remain disabled:
+  // this payload is used only as text beside the private MP4 file.
   useEffect(() => {
-    if (!PUBLIC_VIDEO_SHARING_ENABLED) return
-    // AQUISICAO 4 (14/08) — o fetch esperava composing/done: quem copiava o
-    // link ANTES do fetch resolver compartilhava SEM ref e a atribuicao era
-    // perdida para sempre (evento referral_attached:false confirmava). Agora
-    // busca no MOUNT — o codigo esta pronto muito antes do primeiro share.
-    if (shareReferralCode) return
+    if (phase !== 'done' || privateReferralPreloadAttemptedRef.current) return
+    privateReferralPreloadAttemptedRef.current = true
     let cancelled = false
     fetch('/api/referral', { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
@@ -2423,12 +2429,20 @@ export default function GenerateClient({
         if (cancelled) return
         const code = typeof data?.code === 'string' ? data.code.trim().toUpperCase() : ''
         if (/^[A-HJ-NP-Z2-9]{8}$/.test(code)) setShareReferralCode(code)
+        setPrivateReferral(privateFileShareReferral({
+          code,
+          inviteUrl: data?.url,
+          rewardCredits: data?.rewardCredits,
+        }))
       })
       .catch(() => {
-        // Sharing without a referral code still works and keeps UTM attribution.
+        // The existing private-file share remains useful without an incentive.
+      })
+      .finally(() => {
+        if (!cancelled) setPrivateReferralResolved(true)
       })
     return () => { cancelled = true }
-  }, [shareReferralCode])
+  }, [phase])
 
   // Count a post-render referral card only when it is genuinely visible. Keep
   // the legacy prompt event for the existing funnel and emit a granular event
@@ -2469,6 +2483,7 @@ export default function GenerateClient({
     if (
       phase !== 'done' ||
       !shareableDownloadedFile ||
+      !privateReferralResolved ||
       !element ||
       !key ||
       privateFileShareTrackedKeyRef.current === key
@@ -2479,14 +2494,17 @@ export default function GenerateClient({
       privateFileShareTrackedKeyRef.current = key
       void trackEvent('private_video_file_share_viewed', {
         surface: 'done_screen',
-        variant: 'native_file_share_v1',
+        variant: PRIVATE_FILE_SHARE_REFERRAL_VARIANT,
         public_page_created: false,
+        referral_attached: privateReferral !== null,
+        incentive_available: privateReferral !== null,
+        incentive_credits_each: privateReferral?.rewardCredits ?? null,
       })
       observer.disconnect()
     }, { threshold: [0.5] })
     observer.observe(element)
     return () => observer.disconnect()
-  }, [phase, publicVideoId, finalVideoUrl, shareableDownloadedFile])
+  }, [phase, publicVideoId, finalVideoUrl, shareableDownloadedFile, privateReferral, privateReferralResolved])
 
   // Push #317 — check YouTube connection status once when the done screen appears.
   useEffect(() => {
@@ -8127,12 +8145,15 @@ export default function GenerateClient({
     const slug = slugifyTitle(analysis?.title)
     const filename = slug ? `${slug}.mp4` : `kineo-${finalVideoSeconds ?? duration}s.mp4`
     const metadata = {
-      version: 'native_file_share_v1',
+      version: PRIVATE_FILE_SHARE_REFERRAL_VARIANT,
       where: 'done_screen',
       surface: 'post_render_private_file_card',
       channel: 'native_file',
       video_id: publicVideoId,
       public_page_created: false,
+      referral_attached: privateReferral !== null,
+      incentive_available: privateReferral !== null,
+      incentive_credits_each: privateReferral?.rewardCredits ?? null,
       bytes: blob.size,
     }
     void trackEvent('video_share_clicked', metadata)
@@ -8157,7 +8178,7 @@ export default function GenerateClient({
       await navigator.share({
         files: [file],
         title: analysis?.title?.trim() || 'My Kineo Short',
-        text: 'Made with Kineo — https://www.usekineo.com',
+        text: privateReferral?.shareText ?? 'Made with Kineo — https://www.usekineo.com',
       })
       setPrivateFileShareState('shared')
       void trackEvent('video_shared', { ...metadata, method: 'native_file' })
@@ -8174,6 +8195,38 @@ export default function GenerateClient({
         { ...metadata, reason: cancelled ? 'user_cancelled' : 'share_api_failed' },
       )
     }
+  }
+
+  async function handleCopyPrivateReferral() {
+    if (!privateReferral) return
+    const metadata = {
+      version: PRIVATE_FILE_SHARE_REFERRAL_VARIANT,
+      where: 'done_screen',
+      surface: 'post_render_private_file_card',
+      channel: 'copy_invite_message',
+      public_page_created: false,
+      referral_attached: true,
+      incentive_available: true,
+      incentive_credits_each: privateReferral.rewardCredits,
+    }
+    void trackEvent('video_share_clicked', metadata)
+    let copied = false
+    try {
+      await navigator.clipboard.writeText(privateReferral.shareText)
+      copied = true
+    } catch {
+      try { window.prompt('Copy your private Kineo invite message:', privateReferral.shareText) } catch {}
+    }
+    setPrivateReferralCopied(true)
+    setTimeout(() => setPrivateReferralCopied(false), 1800)
+    void trackEvent(copied ? 'video_shared' : 'video_share_manual_copy_shown', {
+      ...metadata,
+      method: copied ? 'clipboard' : 'manual_prompt',
+    })
+    void trackEvent('private_video_referral_message_copied', {
+      ...metadata,
+      method: copied ? 'clipboard' : 'manual_prompt',
+    })
   }
 
   function handleContinueSeries(
@@ -13116,39 +13169,61 @@ export default function GenerateClient({
                     }}
                   >
                     <div className="text-[10px] font-black uppercase tracking-[.18em]" style={{ color: '#7cc0ff' }}>
-                      Private by default
+                      {shareableDownloadedFile && privateReferral
+                        ? privateReferral.eyebrow
+                        : 'Private by default'}
                     </div>
                     <h3 className="mt-1.5 font-black tracking-tight" style={{ color: 'var(--text)', fontSize: '1rem' }}>
                       {shareableDownloadedFile
-                        ? 'Share the MP4 — without making it public'
+                        ? privateReferral?.headline ?? 'Share the MP4 — without making it public'
                         : 'Public watch links are temporarily paused'}
                     </h3>
                     <p className="mt-2 text-xs" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
                       {shareableDownloadedFile
-                        ? 'Open your device share sheet and choose the person or app. The video file is attached directly.'
+                        ? privateReferral?.description ?? 'Open your device share sheet and choose the person or app. The video file is attached directly.'
                         : 'Download the MP4 to share it directly.'}
                     </p>
                     {shareableDownloadedFile && (
-                      <button
-                        type="button"
-                        onClick={handleShareDownloadedFile}
-                        disabled={privateFileShareState === 'sharing'}
-                        className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white"
-                        style={{
-                          background: 'linear-gradient(135deg, #25D366, #128C4A)',
-                          border: '1px solid rgba(37,211,102,.55)',
-                          cursor: privateFileShareState === 'sharing' ? 'wait' : 'pointer',
-                          opacity: privateFileShareState === 'sharing' ? 0.7 : 1,
-                          boxShadow: '0 8px 24px rgba(37,211,102,.20)',
-                        }}
-                      >
-                        <span aria-hidden>{privateFileShareState === 'shared' ? '✓' : '↗'}</span>
-                        {privateFileShareState === 'sharing'
-                          ? 'Opening your share sheet…'
-                          : privateFileShareState === 'shared'
-                            ? 'Shared from your device'
-                            : 'Share downloaded MP4'}
-                      </button>
+                      <div className="mt-3.5 flex flex-col gap-2 sm:flex-row">
+                        <button
+                          type="button"
+                          onClick={handleShareDownloadedFile}
+                          disabled={privateFileShareState === 'sharing'}
+                          className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black text-white"
+                          style={{
+                            background: 'linear-gradient(135deg, #25D366, #128C4A)',
+                            border: '1px solid rgba(37,211,102,.55)',
+                            cursor: privateFileShareState === 'sharing' ? 'wait' : 'pointer',
+                            opacity: privateFileShareState === 'sharing' ? 0.7 : 1,
+                            boxShadow: '0 8px 24px rgba(37,211,102,.20)',
+                          }}
+                        >
+                          <span aria-hidden>{privateFileShareState === 'shared' ? '✓' : '↗'}</span>
+                          {privateFileShareState === 'sharing'
+                            ? 'Opening your share sheet…'
+                            : privateFileShareState === 'shared'
+                              ? 'Shared from your device'
+                              : privateReferral
+                                ? 'Share MP4 + invite'
+                                : 'Share downloaded MP4'}
+                        </button>
+                        {privateReferral && (
+                          <button
+                            type="button"
+                            onClick={handleCopyPrivateReferral}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-black"
+                            style={{
+                              background: 'rgba(255,255,255,.06)',
+                              border: '1px solid var(--border2)',
+                              color: 'var(--text)',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span aria-hidden>{privateReferralCopied ? '✓' : '⧉'}</span>
+                            {privateReferralCopied ? 'Invite message copied' : 'Copy invite message'}
+                          </button>
+                        )}
+                      </div>
                     )}
                     <p
                       className="mt-2.5 text-center"
@@ -13156,11 +13231,15 @@ export default function GenerateClient({
                       style={{ color: 'var(--muted2)', fontSize: '0.68rem', lineHeight: 1.45 }}
                     >
                       {privateFileShareState === 'unsupported'
-                        ? 'This browser cannot attach video files. Share it from your Downloads folder.'
+                        ? privateReferral
+                          ? 'This browser cannot attach video files. Copy the invite message, then send the MP4 from Downloads.'
+                          : 'This browser cannot attach video files. Share it from your Downloads folder.'
                         : privateFileShareState === 'error'
                           ? 'The share sheet could not open. Your downloaded file is still safe.'
                           : privateFileShareState === 'shared'
-                            ? 'Your video was shared; no Kineo watch page was created.'
+                            ? privateReferral
+                              ? 'Your video and invite were shared; no Kineo watch page was created.'
+                              : 'Your video was shared; no Kineo watch page was created.'
                             : 'Nothing is sent until you choose a recipient.'}
                     </p>
                     <p className="mt-2 text-center" style={{ color: '#606068', fontSize: '0.64rem', lineHeight: 1.4 }}>
