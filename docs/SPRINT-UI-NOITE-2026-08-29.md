@@ -87,3 +87,23 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     checkouts, 0 downloads. Eventos: 3 stranded_ready_sent, 3 e-mails de
     trial, 1 stranded_compose_attempt→1 stranded_composed (recovery segue
     100%). Nenhuma causa antiga. Madrugada silenciosa.
+- [Sprint 8 · 02:35] O motor invisivel ganhou porta: Avatar e anunciado como
+  1 dos 8 motores e tem ZERO debitos na historia — nao porque quebrou, mas
+  porque nao existia em NENHUM seletor (achado #2 da auditoria de 28/08; o
+  /generate virou porteiro do /studio, entao o picker do Studio e o UNICO
+  lugar onde cliente escolhe motor). Agora o picker tem o card "Avatar ·
+  Presenter" que leva ao ambiente dedicado /avatar — e porta, nao motor do
+  fluxo do Studio (pipeline proprio de foto→apresentador; cobranca do Studio
+  intocada). Selo honesto: card sem claim de resolucao (0 masters
+  verificados). 10 verificacoes em scripts/test-avatar-card.mjs. Bonus do
+  rebase: o symlink node_modules commitado por engano no sprint 7 foi
+  removido ao recriar a serie.
+  (Rebase: origin/main avancou p/ e7ce42e — Codex subiu 8 commits de
+  growth/docs ChatGPT-handoff; sprints #1-#7 recriados em cima, #7 emendado
+  sem o symlink. Mesma rota: clone local + push interno, mount OneDrive
+  segue bloqueando unlink — locks presos em origin/main de novo.)
+  · Pulso 01:35-02:35 BRT: 1 cadastro novo COM credito (trial ativo, 21cr
+    restantes — ja gastou 4, ativacao imediata), 1 video completed, 0 erros
+    de render, 0 checkouts, 0 downloads. Eventos: 7 generation_stage_reached,
+    5 landing sessions, 4 stranded_ready_sent, 2 organic_signup. Nenhuma
+    causa antiga. Madrugada saudavel.

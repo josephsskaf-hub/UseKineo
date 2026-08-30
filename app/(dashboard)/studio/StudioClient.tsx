@@ -321,6 +321,28 @@ export default function StudioClient() {
                     )}
                   </button>
                 ))}
+                {/* KINEO-SPRINT-UI8-2026-08-30 — Avatar era o motor INVISIVEL
+                    (auditoria 28/08, achado #2): anunciado como 1 dos 8 motores,
+                    0 debitos NA HISTORIA — porque nao existia em NENHUM seletor.
+                    O /generate virou porteiro do /studio, entao este picker e o
+                    UNICO lugar onde cliente escolhe motor. O Avatar tem pipeline
+                    proprio (foto → apresentador falando), entao o card nao entra
+                    no fluxo do Studio: e a PORTA para o ambiente dedicado /avatar.
+                    Selo honesto: sem claim de resolucao (0 masters verificados). */}
+                <button
+                  type="button"
+                  className="pk"
+                  onClick={() => { setPickerOpen(false); router.push('/avatar') }}
+                >
+                  <span className="eng-ic" aria-hidden="true">🧑</span>
+                  <span className="pk-tx">
+                    <span className="t">
+                      <b>Avatar<span className="tag">Presenter</span></b>
+                      <i>Avatar Studio →</i>
+                    </span>
+                    <span className="d">Talking AI presenter from a photo — lip-synced, its own studio</span>
+                  </span>
+                </button>
               </div>
             )}
           </div>
