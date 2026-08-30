@@ -160,3 +160,60 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     3 selected → 3 studio_ready. 0 videos completed na janela, 0 erros de
     render, 0 checkouts, 0 downloads. Nenhuma causa antiga. Madrugada
     saudavel — o handoff do ChatGPT esta trazendo gente as 4h da manha.
+- [Sprint 12 · 06:35] A aba do navegador avisa quando o filme fica pronto:
+  um render leva 3-7 min e o cliente troca de aba nesse meio-tempo — a aba
+  ficava parada em "Create a Video — Kineo" e ele so descobria o Short pronto
+  voltando pra conferir (ou desistia antes). Agora o titulo da aba acompanha
+  o pipeline: "✍️ Writing your script…" → "⏳ Rendering your Short…" →
+  "✅ Your Short is ready" (ou "⚠️ Render issue"). E o complemento vivo do
+  sprint #11: la cada tela ganhou nome; aqui a tela mais importante ganhou
+  VOZ. Titulo original restaurado no repouso e ao sair. 13 verificacoes em
+  scripts/test-render-tab-title.mjs.
+  (Base: entrega-atual 0da2c15 sobre origin/main 9ccdd0b — sem rebase. Rota
+  de infra: clone em /sessions [o disco / da sandbox lotou com clones de
+  sprints antigos; limpos] + push interno da ref.)
+  · Pulso 05:35-06:35 BRT: 2 cadastros novos, AMBOS com credito (25cr e
+    10cr). 1 video completed. 0 checkouts, 0 downloads. Os 6
+    generation_stage_error da janela NAO sao causa antiga — sao guardrails
+    falando claro: 2x o validador speech-vs-duracao (cadastro novo cb7d9f71
+    pediu 45s com script de 42s/37s de narracao e foi barrado DUAS vezes,
+    sem debito) e 1x o guard de double-submit (held=15). DESTAQUE p/ sessao
+    principal: (a) cb7d9f71 e cadastro de 08:39 UTC que tentou 2x, bateu no
+    validador 2x e ate agora nao tem video — o aviso explica, mas nao
+    OFERECE a saida ("shorten to 40s" em 1 clique); atrito de ativacao no
+    minuto 1 de vida. (b) ad5a7073 com claim de 15cr preso sem linha em
+    videos nas ultimas 2h — o estorno automatico de 1h deve devolver, so
+    conferir no proximo vigia.
+
+## RESUMO FINAL DA NOITE (12/12 sprints — 29/08 19h → 30/08 06h35)
+A noite teve tres temas, em linguagem de dono:
+
+1. NUNCA MAIS MENTIR PRO CLIENTE (sprints 2-5). A divida do incidente
+   JWT-skew — 4 telas vestindo erro de leitura com roupa de "acervo vazio" —
+   foi paga em TODAS as estantes: Library, /history, /my-videos, /images,
+   /audio agora dizem "your videos and credits are safe + Try again" quando a
+   leitura falha, e a casa inteira ganhou pagina de erro com a nossa cara
+   (error.tsx + global-error.tsx). O fundador nunca mais ve "0 creditos, No
+   videos yet" com 327 videos intactos.
+
+2. O ACERVO VIROU NAVEGAVEL (sprints 6-7, 9-11). Busca instantanea em
+   /history, /my-videos e nas 3 abas da Library (327 videos deixaram de ser
+   rolagem infinita); skeletons 9:16 no lugar de tela congelada em 4 telas;
+   e cada aba do navegador ganhou nome proprio em 10 telas (antes todas
+   diziam o title SEO da landing).
+
+3. PORTAS E TOQUE (sprints 1, 8, 12). O Avatar — motor anunciado que NAO
+   aparecia em seletor nenhum (auditoria 28/08) — ganhou card no picker do
+   /studio; o mobile ganhou alvos de 44px e 16px anti-zoom no kit; e a aba
+   do render agora AVISA quando o Short fica pronto (⏳→✅) — o cliente pode
+   ir viver a vida nos 3-7 min de render.
+
+Pulso da noite inteira: madrugada saudavel — cadastros nasceram COM credito
+em todas as janelas (o conserto do trial orfao segue de pe), videos
+completados em quase toda janela, ZERO causa antiga (nenhum compose_not_ok,
+TypeError, quota), 0 checkouts (madrugada). O funil ChatGPT quickstart
+trouxe gente as 4h da manha. Unico atrito novo anotado: o validador de
+duracao barra sem oferecer a saida em 1 clique (destaque do sprint 12).
+
+✅ O QUE VOCÊ PRECISA FAZER: rodar o scripts\!RODAR-AGORA.bat (ele empurra a
+branch entrega-atual inteira — os 12 sprints — para producao num clique).

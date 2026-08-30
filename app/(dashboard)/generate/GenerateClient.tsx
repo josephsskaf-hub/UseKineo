@@ -2008,6 +2008,39 @@ export default function GenerateClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
+  // sprint-ui #12 (2026-08-30) — a ABA avisa quando o filme fica pronto.
+  // Um render leva 3-7 minutos e o cliente troca de aba; sem isto, a aba
+  // dizia "Create a Video — Kineo" o tempo todo e ele so descobria o Short
+  // pronto voltando para conferir (e as vezes desistia antes). Agora o titulo
+  // da aba acompanha o pipeline — escrevendo, renderizando, pronto, falhou —
+  // visivel na barra de abas sem trocar de tela. Complementa o sprint #11
+  // (titulos estaticos por tela). O titulo original e capturado uma vez e
+  // restaurado quando a tela volta ao repouso e no unmount.
+  const baseTabTitleRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    if (baseTabTitleRef.current === null) baseTabTitleRef.current = document.title
+    const base = baseTabTitleRef.current || 'Create a Video — Kineo'
+    if (phase === 'scripting' || phase === 'analyzing') {
+      document.title = '\u270d\ufe0f Writing your script\u2026 — Kineo'
+    } else if (isProcessingPhase(phase)) {
+      document.title = '\u23f3 Rendering your Short\u2026 — Kineo'
+    } else if (phase === 'done') {
+      document.title = '\u2705 Your Short is ready — Kineo'
+    } else if (phase === 'failed') {
+      document.title = '\u26a0\ufe0f Render issue — Kineo'
+    } else {
+      document.title = base
+    }
+  }, [phase])
+  useEffect(() => {
+    return () => {
+      if (typeof document !== 'undefined' && baseTabTitleRef.current) {
+        document.title = baseTabTitleRef.current
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (phase !== 'done' && phase !== 'failed') return
     resumedRenderRef.current = false
