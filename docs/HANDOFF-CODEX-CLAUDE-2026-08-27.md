@@ -1950,6 +1950,8 @@ PRÓXIMO DONO:
 
 **SMOKE PRÉ-VALIDAÇÃO / FORWARD-FIX:** o primeiro smoke real confirmou que o texto chegava preenchido ao Studio, mas encontrou `intent_campaign=chatgpt_quickstart_v3` chumbado nas duas URLs enquanto os eventos já usavam v4. A campanha passou a derivar de `CHATGPT_QUICKSTART_VARIANT`, e o teste agora falha se URL e evento divergirem. Nenhum render foi iniciado.
 
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o forward-fix `2c19d6f4b6216c13e4fae510a7aa668af05aa5df` chegou a `READY` no deploy Vercel `dpl_8GMzWF7tQySZHstBvL5GvA22TNPa`, target production e aliases incluindo `www.usekineo.com`. No Chrome autenticado do fundador, o caminho roteiro pronto abriu o editor inline, aceitou conteúdo, navegou com `verbatim/35s/Seedance`, publicou `intent_campaign=chatgpt_quickstart_v4` e mostrou o texto preenchido no Studio. O Supabase registrou `shown → input_opened → selected → studio_ready`, todos em v4 e sem prompt/roteiro na metadata. A Vercel encontrou zero erro runtime nos 15 minutos consultados. Nenhum render, reserva ou débito foi iniciado.
+
 **NÃO TOCADO:** grant de 25, validade do trial, preço, oferta, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude, contatos ou vídeos existentes.
 
 **MÉTRICA:** por pessoa externa e variante: `view → input_opened → selected → studio_ready → generation_started → completed → checkout → payment`. Clique na opção não é seleção concluída; texto digitado não é telemetria; checkout não é assinatura.
