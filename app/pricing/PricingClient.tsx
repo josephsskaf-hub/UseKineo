@@ -652,7 +652,7 @@ export default function PricingClient() {
             de topo (pt-5) para as fitas "Most Popular"/"Best Value", que ficam
             em -top-3 e antes encostavam no bloco de cima. Nenhum numero,
             rotulo ou plano mudou. */}
-        <div className="grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
+        <div id="plans" className="scroll-mt-24 grid grid-cols-1 gap-7 md:grid-cols-3 max-w-5xl mx-auto pt-5 items-stretch">
           {buildPricing(resolvedCurrency, resolvedRegion).map((p) => {
             const isPaid = p.tier === 'starter' || p.tier === 'basic' || p.tier === 'pro'
             // KINEO-2026-07-06 — cleaner pricing UI: same blue CTA on every card,

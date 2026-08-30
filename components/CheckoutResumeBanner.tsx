@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
@@ -9,6 +10,9 @@ import {
   formatCheckoutResumePlanFitGoal,
   type CheckoutResumeOffer,
 } from '@/lib/checkoutResumeSurface'
+
+const RESUME_CHOICE_VERSION = 'resume_smaller_choice_v1'
+const COMPARE_PLANS_HREF = '/pricing?intent_campaign=checkout_resume_smaller_v1#plans'
 
 const HIDDEN_PATHS = [
   '/login',
@@ -65,6 +69,7 @@ export default function CheckoutResumeBanner() {
         }
         setOffer(result)
         const key = [
+          RESUME_CHOICE_VERSION,
           result.tier,
           result.billing,
           result.currency,
@@ -79,6 +84,7 @@ export default function CheckoutResumeBanner() {
         if (viewedKey.current !== key) {
           viewedKey.current = key
           void trackEvent('checkout_resume_banner_viewed', {
+            resume_choice_version: RESUME_CHOICE_VERSION,
             tier: result.tier,
             billing: result.billing,
             currency: result.currency,
@@ -107,6 +113,7 @@ export default function CheckoutResumeBanner() {
   const renewalUnit = offer.billing === 'annual' ? 'year' : 'month'
   const savedGoal = offer.planFit ? formatCheckoutResumePlanFitGoal(offer.planFit) : null
   const eventMetadata = {
+    resume_choice_version: RESUME_CHOICE_VERSION,
     tier: offer.tier,
     billing: offer.billing,
     currency: offer.currency,
@@ -174,37 +181,57 @@ export default function CheckoutResumeBanner() {
           </div>
         )}
       </div>
-      <a
-        href={offer.resumeUrl}
-        aria-disabled={checkout.pending !== null}
-        onClick={(e) => {
-          // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = one resume. This
-          // banner is shown to buyers who already abandoned once, so a second
-          // impatient tap here is exactly the behaviour that produced the
-          // duplicate-session bursts.
-          e.preventDefault()
-          const started = checkout.launch('resume', offer.resumeUrl, {
-            destination_kind: offer.destinationKind,
-          })
-          if (!started) return
-          void trackEvent('checkout_resume_banner_clicked', eventMetadata)
-        }}
-        style={{
-          flex: '0 0 auto',
-          borderRadius: 10,
-          padding: '9px 12px',
-          background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
-          color: '#fff',
-          fontSize: '0.78rem',
-          fontWeight: 850,
-          textDecoration: 'none',
-          whiteSpace: 'nowrap',
-          opacity: checkout.pending !== null ? 0.7 : 1,
-          cursor: checkout.pending !== null ? 'wait' : 'pointer',
-        }}
-      >
-        {checkout.pending !== null ? 'Opening…' : savedGoal ? 'Resume this goal' : 'Resume checkout'}
-      </a>
+      <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
+        <a
+          href={offer.resumeUrl}
+          aria-disabled={checkout.pending !== null}
+          onClick={(e) => {
+            // KINEO-CHECKOUT-TRIAGE-2026-07-25 — one click = one resume. This
+            // banner is shown to buyers who already abandoned once, so a second
+            // impatient tap here is exactly the behaviour that produced the
+            // duplicate-session bursts.
+            e.preventDefault()
+            const started = checkout.launch('resume', offer.resumeUrl, {
+              destination_kind: offer.destinationKind,
+            })
+            if (!started) return
+            void trackEvent('checkout_resume_banner_clicked', eventMetadata)
+          }}
+          style={{
+            borderRadius: 10,
+            padding: '9px 12px',
+            background: 'linear-gradient(135deg, #2997ff, #1d6fe0)',
+            color: '#fff',
+            fontSize: '0.78rem',
+            fontWeight: 850,
+            textDecoration: 'none',
+            whiteSpace: 'nowrap',
+            opacity: checkout.pending !== null ? 0.7 : 1,
+            cursor: checkout.pending !== null ? 'wait' : 'pointer',
+          }}
+        >
+          {checkout.pending !== null ? 'Opening…' : savedGoal ? 'Resume this goal' : 'Resume checkout'}
+        </a>
+        <Link
+          href={COMPARE_PLANS_HREF}
+          aria-label="See smaller subscription plans"
+          onClick={() => void trackEvent('checkout_resume_smaller_plan_clicked', {
+            ...eventMetadata,
+            target: 'pricing_plans',
+          })}
+          style={{
+            color: '#9ccfff',
+            fontSize: '0.7rem',
+            fontWeight: 800,
+            lineHeight: 1.2,
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          See smaller plans
+        </Link>
+      </div>
       <button
         type="button"
         aria-label="Dismiss checkout reminder"
