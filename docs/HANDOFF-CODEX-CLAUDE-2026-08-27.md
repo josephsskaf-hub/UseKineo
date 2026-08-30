@@ -2103,3 +2103,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails COMEBACK50/+25 do Claude, contatos externos ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `36c45b2c` ou posterior. Não duplicar o downshift, a ponte Seedance pós-Fast, a missão premium, o quick-start v5, o Plan Fit v2 nem a otimização de `/scripts/space`. Codex mede exposição → clique do degrau → checkout → pagamento por pessoa externa e continua aquisição/fluxo/assinatura.
+
+## 65. Lembrete de checkout — retomada exata ou planos menores (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a leitura deduplicada por pessoa externa mostrou que a maioria de quem vê o lembrete global do checkout o fecha, enquanto poucos retomam a mesma sessão. A superfície de preços também recebe pouca progressão para checkout. Quantidades e identificadores ficam fora deste repositório público.
+
+**FATO CONFIRMADO / CAUSA:** `components/CheckoutResumeBanner.tsx` oferecia somente a retomada exata da sessão salva e o botão de fechar. Para uma pessoa que abandonou por compromisso ou percepção de preço, o lembrete repetia a mesma decisão sem apresentar uma alternativa segura.
+
+**IMPLEMENTADO:** a retomada exata continua como ação principal. A nova ação secundária “See smaller plans” navega internamente para `/pricing?intent_campaign=checkout_resume_smaller_v1#plans`, e o grid real de planos em `app/pricing/PricingClient.tsx` recebeu a âncora `#plans`. A ação não cria Checkout Session, não escolhe plano, não altera preço e não toca no servidor Stripe.
+
+**MEDIÇÃO:** a versão `resume_smaller_choice_v1` acompanha as ações existentes do banner. O novo evento `checkout_resume_smaller_plan_clicked` registra somente o destino `pricing_plans` e os metadados limitados que o banner já emitia; não inclui roteiro, prompt ou dado livre do cliente.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHECKOUT-RESUME-CHOICE-2026-08-30.html` contém antes/depois em desktop e mobile. O preview foi inspecionado no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** `node scripts/test-pricing-saved-checkout.mjs` passou 47/47 e `node scripts/test-checkout-session-window.mjs` passou 25/25. O typecheck repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `ffc4f9d3c8541f8261a8ae4a390170ffe5739298` chegou a `READY` no deploy Vercel `dpl_EPK9fXAWHVbLV1kAsBMJhMPK4hgs`, target production e alias `www.usekineo.com`. No Chrome autenticado do fundador, a URL com `#plans` posicionou o grid real e mostrou Starter sem erro de console. A Vercel não apresentou erro runtime na janela consultada.
+
+**QUESTÃO PENDENTE / HONESTIDADE DO SMOKE:** a conta do fundador não tinha um checkout salvo elegível no momento do teste, portanto o banner stateful não apareceu em produção. Nenhum checkout artificial foi criado para forçar o estado. O contrato do banner está coberto pelos testes e o destino foi validado, mas esta entrega não reivindica clique stateful real até a primeira exposição externa.
+
+**DECISÃO DO TRIAL PRESERVADA:** manter 25 créditos e a validade atual enquanto a coorte amadurece. Esta ação trabalha o vazamento final sem aumentar, reduzir ou expirar o grant e sem duplicar a ponte premium ou as ondas COMEBACK50/+25 do Claude.
+
+**NÃO TOCADO:** preço, grant, validade, entitlement, Stripe server, Supabase schema/dados, render, motor, cena, legenda, e-mails do Claude, contatos externos ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ffc4f9d3` ou posterior. Não duplicar este segundo caminho do lembrete nem o downshift da página cancelada. Codex mede `resume_smaller_choice_v1` por pessoa em impressão → retomada exata ou planos menores → checkout → pagamento.
