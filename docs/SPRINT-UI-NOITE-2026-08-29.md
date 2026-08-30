@@ -71,3 +71,19 @@ sobe TUDO com um clique no !RODAR-AGORA.bat às 07:00.
     videos, 0 erros de render, 0 checkouts, 0 downloads. Eventos: 4
     stranded_compose_attempt→4 stranded_composed (recovery 100%), 3 landing
     sessions, 3 e-mails de trial, 2 chatgpt_quickstart. Nenhuma causa antiga.
+- [Sprint 7 · 01:35] /images e /audio abrem mostrando a FORMA do acervo: o
+  primeiro carregamento nao tinha estado nenhum — a estante "My Images"/
+  "My Audio" simplesmente nao existia ate o banco responder e POPava na tela
+  (salto de layout). Agora shimmer no formato real (grade 220px no /images,
+  fileiras no /audio), rotulo ja visivel, e o "Try again" da falha re-mostra
+  o skeleton em vez de tela parada. Com isso as 5 bibliotecas do produto tem
+  o trio completo: skeleton no load, verdade no erro, CTA no vazio. 18
+  verificacoes em scripts/test-images-audio-loading-skeleton.mjs.
+  (Rebase: origin/main avancou p/ be00a86 — Codex subiu 7 commits de growth
+  premium-trial; sprints #1-#6 recriados em cima: c092302/a404347/c730180/
+  273b92b/f6e6bbc/44e91b1. Mesma rota: clone local + push interno, mount
+  OneDrive segue com locks presos em main/origin-main.)
+  · Pulso 00:35-01:35 BRT: 0 cadastros, 0 videos, 0 erros de render, 0
+    checkouts, 0 downloads. Eventos: 3 stranded_ready_sent, 3 e-mails de
+    trial, 1 stranded_compose_attempt→1 stranded_composed (recovery segue
+    100%). Nenhuma causa antiga. Madrugada silenciosa.

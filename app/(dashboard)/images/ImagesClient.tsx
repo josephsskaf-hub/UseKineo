@@ -42,6 +42,10 @@ export default function ImagesClient() {
   // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura da galeria NAO pode se
   // disfarcar de galeria vazia (mesma mascara do incidente JWT-skew).
   const [galleryFailed, setGalleryFailed] = useState(false)
+  // KINEO-SPRINT-UI7-2026-08-30 — primeiro carregamento sem salto: a estante
+  // "My Images" nao existia ate o fetch voltar e POPava na tela. Agora o
+  // load mostra a FORMA da grade (shimmer), igual library/my-videos.
+  const [galleryLoading, setGalleryLoading] = useState(true)
 
   // KINEO-IMAGES-PROD-2026-08-17 — o mega-menu Image aponta motores pra ca
   // (?engine=), igual ao padrao do Studio: chegada ja cai com o motor certo.
@@ -55,6 +59,7 @@ export default function ImagesClient() {
   // virou "My Images" e sobrevive ao refresh.
   function loadGallery() {
     setGalleryFailed(false)
+    setGalleryLoading(true)
     fetch('/api/images', { cache: 'no-store' })
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
       .then((d) => {
@@ -65,6 +70,7 @@ export default function ImagesClient() {
         }
       })
       .catch(() => setGalleryFailed(true))
+      .finally(() => setGalleryLoading(false))
   }
   useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -257,6 +263,18 @@ export default function ImagesClient() {
               <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your images right now.</span>
               <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your images and credits are safe — this is just a temporary read hiccup.</span>
               <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+            </div>
+          )}
+
+          {galleryLoading && !galleryFailed && items.length === 0 && (
+            <div aria-label="Loading your images" aria-busy="true">
+              <style>{`@keyframes imgsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+              <div className="lab">My Images</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 12 }}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} style={{ aspectRatio: '3/4', borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'imgsk 1.4s linear infinite', animationDelay: `${(i % 3) * 120}ms` }} />
+                ))}
+              </div>
             </div>
           )}
 

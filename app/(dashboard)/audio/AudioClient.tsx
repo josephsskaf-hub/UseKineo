@@ -52,6 +52,9 @@ export default function AudioClient() {
   const [items, setItems] = useState<Item[]>([])
   // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura NAO vira galeria vazia.
   const [galleryFailed, setGalleryFailed] = useState(false)
+  // KINEO-SPRINT-UI7-2026-08-30 — mesma regra do /images: enquanto o acervo
+  // carrega, mostrar a FORMA das fileiras (shimmer) em vez de nada.
+  const [galleryLoading, setGalleryLoading] = useState(true)
 
   const eng = AUDIO_ENGINES.find((e) => e.key === model)!
   const credits = useMemo(() => Math.max(1, Math.ceil(Math.max(text.trim().length, 1) / 1000)) * eng.perK, [text, eng])
@@ -65,6 +68,7 @@ export default function AudioClient() {
   // Galeria persistente (tabela audios).
   function loadGallery() {
     setGalleryFailed(false)
+    setGalleryLoading(true)
     fetch('/api/audio', { cache: 'no-store' })
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
       .then((d) => {
@@ -75,6 +79,7 @@ export default function AudioClient() {
         }
       })
       .catch(() => setGalleryFailed(true))
+      .finally(() => setGalleryLoading(false))
   }
   useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -213,6 +218,18 @@ export default function AudioClient() {
               <span style={{ fontSize: 13, color: '#fbbf24', fontWeight: 700 }}>We couldn’t load your audio right now.</span>
               <span style={{ fontSize: 12.5, color: 'var(--txt2,#9aa0a6)' }}>Your audio and credits are safe — this is just a temporary read hiccup.</span>
               <button type="button" className="pill" onClick={loadGallery}>↻ Try again</button>
+            </div>
+          )}
+
+          {galleryLoading && !galleryFailed && items.length === 0 && (
+            <div aria-label="Loading your audio" aria-busy="true">
+              <style>{`@keyframes audsk{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+              <div className="lab">My Audio</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} style={{ height: 60, borderRadius: 12, border: '1px solid rgba(255,255,255,.06)', background: 'linear-gradient(100deg, rgba(255,255,255,.035) 40%, rgba(255,255,255,.09) 50%, rgba(255,255,255,.035) 60%)', backgroundSize: '200% 100%', animation: 'audsk 1.4s linear infinite', animationDelay: `${i * 120}ms` }} />
+                ))}
+              </div>
             </div>
           )}
 
