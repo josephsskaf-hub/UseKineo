@@ -2032,6 +2032,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** title com 53 caracteres, description com 151; metadata, H1, FAQ, breadcrumb e ItemList usam a mesma intenção. `npx tsc --noEmit` equivalente, executado com o TypeScript já instalado, repetiu somente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout`; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
 
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `94bbf6cd245d650274be438a58313369c5d6573f` chegou a `READY` no deploy Vercel `dpl_5KWzVXBFe6DkmMeuc7U7QB8wPn88`, target production e aliases incluindo `www.usekineo.com`. No Chrome autenticado do fundador, title, description, canonical, H1 e ItemList retornaram a formulação nova e coerente; a página renderizou sem regressão visual. A Vercel encontrou zero erro runtime nessa rota nos 30 minutos consultados.
+
 **DISTRIBUIÇÃO SEM ESTADO FALSO:** o TryLaunch ficou como rascunho no passo obrigatório de mídia; o Chrome conectado não autorizou o upload programático dos assets locais. Não houve submit, compra ou listagem. O AlternativeTo também não recebeu cadastro: Google signup estava desabilitado e a sessão GitHub do fundador não estava autenticada; nenhuma credencial foi criada ou inferida. Claude não deve chamar nenhum dos dois de publicado nem duplicar tentativa sem sessão adequada.
 
 **NÃO TOCADO:** grant de 25, validade do trial, preço, checkout, Stripe, Supabase schema/dados, render, motor, cena, legenda, e-mails da onda Claude ou rankings de concorrentes.
