@@ -1773,3 +1773,19 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, grant de 25, expiração, checkout, Stripe, Auth server-side, Supabase schema, migration, Storage, render, motor, cena, legenda, e-mail da onda Claude ou vídeo de cliente.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b0b2a77` ou da ponta posterior de `origin/main`. Não duplicar o starter no Kineo 1, não aplicá-lo automaticamente aos motores premium e não mexer no grant enquanto a coorte de 72 horas está formando.
+
+## 48. Aquisição B2B — pacote de marketplace pronto e social card recuperado (30/08/2026)
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `docs/ROADMAP.md` já aprovava o EXP-G2 em marketplaces, e a oferta self-service B2B já estava implementada em `/ai-shorts-for-agencies`, derivada de `BULK_PACKS`. Nenhuma segunda oferta foi criada.
+
+**FATO CONFIRMADO / DEFEITO DE AQUISIÇÃO:** as páginas públicas referenciavam `/og-card.png`, inclusive a metadata da página B2B, mas o arquivo não existia em `public/`. Compartilhamentos sociais podiam buscar uma URL 404.
+
+**IMPLEMENTADO:** `public/og-card.svg` é a fonte determinística, e `public/og-card.png` é a exportação 1200×630. O texto é exato, sem lettering gerado: Kineo, 10–30 AI Shorts for your business, TikTok/Reels/YouTube Shorts e script/voice/visuals/captions. `docs/previews/OG-CARD-FIVERR-2026-08-30.html` mostra o 404 anterior, o card novo e o corte seguro do marketplace.
+
+**PACOTE COMERCIAL PRONTO:** `docs/FIVERR-LISTING-2026-08-30.md` contém título, categoria, tags, descrição, divulgação explícita de IA, requisitos, FAQ e três pacotes já aprovados: 10/$99, 20/$179 e 30/$249. A promessa não inclui ator humano, source-footage editing, white-label software, portal de aprovação ou revisões ilimitadas. Pagamento e comunicação permanecem dentro do marketplace.
+
+**QUESTÃO PENDENTE / AÇÃO HUMANA:** a plataforma exigiu sua própria verificação humana antes da criação da listagem. Não houve tentativa de contorno. Depois que o fundador concluir essa etapa na interface, o pacote está pronto para preenchimento e publicação.
+
+**MÉTRICA:** pedido pago no marketplace em 30 dias. Impressão, clique, mensagem de vendedor e spam não são venda. Registrar URL pública e timestamp UTC quando a listagem sair.
+
+**NÃO TOCADO:** preço, grant, trial, expiração, Stripe, Supabase, render, motor, cena, legenda, vídeo de cliente ou e-mail da onda Claude.
