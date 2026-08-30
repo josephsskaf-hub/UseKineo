@@ -1829,3 +1829,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** grant, prazo do trial, preço, Stripe, Supabase schema/dados, Plan Fit matemático, render, motor, cena, legenda, e-mail da onda Claude ou vídeos existentes.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não reintroduzir Plan Fit à frente da ponte, não duplicar o card e não contar impressão como conversão; a primeira prova causal é pessoa elegível ver → clicar → concluir Seedance → iniciar checkout → pagar.
+
+## 51. Ativação do trial — primeira missão premium já chega preenchida (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** a leitura por pessoa separou três coortes que não devem ser misturadas: quem ainda não iniciou vídeo, quem começou pelo Fast e manteve saldo e quem começou por premium. O recorte não demonstrou que zerar o saldo no premium produz pagamento, nem que mudar de três para sete dias melhora assinatura. Os números e identificadores permanecem fora deste repositório público.
+
+**DECISÃO OPERACIONAL:** manter o grant de 25 créditos e a validade atual. Não aumentar, reduzir, bloquear o Fast ou impor expiração de 24–48 horas enquanto a coorte premium-first e a ponte pós-Fast ainda estão formando. Desconto também não deve ser tratado isoladamente como solução do checkout.
+
+**FATO CONFIRMADO / CAUSA DE ATIVAÇÃO:** `components/TrialActiveBanner.tsx` anunciava “Make my included Seedance film”, selecionava Seedance e 60s, mas navegava ao Studio sem `prompt`. A pessoa chegava a um campo de ideia vazio e precisava reconstruir a decisão que o CTA dizia ter resolvido. Este é um defeito de ativação antes do vídeo; não é falha do render nem prova de causa do abandono de checkout.
+
+**IMPLEMENTADO:** `lib/growth/onboardingGoals.ts` ganhou um construtor reutilizável de URL do Studio. O primeiro CTA premium do trial agora abre `/studio` com Seedance, 60s, a pauta canônica editável `The disappearance nobody solved in 70 years`, `onboarding_goal=creator` e campanha isolada `trial_first_seedance_60s_v1`. Não envia `autoanalyze`, `create_intent`, request de fornecedor, reserva ou débito. A pessoa vê e pode editar tudo antes de clicar em gerar. A escada pós-Fast permanece inalterada.
+
+**TESTADO LOCALMENTE:** `node scripts/test-trial-balance-bridge.mjs` passou 156/156; `test-home-welcome-goal-router.mjs`, 52/52; `test-onboarding-goal-router.mjs`, 74/74 — 282 verificações determinísticas. `npx tsc --noEmit` repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts:113`, `app/api/me/subscription/route.ts:71` e `app/api/stripe/checkout/route.ts:550,571`; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TRIAL-FIRST-DELIVERY-PREFILL-2026-08-30.html` mostra antes/depois desktop e depois mobile. Antes, o CTA terminava no campo vazio; depois, o cockpit abre com a missão pronta e editável.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** o commit funcional `ac59bca17aa71d1069237c4f1a624161148cbd6a` chegou a `READY` no deploy Vercel `dpl_BQDqWH1FvoYyADL7uAr7PBKxDLiE`, target production. No Chrome autenticado do fundador, `/studio` abriu com Seedance 1.5, 60s e a pauta canônica preenchida. Nenhum botão de geração foi clicado, portanto não houve render nem gasto. A Vercel encontrou zero erro runtime em `/studio` nos 30 minutos consultados.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** impacto comercial exige medir novas pessoas por `intent_campaign=trial_first_seedance_60s_v1` até primeira entrega, checkout e pagamento. Não interpretar saldo zero, clique, render ou checkout como assinatura.
+
+**NÃO TOCADO:** preço, grant, validade, Stripe, Supabase, render, cena, legenda, e-mails da onda Claude ou vídeos existentes.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `ac59bca1` ou da ponta posterior de `origin/main`. Não duplicar o prefill, não adicionar auto-start e não mudar o grant durante a leitura desta coorte. Claude continua com a onda já em execução; Codex continua aquisição, fluxo e assinatura.
