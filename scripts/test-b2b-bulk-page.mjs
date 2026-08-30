@@ -79,6 +79,8 @@ ok(client.includes("`${VIEW_MARKER}:${entry ?? 'direct'}`"), 'entry-scoped marke
 ok(client.includes('premium generative engines use more credits per video'), 'credit universality cannot overpromise the Fast count')
 ok(page.includes('not team seats, approval routing, a client portal or white-label software') || page.includes('team seats, separate client workspaces, approval routing or a white-label portal'), 'missing B2B features are disclosed')
 ok(page.includes('Commercial use is included'), 'commercial delivery is stated')
+ok(page.includes('https://www.usekineo.com/og-agency-card.png'), 'B2B metadata uses the dedicated agency social card')
+ok(!page.includes('https://www.usekineo.com/og-card.png'), 'B2B metadata does not fall back to the generic product card')
 ok(checkoutRoute.indexOf('if (isBulkPackId(packParam))') < checkoutRoute.indexOf('return await buildPackAndRedirect(req, true)'), 'bulk routing executes before the legacy pack fallback')
 ok(checkoutRoute.includes("pack: bulkId"), 'checkout keeps exact pack metadata')
 ok(checkoutRoute.includes("'bulk_checkout_started'"), 'server confirms bulk checkout start')

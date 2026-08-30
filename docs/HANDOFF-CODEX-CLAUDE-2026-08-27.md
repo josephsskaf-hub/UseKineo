@@ -1774,13 +1774,13 @@ PRÓXIMO DONO:
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b0b2a77` ou da ponta posterior de `origin/main`. Não duplicar o starter no Kineo 1, não aplicá-lo automaticamente aos motores premium e não mexer no grant enquanto a coorte de 72 horas está formando.
 
-## 48. Aquisição B2B — pacote de marketplace pronto e social card recuperado (30/08/2026)
+## 48. Aquisição B2B — pacote de marketplace pronto e card exclusivo (30/08/2026)
 
 **FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `docs/ROADMAP.md` já aprovava o EXP-G2 em marketplaces, e a oferta self-service B2B já estava implementada em `/ai-shorts-for-agencies`, derivada de `BULK_PACKS`. Nenhuma segunda oferta foi criada.
 
-**FATO CONFIRMADO / DEFEITO DE AQUISIÇÃO:** as páginas públicas referenciavam `/og-card.png`, inclusive a metadata da página B2B, mas o arquivo não existia em `public/`. Compartilhamentos sociais podiam buscar uma URL 404.
+**FATO CONFIRMADO / CORREÇÃO DE DIAGNÓSTICO:** `/og-card.png` já existia como rota dinâmica em `app/og-card.png/route.tsx`; por precedência de rota, ela vence qualquer arquivo homônimo em `public/`. O primeiro commit adicionou assets mortos e não alterou a produção. O smoke no Chrome revelou o card geral antigo e impediu a classificação incorreta. O forward-fix preserva esse card geral e dá à página B2B uma URL exclusiva.
 
-**IMPLEMENTADO:** `public/og-card.svg` é a fonte determinística, e `public/og-card.png` é a exportação 1200×630. O texto é exato, sem lettering gerado: Kineo, 10–30 AI Shorts for your business, TikTok/Reels/YouTube Shorts e script/voice/visuals/captions. `docs/previews/OG-CARD-FIVERR-2026-08-30.html` mostra o 404 anterior, o card novo e o corte seguro do marketplace.
+**IMPLEMENTADO:** `public/og-agency-card.svg` é a fonte determinística, e `public/og-agency-card.png` é a exportação 1200×630. A metadata de `/ai-shorts-for-agencies` usa apenas essa URL; o restante do produto continua em `/og-card.png`. O texto é exato, sem lettering gerado: Kineo, 10–30 AI Shorts for your business, TikTok/Reels/YouTube Shorts e script/voice/visuals/captions. `docs/previews/OG-CARD-FIVERR-2026-08-30.html` compara o card geral anterior, o B2B novo e o corte seguro do marketplace.
 
 **PACOTE COMERCIAL PRONTO:** `docs/FIVERR-LISTING-2026-08-30.md` contém título, categoria, tags, descrição, divulgação explícita de IA, requisitos, FAQ e três pacotes já aprovados: 10/$99, 20/$179 e 30/$249. A promessa não inclui ator humano, source-footage editing, white-label software, portal de aprovação ou revisões ilimitadas. Pagamento e comunicação permanecem dentro do marketplace.
 

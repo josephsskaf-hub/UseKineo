@@ -77,7 +77,7 @@ No impersonation or deceptive depiction. A factual documentary topic may use pro
 
 ## Gallery assets
 
-- Cover: `public/og-card.png`
+- Cover: `public/og-agency-card.png`
 - Optional Gig video: one short showreel assembled only from `public/previews/` assets owned by the founder.
 - Supporting samples: Seedance, Kling 3 and Veo 3.1 clips already used on Kineo's public product surfaces.
 

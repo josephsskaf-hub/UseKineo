@@ -20,13 +20,13 @@ export const metadata: Metadata = {
     url: CANONICAL,
     siteName: 'Kineo',
     type: 'website',
-    images: [{ url: 'https://www.usekineo.com/og-card.png', width: 1200, height: 630, alt: 'Kineo AI Shorts for agencies' }],
+    images: [{ url: 'https://www.usekineo.com/og-agency-card.png', width: 1200, height: 630, alt: 'Kineo AI Shorts for agencies' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'AI Shorts for Agencies — 10 to 50 client videos',
     description: 'One-time commercial video packs with script, AI voice, visuals and captions.',
-    images: ['https://www.usekineo.com/og-card.png'],
+    images: ['https://www.usekineo.com/og-agency-card.png'],
   },
 }
 
