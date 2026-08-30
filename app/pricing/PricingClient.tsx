@@ -53,6 +53,7 @@ import {
 } from '@/lib/checkoutPricing'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
+import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -873,9 +874,14 @@ export default function PricingClient() {
                     or pay with <span style={{ color: '#009cde', fontWeight: 900 }}>Pay</span><span style={{ color: '#2997ff', fontWeight: 900 }}>Pal</span> (USD)
                   </button>
                 )}
+                {isPaid && (
+                  <p className="mt-2 text-center text-[11px] font-semibold text-[#a1a1a8]">
+                    {CHECKOUT_PAYMENT_GUIDANCE_COMPACT}
+                  </p>
+                )}
                 {/* Marker: KINEO-CHECKOUT-TRUST-2026-07-05 — trust cues at the buy button (billed by Kineo after Stripe name fix) */}
                 {isPaid && (
-                  <p className="mt-2.5 text-center text-[11.5px] font-semibold leading-relaxed text-[#86868b]">
+                  <p className="mt-1.5 text-center text-[11.5px] font-semibold leading-relaxed text-[#86868b]">
                     {billing === 'monthly' && (p.tier === 'starter' || p.tier === 'basic') && displayCurrency
                       && hasIntroOffer(p.tier as 'starter' | 'basic', resolvedCurrency, resolvedRegion)
                       ? `First month ${entryPriceLabel(p.tier as 'starter' | 'basic')} · cancel anytime`

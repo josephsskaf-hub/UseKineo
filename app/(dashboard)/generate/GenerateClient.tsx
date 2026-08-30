@@ -88,6 +88,7 @@ import {
   POST_VIDEO_PLAN_COMPARE_HREF,
   POST_VIDEO_PLAN_COMPARE_VERSION,
 } from '@/lib/growth/chatgptPostVideoOffer'
+import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
 import {
   decideTrialBalanceBridge,
   TRIAL_BALANCE_BRIDGE_VERSION,
@@ -12892,6 +12893,12 @@ export default function GenerateClient({
                               : `Get the clean version + continue on ${ladderPrimaryPlanLabel} →`)
                           : `Continue creating on ${ladderPrimaryPlanLabel} →`}
                     </button>
+                    <p
+                      className="mt-2 text-center"
+                      style={{ color: 'var(--muted2)', fontSize: '0.7rem', lineHeight: 1.4 }}
+                    >
+                      {CHECKOUT_PAYMENT_GUIDANCE_COMPACT}
+                    </p>
                     {trialPostVideoCheckout.error && (
                       <p role="alert" className="text-center mt-2 text-xs" style={{ color: '#ff6b6b' }}>
                         {trialPostVideoCheckout.error}
