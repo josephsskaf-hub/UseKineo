@@ -410,7 +410,17 @@ check('caller passes fresh eligibility verifier', generate.includes('verifyEligi
 check('caller passes resolved canonical currency', generate.includes('currency={postVideoCurrency}'))
 check('caller requires confirmed first delivery', generate.includes('planFitFirstDelivery &&'))
 check('caller requires a sellable non-subscriber cohort', generate.includes('planFitSellableCohort &&'))
-check('Plan Fit follows NextShorts retention', generate.indexOf('<NextShortsSection') < generate.indexOf('<PlanFitCard'))
+// 29/08 production evidence invalidated the original order assertion: the
+// first premium-first user reached `video_ready_viewed` but never exposed
+// `plan_fit_impression`. Plan Fit already suppresses the trial recurring card,
+// so leaving it after secondary actions created a first-delivery screen with
+// no visible subscription ask. Deliver first, then sell, then retain/share.
+const planFitRenderIndex = generate.indexOf('<PlanFitCard')
+const deliveredFirstMarkerIndex = generate.indexOf('⚠ POSIÇÃO: DEPOIS DO DOWNLOAD, NUNCA ANTES.')
+const referralRewardRenderIndex = generate.indexOf("{phase === 'done' && planTier === 'free' && !hasPaid && !showTrialPostVideoOffer && (")
+check('Plan Fit follows the delivered download', deliveredFirstMarkerIndex >= 0 && deliveredFirstMarkerIndex < planFitRenderIndex)
+check('Plan Fit precedes the referral reward', referralRewardRenderIndex >= 0 && planFitRenderIndex < referralRewardRenderIndex)
+check('Plan Fit precedes NextShorts retention', planFitRenderIndex < generate.indexOf('<NextShortsSection'))
 check('Plan Fit precedes the generic recurring upsell', generate.indexOf('<PlanFitCard') < generate.indexOf('<UpsellSection'))
 check('trial recurring render is replaced by Plan Fit', generate.includes('const showTrialPostVideoOffer = trialPostVideoPhase !== null && !planFitOwnsRecurringSlot'))
 check('trial recurring impression is replaced too', generate.includes('const eligible = trialOfferPhaseForImpression !== null && !planFitOwnsRecurringSlot'))

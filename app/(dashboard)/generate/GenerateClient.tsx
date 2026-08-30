@@ -12322,6 +12322,46 @@ export default function GenerateClient({
                   que esperaram o filme, viram a tela pronta e foram embora SEM
                   O ARQUIVO. Qualquer coisa que empurre o download para baixo
                   cobra esse pedágio de novo — inclusive um card que ajuda. */}
+              {/* KINEO-PLANFIT-DELIVERY-FIRST-2026-08-29 — Plan Fit já era o
+                  único dono da oferta recorrente para a primeira entrega, mas
+                  morava depois de compartilhar, próximo episódio, YouTube,
+                  avaliação e outros blocos. A primeira coorte premium-first
+                  concluiu e viu o vídeo sem produzir `plan_fit_impression`:
+                  a oferta substituía o card do trial e, ao mesmo tempo, ficava
+                  abaixo de todas as ações secundárias. A entrega continua em
+                  primeiro lugar; a decisão comercial vem logo depois dela. */}
+              {planFitOfferEligible && publicVideoId && planFitFirstDelivery &&
+                planFitQuality && planFitSellableCohort && (
+                  <PlanFitCard
+                    key={publicVideoId}
+                    quality={planFitQuality}
+                    seconds={duration}
+                    accountCohort={planFitSellableCohort}
+                    currency={postVideoCurrency}
+                    exposureKey={publicVideoId}
+                    checkoutPending={planFitCheckout.pending}
+                    checkoutError={planFitCheckout.error}
+                    verifyEligibility={verifyPlanFitEligibility}
+                    onEvent={(name, metadata) => trackEvent(name, metadata)}
+                    onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
+                      const started = planFitCheckout.launch(
+                        tier,
+                        withIntentCampaign(withPlanFitCheckoutContext(
+                          `/api/stripe/checkout?tier=${tier}`,
+                          metadata,
+                        )),
+                        {
+                          ...metadata,
+                          intent_campaign: intentCampaign,
+                        },
+                      )
+                      if (!started) return false
+                      trackCheckoutClick(tier)
+                      return true
+                    }}
+                  />
+                )}
+
               {/* KINEO-CREDITO-POR-POSTAR-2026-08-21 — só para o free tier, que
                   é quem carrega a marca d'água. Oferecer isto a um assinante
                   seria pagar por um outdoor que não existe: o filme dele sai
@@ -13631,43 +13671,6 @@ export default function GenerateClient({
               }}
             />
           )}
-
-          {/* A2 PLAN FIT — intentionally AFTER NextShorts. Retention earns the
-              next decision before the subscription ask appears, so this card
-              cannot block the second-video path. It is scoped to a
-              server-confirmed first delivery and never mounts for an active
-              subscriber, an unknown entitlement, Avatar, Presenter or Sora. */}
-          {planFitOfferEligible && publicVideoId && planFitFirstDelivery &&
-            planFitQuality && planFitSellableCohort && (
-              <PlanFitCard
-                key={publicVideoId}
-                quality={planFitQuality}
-                seconds={duration}
-                accountCohort={planFitSellableCohort}
-                currency={postVideoCurrency}
-                exposureKey={publicVideoId}
-                checkoutPending={planFitCheckout.pending}
-                checkoutError={planFitCheckout.error}
-                verifyEligibility={verifyPlanFitEligibility}
-                onEvent={(name, metadata) => trackEvent(name, metadata)}
-                onCheckout={(tier, metadata: PlanFitCheckoutMetadata) => {
-                  const started = planFitCheckout.launch(
-                    tier,
-                    withIntentCampaign(withPlanFitCheckoutContext(
-                      `/api/stripe/checkout?tier=${tier}`,
-                      metadata,
-                    )),
-                    {
-                      ...metadata,
-                      intent_campaign: intentCampaign,
-                    },
-                  )
-                  if (!started) return false
-                  trackCheckoutClick(tier)
-                  return true
-                }}
-              />
-            )}
 
           {/* Push #311 — Performance tracking nudge. After the video is done,
               prompt the user to come back and track how it performed on YouTube.
