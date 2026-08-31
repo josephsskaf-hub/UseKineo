@@ -1,6 +1,9 @@
-import Link from 'next/link'
 import { agencyPacksHref, type AgencyDistributionEntry } from '@/lib/agencyDistribution'
 import { BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
+import {
+  AgencyVolumeBridgeImpression,
+  AgencyVolumeBridgeLink,
+} from '@/components/AgencyVolumeBridgeTelemetry'
 
 const LOWEST_UNIT_PRICE_MINOR = Math.min(
   ...Object.values(BULK_PACKS).map((pack) => Math.round(pack.usdMinor / pack.videos)),
@@ -19,8 +22,10 @@ const CONTEXT: Record<AgencyDistributionEntry, string> = {
 }
 
 export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributionEntry }) {
+  const sectionId = `agency-volume-bridge-${entry}`
   return (
     <section
+      id={sectionId}
       aria-labelledby={`agency-volume-${entry}`}
       style={{
         display: 'grid',
@@ -36,6 +41,7 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
         textAlign: 'left',
       }}
     >
+      <AgencyVolumeBridgeImpression entry={entry} targetId={sectionId} />
       <div>
         <p
           style={{
@@ -62,7 +68,8 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
       </div>
 
       <div style={{ display: 'grid', gap: 9, justifyItems: 'stretch' }}>
-        <Link
+        <AgencyVolumeBridgeLink
+          entry={entry}
           href={agencyPacksHref(entry)}
           style={{
             display: 'flex',
@@ -79,7 +86,7 @@ export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributio
           }}
         >
           See one-time volume packs →
-        </Link>
+        </AgencyVolumeBridgeLink>
         <p style={{ color: '#85858c', fontSize: 11.5, lineHeight: 1.45, margin: 0, textAlign: 'center' }}>
           Self-service · one account · no recurring contract
         </p>

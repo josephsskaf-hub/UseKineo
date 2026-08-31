@@ -2581,3 +2581,32 @@ PRÓXIMO DONO:
 **GATE:** preservar até cinco pessoas externas com `b2b_brief_viewed` e `entry_campaign=b2b_volume_fit_review_v1`. Se houver cinco visualizações e zero submissão, não reescrever o formulário antes de separar fonte e faixa de volume. Formulário enviado é lead, não cliente, checkout, pagamento ou receita.
 
 **COORDENAÇÃO:** commit funcional isolado `846eab2d` em `codex/b2b-fit-review-aeo`, incorporado à candidata `codex/cycle72h-release2` como `a7c03b47`. Nenhuma área Claude foi tocada.
+## 90. B2C — a maior campanha ChatGPT entrega vídeo, mas quase não leva à decisão comercial (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, janela 24/08/2026 16:09 UTC → 31/08/2026 16:09 UTC):** excluídas as contas internas de `lib/internalAccounts.ts`, 70 pessoas externas concluíram vídeo; 67 estavam no primeiro vídeo, três já tinham quatro ou mais. Depois da primeira entrega, 31 pessoas baixaram, 25 viram convite de compartilhamento, três clicaram em compartilhar, sete chegaram a pricing, cinco abriram checkout e zero registrou `payment_success`. Os cinco checkouts sem pagamento tinham entre 42,4 e 133,1 horas na leitura; checkout não foi contado como receita.
+
+**EVIDÊNCIA POR ORIGEM:** ChatGPT respondeu por 47 pessoas com vídeo, 20 downloads, 14 convites de compartilhamento, três cliques de share, cinco chegadas a pricing, quatro checkouts e zero pagamento. A campanha `push60_free_ai_shorts_generator` trouxe 12 pessoas com vídeo, mas só duas baixaram e uma chegou a pricing; `push58_text_to_video_shorts`, com seis pessoas e três downloads, levou duas a pricing e duas a checkout. São pessoas, não eventos ou sessões.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** `/free-ai-shorts-generator` promete entrada por script, mas seu caller não envia `scriptMode`; `TopicGeneratorForm` só envia esse modo quando a prop existe, e o contrato de handoff assume `ai`. O fluxo já existente em `/text-to-video-shorts` oferece `finished_script` com preservação verbatim e duração de 35 segundos.
+
+**HIPÓTESE / PRÓXIMO EXPERIMENTO:** adicionar em `/free-ai-shorts-generator` uma ponte secundária para quem já tem roteiro final, apontando para `/text-to-video-shorts#try-text-to-video-mode-heading`, sem editar o experimento do destino. Medir `free_finished_script_bridge_viewed` a 35% de visibilidade e `free_finished_script_bridge_clicked`, com metadados categóricos e gate de dez pessoas externas registradas depois do clique. Parar se o modo final não for verbatim, se a atribuição original for sobrescrita ou se o destino falhar.
+
+**NÃO IMPLEMENTADO NESTA RODADA:** nenhuma alteração B2C foi feita. A continuação pós-vídeo recém-publicada pelo Claude já começou a receber exposição e pertence à pista de produto; Codex não a editou nem duplicou.
+
+## 91. B2B — medir se o bloco empresarial existente na home chega a ser visto (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 14 dias encerrados em 31/08/2026):** `/ai-shorts-for-agencies` teve zero pessoa externa identificada e uma sessão anônima de smoke. O gerador de brief, o planejador empresarial, os CTAs B2B e o checkout de lote tiveram zero pessoa externa identificada. Na mesma janela, a home teve 50 pessoas identificadas e 2.386 sessões anônimas, mas zero chegada à página de agências com `entry=home`. Sessão anônima não foi contada como pessoa ou lead.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** `AgencyVolumeBridge` já aparecia na home e mantinha destino, oferta e preço canônicos, mas não emitia impressão nem clique. Sem essa separação, zero chegada podia significar bloco não visto, mensagem não clicada ou atribuição quebrada.
+
+**HIPÓTESE CAUSAL NOVA:** antes de mover ou reescrever o bloco, medir se ele alcança a viewport. Se houver tráfego e pouca visibilidade, o problema é posição; se houver pelo menos 20 pessoas identificadas vendo e zero clique, o problema passa a ser enquadramento; se houver clique sem chegada atribuída, o problema é caller/atribuição.
+
+**IMPLEMENTADO:** `home_b2b_bridge_visibility_v1` observa somente o caller `entry='home'` a 50% de visibilidade e emite `agency_volume_bridge_viewed` uma vez por sessão depois de armazenamento confirmado. O clique emite `agency_volume_bridge_clicked`. Os outros oito callers mantêm o mesmo link e não contaminam o experimento da home. O dedupe usa guarda em memória durante o request e grava apenas sucesso em `sessionStorage`, sem deixar marcador pendente preso se o navegador fechar.
+
+**MEDIÇÃO / GATE:** ambos os eventos carregam somente `{version, entry, surface}`. O gate é 20 pessoas externas identificadas com impressão versionada. Clique não é lead, checkout ou receita. A superfície não deve ser movida, reescrita ou reeditada antes desse gate.
+
+**SEM ALTERAÇÃO VISUAL:** markup visível, copy, estilo, preço e destino permanecem byte a byte iguais; a entrega adiciona somente componentes sem saída visual, `id` estável e handlers. Por isso não existe comparação antes/depois aplicável.
+
+**TESTADO LOCALMENTE:** visibilidade 37/37, ponte home 27/27, distribuição B2B 64/64, bulk page 32/32 e money-truth 306/306. `core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**NÃO TOCADO:** preço, packs, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, render, geração, dashboard, admin, e-mail, outreach ou tráfego pago. A mudança está em branch `codex/*`; produção/main permanece inalterada até autorização do fundador.
