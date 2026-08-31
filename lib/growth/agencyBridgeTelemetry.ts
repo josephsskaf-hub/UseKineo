@@ -4,6 +4,8 @@ export const AGENCY_BRIDGE_VISIBILITY_VERSION =
   'agency_volume_bridge_visibility_v1' as const
 export const AGENCY_BRIDGE_VISIBLE_RATIO = 0.5
 export const AGENCY_BRIDGE_GATE_ACTORS_PER_ENTRY = 20
+export const KINEO1_BRIDGE_GATE_IDENTIFIED_PEOPLE = 5
+export const KINEO1_BRIDGE_GATE_ANONYMOUS_SESSIONS = 20
 
 export type AgencyBridgeTelemetryMetadata = {
   version: typeof AGENCY_BRIDGE_VISIBILITY_VERSION

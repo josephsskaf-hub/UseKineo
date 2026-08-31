@@ -8,6 +8,7 @@ export const AGENCY_DISTRIBUTION_ENTRIES = [
   'content_plan',
   'real_estate',
   'client_brief',
+  'kineo1_engine',
 ] as const
 
 export type AgencyDistributionEntry = (typeof AGENCY_DISTRIBUTION_ENTRIES)[number]

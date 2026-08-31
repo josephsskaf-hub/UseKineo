@@ -24,8 +24,10 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 9, 'nine evidence-backed bridges are enabled')
-for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief']) {
+// Kineo 1 is the tenth bridge because production evidence now shows real
+// business-volume traffic on that engine landing; the previous nine remain.
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 10, 'ten evidence-backed bridges are enabled')
+for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)
@@ -62,6 +64,9 @@ const realEstate = read('app/real-estate-video-maker/page.tsx')
 check(realEstate.includes("agencyPacksHref('real_estate')"), 'real estate page routes qualified volume through the allowlist')
 const clientBrief = read('app/client-video-brief-generator/ClientVideoBriefGenerator.tsx')
 check(clientBrief.includes("agencyPacksHref('client_brief')"), 'client brief tool routes approved demand through the allowlist')
+const engineLanding = read('app/ai-video-generator/[engine]/page.tsx')
+check(engineLanding.includes('<AgencyVolumeBridge entry="kineo1_engine" />'), 'Kineo 1 routes commercial Fast volume through the allowlist')
+check(engineLanding.includes("params.engine === 'kineo-1'"), 'other engine landings cannot mount the Fast volume bridge')
 
 const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the allowlisted entry')
