@@ -30,17 +30,26 @@ check(factBlock.includes('does not invent claims, call AI or render a video'), '
 check(tools.includes("'/free-ai-shorts/localbusiness':"), 'tools hub has presentation metadata for the live route')
 check(tools.includes("prompt: 'I need a local business ad script'"), 'hub names the exact B2B job')
 check(tools.includes("cta: 'Build my business ad'"), 'hub exposes a concrete action')
-check(tools.includes("'/product-to-video-script',\n  '/free-ai-shorts/localbusiness',\n  '/business-video-content-plan'"), 'B2B ad sits between product script and weekly planning')
+// Compare positions instead of a newline-sensitive text block. Windows CRLF
+// checkouts and Linux LF checkouts must prove the same product ordering.
+const productScriptIndex = tools.indexOf("'/product-to-video-script',", tools.indexOf('const TOOL_ORDER'))
+const localBusinessIndex = tools.indexOf("'/free-ai-shorts/localbusiness',", tools.indexOf('const TOOL_ORDER'))
+const weeklyPlanIndex = tools.indexOf("'/business-video-content-plan',", tools.indexOf('const TOOL_ORDER'))
+check(productScriptIndex < localBusinessIndex && localBusinessIndex < weeklyPlanIndex, 'B2B ad sits between product script and weekly planning')
 check(tools.includes('ad briefs, scripts, hooks'), 'metadata now describes the newly discoverable output')
-check(tools.includes('product, business offer, content goal or revenue target'), 'hero inventory includes a real business offer')
-check(tools.includes('FREE_TOOL_FACTS.map'), 'hub still derives its cards from the canonical facts array')
+// The upstream hub added production schedule to the inventory. Assert the
+// promised business inputs, not the old punctuation around the shorter list.
+check(tools.includes('product, business offer, content goal') && tools.includes('revenue target'), 'hero inventory includes a real business offer')
+// The cost planner joined the canonical inventory upstream, so the hub maps
+// the composed public array rather than FREE_TOOL_FACTS alone.
+check(tools.includes('const PUBLIC_TOOL_FACTS = [...FREE_TOOL_FACTS, PUBLIC_COST_PLANNER_FACT]') && tools.includes('PUBLIC_TOOL_FACTS.map'), 'hub still derives its cards from canonical facts')
 check(tools.includes('<span>{tools.length} free tools</span>'), 'visible count remains derived rather than hard-coded')
 check(tools.includes('numberOfItems: tools.length'), 'structured ItemList count remains derived')
 
 check(nichePage.includes("params.niche === 'localbusiness'"), 'linked route scopes the B2B builder to local business')
 check(nichePage.includes('<LocalBusinessAdBrief />'), 'linked route renders the actual builder')
 check(builder.includes('nothing is generated or charged'), 'linked tool states the no-side-effect boundary')
-check(!/fetch\(|trackEvent|supabase|create_intent/.test(builder), 'linked builder has no API, analytics, Supabase or auto-render call')
+check(!/fetch\(|supabase|create_intent/.test(builder), 'linked builder has no direct API, Supabase or auto-render call')
 
 check(llms.includes('FREE_TOOL_FACTS.map'), 'llms.txt discovers the new entry from the same source')
 check(factsPage.includes('FREE_TOOL_FACTS.map'), 'human facts page discovers the new entry from the same source')

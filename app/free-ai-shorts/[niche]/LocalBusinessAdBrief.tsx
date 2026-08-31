@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 import { toolActivationHref } from '@/lib/toolActivationHref'
 import {
   buildLocalBusinessAdBrief,
@@ -10,6 +11,14 @@ import {
   measureLocalBusinessAdScript,
   type LocalBusinessAdBriefInput,
 } from '@/lib/growth/localBusinessAdBrief'
+import {
+  LOCAL_BUSINESS_BRIEF_CAMPAIGN,
+  LOCAL_BUSINESS_BRIEF_METADATA,
+  LOCAL_BUSINESS_BRIEF_VIEW_MARKER,
+  LOCAL_BUSINESS_BRIEF_VISIBLE_RATIO,
+  localBusinessBriefDraftMetadata,
+  type LocalBusinessBriefDraftSource,
+} from '@/lib/growth/localBusinessBriefObservability'
 
 const EMPTY: LocalBusinessAdBriefInput = {
   businessName: '',
@@ -27,6 +36,8 @@ const SAMPLE: LocalBusinessAdBriefInput = {
   callToAction: 'Book your inspection at northstarroofing.com',
 }
 
+const pendingViews = new Set<string>()
+
 const FIELD_STYLE = {
   width: '100%',
   boxSizing: 'border-box' as const,
@@ -40,38 +51,106 @@ const FIELD_STYLE = {
 }
 
 export default function LocalBusinessAdBrief() {
+  const sectionRef = useRef<HTMLElement | null>(null)
   const [input, setInput] = useState<LocalBusinessAdBriefInput>(EMPTY)
   const [script, setScript] = useState('')
+  const [draftSource, setDraftSource] = useState<LocalBusinessBriefDraftSource>('manual')
   const complete = localBusinessBriefIsComplete(input)
   const measurement = measureLocalBusinessAdScript(script)
   const continueHref = script
     ? toolActivationHref({
         prompt: script,
-        campaign: 'growth_local_business_brief_20260828',
+        campaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN,
         autoanalyze: true,
         scriptMode: 'verbatim',
         duration: 35,
       })
     : ''
 
+  useEffect(() => {
+    const target = sectionRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+
+    try {
+      if (
+        sessionStorage.getItem(LOCAL_BUSINESS_BRIEF_VIEW_MARKER) === '1'
+        || pendingViews.has(LOCAL_BUSINESS_BRIEF_VIEW_MARKER)
+      ) return
+    } catch {
+      // Privacy mode may disable storage. The builder must stay fully usable.
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => (
+          entry.isIntersecting
+          && entry.intersectionRatio >= LOCAL_BUSINESS_BRIEF_VISIBLE_RATIO
+        ))) return
+
+        observer.disconnect()
+        try {
+          if (
+            sessionStorage.getItem(LOCAL_BUSINESS_BRIEF_VIEW_MARKER) === '1'
+            || pendingViews.has(LOCAL_BUSINESS_BRIEF_VIEW_MARKER)
+          ) return
+        } catch {
+          // Continue failure-isolated when storage is unavailable.
+        }
+
+        pendingViews.add(LOCAL_BUSINESS_BRIEF_VIEW_MARKER)
+        void trackEvent('local_business_brief_viewed', LOCAL_BUSINESS_BRIEF_METADATA)
+          .then((stored) => {
+            pendingViews.delete(LOCAL_BUSINESS_BRIEF_VIEW_MARKER)
+            if (!stored) return
+            try {
+              sessionStorage.setItem(LOCAL_BUSINESS_BRIEF_VIEW_MARKER, '1')
+            } catch {
+              // Analytics storage is optional; the builder is not.
+            }
+          })
+      },
+      { threshold: [LOCAL_BUSINESS_BRIEF_VISIBLE_RATIO] },
+    )
+
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
   function update(field: keyof LocalBusinessAdBriefInput, value: string) {
     setInput((current) => ({ ...current, [field]: limitLocalBusinessField(field, value) }))
     setScript('')
+    setDraftSource('manual')
   }
 
   function generate() {
     const result = buildLocalBusinessAdBrief(input)
     setScript(result.script)
+    setDraftSource('manual')
+    void trackEvent(
+      'local_business_brief_generated',
+      localBusinessBriefDraftMetadata('manual'),
+    )
   }
 
   function loadSample() {
     setInput(SAMPLE)
     setScript(buildLocalBusinessAdBrief(SAMPLE).script)
+    setDraftSource('sample')
+    void trackEvent(
+      'local_business_brief_sample_loaded',
+      localBusinessBriefDraftMetadata('sample'),
+    )
+    void trackEvent(
+      'local_business_brief_generated',
+      localBusinessBriefDraftMetadata('sample'),
+    )
   }
 
   return (
     <section
+      ref={sectionRef}
       id="business-ad-builder"
+      data-observability-version={LOCAL_BUSINESS_BRIEF_METADATA.version}
       style={{
         marginTop: 28,
         padding: 20,
@@ -142,6 +221,12 @@ export default function LocalBusinessAdBrief() {
           </p>
           <Link
             href={continueHref}
+            onClick={() => {
+              void trackEvent(
+                'local_business_brief_activation_clicked',
+                localBusinessBriefDraftMetadata(draftSource),
+              )
+            }}
             style={{ display: 'block', textAlign: 'center', background: '#34d399', color: '#03110c', borderRadius: 12, padding: '13px 16px', fontWeight: 900, textDecoration: 'none' }}
           >
             Continue with this exact script →
