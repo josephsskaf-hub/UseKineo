@@ -2503,3 +2503,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 88. B2B — candidato único liga descoberta, decisão e checkout (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (31/08/2026 UTC, pessoas externas quando identificáveis):** nas duas semanas anteriores, `/ai-video-generator/kineo-1` recebeu oito pessoas externas identificadas e 47 sessões anônimas separadas; depois dessa entrada, uma pessoa concluiu vídeo, duas abriram checkout e nenhuma pagou. A página de agências teve zero pessoa externa identificada e uma sessão anônima. Sessão, clique, brief e checkout não foram contados como cliente ou receita.
+
+**FATO CONFIRMADO:** o pack empresarial e seu checkout já estão em `origin/main`, mas as intervenções que ligavam descoberta, comparação, autenticação e retorno ao pack estavam distribuídas em branches independentes. Criar outra landing page aumentaria estoque de código sem comprador. O candidato `codex/b2b-release-candidate-v1` parte do `origin/main` `7a77855c` e reaplica somente seis commits funcionais já auditados, sem carregar os handoffs divergentes das branches de origem.
+
+**HIPÓTESE CAUSAL:** uma empresa que encontra a Kineo por Kineo 1, pricing, planejador local ou resposta de IA perde intenção quando precisa redescobrir a oferta de volume ou quando a autenticação transforma um pack avulso em checkout genérico. Preservar a intenção de ponta a ponta deve aumentar pessoas que chegam ao checkout bulk sem alterar preço, promessa ou produto.
+
+**IMPLEMENTADO NO CANDIDATO:** (1) a página Kineo 1 oferece o pack avulso como caminho secundário e mede exposição/clique; (2) o caminho empresarial em pricing recebe impressão observável; (3) o fit review B2B preserva atribuição até o brief e passa a ser citável no `llms.txt`; (4) o brief de negócio local mede visualização, geração e ativação sem enviar texto do cliente; (5) login/signup preservam quantidade, valor em USD e natureza avulsa do pack e retornam ao checkout correto. Nenhum checkout é aberto automaticamente.
+
+**FUNIL E GATES:** seguir por pessoa externa `agency_volume_bridge_viewed → agency_volume_bridge_clicked → agency_bulk_page_viewed → agency_bulk_pack_clicked → bulk_checkout_started → bulk_purchase_completed`. A superfície Kineo 1 fica preservada até 20 exposições anônimas visíveis ou cinco pessoas externas identificadas; os demais gates permanecem os de cada versão de origem. Se houver 20 exposições Kineo 1 e zero clique, retirar ou reformular somente a ponte. Não tratar sessão anônima, impressão, brief ou checkout como empresa compradora.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-B2B-BRIDGE-2026-08-31.html` mostra a nova ponte na página do motor; `docs/previews/B2B-AUTH-CONTEXT-2026-08-31.html` mostra login/signup antes e depois, desktop e mobile. As mudanças em pricing, planejador local e brief são de observabilidade/atribuição e não alteram o layout visível.
+
+**TESTADO LOCALMENTE:** dez suítes determinísticas passaram, 475/475 verificações. O typecheck repetiu somente quatro erros baseline preexistentes (`mrr.ts`, `me/subscription` e dois resíduos `brl` no checkout), sem erro novo. `git diff --check origin/main..HEAD` ficou limpo.
+
+**ESTADO:** candidato integrado localmente; ainda não é produção até branch remota, build e preview serem validados. Não declarar assinatura B2B antes de `bulk_purchase_completed` externo.
+
+**NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, SKU, entitlement, render, motor, cena, voz, legenda, Supabase schema/dados, e-mail, outreach, TAAFT, anúncio, IndexNow ou comunicação externa.
+
+**COORDENAÇÃO:** Claude não deve editar as superfícies desse candidato durante a validação. Se encontrar fricção no produto logado, registrar para o fundador; não duplicar ponte, telemetria ou contexto de autenticação. Codex mantém a propriedade do candidato e o rebase contra a ponta nova de `main` antes de qualquer incorporação.
