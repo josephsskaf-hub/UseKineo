@@ -57,7 +57,14 @@ equal(policy.sanitizePricingIntentCampaign(''), null, 'empty campaign is rejecte
 equal(policy.sanitizePricingIntentCampaign('hello world'), null, 'space-bearing campaign is rejected')
 
 const pricing = source('app/pricing/PricingClient.tsx')
-ok(pricing.includes("import {\n  buildPricingPlanChoiceAttribution,\n  sanitizePricingIntentCampaign,"), 'live pricing page imports the policy')
+// The integrated Windows worktree can expose CRLF even when the source commit
+// used LF. Verify the imported module and symbols instead of line endings.
+const policyImport = pricing.match(
+  /import\s*\{([^}]*)\}\s*from ['"]@\/lib\/growth\/pricingPlanChoiceAttribution['"]/,
+)
+ok(policyImport, 'live pricing page imports the policy module')
+ok(policyImport?.[1].includes('buildPricingPlanChoiceAttribution'), 'live pricing imports the plan-choice builder')
+ok(policyImport?.[1].includes('sanitizePricingIntentCampaign'), 'live pricing imports the campaign sanitizer')
 ok(pricing.includes("sanitizePricingIntentCampaign(params.get('intent_campaign'))"), 'pricing view and checkout share campaign validation')
 ok(pricing.includes('const attribution = buildPricingPlanChoiceAttribution({'), 'live plan choice builds versioned attribution')
 ok(pricing.includes('trackPricingEvent(eventName, attribution ?? undefined)'), 'existing click event receives attribution without a duplicate event')

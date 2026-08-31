@@ -2523,3 +2523,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server/configuração, Supabase schema/dados, render, motor, cena, voz, legenda, e-mails ou lista de destinatários do Claude.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não remover `?tier=` dos links de recuperação e não editar a experiência pós-vídeo, o lembrete salvo ou a prova própria antes dos respectivos gates. A configuração Stripe para `payment_intent.payment_failed` e `charge.failed` continua aguardando confirmação explícita do fundador.
+
+## 90. Release 72h — um candidato único para B2C e B2B (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT em 31/08/2026 UTC; contas internas excluídas):** em toda a história observável, `agency_bulk_page_viewed` tem uma sessão anônima, `b2b_brief_viewed` tem uma sessão anônima e não existe `bulk_purchase_completed`. Na janela separada de 14 dias, houve três pessoas externas com `payment_success`, todas no funil de assinatura, e nenhum evento de compra bulk. O dado invalida a criação de outra landing B2B: o problema imediato é colocar no ar e medir as pontes já construídas.
+
+**FATO CONFIRMADO:** os candidatos B2B e B2C anteriores estavam ambos baseados no mesmo `origin/main` `7a77855c`, mas separados e com conflito previsível em `/pricing`. O release `codex/cycle72h-release-candidate-v3` integra os oito commits funcionais numa única árvore, mantendo cada hipótese e gate independentes.
+
+**B2B INTEGRADO:** Kineo 1 abre um caminho secundário para packs empresariais; impressão e clique da ponte são medidos; pricing mede a entrada empresarial; fit review preserva atribuição até o brief e aparece no `llms.txt`; o planejador local mede uso sem gravar texto do cliente; login/signup preservam quantidade, USD e natureza avulsa do pack até o checkout.
+
+**B2C INTEGRADO:** links de recuperação com `?tier=starter|basic|pro` mantêm e destacam a escolha sem esconder planos ou abrir checkout; o clique real passa a carregar tier, periodicidade e campanha sanitizada no evento existente, somente quando a trava de checkout aceita o lançamento.
+
+**GATES PRESERVADOS:** B2B Kineo 1 fica intacto até 20 exposições anônimas visíveis ou cinco pessoas externas identificadas; tier handoff B2C até cinco pessoas externas versionadas; atribuição do clique B2C até dez pessoas externas. Os demais gates de origem continuam válidos. Impressão, sessão, brief e checkout não são compra.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-B2B-BRIDGE-2026-08-31.html`, `docs/previews/B2B-AUTH-CONTEXT-2026-08-31.html` e `docs/previews/PRICING-TIER-HANDOFF-V1-2026-08-31.html` cobrem antes/depois desktop e mobile de todas as mudanças visíveis. As demais mudanças são telemetria/atribuição sem alteração de layout.
+
+**TESTADO LOCALMENTE:** 14 suítes passaram, 628/628 verificações. O typecheck repetiu somente os quatro erros baseline preexistentes e nenhum novo. Uma asserção foi corrigida: procurava um import com `LF` literal e quebrou no worktree `CRLF`; agora verifica o módulo e os dois símbolos importados, que é o contrato real. `git diff --check` permanece limpo.
+
+**ESTADO:** release integrado localmente; ainda não é produção até branch remota, build e preview serem validados.
+
+**NÃO TOCADO:** oferta pós-vídeo, preço, desconto, cupom, crédito, trial, SKU, Stripe server/configuração, render, motor, cenas, voz, legendas, Supabase schema/dados, e-mail, outreach, anúncio ou comunicação externa.
+
+**COORDENAÇÃO:** este release substitui, para incorporação, `codex/b2b-release-candidate-v1` e `codex/b2c-pricing-intent-candidate-v1`; as branches anteriores continuam como evidência, não devem ser incorporadas separadamente. Claude não deve editar as superfícies listadas enquanto o release é validado e deve executar `git fetch origin` antes de qualquer integração.
