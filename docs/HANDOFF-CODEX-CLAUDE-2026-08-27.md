@@ -2514,16 +2514,42 @@ PRÓXIMO DONO:
 
 **HIPÓTESE:** a saída entre página de preço, Stripe e pagamento pode variar por tier, periodicidade ou origem pós-vídeo. Sem essa separação, qualquer nova mudança de copy seria opinião sem diagnóstico.
 
-**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit `dd251ea3d78d7109132ee3d0a263713faef2bf73` adiciona `pricing_plan_choice_attribution_v1` como metadata dos quatro eventos já existentes. O payload contém somente `version`, `tier`, `billing` e `intent_campaign` validada; não cria evento duplicado e não carrega e-mail, prompt, roteiro, tópico, pessoa, sessão ou cupom. Autopilot é sempre mensal porque não possui SKU anual. Clique suprimido pela trava anti-duplo-clique continua sem evento.
+**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit `9f850db8eb79200c9562619b541e6ba616273272` adiciona `pricing_plan_choice_attribution_v1` como metadata dos quatro eventos já existentes. O payload contém somente `version`, `tier`, `billing` e `intent_campaign` validada; não cria evento duplicado e não carrega e-mail, prompt, roteiro, tópico, pessoa, sessão ou cupom. Autopilot é sempre mensal porque não possui SKU anual. Clique suprimido pela trava anti-duplo-clique continua sem evento.
 
-**CONSOLIDAÇÃO DE GIT:** a mesma branch incorpora o commit `444afbe9`, equivalente funcional da correção pendente de verdade em USD. Isso substitui operacionalmente `codex/usd-only-currency-truth`; não integrar as duas branches. A nova branch nasceu de `origin/main` `4f534e5d` e está publicada como `codex/pricing-truth-attribution`, dois commits à frente, sem alterar `main`.
+**CONSOLIDAÇÃO DE GIT:** a mesma branch incorpora o commit `04cebcfa8e0f2d83d4bc3e0689d94805a47a69fa`, equivalente funcional da correção pendente de verdade em USD. Isso substitui operacionalmente `codex/usd-only-currency-truth`; não integrar as duas branches. Após o rebase de coordenação de 31/08/2026, a branch nasce de `origin/main` `0cc4e705b0baa001308e411844476f79c40ad605`, sem alterar `main`.
 
 **MEDIÇÃO / GATE:** contar pessoas externas em `pricing_view(source) → *_checkout_clicked(version/tier/billing/intent_campaign) → checkout_started → payment_success`. Preservar até dez pessoas externas com clique versionado. Parar imediatamente se tier, billing ou campanha divergirem da metadata da sessão Stripe. Clique e sessão não são receita.
 
 **TESTADO LOCALMENTE:** 592 verificações passaram: atribuição 24/24, moeda 36/36, checkout salvo 47/47, contexto de valor 59/59, jornada 43/43, orientação de pagamento 29/29 e Plan Fit 354/354. Uma asserção de jornada foi corrigida para aceitar LF ou CRLF; ela continua verificando a ordem real dos componentes. O typecheck repetiu somente os quatro erros baseline já conhecidos e nenhum nos arquivos desta entrega. Whitespace limpo com `core.whitespace=cr-at-eol`.
 
-**PREVIEW VALIDADO:** Vercel `dpl_E318dAeYqSce575NqwfwHSA8bwwm` chegou a `READY` no SHA exato `dd251ea3`; o log de build filtrado por erros retornou apenas `Build Completed`. A atribuição não altera UI. A comparação visual já existente `docs/previews/USD-CURRENCY-TRUTH-2026-08-31.html` acompanha a única mudança visível consolidada, sem preço literal novo.
+**PREVIEW VALIDADO ANTES DO REBASE:** Vercel `dpl_E318dAeYqSce575NqwfwHSA8bwwm` chegou a `READY` no SHA funcional equivalente anterior `dd251ea3`; o log de build filtrado por erros retornou apenas `Build Completed`. O rebase não alterou o conteúdo funcional. A atribuição não altera UI. A comparação visual já existente `docs/previews/USD-CURRENCY-TRUTH-2026-08-31.html` acompanha a única mudança visível consolidada, sem preço literal novo.
 
 **NÃO TOCADO:** preço numérico, desconto, cupom, crédito, grant, validade, trial, SKU, entitlement, webhook, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não tocar em `app/pricing/PricingClient.tsx` nesta rodada. O fundador pode integrar somente `codex/pricing-truth-attribution`; a branch antiga de moeda fica supersedida. Codex mede o gate de dez pessoas e gira a próxima sprint para B2B, sem reeditar os experimentos preservados.
+
+## 85. B2C — a escolha feita no retorno finalmente chega ao card certo (31/08/2026)
+
+**DIVISÃO DE PISTA:** entrega exclusiva do Codex em aquisição/conversão B2C. Ela amplia a branch consolidada `codex/pricing-truth-attribution`; nenhum arquivo do produto pós-login, render, geração, admin ou crédito foi tocado. A seção 84 pertence à branch B2B separada `codex/agency-bridge-attribution`.
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase SELECT + Stripe live somente leitura, 31/08/2026 UTC, janela móvel de 72 horas, contas internas excluídas):** 41 pessoas externas concluíram vídeo. `pricing_journey_proof_v1` apareceu para quatro pessoas, abaixo do gate de cinco, e a variante versionada do resume banner continuou sem exposição válida; ambas foram preservadas. A Stripe tinha nove sessões recentes de sete pessoas externas: todas expiradas e não pagas, nenhuma `complete`. São sessões e pessoas distintas — não foram somadas como clientes nem receita.
+
+**FATO CONFIRMADO / LACUNA NOVA:** dois fluxos quentes já enviam `/pricing?tier=starter|basic`, mas `PricingClient` lia `promo` e `intent_campaign` e descartava `tier`. O comprador clicava numa escolha específica e recebia novamente a comparação genérica. A página tinha somente `#plans`, sem alvo estável por plano.
+
+**HIPÓTESE:** preservar a escolha já feita reduz uma decisão repetida imediatamente antes do checkout. A intervenção não deve iniciar Stripe automaticamente, esconder alternativas nem alterar preço, copy ou ordem dos planos.
+
+**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit funcional `b1aeca8cf1cfa1f8427c6da40b42767c201d2f84` adiciona `pricing_tier_handoff_v1`. Somente `starter`, `basic` e `pro` são aceitos; valor inválido falha fechado. O card solicitado recebe ID canônico, foco visual e vira alvo de viewport, mas todos os planos permanecem visíveis e o checkout continua exigindo clique explícito. Hash profundo diferente de `#plans` nunca é sobrescrito.
+
+**MEDIÇÃO / PRIVACIDADE:** `pricing_tier_intent_viewed` só é emitido depois de pelo menos 35% do card alvo estar visível. O payload contém somente `version`, `requested_tier` e `intent_campaign` validada. Dedupe é por sessão/versão/tier/campanha e só persiste depois de `/api/events` confirmar armazenamento. Não carrega e-mail, preço, cupom, prompt, roteiro, tópico, `user_id` ou `session_id`.
+
+**GATE:** preservar até dez pessoas externas com impressão versionada. Medir por pessoa `pricing_tier_intent_viewed → clique existente do MESMO tier com pricing_plan_choice_attribution_v1 → checkout_started → payment_success`. Parar se tier/copy/preço divergir da sessão Stripe, se o scroll esconder prova comercial ou se qualquer navegação automática ao checkout aparecer. Impressão, clique e sessão não são receita.
+
+**TESTADO LOCALMENTE:** 801 verificações relevantes passaram: tier handoff 56/56, escolha de plano 24/24, moeda 36/36, jornada 43/43, checkout salvo 47/47, Plan Fit 354/354, prova visual 17/17, contexto de valor 59/59, janela de sessão 25/25, leitura de perfil 25/25, orientação de pagamento 29/29, cancelamento 39/39 e repeat-before-checkout 47/47. O typecheck repetiu somente os quatro erros baseline conhecidos. Whitespace limpo com `core.whitespace=cr-at-eol`.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRICING-TIER-HANDOFF-2026-08-31.html` contém antes/depois desktop e mobile e está coberto pelo teste. A tentativa de abrir `file://` no Chrome foi bloqueada pela política de URL do navegador; não houve contorno. O preview real não foi aberto para não fabricar `pricing_view` ou a nova impressão na base de produção antes da integração.
+
+**PREVIEW VALIDADO ANTES DO REBASE:** Vercel `dpl_7t9T9fTcCoYaah66shKMYeiBNo6z` chegou a `READY` no SHA funcional equivalente anterior `6335c5fb`. O rebase não alterou o conteúdo funcional. Isso prova build da branch, não produção nem conversão.
+
+**NÃO TOCADO:** preço, plano, desconto, cupom, crédito, grant, validade, trial, SKU, Stripe server/configuração/dados, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, cron, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não editar `app/pricing/PricingClient.tsx`. Integrar somente `codex/pricing-truth-attribution`, que agora consolida verdade USD, atribuição de escolha e continuidade de tier; `codex/usd-only-currency-truth` continua supersedida. Depois da integração, Codex mede o gate e alterna a próxima rodada para B2B.
