@@ -27,6 +27,8 @@ import {
 } from '@/lib/marketingPrice'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
+import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTelemetry'
+import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
 import {
@@ -937,7 +939,8 @@ export default function PricingClient() {
           .
         </p>
 
-        <div className="mx-auto max-w-3xl">
+        <div id={PRICING_BUSINESS_PATH_TARGET_ID} className="mx-auto max-w-3xl">
+          <PricingBusinessPathTelemetry />
           <AgencyVolumeBridge entry="pricing" />
         </div>
 
