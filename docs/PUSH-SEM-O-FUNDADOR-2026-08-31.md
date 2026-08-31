@@ -56,10 +56,28 @@ A partir daí eu configuro `credential.helper=store --file=<esse arquivo>` e dou
 - Não precisa de token nenhum: usa a credencial que o git dele já tem.
 - Para desinstalar: `scripts\DESINSTALAR-PUSH-AUTOMATICO.bat`.
 
-## Recomendação
+## Recomendação — DECIDIDA: opção B
 
-**Opção A.** Ela é a única que cumpre o pedido inteiro — eu entregando de madrugada, em tarefa agendada,
-com o computador dele desligado. A B é um bom complemento (redundância), mas depende da máquina dele estar viva.
+O fundador respondeu (31/08): **"o pc vai ficar ligado"**. Isso derruba a única vantagem real da opção A.
 
-Se ele fizer as duas, a A ganha na prática: quando eu já dei push, o bat automático não acha nada para subir
-e sai em silêncio.
+**Fica a B.** O raciocínio:
+
+- A **única** coisa que a A fazia melhor era entregar com a máquina dele desligada. Com o PC ligado, empatam.
+- A A **adiciona** um segredo de longo prazo dentro de uma pasta que sincroniza com a nuvem, mais uma
+  renovação a cada 90 dias e uma revogação para lembrar. Isso é dívida operacional permanente para comprar
+  uma vantagem que ele acabou de dispensar.
+- A B **não adiciona superfície nenhuma**: usa a credencial que o git do Windows já tem, o mesmo comando que
+  ele já roda hoje à mão, só que disparado por relógio em vez de por dedo.
+
+Regra geral que fica registrada: **quando duas soluções entregam o mesmo resultado, ganha a que não cria
+segredo novo.** A A continua documentada aqui e pode ser ligada em minutos se um dia ele quiser entrega com o
+computador desligado — nada do que está escrito acima se perde.
+
+### O que a B NÃO resolve (dito na frente)
+
+- Se o computador dormir, hibernar ou o usuário deslogar, a tarefa não dispara — ela roda com a sessão dele
+  aberta. Ao voltar, a próxima janela de 20 min pega o atraso.
+- **Não há revisão humana antes do push.** Mas o portão não mudou: `entrega-atual` só se move quando eu movo,
+  depois de `tsc` limpo e dos testes da rodada. A B tira o clique, não a verificação.
+- Se o Codex empurrar por cima, o push falha e fica registrado em `scripts/push_auto.log` como `RESULTADO:
+  FALHOU`. Eu rebaso na rodada seguinte e a tarefa sobe sozinha depois.
