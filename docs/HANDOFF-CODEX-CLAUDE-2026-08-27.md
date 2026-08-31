@@ -2550,6 +2550,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE APÓS REBASE:** 357 verificações relevantes passaram: bridge 61/61, distribuição B2B 69/69, página bulk 32/32, intenção da landing 126/126 e oferta AEO empresarial 69/69. O typecheck repetiu somente os quatro erros baseline conhecidos; nenhum erro novo. Whitespace limpo com `core.whitespace=cr-at-eol`.
 
+**PREVIEW VALIDADO (31/08/2026 UTC):** Vercel `dpl_BgH2hFHXfbekrqroJJuf7SitCPyF` chegou a `READY` no SHA `51427a9e092997eb6103844c6c711e42b883afdb`. No Chrome conectado, a landing real exibiu fatos técnicos → bridge → “How it works” nessa ordem, manteve a fronteira “no recurring contract”, teve zero console error e zero overflow horizontal a 390 px.
+
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, afiliados, e-mail, outreach, anúncio ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar e não editar esta landing nem o bridge até o gate. Integrar somente `codex/agency-bridge-attribution`; ela já consolida a telemetria genérica da seção 84 e substitui as branches B2B antigas indicadas ali. Codex gira a próxima sprint para B2C.
