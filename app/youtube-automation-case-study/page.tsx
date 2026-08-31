@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import OrganicCtaLink from '@/components/OrganicCtaLink'
 import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
@@ -187,12 +188,20 @@ export default function CaseStudyPage() {
             Run the same experiment on your channel
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
-            Type one topic, get a finished Short with script, voice, footage and captions — usually
-            in 3–7 minutes. {ft(OFFER, '3 free videos every 24h, no card.', OFFER.copy.headline)}
+            The experiment above uses Kineo Autopilot. Review the pilot and monthly options first,
+            or keep control and try the generator free.
           </p>
+          <OrganicCtaLink
+            href="/pricing?intent_campaign=autopilot_case_study_v1#autopilot"
+            source="youtube_automation_case_study"
+            placement="autopilot_offer"
+            className="mt-5 inline-block rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-200"
+          >
+            See Autopilot pilot and monthly options
+          </OrganicCtaLink>
           <Link
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
-            className="mt-5 inline-block rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-200"
+            className="ml-3 mt-3 inline-block rounded-full border border-white/20 px-6 py-3 text-sm font-black text-white transition hover:border-cyan-200 hover:text-cyan-100 max-sm:ml-0"
           >
             {/* KINEO-TRIAL-BLOCKERS-2026-08-07 — último vazamento de copy do QA
                 (item h): este botão estava hardcoded duas linhas abaixo de um
