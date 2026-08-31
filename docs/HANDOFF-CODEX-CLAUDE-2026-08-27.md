@@ -2503,3 +2503,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 95. B2C — quem volta à home com um vídeo ganha caminho para o episódio 2 (31/08/2026)
+
+**DIVISÃO DE TRABALHO / GIT:** entrega da pista Codex em `codex/home-episode-two`, somente home pública e código de growth. A branch nasceu em `ac2b0748`; quando `origin/main` avançou para o commit Claude `43e66af1`, o novo commit foi inspecionado, não colidia e esta entrega foi rebased sobre ele antes do push. Nenhum arquivo do dashboard, gerador, render, admin ou crédito foi alterado.
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC; 30 dias; contas internas excluídas):** 256 pessoas atribuídas a ChatGPT criaram conta; 142 concluíram pelo menos um vídeo; 99 permaneciam com exatamente um; oito chegaram a quatro ou mais; 32 chegaram a checkout e uma tinha pagamento registrado. A associação é observacional e não transforma signup, vídeo ou checkout em receita. O dado confirma o estoque “um vídeo e sumiu” dentro do canal que mais cresceu.
+
+**RECONCILIAÇÃO DOS EXPERIMENTOS VIVOS:** `pricing_journey_proof_v1` tinha somente três pessoas externas distribuídas entre seus estados e zero pagamento; `trial_repeat_before_checkout_v1` tinha uma pessoa externa exposta; `resume_smaller_choice_v1` ainda não tinha exposição versionada. Todos foram preservados sem edição. As continuações existentes já registravam cliques e pousos em `history_milestone`, `done_screen`, `studio_milestone` e outras superfícies do Claude; a home não tinha tratamento para a pessoa logada que voltava com exatamente um vídeo.
+
+**HIPÓTESE CAUSAL NOVA:** quando um não assinante retorna à home depois da primeira entrega, reconhecer o progresso e encaminhá-lo ao rail de continuação já existente reduz a volta à página em branco. A hipótese não é que um clique venda; é que episódio 2 aproxima a pessoa do quarto vídeo, faixa em que a conversão histórica informada pelo fundador sobe materialmente.
+
+**IMPLEMENTADO:** SHAs funcionais `2e0d7c94e0c5ebc616cec8635b799cfa9930fa74` + `5151406c7b41fd49f58fb55cba7a561b7ea39b4e`. `HomeOneVideoReturnBridge` consulta em paralelo `/api/videos` e `/api/me/plan`, falha fechado e só aparece para usuário autenticado, sem plano ativo, com histórico confiável e exatamente um vídeo concluído. O CTA abre `/history`, onde o rail `history_milestone` já oferece Next episode. Nenhum prompt, motor, saldo ou render é iniciado pela home.
+
+**MEDIÇÃO / PRIVACIDADE:** `home_one_video_return_viewed` exige 50% do bloco visível; `home_one_video_return_clicked` registra a ação. Payload limitado a versão `home_one_video_return_v1`, superfície, bucket `1`, destino categórico e unidade do ator. E-mail, id do vídeo, título, prompt, roteiro e URL nunca entram. O dedupe por aba só é escrito depois de `stored:true` e é separado por usuário no navegador sem enviar esse identificador.
+
+**VERDADE COMERCIAL:** copy diz somente que o primeiro Short existe, que o histórico tem a ação Next episode e que a próxima ideia é revisada antes de gerar. Não promete crédito, gratuidade, resultado, prazo ou compra. Assinante, anônimo, zero vídeo, dois ou mais vídeos e histórico incerto não veem a superfície.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/HOME-ONE-VIDEO-RETURN-2026-08-31.html` contém BEFORE/AFTER desktop e mobile. O hero e os quatro vídeos aprovados permanecem antes do novo estado; o card contextual fica entre o router de boas-vindas e o restante da home. A política do Chrome bloqueou `file://`; não houve contorno. O HTML continua auditável no repositório e a home real foi validada pelo preview HTTPS.
+
+**TESTADO LOCALMENTE:** política real compilada e executada para anônimo, assinante, histórico incerto, contagens 0/1/2 e destino; suite nova 44/44, home B2B 27/27 e distribuição B2B 64/64 — 135 verificações. Typecheck repetiu apenas os quatro erros baseline (`mrr.ts`, `me/subscription`, Stripe checkout ×2); nenhum arquivo desta entrega. Whitespace limpo.
+
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** Vercel `dpl_BVkRHcjyFG1C6fx8ypsB9kfr5Jr1` chegou a `READY` no SHA `5151406c`; alias `kineo-git-codex-home-episode-two-josephsskaf-hubs-projects.vercel.app`. No Chrome conectado do fundador, hero visível, zero console error e estado personalizado corretamente escondido para a conta atual inelegível. Zero runtime log `error`/`fatal`. Não foi fabricada uma conta de um vídeo para forçar uma impressão.
+
+**GATE:** não reeditar a home nem essa hipótese antes de 20 pessoas externas em `home_one_video_return_viewed`. Medir por pessoa `viewed → clicked → series_continue_clicked(source=history_milestone) → series_continuation_landed → segundo vídeo concluído → checkout_started → payment_success`. Impressão, clique, pouso, segundo vídeo e checkout não são assinatura. Se view existir sem clique, testar mensagem; clique sem continuação indica transição no histórico e pertence ao Claude; continuação sem segundo vídeo pertence ao produto; segundo vídeo sem checkout volta à pista Codex.
+
+**NÃO TOCADO:** dashboard, history UI, studio, generate, render, motor, cena, voz, legenda, qualidade, admin, crédito, trial, preço, plano, cupom, SKU, Stripe, Supabase schema/dados, e-mail, outreach ou aquisição paga.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `43e66af1` ou posterior; esta branch já contém esse commit como ancestral. Não duplicar o card na home nem mudar o rail `history_milestone` por causa desta entrega antes de existir evidência de clique sem continuação. Codex gira a próxima sprint para B2B enquanto a coorte amadurece.
