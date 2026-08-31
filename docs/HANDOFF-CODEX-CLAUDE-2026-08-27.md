@@ -2594,6 +2594,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE NA ÁRVORE INTEGRADA:** 14 suítes passaram com 871 verificações, incluindo o contrato novo, ledger de afiliados, retomada de checkout, pricing e Autopilot. A única asserção reescrita procurava LF literal; passou a verificar a ordem dos três motivos de retry independentemente de CRLF/LF. Typecheck repetiu exatamente os quatro erros baseline e nenhum novo; whitespace limpo.
 
+**VALIDADO EM PRODUÇÃO (31/08/2026 UTC):** `origin/main` avançou por fast-forward de `db616b2c` para `3f3ca5a8345666bd6d01faf6c1791b4a40071766`. O deploy Vercel `dpl_ALMpBx2FNU81HGTr1EFXMTbrKzGM` chegou a `READY`, target production, aliasado em `www.usekineo.com`; a consulta do deployment encontrou zero runtime `error`/`fatal` na janela de 30 minutos. Não foi fabricada uma recusa de cartão, portanto o caminho ponta a ponta aguarda um evento real depois da configuração.
+
 **CONFIGURAÇÃO AINDA CONTIDA:** o painel de produção continua nos seis eventos registrados na seção 92. Nenhum checkbox foi alterado. Depois deste release entrar em produção, adicionar `payment_intent.payment_failed` e `charge.failed` exige confirmação humana no momento do clique em `Salvar destino`; antes disso, o código antigo de produção ainda não satisfaz o contrato.
 
 **MÉTRICA / GATE:** medir pessoas externas em `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. Sessão aberta fica pendente; sessão expirada e não paga, sem falha inicial, é abandono silencioso; `stage=renewal` é churn involuntário e fica fora da conversão inicial. O dedupe de 24 horas é por PaymentIntent e não é uma promessa de exactly-once sem constraint única no banco.
