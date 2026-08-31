@@ -2523,3 +2523,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server/configuração, Supabase schema/dados, render, motor, cena, voz, legenda, e-mails ou lista de destinatários do Claude.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não remover `?tier=` dos links de recuperação e não editar a experiência pós-vídeo, o lembrete salvo ou a prova própria antes dos respectivos gates. A configuração Stripe para `payment_intent.payment_failed` e `charge.failed` continua aguardando confirmação explícita do fundador.
+
+## 89. B2C — escolha prometida e clique de checkout passam a fechar o mesmo funil (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase, lido em 31/08/2026 UTC; contas internas excluídas):** em 30 dias, 22 pessoas clicaram na oferta pós-vídeo do trial e nenhuma pagou; em 45 dias, 17 pessoas clicaram na página de preços e quatro pagaram. O dado não prova causalidade por sessão, mas torna incorreto reabrir o pós-vídeo antes do gate e aponta para continuidade em superfícies de intenção.
+
+**FATO CONFIRMADO:** a seção 87 preservava o plano pedido na chegada, porém o clique de checkout subsequente ainda não carregava uma atribuição estruturada comum de tier, periodicidade e campanha. Sem esse elo, `pricing_tier_intent_viewed → checkout_cta_clicked` não distinguia escolha correspondente de troca de plano.
+
+**HIPÓTESE CAUSAL:** compradores vindos de recuperação convertem melhor quando a página mantém o plano que escolheram; medir o plano realmente clicado permite separar continuidade, troca consciente e abandono sem inventar preço como causa.
+
+**IMPLEMENTADO NO CANDIDATO:** `codex/b2c-pricing-intent-candidate-v1` parte do `origin/main` `7a77855c` e une somente dois contratos. `pricing_tier_handoff_v1` aceita `starter | basic | pro`, centraliza e marca o card solicitado sem esconder os demais e só conta exposição após 35% visível. `pricing_plan_choice_attribution_v1` anexa tier, monthly/annual e campanha sanitizada ao evento de checkout que já existe, somente depois que a trava de clique confirma que o checkout foi lançado. Nenhum evento duplicado, auto-checkout ou novo preço foi criado.
+
+**MÉTRICA / GATES:** por pessoa externa, seguir `pricing_tier_intent_viewed(requested_tier) → *_checkout_clicked(tier,billing,intent_campaign) → checkout_started → payment_success`. Preservar o handoff até cinco pessoas externas com impressão versionada e a atribuição de escolha até dez pessoas externas com clique versionado. Se o plano pedido ficar visível e outro for clicado, registrar troca consciente; não chamar de falha. Se houver checkout sem pagamento, não atribuir a preço ou cartão antes da telemetria Stripe.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRICING-TIER-HANDOFF-V1-2026-08-31.html` mostra antes/depois desktop e mobile. A atribuição do clique não muda layout.
+
+**TESTADO LOCALMENTE:** cinco suítes passaram, 194/194 verificações; typecheck repetiu somente quatro erros baseline preexistentes e nenhum erro novo. Os dois conflitos do cherry-pick foram resolvidos mantendo os dois imports e usando a mesma sanitização de campanha na visualização e no clique.
+
+**ESTADO:** candidato integrado localmente; ainda não é produção até branch remota, build e preview serem validados.
+
+**NÃO TOCADO:** oferta pós-vídeo, preço, desconto, cupom, crédito, trial, SKU, Stripe server/configuração, render, produto logado, e-mail, destinatários, Supabase schema/dados, outreach ou anúncio.
+
+**COORDENAÇÃO:** Claude preserva o pós-vídeo e não edita `/pricing` durante a validação deste candidato. A configuração Stripe para `payment_intent.payment_failed` e `charge.failed` continua separada e depende da confirmação explícita do fundador.
