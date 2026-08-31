@@ -2357,3 +2357,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** código, preço, crédito, trial, Stripe, Supabase schema/dados, render, e-mail ou contato externo. Esta rodada foi diagnóstico mensurável para impedir sobreposição de experimentos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não editar `CheckoutResumeBanner` nem interpretar eventos sem `resume_choice_version` como resposta à variante nova. Codex mede a primeira amostra versionada.
+
+## 76. Distribuição B2B — a página de agências passa a oferecer o brief gratuito como pré-compra (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 30/08/2026 UTC):** desde a publicação das seções 73–74, não houve pessoa externa nos eventos `client_short_brief_*`; o gerador e o loop de intake ainda não têm amostra válida. No workstream de afiliados, existem 11 afiliados externos ativos: 7 nunca receberam clique, 4 receberam clique sem indicação, 18 cliques acumulados, zero `affiliate_referrals` e zero comissão. Nenhum dos 11 produziu evento de afiliado, geração, vídeo pronto, pricing, checkout ou pagamento nas 72 horas consultadas; o último clique foi em 29/08/2026. Outro nudge dentro do produto não alcançaria essas pessoas, portanto a superfície de afiliados foi preservada.
+
+**HIPÓTESE CAUSAL NOVA:** parte do tráfego da página de agências ainda não está pronta para comprar um lote porque precisa transformar o pedido vago em algo aprovável pelo cliente. A ferramenta gratuita já resolve exatamente essa etapa, mas a página comercial não apontava para ela. Isso era uma lacuna de distribuição entre dois ativos existentes, não falta de outra landing page.
+
+**IMPLEMENTADO:** o commit funcional `52a76d329eaf9ee95242af5fb1071fa3d76b30c5` adiciona, depois dos quatro packs e da fronteira de créditos, um caminho secundário: `Need client approval before buying a batch? → Build the free brief`. Os quatro CTAs pagos, preços, packs e ordem comercial permanecem inalterados. O destino é `/client-video-brief-generator?entry=agency_page`; não usa UTM e não sobrescreve a origem de aquisição do visitante.
+
+**MEDIÇÃO / GATE:** `agency_free_brief_clicked` registra somente `version=agency_free_brief_bridge_v1`, superfície e posição. Um clique não é lead nem venda. Medir por pessoa externa: `agency_bulk_page_viewed → agency_free_brief_clicked → client_short_brief_viewed → generated → activation_clicked OU packs_clicked → signup → vídeo concluído → checkout → payment_success`. Não reeditar a página de agências antes de cinco pessoas externas na versão; se houver visita sem clique, investigar objeção. Se houver clique sem geração, investigar o formulário. Se houver geração sem retorno comercial, preservar a utilidade e testar o retorno ao pack em outra superfície.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AGENCY-FREE-BRIEF-BRIDGE-2026-08-30.html` contém antes/depois desktop e mobile. A ponte aparece depois da comparação paga e empilha corretamente em mobile.
+
+**TESTADO LOCALMENTE:** distribuição B2B 64/64 e client brief 82/82. O typecheck terminou sem saída e o gate `core.whitespace=cr-at-eol` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** o deploy Vercel `dpl_5KdZecVRrwrDoeJ7uBfVnzvsrrKG` chegou a `READY`, target production, no SHA funcional `52a76d32`, aliasado em `www.usekineo.com`. No Chrome conectado do fundador, a página exibiu quatro links de compra antes do novo card; o destino abriu o gerador canônico com `entry=agency_page`. Zero console error nas duas páginas e zero log runtime `error`/`fatal` no deployment na janela consultada.
+
+**NÃO TOCADO:** preços, packs, créditos, trial, Stripe, checkout, Supabase schema/dados, render, motor, cena, voz, legenda, afiliados, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `52a76d32` ou posterior. Não duplicar o gerador, não inserir outra mensagem na área de afiliados sem retorno e não classificar o novo clique como conversão. Codex mede a primeira amostra e gira a próxima rodada para outro estágio enquanto este gate amadurece.
