@@ -57,7 +57,13 @@ equal(policy.sanitizePricingIntentCampaign(''), null, 'empty campaign is rejecte
 equal(policy.sanitizePricingIntentCampaign('hello world'), null, 'space-bearing campaign is rejected')
 
 const pricing = source('app/pricing/PricingClient.tsx')
-ok(pricing.includes("import {\n  buildPricingPlanChoiceAttribution,\n  sanitizePricingIntentCampaign,"), 'live pricing page imports the policy')
+// The tier-handoff sprint added more symbols to the same import. Assert the
+// imported behavior and module instead of pinning an exact three-line layout.
+ok(
+  pricing.includes('buildPricingPlanChoiceAttribution,') &&
+    pricing.includes("from '@/lib/growth/pricingPlanChoiceAttribution'"),
+  'live pricing page imports the policy',
+)
 ok(pricing.includes("sanitizePricingIntentCampaign(params.get('intent_campaign'))"), 'pricing view and checkout share campaign validation')
 ok(pricing.includes('const attribution = buildPricingPlanChoiceAttribution({'), 'live plan choice builds versioned attribution')
 ok(pricing.includes('trackPricingEvent(eventName, attribution ?? undefined)'), 'existing click event receives attribution without a duplicate event')
