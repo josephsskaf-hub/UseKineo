@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Inline pricing returning focus v1 — before / after</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#080809;color:#f5f5f7;font:14px Inter,Arial,sans-serif;padding:28px}
+    h1{margin:0 0 8px;font-size:24px}.note{color:#86868b;margin:0 0 26px}.board{display:grid;gap:28px}
+    .pair{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}.shot{background:#111113;border:1px solid #29292d;border-radius:18px;padding:20px;min-width:0}
+    .label{color:#2997ff;font-size:10px;letter-spacing:.16em;font-weight:900;margin-bottom:16px}.phone{max-width:360px;margin:auto}
+    .pricing{text-align:center}.eyebrow{color:#2997ff;font-size:10px;font-weight:900;letter-spacing:.15em}.pricing h2{font-size:21px;margin:6px 0}.muted{color:#86868b;font-size:12px;line-height:1.5}
+    .anchor{max-width:680px;margin:16px auto;color:#86868b;line-height:1.5}.anchor b{color:#f5f5f7}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px auto 0;max-width:860px}.cards.focus{grid-template-columns:1fr;max-width:310px}
+    .card{text-align:left;background:#161618;border:1px solid #2a2a2d;border-radius:16px;padding:16px;min-height:225px}.card.hot{border:2px solid #2997ff;box-shadow:0 0 24px #2997ff2e}.badge{display:inline-block;background:#2997ff;color:white;border-radius:99px;padding:4px 8px;font-size:9px;font-weight:900}.card h3{margin:12px 0 6px}.price{font-size:24px;font-weight:900}.features{padding-left:17px;color:#b7b7bd;font-size:11px;line-height:1.7}.cta{background:#f5f5f7;color:#050505;border:0;border-radius:9px;width:100%;padding:10px;font-weight:900}.focus-note{max-width:520px;margin:16px auto 0;padding:12px;background:#2997ff0f;border:1px solid #2997ff33;border-radius:12px}.compare{margin:12px auto 0;border:1px solid #2997ff66;background:transparent;color:#2997ff;border-radius:9px;padding:9px 14px;font-weight:800}
+    .auto{text-align:left;max-width:860px;margin:18px auto 0;padding:17px;border:1px solid #2997ff52;border-radius:16px;background:linear-gradient(135deg,#2997ff12,#161618 60%)}.auto h3{margin:5px 0}.auto button{background:#2997ff;border:0;color:white;border-radius:9px;padding:10px 14px;font-weight:900;margin-top:8px}
+    @media(max-width:900px){.pair{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.shot{padding:16px}}
+  </style>
+</head>
+<body>
+  <h1>Returning-user pricing focus</h1>
+  <p class="note">Only people with reliable completed-video history see the AFTER state. Unknown or zero history keeps BEFORE unchanged.</p>
+  <main class="board">
+    <section class="pair">
+      <div class="shot">
+        <div class="label">BEFORE · DESKTOP</div>
+        <div class="pricing"><div class="eyebrow">PRICING</div><h2>Choose your plan</h2><div class="muted">Prices shown in USD.</div>
+          <p class="anchor">From <b>$1.00 per finished film</b> — script, voiceover, captions, soundtrack and edit included.</p>
+          <div class="cards">
+            <div class="card"><h3>Starter</h3><div class="price">$7</div><p class="muted">40 credits/month</p><ul class="features"><li>Kineo 1 videos</li><li>AI voiceover</li><li>Watermark-free</li></ul><button class="cta">Continue with Starter</button></div>
+            <div class="card hot"><span class="badge">MOST POPULAR</span><h3>Creator</h3><div class="price">$15</div><p class="muted">90 credits/month</p><ul class="features"><li>Seedance AI</li><li>Auto-captions</li><li>My Videos</li></ul><button class="cta">Continue with Creator</button></div>
+            <div class="card"><h3>Studio</h3><div class="price">$29</div><p class="muted">180 credits/month</p><ul class="features"><li>Premium Kling</li><li>Hollywood film</li><li>My Videos</li></ul><button class="cta">Continue with Studio</button></div>
+          </div>
+          <div class="auto"><div class="eyebrow">OR DON'T MAKE THE VIDEO YOURSELF</div><h3>Autopilot — we publish for you</h3><p class="muted">We write, render, caption and upload one Short a day.</p><button>Try it 7 days</button></div>
+        </div>
+      </div>
+      <div class="shot">
+        <div class="label">AFTER · DESKTOP</div>
+        <div class="pricing"><div class="eyebrow">PRICING</div><h2>Choose your plan</h2><div class="muted">Prices shown in USD.</div>
+          <p class="anchor">From <b>$1.00 per finished film</b> — script, voiceover, captions, soundtrack and edit included.</p>
+          <div class="focus-note"><b>Ready for your next videos? Creator is the balanced monthly option.</b><div class="muted">More AI-video room than Starter, without jumping to Studio.</div></div>
+          <div class="cards focus"><div class="card hot"><span class="badge">MOST POPULAR</span><h3>Creator</h3><div class="price">$15</div><p class="muted">90 credits/month</p><ul class="features"><li>Seedance AI</li><li>Auto-captions</li><li>My Videos</li></ul><button class="cta">Continue with Creator</button></div></div>
+          <button class="compare">Compare Starter &amp; Studio</button>
+          <div class="auto"><div class="eyebrow">OR DON'T MAKE THE VIDEO YOURSELF</div><h3>Autopilot — we publish for you</h3><p class="muted">We write, render, caption and upload one Short a day.</p><button>Try it 7 days</button></div>
+        </div>
+      </div>
+    </section>
+    <section class="pair">
+      <div class="shot phone"><div class="label">BEFORE · MOBILE</div><div class="pricing"><div class="eyebrow">PRICING</div><h2>Choose your plan</h2><p class="anchor">From <b>$1.00 per finished film</b></p><div class="cards"><div class="card"><h3>Starter</h3><div class="price">$7</div><button class="cta">Continue with Starter</button></div><div class="card hot"><span class="badge">MOST POPULAR</span><h3>Creator</h3><div class="price">$15</div><button class="cta">Continue with Creator</button></div><div class="card"><h3>Studio</h3><div class="price">$29</div><button class="cta">Continue with Studio</button></div></div><div class="auto"><div class="eyebrow">AUTOPILOT</div><h3>We publish for you</h3><button>Try it 7 days</button></div></div></div>
+      <div class="shot phone"><div class="label">AFTER · MOBILE</div><div class="pricing"><div class="eyebrow">PRICING</div><h2>Choose your plan</h2><p class="anchor">From <b>$1.00 per finished film</b></p><div class="focus-note"><b>Creator is the balanced monthly option.</b></div><div class="cards focus"><div class="card hot"><span class="badge">MOST POPULAR</span><h3>Creator</h3><div class="price">$15</div><button class="cta">Continue with Creator</button></div></div><button class="compare">Compare Starter &amp; Studio</button><div class="auto"><div class="eyebrow">AUTOPILOT</div><h3>We publish for you</h3><button>Try it 7 days</button></div></div></div>
+    </section>
+  </main>
+</body>
+</html>
