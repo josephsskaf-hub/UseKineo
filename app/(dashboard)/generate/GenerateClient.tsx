@@ -118,6 +118,7 @@ import {
 // Ver o comentário longo em lib/flags.ts: com 'off' esta tela volta a ser
 // idêntica à de antes da sprint.
 import { POST_HANDOFF_ENABLED } from '@/lib/flags'
+import { ANALYZE_PROMPT_MAX_CHARS } from '@/lib/analyzeLimits'
 // KINEO-FIRST-PAID-MINUTE-2026-08-11 — a chave e o TTL do handshake vivem num
 // módulo único (lib/firstWinHandshake.ts). Enquanto eram literais duplicados
 // aqui e em /checkout/success, renomear um dos lados desligava o recurso em
@@ -6349,6 +6350,53 @@ export default function GenerateClient({
       //     telemetria).
       //   · O retry usa o MESMO AbortController: o teto continua sendo 50s
       //     TOTAIS, não 50+50.
+      // ── KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 ─────────────────────
+      // O /api/analyze-idea tem exatamente TRES recusas 400, e todas as tres
+      // sao deterministicas: corpo invalido, prompt vazio, prompt acima de
+      // 5000 caracteres. Deterministica quer dizer que o MESMO texto vai ser
+      // recusado para sempre. Ate hoje o cliente traduzia as tres para
+      // "Could not analyze that idea. Please try again." — uma instrucao que
+      // nao pode dar certo. Medido em 14 dias: 26 recusas 400 em 8 pessoas,
+      // e o padrao e sempre o mesmo — a pessoa aperta de novo 4 ou 5 vezes em
+      // dois minutos, com o texto identico, e some. Um dos casos veio com
+      // utm_source=chatgpt.com, ou seja: o canal de aquisicao entrega a
+      // pessoa num primeiro clique que ja nascia impossivel.
+      //
+      // Duas correcoes, nesta ordem:
+      //   1. AQUI: as duas recusas que o cliente JA CONSEGUE VER (vazio e
+      //      comprimento) param antes do fetch, e a pessoa le o que fazer,
+      //      com o numero exato. Nao gasta rede, nao gasta espera, nao
+      //      convida a repetir.
+      //   2. Na resposta (abaixo): 4xx passa a mostrar a frase do SERVIDOR,
+      //      que ja e copy voltada ao cliente, em vez do generico.
+      // O textarea tem maxLength=5000, entao quem estoura o teto chegou por
+      // fora do textarea (prefill de URL, colagem programatica, prompt
+      // remontado). Exatamente o caso que a mensagem generica escondia.
+      const sourceLen = source.length
+      if (!source.trim()) {
+        setError('Type an idea first — even a single line like "why the ocean is salty" works.')
+        trackGenerationFailure('analyzing', 'analyze_prompt_empty', {
+          httpStatus: null,
+          detail: 'prompt vazio, barrado no cliente',
+          responded: false,
+        })
+        setPhase('idle')
+        return
+      }
+      if (sourceLen > ANALYZE_PROMPT_MAX_CHARS) {
+        const excedente = sourceLen - ANALYZE_PROMPT_MAX_CHARS
+        setError(
+          `Your text is ${sourceLen.toLocaleString('en-US')} characters — ${excedente.toLocaleString('en-US')} over the ${ANALYZE_PROMPT_MAX_CHARS.toLocaleString('en-US')} limit. Trim it and try again.`,
+        )
+        trackGenerationFailure('analyzing', 'analyze_prompt_too_long', {
+          httpStatus: null,
+          detail: `prompt_len=${sourceLen} limite=${ANALYZE_PROMPT_MAX_CHARS}`,
+          responded: false,
+        })
+        setPhase('idle')
+        return
+      }
+
       const analyzeBody = JSON.stringify({ prompt: source, duration, language, scriptMode })
       const analyzeOnce = () =>
         fetch('/api/analyze-idea', {
@@ -6384,7 +6432,21 @@ export default function GenerateClient({
       const data = await res.json()
       if (!res.ok) {
         console.error('[generate] analyze failed:', data?.error)
-        setError(opts?.fromTopic ? 'Could not analyze topic. Please try again.' : 'Could not analyze that idea. Please try again.')
+        // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — o servidor manda copy
+        // pronta para o cliente ('Prompt is too long (5000 chars max).'). Num
+        // 4xx ela e A informacao que resolve, e ate hoje ia so para o console
+        // do navegador. Em 5xx a frase do servidor e generica de propria e o
+        // problema e NOSSO, entao ali o 'try again' continua sendo verdade.
+        const servidorDisse =
+          typeof data?.error === 'string' && data.error.trim().length > 0 ? data.error.trim() : ''
+        const recusaDeterminista = res.status >= 400 && res.status < 500
+        setError(
+          recusaDeterminista && servidorDisse
+            ? servidorDisse
+            : opts?.fromTopic
+              ? 'Could not analyze topic. Please try again.'
+              : 'Could not analyze that idea. Please try again.',
+        )
         // PUSH #96 — analyze failures fall back to `idle`, not `failed`, so the
         // phase effect never emitted generate_failed for them. This is the
         // largest single hole behind 1428 starts vs 2 recorded failures.
@@ -6395,7 +6457,12 @@ export default function GenerateClient({
         // pessoa por `setError` — levar ao banco não expõe nada novo.
         trackGenerationFailure('analyzing', 'analyze_not_ok', {
           httpStatus: res.status,
-          detail: typeof data?.error === 'string' ? data.error : undefined,
+          // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — o tamanho entra na
+          // causa porque e o unico dos tres 400 que o cliente nao consegue
+          // provar sozinho depois do fato. Numero, nunca o texto da pessoa.
+          detail: servidorDisse
+            ? `${servidorDisse} (prompt_len=${sourceLen})`
+            : `prompt_len=${sourceLen}`,
           responded: true,
         })
         setPhase('idle')
@@ -10540,7 +10607,7 @@ export default function GenerateClient({
               const ex = NICHE_EXAMPLES[pickedNiche] ?? NICHE_EXAMPLES.billionaire
               return `What’s your Short about? Try "${ex[0]}" or "${ex[1] ?? ex[0]}"`
             })()}
-            maxLength={5000}
+            maxLength={ANALYZE_PROMPT_MAX_CHARS}
             disabled={phase === 'analyzing'}
             // PUSH #38 keeps the first-video box compact so its free CTA stays
             // in the first viewport. Returning creators keep the larger script

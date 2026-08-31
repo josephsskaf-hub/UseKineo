@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
+import { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
 
 export const maxDuration = 60
 
@@ -635,8 +636,11 @@ export async function POST(req: NextRequest) {
     // Push #316 — language selection (en | pt | es), defaults to English.
     const language: AnalyzeLanguage =
       body.language === 'pt' ? 'pt' : body.language === 'es' ? 'es' : 'en'
-    if (prompt.length > 5000) {
-      return NextResponse.json({ error: 'Prompt is too long (5000 chars max).' }, { status: 400 })
+    // KINEO-RECUSA-NAO-E-TENTE-DE-NOVO-2026-08-31 — teto e frase vem da fonte
+    // unica (lib/analyzeLimits). O cliente le o MESMO numero antes de chamar,
+    // entao este 400 deixa de ser a primeira noticia que a pessoa tem do teto.
+    if (prompt.length > ANALYZE_PROMPT_MAX_CHARS) {
+      return NextResponse.json({ error: analyzePromptTooLongMessage() }, { status: 400 })
     }
 
     // Push #064 — duration shapes word count + scene count. Defaults to 45s
