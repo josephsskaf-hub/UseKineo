@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { retryOwnReadOnSkew } from '@/lib/jwtSkewFallback'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
+// sprint-v1v4 #21 — o degrau que faltava na escada de resgate do roteiro, e o
+// nome da causa quando nem ele salva. Ver o cabecalho de lib/voiceoverSalvage.ts.
+import { narracaoDasLegendas, diagnosticarPerda } from '@/lib/voiceoverSalvage'
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -548,12 +551,25 @@ export async function POST(req: NextRequest) {
     // não havia nada para narrar.
     const rawVoiceover = (body.voiceover_script ?? '').toString()
     let voiceoverScript = stripScriptMarkers(rawVoiceover)
-    let voiceoverRecovery: 'none' | 'lenient' | 'topic' = 'none'
+    let voiceoverRecovery: 'none' | 'lenient' | 'captions' | 'topic' = 'none'
     if (!voiceoverScript && rawVoiceover.trim()) {
       const salvaged = salvageScriptNarration(rawVoiceover)
       if (salvaged) {
         voiceoverScript = salvaged
         voiceoverRecovery = 'lenient'
+      }
+    }
+    // ═══ sprint-v1v4 #21 — DEGRAU 3: AS LEGENDAS DE CENA ═══════════════════
+    // O MESMO pedido que chegou sem narracao traz `scene_captions`, que foram
+    // escritas A PARTIR da narracao. Se o roteiro sumiu e as legendas
+    // sobreviveram, elas SAO o roteiro. Entra ANTES do `topic` porque `topic` e
+    // a ideia crua que ela digitou, e a legenda e o roteiro dela. Passa pelo
+    // MESMO limpador dos outros degraus — nada afrouxa.
+    if (!voiceoverScript) {
+      const fromCaptions = narracaoDasLegendas(body.scene_captions, stripScriptMarkers)
+      if (fromCaptions) {
+        voiceoverScript = fromCaptions
+        voiceoverRecovery = 'captions'
       }
     }
     if (!voiceoverScript) {
@@ -576,6 +592,27 @@ export async function POST(req: NextRequest) {
       }))
     }
     if (!voiceoverScript) {
+      // ═══ sprint-v1v4 #21 — O 400 MAIS CARO DA CASA GANHA UMA CAUSA ═══════
+      // Medido: 4 pessoas em 30 dias, TODAS com `mode=fast` e `duration=45`,
+      // todas ja em `clips_ready` (B-roll pago e baixado). E ate hoje este
+      // `return` nao gravava NADA — nem log, nem evento. Tres semanas depois do
+      // resgate de 13/08 ainda nao se sabia qual metade quebra: o texto nao
+      // chega (defeito de ESTADO no cliente) ou chega e o limpador come
+      // (defeito do LIMPADOR). `diagnosticarPerda` responde isso em uma
+      // palavra. Best-effort: telemetria nunca atrasa nem derruba a resposta.
+      const perda = diagnosticarPerda({
+        brutoRecebido: body.voiceover_script,
+        legendasRecebidas: body.scene_captions,
+        topicoRecebido: body.topic,
+      })
+      console.warn('[compose] voiceover PERDIDO', JSON.stringify({
+        causa: perda.causa, ...perda.detalhes, user: authenticatedUserId,
+      }))
+      await logComposeRefusal('voiceover_lost', authenticatedUserId, {
+        causa: perda.causa,
+        ...perda.detalhes,
+        duration: Number(body.duration) || null,
+      })
       return NextResponse.json({ error: 'voiceover_script is required.' }, { status: 400 })
     }
 
