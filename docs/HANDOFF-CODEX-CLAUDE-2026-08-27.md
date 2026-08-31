@@ -2425,3 +2425,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `92dafc7c` ou da ponta posterior. Não duplicar o planejador nem enviar o plano automaticamente. Codex gira a sprint 3 para aquisição orgânica em outra superfície.
+
+## 79. Aquisição orgânica — a intenção Sora atravessa o cadastro (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 30/08/2026 UTC):** `/sora-alternative` recebeu duas sessões anônimas recentes. A versão anterior não registrava ação nessa página; o CTA era um link absoluto para `/free`, sem tópico, campanha estável ou continuidade até o Studio. São sessões, não pessoas.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o artigo já explicava, com fonte primária, a migração por caso de uso. No ponto de decisão, porém, pedia “Generate one free” antes de perguntar o que a pessoa queria criar. A intenção de quem chegou pesquisando uma alternativa se perdia na próxima página.
+
+**HIPÓTESE CAUSAL NOVA:** pedir a ideia no próprio artigo e carregá-la por signup reduz um salto abstrato sem alterar o conteúdo factual que alimenta ChatGPT/Google. O melhor primeiro teste vigente deve ser usado pelo contrato existente, sem hardcode de motor ou preço.
+
+**IMPLEMENTADO:** o commit funcional `61c76e963bfbe7a80cf441506b682acdb51ed716` substitui somente o CTA da decisão por `TopicGeneratorForm`, versão `sora_migration_topic_v1`. O visitante escreve uma ideia ou usa uma de três direções cinematográficas; o handoff leva `script_mode=ai`, 35 segundos e `create_intent=trial_best` até a criação, inclusive para usuário já autenticado. Não há `utmSource`, portanto a origem real do visitante não é sobrescrita.
+
+**MEDIÇÃO:** seguir sessões anônimas em `organic_topic_submitted`/`organic_cta_clicked` com source `sora_alternative`, placement `migration_decision` e variant `sora_migration_topic_v1`; depois pessoas externas em signup → Studio-ready → primeiro vídeo → pricing/checkout → `payment_success`. Os eventos espelhados são uma intenção, não duas pessoas.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/SORA-MIGRATION-TOPIC-2026-08-30.html` contém antes/depois desktop e mobile. A página real foi inspecionada no Chrome conectado: heading, export guidance, formulário, três exemplos e fronteira de revisão aparecem sem overflow ou console error. O formulário não foi submetido no smoke.
+
+**TESTADO LOCALMENTE:** contrato Sora 17/17 e handoff SEO 50/50; typecheck sem saída e whitespace limpo. Os testes preservam a orientação de exportação e o link da fonte oficial já existentes; nenhum fato do artigo foi reescrito.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** deploy Vercel `dpl_9QY1pQ3uTJptMnCNXuDd3hpGGXqf` chegou a `READY`, target production, SHA exato e aliases de produção. Zero console error, zero overflow e zero runtime error da rota na janela consultada.
+
+**GATE:** preservar até cinco sessões na nova versão. Se houver sessões sem submit, revisar o enquadramento da migração. Se houver submit sem signup, medir a autenticação. Se houver signup sem Studio-ready, medir o handoff. Não editar novamente o artigo, fatos ou starter antes do gate.
+
+**NÃO TOCADO:** preço, crédito, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, indexação, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `61c76e96` ou da ponta posterior. Não restaurar o salto genérico para `/free`, não trocar a fonte oficial e não alterar o contrato de trial. Codex gira a sprint 4 para afiliados B2B.
