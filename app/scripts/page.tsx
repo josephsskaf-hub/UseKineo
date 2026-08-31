@@ -22,6 +22,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 import {
   getScriptLibrary,
   generateFromScriptHref,
@@ -44,6 +45,7 @@ const BLUE = '#2997ff'
 const MUTED = '#86868b'
 const CARD = { background: 'rgba(11,17,32,0.85)', border: '1px solid rgba(255,255,255,0.08)' }
 const CAMPAIGN = 'script_library_hub'
+const PRIVATE_FORM_CAMPAIGN = 'script_library_private_topic_v1'
 
 export const metadata: Metadata = CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED ? {
   metadataBase: new URL(PUBLIC_BASE_URL),
@@ -117,14 +119,27 @@ export default async function ScriptsHubPage() {
             <p style={{ fontSize: '1rem', color: '#CBD5E1', lineHeight: 1.65, margin: '18px auto 0', maxWidth: 600 }}>
               Customer videos and scripts are not published to a shared library. Start with your own idea and Kineo will build the hook, middle beats and payoff for you.
             </p>
-            <OrganicCtaLink
-              href={generateFromScriptHref('A viral YouTube Short about a surprising fact', CAMPAIGN)}
-              source={CAMPAIGN}
-              placement="private_state"
-              style={{ display: 'inline-block', marginTop: 24, background: BLUE, color: '#000', fontWeight: 900, padding: '15px 30px', borderRadius: 14, textDecoration: 'none' }}
-            >
-              Generate your own script →
-            </OrganicCtaLink>
+            <div style={{ maxWidth: 620, margin: '0 auto', textAlign: 'left' }}>
+              <TopicGeneratorForm
+                campaign={PRIVATE_FORM_CAMPAIGN}
+                source="script_library_private"
+                placement="private_topic_form"
+                formId="script-library-original-topic"
+                scriptMode="ai"
+                duration={35}
+                creationIntent="fast"
+                preserveHandoffForSignedIn
+                analyticsVariant={PRIVATE_FORM_CAMPAIGN}
+                marginTop={24}
+                copy={{
+                  label: 'What should your original Short be about?',
+                  placeholder: 'Paste one topic, fact, story or hook',
+                  submit: 'Build my original Short →',
+                  examplesLabel: 'Try an original direction',
+                  note: 'Your idea stays attached through signup and arrives editable in Studio. Nothing renders until you review and continue.',
+                }}
+              />
+            </div>
             <p style={{ margin: '16px 0 0', fontSize: '0.86rem' }}>
               <Link href="/examples" style={{ color: '#CBD5E1', textDecoration: 'none' }}>
                 Watch Kineo-owned examples instead →
