@@ -2601,3 +2601,27 @@ PRÓXIMO DONO:
 **MÉTRICA / GATE:** medir pessoas externas em `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. Sessão aberta fica pendente; sessão expirada e não paga, sem falha inicial, é abandono silencioso; `stage=renewal` é churn involuntário e fica fora da conversão inicial. O dedupe de 24 horas é por PaymentIntent e não é uma promessa de exactly-once sem constraint única no banco.
 
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, criação de sessão, entitlement, crédito, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou pagamento real.
+
+## 94. B2B — a margem calculada vira uma proposta aprovável pelo cliente (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONTEXTO:** o funil empresarial ainda tem amostra pequena e não autoriza outra landing genérica. A ação existente em `/ai-shorts-for-agencies` calculava a economia interna da agência e terminava somente em `Choose the pack`; não oferecia uma transição segura para a aprovação do cliente. Esta intervenção abre uma etapa comercial reutilizável sem enviar contato, criar lead ou chamar proposta copiada de receita.
+
+**PESQUISA COMPETITIVA OFICIAL (31/08/2026):** Canva para agências enfatiza colaboração e aprovação; VEED oferece revisão e colaboração com marca; Synthesia Enterprise organiza criação e governança para equipes; HoneyBook estrutura proposta, escopo e aceite; Upwork Project Catalog transforma serviço em escopo comprável. O padrão comum é diminuir a ambiguidade entre estimar o trabalho e obter aprovação, não apenas mostrar uma calculadora.
+
+**HIPÓTESE CAUSAL NOVA:** a agência que já validou margem precisa levar um escopo cliente-facing para aprovação antes de comprar produção. Se a Kineo fornecer um rascunho limitado, sem revelar custo ou margem internos, esse artefato pode trazer o próximo decisor para o briefing existente e criar um loop B2B mensurável.
+
+**IMPLEMENTADO:** o commit funcional `714d8c14` adiciona `Copy client proposal` como ação secundária ao calculador, preservando `Choose the pack` como caminho principal. O rascunho contém volume, preço unitário informado pela própria agência, total, entregáveis, lacunas comerciais que ainda precisam de confirmação e uma URL atribuível para `/client-video-brief-generator`. Ele se identifica como `DRAFT`, não abre destino externo e não envia mensagem automaticamente.
+
+**PRIVACIDADE / VERDADE COMERCIAL:** o evento `agency_margin_proposal_copied`, versão `agency_margin_proposal_v1`, grava somente pack, volume e faixa de preço; preço exato, custo Kineo, taxa e margem não entram na telemetria. O texto não promete prazo, revisões, posting, source files, uso, impostos ou pagamento: esses itens ficam explicitamente pendentes de confirmação. Volume ou valor inválido falha fechado.
+
+**MEDIÇÃO / GATE:** seguir por pessoa externa `agency_margin_proposal_copied → sessão referral com utm_source=agency_margin_proposal → client_short_brief_generated → pack/checkout bulk → pagamento`. Preservar até dez novas sessões anônimas ou cinco pessoas externas. Sinal inicial exige duas pessoas distintas copiando proposta e uma nova geração de brief atribuída; pagamento é a métrica final. A cópia ainda não está no leitor do admin porque `app/api/admin/**` pertence à pista do Claude; medir por SELECT até ele incorporar o novo evento sem duplicar ator.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AGENCY-PROPOSAL-HANDOFF-2026-08-31.html` contém antes/depois desktop e mobile e foi inspecionado no Chrome conectado. A ação nova aparece como secundária, o caminho de compra permanece destacado e a fronteira de envio automático fica visível nos dois tamanhos.
+
+**TESTADO LOCALMENTE:** proposta 42/42, calculadora 46/46, página bulk 32/32 e client brief 82/82 — 202 verificações. TypeScript 5.9.3 repetiu exatamente os quatro erros baseline preexistentes e nenhum novo. `git diff --check` ficou limpo.
+
+**BRIEFING B2C INCORPORADO (Supabase, SELECT em 31/08/2026 ~21h UTC; internos excluídos):** a oferta pós-vídeo do trial alcançou 234 pessoas em 30 dias, 22 clicaram e nenhuma pagou; pricing teve 17 pessoas clicando e quatro pagantes na janela comparativa; o resume banner teve dez pessoas e duas pagantes. Quatro de oito assinantes observados compraram com zero ou um vídeo. Isso não altera esta entrega B2B, mas muda a próxima rodada Codex: preservar a oferta pós-vídeo e trabalhar superfícies de intenção alta — limite, pricing, cancelamento e retomada — sem forçar mais renders, desconto ou mudança de trial.
+
+**NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, admin, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar e não editar o calculador ou `lib/growth/agencyProposal.ts` até o gate. Na pista dele, pode apenas adicionar `agency_margin_proposal_copied` ao leitor do admin como pessoa deduplicada, sem alterar esta experiência. Codex alterna agora para B2C de alta intenção conforme o briefing, mantendo intacta a oferta pós-vídeo sem amostra nova.
