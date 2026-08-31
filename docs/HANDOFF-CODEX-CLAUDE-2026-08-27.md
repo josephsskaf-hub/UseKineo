@@ -2449,3 +2449,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, crédito, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, indexação, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `61c76e96` ou da ponta posterior. Não restaurar o salto genérico para `/free`, não trocar a fonte oficial e não alterar o contrato de trial. Codex gira a sprint 4 para afiliados B2B.
+
+## 80. Afiliados B2B — o kit ganha uma porta específica para empresas (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 30/08/2026 UTC):** `/partners` recebeu 15 sessões anônimas em 30 dias e sete delas registraram saída orgânica. Onze pessoas externas concluíram a aplicação de afiliado; seis copiaram link. O estado reconciliado anterior mostrava sete afiliados sem clique, quatro com clique e nenhum referral/pagamento. Eventos repetidos do nudge pertenciam a uma pessoa e não foram contados como alcance.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o kit permitia três destinos allow-listed — script, vídeo completo e faceless — todos voltados ao creator individual. Um afiliado que conversa com empresa, freelancer ou agência não conseguia selecionar a utilidade B2B já existente. Enviar o link genérico perderia o contexto e a mensuração por destino.
+
+**HIPÓTESE CAUSAL NOVA:** uma campanha que oferece primeiro um plano semanal sem cadastro é uma promessa mais adequada para audiência empresarial do que “gere um vídeo”. Ela também conecta afiliados ao planejador compartilhável da seção 78 sem alterar comissão, cupom ou atribuição financeira.
+
+**IMPLEMENTADO:** o commit funcional `058256d753bd3c208f6b39826ad8bfa6fb57b545` adiciona o quarto destino allow-listed `business`: `/business-video-content-plan`, campanha `affiliate_business_plan`. O dashboard existente o inclui automaticamente no seletor e produz `/a/<código>?to=business`; a rota protegida grava o bucket normalizado, mantém first-touch e redireciona somente para a URL first-party canônica.
+
+**CONTEXTO DA CHEGADA:** somente o tráfego com `utm_source=affiliate`, `utm_medium=partner` e a campanha exata recebe `Recommended by a Kineo partner` + `Plan the business content before buying production`. O CTA ancora no formulário real. Tráfego orgânico comum recebe a página inalterada e sem espaço vazio.
+
+**MEDIÇÃO:** seguir por pessoa `affiliate_link_copied(destination=business) → affiliate_clicks(bucket=business) → business_content_plan_viewed → generated → copied/activation_clicked/packs_clicked → signup → vídeo → checkout → payment_success → affiliate_referrals/commission`. Link copiado, visita ou plano gerado não são referral nem receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AFFILIATE-BUSINESS-DESTINATION-2026-08-30.html` contém antes/depois desktop e mobile. A chegada real com campanha exata foi inspecionada no Chrome conectado: contexto, CTA, formulário e target apareceram sem overflow ou console error. A conta do fundador não renderizou o dashboard de afiliado elegível; nenhum afiliado, clique ou cookie financeiro foi fabricado para forçar esse estado.
+
+**TESTADO LOCALMENTE:** destinos 266/266, contexto de landing 55/55 e planejador 171/171 — 492 verificações. Typecheck sem saída e whitespace limpo. Os testes executam os quatro destinos, a rota `/a/[code]`, a allowlist, o bucket, o contexto estrito e o caller do planejador.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** deploy Vercel `dpl_6FAfLiWSZS211jkbLzK6ixciyF87` chegou a `READY`, target production, SHA exato e aliases de produção. A landing afiliada B2B abriu no Chrome; zero console error e zero runtime error na janela consultada.
+
+**GATE:** não reeditar o kit antes de cinco afiliados externos expostos à opção nova ou cinco cliques reais no bucket `business`. Se a opção for selecionada sem clique, investigar o asset do kit. Se houver clique sem plano gerado, investigar contexto/formulário. Se houver plano sem signup/pack, investigar a transição comercial. Não chamar clique de referral.
+
+**NÃO TOCADO:** comissão, coupon, approval, payout, ledger financeiro, preço, pack, crédito, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `058256d7` ou da ponta posterior. Não duplicar uma página empresarial, não tornar `to=` um redirect aberto e não enviar campanha automaticamente. As quatro sprints adicionais do ciclo de duas horas estão concluídas.
