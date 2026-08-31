@@ -2528,6 +2528,10 @@ PRÓXIMO DONO:
 
 **EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT em 31/08/2026 UTC; contas internas excluídas):** em toda a história observável, `agency_bulk_page_viewed` tem uma sessão anônima, `b2b_brief_viewed` tem uma sessão anônima e não existe `bulk_purchase_completed`. Na janela separada de 14 dias, houve três pessoas externas com `payment_success`, todas no funil de assinatura, e nenhum evento de compra bulk. O dado invalida a criação de outra landing B2B: o problema imediato é colocar no ar e medir as pontes já construídas.
 
+**EVIDÊNCIA DE PRODUÇÃO / PRIORIZAÇÃO B2C (briefing Supabase, SELECT em 31/08/2026 ~21h UTC; contas internas excluídas):** em 30 dias, 234 pessoas viram a oferta pós-vídeo do trial, 22 clicaram e nenhuma pagou; na janela comparativa de 45 dias, 17 pessoas clicaram pela página de preços e quatro pagaram, enquanto o `checkout_resume_banner` teve dez pessoas e duas pagantes. Entre as oito assinaturas listadas em 45 dias, quatro ocorreram com zero ou um vídeo anterior. A amostra por canal é pequena, mas os dois pagantes atribuídos ao ChatGPT compraram Pro, enquanto os três do TAAFT compraram Starter. Esses dados preservam a oferta pós-vídeo até o gate já definido e priorizam continuidade nas superfícies de intenção — pricing, escolha de plano e retomada — sem transformar correlação em causalidade.
+
+**CONTRADIÇÃO APARENTE RESOLVIDA:** a coorte que chega ao quarto vídeo pode converter em proporção maior, ao mesmo tempo que metade dos compradores observados compra com zero ou um vídeo. O produto precisa dos dois caminhos: Claude aumenta repetição e entrega dentro do produto; Codex reduz atrito para quem já demonstra intenção de compra cedo. Nenhuma das duas observações autoriza forçar mais renders antes do checkout.
+
 **FATO CONFIRMADO:** os candidatos B2B e B2C anteriores estavam ambos baseados no mesmo `origin/main` `7a77855c`, mas separados e com conflito previsível em `/pricing`. O release `codex/cycle72h-release-candidate-v3` integra os oito commits funcionais numa única árvore, mantendo cada hipótese e gate independentes.
 
 **B2B INTEGRADO:** Kineo 1 abre um caminho secundário para packs empresariais; impressão e clique da ponte são medidos; pricing mede a entrada empresarial; fit review preserva atribuição até o brief e aparece no `llms.txt`; o planejador local mede uso sem gravar texto do cliente; login/signup preservam quantidade, USD e natureza avulsa do pack até o checkout.
@@ -2540,7 +2544,9 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** 14 suítes passaram, 628/628 verificações. O typecheck repetiu somente os quatro erros baseline preexistentes e nenhum novo. Uma asserção foi corrigida: procurava um import com `LF` literal e quebrou no worktree `CRLF`; agora verifica o módulo e os dois símbolos importados, que é o contrato real. `git diff --check` permanece limpo.
 
-**ESTADO:** release integrado localmente; ainda não é produção até branch remota, build e preview serem validados.
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** a branch remota chegou ao SHA `3970397d144ecb83920ab186bfd4d4816d3c9e50`; o deploy Vercel `dpl_A7wzsi7q7ETMVF61N4ssvx6ZNb7f` ficou `READY`, target preview. No Chrome conectado, a mesma árvore exibiu simultaneamente Starter como `Your choice`, os três planos e o alvo empresarial em pricing; a ponte Kineo 1 apontou para a página de agência com `entry=kineo1_engine`; e signup preservou `30-video pack`, pagamento único, ausência de assinatura e retorno ao checkout. Nenhum CTA, cadastro ou pagamento foi executado. A Vercel registrou zero erro/fatal do deployment na janela consultada.
+
+**ESTADO:** release publicado somente em branch/preview; `main` e produção permanecem inalterados.
 
 **NÃO TOCADO:** oferta pós-vídeo, preço, desconto, cupom, crédito, trial, SKU, Stripe server/configuração, render, motor, cenas, voz, legendas, Supabase schema/dados, e-mail, outreach, anúncio ou comunicação externa.
 
