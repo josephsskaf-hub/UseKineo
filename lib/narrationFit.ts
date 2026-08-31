@@ -167,13 +167,40 @@ export function narrationFit(script: string, targetSeconds: number): NarrationFi
  * duas saídas. E é dita ANTES de qualquer débito — o custo de um render
  * Hollywood é 150 créditos, e entregar 28 segundos mudos por esse preço é o
  * pior desfecho possível para os dois lados.
+ *
+ * ═══ sprint-v1v4 #11 (2026-08-31) — A SAÍDA OFERECIDA NÃO EXISTIA ═══════════
+ *
+ * Esta função sugeria `Math.floor(fala / 5) * 5`: um múltiplo de 5 qualquer.
+ * O seletor do produto tem TRÊS botões — 35, 60 e 90. Medido em 14 dias, nas
+ * 23 recusas reais de 17 pessoas externas, a frase mandou a pessoa escolher
+ * 40s, 30s, 25s e 15s — nenhum desses números existe na tela dela. Em 14 das
+ * 22 recusas distintas a alternativa oferecida era INSELECIONÁVEL, e em duas
+ * delas (fala de 11s e de 2s, "use 15s") ela também não passaria na régua:
+ * a instrução levava de volta à MESMA recusa. Onze dessas 17 pessoas nunca
+ * entregaram um único vídeo.
+ *
+ * Agora a alternativa vem da MESMA lista que desenha os botões
+ * (`SUPPORTED_DURATIONS`, passada pelo chamador para não criar import
+ * circular com `expandPolicy`) e só é oferecida quando de fato cabe. Quando
+ * nenhuma duração do seletor cabe, a frase CALA sobre duração em vez de
+ * inventar um número: sobra o caminho honesto, que é escrever mais — e é
+ * exatamente o que o botão "Finish it for me" da tela faz.
  */
-export function narrationTooShortMessage(fit: NarrationFit): string {
+export function narrationTooShortMessage(
+  fit: NarrationFit,
+  supportedDurations: readonly number[],
+): string {
   const fala = Math.round(fit.speech)
   const alvo = Math.round(fit.target)
-  // Arredonda PARA BAIXO em múltiplos de 5: sugerir uma duração que a
-  // narração não alcança recriaria o próprio defeito na segunda tentativa.
-  const sugerida = Math.max(15, Math.floor(fit.speech / 5) * 5)
+
+  // A maior duração DO SELETOR que esta fala realmente enche. `null` = nenhuma.
+  // Mesma conta de `expandPolicy.largestFittingDuration`, repetida aqui (e
+  // travada por teste) só para manter este módulo na base da pilha de imports.
+  const teto = fit.speech / MIN_COVERAGE
+  const cabem = supportedDurations
+    .filter((d) => Number.isFinite(d) && d > 0 && d <= teto + 1e-9)
+    .sort((a, b) => b - a)
+  const sugerida: number | null = cabem.length > 0 ? cabem[0] : null
 
   // ⚠️ A ORDEM DAS DUAS SAÍDAS NÃO É ESTÉTICA — É DINHEIRO DO CLIENTE.
   // "Escrever mais" vem primeiro, e encurtar vem com AVISO, porque abaixo de
@@ -181,14 +208,17 @@ export function narrationTooShortMessage(fit: NarrationFit): string {
   // CLAUDE.md). Sugerir "use 50s" sem dizer isso resolveria a nossa validação
   // entregando ao cliente um vídeo que não monetiza — trocar o problema dele
   // por um pior, em silêncio.
-  const perdeMonetizacao = alvo >= 60 && sugerida < 60
-  const alternativa = perdeMonetizacao
-    ? `Or set the length to ${sugerida} seconds — but note that videos under 60 seconds don't qualify for TikTok's Creator Rewards.`
-    : `Or set the length to ${sugerida} seconds.`
+  const perdeMonetizacao = sugerida !== null && alvo >= 60 && sugerida < 60
+  const alternativa =
+    sugerida === null
+      ? ''
+      : perdeMonetizacao
+        ? ` Or set the length to ${sugerida} seconds — but note that videos under 60 seconds don't qualify for TikTok's Creator Rewards.`
+        : ` Or set the length to ${sugerida} seconds.`
 
   return (
     `Your script is about ${fala} seconds of narration, but you asked for a ${alvo}-second video — ` +
     `that would leave roughly ${Math.round(fit.silence)} seconds of music with no story being told. ` +
-    `Add about ${fit.missingWords} more words. ${alternativa}`
+    `Add about ${fit.missingWords} more words.${alternativa}`
   )
 }

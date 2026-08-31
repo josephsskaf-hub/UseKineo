@@ -43,6 +43,9 @@ import { parseUserScript } from '@/lib/scriptParser'
 // demais de virar um filme com imagem muda. Ver o cabeçalho do módulo para a
 // medição que originou a regra.
 import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narrationFit'
+// sprint-v1v4 #11 — a alternativa oferecida na recusa vem da MESMA lista que
+// desenha os botoes de duracao do produto. Ver a nota em lib/narrationFit.ts.
+import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -2025,12 +2028,17 @@ async function manipularPost(req: NextRequest) {
         )
         return NextResponse.json(
           {
-            error: narrationTooShortMessage(fit),
+            error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),
             narrationTooShort: true,
             // A UI usa estes para oferecer o botão "usar Xs" sem a pessoa ter
             // de fazer conta nenhuma.
             speechSeconds: Math.round(fit.speech),
-            suggestedDuration: Math.max(15, Math.round(fit.speech / 5) * 5),
+            // sprint-v1v4 #11 — era um arredondamento cru para multiplo de 5,
+            // que podia (a) nao existir no seletor e (b) nem passar na regua:
+            // com 11s de fala isto devolvia 15s, e 11/15 = 73% seria recusado
+            // outra vez. Agora e a maior duracao DO SELETOR que a fala enche,
+            // ou 0 (a UI ja trata 0 como 'nao ha botao honesto').
+            suggestedDuration: largestFittingDuration(fit.speech) ?? 0,
             missingWords: fit.missingWords,
           },
           { status: 422 },
