@@ -165,7 +165,14 @@ import {
   isRegionalTier,
   type CheckoutCurrency,
   type PriceRegion,
+  type TopupId,
 } from '@/lib/checkoutPricing'
+import {
+  calculateLimitPurchaseFit,
+  firstPurchaseCredits,
+  limitPurchaseChoiceFits,
+  limitPurchaseFitTelemetry,
+} from '@/lib/growth/limitPurchaseFit'
 import {
   buildSeriesContinuationHref,
   buildSeriesContinuationPrompt,
@@ -8778,6 +8785,18 @@ export default function GenerateClient({
       trial_phase: trialUi?.phase ?? 'none',
       credits: credits ?? null,
     })
+    // KINEO-LIMIT-PURCHASE-FIT-V1-2026-08-31 — o modal já recebia a pessoa no
+    // pico de intenção, mas não dizia quais compras pagavam ESTE pedido. O
+    // evento novo só existe quando saldo e custo provam uma falta real; seus
+    // valores são buckets, nunca o saldo exato.
+    const reasonHasCreditFit = resolvedReason === 'credits' || resolvedReason.startsWith('trial_')
+    if (limitPurchaseFit && reasonHasCreditFit) {
+      void trackEvent('limit_purchase_fit_viewed', {
+        surface: 'generate_upgrade_modal',
+        reason: resolvedReason,
+        ...limitPurchaseFitTelemetry(limitPurchaseFit),
+      })
+    }
   }
 
   function handleAnalyzeGuarded() {
@@ -9418,6 +9437,11 @@ export default function GenerateClient({
         duration,
       )
     : (QUALITY_OPTIONS.find((q) => q.key === quality)?.credits ?? 8)
+  const limitPurchaseFit = calculateLimitPurchaseFit({
+    balance: credits,
+    requiredCredits: selectedCost,
+    isSubscriber: isStarter || isCreator || isStudio,
+  })
   const seedanceReferenceCost = creditsPerReferenceVideo('cinematic_ai')
   const shareRewardMix = videoMixForCredits(30, 'cinematic_ai', 'fast')
 
@@ -10410,6 +10434,8 @@ export default function GenerateClient({
         <UpgradeModal
           reason={upgradeReason}
           isSubscriber={isStarter || isCreator || isStudio}
+          balance={credits}
+          requiredCredits={selectedCost}
           // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o MESMO estado de moeda
           // da tela (resolvido pelo /api/geo assim que este modal abre). Uma
           // resolução por tela, não uma por modal.
@@ -16743,6 +16769,8 @@ function UpgradeModal({
   onClose,
   reason = 'credits',
   isSubscriber = false,
+  balance = null,
+  requiredCredits = 0,
   checkoutError = null,
   currency = null,
   region = 'standard',
@@ -16752,6 +16780,8 @@ function UpgradeModal({
   onClose: () => void
   reason?: 'credits' | 'studio' | 'creator' | 'trial_ended' | 'trial_stalled' | 'trial_spent' | 'footage'
   isSubscriber?: boolean
+  balance?: number | null
+  requiredCredits?: number
   /** Inline English error from the parent's plan-row launcher. */
   checkoutError?: string | null
   /**
@@ -16768,6 +16798,10 @@ function UpgradeModal({
   // window.location.href with only `loading` (a prop that is never true for
   // them) as a guard. Their own launcher, separate from the plan rows above.
   const topupCheckout = useCheckoutLaunch('generate_upgrade_modal_topup')
+  const reasonHasCreditFit = reason === 'credits' || reason.startsWith('trial_')
+  const purchaseFit = reasonHasCreditFit
+    ? calculateLimitPurchaseFit({ balance, requiredCredits, isSubscriber })
+    : null
   // #466 fake 15-min "founding offer" countdown REMOVED
   // (KINEO-SPRINT-OFFER-2026-07-14): the timer reset per browser and nothing
   // actually expired — a fabricated counter sitting next to a real offer
@@ -16986,6 +17020,27 @@ function UpgradeModal({
         <p style={{ fontSize: '0.9rem', color: '#a1a1a8', lineHeight: 1.55, margin: 0, marginBottom: 12 }}>
           {head.sub}
         </p>
+        {purchaseFit && (
+          <div
+            style={{
+              background: 'rgba(52,211,153,.09)',
+              border: '1px solid rgba(52,211,153,.42)',
+              borderRadius: 10,
+              padding: '11px 13px',
+              marginBottom: 12,
+            }}
+          >
+            <span style={{ display: 'block', color: '#6ee7b7', fontSize: '0.64rem', fontWeight: 900, letterSpacing: '0.1em', marginBottom: 3 }}>
+              FINISH THIS EXACT VIDEO
+            </span>
+            <strong style={{ display: 'block', color: '#fff', fontSize: '0.9rem', lineHeight: 1.35 }}>
+              This video needs {purchaseFit.requiredCredits} credits. You have {purchaseFit.balance}.
+            </strong>
+            <span style={{ display: 'block', color: '#a7f3d0', fontSize: '0.76rem', lineHeight: 1.4, marginTop: 2 }}>
+              Add {purchaseFit.shortfall} more — the first highlighted option below covers the full request.
+            </span>
+          </div>
+        )}
         {/* A âncora que ataca o vazamento fechado pelo fundador (percepção de
             valor): o preço na unidade em que a pessoa pensa — FILME. */}
         <div style={{ background: 'linear-gradient(90deg,rgba(41,151,255,.14),rgba(41,151,255,.04))', border: '1px solid rgba(41,151,255,.4)', borderRadius: 8, padding: '11px 13px', fontSize: '0.82rem', lineHeight: 1.55, color: '#cfe6ff', marginBottom: 14 }}>
@@ -16999,7 +17054,6 @@ function UpgradeModal({
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {PLAN_LIST.map((plan) => {
-            const recommended = !!plan.recommended
             // KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — o `as 'starter'|'basic'|'pro'`
             // que estava aqui era um cast SEM verificação sobre `PlanConfig.tier`,
             // cujo tipo real inclui 'free' e 'autopilot'. Enquanto a linha só
@@ -17009,12 +17063,33 @@ function UpgradeModal({
             // sabemos precificar simplesmente não é vendido aqui (fail-closed).
             const tier = asCheckoutTier(plan.tier)
             if (!tier) return null
+            const purchaseChoice = { type: 'plan', id: tier } as const
+            const fitsRequest = purchaseFit
+              ? limitPurchaseChoiceFits(purchaseFit, purchaseChoice)
+              : false
+            const recommendedForRequest = purchaseFit?.recommended?.type === 'plan'
+              && purchaseFit.recommended.id === tier
+            const recommended = recommendedForRequest || (!purchaseFit && !!plan.recommended)
+            const availableAfterPurchase = purchaseFit
+              ? purchaseFit.balance + firstPurchaseCredits(tier)
+              : null
             return (
               <button
                 key={plan.tier}
                 type="button"
                 disabled={loading}
-                onClick={() => onUpgrade(tier)}
+                onClick={() => {
+                  if (purchaseFit) {
+                    void trackEvent('limit_purchase_fit_clicked', {
+                      surface: 'generate_upgrade_modal',
+                      ...limitPurchaseFitTelemetry(purchaseFit),
+                      choice_type: 'plan',
+                      choice_id: tier,
+                      fits_request: fitsRequest,
+                    })
+                  }
+                  onUpgrade(tier)
+                }}
                 style={{
                   position: 'relative',
                   width: '100%',
@@ -17022,8 +17097,16 @@ function UpgradeModal({
                   padding: '14px 16px',
                   borderRadius: 18,
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  background: recommended ? 'rgba(41,151,255,0.10)' : 'rgba(255,255,255,0.04)',
-                  border: recommended ? '1.5px solid rgba(41,151,255,0.6)' : '1px solid rgba(255,255,255,0.12)',
+                    background: recommendedForRequest
+                      ? 'rgba(52,211,153,0.11)'
+                      : recommended
+                        ? 'rgba(41,151,255,0.10)'
+                        : 'rgba(255,255,255,0.04)',
+                    border: recommendedForRequest
+                      ? '1.5px solid rgba(52,211,153,0.72)'
+                      : recommended
+                        ? '1.5px solid rgba(41,151,255,0.6)'
+                        : '1px solid rgba(255,255,255,0.12)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -17038,7 +17121,7 @@ function UpgradeModal({
                       position: 'absolute',
                       top: -9,
                       left: 14,
-                      background: '#2997ff',
+                      background: recommendedForRequest ? '#10b981' : '#2997ff',
                       // KINEO-SPRINT-OFFER-2026-07-14 — was '#04210f' (legacy
                       // dark-green token); white on brand blue.
                       color: '#ffffff',
@@ -17049,13 +17132,13 @@ function UpgradeModal({
                       borderRadius: 999,
                     }}
                   >
-                    MOST POPULAR
+                    {recommendedForRequest ? 'FINISHES THIS VIDEO' : 'MOST POPULAR'}
                   </span>
                 )}
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontWeight: 900, color: '#F1F5F9', fontSize: '0.98rem' }}>
                     {plan.name}{' '}
-                    <span style={{ color: recommended ? '#5cb3ff' : '#86868b', fontWeight: 800 }}>
+                    <span style={{ color: recommendedForRequest ? '#6ee7b7' : recommended ? '#5cb3ff' : '#86868b', fontWeight: 800 }}>
                       {/* KINEO-UPGRADE-MODAL-CURRENCY-2026-08-06 — era
                           `plan.priceLabel`, um literal em DÓLAR de
                           lib/pricing.ts ('$9.90'/'$24.90'/'$37.90'), mostrado a
@@ -17071,6 +17154,13 @@ function UpgradeModal({
                   <span style={{ display: 'block', fontSize: '0.78rem', color: '#86868b', marginTop: 2 }}>
                     {unlocks[tier]}
                   </span>
+                  {purchaseFit && availableAfterPurchase !== null && (
+                    <span style={{ display: 'block', fontSize: '0.7rem', color: fitsRequest ? '#6ee7b7' : '#fbbf24', marginTop: 3, fontWeight: 800 }}>
+                      {fitsRequest
+                        ? `Covers this video · ${availableAfterPurchase} credits available`
+                        : `Still ${purchaseFit.requiredCredits - availableAfterPurchase} credits short`}
+                    </span>
+                  )}
                 </span>
                 <span
                   style={{
@@ -17080,12 +17170,14 @@ function UpgradeModal({
                     fontSize: '0.8rem',
                     fontWeight: 900,
                     color: '#fff',
-                    background: recommended
-                      ? '#2997ff'
-                      : 'rgba(255,255,255,0.10)',
+                    background: recommendedForRequest
+                      ? '#10b981'
+                      : recommended
+                        ? '#2997ff'
+                        : 'rgba(255,255,255,0.10)',
                   }}
                 >
-                  {loading ? '…' : 'Choose'}
+                  {loading ? '…' : recommendedForRequest ? 'Finish video' : 'Choose'}
                 </span>
               </button>
             )
@@ -17183,40 +17275,74 @@ function UpgradeModal({
                   sub: `${videosForCredits(TOPUP_CREDITS.topup300, 'cinematic_hollywood')} Kling 3 films ⭐ best value`,
                   price: currency ? formatCheckoutMoney(currency, TOPUP_PRICES.topup300[currency]) : '—',
                 },
-              ].map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={loading || topupCheckout.pending !== null}
-                  onClick={() => {
-                    topupCheckout.launch(t.id, `/api/stripe/checkout?pack=${t.id}`, {
-                      pack: t.id,
-                      pricing_surface: 'generate_upgrade_modal_topup',
-                    })
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '11px 10px',
-                    borderRadius: 12,
-                    cursor: loading || topupCheckout.pending ? 'not-allowed' : 'pointer',
-                    opacity: topupCheckout.pending ? 0.7 : 1,
-                    background: 'rgba(41,151,255,0.08)',
-                    border: '1px solid rgba(41,151,255,0.4)',
-                    color: '#E2E8F0',
-                    textAlign: 'center',
-                  }}
-                >
-                  {topupCheckout.pending === t.id ? (
-                    <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800 }}>Loading…</span>
-                  ) : (
-                    <>
-                      <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 900, color: '#5cb3ff' }}>{t.price}</span>
-                      <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700 }}>{t.label}</span>
-                      <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b' }}>{t.sub}</span>
-                    </>
-                  )}
-                </button>
-              ))}
+              ].map((t) => {
+                const topupId = t.id as TopupId
+                const purchaseChoice = { type: 'topup', id: topupId } as const
+                const fitsRequest = purchaseFit
+                  ? limitPurchaseChoiceFits(purchaseFit, purchaseChoice)
+                  : false
+                const recommendedForRequest = purchaseFit?.recommended?.type === 'topup'
+                  && purchaseFit.recommended.id === topupId
+                const availableAfterPurchase = purchaseFit
+                  ? purchaseFit.balance + TOPUP_CREDITS[topupId]
+                  : null
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={loading || topupCheckout.pending !== null}
+                    onClick={() => {
+                      if (purchaseFit) {
+                        void trackEvent('limit_purchase_fit_clicked', {
+                          surface: 'generate_upgrade_modal',
+                          ...limitPurchaseFitTelemetry(purchaseFit),
+                          choice_type: 'topup',
+                          choice_id: topupId,
+                          fits_request: fitsRequest,
+                        })
+                      }
+                      topupCheckout.launch(t.id, `/api/stripe/checkout?pack=${t.id}`, {
+                        pack: t.id,
+                        pricing_surface: 'generate_upgrade_modal_topup',
+                      })
+                    }}
+                    style={{
+                      position: 'relative',
+                      flex: 1,
+                      padding: '11px 10px',
+                      borderRadius: 12,
+                      cursor: loading || topupCheckout.pending ? 'not-allowed' : 'pointer',
+                      opacity: topupCheckout.pending ? 0.7 : 1,
+                      background: recommendedForRequest ? 'rgba(52,211,153,0.11)' : 'rgba(41,151,255,0.08)',
+                      border: recommendedForRequest ? '1.5px solid rgba(52,211,153,0.72)' : '1px solid rgba(41,151,255,0.4)',
+                      color: '#E2E8F0',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {recommendedForRequest && (
+                      <span style={{ display: 'block', color: '#6ee7b7', fontSize: '0.58rem', fontWeight: 900, letterSpacing: '0.07em', marginBottom: 3 }}>
+                        FINISHES THIS VIDEO
+                      </span>
+                    )}
+                    {topupCheckout.pending === t.id ? (
+                      <span style={{ display: 'block', fontSize: '0.8rem', fontWeight: 800 }}>Loading…</span>
+                    ) : (
+                      <>
+                        <span style={{ display: 'block', fontSize: '0.86rem', fontWeight: 900, color: recommendedForRequest ? '#6ee7b7' : '#5cb3ff' }}>{t.price}</span>
+                        <span style={{ display: 'block', fontSize: '0.78rem', fontWeight: 700 }}>{t.label}</span>
+                        <span style={{ display: 'block', fontSize: '0.68rem', color: '#86868b' }}>{t.sub}</span>
+                        {purchaseFit && availableAfterPurchase !== null && (
+                          <span style={{ display: 'block', fontSize: '0.62rem', color: fitsRequest ? '#6ee7b7' : '#fbbf24', fontWeight: 800, marginTop: 3 }}>
+                            {fitsRequest
+                              ? 'Covers this video'
+                              : `${purchaseFit.requiredCredits - availableAfterPurchase} short`}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </button>
+                )
+              })}
             </div>
             {topupCheckout.error && (
               <p role="alert" style={{ fontSize: '0.72rem', fontWeight: 600, color: '#ff6b6b', textAlign: 'center', margin: 0 }}>
