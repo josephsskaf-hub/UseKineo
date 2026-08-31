@@ -2503,3 +2503,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 93. B2B — o briefing de negócio local deixa de ser um funil invisível (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC):** a campanha canônica `growth_local_business_brief_20260828` tinha zero cadastro externo, zero vídeo concluído, zero pricing, zero checkout e zero pagamento. Como o componente não emitia impressão, exemplo, geração nem continuação, esse zero misturava duas causas opostas: ninguém chegou ou as pessoas chegaram e abandonaram dentro da ferramenta. Contas internas foram excluídas pela fonte canônica `lib/internalAccounts.ts`; sessão não foi chamada de pessoa.
+
+**HIPÓTESE CAUSAL / OBJETIVO DO INSTRUMENTO:** antes de reescrever uma ferramenta B2B publicada e ainda sem coorte identificada, medir onde o caminho quebra. Se a impressão não existir, o problema é distribuição; se houver impressão sem roteiro, é entrada; se houver roteiro sem continuação, é valor/handoff; se houver continuação sem cadastro, é autenticação. Isto é diagnóstico mensurável, não alegação de lift.
+
+**IMPLEMENTADO:** o commit funcional `38787a46f87b269a3e01eabe04f73cb34496f107`, branch `codex/local-business-brief-observability`, adiciona a versão `local_business_brief_observability_v1`. `local_business_brief_viewed` exige pelo menos 50% do builder visível e é deduplicado por sessão somente depois que o sink confirma armazenamento; uma guarda em memória fecha a corrida de remontagem. `local_business_brief_sample_loaded`, `local_business_brief_generated` e `local_business_brief_activation_clicked` distinguem somente fonte categórica `manual|sample`.
+
+**PRIVACIDADE:** metadata allow-listed contém exclusivamente versão, campanha, superfície, placement e fonte categórica do rascunho. Nome da empresa, serviço, público, prova, CTA, roteiro, prompt e URL nunca entram na telemetria. A geração do roteiro continua no navegador; nenhum fetch novo, Supabase direto, Stripe, render ou débito foi adicionado.
+
+**COMPORTAMENTO PRESERVADO:** zero pixel, texto, preço, oferta ou destino mudou. O handoff continua levando campanha `growth_local_business_brief_20260828`, prompt presente, `/generate`, `script_mode=verbatim`, `duration=35`, `autoanalyze=1` e nenhum `create_intent`.
+
+**TESTADO LOCALMENTE:** observabilidade 29/29, contrato do briefing 46/46 e descoberta no hub 30/30 — 105 verificações. Duas âncoras antigas foram atualizadas para o comportamento upstream real (`!createIntent`) e duas para não depender de CRLF/copy expandida; a segurança não foi afrouxada. Whitespace limpo. O typecheck repetiu somente os quatro erros baseline em `app/api/admin/_shared/mrr.ts`, `app/api/me/subscription/route.ts` e duas linhas BRL em `app/api/stripe/checkout/route.ts`; nenhum erro novo.
+
+**VALIDADO EM PREVIEW:** deployment `dpl_4bobq4TBA872TGLKhP3gQ8wWRtac` chegou a `READY`, build concluído em 50s, SHA funcional exato e branch alias. No Chrome conectado do fundador, a página abriu com o builder intacto e zero erro/warning; o exemplo produziu o CTA, a versão apareceu no caller real e o contrato do redirect foi lido sem navegar, cadastrar, renderizar ou pagar.
+
+**GATE:** preservar até dez sessões reais com `local_business_brief_viewed`. Sessões são denominador diagnóstico, não pessoas ou receita. Depois seguir pessoas externas identificadas em `activation_clicked → signup da campanha → vídeo concluído → pricing → checkout_started → payment_success`. Parar se qualquer payload carregar texto do cliente ou se o handoff ganhar `create_intent`.
+
+**NÃO TOCADO:** pricing, packs, comissão, afiliados, checkout, preço, crédito, trial, Stripe server, banco/schema, render, motor, cena, voz, legenda, admin ou qualquer arquivo da pista Claude. `origin/main` permaneceu em `d5aa2db2` durante esta entrega.
+
+**PRÓXIMA RODADA:** a auditoria B2B encontrou uma superfície madura e diferente: 66 pessoas externas identificadas viram `/pricing` em 14 dias, mas a página não oferece caminho para packs empresariais sem assinatura. Codex deve testar uma ponte secundária pós-grid com gate de 20 pessoas, sem editar a página de agências nem os gates em formação. No B2C, a hipótese da caixa universal de cupom fica enfileirada, não implementada, porque a versão atual do checkout ainda não atingiu dez pessoas.
