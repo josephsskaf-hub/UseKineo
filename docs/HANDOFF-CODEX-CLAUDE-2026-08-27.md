@@ -2503,3 +2503,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 97. B2C — a vitrine deixa de prometer uma moeda que o checkout não oferece (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC):** nos sete dias anteriores à leitura, 14 pessoas externas emitiram `checkout_started`, nenhuma emitiu `payment_success` depois, quatro tinham vídeo concluído antes do primeiro checkout e dez ainda não. São pessoas deduplicadas, com contas internas excluídas; 17 eventos de checkout pertenciam a essas 14 pessoas. Esse dado confirma o gargalo, mas não prova que a moeda causou o abandono.
+
+**FATO CONFIRMADO / CONTRADIÇÃO:** `CheckoutCurrency` aceita somente `usd`, `CURRENCY_DISPLAY` contém somente USD e `resolveCheckoutCurrency()` sempre retorna USD em `lib/checkoutPricing.ts`. Mesmo assim, `/pricing`, o grid de planos, a home, o FAQ JSON-LD consumido por mecanismos de resposta e `/cheapest-ai-shorts-maker` afirmavam que o preço seria mostrado ou trocado para moeda local. O comprador podia ler uma conversão local inexistente imediatamente antes de chegar à Stripe.
+
+**CONTENÇÃO DE EXPERIMENTOS:** `pricing_journey_proof_v1` tinha três pessoas externas e uma pessoa clicando revisão; `trial_repeat_before_checkout_v1` tinha uma pessoa; `resume_smaller_choice_v1`, `checkout_payment_guidance_v1` e `recurring_checkout_24h_v1` ainda não tinham coorte versionada suficiente. Nenhuma dessas superfícies, oferta, CTA, preço ou sessão foi reeditada.
+
+**IMPLEMENTADO:** o commit funcional `336d484b42195a78e1032411846a60d2d2194727`, branch `codex/usd-only-currency-truth`, cria `usd_only_currency_truth_v1` junto da allowlist canônica e reutiliza uma frase única: `Prices are charged in USD worldwide. Your bank may convert the amount and apply its usual exchange fees.` A promessa falsa morreu na faixa de moeda e FAQ de `/pricing`, no grid embutido, no FAQ visível e JSON-LD da home, e na metadata, hero, chip, FAQ e estado de carregamento da calculadora pública.
+
+**MEDIÇÃO / PRIVACIDADE:** `pricing_view`, `pricing_currency_resolved`, `inline_pricing_currency_resolved` e `short_cost_calculator_viewed` recebem `currency_truth_version=usd_only_currency_truth_v1`. A versão não inclui e-mail, usuário, sessão, roteiro, prompt ou texto livre. Preço, SKU, crédito, trial e Checkout Session permanecem idênticos.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/USD-CURRENCY-TRUTH-2026-08-31.html` mostra antes/depois desktop e mobile para a faixa de pricing, FAQ e calculadora. No Chrome conectado, `/pricing` mostrou a frase no HTML inicial e depois da hidratação, sem promessa local; `/cheapest-ai-shorts-maker` mostrou USD antes/depois da hidratação; a home mostrou a frase visível e nos quatro blocos JSON-LD sem a alegação antiga.
+
+**TESTADO LOCALMENTE:** verdade USD 36/36, Plan Fit 354/354, checkout salvo 47/47, verdade econômica 306/306, home B2B 27/27 e crédito da vitrine 21/21 — 791 verificações verdes. Typecheck repetiu somente os quatro erros baseline conhecidos; zero erro novo. `test-public-cost-planner-discovery.mjs` manteve uma falha baseline em `llms.txt`, arquivo que esta branch não modifica; não foi reescrito para ficar verde.
+
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** deploy `dpl_CPkv31LAc1txX6KpRXpK6H4Yw3ir` chegou a `READY` no SHA funcional. `/pricing`, `/cheapest-ai-shorts-maker` e `/` abriram no Chrome sem erro de console; a Vercel retornou zero runtime error/fatal na janela consultada.
+
+**GATE:** depois de entrar em produção, preservar a verdade comercial — ela não volta a prometer moeda local mesmo se o CTR cair. Aguardar dez pessoas externas com `pricing_view.metadata.currency_truth_version='usd_only_currency_truth_v1'` e medir `pricing_view → checkout_started → payment_success`, segmentando país somente quando o dado existir. Se o checkout cair, USD explícito pode estar desqualificando cedo; isso orienta uma decisão futura sobre moeda real, não autoriza restaurar a promessa falsa.
+
+**NÃO TOCADO:** main, árvore principal, preço, desconto, cupom, grant, trial, SKU, Stripe server, sessão salva, Plan Fit, jornada pós-vídeo, render, motor, cena, voz, legenda, qualidade, admin, crédito, banco, e-mail ou outreach.
+
+**PASSAGEM PARA CLAUDE:** duas copies fora da pista Codex ainda repetem a mentira: `app/(dashboard)/generate/GenerateClient.tsx` usa `local price loads before checkout` em dois pontos e `app/api/admin/send-india-price/route.ts` diz `shown in local currency`. Não foram tocadas porque pertencem à pista Claude/compartilhada. Corrigir somente depois de `git fetch origin` e sem reintroduzir tabela de moeda paralela.
