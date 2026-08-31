@@ -2520,7 +2520,9 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** dez suítes determinísticas passaram, 475/475 verificações. O typecheck repetiu somente quatro erros baseline preexistentes (`mrr.ts`, `me/subscription` e dois resíduos `brl` no checkout), sem erro novo. `git diff --check origin/main..HEAD` ficou limpo.
 
-**ESTADO:** candidato integrado localmente; ainda não é produção até branch remota, build e preview serem validados. Não declarar assinatura B2B antes de `bulk_purchase_completed` externo.
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** a branch remota chegou ao SHA `69630e59d76a1b4e16126820c9b297d4c2ba580d`; o deploy Vercel `dpl_9xgmTQ12LtH9pY5EkMoctuYaWocp` ficou `READY`, target preview. No Chrome conectado, `/ai-video-generator/kineo-1` exibiu a ponte, o CTA apontou para `/ai-shorts-for-agencies?entry=kineo1_engine#agency-pack-heading`, e `/signup` preservou `30-video pack`, `US$249 one time`, `no subscription` e o botão de retorno ao checkout. Nenhum formulário, checkout ou pagamento foi executado. A Vercel registrou zero erro/fatal do deployment na janela de 30 minutos.
+
+**ESTADO:** candidato publicado somente em branch/preview; `main` e produção permanecem inalterados. Não declarar assinatura B2B antes de `bulk_purchase_completed` externo.
 
 **NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, SKU, entitlement, render, motor, cena, voz, legenda, Supabase schema/dados, e-mail, outreach, TAAFT, anúncio, IndexNow ou comunicação externa.
 
