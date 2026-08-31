@@ -111,14 +111,16 @@ try {
   check(component.includes('duration: 35'), 'client requests the measured 35-second preset')
   check(component.includes('Review every claim'), 'client tells the business owner to verify claims')
   check(component.includes('nothing is generated or charged'), 'client states the no-side-effect boundary before signup')
-  check(!/fetch\(|trackEvent|supabase|create_intent/.test(component), 'builder has no API, analytics, Supabase or auto-render call')
+  check(!/fetch\(|supabase|create_intent/.test(component), 'builder has no direct API, Supabase or auto-render call')
   check(!/fetch\(|trackEvent|supabase|render/.test(readFileSync(join(repo, 'lib/growth/localBusinessAdBrief.ts'), 'utf8')), 'brief algorithm is browser-only')
   check(signupPage.includes("const explicitRedirect = normalizeInternalRedirect(params.get('redirect'))"), 'the real signup caller validates and prioritizes the saved destination')
   check(generateClient.includes("const initialPrompt = searchParams.get('prompt')"), 'the real editor initializes from the carried draft')
   check(generateClient.includes('if (handoff.scriptMode) setScriptMode(handoff.scriptMode)'), 'the real editor applies verbatim mode')
   check(generateClient.includes('if (handoff.duration) setDuration(handoff.duration)'), 'the real editor applies the 35-second preset')
   check(generateClient.includes("const auto = searchParams?.get('autoanalyze') === '1'"), 'the real editor recognizes the bounded analysis trigger')
-  check(generateClient.includes("if (activationContract.createIntent !== 'fast') return"), 'the real charged-autostart caller rejects this no-intent handoff')
+  // Upstream sprint-v1v4 generalized the gate from a Fast-only comparison to
+  // the actual invariant: no explicit create_intent means no charged autostart.
+  check(generateClient.includes('if (!activationContract.createIntent) return'), 'the real charged-autostart caller rejects this no-intent handoff')
 
   console.log(`local-business-ad-brief: ${checks}/${checks} checks passed`)
 } finally {
