@@ -2503,3 +2503,21 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 92. B2C / ChatGPT — roteiro pronto deixa de entrar como ideia na maior campanha (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, janela 24/08/2026 16:09 UTC → 31/08/2026 16:09 UTC):** excluídas as contas internas de `lib/internalAccounts.ts`, a campanha `push60_free_ai_shorts_generator` trouxe 12 pessoas externas com vídeo concluído, duas com download, uma com chegada a pricing e zero checkout. Na mesma janela, `push58_text_to_video_shorts` trouxe seis pessoas com vídeo, três downloads, duas chegadas a pricing e dois checkouts. São pessoas, não eventos ou sessões; nenhuma das duas campanhas registrou pagamento.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** `/free-ai-shorts-generator` dizia `Type one topic or paste your script`, mas o caller não fornecia `scriptMode`; o contrato de handoff assumia `ai`. O fluxo existente em `/text-to-video-shorts` já separa `finished_script`, envia `scriptMode='verbatim'` e fixa 35 segundos. O contrato de geração declara que verbatim usa o texto colado como roteiro, sem reescrever a fala.
+
+**HIPÓTESE CAUSAL NOVA:** parte do público vindo de ChatGPT já chega com a narração pronta. Uma opção explícita antes do formulário ambíguo deve encaminhar esse público ao caminho que preserva o texto, sem trocar a landing principal, sem duplicar o seletor e sem editar o experimento do destino.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `free_finished_script_bridge_v1` adiciona um card secundário antes do `TopicGeneratorForm`: `Already have a finished script?` → `Choose finished-script mode`. O destino exato é `/text-to-video-shorts#try-text-to-video-mode-heading`, onde a pessoa faz a escolha explícita; o link não finge pré-selecionar o modo. Não há UTM nem sobrescrita de first-touch. A campanha `push60_free_ai_shorts_generator`, o formulário de ideia, o trial e todo o destino permanecem inalterados.
+
+**MEDIÇÃO / GATE:** `free_finished_script_bridge_viewed` exige 35% de visibilidade e deduplica somente depois de armazenamento confirmado; `free_finished_script_bridge_clicked` registra a escolha. Ambos carregam apenas `{version, destination, placement}`. O gate é dez pessoas externas que se registrem depois do clique. Parar se o destino não chegar em verbatim, se a atribuição for sobrescrita ou se o anchor falhar. Clique, cadastro, vídeo e checkout não são receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/FREE-FINISHED-SCRIPT-BRIDGE-2026-08-31.html` contém antes/depois desktop e mobile. O arquivo é autocontido e sem dependência externa. A inspeção no Chrome será feita no preview HTTPS da branch, porque a política do navegador não abre arquivos `file://` locais.
+
+**TESTADO LOCALMENTE:** ponte 33/33, router de intenção text-to-video 47/47, handoff SEO 50/50 e contexto afiliado 55/55. O typecheck repetiu somente os quatro erros baseline em MRR, assinatura e checkout; nenhum erro novo. Whitespace limpo. A revisão React confirmou componente pequeno, efeito com dependência estável, dedupe versionado, ausência de waterfall e falha de analytics isolada da navegação.
+
+**NÃO TOCADO:** `TextToVideoIntentForm`, `GenerateClient`, preço, desconto, cupom, grant, validade, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou tráfego pago. A entrega está em branch `codex/*`; produção/main permanece inalterada até autorização do fundador.
