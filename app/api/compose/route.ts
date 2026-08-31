@@ -72,6 +72,9 @@ import {
   countFreeFastUsage,
   countUndeliveredReservations,
 } from '@/lib/freeFastQuota'
+// sprint-v1v4 #17 — o horario em que a vaga free volta. Funcao pura, sem I/O,
+// que so olha os `created_at` que a auditoria de cota JA leu para recusar.
+import { quandoLiberaVaga, fraseDaVolta, minutosAteLiberar } from '@/lib/freeQuotaReset'
 // [KINEO-TRIAL-SWAP-2026-08-07] — o limite/janela/copy do free tier agora vêm
 // da MESMA fonte que toda a copy pública (lib/freeTierOffer.ts), decididos pela
 // flag KINEO_REVERSE_TRIAL_ENABLED:
@@ -1097,7 +1100,11 @@ export async function POST(req: NextRequest) {
           .gte('created_at', since),
         composeAdmin
           .from('videos')
-          .select('id,render_id,quality_mode,credits_used')
+          // sprint-v1v4 #17 — `created_at` entra no SELECT (o filtro .gte
+          // abaixo ja usava a coluna; ela so nunca vinha de volta). Sem ela,
+          // uma vaga ocupada por linha de `videos` fica sem carimbo e o
+          // calculo do horario de liberacao se cala por prudencia.
+          .select('id,render_id,quality_mode,credits_used,created_at')
           .eq('user_id', authenticatedUserId)
           .eq('quality_mode', 'fast')
           .eq('credits_used', 0)
@@ -1147,10 +1154,52 @@ export async function POST(req: NextRequest) {
         }).get(authenticatedUserId) ?? 0
 
         await releaseGenerationClaim()
+
+        // ═══ sprint-v1v4 #17 — A HORA EM QUE A PAREDE ABRE ══════════════════
+        // As mesmas linhas que acabaram de RECUSAR sabem quando a vaga volta.
+        // Monta a lista contada com a MESMA dedupe da regra (claim manda;
+        // video so entra se o render_id dele nao veio de uma claim) para que
+        // o horario nunca discorde do numero que recusou.
+        const agoraMs = Date.now()
+        const renderIdsDeClaims = new Set<string>()
+        for (const linha of claimRows) {
+          const meta = linha && typeof linha === 'object'
+            ? (linha as Record<string, unknown>).metadata
+            : null
+          const rid = meta && typeof meta === 'object'
+            ? (meta as Record<string, unknown>).render_id
+            : null
+          if (typeof rid === 'string' && rid.trim()) renderIdsDeClaims.add(rid.trim())
+        }
+        const linhasContadas: unknown[] = [...claimRows]
+        for (const linha of videoRows) {
+          const rid = linha && typeof linha === 'object'
+            ? (linha as Record<string, unknown>).render_id
+            : null
+          if (typeof rid === 'string' && renderIdsDeClaims.has(rid.trim())) continue
+          linhasContadas.push(linha)
+        }
+        const liberaEm = quandoLiberaVaga({
+          linhas: linhasContadas,
+          limite: FREE_OFFER.limit,
+          janelaMs: FREE_OFFER.windowMs,
+          agora: agoraMs,
+        })
+        const fraseVolta = fraseDaVolta(liberaEm, agoraMs)
+        // A copy da oferta e do Codex e continua INTACTA byte a byte: a frase
+        // de tempo e ACRESCENTADA, nunca substitui.
+        const mensagem402 = fraseVolta
+          ? `${FREE_OFFER.copy.limitHitError} ${fraseVolta}`
+          : FREE_OFFER.copy.limitHitError
+
         // KINEO-REFUSAL-TELEMETRY-2026-07-30 — ver logComposeRefusal.
         await logComposeRefusal('free_fast_limit', authenticatedUserId, {
           used: reservedOrCompleted,
           limit: FREE_OFFER.limit,
+          // sprint-v1v4 #17 — a metrica desta rodada. `null` = o servidor nao
+          // soube dizer a hora, e a pessoa leu a frase antiga.
+          reset_in_minutes: minutosAteLiberar(liberaEm, agoraMs),
+          reset_at: liberaEm ? new Date(liberaEm).toISOString() : null,
           // INSTRUMENTO, não regra: quantas das vagas contadas acima são
           // reservas sem linha em `videos` e já fora do período de graça. Mede
           // quanto desta recusa é potencialmente indevida, para a próxima
@@ -1163,7 +1212,12 @@ export async function POST(req: NextRequest) {
           {
             // [KINEO-TRIAL-SWAP-2026-08-07] — copy do 402 vem da mesma fonte
             // que a promessa pública (flag OFF = frase antiga byte a byte).
-            error: FREE_OFFER.copy.limitHitError,
+            // sprint-v1v4 #17 — mais a hora da volta, quando ela e conhecida.
+            // O cliente ja renderiza `data.error` nos dois ramos de 402 do
+            // GenerateClient, entao a frase aparece SEM UMA LINHA de mudanca
+            // na zona compartilhada.
+            error: mensagem402,
+            free_quota_reset_at: liberaEm ? new Date(liberaEm).toISOString() : null,
             upsell: 'credits',
             outOfCredits: true,
             upgrade: '/pricing',
