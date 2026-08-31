@@ -202,7 +202,11 @@ ok(commissionIndex > guardIndex, 'payment path records commission only after gua
 ok(balanceReadIndex > commissionIndex, 'commission precedes additive balance read')
 ok(balanceWriteIndex > commissionIndex, 'commission precedes additive balance write')
 equal((paymentPath.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 1, 'payment path has one commission call')
-ok(webhookSource.includes('const shouldRetryWebhook = shouldRetryEntitlement || shouldRetryAffiliateLedger'), 'affiliate failures enter retry release')
+// Retry now also includes the checkout-analytics sink. Assert each cause and
+// the composed guard instead of freezing the former two-term source line.
+ok(webhookSource.includes('const shouldRetryAffiliateLedger = error instanceof RetryableAffiliateLedgerError'), 'affiliate failures are classified for retry')
+ok(webhookSource.includes('const shouldRetryCheckoutAnalytics = error instanceof RetryableCheckoutAnalyticsError'), 'analytics failures are classified for retry')
+ok(webhookSource.includes('shouldRetryEntitlement ||\n      shouldRetryAffiliateLedger ||\n      shouldRetryCheckoutAnalytics'), 'all retry causes enter the shared release path')
 ok(webhookSource.includes('if (shouldRetryWebhook && checkoutFulfillmentGuardAcquired'), 'affiliate failure releases pack guard')
 ok(webhookSource.includes('if (shouldRetryWebhook && dedupeRowAcquired && checkoutGuardReleased)'), 'affiliate failure releases Stripe event guard')
 ok(!webhookSource.includes("if (ref && ref.status !== 'paid')"), 'legacy paid-before-commission branch is gone')

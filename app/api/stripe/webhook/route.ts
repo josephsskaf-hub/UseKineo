@@ -26,6 +26,11 @@ import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/c
 // abaixo). A flag e o evento seguem o padrão do resto do trial.
 import { REVERSE_TRIAL_ENABLED } from '@/lib/reverseTrial'
 import { writeServerEvent } from '@/lib/serverEvents'
+import {
+  buildCanonicalStripeCheckoutFailure,
+  buildStripeChargeFailureEnrichment,
+  stripeFailureReference,
+} from '@/lib/stripeCheckoutFailure'
 import { TRIAL_GRANT_CREDITS } from '@/lib/reverseTrial'
 import {
   AffiliateLedgerIntegrityError,
@@ -78,6 +83,57 @@ class RetryableAffiliateLedgerError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'RetryableAffiliateLedgerError'
+  }
+}
+
+class RetryableCheckoutAnalyticsError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'RetryableCheckoutAnalyticsError'
+  }
+}
+
+function stripeObjectId(value: unknown): string | null {
+  if (typeof value === 'string' && value.trim()) return value
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id?: unknown }).id
+    return typeof id === 'string' && id.trim() ? id : null
+  }
+  return null
+}
+
+async function resolvePaymentIntentInvoiceContext(
+  paymentIntent: Stripe.PaymentIntent,
+): Promise<{ hasInvoice: boolean; billingReason: string | null }> {
+  const runtimeIntent = paymentIntent as unknown as {
+    invoice?: unknown
+    latest_charge?: unknown
+  }
+  let invoiceId = stripeObjectId(runtimeIntent.invoice)
+  let invoiceLookupUncertain = false
+
+  if (!invoiceId) {
+    const runtimeError = paymentIntent.last_payment_error as unknown as { charge?: unknown } | null
+    const chargeId = stripeObjectId(runtimeError?.charge) ?? stripeObjectId(runtimeIntent.latest_charge)
+    if (chargeId) {
+      try {
+        const charge = await stripe.charges.retrieve(chargeId)
+        invoiceId = stripeObjectId((charge as Stripe.Charge & { invoice?: unknown }).invoice)
+      } catch {
+        // We cannot safely call this initial: the missing lookup may hide a
+        // renewal invoice. Unknown is an explicit stop signal for the gate.
+        invoiceLookupUncertain = true
+      }
+    }
+  }
+
+  if (!invoiceId) return { hasInvoice: invoiceLookupUncertain, billingReason: null }
+
+  try {
+    const invoice = await stripe.invoices.retrieve(invoiceId)
+    return { hasInvoice: true, billingReason: invoice.billing_reason ?? null }
+  } catch {
+    return { hasInvoice: true, billingReason: null }
   }
 }
 
@@ -1417,15 +1473,10 @@ export async function POST(req: NextRequest) {
       // Toda coorte definida por AUSÊNCIA passa por `events` antes de virar
       // decisão — e esta não tinha por onde passar.
       //
-      // Estes dois casos são ADITIVOS: nenhum caminho existente é tocado,
-      // nenhum crédito é concedido ou revogado, nenhum plano muda. É leitura
-      // pura. Seguro para o dia do TAAFT.
-      //
-      // ⚠️ AÇÃO DE 30 SEGUNDOS DO FUNDADOR (está em docs/PAREDE-DO-CHECKOUT-
-      // 2026-08-16.md): o endpoint de webhook na Stripe precisa estar inscrito
-      // em `payment_intent.payment_failed` e `charge.failed`. Se não estiver,
-      // este código é inerte — não quebra nada, apenas nunca roda. `stripe_events`
-      // recebe 2-8 eventos/dia, compatível com uma lista curta de inscrição.
+      // Um PaymentIntent é a fonte CANÔNICA da recusa. `charge.failed` chega
+      // junto para cartão e vira apenas enriquecimento, com outro nome. Antes
+      // ambos cunhavam `checkout_payment_failed`, duplicando uma mesma recusa.
+      // Nenhum dos dois altera crédito, plano ou entitlement.
       case 'payment_intent.payment_failed': {
         const failedIntent = event.data.object as Stripe.PaymentIntent
         const lastError = failedIntent.last_payment_error ?? null
@@ -1433,14 +1484,7 @@ export async function POST(req: NextRequest) {
           typeof failedIntent.customer === 'string'
             ? failedIntent.customer
             : failedIntent.customer?.id ?? null
-        // `invoice` saiu do tipo público do PaymentIntent em versões recentes
-        // da API mas continua vindo no payload das cobranças de fatura — ler
-        // por acesso indexado mantém o discriminador sem `any` solto.
-        const intentInvoiceRaw = (failedIntent as unknown as { invoice?: string | { id?: string } | null }).invoice
-        const intentInvoiceId =
-          typeof intentInvoiceRaw === 'string'
-            ? intentInvoiceRaw
-            : intentInvoiceRaw?.id ?? null
+        const invoiceContext = await resolvePaymentIntentInvoiceContext(failedIntent)
 
         let failedUserId: string | null =
           failedIntent.metadata?.supabase_user_id ?? null
@@ -1452,68 +1496,50 @@ export async function POST(req: NextRequest) {
               .eq('stripe_customer_id', intentCustomerId)
               .limit(1)
             failedUserId = byCustomer?.[0]?.id ?? null
-          } catch (lookupThrown) {
-            console.warn('[stripe webhook] payment_failed customer lookup threw:', lookupThrown)
+          } catch {
+            console.warn('[stripe webhook] payment_failed customer lookup failed')
           }
         }
 
-        try {
-          await writeServerEvent({
-            name: 'checkout_payment_failed',
-            userId: failedUserId,
-            path: '/api/stripe/webhook',
-            metadata: {
-              source: 'stripe_webhook',
-              stripe_event_id: event.id,
-              object: 'payment_intent',
-              stripe_payment_intent_id: failedIntent.id,
-              stripe_customer_id: intentCustomerId,
-              currency: failedIntent.currency ?? null,
-              amount: failedIntent.amount ?? null,
-              // SEM ISTO A MÉTRICA MENTE EM 30 DIAS. Uma recusa de RENOVAÇÃO
-              // (cartão de assinante que venceu) não é a parede do checkout —
-              // é churn, e cai no mesmo evento. `invoice` presente ⇒ cobrança
-              // de fatura ⇒ renovação; ausente ⇒ primeira compra. Quem ler
-              // este evento SEMPRE filtra por `is_renewal=false` para medir a
-              // parede, e por `true` para medir churn involuntário.
-              is_renewal: Boolean(intentInvoiceId),
-              stripe_invoice_id: intentInvoiceId,
-              // O par que decide entre (a) e (b): `decline_code` é o veredito
-              // do EMISSOR do cartão. 'transaction_not_allowed' /
-              // 'do_not_honor' em cartão indiano é a assinatura do mandato RBI.
-              error_code: lastError?.code ?? null,
-              decline_code: lastError?.decline_code ?? null,
-              error_type: lastError?.type ?? null,
-              error_message: lastError?.message ?? null,
-              card_country: lastError?.payment_method?.card?.country ?? null,
-              card_brand: lastError?.payment_method?.card?.brand ?? null,
-              card_funding: lastError?.payment_method?.card?.funding ?? null,
-              payment_method_type: lastError?.payment_method?.type ?? null,
-            },
-          })
-        } catch (failedEventThrown) {
-          console.warn('[stripe webhook] checkout_payment_failed (intent) threw:', failedEventThrown)
+        const failureMetadata = buildCanonicalStripeCheckoutFailure({
+          paymentIntentId: failedIntent.id,
+          errorCode: lastError?.code ?? null,
+          declineCode: lastError?.decline_code ?? null,
+          currency: failedIntent.currency ?? null,
+          amountMinor: failedIntent.amount ?? null,
+          cardCountry: lastError?.payment_method?.card?.country ?? null,
+          cardBrand: lastError?.payment_method?.card?.brand ?? null,
+          cardFunding: lastError?.payment_method?.card?.funding ?? null,
+          paymentMethodType: lastError?.payment_method?.type ?? null,
+          hasInvoice: invoiceContext.hasInvoice,
+          billingReason: invoiceContext.billingReason,
+        })
+        const failureRef = stripeFailureReference(failedIntent.id)
+        const failureRecorded = await writeServerEvent({
+          name: 'checkout_payment_failed',
+          userId: failedUserId,
+          path: '/api/stripe/webhook',
+          sessionId: failureRef,
+          dedupeMinutes: 24 * 60,
+          metadata: failureMetadata,
+        })
+        if (!failureRecorded) {
+          throw new RetryableCheckoutAnalyticsError('Could not persist canonical checkout failure')
         }
         break
       }
 
       case 'charge.failed': {
-        // `charge.failed` traz o `outcome` (network_status / seller_message),
-        // que o PaymentIntent não expõe. Os dois eventos chegam para a mesma
-        // recusa; guardar os dois é de propósito — `outcome.network_status`
-        // separa "o emissor recusou" de "a Stripe bloqueou antes de tentar",
-        // e essa diferença muda quem tem de consertar.
         const failedCharge = event.data.object as Stripe.Charge
+        const paymentIntentId = stripeObjectId(failedCharge.payment_intent)
+        if (!paymentIntentId) {
+          console.warn('[stripe webhook] charge.failed without PaymentIntent; enrichment skipped')
+          break
+        }
         const chargeCustomerId =
           typeof failedCharge.customer === 'string'
             ? failedCharge.customer
             : failedCharge.customer?.id ?? null
-
-        const chargeInvoiceRaw = (failedCharge as unknown as { invoice?: string | { id?: string } | null }).invoice
-        const chargeInvoiceId =
-          typeof chargeInvoiceRaw === 'string'
-            ? chargeInvoiceRaw
-            : chargeInvoiceRaw?.id ?? null
 
         let chargeUserId: string | null = failedCharge.metadata?.supabase_user_id ?? null
         if (!chargeUserId && chargeCustomerId) {
@@ -1524,42 +1550,32 @@ export async function POST(req: NextRequest) {
               .eq('stripe_customer_id', chargeCustomerId)
               .limit(1)
             chargeUserId = byCustomer?.[0]?.id ?? null
-          } catch (lookupThrown) {
-            console.warn('[stripe webhook] charge.failed customer lookup threw:', lookupThrown)
+          } catch {
+            console.warn('[stripe webhook] charge.failed customer lookup failed')
           }
         }
 
-        try {
-          await writeServerEvent({
-            name: 'checkout_payment_failed',
-            userId: chargeUserId,
-            path: '/api/stripe/webhook',
-            metadata: {
-              source: 'stripe_webhook',
-              stripe_event_id: event.id,
-              object: 'charge',
-              stripe_charge_id: failedCharge.id,
-              stripe_customer_id: chargeCustomerId,
-              currency: failedCharge.currency ?? null,
-              amount: failedCharge.amount ?? null,
-              // Ver a nota em payment_intent.payment_failed: renovação recusada
-              // é CHURN, não parede de checkout. Sempre filtrar por este campo.
-              is_renewal: Boolean(chargeInvoiceId),
-              stripe_invoice_id: chargeInvoiceId,
-              error_code: failedCharge.failure_code ?? null,
-              error_message: failedCharge.failure_message ?? null,
-              decline_code: failedCharge.outcome?.reason ?? null,
-              network_status: failedCharge.outcome?.network_status ?? null,
-              seller_message: failedCharge.outcome?.seller_message ?? null,
-              risk_level: failedCharge.outcome?.risk_level ?? null,
-              card_country: failedCharge.payment_method_details?.card?.country ?? null,
-              card_brand: failedCharge.payment_method_details?.card?.brand ?? null,
-              card_funding: failedCharge.payment_method_details?.card?.funding ?? null,
-              payment_method_type: failedCharge.payment_method_details?.type ?? null,
-            },
-          })
-        } catch (chargeEventThrown) {
-          console.warn('[stripe webhook] checkout_payment_failed (charge) threw:', chargeEventThrown)
+        const enrichmentRef = stripeFailureReference(paymentIntentId)
+        const enrichmentRecorded = await writeServerEvent({
+          name: 'checkout_payment_failure_enriched',
+          userId: chargeUserId,
+          path: '/api/stripe/webhook',
+          sessionId: enrichmentRef,
+          dedupeMinutes: 24 * 60,
+          metadata: buildStripeChargeFailureEnrichment({
+            paymentIntentId,
+            errorCode: failedCharge.failure_code ?? null,
+            declineCode: failedCharge.outcome?.reason ?? null,
+            networkStatus: failedCharge.outcome?.network_status ?? null,
+            riskLevel: failedCharge.outcome?.risk_level ?? null,
+            cardCountry: failedCharge.payment_method_details?.card?.country ?? null,
+            cardBrand: failedCharge.payment_method_details?.card?.brand ?? null,
+            cardFunding: failedCharge.payment_method_details?.card?.funding ?? null,
+            paymentMethodType: failedCharge.payment_method_details?.type ?? null,
+          }),
+        })
+        if (!enrichmentRecorded) {
+          throw new RetryableCheckoutAnalyticsError('Could not persist checkout failure enrichment')
         }
         break
       }
@@ -1987,7 +2003,11 @@ export async function POST(req: NextRequest) {
       entitlementPending &&
       !entitlementConfirmed
     const shouldRetryAffiliateLedger = error instanceof RetryableAffiliateLedgerError
-    const shouldRetryWebhook = shouldRetryEntitlement || shouldRetryAffiliateLedger
+    const shouldRetryCheckoutAnalytics = error instanceof RetryableCheckoutAnalyticsError
+    const shouldRetryWebhook =
+      shouldRetryEntitlement ||
+      shouldRetryAffiliateLedger ||
+      shouldRetryCheckoutAnalytics
 
     let checkoutGuardReleased = !checkoutFulfillmentGuardAcquired
     if (shouldRetryWebhook && checkoutFulfillmentGuardAcquired && checkoutFulfillmentGuard) {
