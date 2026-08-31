@@ -12,6 +12,10 @@ export type SeriesContinuationSource =
   // gera 2o video (7 de 11 cliques em 7d) e vive na tela de 23 pessoas; o
   // /studio tem 87. Mesmo padrao, onde o publico esta.
   | 'studio_milestone'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#3) — o rodape da tela de video pronto
+  // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
+  // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
+  | 'done_footer'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

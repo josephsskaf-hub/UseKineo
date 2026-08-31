@@ -14034,7 +14034,62 @@ export default function GenerateClient({
               />
             ) : planTier !== 'free' ? (
               <NextActionSection onAnother={handleReset} onUpgrade={() => router.push(withIntentCampaign('/pricing'))} />
-            ) : null
+            ) : (
+              // ═══ KINEO-SPRINT-V1V4-2026-08-31 (#3) — O RODAPÉ QUE NÃO EXISTIA ═══
+              // Este ramo era `null`. Ele pega quem é gratuito E não pagou E
+              // acabou de fazer um render Fast — ou seja, EXATAMENTE o maior
+              // grupo de gente ativada — mais o caso em que o Plan Fit ocupa o
+              // slot comercial. Para essas pessoas a tela de sucesso terminava
+              // sem nenhum "e agora?": nem UpsellSection, nem NextActionSection,
+              // nem o "Start over" (que só aparece FORA do phase 'done').
+              //
+              // O NÚMERO QUE MANDOU FAZER ISTO (medido 31/08, 14 dias, externos):
+              // 177 pessoas fizeram o 1º vídeo · 129 pararam nele · ZERO sumiram
+              // sem voltar — as 129 continuaram navegando no site depois. E quem
+              // faz o 2º faz na MEDIANA de 19 minutos. Não é problema de e-mail
+              // nem de reengajamento: a pessoa está aqui, com a sessão aberta, e
+              // a tela não lhe diz o que fazer em seguida.
+              //
+              // Este bloco é só CRIAÇÃO: sem plano, sem preço, sem upgrade — a
+              // monetização deste ecrã já é tratada acima pelos componentes de
+              // oferta (pista do Codex) e não é duplicada aqui.
+              <div className="flex flex-col items-center gap-2.5 mb-6">
+                <p className="text-xs text-center" style={{ color: 'var(--muted2)', lineHeight: 1.5, maxWidth: 320 }}>
+                  Same topic, new hook and payoff — the idea comes pre-written.
+                </p>
+                <div className="flex items-center justify-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => handleContinueSeries(analysis?.title ?? prompt, 'done_footer', publicVideoId)}
+                    className="rounded-xl px-5 py-2.5 text-sm font-black"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(52,211,153,.18), rgba(41,151,255,.12))',
+                      border: '1px solid rgba(52,211,153,.45)',
+                      color: '#34d399',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Build next episode →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void trackEvent('done_footer_start_new_clicked', { video_id: publicVideoId ?? null })
+                      handleReset()
+                    }}
+                    className="rounded-xl px-5 py-2.5 text-sm font-bold"
+                    style={{
+                      background: 'rgba(255,255,255,.04)',
+                      border: '1px solid var(--border)',
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Start something new
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
             <>
               <div className="flex items-center justify-center gap-2 flex-wrap mb-6">
