@@ -18,8 +18,48 @@
 // {ideas: []} — no auth, no key, bad JSON, timeout, all of it. When the list is
 // empty this component renders null. The success screen must never show an
 // error: the user already has the video they spent a credit on.
+//
+// SPRINT-V1V4 #7 (2026-08-31) — THE CALL TO ACTION WAS INVISIBLE.
+// Measured in production: 674 shows to 420 distinct external people since
+// 2026-07-30, against 15 picks by 11 people — a 2.6% pick rate per exposed
+// person, and ZERO picks in the twelve days from 2026-08-19 to 2026-08-31
+// (81 people exposed in that window). For comparison, the /history milestone
+// block converts 6 of 23 exposed people (26%) with a tenth of the audience.
+// The difference is not the audience and it is not the ideas — it is the
+// affordance. Every other "next episode" surface in this product is an
+// explicitly labelled button with an arrow. These three cards were unlabelled
+// boxes whose ONLY clickability signal was an onMouseEnter border colour,
+// which does not exist on a touchscreen. This round gives each card a
+// permanently visible "Make this one →" action row and instruments the
+// telemetry with is_touch / viewport_w so the next round can prove or bury
+// the touch hypothesis instead of guessing.
 
 import { useEffect, useRef, useState } from 'react'
+
+/**
+ * Reads the pointing device without ever touching user data. Both fields exist
+ * only so the next round can answer one question with a query instead of an
+ * opinion: do the people who see these cards have a mouse at all? Guarded for
+ * SSR and for browsers that lack matchMedia; never throws, because a telemetry
+ * helper must not be able to break the success screen.
+ */
+function ambienteDePonteiro(): { is_touch: boolean; viewport_w: number } {
+  try {
+    if (typeof window === 'undefined') return { is_touch: false, viewport_w: 0 }
+    const semHover =
+      typeof window.matchMedia === 'function' && window.matchMedia('(hover: none)').matches
+    const temToque =
+      (typeof navigator !== 'undefined' && (navigator.maxTouchPoints ?? 0) > 0) ||
+      'ontouchstart' in window
+    const largura = Math.round(Number(window.innerWidth) || 0)
+    return {
+      is_touch: Boolean(semHover || temToque),
+      viewport_w: largura > 0 && largura < 20000 ? largura : 0,
+    }
+  } catch {
+    return { is_touch: false, viewport_w: 0 }
+  }
+}
 
 export interface NextShortIdea {
   title: string
@@ -66,7 +106,7 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
         if (cancelled) return
         const list = Array.isArray(data.ideas) ? data.ideas.slice(0, 3) : []
         setIdeas(list)
-        if (list.length > 0) onEvent?.('next_shorts_shown', { count: list.length })
+        if (list.length > 0) onEvent?.('next_shorts_shown', { count: list.length, ...ambienteDePonteiro() })
       } catch {
         if (!cancelled) setIdeas([])
       } finally {
@@ -98,7 +138,7 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
       </div>
       <div className="text-xs leading-relaxed mb-4" style={{ color: 'var(--muted2)' }}>
         A channel is a series, not a pile of one-offs. These continue the one you just
-        made — pick any and it drops straight into the composer.
+        made. Tap one and it lands in the composer — you still press Generate.
       </div>
 
       {loading ? (
@@ -150,23 +190,44 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
               key={`${i}-${idea.title}`}
               type="button"
               onClick={() => {
-                onEvent?.('next_shorts_picked', { index: i, angle: idea.angle })
+                onEvent?.('next_shorts_picked', { index: i, angle: idea.angle, ...ambienteDePonteiro() })
                 onPick(idea)
               }}
-              className="rounded-xl p-4 text-left transition"
+              className="rounded-xl p-4 text-left transition flex flex-col"
               style={{
                 background: 'rgba(255,255,255,.035)',
-                border: '1px solid rgba(255,255,255,.10)',
+                // Stronger resting border than the neutral .10 it used to have:
+                // on a phone this tint is the ONLY thing saying "this is a
+                // control", because there is no hover state to discover.
+                border: '1px solid rgba(41,151,255,.30)',
                 cursor: 'pointer',
                 minHeight: 104,
+                width: '100%',
+                WebkitTapHighlightColor: 'rgba(41,151,255,.28)',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'rgba(41,151,255,.55)'
                 e.currentTarget.style.background = 'rgba(41,151,255,.10)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'rgba(255,255,255,.10)'
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
                 e.currentTarget.style.background = 'rgba(255,255,255,.035)'
+              }}
+              // Touch has no hover, so it gets its own press feedback. Without
+              // this a tap on a phone looks identical to a tap on dead text.
+              onTouchStart={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.75)'
+                e.currentTarget.style.background = 'rgba(41,151,255,.14)'
+              }}
+              onTouchEnd={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
+                e.currentTarget.style.background = 'rgba(255,255,255,.035)'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.75)'
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
               }}
             >
               {idea.angle ? (
@@ -186,6 +247,22 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
               </div>
               <div className="text-[11px] leading-relaxed" style={{ color: 'var(--muted2)' }}>
                 {idea.prompt.length > 96 ? `${idea.prompt.slice(0, 96)}…` : idea.prompt}
+              </div>
+              {/* The whole point of round #7. Every other "next episode" surface
+                  in the product carries a named action with an arrow; this one
+                  carried none, and it is the one 420 people actually see. The
+                  row is permanently visible on purpose — it must not depend on
+                  hover, which is exactly what a phone does not have. */}
+              <div
+                className="mt-3 pt-2 flex items-center gap-1 text-[11px] font-black uppercase"
+                style={{
+                  marginTop: 'auto',
+                  letterSpacing: '.06em',
+                  color: '#5cb3ff',
+                  borderTop: '1px solid rgba(41,151,255,.16)',
+                }}
+              >
+                Make this one <span aria-hidden="true">→</span>
               </div>
             </button>
           ))}
