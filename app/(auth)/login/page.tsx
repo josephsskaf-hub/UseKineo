@@ -8,6 +8,10 @@ import AppleSignInButton from '@/components/AppleSignInButton'
 import { trackSignupSource } from '@/lib/analytics'
 import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
+import {
+  readBulkCheckoutAuthContext,
+  type BulkCheckoutAuthContext,
+} from '@/lib/growth/bulkCheckoutAuthContext'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import AuthReel from '@/components/AuthReel'
@@ -48,6 +52,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   // KINEO-CHECKOUT-RESUME-2026-07-07 — read once on mount (client-only param).
   const [checkoutResume, setCheckoutResume] = useState(false)
+  const [bulkCheckoutContext, setBulkCheckoutContext] = useState<BulkCheckoutAuthContext | null>(null)
   // Query string forwarded to /signup so the pending checkout survives the hop
   // (state, not inline window read, to avoid an SSR hydration mismatch).
   const [authSearch, setAuthSearch] = useState('')
@@ -55,8 +60,10 @@ export default function LoginPage() {
     const resumingCheckout = isCheckoutResume()
     setCheckoutResume(resumingCheckout)
     setAuthSearch(window.location.search)
+    const destination = getRedirect()
+    setBulkCheckoutContext(resumingCheckout ? readBulkCheckoutAuthContext(destination) : null)
     if (resumingCheckout) {
-      trackCheckoutAuthStep('page_view', 'login_page', getRedirect())
+      trackCheckoutAuthStep('page_view', 'login_page', destination)
     }
   }, [])
 
@@ -236,8 +243,15 @@ export default function LoginPage() {
               >
                 {/* ONDA1 #16 (13/08) — sem acusar "session expired" (falso para
                     quem nunca teve sessao): so o proximo passo, direto. */}
-                🔒 Sign in and we&apos;ll take you straight back to secure
-                checkout to finish your purchase.
+                {bulkCheckoutContext ? (
+                  <>
+                    🔒 Your {bulkCheckoutContext.videos}-video pack is saved. Sign in to continue to the {bulkCheckoutContext.priceLabel} USD one-time checkout · no subscription.
+                  </>
+                ) : (
+                  <>
+                    🔒 Sign in and we&apos;ll take you straight back to secure checkout to finish your purchase.
+                  </>
+                )}
               </div>
             )}
 
