@@ -86,6 +86,21 @@ equal(firstClick.AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, 'kineo_affiliate_first_
 
 equal(destinations.AFFILIATE_DESTINATIONS.length, 4, 'four audience-specific first-party destinations are enabled')
 equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
+equal(destinations.AFFILIATE_LEGACY_ROUTER_ENABLED, true, 'legacy router has one reversible switch')
+equal(destinations.AFFILIATE_LEGACY_ROUTER_VERSION, 'affiliate_legacy_router_v1', 'legacy router experiment is versioned')
+equal(destinations.buildAffiliateLegacyRouterUrl('https://www.usekineo.com').toString(), 'https://www.usekineo.com/affiliate-start', 'legacy router stays first-party and adds no UTM')
+equal(destinations.affiliateLegacyIntentHref('creator'), '/free-script-generator', 'creator uses the canonical recommended free tool')
+equal(destinations.affiliateLegacyIntentHref('business'), '/business-video-content-plan', 'business uses the existing free planner')
+equal(destinations.affiliateLegacyIntentHref('business', 'secondary'), '/ai-shorts-for-agencies', 'business retains secondary access to one-time packs')
+equal(destinations.affiliateLegacyIntentHref('creator', 'secondary'), '/', 'creator has no invented secondary route')
+equal(destinations.affiliateLegacyIntentHref('https://evil.example'), '/', 'unknown legacy intent fails closed')
+equal(destinations.getAffiliateLegacyIntent(' BUSINESS '), 'business', 'legacy intent normalizes only into the allowlist')
+equal(destinations.getAffiliateLegacyIntent('agency'), null, 'non-allowlisted intent is rejected')
+const viewedMetadata = destinations.affiliateLegacyEventMetadata()
+equal(JSON.stringify(viewedMetadata), JSON.stringify({ version: 'affiliate_legacy_router_v1', surface: 'affiliate_legacy_router' }), 'router view metadata contains categories only')
+const selectedMetadata = destinations.affiliateLegacyEventMetadata('business', 'planner')
+equal(JSON.stringify(selectedMetadata), JSON.stringify({ version: 'affiliate_legacy_router_v1', surface: 'affiliate_legacy_router', intent: 'business', next_step: 'planner' }), 'selection metadata is finite and PII-free')
+equal(Object.hasOwn(selectedMetadata, 'affiliate_code'), false, 'event metadata never exposes partner code')
 const scriptDestination = destinations.getAffiliateDestination(' ScRiPt ')
 equal(scriptDestination.path, '/free-script-generator', 'destination key normalizes')
 const expectedDestinations = {
@@ -273,12 +288,34 @@ for (const [key, expected] of Object.entries(expectedDestinations)) {
   equal(inserts[0].landing_path, `/a/${CODE}?to=${key}`, `${key} click stores its normalized destination`)
 }
 
-for (const unsafe of [null, 'https://evil.example', '//evil.example', '../checkout', 'home']) {
+{
+  const { response, inserts } = await runRoute({ to: null })
+  const location = new URL(response.location)
+  equal(location.origin, 'https://www.usekineo.com', 'protected legacy click stays first-party')
+  equal(location.pathname, '/affiliate-start', 'protected legacy click reaches the intent router')
+  equal(location.search, '', 'legacy router adds no UTM that could overwrite first source')
+  equal(inserts.length, 1, 'legacy router exposure is backed by one protected click row')
+  equal(inserts[0].landing_path, `/a/${CODE}`, 'legacy click keeps its canonical measurable landing path')
+  equal(response.cookieWrites.length, 3, 'legacy route preserves current attribution cookies')
+}
+
+for (const unsafe of ['https://evil.example', '//evil.example', '../checkout', 'home', '']) {
   const { response, inserts } = await runRoute({ to: unsafe })
   const location = new URL(response.location)
   equal(location.origin, 'https://www.usekineo.com', `unsafe ${unsafe} stays first-party`)
   equal(location.pathname, '/', `unsafe ${unsafe} falls back home`)
   equal(inserts[0].landing_path, `/a/${CODE}`, `unsafe ${unsafe} cannot poison landing path`)
+}
+
+{
+  const { response, inserts } = await runRoute({
+    to: null,
+    existingCode: CODE,
+    existingClickId: OLD_CLICK_ID,
+    proofRows: { [OLD_CLICK_ID]: 'affiliate-current' },
+  })
+  equal(new URL(response.location).pathname, '/affiliate-start', 'proven legacy refresh keeps the router without inflating a click')
+  equal(inserts.length, 0, 'proven legacy refresh creates no duplicate click row')
 }
 
 {
@@ -333,11 +370,23 @@ for (const clickFailure of ['error', 'throw']) {
   equal(inserts.length, 1, `${clickFailure} attempted exactly one click write`)
 }
 
+for (const clickFailure of ['error', 'throw']) {
+  const { response } = await runRoute({ to: null, clickFailure })
+  equal(new URL(response.location).pathname, '/', `${clickFailure} cannot expose legacy router without protected proof`)
+  equal(response.cookieWrites.length, 0, `${clickFailure} legacy visit mints no unbacked attribution`)
+}
+
 for (const userAgent of ['Twitterbot/1.0', 'WhatsApp/2.0']) {
   const { response, inserts } = await runRoute({ userAgent })
   equal(new URL(response.location).pathname, '/free-script-generator', `${userAgent} still receives preview destination`)
   equal(inserts.length, 0, `${userAgent} is not counted as a visit`)
   equal(response.cookieWrites.length, 0, `${userAgent} receives no financial proof`)
+}
+
+for (const userAgent of ['Twitterbot/1.0', 'WhatsApp/2.0']) {
+  const { response, inserts } = await runRoute({ to: null, userAgent })
+  equal(new URL(response.location).pathname, '/', `${userAgent} cannot create an unprotected legacy router exposure`)
+  equal(inserts.length, 0, `${userAgent} legacy preview creates no protected click`)
 }
 
 {
@@ -417,6 +466,20 @@ check(routeSource.includes('isAffiliatePreviewBot'), 'real route filters preview
 check(routeSource.includes('same proven browser'), 'real route dedupes refresh by protected proof')
 check(!routeSource.includes("searchParams.get('redirect')"), 'route accepts no arbitrary redirect parameter')
 check(!routeSource.includes("'sf_aff_salt_v1'"), 'IP hashing has no public fallback salt')
+check(routeSource.includes('rawDestination === null'), 'real route distinguishes absent legacy destination from invalid input')
+check(routeSource.includes('AFFILIATE_LEGACY_ROUTER_ENABLED && hasProtectedAttribution'), 'real route requires the flag and protected attribution')
+
+const legacyRouterPage = read('app/affiliate-start/page.tsx')
+const legacyRouterClient = read('app/affiliate-start/AffiliateLegacyRouterClient.tsx')
+check(legacyRouterPage.includes('index: false'), 'legacy router is noindex')
+check(legacyRouterPage.includes('follow: false'), 'legacy router does not become a crawl-distribution surface')
+check(legacyRouterClient.includes("'affiliate_legacy_router_viewed'"), 'legacy router view is measured')
+check(legacyRouterClient.includes("'affiliate_legacy_intent_selected'"), 'legacy intent selection is measured')
+check(legacyRouterClient.includes("affiliateLegacyIntentHref('creator')"), 'creator card uses the canonical helper')
+check(legacyRouterClient.includes("affiliateLegacyIntentHref('business')"), 'business card uses the canonical helper')
+check(legacyRouterClient.includes("affiliateLegacyIntentHref('business', 'secondary')"), 'business card exposes the existing pack path secondarily')
+check(!/utm_(source|medium|campaign)/i.test(legacyRouterClient), 'router client cannot overwrite first-touch UTMs')
+check(!/(email|affiliate_code|user_id|topic|prompt)\s*:/i.test(legacyRouterClient), 'router events contain no PII or free text')
 
 const previewHtml = read('docs/previews/AFFILIATE-SCRIPT-DEEPLINK-2026-08-27.html')
 const previewSvg = read('docs/previews/AFFILIATE-SCRIPT-DEEPLINK-2026-08-27.svg')
@@ -453,5 +516,13 @@ for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE'
 }
 check(widgetPreview.includes('11 active external affiliates · 7 with zero lifetime clicks'), 'widget preview carries dated production evidence')
 check(widgetPreview.includes('adds no Supabase read or write'), 'widget preview states the capacity-incident boundary')
+
+const legacyRouterPreview = read('docs/previews/AFFILIATE-LEGACY-ROUTER-2026-08-31.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(legacyRouterPreview.includes(label), `legacy-router preview includes ${label}`)
+}
+check(legacyRouterPreview.includes('19 protected legacy clicks'), 'legacy-router preview carries the dated production evidence')
+check(legacyRouterPreview.includes('Gate: 5 new protected legacy clicks'), 'legacy-router preview states the stopping gate')
+check(!/src=["']https?:\/\//i.test(legacyRouterPreview), 'legacy-router preview has no external asset dependency')
 
 console.log(`PASS — ${checks}/${checks} affiliate destination checks`)

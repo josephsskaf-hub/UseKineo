@@ -1,14 +1,17 @@
 // #479 — Affiliate link handler: /a/{CODE}
 // Logs the click, sets a 90-day FIRST-TOUCH cookie (only if not already set),
-// then redirects to one allowlisted first-party acquisition surface (or the
-// homepage for legacy/invalid links). Attribution is finalized at signup by
+// then redirects to one allowlisted first-party acquisition surface. Protected
+// legacy links may use a first-party intent router; invalid links still go home.
+// Attribution is finalized at signup by
 // /api/affiliate/attribute reading this cookie. Service-role only (RLS deny-all).
 import { NextRequest, NextResponse } from 'next/server'
 import { createHash } from 'crypto'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import {
   affiliateClickLandingPath,
+  AFFILIATE_LEGACY_ROUTER_ENABLED,
   buildAffiliateDestinationUrl,
+  buildAffiliateLegacyRouterUrl,
   getAffiliateDestination,
   isAffiliatePreviewBot,
 } from '@/lib/affiliateDestinations'
@@ -36,12 +39,19 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
   const code = normalizeAffiliateCode(params.code)
   if (!code) return NextResponse.redirect(appUrl)
 
-  // `to` is an enum, never a path or URL. Invalid/malicious values preserve
-  // the legacy homepage behavior and can never become an open redirect.
-  const destination = getAffiliateDestination(req.nextUrl.searchParams.get('to'))
-  const destinationUrl = destination
-    ? buildAffiliateDestinationUrl(appUrl, destination.key)
-    : new URL('/', appUrl)
+  // `to` is an enum, never a path or URL. Only a genuinely absent `to` is a
+  // legacy link. Invalid/malicious values preserve the homepage behavior and
+  // can never become an open redirect or enter the intent router.
+  const rawDestination = req.nextUrl.searchParams.get('to')
+  const isLegacyLink = rawDestination === null
+  const destination = getAffiliateDestination(rawDestination)
+  const redirectFor = (hasProtectedAttribution: boolean) => {
+    if (destination) return NextResponse.redirect(buildAffiliateDestinationUrl(appUrl, destination.key))
+    if (isLegacyLink && AFFILIATE_LEGACY_ROUTER_ENABLED && hasProtectedAttribution) {
+      return NextResponse.redirect(buildAffiliateLegacyRouterUrl(appUrl))
+    }
+    return NextResponse.redirect(appUrl)
+  }
 
   try {
     const sb = admin()
@@ -56,9 +66,8 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
       return NextResponse.redirect(appUrl)
     }
 
-    const res = NextResponse.redirect(destinationUrl)
     const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 300)
-    if (isAffiliatePreviewBot(userAgent)) return res
+    if (isAffiliatePreviewBot(userAgent)) return redirectFor(false)
     const existingRaw = req.cookies.get(COOKIE)?.value
     const existingCode = normalizeAffiliateCode(existingRaw)
     const existingClickId = normalizeAffiliateClickId(req.cookies.get(CLICK_COOKIE)?.value)
@@ -73,8 +82,9 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
         .eq('id', existingClickId)
         .eq('affiliate_id', aff.id)
         .maybeSingle()
-      if (sameProofError) return res
+      if (sameProofError) return redirectFor(false)
       if (sameProof?.id === existingClickId) {
+        const res = redirectFor(true)
         res.cookies.set(COOKIE_HINT, '1', {
           maxAge: COOKIE_MAX_AGE,
           sameSite: 'lax',
@@ -151,6 +161,7 @@ export async function GET(req: NextRequest, { params }: { params: { code: string
     // it, while a database outage preserves it (fail closed against takeover).
     const replaceExisting = existingLookupAvailable && (!existingOwnerActive || !existingProofValid)
     let effectiveClickId = existingProofValid ? existingClickId : null
+    const res = redirectFor(Boolean(effectiveClickId || clickProofId))
     if (replaceExisting && clickProofId) {
       res.cookies.set(COOKIE, code, {
         maxAge: COOKIE_MAX_AGE,

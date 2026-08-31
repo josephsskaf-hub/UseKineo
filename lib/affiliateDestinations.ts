@@ -54,11 +54,69 @@ export type AffiliateDestination = (typeof AFFILIATE_DESTINATIONS)[number]
 export type AffiliateDestinationKey = AffiliateDestination['key']
 export type AffiliateDestinationBucket = AffiliateDestinationKey | 'legacy'
 
+// Legacy partner links (`/a/CODE`, with no `to`) predate the audience-specific
+// destinations above. Keep this switch in one place so the additional choice
+// step can be removed without touching attribution, cookies or modern links.
+export const AFFILIATE_LEGACY_ROUTER_ENABLED = true
+export const AFFILIATE_LEGACY_ROUTER_VERSION = 'affiliate_legacy_router_v1'
+export const AFFILIATE_LEGACY_ROUTER_PATH = '/affiliate-start'
+export const AFFILIATE_LEGACY_ROUTER_SURFACE = 'affiliate_legacy_router'
+
+export const AFFILIATE_LEGACY_INTENTS = ['creator', 'business'] as const
+export type AffiliateLegacyIntent = (typeof AFFILIATE_LEGACY_INTENTS)[number]
+export type AffiliateLegacyNextStep = 'tool' | 'planner' | 'packs'
+
 const DESTINATION_BY_KEY = new Map<AffiliateDestinationKey, AffiliateDestination>(
   AFFILIATE_DESTINATIONS.map((destination) => [destination.key, destination]),
 )
 
 export const RECOMMENDED_AFFILIATE_DESTINATION: AffiliateDestinationKey = 'script'
+
+const LEGACY_INTENT_PRIMARY_DESTINATION: Record<AffiliateLegacyIntent, AffiliateDestinationKey> = {
+  creator: RECOMMENDED_AFFILIATE_DESTINATION,
+  business: 'business',
+}
+
+const LEGACY_INTENT_SECONDARY_DESTINATION: Partial<Record<AffiliateLegacyIntent, string>> = {
+  business: '/ai-shorts-for-agencies',
+}
+
+export function getAffiliateLegacyIntent(value: string | null | undefined): AffiliateLegacyIntent | null {
+  const normalized = (value ?? '').trim().toLowerCase()
+  return AFFILIATE_LEGACY_INTENTS.find((intent) => intent === normalized) ?? null
+}
+
+export function buildAffiliateLegacyRouterUrl(origin: string): URL {
+  return new URL(AFFILIATE_LEGACY_ROUTER_PATH, origin)
+}
+
+export function affiliateLegacyIntentHref(
+  intentValue: string | null | undefined,
+  kind: 'primary' | 'secondary' = 'primary',
+): string {
+  const intent = getAffiliateLegacyIntent(intentValue)
+  if (!intent) return '/'
+  if (kind === 'secondary') return LEGACY_INTENT_SECONDARY_DESTINATION[intent] ?? '/'
+  return DESTINATION_BY_KEY.get(LEGACY_INTENT_PRIMARY_DESTINATION[intent])?.path ?? '/'
+}
+
+export function affiliateLegacyEventMetadata(
+  intentValue?: string | null,
+  nextStep?: AffiliateLegacyNextStep,
+): {
+  version: typeof AFFILIATE_LEGACY_ROUTER_VERSION
+  surface: typeof AFFILIATE_LEGACY_ROUTER_SURFACE
+  intent?: AffiliateLegacyIntent
+  next_step?: AffiliateLegacyNextStep
+} {
+  const intent = getAffiliateLegacyIntent(intentValue)
+  return {
+    version: AFFILIATE_LEGACY_ROUTER_VERSION,
+    surface: AFFILIATE_LEGACY_ROUTER_SURFACE,
+    ...(intent ? { intent } : {}),
+    ...(intent && nextStep ? { next_step: nextStep } : {}),
+  }
+}
 
 export function getAffiliateDestination(value: string | null | undefined): AffiliateDestination | null {
   const key = (value ?? '').trim().toLowerCase() as AffiliateDestinationKey
