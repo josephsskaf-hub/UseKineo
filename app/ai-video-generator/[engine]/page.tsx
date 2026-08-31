@@ -23,6 +23,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import Footer from '@/components/Footer'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
@@ -499,6 +500,10 @@ export default async function EnginePage({ params }: { params: { engine: string 
             </table>
           </div>
         </section>
+
+        {params.engine === 'kineo-1' ? (
+          <AgencyVolumeBridge entry="kineo1_engine" />
+        ) : null}
 
         {/* Como funciona */}
         <section style={{ marginTop: 48 }}>
