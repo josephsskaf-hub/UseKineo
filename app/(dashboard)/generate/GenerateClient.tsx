@@ -2167,11 +2167,16 @@ export default function GenerateClient({
             }, 1500)
             return
           }
+          // KINEO-CAUSA-SEMPRE-2026-08-31 — o único emissor de
+          // `generation_stage_error` do cliente que não passava pelo helper
+          // e nascia SEM o campo `error`. Agora fala a mesma língua.
           void trackEvent('generation_stage_error', {
             attempt_id: generationAttemptRef.current,
             stage: 'idle',
             reason: 'active_render_restore_auth_unavailable',
             retries: restoreRetryRef.current,
+            error: `no_detail:active_render_restore_auth_unavailable|stage=idle|http=none`,
+            error_source: 'synthesized',
           })
           return
         }
@@ -5477,12 +5482,61 @@ export default function GenerateClient({
   // servidor chegou a responder — é ele que separa falha de rede/fornecedor de
   // bug nosso pós-resposta. `httpStatus` passa a aceitar null explicitamente
   // porque "não houve status" é a informação, não a ausência dela.
+  // ═══ KINEO-CAUSA-SEMPRE-2026-08-31 (sprint-v1v4 #5) ═════════════════════
+  // 31 das 133 falhas de 7 dias (23%, 12 pessoas) chegaram ao banco com
+  // `metadata.error = null`. Não é campo ausente: o campo existe e vem nulo,
+  // porque o `detail` é opcional e metade dos ramos nunca passou um. O
+  // CLAUDE.md manda tratar `metadata->>'error'` como a PRIMEIRA parada de
+  // qualquer investigação de render — e ela estava cega em quase um quarto
+  // dos casos. Os quatro ramos culpados (7d): analyze_not_ok 18,
+  // cinematic_gate_trial_stalled 8, cinematic_gate_creator 3,
+  // cinematic_provider_queued 2.
+  //
+  // A cura tem duas metades, e a segunda é a que importa a longo prazo:
+  //  1. os ramos que TINHAM o texto do servidor na mão passam a entregá-lo
+  //     (ver os call sites marcados com este mesmo carimbo);
+  //  2. e aqui, o campo `error` deixa de aceitar null: quando ninguém passou
+  //     detalhe nem mensagem, ele é SINTETIZADO a partir do que sempre existe
+  //     (reason, stage, http). Assim nenhuma linha futura nasce muda, mesmo
+  //     que um ramo novo esqueça o `detail` — que é exatamente como os quatro
+  //     acima nasceram.
+  //
+  // `error_source` diz qual das três origens preencheu o campo. É ele que
+  // torna a dívida MENSURÁVEL: `error_source='synthesized'` é a lista viva
+  // dos ramos que ainda não sabem dizer por quê. Antes disso, a única forma
+  // de achá-los era caçar null no banco.
+  function sintetizarCausa(
+    stage: Phase,
+    reason: string,
+    httpStatus: number | null,
+  ): string {
+    const partes = [
+      `no_detail:${reason}`,
+      `stage=${stage}`,
+      `http=${typeof httpStatus === 'number' ? httpStatus : 'none'}`,
+    ]
+    return partes.join('|').slice(0, 180)
+  }
+
   function trackGenerationFailure(
     stage: Phase,
     reason: string,
     extra?: { httpStatus?: number | null; detail?: string; message?: string; responded?: boolean; elapsedMs?: number },
   ) {
     try {
+      const httpStatusValue = typeof extra?.httpStatus === 'number' ? extra.httpStatus : null
+      const detalhe = typeof extra?.detail === 'string' && extra.detail.trim().length > 0
+        ? extra.detail.trim().slice(0, 180)
+        : null
+      const mensagem = typeof extra?.message === 'string' && extra.message.trim().length > 0
+        ? extra.message.trim().slice(0, 200)
+        : null
+      const causa = detalhe ?? (mensagem ? mensagem.slice(0, 180) : sintetizarCausa(stage, reason, httpStatusValue))
+      const causaOrigem: 'detail' | 'message' | 'synthesized' = detalhe
+        ? 'detail'
+        : mensagem
+          ? 'message'
+          : 'synthesized'
       void trackEvent('generation_stage_error', {
         attempt_id: generationAttemptRef.current,
         stage,
@@ -5497,9 +5551,11 @@ export default function GenerateClient({
         generation_id: generationId,
         render_id: renderId,
         reason,
-        http_status: typeof extra?.httpStatus === 'number' ? extra.httpStatus : null,
-        error: extra?.detail ? extra.detail.slice(0, 180) : null,
-        message: extra?.message ? extra.message.slice(0, 200) : null,
+        http_status: httpStatusValue,
+        // NUNCA null — ver KINEO-CAUSA-SEMPRE-2026-08-31 acima.
+        error: causa,
+        error_source: causaOrigem,
+        message: mensagem,
         responded: typeof extra?.responded === 'boolean' ? extra.responded : null,
         // KINEO-FETCH-ARRANCADO-2026-08-15 — quanto tempo o fetch ficou no ar
         // antes de estourar. É o campo que separa dois diagnósticos OPOSTOS que
@@ -6299,7 +6355,16 @@ export default function GenerateClient({
         // PUSH #96 — analyze failures fall back to `idle`, not `failed`, so the
         // phase effect never emitted generate_failed for them. This is the
         // largest single hole behind 1428 starts vs 2 recorded failures.
-        trackGenerationFailure('analyzing', 'analyze_not_ok', { httpStatus: res.status })
+        // KINEO-CAUSA-SEMPRE-2026-08-31 — 18 das 31 linhas mudas de 7 dias
+        // saíram DESTA linha, com o motivo do servidor logo acima indo só
+        // para o console do navegador. `data.error` é texto do servidor
+        // (nunca o prompt, nunca e-mail, nunca chave) e já é mostrado à
+        // pessoa por `setError` — levar ao banco não expõe nada novo.
+        trackGenerationFailure('analyzing', 'analyze_not_ok', {
+          httpStatus: res.status,
+          detail: typeof data?.error === 'string' ? data.error : undefined,
+          responded: true,
+        })
         setPhase('idle')
         return
       }
@@ -7236,7 +7301,13 @@ export default function GenerateClient({
           // KINEO-FAL-ALARM-2026-07-06 — fal balance exhausted: show a calm
           // "high demand, queued" message (no credits used) instead of an error.
           setError(typeof data?.error === 'string' ? data.error : "We're experiencing high demand — your video is queued and will be ready shortly. No credits were used.")
-          trackGenerationFailure('generating', 'cinematic_provider_queued', { httpStatus: 503 })
+          // KINEO-CAUSA-SEMPRE-2026-08-31 — o texto da fila já é mostrado à
+          // pessoa na linha acima; o banco recebia null.
+          trackGenerationFailure('generating', 'cinematic_provider_queued', {
+            httpStatus: 503,
+            detail: typeof data?.error === 'string' ? data.error : 'provider_queued_no_body',
+            responded: true,
+          })
           setPhase('failed'); return
         }
         if (res.status === 402) {
@@ -7289,7 +7360,20 @@ export default function GenerateClient({
             setPhase('failed'); return
           }
           openOutOfCreditsModal(gateReason)
-          trackGenerationFailure('generating', `cinematic_gate_${gateReason}`, { httpStatus: 402 })
+          // KINEO-CAUSA-SEMPRE-2026-08-31 — 11 das 31 linhas mudas de 7 dias
+          // saíram daqui (trial_stalled 8, creator 3). O que faltava para
+          // entender cada uma já estava em `data`: o motivo cru do servidor,
+          // o degrau de upsell e o saldo. Nada disso é dado pessoal.
+          trackGenerationFailure('generating', `cinematic_gate_${gateReason}`, {
+            httpStatus: 402,
+            detail: [
+              `gate=${gateReason}`,
+              typeof data?.reason === 'string' ? `server_reason=${data.reason}` : null,
+              typeof data?.upsell === 'string' ? `upsell=${data.upsell}` : null,
+              typeof data?.balance === 'number' ? `balance=${data.balance}` : null,
+            ].filter(Boolean).join('|'),
+            responded: true,
+          })
           setPhase('failed'); return
         }
         // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ══════════════════════════
