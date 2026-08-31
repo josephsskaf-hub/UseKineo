@@ -46,6 +46,8 @@ import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narr
 // sprint-v1v4 #11 — a alternativa oferecida na recusa vem da MESMA lista que
 // desenha os botoes de duracao do produto. Ver a nota em lib/narrationFit.ts.
 import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
+// sprint-v1v4 #20 — o alvo fantasma de 45s. Ver o cabecalho de lib/durationGhost.ts.
+import { deveResgatar } from '@/lib/durationGhost'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -1082,7 +1084,10 @@ async function manipularPost(req: NextRequest) {
       )
     }
 
-    const duration = Number(body.duration) || 45
+    // sprint-v1v4 #20 — `let` porque o guard de narracao abaixo pode trocar um
+    // alvo FANTASMA (duracao que nenhum botao da tela oferece, tipicamente 45)
+    // pela maior duracao real que a narracao enche, em vez de recusar a pessoa.
+    let duration = Number(body.duration) || 45
     // Runtime-validate optional director data before any OpenAI/Fal work. A TS
     // annotation is not a JSON boundary: null/malformed scene entries used to
     // crash only after paid Hollywood anchors had already been generated.
@@ -1997,7 +2002,44 @@ async function manipularPost(req: NextRequest) {
     // caminho automático quem escreve é o nosso gerador, e a correção certa lá
     // é ele produzir o tamanho certo, não recusar o pedido da pessoa.
     if (verbatim && parsedScript.narration) {
-      const fit = narrationFit(parsedScript.narration, duration)
+      let fit = narrationFit(parsedScript.narration, duration)
+      // ═══ sprint-v1v4 #20 — NAO RECUSE POR UM NUMERO QUE ELA NAO ESCOLHEU ═══
+      // 11 das 15 recusas de narracao em 14 dias mediram o roteiro contra 45s,
+      // e 45 nao existe no seletor (35/60/90) desde 20/08. Antes de recusar, o
+      // servidor pergunta se o alvo e um alvo que o produto OFERECE. Se nao e,
+      // troca pelo maior alvo REAL que a fala enche e segue. Nada de preco,
+      // credito ou plano muda (engineCost nao olha duracao). Detalhes e a
+      // prova de zero-regressao no cabecalho de lib/durationGhost.ts.
+      const resgate = deveResgatar({
+        fitOk: fit.ok,
+        alvoPedido: duration,
+        falaSegundos: fit.speech,
+        oferecidas: SUPPORTED_DURATIONS,
+        maiorQueCabe: largestFittingDuration(fit.speech),
+      })
+      if (resgate) {
+        duration = resgate.alvo
+        fit = narrationFit(parsedScript.narration, duration)
+        console.warn(
+          `[narracao] ALVO FANTASMA RESGATADO: pedido ${resgate.fantasma}s nao existe no seletor ` +
+          `(${SUPPORTED_DURATIONS.join('/')}); ${resgate.fala}s de fala -> alvo ${resgate.alvo}s.`,
+        )
+        // Evento com nome proprio: sem isto o resgate seria invisivel e nao
+        // haveria como provar (ou desmentir) que ele converteu parede em video.
+        try {
+          await cinematicAdmin.from('events').insert({
+            user_id: user.id,
+            name: 'duration_ghost_rescued',
+            path: '/api/generate-video-cinematic',
+            metadata: {
+              ghost_seconds: resgate.fantasma,
+              rescued_to_seconds: resgate.alvo,
+              speech_seconds: resgate.fala,
+              still_short: !fit.ok,
+            },
+          })
+        } catch { /* telemetria nunca derruba a resposta */ }
+      }
       if (!fit.ok) {
         // ═══ KINEO-GUARD-DEVOLVE-2026-08-25 — O GUARD COBRAVA E NÃO DEVOLVIA ═══
         // O comentário acima dizia "antes do débito", mas o claim+débito
