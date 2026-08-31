@@ -182,6 +182,7 @@ import { withPlanFitCheckoutContext } from '@/lib/growth/planFitCheckout'
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
 import WaitingShowcase from '@/components/video/WaitingShowcase'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
+import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
 // para recusar. A tela precisa dela para encaixar a sugestao de duracao nas
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
@@ -4026,6 +4027,19 @@ export default function GenerateClient({
   // Ver o cabeçalho de useReadyBeacon para o porquê de não ter som e de não
   // pedir permissão de notificação.
   useReadyBeacon(phase === 'done' && Boolean(finalVideoUrl))
+
+  // sprint-v1v4 #6 — KINEO-SAIDA-DA-ESPERA-2026-08-31. O irmao do hook acima:
+  // `useReadyBeacon` cuida de quem VOLTA; este registra quem SAI. Medido hoje:
+  // das 27 pessoas externas que apertaram gerar em 7 dias e nunca receberam
+  // filme, 14 nao deixaram nenhum evento, e o ultimo estagio de 6 delas foi
+  // `generating` — a propria tela de espera. Sem este registro, o maior grupo
+  // de perda do funil e literalmente invisivel. So telemetria: nada de tela,
+  // de fluxo, de credito. Ver o cabecalho do arquivo.
+  useWaitAbandon({
+    ativo: isProcessingPhase(phase),
+    estagio: phase,
+    modo: mode,
+  })
 
   // ═══════════════════════════════════════════════════════════════════════
   // KINEO-READY-VIEWED-2026-08-03 — medida 4 do plano da semana.
