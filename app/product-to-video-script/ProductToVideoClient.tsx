@@ -1,8 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
+import {
+  PRODUCT_SCRIPT_APPROVAL_VERSION,
+  buildProductScriptApprovalText,
+  productScriptApprovalMetadata,
+  type ProductScriptDraftSource,
+} from '@/lib/growth/productScriptApproval'
 import {
   buildProductToVideoActivationHref,
   normalizeProductAudience,
@@ -40,15 +47,55 @@ const CARD = {
   border: '1px solid rgba(255,255,255,.09)',
 } as const
 
+const VIEW_MARKER = `kineo:product-script:viewed:${PRODUCT_SCRIPT_APPROVAL_VERSION}`
+const viewRecorded = new Set<string>()
+const viewPending = new Set<string>()
+
 export default function ProductToVideoClient() {
   const [facts, setFacts] = useState('')
   const [audience, setAudience] = useState('')
   const [lines, setLines] = useState<ProductScriptLine[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
+  const toolRef = useRef<HTMLElement | null>(null)
   const activationHref = buildProductToVideoActivationHref(lines)
 
-  async function generate(nextFacts?: string, nextAudience?: string) {
+  useEffect(() => {
+    const target = toolRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+    try {
+      if (sessionStorage.getItem(VIEW_MARKER) === '1') {
+        viewRecorded.add(VIEW_MARKER)
+        return
+      }
+    } catch {
+      // The in-memory guard still protects this mounted page.
+    }
+    if (viewRecorded.has(VIEW_MARKER)) return
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry?.isIntersecting || entry.intersectionRatio < 0.5 || viewPending.has(VIEW_MARKER)) return
+      viewPending.add(VIEW_MARKER)
+      void trackEvent('product_script_tool_viewed', productScriptApprovalMetadata())
+        .then((stored) => {
+          viewPending.delete(VIEW_MARKER)
+          if (!stored) return
+          viewRecorded.add(VIEW_MARKER)
+          try { sessionStorage.setItem(VIEW_MARKER, '1') } catch { /* memory guard remains */ }
+          observer.disconnect()
+        })
+    }, { threshold: [0.5] })
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [])
+
+  async function generate(
+    nextFacts?: string,
+    nextAudience?: string,
+    draftSource: ProductScriptDraftSource = 'manual',
+  ) {
     const cleanFacts = normalizeProductFacts(nextFacts ?? facts)
     const cleanAudience = normalizeProductAudience(nextAudience ?? audience)
     if (cleanFacts.length < 12) {
@@ -59,6 +106,7 @@ export default function ProductToVideoClient() {
     setAudience(cleanAudience)
     setLoading(true)
     setError('')
+    setCopyState('idle')
     setLines([])
     try {
       const response = await fetch('/api/demo-script', {
@@ -77,6 +125,10 @@ export default function ProductToVideoClient() {
         return
       }
       setLines(parsed)
+      void trackEvent('product_script_generated', {
+        ...productScriptApprovalMetadata(draftSource),
+        line_count: parsed.length,
+      })
     } catch {
       setError('Network error. Try again.')
     } finally {
@@ -85,7 +137,25 @@ export default function ProductToVideoClient() {
   }
 
   function useExample(example: (typeof EXAMPLES)[number]) {
-    void generate(example.facts, example.audience)
+    void trackEvent('product_script_example_selected', productScriptApprovalMetadata('example'))
+    void generate(example.facts, example.audience, 'example')
+  }
+
+  async function copyForApproval() {
+    const text = buildProductScriptApprovalText(lines)
+    if (!text) return
+    setCopyState('idle')
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyState('copied')
+      void trackEvent('product_script_copied', {
+        ...productScriptApprovalMetadata(),
+        line_count: lines.length,
+        destination: 'client_approval',
+      })
+    } catch {
+      setCopyState('error')
+    }
   }
 
   return (
@@ -108,7 +178,7 @@ export default function ProductToVideoClient() {
           </p>
         </section>
 
-        <section id="product-script-tool" style={{ ...CARD, marginTop: 30, borderRadius: 18, padding: 'clamp(16px, 4vw, 24px)' }}>
+        <section ref={toolRef} id="product-script-tool" style={{ ...CARD, marginTop: 30, borderRadius: 18, padding: 'clamp(16px, 4vw, 24px)' }}>
           <label htmlFor="product-facts" style={{ display: 'block', color: '#e8e8ed', fontSize: '.82rem', fontWeight: 850, marginBottom: 9 }}>
             Product facts or product-page text
           </label>
@@ -174,9 +244,27 @@ export default function ProductToVideoClient() {
               <p style={{ color: '#96969d', fontSize: '.86rem', lineHeight: 1.55, margin: '0 0 13px' }}>
                 After signup, Kineo carries this 35-second script into the faceless workflow. You review it before spending a credit.
               </p>
-              <Link href={activationHref} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 11, padding: '0 20px', color: '#fff', background: '#2997ff', fontWeight: 900, textDecoration: 'none' }}>
-                Create this product Short →
-              </Link>
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 9 }}>
+                <Link
+                  href={activationHref}
+                  onClick={() => void trackEvent('product_script_activation_clicked', productScriptApprovalMetadata())}
+                  style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 11, padding: '0 20px', color: '#fff', background: '#2997ff', fontWeight: 900, textDecoration: 'none' }}
+                >
+                  Create this product Short →
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => void copyForApproval()}
+                  style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 11, padding: '0 20px', color: '#34d399', background: 'rgba(52,211,153,.08)', border: '1px solid rgba(52,211,153,.38)', fontWeight: 900, cursor: 'pointer' }}
+                >
+                  {copyState === 'copied' ? '✓ Copied for review' : 'Copy for client approval'}
+                </button>
+              </div>
+              {copyState === 'error' ? (
+                <p role="alert" style={{ color: '#fda4af', fontSize: '.78rem', lineHeight: 1.45, margin: '9px 0 0' }}>
+                  Your browser blocked the clipboard. Copy the five script blocks above instead.
+                </p>
+              ) : null}
             </div>
           </section>
         ) : null}
@@ -193,7 +281,11 @@ export default function ProductToVideoClient() {
             <p style={{ color: '#96969d', fontSize: '.88rem', lineHeight: 1.62, margin: '0 0 12px' }}>
               Agencies and companies can turn a catalog or FAQ queue into one-time Fast Short volume packs.
             </p>
-            <Link href={agencyPacksHref('product_tool')} style={{ color: '#34d399', fontSize: '.86rem', fontWeight: 850, textDecoration: 'none' }}>
+            <Link
+              href={agencyPacksHref('product_tool')}
+              onClick={() => void trackEvent('product_script_packs_clicked', productScriptApprovalMetadata())}
+              style={{ color: '#34d399', fontSize: '.86rem', fontWeight: 850, textDecoration: 'none' }}
+            >
               See one-time volume packs →
             </Link>
           </article>

@@ -37,6 +37,9 @@ function executeTs(file, mocks = {}, env = {}) {
 }
 
 const growth = executeTs('lib/growth/productToVideo.ts')
+const approval = executeTs('lib/growth/productScriptApproval.ts', {
+  '@/lib/growth/productToVideo': {},
+})
 const fallback = executeTs('lib/demoFallback.ts')
 
 equal(growth.normalizeProductFacts('  Lamp   folds flat.  '), 'Lamp folds flat.', 'product facts normalize whitespace')
@@ -56,6 +59,18 @@ equal(lines[4].label, 'CTA', 'parser preserves CTA')
 check(growth.productScriptMeetsDuration(rawScript), '70-90 words with five exact beats satisfies the 35-second contract')
 check(!growth.productScriptMeetsDuration('HOOK: Too short.'), 'thin output cannot masquerade as a 35-second result')
 check(growth.productScriptWordCount(lines) >= 70, 'spoken word count is measured from line text')
+
+const approvalText = approval.buildProductScriptApprovalText(lines)
+check(approvalText.startsWith('PRODUCT SHORT SCRIPT — FOR REVIEW'), 'copied artifact declares its review purpose')
+check(approvalText.includes('HOOK: Your desk should never lose'), 'copied artifact contains the generated hook')
+check(approvalText.includes('PROOF: Add [verified battery runtime'), 'copied artifact preserves the evidence placeholder')
+check(approvalText.includes('utm_source=product_script_copy'), 'copied artifact carries an attributable return')
+check(approvalText.includes('utm_medium=referral'), 'copied artifact classifies the organic share')
+check(approvalText.includes('utm_campaign=product_script_approval_v1'), 'copied artifact carries the stable campaign')
+equal(approval.buildProductScriptApprovalText([]), '', 'empty result cannot masquerade as an approval artifact')
+const approvalMetadata = approval.productScriptApprovalMetadata('example')
+equal(approvalMetadata.draft_source, 'example', 'metadata classifies example drafts without their content')
+equal(approvalMetadata.output_type, 'fact_bounded_product_script', 'metadata classifies the output')
 
 const activation = new URL(growth.buildProductToVideoActivationHref(lines), 'https://www.usekineo.com')
 equal(activation.pathname, '/signup', 'product script starts at signup')
@@ -191,7 +206,19 @@ check(client.includes('buildProductToVideoActivationHref(lines)'), 'real CTA pre
 check(client.includes("agencyPacksHref('product_tool')"), 'qualified B2B intent reaches the allowlist')
 check(client.includes('text draft, not a finished video'), 'client states the output boundary')
 check(client.includes('You review it before spending a credit.'), 'CTA does not imply auto-render')
-check(!client.includes('trackEvent'), 'public tool adds no event write during the Supabase incident')
+check(client.includes("trackEvent('product_script_tool_viewed'"), 'visible tool use has a denominator')
+check(client.includes("trackEvent('product_script_generated'"), 'successful generation is measured')
+check(client.includes("trackEvent('product_script_copied'"), 'successful approval copy is measured')
+check(client.includes("trackEvent('product_script_activation_clicked'"), 'video activation is measured')
+check(client.includes("trackEvent('product_script_packs_clicked'"), 'pack intent is measured')
+check(client.includes('await navigator.clipboard.writeText(text)'), 'copy success waits for the real clipboard')
+check(client.indexOf('await navigator.clipboard.writeText(text)') < client.indexOf("trackEvent('product_script_copied'"), 'copy event cannot precede clipboard success')
+check(client.includes('entry.intersectionRatio < 0.5'), 'tool view requires 50 percent visibility')
+check(client.indexOf("trackEvent('product_script_tool_viewed'") < client.indexOf("sessionStorage.setItem(VIEW_MARKER, '1')"), 'view marker is written only after the analytics result')
+const productEventCalls = [...client.matchAll(/trackEvent\('product_script_[\s\S]*?\}\)/g)].map((match) => match[0]).join('\n')
+for (const forbidden of ['facts:', 'audience:', 'script:', 'prompt:', 'email:', 'business_name:']) {
+  check(!new RegExp(`\\b${forbidden.replace(':', '\\s*:')}`).test(productEventCalls), `telemetry excludes ${forbidden}`)
+}
 check(!client.toLowerCase().includes('supabase'), 'public tool has no Supabase client')
 
 const page = read('app/product-to-video-script/page.tsx')
