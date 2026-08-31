@@ -234,6 +234,7 @@ ${plans}
 ## One-time packs for agencies, freelancers and businesses
 
 - [AI Shorts for agencies](${BUSINESS_OFFER_FACT.url}): buy a commercial batch without a subscription or sales call.
+- [Recurring-volume fit review](${BUSINESS_OFFER_FACT.volumeFitReview.url}): share a work email and an allow-listed monthly Short range so Kineo can review product fit before recommending a pack or plan. This is optional, does not start an automatic sales sequence and does not add the email to the viral-ideas mailing list.
 - [Free business video content planner](${BASE}/business-video-content-plan): turn an offer, audience, goal and cadence into a weekly Short plan before signup. It does not schedule or publish posts.
 - [Free client Short video brief generator](${BASE}/client-video-brief-generator): turn a client offer, audience, goal, supplied proof and call to action into a structured 35-second faceless Short brief with approval boundaries before signup. It does not invent proof or render a video.
 - [AI real estate video maker](${BASE}/real-estate-video-maker): create faceless vertical market updates, neighborhood guides and buyer or seller education from facts the agent supplies and verifies. It is not an MLS-photo tour, a faithful property walkthrough or a digital-twin workflow.

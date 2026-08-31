@@ -4,6 +4,13 @@ import {
   formatCheckoutMoney,
   type BulkPackId,
 } from '@/lib/checkoutPricing'
+import {
+  B2B_FIT_REVIEW_CAMPAIGN,
+  B2B_FIT_REVIEW_UTM_MEDIUM,
+  B2B_FIT_REVIEW_UTM_SOURCE,
+  B2B_LEAD_INTENT,
+  B2B_VOLUME_OPTIONS,
+} from '@/lib/growth/b2bLead'
 
 export interface BusinessPackFact {
   id: BulkPackId
@@ -27,12 +34,25 @@ export interface BusinessOfferFact {
   commercialDeliveryAllowed: true
   namedVideoCountEngine: string
   packs: BusinessPackFact[]
+  volumeFitReview: {
+    available: true
+    url: string
+    intent: typeof B2B_LEAD_INTENT
+    workEmailRequired: true
+    automaticMailingList: false
+    monthlyVolumeBands: string[]
+  }
   boundaries: string[]
 }
 
 export function buildBusinessOfferFact(baseUrl: string, namedVideoCountEngine: string): BusinessOfferFact {
   const base = new URL(baseUrl)
   const publicUrl = new URL('/ai-shorts-for-agencies', base).toString().replace(/\/$/, '')
+  const volumeFitUrl = new URL(publicUrl)
+  volumeFitUrl.searchParams.set('utm_source', B2B_FIT_REVIEW_UTM_SOURCE)
+  volumeFitUrl.searchParams.set('utm_medium', B2B_FIT_REVIEW_UTM_MEDIUM)
+  volumeFitUrl.searchParams.set('utm_campaign', B2B_FIT_REVIEW_CAMPAIGN)
+  volumeFitUrl.hash = 'agency-brief-heading'
 
   return {
     name: 'Kineo AI Shorts packs for agencies, freelancers and businesses',
@@ -60,6 +80,14 @@ export function buildBusinessOfferFact(baseUrl: string, namedVideoCountEngine: s
         detailsUrl: `${publicUrl}#pack-${id}`,
       }
     }),
+    volumeFitReview: {
+      available: true,
+      url: volumeFitUrl.toString(),
+      intent: B2B_LEAD_INTENT,
+      workEmailRequired: true,
+      automaticMailingList: false,
+      monthlyVolumeBands: B2B_VOLUME_OPTIONS.map((option) => option.id),
+    },
     boundaries: [
       `The named video count covers ${namedVideoCountEngine} videos; premium engines spend more credits and reduce the output count.`,
       'Self-service for one Kineo account; no team seats, client approval routing or white-label portal.',
