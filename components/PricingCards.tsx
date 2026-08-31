@@ -14,7 +14,7 @@
 // component is only rendered for signed-in users (inside /generate), so a
 // 401 just means the session expired — we fall back to /login.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
 import {
   // KINEO-PILOT-99-2026-07-26 — este grid não tinha NENHUMA presença de
@@ -51,6 +51,13 @@ import {
 } from '@/lib/marketingPrice'
 import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
+import {
+  buildInlinePricingDecisionMetadata,
+  decideInlinePricingLayout,
+  INLINE_PRICING_RETURNING_FOCUS_GATE,
+  type InlinePricingDecision,
+  type InlinePricingLayout,
+} from '@/lib/growth/inlinePricingReturningFocus'
 
 // Push #078 — feature copy now derives from lib/pricing.ts so credit
 // counts can't drift between the homepage, /pricing, and this in-flow
@@ -128,6 +135,23 @@ export default function PricingCards({
   // this in-flow grid agrees with /pricing and the 0-credit modal (Creator =
   // the one primary plan everywhere).
   const [selectedPlan, setSelectedPlan] = useState<'starter' | 'basic' | 'pro' | null>('basic')
+  // inline_pricing_returning_focus_v1 — fail closed. Until the signed-in
+  // history endpoint proves at least one completed video, this renders the
+  // legacy three-card layout.
+  const [returningDecision, setReturningDecision] = useState<InlinePricingDecision>(() =>
+    decideInlinePricingLayout({ historyReliable: false, completedCount: null }),
+  )
+  const [compareExpanded, setCompareExpanded] = useState(false)
+  const pricingSectionRef = useRef<HTMLElement | null>(null)
+  const viewedEventStateRef = useRef<'idle' | 'pending' | 'stored'>('idle')
+
+  const decisionLayout: InlinePricingLayout = returningDecision.eligible
+    ? (compareExpanded ? 'expanded' : 'focused')
+    : 'legacy'
+  const decisionMetadata = useMemo(() => buildInlinePricingDecisionMetadata({
+    layout: decisionLayout,
+    completedCountBucket: returningDecision.completedCountBucket,
+  }), [decisionLayout, returningDecision.completedCountBucket])
 
   // PUSH #74 — display the same server-selected currency the customer will
   // see in Stripe. Checkout still resolves currency independently and never
@@ -161,6 +185,62 @@ export default function PricingCards({
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    void fetch('/api/videos', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('video_history_lookup_failed')
+        const data = await response.json() as {
+          completedCount?: unknown
+          historyReliable?: unknown
+        }
+        if (controller.signal.aborted) return
+        setReturningDecision(decideInlinePricingLayout({
+          completedCount: data.completedCount,
+          historyReliable: data.historyReliable,
+        }))
+      })
+      .catch(() => {
+        // Fail closed: an unavailable or malformed history response must not
+        // opt a person into the returning-user layout.
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    if (!returningDecision.eligible || !decisionMetadata) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const section = pricingSectionRef.current
+    if (!section) return
+
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.some((entry) =>
+        entry.isIntersecting && entry.intersectionRatio >= INLINE_PRICING_RETURNING_FOCUS_GATE.viewportRatio,
+      )
+      if (!visible || viewedEventStateRef.current !== 'idle') return
+
+      viewedEventStateRef.current = 'pending'
+      void trackEvent('inline_pricing_decision_viewed', decisionMetadata).then((stored) => {
+        viewedEventStateRef.current = stored ? 'stored' : 'idle'
+      })
+    }, { threshold: [INLINE_PRICING_RETURNING_FOCUS_GATE.viewportRatio] })
+
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [decisionLayout, decisionMetadata, returningDecision.eligible])
+
+  function handleComparePlans() {
+    if (!returningDecision.eligible || compareExpanded || !decisionMetadata) return
+    setCompareExpanded(true)
+    void trackEvent('inline_pricing_compare_clicked', decisionMetadata)
+  }
 
   // Push #173 — use direct GET navigation to bypass iOS Safari async block.
   // The server-side GET handler creates the Stripe session and issues a 302
@@ -199,6 +279,7 @@ export default function PricingCards({
     const started = checkout.launch(tier, `/api/stripe/checkout?tier=${tier}${introParam}${campaignParam}${trialParam}`, {
       tier,
       pricing_surface: 'generate_step_1',
+      ...(decisionMetadata ?? {}),
     })
     if (!started) return
     void trackEvent('inline_pricing_checkout_clicked', {
@@ -213,6 +294,7 @@ export default function PricingCards({
       intro: (tier === 'starter' || tier === 'basic') &&
         (!displayCurrency || hasIntroOffer(tier, displayCurrency, displayRegion)),
       pricing_surface: 'generate_step_1',
+      ...(decisionMetadata ?? {}),
     })
   }
 
@@ -222,7 +304,11 @@ export default function PricingCards({
     const url = sku === 'autopilot_pilot'
       ? '/api/stripe/checkout?pack=autopilot_pilot'
       : '/api/stripe/checkout?tier=autopilot'
-    const started = checkout.launch(sku, url, { sku, pricing_surface: 'generate_step_1' })
+    const started = checkout.launch(sku, url, {
+      sku,
+      pricing_surface: 'generate_step_1',
+      ...(decisionMetadata ?? {}),
+    })
     if (!started) return
     void trackEvent('inline_pricing_checkout_clicked', {
       tier: sku,
@@ -235,6 +321,7 @@ export default function PricingCards({
       displayed_intro_price_minor: null,
       intro: false,
       pricing_surface: 'generate_step_1',
+      ...(decisionMetadata ?? {}),
     })
   }
 
@@ -259,7 +346,7 @@ export default function PricingCards({
   }
 
   return (
-    <section className="mt-8">
+    <section className="mt-8" ref={pricingSectionRef}>
       <div className="text-center mb-5">
         <div
           className="font-black uppercase tracking-widest mb-1"
@@ -370,8 +457,32 @@ export default function PricingCards({
         <span style={{ color: '#6e6e73' }}>A freelance editor charges $30–75 for one Short.</span>
       </p>
 
-      {/* Push #339 — 3-card layout: Spark + Basic + Pro. */}
-      <div className="grid mx-auto gap-4 grid-cols-1 md:grid-cols-3" style={{ maxWidth: '62rem' }}>
+      {returningDecision.eligible && !compareExpanded && (
+        <div
+          className="mx-auto mb-4 rounded-xl px-4 py-3 text-center"
+          style={{
+            maxWidth: '38rem',
+            background: 'rgba(41,151,255,.06)',
+            border: '1px solid rgba(41,151,255,.2)',
+          }}
+        >
+          <p className="text-sm font-black" style={{ color: 'var(--text)' }}>
+            Ready for your next videos? Creator is the balanced monthly option.
+          </p>
+          <p className="mt-1 text-xs" style={{ color: 'var(--muted)' }}>
+            More AI-video room than Starter, without jumping to the premium Studio tier.
+          </p>
+        </div>
+      )}
+
+      {/* Push #339 — 3-card layout: Spark + Basic + Pro.
+          Returning users see the unchanged Creator card first; the comparison
+          restores these same Starter and Studio cards without cloning them. */}
+      <div
+        id="inline-pricing-plan-grid"
+        className={`grid mx-auto gap-4 grid-cols-1 ${returningDecision.eligible && !compareExpanded ? '' : 'md:grid-cols-3'}`}
+        style={{ maxWidth: returningDecision.eligible && !compareExpanded ? '22rem' : '62rem' }}
+      >
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — Starter tagline was 2 pricing
             generations stale ("50 Fast-Mode Shorts"); synced to V3C (25
@@ -379,25 +490,27 @@ export default function PricingCards({
             KINEO-PRICING-V6-2026-08-19 — e ficou stale de novo (25 → 40). O
             padrão é claro: tagline com número digitado envelhece a cada
             reprice. As três agora saem de PLANS.*.credits (= TIER_CREDITS). */}
-        <PlanCard
-          tier="starter"
-          name={PLANS.starter.name}
-          price={priceFor('starter')}
-          period="/ month"
-          renewNote={introNoteFor('starter')}
-          tagline={`${PLANS.starter.credits} credits/month — up to ${videosPerMonth('starter', 'fast')} Kineo 1 videos from smart stock footage + AI voiceover.`}
-          features={STARTER_FEATURES}
-          selected={selectedPlan === 'starter'}
-          onSelect={() => setSelectedPlan('starter')}
-          cta={{
-            label:
-              purchasing === 'starter'
-                ? 'Loading…'
-                : 'Continue with Starter',
-            onClick: () => handleBuy('starter'),
-            loading: purchasing === 'starter',
-          }}
-        />
+        {(!returningDecision.eligible || compareExpanded) && (
+          <PlanCard
+            tier="starter"
+            name={PLANS.starter.name}
+            price={priceFor('starter')}
+            period="/ month"
+            renewNote={introNoteFor('starter')}
+            tagline={`${PLANS.starter.credits} credits/month — up to ${videosPerMonth('starter', 'fast')} Kineo 1 videos from smart stock footage + AI voiceover.`}
+            features={STARTER_FEATURES}
+            selected={selectedPlan === 'starter'}
+            onSelect={() => setSelectedPlan('starter')}
+            cta={{
+              label:
+                purchasing === 'starter'
+                  ? 'Loading…'
+                  : 'Continue with Starter',
+              onClick: () => handleBuy('starter'),
+              loading: purchasing === 'starter',
+            }}
+          />
+        )}
 
         {/* KINEO-PRICING-V6-2026-08-19 — era "$24.90/150cr, 1 Hollywood film
             included". Os três números morreram: Creator é $15/90cr e 90 não
@@ -435,27 +548,48 @@ export default function PricingCards({
             plano que fecha um filme Hollywood (150), então é aqui que essa
             promessa vive agora. */}
         {/* KINEO-SPRINT-OFFER-2026-07-14 — badge/highlight moved to Creator. */}
-        <PlanCard
-          tier="pro"
-          name={PLANS.pro.name}
-          price={priceFor('pro')}
-          period="/ month"
-          tagline={`Premium Kling engine + ${PLANS.pro.credits} credits — up to ${STUDIO_AI_FILMS} AI or ~${STUDIO_CINEMATIC_FILMS} cinematic Shorts/month.`}
-          features={PRO_FEATURES}
-          selected={selectedPlan === 'pro'}
-          onSelect={() => setSelectedPlan('pro')}
-          cta={{
-            label:
-              purchasing === 'pro'
-                ? 'Loading…'
-                : selectedPlan === 'pro'
-                  ? 'Continue with Studio'
-                  : PLANS.pro.cta,
-            onClick: () => handleBuy('pro'),
-            loading: purchasing === 'pro',
-          }}
-        />
+        {(!returningDecision.eligible || compareExpanded) && (
+          <PlanCard
+            tier="pro"
+            name={PLANS.pro.name}
+            price={priceFor('pro')}
+            period="/ month"
+            tagline={`Premium Kling engine + ${PLANS.pro.credits} credits — up to ${STUDIO_AI_FILMS} AI or ~${STUDIO_CINEMATIC_FILMS} cinematic Shorts/month.`}
+            features={PRO_FEATURES}
+            selected={selectedPlan === 'pro'}
+            onSelect={() => setSelectedPlan('pro')}
+            cta={{
+              label:
+                purchasing === 'pro'
+                  ? 'Loading…'
+                  : selectedPlan === 'pro'
+                    ? 'Continue with Studio'
+                    : PLANS.pro.cta,
+              onClick: () => handleBuy('pro'),
+              loading: purchasing === 'pro',
+            }}
+          />
+        )}
       </div>
+
+      {returningDecision.eligible && !compareExpanded && (
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={handleComparePlans}
+            aria-expanded={compareExpanded}
+            aria-controls="inline-pricing-plan-grid"
+            className="rounded-lg px-4 py-2 text-xs font-bold"
+            style={{
+              color: 'var(--blue, #2997ff)',
+              background: 'transparent',
+              border: '1px solid rgba(41,151,255,.35)',
+            }}
+          >
+            Compare Starter &amp; Studio
+          </button>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════
           KINEO-PILOT-99-2026-07-26 — AUTOPILOT BAND.
