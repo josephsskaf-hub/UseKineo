@@ -5804,7 +5804,15 @@ export default function GenerateClient({
           kind: data.outcome,
           suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
         })
-        void trackEvent('script_expand_failed', { http: res.status, reason: data.outcome, round: rodada })
+        void trackEvent('script_expand_failed', {
+          http: res.status,
+          reason: data.outcome,
+          round: rodada,
+          // #9 — tripwire: base nao-ancestral chegou ao servidor mesmo depois
+          // do conserto do cliente. true aqui = o conserto nao pegou.
+          base_repaired: data?.baseRepaired === true,
+          base_seconds: typeof data?.baseSeconds === 'number' ? data.baseSeconds : null,
+        })
         return
       }
 
@@ -5833,6 +5841,7 @@ export default function GenerateClient({
         after_coverage: data?.after?.coverage ?? null,
         still_short: aindaCurto,
         expanded: cresceu,
+        base_repaired: data?.baseRepaired === true,
         round: rodada,
         attempt_id: generationAttemptRef.current ?? null,
       })
@@ -6210,6 +6219,16 @@ export default function GenerateClient({
             source = sgData.script.trim()
             // #362 — keep the marked script for submission; show clean text.
             structuredScriptRef.current = source
+            // ═══ KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9) ═════
+            // A BASE IMUTAVEL do teto de 2,5x tinha ficado na IDEIA CRUA que a
+            // pessoa digitou, enquanto o texto mandado para completar passava a
+            // ser ESTE roteiro estruturado. Teto de ~3s de fala contra um
+            // candidato de ~47s: growth_limit garantido na 1a rodada para
+            // quem so precisava de 12 palavras (4 das 5 falhas de expansao
+            // medidas em 29-31/08, todas em /studio/create).
+            // A base honesta a partir daqui e o roteiro que ela LE e ACEITA na
+            // tela — o teto continua existindo, medido contra o texto certo.
+            expandBaseRef.current = source
             setPrompt(cleanScriptPreview(source))
           }
         } else {

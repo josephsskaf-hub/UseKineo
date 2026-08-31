@@ -19,6 +19,7 @@ import {
   missingWords,
   needsAuthoring,
   requiredGrowth,
+  resolveGrowthBase,
   withinGrowthLimit,
   type ExpandOutcome,
 } from '@/lib/expandPolicy'
@@ -273,7 +274,16 @@ ${original}`
     // KINEO-350 — o teto agora é medido contra a BASE IMUTÁVEL do autor, não
     // contra o texto da rodada anterior (que já pode ser obra da IA).
     const falaBase = parseUserScript(base).narration || base
-    const speechBase = speechSeconds(falaBase)
+    // KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (#9) — base que nao e ancestral do
+    // roteiro de entrada e base errada: o teto seria menor que o proprio
+    // texto que a pessoa mandou completar, e o growth_limit sairia SEMPRE.
+    const baseResolvida = resolveGrowthBase(speechSeconds(falaBase), antes.speech)
+    const speechBase = baseResolvida.speech
+    if (baseResolvida.repaired) {
+      console.warn('[expand-script] base de crescimento reparada (nao era ancestral)', {
+        recebida: Math.round(speechSeconds(falaBase)), usada: Math.round(speechBase),
+      })
+    }
     if (!withinGrowthLimit(speechBase, depois.speech)) {
       console.warn('[expand-script] recusado: crescimento excessivo sobre a base', {
         base: Math.round(speechBase), depois: Math.round(depois.speech), teto: MAX_GROWTH_FACTOR,
@@ -284,6 +294,8 @@ ${original}`
           error: 'The expansion changed too much of your script. Please add the extra lines yourself.',
           before: medida(antes.speech, target),
           after: medida(depois.speech, target),
+          baseSeconds: Math.round(speechBase),
+          baseRepaired: baseResolvida.repaired,
           suggestedDuration: largestFittingDuration(antes.speech),
         },
         { status: 422 },
@@ -331,6 +343,9 @@ ${original}`
       expanded: true,
       stillShort: !depois.ok,
       restoredDirectives: diretivasPerdidas.length,
+      // #9 — tripwire: depois do conserto do cliente isto tem de ser sempre
+      // false. true em producao = alguem voltou a mandar base nao-ancestral.
+      baseRepaired: baseResolvida.repaired,
       before: {
         words: palavrasAtuais,
         seconds: Math.round(antes.speech),

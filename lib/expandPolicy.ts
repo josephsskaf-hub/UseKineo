@@ -83,6 +83,39 @@ export function withinGrowthLimit(baseSpeech: number, candidateSpeech: number): 
   return candidateSpeech <= baseSpeech * MAX_GROWTH_FACTOR
 }
 
+/**
+ * KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (sprint v1-v4 #9)
+ *
+ * A BASE do teto de 2,5x tem de ser um ANCESTRAL do roteiro que esta sendo
+ * completado. Em producao ela nao era: no caminho PADRAO (scriptMode 'ai') o
+ * cliente guardava como base a IDEIA CRUA digitada (~3s de fala) e mandava
+ * expandir o ROTEIRO ESTRUTURADO que o /api/generate-script escreveu em cima
+ * dela (~38s de fala). Teto = 3 x 2,5 = 7,5s contra um candidato de ~47s:
+ * growth_limit GARANTIDO, sempre na 1a rodada, para quem so precisava de 12
+ * palavras. 4 das 5 falhas de expansao medidas em 29-31/08 sao exatamente
+ * isto, e todas vieram de /studio/create.
+ *
+ * O sinal que denuncia a base errada e ARITMETICO e nao precisa comparar
+ * textos: se o PROPRIO roteiro de entrada ja estoura o teto da base, a base
+ * nao pode ser ancestral dele -- nenhuma expansao teria como passar, e a
+ * recusa estaria decidida antes de qualquer chamada ao modelo.
+ *
+ * Nesse caso a base honesta e o roteiro de entrada: e o texto que a pessoa
+ * leu, aceitou na tela e mandou completar. O Contrato C1 continua de pe -- o
+ * teto segue existindo, medido contra o texto certo.
+ */
+export function resolveGrowthBase(
+  baseSpeech: number,
+  originalSpeech: number,
+): { speech: number; repaired: boolean } {
+  if (!(baseSpeech > 0)) return { speech: originalSpeech, repaired: true }
+  if (!(originalSpeech > 0)) return { speech: baseSpeech, repaired: false }
+  if (!withinGrowthLimit(baseSpeech, originalSpeech)) {
+    return { speech: originalSpeech, repaired: true }
+  }
+  return { speech: baseSpeech, repaired: false }
+}
+
 /** A maior duração que esta fala consegue encher pela régua canônica. */
 export function maximumFittingDuration(currentSpeech: number): number {
   return currentSpeech / MIN_COVERAGE
