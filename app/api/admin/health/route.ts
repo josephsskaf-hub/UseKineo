@@ -21,6 +21,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { isAdminEmail } from '../_shared/db'
+import { contaComoFalha } from '@/lib/failureLedger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -123,15 +124,24 @@ export async function GET() {
         .gte('created_at', new Date(Date.now() - 3600e3).toISOString())
         .limit(200)
       if (error) return { ok: false, note: error.message }
+      // sprint-v1v4 #12 — este vigia contava TRÊS linhas por falha: as duas
+      // metades do par `generation_stage_error` (uma com causa, uma muda) mais
+      // o `video_generation_failed`. Pior: como as duas metades gravam textos
+      // DIFERENTES, uma única falha já produzia duas "causas" — e o alarme
+      // abre com `causas > 2`. O vigia chorava lobo com meio incidente.
+      // Agora só a linha que o `failureLedger` reconhece como causa conta.
       const porCausa = new Map<string, number>()
+      let contadas = 0
       for (const e of data ?? []) {
         const m = (e as { metadata?: Record<string, unknown> }).metadata ?? {}
-        const causa = String(m.error ?? m.reason ?? '(sem detalhe)').slice(0, 80)
+        if (!contaComoFalha(m)) continue
+        contadas++
+        const causa = String(m.reason ?? m.error ?? '(sem detalhe)').slice(0, 80)
         porCausa.set(causa, (porCausa.get(causa) ?? 0) + 1)
       }
       const resumo = [...porCausa.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5)
         .map(([c, n]) => `${n}× ${c}`).join(' | ')
-      return { ok: (data?.length ?? 0) === 0 || porCausa.size <= 2, note: resumo || 'zero falhas' }
+      return { ok: contadas === 0 || porCausa.size <= 2, note: resumo || 'zero falhas' }
     }),
     // 7) Presos agora (>20min fora de estado terminal).
     probe('presos', async () => {

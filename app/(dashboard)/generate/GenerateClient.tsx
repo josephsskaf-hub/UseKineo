@@ -189,6 +189,13 @@ import useWaitAbandon from '@/components/video/useWaitAbandon'
 // opcoes reais do seletor (35|45|60|90), em vez de oferecer um valor que o
 // produto nao tem.
 import { MIN_COVERAGE, speechSeconds } from '@/lib/narrationFit'
+// sprint-v1v4 #12 — 448 linhas de `generation_stage_error` para 209 falhas
+// reais. Ver lib/failureLedger.ts para o defeito inteiro e a regra de contagem.
+import {
+  FAILURE_ROLE_CAUSE,
+  rotularTransicao,
+  sintetizarCausa as sintetizarCausaCompartilhada,
+} from '@/lib/failureLedger'
 // KINEO-350 — as regras de expansão (teto, rodadas, duração honesta) vêm da
 // MESMA fonte que o servidor usa. Antes o cliente tinha a sua própria lista de
 // durações `[90, 60, 45, 35]` e podia oferecer 45s, que não existe no seletor.
@@ -1379,6 +1386,12 @@ export default function GenerateClient({
   const generationAttemptRef = useRef<string | null>(null)
   const preserveGenerationAttemptRef = useRef(false)
   const lastFailedAttemptRef = useRef<string | null>(null)
+  // sprint-v1v4 #12 — a ÚNICA coisa que faltava para os dois emissores de
+  // falha se reconhecerem. `trackGenerationFailure` (a causa) carimba aqui a
+  // tentativa e o motivo; a transição de fase (o eco) lê. Sem isto, a metade
+  // que sabe o PORQUÊ e a metade que sabe a FRASE nunca se encontram, e o
+  // banco guarda duas linhas soltas onde houve uma falha.
+  const causaRelatadaRef = useRef<{ attemptId: string; reason: string } | null>(null)
   const generatingPollErrorsRef = useRef(0)
   const composingPollErrorsRef = useRef(0)
   // PUSH #96 — the fal clip poll retried non-OK responses and thrown errors
@@ -2029,21 +2042,62 @@ export default function GenerateClient({
 
       trackEvent('generation_stage_reached', metadata)
 
+      // ═══ sprint-v1v4 #12 ═══════════════════════════════════════════════
+      // Este bloco é o emissor (B) descrito em lib/failureLedger.ts: ele sabe
+      // a FRASE que o cliente leu, mas nascia sem `reason` — e com o literal
+      // `error: 'unknown'` quando o estado de erro já tinha sido limpo (visto
+      // em produção 31/08 17:55:28Z). Como o emissor (A) já gravou uma linha
+      // para a MESMA tentativa, o banco terminava com duas linhas por falha,
+      // uma delas muda. Agora a linha se apresenta: herda o `reason` da causa
+      // e se declara ECO, ou — quando é a única testemunha — assume o papel de
+      // causa com `unreported_stage_failure`, para não sumir da contagem.
+      const causaRelatada =
+        causaRelatadaRef.current && causaRelatadaRef.current.attemptId === attemptId
+          ? causaRelatadaRef.current.reason
+          : null
+
       if (phase === 'failed' && lastFailedAttemptRef.current !== attemptId) {
         lastFailedAttemptRef.current = attemptId
+        const rotulo = rotularTransicao({
+          stage: 'failed',
+          attemptId,
+          reasonJaRelatado: causaRelatada,
+          mensagemNaTela: error,
+        })
         const failureMetadata = {
           ...metadata,
           failed_from_stage: previousPhase,
-          error: error?.slice(0, 180) ?? 'unknown',
+          error: rotulo.error,
         }
+        // `generate_failed` e `video_generation_failed` continuam sendo UM por
+        // falha (a trava do `lastFailedAttemptRef` garante) — não é deles a
+        // inflação. Só o `generation_stage_error` precisa do rótulo.
         trackEvent('generate_failed', failureMetadata)
         trackEvent('video_generation_failed', failureMetadata)
-        trackEvent('generation_stage_error', failureMetadata)
+        trackEvent('generation_stage_error', {
+          ...failureMetadata,
+          reason: rotulo.reason,
+          failure_role: rotulo.failure_role,
+          error_source: rotulo.error_source,
+          duplicate_of_cause: rotulo.duplicate_of_cause,
+        })
       } else if (phase === 'idle' && error) {
+        // O mesmo par acontece na volta ao repouso: as recusas do analyze
+        // gravam `analyze_not_ok` em `analyzing` e a frase da tela em `idle`.
+        const rotulo = rotularTransicao({
+          stage: 'idle',
+          attemptId,
+          reasonJaRelatado: causaRelatada,
+          mensagemNaTela: error,
+        })
         trackEvent('generation_stage_error', {
           ...metadata,
           failed_from_stage: previousPhase,
-          error: error.slice(0, 180),
+          error: rotulo.error,
+          reason: rotulo.reason,
+          failure_role: rotulo.failure_role,
+          error_source: rotulo.error_source,
+          duplicate_of_cause: rotulo.duplicate_of_cause,
         })
       }
     }
@@ -2200,6 +2254,8 @@ export default function GenerateClient({
           // e nascia SEM o campo `error`. Agora fala a mesma língua.
           void trackEvent('generation_stage_error', {
             attempt_id: generationAttemptRef.current,
+            // sprint-v1v4 #12 — causa, não eco: este ramo morre sozinho.
+            failure_role: FAILURE_ROLE_CAUSE,
             stage: 'idle',
             reason: 'active_render_restore_auth_unavailable',
             retries: restoreRetryRef.current,
@@ -5546,17 +5602,15 @@ export default function GenerateClient({
   // torna a dívida MENSURÁVEL: `error_source='synthesized'` é a lista viva
   // dos ramos que ainda não sabem dizer por quê. Antes disso, a única forma
   // de achá-los era caçar null no banco.
+  // sprint-v1v4 #12 — a fórmula mudou de casa para lib/failureLedger.ts, para
+  // que a transição de fase sintetize com o MESMO formato. Aqui fica só o
+  // adaptador de tipo (Phase → string); a aritmética é uma só, em um lugar só.
   function sintetizarCausa(
     stage: Phase,
     reason: string,
     httpStatus: number | null,
   ): string {
-    const partes = [
-      `no_detail:${reason}`,
-      `stage=${stage}`,
-      `http=${typeof httpStatus === 'number' ? httpStatus : 'none'}`,
-    ]
-    return partes.join('|').slice(0, 180)
+    return sintetizarCausaCompartilhada(stage, reason, httpStatus)
   }
 
   function trackGenerationFailure(
@@ -5578,8 +5632,16 @@ export default function GenerateClient({
         : mensagem
           ? 'message'
           : 'synthesized'
+      // sprint-v1v4 #12 — esta é a linha que CONTA (emissor (A)). Antes de
+      // gravar, ela deixa o recado para a transição de fase que vem logo
+      // atrás: mesma tentativa, esta causa. É o que transforma duas linhas
+      // soltas em uma falha com dois registros de papéis diferentes.
+      if (generationAttemptRef.current) {
+        causaRelatadaRef.current = { attemptId: generationAttemptRef.current, reason }
+      }
       void trackEvent('generation_stage_error', {
         attempt_id: generationAttemptRef.current,
+        failure_role: FAILURE_ROLE_CAUSE,
         stage,
         previous_stage: prevPhaseRef.current,
         mode,
