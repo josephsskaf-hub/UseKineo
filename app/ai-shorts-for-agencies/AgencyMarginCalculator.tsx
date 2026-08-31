@@ -8,6 +8,12 @@ import {
   DEFAULT_AGENCY_MARKETPLACE_FEE_PCT,
   calculateAgencyMargin,
 } from '@/lib/agencyMargin'
+import {
+  AGENCY_MARGIN_PROPOSAL_VARIANT,
+  agencyProposalPriceBand,
+  buildAgencyClientProposal,
+  buildAgencyProposalApprovalHref,
+} from '@/lib/growth/agencyProposal'
 import type { AgencyPackView } from './AgencyPacksClient'
 
 const VIEW_MARKER = 'kineo:agency-margin:viewed:v1'
@@ -26,6 +32,7 @@ export default function AgencyMarginCalculator({ packs }: { packs: AgencyPackVie
   const [selectedPackId, setSelectedPackId] = useState(initialPack?.id ?? 'bulk10')
   const [clientPrice, setClientPrice] = useState(String(DEFAULT_AGENCY_CLIENT_PRICE_MINOR / 100))
   const [marketplaceFeePct, setMarketplaceFeePct] = useState(DEFAULT_AGENCY_MARKETPLACE_FEE_PCT)
+  const [proposalCopied, setProposalCopied] = useState(false)
 
   useEffect(() => {
     try {
@@ -53,6 +60,32 @@ export default function AgencyMarginCalculator({ packs }: { packs: AgencyPackVie
     clientPriceMinor,
     marketplaceFeePct,
   })
+
+  async function copyClientProposal() {
+    const approvalUrl = new URL(buildAgencyProposalApprovalHref(), window.location.origin).toString()
+    const proposal = buildAgencyClientProposal({
+      videos: selectedPack.videos,
+      clientPriceMinor,
+      approvalHref: approvalUrl,
+    })
+    if (!proposal) {
+      setProposalCopied(false)
+      return
+    }
+    try {
+      await navigator.clipboard.writeText(proposal)
+      setProposalCopied(true)
+      void trackEvent('agency_margin_proposal_copied', {
+        version: AGENCY_MARGIN_PROPOSAL_VARIANT,
+        pack: selectedPack.id,
+        videos: selectedPack.videos,
+        price_band: agencyProposalPriceBand(clientPriceMinor),
+        surface: 'ai_shorts_for_agencies',
+      })
+    } catch {
+      setProposalCopied(false)
+    }
+  }
 
   const inputStyle = {
     width: '100%',
@@ -92,7 +125,7 @@ export default function AgencyMarginCalculator({ packs }: { packs: AgencyPackVie
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: 13, marginTop: 24 }}>
         <label style={{ display: 'grid', gap: 7, color: '#c7c7cc', fontSize: 12, fontWeight: 800 }}>
           Delivery volume
-          <select value={selectedPackId} onChange={(event) => setSelectedPackId(event.target.value as AgencyPackView['id'])} style={inputStyle}>
+          <select value={selectedPackId} onChange={(event) => { setSelectedPackId(event.target.value as AgencyPackView['id']); setProposalCopied(false) }} style={inputStyle}>
             {packs.map((pack) => (
               <option key={pack.id} value={pack.id}>{pack.videos} Shorts · {pack.price} Kineo cost</option>
             ))}
@@ -107,7 +140,7 @@ export default function AgencyMarginCalculator({ packs }: { packs: AgencyPackVie
             min="0"
             step="1"
             value={clientPrice}
-            onChange={(event) => setClientPrice(event.target.value)}
+            onChange={(event) => { setClientPrice(event.target.value); setProposalCopied(false) }}
             style={inputStyle}
           />
         </label>
@@ -145,23 +178,36 @@ export default function AgencyMarginCalculator({ packs }: { packs: AgencyPackVie
         <p style={{ color: '#929299', fontSize: 12, lineHeight: 1.55, margin: 0, maxWidth: 720 }}>
           Break-even at this fee: <strong style={{ color: '#f5f5f7' }}>{formatUsd(result.breakEvenClientPriceMinor)} per Short</strong>. This is arithmetic, not an earnings forecast. It excludes your time, revisions, refunds, taxes, ads and client acquisition costs.
         </p>
-        <a
-          href={`#pack-${selectedPack.id}`}
-          onClick={() => {
-            void trackEvent('agency_margin_pack_selected', {
-              version: 'agency_margin_v1_2026_08_27',
-              pack: selectedPack.id,
-              videos: selectedPack.videos,
-              client_price_minor: clientPriceMinor,
-              marketplace_fee_pct: marketplaceFeePct,
-              surface: 'ai_shorts_for_agencies',
-            })
-          }}
-          style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', justifyContent: 'center', padding: '0 18px', borderRadius: 13, background: '#2997ff', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 900 }}
-        >
-          Choose the {selectedPack.videos}-video pack ↓
-        </a>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9 }}>
+          <button
+            type="button"
+            onClick={() => void copyClientProposal()}
+            disabled={clientPriceMinor <= 0}
+            style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', justifyContent: 'center', padding: '0 18px', borderRadius: 13, border: '1px solid rgba(167,139,250,.42)', background: 'rgba(167,139,250,.12)', color: '#ddd6fe', fontSize: 14, fontWeight: 900, cursor: clientPriceMinor > 0 ? 'pointer' : 'not-allowed', opacity: clientPriceMinor > 0 ? 1 : .55 }}
+          >
+            {proposalCopied ? 'Proposal copied ✓' : 'Copy client proposal'}
+          </button>
+          <a
+            href={`#pack-${selectedPack.id}`}
+            onClick={() => {
+              void trackEvent('agency_margin_pack_selected', {
+                version: 'agency_margin_v1_2026_08_27',
+                pack: selectedPack.id,
+                videos: selectedPack.videos,
+                client_price_minor: clientPriceMinor,
+                marketplace_fee_pct: marketplaceFeePct,
+                surface: 'ai_shorts_for_agencies',
+              })
+            }}
+            style={{ display: 'inline-flex', minHeight: 48, alignItems: 'center', justifyContent: 'center', padding: '0 18px', borderRadius: 13, background: '#2997ff', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 900 }}
+          >
+            Choose the {selectedPack.videos}-video pack ↓
+          </a>
+        </div>
       </div>
+      <p aria-live="polite" style={{ color: '#85858c', fontSize: 11, lineHeight: 1.55, margin: '10px 0 0', textAlign: 'right' }}>
+        The copied draft shows the client scope and price—not your Kineo cost or margin. Nothing is sent automatically.
+      </p>
     </section>
   )
 }
