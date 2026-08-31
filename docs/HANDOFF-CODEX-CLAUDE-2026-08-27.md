@@ -2563,3 +2563,21 @@ PRÓXIMO DONO:
 **GATE:** preservar até cinco pessoas externas no total, com pelo menos duas por modalidade. Se não houver pagamento, não reescrever novamente o checkout; investigar a etapa seguinte com nova evidência. Checkout não é receita.
 
 **COORDENAÇÃO DA CANDIDATA:** as seções 82–85 foram consolidadas em `codex/cycle72h-release2`, baseada em `origin/main` `1c0d669d`. Nenhuma dessas quatro entregas está em produção. A árvore principal suja não foi tocada; `GenerateClient.tsx`, render, qualidade e admin permanecem na pista Claude. Integrar somente com autorização explícita do fundador e após novo `git fetch origin` + rebase/auditoria contra a ponta vigente.
+
+## 86. B2B / AEO — o fit review existente passa a ser encontrável (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT somente leitura, 31/08/2026 BRT):** `b2b_brief_viewed` e `b2b_brief_submitted` tiveram zero pessoas externas nos sete dias consultados. O formulário já existia, gravava o pedido sem disparar sequência automática e aparecia depois dos packs; o problema observado era descoberta, não ausência de captura.
+
+**PESQUISA COMPETITIVA OFICIAL (31/08/2026):** as superfícies empresariais atuais de HeyGen e Synthesia mantêm duas saídas distintas: começar/comprar e falar com alguém ou pedir demonstração. A Kineo já tinha o equivalente honesto — packs self-service e revisão opcional de volume — mas somente os packs estavam explícitos em `/api/facts` e `/llms.txt`. Fontes: `https://www.heygen.com/business` e `https://www.synthesia.io/enterprise`.
+
+**HIPÓTESE CAUSAL NOVA:** answer engines que identificam uma empresa com volume recorrente não conseguiam descobrir o formulário existente. Expor uma rota estruturada para esse caso pode levar demanda B2B qualificada ao mesmo intake, sem criar landing, formulário ou promessa nova.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `b2b_volume_fit_review_v1` adiciona `volumeFitReview` ao fato canônico `businessOffer` e uma linha derivada em `/llms.txt`. O link abre a seção real `#agency-brief-heading`; nunca chama `/api/lead-capture` diretamente. A atribuição aceita somente `utm_source=kineo_facts`, `utm_medium=answer_engine` e a campanha exata. Parâmetros arbitrários não entram na telemetria. O marcador versionado permite medir essa chegada mesmo após uma visualização genérica na mesma sessão.
+
+**LIMITES:** o fato declara trabalho-email obrigatório, faixas mensais derivadas do formulário e `automaticMailingList:false`. Nenhum e-mail foi enviado, nenhum lead foi fabricado, nenhuma sequência foi ativada e nenhuma comunicação externa foi iniciada. Uma submissão autoriza somente o contato ligado ao pedido; qualquer contato continua dependente da aprovação do fundador.
+
+**TESTADO LOCALMENTE:** intake 67/67, oferta estruturada 79/79, página B2B 32/32 e contrato monetário 306/306 — 484 verificações. Typecheck repetiu somente os quatro erros baseline; whitespace limpo. Não há alteração visual, portanto não há preview visual novo.
+
+**GATE:** preservar até cinco pessoas externas com `b2b_brief_viewed` e `entry_campaign=b2b_volume_fit_review_v1`. Se houver cinco visualizações e zero submissão, não reescrever o formulário antes de separar fonte e faixa de volume. Formulário enviado é lead, não cliente, checkout, pagamento ou receita.
+
+**COORDENAÇÃO:** commit funcional isolado `846eab2d` em `codex/b2b-fit-review-aeo`, incorporado à candidata `codex/cycle72h-release2` como `a7c03b47`. Nenhuma área Claude foi tocada.
