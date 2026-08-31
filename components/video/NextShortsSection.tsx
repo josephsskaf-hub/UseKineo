@@ -34,6 +34,28 @@
 // telemetry with is_touch / viewport_w so the next round can prove or bury
 // the touch hypothesis instead of guessing.
 
+//
+// SPRINT-V1V4 #16 (2026-08-31) — THE BEST-CONVERTING IDEA SOURCE IN THE PRODUCT
+// WAS NEVER OFFERED AT THE PEAK MOMENT.
+// Measured in production over 30 days, external people only:
+//   /viral-now seen ......... 124 people
+//   a topic tapped ..........  44 people  (35% of everyone exposed)
+//   pressed Generate <2h ....  24 people  (55% of the tappers)
+//   got a video <2h .........  20 people  (45% of the tappers)
+// Against this same screen: 15 picks from 420 exposed people, 2.6%. The
+// trending shelf converts THIRTEEN TIMES better and it lives behind a nav
+// link, where only 22 of the one-video cohort ever found it.
+// The two offers are not competitors, they answer different questions.
+// The three cards above continue the film she just made; the shelf below
+// answers "I do not want more of that one, what should I make instead?".
+// Until this round the success screen only ever asked the first question.
+//
+// Second thing this round fixes: when /api/next-shorts answers with an empty
+// list this component used to render nothing at all, so the single most-seen
+// post-video surface in the product simply vanished. The shelf is served by
+// /api/viral-now, which is deterministic, free, has no model call and no
+// database read, so it can hold the screen up on its own.
+
 import { useEffect, useRef, useState } from 'react'
 
 /**
@@ -67,6 +89,65 @@ export interface NextShortIdea {
   angle: string
 }
 
+/**
+ * The shelf item. Deliberately a LOCAL, narrow shape instead of importing
+ * ViralTopic: this file must not pull lib/viralTopics into the success-screen
+ * bundle (it carries the full script of every topic in the pool), and the
+ * screen only ever needs these six fields. Everything is treated as untrusted
+ * and clamped at render time.
+ */
+export interface TrendingTopic {
+  id: string
+  emoji: string
+  label: string
+  title: string
+  hook: string
+  prompt: string
+  vertical: string
+  badge: string
+}
+
+/** Keeps a value printable and bounded before it reaches the DOM or telemetry. */
+function textoSeguro(v: unknown, max: number): string {
+  if (typeof v !== 'string') return ''
+  const limpo = v.replace(/[\u0000-\u001f\u007f]/g, ' ').trim()
+  return limpo.length > max ? limpo.slice(0, max) : limpo
+}
+
+/**
+ * Turns the /api/viral-now payload into shelf items. A topic without a title
+ * or without a prompt is dropped rather than rendered empty: a card that puts
+ * an empty composer in front of someone at her peak moment is worse than no
+ * card. Never throws, for the same reason the whole component fails invisibly.
+ */
+export function lerTemasEmAlta(payload: unknown, quantos: number): TrendingTopic[] {
+  try {
+    const lista = (payload as { topics?: unknown })?.topics
+    if (!Array.isArray(lista)) return []
+    const saida: TrendingTopic[] = []
+    for (const cru of lista) {
+      if (saida.length >= quantos) break
+      const t = cru as Record<string, unknown>
+      const title = textoSeguro(t?.title, 90)
+      const prompt = typeof t?.prompt === 'string' ? t.prompt : ''
+      if (!title || prompt.trim().length < 40) continue
+      saida.push({
+        id: textoSeguro(t?.id, 64),
+        emoji: textoSeguro(t?.emoji, 4),
+        label: textoSeguro(t?.label, 40),
+        title,
+        hook: textoSeguro(t?.hook, 150),
+        prompt,
+        vertical: textoSeguro(t?.vertical, 40),
+        badge: textoSeguro(t?.badge, 24),
+      })
+    }
+    return saida
+  } catch {
+    return []
+  }
+}
+
 interface Props {
   /** The topic/script of the Short that just finished. */
   topic: string
@@ -85,6 +166,7 @@ interface Props {
 
 export default function NextShortsSection({ topic, title, niche, hook, onPick, onEvent }: Props) {
   const [ideas, setIdeas] = useState<NextShortIdea[]>([])
+  const [trending, setTrending] = useState<TrendingTopic[]>([])
   const [loading, setLoading] = useState(true)
   // One fetch per finished render. The generate screen is force-dynamic and
   // re-renders often; without this guard a remount would re-bill the model and
@@ -96,22 +178,43 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
     requestedRef.current = true
     let cancelled = false
     ;(async () => {
-      try {
-        const res = await fetch('/api/next-shorts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ topic, title, niche, hook }),
+      // The two requests are independent ON PURPOSE. The personalised ideas
+      // call a model and can be slow, empty or broken; the shelf is a static
+      // rotation and never is. Chaining them would let the fragile one take
+      // the reliable one down with it, which is exactly the failure this
+      // round is here to end. Promise.allSettled, never Promise.all.
+      const [pessoais, emAlta] = await Promise.allSettled([
+        (async () => {
+          const res = await fetch('/api/next-shorts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, title, niche, hook }),
+          })
+          const data = (await res.json()) as { ideas?: NextShortIdea[] }
+          return Array.isArray(data.ideas) ? data.ideas.slice(0, 3) : []
+        })(),
+        (async () => {
+          const res = await fetch('/api/viral-now', { method: 'GET' })
+          return lerTemasEmAlta(await res.json(), 3)
+        })(),
+      ])
+      if (cancelled) return
+      const list = pessoais.status === 'fulfilled' ? pessoais.value : []
+      const shelf = emAlta.status === 'fulfilled' ? emAlta.value : []
+      setIdeas(list)
+      setTrending(shelf)
+      if (list.length > 0) onEvent?.('next_shorts_shown', { count: list.length, ...ambienteDePonteiro() })
+      if (shelf.length > 0) {
+        onEvent?.('next_shorts_trending_shown', {
+          count: shelf.length,
+          // Records whether the personalised half was there at all, so the
+          // next round can read the shelf's pick rate separately for the
+          // screens where it was the only thing on offer.
+          had_personal: list.length > 0,
+          ...ambienteDePonteiro(),
         })
-        const data = (await res.json()) as { ideas?: NextShortIdea[] }
-        if (cancelled) return
-        const list = Array.isArray(data.ideas) ? data.ideas.slice(0, 3) : []
-        setIdeas(list)
-        if (list.length > 0) onEvent?.('next_shorts_shown', { count: list.length, ...ambienteDePonteiro() })
-      } catch {
-        if (!cancelled) setIdeas([])
-      } finally {
-        if (!cancelled) setLoading(false)
       }
+      setLoading(false)
     })()
     return () => {
       cancelled = true
@@ -119,8 +222,11 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Nothing to show and nothing to apologise for.
-  if (!loading && ideas.length === 0) return null
+  // Nothing to show and nothing to apologise for. The bar moved this round:
+  // it now takes BOTH sources coming back empty for the screen to go quiet.
+  // Before, one flaky model call was enough to erase the most-seen post-video
+  // surface in the product.
+  if (!loading && ideas.length === 0 && trending.length === 0) return null
 
   return (
     <div
@@ -130,6 +236,11 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
         border: '1px solid rgba(41,151,255,.25)',
       }}
     >
+      {/* The personalised half only claims space when it has something to say.
+          It used to own the whole card, so an empty answer meant an empty
+          screen. */}
+      {(loading || ideas.length > 0) && (
+      <>
       <div className="mb-1 flex items-center gap-2">
         <span style={{ fontSize: 18, lineHeight: 1 }}>🗓️</span>
         <div className="text-sm" style={{ color: '#5cb3ff', fontWeight: 700 }}>
@@ -266,6 +377,106 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
               </div>
             </button>
           ))}
+        </div>
+      )}
+      </>
+      )}
+
+      {/* ── SPRINT-V1V4 #16 — THE TRENDING SHELF ────────────────────────────
+          Same affordance rules the #7 round wrote for the cards above: a
+          permanently visible labelled action, a resting border that reads as a
+          control on a phone, and its own touch and focus feedback. No hover-only
+          signal anywhere, because a third of this audience has no pointer.
+          The tap only loads the composer. It never starts a render, exactly
+          like the cards above, so an accidental tap costs a scroll and nothing
+          else. */}
+      {trending.length > 0 && (
+        <div style={{ marginTop: ideas.length > 0 || loading ? 18 : 0 }}>
+          <div className="mb-1 flex items-center gap-2">
+            <span style={{ fontSize: 18, lineHeight: 1 }}>🔥</span>
+            <div className="text-sm" style={{ color: '#5cb3ff', fontWeight: 700 }}>
+              Or make what is trending right now
+            </div>
+          </div>
+          <div className="text-xs leading-relaxed mb-3" style={{ color: 'var(--muted2)' }}>
+            Written, structured and ready — you only press Generate. The shelf rotates
+            through the day.
+          </div>
+          <div className="grid gap-2">
+            {trending.map((tema, i) => (
+              <button
+                key={`${tema.id}-${i}`}
+                type="button"
+                onClick={() => {
+                  onEvent?.('next_shorts_trending_picked', {
+                    index: i,
+                    topic_id: tema.id,
+                    vertical: tema.vertical,
+                    badge: tema.badge,
+                    ...ambienteDePonteiro(),
+                  })
+                  onPick({ title: tema.title, prompt: tema.prompt, angle: tema.label })
+                }}
+                className="rounded-xl px-4 py-3 text-left transition flex items-center gap-3"
+                style={{
+                  background: 'rgba(255,255,255,.035)',
+                  border: '1px solid rgba(41,151,255,.30)',
+                  cursor: 'pointer',
+                  width: '100%',
+                  minHeight: 56,
+                  WebkitTapHighlightColor: 'rgba(41,151,255,.28)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.55)'
+                  e.currentTarget.style.background = 'rgba(41,151,255,.10)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,.035)'
+                }}
+                onTouchStart={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.75)'
+                  e.currentTarget.style.background = 'rgba(41,151,255,.14)'
+                }}
+                onTouchEnd={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
+                  e.currentTarget.style.background = 'rgba(255,255,255,.035)'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.75)'
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(41,151,255,.30)'
+                }}
+              >
+                <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>
+                  {tema.emoji || '🔥'}
+                </span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span
+                    className="block font-bold text-[13px] leading-snug"
+                    style={{ color: 'var(--text, #fff)' }}
+                  >
+                    {tema.title}
+                  </span>
+                  {tema.hook ? (
+                    <span
+                      className="block text-[11px] leading-relaxed mt-[2px]"
+                      style={{ color: 'var(--muted2)' }}
+                    >
+                      {tema.hook.length > 88 ? `${tema.hook.slice(0, 88)}…` : tema.hook}
+                    </span>
+                  ) : null}
+                </span>
+                <span
+                  className="text-[11px] font-black uppercase whitespace-nowrap"
+                  style={{ letterSpacing: '.06em', color: '#5cb3ff' }}
+                >
+                  Make this one <span aria-hidden="true">→</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

@@ -82,10 +82,21 @@ ver('E5', /phase === 'done' && finalVideoUrl && analysis \&\& \(\s*<NextShortsSe
   caller.includes("{phase === 'done' && finalVideoUrl && analysis && ("), 'condicao de render mudou')
 
 // ---- F. o contrato de falha silenciosa segue de pe ------------------------
-ver('F1', comp.includes('if (!loading && ideas.length === 0) return null'),
-  'lista vazia deixou de renderizar null')
+// ATUALIZADO NA #16 (31/08). A regua do silencio MUDOU de proposito: a tela
+// so fica muda quando as DUAS fontes voltam vazias (ideias do modelo E
+// prateleira de temas em alta). Antes, uma chamada instavel de modelo apagava
+// sozinha a superficie pos-video mais vista do produto. A assercao agora
+// verifica o CONTRATO ("nao mostra erro, some quando nao tem nada a dizer"),
+// nao a linha exata — mesma correcao que a #13 fez no test-expand-policy.
+ver('F1', /ideas\.length === 0 && trending\.length === 0\) return null/.test(comp),
+  'a tela deixou de sumir silenciosamente quando NAO ha nada a mostrar')
 ver('F2', comp.includes('requestedRef'), 'guarda de uma requisicao por render sumiu')
-ver('F3', /catch \{\s*if \(!cancelled\) setIdeas\(\[\]\)/.test(comp), 'erro de rede deixou de ser silencioso')
+// ATUALIZADO NA #16: o try/catch unico virou Promise.allSettled, para que a
+// chamada fragil (modelo) nao derrube a confiavel (rotacao estatica). A
+// garantia e a mesma — erro de rede vira lista vazia, nunca mensagem de erro
+// na tela de quem acabou de gastar um credito.
+ver('F3', comp.includes('Promise.allSettled') && (comp.match(/status === 'fulfilled'/g) || []).length >= 2,
+  'erro de rede deixou de ser silencioso')
 ver('F4', comp.includes("slice(0, 3)"), 'deixou de cortar em 3 ideias')
 
 // ---- G. nao quebrou o layout ---------------------------------------------
