@@ -2503,3 +2503,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 82. B2B — o pacote escolhido deixa de sumir durante a autenticação (31/08/2026)
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o checkout já preservava o destino exato `pack=bulk10|20|30|50` ao mandar uma pessoa deslogada para o login (`app/api/stripe/checkout/route.ts:2627`). Porém login e signup exibiam somente uma compra ou um “plano” genérico, e `lib/authAnalytics.ts` descartava o pack. A decisão sobrevivia tecnicamente no redirect e desaparecia da percepção do comprador e do funil medido.
+
+**HIPÓTESE CAUSAL NOVA:** mostrar que o pacote avulso continua salvo — volume exato, valor canônico em USD, pagamento único e nenhuma assinatura — reduz a sensação de ter caído num login genérico e aumenta a continuidade até o Stripe.
+
+**IMPLEMENTADO:** o commit funcional `1e4438b7071d18a8071242f4061723a38fef9c2f`, branch `codex/b2b-auth-context`, cria `bulk_checkout_auth_context_v1`. O helper puro em `lib/growth/bulkCheckoutAuthContext.ts:24` aceita somente redirect interno, path exato `/api/stripe/checkout` e um dos quatro IDs de `BULK_PACKS`. Login mostra o pacote salvo (`app/(auth)/login/page.tsx:248`); signup repete os termos e nomeia o volume no CTA (`app/(auth)/signup/page.tsx:848`). Qualquer destino inválido, estrangeiro ou não-B2B conserva a mensagem genérica anterior.
+
+**MEDIÇÃO / PRIVACIDADE:** os eventos de autenticação existentes recebem `context_version`, `offer_kind=bulk_pack`, SKU allow-listed e número canônico de vídeos (`lib/authAnalytics.ts:24-36`). Redirect cru, e-mail, texto livre e preço formatado não entram no evento. Seguir por pessoa externa `checkout_auth_page_view → method_selected → completed → bulk_checkout_started → bulk_purchase_completed`; somente o último é receita.
+
+**GATE:** preservar a variante até cinco pessoas externas expostas. Se houver page view sem método, investigar confiança/copy. Se houver auth concluída sem `bulk_checkout_started`, investigar o retorno. Se houver checkout iniciado sem compra, investigar o pagamento. Não chamar login, clique ou sessão Stripe de venda.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/B2B-AUTH-CONTEXT-2026-08-31.html` mostra antes/depois de login e signup em desktop e 390 px. O preview estático foi inspecionado no Chrome do fundador, sem log de console.
+
+**TESTADO LOCALMENTE:** 168 verificações passaram: contexto B2B 26/26, página bulk 32/32, calculadora de margem 46/46 e distribuição B2B 64/64. O typecheck terminou sem saída e o gate de whitespace ficou limpo.
+
+**VALIDADO EM PREVIEW (31/08/2026 BRT):** deploy Vercel `dpl_aZLM9xLrGgXNp432EtmuiAKEPU7v` chegou a `READY`, target preview, SHA exato `1e4438b7`. No Chrome, os redirects reais de login e signup para `bulk30` exibiram `30-video pack`, `$249.00 USD`, `one time` e `no subscription`; o signup não teve overflow e nenhuma das duas páginas registrou console error. A Vercel retornou zero runtime error/fatal na janela consultada. Não houve autenticação, checkout ou pagamento artificial.
+
+**NÃO TOCADO:** preço, valor dos packs, crédito, trial, desconto, cupom, Stripe server, webhook, Supabase, render, motor, cena, voz, legenda, admin, e-mail, outreach ou arquivos da pista Claude. A `main` não foi alterada.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes do próximo trabalho e não duplicar contexto de pacote em arquivos de produto. A branch Codex continua isolada até integração pelo fundador. Codex alterna a próxima rodada para B2C e mede os gates vigentes sem reeditar superfícies imaturas.
