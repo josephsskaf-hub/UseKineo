@@ -2503,3 +2503,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 96. B2B — roteiro de produto vira peça de aprovação compartilhável (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC):** em 30 dias, `/product-to-video-script` registrou três sessões e nenhum ator identificado. A superfície ainda não tinha eventos próprios; portanto, sessões não podem ser chamadas de pessoas, leads ou receita. As outras portas de produção B2B também tinham amostra pequena, e nenhuma justificava reeditar um experimento ainda imaturo.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o gerador já produzia um roteiro útil e limitado aos fatos, oferecia ativação no produto e apontava para os packs canônicos. Porém não media visualização, geração, ativação ou intenção de pack, e o resultado não podia ser copiado como um único artefato para aprovação do cliente.
+
+**HIPÓTESE CAUSAL NOVA:** freelancers, agências e equipes que precisam aprovar as palavras antes da produção podem distribuir o roteiro dentro do próprio fluxo de trabalho. O artefato copiado leva uma volta atribuível à ferramenta gratuita, criando aquisição orgânica B2B sem a Kineo enviar mensagem em nome do usuário.
+
+**IMPLEMENTADO:** o commit funcional `579275a88010dcc4345f913c3b995b6fdd654fec`, branch `codex/product-script-approval`, adiciona `Copy for client approval` ao resultado. A cópia contém cabeçalho explícito de revisão, os cinco blocos do roteiro e a volta first-party `product_script_copy / referral / product_script_approval_v1`. A ação é local e explícita; não existe e-mail, outreach, envio automático, lead criado ou mudança de preço/oferta.
+
+**MEDIÇÃO / PRIVACIDADE:** eventos `product_script_tool_viewed` (somente com pelo menos 50% da ferramenta visível), `example_selected`, `generated`, `copied`, `activation_clicked` e `packs_clicked` carregam apenas versão, superfície, tipo de saída, origem categórica do rascunho, contagem de linhas e destino categórico. Fatos do produto, público, roteiro, prompt, e-mail e nome da empresa não entram nos payloads. O marcador de impressão só é persistido depois que o coletor confirma armazenamento.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRODUCT-SCRIPT-APPROVAL-2026-08-31.html` contém antes/depois desktop e mobile. No Chrome conectado do fundador, o exemplo gerou o resultado real; os dois caminhos apareceram, a promessa do clipboard foi resolvida e o botão mudou para `Copied for review`, sem erro de console. O conteúdo exato e os UTMs da cópia são cobertos pelo teste executável; o inspetor de clipboard do plugin retornou vazio e não foi usado como prova do conteúdo.
+
+**TESTADO LOCALMENTE:** contrato produto→vídeo 97/97 e distribuição B2B 64/64, total 161 verificações; whitespace limpo. O typecheck repetiu somente os quatro erros baseline em `mrr.ts`, `me/subscription` e os dois mapas BRL do checkout; nenhum erro novo. `test-local-business-tool-discovery.mjs` mantém uma falha baseline de ordenação numa superfície que esta branch não toca e não foi maquiada nesta entrega.
+
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** deploy `dpl_Cwjde7cACYzADJkd4EGUGZc4V33u` chegou a `READY` no SHA exato. A página e `/api/demo-script` responderam no Chrome, o resultado e os CTAs renderizaram, e o console ficou vazio. A Vercel registrou somente o aviso de depreciação `url.parse()` do runtime como log de nível error; não houve falha funcional da rota.
+
+**GATE:** preservar `product_script_approval_v1` até dez sessões reais com `product_script_tool_viewed`; quando houver identidade, contar pessoas externas e excluir contas internas. Medir `viewed → generated → copied OU activation_clicked OU packs_clicked → signup → primeiro vídeo → checkout → payment_success`. Cópia, visita, script e clique não são lead pago nem assinatura. Se houver visualização sem geração, revisar entrada; geração sem ação, revisar utilidade/posição; cópia com novas sessões `product_script_copy`, seguir a coorte de retorno.
+
+**NÃO TOCADO:** main, árvore principal, arquivos da pista Claude, dashboard logado, render, cena, voz, legenda, qualidade, admin, crédito, engine cost, Stripe server, preço, desconto, cupom, grant, trial, SKU, Supabase schema/dados, e-mail, outreach ou contatos externos.
+
+**COORDENAÇÃO:** a branch nasceu em worktree isolada, foi atualizada da ponta `origin/main=6dcb2c6d` e não conflitou com os cinco arquivos da entrega Claude. Claude deve fazer `git fetch origin` antes do próximo lote e não duplicar esta superfície. A divisão Codex×Claude descrita pelo fundador continua vinculante; `docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md` ainda precisa entrar no histórico compartilhado de `main` para não depender da árvore suja.
