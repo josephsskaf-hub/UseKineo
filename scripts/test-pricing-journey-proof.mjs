@@ -121,7 +121,12 @@ check(component.includes('I already want to subscribe'), 'high-intent buyer rema
 
 const pricing = read('app/pricing/PricingClient.tsx')
 check(pricing.includes("import PricingJourneyProof from '@/components/growth/PricingJourneyProof'"), 'live pricing imports the bridge')
-check(pricing.includes('<PricingSavedCheckout />\n        <PricingJourneyProof signedIn={signedIn} />'), 'saved checkout remains before the new bridge')
+// Compare the rendered order instead of matching a literal LF. On Windows the
+// checkout may contain CRLF; line-ending style is not a product invariant.
+check(
+  pricing.indexOf('<PricingSavedCheckout />') < pricing.indexOf('<PricingJourneyProof signedIn={signedIn} />'),
+  'saved checkout remains before the new bridge',
+)
 
 const previewPath = 'docs/previews/PRICING-JOURNEY-PROOF-2026-08-30.html'
 check(fs.existsSync(path.join(root, previewPath)), 'visual comparison exists')
