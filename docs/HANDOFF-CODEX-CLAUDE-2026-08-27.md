@@ -2514,11 +2514,11 @@ PRÓXIMO DONO:
 
 **HIPÓTESE:** a distância entre o tráfego das superfícies de origem e a única sessão no destino pode ser problema de posição ou de mensagem. Mover/reformular o card antes de medir apagaria essa distinção.
 
-**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit `42df3375f4cbdf2e356341807fed0c7f06b73530` adiciona uma única telemetria compartilhada ao componente existente. `agency_volume_bridge_viewed` exige 50% do card visível e é deduplicado por sessão e por `entry`; `agency_volume_bridge_clicked` mede o CTA real. A versão é `agency_volume_bridge_visibility_v1` e o payload contém somente `version`, `entry`, `surface=agency_volume_bridge` e `destination=agency_packs` — sem `actor_unit`, PII, texto, URL, preço ou UTM.
+**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit funcional `5aea919288b63e9866c719816a9dc29226431cdd` adiciona uma única telemetria compartilhada ao componente existente. `agency_volume_bridge_viewed` exige 50% do card visível e é deduplicado por sessão e por `entry`; `agency_volume_bridge_clicked` mede o CTA real. A versão é `agency_volume_bridge_visibility_v1` e o payload contém somente `version`, `entry`, `surface=agency_volume_bridge` e `destination=agency_packs` — sem `actor_unit`, PII, texto, URL, preço ou UTM.
 
 **CALLERS REAIS:** somente `home`, `state_report`, `cost_page` e `pricing` montam o componente hoje. As outras cinco entradas continuam na allowlist canônica para links próprios/futuros, mas não emitem impressão fictícia sem caller.
 
-**CONSOLIDAÇÃO DE GIT:** esta branch substitui `codex/home-b2b-bridge-visibility` e `codex/pricing-business-path`. Não integrar essas duas depois: a primeira mede só home; a segunda cria eventos paralelos e declara incorretamente `actor_unit=authenticated_user` numa página pública. A nova branch é `codex/agency-bridge-attribution`, baseada em `origin/main` `4f534e5d`, sem alterar `main`.
+**CONSOLIDAÇÃO DE GIT:** esta branch substitui `codex/home-b2b-bridge-visibility` e `codex/pricing-business-path`. Não integrar essas duas depois: a primeira mede só home; a segunda cria eventos paralelos e declara incorretamente `actor_unit=authenticated_user` numa página pública. A nova branch é `codex/agency-bridge-attribution`, rebaseda sem conflito sobre `origin/main` `30e52808cfd7b90a1be43eac9bed1b1b65493be4` depois da entrega #13 do Claude, sem alterar `main`.
 
 **MEDIÇÃO / GATE:** por `entry`, nunca agregando superfícies: `bridge viewed → bridge clicked → agency_bulk_page_viewed(entry) → pack/brief action → bulk_checkout_started → bulk_purchase_completed`. Pessoas identificadas contam por `user_id`; visitantes anônimos continuam sessões, nunca pessoas. Preservar cada entry até 20 atores visíveis. Poucas impressões com tráfego = posição; 20 impressões e zero clique = mensagem/oferta; clique sem chegada = atribuição; chegada sem ação = página B2B.
 
@@ -2526,7 +2526,7 @@ PRÓXIMO DONO:
 
 **REVISÃO REACT:** efeito sem estado visual, dependências primitivas, observer desmontado, guards em memória e sessionStorage, persistência somente depois de analytics confirmar armazenamento e navegação nunca bloqueada. A entrega não altera DOM visível, copy, estilo ou destino; comparação visual não se aplica.
 
-**PREVIEW VALIDADO:** Vercel `dpl_84BjWucuDzir8HNY9wPZdwzSPFuJ` chegou a `READY` no SHA exato `42df3375`; o log filtrado por erros retornou somente `Build Completed`. O preview não foi aberto para não fabricar eventos na base de produção antes da integração.
+**PREVIEW VALIDADO:** Vercel `dpl_CNpRxEEUiWYk5vceH4kbXedfBQjd` chegou a `READY` no SHA rebasedo `9128606e1981f0eed7bfcfa245e0e42618824ad7`. O preview não foi aberto para não fabricar eventos na base de produção antes da integração.
 
 **NÃO TOCADO:** posição, copy, oferta, preço, desconto, cupom, crédito, grant, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contatos externos.
 
