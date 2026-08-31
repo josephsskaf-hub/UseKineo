@@ -2620,6 +2620,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** proposta 42/42, calculadora 46/46, página bulk 32/32 e client brief 82/82 — 202 verificações. TypeScript 5.9.3 repetiu exatamente os quatro erros baseline preexistentes e nenhum novo. `git diff --check` ficou limpo.
 
+**VALIDADO EM PRODUÇÃO (31/08/2026 UTC):** `origin/main` avançou por fast-forward para `afd8734a377460867b4e8d071984667788052007`. O deploy Vercel `dpl_7rm8eAwafSbmVFeNjKmy5LW8mqXD` chegou a `READY`, target production, com aliases em `www.usekineo.com`. A página real abriu no Chrome conectado e continha `Copy client proposal`, o link direto do pack e a fronteira de não envio automático; nenhum botão foi acionado para não fabricar a primeira amostra. A Vercel registrou zero runtime `error`/`fatal` do deployment na janela consultada.
+
 **BRIEFING B2C INCORPORADO (Supabase, SELECT em 31/08/2026 ~21h UTC; internos excluídos):** a oferta pós-vídeo do trial alcançou 234 pessoas em 30 dias, 22 clicaram e nenhuma pagou; pricing teve 17 pessoas clicando e quatro pagantes na janela comparativa; o resume banner teve dez pessoas e duas pagantes. Quatro de oito assinantes observados compraram com zero ou um vídeo. Isso não altera esta entrega B2B, mas muda a próxima rodada Codex: preservar a oferta pós-vídeo e trabalhar superfícies de intenção alta — limite, pricing, cancelamento e retomada — sem forçar mais renders, desconto ou mudança de trial.
 
 **NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, admin, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
