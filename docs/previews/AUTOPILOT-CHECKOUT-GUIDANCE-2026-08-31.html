@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Autopilot checkout guidance — before / after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#f5f7fb;font:14px/1.45 Inter,Arial,sans-serif}.wrap{max-width:1220px;margin:auto;padding:34px 22px 60px}h1{font-size:28px;margin:0 0 8px}.sub{color:#9aa5b5;margin:0 0 28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin:0 0 34px}.case{background:#141821;border:1px solid #293142;border-radius:18px;padding:18px}.label{font:700 11px/1.2 Arial;letter-spacing:.12em;color:#90a0b6;margin-bottom:12px}.after .label{color:#70e1aa}.stripe{background:#fff;color:#242933;border-radius:13px;padding:22px;min-height:245px;box-shadow:0 16px 45px #0007}.brand{font-weight:800;margin-bottom:22px}.item{display:flex;justify-content:space-between;border-bottom:1px solid #e7e9ee;padding-bottom:16px}.name{font-weight:700}.price{font-weight:800}.copy{background:#f5f7fa;border-radius:9px;margin:18px 0;padding:13px;color:#4d5665;font-size:13px}.button{background:#635bff;color:#fff;text-align:center;border-radius:8px;padding:12px;font-weight:800}.mobile{max-width:375px;margin:auto}.mobile .stripe{min-height:292px;padding:18px}.gate{border:1px solid #355849;background:#10231d;color:#b9f5d7;border-radius:12px;padding:14px 17px;font-weight:700}@media(max-width:760px){.grid{grid-template-columns:1fr}h1{font-size:23px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Autopilot checkout guidance v1</h1>
+  <p class="sub">Only the factual handoff text changes. Price, SKU, billing, entitlement and fulfillment are unchanged.</p>
+
+  <section class="grid">
+    <article class="case"><div class="label">BEFORE · MONTHLY · DESKTOP</div><div class="stripe"><div class="brand">Kineo secure checkout</div><div class="item"><span class="name">Kineo Autopilot</span><span class="price">Price shown by Stripe</span></div><div class="copy">Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee.</div><div class="button">Subscribe</div></div></article>
+    <article class="case after"><div class="label">AFTER · MONTHLY · DESKTOP</div><div class="stripe"><div class="brand">Kineo secure checkout</div><div class="item"><span class="name">Kineo Autopilot</span><span class="price">Price shown by Stripe</span></div><div class="copy">After payment, connect your YouTube channel and choose its topic and posting time in Autopilot. Publishing starts only after setup. Renews monthly at the price shown; cancel from Account.</div><div class="button">Subscribe</div></div></article>
+    <article class="case"><div class="label">BEFORE · PILOT · DESKTOP</div><div class="stripe"><div class="brand">Kineo secure checkout</div><div class="item"><span class="name">Autopilot Pilot</span><span class="price">Price shown by Stripe</span></div><div class="copy">No setup handoff was shown beside the payment button.</div><div class="button">Pay</div></div></article>
+    <article class="case after"><div class="label">AFTER · PILOT · DESKTOP</div><div class="stripe"><div class="brand">Kineo secure checkout</div><div class="item"><span class="name">Autopilot Pilot</span><span class="price">Price shown by Stripe</span></div><div class="copy">After payment, connect your YouTube channel and choose its topic and posting time in Autopilot. Publishing starts only after setup. One-time payment; no renewal. Pilot ends after 7 days.</div><div class="button">Pay</div></div></article>
+  </section>
+
+  <section class="grid">
+    <article class="case"><div class="label">BEFORE · MONTHLY · MOBILE</div><div class="mobile"><div class="stripe"><div class="brand">Kineo</div><div class="item"><span class="name">Autopilot</span><span class="price">Stripe price</span></div><div class="copy">Credits are added after payment succeeds. Renews monthly at the price shown. Cancel anytime from Account. 7-day money-back guarantee.</div><div class="button">Subscribe</div></div></div></article>
+    <article class="case after"><div class="label">AFTER · MONTHLY · MOBILE</div><div class="mobile"><div class="stripe"><div class="brand">Kineo</div><div class="item"><span class="name">Autopilot</span><span class="price">Stripe price</span></div><div class="copy">After payment, connect your YouTube channel and choose its topic and posting time in Autopilot. Publishing starts only after setup. Renews monthly at the price shown; cancel from Account.</div><div class="button">Subscribe</div></div></div></article>
+    <article class="case"><div class="label">BEFORE · PILOT · MOBILE</div><div class="mobile"><div class="stripe"><div class="brand">Kineo</div><div class="item"><span class="name">Pilot</span><span class="price">Stripe price</span></div><div class="copy">No setup handoff was shown beside the payment button.</div><div class="button">Pay</div></div></div></article>
+    <article class="case after"><div class="label">AFTER · PILOT · MOBILE</div><div class="mobile"><div class="stripe"><div class="brand">Kineo</div><div class="item"><span class="name">Pilot</span><span class="price">Stripe price</span></div><div class="copy">After payment, connect your YouTube channel and choose its topic and posting time in Autopilot. Publishing starts only after setup. One-time payment; no renewal. Pilot ends after 7 days.</div><div class="button">Pay</div></div></div></article>
+  </section>
+
+  <div class="gate">GATE: 5 external people total, at least 2 per offer kind · compare checkout_started → payment_success by person and Stripe Session.</div>
+</main>
+</body>
+</html>

@@ -66,6 +66,7 @@ import {
 } from '@/lib/affiliateAttribution'
 import { readCheckoutProfileWithRetry } from '@/lib/stripe/checkoutProfileRead'
 import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'
+import { buildAutopilotCheckoutGuidance } from '@/lib/growth/autopilotCheckoutGuidance'
 import {
   CHECKOUT_PAYMENT_GUIDANCE_VERSION,
   withCheckoutPaymentGuidance,
@@ -757,6 +758,15 @@ async function buildAndRedirect(
     intentCampaign,
     tier,
   })
+  const autopilotCheckoutGuidance = buildAutopilotCheckoutGuidance(
+    tier === 'autopilot' ? 'monthly' : null,
+  )
+  const autopilotCheckoutGuidanceMetadata: Record<string, string> = autopilotCheckoutGuidance
+    ? {
+        autopilot_checkout_guidance_version: autopilotCheckoutGuidance.version,
+        autopilot_offer_kind: autopilotCheckoutGuidance.offerKind,
+      }
+    : {}
   const returnToWatermark = req.nextUrl.searchParams.get('return') === 'wm'
   const checkoutRecovery = req.nextUrl.searchParams.get('recovery') === '1'
   const requestedPlanFitContext = verifyPlanFitCheckoutContext(req.nextUrl.searchParams, tier, currency)
@@ -854,6 +864,7 @@ async function buildAndRedirect(
     checkout_payment_guidance: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
     checkout_value_output_count: checkoutValueContext.outputCount,
     checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
+    ...autopilotCheckoutGuidanceMetadata,
   }
   // From here on, a failure event carries the full purchase intent.
   failureContext = { ...checkoutMetadata }
@@ -1230,7 +1241,7 @@ async function buildAndRedirect(
     // with different parameters.
     custom_text: {
       submit: {
-        message: checkoutValueContext.submitMessage,
+        message: autopilotCheckoutGuidance?.submitMessage ?? checkoutValueContext.submitMessage,
       },
     },
     success_url: `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`,
@@ -1287,6 +1298,7 @@ async function buildAndRedirect(
       checkout_value_variant: checkoutValueContext.variant,
       checkout_payment_guidance: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
       checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
+      ...autopilotCheckoutGuidanceMetadata,
       ...(checkoutValueContext.outputCount !== null
         ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
         : {}),
@@ -1329,6 +1341,7 @@ async function buildAndRedirect(
         checkout_value_variant: checkoutValueContext.variant,
         checkout_payment_guidance: CHECKOUT_PAYMENT_GUIDANCE_VERSION,
         checkout_visual_proof: CHECKOUT_VISUAL_PROOF.version,
+        ...autopilotCheckoutGuidanceMetadata,
         ...(checkoutValueContext.outputCount !== null
           ? { checkout_value_output_count: String(checkoutValueContext.outputCount) }
           : {}),
@@ -2384,7 +2397,18 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
   const appUrl = req.nextUrl.origin
   const browserSessionId = browserSessionIdFrom(req)
   let failureUserId: string | null = null
-  const skuContext: Record<string, unknown> = { sku: 'autopilot_pilot', mode: 'payment' }
+  const autopilotPilotGuidance = buildAutopilotCheckoutGuidance('pilot')
+  const autopilotPilotGuidanceMetadata: Record<string, string> = autopilotPilotGuidance
+    ? {
+        autopilot_checkout_guidance_version: autopilotPilotGuidance.version,
+        autopilot_offer_kind: autopilotPilotGuidance.offerKind,
+      }
+    : {}
+  const skuContext: Record<string, unknown> = {
+    sku: 'autopilot_pilot',
+    mode: 'payment',
+    ...autopilotPilotGuidanceMetadata,
+  }
 
   async function redirectError(msg: string) {
     await recordCheckoutEvent(
@@ -2495,6 +2519,13 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
           },
     ],
     client_reference_id: user.id,
+    ...(autopilotPilotGuidance
+      ? {
+          custom_text: {
+            submit: { message: autopilotPilotGuidance.submitMessage },
+          },
+        }
+      : {}),
     success_url: `${appUrl}/autopilot?success=true&pack=autopilot_pilot&session_id={CHECKOUT_SESSION_ID}`,
     // Keep the exact one-time Autopilot product at the reversible exit. The
     // generic pricing return used to erase the pilot and its no-renewal terms.
@@ -2508,6 +2539,7 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
       pack_credits: String(AUTOPILOT_PILOT_PACK.credits),
       plan_grant: AUTOPILOT_PILOT_PLAN,
       plan_days: String(AUTOPILOT_PILOT_DAYS),
+      ...autopilotPilotGuidanceMetadata,
     },
   }
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
@@ -2520,6 +2552,9 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
     unit_amount: unitAmount,
     price_id: pilotPriceId,
     customer: sessionParams.customer ?? null,
+    autopilot_checkout_guidance_version:
+      autopilotPilotGuidance?.version ?? null,
+    autopilot_offer_kind: autopilotPilotGuidance?.offerKind ?? null,
   })
 
   let session: Stripe.Checkout.Session
