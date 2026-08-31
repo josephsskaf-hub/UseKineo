@@ -1,5 +1,6 @@
 import { trackEvent } from '@/lib/analytics'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
+import { readBulkCheckoutAuthContext } from '@/lib/growth/bulkCheckoutAuthContext'
 
 export type AuthSurface = 'login_page' | 'signup_page' | 'auth_modal'
 export type AuthMethod = 'email' | 'google' | 'apple'
@@ -20,6 +21,7 @@ function checkoutIntentMetadata(destination: string): Record<string, unknown> | 
   const tier = parsed.searchParams.get('tier')
   const billing = parsed.searchParams.get('billing')
   const returnTo = parsed.searchParams.get('return')
+  const bulkContext = readBulkCheckoutAuthContext(internal)
 
   return {
     provider: parsed.pathname.split('/')[2] ?? 'unknown',
@@ -27,6 +29,12 @@ function checkoutIntentMetadata(destination: string): Record<string, unknown> | 
     billing: billing && /^(?:monthly|annual)$/.test(billing) ? billing : null,
     intro: parsed.searchParams.get('intro') === '1',
     return_to: returnTo ? returnTo.slice(0, 32) : null,
+    ...(bulkContext ? {
+      context_version: bulkContext.version,
+      offer_kind: bulkContext.offerKind,
+      sku: bulkContext.packId,
+      bulk_videos: bulkContext.videos,
+    } : {}),
   }
 }
 

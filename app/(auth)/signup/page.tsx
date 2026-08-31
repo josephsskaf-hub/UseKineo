@@ -9,6 +9,10 @@ import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/ana
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
+import {
+  readBulkCheckoutAuthContext,
+  type BulkCheckoutAuthContext,
+} from '@/lib/growth/bulkCheckoutAuthContext'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import AuthReel from '@/components/AuthReel'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -118,11 +122,13 @@ export default function SignupPage() {
   // pending checkout redirect survives the hop (state avoids SSR mismatch).
   const [authSearch, setAuthSearch] = useState('')
   const [activationRedirect, setActivationRedirect] = useState('/generate?welcome=1')
+  const [bulkCheckoutContext, setBulkCheckoutContext] = useState<BulkCheckoutAuthContext | null>(null)
   const organicHandoffRef = useRef<OrganicSignupHandoffContext | null>(null)
   useEffect(() => {
     const nextDestination = activationRedirectFromSearch(window.location.search)
     setAuthSearch(window.location.search)
     setActivationRedirect(nextDestination)
+    setBulkCheckoutContext(readBulkCheckoutAuthContext(nextDestination))
 
     // KINEO-RECOVERY-2026-07-15 — the landing form is a plain GET for maximum
     // resilience. Count its arrival here, once per browser navigation, so the
@@ -504,7 +510,9 @@ export default function SignupPage() {
                   style={{ color: 'var(--text)' }}
                 >
                   {isCheckoutResume
-                    ? 'Create your account to continue'
+                    ? bulkCheckoutContext
+                      ? `Your ${bulkCheckoutContext.videos}-video pack is saved`
+                      : 'Create your account to continue'
                     : savedProductDestination
                       ? savedProductDestination.heading
                       : savedCreation
@@ -513,7 +521,9 @@ export default function SignupPage() {
                 </h1>
                 <p className="text-sm mb-6" style={{ color: 'var(--muted)' }}>
                   {isCheckoutResume
-                    ? 'Your selected plan and intro price are saved. Continue securely below.'
+                    ? bulkCheckoutContext
+                      ? `${bulkCheckoutContext.priceLabel} USD one time · no subscription. Create your account and continue without choosing the pack again.`
+                      : 'Your selected plan and intro price are saved. Continue securely below.'
                     : savedProductDestination
                       ? 'Create a free account and continue to the product you chose.'
                       : savedCreation
@@ -810,7 +820,9 @@ export default function SignupPage() {
                         <div style={{ fontSize: '1.6rem', marginBottom: 10 }} aria-hidden="true">🔐</div>
                         <div style={{ fontWeight: 800, color: '#f5f5f7', marginBottom: 6 }}>Taking you to Google sign-in…</div>
                         <div style={{ fontSize: '0.85rem', color: '#a1a1a8', lineHeight: 1.5 }}>
-                          One tap and we&apos;ll bring you straight back to secure checkout.
+                          {bulkCheckoutContext
+                            ? `Your ${bulkCheckoutContext.videos}-video pack is saved. One tap takes you back to its one-time checkout.`
+                            : 'One tap and we\'ll bring you straight back to secure checkout.'}
                         </div>
                       </div>
                     </div>
@@ -832,7 +844,9 @@ export default function SignupPage() {
                     {loading
                       ? 'Creating account...'
                       : isCheckoutResume
-                        ? 'Continue to secure checkout →'
+                        ? bulkCheckoutContext
+                          ? `Continue to ${bulkCheckoutContext.videos}-video checkout →`
+                          : 'Continue to secure checkout →'
                         : '⚡ Create Free Account'}
                   </button>
                 </form>
