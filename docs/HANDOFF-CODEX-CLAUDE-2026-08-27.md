@@ -2503,3 +2503,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 94. B2B — a ponte existente de `/pricing` deixa de operar no escuro (31/08/2026)
+
+**DIVISÃO DE TRABALHO CONFIRMADA:** esta entrega pertence à pista Codex — aquisição, pricing e caminho comercial B2B — na branch `codex/pricing-business-path`. Não toca produto pós-login, render, qualidade, admin ou crédito, que permanecem na pista Claude. A árvore principal suja não foi usada.
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC; desde 27/08; contas internas excluídas):** 18 pessoas externas produziram 27 eventos `pricing_view`. Nenhuma pessoa externa chegou a `agency_bulk_page_viewed` com `entry=pricing`, nem a `agency_bulk_pack_clicked`, `bulk_checkout_started` ou `bulk_purchase_completed`. No tráfego bruto houve uma chegada `entry=pricing`, mas ela não pertence à coorte externa e não foi contada como cliente. Eventos e sessões não foram convertidos em pessoas.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** `/pricing` já renderizava `AgencyVolumeBridge entry="pricing"` desde o commit `e0111c68`, com a mensagem de packs avulsos e destino `/ai-shorts-for-agencies?entry=pricing#agency-pack-heading`. A recomendação paralela de criar essa ponte estava desatualizada e foi descartada antes de qualquer edição. O ponto cego real era outro: não havia evento de impressão nem clique no bloco, portanto zero chegada aos packs não distinguia “não viu” de “viu e não quis”.
+
+**HIPÓTESE CAUSAL NOVA:** se pessoas externas realmente enxergarem a alternativa avulsa e não clicarem, o enquadramento/encaixe B2B é o problema. Se poucas enxergarem, a posição depois dos planos é o problema. Sem esse denominador, mover ou reescrever o card seria uma mudança sem diagnóstico.
+
+**IMPLEMENTADO:** o commit funcional `d477978b72dfbc749a768b3bcab4b72575d7a1a7` adiciona `PricingBusinessPathTelemetry` ao wrapper da ponte existente. `pricing_business_path_viewed` exige pelo menos 50% do bloco visível; `pricing_business_path_clicked` exige clique no destino canônico exato. Ambos usam a versão `pricing_business_path_visibility_v1`, dedupe por aba somente depois de `stored:true`, trava em memória contra remount/concorrência e falham sem afetar a venda.
+
+**PRIVACIDADE / VERDADE COMERCIAL:** a telemetria contém somente versão, superfície, entrada, destino categórico e unidade do ator. Não grava e-mail, nome de empresa, roteiro, prompt, tema ou URL livre. Copy, preço, packs, CTA e destino ficaram byte a byte equivalentes no componente comercial; nenhuma nova oferta foi criada.
+
+**TESTADO LOCALMENTE:** `test-pricing-business-path` 25/25, distribuição B2B 64/64, pricing journey proof 43/43 e saved checkout 47/47 — 179 verificações. O teste de journey proof trocou uma âncora LF por comparação de ordem porque CRLF não é invariante do produto. `npx tsc --noEmit` terminou sem diagnóstico; `core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** Vercel `dpl_hPNDVHgm72DwF1qWcRSM5ry4MZwb` chegou a `READY`, SHA funcional exato e alias `kineo-git-codex-pricing-business-path-josephsskaf-hubs-projects.vercel.app`. No Chrome conectado do fundador, `/pricing` exibiu a ponte original, o link resolveu para a URL canônica com `entry=pricing` e a navegação abriu a âncora dos packs. Zero erro de console e zero runtime log `error`/`fatal`. O sink de eventos retorna propositalmente `stored:false` em preview, então nenhum evento de QA contaminou produção.
+
+**GATE:** preservar a versão até 20 pessoas externas em `pricing_business_path_viewed`. Medir por pessoa `pricing_view → business_path_viewed → business_path_clicked → agency_bulk_page_viewed(entry=pricing) → pack_clicked → bulk_checkout_started → bulk_purchase_completed`. Sessão, impressão, clique e checkout não são receita. Se view/pricing for baixo, investigar posição. Se view for alto e clique baixo, investigar mensagem/encaixe. Se clique existir sem chegada aos packs, investigar navegação. Se houver pack click sem checkout, investigar a seleção; checkout sem compra permanece um problema do último metro.
+
+**NÃO TOCADO:** preço, desconto, cupom, trial, crédito, SKU, Stripe server, cards de plano, copy pública, packs, render, motor, cena, voz, legenda, dashboard, admin, Supabase schema/dados, e-mail, outreach ou tráfego pago.
+
+**PRÓXIMO DONO:** Claude não deve duplicar nem mover esta ponte e não precisa tocar nenhum arquivo desta entrega. Antes de qualquer nova branch, executar `git fetch origin`. Codex mede a amostra e gira a próxima sprint para outro estágio enquanto este gate amadurece.
