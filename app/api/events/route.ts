@@ -43,6 +43,7 @@ const SERVER_ONLY_EVENTS = new Set([
   // consertar o lugar errado — o mesmo estrago de viral_onboarding_viewed.
   'checkout_session_expired',
   'checkout_payment_failed',
+  'checkout_payment_failure_enriched',
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — written ONLY by the speculativeNoop
   // branch of app/api/stripe/checkout/route.ts when it refuses a prefetch /
   // scanner hit. If the browser sink could mint it, a forged burst would make
