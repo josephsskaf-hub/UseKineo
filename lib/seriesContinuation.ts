@@ -8,6 +8,10 @@ export type SeriesContinuationSource =
   // KINEO-SPRINT-V1V4-2026-08-31 (#1) — a Library era a unica tela do acervo
   // sem nenhuma saida para criar; agora cada video de la tambem leva o tema.
   | 'library_video_card'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#2) — o marco do /history e a peca que mais
+  // gera 2o video (7 de 11 cliques em 7d) e vive na tela de 23 pessoas; o
+  // /studio tem 87. Mesmo padrao, onde o publico esta.
+  | 'studio_milestone'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

@@ -28,6 +28,7 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { trackEvent } from '@/lib/analytics'
+import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 
 // A chave do card → a Quality que o biller entende. Uma fonte só para os dois
 // (tela e cobrança) evita a classe de bug que este arquivo já teve: custo em
@@ -568,6 +569,70 @@ export default function StudioClient() {
               <div key={t} className="step"><b>{t}</b><p>{d}</p></div>
             ))}
           </div>
+
+          {/* KINEO-SPRINT-V1V4-2026-08-31 (#2) — O MARCO ONDE O PUBLICO ESTA.
+              Medido em 7 dias: series_continue_clicked por fonte deu
+              history_milestone=7, done_screen=2, generate_recent_video=1,
+              history_video_card=1. Ou seja, o bloco de marco do /history e
+              sozinho 64% de todo o "faca o proximo episodio" do produto — e
+              mora numa tela que 23 pessoas visitaram. O /studio, a porta de
+              criacao, teve 87 pessoas e NAO tinha marco nenhum: so a fileira
+              de 6 miniaturas, cujo clique abre o MP4 cru em outra aba.
+              Levar o padrao vencedor para onde o publico ja passa custa uma
+              caixa e nao inventa mecanica nova: mesmo helper de tema
+              (buildSeriesContinuationHref) usado pelo /history e pela tela de
+              video pronto. A contagem e do proprio acervo — nada prometido. */}
+          {myVids.length > 0 && (
+            <div
+              className="myv"
+              style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', justifyContent: 'space-between' }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                  <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
+                    {[0, 1, 2, 3].map((i) => (
+                      <span
+                        key={i}
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: 99,
+                          background: i < Math.min(myVids.length, 4) ? '#34d399' : 'rgba(255,255,255,.16)',
+                        }}
+                      />
+                    ))}
+                  </span>
+                  <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', textTransform: 'uppercase', color: '#34d399' }}>
+                    {myVids.length === 1
+                      ? 'First Short complete'
+                      : myVids.length >= 4
+                        ? `${myVids.length}+ Shorts complete`
+                        : `${myVids.length} of your first 4 Shorts`}
+                  </span>
+                </div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#f5f5f7' }}>
+                  {myVids.length === 1 ? 'Turn it into episode 2' : 'Keep your show moving'}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', marginTop: 2 }}>
+                  Same topic, new hook and payoff — the idea comes pre-written.
+                </div>
+              </div>
+              <a
+                href={buildSeriesContinuationHref(myVids[0]?.title, 'studio_milestone')}
+                className="pill on"
+                style={{ textDecoration: 'none', fontWeight: 800, whiteSpace: 'nowrap' }}
+                onClick={() => {
+                  void trackEvent('series_continue_clicked', {
+                    source: 'studio_milestone',
+                    video_id: myVids[0]?.id ?? null,
+                    completed_video_count: myVids.length,
+                  })
+                }}
+              >
+                Build next episode →
+              </a>
+            </div>
+          )}
 
           {/* KINEO-STUDIO-MYVIDS-2026-08-17 — os ultimos renders do usuario. */}
           {myVids.length > 0 && (
