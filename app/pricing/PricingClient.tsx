@@ -61,6 +61,13 @@ import {
   buildPricingPlanChoiceAttribution,
   sanitizePricingIntentCampaign,
 } from '@/lib/growth/pricingPlanChoiceAttribution'
+import {
+  buildPricingTierHandoffAttribution,
+  pricingTierCardId,
+  pricingTierHandoffStorageKey,
+  sanitizePricingTierHandoff,
+  type PricingTierHandoffTier,
+} from '@/lib/growth/pricingTierHandoff'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -288,6 +295,7 @@ export default function PricingClient() {
   // surpresa boa no checkout, errar para baixo é uma promessa quebrada.
   const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
   const currencyTrackedRef = useRef(false)
+  const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
   // (unverifiable "estimated views/month" promise — see note at the old block).
@@ -377,10 +385,85 @@ export default function PricingClient() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const intentCampaign = sanitizePricingIntentCampaign(params.get('intent_campaign'))
+    setRequestedTier(sanitizePricingTierHandoff(params.get('tier')))
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
     void trackEvent('pricing_view', intentCampaign ? { source: intentCampaign } : undefined)
   }, [])
+
+  // KINEO-PRICING-TIER-HANDOFF-2026-08-31 — warm recovery links already name
+  // a plan and carry ?tier=starter|basic|pro. Pricing used to discard that
+  // decision and restart the buyer at a generic three-card comparison. Keep
+  // every option visible, but bring the requested card into view and measure
+  // only after at least 35% of that card was actually exposed.
+  useEffect(() => {
+    if (!requestedTier) return
+
+    const card = document.getElementById(pricingTierCardId(requestedTier))
+    if (!card) return
+
+    const params = new URLSearchParams(window.location.search)
+    const attribution = buildPricingTierHandoffAttribution({
+      requestedTier,
+      intentCampaign: params.get('intent_campaign'),
+    })
+    if (!attribution) return
+
+    const storageKey = pricingTierHandoffStorageKey(attribution)
+    let eventSettled = false
+    let observer: IntersectionObserver | null = null
+
+    const visibleRatio = () => {
+      const rect = card.getBoundingClientRect()
+      if (rect.height <= 0) return 0
+      const visibleHeight = Math.max(
+        0,
+        Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0),
+      )
+      return Math.min(1, visibleHeight / rect.height)
+    }
+
+    const revealRequestedCard = () => {
+      const explicitHash = window.location.hash
+      if (explicitHash && explicitHash !== '#plans') return
+      if (visibleRatio() >= 0.35) return
+      card.scrollIntoView({ block: 'center', behavior: 'auto' })
+    }
+
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry || eventSettled || entry.intersectionRatio < 0.35) return
+      eventSettled = true
+      observer?.disconnect()
+
+      try {
+        if (sessionStorage.getItem(storageKey) === '1') return
+      } catch {
+        // Storage is optional; the in-memory guard still prevents remount spam.
+      }
+
+      void trackEvent('pricing_tier_intent_viewed', attribution).then((stored) => {
+        if (!stored) return
+        try {
+          sessionStorage.setItem(storageKey, '1')
+        } catch {
+          // Analytics succeeded; storage failure must not affect pricing.
+        }
+      })
+    }, { threshold: [0.35] })
+    observer.observe(card)
+
+    const initialRevealTimer = window.setTimeout(revealRequestedCard, 160)
+    // Owner-scoped proof can load above the grid after first paint. One bounded
+    // settle pass restores the same target without creating a scroll loop.
+    const settledRevealTimer = window.setTimeout(revealRequestedCard, 900)
+
+    return () => {
+      window.clearTimeout(initialRevealTimer)
+      window.clearTimeout(settledRevealTimer)
+      observer?.disconnect()
+    }
+  }, [requestedTier])
 
   // Resolve only the display currency. Checkout repeats the lookup on the
   // server and never accepts a currency override from the browser.
@@ -685,11 +768,13 @@ export default function PricingClient() {
             return (
               <div
                 key={p.tier}
+                id={isPaid ? pricingTierCardId(p.tier as PricingTierHandoffTier) : undefined}
+                data-pricing-tier-requested={requestedTier === p.tier ? 'true' : undefined}
                 className={`group relative flex flex-col rounded-2xl border p-7 transition-all duration-200 ${
                   p.highlight
                     ? 'border-[#2997ff] bg-gradient-to-b from-[#1e1e22] to-[#151517] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_0_1px_rgba(41,151,255,0.35),0_24px_60px_-24px_rgba(41,151,255,0.5)] md:-translate-y-2 md:scale-[1.025]'
                     : 'border-white/[0.08] bg-[#161618] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_18px_44px_-30px_rgba(0,0,0,0.95)] hover:-translate-y-1 hover:border-[#2997ff]/60 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_26px_60px_-28px_rgba(0,0,0,1)]'
-                }`}
+                } ${requestedTier === p.tier ? 'ring-2 ring-[#62b3ff] ring-offset-4 ring-offset-black' : ''} scroll-mt-24`}
               >
                 {/* Push #116 — Pro now carries the amber "MOST POPULAR"
                     flag instead of the blue "Best Value" pill. Popular
@@ -699,7 +784,11 @@ export default function PricingClient() {
                     importante (Most Popular) era translucido e o secundario
                     (Best Value) era azul solido. Trocados; emoji fora (nenhum
                     selo da landing tem emoji). */}
-                {p.popular ? (
+                {requestedTier === p.tier ? (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
+                    Your choice
+                  </div>
+                ) : p.popular ? (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[#2997ff] px-3 py-1 text-[10px] font-black uppercase tracking-[.12em] text-white shadow-[0_6px_20px_-6px_rgba(41,151,255,.85)]">
                     Most Popular
                   </div>
