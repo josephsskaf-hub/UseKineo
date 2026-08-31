@@ -5,6 +5,9 @@ export type SeriesContinuationSource =
   | 'generate_recent_video'
   | 'history_milestone'
   | 'history_video_card'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#1) — a Library era a unica tela do acervo
+  // sem nenhuma saida para criar; agora cada video de la tambem leva o tema.
+  | 'library_video_card'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

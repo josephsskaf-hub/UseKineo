@@ -9,6 +9,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { engineLabelFor } from '@/lib/engineLabel'
 import Link from 'next/link'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
+import { trackEvent } from '@/lib/analytics'
+import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 
 type Tab = 'videos' | 'images' | 'audio'
 
@@ -104,6 +106,56 @@ export default function LibraryClient() {
         )}
       </p>
 
+      {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — CAMINHO DE VOLTA PARA CRIAR.
+          A Library e a unica tela do acervo que so oferecia link de criacao
+          no ESTADO VAZIO (o link em prosa logo abaixo, na aba de videos):
+          aparecia quando nao servia para retencao e sumia no instante em que
+          passaria a servir — logo depois do 1o video. Agora o botao de criar
+          e fixo no topo, e vem com a contagem honesta do proprio acervo. */}
+      {loaded && !loadFailed && (
+        <div
+          className="row"
+          style={{ marginBottom: 18, alignItems: 'center', gap: 12, flexWrap: 'wrap' }}
+        >
+          <Link
+            href="/studio"
+            className="pill on"
+            style={{ textDecoration: 'none', fontWeight: 800 }}
+            onClick={() => {
+              void trackEvent('library_create_clicked', {
+                tab,
+                video_count: vids.length,
+                placement: 'header',
+              })
+            }}
+          >
+            ⚡ New video
+          </Link>
+          {vids.length > 0 && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span aria-hidden="true" style={{ display: 'inline-flex', gap: 4 }}>
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: 99,
+                      background: i < Math.min(vids.length, 4) ? '#34d399' : 'rgba(255,255,255,.16)',
+                    }}
+                  />
+                ))}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--txt2,#9aa0a6)', fontWeight: 700 }}>
+                {vids.length >= 4
+                  ? `${vids.length} Shorts made`
+                  : `${vids.length} of your first 4 Shorts`}
+              </span>
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="row" style={{ marginBottom: 20 }}>
         {TABS.map((t) => (
           <button key={t.key} type="button" className={`pill${tab === t.key ? ' on' : ''}`} onClick={() => { setTab(t.key); setQ('') }}>
@@ -154,7 +206,8 @@ export default function LibraryClient() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 12 }}>
             {fVids.map((v) => (
-              <Link key={v.id} href={`/history#v-${v.id}`} className="card" style={{ padding: 8, textDecoration: 'none' }}>
+              <div key={v.id} className="card" style={{ padding: 8 }}>
+                <Link href={`/history#v-${v.id}`} style={{ display: 'block', textDecoration: 'none' }}>
                 <div style={{ position: 'relative', aspectRatio: '9/16', borderRadius: 10, overflow: 'hidden', background: '#000' }}>
                   {v.enhanced_url && (
                     <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.45)', color: '#34d399' }}>✨ HD</span>
@@ -180,7 +233,29 @@ export default function LibraryClient() {
                     {v.title}
                   </div>
                 )}
-              </Link>
+                </Link>
+                {/* KINEO-SPRINT-V1V4-2026-08-31 (#1) — cada card era um beco:
+                    levava para /history e acabava ali. Agora o card devolve o
+                    TEMA para o Studio (mesmo motor do /history e da tela de
+                    "video pronto": buildSeriesContinuationHref), para o 2o
+                    video nao exigir escrever tudo de novo. */}
+                {v.title && (
+                  <Link
+                    href={buildSeriesContinuationHref(v.title, 'library_video_card')}
+                    className="pill"
+                    style={{ marginTop: 8, display: 'block', textAlign: 'center', textDecoration: 'none', fontSize: 11.5, fontWeight: 700, color: '#7cc0ff', borderColor: 'rgba(41,151,255,.35)' }}
+                    onClick={() => {
+                      void trackEvent('series_continue_clicked', {
+                        source: 'library_video_card',
+                        video_id: v.id,
+                        completed_video_count: vids.length,
+                      })
+                    }}
+                  >
+                    Next episode →
+                  </Link>
+                )}
+              </div>
             ))}
           </div>
         )
