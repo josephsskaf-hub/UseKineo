@@ -56,7 +56,40 @@
 // /api/viral-now, which is deterministic, free, has no model call and no
 // database read, so it can hold the screen up on its own.
 
+//
+// SPRINT-V1V4 #19 (2026-08-31) — MOSTRADO NAO E VISTO, E NINGUEM ROLA ATE AQUI.
+// Medido em producao, 7 dias, so pessoas externas:
+//   video_ready_viewed ....... 67 pessoas
+//   next_shorts_shown ........ 64 pessoas
+//   video_download_clicked ... 33 pessoas
+//   next_shorts_picked ........ 0 pessoas   <- ZERO. Em sete dias.
+// A rodada #7 culpou a afordancia e deu botao com seta a cada card. Nao mudou
+// nada. A #16 culpou a fonte das ideias e trouxe a prateleira de temas em alta.
+// Nao mudou nada. Sobrou a hipotese que nenhuma das duas testou: a pessoa
+// nunca chega aqui com os olhos. Este card mora ABAIXO do player, das
+// estatisticas, das duas dicas e do ShortPackageSection inteiro (titulo, hook,
+// script, plano de cenas, legenda, hashtags, CTA) — mais de mil pixels de
+// texto no celular. E `next_shorts_shown` sempre foi disparado no fim do
+// FETCH, nao na hora de aparecer: ele significa "carregou", nunca significou
+// "foi vista". Contamos 64 exibicoes que talvez nunca tenham existido.
+//
+// Duas coisas mudam aqui, e so estas duas:
+//  (a) VERDADE: um IntersectionObserver dispara `next_shorts_in_view` UMA vez,
+//      quando o card entra de fato na tela. A partir do proximo deploy o
+//      denominador de conversao desta secao passa a ser real.
+//  (b) CONVITE NA HORA CERTA: a unica acao que essa tela conquista e o
+//      download (33 de 67). Quando o arquivo termina de baixar, o modulo de
+//      download anuncia (lib/postVideoSignal.ts) e este card vem ate a pessoa
+//      — rola sozinho ate ficar visivel e troca a chamada para o unico momento
+//      em que a frase e verdadeira: "arquivo salvo; o episodio 2 ja esta
+//      escrito". Nada e gerado, nada e cobrado: o toque continua so
+//      preenchendo o compositor.
+//
+// Fronteira: zero linha em GenerateClient.tsx (zona compartilhada com o
+// Codex). A ponte entre download e prateleira e um CustomEvent no window.
+
 import { useEffect, useRef, useState } from 'react'
+import { ouvirVideoEntregue } from '@/lib/postVideoSignal'
 
 /**
  * Reads the pointing device without ever touching user data. Both fields exist
@@ -168,6 +201,18 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
   const [ideas, setIdeas] = useState<NextShortIdea[]>([])
   const [trending, setTrending] = useState<TrendingTopic[]>([])
   const [loading, setLoading] = useState(true)
+  // #19 — verdadeiro quando o arquivo terminou de baixar. So muda o texto da
+  // chamada e o realce da borda; nunca gera, nunca cobra, nunca troca as
+  // ideias que ja estao na tela (trocar card debaixo do dedo e o defeito que o
+  // `requestedRef` existe para evitar).
+  const [chamou, setChamou] = useState(false)
+  const secaoRef = useRef<HTMLDivElement | null>(null)
+  // Instante em que os dados chegaram. Serve para medir quanto tempo passa
+  // entre "carregou" e "foi vista" — se a distancia for grande, a cura da
+  // proxima rodada e posicao, nao texto.
+  const carregouEmRef = useRef<number>(0)
+  const jaContouVisivelRef = useRef(false)
+  const jaChamouRef = useRef(false)
   // One fetch per finished render. The generate screen is force-dynamic and
   // re-renders often; without this guard a remount would re-bill the model and
   // — worse — swap the cards out from under a user mid-click.
@@ -203,6 +248,7 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
       const shelf = emAlta.status === 'fulfilled' ? emAlta.value : []
       setIdeas(list)
       setTrending(shelf)
+      carregouEmRef.current = Date.now()
       if (list.length > 0) onEvent?.('next_shorts_shown', { count: list.length, ...ambienteDePonteiro() })
       if (shelf.length > 0) {
         onEvent?.('next_shorts_trending_shown', {
@@ -222,6 +268,90 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // ── #19 (a) A VERDADE SOBRE "MOSTRADO" ──────────────────────────────────
+  // `next_shorts_shown` sempre significou "o fetch voltou". Este observador e
+  // a primeira vez que o produto sabe se o card apareceu na tela de alguem.
+  // Dispara UMA vez por render e desliga-se sozinho: o objetivo e o
+  // denominador, nao um fluxo de eventos.
+  useEffect(() => {
+    if (loading) return
+    const alvo = secaoRef.current
+    if (!alvo) return
+    if (typeof IntersectionObserver !== 'function') return
+    let observer: IntersectionObserver | null = null
+    try {
+      observer = new IntersectionObserver(
+        (entradas) => {
+          for (const entrada of entradas) {
+            if (!entrada.isIntersecting) continue
+            if (jaContouVisivelRef.current) continue
+            jaContouVisivelRef.current = true
+            const desde = carregouEmRef.current
+            onEvent?.('next_shorts_in_view', {
+              // Segundos entre carregar e ser vista. 0 quando ja nasceu
+              // visivel; alto quando a pessoa teve de rolar ate aqui.
+              secs_since_shown: desde > 0 ? Math.round((Date.now() - desde) / 1000) : 0,
+              ...ambienteDePonteiro(),
+            })
+            try {
+              observer?.disconnect()
+            } catch {
+              /* ignore */
+            }
+          }
+        },
+        // Metade do card dentro da tela. Um pixel raspando o rodape nao e
+        // "vista" — seria repetir a mentira que esta rodada veio desfazer.
+        { threshold: 0.5 },
+      )
+      observer.observe(alvo)
+    } catch {
+      /* um observador que nao nasce nao pode derrubar a tela de sucesso */
+    }
+    return () => {
+      try {
+        observer?.disconnect()
+      } catch {
+        /* ignore */
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  // ── #19 (b) O CONVITE VAI ATE ELA ───────────────────────────────────────
+  // O download e a unica acao conquistada nesta tela. Quando ele termina, a
+  // pessoa esta com o resultado na mao e sem proximo passo — e este card, que
+  // e o proximo passo, esta a mil pixels dali. Ele vem.
+  useEffect(() => {
+    return ouvirVideoEntregue((detalhe) => {
+      if (jaChamouRef.current) return
+      jaChamouRef.current = true
+      setChamou(true)
+      onEvent?.('next_shorts_summoned', {
+        source: 'download',
+        method: detalhe.method,
+        // Ja estava na tela quando o arquivo caiu? Se sim, o convite so trocou
+        // de texto; se nao, ele tambem trouxe a pessoa ate aqui.
+        was_in_view: jaContouVisivelRef.current,
+        ...ambienteDePonteiro(),
+      })
+      // Rolagem suave e no proximo quadro: o navegador ainda esta terminando o
+      // salvamento do arquivo e a barra de download pode reposicionar a pagina.
+      try {
+        window.requestAnimationFrame(() => {
+          try {
+            secaoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          } catch {
+            /* ignore */
+          }
+        })
+      } catch {
+        /* ignore */
+      }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   // Nothing to show and nothing to apologise for. The bar moved this round:
   // it now takes BOTH sources coming back empty for the screen to go quiet.
   // Before, one flaky model call was enough to erase the most-seen post-video
@@ -230,12 +360,36 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
 
   return (
     <div
+      ref={secaoRef}
       className="gv-card rounded-2xl p-5 mb-6"
       style={{
-        background: 'rgba(41,151,255,.06)',
-        border: '1px solid rgba(41,151,255,.25)',
+        // #19 — depois do download o card acende. E o unico realce da tela
+        // naquele instante, e ele dura o resto da sessao de proposito: piscar
+        // e voltar ao normal deixaria a pessoa achando que perdeu alguma coisa.
+        background: chamou ? 'rgba(41,151,255,.12)' : 'rgba(41,151,255,.06)',
+        border: chamou ? '1px solid rgba(41,151,255,.60)' : '1px solid rgba(41,151,255,.25)',
+        boxShadow: chamou ? '0 0 0 3px rgba(41,151,255,.12)' : 'none',
+        transition: 'background .35s ease, border-color .35s ease, box-shadow .35s ease',
+        scrollMarginTop: 24,
       }}
     >
+      {/* #19 — a faixa so existe depois que o arquivo caiu. Antes disso ela
+          seria mais uma promessa; depois disso ela e a unica frase da tela que
+          descreve o que acabou de acontecer com ela. */}
+      {chamou && (
+        <div
+          className="rounded-xl px-3 py-2 mb-4 text-xs leading-relaxed"
+          style={{
+            background: 'rgba(41,151,255,.14)',
+            border: '1px solid rgba(41,151,255,.35)',
+            color: '#9fd2ff',
+          }}
+        >
+          <span style={{ fontWeight: 800, color: '#5cb3ff' }}>Video saved. </span>
+          Episode 2 is already written — pick one and it lands in the composer.
+          Nothing is generated and nothing is charged until you press Generate.
+        </div>
+      )}
       {/* The personalised half only claims space when it has something to say.
           It used to own the whole card, so an empty answer meant an empty
           screen. */}

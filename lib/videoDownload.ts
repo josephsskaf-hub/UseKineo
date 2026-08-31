@@ -87,6 +87,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { trackEvent } from '@/lib/analytics'
+import { anunciarVideoEntregue } from '@/lib/postVideoSignal'
 
 export type DownloadSurface = 'done_screen' | 'history' | 'my_videos'
 
@@ -856,6 +857,15 @@ async function runDownload(
       hidden_during: hiddenDuring,
       concurrent_downloads: concurrentAtStart,
     })
+
+    // KINEO-SINAL-POS-ENTREGA-2026-08-31 (sprint-v1v4 #19) — o arquivo chegou.
+    // Este e o UNICO ponto do produto que PROVA entrega, e por isso e o unico
+    // que anuncia. A prateleira do proximo episodio escuta este sinal para
+    // sair de baixo de mil pixels de pacote de texto no instante exato em que
+    // a pessoa termina o que veio fazer. Fire-and-forget e blindado: ver
+    // lib/postVideoSignal.ts, nunca lanca.
+    anunciarVideoEntregue({ method: 'blob', ms: Date.now() - startedAt })
+
     return 'blob'
   } catch (err) {
     // O motivo importa e decide se vale cascatear:
