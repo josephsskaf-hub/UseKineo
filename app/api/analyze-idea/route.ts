@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { openai, durationPlanFor, MICRO_KNOWLEDGE_SYSTEM_RULES, SAFE_COMPOSITION_RULES } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
 import { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
 
@@ -588,29 +589,56 @@ Return ONLY the adjusted script text. No commentary, no markdown.`,
   }
 }
 
+
+// ═══ KINEO-RECUSA-COM-NOME-2026-08-31 (sprint-v1v4 #18) ════════════════════
+// Esta rota é o PRIMEIRO estágio de toda tentativa de vídeo — e nunca escreveu
+// uma linha sobre as próprias recusas. Medido: `analyze_not_ok` = 26 eventos /
+// 8 pessoas em 14 dias, 26 de 26 MUDOS. Ver lib/stageRefusal.ts.
+// `await` e não `void`: a escrita nasce ao lado do `return`.
+async function recusarAnalise(
+  httpStatus: number,
+  body: Record<string, unknown>,
+  userId: string | null,
+  extra?: Record<string, unknown>,
+): Promise<NextResponse> {
+  const evento = buildRefusalEvent({
+    route: 'analyze-idea',
+    httpStatus,
+    detail: body.error,
+    extra,
+  })
+  await writeServerEvent({
+    name: evento.name,
+    userId,
+    path: evento.path,
+    metadata: evento.metadata,
+  })
+  return NextResponse.json(body, { status: httpStatus })
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.OPENAI_API_KEY) {
       console.error('[analyze-idea] OPENAI_API_KEY is not configured')
-      return NextResponse.json({ error: 'AI service is not configured.' }, { status: 500 })
+      return await recusarAnalise(500, { error: 'AI service is not configured.' }, null, { missing_config: 'OPENAI_API_KEY' })
     }
 
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ error: 'You must be signed in.' }, { status: 401 })
+      return await recusarAnalise(401, { error: 'You must be signed in.' }, null)
     }
 
     let body: { prompt?: string; duration?: number; language?: string; scriptMode?: string }
     try {
       body = await req.json()
     } catch {
-      return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
+      return await recusarAnalise(400, { error: 'Invalid request body.' }, user.id, { malformed_json: true })
     }
 
     const promptRaw = (body.prompt ?? '').trim()
     if (!promptRaw) {
-      return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
+      return await recusarAnalise(400, { error: 'Prompt is required.' }, user.id, { empty_prompt: 'raw' })
     }
 
     // Push #278 — Studio camera preset com dentes. O Studio anexa
@@ -626,7 +654,9 @@ export async function POST(req: NextRequest) {
       ? promptRaw.replace(/\[camera:[^\]]*\]/gi, ' ').replace(/[ \t]{2,}/g, ' ').trim()
       : promptRaw
     if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required.' }, { status: 400 })
+      // Só a tag [camera: …] no campo: o texto sobrou vazio DEPOIS da limpeza.
+      // Rótulo próprio porque a cura é outra (o Studio montou o prompt errado).
+      return await recusarAnalise(400, { error: 'Prompt is required.' }, user.id, { empty_prompt: 'after_camera_tag' })
     }
     const withCamera = (visual: string): string =>
       cameraMove && visual.trim()
@@ -640,7 +670,7 @@ export async function POST(req: NextRequest) {
     // unica (lib/analyzeLimits). O cliente le o MESMO numero antes de chamar,
     // entao este 400 deixa de ser a primeira noticia que a pessoa tem do teto.
     if (prompt.length > ANALYZE_PROMPT_MAX_CHARS) {
-      return NextResponse.json({ error: analyzePromptTooLongMessage() }, { status: 400 })
+      return await recusarAnalise(400, { error: analyzePromptTooLongMessage() }, user.id, { prompt_chars: prompt.length, max_chars: ANALYZE_PROMPT_MAX_CHARS })
     }
 
     // Push #064 — duration shapes word count + scene count. Defaults to 45s
@@ -1050,6 +1080,13 @@ Return ONLY the JSON object — no markdown, no commentary.`
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : String(error)
     console.error('[analyze-idea] unexpected error:', msg)
-    return NextResponse.json({ error: 'Analysis failed. Please try again.' }, { status: 500 })
+    // NOME do erro, nunca a mensagem crua: ela pode carregar trecho do texto
+    // da pessoa, e log de recusa não é lugar para conteúdo de cliente.
+    return await recusarAnalise(
+      500,
+      { error: 'Analysis failed. Please try again.' },
+      null,
+      { error_name: error instanceof Error ? error.name : 'unknown' },
+    )
   }
 }

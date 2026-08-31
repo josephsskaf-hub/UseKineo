@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MIN_COVERAGE, WORDS_PER_SECOND } from '@/lib/narrationFit'
 import { openai, OPENAI_SCRIPT_TIMEOUT_MS } from '@/lib/openai'
 import { writeServerEvent } from '@/lib/serverEvents'
+import { buildRefusalEvent } from '@/lib/stageRefusal'
 import {
   looksOpenAiQuotaDead,
   looksOpenAiHanging,
@@ -240,19 +241,46 @@ function payoffIsEmpty(script: string): boolean {
   return BANNED.some((re) => re.test(tail))
 }
 
+
+// ═══ KINEO-RECUSA-COM-NOME-2026-08-31 (sprint-v1v4 #18) ════════════════════
+// Toda saída não-2xx desta rota passa a deixar rastro NOSSO. Ver o defeito
+// inteiro e as três regras (reason por último, await, nunca lança) em
+// lib/stageRefusal.ts. `await` e não `void`: a escrita nasce ao lado do
+// `return`, e a lambda pode ser congelada antes de a promessa resolver.
+async function recusar(
+  httpStatus: number,
+  body: Record<string, unknown>,
+  userId: string | null,
+  extra?: Record<string, unknown>,
+): Promise<NextResponse> {
+  const evento = buildRefusalEvent({
+    route: 'generate-script',
+    httpStatus,
+    detail: body.error,
+    extra,
+  })
+  await writeServerEvent({
+    name: evento.name,
+    userId,
+    path: evento.path,
+    metadata: evento.metadata,
+  })
+  return NextResponse.json(body, { status: httpStatus })
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Auth check — same pattern as other routes
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return await recusar(401, { error: 'Unauthorized' }, null)
     }
 
     const body = await req.json()
     const topic = typeof body.topic === 'string' ? body.topic.trim() : ''
     if (!topic) {
-      return NextResponse.json({ error: 'topic is required' }, { status: 400 })
+      return await recusar(400, { error: 'topic is required' }, user.id)
     }
 
     // Push #316 — language selection (en | pt | es), defaults to English.
@@ -309,7 +337,7 @@ export async function POST(req: NextRequest) {
 
     let script = completion.choices[0]?.message?.content?.trim() ?? ''
     if (!script) {
-      return NextResponse.json({ error: 'Script generation failed' }, { status: 500 })
+      return await recusar(500, { error: 'Script generation failed' }, user.id, { empty_completion: true })
     }
 
     // #383b — QUALITY GUARDRAIL. The script must contain ALL 5 structural
@@ -430,11 +458,22 @@ export async function POST(req: NextRequest) {
     // (and the founder gets a page that says "slow", not "out of credits").
     if (looksOpenAiHanging(err)) {
       await alertOpenAiExhausted('/api/generate-script', 'hang')
-      return NextResponse.json(
+      // #18 — este 503 era o ÚNICO da rota sem rastro no banco: o irmão de
+      // quota grava `openai_quota_dead` desde 14/08, e o hang não gravava nada.
+      return await recusar(
+        503,
         { error: ENGINE_CAPACITY_MESSAGE, code: 'engine_capacity' },
-        { status: 503 },
+        null,
+        { openai_kind: 'hang' },
       )
     }
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // O detalhe é o NOME do erro, nunca a mensagem crua (que pode carregar
+    // trecho do texto da pessoa) — regra do lib/stageRefusal.ts.
+    return await recusar(
+      500,
+      { error: 'Internal server error' },
+      null,
+      { error_name: err instanceof Error ? err.name : 'unknown' },
+    )
   }
 }
