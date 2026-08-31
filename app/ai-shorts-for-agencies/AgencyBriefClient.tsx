@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
+  B2B_FIT_REVIEW_CAMPAIGN,
   B2B_LEAD_INTENT,
   B2B_VOLUME_OPTIONS,
+  readB2BFitReviewAttribution,
   type B2BVolumeId,
 } from '@/lib/growth/b2bLead'
 
@@ -24,15 +26,20 @@ export default function AgencyBriefClient() {
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
         observer.disconnect()
+        const attribution = readB2BFitReviewAttribution(window.location.search)
+        const marker = attribution
+          ? `${VIEW_MARKER}:${B2B_FIT_REVIEW_CAMPAIGN}`
+          : VIEW_MARKER
         try {
-          if (sessionStorage.getItem(VIEW_MARKER) === '1') return
-          sessionStorage.setItem(VIEW_MARKER, '1')
+          if (sessionStorage.getItem(marker) === '1') return
+          sessionStorage.setItem(marker, '1')
         } catch {
           // Storage may be unavailable in privacy mode. The form still works.
         }
         void trackEvent('b2b_brief_viewed', {
           version: 'b2b_brief_v1_2026_08_28',
           surface: 'ai_shorts_for_agencies',
+          ...(attribution ?? {}),
         })
       },
       { threshold: [0.5] },
@@ -54,17 +61,21 @@ export default function AgencyBriefClient() {
       const result = await response.json().catch(() => ({}))
       if (!response.ok || result?.saved !== true) throw new Error('capture failed')
       setStatus('sent')
+      const attribution = readB2BFitReviewAttribution(window.location.search)
       void trackEvent('b2b_brief_submitted', {
         version: 'b2b_brief_v1_2026_08_28',
         surface: 'ai_shorts_for_agencies',
         monthly_volume: volume,
+        ...(attribution ?? {}),
       })
     } catch {
       setStatus('error')
+      const attribution = readB2BFitReviewAttribution(window.location.search)
       void trackEvent('b2b_brief_failed', {
         version: 'b2b_brief_v1_2026_08_28',
         surface: 'ai_shorts_for_agencies',
         monthly_volume: volume,
+        ...(attribution ?? {}),
       })
     }
   }

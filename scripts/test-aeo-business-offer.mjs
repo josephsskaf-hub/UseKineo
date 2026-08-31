@@ -32,8 +32,10 @@ const checkout = loadTs('lib/checkoutPricing.ts', {
   '@/lib/credits/engineCost': engine,
   '@/lib/autopilot/config': autopilot,
 })
+const b2bLead = loadTs('lib/growth/b2bLead.ts')
 const factsContract = loadTs('lib/growth/businessOfferFacts.ts', {
   '@/lib/checkoutPricing': checkout,
+  '@/lib/growth/b2bLead': b2bLead,
 })
 
 const offer = factsContract.buildBusinessOfferFact('https://www.usekineo.com', 'Kineo 1')
@@ -46,6 +48,16 @@ equal(offer.commercialDeliveryAllowed, true, 'commercial delivery boundary is ex
 equal(offer.namedVideoCountEngine, 'Kineo 1', 'public engine name is explicit')
 equal(offer.audience.join(','), 'freelancers,agencies,businesses', 'three intended audiences are explicit')
 equal(offer.packs.length, checkout.BULK_PACK_IDS.length, 'every canonical pack is exposed')
+equal(offer.volumeFitReview.available, true, 'optional recurring-volume review is machine-readable')
+equal(offer.volumeFitReview.intent, b2bLead.B2B_LEAD_INTENT, 'review intent derives from the live form contract')
+equal(offer.volumeFitReview.workEmailRequired, true, 'work-email requirement is explicit')
+equal(offer.volumeFitReview.automaticMailingList, false, 'machine fact preserves the mailing-list boundary')
+equal(offer.volumeFitReview.monthlyVolumeBands.join(','), b2bLead.B2B_VOLUME_OPTIONS.map((option) => option.id).join(','), 'volume bands derive from the live form')
+const fitReviewUrl = new URL(offer.volumeFitReview.url)
+equal(fitReviewUrl.pathname, '/ai-shorts-for-agencies', 'fit review lands on the existing B2B page')
+equal(fitReviewUrl.hash, '#agency-brief-heading', 'fit review lands on the existing form')
+equal(fitReviewUrl.searchParams.get('utm_campaign'), b2bLead.B2B_FIT_REVIEW_CAMPAIGN, 'fit review has a stable campaign')
+ok(!offer.volumeFitReview.url.includes('/api/lead-capture'), 'machine fact cannot submit a lead')
 
 for (const id of checkout.BULK_PACK_IDS) {
   const source = checkout.BULK_PACKS[id]
@@ -76,6 +88,7 @@ ok(canonical.includes('ENGINE_FACTS[0].name'), 'named pack engine follows the pu
 const llms = read('app/llms.txt/route.ts')
 ok(llms.includes('BUSINESS_OFFER_FACT.packs.map'), 'llms text derives pack rows from the structured fact')
 ok(llms.includes('BUSINESS_OFFER_FACT.boundaries.map'), 'llms text derives boundaries from the structured fact')
+ok(llms.includes('BUSINESS_OFFER_FACT.volumeFitReview.url'), 'llms text exposes the existing optional fit review')
 ok(!llms.includes("from '@/lib/checkoutPricing'"), 'llms text no longer rebuilds the business offer separately')
 
 const page = read('app/facts/page.tsx')

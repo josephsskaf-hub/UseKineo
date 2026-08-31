@@ -31,6 +31,7 @@ const ok = (value, message) => { assert.ok(value, message); checks++ }
 
 equal(lead.B2B_LEAD_INTENT, 'agency_brief', 'business intent has a stable allow-listed value')
 equal(lead.B2B_LEAD_SOURCE, 'b2b_agency_intake', 'database source is server-owned and stable')
+equal(lead.B2B_FIT_REVIEW_CAMPAIGN, 'b2b_volume_fit_review_v1', 'answer-engine campaign is stable')
 equal(lead.B2B_VOLUME_OPTIONS.length, 4, 'volume form exposes exactly four useful bands')
 equal(lead.B2B_VOLUME_OPTIONS.map((option) => option.id), ['10_19', '20_49', '50_99', '100_plus'], 'volume ids are allow-listed')
 equal(lead.normalizeLeadEmail('  Buyer@Company.COM '), 'buyer@company.com', 'email is trimmed and normalized')
@@ -48,6 +49,13 @@ for (const option of lead.B2B_VOLUME_OPTIONS) {
 }
 equal(lead.readB2BVolumeStorageKey('monthly_other'), null, 'unknown stored volume is not displayed as fact')
 equal(lead.readB2BVolumeStorageKey('other_20_49'), null, 'wrong storage namespace is rejected')
+equal(
+  lead.readB2BFitReviewAttribution('?utm_source=kineo_facts&utm_medium=answer_engine&utm_campaign=b2b_volume_fit_review_v1'),
+  { entry_campaign: 'b2b_volume_fit_review_v1', entry_medium: 'answer_engine', entry_source: 'kineo_facts' },
+  'exact first-party answer-engine link is attributed',
+)
+equal(lead.readB2BFitReviewAttribution('?utm_source=chatgpt.com&utm_medium=answer_engine&utm_campaign=b2b_volume_fit_review_v1'), null, 'arbitrary source is not copied into telemetry')
+equal(lead.readB2BFitReviewAttribution('?utm_source=kineo_facts&utm_medium=answer_engine&utm_campaign=other'), null, 'unknown campaign fails closed')
 
 const route = source('app/api/lead-capture/route.ts')
 const component = source('app/ai-shorts-for-agencies/AgencyBriefClient.tsx')
@@ -74,9 +82,13 @@ ok(page.includes('<AgencyBriefClient />'), 'server page calls the business brief
 ok(page.indexOf('<AgencyPacksClient packs={PACKS} />') < page.indexOf('<AgencyBriefClient />'), 'brief is the alternative after self-service packs, not a competing hero CTA')
 ok(component.includes('IntersectionObserver'), 'form impression requires real viewport visibility')
 ok(component.includes('intersectionRatio >= 0.5'), 'at least half the form must be visible')
-ok(component.includes('sessionStorage.getItem(VIEW_MARKER)'), 'form view dedupes per session')
+// The campaign gets its own allow-listed marker so a prior generic page view
+// cannot hide the answer-engine exposure. Both paths still dedupe per session.
+ok(component.includes('sessionStorage.getItem(marker)'), 'form view dedupes per session and attribution bucket')
 ok(component.includes("trackEvent('b2b_brief_viewed'"), 'visible form emits a named event')
 ok(component.includes("trackEvent('b2b_brief_submitted'"), 'successful storage emits a named completion event')
+ok(component.includes('readB2BFitReviewAttribution(window.location.search)'), 'form executes the allow-listed attribution policy')
+ok(component.includes('`${VIEW_MARKER}:${B2B_FIT_REVIEW_CAMPAIGN}`'), 'campaign view is not suppressed by an earlier generic view in the same session')
 ok(component.includes('monthly_volume: volume'), 'telemetry stores only the allow-listed band')
 const submittedTelemetry = component.slice(
   component.indexOf("trackEvent('b2b_brief_submitted'"),
