@@ -2551,3 +2551,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** oferta pós-vídeo, preço, desconto, cupom, crédito, trial, SKU, Stripe server/configuração, render, motor, cenas, voz, legendas, Supabase schema/dados, e-mail, outreach, anúncio ou comunicação externa.
 
 **COORDENAÇÃO:** este release substitui, para incorporação, `codex/b2b-release-candidate-v1` e `codex/b2c-pricing-intent-candidate-v1`; as branches anteriores continuam como evidência, não devem ser incorporadas separadamente. Claude não deve editar as superfícies listadas enquanto o release é validado e deve executar `git fetch origin` antes de qualquer integração.
+
+**REVALIDADO APÓS MAIN #17 (31/08/2026 UTC):** `origin/main` avançou para `db616b2c11166385b67c3f4cfa4217601f132079`. A branch foi rebaseada sem conflito; as 14 suítes repetiram 628/628 e o typecheck com TypeScript 5.9.3 repetiu somente os quatro erros baseline preexistentes. As mudanças do Claude ficaram preservadas e fora do diff Growth.
+
+## 91. B2B — a prova do Autopilot termina na oferta Autopilot (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT em 31/08/2026 22:34–22:36 UTC; internos excluídos):** em 30 dias, `/youtube-automation-case-study` recebeu 12 sessões anônimas; a atribuição anterior `case_study/live_channel` produziu zero cadastro externo, vídeo, checkout ou pagamento. Em uma coorte separada, 43 pessoas externas chegaram ao Autopilot, sete chegaram ao checkout Autopilot/pilot e nenhuma pagou. Sessões e pessoas não foram somadas.
+
+**FATO CONFIRMADO / LACUNA:** a página é uma prova explícita do Autopilot, mas o card final levava diretamente ao signup e ao gerador manual. A oferta Autopilot já existe em `/pricing#autopilot`, com pilot avulso e opção mensal; `intent_campaign` já atravessa pricing, checkout e `payment_success`.
+
+**HIPÓTESE CAUSAL NOVA:** preservar o contexto entre a prova e a oferta que executou o experimento qualifica melhor a chegada ao checkout do SKU de maior ticket do que trocar Autopilot por “faça um vídeo grátis”.
+
+**IMPLEMENTADO:** o commit `fc312c64` torna `See Autopilot pilot and monthly options` a ação principal do card final, apontando para `/pricing?intent_campaign=autopilot_case_study_v1#autopilot` por `OrganicCtaLink`. O teste grátis permanece como ação secundária. Não há preço literal, checkout automático nem UTM nova que sobrescreva a origem real.
+
+**MEDIÇÃO / GATE:** seguir `organic_cta_clicked(source=youtube_automation_case_study, placement=autopilot_offer) → pricing_view(intent_campaign=autopilot_case_study_v1) → checkout_started → payment_success`. Preservar até dez novas sessões anônimas; sinal inicial exige dois cliques distintos e uma pessoa externa no checkout Autopilot. Pagamento continua sendo a métrica final.
+
+**RISCO E CONTENÇÃO:** a página promete atualização semanal, mas os marcadores públicos continuam em 30–31/07. Nenhum tráfego, outreach, recrawl ou anúncio deve ser ampliado para essa prova antes de reconciliar sua atualidade. Esta entrega corrige somente a saída das sessões que já chegam.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AUTOPILOT-CASE-STUDY-HANDOFF-2026-08-31.html` mostra antes/depois desktop e mobile e foi aberto no Chrome conectado. O CTA da oferta aparece primeiro e o caminho gratuito permanece visível e secundário.
+
+**TESTADO LOCALMENTE:** contrato específico 10/10 e atribuição de escolha em pricing 26/26. O gate de whitespace ficou limpo. O typecheck da árvore rebaseada repetiu somente os quatro erros baseline preexistentes.
+
+**NÃO TOCADO:** oferta, preço, SKU, crédito, trial, Stripe, checkout, produto Autopilot, YouTube, render, e-mail, outreach, anúncio ou dados.
+
+## 92. B2C — a parede do checkout ainda não distingue recusa de abandono (31/08/2026)
+
+**FATO CONFIRMADO NO CÓDIGO:** o webhook valida assinatura Stripe e deduplica por `event.id`, mas `payment_intent.payment_failed` e `charge.failed` gravam o mesmo `checkout_payment_failed`; eventos Stripe distintos podem duplicar uma recusa. Os payloads atuais ainda carregam IDs e mensagens livres, o retorno `false` de `writeServerEvent` é ignorado e `is_renewal=Boolean(invoiceId)` confunde primeira cobrança de assinatura com renovação.
+
+**EVIDÊNCIA DE CONFIGURAÇÃO (Stripe Dashboard, leitura em 31/08/2026 UTC):** o destino de produção `https://www.usekineo.com/api/stripe/webhook` está inscrito em seis eventos: `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.deleted`, `customer.subscription.updated`, `invoice.payment_failed` e `invoice.payment_succeeded`. `payment_intent.payment_failed` e `charge.failed` não estão selecionados. Nenhum checkbox foi alterado e o destino não foi salvo.
+
+**DECISÃO DE CONTENÇÃO:** não habilitar os dois eventos enquanto a ingestão puder duplicar recusa, persistir mensagem/ID cru, perder falha de escrita e classificar a primeira cobrança como renovação. A próxima intervenção B2C deve criar uma falha canônica por PaymentIntent, enriquecimento separado e redigido de Charge, estágio `initial | renewal | unknown` baseado em `Invoice.billing_reason` e falha de persistência retryável. Só depois disso a configuração Stripe pode ser ampliada e medida por pessoa em janela terminal.
