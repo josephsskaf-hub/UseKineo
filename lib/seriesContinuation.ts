@@ -21,6 +21,14 @@ export type SeriesContinuationSource =
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
   | 'done_footer'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#4) — o aviso "seu video ficou pronto
+  // enquanto voce estava fora", no TOPO da tela de criacao. Em 30 dias 160
+  // pessoas o viram (`server_active_render_detected` com state='completed').
+  // E o unico cartaz que pega a pessoa exatamente na VOLTA pos-video-1, com o
+  // compositor logo abaixo — e as duas acoes dele ("Watch now", "Open My
+  // Videos") mandavam a pessoa EMBORA da tela de criar. O `title` do video ja
+  // viajava no probe /api/compose/active e era usado so como enfeite.
+  | 'returning_ready_banner'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

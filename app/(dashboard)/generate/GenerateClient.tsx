@@ -9969,9 +9969,45 @@ export default function GenerateClient({
             </div>
             <div className="text-xs mt-1" style={{ color: 'var(--muted2)' }}>
               It finished rendering while you were away and is saved in My Videos.
+              {serverActiveRender.title ? ' The composer below is ready for episode 2.' : ''}
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {/* ═══ KINEO-SPRINT-V1V4-2026-08-31 (#4) ═══════════════════════
+                ESTE cartaz e o unico que pega a pessoa na VOLTA depois do
+                video 1, e ele ficava com as duas acoes que a mandavam EMBORA
+                da tela de criar ("Watch now" abre o MP4 em outra aba, "Open
+                My Videos" troca de pagina). Medido em 30 dias: 160 pessoas
+                distintas receberam este banner (evento
+                `server_active_render_detected` com state='completed') —
+                publico 7x maior que o do marco do /history (23) e 80x o da
+                /library (2).
+                E o numero que escolheu ESTA superficie: das 58 pessoas
+                externas com exatamente 1 video em 7 dias, 20 voltaram, 10
+                clicaram "analyze idea" para o video 2 e SO 3 apertaram gerar.
+                A pessoa nao some — ela volta, comeca e para. Aqui ela chega
+                com o filme pronto na mao e o compositor logo abaixo, e nao
+                havia um unico botao que dissesse "faca o proximo".
+                O tema sai do proprio `title` do probe, pelo MESMO helper de
+                serie usado pelo /history, /studio, /library e pela tela de
+                video pronto. Zero logica nova de tema. Sem preco, sem plano,
+                sem checkout — pista do Codex intocada. */}
+            {serverActiveRender.title && (
+              <button
+                type="button"
+                onClick={() =>
+                  handleContinueSeries(
+                    serverActiveRender.title,
+                    'returning_ready_banner',
+                    serverActiveRender.videoId,
+                  )
+                }
+                className="font-bold text-sm px-4 py-2 rounded-lg"
+                style={{ background: '#22c55e', color: '#04130d', border: 'none', cursor: 'pointer' }}
+              >
+                ⚡ Build episode 2 →
+              </button>
+            )}
             {serverActiveRender.videoUrl && (
               <a
                 href={serverActiveRender.videoUrl}
