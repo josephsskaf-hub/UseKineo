@@ -2475,3 +2475,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** comissão, coupon, approval, payout, ledger financeiro, preço, pack, crédito, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `058256d7` ou da ponta posterior. Não duplicar uma página empresarial, não tornar `to=` um redirect aberto e não enviar campanha automaticamente. As quatro sprints adicionais do ciclo de duas horas estão concluídas.
+
+## 81. B2C — a prova própria vem antes do pagamento (30/08/2026)
+
+**META DO FUNDADOR, NÃO PROJEÇÃO:** buscar 25 assinaturas até o fim da próxima semana. A partir de 31/08, o portfólio operacional pedido pelo fundador passa a 50% B2C e 50% B2B. Nenhum deploy isolado garante essa meta; medir assinaturas reais.
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** o SELECT das 72 horas encerradas em 30/08, deduplicado por pessoa externa e com contas internas excluídas, mostrou que a maioria das pessoas que abriu checkout ainda não tinha um vídeo concluído antes da abertura. As contagens exatas ficam fora deste repositório público. Portanto, maximizar checkout sem qualificar a experiência pode aumentar abandono, não assinatura.
+
+**PESQUISA COMPETITIVA OFICIAL (30/08/2026):** Synthesia, InVideo, VEED, Pictory, Captions, OpusClip, HeyGen e Submagic apresentam a compra em torno de entregas, categorias de uso ou resultado concreto, não somente inventário técnico. A Kineo já possui comparação e Plan Fit; a lacuna nova era ancorar a decisão no resultado do próprio comprador, sem duplicar preço, desconto ou calculadora.
+
+**HIPÓTESE 1 / ANTES DA PRIMEIRA ENTREGA:** uma conta autenticada, sem assinatura, sem checkout salvo e com histórico confiável de zero vídeo recebe `Proof before payment`. O CTA prepara uma criação de 35 segundos no melhor primeiro teste vigente e declara que nada renderiza até `Generate`. `I already want to subscribe` preserva o caminho direto; não existe bloqueio de comprador decidido.
+
+**HIPÓTESE 2 / DEPOIS DA ENTREGA:** uma conta autenticada, sem assinatura e com vídeo concluído recebe `Your result is the proof`, com motor e duração do resultado próprio. O CTA leva aos planos e o secundário volta a `/my-videos`. Título, id, prompt e URL do vídeo nunca entram na telemetria.
+
+**IMPLEMENTADO:** o commit funcional `b607a8ab6334dfa535bab6d23cb4eeed797290f6` adiciona a política pura `lib/growth/pricingJourneyProof.ts`, o componente `components/growth/PricingJourneyProof.tsx` e o caller em `/pricing`. Os estados são mutuamente exclusivos; assinatura ativa, checkout salvo, histórico indisponível ou inconsistente escondem o bloco. O checkout salvo continua tendo prioridade.
+
+**MEDIÇÃO / GATES:** versão `pricing_journey_proof_v1`. Antes da entrega, seguir por pessoa `viewed → creation_clicked → completed video → checkout_started → payment_success`, separando `subscribe_now_clicked`. Depois da entrega, seguir `viewed → plans_clicked → checkout_started → payment_success`, separando `review_clicked`. Preservar cada estado até cinco pessoas externas versionadas; clique, checkout ou vídeo não são receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRICING-JOURNEY-PROOF-2026-08-30.html` mostra antes/depois em desktop e mobile e foi inspecionado no Chrome conectado do fundador.
+
+**TESTADO LOCALMENTE:** jornada 43/43, checkout salvo 47/47 e orientação de pagamento 29/29. O typecheck repetiu somente os quatro erros baseline preexistentes; nenhum erro novo. O gate de whitespace ficou limpo. A revisão React confirmou requisições paralelas, abort no unmount, fail-closed e dedupe de impressão.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 BRT):** deploy Vercel `dpl_3bKYZsFVWhJuu7nDWiLRTskkWQc6` chegou a `READY`, target production, SHA exato `b607a8ab`, aliasado em `www.usekineo.com`. `/pricing` abriu no Chrome com `#plans`, sem console error. A conta/sessão usada no smoke não era elegível ao bloco personalizado, que permaneceu escondido como a política manda. A Vercel registrou zero runtime error/fatal no deployment na janela consultada.
+
+**HONESTIDADE COMERCIAL:** a entrega altera qualificação e valor percebido, ainda não assinatura. Não declarar lift antes da primeira amostra externa versionada. O diagnóstico não prova que toda saída do checkout é preço; prova que muitos compradores recentes chegaram ao Stripe antes da prova do produto.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
