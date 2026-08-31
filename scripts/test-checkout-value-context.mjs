@@ -111,7 +111,10 @@ const route = read('app/api/stripe/checkout/route.ts')
 check(route.includes("import { buildCheckoutValueContext } from '@/lib/growth/checkoutValueContext'"), 'live route imports the executable policy')
 check(route.includes('const checkoutValueContext = buildCheckoutValueContext({'), 'live route executes the policy')
 check(route.includes(': checkoutValueContext.lineItemDescription ?? plan.description'), 'campaign description reaches the Stripe line item')
-check(route.includes('message: checkoutValueContext.submitMessage'), 'settlement copy reaches Stripe custom text')
+// Autopilot now owns a distinct factual setup handoff. The original assertion
+// required the generic value-context message to be the only possible text;
+// verify instead that it remains the fallback for every unaffected checkout.
+check(route.includes('autopilotCheckoutGuidance?.submitMessage ?? checkoutValueContext.submitMessage'), 'settlement copy remains the fallback behind Autopilot guidance')
 check((route.match(/checkout_value_context: checkoutValueContext\.version/g) ?? []).length >= 3, 'version reaches event, Session and Subscription metadata')
 check(route.includes('checkout_value_variant: checkoutValueContext.variant'), 'variant is attributable')
 check(route.includes('line_items: sessionParams.line_items'), 'idempotency signature covers displayed product copy')
