@@ -190,6 +190,27 @@ export default function StudioClient() {
       .catch(() => {})
   }, [])
 
+  // KINEO-SPRINT-V1V4-2026-08-31 (#8) — EXPOSICAO ANTES DE TAXA. A licao da
+  // rodada #7: o produto tinha seis saidas para o 2o video e nenhuma sabia
+  // quantas pessoas a viam, entao ninguem podia comparar. Aqui a fileira de
+  // miniaturas grava, uma vez por carga, quantas pessoas a VIRAM e em que
+  // ambiente — assim `series_continue_clicked` com source='studio_video_tile'
+  // vira taxa por pessoa exposta, e nao numero solto.
+  // Sai daqui so booleano e numero de ambiente; nenhum dado da pessoa viaja.
+  const tilesShownRef = useRef(false)
+  useEffect(() => {
+    if (tilesShownRef.current || myVids.length === 0) return
+    tilesShownRef.current = true
+    const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(hover: none)').matches
+      : false
+    void trackEvent('studio_tiles_shown', {
+      videos: myVids.length,
+      is_touch: coarse,
+      viewport_w: typeof window !== 'undefined' ? window.innerWidth : null,
+    })
+  }, [myVids.length])
+
   // KINEO-STUDIO-ENTRADA-2026-08-17 — o Studio virou a porta principal (menus
   // do topo apontam pra ca): le ?engine= e ?prompt= da URL pra chegada dos
   // cards do hero/bento/mega-menu ja cair com o motor certo selecionado.
@@ -642,21 +663,52 @@ export default function StudioClient() {
                 <a href="/history">See all →</a>
               </div>
               <div className="vrow">
-                {myVids.map((v) => (
-                  <a key={v.id} className="vtile" href={(v.enhanced_url ?? v.video_url) ?? '#'} target="_blank" rel="noreferrer" style={{ position: 'relative' }}>
-                    {v.enhanced_url && <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.18)', border: '1px solid rgba(52,211,153,0.5)', color: '#34d399' }}>✨ HD</span>}
-                    <video
-                      src={`${v.enhanced_url ?? v.video_url}#t=0.1`}
-                      poster={v.thumbnail_url ?? undefined}
-                      muted
-                      loop
-                      playsInline
-                      preload="metadata"
-                      onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
-                      onMouseLeave={(e) => { e.currentTarget.pause() }}
-                    />
+                {myVids.map((v, idx) => (
+                  <div key={v.id} className="vtile">
+                    <a
+                      className="vtwatch"
+                      href={(v.enhanced_url ?? v.video_url) ?? '#'}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={v.title ? `Watch ${v.title}` : 'Watch this Short'}
+                      onClick={() => {
+                        void trackEvent('studio_tile_watch_clicked', {
+                          video_id: v.id,
+                          position: idx,
+                          completed_video_count: myVids.length,
+                        })
+                      }}
+                    >
+                      {v.enhanced_url && <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 99, background: 'rgba(52,211,153,0.18)', border: '1px solid rgba(52,211,153,0.5)', color: '#34d399' }}>✨ HD</span>}
+                      <video
+                        src={`${v.enhanced_url ?? v.video_url}#t=0.1`}
+                        poster={v.thumbnail_url ?? undefined}
+                        muted
+                        loop
+                        playsInline
+                        preload="metadata"
+                        onMouseEnter={(e) => e.currentTarget.play().catch(() => {})}
+                        onMouseLeave={(e) => { e.currentTarget.pause() }}
+                      />
+                      <span className="vtplay" aria-hidden="true">▶</span>
+                    </a>
                     {v.title && <span className="vt">{v.title}</span>}
-                  </a>
+                    <a
+                      className="vtnext"
+                      href={buildSeriesContinuationHref(v.title, 'studio_video_tile')}
+                      onClick={() => {
+                        void trackEvent('series_continue_clicked', {
+                          source: 'studio_video_tile',
+                          video_id: v.id,
+                          position: idx,
+                          completed_video_count: myVids.length,
+                          has_title: Boolean(v.title),
+                        })
+                      }}
+                    >
+                      Episode 2 →
+                    </a>
+                  </div>
                 ))}
               </div>
             </div>

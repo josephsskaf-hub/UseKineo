@@ -29,6 +29,15 @@ export type SeriesContinuationSource =
   // Videos") mandavam a pessoa EMBORA da tela de criar. O `title` do video ja
   // viajava no probe /api/compose/active e era usado so como enfeite.
   | 'returning_ready_banner'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#8) — as miniaturas "Your latest videos" do
+  // /studio. Medido no banco: das 59 pessoas externas com EXATAMENTE 1 video
+  // em 7 dias, 59 passam por /studio/create e 35 passam por /studio — a
+  // segunda maior superficie do cohort-alvo. Ate hoje cada miniatura era um
+  // <a> unico para o MP4 cru em outra aba: beco sem saida, e a unica
+  // afordancia era um :hover que nao existe em telefone. Agora cada video do
+  // acervo carrega o PROPRIO tema para o episodio seguinte — nao so o mais
+  // recente, como faz o marco (studio_milestone).
+  | 'studio_video_tile'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')

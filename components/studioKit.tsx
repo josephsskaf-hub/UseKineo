@@ -128,7 +128,19 @@ export const STUDIO_KIT_CSS = `
 .stu .vtile{position:relative;aspect-ratio:9/16;border-radius:13px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#101014;display:block;transition:all .16s ease}
 .stu .vtile:hover{transform:translateY(-2px);border-color:rgba(41,151,255,.6);box-shadow:0 10px 30px rgba(41,151,255,.18)}
 .stu .vtile video,.stu .vtile img{width:100%;height:100%;object-fit:cover;display:block}
-.stu .vtile .vt{position:absolute;left:0;right:0;bottom:0;padding:18px 9px 8px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stu .vtile .vt{position:absolute;left:0;right:0;bottom:34px;z-index:2;padding:18px 9px 6px;font-size:10.5px;line-height:1.3;color:rgba(255,255,255,.85);background:linear-gradient(transparent,rgba(0,0,0,.85));white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+/* KINEO-SPRINT-V1V4-2026-08-31 (#8) — a miniatura deixa de ser UM link para o
+   MP4 e passa a ter duas acoes com rotulo permanente. .vtwatch cobre a midia
+   (assistir, o que ja existia); .vtnext e a barra fixa embaixo que leva ao
+   proximo episodio DAQUELE tema. Nada aqui depende de :hover — no telefone o
+   antigo unico sinal de clique (a borda que acendia no hover) simplesmente
+   nao existia. ATENCAO: este bloco vive DENTRO de um template literal; crase
+   aqui encerra a string e quebra o build (foi exatamente o que aconteceu). */
+.stu .vtile .vtwatch{position:absolute;inset:0;z-index:1;display:block;-webkit-tap-highlight-color:rgba(41,151,255,.2)}
+.stu .vtile .vtplay{position:absolute;top:6px;left:6px;z-index:2;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.28);color:#fff;font-size:9px;pointer-events:none}
+.stu .vtile .vtnext{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:center;justify-content:center;gap:4px;padding:8px 6px;font-size:10.5px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:#bfe0ff;background:rgba(41,151,255,.22);border-top:1px solid rgba(41,151,255,.55);font-family:var(--font-display),var(--font-inter),sans-serif;-webkit-tap-highlight-color:rgba(41,151,255,.35);transition:background .16s ease,color .16s ease}
+.stu .vtile .vtnext:hover,.stu .vtile .vtnext:focus-visible{background:rgba(41,151,255,.42);color:#fff;outline:none}
+.stu .vtile .vtnext:active{background:rgba(41,151,255,.55);color:#fff}
 `
 
 export function StudioShell({
