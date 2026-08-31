@@ -13,6 +13,7 @@
 // é (não é um gerador de clipes soltos — é um pipeline de Shorts prontos);
 // zero FUD além do fato público do desligamento.
 import type { Metadata } from 'next'
+import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
 
 export const dynamic = 'force-static'
 
@@ -125,15 +126,35 @@ export default function SoraAlternativePage() {
         <p style={{ color: '#f5f5f7', fontWeight: 800, fontSize: 16, margin: '0 0 6px' }}>
           Test the migration path in the next 5 minutes
         </p>
-        <p style={{ color: '#86868b', fontSize: 13, margin: '0 0 14px' }}>
-          Type one idea, get a finished vertical Short — free tier, no card required.
+        <p style={{ color: '#86868b', fontSize: 13, margin: 0 }}>
+          Bring one idea with you. It stays attached through signup and arrives editable before anything renders.
         </p>
-        <a
-          href={`${BASE}/free?utm_source=sora_alternative&utm_medium=cta_band`}
-          style={{ display: 'inline-block', background: '#2997ff', color: '#fff', fontWeight: 900, fontSize: 14, padding: '12px 26px', borderRadius: 10, textDecoration: 'none' }}
-        >
-          Generate one free →
-        </a>
+        <div style={{ textAlign: 'left' }}>
+          <TopicGeneratorForm
+            campaign="sora_migration_topic_v1"
+            source="sora_alternative"
+            placement="migration_decision"
+            analyticsVariant="sora_migration_topic_v1"
+            formId="sora-migration-topic"
+            scriptMode="ai"
+            duration={35}
+            creationIntent="trial_best"
+            preserveHandoffForSignedIn
+            marginTop={14}
+            examples={[
+              'The abandoned place nature is taking back',
+              'The invention that disappeared before its time',
+              'The mystery hidden under an ordinary city',
+            ]}
+            copy={{
+              label: 'What should your first post-Sora Short be about?',
+              placeholder: 'Type one idea, story or visual concept',
+              submit: 'Carry this idea into Kineo →',
+              examplesLabel: 'Try a cinematic story direction',
+              note: 'Your first test uses the current 35-second trial-best path. You review the script and setup before any render begins.',
+            }}
+          />
+        </div>
       </div>
 
       <h2 style={{ fontSize: 22, fontWeight: 900, margin: '28px 0 10px' }}>Why trust this page?</h2>
