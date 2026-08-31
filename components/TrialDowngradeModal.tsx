@@ -40,13 +40,18 @@ import { trackEvent } from '@/lib/analytics'
 import { useCheckoutLaunch } from '@/lib/checkoutTelemetry'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import { FREE_FAST_PREVIEW_LIMIT } from '@/lib/freeFastQuota'
+import {
+  TRIAL_DOWNGRADE_CHOICE_VERSION,
+  TRIAL_DOWNGRADE_PLAN_CHOICES,
+  trialDowngradeChoiceMetadata,
+  type TrialDowngradeChoice,
+} from '@/lib/growth/trialDowngradeChoice'
 // Import de TIPO apenas (apagado no build — nenhum código de servidor viaja).
 // O tipo vem da MESMA definição que o servidor serializa: renomear um campo lá
 // passa a quebrar o build aqui, em vez de fazer o modal sumir em silêncio numa
 // tela que pede dinheiro.
 import type { TrialUiState } from '@/lib/reverseTrial'
 import {
-  CURRENCY_DISPLAY,
   INTRO_CREDITS,
   TIER_CREDITS,
   coercePriceRegion,
@@ -96,7 +101,9 @@ const MAX_ADIAMENTOS = 3
 //     sempre; se a impressão vivesse só por sessão, o numerador e o denominador
 //     teriam cardinalidades diferentes e a razão entre eles não seria taxa de
 //     nada. Impressão e desfecho contam a mesma unidade: uma por conta.
-const SHOWN_PREFIX = 'kineo_trial_downgrade_shown_v1'
+// A nova escolha precisa de denominador próprio: quem viu o CTA único antigo
+// ainda deve registrar uma impressão versionada desta variante.
+const SHOWN_PREFIX = 'kineo_trial_downgrade_shown_choice_v1'
 
 const SEEDANCE_COST = creditsPerReferenceVideo('cinematic_ai')
 
@@ -107,11 +114,17 @@ interface CreditsPayload {
   credits?: number
 }
 
+interface VideosPayload {
+  completedCount?: number | null
+  historyReliable?: boolean
+}
+
 export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
   const [open, setOpen] = useState(false)
   const [granted, setGranted] = useState(0)
   const [used, setUsed] = useState(0)
   const [creditsNow, setCreditsNow] = useState<number | null>(null)
+  const [completedCount, setCompletedCount] = useState<number | null>(null)
   // Conhecidas ANTES do fetch (vêm do servidor como prop), que é o que permite
   // o short-circuit por localStorage e evita uma chamada a /api/credits por
   // navegação para quem já dispensou.
@@ -193,6 +206,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         }
         if (!alreadyCounted) {
           void trackEvent('trial_downgrade_modal_shown', {
+            choice_version: TRIAL_DOWNGRADE_CHOICE_VERSION,
             credits_granted: trial.creditsGranted ?? null,
             credits_used: trial.creditsUsedForDisplay ?? null,
             credits_remaining: typeof data.credits === 'number' ? data.credits : null,
@@ -208,6 +222,37 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       cancelled = true
     }
   }, [dismissKey, shownKey])
+
+  // A escolha mede somente um bucket de entregas concluídas. A leitura é
+  // owner-scoped e não bloqueia o modal: se o histórico falhar, a telemetria
+  // declara `unknown` em vez de inferir pela quantidade de créditos.
+  useEffect(() => {
+    if (!open) return
+    setCompletedCount(null)
+    const controller = new AbortController()
+    void fetch('/api/videos', {
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) return null
+        return (await response.json()) as VideosPayload
+      })
+      .then((data) => {
+        if (
+          controller.signal.aborted ||
+          data?.historyReliable !== true ||
+          !Number.isInteger(data.completedCount) ||
+          (data.completedCount ?? -1) < 0
+        ) return
+        setCompletedCount(data.completedCount as number)
+      })
+      .catch(() => {
+        // Medição auxiliar nunca esconde uma oferta elegível.
+      })
+    return () => controller.abort()
+  }, [open])
 
   // ── Moeda ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -257,6 +302,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       // "clicou fora pela 3ª vez", que é exatamente a distinção que esta
       // mudança criou e que precisa ser medida para valer alguma coisa.
       void trackEvent('trial_downgrade_modal_dismissed', {
+        choice_version: TRIAL_DOWNGRADE_CHOICE_VERSION,
         how,
         intentional: intencional,
         deferral: intencional ? null : adiamento,
@@ -294,21 +340,48 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
 
   if (!open) return null
 
-  const introEligible = currency !== null && hasIntroOffer('basic', currency, region)
-  const fullPrice = currency !== null ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region)) : null
-  const introPrice =
-    currency !== null && introEligible
-      ? formatCheckoutMoney(currency, getIntroPrice('basic', currency, region))
-      : null
-  const firstMonthCredits = introEligible ? INTRO_CREDITS.basic : TIER_CREDITS.basic
-  // Vídeos AI que a concessão do trial realmente comprava. Derivado, nunca
-  // redigitado: no dia em que o custo do motor mudar, esta frase acompanha.
-  const trialVideos = SEEDANCE_COST > 0 ? Math.floor(granted / SEEDANCE_COST) : 0
-  // Filmes de IA que a mensalidade do Creator compra. Mesma derivação do
-  // `trialVideos` acima — uma só fonte para "quantos vídeos isto dá".
-  const filmesPorMes = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
+  const starterIntroEligible = currency !== null && hasIntroOffer('starter', currency, region)
+  const creatorIntroEligible = currency !== null && hasIntroOffer('basic', currency, region)
+  const starterFullPrice = currency !== null
+    ? formatCheckoutMoney(currency, getTierPrice('starter', currency, region))
+    : null
+  const creatorFullPrice = currency !== null
+    ? formatCheckoutMoney(currency, getTierPrice('basic', currency, region))
+    : null
+  const starterIntroPrice = currency !== null && starterIntroEligible
+    ? formatCheckoutMoney(currency, getIntroPrice('starter', currency, region))
+    : null
+  const creatorIntroPrice = currency !== null && creatorIntroEligible
+    ? formatCheckoutMoney(currency, getIntroPrice('basic', currency, region))
+    : null
+  // Filmes de IA que cada mensalidade compra. Mesma régua do trial acima.
+  const starterFilms = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.starter / SEEDANCE_COST) : 0
+  const creatorFilms = SEEDANCE_COST > 0 ? Math.floor(TIER_CREDITS.basic / SEEDANCE_COST) : 0
+
+  function recordChoice(choice: TrialDowngradeChoice) {
+    const metadata = trialDowngradeChoiceMetadata({
+      choice,
+      completedCount,
+      creditsUsed: used,
+    })
+    if (metadata) void trackEvent('trial_downgrade_choice_clicked', metadata)
+  }
+
+  function goToStarter() {
+    recordChoice('starter')
+    checkout.launch(
+      'starter',
+      `/api/stripe/checkout?tier=starter&intro=1&intent_campaign=${TRIAL_DOWNGRADE_CHOICE_VERSION}`,
+      {
+        tier: 'starter',
+        pricing_surface: 'trial_downgrade_modal',
+        intent_campaign: TRIAL_DOWNGRADE_CHOICE_VERSION,
+      },
+    )
+  }
 
   function goToCreator() {
+    recordChoice('creator')
     // O evento sai ANTES da navegação — depois do redirect do Stripe não existe
     // mais página para emitir nada.
     void trackEvent('trial_downgrade_modal_cta', {
@@ -316,17 +389,23 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
       display_currency: currency ?? 'resolving',
       price_region: region,
       displayed_price_minor: currency ? getTierPrice('basic', currency, region) : null,
-      displayed_intro_price_minor: currency && introEligible ? getIntroPrice('basic', currency, region) : null,
+      displayed_intro_price_minor: currency && creatorIntroEligible ? getIntroPrice('basic', currency, region) : null,
       credits_granted: granted,
       credits_used: used,
+      choice_version: TRIAL_DOWNGRADE_CHOICE_VERSION,
     })
     // `intro=1` é o mesmo link de TODAS as outras superfícies de Creator do
     // app. Omiti-lo faria esta tela ser a única a cobrar mais caro que as
     // outras pelo mesmo plano. Quem valida elegibilidade é o servidor.
-    checkout.launch('basic', '/api/stripe/checkout?tier=basic&intro=1', {
-      tier: 'basic',
-      pricing_surface: 'trial_downgrade_modal',
-    })
+    checkout.launch(
+      'basic',
+      `/api/stripe/checkout?tier=basic&intro=1&intent_campaign=${TRIAL_DOWNGRADE_CHOICE_VERSION}`,
+      {
+        tier: 'basic',
+        pricing_surface: 'trial_downgrade_modal',
+        intent_campaign: TRIAL_DOWNGRADE_CHOICE_VERSION,
+      },
+    )
   }
 
   return (
@@ -418,110 +497,107 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
           {granted > 0
             ? `You used ${used} of the ${granted} trial credits. `
             : ''}
-          Creator brings back everything the trial unlocked — every month, not just once.
+          Choose the monthly pace that fits what you want to make next.
           {' '}<FreeTierCopy legacy={`Free plan: ${FREE_FAST_PREVIEW_LIMIT} Fast previews every 24h.`} on="The free plan keeps 1 Fast video per month." />
         </p>
 
-        {/* Grid de números — todos DERIVADOS (TIER_CREDITS × creditCostFor),
-            nunca redigitados: a lição das três frases falsas da v1. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginBottom: 16 }}>
-          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{TIER_CREDITS.basic} cr/mo</div>
-            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>≈ {filmesPorMes} AI films every month</div>
-          </div>
-          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>
-              {currency !== null && filmesPorMes > 0
-                ? formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))
-                : '—'}
-            </div>
-            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>per finished film (editors: $30+)</div>
-          </div>
-          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>No mark</div>
-            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>clean downloads, truly yours</div>
-          </div>
-          <div style={{ background: '#1d1d1f', border: '1px solid #2a2a2d', borderRadius: 8, padding: '12px 13px' }}>
-            <div style={{ fontSize: 20, fontWeight: 800 }}>{trialVideos > 0 ? `${trialVideos}×` : 'AI'}</div>
-            <div style={{ fontSize: 10.5, color: '#86868b', marginTop: 3, lineHeight: 1.45 }}>{trialVideos > 0 ? 'what your whole trial bought — now monthly' : 'engines back on, every month'}</div>
-          </div>
+        {/* KINEO-TRIAL-DOWNGRADE-CHOICE-V1 — a versão anterior prescrevia
+            Creator para toda pessoa rebaixada. Agora os dois planos existentes
+            são escolhas explícitas, com preço e créditos sempre canônicos. */}
+        <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: '#d7d7dc' }}>
+          Choose your pace
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2" style={{ gap: 8, marginBottom: 10 }}>
+          <button
+            type="button"
+            onClick={goToStarter}
+            disabled={checkout.pending !== null || currency === null}
+            style={{
+              minHeight: 132,
+              padding: '13px 13px 12px',
+              borderRadius: 12,
+              border: '1px solid #34343a',
+              background: '#1b1b1f',
+              color: '#f5f5f7',
+              textAlign: 'left',
+              cursor: checkout.pending !== null || currency === null ? 'wait' : 'pointer',
+              opacity: checkout.pending !== null && checkout.pending !== 'starter' ? 0.55 : 1,
+            }}
+          >
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 900 }}>
+              {TRIAL_DOWNGRADE_PLAN_CHOICES.starter.label}
+            </span>
+            <span style={{ display: 'block', marginTop: 3, fontSize: 10.5, color: '#8f8f96' }}>
+              {TRIAL_DOWNGRADE_PLAN_CHOICES.starter.pace}
+            </span>
+            <span style={{ display: 'block', marginTop: 10, fontSize: 17, fontWeight: 900, color: '#8ec5ff' }}>
+              {starterIntroEligible && starterIntroPrice
+                ? `${starterIntroPrice} first month`
+                : starterFullPrice
+                  ? `${starterFullPrice}/month`
+                  : 'Resolving price…'}
+            </span>
+            <span style={{ display: 'block', marginTop: 4, fontSize: 11, lineHeight: 1.45, color: '#b2b2b8' }}>
+              {starterIntroEligible ? INTRO_CREDITS.starter : TIER_CREDITS.starter} credits
+              {starterFilms > 0 ? ` · ≈ ${starterFilms} AI film${starterFilms === 1 ? '' : 's'}` : ''}
+            </span>
+            <span style={{ display: 'block', marginTop: 8, fontSize: 11.5, fontWeight: 800, color: '#f5f5f7' }}>
+              {checkout.pending === 'starter' ? 'Opening checkout…' : 'Choose Starter →'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={goToCreator}
+            disabled={checkout.pending !== null || currency === null}
+            style={{
+              minHeight: 132,
+              padding: '13px 13px 12px',
+              borderRadius: 12,
+              border: '1px solid rgba(41,151,255,.52)',
+              background: 'linear-gradient(135deg, rgba(41,151,255,.17), rgba(41,151,255,.05))',
+              color: '#f5f5f7',
+              textAlign: 'left',
+              cursor: checkout.pending !== null || currency === null ? 'wait' : 'pointer',
+              opacity: checkout.pending !== null && checkout.pending !== 'basic' ? 0.55 : 1,
+            }}
+          >
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 900 }}>
+              {TRIAL_DOWNGRADE_PLAN_CHOICES.creator.label}
+            </span>
+            <span style={{ display: 'block', marginTop: 3, fontSize: 10.5, color: '#9ccfff' }}>
+              {TRIAL_DOWNGRADE_PLAN_CHOICES.creator.pace}
+            </span>
+            <span style={{ display: 'block', marginTop: 10, fontSize: 17, fontWeight: 900, color: '#8ec5ff' }}>
+              {creatorIntroEligible && creatorIntroPrice
+                ? `${creatorIntroPrice} first month`
+                : creatorFullPrice
+                  ? `${creatorFullPrice}/month`
+                  : 'Resolving price…'}
+            </span>
+            <span style={{ display: 'block', marginTop: 4, fontSize: 11, lineHeight: 1.45, color: '#c3c3ca' }}>
+              {creatorIntroEligible ? INTRO_CREDITS.basic : TIER_CREDITS.basic} credits
+              {creatorFilms > 0 ? ` · ≈ ${creatorFilms} AI films` : ''}
+            </span>
+            <span style={{ display: 'block', marginTop: 8, fontSize: 11.5, fontWeight: 800, color: '#fff' }}>
+              {checkout.pending === 'basic' ? 'Opening checkout…' : 'Continue on Creator →'}
+            </span>
+          </button>
         </div>
 
-        <div
-          style={{
-            background: 'linear-gradient(90deg, rgba(41,151,255,0.16), rgba(41,151,255,0.05))',
-            border: '1px solid rgba(41,151,255,0.45)',
-            borderRadius: 12,
-            padding: '14px 14px 16px',
-            marginBottom: 14,
-          }}
+        <a
+          href={`/pricing?intent_campaign=${TRIAL_DOWNGRADE_CHOICE_VERSION}#plans`}
+          onClick={() => recordChoice('compare')}
+          style={{ display: 'block', margin: '0 0 14px', color: '#9ccfff', fontSize: 12, fontWeight: 800, textAlign: 'center', textDecoration: 'underline', textUnderlineOffset: 4 }}
         >
-          <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 800 }}>Continue on Creator</p>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: '#86868b' }}>
-            {currency === null || fullPrice === null ? (
-              // AFIRMAÇÃO SOBRE PREÇO NUNCA SAI INCONDICIONALMENTE: enquanto a
-              // moeda não resolveu, não há número na tela.
-              <span aria-hidden="true">&nbsp;</span>
-            ) : introEligible && introPrice ? (
-              <>
-                <strong style={{ color: '#f5f5f7' }}>{introPrice}</strong> your first month, then {fullPrice}/month
-                {' · '}
-                {firstMonthCredits} credits now, {TIER_CREDITS.basic}/month after
-                {' · '}
-                {CURRENCY_DISPLAY[currency].label}
-              </>
-            ) : (
-              <>
-                <strong style={{ color: '#f5f5f7' }}>{fullPrice}</strong>/month
-                {' · '}
-                {TIER_CREDITS.basic} credits every month
-                {' · '}
-                {CURRENCY_DISPLAY[currency].label}
-              </>
-            )}
-          </p>
-          {/* ⚠️ KINEO-ANCORA-POR-VIDEO-2026-08-21 — "$15/mês por 90 créditos"
-              exige que a pessoa faça DUAS divisões de cabeça para saber o que
-              está comprando, e ninguém faz conta na tela que pede cartão. Esta
-              linha faz a conta por ela, na unidade em que ela pensa: FILME.
-              O número é DERIVADO de TIER_CREDITS × creditCostFor — no dia em
-              que o custo do motor mudar, a frase acompanha sozinha, que é
-              exatamente o que não aconteceu com a copy do "first month" que
-              sobreviveu meses ao fim do desconto. */}
-          {currency !== null && filmesPorMes > 0 && (
-            <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.5, color: '#8ec5ff' }}>
-              ≈ {formatCheckoutMoney(currency, Math.round(getTierPrice('basic', currency, region) / filmesPorMes))} per AI film
-              {' · '}
-              {filmesPorMes} AI films a month
-            </p>
-          )}
-        </div>
+          Compare all plans →
+        </a>
 
         {checkout.error && (
           <p role="alert" style={{ margin: '0 0 12px', fontSize: 13, color: '#ff8f8f' }}>
             {checkout.error}
           </p>
         )}
-
-        <button
-          type="button"
-          onClick={goToCreator}
-          disabled={checkout.pending !== null}
-          style={{
-            width: '100%',
-            padding: '13px 16px',
-            borderRadius: 12,
-            border: 'none',
-            background: '#2997ff',
-            color: '#fff',
-            fontSize: 15,
-            fontWeight: 800,
-            cursor: checkout.pending !== null ? 'wait' : 'pointer',
-            opacity: checkout.pending !== null ? 0.6 : 1,
-          }}
-        >
-          {checkout.pending !== null ? 'Opening checkout…' : 'Continue on Creator'}
-        </button>
 
         {/* PEDIR SEM DEVOLVER É O DEFEITO: a tela que recusa algo devolve o
             caminho para o que a pessoa AINDA TEM. Sem este botão as únicas
@@ -532,7 +608,7 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
           onClick={() => dismiss('stay_free')}
           style={{
             width: '100%',
-            marginTop: 10,
+            marginTop: 0,
             padding: '11px 16px',
             borderRadius: 12,
             border: '1px solid #2a2a2d',
