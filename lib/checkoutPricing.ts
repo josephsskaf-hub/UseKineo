@@ -612,6 +612,17 @@ export const CURRENCY_DISPLAY: Record<CheckoutCurrency, {
   usd: { locale: 'en-US', currencyCode: 'USD', label: 'USD' },
 }
 
+// KINEO-USD-CURRENCY-TRUTH-2026-08-31 — one commercial sentence for every
+// public surface. The product has been USD-only since 19/08, but five sales
+// surfaces and one SEO calculator still promised a local-currency switch that
+// does not exist. Keeping the wording beside the actual currency allowlist
+// makes another split-brain claim harder to introduce.
+export const CHECKOUT_CURRENCY_TRUTH_VERSION = 'usd_only_currency_truth_v1' as const
+export const CHECKOUT_CURRENCY_TRUTH =
+  `Prices are charged in ${CURRENCY_DISPLAY.usd.label} worldwide. Your bank may convert the amount and apply its usual exchange fees.` as const
+export const CHECKOUT_CURRENCY_LOADING =
+  `Loading the ${CURRENCY_DISPLAY.usd.label} price…` as const
+
 export function resolveCheckoutCurrency(_country: string | null | undefined): CheckoutCurrency {
   return 'usd'
 }

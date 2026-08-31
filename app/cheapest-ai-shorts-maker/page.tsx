@@ -1,7 +1,7 @@
 // KINEO-REBASE-2026-07-10 — 2:1 credit rebase: every "50 credits" → 20 (Seedance).
 // ROBO2-SEO-2026-06-28 — high-intent SEO page for the "cheapest AI shorts maker"
 // buyer cluster (cheapest AI YouTube Shorts generator / affordable faceless shorts AI /
-// make AI YouTube Shorts cheap). Honest angle: a local-currency calculator uses
+// make AI YouTube Shorts cheap). Honest angle: a USD calculator uses
 // the real plan credits and prices; Fast is 1 credit, Seedance 20, Kling 50;
 // visitors can test Fast without a card. Generates from a topic, not a re-clipper.
 // Static page; added to sitemap. FAQ JSON-LD for rich results.
@@ -16,6 +16,7 @@ import ShortCostCalculator from './ShortCostCalculator'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
 import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
+import { CHECKOUT_CURRENCY_TRUTH } from '@/lib/checkoutPricing'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -34,12 +35,12 @@ const CALCULATOR_EXAMPLES = [
 export const metadata: Metadata = {
   title: ft(OFFER, 'Affordable AI Shorts Maker — 3 Fast Videos Every 24h | Kineo', 'Affordable AI Shorts Maker — Start With a Free Creator Trial | Kineo'),
   description:
-    'Calculate the local cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.',
+    'Calculate the USD cost per AI Short by visual engine and monthly volume. Then build a complete faceless video from one idea and test Fast Mode free.',
   alternates: { canonical: 'https://www.usekineo.com/cheapest-ai-shorts-maker' },
   openGraph: {
     title: 'Cheapest AI Shorts Maker — make AI YouTube Shorts cheap',
     description:
-      'Calculate your local cost per Short, compare Fast, Seedance and Kling, then test a complete faceless video from one idea free.',
+      'Calculate your USD cost per Short, compare Fast, Seedance and Kling, then test a complete faceless video from one idea free.',
     url: 'https://www.usekineo.com/cheapest-ai-shorts-maker',
     type: 'website',
   },
@@ -59,7 +60,7 @@ const WHY_CHEAPER: { t: string; d: string }[] = [
 ]
 
 const FAQ: { q: string; a: string }[] = [
-  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current local subscription prices.` },
+  { q: 'What is the cheapest AI shorts maker?', a: `The answer depends on visual engine and monthly volume. For a 60-second Short, Kineo Fast Mode uses ${FAST_CREDITS} credits, while AI Generated uses ${SEEDANCE_CREDITS} and Cinematic uses ${KLING_CREDITS}. ${ft(OFFER, 'A new account can test up to 3 watermarked Fast videos every 24 hours without a card;', OFFER.copy.sentence + ' Also,')} the calculator on this page uses the current subscription prices. ${CHECKOUT_CURRENCY_TRUTH}` },
   { q: 'How do I make AI YouTube Shorts cheap?', a: 'Type a single idea, choose Fast Mode for the lowest-cost workflow, and download a finished 9:16 Short with script, AI voiceover, matched footage and captions, usually in 3–7 minutes. No camera and no editing app to pay for separately.' },
   { q: 'Is there an affordable faceless shorts AI that builds the video from just a topic?', a: 'Yes. Kineo generates the entire video from one topic — it writes the script, records the AI voiceover, matches footage to each line and adds captions. It’s made for faceless creators who start with nothing but an idea, so you never film anything.' },
   { q: 'Why is the cheapest AI YouTube Shorts generator not just a clip cutter?', a: 'Clip cutters like OpusClip or Submagic re-clip a long video you already filmed — useless if you’re faceless and starting from scratch. Kineo creates the video from an idea, so the low price gets you a finished Short, not chopped-up footage.' },
@@ -87,14 +88,14 @@ export default function CheapestAiShortsMakerPage() {
           The Cheapest AI Shorts Maker That Builds the Whole Video
         </h1>
         <p style={{ fontSize: '1.08rem', color: '#86868b', lineHeight: 1.6, margin: '16px 0 0' }}>
-          Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. {ft(OFFER, 'Try up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} The calculator below shows the local first-month and renewal price. No camera, no editing, no timeline.
+          Kineo is an affordable, faceless AI YouTube Shorts generator that turns a single idea into a finished Short — the hook and script, an AI voiceover, footage matched to every line, and captions. {ft(OFFER, 'Try up to 3 watermarked Fast videos every 24 hours with no card.', OFFER.copy.headline)} The calculator below shows the USD first-month and renewal price. No camera, no editing, no timeline.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '26px 0 0' }}>
           <OrganicCtaLink href={signupUrl} source="push22_cheapest" placement="hero" style={{ background: '#f5f5f7', color: '#000', fontWeight: 800, padding: '14px 26px', borderRadius: 980, textDecoration: 'none' }}>{ft(OFFER, 'Make a Fast video free →', OFFER.copy.ctaPrimary)}</OrganicCtaLink>
           <Link href="/pricing" style={{ border: '1px solid #48484a', color: '#f5f5f7', fontWeight: 700, padding: '14px 22px', borderRadius: 980, textDecoration: 'none' }}>See pricing</Link>
         </div>
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 700, margin: '12px 0 0' }}>
-          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · Local prices matched to Checkout
+          {ft(OFFER, 'Up to 3 watermarked Fast videos / 24h', OFFER.copy.chip)} · Charged in USD worldwide
         </p>
 
         <ShortCostCalculator />

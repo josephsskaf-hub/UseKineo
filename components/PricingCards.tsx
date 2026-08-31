@@ -6,13 +6,10 @@
 // experience (current credits, FAQ, billing portal) — this is just the
 // in-flow nudge below the prompt textarea.
 //
-// Push #114 — CTAs now POST to /api/stripe/checkout instead of redirecting
-// to hardcoded buy.stripe.com payment links. The hosted links were USD-
-// only and Brazilian cards were getting rejected with "Seu cartão não
-// aceita essa moeda". Going through the API lets the server pick BRL via
-// x-vercel-ip-country (Push #112) and attach boleto for BR cohorts. The
-// component is only rendered for signed-in users (inside /generate), so a
-// 401 just means the session expired — we fall back to /login.
+// Push #114 — CTAs POST to /api/stripe/checkout instead of redirecting to
+// hardcoded hosted links. Historical BRL/boleto routing was removed by the
+// USD-only decision on 19/08; the server remains authoritative. The component
+// is rendered for signed-in users, so a 401 falls back to /login.
 
 import { useEffect, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
@@ -23,6 +20,9 @@ import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
+  CHECKOUT_CURRENCY_LOADING,
+  CHECKOUT_CURRENCY_TRUTH,
+  CHECKOUT_CURRENCY_TRUTH_VERSION,
   CURRENCY_DISPLAY,
   // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES/INTRO_PRICES não são mais
   // lidos direto: as tabelas não sabem a região do visitante. getTierPrice /
@@ -129,10 +129,9 @@ export default function PricingCards({
   // the one primary plan everywhere).
   const [selectedPlan, setSelectedPlan] = useState<'starter' | 'basic' | 'pro' | null>('basic')
 
-  // PUSH #74 — display the same server-selected currency the customer will
-  // see in Stripe. Checkout still resolves currency independently and never
-  // trusts the browser. Keeping this null until /api/geo responds prevents a
-  // misleading USD flash for Brazilian and Indian visitors.
+  // PUSH #74 — checkout still resolves currency independently and never
+  // trusts the browser. The only supported currency is USD; the geo request
+  // remains for the legacy region diagnostic, not to promise a currency swap.
   useEffect(() => {
     let cancelled = false
 
@@ -149,6 +148,7 @@ export default function PricingCards({
         void trackEvent('inline_pricing_currency_resolved', {
           display_currency: currency,
           currency_label: CURRENCY_DISPLAY[currency].label,
+          currency_truth_version: CHECKOUT_CURRENCY_TRUTH_VERSION,
           price_region: region,
           pricing_surface: 'generate_step_1',
         })
@@ -245,7 +245,7 @@ export default function PricingCards({
   }
 
   function introNoteFor(tier: 'starter' | 'basic'): string {
-    if (!displayCurrency) return 'Checking your local first-month price…'
+    if (!displayCurrency) return CHECKOUT_CURRENCY_LOADING
     const renewal = formatCheckoutMoney(displayCurrency, getTierPrice(tier, displayCurrency, displayRegion))
     // KINEO-REGIONAL-PRICING-2026-08-04 — na região `value` o Starter não tem
     // 1º mês com desconto: o preço de lista JÁ é o preço de entrada. Escrever
@@ -274,9 +274,7 @@ export default function PricingCards({
           Choose your plan
         </h2>
         <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-          {displayCurrency
-            ? `Prices shown in ${CURRENCY_DISPLAY[displayCurrency].label}. Stripe checkout uses the same currency.`
-            : 'Checking your local price…'}
+          {CHECKOUT_CURRENCY_TRUTH}
         </p>
       </div>
 
