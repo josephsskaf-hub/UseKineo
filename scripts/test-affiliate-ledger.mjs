@@ -206,7 +206,7 @@ equal((paymentPath.match(/await recordAffiliateCommission\(supabase/g) ?? []).le
 // the composed guard instead of freezing the former two-term source line.
 ok(webhookSource.includes('const shouldRetryAffiliateLedger = error instanceof RetryableAffiliateLedgerError'), 'affiliate failures are classified for retry')
 ok(webhookSource.includes('const shouldRetryCheckoutAnalytics = error instanceof RetryableCheckoutAnalyticsError'), 'analytics failures are classified for retry')
-ok(webhookSource.includes('shouldRetryEntitlement ||\n      shouldRetryAffiliateLedger ||\n      shouldRetryCheckoutAnalytics'), 'all retry causes enter the shared release path')
+ok(/shouldRetryEntitlement\s*\|\|\s*shouldRetryAffiliateLedger\s*\|\|\s*shouldRetryCheckoutAnalytics/.test(webhookSource), 'all retry causes enter the shared release path')
 ok(webhookSource.includes('if (shouldRetryWebhook && checkoutFulfillmentGuardAcquired'), 'affiliate failure releases pack guard')
 ok(webhookSource.includes('if (shouldRetryWebhook && dedupeRowAcquired && checkoutGuardReleased)'), 'affiliate failure releases Stripe event guard')
 ok(!webhookSource.includes("if (ref && ref.status !== 'paid')"), 'legacy paid-before-commission branch is gone')

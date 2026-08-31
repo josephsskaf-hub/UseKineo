@@ -2583,3 +2583,19 @@ PRÓXIMO DONO:
 **EVIDÊNCIA DE CONFIGURAÇÃO (Stripe Dashboard, leitura em 31/08/2026 UTC):** o destino de produção `https://www.usekineo.com/api/stripe/webhook` está inscrito em seis eventos: `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.deleted`, `customer.subscription.updated`, `invoice.payment_failed` e `invoice.payment_succeeded`. `payment_intent.payment_failed` e `charge.failed` não estão selecionados. Nenhum checkbox foi alterado e o destino não foi salvo.
 
 **DECISÃO DE CONTENÇÃO:** não habilitar os dois eventos enquanto a ingestão puder duplicar recusa, persistir mensagem/ID cru, perder falha de escrita e classificar a primeira cobrança como renovação. A próxima intervenção B2C deve criar uma falha canônica por PaymentIntent, enriquecimento separado e redigido de Charge, estágio `initial | renewal | unknown` baseado em `Invoice.billing_reason` e falha de persistência retryável. Só depois disso a configuração Stripe pode ser ampliada e medida por pessoa em janela terminal.
+
+## 93. B2C — a verdade canônica da recusa entra no release integrado (31/08/2026)
+
+**IMPLEMENTADO:** o commit integrado `298f9fac` incorpora a correção funcional de `522ece123a6671bc8ac1b479014f924fd8232ce1`. `payment_intent.payment_failed` é a única fonte canônica de `checkout_payment_failed`; `charge.failed` grava apenas `checkout_payment_failure_enriched`. Ambos se correlacionam pelo mesmo hash SHA-256 truncado do PaymentIntent, sem ID reversível.
+
+**CLASSIFICAÇÃO FINANCEIRA:** `Invoice.billing_reason=subscription_create` é compra inicial; `subscription_cycle` é renovação; qualquer lookup incompleto ou valor diferente é `unknown`. O código não usa mais presença de invoice como sinônimo de renovação. Falha do sink de analytics libera o guard e retorna erro para o Stripe tentar novamente, em vez de confirmar HTTP 200 e perder o evento.
+
+**PRIVACIDADE:** o payload novo aceita apenas categorias normalizadas de motivo, moeda, valor em unidade mínima, país, bandeira, funding, família do método, status de rede e risco. Mensagens livres do provedor, `seller_message` e IDs crus de event, PaymentIntent, Charge, Customer e Invoice não entram na telemetria.
+
+**TESTADO LOCALMENTE NA ÁRVORE INTEGRADA:** 14 suítes passaram com 871 verificações, incluindo o contrato novo, ledger de afiliados, retomada de checkout, pricing e Autopilot. A única asserção reescrita procurava LF literal; passou a verificar a ordem dos três motivos de retry independentemente de CRLF/LF. Typecheck repetiu exatamente os quatro erros baseline e nenhum novo; whitespace limpo.
+
+**CONFIGURAÇÃO AINDA CONTIDA:** o painel de produção continua nos seis eventos registrados na seção 92. Nenhum checkbox foi alterado. Depois deste release entrar em produção, adicionar `payment_intent.payment_failed` e `charge.failed` exige confirmação humana no momento do clique em `Salvar destino`; antes disso, o código antigo de produção ainda não satisfaz o contrato.
+
+**MÉTRICA / GATE:** medir pessoas externas em `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. Sessão aberta fica pendente; sessão expirada e não paga, sem falha inicial, é abandono silencioso; `stage=renewal` é churn involuntário e fica fora da conversão inicial. O dedupe de 24 horas é por PaymentIntent e não é uma promessa de exactly-once sem constraint única no banco.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, criação de sessão, entitlement, crédito, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou pagamento real.

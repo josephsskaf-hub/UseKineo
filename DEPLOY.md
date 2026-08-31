@@ -60,9 +60,13 @@ The webhook keeps your database in sync with Stripe subscription status.
    (Replace with your actual Vercel URL — you'll get this after Step 6)
 3. Select these events to listen for:
    - `checkout.session.completed`
+   - `checkout.session.expired`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
    - `invoice.payment_failed`
+   - `invoice.payment_succeeded`
+   - `payment_intent.payment_failed`
+   - `charge.failed`
 4. Click **Add endpoint**.
 5. On the webhook details page, reveal and copy the **Signing secret** (format: `whsec_...`).
 6. This is your `STRIPE_WEBHOOK_SECRET`.
