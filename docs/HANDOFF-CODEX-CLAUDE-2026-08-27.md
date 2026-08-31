@@ -2503,3 +2503,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 87. B2C — o plano prometido pelo resgate chega ao card certo (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / CONCLUSÃO PRIVADA:** o briefing reconciliado em 31/08 confirmou que a página de preços é uma superfície de intenção muito mais eficiente do que o convite pós-vídeo, enquanto as variantes recentes de pós-vídeo e prova própria ainda não atingiram o gate mínimo. As contagens e identificadores permanecem fora deste repositório público. A decisão foi preservar esses experimentos e trabalhar a continuidade dos compradores que já chegam decididos.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** sete links vivos de recuperação em `send-hotlead-blast`, `send-abandon-recovery` e `send-free-upsell` já nomeavam Starter ou Creator e carregavam `?tier=starter|basic`. `app/pricing/PricingClient.tsx` ignorava o parâmetro; a pessoa aterrissava numa comparação genérica e precisava encontrar novamente o plano que o CTA acabara de prometer.
+
+**HIPÓTESE CAUSAL NOVA:** preservar visualmente a escolha reduz uma segunda decisão no último metro, sem esconder alternativas, abrir checkout automaticamente, inventar desconto ou alterar preço.
+
+**IMPLEMENTADO:** `lib/growth/pricingTierHandoff.ts` aceita somente `starter | basic | pro`, sanitiza campanha e cria a atribuição `pricing_tier_handoff_v1`. `/pricing` traz o card solicitado para o centro somente quando nenhum hash específico tem precedência, mantém os três planos visíveis e marca o destino como `Your choice`. Autopilot, free e valores arbitrários falham fechados. Nenhum clique ou checkout é disparado automaticamente.
+
+**MEDIÇÃO / GATE:** `pricing_tier_intent_viewed` só é emitido depois de pelo menos 35% do card estar visível e tem dedupe por sessão, tier e campanha. Seguir por pessoa externa `pricing_tier_intent_viewed → checkout_cta_clicked → checkout_started → payment_success`, separando `requested_tier` e `intent_campaign`. Preservar até cinco pessoas externas versionadas; se houver exposição sem checkout, revisar continuidade/copy; se houver checkout sem pagamento, aguardar a instrumentação de recusa Stripe antes de atribuir a preço.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRICING-TIER-HANDOFF-V1-2026-08-31.html` contém antes/depois desktop e mobile. O caller real foi aberto no Chrome local com `tier=starter`: o card Starter chegou ao campo de visão, recebeu `Your choice`, os três planos permaneceram presentes e nenhum checkout foi iniciado. O teste local não gravou evento de produção com a campanha de preview.
+
+**TESTADO LOCALMENTE:** contrato específico 39/39, whitespace limpo e TypeScript com os mesmos quatro erros baseline preexistentes, nenhum nos arquivos desta entrega. O servidor local respondeu `/pricing` com 200; somente o download bloqueado das fontes do Google caiu para a fonte de fallback, sem erro da aplicação.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server/configuração, Supabase schema/dados, render, motor, cena, voz, legenda, e-mails ou lista de destinatários do Claude.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar. Não remover `?tier=` dos links de recuperação e não editar a experiência pós-vídeo, o lembrete salvo ou a prova própria antes dos respectivos gates. A configuração Stripe para `payment_intent.payment_failed` e `charge.failed` continua aguardando confirmação explícita do fundador.
