@@ -1071,7 +1071,7 @@ export default function KineoLanding({
           connects intent without replacing or rearranging the approved wall. */}
       {showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}
 
-      <HomeOneVideoReturnBridge signedIn={isSignedIn} />
+      <HomeOneVideoReturnBridge actorKey={initialUser?.id ?? null} />
 
       {referralBridge ? (
         <section

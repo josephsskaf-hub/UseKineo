@@ -22,8 +22,8 @@ const VIEW_THRESHOLD = 0.5
 const viewedInMemory = new Set<string>()
 const viewInFlight = new Set<string>()
 
-function viewMarker(version: string): string {
-  return `kineo:home-one-video-return:viewed:${version}`
+function viewMarker(version: string, actorKey: string): string {
+  return `kineo:home-one-video-return:viewed:${version}:${actorKey}`
 }
 
 function alreadyViewed(marker: string): boolean {
@@ -39,8 +39,11 @@ function alreadyViewed(marker: string): boolean {
   return false
 }
 
-async function recordView(decision: Extract<HomeOneVideoReturnDecision, { eligible: true }>): Promise<boolean> {
-  const marker = viewMarker(decision.version)
+async function recordView(
+  decision: Extract<HomeOneVideoReturnDecision, { eligible: true }>,
+  actorKey: string,
+): Promise<boolean> {
+  const marker = viewMarker(decision.version, actorKey)
   if (alreadyViewed(marker) || viewInFlight.has(marker)) return false
   viewInFlight.add(marker)
   const stored = await trackEvent('home_one_video_return_viewed', {
@@ -57,12 +60,12 @@ async function recordView(decision: Extract<HomeOneVideoReturnDecision, { eligib
   return true
 }
 
-export default function HomeOneVideoReturnBridge({ signedIn }: { signedIn: boolean }) {
+export default function HomeOneVideoReturnBridge({ actorKey }: { actorKey: string | null }) {
   const [decision, setDecision] = useState<HomeOneVideoReturnDecision | null>(null)
   const sectionRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    if (!signedIn) {
+    if (!actorKey) {
       setDecision({ eligible: false, reason: 'anonymous' })
       return
     }
@@ -99,25 +102,26 @@ export default function HomeOneVideoReturnBridge({ signedIn }: { signedIn: boole
       })
 
     return () => controller.abort()
-  }, [signedIn])
+  }, [actorKey])
 
   useEffect(() => {
     if (!decision?.eligible || !sectionRef.current) return
     if (typeof IntersectionObserver === 'undefined') return
-    const marker = viewMarker(decision.version)
+    if (!actorKey) return
+    const marker = viewMarker(decision.version, actorKey)
     if (alreadyViewed(marker)) return
 
     const section = sectionRef.current
     const observer = new IntersectionObserver((entries) => {
       const entry = entries[0]
       if (!entry?.isIntersecting || entry.intersectionRatio < VIEW_THRESHOLD) return
-      void recordView(decision).then((stored) => {
+      void recordView(decision, actorKey).then((stored) => {
         if (stored || alreadyViewed(marker)) observer.disconnect()
       })
     }, { threshold: [VIEW_THRESHOLD] })
     observer.observe(section)
     return () => observer.disconnect()
-  }, [decision])
+  }, [actorKey, decision])
 
   if (!decision?.eligible) return null
 

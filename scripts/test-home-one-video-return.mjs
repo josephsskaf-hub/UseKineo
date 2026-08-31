@@ -69,14 +69,15 @@ check(component.includes('const stored = await trackEvent'), 'impression waits f
 check(component.indexOf('const stored = await trackEvent') < component.indexOf("window.sessionStorage.setItem(marker, '1')"), 'session marker is written only after stored true')
 check(component.includes('const viewedInMemory = new Set<string>()'), 'remounts are guarded in memory')
 check(component.includes('const viewInFlight = new Set<string>()'), 'observer races are guarded')
+check(component.includes('viewed:${version}:${actorKey}'), 'dedupe key is scoped to the signed-in actor without sending it')
 check(component.includes('You review the next idea before anything generates.'), 'copy preserves the explicit review boundary')
 check(component.includes('new hook, new facts and a fresh payoff'), 'copy matches the existing continuation contract')
 check(component.includes('href={decision.href}'), 'CTA uses the policy destination')
 
 check(home.includes("import HomeOneVideoReturnBridge from '@/components/HomeOneVideoReturnBridge'"), 'live home imports the bridge')
-equal((home.match(/<HomeOneVideoReturnBridge signedIn=\{isSignedIn\} \/>/g) ?? []).length, 1, 'live home mounts one bridge')
-check(home.indexOf('<HomeOneVideoReturnBridge signedIn={isSignedIn} />') > home.indexOf('<HomeWelcomeGoalRouter />'), 'return bridge stays after the post-signup router')
-check(home.indexOf('<HomeOneVideoReturnBridge signedIn={isSignedIn} />') < home.indexOf('{referralBridge ? ('), 'return bridge stays before the signed-out referral bridge')
+equal((home.match(/<HomeOneVideoReturnBridge actorKey=\{initialUser\?\.id \?\? null\} \/>/g) ?? []).length, 1, 'live home mounts one actor-scoped bridge')
+check(home.indexOf('<HomeOneVideoReturnBridge actorKey={initialUser?.id ?? null} />') > home.indexOf('<HomeWelcomeGoalRouter />'), 'return bridge stays after the post-signup router')
+check(home.indexOf('<HomeOneVideoReturnBridge actorKey={initialUser?.id ?? null} />') < home.indexOf('{referralBridge ? ('), 'return bridge stays before the signed-out referral bridge')
 
 for (const forbidden of ['email:', 'title:', 'prompt:', 'script:', 'video_id:', 'video_url:']) {
   check(!component.includes(forbidden), `telemetry does not contain ${forbidden}`)
