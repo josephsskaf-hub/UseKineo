@@ -2516,6 +2516,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** 13 suítes passaram com 861 verificações, incluindo 67/67 do contrato novo, afiliados, retomada de checkout, orientação de pagamento, preço salvo e retornos B2B. `git diff --check` limpo. Typecheck com TypeScript 5.9.3 repetiu exatamente os quatro erros baseline (`mrr.ts`, `me/subscription` e dois `brl` em `stripe/checkout`), nenhum novo.
 
+**PREVIEW VALIDADO (31/08/2026 UTC):** o deploy Vercel `dpl_7abDXVfdbzXvq9R1ENAbYDdAnMCW`, target preview e SHA `81ea7940683d36654a0d38eaf2bf39fa6ebd9ccd`, chegou a `READY`. A consulta de runtime encontrou zero log `error`/`fatal` do deployment na janela de 30 minutos. Como nenhum webhook de falha foi fabricado, isto valida build e carregamento, não o recebimento ponta a ponta de uma recusa real.
+
 **CONFIGURAÇÃO AINDA NÃO ALTERADA:** o painel Stripe continua com os seis eventos antigos. Nenhum checkbox foi marcado e `Salvar destino` não foi clicado. Depois de integrar e validar este commit em produção, adicionar `payment_intent.payment_failed` e `charge.failed` exige confirmação humana no momento do clique. `DEPLOY.md` agora lista os oito eventos canônicos para impedir nova deriva.
 
 **GATE:** depois da integração e configuração, usar pessoas externas: `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. Sessão aberta fica pendente; sessão expirada e não paga, sem falha inicial, é abandono silencioso. Falha `stage=renewal` é churn involuntário e fica fora da conversão inicial. Não mexer na oferta por esse sinal antes de amostra real.
