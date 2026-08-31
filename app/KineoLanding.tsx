@@ -58,6 +58,7 @@ import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } fr
 import HomeTopicForm from './HomeTopicForm'
 import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import HomeWelcomeGoalRouter from '@/components/HomeWelcomeGoalRouter'
+import HomeOneVideoReturnBridge from '@/components/HomeOneVideoReturnBridge'
 import {
   HOME_REFERRAL_BRIDGE_COPY,
   type HomeReferralBridgeSource,
@@ -1069,6 +1070,8 @@ export default function KineoLanding({
           The router comes AFTER the founder-curated four-video hero, so it
           connects intent without replacing or rearranging the approved wall. */}
       {showWelcomeGoalRouter ? <HomeWelcomeGoalRouter /> : null}
+
+      <HomeOneVideoReturnBridge signedIn={isSignedIn} />
 
       {referralBridge ? (
         <section
