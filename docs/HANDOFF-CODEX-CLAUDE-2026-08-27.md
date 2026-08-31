@@ -2540,7 +2540,9 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** cinco suítes passaram, 194/194 verificações; typecheck repetiu somente quatro erros baseline preexistentes e nenhum erro novo. Os dois conflitos do cherry-pick foram resolvidos mantendo os dois imports e usando a mesma sanitização de campanha na visualização e no clique.
 
-**ESTADO:** candidato integrado localmente; ainda não é produção até branch remota, build e preview serem validados.
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** a branch remota chegou ao SHA `5791a1f4cb0db26df87bb68d821876c84ec5b11f`; o deploy Vercel `dpl_B34RyMtC9V1Ko82TAu1NQNqsjMfA` ficou `READY`, target preview. No Chrome conectado, `tier=starter` marcou somente Starter, `tier=basic` marcou somente Creator e `tier=enterprise` falhou fechado, sem selo; os três planos permaneceram na grade. Nenhum CTA de checkout foi clicado. A Vercel registrou zero erro/fatal do deployment na janela consultada.
+
+**ESTADO:** candidato publicado somente em branch/preview; `main` e produção permanecem inalterados.
 
 **NÃO TOCADO:** oferta pós-vídeo, preço, desconto, cupom, crédito, trial, SKU, Stripe server/configuração, render, produto logado, e-mail, destinatários, Supabase schema/dados, outreach ou anúncio.
 
