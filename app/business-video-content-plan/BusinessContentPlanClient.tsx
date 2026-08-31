@@ -1,13 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
+import { trackEvent } from '@/lib/analytics'
 import {
   BUSINESS_CADENCES,
   BUSINESS_GOALS,
+  BUSINESS_PLAN_CAMPAIGN,
+  BUSINESS_PLAN_SHARE_CAMPAIGN,
   buildBusinessContentPlan,
   buildBusinessPlanActivationHref,
+  businessContentPlanAsText,
   businessCadenceDetails,
   normalizeBusinessAudience,
   normalizeBusinessOffer,
@@ -35,6 +39,7 @@ const CARD = {
   background: 'rgba(15,18,26,.9)',
   border: '1px solid rgba(255,255,255,.1)',
 } as const
+const VIEW_MARKER = 'kineo:business-content-plan:viewed:v1'
 
 export default function BusinessContentPlanClient() {
   const [offer, setOffer] = useState('')
@@ -43,6 +48,20 @@ export default function BusinessContentPlanClient() {
   const [cadence, setCadence] = useState<BusinessCadenceId>('five')
   const [result, setResult] = useState<PlanResult | null>(null)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(VIEW_MARKER) === '1') return
+      sessionStorage.setItem(VIEW_MARKER, '1')
+    } catch {
+      // Privacy mode can block session storage. The planner remains usable.
+    }
+    void trackEvent('business_content_plan_viewed', {
+      version: BUSINESS_PLAN_SHARE_CAMPAIGN,
+      surface: 'business_video_content_plan',
+    })
+  }, [])
 
   function createPlan(input?: { offer: string; audience: string; goal: BusinessGoalId }) {
     const cleanOffer = normalizeBusinessOffer(input?.offer ?? offer)
@@ -56,13 +75,41 @@ export default function BusinessContentPlanClient() {
     setAudience(cleanAudience)
     setGoal(selectedGoal)
     setError('')
-    setResult({
+    const nextResult = {
       offer: cleanOffer,
       audience: cleanAudience,
       goal: selectedGoal,
       cadence,
       items: buildBusinessContentPlan({ offer: cleanOffer, audience: cleanAudience, goal: selectedGoal, cadence }),
+    }
+    setResult(nextResult)
+    setCopied(false)
+    void trackEvent('business_content_plan_generated', {
+      version: BUSINESS_PLAN_SHARE_CAMPAIGN,
+      surface: 'business_video_content_plan',
+      goal: selectedGoal,
+      cadence,
+      item_count: nextResult.items.length,
     })
+  }
+
+  async function copyPlan() {
+    if (!result) return
+    const text = businessContentPlanAsText(result)
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      void trackEvent('business_content_plan_copied', {
+        version: BUSINESS_PLAN_SHARE_CAMPAIGN,
+        surface: 'business_video_content_plan',
+        goal: result.goal,
+        cadence: result.cadence,
+        item_count: result.items.length,
+      })
+    } catch {
+      setCopied(false)
+    }
   }
 
   const cadenceDetails = result ? businessCadenceDetails(result.cadence) : null
@@ -178,7 +225,12 @@ export default function BusinessContentPlanClient() {
                   <div style={{ color: '#a78bfa', fontSize: '.7rem', fontWeight: 900, letterSpacing: '.12em', textTransform: 'uppercase' }}>Your weekly content map</div>
                   <h2 style={{ margin: '7px 0 0', fontSize: 'clamp(1.45rem, 4vw, 2.1rem)' }}>{cadenceDetails.weeklyVideos} business Shorts with a job to do</h2>
                 </div>
-                <div style={{ color: '#92929a', fontSize: '.8rem' }}>Four-week production target: {cadenceDetails.fourWeekVideos} videos</div>
+                <div style={{ display: 'grid', justifyItems: 'end', gap: 9 }}>
+                  <div style={{ color: '#92929a', fontSize: '.8rem' }}>Four-week production target: {cadenceDetails.fourWeekVideos} videos</div>
+                  <button type="button" onClick={() => void copyPlan()} style={{ minHeight: 39, borderRadius: 10, border: '1px solid rgba(167,139,250,.4)', background: 'rgba(167,139,250,.1)', color: '#ddd6fe', padding: '0 13px', fontSize: '.78rem', fontWeight: 900, cursor: 'pointer' }}>
+                    {copied ? 'Plan copied ✓' : 'Copy plan for your team →'}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'grid', gap: 11, marginTop: 20 }}>
                 {result.items.map((item, index) => (
@@ -202,7 +254,7 @@ export default function BusinessContentPlanClient() {
                 <div style={{ color: '#5cb3ff', fontSize: '.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em' }}>Start with one</div>
                 <h3 style={{ margin: '8px 0 7px', fontSize: '1.08rem' }}>Carry Monday into the faceless workflow</h3>
                 <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>The brief and evidence boundary travel through signup. You review them before any credit can be spent.</p>
-                <Link href={activationHref} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#2997ff', color: '#fff', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
+                <Link href={activationHref} onClick={() => void trackEvent('business_content_plan_activation_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#2997ff', color: '#fff', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
                   Create the first Short →
                 </Link>
               </div>
@@ -210,7 +262,7 @@ export default function BusinessContentPlanClient() {
                 <div style={{ color: '#34d399', fontSize: '.7rem', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '.1em' }}>Produce the batch</div>
                 <h3 style={{ margin: '8px 0 7px', fontSize: '1.08rem' }}>The closest one-time fit is the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack</h3>
                 <p style={{ color: '#96969e', fontSize: '.84rem', lineHeight: 1.58, margin: '0 0 14px' }}>This is a four-week planning fit, not a promise that every month has four weeks. Credits do not expire.</p>
-                <Link href={packHref} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
+                <Link href={packHref} onClick={() => void trackEvent('business_content_plan_packs_clicked', { version: BUSINESS_PLAN_SHARE_CAMPAIGN, campaign: BUSINESS_PLAN_CAMPAIGN, surface: 'business_video_content_plan', goal: result.goal, cadence: result.cadence, recommended_pack: recommendedPack })} style={{ display: 'inline-flex', minHeight: 46, alignItems: 'center', justifyContent: 'center', padding: '0 17px', borderRadius: 11, background: '#34d399', color: '#04110c', fontSize: '.86rem', fontWeight: 900, textDecoration: 'none' }}>
                   See the {recommendedPack === 'bulk20' ? '20' : '30'}-video pack →
                 </Link>
               </div>

@@ -80,13 +80,38 @@ check(prompt.includes('Business offer: an invoicing app for freelancers'), 'offe
 check(prompt.includes('Audience: freelancers with late-paying clients'), 'audience survives the handoff')
 check(prompt.includes('Use only verified facts'), 'evidence boundary survives the handoff')
 
+const sharedText = planner.businessContentPlanAsText({ ...base, cadence: 'five', items: five })
+check(sharedText.startsWith('WEEKLY BUSINESS SHORTS PLAN'), 'copied artifact has a useful title')
+check(sharedText.includes('Offer: an invoicing app for freelancers'), 'copied artifact keeps the supplied offer')
+check(sharedText.includes('Audience: freelancers with late-paying clients'), 'copied artifact keeps the supplied audience')
+check(sharedText.includes('Monday — Problem recognition'), 'copied artifact keeps the first scheduled angle')
+check(sharedText.includes('Friday — Feature to use case'), 'copied five-day artifact keeps the final scheduled angle')
+check(sharedText.includes('Evidence:'), 'copied artifact keeps evidence boundaries')
+check(sharedText.includes('utm_source=business_plan_copy'), 'copied artifact has an attributable return path')
+check(sharedText.includes('utm_medium=referral'), 'copied artifact labels the return as referral')
+check(sharedText.includes('utm_campaign=weekly_business_video_plan_share_v1'), 'copied artifact carries the stable share version')
+equal(planner.businessContentPlanAsText({ ...base, offer: 'short', cadence: 'five', items: five }), '', 'invalid plan cannot be copied')
+
 const client = read('app/business-video-content-plan/BusinessContentPlanClient.tsx')
 check(client.includes('buildBusinessContentPlan'), 'real client executes the pure planner')
 check(client.includes('buildBusinessPlanActivationHref'), 'real CTA carries the first idea')
 check(client.includes("agencyPacksHref('content_plan')"), 'real B2B CTA uses the allowlisted bridge')
 check(client.includes('Four-week production target'), 'volume math is labeled as four-week, not monthly')
 check(client.includes('does not research your claims, schedule posts, publish to social platforms or guarantee leads'), 'client states the planning boundary')
-check(!client.includes('trackEvent'), 'planner adds no event write during the Supabase incident')
+for (const eventName of [
+  'business_content_plan_viewed',
+  'business_content_plan_generated',
+  'business_content_plan_copied',
+  'business_content_plan_activation_clicked',
+  'business_content_plan_packs_clicked',
+]) check(client.includes(eventName), `client measures ${eventName}`)
+check(client.includes('Copy plan for your team'), 'result exposes the shareable team artifact')
+check(client.includes('navigator.clipboard.writeText(text)'), 'copy is an explicit local clipboard action')
+const eventPayloads = [...client.matchAll(/trackEvent\('business_content_plan_[\s\S]*?\}\)/g)].map((match) => match[0])
+equal(eventPayloads.length, 5, 'all five business-plan event payloads are inspectable')
+for (const payload of eventPayloads) {
+  check(!/(offer|audience|hook|brief|evidence)\s*[:,]/.test(payload), 'telemetry never receives business or plan text')
+}
 check(!client.includes('fetch('), 'planner runs without network or provider cost')
 check(!client.toLowerCase().includes('supabase'), 'planner imports no Supabase client')
 

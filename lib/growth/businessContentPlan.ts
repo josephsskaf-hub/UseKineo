@@ -1,4 +1,7 @@
 export const BUSINESS_PLAN_CAMPAIGN = 'weekly_business_video_plan' as const
+export const BUSINESS_PLAN_SHARE_CAMPAIGN = 'weekly_business_video_plan_share_v1' as const
+export const BUSINESS_PLAN_SHARE_URL =
+  `https://www.usekineo.com/business-video-content-plan?utm_source=business_plan_copy&utm_medium=referral&utm_campaign=${BUSINESS_PLAN_SHARE_CAMPAIGN}` as const
 
 export const BUSINESS_GOALS = [
   { id: 'leads', label: 'Generate qualified leads' },
@@ -119,6 +122,41 @@ export function businessCadenceDetails(cadence: BusinessCadenceId) {
 
 export function recommendedBusinessPack(cadence: BusinessCadenceId): 'bulk20' | 'bulk30' {
   return cadence === 'seven' ? 'bulk30' : 'bulk20'
+}
+
+export function businessContentPlanAsText(input: {
+  offer: string
+  audience?: string
+  goal: BusinessGoalId
+  cadence: BusinessCadenceId
+  items: BusinessContentPlanItem[]
+}): string {
+  const offer = normalizeBusinessOffer(input.offer)
+  const audience = normalizeBusinessAudience(input.audience) || 'the people this business serves'
+  const goal = BUSINESS_GOALS.find((option) => option.id === input.goal)?.label ?? BUSINESS_GOALS[0].label
+  const cadence = businessCadenceDetails(input.cadence)
+  const items = input.items.slice(0, cadence.weeklyVideos)
+  if (offer.length < 8 || items.length === 0) return ''
+
+  const plan = items.flatMap((item) => [
+    `${item.day} — ${item.angle}`,
+    `Hook: ${item.hook}`,
+    `Brief: ${item.brief}`,
+    `Evidence: ${item.evidence}`,
+    '',
+  ])
+
+  return [
+    'WEEKLY BUSINESS SHORTS PLAN',
+    `Offer: ${offer}`,
+    `Audience: ${audience}`,
+    `Goal: ${goal}`,
+    `Cadence: ${cadence.label}`,
+    '',
+    ...plan,
+    'Build your own free plan with Kineo:',
+    BUSINESS_PLAN_SHARE_URL,
+  ].join('\n')
 }
 
 export function buildBusinessPlanActivationHref(input: {
