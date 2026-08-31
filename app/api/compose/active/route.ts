@@ -58,6 +58,20 @@ export const dynamic = 'force-dynamic'
 
 const ACTIVE_WINDOW_MS = 15 * 60 * 1000
 
+// KINEO-SPRINT-V1V4-2026-08-31 (#3) — escolhe o tema que vai virar o episodio
+// 2. Le so o que ja estava no banco; nao inventa titulo nem chama modelo.
+function seriesSeedFrom(title: unknown, topic: unknown): string | null {
+  const clean = (value: unknown): string =>
+    typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : ''
+  const fromTitle = clean(title)
+  if (fromTitle) return fromTitle.slice(0, 180)
+  const rawTopic = typeof topic === 'string' ? topic : ''
+  if (rawTopic.includes('\n')) return null
+  const fromTopic = clean(rawTopic)
+  if (!fromTopic || fromTopic.length > 180) return null
+  return fromTopic
+}
+
 export async function GET() {
   try {
     const supabase = createServerSupabase()
@@ -92,7 +106,7 @@ export async function GET() {
         .limit(5),
       admin
         .from('videos')
-        .select('id, video_url, thumbnail_url, title, render_id, created_at')
+        .select('id, video_url, thumbnail_url, title, topic, render_id, created_at')
         .eq('user_id', user.id)
         .eq('status', 'completed')
         .gte('created_at', since)
@@ -227,6 +241,12 @@ export async function GET() {
         video_url: recentVideo.video_url,
         thumbnail_url: typeof recentVideo.thumbnail_url === 'string' ? recentVideo.thumbnail_url : null,
         title: typeof recentVideo.title === 'string' ? recentVideo.title : null,
+        // KINEO-SPRINT-V1V4-2026-08-31 (#3) — semente do proximo episodio.
+        // `title` cobre 93% dos videos (294 de 317 em 14d); o resto cai no
+        // `topic`, e SO quando o topic e curto e de uma linha: um topic longo
+        // e o roteiro inteiro com marcadores HOOK/PAYOFF, que viraria uma
+        // semente ilegivel. Sem semente, a pilula segue exatamente como era.
+        series_seed: seriesSeedFrom(recentVideo.title, recentVideo.topic),
         completed_at: recentVideo.created_at,
         render_id: typeof recentVideo.render_id === 'string' ? recentVideo.render_id : null,
       })

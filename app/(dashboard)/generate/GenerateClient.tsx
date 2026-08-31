@@ -14044,11 +14044,22 @@ export default function GenerateClient({
               // nem o "Start over" (que só aparece FORA do phase 'done').
               //
               // O NÚMERO QUE MANDOU FAZER ISTO (medido 31/08, 14 dias, externos):
-              // 177 pessoas fizeram o 1º vídeo · 129 pararam nele · ZERO sumiram
-              // sem voltar — as 129 continuaram navegando no site depois. E quem
-              // faz o 2º faz na MEDIANA de 19 minutos. Não é problema de e-mail
-              // nem de reengajamento: a pessoa está aqui, com a sessão aberta, e
-              // a tela não lhe diz o que fazer em seguida.
+              // 177 pessoas fizeram o 1º vídeo e 129 pararam nele. Quem faz o 2º
+              // faz na MEDIANA de 19 MINUTOS — a decisão acontece na MESMA
+              // sessão, não no dia seguinte. Por isso o conserto é de tela, não
+              // de e-mail: quando o e-mail chega, a janela já fechou.
+              //
+              // ⚠ RETRATAÇÃO NA MESMA HORA: a primeira leitura desta rodada dizia
+              // "ZERO sumiram sem voltar". Era FALSO por contaminação — eu contei
+              // `max(events.created_at)` sem filtrar, e a maioria daqueles eventos
+              // é do NOSSO servidor (`trial_lifecycle_email_sent`, `post_nudge_sent`,
+              // `stranded_fast_ready_sent`), não sinal de pessoa. Contando só
+              // evento nascido de clique/tela do cliente, na janela de 7 dias:
+              // 22 das 58 pessoas de 1 vídeo (38%) voltaram de verdade e mesmo
+              // assim não criaram o segundo; as outras 36 sumiram.
+              // O conserto continua certo — 38% é público caro de recomprar e
+              // barato de reativar — mas a régua honesta é 38%, não 100%.
+              // Regra que fica: evento de servidor NUNCA prova presença humana.
               //
               // Este bloco é só CRIAÇÃO: sem plano, sem preço, sem upgrade — a
               // monetização deste ecrã já é tratada acima pelos componentes de

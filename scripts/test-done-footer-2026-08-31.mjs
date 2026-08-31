@@ -22,7 +22,7 @@ function check(name, cond) {
 // Recorta o ramo novo para poder afirmar o que ele NAO contem.
 const marca = 'KINEO-SPRINT-V1V4-2026-08-31 (#3)'
 const ini = gen.indexOf(marca)
-const bloco = ini > -1 ? gen.slice(ini, ini + 3200) : ''
+const bloco = ini > -1 ? gen.slice(ini, ini + 5200) : ''
 // As asserções de "não invade a pista do Codex" olham o CÓDIGO, não o
 // comentário: o comentário explica justamente que ali não há upgrade/preço,
 // e a palavra dentro da explicação não pode reprovar o próprio bloco.
@@ -55,8 +55,12 @@ check('a segunda saida tambem e medida', /done_footer_start_new_clicked/.test(bl
 check('o evento carrega o video', /video_id: publicVideoId \?\? null/.test(bloco))
 
 console.log('\n5) O comentario guarda o porque (o numero que mandou fazer)')
-check('registra 177/129/zero-sumiram', /177 pessoas/.test(bloco) && /129 pararam/.test(bloco) && /ZERO sumiram/.test(bloco))
-check('registra a mediana de 19 minutos', /mediana de 19 minutos/i.test(bloco))
+check('registra 177/129', /177 pessoas/.test(bloco) && /129 pararam/.test(bloco))
+check('registra a RETRATACAO da medicao contaminada', /RETRATA\u00c7\u00c3O/.test(bloco) && /trial_lifecycle_email_sent/.test(bloco))
+// A frase antiga so pode aparecer DENTRO da retratacao, marcada como falsa.
+check('usa a regua honesta de 38%, nao 100%', /38%/.test(bloco) && /"ZERO sumiram sem voltar"\. Era FALSO/.test(bloco.replace(/\s+/g,' ')))
+check('deixa a regra escrita para a proxima sessao', /evento de servidor NUNCA prova presen\u00e7a humana/i.test(bloco))
+check('registra a mediana de 19 minutos', /MEDIANA de 19 MINUTOS/i.test(bloco))
 check('registra quem caia no null', /gratuito E nao pagou E/.test(bloco) || /gratuito E n[aã]o pagou/.test(bloco))
 
 console.log(`\n${ok} ok · ${bad} falhas`)

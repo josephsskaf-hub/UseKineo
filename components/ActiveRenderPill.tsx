@@ -35,6 +35,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
+import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
 
 const POLL_MS = 15000
 const MIN_PROBE_GAP_MS = 10000
@@ -44,7 +45,7 @@ const DISMISS_KEY = 'kineo_render_pill_dismissed'
 
 type Probe =
   | { state: 'rendering'; renderId: string | null; startedAtMs: number }
-  | { state: 'completed'; videoId: string | null; title: string | null }
+  | { state: 'completed'; videoId: string | null; title: string | null; seriesSeed: string | null }
   | null
 
 function formatElapsedShort(ms: number): string {
@@ -119,6 +120,12 @@ export default function ActiveRenderPill() {
             state: 'completed',
             videoId: typeof data.video_id === 'string' && data.video_id ? data.video_id : null,
             title: typeof data.title === 'string' && data.title.trim() ? data.title.trim() : null,
+            seriesSeed:
+              typeof data.series_seed === 'string' && data.series_seed.trim()
+                ? data.series_seed.trim()
+                : typeof data.title === 'string' && data.title.trim()
+                  ? data.title.trim()
+                  : null,
           }
         }
         setProbe(next)
@@ -216,6 +223,121 @@ export default function ActiveRenderPill() {
       /* private mode — it reappears next session, which is the safe side */
     }
     setDismissedId(probeIdentity(probe))
+  }
+
+  // KINEO-SPRINT-V1V4-2026-08-31 (#3) — a terceira saida. "Watch" leva ao que
+  // ja acabou; esta leva ao proximo, com o tema ja escrito. Mesmo helper do
+  // /history, do /studio e da Library: uma unica definicao de "episodio 2".
+  function handleNextEpisode(seed: string) {
+    void trackEvent('series_continue_clicked', {
+      source: 'render_pill',
+      seed_length: seed.length,
+      video_id: probe && probe.state === 'completed' ? probe.videoId : null,
+      path: pathname ?? null,
+    })
+    // Some junto com o "Watch": quem escolheu o proximo episodio nao precisa
+    // do aviso do anterior perseguindo ele pela proxima tela.
+    try {
+      localStorage.setItem(DISMISS_KEY, probeIdentity(probe))
+    } catch {
+      /* private mode */
+    }
+    setDismissedId(probeIdentity(probe))
+    router.push(buildSeriesContinuationHref(seed, 'render_pill'))
+  }
+
+  const nextSeed = probe.state === 'completed' ? probe.seriesSeed : null
+
+  // Vertical quando ha duas acoes: a pilula horizontal nao cabe em telefone
+  // com "Watch" + "Next episode" lado a lado sem truncar os dois.
+  if (!isRendering && nextSeed) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
+        style={{
+          width: 'min(300px, calc(100vw - 24px))',
+          padding: 14,
+          borderRadius: 18,
+          background: 'rgba(11,17,32,0.97)',
+          border: '1px solid rgba(34,197,94,0.45)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <div className="flex items-start gap-2">
+          <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.2 }}>
+            🎉
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold" style={{ color: '#fff' }}>
+              Your video is ready
+            </div>
+            <div
+              className="text-xs truncate"
+              style={{ color: 'rgba(255,255,255,0.62)', marginTop: 2 }}
+              title={nextSeed}
+            >
+              {nextSeed}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Dismiss video ready notification"
+            className="flex items-center justify-center flex-shrink-0 rounded-full"
+            style={{
+              width: 32,
+              height: 32,
+              marginTop: -4,
+              marginRight: -4,
+              background: 'transparent',
+              border: 'none',
+              color: 'rgba(255,255,255,0.72)',
+              fontSize: 18,
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleAction}
+            className="text-xs font-bold rounded-full flex-shrink-0"
+            style={{
+              minHeight: 40,
+              padding: '0 14px',
+              background: 'rgba(255,255,255,0.10)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              color: '#fff',
+              cursor: 'pointer',
+            }}
+          >
+            Watch
+          </button>
+          <button
+            type="button"
+            onClick={() => handleNextEpisode(nextSeed)}
+            className="text-xs font-bold rounded-full flex-1 min-w-0"
+            style={{
+              minHeight: 40,
+              padding: '0 12px',
+              background: '#22c55e',
+              border: 'none',
+              color: '#06220f',
+              cursor: 'pointer',
+            }}
+          >
+            Next episode →
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
