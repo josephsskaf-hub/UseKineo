@@ -2401,3 +2401,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, afiliados, e-mail, outreach, TAAFT, IndexNow ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0b0622fc` ou da ponta posterior. Não restaurar biblioteca pública de clientes, não duplicar este formulário e não editar Plan Fit, quickstart ChatGPT ou ponte B2B antes dos respectivos gates. Codex gira a sprint 2 para outro estágio do funil.
+
+## 78. B2B compartilhável — o plano semanal pode trazer a próxima empresa (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 30/08/2026 UTC):** `/business-video-content-plan` tinha uma sessão anônima em 30 dias e zero evento próprio de uso. Era impossível distinguir leitura, geração do plano, ativação ou clique no pack. Como não há identidade autenticada, esse número é sessão — não pessoa.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** o planejador já criava uma agenda útil com hook, brief e limite de evidência, carregava a primeira ideia ao produto e sugeria o pack canônico. Porém não media nenhuma dessas etapas e o resultado não podia ser copiado como um artefato único para equipe ou cliente.
+
+**HIPÓTESE CAUSAL NOVA:** uma empresa ou freelancer que copia o plano para aprovação distribui o próprio ativo e abre uma nova porta B2B. A atribuição deve viajar no rodapé do texto, sem o produto enviar mensagem em nome da pessoa.
+
+**IMPLEMENTADO:** o commit funcional `92dafc7c2ad71220107a5b9449930afaf739e70a` adiciona `Copy plan for your team` ao cabeçalho do resultado. O texto copiado contém oferta, público, meta, cadência, cada ângulo/brief/limite de evidência e a volta atribuível `business_plan_copy / referral / weekly_business_video_plan_share_v1`. A ação é explícita e local no clipboard; não existe envio externo automático.
+
+**MEDIÇÃO / PRIVACIDADE:** eventos `business_content_plan_viewed`, `generated`, `copied`, `activation_clicked` e `packs_clicked` carregam somente versão, superfície, goal, cadence, item_count e pack categórico. Oferta, público, hook, brief e evidência nunca entram na telemetria — cinco payloads são inspecionados pelo teste. A impressão é deduplicada por sessão.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/BUSINESS-PLAN-SHARE-2026-08-30.html` contém antes/depois desktop e mobile. O estado inicial da página real foi inspecionado no Chrome conectado do fundador, sem overflow nem console error. O estado de resultado não foi forçado em produção para não fabricar uma geração anônima na amostra que acabou de começar.
+
+**TESTADO LOCALMENTE:** planejador 167/167 e distribuição B2B 64/64; typecheck sem saída e whitespace limpo. A primeira asserção de privacidade era ampla e confundiu a variável local `text` com payload; foi substituída por inspeção dos cinco objetos reais, que permanecem sem texto do cliente.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** deploy Vercel `dpl_3g78j6grrJx3NJYUMwWYHFGnvCbn` chegou a `READY`, target production, SHA exato e aliases de produção. Heading e builder canônico abriram no Chrome; zero console error, zero overflow e zero runtime error na janela consultada.
+
+**GATE:** preservar a versão até cinco sessões anônimas. Medir `viewed → generated → copied OU activation_clicked OU packs_clicked`; copiar não é lead, checkout ou receita. Se houver visitas sem geração, investigar entrada. Se houver geração sem ação, investigar o valor/posição do resultado. Se houver cópia com novas sessões `business_plan_copy`, seguir essas pessoas até brief, signup, vídeo, checkout e `payment_success`.
+
+**NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `92dafc7c` ou da ponta posterior. Não duplicar o planejador nem enviar o plano automaticamente. Codex gira a sprint 3 para aquisição orgânica em outra superfície.
