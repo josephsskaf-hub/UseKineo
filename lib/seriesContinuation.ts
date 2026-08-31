@@ -12,6 +12,11 @@ export type SeriesContinuationSource =
   // gera 2o video (7 de 11 cliques em 7d) e vive na tela de 23 pessoas; o
   // /studio tem 87. Mesmo padrao, onde o publico esta.
   | 'studio_milestone'
+  // KINEO-SPRINT-V1V4-2026-08-31 (#3) — a pilula flutuante de "video pronto"
+  // e o unico aviso de pico de alegria que aparece em TODA pagina logada, e
+  // so oferecia "Watch" ou "x". O tema do video ja viajava do servidor ate o
+  // cliente (campo `title` do /api/compose/active) e era jogado fora.
+  | 'render_pill'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')
