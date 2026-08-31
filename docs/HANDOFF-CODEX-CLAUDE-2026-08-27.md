@@ -2377,3 +2377,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preços, packs, créditos, trial, Stripe, checkout, Supabase schema/dados, render, motor, cena, voz, legenda, afiliados, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `52a76d32` ou posterior. Não duplicar o gerador, não inserir outra mensagem na área de afiliados sem retorno e não classificar o novo clique como conversão. Codex mede a primeira amostra e gira a próxima rodada para outro estágio enquanto este gate amadurece.
+
+## 77. Aquisição orgânica — a busca por scripts privados agora começa com uma ideia (30/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 30/08/2026 UTC):** a ponte B2B da seção 76 ainda não recebeu pessoa externa e foi preservada. `plan_fit_direct_win_v3` teve somente duas pessoas externas; o quickstart ChatGPT v5 apareceu para cinco pessoas e duas chegaram ao estado Studio-ready. Nenhuma dessas superfícies atingiu o gate mínimo para uma nova edição. Em paralelo, `/scripts` recebeu três sessões anônimas recentes e não registrou ação. Como não há identidade autenticada, são sessões — não pessoas.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** enquanto `CUSTOMER_VIDEO_PUBLIC_SURFACE_ENABLED=false`, `/scripts` não lê nem publica a biblioteca de clientes, o que preserva a privacidade corretamente. Porém o ramo privado encerrava em um botão abstrato para signup. A pessoa que chegou procurando um script gratuito não conseguia começar pelo assunto que já tinha em mente.
+
+**HIPÓTESE CAUSAL NOVA:** permitir que a pessoa escreva uma ideia ainda na superfície orgânica reduz a distância entre intenção de busca e primeiro valor, sem reabrir vídeos privados, sem criar outra landing page e sem alterar a origem ChatGPT/TAAFT já atribuída.
+
+**IMPLEMENTADO:** o commit funcional `0b0622fc90c0548b34e6db5d840df0cca001fafb` embute o formulário canônico `TopicGeneratorForm` somente no ramo privado de `/scripts`. A versão `script_library_private_topic_v1` recebe tema, fato, história ou hook; preserva o texto por signup até o Studio, em modo AI/Fast de 35 segundos, mas não cria `create_intent` nem autoriza render automático. Três sugestões originais ajudam o início. Nenhum UTM foi acrescentado, portanto a primeira origem de aquisição continua intacta.
+
+**PRIVACIDADE / MEDIÇÃO:** zero link `/v/` aparece na página publicada e o acesso ao repositório de scripts continua depois do early-return privado. Medir sessões anônimas em `organic_topic_submitted` e `organic_cta_clicked` com `variant=script_library_private_topic_v1`, depois pessoas externas em signup → Studio-ready → primeiro vídeo → pricing/checkout → `payment_success`. Não confundir sessão ou submit com cadastro/receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/SCRIPT-LIBRARY-PRIVATE-TOPIC-2026-08-30.html` contém antes/depois desktop e mobile. A página real foi inspecionada no Chrome conectado do fundador: heading, textarea, três sugestões, CTA e limite de render apareceram; zero link de cliente e zero erro de console.
+
+**TESTADO LOCALMENTE:** contrato da nova superfície 15/15 e handoff SEO 50/50. O typecheck terminou sem saída e o gate de whitespace ficou limpo. `test-public-video-privacy.mjs` continua com uma falha baseline fora desta entrega — a âncora de preload de referral em `GenerateClient.tsx`, modificada por trabalho privado anterior; nem esse arquivo nem o teste entraram no commit.
+
+**VALIDADO EM PRODUÇÃO (30/08/2026 UTC):** deploy Vercel `dpl_RQVvhkyjjtQY84BB2aTCNrNU63Ly` chegou a `READY`, target production, SHA exato funcional e alias de produção. `/scripts` abriu no Chrome com zero console error; a Vercel retornou zero runtime error na janela de 30 minutos.
+
+**GATE:** não reeditar `/scripts` antes de cinco sessões anônimas na nova versão. Se houver cinco sessões e zero submit, testar enquadramento/formulário. Se houver submit sem signup, investigar a passagem de autenticação. Se houver signup sem Studio-ready, investigar o handoff. Se houver primeira entrega sem pricing/checkout, girar para valor percebido pós-vídeo, sem contaminar esta superfície.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, afiliados, e-mail, outreach, TAAFT, IndexNow ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0b0622fc` ou da ponta posterior. Não restaurar biblioteca pública de clientes, não duplicar este formulário e não editar Plan Fit, quickstart ChatGPT ou ponte B2B antes dos respectivos gates. Codex gira a sprint 2 para outro estágio do funil.
