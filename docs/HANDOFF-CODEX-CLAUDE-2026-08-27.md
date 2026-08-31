@@ -2503,3 +2503,23 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 82. B2C — a recusa do Stripe passa a ter uma verdade canônica (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (briefing Supabase, 31/08/2026 UTC, contas internas excluídas):** em 45 dias, 17 pessoas clicaram em pricing e quatro pagaram; dez clicaram em retomada de checkout e duas pagaram. O evento `checkout_payment_failed` nunca apareceu. Isso não provava ausência de recusa: a inspeção somente leitura do destino de produção no Stripe mostrou seis eventos inscritos e confirmou que `payment_intent.payment_failed` e `charge.failed` estavam ausentes.
+
+**FATO CONFIRMADO / CAUSA DA CEGUEIRA:** o código antigo tratava `payment_intent.payment_failed` e `charge.failed` como duas recusas canônicas, guardava IDs e mensagens livres do provedor e classificava qualquer objeto com invoice como renovação. O writer de analytics retornava `false` em falha, mas os handlers engoliam esse resultado e devolviam HTTP 200, tornando a perda permanente. A configuração não deve ser ligada antes de corrigir esses quatro contratos.
+
+**IMPLEMENTADO:** commit funcional `522ece123a6671bc8ac1b479014f924fd8232ce1` na branch `codex/stripe-failure-truth-v1`. `payment_intent.payment_failed` é a única fonte canônica de `checkout_payment_failed`; `charge.failed` vira o evento separado `checkout_payment_failure_enriched`. Ambos se correlacionam por hash SHA-256 truncado e não reversível do PaymentIntent, sem ID cru. O primeiro pagamento de assinatura (`billing_reason=subscription_create`) fica em `stage=initial`; `subscription_cycle` fica em `renewal`; qualquer dúvida vira `unknown`, nunca uma falsa compra inicial.
+
+**PRIVACIDADE / INTEGRIDADE:** metadata usa somente categorias allow-listed de motivo, moeda, valor em unidade mínima, país, bandeira, funding e família do método. Mensagens livres, IDs de Stripe e `seller_message` não entram. Se o sink não persistir, o webhook libera o guard idempotente e responde com erro para o Stripe tentar novamente. A deduplicação de 24 horas é por PaymentIntent: ela mede pessoas/recusas canônicas, não cada tentativa. Sem constraint única no banco, não declarar exatamente-once absoluto.
+
+**TESTADO LOCALMENTE:** 13 suítes passaram com 861 verificações, incluindo 67/67 do contrato novo, afiliados, retomada de checkout, orientação de pagamento, preço salvo e retornos B2B. `git diff --check` limpo. Typecheck com TypeScript 5.9.3 repetiu exatamente os quatro erros baseline (`mrr.ts`, `me/subscription` e dois `brl` em `stripe/checkout`), nenhum novo.
+
+**CONFIGURAÇÃO AINDA NÃO ALTERADA:** o painel Stripe continua com os seis eventos antigos. Nenhum checkbox foi marcado e `Salvar destino` não foi clicado. Depois de integrar e validar este commit em produção, adicionar `payment_intent.payment_failed` e `charge.failed` exige confirmação humana no momento do clique. `DEPLOY.md` agora lista os oito eventos canônicos para impedir nova deriva.
+
+**GATE:** depois da integração e configuração, usar pessoas externas: `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. Sessão aberta fica pendente; sessão expirada e não paga, sem falha inicial, é abandono silencioso. Falha `stage=renewal` é churn involuntário e fica fora da conversão inicial. Não mexer na oferta por esse sinal antes de amostra real.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, criação de Checkout Session, entitlement, crédito, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou pagamento real.
+
+**PRÓXIMO DONO:** integrar `522ece12` sobre a ponta corrente antes de habilitar os dois eventos no Stripe. A branch integrada de B2B/B2C `codex/cycle72h-release-candidate-v3` é separada; rebasear a que entrar depois para não perder nenhuma entrega.
