@@ -2503,3 +2503,31 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 84. B2B — a ponte existente passa a revelar onde perde a empresa (31/08/2026)
+
+**DIVISÃO DE PISTA:** entrega exclusiva do Codex em aquisição B2B. Nenhum arquivo do produto pós-login, render, criação, admin ou crédito foi tocado. As seções 82 e 83 permanecem reservadas às branches Codex anteriores de contexto B2B no login e atribuição B2C de pricing.
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC, janela de 30 dias, contas internas excluídas):** `/cheapest-ai-shorts-maker` registrou 83 sessões anônimas e duas pessoas externas; `/pricing`, 89 sessões anônimas e 140 pessoas externas. A página `/ai-shorts-for-agencies` registrou somente uma sessão anônima, coincidente com smoke, e zero pessoa externa. Os caminhos não foram somados: a mesma pessoa pode atravessar mais de um.
+
+**FATO CONFIRMADO:** `AgencyVolumeBridge` já estava em quatro superfícies reais — home, pricing, calculador e relatório anual — mas não media exposição nem clique. O destino começava a medir somente depois da chegada. Portanto, o funil não separava “card abaixo da área vista” de “card visto, oferta ignorada”.
+
+**HIPÓTESE:** a distância entre o tráfego das superfícies de origem e a única sessão no destino pode ser problema de posição ou de mensagem. Mover/reformular o card antes de medir apagaria essa distinção.
+
+**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit `42df3375f4cbdf2e356341807fed0c7f06b73530` adiciona uma única telemetria compartilhada ao componente existente. `agency_volume_bridge_viewed` exige 50% do card visível e é deduplicado por sessão e por `entry`; `agency_volume_bridge_clicked` mede o CTA real. A versão é `agency_volume_bridge_visibility_v1` e o payload contém somente `version`, `entry`, `surface=agency_volume_bridge` e `destination=agency_packs` — sem `actor_unit`, PII, texto, URL, preço ou UTM.
+
+**CALLERS REAIS:** somente `home`, `state_report`, `cost_page` e `pricing` montam o componente hoje. As outras cinco entradas continuam na allowlist canônica para links próprios/futuros, mas não emitem impressão fictícia sem caller.
+
+**CONSOLIDAÇÃO DE GIT:** esta branch substitui `codex/home-b2b-bridge-visibility` e `codex/pricing-business-path`. Não integrar essas duas depois: a primeira mede só home; a segunda cria eventos paralelos e declara incorretamente `actor_unit=authenticated_user` numa página pública. A nova branch é `codex/agency-bridge-attribution`, baseada em `origin/main` `4f534e5d`, sem alterar `main`.
+
+**MEDIÇÃO / GATE:** por `entry`, nunca agregando superfícies: `bridge viewed → bridge clicked → agency_bulk_page_viewed(entry) → pack/brief action → bulk_checkout_started → bulk_purchase_completed`. Pessoas identificadas contam por `user_id`; visitantes anônimos continuam sessões, nunca pessoas. Preservar cada entry até 20 atores visíveis. Poucas impressões com tráfego = posição; 20 impressões e zero clique = mensagem/oferta; clique sem chegada = atribuição; chegada sem ação = página B2B.
+
+**TESTADO LOCALMENTE:** 517 verificações B2B passaram: bridge 47/47, distribuição 64/64, home 27/27, página bulk 32/32, margem 46/46, intake 61/61, plano empresarial 171/171 e AEO empresarial 69/69. O typecheck repetiu somente os quatro erros baseline conhecidos. O teste de jornada de pricing permanece com a asserção LF/CRLF defeituosa de `origin/main`; a correção já está na branch B2C da seção 83 e não foi duplicada aqui. Whitespace limpo com `core.whitespace=cr-at-eol`.
+
+**REVISÃO REACT:** efeito sem estado visual, dependências primitivas, observer desmontado, guards em memória e sessionStorage, persistência somente depois de analytics confirmar armazenamento e navegação nunca bloqueada. A entrega não altera DOM visível, copy, estilo ou destino; comparação visual não se aplica.
+
+**PREVIEW VALIDADO:** Vercel `dpl_84BjWucuDzir8HNY9wPZdwzSPFuJ` chegou a `READY` no SHA exato `42df3375`; o log filtrado por erros retornou somente `Build Completed`. O preview não foi aberto para não fabricar eventos na base de produção antes da integração.
+
+**NÃO TOCADO:** posição, copy, oferta, preço, desconto, cupom, crédito, grant, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não integrar as duas branches B2B de telemetria supersedidas. O fundador pode integrar somente `codex/agency-bridge-attribution`. Codex mede o gate por entry depois da integração e gira a próxima sprint para B2C sem reeditar esta ponte.
