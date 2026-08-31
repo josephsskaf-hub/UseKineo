@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import AffiliateLandingContext from '@/components/AffiliateLandingContext'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
 import { trackEvent } from '@/lib/analytics'
+import type { AffiliateLandingContextCopy } from '@/lib/growth/affiliateLandingContext'
 import {
   BUSINESS_CADENCES,
   BUSINESS_GOALS,
@@ -41,7 +43,7 @@ const CARD = {
 } as const
 const VIEW_MARKER = 'kineo:business-content-plan:viewed:v1'
 
-export default function BusinessContentPlanClient() {
+export default function BusinessContentPlanClient({ affiliateContext = null }: { affiliateContext?: AffiliateLandingContextCopy | null }) {
   const [offer, setOffer] = useState('')
   const [audience, setAudience] = useState('')
   const [goal, setGoal] = useState<BusinessGoalId>('leads')
@@ -159,6 +161,12 @@ export default function BusinessContentPlanClient() {
             Choose the business goal and publishing cadence. Get concrete video angles, evidence boundaries and the first idea ready to carry into Kineo.
           </p>
         </section>
+
+        {affiliateContext ? (
+          <div style={{ marginTop: 28 }}>
+            <AffiliateLandingContext context={affiliateContext} targetId="business-plan-tool" />
+          </div>
+        ) : null}
 
         <section id="business-plan-tool" style={{ ...CARD, marginTop: 30, borderRadius: 20, padding: 'clamp(17px, 4vw, 26px)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 14 }}>

@@ -84,7 +84,7 @@ for (const unsafeSurface of ['/', '/pricing', '/affiliate', '/studio/create/extr
 equal(firstClick.AFFILIATE_FIRST_CLICK_NUDGE_VERSION, 'affiliate_first_click_reach_v2', 'reach experiment is versioned')
 equal(firstClick.AFFILIATE_FIRST_CLICK_VIEW_SESSION_KEY, 'kineo_affiliate_first_click_nudge_viewed_v2', 'view dedupe is version-scoped')
 
-equal(destinations.AFFILIATE_DESTINATIONS.length, 3, 'three audience-specific first-party destinations are enabled')
+equal(destinations.AFFILIATE_DESTINATIONS.length, 4, 'four audience-specific first-party destinations are enabled')
 equal(destinations.RECOMMENDED_AFFILIATE_DESTINATION, 'script', 'free script tool is recommended')
 const scriptDestination = destinations.getAffiliateDestination(' ScRiPt ')
 equal(scriptDestination.path, '/free-script-generator', 'destination key normalizes')
@@ -92,6 +92,7 @@ const expectedDestinations = {
   script: { path: '/free-script-generator', campaign: 'affiliate_script' },
   video: { path: '/free-ai-shorts-generator', campaign: 'affiliate_video' },
   faceless: { path: '/faceless-video-generator', campaign: 'affiliate_faceless' },
+  business: { path: '/business-video-content-plan', campaign: 'affiliate_business_plan' },
 }
 for (const [key, expected] of Object.entries(expectedDestinations)) {
   const destination = destinations.getAffiliateDestination(key)

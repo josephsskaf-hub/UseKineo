@@ -37,6 +37,17 @@ export const AFFILIATE_DESTINATIONS = [
     spokenPitch: 'For faceless Shorts, Kineo combines a hook-driven script, AI voice, changing visuals and captions without asking you to film yourself.',
     emailSubject: 'Faceless Shorts without filming',
   },
+  {
+    key: 'business',
+    label: 'Business content planner',
+    audience: 'Companies and freelancers planning weekly business content',
+    path: '/business-video-content-plan',
+    campaign: 'affiliate_business_plan',
+    description: 'Best for businesses that need a useful weekly plan before choosing production.',
+    sharePitch: 'Build a free weekly Short-form video plan for your business — offer, audience and goal in; concrete angles and evidence boundaries out:',
+    spokenPitch: 'Kineo has a free business video planner that turns an offer, audience and goal into a week of Short ideas with evidence boundaries before anyone signs up.',
+    emailSubject: 'Free weekly video plan for your business',
+  },
 ] as const
 
 export type AffiliateDestination = (typeof AFFILIATE_DESTINATIONS)[number]

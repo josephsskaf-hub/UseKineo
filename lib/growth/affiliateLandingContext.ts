@@ -34,6 +34,12 @@ const COPY: Record<AffiliateDestinationKey, Omit<AffiliateLandingContextCopy, 'd
     body: 'Start with one topic. Kineo builds the script, AI voice, changing visuals and captions without asking you to film yourself.',
     action: 'Try the faceless workflow',
   },
+  business: {
+    eyebrow: 'Recommended by a Kineo partner',
+    heading: 'Plan the business content before buying production.',
+    body: 'Your partner sent you to the no-signup planner: enter the offer, audience and goal, then get a practical week of Short ideas with evidence boundaries.',
+    action: 'Build the free business plan',
+  },
 }
 
 function first(value: string | string[] | undefined): string {

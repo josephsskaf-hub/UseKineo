@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import Footer from '@/components/Footer'
 import BusinessContentPlanClient from './BusinessContentPlanClient'
+import {
+  affiliateLandingContext,
+  type PublicSearchParams,
+} from '@/lib/growth/affiliateLandingContext'
 
 const CANONICAL = 'https://www.usekineo.com/business-video-content-plan'
 
@@ -54,11 +58,12 @@ const STRUCTURED_DATA = [
   },
 ]
 
-export default function BusinessVideoContentPlanPage() {
+export default function BusinessVideoContentPlanPage({ searchParams }: { searchParams?: PublicSearchParams }) {
+  const partnerContext = affiliateLandingContext(searchParams, 'business')
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(STRUCTURED_DATA) }} />
-      <BusinessContentPlanClient />
+      <BusinessContentPlanClient affiliateContext={partnerContext} />
       <Footer showStats={false} />
     </>
   )

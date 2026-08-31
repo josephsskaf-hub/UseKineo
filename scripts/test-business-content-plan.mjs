@@ -107,6 +107,9 @@ for (const eventName of [
 ]) check(client.includes(eventName), `client measures ${eventName}`)
 check(client.includes('Copy plan for your team'), 'result exposes the shareable team artifact')
 check(client.includes('navigator.clipboard.writeText(text)'), 'copy is an explicit local clipboard action')
+check(client.includes('AffiliateLandingContext'), 'business planner can render a partner recommendation')
+check(client.includes('targetId="business-plan-tool"'), 'partner recommendation reaches the real planner')
+check(client.includes('affiliateContext ? ('), 'ordinary planner traffic does not reserve empty partner space')
 const eventPayloads = [...client.matchAll(/trackEvent\('business_content_plan_[\s\S]*?\}\)/g)].map((match) => match[0])
 equal(eventPayloads.length, 5, 'all five business-plan event payloads are inspectable')
 for (const payload of eventPayloads) {
@@ -121,6 +124,7 @@ check(page.includes("'SoftwareApplication'"), 'page declares the free tool')
 check(page.includes("'FAQPage'"), 'page publishes scheduling and research boundaries')
 check(page.includes('this planner does not schedule or publish posts'), 'structured data refuses a competitor capability Kineo lacks')
 check(page.includes('<Footer showStats={false} />'), 'incident-safe page disables the live database-backed footer badge')
+check(page.includes("affiliateLandingContext(searchParams, 'business')"), 'server validates the business affiliate campaign')
 
 const agencyPage = read('app/ai-shorts-for-agencies/page.tsx')
 check(agencyPage.includes('href="/business-video-content-plan"'), 'live B2B page links to the planner')
