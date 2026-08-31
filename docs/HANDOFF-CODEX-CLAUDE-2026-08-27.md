@@ -2533,3 +2533,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** comissão, payout, cookie financeiro, atribuição first-touch, preço, pack, desconto, crédito, trial, Stripe, Supabase schema/dados, render ou comunicação externa.
 
 **COORDENAÇÃO:** estas duas entregas nasceram de `origin/main` em `72278c7c`, em branches `codex/*`, sem editar a árvore principal. O documento `docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md` ainda não existia em `origin/main` no início desta integração; o arquivo solto da árvore principal não foi puxado para o commit. Claude deve publicar a cópia canônica ou avisar antes de Codex incorporá-la em outra rodada.
+
+## 84. B2C — foco no Creator para quem já concluiu vídeo (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT somente leitura, 31/08/2026 BRT):** na janela de 72 horas, 43 pessoas externas tiveram o primeiro vídeo concluído; 23 baixaram depois, três abriram pricing, duas abriram checkout e nenhuma teve `payment_success`. Entre as 28 pessoas dessa coorte atribuídas a ChatGPT, três abriram pricing, uma abriu checkout e nenhuma pagou. Contas internas foram excluídas conforme `lib/internalAccounts.ts`; pessoas, não eventos, são a unidade.
+
+**HIPÓTESE CAUSAL NOVA:** a grade completa obriga quem já provou o produto a reabrir uma comparação de três planos. Mostrar primeiro o Creator canônico reduz a carga decisória sem esconder permanentemente Starter e Studio.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `inline_pricing_returning_focus_v1` consulta o histórico autenticado em `/api/videos`. Somente `historyReliable:true` e pelo menos um vídeo concluído habilitam o foco; zero, resposta inválida, falha de rede ou histórico indisponível preservam o layout legado. O Creator permanece canônico e `Compare Starter & Studio` expande os mesmos cards existentes. O bloco Autopilot continua integral. Nenhum preço, plano, SKU, crédito, trial ou contrato Stripe mudou.
+
+**MEDIÇÃO:** `inline_pricing_decision_viewed` só é gravado após pelo menos 35% da seção estar visível; `inline_pricing_compare_clicked` separa quem pediu comparação; o evento de checkout existente recebe versão, layout e bucket de vídeos concluídos. Metadados são allow-listed e não incluem tema, vídeo ou PII.
+
+**TESTADO LOCALMENTE / PREVIEW READY:** política/caller/preview 21/21 e contrato monetário 306/306. Typecheck repetiu somente os quatro erros baseline; whitespace limpo. Preview Vercel `dpl_GpmDxs4Gh7EP4eMpa88P4SH1TkSW`, SHA `0d894203`, estado `READY`, branch `codex/cycle72h-b2c2`. Comparação desktop/mobile: `docs/previews/inline-pricing-returning-focus-v1.html`.
+
+**GATE:** preservar até dez pessoas externas com impressão realmente visível. Interromper imediatamente em divergência de plano/preço. Se dez pessoas virem e nenhuma clicar em checkout ou comparação, reverter a variante; não reescrever a mesma superfície antes do gate.
+
+## 85. B2B — o checkout Autopilot explica o próximo passo (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT somente leitura, 31/08/2026 BRT):** na janela de 90 dias, 166 pessoas externas viram pricing e seis abriram checkout Autopilot depois — três mensais e três piloto. Nenhuma teve `payment_success`. A evidência aponta fricção no último metro, mas não prova uma objeção única.
+
+**HIPÓTESE CAUSAL NOVA:** o Stripe pedia pagamento antes de dizer com precisão o que acontece depois. Explicar ali que o comprador conectará o YouTube e escolherá tema/horário reduz ansiedade operacional sem desconto nem promessa de publicação automática.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `autopilot_checkout_guidance_v1` adiciona `custom_text.submit` separado para mensal e piloto. Ambos explicam o setup após pagamento e que publicar só começa depois dele; mensal declara renovação e cancelamento em Account, piloto declara compra única, sem renovação e duração derivada de `AUTOPILOT_PILOT_DAYS`. Um único flag reverte o experimento. Preço, SKU, crédito, trial, entitlement e fulfillment permanecem idênticos.
+
+**MEDIÇÃO:** `checkout_started` e `payment_success` recebem versão e modalidade (`monthly|pilot`). A deduplicação continua presa à Stripe Session; a idempotência do piloto inclui a orientação mostrada. A documentação oficial da Stripe consultada em 31/08/2026 confirma suporte a `custom_text.submit` e limite superior ao texto usado.
+
+**TESTADO LOCALMENTE / PREVIEW READY:** orientação 49/49, value-context 59/59, retorno Autopilot 36/36 e contrato monetário 306/306. Typecheck repetiu somente os quatro erros baseline; whitespace limpo. Preview Vercel `dpl_ACvMHtYHYsp4WxTBN9ZhstNMXdLH`, SHA `94389d4d`, estado `READY`, branch `codex/cycle72h-b2b2`. Comparação mensal/piloto em desktop/mobile: `docs/previews/AUTOPILOT-CHECKOUT-GUIDANCE-2026-08-31.html`.
+
+**GATE:** preservar até cinco pessoas externas no total, com pelo menos duas por modalidade. Se não houver pagamento, não reescrever novamente o checkout; investigar a etapa seguinte com nova evidência. Checkout não é receita.
+
+**COORDENAÇÃO DA CANDIDATA:** as seções 82–85 foram consolidadas em `codex/cycle72h-release2`, baseada em `origin/main` `1c0d669d`. Nenhuma dessas quatro entregas está em produção. A árvore principal suja não foi tocada; `GenerateClient.tsx`, render, qualidade e admin permanecem na pista Claude. Integrar somente com autorização explícita do fundador e após novo `git fetch origin` + rebase/auditoria contra a ponta vigente.
