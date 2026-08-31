@@ -30,12 +30,14 @@ function loadTs(path) {
 const policy = loadTs('lib/growth/agencyBridgeTelemetry.ts')
 const entries = [
   'home', 'state_report', 'cost_page', 'pricing', 'comment_tool',
-  'product_tool', 'content_plan', 'real_estate', 'client_brief',
+  'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine',
 ]
 
 equal(policy.AGENCY_BRIDGE_VISIBILITY_VERSION, 'agency_volume_bridge_visibility_v1', 'version is stable')
 equal(policy.AGENCY_BRIDGE_VISIBLE_RATIO, 0.5, 'view requires half the bridge')
 equal(policy.AGENCY_BRIDGE_GATE_ACTORS_PER_ENTRY, 20, 'gate is twenty actors per entry, never twenty aggregate events')
+equal(policy.KINEO1_BRIDGE_GATE_IDENTIFIED_PEOPLE, 5, 'Kineo 1 gate counts five identified external people')
+equal(policy.KINEO1_BRIDGE_GATE_ANONYMOUS_SESSIONS, 20, 'Kineo 1 gate keeps anonymous sessions separate from people')
 
 for (const entry of entries) {
   deepEqual(policy.agencyBridgeTelemetryMetadata(entry), {
@@ -59,7 +61,9 @@ ok(bridge.includes('agencyPacksHref(entry)'), 'canonical destination is unchange
 ok(bridge.includes('See one-time volume packs →'), 'visible CTA copy is unchanged')
 ok(bridge.includes('Self-service · one account · no recurring contract'), 'visible commercial boundary is unchanged')
 
-const telemetry = read('components/AgencyVolumeBridgeTelemetry.tsx')
+// Rebase can materialize tracked files as CRLF on Windows. These assertions
+// verify call order and event wiring, not an operating-system newline choice.
+const telemetry = read('components/AgencyVolumeBridgeTelemetry.tsx').replace(/\r\n/g, '\n')
 ok(telemetry.includes("trackEvent(\n          'agency_volume_bridge_viewed'"), 'view event is wired')
 ok(telemetry.includes("trackEvent(\n          'agency_volume_bridge_clicked'"), 'click event is wired')
 ok(telemetry.includes('IntersectionObserver'), 'view relies on viewport observation')
@@ -82,5 +86,18 @@ const callers = {
 for (const [entry, source] of Object.entries(callers)) {
   equal((source.match(new RegExp(`<AgencyVolumeBridge entry="${entry}" \\/>`, 'g')) ?? []).length, 1, `${entry}: existing live caller remains singular`)
 }
+
+const enginePage = read('app/ai-video-generator/[engine]/page.tsx').replace(/\r\n/g, '\n')
+equal((enginePage.match(/<AgencyVolumeBridge entry="kineo1_engine" \/>/g) ?? []).length, 1, 'Kineo 1 engine page mounts one B2B bridge')
+ok(enginePage.includes("params.engine === 'kineo-1'"), 'engine bridge is gated to the Kineo 1 slug')
+ok(!enginePage.includes("e.param === 'seedance' ? (\n          <AgencyVolumeBridge"), 'Seedance never receives the Fast pack bridge')
+ok(enginePage.indexOf('<AgencyVolumeBridge entry="kineo1_engine" />') > enginePage.indexOf("['Trade-off', e.tradeoff]"), 'bridge appears after the Kineo 1 technical facts')
+ok(enginePage.indexOf('<AgencyVolumeBridge entry="kineo1_engine" />') < enginePage.indexOf('{/* Como funciona */}'), 'bridge stays secondary before the general how-it-works section')
+
+const preview = read('docs/previews/KINEO1-B2B-BRIDGE-2026-08-31.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  ok(preview.includes(label), `visual comparison includes ${label}`)
+}
+ok(preview.includes('No recurring contract'), 'preview keeps the one-time purchase boundary visible')
 
 console.log(`PASS — ${checks}/${checks} agency bridge attribution checks`)
