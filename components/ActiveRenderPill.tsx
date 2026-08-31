@@ -36,6 +36,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { buildSeriesContinuationHref } from '@/lib/seriesContinuation'
+// KINEO-SPRINT-V1V4-2026-08-31 (#15) — a fila da espera (#14) so existia numa
+// tela. O proprio "Watch" desta pilula manda a pessoa para /history, onde a
+// ideia guardada NAO aparece: a promessa "it'll be waiting" morria no primeiro
+// clique. A pilula e a unica superficie global do produto autenticado — e
+// portanto o unico lugar onde a fila pode cumprir a promessa em qualquer pagina.
+import {
+  lerIdeiaDaFila,
+  limparFila,
+  type IdeiaNaFila,
+} from '@/lib/proximoEpisodioFila'
 
 const POLL_MS = 15000
 const MIN_PROBE_GAP_MS = 10000
@@ -79,6 +89,12 @@ export default function ActiveRenderPill() {
   const inFlightRef = useRef(false)
   const lastProbeAtRef = useRef(0)
   const shownRef = useRef<string>('')
+  // #15 — a ideia guardada na espera, lida do localStorage. Relida a cada
+  // troca de rota e a cada volta de aba: a fila pode ter sido escrita (ou
+  // usada) em OUTRA aba, e uma pilula que promete uma ideia que ja foi gasta
+  // seria pior do que nenhuma pilula.
+  const [fila, setFila] = useState<IdeiaNaFila | null>(null)
+  const filaShownRef = useRef<string>('')
 
   useEffect(() => {
     try {
@@ -87,6 +103,21 @@ export default function ActiveRenderPill() {
       /* private mode — the pill just stays dismissible per session */
     }
   }, [])
+
+  useEffect(() => {
+    if (suppressed) {
+      // Em /studio/create o cartao da propria tela e o dono da fila; duas
+      // vozes falando da mesma ideia na mesma tela e ruido.
+      setFila(null)
+      return
+    }
+    setFila(lerIdeiaDaFila())
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') setFila(lerIdeiaDaFila())
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [suppressed, pathname])
 
   const runProbe = useCallback(
     async (force: boolean) => {
@@ -189,7 +220,59 @@ export default function ActiveRenderPill() {
     })
   }, [hidden, probe, identity, pathname])
 
-  if (hidden || !probe) return null
+  // Impressao da pilula de fila. Chave = a propria semente, para uma troca de
+  // rota nao recontar a mesma ideia.
+  const filaPillVisible = !suppressed && fila !== null && probe?.state !== 'rendering'
+  useEffect(() => {
+    if (!filaPillVisible || !fila) return
+    if (filaShownRef.current === fila.seed) return
+    filaShownRef.current = fila.seed
+    void trackEvent('next_idea_pill_shown', {
+      chars: fila.seed.length,
+      queued_at_stage: fila.stage ?? null,
+      with_ready_video: probe?.state === 'completed',
+      path: pathname ?? null,
+    })
+  }, [filaPillVisible, fila, probe?.state, pathname])
+
+  // #15 — a fila so pode virar botao quando NAO ha render em voo. Com um render
+  // rodando, o gate de render ativo recusaria o segundo, e o botao seria mentira
+  // (a mesma trava que a #14 respeitou na tela de espera).
+  const filaVisivel = !suppressed && fila !== null && probe?.state !== 'rendering'
+
+  function handleFilaGo(ideia: IdeiaNaFila) {
+    void trackEvent('next_idea_started', {
+      source: 'render_pill',
+      waited_s: Math.max(0, Math.floor((Date.now() - ideia.savedAt) / 1000)),
+      queued_at_stage: ideia.stage ?? null,
+      path: pathname ?? null,
+    })
+    limparFila()
+    setFila(null)
+    // Mesmo endereco que a tela de video pronto usa (idea_source distingue de
+    // onde partiu), para existir UM caminho de "2o video pela fila" no produto.
+    router.push(
+      `/generate?${new URLSearchParams({
+        prompt: ideia.seed,
+        autoanalyze: '1',
+        idea_source: 'wait_queue_pill',
+      }).toString()}`,
+    )
+  }
+
+  function handleFilaDismiss() {
+    void trackEvent('next_idea_cleared', { source: 'render_pill', path: pathname ?? null })
+    limparFila()
+    setFila(null)
+  }
+
+  if (hidden || !probe) {
+    // Sem render e sem aviso de pronto — mas com uma ideia guardada. Este e o
+    // caminho de volta que os 31 medidos (presentes no site depois do 1o video,
+    // zero cliques em gerar) nao tinham em pagina nenhuma.
+    if (!filaVisivel || !fila) return null
+    return <FilaLinedUpPill ideia={fila} onGo={handleFilaGo} onDismiss={handleFilaDismiss} />
+  }
 
   const isRendering = probe.state === 'rendering'
   const accent = isRendering ? '#2997ff' : '#22c55e'
@@ -250,7 +333,9 @@ export default function ActiveRenderPill() {
 
   // Vertical quando ha duas acoes: a pilula horizontal nao cabe em telefone
   // com "Watch" + "Next episode" lado a lado sem truncar os dois.
-  if (!isRendering && nextSeed) {
+  // #15 — o cartao vertical passa a valer tambem quando NAO ha semente de serie
+  // mas HA ideia guardada: a fila e um motivo de cartao por si so.
+  if (!isRendering && (nextSeed || (filaVisivel && fila))) {
     return (
       <div
         role="status"
@@ -277,9 +362,9 @@ export default function ActiveRenderPill() {
             <div
               className="text-xs truncate"
               style={{ color: 'rgba(255,255,255,0.62)', marginTop: 2 }}
-              title={nextSeed}
+              title={filaVisivel && fila ? fila.seed : (nextSeed ?? undefined)}
             >
-              {nextSeed}
+              {filaVisivel && fila ? `Next: ${fila.seed}` : nextSeed}
             </div>
           </div>
           <button
@@ -320,21 +405,60 @@ export default function ActiveRenderPill() {
           >
             Watch
           </button>
-          <button
-            type="button"
-            onClick={() => handleNextEpisode(nextSeed)}
-            className="text-xs font-bold rounded-full flex-1 min-w-0"
-            style={{
-              minHeight: 40,
-              padding: '0 12px',
-              background: '#22c55e',
-              border: 'none',
-              color: '#06220f',
-              cursor: 'pointer',
-            }}
-          >
-            Next episode →
-          </button>
+          {/* #15 — quando ha ideia guardada ela e a acao PRIMARIA, na mesma
+              ordem da tela de video pronto: a ideia que ELA escreveu ganha do
+              "mesmo tema, novo gancho" que o produto sugeriu. */}
+          {nextSeed && !(filaVisivel && fila) ? (
+            <button
+              type="button"
+              onClick={() => handleNextEpisode(nextSeed)}
+              className="text-xs font-bold rounded-full flex-1 min-w-0"
+              style={{
+                minHeight: 40,
+                padding: '0 12px',
+                background: '#22c55e',
+                border: 'none',
+                color: '#06220f',
+                cursor: 'pointer',
+              }}
+            >
+              Next episode →
+            </button>
+          ) : null}
+          {nextSeed && filaVisivel && fila ? (
+            <button
+              type="button"
+              onClick={() => handleNextEpisode(nextSeed)}
+              className="text-xs font-bold rounded-full flex-shrink-0"
+              style={{
+                minHeight: 40,
+                padding: '0 12px',
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.18)',
+                color: '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              Series
+            </button>
+          ) : null}
+          {filaVisivel && fila ? (
+            <button
+              type="button"
+              onClick={() => handleFilaGo(fila)}
+              className="text-xs font-bold rounded-full flex-1 min-w-0"
+              style={{
+                minHeight: 40,
+                padding: '0 12px',
+                background: '#22c55e',
+                border: 'none',
+                color: '#06220f',
+                cursor: 'pointer',
+              }}
+            >
+              Make it now →
+            </button>
+          ) : null}
         </div>
       </div>
     )
@@ -421,6 +545,98 @@ export default function ActiveRenderPill() {
           ×
         </button>
       )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// #15 — A PILULA DA IDEIA GUARDADA (sem render, sem aviso de pronto).
+//
+// Ela existe para UM caso medido em 31/08: 60 pessoas externas fizeram
+// exatamente 1 video em 7 dias; 31 delas estiveram no site DEPOIS desse video
+// e nao clicaram em gerar uma unica vez. Nao sumiram — ficaram sem porta.
+//
+// Nao promete nada que nao cumpre: nao fala em creditos, plano, preco nem
+// upgrade (fronteira do Codex), nao dispara render nenhum e nao escreve no
+// banco. Um clique = ir para o compositor com o tema JA escrito.
+// ═══════════════════════════════════════════════════════════════════════════
+function FilaLinedUpPill({
+  ideia,
+  onGo,
+  onDismiss,
+}: {
+  ideia: IdeiaNaFila
+  onGo: (ideia: IdeiaNaFila) => void
+  onDismiss: () => void
+}) {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed z-40 right-3 md:right-6 bottom-20 md:bottom-6 flex flex-col gap-2"
+      style={{
+        width: 'min(300px, calc(100vw - 24px))',
+        padding: 14,
+        borderRadius: 18,
+        background: 'rgba(11,17,32,0.97)',
+        border: '1px solid rgba(34,197,94,0.45)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+        backdropFilter: 'blur(10px)',
+      }}
+    >
+      <div className="flex items-start gap-2">
+        <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.2 }}>
+          📌
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-bold" style={{ color: '#fff' }}>
+            Video #2 is lined up
+          </div>
+          <div
+            className="text-xs truncate"
+            style={{ color: 'rgba(255,255,255,0.62)', marginTop: 2 }}
+            title={ideia.seed}
+          >
+            {ideia.seed}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Discard saved idea"
+          className="flex items-center justify-center flex-shrink-0 rounded-full"
+          style={{
+            width: 32,
+            height: 32,
+            marginTop: -4,
+            marginRight: -4,
+            background: 'transparent',
+            border: 'none',
+            color: 'rgba(255,255,255,0.72)',
+            fontSize: 18,
+            lineHeight: 1,
+            cursor: 'pointer',
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onGo(ideia)}
+        className="text-xs font-bold rounded-full w-full"
+        style={{
+          minHeight: 40,
+          padding: '0 12px',
+          background: '#22c55e',
+          border: 'none',
+          color: '#06220f',
+          cursor: 'pointer',
+        }}
+      >
+        Make it now →
+      </button>
     </div>
   )
 }
