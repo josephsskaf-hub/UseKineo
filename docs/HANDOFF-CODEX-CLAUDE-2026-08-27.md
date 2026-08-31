@@ -2531,3 +2531,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** posição, copy, oferta, preço, desconto, cupom, crédito, grant, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e não integrar as duas branches B2B de telemetria supersedidas. O fundador pode integrar somente `codex/agency-bridge-attribution`. Codex mede o gate por entry depois da integração e gira a próxima sprint para B2C sem reeditar esta ponte.
+
+## 86. B2B — a intenção de volume do Kineo 1 encontra os packs existentes (31/08/2026)
+
+**DIVISÃO DE PISTA:** entrega exclusiva do Codex em aquisição e conversão B2B. Nenhum arquivo pós-login, de criação, render, qualidade, admin, crédito ou zona compartilhada com o Claude foi tocado. A seção 85 permanece reservada à branch B2C de verdade de preço e atribuição.
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 20:57 UTC, janela de 14 dias, contas internas excluídas):** `/ai-video-generator/kineo-1` recebeu oito pessoas externas identificadas e 47 sessões anônimas; essas unidades permanecem separadas e nunca foram somadas. Uma pessoa identificada concluiu vídeo, duas abriram checkout e zero pagamento foi observado nessa coorte.
+
+**FATO CONFIRMADO:** a landing do Kineo 1 já se apresentava como adequada para volume diário, mas oferecia apenas o caminho gratuito e `/pricing`. A oferta B2B canônica já vende 10–50 Fast Shorts em compra avulsa, sem assinatura, porém não existia ligação entre a intenção de volume dessa landing e os packs.
+
+**HIPÓTESE CAUSAL NOVA:** parte desse tráfego pode representar empresa, freelancer ou agência procurando produção Fast em volume. Mandar esse público para planos recorrentes genéricos cria uma incompatibilidade evitável; apresentar a compra avulsa depois dos fatos técnicos preserva o criador individual e dá ao comprador comercial um caminho correspondente.
+
+**IMPLEMENTADO NA BRANCH CODEX, NÃO EM MAIN:** o commit funcional `b8365c74c786f06e9875dbb1044f747791dc71e3` monta o `AgencyVolumeBridge` somente quando `params.engine === 'kineo-1'`, depois da tabela técnica e antes de “How it works”. A nova entrada allow-listed `kineo1_engine` mantém o destino, os packs, a promessa e a atribuição canônicos; nenhum UTM substitui a origem original.
+
+**MEDIÇÃO / GATE:** versão `agency_volume_bridge_visibility_v1`. Pessoas identificadas e sessões anônimas continuam contagens distintas. Preservar até cinco pessoas externas identificadas com exposição ou 20 sessões anônimas visíveis. Sinal inicial: pelo menos duas pessoas/sessões distintas clicando e uma abertura de checkout bulk; norte verdadeiro: `bulk_purchase_completed`. Com 20 exposições e zero clique, parar e revisar mensagem/adequação. Clique, chegada e checkout não são receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/KINEO1-B2B-BRIDGE-2026-08-31.html` mostra antes/depois em desktop e mobile. O preview foi inspecionado no Chrome conectado do fundador: o caminho gratuito continua principal, o card comercial é secundário, empilha em mobile e declara “No recurring contract”.
+
+**TESTADO LOCALMENTE APÓS REBASE:** 357 verificações relevantes passaram: bridge 61/61, distribuição B2B 69/69, página bulk 32/32, intenção da landing 126/126 e oferta AEO empresarial 69/69. O typecheck repetiu somente os quatro erros baseline conhecidos; nenhum erro novo. Whitespace limpo com `core.whitespace=cr-at-eol`.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, afiliados, e-mail, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar e não editar esta landing nem o bridge até o gate. Integrar somente `codex/agency-bridge-attribution`; ela já consolida a telemetria genérica da seção 84 e substitui as branches B2B antigas indicadas ali. Codex gira a próxima sprint para B2C.
