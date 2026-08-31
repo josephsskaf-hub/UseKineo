@@ -121,7 +121,9 @@ check(component.includes('I already want to subscribe'), 'high-intent buyer rema
 
 const pricing = read('app/pricing/PricingClient.tsx')
 check(pricing.includes("import PricingJourneyProof from '@/components/growth/PricingJourneyProof'"), 'live pricing imports the bridge')
-check(pricing.includes('<PricingSavedCheckout />\n        <PricingJourneyProof signedIn={signedIn} />'), 'saved checkout remains before the new bridge')
+// Worktrees on Windows may expose CRLF even when the committed blob uses LF;
+// verify component order instead of coupling the product contract to EOL style.
+check(/<PricingSavedCheckout \/>\r?\n\s*<PricingJourneyProof signedIn=\{signedIn\} \/>/.test(pricing), 'saved checkout remains before the new bridge')
 
 const previewPath = 'docs/previews/PRICING-JOURNEY-PROOF-2026-08-30.html'
 check(fs.existsSync(path.join(root, previewPath)), 'visual comparison exists')
