@@ -189,6 +189,14 @@ import { withPlanFitCheckoutContext } from '@/lib/growth/planFitCheckout'
 // KINEO-ESPERA-VENDE-2026-08-21 — vitrine durante o render. Ver o cabeçalho do
 // componente para a medição (90% da espera é o Creatomate, não o nosso código).
 import WaitingShowcase from '@/components/video/WaitingShowcase'
+// KINEO-SPRINT-V1V4-2026-08-31 (#14) — a fila do proximo episodio.
+import {
+  lerIdeiaDaFila,
+  limparFila,
+  salvarIdeiaNaFila,
+  normalizarIdeia,
+  type IdeiaNaFila,
+} from '@/lib/proximoEpisodioFila'
 import useReadyBeacon from '@/components/video/useReadyBeacon'
 import useWaitAbandon from '@/components/video/useWaitAbandon'
 // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a mesma constante que o servidor usa
@@ -1387,6 +1395,15 @@ export default function GenerateClient({
   // reliable), set inside the credits effect below.
 
   const [phase, setPhase] = useState<Phase>('idle')
+  // KINEO-SPRINT-V1V4-2026-08-31 (#14) — a ideia que a pessoa guardou DURANTE a
+  // espera do render. Vive no localStorage (lib/proximoEpisodioFila) para
+  // sobreviver a troca de aba, que e exatamente o que a telemetria da #6 mostrou
+  // acontecendo aos ~77s de espera. Fica no pai (e nao no cartao) porque quem
+  // precisa dela no fim e a tela de "video pronto", que e outro ramo da arvore.
+  const [ideiaNaFila, setIdeiaNaFila] = useState<IdeiaNaFila | null>(null)
+  useEffect(() => {
+    setIdeiaNaFila(lerIdeiaDaFila())
+  }, [])
   // UX-1 instrumentation — log EVERY phase transition (catches regressions like
   // generating -> analyzing). String log so it is fully readable in console capture.
   const prevPhaseRef = useRef<Phase>('idle')
@@ -8532,6 +8549,62 @@ export default function GenerateClient({
     router.push(href)
   }
 
+  // ═══ KINEO-SPRINT-V1V4-2026-08-31 (#14) — a espera vira a proxima ideia ════
+  //
+  // Guardar (durante o render) e usar (no pico de alegria) sao dois momentos
+  // separados por 3-7 minutos e, em ~metade dos casos medidos, por uma troca de
+  // aba. Por isso a ideia nao pode viver em estado de React: ela vai para o
+  // localStorage e volta de la.
+  //
+  // O que NAO acontece aqui: nenhum render novo comeca. Com um render em voo o
+  // produto recusaria (gate de render ativo) e o botao seria mentira. A espera
+  // so ESCREVE; quem DISPARA e a tela de video pronto.
+  function handleSalvarIdeiaDaEspera(texto: string): boolean {
+    const salva = salvarIdeiaNaFila(texto, phase)
+    if (!salva) return false
+    setIdeiaNaFila(salva)
+    void trackEvent('next_idea_queued', {
+      stage: phase,
+      mode,
+      chars: salva.seed.length,
+    })
+    return true
+  }
+
+  function handleLimparIdeiaDaEspera() {
+    limparFila()
+    setIdeiaNaFila(null)
+    void trackEvent('next_idea_cleared', { stage: phase })
+  }
+
+  function handleUsarIdeiaDaFila(ideia: IdeiaNaFila) {
+    const seed = normalizarIdeia(ideia.seed)
+    if (!seed) {
+      handleLimparIdeiaDaEspera()
+      return
+    }
+    void trackEvent('next_idea_started', {
+      waited_s: Math.max(0, Math.floor((Date.now() - ideia.savedAt) / 1000)),
+      queued_at_stage: ideia.stage ?? null,
+      video_id: publicVideoId ?? null,
+    })
+    limparFila()
+    setIdeiaNaFila(null)
+    handleReset()
+    setPrompt(seed)
+    autoAnalyzeKeyRef.current = null
+    // Vai pelo endereco (e nao so pelo estado) para ficar identico ao caminho de
+    // serie: recarregar a pagina nao perde a ideia, e o `idea_source` deixa o
+    // rastro de ONDE o 2o video nasceu.
+    router.push(
+      `/generate?${new URLSearchParams({
+        prompt: seed,
+        autoanalyze: '1',
+        idea_source: 'wait_queue',
+      }).toString()}`,
+    )
+  }
+
   // Push #047 — copy any section of the output package to the clipboard,
   // flashing a transient "✓ Copied" state on the matching button. Used by
   // the per-card copy buttons and the top-level "Copy Full Short Package"
@@ -11760,6 +11833,16 @@ export default function GenerateClient({
                   primeiro, oferta depois: é a mesma regra. */}
               <WaitingShowcase />
 
+              {/* KINEO-SPRINT-V1V4-2026-08-31 (#14) — o bloco de notas da espera.
+                  DEPOIS da vitrine de propósito: a vitrine responde "isso fica
+                  bom?" (dúvida de quem ainda não viu o próprio filme); só quem
+                  já se convenceu tem cabeça para pensar no próximo. */}
+              <NextIdeaDuringWait
+                ideia={ideiaNaFila}
+                onSave={handleSalvarIdeiaDaEspera}
+                onClear={handleLimparIdeiaDaEspera}
+              />
+
               {/* The per-clip tile grid was removed in push #031 — the final
                   output is a single composed MP4, so users only ever see ONE
                   video on this page (the finalVideoUrl, rendered below in the
@@ -14382,6 +14465,41 @@ export default function GenerateClient({
               // monetização deste ecrã já é tratada acima pelos componentes de
               // oferta (pista do Codex) e não é duplicada aqui.
               <div className="flex flex-col items-center gap-2.5 mb-6">
+                {/* KINEO-SPRINT-V1V4-2026-08-31 (#14) — a ideia que ela guardou
+                    enquanto ESTE filme renderizava volta AQUI, no pico de alegria,
+                    e vem PRIMEIRO: o botão de série abaixo repete o mesmo tema; este
+                    é o tema que ela mesma escolheu, e escolha própria ganha de
+                    sugestão. Se não guardou nada, este bloco não existe. */}
+                {ideiaNaFila && (
+                  <div className="flex flex-col items-center gap-1.5 w-full">
+                    <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#34d399' }}>
+                      You lined this up while it rendered
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleUsarIdeiaDaFila(ideiaNaFila)}
+                      className="rounded-xl px-5 py-3 text-sm font-black"
+                      style={{
+                        maxWidth: 380,
+                        background: 'linear-gradient(135deg, rgba(52,211,153,.26), rgba(41,151,255,.18))',
+                        border: '1px solid rgba(52,211,153,.6)',
+                        color: '#eafff5',
+                        cursor: 'pointer',
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      Make it now: &ldquo;{ideiaNaFila.seed}&rdquo; →
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLimparIdeiaDaEspera}
+                      className="text-[11px]"
+                      style={{ background: 'transparent', border: 0, color: 'var(--muted)', cursor: 'pointer' }}
+                    >
+                      Not this one
+                    </button>
+                  </div>
+                )}
                 <p className="text-xs text-center" style={{ color: 'var(--muted2)', lineHeight: 1.5, maxWidth: 320 }}>
                   Same topic, new hook and payoff — the idea comes pre-written.
                 </p>
@@ -16311,6 +16429,141 @@ function ModeSelector({
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+// ═══ KINEO-SPRINT-V1V4-2026-08-31 (#14) — O BLOCO DE NOTAS DA ESPERA ═══════
+//
+// A espera do render é o único momento do funil em que a pessoa está presa na
+// nossa tela com atenção total e SEM NADA PARA FAZER. A vitrine
+// (WaitingShowcase, 21/08) usou esse tempo para convencer. Este cartão usa o
+// tempo para PRODUZIR: ela sai da espera com o vídeo 2 já escrito.
+//
+// Três decisões que parecem detalhe e não são:
+//  1. NÃO existe botão de "gerar agora" aqui. Com um render em voo o servidor
+//     recusaria o segundo, e botão que recusa é pior do que botão nenhum.
+//     A promessa é literal — "it'll be waiting" — e é cumprida no fim.
+//  2. Campo VAZIO, sem sugestão pré-preenchida. O botão de série ("mesmo tema,
+//     novo gancho") já existe na tela de vídeo pronto; repetir a sugestão aqui
+//     transformaria o cartão num eco. O que falta no produto é o lugar de
+//     guardar a ideia DIFERENTE, que hoje ela esquece no meio de 3 minutos.
+//  3. Some sozinho depois de salvo, virando um resumo de uma linha. Um campo de
+//     texto piscando ao lado de um render em andamento vira ansiedade.
+function NextIdeaDuringWait({
+  ideia,
+  onSave,
+  onClear,
+}: {
+  ideia: IdeiaNaFila | null
+  onSave: (texto: string) => boolean
+  onClear: () => void
+}) {
+  const [texto, setTexto] = useState('')
+  const jaTem = Boolean(ideia)
+
+  if (jaTem && ideia) {
+    return (
+      <div
+        className="rounded-xl px-3 py-2.5 mt-4 flex items-start gap-2.5"
+        style={{
+          background: 'rgba(52,211,153,.07)',
+          border: '1px solid rgba(52,211,153,.28)',
+        }}
+      >
+        <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1.2 }}>✓</span>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="text-xs font-black" style={{ color: '#34d399', lineHeight: 1.3 }}>
+            Video #2 is lined up
+          </div>
+          <div className="text-[11px] mt-0.5" style={{ color: 'var(--muted2)', lineHeight: 1.45, wordBreak: 'break-word' }}>
+            &ldquo;{ideia.seed}&rdquo; — we&apos;ll put it in front of you the moment this one lands.
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          aria-label="Remove queued idea"
+          style={{
+            background: 'transparent',
+            border: 0,
+            color: 'var(--muted)',
+            fontSize: 16,
+            lineHeight: 1,
+            cursor: 'pointer',
+            minWidth: 40,
+            minHeight: 40,
+          }}
+        >
+          ×
+        </button>
+      </div>
+    )
+  }
+
+  const podeSalvar = texto.trim().length > 0
+
+  return (
+    <div
+      className="rounded-xl px-3 py-3 mt-4"
+      style={{
+        background: 'rgba(255,255,255,.03)',
+        border: '1px solid var(--border)',
+      }}
+    >
+      <div className="text-xs font-black mb-1" style={{ color: 'var(--text)' }}>
+        While this renders — what&apos;s your next one?
+      </div>
+      <div className="text-[11px] mb-2.5" style={{ color: 'var(--muted)', lineHeight: 1.45 }}>
+        Type it now and it&apos;ll be waiting the second this video is ready. Nothing
+        starts until you say so.
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <input
+          type="text"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && podeSalvar) {
+              e.preventDefault()
+              if (onSave(texto)) setTexto('')
+            }
+          }}
+          maxLength={180}
+          placeholder="e.g. Why the Titanic wreck is disappearing"
+          aria-label="Your next video idea"
+          style={{
+            flex: '1 1 190px',
+            minWidth: 0,
+            minHeight: 40,
+            borderRadius: 10,
+            padding: '8px 11px',
+            background: 'rgba(0,0,0,.28)',
+            border: '1px solid var(--border)',
+            color: 'var(--text)',
+            fontSize: '0.8rem',
+            outline: 'none',
+          }}
+        />
+        <button
+          type="button"
+          disabled={!podeSalvar}
+          onClick={() => {
+            if (onSave(texto)) setTexto('')
+          }}
+          className="rounded-lg px-3.5 text-xs font-black"
+          style={{
+            minHeight: 40,
+            background: podeSalvar ? 'rgba(52,211,153,.16)' : 'rgba(255,255,255,.04)',
+            border: `1px solid ${podeSalvar ? 'rgba(52,211,153,.5)' : 'var(--border)'}`,
+            color: podeSalvar ? '#34d399' : 'var(--muted)',
+            cursor: podeSalvar ? 'pointer' : 'not-allowed',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Line it up
+        </button>
+      </div>
     </div>
   )
 }
