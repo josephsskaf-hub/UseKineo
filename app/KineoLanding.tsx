@@ -19,10 +19,10 @@ import LiveStatsBadge from '@/components/LiveStatsBadge'
 import EngineCycleCard from '@/components/EngineCycleCard'
 import TrendingRow from '@/components/TrendingRow'
 // KINEO-VITRINE-MOEDA-2026-08-19 — LandingStarterPrice cobria SÓ o Starter, e
-// por isso a home mostrava R$24,90 (regional) ao lado de $19.90 e $39.90
-// (chumbados). Agora os TRÊS planos falam a moeda do visitante.
+// por isso a home já misturou moedas. A fonte atual é USD-only; os três cards
+// continuam derivados, e a frase de cobrança vem da mesma fonte do checkout.
 import LandingPlanPrice from '@/components/LandingPlanPrice'
-import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
+import { CHECKOUT_CURRENCY_TRUTH, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing' // KINEO-AEO-PRICE-TRUTH-2026-08-19
 // KINEO-CLIPES-2026-08-19 — filme pronto + cenas, ver lib/marketingPrice.
 import { filmsAndScenes, imagesFor, nanoBananasFor, voiceoversFor, filmsOn } from '@/lib/marketingPrice' // KINEO-CARD-CHEIO-2026-08-25
 
@@ -1530,7 +1530,7 @@ export default function KineoLanding({
                 verbatim em components/StructuredData.tsx (faqSchema) — mudar
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
-            <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. It is the same price everywhere in the world — we show it in your local currency, but nobody pays more or less for where they live. New accounts get free credits to make a first video before paying anything.</p></div>
+            <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. {CHECKOUT_CURRENCY_TRUTH} New accounts get free credits to make a first video before paying anything.</p></div>
             <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>Eight, behind one interface and one balance: Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
             <div className="qa"><h3>What is the best AI video generator for faceless YouTube channels?</h3><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></div>
           </div>

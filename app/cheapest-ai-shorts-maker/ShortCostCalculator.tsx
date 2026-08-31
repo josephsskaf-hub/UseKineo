@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
+  CHECKOUT_CURRENCY_LOADING,
+  CHECKOUT_CURRENCY_TRUTH_VERSION,
   CURRENCY_DISPLAY,
   formatCheckoutMoney,
   getTierPrice,
@@ -78,6 +80,7 @@ export default function ShortCostCalculator() {
         setCurrency(resolved)
         void trackEvent('short_cost_calculator_viewed', {
           display_currency: resolved,
+          currency_truth_version: CHECKOUT_CURRENCY_TRUTH_VERSION,
           default_engine: initialQuality,
           default_seconds: initialSeconds,
           default_videos: initialVideos,
@@ -270,7 +273,7 @@ export default function ShortCostCalculator() {
           <div style={{ minWidth: 220 }}>
             <div style={{ color: '#86868b', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>Lowest monthly plan that covers it</div>
             {!currency ? (
-              <div style={{ marginTop: 6, color: '#d2d2d7', fontWeight: 800 }}>Checking local price…</div>
+              <div style={{ marginTop: 6, color: '#d2d2d7', fontWeight: 800 }}>{CHECKOUT_CURRENCY_LOADING}</div>
             ) : result.plan && recommendationMonthly != null ? (
               <div style={{ marginTop: 5 }}>
                 <div style={{ fontSize: 20, fontWeight: 900 }}>{planName(result.plan.tier)} · {formatCheckoutMoney(currency, recommendationMonthly)}/mo</div>

@@ -1,5 +1,5 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
-import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
+import { CHECKOUT_CURRENCY_TRUTH, TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
 
@@ -239,7 +239,7 @@ const faqSchema = {
       name: 'How much does Kineo cost?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. It is the same price everywhere in the world — we show it in your local currency, but nobody pays more or less for where they live. New accounts get free credits to make a first video before paying anything.`,
+        text: `Kineo has three monthly plans: Starter at $${usd(TIER_PRICES.starter.usd)} for ${TIER_CREDITS.starter} credits, Creator at $${usd(TIER_PRICES.basic.usd)} for ${TIER_CREDITS.basic} credits and Studio at $${usd(TIER_PRICES.pro.usd)} for ${TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. ${CHECKOUT_CURRENCY_TRUTH} New accounts get free credits to make a first video before paying anything.`,
       },
     },
     {
