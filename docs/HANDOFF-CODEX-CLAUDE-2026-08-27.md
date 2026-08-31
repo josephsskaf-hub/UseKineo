@@ -2503,3 +2503,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, entitlement, Stripe server, resume banner, Plan Fit, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b607a8ab` ou da ponta posterior. Não duplicar o bloco na tela pós-vídeo, não editar `CheckoutResumeBanner` antes do gate da seção 75 e não alterar trial/preço durante esta coorte. Codex mede `pricing_journey_proof_v1` e alterna a próxima rodada para B2B.
+
+## 82. B2C — escolha de plano no fim do trial (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC):** nas 72 horas reconciliadas, 13 pessoas externas receberam o modal de downgrade, nove o dispensaram e nenhuma acionou o CTA. A unidade é pessoa externa, não evento. Esta superfície já ultrapassou o gate mínimo; os experimentos `pricing_journey_proof_v1`, `plan_fit_direct_win_v3` e `resume_smaller_choice_v1` continuam sem amostra suficiente e não foram reeditados.
+
+**HIPÓTESE CAUSAL NOVA:** a tela prescrevia Creator para todos, embora Starter já seja uma opção canônica. Permitir que a pessoa escolha um ritmo leve ou maior reduz o salto de compromisso sem desconto, crédito novo ou promessa nova.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `trial_downgrade_choice_v1` substitui o CTA único por Starter, Creator e comparação de todos os planos. Preço, créditos e quantidade aproximada de filmes são derivados de `lib/checkoutPricing.ts` e `lib/marketingPrice.ts`; o servidor Stripe continua decidindo elegibilidade. O checkout Creator original foi preservado e Starter usa o mesmo contrato existente. A medição `trial_downgrade_choice_clicked` registra somente versão, escolha, bucket de vídeos concluídos e bucket de créditos usados, sem PII.
+
+**TESTADO LOCALMENTE:** escolha 62/62 e contrato monetário 306/306. Typecheck repetiu somente os quatro erros baseline em MRR, assinatura e checkout; nenhum erro novo. Whitespace limpo. A comparação desktop/mobile está em `docs/previews/TRIAL-DOWNGRADE-CHOICE-2026-08-31.html`.
+
+**GATE:** preservar até dez pessoas externas receberem a impressão versionada. Medir `impressão → starter|creator|compare → checkout_started → payment_success` por pessoa. Clique e checkout não são receita. Interromper imediatamente se plano, preço ou crédito exibido divergirem do checkout Stripe.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe server, render, geração, cena, voz, legenda ou créditos técnicos.
+
+## 83. B2B / afiliados — links antigos passam a perguntar a intenção (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (SELECT, 31/08/2026 UTC):** havia 11 afiliados externos ativos. Em 30 dias, 19 cliques vieram de quatro afiliados; todos os 19 usaram links legados sem `to=`. Não havia clique específico de destino, referral pago ou comissão. A página de agência e os gates B2B das seções 76, 78 e 80 continuam sem amostra suficiente e não foram reeditados.
+
+**HIPÓTESE CAUSAL NOVA:** o link legado joga creator e empresa na mesma home e perde a intenção. Uma pergunta curta depois de a atribuição estar protegida pode conduzir creator à ferramenta de roteiro e empresa ao planejador semanal ou aos packs, sem mudar comissão nem criar redirecionamento aberto.
+
+**IMPLEMENTADO / AINDA NÃO VALIDADO EM PRODUÇÃO:** `affiliate_legacy_router_v1` altera somente links `/a/CODE` em que `to` está realmente ausente e existe prova protegida de atribuição. Links modernos `?to=script|video|faceless|business` permanecem idênticos. `to` vazio, inválido ou malicioso, bots, código inativo e falha de prova continuam indo para a home. A página `/affiliate-start` é `noindex,nofollow`, usa somente destinos first-party allow-listed e não recebe código do afiliado no cliente. Eventos `viewed` e `intent_selected` carregam apenas categorias finitas, sem PII.
+
+**TESTADO LOCALMENTE:** destinos e rota 313/313. Typecheck repetiu somente os quatro erros baseline; nenhum erro novo. Whitespace limpo. A comparação desktop/mobile está em `docs/previews/AFFILIATE-LEGACY-ROUTER-2026-08-31.html`.
+
+**GATE:** preservar até cinco novos cliques legados com prova. Se houver cinco e zero seleção, desligar `AFFILIATE_LEGACY_ROUTER_ENABLED`. Se houver seleção business sem geração de plano, revisar o enquadramento. Visita, seleção e plano não são referral nem receita.
+
+**NÃO TOCADO:** comissão, payout, cookie financeiro, atribuição first-touch, preço, pack, desconto, crédito, trial, Stripe, Supabase schema/dados, render ou comunicação externa.
+
+**COORDENAÇÃO:** estas duas entregas nasceram de `origin/main` em `72278c7c`, em branches `codex/*`, sem editar a árvore principal. O documento `docs/ESCOPO-CLAUDE-VS-CODEX-2026-08-31.md` ainda não existia em `origin/main` no início desta integração; o arquivo solto da árvore principal não foi puxado para o commit. Claude deve publicar a cópia canônica ou avisar antes de Codex incorporá-la em outra rodada.
