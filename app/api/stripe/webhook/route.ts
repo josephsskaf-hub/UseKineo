@@ -18,6 +18,7 @@ import {
   type CheckoutCurrency,
   type CheckoutPlanTier,
 } from '@/lib/checkoutPricing'
+import { readBulkCheckoutTruthVersion } from '@/lib/growth/bulkCheckoutTruth'
 // KINEO-PILOT-99-2026-07-26 — o nome do plano e o cálculo do prazo são os MESMOS
 // que o cron lê. Se divergirem, o piloto ou nunca expira ou nunca gera.
 import { AUTOPILOT_PILOT_PLAN, autopilotPilotExpiresAt } from '@/lib/autopilot/config'
@@ -578,6 +579,9 @@ async function recordBulkPurchase(
         sku: args.sku,
         bulk_videos: args.videos,
         credits_granted: args.credits,
+        bulk_checkout_truth_version: readBulkCheckoutTruthVersion(
+          session.metadata?.bulk_checkout_truth_version,
+        ),
         stripe_session_id: session.id,
         amount_total: session.amount_total ?? 0,
         currency: session.currency ?? 'usd',

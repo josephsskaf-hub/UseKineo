@@ -59,6 +59,10 @@ import {
 } from '@/lib/growth/planFitCheckout'
 import { engineName } from '@/lib/growth/planFit'
 import { buildAgencyCheckoutCancelUrl } from '@/lib/growth/agencyCheckoutReturn'
+import {
+  BULK_CHECKOUT_TRUTH_VERSION,
+  bulkCheckoutDescription,
+} from '@/lib/growth/bulkCheckoutTruth'
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
 import {
   attributeAffiliateForUser,
@@ -2557,8 +2561,9 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
 
 // ─── KINEO-BULK-2026-07-27 — pacotes de atacado (mode: 'payment') ────────────
 // Escada aprovada pelo fundador em 27/07: 10/$99, 20/$179, 30/$249, 50/$379.
-// Vende VÍDEO, não ferramenta. Sem gate de plano: o comprador de atacado é
-// justamente quem NÃO tem assinatura — exigir plano seria o mesmo laço fechado
+// Vende capacidade de produção para o volume Fast escolhido, concedida como
+// créditos universais. Sem gate de plano: o comprador de atacado é justamente
+// quem NÃO tem assinatura — exigir plano seria o mesmo laço fechado
 // que mantém o Autopilot em 0 canais conectados (docs/PROJECT_STATE.md §3.2).
 //
 // Só USD. Ver a justificativa em lib/checkoutPricing.ts (BULK_PACKS): o fundador
@@ -2578,6 +2583,7 @@ async function buildBulkPackAndRedirect(
     mode: 'payment',
     bulk_videos: pack.videos,
     bulk_credits: pack.credits,
+    bulk_checkout_truth_version: BULK_CHECKOUT_TRUTH_VERSION,
   }
 
   async function redirectError(msg: string) {
@@ -2641,9 +2647,7 @@ async function buildBulkPackAndRedirect(
           currency,
           product_data: {
             name: `Kineo — ${pack.videos} Shorts`,
-            description:
-              `One-time: ${pack.videos} ready-to-post vertical Shorts (script, voiceover, captions and footage). ` +
-              `No subscription. Credits never expire.`,
+            description: bulkCheckoutDescription(pack),
           },
           unit_amount: unitAmount,
         },
@@ -2666,6 +2670,7 @@ async function buildBulkPackAndRedirect(
       pack: bulkId,
       pack_credits: String(pack.credits),
       bulk_videos: String(pack.videos),
+      bulk_checkout_truth_version: BULK_CHECKOUT_TRUTH_VERSION,
     },
   }
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
