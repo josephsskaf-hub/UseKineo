@@ -15,6 +15,7 @@ import {
   affiliateLandingContext,
   type PublicSearchParams,
 } from '@/lib/growth/affiliateLandingContext'
+import FreeFinishedScriptBridge from '@/components/growth/FreeFinishedScriptBridge'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -141,6 +142,8 @@ export default function FreeAiShortsGeneratorPage({ searchParams }: { searchPara
         <p style={{ fontSize: 13, color: '#2997ff', fontWeight: 750, margin: '12px 0 0' }}>
           {ft(OFFER, 'Up to 3 watermarked Fast videos every 24h. No card required.', OFFER.copy.headline)}
         </p>
+
+        <FreeFinishedScriptBridge />
 
         <TopicGeneratorForm
           campaign={CAMPAIGN}
