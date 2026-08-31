@@ -57,6 +57,10 @@ import {
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY, type FreeTierOffer } from '@/lib/freeTierOffer'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
+import {
+  buildPricingPlanChoiceAttribution,
+  sanitizePricingIntentCampaign,
+} from '@/lib/growth/pricingPlanChoiceAttribution'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -231,8 +235,8 @@ function buildPricing(currency: DisplayCurrency, region: PriceRegion) {
   ]
 }
 
-function trackPricingEvent(name: string): void {
-  void trackEvent(name)
+function trackPricingEvent(name: string, metadata?: Record<string, unknown>): void {
+  void trackEvent(name, metadata)
 }
 
 export default function PricingClient() {
@@ -372,7 +376,7 @@ export default function PricingClient() {
   // query this event; the pricing page simply never emitted it before.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const intentCampaign = params.get('intent_campaign')
+    const intentCampaign = sanitizePricingIntentCampaign(params.get('intent_campaign'))
     if (intentCampaign) rememberSignupCampaign(intentCampaign)
     setArrivedWithPromo((params.get('promo') ?? '').trim().length > 0)
     void trackEvent('pricing_view', intentCampaign ? { source: intentCampaign } : undefined)
@@ -425,8 +429,8 @@ export default function PricingClient() {
     const pricingParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
     const promo = pricingParams?.get('promo') ?? null
     const promoParam = promo ? `&promo=${encodeURIComponent(promo)}` : ''
-    const rawIntentCampaign = (pricingParams?.get('intent_campaign') ?? '').trim()
-    const intentCampaign = /^[A-Za-z0-9._~-]{1,100}$/.test(rawIntentCampaign) ? rawIntentCampaign : null
+    const rawIntentCampaign = pricingParams?.get('intent_campaign')
+    const intentCampaign = sanitizePricingIntentCampaign(rawIntentCampaign)
     const intentParam = intentCampaign ? `&intent_campaign=${encodeURIComponent(intentCampaign)}` : ''
     // KINEO-INTRO-MONTH-2026-07-13 — Starter/Creator monthly levam o 1º mês
     // com desconto ($4.90/$9.90). O servidor valida elegibilidade (1 por
@@ -448,7 +452,12 @@ export default function PricingClient() {
         : tier === 'autopilot'
           ? 'autopilot_checkout_clicked'
           : 'basic_checkout_clicked'
-    trackPricingEvent(eventName)
+    const attribution = buildPricingPlanChoiceAttribution({
+      tier,
+      billing: effectiveBilling,
+      intentCampaign: rawIntentCampaign,
+    })
+    trackPricingEvent(eventName, attribution ?? undefined)
     // KINEO-PILOT-99-2026-07-26 — o guard `if (tier !== 'autopilot')` saiu: a
     // união em lib/trackClick.ts já aceita 'autopilot', então o SKU de maior
     // ARPU deixa de ser invisível em /admin/click-stats.
