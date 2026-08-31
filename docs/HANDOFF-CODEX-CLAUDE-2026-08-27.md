@@ -2627,3 +2627,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, Stripe, Supabase schema/dados, admin, render, motor, cena, voz, legenda, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` antes de continuar e não editar o calculador ou `lib/growth/agencyProposal.ts` até o gate. Na pista dele, pode apenas adicionar `agency_margin_proposal_copied` ao leitor do admin como pessoa deduplicada, sem alterar esta experiência. Codex alterna agora para B2C de alta intenção conforme o briefing, mantendo intacta a oferta pós-vídeo sem amostra nova.
+
+## 95. B2C — a compra no limite passa a responder “qual opção termina este vídeo?” (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / PRIORIZAÇÃO:** o briefing Supabase de 31/08/2026 mostrou que superfícies de intenção alta superam o convite pós-vídeo na amostra observada: pricing registrou quatro pagantes entre 17 pessoas que clicaram na janela comparativa, e a retomada registrou duas entre dez. Um caso separado pagou 44 segundos depois da segunda recusa de limite. Esses números não provam causalidade nem são somados entre janelas; justificam trabalhar o limite sem reeditar a oferta pós-vídeo ainda sem gate.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** `GenerateClient` já calculava o saldo e o custo canônico exato do vídeo antes de abrir o modal, mas passava apenas razão, moeda e estado de assinatura. O modal mostrava três planos e quatro recargas sem dizer quais cobriam o pedido. No caso 0/150, Starter (40) e Creator (90) continuavam insuficientes, embora Creator recebesse o selo genérico `MOST POPULAR`.
+
+**HIPÓTESE CAUSAL NOVA:** no instante de recusa por saldo, substituir comparação abstrata por uma resposta verificável — custo, saldo, falta e menor opção que cobre — reduz uma segunda decisão e evita que a pessoa pague por algo que ainda não conclui o pedido.
+
+**IMPLEMENTADO:** o commit funcional `5629780be9719551f4c19def4c90da1c68c60b62` adiciona `lib/growth/limitPurchaseFit.ts` e liga saldo + `selectedCost` ao modal real de `/studio/create`. O contrato usa exclusivamente `TIER_CREDITS`, `INTRO_CREDITS` e `TOPUP_CREDITS`; para primeiro pagamento usa o menor grant possível entre intro e recorrência. Conta sem assinatura recebe como recomendação o menor plano que cobre; se nenhum cobre, a menor recarga que cobre. Assinante nunca recebe recomendação de um segundo plano: somente a menor recarga suficiente. Nenhuma opção é escondida.
+
+**VERDADE DA INTERFACE:** o modal mostra `This video needs X credits. You have Y`, o déficit exato e marca somente a recomendação com `FINISHES THIS VIDEO`. Cada plano/recarga declara `Covers this video` ou a falta restante. Razões de acesso (`studio`, `creator`, `footage`) não recebem o card de saldo; ele só aparece para falta de crédito ou fases do trial relacionadas.
+
+**MEDIÇÃO / PRIVACIDADE:** `limit_purchase_fit_viewed` e `limit_purchase_fit_clicked`, versão `limit_purchase_fit_v1`, guardam apenas estado de conta, buckets de saldo/custo/falta, contagens de opções que cobrem, tipo/id categórico e `fits_request`. Saldo, custo e falta exatos não entram no evento. Seguir por pessoa externa `viewed → fitting choice clicked → checkout_started → payment_success`, separando assinatura de recarga.
+
+**GATE / PARADA:** preservar até dez pessoas externas versionadas. Parar imediatamente se qualquer clique recomendado registrar `fits_request=false`, se a concessão divergir da fonte canônica ou se a escolha destacada não cobrir o pedido. Observar canibalização separando top-up e assinatura; impressão, clique e checkout não são receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/LIMIT-PURCHASE-FIT-V1-2026-08-31.html` mostra antes/depois desktop e mobile e foi inspecionado no Chrome conectado. O cenário 0/150 deixa Starter e Creator amarelos por insuficiência, destaca Studio e mantém topup300 como alternativa avulsa que cobre.
+
+**TESTADO LOCALMENTE:** contrato novo 32/32, verdade comercial 306/306 e orientação de pagamento 29/29. TypeScript terminou sem saída e whitespace ficou limpo. A revisão React confirmou estado derivado durante render, sem effect, request, storage ou listener novo.
+
+**VALIDADO EM PRODUÇÃO (31/08/2026 UTC):** `origin/main` avançou por fast-forward para `5629780be9719551f4c19def4c90da1c68c60b62`. O deploy Vercel `dpl_FrKBLcKcqnsYNnzDGYQwDKcS1Hjr` chegou a `READY`, target production, aliasado em `www.usekineo.com`, e teve zero runtime `error`/`fatal` na janela consultada. O caller real `/studio/create` abriu autenticado no Chrome com saldo e custo canônicos. A conta do fundador tinha 1.414 créditos, portanto o ramo de insuficiência não foi forçado em produção para não fabricar débito/render; o contrato executável e a comparação visual cobrem esse estado até a primeira pessoa externa elegível.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe server/configuração, crédito/débito, Supabase schema/dados, render, motor, cena, voz, legenda, oferta pós-vídeo, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `5629780b` ou da ponta posterior. Não editar o gate/trigger de saldo nem este modal até o gate; `GenerateClient.tsx` permanece zona compartilhada e esta mudança está restrita à apresentação comercial e telemetria. Codex gira a próxima sprint para B2B, preservando este experimento.
