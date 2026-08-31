@@ -313,7 +313,13 @@ checa('auth_required tem acao de login', /Sign in again/.test(clienteSrc))
 checa('encurtar preserva o candidato', /kept_candidate: expandedScript !== null/.test(clienteSrc))
 checa('telemetria do aceite grava a rodada real', /round: rodadaDoAceite/.test(clienteSrc))
 // Windows faz checkout CRLF; o contrato não pode depender do terminador de linha.
-checa('CTA de autoria manda targetSeconds', /targetSeconds: scriptTooShort\.targetSeconds,\r?\n\s*forceAuthoring: true/.test(clienteSrc))
+// sprint-v1v4 #13 — asserção VELHA consertada. A #9 renomeou a variável de
+// `scriptTooShort` para `alvo` no CTA de autoria; esta linha continuou
+// procurando o nome antigo e falhava 1 de 95 desde então — ruído que esconde
+// falha de verdade. O CONTRATO que importa não é o nome da variável, é que o
+// `targetSeconds` viaje colado ao `forceAuthoring`. É isso que passa a ser
+// verificado.
+checa('CTA de autoria manda targetSeconds', /targetSeconds: [A-Za-z_$][\w$]*(?:\.[\w$]+)*\.targetSeconds,\r?\n\s*forceAuthoring: true/.test(clienteSrc))
 
 // ── 22. CONTRATO DA ROTA generate-script (achados 2 e 3) ───────────────────
 const rotaScript = readFileSync(join(raiz, 'app/api/generate-script/route.ts'), 'utf8')
