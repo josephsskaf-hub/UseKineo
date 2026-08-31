@@ -2572,6 +2572,8 @@ PRÓXIMO DONO:
 
 **TESTADO LOCALMENTE:** contrato específico 10/10 e atribuição de escolha em pricing 26/26. O gate de whitespace ficou limpo. O typecheck da árvore rebaseada repetiu somente os quatro erros baseline preexistentes.
 
+**VALIDADO EM PREVIEW (31/08/2026 UTC):** o deploy Vercel `dpl_4brQbjBsgRV8dNt4DR6qmW7w7dBP`, SHA `888dd6d71def4e240dfc0244ac9669708ff0bd68`, chegou a `READY`. No Chrome conectado, o case study exibiu primeiro `See Autopilot pilot and monthly options`, com destino e campanha corretos, e manteve `Start free — 25 credits, every engine` como secundário. Nenhum CTA, signup ou checkout foi executado; a Vercel registrou zero runtime `error`/`fatal` na janela consultada.
+
 **NÃO TOCADO:** oferta, preço, SKU, crédito, trial, Stripe, checkout, produto Autopilot, YouTube, render, e-mail, outreach, anúncio ou dados.
 
 ## 92. B2C — a parede do checkout ainda não distingue recusa de abandono (31/08/2026)
