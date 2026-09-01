@@ -4275,6 +4275,86 @@ export default function GenerateClient({
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [phase])
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // KINEO-SPRINT-V1V4-2026-09-01 (#41) — A PORTA DO EPISODIO 2 ESTAVA MUDA
+  //
+  // O NUMERO: em 3 dias 41 pessoas chegaram na tela de video pronto
+  // (`video_ready_viewed` = 51 eventos / 41 pessoas) e o botao "Build the next
+  // episode" desta mesma tela nao registrou UM clique desde 30/08 — antes
+  // disso ele era a 2a maior fonte de continuacao de serie da historia
+  // (`done_screen` = 15 de 59 cliques em 14d). A superficie nao sumiu: o
+  // codigo dela esta intacto. O que nunca soubemos e se alguem CHEGA a ve-la.
+  //
+  // A vizinha da mesma tela ja respondeu por analogia: `next_shorts_seen`
+  // (rodada #9, no ar desde hoje) disparou UMA vez, e a unica pessoa que viu
+  // a prateleira levou 202 segundos depois do carregamento. Ou seja, tudo o
+  // que fica abaixo do player pode simplesmente nunca entrar na tela.
+  //
+  // Este efeito separa as duas hipoteses de vez: `series_continue_seen` so
+  // dispara quando o botao entra DE VERDADE no viewport (metade dele, uma vez
+  // por render), com quantos segundos depois do "pronto" isso aconteceu.
+  //   done sem seen  -> problema de LUGAR (ninguem rola ate la)
+  //   seen sem click -> problema de OFERTA (viu e nao quis)
+  // Fire-and-forget, nunca bloqueia pintura, desconecta no primeiro acerto.
+  // Sem IntersectionObserver (navegador velho) marca `observed:false` para
+  // nao perder a serie — numero generoso e melhor que numero cego.
+  // ═══════════════════════════════════════════════════════════════════════
+  const nextEpisodeBtnRef = useRef<HTMLButtonElement | null>(null)
+  const nextEpisodeSeenRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (phase !== 'done') return
+    const attemptId = generationAttemptRef.current
+    if (!attemptId || nextEpisodeSeenRef.current === attemptId) return
+    const doneAt = Date.now()
+    const marcarVisto = (observed: boolean) => {
+      if (nextEpisodeSeenRef.current === attemptId) return
+      nextEpisodeSeenRef.current = attemptId
+      void trackEvent('series_continue_seen', {
+        source: 'done_screen',
+        attempt_id: attemptId,
+        seconds_after_ready: Math.round((Date.now() - doneAt) / 1000),
+        observed,
+      })
+    }
+    if (typeof IntersectionObserver === 'undefined') {
+      marcarVisto(false)
+      return
+    }
+    let observer: IntersectionObserver | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let tentativas = 0
+    const ligar = () => {
+      const el = nextEpisodeBtnRef.current
+      if (!el) {
+        // O botao pode montar depois do resto da tela. Tenta por ~10s e
+        // desiste calado: botao que nunca montou nao e botao que ninguem viu.
+        tentativas += 1
+        if (tentativas > 25) return
+        timer = setTimeout(ligar, 400)
+        return
+      }
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              marcarVisto(true)
+              observer?.disconnect()
+              observer = null
+              return
+            }
+          }
+        },
+        { threshold: 0.5 },
+      )
+      observer.observe(el)
+    }
+    ligar()
+    return () => {
+      if (timer) clearTimeout(timer)
+      observer?.disconnect()
+    }
+  }, [phase])
+
   // KINEO-SPRINT-OFFER-2026-07-14 — count each SUCCESSFUL render once
   // (localStorage survives reloads; the ref stops double-counting while we
   // stay in the same 'done' phase). Storage failure → count stays 0 and the
@@ -14305,19 +14385,24 @@ export default function GenerateClient({
                   </div>
                 )}
 
+                {/* #41 — deixou de parecer rodape: mesma acao, peso de acao.
+                    O cinza .055/.16 era o tom mais apagado da tela, ao lado de
+                    um botao verde de download. Zero mudanca de destino. */}
                 <button
+                  ref={nextEpisodeBtnRef}
                   type="button"
                   onClick={() => handleContinueSeries(analysis?.title ?? prompt, 'done_screen', publicVideoId)}
                   className="flex w-full flex-col items-center justify-center rounded-2xl px-5 py-4 text-center font-black"
                   style={{
-                    background: 'rgba(255,255,255,.055)',
-                    border: '1px solid rgba(255,255,255,.16)',
-                    color: 'var(--text)',
+                    background: 'rgba(41,151,255,.10)',
+                    border: '1px solid rgba(41,151,255,.40)',
+                    color: '#5cb3ff',
                     cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(41,151,255,.12)',
                   }}
                 >
                   <span style={{ fontSize: '0.95rem' }}>Build the next episode →</span>
-                  <span style={{ marginTop: 4, fontSize: '0.72rem', fontWeight: 650, color: 'var(--muted2)' }}>
+                  <span style={{ marginTop: 4, fontSize: '0.72rem', fontWeight: 650, color: 'rgba(92,179,255,.78)' }}>
                     Same settings stay selected · new hook, facts and payoff
                   </span>
                 </button>
