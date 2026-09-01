@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { Suspense } from 'react'
 import DashboardShell from './DashboardShell'
 // Push #423 — mobile users see a one-tap "Install app" banner (Android)
 // or the Add-to-Home-Screen hint (iOS). Dashboard only, so the public
@@ -153,7 +154,9 @@ export default async function DashboardLayout({
           que toda tela autenticada atravessa e que não cobre nada. `userKey`
           vem do SERVIDOR pelo mesmo motivo do modal abaixo. */}
       {user && REVERSE_TRIAL_ENABLED && <TrialActiveBanner userKey={user.id.slice(0, 8)} />}
-      <ChatGptWelcomeBanner />
+      <Suspense fallback={null}>
+        <ChatGptWelcomeBanner />
+      </Suspense>
       {children}
       <InstallAppBanner />
       {user && <ReferralPromoBanner />}

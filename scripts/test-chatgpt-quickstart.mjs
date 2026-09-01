@@ -28,6 +28,14 @@ function loadTs(rel, imports = {}) {
 }
 
 const quickstart = loadTs('lib/growth/chatgptQuickstart.ts')
+const engineCost = loadTs('lib/credits/engineCost.ts')
+const trialPolicy = loadTs('lib/growth/trialBalanceBridge.ts', {
+  '@/lib/credits/engineCost': engineCost,
+})
+const trialFirstDeliveryVersion = trialPolicy.TRIAL_FIRST_DELIVERY_VERSION
+const arbitration = loadTs('lib/growth/chatgptWelcomeArbitration.ts', {
+  '@/lib/growth/trialBalanceBridge': trialPolicy,
+})
 const funnel = loadTs('lib/admin/chatgptQuickstartFunnel.ts', {
   '@/lib/growth/chatgptQuickstart': quickstart,
 })
@@ -66,6 +74,59 @@ equal(quickstart.normalizeChatGptQuickstartInput('x'.repeat(1200)).length, 1000,
 equal(quickstart.buildChatGptQuickstartHref('idea', '  lighthouse mystery  '), `${quickstart.CHATGPT_QUICKSTARTS[1].href}&prompt=lighthouse%20mystery`, 'idea text crosses the same handoff')
 equal(quickstart.buildChatGptQuickstartHref('finished_script', ''), null, 'empty script cannot pretend to be a completed selection')
 equal(quickstart.buildChatGptQuickstartHref('idea', 'flood & fire').includes('prompt=flood%20%26%20fire'), true, 'customer text is URL encoded')
+
+equal(
+  arbitration.decideChatGptWelcome({
+    intentCampaign: trialFirstDeliveryVersion,
+    dismissed: false,
+    firstTouchIsChatGpt: true,
+    shownAlready: false,
+  }),
+  { visible: false, recordShown: false, reason: 'trial_first_delivery_intent' },
+  'reserved first-delivery route suppresses Quickstart without recording an impression',
+)
+equal(
+  arbitration.decideChatGptWelcome({
+    intentCampaign: quickstart.CHATGPT_QUICKSTART_VARIANT,
+    dismissed: false,
+    firstTouchIsChatGpt: true,
+    shownAlready: false,
+  }),
+  { visible: true, recordShown: true, reason: 'eligible' },
+  'ordinary ChatGPT route keeps Quickstart eligible and records its first impression',
+)
+equal(
+  arbitration.decideChatGptWelcome({
+    intentCampaign: null,
+    dismissed: false,
+    firstTouchIsChatGpt: true,
+    shownAlready: true,
+  }),
+  { visible: true, recordShown: false, reason: 'already_recorded' },
+  'returning to an ordinary route restores Quickstart without duplicating the shown event',
+)
+equal(
+  arbitration.decideChatGptWelcome({
+    intentCampaign: null,
+    dismissed: true,
+    firstTouchIsChatGpt: true,
+    shownAlready: false,
+  }),
+  { visible: false, recordShown: false, reason: 'dismissed' },
+  'a genuine dismissal still wins on ordinary routes',
+)
+equal(
+  arbitration.decideChatGptWelcome({
+    intentCampaign: null,
+    dismissed: false,
+    firstTouchIsChatGpt: false,
+    shownAlready: false,
+  }),
+  { visible: false, recordShown: false, reason: 'not_chatgpt_first_touch' },
+  'non-ChatGPT visitors never receive the source-specific banner',
+)
+equal(arbitration.trialFirstDeliveryOwnsRoute(trialFirstDeliveryVersion), true, 'exact shared campaign owns the route')
+equal(arbitration.trialFirstDeliveryOwnsRoute(`${trialFirstDeliveryVersion}-other`), false, 'lookalike campaign cannot suppress Quickstart')
 
 const result = funnel.buildChatGptQuickstartFunnel([
   event('chatgpt_welcome_banner_shown', 0, 'script-user', variant),
@@ -133,6 +194,8 @@ equal(empty.viewToSelectionRate, '—', 'empty denominator is honest')
 equal(empty.checkoutToPaidRate, '—', 'empty payment denominator is honest')
 
 const banner = source('components/ChatGptWelcomeBanner.tsx')
+const arbitrationSource = source('lib/growth/chatgptWelcomeArbitration.ts')
+const dashboardLayout = source('app/(dashboard)/layout.tsx')
 const studio = source('app/(dashboard)/studio/StudioClient.tsx')
 const admin = source('app/api/admin/funnel/route.ts')
 const client = source('app/(dashboard)/admin/funnel/FunnelClient.tsx')
@@ -155,6 +218,14 @@ ok(banner.includes('input_length: input.trim().length'), 'telemetry records leng
 ok(banner.includes('SHOWN_EVENT_KEY'), 'banner impression has a session dedupe marker')
 ok(banner.includes("variant: CHATGPT_QUICKSTART_VARIANT"), 'new impressions are versioned')
 ok(!banner.includes('prompt: input'), 'banner telemetry never stores a prompt or script')
+ok(banner.includes('useSearchParams()'), 'persistent dashboard layout reacts to query-only navigation')
+ok(banner.includes('trialFirstDeliveryOwnsRoute(intentCampaign)'), 'render guard synchronously protects the reserved route')
+ok(banner.includes('decideChatGptWelcome({'), 'the real caller uses the executable arbitration policy')
+ok(banner.includes('}, [intentCampaign])'), 'route arbitration reruns when the query campaign changes')
+ok(arbitrationSource.includes("import { TRIAL_FIRST_DELIVERY_VERSION }"), 'arbitration imports the canonical trial version')
+ok(!arbitrationSource.includes("'trial_first_seedance_35s_v2'"), 'arbitration never duplicates the campaign literal')
+ok(dashboardLayout.includes("import { Suspense } from 'react'"), 'dashboard imports the required Suspense boundary')
+ok(dashboardLayout.includes('<Suspense fallback={null}>\n        <ChatGptWelcomeBanner />\n      </Suspense>'), 'only the query-reading banner is wrapped in a null Suspense fallback')
 ok(studio.includes("trackEvent('chatgpt_quickstart_studio_ready'"), 'the real Studio caller measures a ready continuation')
 ok(studio.includes('isChatGptQuickstartChoice(quickstartChoice)'), 'Studio accepts only allow-listed ChatGPT modes')
 ok(studio.includes('setScriptMode(requestedScriptMode)'), 'Studio applies the requested script mode')

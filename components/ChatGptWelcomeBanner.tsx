@@ -13,7 +13,7 @@
 // aparece imediatamente, "usar este roteiro" é primário e autoria por IA
 // continua explícita como alternativa. Nenhum clique daqui gera ou debita.
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import styles from './ChatGptWelcomeBanner.module.css'
 import { trackEvent } from '@/lib/analytics'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
@@ -24,6 +24,10 @@ import {
   buildChatGptQuickstartHref,
   type ChatGptQuickstartChoice,
 } from '@/lib/growth/chatgptQuickstart'
+import {
+  decideChatGptWelcome,
+  trialFirstDeliveryOwnsRoute,
+} from '@/lib/growth/chatgptWelcomeArbitration'
 
 const DISMISS_KEY = 'kineo_chatgpt_welcome_dismissed'
 const SHOWN_EVENT_KEY = `${CHATGPT_QUICKSTART_VARIANT}:shown`
@@ -55,21 +59,37 @@ function firstTouchIsChatGpt(): boolean {
 export default function ChatGptWelcomeBanner() {
   const [show, setShow] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const intentCampaign = searchParams.get('intent_campaign')
+  const trialOwnsRoute = trialFirstDeliveryOwnsRoute(intentCampaign)
 
   useEffect(() => {
+    let dismissed = false
+    let shownAlready = false
     try {
-      if (sessionStorage.getItem(DISMISS_KEY) === '1') return
+      dismissed = sessionStorage.getItem(DISMISS_KEY) === '1'
+      shownAlready = sessionStorage.getItem(SHOWN_EVENT_KEY) === '1'
     } catch { /* sem sessionStorage a faixa reaparece por navegação — chato, não grave */ }
-    if (!firstTouchIsChatGpt()) return
-    setShow(true)
+
+    const decision = decideChatGptWelcome({
+      intentCampaign,
+      dismissed,
+      firstTouchIsChatGpt: firstTouchIsChatGpt(),
+      shownAlready,
+    })
+    setShow(decision.visible)
+    if (!decision.recordShown) return
+
     try {
-      if (sessionStorage.getItem(SHOWN_EVENT_KEY) === '1') return
       sessionStorage.setItem(SHOWN_EVENT_KEY, '1')
     } catch { /* analytics best effort */ }
     void trackEvent('chatgpt_welcome_banner_shown', { variant: CHATGPT_QUICKSTART_VARIANT })
-  }, [])
+  }, [intentCampaign])
 
-  if (!show) return null
+  // Query-only client navigation can reuse the dashboard layout. Keep this
+  // render guard synchronous so the Quickstart never flashes over a reserved
+  // first-delivery route while the effect catches up.
+  if (trialOwnsRoute || !show) return null
 
   return (
     <ChatGptWelcomeCard
