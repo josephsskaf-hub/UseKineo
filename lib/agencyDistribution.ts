@@ -9,6 +9,7 @@ export const AGENCY_DISTRIBUTION_ENTRIES = [
   'real_estate',
   'client_brief',
   'kineo1_engine',
+  'text_to_video',
 ] as const
 
 export type AgencyDistributionEntry = (typeof AGENCY_DISTRIBUTION_ENTRIES)[number]

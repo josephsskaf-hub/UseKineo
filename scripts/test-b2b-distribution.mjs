@@ -24,10 +24,10 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-// Kineo 1 is the tenth bridge because production evidence now shows real
-// business-volume traffic on that engine landing; the previous nine remain.
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 10, 'ten evidence-backed bridges are enabled')
-for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine']) {
+// Text-to-video is the eleventh bridge because its current organic surface has
+// measured traffic and completed input actions; the previous ten remain.
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 11, 'eleven evidence-backed bridges are enabled')
+for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine', 'text_to_video']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)
@@ -49,6 +49,7 @@ const sources = {
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
   pricing: read('app/pricing/PricingClient.tsx'),
+  text_to_video: read('app/text-to-video-shorts/page.tsx'),
 }
 for (const [entry, source] of Object.entries(sources)) {
   check(source.includes(`AgencyVolumeBridge entry="${entry}"`), `${entry} renders its measured bridge`)
@@ -67,6 +68,9 @@ check(clientBrief.includes("agencyPacksHref('client_brief')"), 'client brief too
 const engineLanding = read('app/ai-video-generator/[engine]/page.tsx')
 check(engineLanding.includes('<AgencyVolumeBridge entry="kineo1_engine" />'), 'Kineo 1 routes commercial Fast volume through the allowlist')
 check(engineLanding.includes("params.engine === 'kineo-1'"), 'other engine landings cannot mount the Fast volume bridge')
+const textToVideo = read('app/text-to-video-shorts/page.tsx')
+check(textToVideo.indexOf('<AgencyVolumeBridge entry="text_to_video" />') > textToVideo.indexOf('id="real-output"'), 'text-to-video bridge follows the real output proof')
+check(textToVideo.indexOf('<AgencyVolumeBridge entry="text_to_video" />') < textToVideo.indexOf('How text becomes a Short'), 'text-to-video bridge stays secondary before the educational body')
 
 const destination = read('app/ai-shorts-for-agencies/AgencyPacksClient.tsx')
 check(destination.includes('readAgencyDistributionEntry(window.location.search)'), 'destination reads the allowlisted entry')
@@ -90,5 +94,12 @@ const bridgePreview = read('docs/previews/AGENCY-FREE-BRIEF-BRIDGE-2026-08-30.ht
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
   check(bridgePreview.includes(label), `agency bridge preview includes ${label}`)
 }
+
+const textToVideoPreview = read('docs/previews/TEXT-TO-VIDEO-B2B-BRIDGE-2026-09-01.html')
+for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {
+  check(textToVideoPreview.includes(label), `text-to-video bridge preview includes ${label}`)
+}
+check(textToVideoPreview.includes('22 anonymous landing sessions'), 'preview names the dated anonymous-session baseline')
+check(textToVideoPreview.includes('13 submitted text'), 'preview names the existing activation that must be preserved')
 
 console.log(`PASS — ${checks}/${checks} B2B distribution checks`)

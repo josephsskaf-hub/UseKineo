@@ -31,6 +31,7 @@ const policy = loadTs('lib/growth/agencyBridgeTelemetry.ts')
 const entries = [
   'home', 'state_report', 'cost_page', 'pricing', 'comment_tool',
   'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine',
+  'text_to_video',
 ]
 
 equal(policy.AGENCY_BRIDGE_VISIBILITY_VERSION, 'agency_volume_bridge_visibility_v1', 'version is stable')
@@ -82,6 +83,7 @@ const callers = {
   state_report: read('app/state-of-ai-shorts-2026/page.tsx'),
   cost_page: read('app/cheapest-ai-shorts-maker/page.tsx'),
   pricing: read('app/pricing/PricingClient.tsx'),
+  text_to_video: read('app/text-to-video-shorts/page.tsx'),
 }
 for (const [entry, source] of Object.entries(callers)) {
   equal((source.match(new RegExp(`<AgencyVolumeBridge entry="${entry}" \\/>`, 'g')) ?? []).length, 1, `${entry}: existing live caller remains singular`)
@@ -93,6 +95,11 @@ ok(enginePage.includes("params.engine === 'kineo-1'"), 'engine bridge is gated t
 ok(!enginePage.includes("e.param === 'seedance' ? (\n          <AgencyVolumeBridge"), 'Seedance never receives the Fast pack bridge')
 ok(enginePage.indexOf('<AgencyVolumeBridge entry="kineo1_engine" />') > enginePage.indexOf("['Trade-off', e.tradeoff]"), 'bridge appears after the Kineo 1 technical facts')
 ok(enginePage.indexOf('<AgencyVolumeBridge entry="kineo1_engine" />') < enginePage.indexOf('{/* Como funciona */}'), 'bridge stays secondary before the general how-it-works section')
+
+const textToVideoPage = read('app/text-to-video-shorts/page.tsx')
+equal((textToVideoPage.match(/<AgencyVolumeBridge entry="text_to_video" \/>/g) ?? []).length, 1, 'text-to-video page mounts one B2B bridge')
+ok(textToVideoPage.indexOf('<AgencyVolumeBridge entry="text_to_video" />') > textToVideoPage.indexOf('id="real-output"'), 'text-to-video bridge follows real output proof')
+ok(textToVideoPage.indexOf('<AgencyVolumeBridge entry="text_to_video" />') < textToVideoPage.indexOf('How text becomes a Short'), 'text-to-video bridge stays secondary before education')
 
 const preview = read('docs/previews/KINEO1-B2B-BRIDGE-2026-08-31.html')
 for (const label of ['BEFORE · DESKTOP', 'AFTER · DESKTOP', 'BEFORE · MOBILE', 'AFTER · MOBILE']) {

@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Footer from '@/components/Footer'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import AgencyVolumeBridge from '@/components/AgencyVolumeBridge'
 import ExampleVideoPlayer from '@/app/examples/ExampleVideoPlayer'
 import { PUBLIC_EXAMPLES } from '@/lib/publicExamples'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
@@ -158,6 +159,8 @@ export default function TextToVideoShortsPage() {
             <p style={{ ...p, fontSize: 14 }}>This preview demonstrates output format, not views or revenue performance.</p>
           </div>
         </section>
+
+        <AgencyVolumeBridge entry="text_to_video" />
 
         <h2 style={h2}>How text becomes a Short</h2>
         <div style={{ display: 'grid', gap: 12 }}>

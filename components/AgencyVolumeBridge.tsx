@@ -20,6 +20,7 @@ const CONTEXT: Record<AgencyDistributionEntry, string> = {
   real_estate: 'Turning a real estate content calendar into a production batch?',
   client_brief: 'Turning approved client briefs into a production batch?',
   kineo1_engine: 'Need Kineo 1 volume for your company or paying clients?',
+  text_to_video: 'Turning client scripts into a repeatable delivery batch?',
 }
 
 export default function AgencyVolumeBridge({ entry }: { entry: AgencyDistributionEntry }) {
