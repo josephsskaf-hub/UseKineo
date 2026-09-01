@@ -32,6 +32,12 @@ import {
   buildStripeChargeFailureEnrichment,
   stripeFailureReference,
 } from '@/lib/stripeCheckoutFailure'
+import {
+  buildStripeAsyncCheckoutMetadata,
+  checkoutPaymentIsSettled,
+  stripeCheckoutSessionReference,
+  type StripeAsyncCheckoutOutcome,
+} from '@/lib/stripeCheckoutAsyncSettlement'
 import { TRIAL_GRANT_CREDITS } from '@/lib/reverseTrial'
 import {
   AffiliateLedgerIntegrityError,
@@ -536,6 +542,40 @@ async function recordPaymentSuccess(
   console.error('[stripe webhook] payment_success insert error:', error.code, error.message)
 }
 
+async function recordAsyncCheckoutState(
+  session: Stripe.Checkout.Session,
+  outcome: StripeAsyncCheckoutOutcome,
+): Promise<void> {
+  const eventName = outcome === 'pending'
+    ? 'checkout_payment_pending'
+    : 'checkout_async_payment_failed'
+  const userId = session.metadata?.supabase_user_id ?? session.client_reference_id ?? null
+  const sessionRef = stripeCheckoutSessionReference(session.id)
+  const recorded = await writeServerEvent({
+    name: eventName,
+    userId,
+    path: '/api/stripe/webhook',
+    sessionId: sessionRef,
+    dedupeMinutes: 24 * 60,
+    metadata: buildStripeAsyncCheckoutMetadata({
+      sessionId: session.id,
+      outcome,
+      paymentStatus: session.payment_status,
+      checkoutMode: session.mode,
+      amountMinor: session.amount_total,
+      currency: session.currency,
+      tier: session.metadata?.tier,
+      billing: session.metadata?.billing,
+      pack: session.metadata?.pack,
+      checkoutOrigin: session.metadata?.checkout_origin,
+      intentCampaign: session.metadata?.intent_campaign,
+    }),
+  })
+  if (!recorded) {
+    throw new RetryableCheckoutAnalyticsError(`Could not persist ${eventName}`)
+  }
+}
+
 // KINEO-BULK-2026-07-27 — evento de compra de atacado, com nome próprio.
 //
 // POR QUE UM EVENTO NOVO, se `payment_success` já grava esta sessão: porque
@@ -737,18 +777,23 @@ export async function POST(req: NextRequest) {
       if (dedupeErr.code === '23505') {
         const duplicateCheckout =
           event.type === 'checkout.session.completed' ||
-          event.type === 'checkout.session.async_payment_succeeded'
+          event.type === 'checkout.session.async_payment_succeeded' ||
+          event.type === 'checkout.session.async_payment_failed'
         const duplicateSession = duplicateCheckout
           ? event.data.object as Stripe.Checkout.Session
           : null
+        const duplicateSafeObservation =
+          event.type === 'checkout.session.async_payment_failed' ||
+          (event.type === 'checkout.session.completed' &&
+            !checkoutPaymentIsSettled(duplicateSession?.payment_status))
         // Subscription fulfillment below is idempotent by subscription id and
         // an absolute balance write. Let it resume after a process crash even
         // when event.id was already claimed. Additive legacy packs retain the
         // strict event-level early return.
-        if (duplicateSession?.mode !== 'subscription') {
+        if (!duplicateSession || (duplicateSession.mode !== 'subscription' && !duplicateSafeObservation)) {
           return NextResponse.json({ received: true, duplicate: true })
         }
-        console.warn('[stripe webhook] resuming idempotent subscription event:', event.id, duplicateSession.id)
+        console.warn('[stripe webhook] resuming idempotent Checkout event:', event.id, duplicateSession.id)
       }
       if (dedupeErr.code !== '23505') {
         // Fulfillment without its ledger is unsafe. A 5xx asks Stripe to retry
@@ -770,8 +815,9 @@ export async function POST(req: NextRequest) {
 
         // Delayed methods can complete Checkout while payment is still pending.
         // Grant access only after Stripe confirms settlement.
-        const checkoutSettled = session.payment_status === 'paid' || session.payment_status === 'no_payment_required'
+        const checkoutSettled = checkoutPaymentIsSettled(session.payment_status)
         if (!checkoutSettled) {
+          await recordAsyncCheckoutState(session, 'pending')
           console.log('[stripe webhook] checkout payment pending; entitlement deferred:', session.id, session.payment_status)
           break
         }
@@ -1254,6 +1300,12 @@ export async function POST(req: NextRequest) {
         // — o webhook e o cron dão o MESMO veredito sobre a mesma linha.
         await markTrialConverted(supabase, userId, { source: 'checkout_subscription', stripeRef: session.id })
 
+        break
+      }
+
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session
+        await recordAsyncCheckoutState(session, 'failed')
         break
       }
 

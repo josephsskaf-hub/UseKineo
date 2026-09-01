@@ -44,6 +44,10 @@ const SERVER_ONLY_EVENTS = new Set([
   'checkout_session_expired',
   'checkout_payment_failed',
   'checkout_payment_failure_enriched',
+  // Delayed payment methods finish after the browser has left Checkout. Only
+  // the verified Stripe webhook may describe that pending/final state.
+  'checkout_payment_pending',
+  'checkout_async_payment_failed',
   // KINEO-CHECKOUT-TRIAGE-2026-07-25 — written ONLY by the speculativeNoop
   // branch of app/api/stripe/checkout/route.ts when it refuses a prefetch /
   // scanner hit. If the browser sink could mint it, a forged burst would make
