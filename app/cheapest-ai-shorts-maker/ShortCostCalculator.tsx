@@ -1,5 +1,6 @@
 'use client'
 
+import { S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
@@ -30,6 +31,7 @@ const PUBLIC_ENGINES: readonly PublicEngine[] = [
   { quality: 'cinematic_veo', detail: 'Google Veo 3.1 cinematic scenes' },
   { quality: 'cinematic_hollywood', detail: 'Kling 3 with native lip sync' },
   { quality: 'cinematic_omni', detail: 'Omni Flash, top blind-arena score' },
+  ...(S25_PUBLIC ? [{ quality: 'cinematic_s25' as const, detail: 'Seedance 2.5, newest ByteDance model (480p→HD)' }] : []),
 ]
 
 const PUBLIC_DURATIONS = [35, 60, 90] as const

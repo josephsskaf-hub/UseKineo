@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 // KINEO-S25-CARD-2026-09-01 — a flag `internal` existe para o /studio poder
 // mostrar o card do Seedance 2.5 SO para contas da casa enquanto o motor
 // esta no periodo de canario (o gate de verdade continua no servidor).
-import { isInternalEmail } from '@/lib/internalAccounts'
+import { s25Visible } from '@/lib/engineLaunch'
 
 // KINEO-CABE-2026-08-21 — saldo do usuário logado, para a tela poder dizer a
 // verdade ANTES do clique. Existe porque o /studio oferecia motores que o
@@ -21,5 +21,5 @@ export async function GET() {
     .select('video_credits')
     .eq('id', user.id)
     .maybeSingle()
-  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, internal: isInternalEmail(user.email) })
+  return NextResponse.json({ credits: (data?.video_credits as number) ?? 0, internal: s25Visible(user.email) })
 }

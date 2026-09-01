@@ -93,7 +93,7 @@ const ENGINES: {
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
-  { key: 's25', icon: 'S2', name: 'Seedance 2.5', tag: 'Internal test', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
+  { key: 's25', icon: 'S2', name: 'Seedance 2.5', tag: 'New', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina

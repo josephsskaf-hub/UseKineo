@@ -1111,6 +1111,14 @@ export default function GenerateClient({
   // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
   const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'>('seedance')
+  // KINEO-S25-LAUNCH-2026-09-01 — o 2.5 so aparece para quem s25Visible()
+  // aprova (a casa hoje; todos apos S25_PUBLIC). Vem do /api/me/credits.
+  const [s25Ok, setS25Ok] = useState(false)
+  useEffect(() => {
+    let alive = true
+    fetch('/api/me/credits', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then((d) => { if (alive && d?.internal === true) setS25Ok(true) }).catch(() => {})
+    return () => { alive = false }
+  }, [])
 
   // KINEO-ENGINE-DEEPLINK-2026-08-15 — o "depois do clique" do padrao
   // Higgsfield: os cards de motor da home aterrissam AQUI com o motor JA
@@ -11470,6 +11478,7 @@ export default function GenerateClient({
             credits={credits}
             freeAiUsed={freeAiUsed}
             aiEngine={aiEngine}
+            s25Ok={s25Ok}
             setAiEngine={setAiEngine}
             isStarter={isStarter}
             isCreator={isCreator}
@@ -16540,6 +16549,7 @@ function ModeSelector({
   credits,
   freeAiUsed,
   aiEngine,
+  s25Ok,
   setAiEngine,
   isStarter,
   isCreator,
@@ -16559,6 +16569,7 @@ function ModeSelector({
   freeAiUsed: boolean | null
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
   aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
+  s25Ok: boolean
   setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
   isStarter: boolean
   isCreator: boolean
@@ -16652,7 +16663,7 @@ function ModeSelector({
     creditCostForDuration(CUSTO_POR_MOTOR[m] ?? 'cinematic_ai', true, d)
   const NOME_DO_MOTOR: Record<string, string> = {
     seedance: 'AI Generated', kling: 'Kling', veo: 'Veo 3.1',
-    hollywood: 'Kling 3', h3: 'MiniMax H3', sora: 'Sora', omni: 'Omni',
+    hollywood: 'Kling 3', h3: 'MiniMax H3', sora: 'Sora', omni: 'Omni', s25: 'Seedance 2.5',
   }
   // Só entram no resgate os motores que o PLANO já liberou. O cadeado de plano
   // é do Codex e tem precedência: nunca ofereço como saída algo que ele tranca.
@@ -16775,9 +16786,14 @@ function ModeSelector({
               // nenhum Kling 3 (150cr); a 45cr ele faz dois H3. Se o cliente so
               // enxerga o de 150 ele conclui que filme e coisa de Studio.
               { key: 'h3', label: 'MiniMax H3', sub: 'cinematic film · fits your plan', cr: creditCostForDuration('cinematic_h3', true, duration) },
+              // KINEO-S25-LAUNCH-2026-09-01 — auditoria do fundador: o Omni NUNCA
+              // entrou neste seletor (so no /studio) — dois seletores, duas
+              // verdades. Entra agora, e o 2.5 junto (gate: s25Ok).
+              { key: 'omni', label: 'Omni Flash', sub: 'Google · #1 ranked, Aug 2026', cr: creditCostForDuration('cinematic_omni', true, duration) },
+              ...(s25Ok ? [{ key: 's25' as const, label: 'Seedance 2.5', sub: 'ByteDance · newest · 480p→HD', cr: creditCostForDuration('cinematic_s25', true, duration) }] : []),
               { key: 'veo', label: 'Veo 3.1', sub: 'Google · best motion', cr: creditCostForDuration('cinematic_veo', true, duration) },
               { key: 'kling', label: 'Kling', sub: 'cinematic motion', cr: creditCostForDuration('cinematic_kling', true, duration) }, // KINEO-PRICING-V3B-2026-07-10
-            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3'; label: string; sub: string; cr: number }[]).map((m) => {
+            ] as { key: 'veo' | 'sora' | 'kling' | 'hollywood' | 'h3' | 'omni' | 's25'; label: string; sub: string; cr: number }[]).map((m) => {
               const active = mode === 'cinematic_ai' && aiEngine === m.key
               // sprint-v1v4 #13 — mesma regra do seletor de duração
               // (KINEO-CUSTO-VISIVEL): quem não alcança vê ANTES de clicar.

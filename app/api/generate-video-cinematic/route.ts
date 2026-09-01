@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 import { isInternalEmail } from '@/lib/internalAccounts'
+import { S25_PUBLIC } from '@/lib/engineLaunch'
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
 // GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
@@ -1343,7 +1344,7 @@ async function manipularPost(req: NextRequest) {
     // KINEO-S25-GATE-2026-09-01 — o 2.5 so abre ao publico com os 4 carimbos
     // (dry-run PASS, canario validado, selo conferido, preco batido pelo
     // fundador — 250cr e etiqueta provisoria). Ate la: so contas internas.
-    if (wantsS25 && !isInternalEmail(user.email)) {
+    if (wantsS25 && !S25_PUBLIC && !isInternalEmail(user.email)) {
       return NextResponse.json(
         { error: 'Seedance 2.5 is coming soon. Pick another engine for now.', reason: 's25_internal_only' },
         { status: 400 },

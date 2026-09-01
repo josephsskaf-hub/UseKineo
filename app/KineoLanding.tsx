@@ -1,6 +1,7 @@
 // Kineo landing — new Apple-dark redesign (replaces the old HomePageClient on the homepage).
 // Self-contained, styles scoped under .klp so they don't leak into the rest of the app.
 // Marker: KINEO-LANDING-V3-2026-06-30
+import { s25Visible, S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import NavCreditsBadge from '@/components/NavCreditsBadge'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
@@ -69,7 +70,7 @@ const OFFER = getFreeTierOffer()
 
 type Props = {
   initialUser?: { id: string } | null
-  initialEmail?: string
+  initialEmail?: string | null
   initialIsPro?: boolean
   // KINEO-FAIXA-CONTINUAR-2026-09-01 — faixa "continue de onde parou".
   resume?: { title: string; episode: number; videoId: string } | null
@@ -806,6 +807,7 @@ function pricingCheckoutHref(checkoutPath: string, isSignedIn: boolean): string 
 
 export default function KineoLanding({
   initialUser,
+  initialEmail = null,
   initialAcquisitionSource = null,
   showWelcomeGoalRouter = false,
   engineWall = [],
@@ -941,6 +943,12 @@ export default function KineoLanding({
                       render validado (Flight 19, narrador da praia) — selo
                       honesto cumprido: só entrou aqui DEPOIS da auditoria. */}
                   <NavEngineItem href="/studio?engine=omni&intent_campaign=nav_mega" name="Omni Flash" desc="Google's #1-ranked video model" chip="NEW" icon="OF" preview="/previews/41924eb2-d81d-4f2c-a5bb-5477c042af04.mp4" />
+                  {/* KINEO-S25-LAUNCH-2026-09-01 — Seedance 2.5: so a casa ve ate o
+                      canario passar (s25Visible); S25_PUBLIC=true abre pra todos.
+                      Sem preview de proposito (selo honesto: clipe so deste motor). */}
+                  {s25Visible(initialEmail) && (
+                    <NavEngineItem href="/studio?engine=s25&intent_campaign=nav_mega" name="Seedance 2.5" desc="ByteDance’s newest engine · 480p→HD" chip={S25_PUBLIC ? 'NEW' : 'INTERNAL'} icon="S2" />
+                  )}
                   <NavEngineItem href="/studio?engine=hollywood&intent_campaign=nav_mega" name="Kling 3" desc="Film scenes & native voice" chip="STUDIO" icon="K3" preview="/previews/4b12925e-16e6-4b56-af5a-7047f9ae7a28.mp4" />
                   {/* KINEO-H3-2026-08-19 — sem `preview` de proposito: o clipe
                       da vitrine tem de ser deste motor, e o primeiro render de
@@ -997,7 +1005,7 @@ export default function KineoLanding({
               YouTube, fazemos pra varias utilidades — seja criativo"): a linha
               vende o FILME PRONTO (voz, trilha, legendas) e deixa o destino em
               aberto; "real render" fica — e o selo honesto da vitrine. */}
-          <p className="hero-line">Type an idea — watch it become a film. <span>Eight video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</span></p>
+          <p className="hero-line">Type an idea — watch it become a film. <span>{VIDEO_ENGINE_COUNT_WORD} video engines — including Omni Flash, the #1-ranked model (Aug 2026) — six image models, four voices. Every card below is a real render.</span></p>
           {/* Fileira Higgsfield: cards largos, video NITIDO (sem veu), nome do
               motor em caps abaixo da midia. 3 videos curados por motor passando. */}
           <div
@@ -1543,7 +1551,7 @@ export default function KineoLanding({
                 nos dois ou em nenhum, senao o JSON-LD vira sinal de spam.
                 Precos vem de checkoutPricing.ts: nunca digitar a mao. */}
             <div className="qa"><h3>How much does Kineo cost?</h3><p>Kineo has three monthly plans: Starter at ${usdPrice(TIER_PRICES.starter.usd)} for {TIER_CREDITS.starter} credits, Creator at ${usdPrice(TIER_PRICES.basic.usd)} for {TIER_CREDITS.basic} credits and Studio at ${usdPrice(TIER_PRICES.pro.usd)} for {TIER_CREDITS.pro} credits. Credits are spent per video and how many a video costs depends on the engine you pick, so a Fast render and a cinematic film come out of the same balance at very different rates. {CHECKOUT_CURRENCY_DISCLOSURE} New accounts get free credits to make a first video before paying anything.</p></div>
-            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>Eight, behind one interface and one balance: Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
+            <div className="qa"><h3>Which AI video engines can I use in Kineo?</h3><p>{VIDEO_ENGINE_COUNT_WORD}, behind one interface and one balance: {S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google’s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on this page is a real render from the engine named on the card — the badge always tells the truth about which model made it.</p></div>
             <div className="qa"><h3>What is the best AI video generator for faceless YouTube channels?</h3><p>It depends on whether you want stock footage assembled or footage generated. Tools like InVideo and AutoShorts cut stock clips to your script, which is cheaper and fine for talking-point videos. Kineo generates the footage with models such as Veo 3.1 and Kling 3, keeps your narration word for word instead of rewriting it, and targets 60 seconds or more so the video qualifies for TikTok Creator Rewards. If your channel lives on visuals nobody else has, generation wins; if it lives on volume, stock is cheaper.</p></div>
           </div>
         </div>

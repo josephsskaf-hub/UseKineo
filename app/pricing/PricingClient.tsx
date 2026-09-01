@@ -9,6 +9,7 @@
 // device; the underlying Stripe discount is the open 50%-off-first-month
 // launch offer.
 
+import { S25_PUBLIC } from '@/lib/engineLaunch'
 import Link from 'next/link'
 import React, { useEffect, useRef, useState } from 'react'
 import { trackCheckoutClick } from '@/lib/trackClick'
@@ -972,7 +973,7 @@ export default function PricingClient() {
                     { ic: '🎞', name: 'Kling 2.5 films', cost: costKling25 },
                     { ic: '🧑‍🎤', name: 'AI Presenter videos', cost: costPres },
                     { ic: '🌐', name: 'Veo 3.1 films', cost: costVeo },
-                    { ic: '🏆', name: 'Kling 3 · Omni Flash (#1 ranked)', cost: costFlag },
+                    { ic: '🏆', name: S25_PUBLIC ? 'Kling 3 · Omni Flash · Seedance 2.5' : 'Kling 3 · Omni Flash (#1 ranked)', cost: costFlag },
                   ]
                   return (
                     <div className="mb-3">

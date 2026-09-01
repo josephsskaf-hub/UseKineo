@@ -1,4 +1,5 @@
 import { getFreeTierOffer, swapFreeTierCopy as ft , TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { S25_PUBLIC, VIDEO_ENGINE_COUNT_WORD } from '@/lib/engineLaunch'
 import { TIER_CREDITS, TIER_PRICES } from '@/lib/checkoutPricing'
 import { CHECKOUT_CURRENCY_DISCLOSURE, formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
@@ -83,7 +84,7 @@ const softwareApplicationSchema = {
     'Kineo is an AI YouTube Shorts generator for repeatable shows with the same face, voice and style, including script, voiceover, scenes and captions.',
   featureList: [
     'Topic-to-video: one typed idea becomes a finished 9:16 Short',
-    'Eight AI video engines in one account: Omni Flash (Google\u2019s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar',
+    `${VIDEO_ENGINE_COUNT_WORD} AI video engines in one account: ${S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google\u2019s #1-ranked, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar`,
     'AI script writing with hook and payoff structure',
     'Use your own script word for word, narrated verbatim',
     'AI voiceover narration with word-by-word captions',
@@ -247,7 +248,7 @@ const faqSchema = {
       name: 'Which AI video engines can I use in Kineo?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Eight, behind one interface and one balance: Omni Flash (Google\u2019s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on the Kineo homepage is a real render from the engine named on the card — the badge always tells the truth about which model made it.',
+        text: `${VIDEO_ENGINE_COUNT_WORD}, behind one interface and one balance: ${S25_PUBLIC ? 'Seedance 2.5, ' : ''}Omni Flash (Google\u2019s #1-ranked video model, Aug 2026), Veo 3.1, Kling 3, MiniMax H3, Kling 2.5, Seedance 1.5, Kineo 1 and Avatar. You choose the engine per video, so a cheap explainer and a cinematic flagship can come out of the same account on the same day. Every clip on the Kineo homepage is a real render from the engine named on the card — the badge always tells the truth about which model made it.`,
       },
     },
     {
