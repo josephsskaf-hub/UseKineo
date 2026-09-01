@@ -4,7 +4,7 @@
 // Push #123 — auto-redirect to /pricing after 5 seconds.
 
 import Link from 'next/link'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { trackCheckoutClick } from '@/lib/trackClick'
 import { trackEvent } from '@/lib/analytics'
@@ -34,6 +34,17 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { decideCheckoutCancelledPrimary } from '@/lib/growth/checkoutCancelledRecovery'
+import {
+  buildCheckoutCancelObjectionMetadata,
+  buildCheckoutCancelReasonMetadata,
+  CHECKOUT_CANCEL_OBJECTION_VIEW_EVENT,
+  CHECKOUT_CANCEL_OBJECTION_VISIBLE_RATIO,
+  checkoutCancelObjectionStorageKey,
+  createCheckoutCancelObjectionRecorder,
+  shouldObserveCheckoutCancelObjection,
+  shouldRecordCheckoutCancelObjectionView,
+  type CheckoutCancelReason,
+} from '@/lib/growth/checkoutCancelObjectionExposure'
 
 const PLAN_FIT_RETRY_PARAM_KEYS = [
   'checkout_origin',
@@ -70,6 +81,7 @@ function CheckoutCancelledContent() {
   const checkout = useCheckoutLaunch('checkout_cancelled')
   // KINEO-CANCEL-REASON-2026-08-03 — ver comentário no bloco do survey.
   const [reasonSent, setReasonSent] = useState<string | null>(null)
+  const objectionRef = useRef<HTMLDivElement | null>(null)
   const [trialResumeProbe, setTrialResumeProbe] = useState<{
     resolved: boolean
     reason: string | null
@@ -201,6 +213,33 @@ function CheckoutCancelledContent() {
   })
   const downshiftAvailable =
     cancelledPrimary === 'checkout' && !isAutopilotReturn && cheaperTier !== null
+  const objectionCheckoutProduct = autopilotReturn?.kind ?? 'self_serve'
+  const hasPlanFitContext = planFitReturn !== null
+  const objectionExposureContext = {
+    tier,
+    billing,
+    checkoutProduct: objectionCheckoutProduct,
+    hasDownshift: downshiftAvailable,
+    hasPlanFitContext,
+    returnToWatermark,
+  } as const
+  const objectionStorageKey = checkoutCancelObjectionStorageKey(objectionExposureContext)
+  const objectionRecorder = useMemo(() => createCheckoutCancelObjectionRecorder({
+    hasStoredView: () => {
+      try { return sessionStorage.getItem(objectionStorageKey) === '1' } catch { return false }
+    },
+    markViewStored: () => {
+      sessionStorage.setItem(objectionStorageKey, '1')
+    },
+    recordView: () => trackEvent(
+      CHECKOUT_CANCEL_OBJECTION_VIEW_EVENT,
+      buildCheckoutCancelObjectionMetadata(objectionExposureContext),
+    ),
+    recordReason: (reason) => trackEvent(
+      'checkout_cancel_reason',
+      buildCheckoutCancelReasonMetadata(objectionExposureContext, reason),
+    ),
+  }), [objectionStorageKey, tier, billing, objectionCheckoutProduct, downshiftAvailable, hasPlanFitContext, returnToWatermark])
   const firstDeliveryHref = `/studio/create?engine=seedance&duration=${TRIAL_FIRST_DELIVERY_DURATION}&intent_campaign=${TRIAL_FIRST_DELIVERY_VERSION}`
 
   const startSavedCheckout = () => {
@@ -328,6 +367,36 @@ function CheckoutCancelledContent() {
       plan_fit_selected_tier_matches: planFitSelectedTierMatches,
     })
   }, [tier, billing, autopilotReturn?.kind, intro, privatePackPromo, returnToWatermark, intentCampaign, planFitCheckoutOrigin, planFitEngine, planFitMonthlyVideos, planFitSeconds, planFitSelectedTierMatches])
+
+  useEffect(() => {
+    const node = objectionRef.current
+    if (
+      !shouldObserveCheckoutCancelObjection({
+        primary: cancelledPrimary,
+        answered: reasonSent !== null,
+      })
+      || !node
+      || typeof IntersectionObserver === 'undefined'
+    ) return
+
+    const observer = new IntersectionObserver(async (entries) => {
+      if (!shouldRecordCheckoutCancelObjectionView({
+        primary: cancelledPrimary,
+        answered: reasonSent !== null,
+        entry: entries[0],
+      })) return
+      await objectionRecorder.recordView()
+      if (objectionRecorder.isViewTerminal()) observer.disconnect()
+    }, { threshold: [CHECKOUT_CANCEL_OBJECTION_VISIBLE_RATIO] })
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [cancelledPrimary, reasonSent, objectionRecorder])
+
+  const recordCancelReason = (reason: CheckoutCancelReason) => {
+    setReasonSent(reason)
+    void objectionRecorder.recordReason(reason)
+  }
 
   return (
     <main style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)', fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 20px' }}>
@@ -510,7 +579,7 @@ function CheckoutCancelledContent() {
             O evento continua sendo gravado igual — a diferença é que agora o
             usuário tem motivo próprio para clicar. DELIVER-FIRST vale também
             para a superfície que faz uma pergunta. */}
-        <div style={{ marginTop: 16, display: cancelledPrimary === 'checkout' ? undefined : 'none' }} aria-hidden={cancelledPrimary !== 'checkout'}>
+        <div ref={objectionRef} style={{ marginTop: 16, display: cancelledPrimary === 'checkout' ? undefined : 'none' }} aria-hidden={cancelledPrimary !== 'checkout'}>
           {reasonSent === null ? (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', fontWeight: 700, margin: '0 0 10px' }}>
@@ -527,8 +596,7 @@ function CheckoutCancelledContent() {
                     key={value}
                     type="button"
                     onClick={() => {
-                      setReasonSent(value)
-                      trackEvent('checkout_cancel_reason', { tier, billing, reason: value })
+                      recordCancelReason(value)
                     }}
                     style={{ padding: '9px 14px', borderRadius: 999, fontSize: '0.8rem', fontWeight: 700, color: 'var(--text)', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', cursor: 'pointer' }}
                   >
