@@ -132,6 +132,53 @@ export async function GET() {
       return NextResponse.json({ state: 'none', degraded: true })
     }
     const claims = Array.isArray(claimsResult.data) ? claimsResult.data : []
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // KINEO-RENDER-MORTO-2026-09-01 — a sonda parou de mentir sobre render morto.
+    // O cabecalho deste arquivo ja avisava (04/08) que uma claim cujo render
+    // FALHOU tambem reporta 'rendering' aqui, confiando que o poll de
+    // /api/compose/status contaria a verdade depois. So que os erros que mais
+    // matam cliente novo (analise de topico, guard de narracao) acontecem ANTES
+    // de existir render no provedor: nao ha nada para aquele poll descobrir e o
+    // spinner gira ate a janela de 15 min expirar. Medido em 7 dias: 3 pessoas
+    // clicaram na pilula 6, 4 e 1 vez atras de um video que ja tinha morrido —
+    // e as tres tem ZERO videos na vida inteira. A verdade sempre esteve na
+    // MESMA tabela, a uma leitura de distancia.
+    // ═══════════════════════════════════════════════════════════════════════
+    const failureResult = await admin
+      .from('events')
+      .select('metadata, created_at')
+      .eq('user_id', user.id)
+      .eq('name', 'generation_stage_error')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (failureResult.error) {
+      console.warn('[compose/active] failure lookup failed:', failureResult.error.message)
+    }
+    // Mesmo formato do recentVideo logo acima — o padrao ja provado neste arquivo.
+    const failureRows = failureResult.error ? null : failureResult.data
+    const failureRow = Array.isArray(failureRows) && failureRows.length > 0 ? failureRows[0] : null
+    const failureAt = failureRow ? Date.parse(String(failureRow.created_at ?? '')) : NaN
+    const failureMessage = (() => {
+      if (!failureRow || !failureRow.metadata || typeof failureRow.metadata !== 'object') return ''
+      const meta = failureRow.metadata as Record<string, unknown>
+      const text = typeof meta.error === 'string' ? meta.error.trim() : ''
+      return text && text.length <= 400 ? text : ''
+    })()
+    // So e morte se o erro veio DEPOIS do nascimento daquela claim. Quem falhou
+    // na tentativa 1 e recomecou continua vendo 'rendering' na tentativa 2.
+    const diedAfter = (claimAtMs: number) =>
+      Number.isFinite(failureAt) && Number.isFinite(claimAtMs) && failureAt > claimAtMs
+    const deadRenderResponse = (claimAt: unknown) =>
+      NextResponse.json({
+        state: 'failed',
+        render_id: null,
+        resumable: false,
+        started_at: claimAt ?? null,
+        failed_at: failureRow ? failureRow.created_at : null,
+        message: failureMessage || 'This render stopped before it finished.',
+      })
     const recentVideo = videoResult.error ? null : videoResult.data
     if (videoResult.error) {
       console.warn('[compose/active] recent video lookup failed:', videoResult.error.message)
@@ -177,6 +224,7 @@ export async function GET() {
     // A live claim that is NEWER than the last completed video wins: the user
     // started another render after that video landed.
     if (activeClaim && Number.isFinite(activeClaimAt) && (!recentVideo || activeClaimAt > recentVideoAt)) {
+      if (diedAfter(activeClaimAt)) return deadRenderResponse(activeClaim.created_at)
       const metadata = activeClaim.metadata && typeof activeClaim.metadata === 'object'
         ? activeClaim.metadata as Record<string, unknown>
         : {}
@@ -216,6 +264,7 @@ export async function GET() {
       })
       const cinematicAt = activeCinematic ? Date.parse(String(activeCinematic.created_at ?? '')) : NaN
       if (activeCinematic && Number.isFinite(cinematicAt) && (!recentVideo || cinematicAt > recentVideoAt)) {
+        if (diedAfter(cinematicAt)) return deadRenderResponse(activeCinematic.created_at)
         const metadata = activeCinematic.metadata && typeof activeCinematic.metadata === 'object'
           ? activeCinematic.metadata as Record<string, unknown>
           : {}

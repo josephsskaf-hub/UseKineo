@@ -56,6 +56,8 @@ const DISMISS_KEY = 'kineo_render_pill_dismissed'
 type Probe =
   | { state: 'rendering'; renderId: string | null; startedAtMs: number }
   | { state: 'completed'; videoId: string | null; title: string | null; seriesSeed: string | null }
+  // KINEO-RENDER-MORTO-2026-09-01: estado terminal e honesto — o render morreu antes de virar video.
+  | { state: 'failed'; message: string; startedAtMs: number }
   | null
 
 function formatElapsedShort(ms: number): string {
@@ -69,7 +71,9 @@ function probeIdentity(probe: Probe): string {
   if (!probe) return ''
   return probe.state === 'rendering'
     ? `r:${probe.renderId ?? 'pending'}`
-    : `v:${probe.videoId ?? 'unknown'}`
+    : probe.state === 'failed'
+      ? `f:${probe.startedAtMs}`
+      : `v:${probe.videoId ?? 'unknown'}`
 }
 
 export default function ActiveRenderPill() {
@@ -146,6 +150,14 @@ export default function ActiveRenderPill() {
               typeof data.render_id === 'string' && data.render_id.trim() ? data.render_id.trim() : null,
             startedAtMs: Number.isFinite(startedAtMs) ? startedAtMs : Date.now(),
           }
+        } else if (data && data.state === 'failed') {
+          const failedStartedAtMs = Date.parse(typeof data.started_at === 'string' ? data.started_at : '')
+          const rawMessage = typeof data.message === 'string' ? data.message.trim() : ''
+          next = {
+            state: 'failed',
+            message: rawMessage.slice(0, 240),
+            startedAtMs: Number.isFinite(failedStartedAtMs) ? failedStartedAtMs : Date.now(),
+          }
         } else if (data && data.state === 'completed') {
           next = {
             state: 'completed',
@@ -190,7 +202,8 @@ export default function ActiveRenderPill() {
   // Poll ONLY while something is actually happening and the tab is in front.
   // Keyed on a boolean, not on the probe object, so a probe that confirms the
   // same state does not tear down and rebuild the interval every 15s.
-  const hasActiveRender = probe !== null
+  // KINEO-RENDER-MORTO-2026-09-01: 'completed' e 'failed' sao terminais — nao ha o que sondar.
+  const hasActiveRender = probe?.state === 'rendering'
   useEffect(() => {
     if (suppressed || !visible || !hasActiveRender) return
     const id = setInterval(() => void runProbe(true), POLL_MS)
@@ -206,7 +219,7 @@ export default function ActiveRenderPill() {
 
   const identity = probeIdentity(probe)
   const hidden =
-    suppressed || !probe || (probe.state === 'completed' && dismissedId != null && dismissedId === identity)
+    suppressed || !probe || (probe.state !== 'rendering' && dismissedId != null && dismissedId === identity)
 
   useEffect(() => {
     if (hidden || !probe) return
@@ -275,13 +288,14 @@ export default function ActiveRenderPill() {
   }
 
   const isRendering = probe.state === 'rendering'
-  const accent = isRendering ? '#2997ff' : '#22c55e'
+  const isFailed = probe.state === 'failed'
+  const accent = isRendering ? '#2997ff' : isFailed ? '#f59e0b' : '#22c55e'
 
   function handleAction() {
     if (!probe) return
     void trackEvent('active_render_pill_clicked', {
       state: probe.state,
-      action: probe.state === 'rendering' ? 'resume' : 'watch',
+      action: probe.state === 'rendering' ? 'resume' : probe.state === 'failed' ? 'retry' : 'watch',
       render_id: probe.state === 'rendering' ? probe.renderId : null,
       video_id: probe.state === 'completed' ? probe.videoId : null,
       path: pathname ?? null,
@@ -289,7 +303,7 @@ export default function ActiveRenderPill() {
     // O card de resume (dono do polling real) mora em /studio/create desde a
     // porta única — mandar para /generate sem query cairia no SELETOR do
     // /studio e o resume sumiria da tela. /history é onde o vídeo pronto vive.
-    router.push(probe.state === 'rendering' ? '/studio/create' : '/history')
+    router.push(probe.state === 'completed' ? '/history' : '/studio/create')
   }
 
   function handleDismiss() {
@@ -335,7 +349,7 @@ export default function ActiveRenderPill() {
   // com "Watch" + "Next episode" lado a lado sem truncar os dois.
   // #15 — o cartao vertical passa a valer tambem quando NAO ha semente de serie
   // mas HA ideia guardada: a fila e um motivo de cartao por si so.
-  if (!isRendering && (nextSeed || (filaVisivel && fila))) {
+  if (probe.state === 'completed' && (nextSeed || (filaVisivel && fila))) {
     return (
       <div
         role="status"
@@ -476,7 +490,7 @@ export default function ActiveRenderPill() {
         padding: '8px 8px 8px 14px',
         borderRadius: 999,
         background: 'rgba(11,17,32,0.97)',
-        border: `1px solid ${isRendering ? 'rgba(41,151,255,0.45)' : 'rgba(34,197,94,0.45)'}`,
+        border: `1px solid ${isRendering ? 'rgba(41,151,255,0.45)' : isFailed ? 'rgba(245,158,11,0.55)' : 'rgba(34,197,94,0.45)'}`,
         boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
         backdropFilter: 'blur(10px)',
       }}
@@ -495,13 +509,14 @@ export default function ActiveRenderPill() {
         />
       ) : (
         <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>
-          🎉
+          {isFailed ? '⚠️' : '🎉'}
         </span>
       )}
 
       <button
         type="button"
         onClick={handleAction}
+        title={probe.state === 'failed' && probe.message ? probe.message : undefined}
         className="flex items-center gap-2 min-w-0"
         style={{ minHeight: 44, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
       >
@@ -511,7 +526,9 @@ export default function ActiveRenderPill() {
         >
           {probe.state === 'rendering'
             ? `Rendering… ${formatElapsedShort(tick - probe.startedAtMs)}`
-            : 'Your video is ready'}
+            : probe.state === 'failed'
+              ? "Render didn't finish"
+              : 'Your video is ready'}
         </span>
         <span
           className="text-xs font-bold px-3 rounded-full flex items-center flex-shrink-0"
@@ -521,7 +538,7 @@ export default function ActiveRenderPill() {
             color: isRendering ? '#fff' : '#06220f',
           }}
         >
-          {isRendering ? 'Open' : 'Watch'}
+          {isRendering ? 'Open' : isFailed ? 'Try again' : 'Watch'}
         </span>
       </button>
 
