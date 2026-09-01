@@ -1,0 +1,8 @@
+# KINEO-ENTREGA-2026-09-01 — arquivos de DIARIO sao escritos por 3 agentes
+# (Claude, sprint, Codex). Conflito neles e sempre 'os dois escreveram um
+# paragrafo' — a resposta certa e guardar os dois. merge=union faz isso
+# sozinho, no clone temporario do bat e em qualquer rebase.
+docs/SPRINT-*.md merge=union
+docs/*DIARIO*.md merge=union
+docs/PROMPT-DIARIO*.md merge=union
+docs/PAUTA-*.md merge=union
