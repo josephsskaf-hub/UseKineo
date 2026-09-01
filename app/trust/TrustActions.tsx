@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useEffect } from 'react'
 import { trackEvent } from '@/lib/analytics'
 
-const VIEW_MARKER = 'kineo:trust-page:viewed:v1'
+const EXPERIMENT_VERSION = 'trust_business_handoff_v1'
+const VIEW_MARKER = 'kineo:trust-page:viewed:business-handoff-v1'
 
 export default function TrustActions() {
   useEffect(() => {
@@ -15,14 +16,14 @@ export default function TrustActions() {
       // Privacy modes can deny storage. The page must still work.
     }
     void trackEvent('trust_page_viewed', {
-      version: 'trust_center_v1_2026_08_27',
+      version: EXPERIMENT_VERSION,
     })
   }, [])
 
-  function record(destination: 'examples' | 'signup' | 'support') {
+  function record(destination: 'examples' | 'signup' | 'support' | 'business_packs') {
     void trackEvent('trust_cta_clicked', {
       destination,
-      version: 'trust_center_v1_2026_08_27',
+      version: EXPERIMENT_VERSION,
     })
   }
 
@@ -41,6 +42,13 @@ export default function TrustActions() {
         style={{ color: '#fff', border: '1px solid rgba(255,255,255,.16)', borderRadius: 999, padding: '13px 20px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
       >
         Watch real outputs
+      </Link>
+      <Link
+        href="/ai-shorts-for-agencies#agency-pack-heading"
+        onClick={() => record('business_packs')}
+        style={{ color: '#67e8f9', border: '1px solid rgba(103,232,249,.28)', background: 'rgba(34,211,238,.07)', borderRadius: 999, padding: '13px 18px', fontSize: 14, fontWeight: 800, textDecoration: 'none' }}
+      >
+        Client work? Compare one-time self-service packs
       </Link>
       <a
         href="mailto:support@usekineo.com?subject=Question%20before%20I%20use%20Kineo"

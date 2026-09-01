@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trust Center B2B handoff — before and after</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #050608; color: #f5f5f7; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    main { max-width: 1260px; margin: 0 auto; padding: 32px 20px 56px; }
+    h1 { margin: 0 0 8px; font-size: 28px; }
+    .intro { margin: 0 0 28px; color: #929299; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    .panel { overflow: hidden; border: 1px solid rgba(255,255,255,.1); border-radius: 22px; background: #0b0c10; }
+    .label { padding: 11px 16px; border-bottom: 1px solid rgba(255,255,255,.08); color: #67e8f9; font-size: 11px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+    .hero { min-height: 520px; padding: 42px 30px; background: radial-gradient(circle at 100% 0%, rgba(52,211,153,.12), transparent 38%), #08090c; }
+    .review { display: inline-flex; padding: 7px 12px; border: 1px solid rgba(34,211,238,.3); border-radius: 999px; background: rgba(34,211,238,.08); color: #67e8f9; font-size: 10px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    h2 { max-width: 620px; margin: 20px 0 18px; font-size: clamp(38px, 4.2vw, 62px); line-height: .97; letter-spacing: -.05em; }
+    p { max-width: 650px; margin: 0; color: #aaaab1; font-size: 17px; line-height: 1.65; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+    .button { padding: 13px 20px; border-radius: 999px; font-size: 14px; font-weight: 900; text-decoration: none; }
+    .primary { color: #04110c; background: #34d399; }
+    .secondary { color: #fff; border: 1px solid rgba(255,255,255,.16); }
+    .business { color: #67e8f9; border: 1px solid rgba(103,232,249,.28); background: rgba(34,211,238,.07); }
+    .support { padding-left: 8px; color: #b9b9c0; }
+    .mobile .hero { min-height: 620px; padding: 30px 20px; }
+    .mobile h2 { font-size: 40px; }
+    .mobile .actions { align-items: stretch; flex-direction: column; }
+    .mobile .button { text-align: center; }
+    .mobile .support { padding: 13px 8px; }
+    .mobile-grid { display: grid; grid-template-columns: repeat(2, minmax(260px, 370px)); gap: 22px; justify-content: center; margin-top: 22px; }
+    @media (max-width: 840px) {
+      .grid, .mobile-grid { grid-template-columns: 1fr; }
+      .hero { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Trust Center → B2B handoff</h1>
+  <p class="intro">The free CTA remains primary. The only change is a factual secondary path for visitors already evaluating Kineo for client work.</p>
+  <div class="grid">
+    <section class="panel">
+      <div class="label">Before · desktop</div>
+      <div class="hero">
+        <span class="review">Last reviewed · August 27, 2026</span>
+        <h2>Verify Kineo before you trust it with a card or a client video</h2>
+        <p>No borrowed logos and no anonymous superlatives. These are the concrete policies, processors and people behind the AI Shorts product.</p>
+        <div class="actions">
+          <a class="button primary">Try Kineo free</a>
+          <a class="button secondary">Watch real outputs</a>
+          <a class="button support">Ask the founder →</a>
+        </div>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="label">After · desktop</div>
+      <div class="hero">
+        <span class="review">Last reviewed · August 27, 2026</span>
+        <h2>Verify Kineo before you trust it with a card or a client video</h2>
+        <p>No borrowed logos and no anonymous superlatives. These are the concrete policies, processors and people behind the AI Shorts product.</p>
+        <div class="actions">
+          <a class="button primary">Try Kineo free</a>
+          <a class="button secondary">Watch real outputs</a>
+          <a class="button business">Client work? Compare one-time self-service packs</a>
+          <a class="button support">Ask the founder →</a>
+        </div>
+      </div>
+    </section>
+  </div>
+  <div class="mobile-grid">
+    <section class="panel mobile">
+      <div class="label">Before · mobile</div>
+      <div class="hero">
+        <span class="review">Last reviewed</span>
+        <h2>Verify Kineo before you trust it with a card or a client video</h2>
+        <p>Concrete policies, processors and people behind Kineo.</p>
+        <div class="actions"><a class="button primary">Try Kineo free</a><a class="button secondary">Watch real outputs</a><a class="button support">Ask the founder →</a></div>
+      </div>
+    </section>
+    <section class="panel mobile">
+      <div class="label">After · mobile</div>
+      <div class="hero">
+        <span class="review">Last reviewed</span>
+        <h2>Verify Kineo before you trust it with a card or a client video</h2>
+        <p>Concrete policies, processors and people behind Kineo.</p>
+        <div class="actions"><a class="button primary">Try Kineo free</a><a class="button secondary">Watch real outputs</a><a class="button business">Client work? Compare one-time self-service packs</a><a class="button support">Ask the founder →</a></div>
+      </div>
+    </section>
+  </div>
+</main>
+</body>
+</html>
