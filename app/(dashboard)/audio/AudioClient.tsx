@@ -22,7 +22,7 @@ const AUDIO_ENGINES: { key: AudioModelKey; icon: string; name: string; tag?: str
       { id: 'Charlotte', label: 'Charlotte' }, { id: 'Daniel', label: 'Daniel' }, { id: 'Jessica', label: 'Jessica' },
     ],
   },
-  { key: 'dia', icon: 'D', name: 'Dia Dialogue', tag: 'New', desc: 'Two-speaker scenes — [S1] [S2] + laughs', perK: 1, voices: [] },
+  { key: 'dia', icon: 'D', name: 'Dia Dialogue', desc: 'Two-speaker scenes — [S1] [S2] + laughs', perK: 1, voices: [] },
   {
     key: 'kokoro', icon: 'K', name: 'Kokoro', desc: 'Instant narration — lowest cost', perK: 1,
     voices: [

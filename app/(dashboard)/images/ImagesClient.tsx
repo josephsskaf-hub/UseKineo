@@ -15,7 +15,7 @@ const IMG_ENGINES: { key: ImgModelKey; icon: string; name: string; tag?: string;
   { key: 'schnell', icon: 'F', name: 'FLUX Schnell', desc: 'Instant drafts — ~2 seconds', credits: '1 cr' },
   { key: 'dev', icon: 'F+', name: 'FLUX Dev', tag: 'Popular', desc: 'Sharp, detailed, photorealistic', credits: '2 cr' },
   { key: 'seedream', icon: 'S', name: 'Seedream 5.0 Pro', desc: 'Deep prompt understanding, native text', credits: '3 cr' },
-  { key: 'grok', icon: '𝕏', name: 'Grok Imagine 2.0', tag: 'New', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
+  { key: 'grok', icon: '𝕏', name: 'Grok Imagine 2.0', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
   { key: 'recraft', icon: 'R', name: 'Recraft V3', tag: 'Studio', desc: 'Perfect text rendering (thumbnails!)', credits: '4 cr' },
   { key: 'nanobanana', icon: '🍌', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s top-ranked image model', credits: '5 cr' },
 ]

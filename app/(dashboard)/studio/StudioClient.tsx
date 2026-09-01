@@ -15,7 +15,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { useRouter, useSearchParams } from 'next/navigation'
 // KINEO-H3-2026-08-19 — custo por motor vem da fonte única, nunca de string.
-import { S25_PUBLIC } from '@/lib/engineLaunch'
 import { creditCostFor, creditCostForDuration } from '@/lib/credits/engineCost'
 import type { Quality } from '@/lib/credits/engineCost'
 import { isOnboardingGoalId, type OnboardingGoalId } from '@/lib/growth/onboardingGoals'
@@ -84,13 +83,13 @@ const ENGINES: {
   // primeiro render de validação; vitrine com clipe de outro motor seria
   // quebrar o selo honesto). É o filme carro-chefe que CABE no plano: o
   // Creator (90cr) não fecha um Kling 3 de 150, e fecha DOIS H3 de 45.
-  { key: 'h3', icon: 'H3', name: 'MiniMax H3', tag: 'New', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
+  { key: 'h3', icon: 'H3', name: 'MiniMax H3', desc: 'Cinematic film that fits your plan — 9-image consistency', res: '768p', credits: `${creditCostFor('cinematic_h3', true)} cr`, supportsRef: true },
   // KINEO-OMNI-2026-08-25 — o #1 do ranking cego de agosto (1245 Elo,
   // Artificial Analysis arena) entra no topo do catálogo. Selo honesto: a
   // claim '#1 ranked' tem fonte datada (docs/MOTOR-OMNI-FLASH-2026-08-25.md)
   // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
   // render de validação (vitrine com clipe de outro motor quebraria o selo).
-  { key: 'omni', icon: 'OF', name: 'Omni Flash', tag: 'New · #1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
+  { key: 'omni', icon: 'OF', name: 'Omni Flash', tag: '#1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
   // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
   // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
   // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
@@ -182,14 +181,6 @@ export default function StudioClient() {
   // KINEO-CEO-HOUR-2026-08-17 (#8) — reativacao da base: banner UMA VEZ
   // anunciando o que nasceu esta semana (Images/Audio/Enhance). ~1.300 contas
   // antigas nunca souberam que isso existe.
-  const [showNews, setShowNews] = useState(false)
-  useEffect(() => {
-    try { if (!localStorage.getItem('kineo:news:2026-09-01')) setShowNews(true) } catch {}
-  }, [])
-  const dismissNews = () => {
-    setShowNews(false)
-    try { localStorage.setItem('kineo:news:2026-09-01', '1') } catch {}
-  }
   const [myVids, setMyVids] = useState<{ id: string; title: string | null; video_url: string | null; thumbnail_url: string | null; enhanced_url?: string | null }[]>([])
   useEffect(() => {
     fetch('/api/videos', { cache: 'no-store' })
@@ -327,18 +318,6 @@ export default function StudioClient() {
     <div className="stu">
       <style dangerouslySetInnerHTML={{ __html: STUDIO_KIT_CSS }} />
 
-      {showNews && (
-        <div className="card" style={{ padding: '12px 16px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid rgba(41,151,255,0.35)', background: 'rgba(41,151,255,0.06)' }}>
-          <span style={{ fontSize: 13.5, color: 'var(--txt2,#c7c7cc)' }}>
-            {/* KINEO-MOTORES-D1-2026-09-01 — o banner diz o que e NOVO DE VERDADE
-                (pedido do fundador: "coloca no site o que realmente e new").
-                Selo honesto: cada item aqui subiu HOJE. O 2.5 so aparece para
-                quem pode usa-lo (internal / S25_PUBLIC). */}
-            <b style={{ color: '#7cc0ff' }}>NEW today:</b> 🎵 <b style={{ color: '#f5f5f7' }}>AI-composed soundtrack</b> on every film (Google Lyria 3 Pro — no more stock music) · 🎙 <a href="/audio" style={{ color: '#f5f5f7' }}>MiniMax 2.8 HD</a> voice, top of the Speech Arena · 🍌 <a href="/images" style={{ color: '#f5f5f7' }}>Nano Banana Pro</a> images{internal ? <> · 🎬 <b style={{ color: '#f5f5f7' }}>Seedance 2.5</b>{S25_PUBLIC ? ' — the newest video engine' : ' (internal test — pick it in the engine menu)'}</> : null}
-          </span>
-          <button type="button" onClick={dismissNews} aria-label="Dismiss" className="pill" style={{ marginLeft: 'auto' }}>✕</button>
-        </div>
-      )}
       <h1>Studio</h1>
       <p className="sub">Every control on one screen. Pick, type, generate.</p>
 

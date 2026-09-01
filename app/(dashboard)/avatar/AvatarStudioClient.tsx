@@ -1526,7 +1526,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                 className="rounded-lg px-3 py-2 text-[12px] font-bold"
                 style={{ background: adOpen ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: adOpen ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: adOpen ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
               >
-                📦 Product Ad mode — sell a product UGC-style <span style={{ fontSize: 8 }}>NEW</span>
+                📦 Product Ad mode — sell a product UGC-style
               </button>
               {adOpen && (
                 <div className="mt-2.5 flex flex-col gap-2">
@@ -1691,7 +1691,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
                   className="rounded-lg px-3 py-2 text-[12px] font-bold"
                   style={{ background: engine === 'presenter_pro' ? 'rgba(41,151,255,0.15)' : 'rgba(255,255,255,0.04)', border: engine === 'presenter_pro' ? '1px solid rgba(41,151,255,0.5)' : '1px solid var(--border)', color: engine === 'presenter_pro' ? '#2997ff' : 'var(--muted2)', cursor: 'pointer' }}
                 >
-                  ✨ Presenter Pro — premium photo quality · 110 cr <span style={{ fontSize: 8 }}>NEW</span>
+                  ✨ Presenter Pro — premium photo quality · 110 cr
                 </button>
                 <button
                   type="button"
@@ -1775,7 +1775,7 @@ export default function AvatarStudioClient({ isLoggedIn }: { isLoggedIn: boolean
           {sourceKind === 'photo' && faceUrl && (
             <section className="neon-card p-5">
               <h2 className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: 'var(--muted2)' }}>
-                5 · Gesture clips — transparent background <span style={{ fontSize: 8 }}>NEW</span>
+                5 · Gesture clips — transparent background
               </h2>
               <p className="text-[11px] mb-3" style={{ color: 'var(--muted)' }}>
                 Short clips of your presenter waving, pointing, presenting — delivered as WebM with a REAL transparent background. Drop them straight into Storyline, Premiere, CapCut or any slide. No green screen, no keying.
