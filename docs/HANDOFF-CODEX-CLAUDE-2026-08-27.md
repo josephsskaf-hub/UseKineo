@@ -2799,3 +2799,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, crédito, validade, trial, SKU, promessa, checkout visual, Stripe server/configuração, Supabase schema/dados/configuração, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `9a280a47` ou da ponta posterior. Não reeditar callback OAuth, signup resolution, recuperação de senha, limit purchase fit, Stripe failure truth ou Autopilot break-even antes dos gates. Codex alterna a próxima rodada para B2B em uma superfície distinta.
+
+## 102. B2B — o Trust Center encaminha trabalho de cliente para a oferta que já existe (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / BASELINE (30 dias até 01/09/2026 01:36 UTC; contas internas excluídas):** `trust_page_viewed` alcançou uma pessoa e `agency_bulk_page_viewed` alcançou uma pessoa. Na Stripe, 11 pessoas externas abriram checkouts B2B — quatro do piloto e sete do mensal — e nenhuma pagou; todas as sessões observadas expiraram. A amostra é pequena e não autoriza atribuir a saída a preço, cartão ou copy.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO ANTERIOR:** `/trust` já dizia `card or client video` no título e afirmava uso comercial para clientes, mas `TrustActions` oferecia somente cadastro gratuito, exemplos e suporte. A página de pacotes avulsos já existia em `/ai-shorts-for-agencies#agency-pack-heading`; faltava a ponte para o visitante que estava verificando a Kineo justamente para trabalho de cliente.
+
+**HIPÓTESE CAUSAL NOVA:** quem chega ao Trust Center avaliando privacidade, propriedade e pagamento para um cliente pode precisar de uma rota explícita para a oferta B2B existente. Uma opção secundária e factual reduz procura sem competir com o teste gratuito principal.
+
+**IMPLEMENTADO:** o commit `988ef9ff3abd88bf3aed28564df09222eaaf14ed` mantém `Try Kineo free` como CTA primário e adiciona `Client work? Compare one-time self-service packs` como CTA secundário para o shelf de pacotes existente. Não há query nem UTM nova, portanto a ponte não sobrescreve a atribuição de primeira origem. A copy não promete equipe, SLA, portal de aprovação, white-label ou serviço gerenciado.
+
+**MEDIÇÃO / PRIVACIDADE:** `trust_page_viewed` e `trust_cta_clicked` usam a versão `trust_business_handoff_v1`; o destino novo é a categoria allow-listed `business_packs`. O marcador de sessão recebeu versão nova para medir a exposição do experimento. Nenhuma URL livre, e-mail, preço, crédito, identificador ou dado de cliente entra no evento.
+
+**GATE / PARADA:** preservar até dez pessoas externas expostas. Sinal inicial: duas pessoas distintas clicam `business_packs` e ao menos uma chega à página de agência; checkout e pagamento são os resultados posteriores. Parar ou reformular com dez exposições e zero cliques, ou se o CTA gratuito perder cliques sem compensação B2B. Impressão, clique e chegada não são receita.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TRUST-BUSINESS-HANDOFF-2026-09-01.html` mostra antes/depois desktop e mobile. O preview foi inspecionado no Chrome conectado: o CTA gratuito continua dominante, e a ponte B2B aparece como opção secundária nos dois tamanhos. A aba e o servidor local foram fechados ao terminar.
+
+**TESTADO LOCALMENTE:** Trust Center 31/31 e distribuição B2B 69/69. O typecheck repetiu exatamente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2; nenhum arquivo desta entrega introduziu erro. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `988ef9ff3abd88bf3aed28564df09222eaaf14ed`. O deploy Vercel `dpl_36LHw2iUs8cJgxtSsbXdEon3Gcsk` chegou a `READY`, target production, framework Next.js, SHA exato e alias em `www.usekineo.com`. Uma leitura HTTP sem estado do domínio confirmou o texto e o destino exatos; `/trust` apresentou zero erro de runtime na janela de 30 minutos. Nenhum CTA foi acionado, para não fabricar a primeira amostra.
+
+**NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, SKU, promessa, Stripe, Supabase schema/dados, admin, render, motor, cena, voz, legenda, e-mail, outreach ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `988ef9ff` ou da ponta posterior. Não reeditar o Trust Center antes do gate. Codex alterna a próxima sprint para B2C em outra superfície, preservando OAuth, signup, recuperação de senha, limite, falha de pagamento e oferta pós-vídeo até suas amostras mínimas.
