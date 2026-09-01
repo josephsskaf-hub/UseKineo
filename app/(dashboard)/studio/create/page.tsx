@@ -25,6 +25,7 @@ import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { getViralTopicById } from '@/lib/viralTopics'
+import { escolherSementeDeRetorno, SEMENTE_TETO_VIDEOS } from '@/lib/returningSeed'
 import GenerateClient from '../../generate/GenerateClient'
 
 // sprint-ui #11 (2026-08-30) — titulo de aba proprio. Sem isto, a aba
@@ -130,9 +131,60 @@ export default async function StudioCreatePage({ searchParams }: StudioCreatePag
     },
   })
 
+  // sprint-v1v4 #28 (2026-09-01) — A CAIXA EM BRANCO DE QUEM JA VOLTOU.
+  // 82 das 285 pessoas de 1 video voltaram a esta tela e so 36 clicaram no
+  // primeiro botao: 46 abrem o Studio de novo e nao apertam nada. O
+  // pre-preenchimento que existe hoje (#455, dentro do GenerateClient) e
+  // explicitamente so para quem NUNCA fez video ("never touches returning
+  // users"). Aqui, no servidor, quem ja fez 1 a 3 videos e chegou SEM ideia na
+  // URL recebe uma linha curta da prateleira que a #16 mediu convertendo 13x
+  // melhor. Uma linha, editavel, nunca o roteiro inteiro. Sem ideia na URL =
+  // sem risco de atropelar texto de ninguem.
+  let seedPrompt = viralTopic?.prompt ?? ''
+  const jaTemIdeiaNaUrl = Boolean(
+    (firstParam(searchParams, 'prompt') ?? '').trim() ||
+      (firstParam(searchParams, 'topic') ?? '').trim() ||
+      viralTopic,
+  )
+  if (!jaTemIdeiaNaUrl) {
+    try {
+      const { data: recentes } = await supabase
+        .from('videos')
+        .select('topic')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(SEMENTE_TETO_VIDEOS)
+      const feitos = recentes?.length ?? 0
+      const semente = escolherSementeDeRetorno({
+        userId: user.id,
+        videosFeitos: feitos,
+        topicosAnteriores: (recentes ?? []).map((r) => (r as { topic?: string | null }).topic ?? ''),
+        jaTemIdeiaNaUrl: false,
+      })
+      if (semente) {
+        seedPrompt = semente.texto
+        await writeServerEvent({
+          name: 'create_returning_seed_shown',
+          userId: user.id,
+          path: '/studio/create',
+          sessionId,
+          dedupeMinutes: 30,
+          metadata: {
+            topic_id: semente.topicId,
+            vertical: semente.vertical,
+            videos_feitos: feitos,
+            descartados_por_repeticao: semente.descartadosPorRepeticao,
+          },
+        })
+      }
+    } catch {
+      /* best-effort — a tela de criar nunca quebra por causa de uma sugestao */
+    }
+  }
+
   return (
     <Suspense fallback={null}>
-      <GenerateClient initialViralPrompt={viralTopic?.prompt ?? ''} initialUserId={user.id} />
+      <GenerateClient initialViralPrompt={seedPrompt} initialUserId={user.id} />
     </Suspense>
   )
 }
