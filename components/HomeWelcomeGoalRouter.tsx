@@ -1,22 +1,23 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
   buildHomeWelcomeGoalHref,
-  DEFAULT_ONBOARDING_GOAL,
   ONBOARDING_GOALS,
   ONBOARDING_GOAL_VARIANT,
   type OnboardingGoal,
+  type OnboardingGoalId,
 } from '@/lib/growth/onboardingGoals'
 import styles from './HomeWelcomeGoalRouter.module.css'
 
-const HOME_FIRST_WIN_VIEW_MARKER = 'kineo_home_first_win_focus_v2_viewed'
-const SURFACE_VERSION = 'home_activation_focus_v2'
+const HOME_FIRST_WIN_VIEW_MARKER = 'kineo_home_outcome_selector_v3_viewed'
+const SURFACE_VERSION = 'home_outcome_selector_v3'
 
 export default function HomeWelcomeGoalRouter() {
-  const alternatives = ONBOARDING_GOALS.filter((goal) => goal.id !== DEFAULT_ONBOARDING_GOAL.id)
+  const [selectedGoalId, setSelectedGoalId] = useState<OnboardingGoalId | null>(null)
+  const selectedGoal = ONBOARDING_GOALS.find((goal) => goal.id === selectedGoalId) ?? null
 
   useEffect(() => {
     try {
@@ -30,22 +31,31 @@ export default function HomeWelcomeGoalRouter() {
       variant: ONBOARDING_GOAL_VARIANT,
       surface: 'home_first_win',
       surface_version: SURFACE_VERSION,
-      selected_goal: DEFAULT_ONBOARDING_GOAL.id,
       is_first_video: true,
     })
   }, [])
 
-  function trackGoalClick(goal: OnboardingGoal) {
-    const metadata = {
-      version: 'push27_single_choice',
+  function selectGoal(goal: OnboardingGoal) {
+    setSelectedGoalId(goal.id)
+    if (goal.id === selectedGoalId) return
+    void trackEvent('viral_onboarding_goal_selected', {
+      version: 'outcome_selector_v3',
       variant: ONBOARDING_GOAL_VARIANT,
       surface: 'home_first_win',
       surface_version: SURFACE_VERSION,
       selected_goal: goal.id,
       is_first_video: true,
-    }
-    if (goal.id !== DEFAULT_ONBOARDING_GOAL.id) {
-      void trackEvent('viral_onboarding_goal_selected', metadata)
+    })
+  }
+
+  function trackPrimaryClick(goal: OnboardingGoal) {
+    const metadata = {
+      version: 'outcome_selector_v3',
+      variant: ONBOARDING_GOAL_VARIANT,
+      surface: 'home_first_win',
+      surface_version: SURFACE_VERSION,
+      selected_goal: goal.id,
+      is_first_video: true,
     }
     void trackEvent('viral_onboarding_primary_clicked', metadata)
   }
@@ -53,47 +63,56 @@ export default function HomeWelcomeGoalRouter() {
   return (
     <section id="first-win" className={styles.section} aria-labelledby="home-welcome-goal-heading" data-activation-version={SURFACE_VERSION}>
       <div className={styles.shell}>
-        <p className={styles.eyebrow}>Your trial is ready</p>
+        <p className={styles.eyebrow}>Your trial is ready · choose the outcome</p>
         <h2 id="home-welcome-goal-heading" className={styles.heading}>
-          Start with one Short worth judging.
+          Who is this first Short for?
         </h2>
         <p className={styles.intro}>
-          We picked a proven mystery brief and Seedance 1.5. Open it in Studio, review the idea and cost, then decide whether to generate.
+          Pick the job first. Kineo will show one ready-to-edit Seedance brief for that outcome before you open Studio.
         </p>
 
-        <div className={styles.routeGrid}>
-          <Link
-            href={buildHomeWelcomeGoalHref(DEFAULT_ONBOARDING_GOAL)}
-            className={styles.primary}
-            onClick={() => trackGoalClick(DEFAULT_ONBOARDING_GOAL)}
-          >
-            <span className={styles.recommended}>Recommended first win</span>
-            <span className={styles.primaryLabel}>{DEFAULT_ONBOARDING_GOAL.topic}</span>
-            <span className={styles.primaryDetail}>{DEFAULT_ONBOARDING_GOAL.hook}</span>
-            <span className={styles.primaryAction}>Open my Seedance starter →</span>
-          </Link>
-
-          <div className={styles.alternatives} role="list" aria-label="Choose another first-video goal">
-            <p className={styles.alternativeHeading}>Or make the first video useful for:</p>
-            {alternatives.map((goal) => (
-              <Link
-                key={goal.id}
-                href={buildHomeWelcomeGoalHref(goal)}
-                className={styles.option}
-                role="listitem"
-                onClick={() => trackGoalClick(goal)}
-              >
-                <span>
-                  <span className={styles.optionLabel}>{goal.label}</span>
-                  <span className={styles.optionDetail}>{goal.description}</span>
-                </span>
-                <span className={styles.optionAction}>Open idea →</span>
-              </Link>
-            ))}
-          </div>
+        <div className={styles.goalGrid} role="list" aria-label="Choose who the first Short is for">
+          {ONBOARDING_GOALS.map((goal) => {
+            const active = goal.id === selectedGoalId
+            return (
+              <div key={goal.id} className={styles.goalItem} role="listitem">
+                <button
+                  type="button"
+                  className={`${styles.goalButton} ${active ? styles.goalButtonActive : ''}`}
+                  aria-pressed={active}
+                  onClick={() => selectGoal(goal)}
+                >
+                  <span className={styles.goalLabel}>{goal.label}</span>
+                  <span className={styles.goalDetail}>{goal.description}</span>
+                  <span className={styles.goalChoose}>{active ? 'Selected ✓' : 'Choose this outcome →'}</span>
+                </button>
+              </div>
+            )
+          })}
         </div>
 
-        <p className={styles.safety}>Nothing renders and no credits are spent from this choice. Studio shows the engine, duration and exact cost before you press Generate.</p>
+        {selectedGoal ? (
+          <div className={styles.brief} aria-live="polite">
+            <div className={styles.briefCopy}>
+              <span className={styles.briefEyebrow}>Starter brief · {selectedGoal.shortLabel}</span>
+              <h3 className={styles.briefTitle}>{selectedGoal.topic}</h3>
+              <p className={styles.briefHook}>{selectedGoal.hook}</p>
+            </div>
+            <Link
+              href={buildHomeWelcomeGoalHref(selectedGoal)}
+              className={styles.primaryAction}
+              onClick={() => trackPrimaryClick(selectedGoal)}
+            >
+              {selectedGoal.cta}
+            </Link>
+          </div>
+        ) : (
+          <div className={styles.emptyState} aria-live="polite">
+            Choose one outcome to preview the exact starter brief before opening Studio.
+          </div>
+        )}
+
+        <p className={styles.safety}>Nothing renders and no credits are spent here. Studio still shows the engine, duration and exact cost before you press Generate.</p>
       </div>
     </section>
   )
