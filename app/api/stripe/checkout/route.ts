@@ -81,6 +81,11 @@ import {
   RECURRING_CHECKOUT_WINDOW_VERSION,
   recurringCheckoutExpiresAt,
 } from '@/lib/growth/checkoutSessionWindow'
+import {
+  buildCheckoutSetupFailureReturnHref,
+  checkoutSetupFailureTelemetry,
+  readCheckoutSetupFailureContext,
+} from '@/lib/growth/checkoutSetupFailureReturn'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -2816,12 +2821,27 @@ export async function GET(req: NextRequest) {
     // KINEO-INTRO-MONTH-2026-07-13 — ?intro=1 → 1º mês com desconto.
     const intro = req.nextUrl.searchParams.get('intro') === '1'
     return await buildAndRedirect(req, tier, true, billing, promo, intro)
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error)
-    console.error('[stripe/checkout GET] Unexpected error:', msg)
-    const appUrl = req.nextUrl.origin
-    return NextResponse.redirect(
-      `${appUrl}/pricing?checkout_error=${encodeURIComponent('An unexpected error occurred. Please try again.')}`
+  } catch {
+    // KINEO-CHECKOUT-SETUP-FAILURE-RETURN-V1-2026-09-01 — this terminal path
+    // happens before a Stripe Session exists, so the existing redirect
+    // watchdog cannot rescue it. Keep the buyer's exact, same-origin checkout
+    // choice and give Pricing a deterministic retry. The exception body is
+    // deliberately absent from logs and telemetry: provider errors can echo
+    // customer or promotion data.
+    console.error('[stripe/checkout GET] Unexpected error before checkout redirect')
+    const destination = `${req.nextUrl.pathname}${req.nextUrl.search}`
+    const recovery = readCheckoutSetupFailureContext(destination)
+    await recordCheckoutEvent(
+      'checkout_failed',
+      null,
+      {
+        stage: 'outer_get',
+        reason: 'unexpected_server_error',
+        ...(recovery ? checkoutSetupFailureTelemetry(recovery) : {}),
+      },
+      browserSessionIdFrom(req),
     )
+    const appUrl = req.nextUrl.origin
+    return NextResponse.redirect(`${appUrl}${buildCheckoutSetupFailureReturnHref(destination)}`)
   }
 }

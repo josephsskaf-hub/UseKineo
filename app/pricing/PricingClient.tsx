@@ -75,6 +75,12 @@ import {
   mobileStickyTelemetry,
   type MobileStickyTier,
 } from '@/lib/growth/mobileStickyBillingTruth'
+import {
+  checkoutSetupFailureStorageKey,
+  checkoutSetupFailureTelemetry,
+  readCheckoutSetupFailureFromSearch,
+  type CheckoutSetupFailureReturnContext,
+} from '@/lib/growth/checkoutSetupFailureReturn'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -304,6 +310,7 @@ export default function PricingClient() {
   const currencyTrackedRef = useRef(false)
   const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
+  const [checkoutSetupFailure, setCheckoutSetupFailure] = useState<CheckoutSetupFailureReturnContext | null>(null)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
   // (unverifiable "estimated views/month" promise — see note at the old block).
@@ -584,14 +591,53 @@ export default function PricingClient() {
     } catch { /* non-blocking */ }
   }
 
+  function handleCheckoutSetupRetry() {
+    if (!checkoutSetupFailure) return
+    const telemetry = checkoutSetupFailureTelemetry(checkoutSetupFailure)
+    const retryKey = `setup_retry:${checkoutSetupFailure.selection}`
+    const started = checkout.launch(
+      retryKey,
+      checkoutSetupFailure.destination,
+      { ...telemetry, pricing_surface: 'checkout_setup_failure_return' },
+    )
+    if (!started) return
+    void trackEvent('checkout_setup_failure_retry_clicked', telemetry)
+  }
+
   // Push #173 — read checkout_error / already_subscribed from URL params
   // set by the GET checkout handler when it can't create a Stripe session.
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
     const err = params.get('checkout_error')
-    if (err) setCheckoutError(decodeURIComponent(err))
+    // URLSearchParams already decodes values. Calling decodeURIComponent a
+    // second time turned a legitimate '%' in any provider message into a
+    // URIError and replaced the checkout explanation with a page crash.
+    if (err) setCheckoutError(err)
     if (params.get('already_subscribed') === '1') setAlreadySubscribed(true)
+
+    const setupFailure = readCheckoutSetupFailureFromSearch(window.location.search)
+    setCheckoutSetupFailure(setupFailure)
+    if (!setupFailure) return
+
+    const storageKey = checkoutSetupFailureStorageKey(setupFailure)
+    try {
+      if (sessionStorage.getItem(storageKey) === '1') return
+    } catch {
+      // Analytics dedupe is optional; the retry itself must stay available.
+    }
+
+    void trackEvent(
+      'checkout_setup_failure_return_viewed',
+      checkoutSetupFailureTelemetry(setupFailure),
+    ).then((stored) => {
+      if (!stored) return
+      try {
+        sessionStorage.setItem(storageKey, '1')
+      } catch {
+        // Event is stored; unavailable browser storage changes no behavior.
+      }
+    })
   }, [])
 
   useEffect(() => {
@@ -1038,11 +1084,31 @@ export default function PricingClient() {
 
         {/* ONDA1 #11 (13/08) — o erro de checkout aparece ONDE a pessoa esta
             olhando (logo abaixo dos planos), nao 250 linhas depois. */}
-        {checkoutError && (
+        {checkoutError && checkoutSetupFailure ? (
+          <div
+            role="alert"
+            className="mx-auto mt-4 max-w-2xl rounded-2xl border border-[#2997ff]/35 bg-[#2997ff]/[0.08] px-5 py-4 text-center"
+          >
+            <p className="text-[13px] font-bold text-[#f5f5f7]">{checkoutError}</p>
+            <p className="mt-1 text-[12px] font-medium text-[#a1a1a8]">
+              No payment was created. Retry the same selection when you are ready.
+            </p>
+            <button
+              type="button"
+              disabled={Boolean(purchasing)}
+              onClick={handleCheckoutSetupRetry}
+              className="mt-3 inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2997ff] px-5 text-[13px] font-extrabold text-white transition hover:bg-[#147ce5] disabled:cursor-wait disabled:opacity-60"
+            >
+              {purchasing === `setup_retry:${checkoutSetupFailure.selection}`
+                ? 'Opening secure checkout…'
+                : 'Try secure checkout again'}
+            </button>
+          </div>
+        ) : checkoutError ? (
           <p role="alert" className="mx-auto mt-4 max-w-2xl text-center text-[13px] font-semibold text-[#f87171]">
             {checkoutError}
           </p>
-        )}
+        ) : null}
 
         {/* KINEO-CEO-HOUR-2026-08-17 (#5) — o tradutor de creditos VISIVEL,
             nao so no FAQ: uma fita de precos por resultado. */}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout setup failure return — before / after</title>
+  <style>
+    *{box-sizing:border-box} body{margin:0;background:#07070a;color:#f5f5f7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;padding:36px}
+    h1{font-size:20px;margin:0 0 8px} .note{color:#a1a1a8;font-size:13px;margin:0 0 28px;max-width:820px;line-height:1.5}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;align-items:start}.case{border:1px solid #29292e;border-radius:22px;background:#101014;overflow:hidden}
+    .label{padding:12px 16px;background:#19191e;color:#a1a1a8;font-size:11px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+    .viewport{padding:28px 24px 34px;min-height:440px}.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.plan{border:1px solid #303038;border-radius:16px;background:#15151a;padding:16px 12px;height:240px}.plan.featured{border-color:#2997ff;box-shadow:0 0 0 1px rgba(41,151,255,.25)}
+    .tier{font-weight:850;font-size:16px}.price{font-size:25px;font-weight:900;margin:20px 0}.line{height:8px;background:#2b2b32;border-radius:9px;margin:10px 0}.line.short{width:65%}.cta{height:36px;background:#2997ff;border-radius:10px;margin-top:30px}
+    .old{color:#f87171;text-align:center;font-size:13px;font-weight:700;margin:18px auto 0}.recovery{border:1px solid rgba(41,151,255,.35);background:rgba(41,151,255,.08);border-radius:16px;padding:16px;text-align:center;margin:18px auto 0;max-width:620px}.recovery b{font-size:13px}.recovery p{font-size:12px;color:#a1a1a8;margin:6px 0 0}.retry{display:inline-flex;margin-top:13px;background:#2997ff;border-radius:12px;padding:12px 20px;font-size:13px;font-weight:850;color:white}
+    .mobile{display:none}.caption{font-size:12px;color:#86868b;line-height:1.5;margin-top:18px}
+    @media(max-width:760px){body{padding:20px}.grid{grid-template-columns:1fr}.viewport{padding:20px 14px;min-height:auto}.plans{grid-template-columns:1fr}.plan:not(.featured){display:none}.plan{height:220px}.desktop{display:none}.mobile{display:inline}}
+  </style>
+</head>
+<body>
+  <h1>Checkout failure before Stripe — visual comparison</h1>
+  <p class="note">Only the dedicated server failure return changes. Normal pricing, prices, cards and every provider-specific error remain untouched. Resize below 760px to inspect the mobile state.</p>
+  <main class="grid">
+    <section class="case">
+      <div class="label">Before · dead end</div>
+      <div class="viewport">
+        <div class="plans">
+          <div class="plan"><div class="tier">Starter</div><div class="price">$9.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+          <div class="plan featured"><div class="tier">Creator</div><div class="price">$19.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+          <div class="plan"><div class="tier">Studio</div><div class="price">$39.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+        </div>
+        <p class="old">An unexpected error occurred. Please try again.</p>
+        <p class="caption">The buyer received a red sentence with no action. Their chosen plan, billing period and campaign were discarded.</p>
+      </div>
+    </section>
+    <section class="case">
+      <div class="label">After · exact safe retry</div>
+      <div class="viewport">
+        <div class="plans">
+          <div class="plan"><div class="tier">Starter</div><div class="price">$9.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+          <div class="plan featured"><div class="tier">Creator</div><div class="price">$19.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+          <div class="plan"><div class="tier">Studio</div><div class="price">$39.90</div><div class="line"></div><div class="line short"></div><div class="cta"></div></div>
+        </div>
+        <div class="recovery">
+          <b>We could not open secure checkout. Your selection is saved.</b>
+          <p>No payment was created. Retry the same selection when you are ready.</p>
+          <span class="retry">Try secure checkout again</span>
+        </div>
+        <p class="caption">The retry uses the same guarded checkout launcher and the exact validated Kineo checkout URL. <span class="desktop">Desktop shown.</span><span class="mobile">Mobile shown.</span></p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
