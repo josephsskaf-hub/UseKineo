@@ -14439,18 +14439,36 @@ export default function GenerateClient({
               conflicting-offers problem this sprint kills. One screen, one
               offer: the #099 block above is it. */}
 
-          {/* Push #047 — ready-to-post text package. Renders after a
-              successful generation, alongside the video player above, so
-              the user can copy hook + script + scenes + caption + hashtags
-              + CTA into YouTube Shorts in one go. */}
-          {phase === 'done' && analysis && (
-            <ShortPackageSection
-              analysis={analysis}
-              copiedSection={copiedSection}
-              onCopy={copySection}
-            />
-          )}
+          {/* ─────────────────────────────────────────────────────────
+              sprint-v1v4 #32 (2026-09-01) — A PRATELEIRA SUBIU PARA ONDE OS
+              OLHOS ESTAO.
 
+              O QUE A MEDICAO PROVOU: a rodada #9 instrumentou visibilidade
+              real (`next_shorts_seen`, IntersectionObserver a 33% do card,
+              com fallback que dispara sozinho quando nao ha API). Desde o
+              deploy dela, `next_shorts_shown` disparou e `next_shorts_seen`
+              ficou em ZERO — nenhum humano jamais rolou ate um terco deste
+              bloco. Descartei as duas explicacoes baratas antes de mexer:
+              nao ha allowlist de nomes no cliente (`lib/analytics.ts`
+              `trackEvent` e generico) nem no servidor (`app/api/events`
+              nao filtra nome), e o mesmo `onEvent` entrega o `shown` sem
+              problema. Sobrou a explicacao estrutural: o bloco nascia
+              DEPOIS do pacote de texto pronto-para-postar, que e a secao
+              mais alta da tela.
+
+              A MUDANCA: a prateleira do proximo episodio passa a vir
+              IMEDIATAMENTE abaixo do video, e o pacote de texto desce um
+              degrau. Nada foi apagado, nada mudou de conteudo — so a ordem.
+              Continua ACIMA do upsell (pista do Codex, intocada): a ordem
+              nova e video -> proximo episodio -> pacote de texto -> upsell.
+
+              POR QUE ESSA ORDEM E A CERTA: quem acabou de ver o proprio
+              video ainda esta decidindo se isto vira habito. O pacote de
+              texto serve quem JA decidiu postar; a pergunta "e o proximo?"
+              precisa chegar antes, enquanto o video ainda esta na tela.
+              37% baixam o video — os outros 63% nunca chegam ao fim da
+              pagina, e era la que a unica porta para o video 2 morava.
+              ───────────────────────────────────────────────────────── */}
           {/* KINEO-SPRINT-12H-2026-07-29 — the second-video problem.
               Production counts on 2026-07-29: 212 people finished a video, 173
               of them (82%) finished exactly one and never returned. This screen
@@ -14468,7 +14486,7 @@ export default function GenerateClient({
               title={analysis.title}
               niche={analysis.niche}
               hook={analysis.hook}
-              onEvent={(name, meta) => { try { void trackEvent(name, meta) } catch { /* ignore */ } }}
+              onEvent={(name, meta) => { try { void trackEvent(name, { ...(meta ?? {}), placement: 'above_package' }) } catch { /* ignore */ } }}
               onPick={(idea) => {
                 // Order matters: handleReset() clears the prompt (see its tail),
                 // so the new prompt has to be written AFTER the reset or it is
@@ -14484,6 +14502,18 @@ export default function GenerateClient({
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 } catch { /* ignore */ }
               }}
+            />
+          )}
+
+          {/* Push #047 — ready-to-post text package. Renders after a
+              successful generation, alongside the video player above, so
+              the user can copy hook + script + scenes + caption + hashtags
+              + CTA into YouTube Shorts in one go. */}
+          {phase === 'done' && analysis && (
+            <ShortPackageSection
+              analysis={analysis}
+              copiedSection={copiedSection}
+              onCopy={copySection}
             />
           )}
 
