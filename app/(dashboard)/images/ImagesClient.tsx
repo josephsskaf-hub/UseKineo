@@ -17,7 +17,7 @@ const IMG_ENGINES: { key: ImgModelKey; icon: string; name: string; tag?: string;
   { key: 'seedream', icon: 'S', name: 'Seedream 5.0 Pro', desc: 'Deep prompt understanding, native text', credits: '3 cr' },
   { key: 'grok', icon: '𝕏', name: 'Grok Imagine 2.0', tag: 'New', desc: 'Highly aesthetic images by xAI', credits: '3 cr' },
   { key: 'recraft', icon: 'R', name: 'Recraft V3', tag: 'Studio', desc: 'Perfect text rendering (thumbnails!)', credits: '4 cr' },
-  { key: 'nanobanana', icon: '🍌', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s best 4K image model', credits: '5 cr' },
+  { key: 'nanobanana', icon: '🍌', name: 'Nano Banana Pro', tag: 'Studio', desc: 'Google’s top-ranked image model', credits: '5 cr' },
 ]
 
 const SIZES: { key: ImgSize; label: string }[] = [
