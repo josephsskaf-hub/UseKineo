@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import AgencyHeaderCta from './AgencyHeaderCta'
 import Footer from '@/components/Footer'
 import { BULK_PACK_IDS, BULK_PACKS, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import AgencyPacksClient, { type AgencyPackView } from './AgencyPacksClient'
@@ -116,7 +117,9 @@ export default function AiShortsForAgenciesPage() {
           </Link>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <Link href="/examples" style={{ color: '#a5a5ac', textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>Examples</Link>
-            <Link href="/login?redirect=%2Fai-shorts-for-agencies" style={{ color: '#fff', textDecoration: 'none', fontSize: 13, fontWeight: 850, background: '#24262c', border: '1px solid rgba(255,255,255,.12)', borderRadius: 999, padding: '9px 15px' }}>Sign in</Link>
+            {/* KINEO-CTA-LOGADO-2026-09-01 — o botão sabia só "Sign in";
+                logado agora vê "Open Studio →" (ver AgencyHeaderCta). */}
+            <AgencyHeaderCta />
           </div>
         </div>
       </header>
