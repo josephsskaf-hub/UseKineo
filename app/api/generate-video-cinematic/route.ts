@@ -109,6 +109,15 @@ import {
   inspectActiveComposeCreditHolds,
 } from '@/lib/credits/composeHold'
 import { refundRenderCredits } from '@/lib/credits/refund'
+// sprint-v1v4 #22 — a segunda recusa em 5 minutos deixa de repetir a licao da
+// primeira. 54% das 283 falhas de 30d vieram a menos de 5 min da anterior DA
+// MESMA PESSOA. Ver o cabecalho de lib/refusalSpiral.ts.
+import {
+  avaliarEspiral,
+  classificarParede,
+  historicoDeParedes,
+  mensagemComEspiral,
+} from '@/lib/refusalSpiral'
 import { FalQueueSubmitError, submitFalQueueOnce } from '@/lib/falQueue'
 import {
   acquireCinematicClaim,
@@ -2068,9 +2077,42 @@ async function manipularPost(req: NextRequest) {
           `alvo de ${duration}s (cobertura ${(fit.coverage * 100).toFixed(0)}%, ` +
           `mínimo ${(MIN_COVERAGE * 100).toFixed(0)}%).`,
         )
+        // ═══ sprint-v1v4 #22 — ESTA RECUSA SABE SE JA HOUVE OUTRA ═══════════
+        // Medido: 154 das 283 falhas de 30d aconteceram a menos de CINCO
+        // minutos da falha anterior da mesma pessoa, e quem falha 3+ vezes faz
+        // 0,66 videos contra 1,29 de quem falha uma. A segunda mensagem
+        // repetia a licao da primeira — que ja tinha se provado inutil.
+        // Best-effort integral: qualquer tropeco devolve a mensagem de hoje,
+        // byte a byte. Posicao 1 (a maioria) tambem devolve a de hoje.
+        const msgGuard = narrationTooShortMessage(fit, SUPPORTED_DURATIONS)
+        let espiralGuard: ReturnType<typeof avaliarEspiral> = null
+        try {
+          const agoraEsp = Date.now()
+          espiralGuard = avaliarEspiral({
+            historico: await historicoDeParedes(cinematicAdmin, user.id, agoraEsp),
+            paredeAtual: 'narracao_curta',
+            agora: agoraEsp,
+          })
+          if (espiralGuard) {
+            await cinematicAdmin.from('events').insert({
+              user_id: user.id,
+              name: 'refusal_spiral',
+              path: '/api/generate-video-cinematic',
+              metadata: {
+                posicao: espiralGuard.posicao,
+                parede: espiralGuard.parede,
+                parede_anterior: espiralGuard.paredeAnterior,
+                mesma_parede: espiralGuard.mesmaParede,
+                minutos_desde_ultima: espiralGuard.minutosDesdeUltima,
+                paredes: espiralGuard.paredes,
+                sufixo_entregue: espiralGuard.sufixo !== null,
+              },
+            })
+          }
+        } catch { /* espiral nunca derruba nem atrasa a recusa */ }
         return NextResponse.json(
           {
-            error: narrationTooShortMessage(fit, SUPPORTED_DURATIONS),
+            error: mensagemComEspiral(msgGuard, espiralGuard),
             narrationTooShort: true,
             // A UI usa estes para oferecer o botão "usar Xs" sem a pessoa ter
             // de fazer conta nenhuma.

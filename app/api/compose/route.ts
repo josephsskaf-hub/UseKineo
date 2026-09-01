@@ -5,6 +5,13 @@ import { createClient as createAdminClient, type SupabaseClient } from '@supabas
 // sprint-v1v4 #21 — o degrau que faltava na escada de resgate do roteiro, e o
 // nome da causa quando nem ele salva. Ver o cabecalho de lib/voiceoverSalvage.ts.
 import { narracaoDasLegendas, diagnosticarPerda } from '@/lib/voiceoverSalvage'
+// sprint-v1v4 #22 — a recusa repetida deixa de repetir a licao que ja falhou.
+// Ver o cabecalho de lib/refusalSpiral.ts.
+import {
+  avaliarEspiral,
+  historicoDeParedes,
+  mensagemComEspiral,
+} from '@/lib/refusalSpiral'
 import {
   buildCreatomateSource,
   CreatomateSubmitError,
@@ -613,7 +620,46 @@ export async function POST(req: NextRequest) {
         ...perda.detalhes,
         duration: Number(body.duration) || null,
       })
-      return NextResponse.json({ error: 'voiceover_script is required.' }, { status: 400 })
+      // ═══ sprint-v1v4 #22 — E SE ESTA JA E A SEGUNDA EM CINCO MINUTOS? ═══
+      // O caso real de 31/08: 23:03:53 este mesmo 400 com duration=45, e
+      // 23:04:15 ELE DE NOVO com duration=35. A pessoa mudou o que a primeira
+      // mensagem mandou mudar e levou a mesma parede 22 segundos depois.
+      // Nao ha mensagem de cliente aqui (o 400 e literal de desenvolvedor),
+      // entao o sufixo VIRA a mensagem — e so a partir da segunda vez.
+      let espiralCompose: ReturnType<typeof avaliarEspiral> = null
+      try {
+        const urlEsp = process.env.NEXT_PUBLIC_SUPABASE_URL
+        const keyEsp = process.env.SUPABASE_SERVICE_ROLE_KEY
+        if (urlEsp && keyEsp && authenticatedUserId) {
+          const dbEsp = createAdminClient(urlEsp, keyEsp, { auth: { persistSession: false } })
+          const agoraEsp = Date.now()
+          espiralCompose = avaliarEspiral({
+            historico: await historicoDeParedes(dbEsp, authenticatedUserId, agoraEsp),
+            paredeAtual: 'roteiro_perdido',
+            agora: agoraEsp,
+          })
+          if (espiralCompose) {
+            await dbEsp.from('events').insert({
+              user_id: authenticatedUserId,
+              name: 'refusal_spiral',
+              path: '/api/compose',
+              metadata: {
+                posicao: espiralCompose.posicao,
+                parede: espiralCompose.parede,
+                parede_anterior: espiralCompose.paredeAnterior,
+                mesma_parede: espiralCompose.mesmaParede,
+                minutos_desde_ultima: espiralCompose.minutosDesdeUltima,
+                paredes: espiralCompose.paredes,
+                sufixo_entregue: espiralCompose.sufixo !== null,
+              },
+            })
+          }
+        }
+      } catch { /* espiral nunca derruba nem atrasa a recusa */ }
+      return NextResponse.json(
+        { error: mensagemComEspiral('voiceover_script is required.', espiralCompose) },
+        { status: 400 },
+      )
     }
 
     const sceneCaptions = Array.isArray(body.scene_captions)
