@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 // tabela de custo viva — o argumento que nenhum concorrente mostra. Derivado
 // de creditCostFor (a função que o caixa usa, #296) — nunca escrito à mão.
 import { creditCostFor, type Quality } from '@/lib/credits/engineCost'
+import ExamplesBusinessProofBridge from './ExamplesBusinessProofBridge'
 
 const BADGE_QUALITY: Record<string, Quality> = {
   'KINEO 1': 'fast', 'SEEDANCE 1.5': 'cinematic_ai', 'KLING 2.5': 'cinematic_kling',
@@ -161,6 +162,8 @@ export default async function ExamplesPage() {
             {isLoggedIn ? 'Open Studio →' : 'Create a Fast video →'}
           </OrganicCtaLink>
         </div>
+
+        <ExamplesBusinessProofBridge />
       </section>
     </main>
   )
