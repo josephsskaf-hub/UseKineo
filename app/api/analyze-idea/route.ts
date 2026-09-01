@@ -5,6 +5,10 @@ import { writeServerEvent } from '@/lib/serverEvents'
 import { buildRefusalEvent } from '@/lib/stageRefusal'
 import { looksOpenAiQuotaDead } from '@/lib/openaiAlert'
 import { ANALYZE_PROMPT_MAX_CHARS, analyzePromptTooLongMessage } from '@/lib/analyzeLimits'
+import {
+  analyzeRefusalCopy,
+  analyzeRefusalTelemetry,
+} from '@/lib/analyzeRefusalCopy'
 
 export const maxDuration = 60
 
@@ -630,15 +634,35 @@ export async function POST(req: NextRequest) {
     }
 
     let body: { prompt?: string; duration?: number; language?: string; scriptMode?: string }
+    let bodyCru: unknown = null
     try {
       body = await req.json()
+      bodyCru = body
     } catch {
-      return await recusarAnalise(400, { error: 'Invalid request body.' }, user.id, { malformed_json: true })
+      // KINEO-PRIMEIRA-PORTA-2026-09-01 — 'Invalid request body.' e frase de
+      // desenvolvedor: nao diz o que fazer, e o cliente traduzia para
+      // "Please try again." num 400 que vai se repetir para sempre.
+      return await recusarAnalise(
+        400,
+        { error: analyzeRefusalCopy('body_malformed') },
+        user.id,
+        { malformed_json: true, ...analyzeRefusalTelemetry('body_malformed', null, null) },
+      )
     }
 
     const promptRaw = (body.prompt ?? '').trim()
     if (!promptRaw) {
-      return await recusarAnalise(400, { error: 'Prompt is required.' }, user.id, { empty_prompt: 'raw' })
+      // KINEO-PRIMEIRA-PORTA-2026-09-01 — a unica recusa de porta que um
+      // auto-start dispara sozinho. Medido em 31/08: 4 cliques identicos em
+      // 110s, todos 400 em ~300ms, `source: 'topic'` — a pessoa NAO deixou o
+      // campo em branco; o campo chegou vazio ate aqui. `body_keys` separa
+      // "cliente mandou {}" de "cliente mandou {prompt:''}".
+      return await recusarAnalise(
+        400,
+        { error: analyzeRefusalCopy('prompt_missing') },
+        user.id,
+        { empty_prompt: 'raw', ...analyzeRefusalTelemetry('prompt_missing', bodyCru, body.prompt) },
+      )
     }
 
     // Push #278 — Studio camera preset com dentes. O Studio anexa
@@ -656,7 +680,15 @@ export async function POST(req: NextRequest) {
     if (!prompt) {
       // Só a tag [camera: …] no campo: o texto sobrou vazio DEPOIS da limpeza.
       // Rótulo próprio porque a cura é outra (o Studio montou o prompt errado).
-      return await recusarAnalise(400, { error: 'Prompt is required.' }, user.id, { empty_prompt: 'after_camera_tag' })
+      return await recusarAnalise(
+        400,
+        { error: analyzeRefusalCopy('prompt_only_camera_tag') },
+        user.id,
+        {
+          empty_prompt: 'after_camera_tag',
+          ...analyzeRefusalTelemetry('prompt_only_camera_tag', bodyCru, body.prompt),
+        },
+      )
     }
     const withCamera = (visual: string): string =>
       cameraMove && visual.trim()
@@ -670,7 +702,17 @@ export async function POST(req: NextRequest) {
     // unica (lib/analyzeLimits). O cliente le o MESMO numero antes de chamar,
     // entao este 400 deixa de ser a primeira noticia que a pessoa tem do teto.
     if (prompt.length > ANALYZE_PROMPT_MAX_CHARS) {
-      return await recusarAnalise(400, { error: analyzePromptTooLongMessage() }, user.id, { prompt_chars: prompt.length, max_chars: ANALYZE_PROMPT_MAX_CHARS })
+      return await recusarAnalise(
+        400,
+        { error: analyzePromptTooLongMessage() },
+        user.id,
+        {
+          max_chars: ANALYZE_PROMPT_MAX_CHARS,
+          // A FRASE continua vindo de lib/analyzeLimits (fonte unica do teto).
+          // Daqui sai so o rotulo, para o banco poder separar as quatro portas.
+          ...analyzeRefusalTelemetry('prompt_too_long', bodyCru, prompt),
+        },
+      )
     }
 
     // Push #064 — duration shapes word count + scene count. Defaults to 45s
