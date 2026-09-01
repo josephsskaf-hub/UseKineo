@@ -71,9 +71,21 @@ interface Props {
   onPick: (idea: NextShortIdea) => void
   /** Fire-and-forget telemetry; the parent supplies the app's tracker. */
   onEvent?: (name: string, meta?: Record<string, unknown>) => void
+  /**
+   * KINEO-SPRINT-V1V4-2026-09-01 (#44) — tells the parent that the shelf is
+   * actually stocked. The done screen has a second, much louder door to the
+   * 2nd video ("Generate Another Short") whose handler is `handleReset()` —
+   * and `handleReset()` sets phase back to 'idle', which UNMOUNTS this
+   * component. So the loud button silently deletes these three cards and
+   * hands over an empty textarea, which is the documented reason 82% never
+   * came back. The parent can only route that click somewhere better if it
+   * knows there is something to route it to. Fired once, only when the list
+   * is non-empty; never on failure (this surface fails invisibly by design).
+   */
+  onLoaded?: (count: number) => void
 }
 
-export default function NextShortsSection({ topic, title, niche, hook, onPick, onEvent }: Props) {
+export default function NextShortsSection({ topic, title, niche, hook, onPick, onEvent, onLoaded }: Props) {
   const [ideas, setIdeas] = useState<NextShortIdea[]>([])
   const [loading, setLoading] = useState(true)
   // One fetch per finished render. The generate screen is force-dynamic and
@@ -103,6 +115,8 @@ export default function NextShortsSection({ topic, title, niche, hook, onPick, o
         if (list.length > 0) {
           loadedAtRef.current = Date.now()
           onEvent?.('next_shorts_shown', { count: list.length })
+          // Never let telemetry or a parent bug break the success screen.
+          try { onLoaded?.(list.length) } catch { /* ignore */ }
         }
       } catch {
         if (!cancelled) setIdeas([])

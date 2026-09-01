@@ -911,6 +911,15 @@ export default function GenerateClient({
   // generate flow. Lifts first-video activation (the biggest funnel leak).
   const [showNicheOnboarding, setShowNicheOnboarding] = useState(false)
   const onboardingAutoGenerateRef = useRef(false)
+
+  // ═══ KINEO-SPRINT-V1V4-2026-09-01 (#44) — O BOTÃO QUE APAGAVA A PRATELEIRA ═══
+  // Quantos episódios a prateleira ("Your next 3 Shorts") conseguiu carregar
+  // nesta tela de sucesso. Zero = ela não existe e o rodapé continua fazendo
+  // exatamente o que sempre fez. `anotherRoutedRef` garante que ninguém fica
+  // preso: o 2º clique no mesmo botão faz o reset de verdade.
+  const [nextIdeasCount, setNextIdeasCount] = useState(0)
+  const nextShortsAnchorRef = useRef<HTMLDivElement | null>(null)
+  const anotherRoutedRef = useRef(false)
   const onboardingGenerationDispatchedRef = useRef(false)
   const onboardingGoalRef = useRef<OnboardingGoalId | null>(null)
   const inlineFirstVideoViewedRef = useRef(false)
@@ -9149,7 +9158,46 @@ export default function GenerateClient({
     }
   }
 
+  // ═══ KINEO-SPRINT-V1V4-2026-09-01 (#44) ═══
+  // O QUE O BANCO MOSTROU (01/09, 7 dias, só externos): `next_shorts_shown`
+  // 89 disparos / 71 pessoas e `next_shorts_seen` — o evento de visibilidade
+  // real da #9 — UM. Não é que as pessoas recusem os três episódios: quase
+  // ninguém chega a vê-los. Enquanto isso, na MESMA tela, um botão azul
+  // grande ("Generate Another Short") chama `handleReset()`, que devolve
+  // phase='idle' e derruba <NextShortsSection/> junto — ou seja, a porta
+  // barulhenta para o 2º vídeo APAGA a única porta que já sabia o que o 2º
+  // vídeo deveria ser, e entrega uma caixa de texto vazia. Decidir o próximo
+  // tema é a parte cara; é justamente a que o produto não automatiza.
+  //
+  // MUDANÇA MÍNIMA: quando há prateleira carregada, o 1º clique leva a pessoa
+  // ATÉ ela em vez de apagar tudo. Nada é gerado, nada é cobrado, o vídeo
+  // pronto continua na tela. Sem prateleira, o comportamento é byte a byte o
+  // de hoje. E o 2º clique no mesmo botão faz o reset de sempre — quem quer
+  // mesmo começar do zero continua a um clique de distância.
+  function handleAnotherShort() {
+    if (nextIdeasCount > 0 && !anotherRoutedRef.current) {
+      anotherRoutedRef.current = true
+      try {
+        void trackEvent('another_short_routed_to_shelf', { ideas: nextIdeasCount })
+      } catch { /* ignore */ }
+      try {
+        nextShortsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      } catch { /* ignore */ }
+      return
+    }
+    if (anotherRoutedRef.current) {
+      try {
+        void trackEvent('another_short_reset_after_shelf', { ideas: nextIdeasCount })
+      } catch { /* ignore */ }
+    }
+    handleReset()
+  }
+
   function handleReset() {
+    // #44 — vida nova, prateleira nova. Sem isto o rodapé da PRÓXIMA tela de
+    // sucesso nasceria achando que já roteou alguém.
+    setNextIdeasCount(0)
+    anotherRoutedRef.current = false
     if (pollTimerRef.current) {
       clearTimeout(pollTimerRef.current)
       pollTimerRef.current = null
@@ -15309,7 +15357,9 @@ export default function GenerateClient({
               differently to someone who can already see their next three
               episodes than to someone staring at a blank box. */}
           {phase === 'done' && finalVideoUrl && analysis && (
+            <div ref={nextShortsAnchorRef}>
             <NextShortsSection
+              onLoaded={(n) => setNextIdeasCount(n)}
               topic={prompt}
               title={analysis.title}
               niche={analysis.niche}
@@ -15331,6 +15381,7 @@ export default function GenerateClient({
                 } catch { /* ignore */ }
               }}
             />
+            </div>
           )}
 
           {/* Push #047 — ready-to-post text package. Renders after a
@@ -15409,7 +15460,7 @@ export default function GenerateClient({
               // every click on /pricing. Now: GET checkout, Creator, intro month — the same
               // single offer as every other surface on this screen.
               <UpsellSection
-                onAnother={handleReset}
+                onAnother={handleAnotherShort}
                 onUpgrade={() => {
                   const started = upsellSectionCheckout.launch(
                     'basic',
@@ -15424,7 +15475,7 @@ export default function GenerateClient({
                 creditsLeft={credits ?? 0}
               />
             ) : planTier !== 'free' ? (
-              <NextActionSection onAnother={handleReset} onUpgrade={() => router.push(withIntentCampaign('/pricing'))} />
+              <NextActionSection onAnother={handleAnotherShort} onUpgrade={() => router.push(withIntentCampaign('/pricing'))} />
             ) : (
               // ═══ KINEO-SPRINT-V1V4-2026-08-31 (#3) — O RODAPÉ QUE NÃO EXISTIA ═══
               // Este ramo era `null`. Ele pega quem é gratuito E não pagou E
