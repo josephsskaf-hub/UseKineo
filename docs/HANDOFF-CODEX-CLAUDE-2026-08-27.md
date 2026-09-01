@@ -3755,3 +3755,18 @@ PRÓXIMO DONO:
 **GATE / PRÓXIMA DECISÃO:** exigir pelo menos dez pessoas externas com intenção B2B explícita e três paradas na mesma etapa antes de formular intervenção. Manter self-serve e bulk separados; exigir 20 pessoas por bucket para comparação exploratória; suprimir células abaixo de cinco. Domínio sozinho nunca autoriza ação. Para Autopilot/canal, preservar até dez pessoas e então reconciliar `intenção → pricing → checkout → payment_success → assinatura ativa`, sem chamar checkout de receita.
 
 **ESTADO ATUAL:** **DIAGNÓSTICO CONCLUÍDO / PROXY DE DOMÍNIO REJEITADO COMO SEGMENTAÇÃO / INTENÇÃO EXPLÍCITA ABAIXO DO GATE / NO-GO PARA RUNTIME / PRÓXIMA RODADA ROTACIONADA PARA B2C.** Nenhum código, UI, copy, preço, oferta, crédito, trial, checkout, banco, perfil, lead score, comunicação externa ou tráfego ativo foi alterado.
+## 148. AEO — resíduo multimoeda removido do feed factual (01/09/2026)
+
+**DECISÃO APROVADA / REGRA DO BOARD:** a UseKineo lista e cobra planos em USD no mundo todo. O banco do comprador pode converter a cobrança e aplicar taxas; a Kineo não promete exibição ou cobrança em moeda local. Site, oferta, Checkout e fontes citáveis precisam contar a mesma verdade no último segundo de decisão.
+
+**FATO CONFIRMADO / CONTRADIÇÃO RESIDUAL:** a UI pública e o Checkout já estavam USD-only, mas `PRODUCT.currencies` ainda mantinha `['USD', 'BRL', 'INR']`. Essa lista alimentava diretamente `/facts`, `/llms.txt` e `/api/facts`, justamente os feeds preparados para buscadores e motores de resposta (`lib/kineoFacts.ts`; `app/facts/page.tsx`; `app/llms.txt/route.ts`; `app/api/facts/route.ts`). Assim, a interface dizia USD enquanto o feed AEO ensinava três moedas.
+
+**IMPLEMENTADO / MUDANÇA MÍNIMA REVERSÍVEL:** o commit `ffcb37ba0a5af3b8c293f438dbdc9609da9d0c52` remove a lista manual. `PRODUCT.currencies` agora deriva de `CURRENCY_DISPLAY`, a mesma fonte canônica que contém somente USD e formata a vitrine. `/facts` e `/llms.txt` usam a forma singular “Checkout currency: USD”. Preço, desconto, cupom, crédito, SKU, trial, rota Stripe, webhook e comportamento do Checkout não mudaram.
+
+**TESTADO LOCALMENTE:** contrato de verdade de moeda 829/829; contrato monetário 306/306; AEO/trial 59/59; whitespace limpo. O typecheck repetiu exatamente os quatro erros baseline em `app/api/admin/_shared/mrr.ts`, `app/api/me/subscription/route.ts` e `app/api/stripe/checkout/route.ts` ×2; nenhum arquivo desta entrega gerou erro novo.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward até `ffcb37ba0a5af3b8c293f438dbdc9609da9d0c52`. O deployment `dpl_HvC5Wwh11wowdNwuNwvJCXgMHHwc` chegou a `READY`, target production, SHA exato, `aliasError=null` e aliases canônicos ativos. `/llms.txt` e `/facts` publicaram “Checkout currency: USD”; `/api/facts` publicou `currencies: ["USD"]`; os três retornos não continham BRL ou INR. Nenhum checkout ou pagamento foi forçado.
+
+**GATE / PRÓXIMA DECISÃO:** preservar a verdade USD e a fronteira de conversão já documentada no §144. Não reeditar preço, moeda, caixa ou oferta antes de 20 pessoas externas não americanas com exposição válida de preço ou dez pessoas externas em checkout pós-fronteira. O fluxo anônimo → autenticação → Checkout também foi auditado em somente leitura nesta rodada e preserva destino, tier e billing; permanece NO-GO para runtime até o gate do §125.
+
+**ESTADO ATUAL:** **IMPLEMENTADO / TESTADO LOCALMENTE / VALIDADO EM PRODUÇÃO / FONTE AEO ALINHADA / GATES DE CONVERSÃO PRESERVADOS.**
