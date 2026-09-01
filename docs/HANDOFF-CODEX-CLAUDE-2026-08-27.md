@@ -2653,3 +2653,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe server/configuração, crédito/débito, Supabase schema/dados, render, motor, cena, voz, legenda, oferta pós-vídeo, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `5629780b` ou da ponta posterior. Não editar o gate/trigger de saldo nem este modal até o gate; `GenerateClient.tsx` permanece zona compartilhada e esta mudança está restrita à apresentação comercial e telemetria. Codex gira a próxima sprint para B2B, preservando este experimento.
+
+## 96. B2B — o Stripe passa a dizer o que o pacote realmente entrega (31/08/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / AMOSTRA:** a medição canônica de 31/08/2026 ainda tinha uma sessão anônima em `agency_bulk_page_viewed` e nenhum `bulk_purchase_completed`; não existe amostra para atribuir abandono B2B a uma causa. A correção abaixo resolve uma contradição comprovada no código e abre uma coorte mensurável, sem chamar copy de conversão.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO:** a página empresarial vendia `{credits} universal credits included`, o webhook concedia exatamente esses créditos, mas a descrição do item dentro do Stripe prometia `{videos} ready-to-post vertical Shorts`. No último pixel antes do pagamento, o comprador podia ler entrega de vídeos prontos quando o produto realmente entregava créditos para ele criar e baixar os vídeos na Kineo (`app/ai-shorts-for-agencies/AgencyPacksClient.tsx`; `app/api/stripe/checkout/route.ts`; `app/api/stripe/webhook/route.ts`).
+
+**HIPÓTESE CAUSAL NOVA:** remover a ambiguidade entre serviço entregue e capacidade de produção reduz dúvida sobre o que acontece depois do pagamento bulk. Preço, quantidade, grant, SKU, modo de pagamento e fluxo não mudam.
+
+**IMPLEMENTADO:** o commit `14c4da464dafa565929a31b6b51914bfc9e3326d` centraliza a descrição em `lib/growth/bulkCheckoutTruth.ts`. O Stripe agora mostra o número canônico de créditos, o volume Kineo 1 Fast dimensionado, que o próprio comprador cria e baixa na Kineo, compra única, ausência de assinatura e validade dos créditos. A versão `bulk_checkout_entitlement_truth_v1` atravessa `checkout_attempted`, `checkout_started`, `bulk_checkout_started`, metadata da Session e `bulk_purchase_completed`; o webhook aceita somente a versão allow-listed.
+
+**CANÁRIO QUE EVITOU UM REGRESSO:** o primeiro deploy `dpl_AXt4X6WHUr3dcd52KcEaVtXAcuS6` chegou a `READY`, mas o canário autenticado encontrou uma recusa Stripe antes do pagamento: a descrição da Session mudou dentro da mesma janela de cinco minutos e a chave de idempotência antiga permaneceu igual. Isso gerou uma única falha interna do fundador, zero cobrança e zero compra. O forward-fix `0118d1ec806ad879b7706984bb032e09a3db0919` inclui a versão do contrato na assinatura de idempotência somente do bulk; os outros SKUs permanecem intactos.
+
+**COMPARAÇÃO VISUAL / PRODUÇÃO:** `docs/previews/B2B-BULK-CHECKOUT-TRUTH-V1-2026-08-31.html` contém antes/depois desktop e mobile. A prova mais forte veio do Stripe real: antes, `One-time: 10 ready-to-post vertical Shorts`; depois do forward-fix, `One-time purchase: 12 universal credits, sized for 10 Kineo 1 Fast Shorts you create and download in Kineo`. O preço permaneceu US$ 99, o retorno preservou `bulk10` e nenhum pagamento foi concluído.
+
+**TESTADO LOCALMENTE:** contrato novo 63/63, página bulk 32/32 e retorno exato do checkout 75/75. O TypeScript repetiu exatamente os quatro erros baseline preexistentes; nenhum arquivo desta entrega introduziu erro. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (31/08/2026 UTC):** o deploy final `dpl_Ei1hfZyynxbf85pDwHCdZ6q3J76t`, SHA `0118d1ec806ad879b7706984bb032e09a3db0919`, chegou a `READY`, target production, aliasado em `www.usekineo.com`. O checkout bulk real abriu no Stripe com a descrição nova, sem a frase antiga e sem erro. A consulta de runtime restrita ao deploy final encontrou zero `error`/`fatal`; a falha de idempotência ficou restrita ao deploy anterior e ao canário interno.
+
+**MEDIÇÃO / GATE:** preservar até cinco pessoas externas iniciarem um checkout bulk versionado. Seguir `bulk_checkout_started(bulk_checkout_truth_version=bulk_checkout_entitlement_truth_v1) → bulk_purchase_completed → payment_success` por pessoa; uma compra é sinal inicial, não taxa conclusiva. Se cinco pessoas chegarem e zero pagar, separar sessão expirada, recusa inicial e saída silenciosa antes de editar novamente.
+
+**PARADA / RISCO:** parar se a descrição divergir de `BULK_PACKS`, se o grant observado não cobrir o volume Fast, se a versão não sobreviver ao webhook ou se checkout recorrente for afetado. A copy honesta pode reduzir valor percebido por deixar explícito que não é serviço gerenciado; isso é risco mensurável, não motivo para prometer entrega inexistente.
+
+**NÃO TOCADO:** preço, pack, desconto, cupom, grant, validade, trial, assinatura, método de pagamento, configuração Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, proposta, brief, e-mail, outreach ou contatos externos.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0118d1ec` ou da ponta posterior. Não editar checkout bulk, proposal ou brief até os respectivos gates. Codex alterna a próxima sprint para B2C, medindo a parede de limite antes de qualquer nova edição nela.
