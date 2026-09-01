@@ -1,4 +1,4 @@
-import { trackEvent } from '@/lib/analytics'
+import { pinCheckoutAuthSession, trackEvent } from '@/lib/analytics'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { readBulkCheckoutAuthContext } from '@/lib/growth/bulkCheckoutAuthContext'
 import {
@@ -6,12 +6,17 @@ import {
   type CheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
 import { CHECKOUT_SIGNUP_RESOLUTION_VERSION } from '@/lib/growth/checkoutSignupResolution'
+import {
+  CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
+  type CheckoutAuthSelectionKind,
+} from '@/lib/growth/checkoutAuthSessionBridge'
 
 export type AuthSurface = 'login_page' | 'signup_page' | 'auth_modal'
 export type AuthMethod = 'email' | 'google' | 'apple'
 export type CheckoutAuthStep =
   | 'page_view'
   | 'method_selected'
+  | 'fallback_presented'
   | 'confirmation_required'
   | 'completed'
 export type CheckoutPasswordRecoveryStep = 'viewed' | 'requested' | 'completed' | 'resumed'
@@ -50,11 +55,18 @@ export function trackCheckoutAuthStep(
   step: CheckoutAuthStep,
   surface: AuthSurface,
   destination: string,
-  method?: AuthMethod
+  method?: AuthMethod,
+  selectionKind?: CheckoutAuthSelectionKind,
 ): void {
   if (typeof window === 'undefined') return
   const intent = checkoutIntentMetadata(destination)
   if (!intent) return
+
+  // Copy this tab's existing opaque analytics ID into a short-lived cookie
+  // that generic events from another tab never overwrite during OAuth.
+  if (step === 'page_view' || step === 'method_selected' || step === 'fallback_presented') {
+    pinCheckoutAuthSession()
+  }
 
   // React effects can run twice in development and users can double-click.
   // Keep one funnel transition per full browser navigation and method.
@@ -73,8 +85,12 @@ export function trackCheckoutAuthStep(
 
   void trackEvent(eventName, {
     ...intent,
+    auth_session_bridge_version: CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
     surface,
     ...(method ? { method } : {}),
+    ...(step === 'method_selected'
+      ? { selection_kind: selectionKind ?? 'explicit' }
+      : {}),
   })
 }
 

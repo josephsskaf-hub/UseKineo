@@ -3,6 +3,11 @@ import {
   sanitizeAcquisitionReferrer,
   sanitizeAcquisitionUtmSource,
 } from '@/lib/acquisitionSource'
+import {
+  CHECKOUT_AUTH_SESSION_COOKIE,
+  CHECKOUT_AUTH_SESSION_MAX_AGE_SECONDS,
+  EVENT_SESSION_COOKIE,
+} from '@/lib/growth/checkoutAuthSessionBridge'
 
 // Push #061 — shared client-side event tracking helper.
 //
@@ -15,15 +20,20 @@ import {
 // → checkout → success), even after the OAuth/login hop. Every tracked event
 // then carries them for internal funnel attribution back to the Google Ads click.
 const UTM_KEYS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'gclid', 'ref'] as const
-const EVENT_SESSION_KEY = 'kineo_event_session_id'
+const EVENT_SESSION_KEY = EVENT_SESSION_COOKIE
 
-function syncEventSessionCookie(sessionId: string): void {
+function syncSessionCookie(name: string, sessionId: string, maxAgeSeconds?: number): void {
   try {
     const secure = window.location.protocol === 'https:' ? '; Secure' : ''
-    document.cookie = `${EVENT_SESSION_KEY}=${encodeURIComponent(sessionId)}; Path=/; SameSite=Lax${secure}`
+    const maxAge = maxAgeSeconds ? `; Max-Age=${maxAgeSeconds}` : ''
+    document.cookie = `${name}=${encodeURIComponent(sessionId)}; Path=/; SameSite=Lax${secure}${maxAge}`
   } catch {
     // Cookie blocking must never affect product analytics or navigation.
   }
+}
+
+function syncEventSessionCookie(sessionId: string): void {
+  syncSessionCookie(EVENT_SESSION_KEY, sessionId)
 }
 
 function eventSessionId(): string | undefined {
@@ -44,6 +54,22 @@ function eventSessionId(): string | undefined {
   } catch {
     return undefined
   }
+}
+
+/**
+ * Pin the current tab's existing analytics ID for one checkout-auth round
+ * trip. Generic events in another tab may overwrite the global event cookie,
+ * but never this short-lived companion cookie.
+ */
+export function pinCheckoutAuthSession(): string | undefined {
+  const sessionId = eventSessionId()
+  if (!sessionId) return undefined
+  syncSessionCookie(
+    CHECKOUT_AUTH_SESSION_COOKIE,
+    sessionId,
+    CHECKOUT_AUTH_SESSION_MAX_AGE_SECONDS,
+  )
+  return sessionId
 }
 
 export function captureUtmsOnce(): void {

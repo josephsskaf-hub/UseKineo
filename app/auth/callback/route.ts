@@ -7,6 +7,11 @@ import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
 import { buildCheckoutOAuthFailureHandoff } from '@/lib/growth/checkoutOAuthFailureHandoff'
 import {
+  CHECKOUT_AUTH_SESSION_COOKIE,
+  CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
+  normalizeEventSessionId,
+} from '@/lib/growth/checkoutAuthSessionBridge'
+import {
   AFFILIATE_ATTRIBUTION_COOKIE_NAMES,
   finalizeAffiliateSignupAttribution,
 } from '@/lib/affiliateSignupFinalization'
@@ -21,6 +26,10 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const rawNext = searchParams.get('next')
   const failureHandoff = buildCheckoutOAuthFailureHandoff(rawNext)
+  const requestCookies = cookies()
+  const checkoutAuthSessionId = normalizeEventSessionId(
+    requestCookies.get(CHECKOUT_AUTH_SESSION_COOKIE)?.value,
+  )
 
   if (code) {
     const supabase = createClient()
@@ -76,7 +85,10 @@ export async function GET(request: Request) {
         name: 'auth_callback_completed',
         userId: data.user?.id ?? null,
         path: '/auth/callback',
+        sessionId: isCheckoutNext ? checkoutAuthSessionId : null,
         metadata: {
+          auth_session_bridge_version: CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
+          session_bridge_present: isCheckoutNext && Boolean(checkoutAuthSessionId),
           is_new_user: isNewUser,
           is_checkout_destination: isCheckoutNext,
           destination_path: destinationUrl.pathname.slice(0, 128),
@@ -141,11 +153,10 @@ export async function GET(request: Request) {
       // does not mount AffiliateAutoTrigger. Finalize the protected click here,
       // while OAuth/email-confirmation still carries the first-touch cookies;
       // the dashboard trigger remains a retry for transient failures.
-      const affiliateCookies = cookies()
       const affiliateFinalization = data.user
         ? await finalizeAffiliateSignupAttribution({
-          rawCode: affiliateCookies.get('sf_aff')?.value,
-          rawClickId: affiliateCookies.get('sf_aff_click')?.value,
+          rawCode: requestCookies.get('sf_aff')?.value,
+          rawClickId: requestCookies.get('sf_aff_click')?.value,
           user: {
             id: data.user.id,
             email: data.user.email ?? null,
@@ -157,6 +168,14 @@ export async function GET(request: Request) {
 
       const dest = `${origin}${destinationPath}`
       const response = NextResponse.redirect(dest)
+      if (isCheckoutNext) {
+        response.cookies.set(CHECKOUT_AUTH_SESSION_COOKIE, '', {
+          maxAge: 0,
+          path: '/',
+          sameSite: 'lax',
+          secure: true,
+        })
+      }
       if (affiliateFinalization.clearCookies) {
         for (const name of AFFILIATE_ATTRIBUTION_COOKIE_NAMES) {
           response.cookies.set(name, '', {
@@ -176,11 +195,24 @@ export async function GET(request: Request) {
   await writeServerEvent({
     name: 'auth_callback_failed',
     path: '/auth/callback',
+    sessionId: failureHandoff.telemetry.is_checkout_destination ? checkoutAuthSessionId : null,
     metadata: {
+      auth_session_bridge_version: CHECKOUT_AUTH_SESSION_BRIDGE_VERSION,
+      session_bridge_present:
+        failureHandoff.telemetry.is_checkout_destination && Boolean(checkoutAuthSessionId),
       had_code: Boolean(code),
       ...failureHandoff.telemetry,
     },
   })
 
-  return NextResponse.redirect(new URL(failureHandoff.loginPath, origin))
+  const response = NextResponse.redirect(new URL(failureHandoff.loginPath, origin))
+  if (failureHandoff.telemetry.is_checkout_destination) {
+    response.cookies.set(CHECKOUT_AUTH_SESSION_COOKIE, '', {
+      maxAge: 0,
+      path: '/',
+      sameSite: 'lax',
+      secure: true,
+    })
+  }
+  return response
 }

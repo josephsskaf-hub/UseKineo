@@ -221,14 +221,16 @@ export default function SignupPage() {
     if (p.get('reason') !== 'checkout') return
     if (p.get('noauto') === '1') return
     if (isEmbeddedBrowser()) {
-      // Recorded as the ordinary signup surface with the EMAIL method, because
-      // that is literally what the buyer is now shown. `AuthSurface` is a
-      // closed union consumed by the checkout-auth funnel
-      // (lib/authAnalytics.ts:4) and widening it here would silently split
-      // every existing funnel report in two. The webview detail belongs in
-      // its own event, not smuggled into the surface name.
+      // The email route is only being presented here, not selected. Keep the
+      // ordinary signup surface but use a distinct event so the checkout-auth
+      // funnel cannot promote a visible fallback into a human choice.
       try {
-        trackCheckoutAuthStep('method_selected', 'signup_page', activationRedirectFromSearch(window.location.search), 'email')
+        trackCheckoutAuthStep(
+          'fallback_presented',
+          'signup_page',
+          activationRedirectFromSearch(window.location.search),
+          'email',
+        )
         void trackEvent('checkout_oauth_autostart_suppressed', { reason: 'embedded_webview' })
       } catch { /* ignore */ }
       return
@@ -237,7 +239,9 @@ export default function SignupPage() {
     const nextDestination = activationRedirectFromSearch(window.location.search)
     const callback = `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextDestination)}`
     try { sessionStorage.setItem('kineo_checkout_google_autostart', '1') } catch { /* ignore */ }
-    try { trackCheckoutAuthStep('method_selected', 'signup_page', nextDestination, 'google') } catch { /* ignore */ }
+    try {
+      trackCheckoutAuthStep('method_selected', 'signup_page', nextDestination, 'google', 'automatic')
+    } catch { /* ignore */ }
     // ONDA1 #14 (13/08) — avisa ANTES de sequestrar para o Google: overlay
     // explicando o passo, em vez de pintar o formulario e sumir com a tela.
     setAutoOauthInFlight(true)
