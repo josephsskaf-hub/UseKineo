@@ -106,7 +106,7 @@ export default async function FromYouTubePage() {
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-white/40">
           Free Fast exports include a Kineo watermark. Starter is {STARTER_MONTH},
-          the same price worldwide. Cancel anytime; a 7-day money-back guarantee applies.
+          charged in USD worldwide. Cancel anytime; a 7-day money-back guarantee applies.
         </p>
       </section>
     </main>

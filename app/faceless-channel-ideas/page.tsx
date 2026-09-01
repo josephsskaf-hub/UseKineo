@@ -233,7 +233,7 @@ const FAQ = [
   },
   {
     q: 'How much does Kineo cost?',
-    a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is ${STARTER_MONTH}, the same price worldwide. Check the pricing page for the current plan details before buying.`,
+    a: `${ft(OFFER, 'A new account can create up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is ${STARTER_MONTH}, charged in USD worldwide. Check the pricing page for the current plan details before buying.`,
   },
 ] as const
 

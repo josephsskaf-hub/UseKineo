@@ -91,7 +91,7 @@ export default async function FromSaaSHubPage() {
           {[
             ['From scratch', 'Unlike clip cutters, Kineo starts from a topic. You do not need a long video first.'],
             ['Ready to post', 'Script, voice, visuals, captions and a 9:16 MP4 are created in one workflow.'],
-            ['Clear pricing', 'Starter is ' + STARTER_MONTH + ', the same price worldwide. Cancel anytime.'],
+            ['Clear pricing', 'Starter is ' + STARTER_MONTH + ', charged in USD worldwide. Cancel anytime.'],
           ].map(([title, body]) => (
             <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
               <h2 className="font-black">{title}</h2>
@@ -102,7 +102,7 @@ export default async function FromSaaSHubPage() {
 
         <p className="mx-auto mt-8 max-w-3xl text-center text-xs leading-5 text-white/40">
           Free Fast exports include a Kineo watermark. Paid plans unlock clean MP4s and premium AI engines.
-          Starter is {STARTER_MONTH}, the same price worldwide; a 7-day money-back guarantee applies.
+          Starter is {STARTER_MONTH}, charged in USD worldwide; a 7-day money-back guarantee applies.
         </p>
       </section>
     </main>

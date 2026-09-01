@@ -156,7 +156,7 @@ export default function PartnersPage() {
     pena promover. Errar contra o parceiro é o tipo de erro que ele descobre
     sozinho no primeiro pagamento, e aí a gente perde o parceiro e a confiança
     junto. Agora a frase diz a mecânica real, com o número derivado. */}
-Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Same price worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
+Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before taxes, refunds or failed payments. Plan prices are charged in USD worldwide. If your viewer redeems your coupon code, their first month is 20% smaller — so is that one commission; every renewal after it is calculated on the full price.</p>
         </section>
 
         <section id="ai-video-affiliate-program-comparison" style={{ marginTop: 46 }}>

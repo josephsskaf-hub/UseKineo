@@ -271,10 +271,6 @@ export const BEST_COST_PER_FILM_USD = Math.min(
 /** "$3.50" — o rótulo pronto, arredondado para centavo. */
 export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
 
-// KINEO-PRICING-V6-2026-08-19 — a escada por país morreu (ver TIER_PRICES):
-// a oferta é a mesma no mundo inteiro.
-export const SAME_PRICE_WORLDWIDE = 'the same price worldwide'
-
 // KINEO-CURRENCY-TRUTH-2026-09-01 — CheckoutCurrency aceita somente USD.
 // Várias superfícies públicas e pós-vídeo ainda prometiam moeda local e transformavam o
 // último metro numa surpresa. A moeda vem da mesma função que governa a rota

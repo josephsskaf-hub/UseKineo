@@ -4,7 +4,7 @@
 // nenhuma superfície de venda volta a prometer conversão automática.
 
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -13,6 +13,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
 const source = (rel) => readFileSync(join(root, rel), 'utf8')
+const sourceFiles = (rel) =>
+  readdirSync(join(root, rel), { recursive: true })
+    .filter((entry) => /\.(?:ts|tsx)$/.test(String(entry)))
+    .map((entry) => join(rel, String(entry)))
 
 function loadTs(rel, mocks = {}) {
   const filename = join(root, rel)
@@ -109,6 +113,10 @@ for (const file of runtimeFiles) {
   for (const pattern of forbidden) {
     ok(!pattern.test(text), file + ' excludes stale promise ' + String(pattern))
   }
+}
+
+for (const file of ['app', 'components', 'lib'].flatMap(sourceFiles)) {
+  ok(!/same price worldwide/i.test(source(file)), file + ' does not make the stale worldwide-price promise')
 }
 
 ok(source('app/cheapest-ai-shorts-maker/page.tsx').includes('USD prices matched to Checkout'), 'calculator landing names USD before checkout')

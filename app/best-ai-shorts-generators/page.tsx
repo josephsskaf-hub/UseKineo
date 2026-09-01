@@ -232,7 +232,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Are there free AI Shorts generators?',
-    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is ${STARTER_MONTH}, the same price worldwide.`,
+    a: `Most tools here have a limited free plan or trial, usually with a watermark or a monthly cap. ${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours with no credit card.', OFFER.copy.sentence)} Paid plans remove the watermark and add credits — Kineo Starter is ${STARTER_MONTH}, charged in USD worldwide.`,
   },
   {
     q: 'How should I choose an AI Shorts generator?',

@@ -117,7 +117,7 @@ export default function QusoDecisionSections() {
             <ul style={{ color: '#a1a1a6', lineHeight: 1.65, paddingLeft: 20, marginBottom: 0 }}>
               <li>you start with a topic instead of an existing video;</li>
               <li>you want a finished faceless 9:16 Short without a timeline;</li>
-              <li>you prefer one flat {STARTER_MO} subscription — the same price worldwide, no first-month asterisk.</li>
+              <li>you prefer the standard {STARTER_MO} subscription, charged in USD worldwide, with no first-month asterisk.</li>
             </ul>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function QusoDecisionSections() {
       <section style={{ marginTop: 40, textAlign: 'center', ...CARD, borderRadius: 18, padding: '25px 20px' }}>
         <h2 style={{ margin: 0, fontSize: '1.3rem' }}>Still comparing the paid entry point?</h2>
         <p style={{ color: '#86868b', margin: '8px 0 17px', lineHeight: 1.55 }}>
-          Kineo Starter is {STARTER_MONTH}, the same price worldwide. See the exact credits and engine access before choosing.
+          Kineo Starter is {STARTER_MONTH}, charged in USD worldwide. See the exact credits and engine access before choosing.
         </p>
         <OrganicCtaLink
           href={`/pricing?intent_campaign=${QUSO_INTENT_CAMPAIGN}`}

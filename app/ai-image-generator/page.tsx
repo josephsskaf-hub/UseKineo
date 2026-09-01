@@ -45,7 +45,7 @@ const FAQS = [
   },
   {
     q: 'How much does it cost?',
-    a: `Images cost 1–5 credits depending on the engine. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits — enough to try every engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits — the same price worldwide — and credits are shared across images, voice and video.',
+    a: `Images cost 1–5 credits depending on the engine. Every new account gets ${TRIAL_GRANT_CREDITS_COPY} free credits — enough to try every engine. Paid plans start at ` + STARTER_MONTH + ' for ' + STARTER_CREDITS + ' credits, charged in USD worldwide, and credits are shared across images, voice and video.',
   },
   {
     q: 'Can I turn my images into videos?',

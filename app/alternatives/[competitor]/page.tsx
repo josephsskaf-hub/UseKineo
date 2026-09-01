@@ -361,7 +361,7 @@ export const COMPETITORS: Record<string, Competitor> = {
       { q: 'Is Vidyo.ai now Quso.ai?', a: 'Yes. Quso says the Vidyo.ai rebrand went live in January 2025. Existing accounts, projects, plans and subscriptions carried over to Quso.ai.' },
       { q: 'How much does Vidyo.ai, now Quso.ai, cost in 2026?', a: 'As checked on July 21, 2026, Quso.ai lists Free at $0, Lite at $29/month, Essential at $39/month and Growth at $49/month. Prices and limits can change, so verify the official pricing page before buying.' },
       { q: 'Can Quso.ai generate a video without an upload?', a: 'Yes. Quso.ai currently advertises an AI Video Generator that can start from text, an idea or a script. Its product also retains the long-video clipping and repurposing workflow inherited from Vidyo.ai.' },
-      { q: 'Should I choose Quso.ai or Kineo?', a: `Choose Quso for a broader clipping, editing, scheduling and analytics workspace. Choose Kineo for a focused topic-to-faceless-Short workflow with Starter at ${STARTER_MONTH}, the same price worldwide.` },
+      { q: 'Should I choose Quso.ai or Kineo?', a: `Choose Quso for a broader clipping, editing, scheduling and analytics workspace. Choose Kineo for a focused topic-to-faceless-Short workflow with Starter at ${STARTER_MONTH}, charged in USD worldwide.` },
     ],
   },
   capcut: {

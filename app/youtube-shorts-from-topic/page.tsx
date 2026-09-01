@@ -54,7 +54,7 @@ const STEPS: { n: string; t: string; d: string }[] = [
 const FAQ: { q: string; a: string }[] = [
   { q: 'Is there an AI that makes a YouTube Short from just a topic?', a: 'Yes. Kineo turns a single topic into a finished faceless Short — it writes the script, records the AI voiceover, finds matching footage and adds captions, then renders a ready-to-post 9:16 video, usually in 3–7 minutes. You never film anything.' },
   { q: 'Can I make a YouTube Short from a script, narrated word-for-word?', a: 'Yes. Paste your own script and Kineo narrates it verbatim, matches footage to each line and captions it — no editing or timeline required.' },
-  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: `${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter costs ${STARTER_MONTH} — the same price worldwide — with a 7-day money-back guarantee.` },
+  { q: 'What is the cheapest AI to make YouTube Shorts from an idea?', a: `${ft(OFFER, 'Kineo lets a new account create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter costs ${STARTER_MONTH}, charged in USD worldwide, with a 7-day money-back guarantee.` },
   { q: 'How is this different from OpusClip or Submagic?', a: 'OpusClip and Submagic re-clip or caption a long video you already filmed. Kineo generates the entire video from a topic — ideal for faceless creators who start with nothing but an idea.' },
   { q: 'Do I need any editing skills?', a: 'No. There is no timeline to learn. You type a topic (or paste a script) and download a finished 9:16 Short ready to post on YouTube, TikTok and Reels.' },
 ]

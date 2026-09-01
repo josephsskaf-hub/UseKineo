@@ -48,7 +48,7 @@ const FAQ = [
   },
   {
     q: 'How do I remove the Kineo watermark?',
-    a: 'Paid plans unlock clean MP4 exports. Starter is ' + STARTER_MONTH + ', the same price worldwide. The free Fast workflow keeps a Kineo watermark.',
+    a: 'Paid plans unlock clean MP4 exports. Starter is ' + STARTER_MONTH + ', charged in USD worldwide. The free Fast workflow keeps a Kineo watermark.',
   },
   {
     q: 'Which faceless video formats can I make?',
@@ -252,7 +252,7 @@ export default function FacelessVideoGeneratorPage({ searchParams }: { searchPar
 
         <h2 style={h2}>Transparent free and paid output</h2>
         <p style={p}>
-          {ft(OFFER, 'New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card.', OFFER.copy.sentence)} Starter costs {STARTER_MONTH} — the same price worldwide — and unlocks clean MP4 exports. Cancel anytime.
+          {ft(OFFER, 'New accounts can test the complete Fast workflow with up to three watermarked videos every 24 hours and no credit card.', OFFER.copy.sentence)} Starter costs {STARTER_MONTH}, charged in USD worldwide, and unlocks clean MP4 exports. Cancel anytime.
         </p>
         <p style={p}>
           Compare related workflows: <Link href="/free-ai-shorts-generator" style={{ color: '#2997ff' }}>free AI Shorts generator</Link>, <Link href="/text-to-video-shorts" style={{ color: '#2997ff' }}>text-to-video Shorts</Link>, and <Link href="/alternatives" style={{ color: '#2997ff' }}>Kineo alternatives and comparisons</Link>.

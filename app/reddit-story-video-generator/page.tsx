@@ -182,7 +182,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'What does Kineo cost?',
-    a: `${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is ${STARTER_MONTH}, the same price worldwide. Check the pricing page for current plan details.`,
+    a: `${ft(OFFER, 'A new account can create, download and share up to 3 watermarked Fast videos every 24 hours without a card.', OFFER.copy.sentence)} Starter is ${STARTER_MONTH}, charged in USD worldwide. Check the pricing page for current plan details.`,
   },
 ]
 
