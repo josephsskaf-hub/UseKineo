@@ -92,6 +92,7 @@ import {
 // O PLANO REALMENTE FAZ" em lib/marketingPrice.ts.
 import {
   BEST_COST_PER_FILM,
+  CHECKOUT_CURRENCY_DISCLOSURE,
   CREATOR_AI_FILMS,
   creditsPerReferenceVideo,
   videoMixForCredits,
@@ -12937,7 +12938,7 @@ export default function GenerateClient({
                             de 1º mês. Ele aparecia exatamente para quem ainda
                             não tinha número na tela, ou seja, a única coisa que
                             a pessoa lia era a promessa falsa. */}
-                        {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
+                        {postVideoPriceNote ?? CHECKOUT_CURRENCY_DISCLOSURE}
                       </p>
                     )}
                     {/* ═══════════════════════════════════════════════════════
@@ -13185,7 +13186,7 @@ export default function GenerateClient({
                             Your film, without the mark
                           </h2>
                           <p style={{ fontSize: 13.5, color: '#86868b', lineHeight: 1.6, margin: 0, marginBottom: 16 }}>
-                            {postVideoPriceNote ?? 'Same price every month · local price loads before checkout'}
+                            {postVideoPriceNote ?? CHECKOUT_CURRENCY_DISCLOSURE}
                           </p>
                           <button
                             type="button"

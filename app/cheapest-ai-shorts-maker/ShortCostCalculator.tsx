@@ -270,7 +270,7 @@ export default function ShortCostCalculator() {
           <div style={{ minWidth: 220 }}>
             <div style={{ color: '#86868b', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.08em' }}>Lowest monthly plan that covers it</div>
             {!currency ? (
-              <div style={{ marginTop: 6, color: '#d2d2d7', fontWeight: 800 }}>Checking local price…</div>
+              <div style={{ marginTop: 6, color: '#d2d2d7', fontWeight: 800 }}>Checking USD price…</div>
             ) : result.plan && recommendationMonthly != null ? (
               <div style={{ marginTop: 5 }}>
                 <div style={{ fontSize: 20, fontWeight: 900 }}>{planName(result.plan.tier)} · {formatCheckoutMoney(currency, recommendationMonthly)}/mo</div>

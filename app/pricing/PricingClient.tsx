@@ -21,6 +21,7 @@ import WelcomeOfferModal from '@/components/WelcomeOfferModal' // KINEO-WELCOME2
 // porquê (e o que NÃO copiar do Higgsfield) está no bloco em lib/marketingPrice.
 import {
   creditsPerReferenceVideo,
+  CHECKOUT_CURRENCY_DISCLOSURE,
   filmsAndScenes,
   formatResultCount,
   videosPerMonth,
@@ -38,7 +39,6 @@ import {
   AUTOPILOT_PILOT_DAYS,
   AUTOPILOT_PILOT_PRICES,
   AUTOPILOT_PRICES,
-  CURRENCY_DISPLAY,
   INTRO_CREDITS,
   TIER_CREDITS,
   // KINEO-REGIONAL-PRICING-2026-08-04 — TIER_PRICES / INTRO_PRICES /
@@ -102,7 +102,7 @@ const buildFaqs = (OFFER: FreeTierOffer): { q: string; a: string }[] => [
     // mention: the pack has no public CTA anymore (single-offer cleanup),
     // so naming it here would advertise a product the page doesn't sell.
     q: 'Do I need a credit card to start?',
-    a: `No. ${ft(OFFER, 'A new free account can create, watch, download and share up to 3 Fast videos with a watermark every 24 hours, with no card. Free access grants no credits and no premium AI Generated videos.', OFFER.copy.sentence + ' The residual free plan grants no credits and no premium AI Generated videos.')} Subscribe only when you want a clean, watermark-free MP4. Your first-month and renewal prices are shown in your local checkout currency above.`,
+    a: `No. ${ft(OFFER, 'A new free account can create, watch, download and share up to 3 Fast videos with a watermark every 24 hours, with no card. Free access grants no credits and no premium AI Generated videos.', OFFER.copy.sentence + ' The residual free plan grants no credits and no premium AI Generated videos.')} Subscribe only when you want a clean, watermark-free MP4. ${CHECKOUT_CURRENCY_DISCLOSURE}`,
   },
   {
     // [KINEO-COMMERCIAL-LICENSE-2026-08-12] — a pergunta nº 1 de qualquer
@@ -323,7 +323,6 @@ export default function PricingClient() {
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly')
   const resolvedCurrency = displayCurrency ?? 'usd'
   const resolvedRegion = displayRegion
-  const currencyConfig = CURRENCY_DISPLAY[resolvedCurrency]
   const annualPrices = (['starter', 'basic', 'pro'] as PaidTier[]).reduce((result, tier) => {
     const totalMinor = getAnnualPrice(tier, resolvedCurrency, resolvedRegion)
     result[tier] = {
@@ -804,9 +803,7 @@ export default function PricingClient() {
           </div>
         </div>
         <p className="-mt-4 mb-7 text-center text-[11.5px] font-semibold text-[#86868b]">
-          {displayCurrency
-            ? `Prices shown in ${currencyConfig.label}. Secure checkout uses the same currency.`
-            : 'Prices in USD — switches to your local currency automatically at checkout.'}
+          {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
 
         {/* KINEO-SPRINT-OFFER-2026-07-14 — SINGLE OFFER cleanup. Three stacked

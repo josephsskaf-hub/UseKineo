@@ -6,13 +6,11 @@
 // experience (current credits, FAQ, billing portal) — this is just the
 // in-flow nudge below the prompt textarea.
 //
-// Push #114 — CTAs now POST to /api/stripe/checkout instead of redirecting
-// to hardcoded buy.stripe.com payment links. The hosted links were USD-
-// only and Brazilian cards were getting rejected with "Seu cartão não
-// aceita essa moeda". Going through the API lets the server pick BRL via
-// x-vercel-ip-country (Push #112) and attach boleto for BR cohorts. The
-// component is only rendered for signed-in users (inside /generate), so a
-// 401 just means the session expired — we fall back to /login.
+// Push #114 — CTAs post to /api/stripe/checkout instead of hardcoded hosted
+// links. Since KINEO-USD-ONLY-2026-08-19, that server route charges USD for
+// every country; this component must never promise BRL or local conversion.
+// It is rendered for signed-in users, so a 401 means the session expired and
+// the flow falls back to /login.
 
 import { useEffect, useState } from 'react'
 import { PLANS } from '@/lib/pricing'
@@ -42,6 +40,7 @@ import {
 // "1 Hollywood film" com a tabela da V3B congelada dentro de literais.
 import {
   BEST_COST_PER_FILM,
+  CHECKOUT_CURRENCY_DISCLOSURE,
   CREATOR_AI_FILMS,
   CREATOR_CINEMATIC_FILMS,
   STUDIO_AI_FILMS,
@@ -245,7 +244,7 @@ export default function PricingCards({
   }
 
   function introNoteFor(tier: 'starter' | 'basic'): string {
-    if (!displayCurrency) return 'Checking your local first-month price…'
+    if (!displayCurrency) return 'Checking the USD first-month price…'
     const renewal = formatCheckoutMoney(displayCurrency, getTierPrice(tier, displayCurrency, displayRegion))
     // KINEO-REGIONAL-PRICING-2026-08-04 — na região `value` o Starter não tem
     // 1º mês com desconto: o preço de lista JÁ é o preço de entrada. Escrever
@@ -274,9 +273,7 @@ export default function PricingCards({
           Choose your plan
         </h2>
         <p className="mt-2 text-xs" style={{ color: 'var(--muted)' }}>
-          {displayCurrency
-            ? `Prices shown in ${CURRENCY_DISPLAY[displayCurrency].label}. Stripe checkout uses the same currency.`
-            : 'Checking your local price…'}
+          {CHECKOUT_CURRENCY_DISCLOSURE}
         </p>
       </div>
 

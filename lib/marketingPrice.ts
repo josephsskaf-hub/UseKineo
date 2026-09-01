@@ -19,7 +19,13 @@
 // NADA AQUI É UM NÚMERO. Tudo deriva de TIER_PRICES/TIER_CREDITS — as mesmas
 // constantes que a rota da Stripe usa para cobrar. Um reprice em
 // checkoutPricing.ts chega nestas páginas sem que ninguém precise abri-las.
-import { TIER_PRICES, TIER_CREDITS, type CheckoutTier } from '@/lib/checkoutPricing'
+import {
+  CURRENCY_DISPLAY,
+  TIER_PRICES,
+  TIER_CREDITS,
+  resolveCheckoutCurrency,
+  type CheckoutTier,
+} from '@/lib/checkoutPricing'
 import { creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
 
 /** "7" / "15" / "29" — dólares inteiros, sem centavos zerados. A escada da V6
@@ -265,12 +271,18 @@ export const BEST_COST_PER_FILM_USD = Math.min(
 /** "$3.50" — o rótulo pronto, arredondado para centavo. */
 export const BEST_COST_PER_FILM = `$${BEST_COST_PER_FILM_USD.toFixed(2)}`
 
-// KINEO-PRICING-V6-2026-08-19 — a frase que substituiu o preço regional.
-// A escada por país morreu (ver o bloco de TIER_PRICES): agora é a MESMA
-// oferta no mundo inteiro, só escrita na moeda de quem lê. Páginas que
-// diziam "o preço varia por região" usam esta constante para não voltarem a
-// divergir umas das outras na hora de explicar isso.
+// KINEO-PRICING-V6-2026-08-19 — a escada por país morreu (ver TIER_PRICES):
+// a oferta é a mesma no mundo inteiro.
 export const SAME_PRICE_WORLDWIDE = 'the same price worldwide'
+
+// KINEO-CURRENCY-TRUTH-2026-09-01 — CheckoutCurrency aceita somente USD.
+// Várias superfícies públicas e pós-vídeo ainda prometiam moeda local e transformavam o
+// último metro numa surpresa. A moeda vem da mesma função que governa a rota
+// da Stripe; home, pricing e JSON-LD importam a mesma frase byte a byte.
+const CHECKOUT_CURRENCY =
+  CURRENCY_DISPLAY[resolveCheckoutCurrency(null)].label
+export const CHECKOUT_CURRENCY_DISCLOSURE =
+  `Kineo lists and charges plan prices in ${CHECKOUT_CURRENCY} worldwide. Your bank may convert the charge to your local currency and may add conversion or cross-border fees.`
 
 // ═══════════════════════════════════════════════════════════════════════════
 // KINEO-CARD-CHEIO-2026-08-25 (fundador, print do Higgsfield ao lado do nosso:
