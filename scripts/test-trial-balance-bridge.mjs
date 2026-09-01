@@ -77,6 +77,23 @@ for (const [input, eligible, reason] of [
   equal(result.eligible, eligible, 'first-delivery eligibility names ' + reason)
   equal(result.reason, reason, 'first-delivery decision returns ' + reason)
 }
+for (const input of [
+  { trialPhase: 'active', credits: 25, creditsUsed: 0 },
+  { trialPhase: 'active', credits: 25, creditsUsed: null },
+  { trialPhase: 'active', credits: 25, creditsUsed: 4 },
+  { trialPhase: 'active', credits: 14, creditsUsed: 0 },
+]) {
+  const decision = policy.decideTrialFirstDelivery(input)
+  const metadata = policy.trialFirstDeliveryExposureMetadata(decision)
+  equal(
+    Object.keys(metadata).sort(),
+    ['first_delivery_eligible', 'first_delivery_reason', 'first_delivery_version'],
+    'exposure metadata has an exact three-field allowlist',
+  )
+  equal(metadata.first_delivery_eligible, decision.eligible, 'exposure keeps the executed eligibility verdict')
+  equal(metadata.first_delivery_reason, decision.reason, 'exposure keeps the categorical decision reason')
+  equal(metadata.first_delivery_version, policy.TRIAL_FIRST_DELIVERY_VERSION, 'exposure keeps the click contract version')
+}
 equal(
   policy.decideTrialFirstDelivery({ trialPhase: 'active', credits: 25, creditsUsed: 0 }).creditsAfterSuccess,
   10,
@@ -214,6 +231,19 @@ check(!handler.includes('studio=1'), 'CTA cannot arm Studio auto-fire')
 const banner = read('components/TrialActiveBanner.tsx').replace(/\r\n/g, '\n')
 check(banner.includes('decideTrialReturnLadder'), 'persistent trial banner executes return-ladder policy')
 check(banner.includes('decideTrialFirstDelivery'), 'persistent trial banner executes activation-before-checkout policy')
+check(
+  banner.includes('trialFirstDeliveryExposureMetadata(firstDeliveryAtImpression)'),
+  'banner derives the exact exposure allowlist from the executed policy decision',
+)
+check(
+  banner.indexOf('const firstDeliveryAtImpression = decideTrialFirstDelivery')
+    < banner.indexOf("trackEvent('trial_active_banner_shown'"),
+  'banner computes the exposure policy from the fetched response before recording the impression',
+)
+check(
+  banner.includes('...firstDeliveryExposure'),
+  'banner impression carries the versioned eligibility contract without free-form values',
+)
 check(banner.includes("trackEvent('trial_first_delivery_clicked'"), 'first-delivery CTA emits a distinct causal event')
 check(banner.includes('data-trial-first-delivery={firstDelivery.version}'), 'first-delivery surface names its contract version')
 check(banner.includes('Start premium — then prove you can repeat it.'), 'zero-use copy sequences quality and repetition before purchase')

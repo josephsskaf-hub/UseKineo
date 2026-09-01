@@ -66,6 +66,27 @@ export type TrialFirstDeliveryDecision = {
   version: typeof TRIAL_FIRST_DELIVERY_VERSION
 }
 
+export type TrialFirstDeliveryExposureMetadata = {
+  first_delivery_eligible: boolean
+  first_delivery_version: typeof TRIAL_FIRST_DELIVERY_VERSION
+  first_delivery_reason: TrialFirstDeliveryDecision['reason']
+}
+
+/**
+ * Exact, privacy-safe contract used to join the banner denominator to the
+ * versioned first-delivery click. It deliberately excludes balances, user
+ * content and free-form values; those are not needed to read the experiment.
+ */
+export function trialFirstDeliveryExposureMetadata(
+  decision: TrialFirstDeliveryDecision,
+): TrialFirstDeliveryExposureMetadata {
+  return {
+    first_delivery_eligible: decision.eligible,
+    first_delivery_version: decision.version,
+    first_delivery_reason: decision.reason,
+  }
+}
+
 /**
  * Keeps a brand-new trial user in the value loop before asking for a card.
  *

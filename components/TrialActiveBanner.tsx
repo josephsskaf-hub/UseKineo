@@ -72,6 +72,7 @@ import { creditsPerReferenceVideo } from '@/lib/marketingPrice'
 import {
   decideTrialFirstDelivery,
   decideTrialReturnLadder,
+  trialFirstDeliveryExposureMetadata,
   TRIAL_BALANCE_BRIDGE_VERSION,
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
@@ -215,6 +216,21 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
         const currentCredits = typeof data.credits === 'number' && Number.isFinite(data.credits)
           ? data.credits
           : null
+        // KINEO-TRIAL-FIRST-DELIVERY-DENOMINATOR-2026-09-01 — the banner
+        // impression used to mix three mutually exclusive experiences: the
+        // first premium delivery, the return ladder and the subscription CTA.
+        // A click carried the first-delivery version, but the impression did
+        // not say whether that card was even eligible. Keep the exact policy
+        // decision local to this response: React state updates below are async
+        // and would otherwise describe the previous render.
+        const firstDeliveryAtImpression = decideTrialFirstDelivery({
+          trialPhase: 'active',
+          credits: currentCredits,
+          creditsUsed: typeof trial.creditsUsedForDisplay === 'number'
+            ? trial.creditsUsedForDisplay
+            : null,
+        })
+        const firstDeliveryExposure = trialFirstDeliveryExposureMetadata(firstDeliveryAtImpression)
 
         setGranted(g)
         setUsed(typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : null)
@@ -237,6 +253,7 @@ export default function TrialActiveBanner({ userKey }: { userKey: string }) {
             credits_granted: g,
             credits_used: typeof trial.creditsUsedForDisplay === 'number' ? trial.creditsUsedForDisplay : 0,
             ms_left: left,
+            ...firstDeliveryExposure,
             // O A/B de 3d vs 7d é julgado por conversão, mas a leitura de
             // "urgência funciona?" precisa saber QUAL prazo a pessoa leu.
             time_left_label: formatTimeLeft(left),
