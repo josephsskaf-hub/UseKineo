@@ -31,6 +31,7 @@ import PricingBusinessPathTelemetry from '@/components/PricingBusinessPathTeleme
 import { PRICING_BUSINESS_PATH_TARGET_ID } from '@/lib/growth/pricingBusinessPath'
 import PricingSavedCheckout from '@/components/PricingSavedCheckout'
 import PricingJourneyProof from '@/components/growth/PricingJourneyProof'
+import AutopilotBreakEvenCalculator from './AutopilotBreakEvenCalculator'
 import {
   // KINEO-PILOT-99-2026-07-26 — preço e duração do piloto vêm da mesma fonte que
   // o checkout cobra. Retipar "$99" aqui é como os outros três leaks começaram.
@@ -1234,6 +1235,13 @@ export default function PricingClient() {
                 </div>
               </div>
             </div>
+
+            <AutopilotBreakEvenCalculator
+              currency={resolvedCurrency}
+              pending={purchasing}
+              onStartMonthly={() => handleBuy('autopilot')}
+              onStartPilot={handleBuyAutopilotPilot}
+            />
           </div>
         </div>
 
