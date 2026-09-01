@@ -23,6 +23,10 @@ import {
 // duplicado aqui (a cópia local de lista com fonte única foi o defeito de
 // 05/08 com isTestEmail()).
 import { VIRAL_TOPICS_POOL } from '@/lib/viralTopics'
+// KINEO-SPRINT-V1V4-2026-09-01 (#25) — MESMO motor de continuacao das telas e
+// do momentum nudge (#24). O e-mail nunca monta a frase do episodio 2 a mao:
+// se a frase mudar la, este e-mail acompanha sozinho.
+import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed } from '@/lib/seriesContinuation'
 import { OUR_FAILURE_EVENT_NAME, isOurFailure } from '@/lib/lifecycle/ourFailure'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
@@ -478,6 +482,22 @@ interface Candidate {
    * dias. O degrade é observável no JSON de resposta (`our_failure_degraded`).
    */
   failedOnUs: boolean
+  /**
+   * KINEO-SPRINT-V1V4-2026-09-01 (#25) — o tema do ULTIMO video concluido da
+   * conta, ja normalizado pela regua de `lib/seriesContinuation.ts`.
+   *
+   * Existe por um numero so: das 285 pessoas externas que fizeram EXATAMENTE
+   * UM video em 30 dias, 281 tem tema aproveitavel, e 200 delas receberam o
+   * `downgraded_loss` — o e-mail que mais alcanca esse grupo e que oferecia um
+   * unico caminho: /pricing. Com este campo ele passa a oferecer tambem o
+   * episodio 2 do tema DELA.
+   *
+   * ⚠️ FALHA ABERTA, como `failedOnUs` e ao contrario de `videosMade`: `null`
+   * (leitura falhou, sem tema, ou tema vazio) devolve o e-mail de hoje BYTE A
+   * BYTE. Nenhuma coorte e silenciada por causa de um campo que so ACRESCENTA
+   * um link.
+   */
+  lastTopic: string | null
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -515,6 +535,7 @@ function dueKind(
   now: number,
   videoCounts: Map<string, number> | null,
   ourFailureIds: ReadonlySet<string>,
+  lastTopics: Map<string, string> | null,
 ): Candidate | null {
   const id = typeof row.id === 'string' ? row.id : ''
   const email = typeof row.email === 'string' ? row.email.trim() : ''
@@ -580,6 +601,9 @@ function dueKind(
     // hoje para alguém que talvez tenha um vídeo — não uma coorte silenciada.
     failedOnUs:
       ourFailureIds.has(id) && (videoCounts === null || (videoCounts.get(id) ?? 0) === 0),
+    // Normalizado UMA vez aqui (e nao na hora de montar o e-mail) para que o
+    // teste consiga provar o contrato do campo sem montar e-mail nenhum.
+    lastTopic: normalizeSeriesSeed(lastTopics?.get(id) ?? '') || null,
   }
 
   if (status === 'active') {
@@ -965,6 +989,63 @@ function oneClickBlocks(
       )
       .join('\n  '),
   }
+}
+
+// ── KINEO-SPRINT-V1V4-2026-09-01 (#25) — O SEGUNDO CAMINHO ────────────────
+//
+// O NUMERO QUE MANDOU CONSTRUIR ISTO (medido hoje, so pessoas externas):
+//   · 285 pessoas fizeram EXATAMENTE UM video em 30 dias; 281 tem tema.
+//   · para 206 delas o ULTIMO evento registrado na conta e um e-mail nosso —
+//     ou seja, depois do video 1 nada mais acontece: a casa fala, ela nao volta.
+//   · 200 dessas pessoas receberam o `downgraded_loss`. E o e-mail que mais
+//     alcanca quem fez UM video.
+//   · e o `downgraded_loss` de quem TEM video oferecia UM unico caminho:
+//     /pricing. Pedimos dinheiro a quem ainda nao pediram para fazer o 2o video.
+//
+// O destino importa mais que o pedido (tabela da rodada #24, 30d, externos):
+//   volta ao Studio em branco ....... 123 pessoas → 30 fizeram o 2o (24%)
+//   chegada por continuacao de serie . 59 pessoas → 31 fizeram o 2o (53%)
+//
+// ⚠️ O QUE ESTE BLOCO NAO FAZ, DE PROPOSITO: nao toca no CTA de /pricing (ele
+// continua byte a byte, e primeiro), nao fala de preco, de plano, de credito
+// nem de cota. A licao do assunto "Your free video is still waiting" esta no
+// comentario logo abaixo: o slot free e reservado ANTES do render, entao
+// prometer "de graca" aqui pode ser falso. Este bloco promete so o que o link
+// entrega: a caixa ja preenchida com o episodio 2 do tema dela.
+function episodeTwoBlock(
+  seed: string | null,
+  campaign: string,
+  attr: (url: string) => string,
+): { text: string; html: string } | null {
+  const tema = normalizeSeriesSeed(seed ?? '')
+  if (!tema) return null
+  const url = buildSeriesContinuationEmailUrl(APP_URL, tema, 'lifecycle_loss_email', {
+    utm_source: 'lifecycle',
+    utm_medium: 'email',
+    utm_campaign: campaign,
+    intent_campaign: campaign,
+  })
+  // Sem tema utilizavel o helper devolve `/generate` pelado — que e exatamente
+  // o destino de 24% que este bloco existe para evitar. Fail-closed: sem
+  // episodio 2 de verdade, nenhum bloco.
+  if (!url.includes('prompt=')) return null
+  const label = `Episode 2: ${tema}`
+  return {
+    text: `Or make episode 2 of the one you already made — it opens with the topic already written:\n${label}\n${url}`,
+    html:
+      `  <p style="margin:0 0 10px;font-size:14px;color:#555;">Or make <strong>episode 2</strong> of the one you already made &mdash; it opens with the topic already written:</p>\n` +
+      `  <p style="margin:0 0 18px;"><a href="${attr(url)}" style="display:block;background:#f5f7fa;border:1px solid #d9e1ec;border-left:4px solid #2997ff;color:#111;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 16px;border-radius:8px;">${escapeHtmlText(label)} &rarr;</a></p>`,
+  }
+}
+
+/** O tema vem do banco (texto do usuario) e vai para dentro de um <a>. Escapar
+ *  nao e paranoia: um tema com `<` quebraria o HTML do e-mail inteiro. */
+function escapeHtmlText(v: string): string {
+  return v
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
 }
 
 function buildEmail(c: Candidate): { subject: string; text: string; html: string } {
@@ -1371,6 +1452,11 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
       }
     }
 
+    // KINEO-SPRINT-V1V4-2026-09-01 (#25) — o segundo caminho, so para quem TEM
+    // video (o ramo `neverRan` acima nao passa por aqui: quem nunca terminou um
+    // video nao tem episodio 2, e ja recebe os temas de 1 clique do pool).
+    const ep2 = episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', attr)
+
     const text = `Hey,
 
 Your Creator trial ended. Here's what you just lost access to:
@@ -1380,7 +1466,7 @@ ${bullets.map((b) => `- ${b}`).join('\n')}
 The videos you already made are yours — they stay in your account.
 
 If the trial was doing its job, Creator picks up exactly where it left off: ${url}
-
+${ep2 ? `\n${ep2.text}\n` : ''}
 Kineo Team
 usekineo.com`
     const html = wrap(`
@@ -1392,7 +1478,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">The videos you already made are yours &mdash; they stay in your account.</p>
   <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
   ${cta(url, 'Get Creator back')}
-  ${sig}`)
+${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     return { subject: `Here's what you just lost access to`, text: `${text}${footerText}`, html }
   }
 
@@ -1570,13 +1656,21 @@ export async function GET(req: NextRequest) {
     ),
   )
   const counts = new Map<string, number>()
+  // KINEO-SPRINT-V1V4-2026-09-01 (#25) — tema do video mais RECENTE por conta,
+  // colhido no MESMO laco que ja pagina `videos`. Zero consulta nova: e a
+  // diferenca entre `select('user_id')` e `select('user_id, topic, created_at')`.
+  // Guardamos o carimbo junto porque a paginacao ordena por `id` (requisito da
+  // estabilidade, ver o comentario abaixo) e id de uuid NAO tem ordem temporal:
+  // sem comparar `created_at` o "ultimo tema" seria o de uma linha qualquer.
+  const lastTopicAt = new Map<string, number>()
+  const topics = new Map<string, string>()
   let countsUsable = true
   outer: for (const part of chunk(cohortIds, VIDEO_COUNT_USERS_PER_QUERY)) {
     let from = 0
     for (;;) {
       const { data: vidRows, error: vidErr } = await admin
         .from('videos')
-        .select('user_id')
+        .select('user_id, topic, created_at')
         .in('user_id', part)
         .eq('status', 'completed')
         // ⚠️ ORDENAÇÃO ESTÁVEL É REQUISITO DA PAGINAÇÃO, NÃO ENFEITE. Sem
@@ -1596,7 +1690,19 @@ export async function GET(req: NextRequest) {
       }
       const got = (vidRows ?? []) as Array<Record<string, unknown>>
       for (const v of got) {
-        if (typeof v.user_id === 'string') counts.set(v.user_id, (counts.get(v.user_id) ?? 0) + 1)
+        if (typeof v.user_id !== 'string') continue
+        counts.set(v.user_id, (counts.get(v.user_id) ?? 0) + 1)
+        // O tema NUNCA falha fechado: qualquer duvida (tema nao-string, vazio,
+        // carimbo ilegivel) simplesmente nao entra no mapa, e o e-mail sai
+        // exatamente como sai hoje.
+        const rawTopic = typeof v.topic === 'string' ? v.topic : ''
+        if (!rawTopic.trim()) continue
+        const at = typeof v.created_at === 'string' ? Date.parse(v.created_at) : NaN
+        const when = Number.isFinite(at) ? at : 0
+        if (when >= (lastTopicAt.get(v.user_id) ?? -1)) {
+          lastTopicAt.set(v.user_id, when)
+          topics.set(v.user_id, rawTopic)
+        }
       }
       // ⚠️ PÁGINA CURTA É O ÚNICO SINAL DE FIM QUE O PostgREST DÁ — e é por
       // isso que VIDEO_COUNT_PAGE fica ABAIXO do `max-rows` do servidor
@@ -1620,6 +1726,8 @@ export async function GET(req: NextRequest) {
     }
   }
   const videoCounts: Map<string, number> | null = countsUsable ? counts : null
+  // Mesma leitura, mesmo degrade: se a paginacao abortou, nao ha tema confiavel.
+  const lastTopics: Map<string, string> | null = countsUsable ? topics : null
   if (videoCounts === null) {
     // Observabilidade explícita. Sem esta linha (e sem o campo no JSON de
     // resposta) uma falha PERSISTENTE da contagem silenciaria a coorte
@@ -1686,7 +1794,7 @@ export async function GET(req: NextRequest) {
 
   const candidates: Candidate[] = []
   for (const row of (rows ?? []) as ProfileRow[]) {
-    const c = dueKind(row, now, videoCounts, ourFailureIds)
+    const c = dueKind(row, now, videoCounts, ourFailureIds, lastTopics)
     if (c) candidates.push(c)
   }
 

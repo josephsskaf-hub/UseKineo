@@ -17,6 +17,11 @@ export type SeriesContinuationSource =
   // so oferecia "Watch" ou "x". O tema do video ja viajava do servidor ate o
   // cliente (campo `title` do /api/compose/active) e era jogado fora.
   | 'render_pill'
+  // KINEO-SPRINT-V1V4-2026-09-01 (#25) — o `downgraded_loss` e o e-mail que
+  // alcanca MAIS gente de 1 video (200 das 285 em 30d) e o unico caminho que
+  // ele oferecia era /pricing. Esta fonte identifica o segundo caminho, o de
+  // fazer o episodio 2 do tema da propria pessoa.
+  | 'lifecycle_loss_email'
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
