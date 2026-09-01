@@ -1,14 +1,21 @@
 'use client'
 
 // Push #063 — Checkout success page.
-// Push #123 — auto-redirect to /generate after 5 seconds.
+// Push #123 — auto-redirect to /generate after the confirmation window.
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { trackEvent } from '@/lib/analytics'
 import { getViralNowTopics, type ViralTopic } from '@/lib/viralTopics'
 import { armFirstWinHandshake } from '@/lib/firstWinHandshake'
+import {
+  AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
+  isAutopilotEntitlementReady,
+  readCheckoutSuccessFlow,
+  readyCheckoutSuccessDestination,
+  type CheckoutSuccessFlow,
+} from '@/lib/growth/checkoutSuccessFlow'
 
 // KINEO-FIRST-WIN-2026-08-02 — the 5th buyer ever (01/08) paid straight from
 // TAAFT, was auto-redirected here into an EMPTY /generate, wandered between
@@ -23,6 +30,10 @@ export default function CheckoutSuccessPage() {
   const router = useRouter()
   const [countdown, setCountdown] = useState(15)
   const [topics, setTopics] = useState<ViralTopic[]>([])
+  const [flow, setFlow] = useState<CheckoutSuccessFlow | null>(null)
+  const [accountPlan, setAccountPlan] = useState<string | null>(null)
+  const autopilotReadyEventSent = useRef(false)
+  const autopilotPendingEventSent = useRef(false)
   // KINEO-TRIAL-ABUSE-PMP-2026-08-07 - PRIMEIRO MINUTO PAGO. Esta tela dizia
   // "Your plan is being activated" e, logo abaixo, "If your credits do not
   // appear immediately, refresh in a few seconds" - duas frases que sao a
@@ -34,12 +45,18 @@ export default function CheckoutSuccessPage() {
   const [syncing, setSyncing] = useState(true)
 
   useEffect(() => {
+    const resolved = readCheckoutSuccessFlow(new URLSearchParams(window.location.search))
+    setFlow(resolved)
+
     // Computed after mount so the time-seeded shuffle can never cause a
-    // hydration mismatch.
-    try {
-      setTopics(getViralNowTopics().slice(0, 3))
-    } catch {
-      // silent — the plain Generate CTA below remains
+    // hydration mismatch. Autopilot buyers need channel setup, not a generic
+    // self-serve topic, so that branch never creates or renders this list.
+    if (resolved.kind === 'self_serve') {
+      try {
+        setTopics(getViralNowTopics().slice(0, 3))
+      } catch {
+        // silent — the plain Generate CTA below remains
+      }
     }
   }, [])
 
@@ -49,16 +66,22 @@ export default function CheckoutSuccessPage() {
     const purchaseCurrency = (sp.get('currency') ?? 'usd').toUpperCase()
     const purchaseAmountTotal = Number(sp.get('amount') ?? 490)
     const purchaseValue = purchaseAmountTotal / 100
+    const successFlow = readCheckoutSuccessFlow(sp)
 
     // KINEO-PAYMENT-EVENT-2026-07-15 — `payment_success` is now written once
     // by the verified Stripe webhook. This client event only measures whether
     // the buyer actually saw the success page, so refreshes cannot inflate
     // canonical payment counts.
-    void trackEvent('checkout_success_viewed', {
+    const successViewMetadata: Record<string, unknown> = {
       stripe_session_id: sessionId,
       amount_total: purchaseAmountTotal,
       currency: purchaseCurrency.toLowerCase(),
-    })
+    }
+    if (successFlow.kind === 'autopilot') {
+      successViewMetadata.intended_tier = 'autopilot'
+      successViewMetadata.journey_version = AUTOPILOT_CHECKOUT_SUCCESS_VERSION
+    }
+    void trackEvent('checkout_success_viewed', successViewMetadata)
 
     // #376 — read Stripe checkout_session_id from the URL and use it as the
     // transaction_id so Google Ads + TikTok DEDUPLICATE the purchase if the
@@ -98,14 +121,17 @@ export default function CheckoutSuccessPage() {
     }
   }, [])
 
-  // Poll do saldo. Agressivo no comeco (o caso comum e o webhook ja ter
-  // rodado antes do redirect) e ralo depois; ~20s no total. Nunca afirma um
-  // DELTA ("+120 creditos"): o baseline pre-compra nao existe neste cliente,
-  // entao a unica frase honesta e o saldo ATUAL, que sobe sozinho se o
-  // webhook chegar atrasado. Falha em silencio - o CTA manual continua ali.
+  // Poll do saldo. Agressivo no começo (o caso comum é o webhook já ter
+  // rodado antes do redirect) e ralo depois; self-serve mantém os ~20s
+  // históricos, enquanto Autopilot observa até 45s porque nunca pode navegar
+  // para um paywall de "not entitled" antes de `plan=autopilot`. Nunca afirma
+  // um DELTA: o baseline pré-compra não existe neste cliente.
   useEffect(() => {
+    if (!flow) return
     let cancelled = false
-    const delays = [0, 2_000, 5_000, 10_000, 20_000]
+    const delays = flow.kind === 'autopilot'
+      ? [0, 2_000, 5_000, 10_000, 20_000, 30_000, 45_000]
+      : [0, 2_000, 5_000, 10_000, 20_000]
     const timers = delays.map((delay, i) =>
       setTimeout(async () => {
         try {
@@ -116,7 +142,8 @@ export default function CheckoutSuccessPage() {
             signal: AbortSignal.timeout(5_000),
           })
           if (!res.ok || cancelled) return
-          const data = (await res.json()) as { credits?: unknown }
+          const data = (await res.json()) as { credits?: unknown; plan?: unknown }
+          if (!cancelled && typeof data.plan === 'string') setAccountPlan(data.plan)
           // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D6 da 2a revisao
           // adversarial) - `syncing` desliga no PRIMEIRO poll que devolve
           // numero, nao no ultimo timer. O `finally` de baixo so roda em
@@ -124,9 +151,18 @@ export default function CheckoutSuccessPage() {
           // cards do primeiro video dependiam de `!syncing`, eles NUNCA
           // apareciam para ninguem. O caso comum e o webhook ja ter rodado
           // antes do redirect, ou seja, resposta boa em t~0s.
-          if (!cancelled && typeof data.credits === 'number') {
+          if (
+            !cancelled &&
+            typeof data.credits === 'number' &&
+            (flow.kind === 'self_serve' || isAutopilotEntitlementReady(data.plan))
+          ) {
             setCredits(data.credits)
             setSyncing(false)
+          } else if (!cancelled && typeof data.credits === 'number') {
+            // The recurring Autopilot grant and plan are written together by
+            // the webhook. Keep the current balance visible, but do not send
+            // the buyer into the pre-entitlement paywall while plan is stale.
+            setCredits(data.credits)
           }
         } catch {
           /* rede instavel - a proxima tentativa cobre */
@@ -139,7 +175,7 @@ export default function CheckoutSuccessPage() {
       cancelled = true
       timers.forEach(clearTimeout)
     }
-  }, [])
+  }, [flow])
 
   // KINEO-FIRST-PAID-MINUTE-2026-08-11 (defeito D11 da 3a revisao adversarial)
   // - TETO DE `syncing` INDEPENDENTE DO FETCH.
@@ -150,23 +186,47 @@ export default function CheckoutSuccessPage() {
   // pendurada (rede movel, proxy) deixava `syncing` em `true` para sempre - sem
   // cards E sem redirect. Trocar um beco sem saida por uma tela morta e piorar.
   //
-  // Agora sao duas garantias separadas: o countdown volta a ser incondicional
-  // (o redirect de 15s NUNCA depende da rede) e `syncing` tem um teto proprio
-  // de 6s. No caminho comum o webhook ja rodou e o primeiro poll responde em
-  // ~0s; nos demais, os cards aparecem no maximo em 6s e sobram ~9s de escolha.
+  // Agora são duas garantias separadas. Self-serve mantém countdown e teto de
+  // 6s independentes da rede. Autopilot também conta 15s, mas a navegação só
+  // ocorre depois da confirmação autoritativa do plano; se o relógio chegar a
+  // zero primeiro, permanece nesta página e o próximo poll pode concluir o
+  // handoff imediatamente.
   useEffect(() => {
+    if (flow?.kind === 'autopilot') return
     const ceiling = setTimeout(() => setSyncing(false), 6_000)
     return () => clearTimeout(ceiling)
-  }, [])
+  }, [flow?.kind])
+
+  const isAutopilot = flow?.kind === 'autopilot'
+  const isSelfServe = flow?.kind === 'self_serve'
+  const autopilotReady = isAutopilot && isAutopilotEntitlementReady(accountPlan)
+  useEffect(() => {
+    if (!autopilotReady || autopilotReadyEventSent.current) return
+    autopilotReadyEventSent.current = true
+    void trackEvent('autopilot_checkout_handoff_ready', {
+      version: AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
+      destination: 'autopilot_setup',
+    })
+  }, [autopilotReady])
 
   useEffect(() => {
+    if (!flow) return
     if (countdown <= 0) {
-      router.push('/generate')
+      const destination = readyCheckoutSuccessDestination(flow, accountPlan)
+      if (destination) {
+        router.push(destination)
+      } else if (!autopilotPendingEventSent.current) {
+        autopilotPendingEventSent.current = true
+        void trackEvent('autopilot_checkout_handoff_pending', {
+          version: AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
+          reason: 'entitlement_not_ready',
+        })
+      }
       return
     }
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000)
     return () => clearTimeout(timer)
-  }, [countdown, router])
+  }, [accountPlan, countdown, flow, router])
 
   return (
     <main
@@ -220,7 +280,11 @@ export default function CheckoutSuccessPage() {
             margin: 0,
           }}
         >
-          Welcome to Kineo.
+          {flow === null
+            ? 'Confirming checkout…'
+            : isAutopilot
+              ? 'Set up your Autopilot.'
+              : 'Welcome to Kineo.'}
         </h1>
         <p
           style={{
@@ -230,7 +294,15 @@ export default function CheckoutSuccessPage() {
             lineHeight: 1.55,
           }}
         >
-          {credits === null ? 'Your plan is being activated.' : 'Your plan is active.'}
+          {flow === null
+            ? 'Preparing the right next step.'
+            : isAutopilot
+            ? autopilotReady
+              ? 'Your Autopilot plan is active.'
+              : 'Your checkout is complete. We are confirming secure access.'
+            : credits === null
+              ? 'Your plan is being activated.'
+              : 'Your plan is active.'}
         </p>
         <p
           style={{
@@ -241,7 +313,13 @@ export default function CheckoutSuccessPage() {
             lineHeight: 1.55,
           }}
         >
-          {credits !== null
+          {flow === null
+            ? 'One moment…'
+            : isAutopilot && !autopilotReady
+            ? syncing
+              ? 'Finishing your Autopilot entitlement…'
+              : 'Access is taking longer than usual. Refresh after Stripe confirms the payment.'
+            : credits !== null
             ? `${credits.toLocaleString('en-US')} credits available${syncing ? ' · syncing' : ''}`
             : syncing
               ? 'Checking your balance…'
@@ -256,15 +334,43 @@ export default function CheckoutSuccessPage() {
             letterSpacing: '-0.01em',
           }}
         >
-          Redirecting to the app in {countdown}…
+          {flow === null
+            ? 'Reading your checkout…'
+            : isAutopilot
+            ? autopilotReady
+              ? `Opening Autopilot setup in ${countdown}…`
+              : countdown > 0
+                ? `Confirming secure access · ${countdown}s`
+                : 'Waiting for the secure activation to finish…'
+            : `Redirecting to the app in ${countdown}…`}
         </p>
+
+        {isAutopilot && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '15px 16px',
+              borderRadius: 14,
+              textAlign: 'left',
+              background: 'rgba(41,151,255,.08)',
+              border: '1px solid rgba(41,151,255,.3)',
+            }}
+          >
+            <p style={{ margin: 0, color: 'var(--text)', fontSize: '0.9rem', fontWeight: 850 }}>
+              Next: connect the YouTube channel you want Kineo to operate.
+            </p>
+            <p style={{ margin: '6px 0 0', color: 'var(--muted2)', fontSize: '0.8rem', lineHeight: 1.55 }}>
+              Then choose the channel niche, posting time and visibility before turning daily publishing on.
+            </p>
+          </div>
+        )}
 
         {/* KINEO-FIRST-PAID-MINUTE-2026-08-11 - os cards so aparecem depois que
             /api/credits confirmou o pagamento. Antes disso o /generate ainda
             enxerga a conta como gratuita por alguns instantes, e o primeiro
             video do COMPRADOR sairia pelo caminho de conta free. Se o webhook
             nunca chegar, sobra o redirect normal de 15s - a falha segura. */}
-        {topics.length > 0 && credits !== null && !syncing && (
+        {isSelfServe && topics.length > 0 && credits !== null && !syncing && (
           <div style={{ marginTop: 22, textAlign: 'left' }}>
             <p
               style={{
@@ -349,24 +455,76 @@ export default function CheckoutSuccessPage() {
             gap: 10,
           }}
         >
-          <Link
-            href="/generate"
-            style={{
-              display: 'block',
-              textAlign: 'center',
-              textDecoration: 'none',
-              padding: '14px 22px',
-              borderRadius: 14,
-              fontSize: '0.95rem',
-              fontWeight: 900,
-              color: '#fff',
-              background: 'linear-gradient(135deg, #2997ff 0%, #2997ff 55%, #2997ff 100%)',
-              boxShadow: '0 10px 32px rgba(41,151,255,.45)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            Go to Generate Video
-          </Link>
+          {isAutopilot ? (
+            autopilotReady && flow ? (
+              <Link
+                href={flow.destination}
+                onClick={() => {
+                  void trackEvent('autopilot_checkout_handoff_clicked', {
+                    version: AUTOPILOT_CHECKOUT_SUCCESS_VERSION,
+                    destination: 'autopilot_setup',
+                  })
+                }}
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  textDecoration: 'none',
+                  padding: '14px 22px',
+                  borderRadius: 14,
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  color: '#fff',
+                  background: 'linear-gradient(135deg, #2997ff 0%, #2997ff 55%, #2997ff 100%)',
+                  boxShadow: '0 10px 32px rgba(41,151,255,.45)',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Open Autopilot setup
+              </Link>
+            ) : (
+              <button
+                type="button"
+                disabled={countdown > 0}
+                onClick={() => window.location.reload()}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  textAlign: 'center',
+                  padding: '14px 22px',
+                  borderRadius: 14,
+                  fontSize: '0.95rem',
+                  fontWeight: 900,
+                  color: '#fff',
+                  background: countdown > 0 ? 'rgba(41,151,255,.25)' : 'rgba(41,151,255,.45)',
+                  border: '1px solid rgba(41,151,255,.45)',
+                  cursor: countdown > 0 ? 'wait' : 'pointer',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {countdown > 0 ? 'Confirming access…' : 'Check access again'}
+              </button>
+            )
+          ) : isSelfServe ? (
+            <Link
+              href="/generate"
+              style={{
+                display: 'block',
+                textAlign: 'center',
+                textDecoration: 'none',
+                padding: '14px 22px',
+                borderRadius: 14,
+                fontSize: '0.95rem',
+                fontWeight: 900,
+                color: '#fff',
+                background: 'linear-gradient(135deg, #2997ff 0%, #2997ff 55%, #2997ff 100%)',
+                boxShadow: '0 10px 32px rgba(41,151,255,.45)',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Go to Generate Video
+            </Link>
+          ) : null}
+          {isSelfServe && (
           <Link
             href="/my-videos"
             style={{
@@ -384,6 +542,7 @@ export default function CheckoutSuccessPage() {
           >
             View My Videos
           </Link>
+          )}
         </div>
       </div>
     </main>

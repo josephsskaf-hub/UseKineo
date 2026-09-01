@@ -64,6 +64,7 @@ import {
   bulkCheckoutDescription,
 } from '@/lib/growth/bulkCheckoutTruth'
 import { buildAutopilotPilotCancelUrl } from '@/lib/growth/autopilotCheckoutReturn'
+import { buildSubscriptionCheckoutSuccessUrl } from '@/lib/growth/checkoutSuccessFlow'
 import {
   attributeAffiliateForUser,
   normalizeAffiliateClickId,
@@ -1309,7 +1310,12 @@ async function buildAndRedirect(
         message: checkoutValueContext.submitMessage,
       },
     },
-    success_url: `${appUrl}/checkout/success?success=true&currency=${currency}&amount=${unitAmount}&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: buildSubscriptionCheckoutSuccessUrl({
+      appUrl,
+      tier,
+      currency,
+      amount: unitAmount,
+    }),
     // KINEO-OBJECTION-HANDLER-2026-08-04 — `region` passa a viajar no
     // cancel_url. A página de cancelamento mostra preço, e desde
     // KINEO-REGIONAL-PRICING-2026-08-04 o preço de um mesmo tier+moeda depende
