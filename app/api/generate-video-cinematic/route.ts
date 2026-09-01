@@ -4,6 +4,12 @@
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
+// sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
+// Gate de servidor e gate de UI sao um PAR (licao ja registrada no
+// GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
+// DEPOIS do clique tem que oferecer o MESMO desvio, pela MESMA regra — senao
+// as duas superficies contam historias diferentes para a mesma pessoa.
+import { planoDeResgate } from '@/lib/engineAffordability'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient, type SupabaseClient } from '@supabase/supabase-js'
 // KINEO-SALVAGE-2026-08-17 — fingerprint da retomada + status-check das cenas
@@ -1420,6 +1426,90 @@ async function manipularPost(req: NextRequest) {
       const heldByUnsettled = await creditsHeldByUnsettledRender(user.id)
       const heldExplainsGap = heldByUnsettled > 0 && balance + heldByUnsettled >= cost
 
+      // ═══ sprint-v1v4 #27 — O SEGUNDO CAMINHO DA RECUSA DE SALDO ══════════
+      //
+      // MEDIDO EM PRODUCAO (60d, so externos, `compose_refused` com
+      // reason='trial_credits_stalled'): 26 recusas em 15 pessoas. O saldo
+      // delas ia de 9 a 62 creditos — NENHUMA estava zerada. E em 19 das 26
+      // existia uma combinacao motor x duracao DESTE MESMO cardapio que o
+      // saldo pagava naquele segundo (11 das 15 pessoas). A unica coisa que a
+      // resposta dizia era "Add a plan".
+      //
+      // Ou seja: a pessoa voltou para fazer o 2o video, tinha credito no
+      // bolso, e o produto mandou ela para a pagina de preco. E o 4o video e
+      // o limiar onde a conversao medida salta de 0,9% para 11,8% — cobrar
+      // antes de deixar ela chegar la e cobrar cedo demais.
+      //
+      // ⚠️ O QUE ESTE BLOCO **NAO** FAZ, e a razao de cada limite:
+      //   · NAO toca no `error` de plano: a frase do Codex continua PRIMEIRA e
+      //     byte a byte. A sugestao e ACRESCENTADA depois, nunca substitui.
+      //   · NAO mexe em `upsell`, `reason`, `needed`, `balance` nem no modal.
+      //     O caminho de compra sai daqui exatamente como entrou.
+      //   · NAO fala de preco, plano, cupom, cota, trial nem "free". Diz dois
+      //     numeros tecnicos (segundos e creditos), que e o lado meu da
+      //     fronteira de lib/credits/engineCost.ts.
+      //   · NAO inventa motor travado: `motoresDisponiveis` repete o MESMO
+      //     gate de plano que roda ~80 linhas acima (TRIAL_UNLOCKS_PREMIUM).
+      //     Nunca ofereco como saida algo que o cadeado do Codex tranca.
+      //   · Se nada cabe (`nada_cabe`), a resposta sai IDENTICA a hoje. Sem
+      //     saida real, inventar uma seria a mentira que a copy honesta
+      //     proibe.
+      //   · Nao entra no `credits_held_by_render`: ali o saldo VOLTA sozinho
+      //     dentro da hora, e mandar a pessoa encolher o filme dela seria
+      //     resolver com concessao um problema que se resolve com espera.
+      //
+      // A duracao usada e a MESMA lista de tres botoes do seletor
+      // (DURATION_OPTIONS no GenerateClient: 35/60/90). Escrever aqui um
+      // numero que o seletor nao oferece e exatamente o defeito que a #11
+      // caçou — por isso a lista fica em constante nomeada, com o par citado.
+      const DURACOES_DO_SELETOR = [35, 60, 90] as const
+      const premiumLiberado = isPaidUser || (TRIAL_UNLOCKS_PREMIUM && trialActive)
+      const MOTOR_PARA_QUALIDADE: Record<string, Quality> = {
+        seedance: 'cinematic_ai',
+        h3: 'cinematic_h3',
+        kling: 'cinematic_kling',
+        veo: 'cinematic_veo',
+        hollywood: 'cinematic_hollywood',
+        omni: 'cinematic_omni',
+      }
+      const NOME_PUBLICO_DO_MOTOR: Record<string, string> = {
+        seedance: 'AI Generated',
+        h3: 'MiniMax H3',
+        kling: 'Kling 2.5',
+        veo: 'Veo 3.1',
+        hollywood: 'Kling 3',
+        omni: 'Omni',
+      }
+      const motorPedido = wantsH3 ? 'h3'
+        : wantsOmni ? 'omni'
+        : wantsHollywood ? 'hollywood'
+        : wantsKling ? 'kling'
+        : wantsVeo ? 'veo'
+        : 'seedance'
+      // A MESMA funcao que COBRA, nunca uma tabela local (a licao do
+      // "Generate · 20 credits" que debitava 30).
+      const custoDe = (m: string, d: number): number =>
+        creditCostForDuration(MOTOR_PARA_QUALIDADE[m] ?? 'cinematic_ai', true, d)
+      const resgateDoSaldo = heldExplainsGap
+        ? ({ tipo: 'cabe' } as const)
+        : planoDeResgate({
+            motorAtual: motorPedido,
+            duracaoAtual: duration,
+            saldo: balance,
+            duracoes: DURACOES_DO_SELETOR,
+            custoDe,
+            motoresDisponiveis: premiumLiberado
+              ? ['seedance', 'h3', 'kling', 'veo', 'hollywood', 'omni']
+              : ['seedance'],
+          })
+      const fraseDoResgate =
+        resgateDoSaldo.tipo === 'mesma_camera'
+          // O desvio PREFERIDO: a camera que ela escolheu, filme mais curto.
+          ? `A ${resgateDoSaldo.alvo.duracao}s version of the same film costs ${resgateDoSaldo.alvo.custo} credits — your balance covers that one right now.`
+          : resgateDoSaldo.tipo === 'outra_camera'
+            ? `${NOME_PUBLICO_DO_MOTOR[resgateDoSaldo.alvo.motor] ?? 'Another engine'} at ${resgateDoSaldo.alvo.duracao}s costs ${resgateDoSaldo.alvo.custo} credits — your balance covers that one right now.`
+            : ''
+
       const stallReason = heldExplainsGap
         ? 'credits_held_by_render'
         : trialBuyer
@@ -1433,6 +1523,16 @@ async function manipularPost(req: NextRequest) {
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
         is_paid: isPaidUser,
+        // sprint-v1v4 #27 — A METRICA DESTA RODADA. `nada_cabe` = o saldo
+        // realmente nao paga nada do cardapio (a recusa saiu IDENTICA a de
+        // hoje); qualquer outro valor = existia saida e a pessoa passou a ser
+        // avisada. Campos NOVOS: `reason`, `used` e `balance` seguem
+        // significando o mesmo de sempre, porque instrumento novo nao pode
+        // inflar metrica antiga.
+        rescue: resgateDoSaldo.tipo,
+        rescue_engine: 'alvo' in resgateDoSaldo ? resgateDoSaldo.alvo.motor : null,
+        rescue_seconds: 'alvo' in resgateDoSaldo ? resgateDoSaldo.alvo.duracao : null,
+        rescue_cost: 'alvo' in resgateDoSaldo ? resgateDoSaldo.alvo.custo : null,
       })
       return NextResponse.json(
         {
@@ -1444,10 +1544,10 @@ async function manipularPost(req: NextRequest) {
               // precisa saber que o trial NÃO acabou.
               ? `A video you already started is still holding ${heldByUnsettled} credit${heldByUnsettled === 1 ? '' : 's'}. If it doesn't finish, they come back automatically within the hour — your trial is still running.`
               : stallReason === 'trial_credits_stalled'
-                ? `Your trial has ${balance} credit${balance === 1 ? '' : 's'} left and an AI video needs ${cost}. Add a plan to keep the AI engine.`
+                ? `Your trial has ${balance} credit${balance === 1 ? '' : 's'} left and an AI video needs ${cost}. Add a plan to keep the AI engine.${fraseDoResgate ? ` ${fraseDoResgate}` : ''}`
                 : stallReason === 'trial_credits_spent'
                   ? `You've used all ${trialUi.creditsGranted} credits from your trial. Add a plan to keep making AI videos.`
-                  : `This needs ${cost} credits. You have ${balance}.`,
+                  : `This needs ${cost} credits. You have ${balance}.${fraseDoResgate ? ` ${fraseDoResgate}` : ''}`,
           needed: cost,
           balance,
           held: heldExplainsGap ? heldByUnsettled : undefined,
