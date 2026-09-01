@@ -28,6 +28,7 @@ import OrganicCtaLink from '@/components/OrganicCtaLink'
 import StickyFreeShortCTA from '@/components/StickyFreeShortCTA'
 import WallMedia from '@/components/WallMedia'
 import TopicGeneratorForm from '@/app/youtube-shorts-from-topic/TopicGeneratorForm'
+import { S25_PUBLIC } from '@/lib/engineLaunch'
 import { getEngineRenders } from '@/lib/engineWall'
 import {
   getFreeTierOffer,
@@ -63,6 +64,7 @@ const VEO_COST = creditsPerReferenceVideo('cinematic_veo')
 const KLING3_COST = creditsPerReferenceVideo('cinematic_hollywood')
 const H3_COST = creditsPerReferenceVideo('cinematic_h3')
 const OMNI_COST = creditsPerReferenceVideo('cinematic_omni')
+const S25_COST = creditsPerReferenceVideo('cinematic_s25')
 
 export const dynamic = 'force-static'
 export const dynamicParams = false
@@ -298,6 +300,42 @@ export const ENGINES: Record<string, Engine> = {
       },
     ],
   },
+  // KINEO-S25-LAUNCH-2026-09-01 — pagina do Seedance 2.5, atras do interruptor
+  // unico: com S25_PUBLIC=false o slug nem e gerado (404 limpo, nada indexado
+  // antes do canario). A manchete e a diferenca de acesso, nao de tecnologia:
+  // o mesmo modelo que concorrentes trancam em planos de US$49 entra aqui no
+  // plano de US$29 — e sai FILME PRONTO, nao clipe solto. Claims datadas.
+  ...(S25_PUBLIC
+    ? {
+        'seedance-2-5': {
+          param: 's25' as EngineLandingParam,
+          qualityMode: 'cinematic_s25',
+          name: 'Seedance 2.5',
+          model: 'fal-ai/seedance-2.5 (image-to-video, 480p native + HD Enhance master)',
+          creditCost: S25_COST,
+          tier: 'Studio',
+          h1: "Seedance 2.5 AI video generator — ByteDance's newest model, as a finished Short",
+          intro:
+            `Seedance 2.5 is ByteDance's newest video model, running inside Kineo's cinematic pipeline: every scene is anchored to a generated still for visual consistency, your narration is spoken word for word, and the film comes out with karaoke captions and an AI-composed soundtrack. Kineo renders at 480p and masters to a 1080×1920 HD file with Topaz-based enhancement — that is how a ${S25_COST}-credit film fits the $29 Studio plan while other platforms gate this model behind $49+ tiers (as of September 2026).`,
+          bestFor: 'Spectacle: weather, explosions, machines, crowds, historical set pieces — scenes where the newest motion model earns its cost. Scenes run up to 15 seconds, the longest in the catalog.',
+          tradeoff: "Slower than every other engine (long scenes queue longer at the provider — plan on 15-20 minutes), and native 480p before enhancement: fine text and faces hold up less than on Kling 3. Kling 3 still wins for on-camera speech with lip sync.",
+          faq: [
+            {
+              q: 'How much does a Seedance 2.5 video cost on Kineo?',
+              a: `${S25_COST} credits per 60-second finished film — the Studio tier. The Studio monthly grant fits ${videosPerMonth('pro', 'cinematic_s25')}.`,
+            },
+            {
+              q: 'Why is Seedance 2.5 cheaper here than on other platforms?',
+              a: 'Two reasons. Kineo renders at 480p and enhances the master to HD instead of paying for native 720p+ (which costs the provider more than twice as much per second). And Kineo sells a finished film — script, voice, captions, soundtrack, editing — rather than raw 8-second clips you assemble yourself. As of September 2026 most consumer platforms only offer this model on plans of $49/month or more.',
+            },
+            {
+              q: 'Does the 480p render look bad?',
+              a: 'Every film is mastered to 1080×1920 with enhancement, and each film on this page is a real render you can judge. Fine on-screen text and very close faces are where the difference shows; landscapes, action and atmosphere hold up well.',
+            },
+          ],
+        },
+      }
+    : {}),
 }
 
 export const ENGINE_SLUGS = Object.keys(ENGINES)

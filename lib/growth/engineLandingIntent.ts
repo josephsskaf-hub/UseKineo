@@ -6,6 +6,7 @@ export const ENGINE_LANDING_PARAMS = [
   'hollywood',
   'h3',
   'omni',
+  's25', // KINEO-S25-LAUNCH-2026-09-01 — pagina so existe com S25_PUBLIC
 ] as const
 
 export type EngineLandingParam = (typeof ENGINE_LANDING_PARAMS)[number]
@@ -18,6 +19,7 @@ export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
   hollywood: 'Kling 3',
   h3: 'MiniMax H3',
   omni: 'Omni Flash',
+  s25: 'Seedance 2.5',
 }
 
 /**
@@ -33,6 +35,7 @@ export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
   hollywood: '/ai-video-generator/kling-3',
   h3: '/ai-video-generator/minimax-h3',
   omni: '/ai-video-generator/gemini-omni-flash',
+  s25: '/ai-video-generator/seedance-2-5',
 }
 
 export function engineLandingPublicPath(engine: EngineLandingParam): string {
