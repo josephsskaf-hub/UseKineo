@@ -106,11 +106,45 @@ export function quandoLiberaVaga(input: {
  * melhor que "in 0m", que soa quebrado; e mandar a pessoa voltar um instante
  * depois da hora nunca a faz bater na parede de novo.
  */
+/**
+ * Ate quando "just come back" e um conselho de verdade.
+ *
+ * sprint-v1v4 #35 — A PRIMEIRA AMOSTRA REAL DA #17 SAIU ERRADA.
+ * 01/09 17:40 UTC, `thiagomineiro266`, pessoa externa, segundo video do dia:
+ * `compose_refused / free_fast_limit` com `reset_in_minutes = 42864`. A frase
+ * que chegou na tela dela foi *"Your next free video unlocks in 714h 24m —
+ * nothing to buy, just come back."* Setecentas e catorze horas. Vinte e nove
+ * dias e meio.
+ *
+ * A conta nao esta errada: a oferta viva e `ON_OFFER` (limite 1, janela
+ * ROLANTE de 30 dias), entao a vaga dela volta mesmo em 01/10. O que esta
+ * errado e FALAR isso em horas e chamar de "just come back" — em 30 dias
+ * ninguem volta, e a frase ainda contradiz a copy do Codex logo antes dela,
+ * que ja diz a verdade inteira ("You've used this month's free Fast video").
+ *
+ * O proprio cabecalho deste arquivo previu o defeito: "uma parede sem horario
+ * e ruim; uma parede com horario ERRADO e pior". Faltava enxergar que um
+ * horario CERTO E LONGE DEMAIS cai na mesma armadilha.
+ *
+ * Regra nova: a frase de tempo so existe quando a espera cabe num dia de vida
+ * da pessoa. Acima disso o silencio e mais honesto — e o silencio aqui NAO e
+ * vazio: a pessoa le a frase do Codex, intacta, que e a resposta correta para
+ * uma espera mensal.
+ *
+ * 36h e o teto de proposito: cobre a janela inteira do `OFF_OFFER` (3/24h) com
+ * folga e nunca alcanca a do `ON_OFFER` (30 dias). A frase sobrevive
+ * exatamente onde e verdadeira e cala exatamente onde mentia.
+ */
+export const TETO_DE_FALA_MS = 36 * 3600 * 1000
+
 export function fraseDaVolta(liberaEmMs: number | null, agora: number): string | null {
   if (liberaEmMs === null || !Number.isFinite(liberaEmMs) || !Number.isFinite(agora)) return null
   const restanteMs = liberaEmMs - agora
   if (restanteMs <= 0) return null
   if (restanteMs > 30 * 24 * 3600 * 1000) return null
+  // sprint-v1v4 #35 — espera longa demais para "just come back" ser verdade.
+  // O chamador cai na copy da oferta, que ja diz a verdade para o caso mensal.
+  if (restanteMs > TETO_DE_FALA_MS) return null
 
   const minutosTotais = Math.max(1, Math.ceil(restanteMs / 60000))
   const horas = Math.floor(minutosTotais / 60)

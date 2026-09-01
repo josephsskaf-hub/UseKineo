@@ -1284,6 +1284,13 @@ export async function POST(req: NextRequest) {
           // soube dizer a hora, e a pessoa leu a frase antiga.
           reset_in_minutes: minutosAteLiberar(liberaEm, agoraMs),
           reset_at: liberaEm ? new Date(liberaEm).toISOString() : null,
+          // sprint-v1v4 #35 — a metrica desta rodada. `reset_in_minutes` diz
+          // se o servidor SOUBE a hora; este campo diz se ele a FALOU. Os dois
+          // divergem de proposito quando a espera passa de 36h (ver
+          // TETO_DE_FALA_MS): sabemos, e escolhemos calar porque "just come
+          // back" seria mentira. Sem este campo, uma frase silenciada e um
+          // horario desconhecido chegam identicos ao banco.
+          reset_phrase_shown: fraseVolta !== null,
           // INSTRUMENTO, não regra: quantas das vagas contadas acima são
           // reservas sem linha em `videos` e já fora do período de graça. Mede
           // quanto desta recusa é potencialmente indevida, para a próxima
