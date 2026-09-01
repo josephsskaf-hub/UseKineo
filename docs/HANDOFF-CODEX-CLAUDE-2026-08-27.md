@@ -2703,3 +2703,33 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, crédito, validade, trial, SKU, promessa, Stripe server/configuração, Supabase schema/dados/configuração, render, motor, cena, voz, legenda, e-mail enviado, outreach ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `8d8b568b` ou da ponta posterior. Não editar este handoff de recuperação antes do gate; qualquer problema de autenticação observado no produto deve ser registrado e repassado, sem reconstruir o funil. Codex alterna a próxima sprint para B2B.
+
+## 98. B2B — o Autopilot ganha uma conta de equilíbrio verificável (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas excluídas):** em 30 dias, 43 pessoas autenticadas externas viram o Autopilot. Onze pessoas externas abriram 12 sessões de checkout relacionadas ao Autopilot; oito apareceram em `checkout_session_expired`, três em `checkout_cancelled` e nenhuma pagou. Os eventos não foram somados como pessoas. Quatro dessas pessoas viram o resume banner genérico e todas o dispensaram; uma também clicou. A variante versionada `resume_smaller_choice_v1` ainda tinha zero impressão, portanto o banner permanece intacto até seu gate.
+
+**EVIDÊNCIA DE PRODUÇÃO (Stripe, leitura em 01/09/2026 UTC):** entre as 100 sessões mais recentes havia dez sessões Autopilot: quatro pilotos avulsos de US$ 99 e seis mensais de US$ 299 ou equivalente local. Todas estavam expiradas e não pagas, sem PaymentIntent e sem assinatura criada. Isso prova saída antes da tentativa de pagamento nessa amostra; não prova objeção específica nem recusa de cartão. Os itens reais do Stripe já descreviam corretamente `7 Shorts / 60 credits / one-time` no piloto e `one Short daily / 400 credits` no mensal. Métodos de pagamento são dinâmicos, não chumbados no código.
+
+**PESQUISA COMPETITIVA OFICIAL / INFERÊNCIA (01/09/2026):** a HeyGen oferece uma calculadora pública de ROI para ajudar empresas a quantificar orçamento e tempo (`https://www.heygen.com/video-roi-calculator`). O padrão útil é tornar o valor econômico calculável antes da compra. A Kineo adota apenas uma conta menor e auditável de equilíbrio por cliente, sem copiar estimativa de economia, lead ou receita.
+
+**HIPÓTESE CAUSAL NOVA:** pessoas interessadas no Autopilot entendem o preço e a entrega, mas chegam ao checkout sem uma unidade econômica ligada ao próprio negócio. Permitir que informem o lucro bruto por cliente e vejam quantos clientes atribuídos cobrem cada opção pode reduzir essa ambiguidade sem desconto, pressão ou promessa nova.
+
+**IMPLEMENTADO:** o commit funcional `bff609252892f69e095703428046e1e9e407dff5` adiciona `autopilot_break_even_v1` dentro do card Autopilot já existente em pricing. `lib/growth/autopilotBreakEven.ts:30-38` valida a entrada e calcula `ceil(preço/lucro)`; `app/pricing/AutopilotBreakEvenCalculator.tsx:58-59` usa `AUTOPILOT_PILOT_PRICES` e `AUTOPILOT_PRICES`, e `:150`/`:166` formata os valores pela fonte canônica. Os CTAs de resultado reutilizam os launchers existentes de piloto e mensal; checkout, preço, SKU e entitlement não mudam.
+
+**VERDADE COMERCIAL / PRIVACIDADE:** a tela pede lucro bruto, define-o como receita menos custo direto de atendimento e declara que a conta não é previsão nem promessa de clientes, leads, views ou receita. Impostos, mídia, reembolsos e custos operacionais ficam explicitamente fora. A telemetria grava somente versão, superfície, faixa de lucro, bucket de clientes e escolha; o valor exato digitado não sai do navegador. `autopilot_break_even_viewed` é deduplicado por sessão (`app/pricing/AutopilotBreakEvenCalculator.tsx:42-47`).
+
+**MEDIÇÃO / GATE:** seguir pessoas externas em `autopilot_break_even_viewed → autopilot_break_even_calculated → autopilot_break_even_checkout_clicked → checkout_started → payment_success`, separando piloto de mensal. Preservar a experiência até dez pessoas externas versionadas e pelo menos três cálculos. Sinal inicial exige dois cliques de checkout da calculadora por pessoas distintas; pagamento real é a métrica final. Impressão, cálculo, clique e sessão não são receita.
+
+**PARADA / RISCO:** parar se preço exibido divergir da fonte canônica, o valor exato entrar na telemetria, a aritmética arredondar para baixo, o checkout Autopilot normal regredir ou compradores interpretarem a conta como garantia. O risco comercial é a pessoa concluir que sua margem exige clientes demais; esse resultado honesto não deve ser escondido nem convertido em promessa.
+
+**TESTADO LOCALMENTE:** contrato específico 40/40; verdade comercial 306/306; orientação de pagamento 29/29; retorno Autopilot 36/36; atribuição de escolha 26/26; jornada pricing 43/43 — 480 verificações. TypeScript 5.9.3 terminou sem saída. As duas modalidades de whitespace ficaram limpas. A revisão React não encontrou request, listener, dependência, waterfall ou estado global novo.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/AUTOPILOT-BREAK-EVEN-V1-2026-09-01.html` contém antes/depois desktop e mobile e foi inspecionado no Chrome conectado. O bloco fica depois da opção piloto, mantém os dois caminhos de compra e mostra as fronteiras da conta no mesmo contexto.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `bff609252892f69e095703428046e1e9e407dff5`. O deploy Vercel `dpl_CAaaCSRNHXQHEaAdAisBvurEr6rZ` chegou a `READY`, target production, SHA exato e alias em `www.usekineo.com`; `/pricing` teve zero erro de runtime na janela consultada. No Chrome conectado, US$ 150 de lucro bruto produziu `1 new customer` para o piloto de US$ 99 e `2 new customers` para o mensal de US$ 299, junto da ressalva completa. Nenhum checkout ou pagamento foi iniciado e a aba foi fechada.
+
+**QUESTÃO PENDENTE / GATE SEPARADO:** checkout bulk fechado pela pessoa continua invisível à retomada; o cancel return só cobre `cancel_url`. Uma retomada bulk por cookie isolado só entra depois de cinco pessoas externas no checkout bulk e ao menos uma expiração ou saída silenciosa real, conforme o gate da seção 96. Não foi implementada aqui.
+
+**NÃO TOCADO:** preço, desconto, cupom, grant, validade, trial, SKU, Stripe server/configuração, resume banner, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `bff60925` ou da ponta posterior. Não reeditar a calculadora nem o resume banner antes dos respectivos gates. Codex gira a próxima sprint para B2C, procurando uma hipótese nova em superfície de alta intenção ainda não congelada.
