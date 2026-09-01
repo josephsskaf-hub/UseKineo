@@ -39,6 +39,10 @@
 import { useEffect, useRef } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import { clearStalledCheckout, useStalledCheckout, type StalledCheckoutKind } from '@/lib/checkoutTelemetry'
+import {
+  CHECKOUT_FALLBACK_COPY_VERSION,
+  checkoutFallbackCopy,
+} from '@/lib/growth/checkoutFallbackTruth'
 
 export default function CheckoutStalledCta() {
   const stalled = useStalledCheckout()
@@ -73,6 +77,7 @@ export default function CheckoutStalledCta() {
     shownKindRef.current = stalled.kind
     try {
       void trackEvent('checkout_fallback_shown', {
+        version: CHECKOUT_FALLBACK_COPY_VERSION,
         surface: stalled.surface,
         selection: stalled.selection,
         fallback_kind: shownKindRef.current,
@@ -84,13 +89,16 @@ export default function CheckoutStalledCta() {
 
   if (!stalled || onPublicVideoPage) return null
 
-  const detail = stalled.planLabel && stalled.priceLabel
-    ? `${stalled.planLabel} · first charge ${stalled.priceLabel}. You have not been charged yet.`
-    : 'Your payment page is ready. You have not been charged yet.'
+  const copy = checkoutFallbackCopy({
+    kind: stalled.kind,
+    planLabel: stalled.planLabel,
+    priceLabel: stalled.priceLabel,
+  })
 
   return (
     <aside
-      aria-label="Continue to payment"
+      className="checkout-stalled-card"
+      aria-label={copy.regionAriaLabel}
       aria-live="assertive"
       style={{
         position: 'fixed',
@@ -115,12 +123,12 @@ export default function CheckoutStalledCta() {
         fontFamily: 'var(--font-inter), Inter, system-ui, sans-serif',
       }}
     >
-      <div style={{ minWidth: 0, flex: 1 }}>
+      <div className="checkout-stalled-copy" style={{ minWidth: 0, flex: 1 }}>
         <div style={{ fontSize: '0.88rem', lineHeight: 1.25, fontWeight: 850 }}>
-          Your checkout is ready — your browser did not open it
+          {copy.title}
         </div>
         <div style={{ marginTop: 3, color: '#aeb9cc', fontSize: '0.76rem', lineHeight: 1.35 }}>
-          {detail}
+          {copy.detail}
         </div>
       </div>
       {/* Âncora pura de propósito: sem preventDefault, sem navegação por JS.
@@ -128,10 +136,13 @@ export default function CheckoutStalledCta() {
           telemetria antes de navegar é uma das formas de perder a venda que
           este componente existe para consertar. */}
       <a
+        className="checkout-stalled-action"
         href={stalled.url}
+        aria-label={copy.actionAriaLabel}
         onClick={() => {
           try {
             void trackEvent('checkout_fallback_clicked', {
+              version: CHECKOUT_FALLBACK_COPY_VERSION,
               surface: stalled.surface,
               selection: stalled.selection,
               // O tipo no CLIQUE (pode ter sido promovido depois da impressão)…
@@ -158,12 +169,26 @@ export default function CheckoutStalledCta() {
           whiteSpace: 'nowrap',
         }}
       >
-        Continue to payment →
+        {copy.actionLabel}
       </a>
       <button
+        className="checkout-stalled-dismiss"
         type="button"
         aria-label="Dismiss"
-        onClick={() => clearStalledCheckout()}
+        onClick={() => {
+          try {
+            void trackEvent('checkout_fallback_dismissed', {
+              version: CHECKOUT_FALLBACK_COPY_VERSION,
+              surface: stalled.surface,
+              selection: stalled.selection,
+              fallback_kind: stalled.kind,
+              shown_kind: shownKindRef.current,
+            })
+          } catch {
+            /* never block dismissal */
+          }
+          clearStalledCheckout()
+        }}
         style={{
           flex: '0 0 auto',
           width: 28,
@@ -180,6 +205,28 @@ export default function CheckoutStalledCta() {
       >
         ×
       </button>
+      <style jsx>{`
+        @media (max-width: 520px) {
+          .checkout-stalled-card {
+            align-items: stretch !important;
+            flex-wrap: wrap;
+            padding-right: 46px !important;
+          }
+          .checkout-stalled-copy {
+            flex-basis: 100% !important;
+          }
+          .checkout-stalled-action {
+            width: 100%;
+            text-align: center;
+            white-space: normal !important;
+          }
+          .checkout-stalled-dismiss {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+          }
+        }
+      `}</style>
     </aside>
   )
 }
