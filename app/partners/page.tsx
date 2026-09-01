@@ -33,6 +33,7 @@ import type { Metadata } from 'next'
 import { TIER_PRICES } from '@/lib/checkoutPricing'
 import Link from 'next/link'
 import OrganicCtaLink from '@/components/OrganicCtaLink'
+import AffiliateBusinessRecruitmentCard from '@/components/AffiliateBusinessRecruitmentCard'
 import Footer from '@/components/Footer'
 import {
   AFFILIATE_COMPARISON_VERIFIED_HUMAN,
@@ -223,7 +224,7 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
           <p style={{ color: '#86868b', fontSize: '0.9rem', lineHeight: 1.6, textAlign: 'center', maxWidth: 610, margin: '0 auto 18px' }}>
             Choose the audience you already have. Kineo gives you the matching landing page, a ready-to-post caption and a short speaking script — with your coupon included when available.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12 }}>
             {[
               { t: 'Script-first audience', d: 'Send people who have a topic to the no-signup script generator.' },
               { t: 'Ready to test video', d: 'Send people who want to judge the complete free Fast workflow.' },
@@ -234,6 +235,7 @@ Illustration based on 40% of current USD list prices ({PRICE_RANGE}), before tax
                 <p style={{ margin: 0, color: '#86868b', fontSize: '0.84rem', lineHeight: 1.55 }}>{campaign.d}</p>
               </div>
             ))}
+            <AffiliateBusinessRecruitmentCard href={APPLY} />
           </div>
         </section>
 

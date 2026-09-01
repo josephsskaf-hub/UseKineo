@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1040" viewBox="0 0 1200 1040">
+  <rect width="1200" height="1040" fill="#050506"/>
+  <style>
+    text{font-family:Inter,Arial,sans-serif}.label{fill:#a1a1aa;font-size:12px;font-weight:800;letter-spacing:1px}.h1{fill:#f1f5f9;font-size:25px;font-weight:900}.h2{fill:#f1f5f9;font-size:18px;font-weight:900}.copy{fill:#86868b;font-size:12px}.cardTitle{fill:#2997ff;font-size:13px;font-weight:900}.businessTitle{fill:#7cc0ff;font-size:13px;font-weight:900}.cardCopy{fill:#a4a4aa;font-size:11px}.cta{fill:#7cc0ff;font-size:11px;font-weight:900}.evidence{fill:#94a3b8;font-size:12px}.note{fill:#71717a;font-size:11px}
+  </style>
+  <text x="42" y="38" class="label" fill="#7cc0ff">USEKINEO · B2B AFFILIATE RECRUITMENT V1</text>
+  <text x="42" y="72" class="h1">The missing business audience appears before application</text>
+  <text x="42" y="100" class="evidence">01 Sep 2026 UTC · 15 anonymous sessions · 9 external applications · 5 people copied a link · 0 business destination copies</text>
+
+  <g transform="translate(42 135)">
+    <rect width="540" height="390" rx="20" fill="#0a0b0f" stroke="#23252d"/>
+    <text x="18" y="28" class="label">BEFORE · DESKTOP</text>
+    <rect x="18" y="45" width="504" height="325" rx="14" fill="#000" stroke="#1f2937"/>
+    <text x="270" y="86" text-anchor="middle" class="h2">A campaign kit, not just a link</text>
+    <text x="270" y="110" text-anchor="middle" class="copy">Choose the audience you already have.</text>
+    <g transform="translate(38 135)">
+      <rect width="140" height="145" rx="12" fill="#0b1120" stroke="#252936"/><text x="13" y="26" class="cardTitle">Script-first audience</text><text x="13" y="51" class="cardCopy"><tspan x="13">Send people with</tspan><tspan x="13" dy="16">a topic to the</tspan><tspan x="13" dy="16">script generator.</tspan></text>
+      <rect x="153" width="140" height="145" rx="12" fill="#0b1120" stroke="#252936"/><text x="166" y="26" class="cardTitle">Ready to test video</text><text x="166" y="51" class="cardCopy"><tspan x="166">Send people to</tspan><tspan x="166" dy="16">the complete free</tspan><tspan x="166" dy="16">Fast workflow.</tspan></text>
+      <rect x="306" width="140" height="145" rx="12" fill="#0b1120" stroke="#252936"/><text x="319" y="26" class="cardTitle">Faceless creators</text><text x="319" y="51" class="cardCopy"><tspan x="319">Narration, visuals</tspan><tspan x="319" dy="16">and captions for</tspan><tspan x="319" dy="16">channel builders.</tspan></text>
+    </g>
+    <text x="38" y="325" class="note">The public program looks creator-only.</text>
+  </g>
+
+  <g transform="translate(618 135)">
+    <rect width="540" height="390" rx="20" fill="#0a0b0f" stroke="#23252d"/>
+    <text x="18" y="28" class="label">AFTER · DESKTOP</text>
+    <rect x="18" y="45" width="504" height="325" rx="14" fill="#000" stroke="#1f2937"/>
+    <text x="270" y="81" text-anchor="middle" class="h2">A campaign kit, not just a link</text>
+    <text x="270" y="103" text-anchor="middle" class="copy">Choose the audience you already have.</text>
+    <g transform="translate(38 122)">
+      <rect width="214" height="90" rx="12" fill="#0b1120" stroke="#252936"/><text x="13" y="25" class="cardTitle">Script-first audience</text><text x="13" y="49" class="cardCopy">No-signup script generator.</text>
+      <rect x="232" width="214" height="90" rx="12" fill="#0b1120" stroke="#252936"/><text x="245" y="25" class="cardTitle">Ready to test video</text><text x="245" y="49" class="cardCopy">Complete free Fast workflow.</text>
+      <rect y="104" width="214" height="90" rx="12" fill="#0b1120" stroke="#252936"/><text x="13" y="129" class="cardTitle">Faceless creators</text><text x="13" y="153" class="cardCopy">Narration, visuals and captions.</text>
+      <defs><linearGradient id="biz" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#102944"/><stop offset="1" stop-color="#0b1120"/></linearGradient></defs>
+      <rect x="232" y="104" width="214" height="130" rx="12" fill="url(#biz)" stroke="#2997ff" stroke-opacity=".55"/><text x="245" y="129" class="businessTitle">Businesses &amp; freelancers</text><text x="245" y="153" class="cardCopy"><tspan x="245">Free weekly content plan before</tspan><tspan x="245" dy="15">choosing a video workflow.</tspan></text><text x="245" y="209" class="cta">Apply and get the campaign →</text>
+    </g>
+  </g>
+
+  <g transform="translate(178 570)">
+    <rect width="360" height="405" rx="20" fill="#0a0b0f" stroke="#23252d"/>
+    <text x="18" y="28" class="label">BEFORE · MOBILE</text>
+    <rect x="18" y="45" width="324" height="340" rx="14" fill="#000" stroke="#1f2937"/>
+    <text x="180" y="78" text-anchor="middle" class="h2">A campaign kit</text>
+    <g transform="translate(36 100)">
+      <rect width="288" height="68" rx="11" fill="#0b1120" stroke="#252936"/><text x="13" y="25" class="cardTitle">Script-first audience</text><text x="13" y="47" class="cardCopy">No-signup script generator.</text>
+      <rect y="80" width="288" height="68" rx="11" fill="#0b1120" stroke="#252936"/><text x="13" y="105" class="cardTitle">Ready to test video</text><text x="13" y="127" class="cardCopy">Complete free Fast workflow.</text>
+      <rect y="160" width="288" height="68" rx="11" fill="#0b1120" stroke="#252936"/><text x="13" y="185" class="cardTitle">Faceless creators</text><text x="13" y="207" class="cardCopy">Narration, visuals and captions.</text>
+    </g>
+  </g>
+
+  <g transform="translate(662 570)">
+    <rect width="360" height="405" rx="20" fill="#0a0b0f" stroke="#23252d"/>
+    <text x="18" y="28" class="label">AFTER · MOBILE</text>
+    <rect x="18" y="45" width="324" height="340" rx="14" fill="#000" stroke="#1f2937"/>
+    <text x="180" y="75" text-anchor="middle" class="h2">A campaign kit</text>
+    <g transform="translate(36 92)">
+      <rect width="288" height="52" rx="10" fill="#0b1120" stroke="#252936"/><text x="13" y="22" class="cardTitle">Script-first audience</text><text x="13" y="40" class="cardCopy">No-signup script generator.</text>
+      <rect y="62" width="288" height="52" rx="10" fill="#0b1120" stroke="#252936"/><text x="13" y="84" class="cardTitle">Ready to test video</text><text x="13" y="102" class="cardCopy">Complete free Fast workflow.</text>
+      <rect y="124" width="288" height="52" rx="10" fill="#0b1120" stroke="#252936"/><text x="13" y="146" class="cardTitle">Faceless creators</text><text x="13" y="164" class="cardCopy">Narration, visuals and captions.</text>
+      <rect y="186" width="288" height="112" rx="10" fill="url(#biz)" stroke="#2997ff" stroke-opacity=".55"/><text x="13" y="211" class="businessTitle">Businesses &amp; freelancers</text><text x="13" y="232" class="cardCopy"><tspan x="13">Free weekly content plan before choosing</tspan><tspan x="13" dy="15">a video workflow.</tspan></text><text x="13" y="280" class="cta">Apply and get the business campaign →</text>
+    </g>
+  </g>
+</svg>
