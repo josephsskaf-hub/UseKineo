@@ -55,6 +55,11 @@ const marketing = loadTs('lib/marketingPrice.ts', {
 const freeTier = loadTs('lib/freeTierOffer.ts', {
   './credits/engineCost': engine,
 })
+const comparisons = loadTs('lib/comparisons.ts', {
+  '@/lib/checkoutPricing': checkout,
+  '@/lib/freeTierOffer': freeTier,
+  '@/lib/marketingPrice': marketing,
+})
 
 let passed = 0
 const failures = []
@@ -279,11 +284,39 @@ for (const file of publicFiles) {
 check('comparações: literais Kineo antigos morreram sem varrer dados dos concorrentes', () => {
   const literals = literalText('lib/comparisons.ts')
   const kineoOnly = [
-    /Kineo[^\n]{0,240}(?:Fast 1|Fast video (?:is|costs) 1|AI Generated 20)/i,
+    /Kineo[^\n]{0,240}(?:Fast 1|Fast video (?:is|costs|costing) 1|AI Generated 20)/i,
     /Kineo Starter[^\n]{0,80}(?:for |: )25 credits/i,
     /Kineo counts render engines:[^\n]*(?:Fast 1|AI Generated 20)/i,
+    /Kineo[^\n]{0,160}4\.90 for a first month/i,
   ]
   for (const pattern of kineoOnly) assert.doesNotMatch(literals, pattern)
+})
+
+check('comparações: preço derivado não pode sair como placeholder literal', () => {
+  for (const file of ['lib/comparisons.ts', 'app/alternatives/[competitor]/page.tsx']) {
+    assert.doesNotMatch(
+      literalText(file),
+      /\$\{(?:K\(|TIER_|STARTER_|KINEO_)/,
+      `${file} contém interpolação escrita dentro de string comum`,
+    )
+  }
+})
+
+check('comparações: Kineo vs Submagic executa a verdade atual de preço e Fast', () => {
+  const pair = comparisons.PAIRS.find((item) => item.slug === 'kineo-vs-submagic')
+  assert.ok(pair, 'par kineo-vs-submagic ausente')
+  const renderedContract = JSON.stringify(pair)
+  assert.match(
+    renderedContract,
+    new RegExp(`60-second Kineo 1 video costing ${marketing.creditsPerReferenceVideo('fast')} credits`),
+  )
+  assert.ok(
+    renderedContract.includes(
+      `Kineo Starter is ${checkout.formatCheckoutMoney('usd', checkout.TIER_PRICES.starter.usd)}/month`,
+    ),
+    'preço Starter derivado não chegou ao objeto renderizado',
+  )
+  assert.doesNotMatch(renderedContract, /\$\{|4\.90 for a first month|Fast video costing 1\b/i)
 })
 
 check('calculadora não mantém tabela numérica paralela de custo', () => {

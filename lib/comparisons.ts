@@ -1157,7 +1157,7 @@ export const PAIRS: Pair[] = [
     pickB: [
       'The format is faceless: stock footage, AI narration, captions, no presenter.',
       'You have a topic, not a script, and writing the script is the part you keep not doing.',
-      'Your ceiling is budget: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29.',
+      `Your ceiling is budget: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29.`,
       'You publish 9:16 and nothing else, so a tool that does only 9:16 costs you nothing.',
       ft(OFFER, 'You want to test whether you can actually keep a channel going before paying anything — 3 free videos a day, no card.', `You want to test the full workflow before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
     ],
@@ -1322,7 +1322,7 @@ export const PAIRS: Pair[] = [
     pickA: [
       'Your input is a topic, not a document — and writing the script is the step that keeps not happening.',
       'You publish 9:16 vertical and nothing else.',
-      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29.',
+      `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29.`,
       'You want an open-ended free tier rather than a 14-day clock.',
       'You want footage matched to the actual narration lines rather than to a paragraph of source text.',
     ],
@@ -1398,7 +1398,7 @@ export const PAIRS: Pair[] = [
       },
       {
         h: 'The volume ceilings are shaped differently',
-        p: `Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, with a Fast video costing 1. If you post daily, 15 videos a month on Submagic Starter is the constraint to check first.`,
+        p: `Submagic Starter is $19/member/month, or $12/member/month billed yearly, for 15 videos a month up to 2 minutes each. Pro is $39/month, or $23 yearly, for 40 videos. Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month for ${TIER_CREDITS.starter} credits, with a 60-second Kineo 1 video costing ${KINEO_FAST_COST} credits. If you post daily, compare that credit-metered output with Submagic's fixed 15-video Starter ceiling.`,
       },
       {
         h: 'Both free tiers watermark, with different caps',
@@ -1410,7 +1410,7 @@ export const PAIRS: Pair[] = [
       'You do not film, do not want to, and the channel is faceless by design.',
       'You want script, voiceover, footage and captions from one typed sentence.',
       ft(OFFER, 'You post daily and want the free tier to prove you can keep it up — 3 videos every 24 hours.', `You want to prove the workflow fits before paying — ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
-      'Budget is tight: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month.',
+      `Budget is tight: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month; Submagic Starter is $19/member/month.`,
     ],
     pickB: [
       'You already film, and captions are the missing 20%.',
@@ -4020,7 +4020,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, captions, nobody on screen.',
       'You publish 9:16 and nothing else, so a 9:16-only tool costs you nothing.',
       ft(OFFER, 'You want to test a daily rhythm before paying: 3 watermarked Fast videos every 24 hours, no card.', `You want to test the real thing before paying: ${TRIAL_GRANT_CREDITS_COPY} free credits, every engine unlocked, no card.`),
-      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $24.99.',
+      `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $24.99.`,
     ],
     differences: [
       {
@@ -4106,7 +4106,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, no actor in frame.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Budget is the binding constraint: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $39.',
+      `Budget is the binding constraint: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $39.`,
     ],
     differences: [
       {
@@ -4271,7 +4271,7 @@ export const PAIRS: Pair[] = [
       'The format is faceless: narration over matched footage, nobody on screen.',
       'You have a topic, not a script, and writing the script is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Every paid plan should export a clean MP4 — Kineo’s do, from ${K(TIER_PRICES.starter.usd)}/month.',
+      `Every paid plan should export a clean MP4 — Kineo’s do, from ${K(TIER_PRICES.starter.usd)}/month.`,
     ],
     pickB: [
       'You already record long-form and it is sitting unclipped. This is the whole case.',
@@ -4357,7 +4357,7 @@ export const PAIRS: Pair[] = [
       'Volume is the constraint and you post most days.',
       'You have a topic, not a script, and writing it is the step that keeps not happening.',
       'You publish 9:16 exclusively, so a 9:16-only tool costs you nothing.',
-      'Budget is binding: ${K(TIER_PRICES.starter.usd)}/month, or $4.90 for a first month, against $29 or $89.',
+      `Budget is binding: Kineo Starter is ${K(TIER_PRICES.starter.usd)}/month, against $29 or $89.`,
     ],
     pickB: [
       'A company is paying, and the video is training, onboarding, policy or internal comms.',

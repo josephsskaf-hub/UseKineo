@@ -850,7 +850,7 @@ export function generateMetadata({ params }: { params: { competitor: string } })
       ? `Looking for a free InVideo AI alternative? Compare both no-card free paths, then try Kineo’s faceless Shorts workflow. ${OFFER.copy.headline}`
       : isSynthesia
         ? 'Kineo and Synthesia compared honestly: faceless Shorts versus multilingual avatar and business-video workflows, with official Synthesia sources.'
-      : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, 'Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.', OFFER.copy.headline)}`
+      : `Looking for a ${c.name} alternative? Kineo turns one idea into a finished faceless YouTube Short. ${ft(OFFER, `Try up to 3 watermarked Fast videos every 24h; Starter is ${STARTER_MONTH}.`, OFFER.copy.headline)}`
   const url = `https://www.usekineo.com/alternatives/${params.competitor}`
   return {
     metadataBase: new URL('https://www.usekineo.com'),
