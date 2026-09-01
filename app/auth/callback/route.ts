@@ -5,6 +5,7 @@ import { resolveAuthRedirect } from '@/lib/authRedirect'
 import { writeServerEvent } from '@/lib/serverEvents'
 import { maybeActivateReverseTrial } from '@/lib/reverseTrial'
 import { trialFingerprintFromHeaders } from '@/lib/trialFingerprint'
+import { buildCheckoutOAuthFailureHandoff } from '@/lib/growth/checkoutOAuthFailureHandoff'
 import {
   AFFILIATE_ATTRIBUTION_COOKIE_NAMES,
   finalizeAffiliateSignupAttribution,
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const rawNext = searchParams.get('next')
+  const failureHandoff = buildCheckoutOAuthFailureHandoff(rawNext)
 
   if (code) {
     const supabase = createClient()
@@ -174,8 +176,11 @@ export async function GET(request: Request) {
   await writeServerEvent({
     name: 'auth_callback_failed',
     path: '/auth/callback',
-    metadata: { had_code: Boolean(code) },
+    metadata: {
+      had_code: Boolean(code),
+      ...failureHandoff.telemetry,
+    },
   })
 
-  return NextResponse.redirect(`${origin}/login?error=oauth_failed`)
+  return NextResponse.redirect(new URL(failureHandoff.loginPath, origin))
 }
