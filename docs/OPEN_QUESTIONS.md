@@ -142,6 +142,13 @@ A empresa publica "mediana 2,30 min, p90 3,50" como fato citável para o ChatGPT
 ### Q12 — Search Console **(fora do repo)**
 Impressões, cliques, CTR por página, 28 dias. Nenhum dado de SEO existe no repositório.
 
+### Q13 🔑 Existe um resultado empresarial autorizado que possa virar case público?
+As superfícies B2B já explicam packs, margem, proposta, segurança e exemplos de saída, mas não existe evidência canônica de um case público de agência ou empresa com autorização para nome, função, uso e resultado. Não preencher esse vazio com inferência, review creator ou promessa genérica.
+
+Verificação exata: localizar uma pessoa externa que tenha comprado pack, Autopilot ou assinatura para uso empresarial; confirmar entrega/uso real no produto; obter consentimento explícito e registrável para os campos que serão publicados; separar resultado observado de estimativa. Só então publicar um case com fonte e data. Sem consentimento ou uso comprovado, manter como **DESCONHECIDO**.
+
+**Cadeia até assinatura:** curto prazo = prova empresarial verdadeira reduz dúvida antes do pack/checkout; médio prazo = pessoas expostas avançam a `bulk_checkout_started`/`checkout_started` e `payment_success`; longo prazo = o comprador empresarial renova, repete compra, indica ou expande receita recorrente. Case visto, clique e checkout não são receita.
+
 ---
 
 ## BLOCO C — Divergência repo × produção
