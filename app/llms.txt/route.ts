@@ -79,7 +79,7 @@ function planLine(plan: (typeof PLAN_FACTS)[number]): string {
 
 function buildLlmsTxt(): string {
   const engines = ENGINE_FACTS.map(
-    (engine) => `- **${engine.name}** — ${engine.credits} credit${engine.credits === 1 ? '' : 's'} per video. ${engine.what}`,
+    (engine) => `- [**${engine.name}**](${engine.url}) — ${engine.credits} credit${engine.credits === 1 ? '' : 's'} per video. ${engine.what}`,
   ).join('\n')
 
   const plans = PLAN_FACTS.map(planLine).join('\n')

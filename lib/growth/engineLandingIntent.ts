@@ -20,6 +20,25 @@ export const ENGINE_LANDING_LABELS: Record<EngineLandingParam, string> = {
   omni: 'Omni Flash',
 }
 
+/**
+ * Canonical public pages for answer engines and organic visitors. Keep this
+ * beside the runtime engine allowlist so a renamed engine cannot leave the
+ * machine-readable catalog pointing at a guessed or stale slug.
+ */
+export const ENGINE_LANDING_PUBLIC_PATHS: Record<EngineLandingParam, string> = {
+  fast: '/ai-video-generator/kineo-1',
+  seedance: '/ai-video-generator/seedance',
+  kling: '/ai-video-generator/kling',
+  veo: '/ai-video-generator/veo',
+  hollywood: '/ai-video-generator/kling-3',
+  h3: '/ai-video-generator/minimax-h3',
+  omni: '/ai-video-generator/gemini-omni-flash',
+}
+
+export function engineLandingPublicPath(engine: EngineLandingParam): string {
+  return ENGINE_LANDING_PUBLIC_PATHS[normalizeEngine(engine)]
+}
+
 const DEFAULT_CAMPAIGN = 'seo_engine'
 
 function normalizeEngine(value: string): EngineLandingParam {
