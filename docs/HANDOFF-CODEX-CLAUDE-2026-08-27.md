@@ -3056,6 +3056,6 @@ PRÓXIMO DONO:
 
 **COMPARAÇÃO VISUAL / TESTADO LOCALMENTE:** `docs/previews/YOUTUBE-AUTOMATION-CASE-STUDY-TRUTH-2026-09-01.html` mostra antes/depois desktop e mobile e foi inspecionado no Chrome; não houve overflow visual. O contrato específico passou 22/22, whitespace ficou limpo e o typecheck repetiu somente os quatro erros baseline preexistentes, nenhum novo.
 
-**ESTADO DE PUBLICAÇÃO:** `IMPLEMENTADO / TESTADO LOCALMENTE`. O commit funcional ainda não foi enviado a `origin/main`; deploy e smoke de produção permanecem pendentes nesta seção.
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou para `89b351aa6859155ef30e8128177436e544d1b4b5`, contendo o commit funcional acima. O deploy Vercel `dpl_Hot3SHax6KkEvX9om7Y9hPcsngME` chegou a `READY`, target production, framework Next.js, SHA exato e alias em `www.usekineo.com`. No Chrome conectado, a página exibiu o headline verdadeiro, os quatro estados do ledger, a separação dos 15 uploads públicos e os três destinos existentes com href correto. A captura visual desktop não mostrou overflow; a Vercel encontrou zero erro de runtime da rota na janela de 30 minutos. Nenhum CTA, signup, checkout ou pagamento foi acionado no canário.
 
 **NÃO TOCADO:** preço, desconto, cupom, crédito, trial, SKU, catálogo Stripe, implementação do Autopilot, dashboard autenticado, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
