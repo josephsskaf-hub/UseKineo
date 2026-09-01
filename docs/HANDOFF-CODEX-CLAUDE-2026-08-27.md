@@ -3025,3 +3025,37 @@ PRÓXIMO DONO:
 **GATE / PRÓXIMA AÇÃO:** não reeditar signup B2B sem pelo menos cinco pessoas externas atribuídas chegando à tela ou evidência de abandono naquele passo. Não reeditar nenhuma variante B2B ativa antes de seu gate mínimo ou sinal de parada. Como o topo B2B observado permanece sem amostra e o B2C possui pessoas reais no último metro, a próxima rodada volta a B2C em superfície distinta; a rodada B2B seguinte deve primeiro reconciliar as variantes existentes e só atuar onde houver público ou contradição comercial comprovada.
 
 **NÃO TOCADO:** código de runtime, interface, preço, desconto, cupom, crédito, trial, SKU, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio, TAAFT, IndexNow ou recrawl.
+
+## 111. B2C — checkout com pagamento assíncrono não termina mais num estado sem dono (01/09/2026)
+
+**FATO CONFIRMADO / LACUNA ANTERIOR:** o webhook já tratava `checkout.session.async_payment_succeeded`, mas não registrava o estado pendente nem separava falha assíncrona. No Stripe de produção, o endpoint ativo `sophisticated-breeze` escutava oito eventos e não estava inscrito em `checkout.session.async_payment_succeeded` nem `checkout.session.async_payment_failed`. A busca no Workbench encontrou zero evento desses dois tipos e zero `payment_intent.processing` na janela visível; portanto a lacuna era real em configuração e código, mas nenhuma pessoa afetada foi inventada.
+
+**IMPLEMENTADO:** o commit `5123e3f3b0dd814a3d75c0d6d095810f539a7ad8` publica `stripe_async_checkout_v1`. Checkout concluído com pagamento ainda não liquidado recebe estado `checkout_payment_pending`; sucesso assíncrono converge para o mesmo fulfillment idempotente; falha assíncrona recebe `checkout_async_payment_failed` e pode retomar com segurança. Referência de Session é hash, metadata é allow-listed e falha de analytics permanece retryable em vez de promover pagamento.
+
+**CADEIA OBRIGATÓRIA ATÉ ASSINATURA:** curto prazo = comprador que escolhe método demorado recebe estado verdadeiro, sem ser tratado como pago nem abandonado; médio prazo = sucesso assíncrono chega ao fulfillment e a `payment_success`; longo prazo = entitlement correto vira assinatura ativa e renovação. `pending`, webhook recebido e Session não são receita.
+
+**TESTADO LOCALMENTE:** contrato assíncrono 31/31 e verdade de falha Stripe 67/67. O teste novo encontrou e corrigiu antes do commit uma classificação de moeda inválida. O typecheck repetiu exatamente os quatro erros baseline em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2; nenhum erro novo.
+
+**VALIDADO EM PRODUÇÃO COM FRONTEIRA EXPLÍCITA:** `origin/main` avançou para o SHA exato acima e o deploy Vercel `dpl_HxBceQ6AUYtPL8U5JpXu6w9RDFyh` chegou a `READY` em produção. A configuração Stripe permanece **PENDENTE DE CONFIRMAÇÃO DO FUNDADOR**: os dois eventos estão selecionados no formulário do endpoint, elevando 8 para 10, mas `Salvar destino` não foi acionado. Código está no ar; cobertura externa não será chamada de configurada antes do save e da leitura posterior dos dez eventos.
+
+**NÃO TOCADO:** preço, desconto, cupom, crédito, trial, SKU, método de pagamento, catálogo Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou anúncio.
+
+## 112. B2B — o case público do Autopilot deixa de vender uma prova que não aconteceu (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / FUNIL (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas excluídas):** `/youtube-automation-case-study` teve 12 sessões anônimas distintas em `landing_session_started` nos 30 dias observados e nenhum evento posterior nas mesmas sessões. Sessão anônima não foi chamada de pessoa. `/tools` teve somente uma sessão no mesmo período e não foi reeditado. A porta autenticada `/autopilot` teve 42 pessoas externas em 30 dias; nove clicaram upgrade, uma clicou checkout Autopilot, seis iniciaram algum checkout e uma pagou Pro — não Autopilot. Isso localiza demanda e separa intenção B2B de receita real.
+
+**CONTRADIÇÃO COMERCIAL CONFIRMADA:** a página pública dizia `Live experiment · updated weekly`, prometia um Short automático por dia, declarava que o canal rodava no mesmo Autopilot do cliente e ainda mostrava `verified July 30`. O ledger de produção do canal registra exatamente quatro runs entre 27 e 30/07: zero publicados, um `failed` e três `skipped(reason=session_unavailable)`, todos sem `youtube_video_id`. No Chrome conectado, o canal público mostrava em 01/09 `12.5K subscribers` e `170 videos`; o baseline da página era `12,641` e `155`. O aumento público de 15 vídeos não pode ser atribuído ao Autopilot porque o ledger tem zero publicação.
+
+**HIPÓTESE CAUSAL NOVA:** uma prova desatualizada que contradiz o próprio ledger aumenta ansiedade e destrói confiança justamente em quem pesquisa resultados de automação antes de comprar. Corrigir a verdade comercial pode reduzir abandono qualificado sem desconto, urgência artificial ou promessa nova.
+
+**IMPLEMENTADO:** o commit funcional `8a97159cebf5b6b7c06cb548b07c359c15af299c` troca a narrativa de sucesso por um registro datado: quatro agendados, zero publicados, um falhou, três foram pulados. O snapshot público fica separado do ledger; os 15 uploads adicionais não são atribuídos à Kineo. A página declara que a experiência permanece não validada até uma nova janela publicar ao menos seis de sete Shorts sem intervenção manual. O CTA existente para os termos do Pilot/mensal continua, agora com a advertência explícita de que o teste público não prova publicação confiável ou resultado; o caminho self-serve e o pack de agência existente permanecem disponíveis.
+
+**CADEIA OBRIGATÓRIA ATÉ ASSINATURA:** curto prazo = visitante B2B recebe prova verdadeira e escolhe conscientemente Pilot, self-serve ou pack; médio prazo = escolha qualificada chega ao checkout e `payment_success` sem expectativa falsa; longo prazo = somente um Pilot entregue pode avançar ao Autopilot mensal, assinatura ativa e renovação. Sessão, leitura, clique e Pilot não são assinatura recorrente.
+
+**MEDIÇÃO / GATE:** preservar a página verdadeira e seguir sessões externas em `landing_session_started(/youtube-automation-case-study) → organic_cta_clicked(source=youtube_automation_case_study) → pricing → checkout_started → payment_success`. Não voltar a chamar o canal de case de sucesso antes de ledger com pelo menos 6/7 publicados, zero intervenção manual e IDs do YouTube reconciliados. Parar imediatamente se qualquer número público perder data, se upload externo for atribuído ao Autopilot ou se o CTA omitir que a prova está incompleta.
+
+**COMPARAÇÃO VISUAL / TESTADO LOCALMENTE:** `docs/previews/YOUTUBE-AUTOMATION-CASE-STUDY-TRUTH-2026-09-01.html` mostra antes/depois desktop e mobile e foi inspecionado no Chrome; não houve overflow visual. O contrato específico passou 22/22, whitespace ficou limpo e o typecheck repetiu somente os quatro erros baseline preexistentes, nenhum novo.
+
+**ESTADO DE PUBLICAÇÃO:** `IMPLEMENTADO / TESTADO LOCALMENTE`. O commit funcional ainda não foi enviado a `origin/main`; deploy e smoke de produção permanecem pendentes nesta seção.
+
+**NÃO TOCADO:** preço, desconto, cupom, crédito, trial, SKU, catálogo Stripe, implementação do Autopilot, dashboard autenticado, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
