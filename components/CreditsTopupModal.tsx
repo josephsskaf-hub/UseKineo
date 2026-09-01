@@ -91,7 +91,11 @@ export default function CreditsTopupModal({
   return (
     <div
       className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-      style={{ background: 'rgba(8,8,15,.88)', backdropFilter: 'blur(20px)' }}
+      // KINEO-TOPUP-UX-2026-09-01 (pedido do fundador, com print): o fundo
+      // 88% preto + blur 20px APAGAVA o dashboard — o modal parecia uma tela
+      // nova, não uma caixa sobre a tela dele. Véu leve: o dashboard continua
+      // visível escurecido atrás, como era antes.
+      style={{ background: 'rgba(8,8,15,.55)', backdropFilter: 'blur(6px)' }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
@@ -164,17 +168,29 @@ export default function CreditsTopupModal({
                   border: highlighted ? '1px solid rgba(41,151,255,0.55)' : '1px solid rgba(255,255,255,0.1)',
                   color: '#f5f5f7',
                   textAlign: 'center',
-                  transition: 'border-color .15s ease, transform .15s ease',
+                  transition: 'border-color .15s ease, transform .15s ease, background .15s ease, box-shadow .15s ease',
                 }}
+                // KINEO-TOPUP-UX-2026-09-01 (pedido do fundador): o hover só
+                // mexia na borda — imperceptível. Agora o card sob o mouse
+                // acende COMPLETO no azul da casa (fundo + borda + glow),
+                // igual ao tratamento do BEST VALUE: a pessoa "experimenta"
+                // cada pacote antes de clicar. O clique continua indo direto
+                // ao checkout — hover é vitrine, clique é decisão.
                 onMouseEnter={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = 'rgba(41,151,255,0.6)'
+                  const el = e.currentTarget as HTMLElement
+                  el.style.transform = 'translateY(-3px)'
+                  el.style.background = 'rgba(41,151,255,0.16)'
+                  el.style.borderColor = 'rgba(120,190,255,0.9)'
+                  el.style.boxShadow = '0 10px 32px rgba(41,151,255,0.35)'
                 }}
                 onMouseLeave={(e) => {
-                  ;(e.currentTarget as HTMLElement).style.transform = 'translateY(0)'
-                  ;(e.currentTarget as HTMLElement).style.borderColor = highlighted
+                  const el = e.currentTarget as HTMLElement
+                  el.style.transform = 'translateY(0)'
+                  el.style.background = highlighted ? 'rgba(41,151,255,0.13)' : 'rgba(255,255,255,0.03)'
+                  el.style.borderColor = highlighted
                     ? 'rgba(41,151,255,0.55)'
                     : 'rgba(255,255,255,0.1)'
+                  el.style.boxShadow = 'none'
                 }}
               >
                 {badge && (
