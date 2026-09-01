@@ -5,6 +5,7 @@ import {
   checkoutPasswordRecoveryTelemetry,
   type CheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
+import { CHECKOUT_SIGNUP_RESOLUTION_VERSION } from '@/lib/growth/checkoutSignupResolution'
 
 export type AuthSurface = 'login_page' | 'signup_page' | 'auth_modal'
 export type AuthMethod = 'email' | 'google' | 'apple'
@@ -14,6 +15,7 @@ export type CheckoutAuthStep =
   | 'confirmation_required'
   | 'completed'
 export type CheckoutPasswordRecoveryStep = 'viewed' | 'requested' | 'completed' | 'resumed'
+export type CheckoutSignupResolutionAction = 'viewed' | 'sign_in'
 
 function checkoutIntentMetadata(destination: string): Record<string, unknown> | null {
   const internal = normalizeInternalRedirect(destination)
@@ -99,4 +101,38 @@ export function trackCheckoutPasswordRecoveryStep(
     ...checkoutPasswordRecoveryTelemetry(context),
     step,
   })
+}
+
+/**
+ * Measure the neutral post-signup resolution without exposing whether the
+ * submitted email is new or already registered.
+ */
+export function trackCheckoutSignupResolution(
+  action: CheckoutSignupResolutionAction,
+  destination: string,
+): void {
+  if (typeof window === 'undefined') return
+  const intent = checkoutIntentMetadata(destination)
+  if (!intent) return
+
+  const navigationId = Math.round(performance.timeOrigin).toString(36)
+  const marker = `kineo_checkout_signup_resolution:${navigationId}:${action}`
+  try {
+    if (sessionStorage.getItem(marker)) return
+    sessionStorage.setItem(marker, '1')
+  } catch {
+    // Storage may be disabled; checkout and authentication stay independent.
+  }
+
+  void trackEvent(
+    action === 'viewed'
+      ? 'checkout_signup_resolution_viewed'
+      : 'checkout_signup_resolution_clicked',
+    {
+      ...intent,
+      version: CHECKOUT_SIGNUP_RESOLUTION_VERSION,
+      surface: 'signup_page',
+      action,
+    },
+  )
 }

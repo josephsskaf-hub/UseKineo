@@ -8,7 +8,10 @@ import AppleSignInButton from '@/components/AppleSignInButton'
 import { rememberSignupCampaign, trackEvent, trackSignupSource } from '@/lib/analytics'
 import { isDisposableEmail } from '@/lib/emailValidation'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
-import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
+import {
+  trackCheckoutAuthStep,
+  trackCheckoutSignupResolution,
+} from '@/lib/authAnalytics'
 import {
   readBulkCheckoutAuthContext,
   type BulkCheckoutAuthContext,
@@ -27,6 +30,7 @@ import {
   buildCheckoutPasswordRecoveryHref,
   readCheckoutPasswordRecoveryContext,
 } from '@/lib/growth/checkoutPasswordRecovery'
+import { checkoutSignupResolutionCopy } from '@/lib/growth/checkoutSignupResolution'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -267,6 +271,14 @@ export default function SignupPage() {
   const loginParams = new URLSearchParams({ redirect: activationRedirect })
   if (isCheckoutResume) loginParams.set('reason', 'checkout')
   const loginHref = `/login?${loginParams.toString()}`
+  const checkoutResolution = success
+    ? checkoutSignupResolutionCopy(isCheckoutResume)
+    : null
+
+  useEffect(() => {
+    if (!checkoutResolution) return
+    trackCheckoutSignupResolution('viewed', activationRedirect)
+  }, [activationRedirect, checkoutResolution])
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -484,34 +496,66 @@ export default function SignupPage() {
 
             {success ? (
               <div className="text-center py-8">
-                <div className="text-5xl mb-4">✅</div>
+                <div className="text-5xl mb-4">{checkoutResolution ? '🔒' : '✅'}</div>
                 <h2
                   className="text-xl font-black mb-2"
                   style={{ color: 'var(--text)' }}
                 >
-                  Check your email!
+                  {checkoutResolution?.heading ?? 'Check your email!'}
                 </h2>
-                <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                  We sent a confirmation link to{' '}
-                  <strong style={{ color: 'var(--text2)' }}>{email}</strong>.
-                  Click it to activate your account.
-                </p>
-                {savedCreation && (
+                {checkoutResolution ? (
+                  <>
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
+                      {checkoutResolution.body}
+                    </p>
+                    <p
+                      className="text-sm mt-3 rounded-xl px-4 py-3"
+                      style={{
+                        color: '#7cc0ff',
+                        background: 'rgba(41,151,255,.08)',
+                        border: '1px solid rgba(41,151,255,.25)',
+                      }}
+                    >
+                      {checkoutResolution.continuity}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm" style={{ color: 'var(--muted)' }}>
+                    We sent a confirmation link to{' '}
+                    <strong style={{ color: 'var(--text2)' }}>{email}</strong>.
+                    Click it to activate your account.
+                  </p>
+                )}
+                {!checkoutResolution && savedCreation && (
                   <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
                     Your {savedCreation.kind} is still saved. The confirmation link opens it in Kineo.
                   </p>
                 )}
-                {savedProductDestination && (
+                {!checkoutResolution && savedProductDestination && (
                   <p className="text-sm mt-3" style={{ color: '#7cc0ff' }}>
                     Your destination is still saved. The confirmation link opens {savedProductDestination.destinationLabel}.
                   </p>
                 )}
                 <Link
                   href={loginHref}
-                  className="inline-block mt-6 text-sm font-semibold"
-                  style={{ color: '#2997ff' }}
+                  onClick={() => {
+                    if (checkoutResolution) {
+                      trackCheckoutSignupResolution('sign_in', activationRedirect)
+                    }
+                  }}
+                  className={checkoutResolution
+                    ? 'inline-flex items-center justify-center mt-6 rounded-xl px-5 py-3 text-sm font-black'
+                    : 'inline-block mt-6 text-sm font-semibold'}
+                  style={checkoutResolution
+                    ? {
+                        color: '#fff',
+                        background: '#2997ff',
+                        boxShadow: '0 8px 24px rgba(41,151,255,.3)',
+                        textDecoration: 'none',
+                      }
+                    : { color: '#2997ff' }}
                 >
-                  Back to Sign In
+                  {checkoutResolution?.signInCta ?? 'Back to Sign In'}
                 </Link>
               </div>
             ) : (
