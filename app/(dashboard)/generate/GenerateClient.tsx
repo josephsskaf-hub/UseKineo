@@ -1596,6 +1596,60 @@ export default function GenerateClient({
     missingWords: number
     targetSeconds: number
   } | null>(null)
+  // ═══ sprint-v1v4 #33 — A SALA DE ESPERA DO CRÉDITO PRESO ════════════════
+  // O 402 `credits_held_by_render` NAO e uma falha: o saldo esta preso num
+  // render que ainda nao se resolveu e volta sozinho dentro da hora. Mas ele
+  // caia no painel vermelho generico, que grita "Generation failed", jura que
+  // "your N credits have been returned to your balance - you can retry safely"
+  // (o oposto do que o servidor acabou de dizer) e oferece um Retry que bate
+  // no MESMO gate. Medido: 13 recusas / 10 pessoas em 15 dias, 11 delas de
+  // gente com ZERO video na conta, e 6 sao a mesma pessoa clicando Retry em
+  // minutos. Este estado troca o beco sem saida por uma espera com relogio.
+  const [creditsHeld, setCreditsHeld] = useState<{
+    message: string
+    held: number
+    needed: number
+    balance: number
+    since: number
+    released: boolean
+    checking: boolean
+  } | null>(null)
+  // sprint-v1v4 #33 — rechecagem do saldo. NUNCA inicia render sozinha: so
+  // descobre que o credito voltou e libera o botao. Comecar um render sozinho
+  // gastaria dinheiro da pessoa sem ela pedir.
+  const creditsHeldRef = useRef<{ needed: number; since: number } | null>(null)
+  useEffect(() => {
+    creditsHeldRef.current = creditsHeld ? { needed: creditsHeld.needed, since: creditsHeld.since } : null
+  }, [creditsHeld])
+  const recheckHeldCredits = useCallback(async (origem: 'auto' | 'manual') => {
+    const alvo = creditsHeldRef.current
+    if (!alvo) return
+    setCreditsHeld((s) => (s ? { ...s, checking: true } : s))
+    let saldo: number | null = null
+    try {
+      const r = await fetch('/api/credits', { cache: 'no-store' })
+      if (r.ok) {
+        const d = await r.json().catch(() => null)
+        if (typeof d?.credits === 'number') saldo = d.credits
+      }
+    } catch { /* rede caida nao pode quebrar a tela de espera */ }
+    const voltou = typeof saldo === 'number' && saldo >= alvo.needed
+    const esperou = Math.max(0, Math.round((Date.now() - alvo.since) / 1000))
+    setCreditsHeld((s) =>
+      s ? { ...s, checking: false, released: voltou || s.released, balance: typeof saldo === 'number' ? saldo : s.balance } : s,
+    )
+    void trackEvent(voltou ? 'credits_held_released' : 'credits_held_recheck', {
+      origin: origem,
+      waited_seconds: esperou,
+      balance: saldo,
+      needed: alvo.needed,
+    })
+  }, [])
+  useEffect(() => {
+    if (!creditsHeld || creditsHeld.released) return
+    const id = setInterval(() => { void recheckHeldCredits('auto') }, 45000)
+    return () => clearInterval(id)
+  }, [creditsHeld, recheckHeldCredits])
   /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
   const [expandedScript, setExpandedScript] = useState<string | null>(null)
   // sprint-v1v4 #30 — o painel de aprovacao dizia SEMPRE "suas frases estao
@@ -7239,6 +7293,9 @@ export default function GenerateClient({
     // SECONDS, and this is the credit-spending handler — two clicks inside the
     // window would both clear the gate and dispatch two renders, i.e. two
     // debits. The guard must be evaluated and the ref claimed before any await.
+    // sprint-v1v4 #33 — toda tentativa nova apaga a sala de espera do credito
+    // preso. Sem isto, o painel amarelo sobreviveria a um render bem-sucedido.
+    setCreditsHeld(null)
     if (generationInFlightRef.current || isProcessingPhase(phase)) {
       if (process.env.NODE_ENV === 'development') {
         console.log('[gen] #360 handleGenerate ignored — already in flight', {
@@ -7611,6 +7668,23 @@ export default function GenerateClient({
             trackGenerationFailure('generating', 'cinematic_gate_credits_held', {
               httpStatus: 402,
               detail: typeof data?.held === 'number' ? `held=${data.held}` : undefined,
+            })
+            // sprint-v1v4 #33 — a partir daqui a tela NAO e mais o painel
+            // vermelho de falha: e a sala de espera com rechecagem. O texto do
+            // servidor viaja intacto (nenhuma promessa de prazo e minha).
+            setCreditsHeld({
+              message: typeof data?.error === 'string' ? data.error : '',
+              held: typeof data?.held === 'number' ? data.held : 0,
+              needed: typeof data?.needed === 'number' ? data.needed : selectedCost,
+              balance: typeof data?.balance === 'number' ? data.balance : 0,
+              since: Date.now(),
+              released: false,
+              checking: false,
+            })
+            void trackEvent('credits_held_notice_shown', {
+              held: typeof data?.held === 'number' ? data.held : null,
+              needed: typeof data?.needed === 'number' ? data.needed : null,
+              balance: typeof data?.balance === 'number' ? data.balance : null,
             })
             setPhase('failed'); return
           }
@@ -12303,7 +12377,75 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'failed' && !scriptTooShort && (
+          {/* ═══ sprint-v1v4 #33 — SALA DE ESPERA, nao painel de falha ═══════
+              Fora daqui nada mudou: qualquer outra recusa continua caindo no
+              painel vermelho de sempre, com o mesmo Retry. */}
+          {phase === 'failed' && creditsHeld && (
+            <section
+              className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
+              style={
+                creditsHeld.released
+                  ? { background: 'rgba(52,211,153,.07)', border: '1px solid rgba(52,211,153,.3)' }
+                  : { background: 'rgba(245,158,11,.07)', border: '1px solid rgba(245,158,11,.3)' }
+              }
+            >
+              <div className="font-black text-base mb-2" style={{ color: creditsHeld.released ? '#6ee7b7' : '#fbbf24' }}>
+                {creditsHeld.released ? 'Your credits are back' : 'Your last video is still finishing'}
+              </div>
+              <div className="text-sm mb-3" style={{ color: 'var(--muted)' }}>
+                {creditsHeld.released
+                  ? `You have ${creditsHeld.balance} credit${creditsHeld.balance === 1 ? '' : 's'} again. Nothing was lost — you can start this video now.`
+                  : creditsHeld.message}
+              </div>
+              {creditsHeld.released ? (
+                <button
+                  onClick={() => {
+                    void trackEvent('credits_held_retry_clicked', {
+                      waited_seconds: Math.max(0, Math.round((Date.now() - creditsHeld.since) / 1000)),
+                      released: true,
+                    })
+                    setCreditsHeld(null)
+                    handleGenerateGuarded()
+                  }}
+                  className="rounded-xl px-5 py-2.5 text-sm font-bold mr-2"
+                  style={{ background: '#34d399', border: 'none', cursor: 'pointer', color: '#04130d' }}
+                >
+                  Generate now
+                </button>
+              ) : (
+                <button
+                  onClick={() => { void recheckHeldCredits('manual') }}
+                  disabled={creditsHeld.checking}
+                  className="rounded-xl px-5 py-2.5 text-sm font-bold mr-2"
+                  style={{
+                    background: 'rgba(245,158,11,.16)',
+                    border: '1px solid rgba(245,158,11,.45)',
+                    color: '#fbbf24',
+                    cursor: creditsHeld.checking ? 'default' : 'pointer',
+                    opacity: creditsHeld.checking ? 0.6 : 1,
+                  }}
+                >
+                  {creditsHeld.checking ? 'Checking…' : 'Check again'}
+                </button>
+              )}
+              {!creditsHeld.released && (
+                <div className="text-xs mt-3" style={{ color: 'var(--muted)' }}>
+                  We check for you every 45 seconds — leave this page open and it will unlock itself.
+                </div>
+              )}
+              <div className="mt-3 text-sm">
+                <a
+                  href="/history"
+                  onClick={() => { void trackEvent('credits_held_open_history_clicked', {}) }}
+                  style={{ color: '#2997ff', fontWeight: 700 }}
+                >
+                  See the video that&apos;s still rendering →
+                </a>
+              </div>
+            </section>
+          )}
+
+          {phase === 'failed' && !scriptTooShort && !creditsHeld && (
             <section
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)' }}
