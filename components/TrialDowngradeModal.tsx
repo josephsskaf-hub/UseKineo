@@ -58,6 +58,11 @@ import {
   type PriceRegion,
 } from '@/lib/checkoutPricing'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
+import {
+  comparisonDeferralValue,
+  TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION,
+  TRIAL_DOWNGRADE_PLAN_COMPARE_HREF,
+} from '@/lib/growth/trialDowngradePlanChoice'
 
 // Dispensa por CONTA e por navegador. NÃO é o gate de elegibilidade — esse é
 // do servidor; isto só evita que o modal reapareça a cada navegação.
@@ -329,6 +334,29 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
     })
   }
 
+  function comparePlans() {
+    // A person who opens the plan grid did not reject the offer. Give the
+    // comparison room to work without reopening this modal on the next
+    // dashboard navigation, but do not store the permanent `stay_free` choice.
+    try {
+      const current = window.localStorage.getItem(dismissKey)
+      window.localStorage.setItem(
+        dismissKey,
+        comparisonDeferralValue(current, Date.now(), MAX_ADIAMENTOS),
+      )
+    } catch {
+      // Storage availability never blocks a deliberate pricing navigation.
+    }
+    void trackEvent('trial_downgrade_compare_plans_clicked', {
+      version: TRIAL_DOWNGRADE_PLAN_CHOICE_VERSION,
+      source: 'trial_downgrade_modal',
+      destination: 'pricing_plans',
+      primary_tier: 'basic',
+    })
+    setOpen(false)
+    window.location.assign(TRIAL_DOWNGRADE_PLAN_COMPARE_HREF)
+  }
+
   return (
     <div
       onClick={(e) => {
@@ -522,6 +550,30 @@ export default function TrialDowngradeModal({ userKey }: { userKey: string }) {
         >
           {checkout.pending !== null ? 'Opening checkout…' : 'Continue on Creator'}
         </button>
+
+        <button
+          type="button"
+          onClick={comparePlans}
+          disabled={checkout.pending !== null}
+          style={{
+            width: '100%',
+            marginTop: 8,
+            padding: '10px 16px',
+            border: 'none',
+            background: 'transparent',
+            color: '#7cc0ff',
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: checkout.pending !== null ? 'wait' : 'pointer',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          Compare all plans →
+        </button>
+        <p style={{ margin: '-2px 0 0', fontSize: 11, lineHeight: 1.45, color: '#6e6e73', textAlign: 'center' }}>
+          See monthly credits and included engines before you decide.
+        </p>
 
         {/* PEDIR SEM DEVOLVER É O DEFEITO: a tela que recusa algo devolve o
             caminho para o que a pessoa AINDA TEM. Sem este botão as únicas
