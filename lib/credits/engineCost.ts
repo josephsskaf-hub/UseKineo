@@ -21,6 +21,7 @@ export type Quality =
   | 'cinematic_hollywood'
   | 'cinematic_h3'
   | 'cinematic_omni'
+  | 'cinematic_s25'
   | 'avatar'
   | 'presenter'
 
@@ -139,6 +140,15 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // Kling 3. O topo do catálogo fica com o topo do ranking, e a margem
       // melhora 17pp sem o cliente pagar um centavo a mais.
       return 150
+    case 'cinematic_s25':
+      // KINEO-S25-2026-09-01 — Seedance 2.5, 720p, preco POR TOKEN da fal
+      // (~$0.462/s em 720p 9:16 24fps): um filme de 60s custa ~$27.70 de
+      // fornecedor. A 150cr seria PREJUIZO (~$25 de receita) — a mesma
+      // matematica que barrou o Seedance 2.0 em agosto. 250cr = ~$41.70 de
+      // receita → margem ~33%. ⚠ ETIQUETA PROVISORIA: o motor esta TRANCADO
+      // para contas internas (gate s25_internal_only na rota) ate o fundador
+      // bater o martelo do preco publico — decisao que e SEMPRE dele.
+      return 250
     case 'pro':
       // KINEO-REBASE-2026-07-10 — legacy 20 → 10.
       return 10
@@ -215,6 +225,7 @@ export function normalizeQuality(raw: string | null | undefined): Quality {
     case 'cinematic_hollywood':
     case 'cinematic_h3': // KINEO-H3-2026-08-19
     case 'cinematic_omni': // KINEO-OMNI-2026-08-25
+    case 'cinematic_s25': // KINEO-S25-2026-09-01
     case 'avatar':
     case 'presenter':
       return q

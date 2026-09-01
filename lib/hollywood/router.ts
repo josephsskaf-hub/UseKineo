@@ -160,8 +160,27 @@ export const OMNI_I2V_MODEL = 'google/gemini-omni-flash/image-to-video'
 // fal, ago/2026: ~$0.13/s em 720p (fonte: fal.ai/models/google/gemini-omni-flash).
 export const OMNI_USD_PER_SECOND = 0.13
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KINEO-S25-2026-09-01 — SEEDANCE 2.5: O MOTOR DE VIDEO DO D-DAY.
+// ═══════════════════════════════════════════════════════════════════════════
+// Mesma decisao de arquitetura do H3 e do Omni: FAMILIA nova na estrada
+// existente — verbatim, piso 95%, variedade e contrato de cena vem de graca.
+// Schema conferido no OpenAPI da fal em 01/09 (endpoint_id real descoberto na
+// unha — o slug do estudo dava 404): fal-ai/seedance-2.5/{text,image}-to-video.
+//   · duration e STRING '4'..'30' (unico motor da casa assim; 'auto' PROIBIDO
+//     — deixaria o FORNECEDOR decidir quantos segundos cobramos)
+//   · resolution 480p|720p|1080p — 720p (1080p custaria ~2.2x por token)
+//   · t2v: aspect_ratio default 'auto' — 9:16 vai EXPLICITO ou o filme deita
+//   · generate_audio default TRUE — vai FALSE explicito: C1 diz que a
+//     narracao e do usuario, palavra por palavra (a licao do H3)
+export const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
+export const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
+// Preco por TOKEN: h*w*fps*dur/1024 * taxa ⇒ 720p 9:16 ≈ $0.462/s.
+export const S25_USD_PER_SECOND = 0.462
+export const S25_RESOLUTION = '720p' as const
+
 /** Família de motor do caminho cinematográfico. */
-export type CinematicFamily = 'hollywood' | 'h3' | 'omni'
+export type CinematicFamily = 'hollywood' | 'h3' | 'omni' | 's25'
 
 /**
  * PONTO ÚNICO de escolha de modelo por cena. Os quatro lugares do route que
@@ -175,6 +194,8 @@ export function cinematicSceneModel(
   hasAnchor: boolean,
 ): string {
   if (family === 'h3') return hasAnchor ? H3_I2V_MODEL : H3_MODELS[type]
+  // KINEO-S25-2026-09-01 — com ancora i2v (consistencia visual); sem, t2v.
+  if (family === 's25') return hasAnchor ? S25_I2V_MODEL : S25_T2V_MODEL
   // KINEO-OMNI-2026-08-25 — o fal só expõe Omni em i2v/edit (sem t2v). Com
   // âncora (o caminho normal do 3.0), toda cena é Omni; SEM âncora o fallback
   // é o Kling t2v — look uniforme, e nunca um filme morto por falta de rota.
@@ -185,6 +206,7 @@ export function cinematicSceneModel(
 /** Custo por segundo da família — usado na estimativa e nos logs. */
 export function cinematicUsdPerSecond(family: CinematicFamily, type: HollywoodSceneType): number {
   if (family === 'h3') return H3_USD_PER_SECOND
+  if (family === 's25') return S25_USD_PER_SECOND
   if (family === 'omni') return OMNI_USD_PER_SECOND
   return HOLLYWOOD_USD_PER_SECOND[type]
 }

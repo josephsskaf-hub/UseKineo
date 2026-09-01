@@ -276,6 +276,7 @@ export function engineName(quality: PlanFitQuality): string {
     case 'cinematic_veo': return 'Veo 3.1'
     case 'cinematic_h3': return 'MiniMax H3'
     case 'cinematic_omni': return 'Omni Flash'
+    case 'cinematic_s25': return 'Seedance 2.5' // KINEO-S25-2026-09-01
     case 'basic': return 'Basic'
     case 'basic_ai': return 'AI Video'
     case 'pro': return 'Cinematic'

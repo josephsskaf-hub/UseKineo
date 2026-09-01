@@ -4,6 +4,7 @@
 // hands off to /api/compose exactly like Fast Mode. Cost: 3 credits.
 import { NextRequest, NextResponse } from 'next/server'
 import { creditCostFor, creditCostForDuration, type Quality } from '@/lib/credits/engineCost'
+import { isInternalEmail } from '@/lib/internalAccounts'
 // sprint-v1v4 #27 — a MESMA funcao de resgate que o seletor usa desde a #13.
 // Gate de servidor e gate de UI sao um PAR (licao ja registrada no
 // GenerateClient): se a tela oferece um desvio ANTES do clique, a recusa
@@ -72,6 +73,9 @@ import {
   H3_MODELS,
   H3_RESOLUTION,
   OMNI_I2V_MODEL, // KINEO-OMNI-2026-08-25
+  S25_T2V_MODEL, // KINEO-S25-2026-09-01
+  S25_I2V_MODEL,
+  S25_RESOLUTION,
 
   cinematicSceneModel,
   type CinematicFamily,
@@ -184,6 +188,9 @@ const HOLLYWOOD_CREDIT_COST = 150
 // preço que a rota cobra e o que o settle cobra é a classe de bug que o próprio
 // engineCost.ts foi criado para matar.
 const H3_CREDIT_COST = 45
+// KINEO-S25-2026-09-01 — espelha creditCostFor('cinematic_s25'); ver o porque
+// dos 250 la (a $0.462/s, 150cr seria prejuizo). TRANCADO a contas internas.
+const S25_CREDIT_COST = 250
 
 // fal.ai model — Wan 2.5 text-to-video (commercial, supports 9:16, $0.05/s).
 // #368 — Seedance 1.5 Pro. The earlier 'submit error' (#366) was fal EXHAUSTED
@@ -441,6 +448,32 @@ function buildFalInput(
   // deitado; duration INTEIRO 3-10 (o teto 10 também governa o planner via
   // SCENE_CAP/DIALOGUE_CAP). Sem generate_audio no schema: o áudio nativo vem
   // sempre — o mute V1 vive no compose (muteClipAudio), não aqui.
+  // ═══ KINEO-S25-2026-09-01 — SEEDANCE 2.5 ════════════════════════════════
+  // Schema OpenAPI conferido em 01/09. As TRES armadilhas do schema, todas
+  // desarmadas aqui: (1) duration e STRING '4'..'30' — numero puro seria 422
+  // em toda cena, o massacre do primeiro render Omni de novo; e 'auto'
+  // deixaria o FORNECEDOR escolher quantos segundos nos cobra. (2) t2v tem
+  // aspect_ratio default 'auto' — sem 9:16 explicito o filme sai deitado.
+  // (3) generate_audio default TRUE — falso explicito: a narracao e a do
+  // usuario, palavra por palavra (C1); o mute do compose e a 2a trava.
+  if (model === S25_I2V_MODEL) {
+    return {
+      image_url: imageUrl,
+      prompt,
+      duration: String(Math.max(4, Math.min(30, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8)))),
+      resolution: S25_RESOLUTION,
+      generate_audio: false,
+    }
+  }
+  if (model === S25_T2V_MODEL) {
+    return {
+      prompt,
+      duration: String(Math.max(4, Math.min(30, Math.round(typeof seconds === 'number' && seconds > 0 ? seconds : 8)))),
+      resolution: S25_RESOLUTION,
+      aspect_ratio: '9:16',
+      generate_audio: false,
+    }
+  }
   if (model === OMNI_I2V_MODEL) {
     return {
       image_url: imageUrl,
@@ -1162,8 +1195,11 @@ async function manipularPost(req: NextRequest) {
     // KINEO-OMNI-2026-08-25 — Gemini Omni Flash: #1 do ranking de agosto,
     // mesma estrada do Hollywood/H3 (familia nova, nunca caminho novo).
     const wantsOmni = body.engine === 'omni'
-    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni
-    const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : 'hollywood'
+    // KINEO-S25-2026-09-01 — Seedance 2.5: familia nova na MESMA estrada
+    // (planner, verbatim, piso 95%, variedade e contrato de cena de graca).
+    const wantsS25 = body.engine === 's25'
+    const hollywoodPath = wantsHollywood || wantsH3 || wantsOmni || wantsS25
+    const family: CinematicFamily = wantsH3 ? 'h3' : wantsOmni ? 'omni' : wantsS25 ? 's25' : 'hollywood'
     // ═══ KINEO-OMNI-TETO10-2026-08-25 — LIÇÃO DO PRIMEIRO RENDER (422 em 8/8) ═══
     // Schema oficial fal do google/gemini-omni-flash/image-to-video: duration é
     // INTEIRO 3-10 (não 15 como Kling 3, não 12 como o teto da casa). Cena
@@ -1301,6 +1337,15 @@ async function manipularPost(req: NextRequest) {
     }
     // KINEO-SORA-REMOVED-2026-07-06 — Sora is pulled from the menu until its fal
     // endpoint cost is confirmed (margin guard). Reject any direct/stale call.
+    // KINEO-S25-GATE-2026-09-01 — o 2.5 so abre ao publico com os 4 carimbos
+    // (dry-run PASS, canario validado, selo conferido, preco batido pelo
+    // fundador — 250cr e etiqueta provisoria). Ate la: so contas internas.
+    if (wantsS25 && !isInternalEmail(user.email)) {
+      return NextResponse.json(
+        { error: 'Seedance 2.5 is coming soon. Pick another engine for now.', reason: 's25_internal_only' },
+        { status: 400 },
+      )
+    }
     if (wantsSora) {
       return NextResponse.json(
         { error: 'Sora is temporarily unavailable. Use Kling or AI Generated.', balance },
@@ -1311,7 +1356,7 @@ async function manipularPost(req: NextRequest) {
     // Push #402 — per-engine cost. KINEO-PRICING-V3B-2026-07-10: Hollywood 150,
     // Kling 50, Veo 90, Sora 100 (blocked), Seedance 20 — valores de REFERÊNCIA
     // para 60s. A cobrança real escala com a duração (abaixo).
-    const baseCost = wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
+    const baseCost = wantsS25 ? S25_CREDIT_COST : wantsH3 ? H3_CREDIT_COST : wantsHollywood ? HOLLYWOOD_CREDIT_COST : wantsKling ? KLING_CREDIT_COST : wantsVeo ? VEO_CREDIT_COST : wantsSora ? SORA_CREDIT_COST : SEEDANCE_CREDIT_COST
     // ═══ KINEO-DURACAO-2026-08-20 — O SERVIDOR COBRA O QUE A TELA MOSTROU ═══
     // O /studio calcula o "Estimated cost" com creditCostForDuration; se esta
     // linha usasse outro número, a pessoa veria 30 e seria debitada 20 (ou o
@@ -1321,7 +1366,9 @@ async function manipularPost(req: NextRequest) {
     // 90s ≈ 150%. Sem esta escala, o tier de 90s (que o dado do TikTok mostra
     // render 4× mais views) viraria o mais barato por segundo e derreteria a
     // margem justamente no formato que todo mundo passaria a escolher.
-    const costQuality: Quality = wantsH3
+    const costQuality: Quality = wantsS25
+      ? 'cinematic_s25'
+      : wantsH3
       ? 'cinematic_h3'
       : wantsOmni
         ? 'cinematic_omni'
@@ -1471,6 +1518,7 @@ async function manipularPost(req: NextRequest) {
         veo: 'cinematic_veo',
         hollywood: 'cinematic_hollywood',
         omni: 'cinematic_omni',
+        s25: 'cinematic_s25',
       }
       const NOME_PUBLICO_DO_MOTOR: Record<string, string> = {
         seedance: 'AI Generated',
@@ -1479,8 +1527,10 @@ async function manipularPost(req: NextRequest) {
         veo: 'Veo 3.1',
         hollywood: 'Kling 3',
         omni: 'Omni',
+        s25: 'Seedance 2.5',
       }
-      const motorPedido = wantsH3 ? 'h3'
+      const motorPedido = wantsS25 ? 's25'
+        : wantsH3 ? 'h3'
         : wantsOmni ? 'omni'
         : wantsHollywood ? 'hollywood'
         : wantsKling ? 'kling'
@@ -1519,7 +1569,7 @@ async function manipularPost(req: NextRequest) {
         needed: cost,
         balance,
         held_by_unsettled_render: heldByUnsettled,
-        engine: wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
+        engine: wantsS25 ? 's25' : wantsOmni ? 'omni' : wantsH3 ? 'h3' : wantsHollywood ? 'hollywood' : wantsKling ? 'kling' : wantsVeo ? 'veo' : 'seedance',
         trial_phase: trialUi.phase,
         trial_credits_granted: trialUi.creditsGranted,
         is_paid: isPaidUser,
@@ -1570,7 +1620,9 @@ async function manipularPost(req: NextRequest) {
     // KINEO-353A.1 — MOTOR REAL. O #353A gravava `engine: 'hollywood'` no
     // FAILFAST premium, o que apagava H3 e Omni: os tres viravam a mesma linha
     // no painel, e a pergunta "qual motor esta falhando?" ficava sem resposta.
-    const claimQuality = wantsH3
+    const claimQuality = wantsS25
+      ? 'cinematic_s25'
+      : wantsH3
       ? 'cinematic_h3'
       : wantsOmni
       ? 'cinematic_omni'
@@ -1581,7 +1633,14 @@ async function manipularPost(req: NextRequest) {
         : wantsVeo
           ? 'cinematic_veo'
           : 'cinematic_ai'
-    const claimEngine = wantsH3
+    // KINEO-128C-2026-09-01 — faltava o ramo do Omni: o claim do render
+    // 37c8d832 gravou engine='seedance' num filme Omni e a pergunta 'qual
+    // motor esta falhando?' ficou sem resposta. Agora cada familia assina.
+    const claimEngine = wantsS25
+      ? 's25'
+      : wantsOmni
+      ? 'omni'
+      : wantsH3
       ? 'h3'
       : wantsHollywood
       ? 'hollywood'

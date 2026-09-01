@@ -18,6 +18,7 @@ const MAPA: Record<string, string> = {
   cinematic_hollywood: 'Kling 3',
   cinematic_h3: 'MiniMax H3',
   cinematic_omni: 'Omni Flash',
+  cinematic_s25: 'Seedance 2.5',
   cinematic_sora: 'Sora',
   avatar: 'Avatar',
   presenter: 'Avatar',
