@@ -1,6 +1,10 @@
 import { trackEvent } from '@/lib/analytics'
 import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { readBulkCheckoutAuthContext } from '@/lib/growth/bulkCheckoutAuthContext'
+import {
+  checkoutPasswordRecoveryTelemetry,
+  type CheckoutPasswordRecoveryContext,
+} from '@/lib/growth/checkoutPasswordRecovery'
 
 export type AuthSurface = 'login_page' | 'signup_page' | 'auth_modal'
 export type AuthMethod = 'email' | 'google' | 'apple'
@@ -9,6 +13,7 @@ export type CheckoutAuthStep =
   | 'method_selected'
   | 'confirmation_required'
   | 'completed'
+export type CheckoutPasswordRecoveryStep = 'viewed' | 'requested' | 'completed' | 'resumed'
 
 function checkoutIntentMetadata(destination: string): Record<string, unknown> | null {
   const internal = normalizeInternalRedirect(destination)
@@ -68,5 +73,30 @@ export function trackCheckoutAuthStep(
     ...intent,
     surface,
     ...(method ? { method } : {}),
+  })
+}
+
+/**
+ * Measure the interrupted checkout without collecting email, password, token
+ * or the raw redirect. The context is produced by a checkout-only validator.
+ */
+export function trackCheckoutPasswordRecoveryStep(
+  step: CheckoutPasswordRecoveryStep,
+  context: CheckoutPasswordRecoveryContext,
+): void {
+  if (typeof window === 'undefined') return
+
+  const navigationId = Math.round(performance.timeOrigin).toString(36)
+  const marker = `kineo_checkout_password_recovery:${navigationId}:${step}`
+  try {
+    if (sessionStorage.getItem(marker)) return
+    sessionStorage.setItem(marker, '1')
+  } catch {
+    // Storage may be disabled; recovery and analytics remain independent.
+  }
+
+  void trackEvent('checkout_password_recovery_step', {
+    ...checkoutPasswordRecoveryTelemetry(context),
+    step,
   })
 }

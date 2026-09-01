@@ -7,6 +7,10 @@ import { normalizeInternalRedirect } from '@/lib/authRedirect'
 import { trackCheckoutAuthStep } from '@/lib/authAnalytics'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import {
+  buildCheckoutPasswordRecoveryHref,
+  readCheckoutPasswordRecoveryContext,
+} from '@/lib/growth/checkoutPasswordRecovery'
 
 interface AuthModalProps {
   onClose: () => void
@@ -41,6 +45,10 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
   const [emailAlreadyExists, setEmailAlreadyExists] = useState(false)
   const [emailSent, setEmailSent] = useState(false)
   const [destination, setDestination] = useState('/') // KINEO-POUSO-VITRINE b
+  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
+    '/forgot-password',
+    readCheckoutPasswordRecoveryContext(destination),
+  )
 
   function switchTab(t: 'login' | 'signup') {
     setTab(t)
@@ -348,7 +356,7 @@ export default function AuthModal({ onClose, defaultTab = 'signup', redirectTo }
                     </label>
                     {tab === 'login' && (
                       <a
-                        href="/forgot-password"
+                        href={forgotPasswordHref}
                         className="text-xs font-semibold"
                         style={{ color: 'var(--indigo-light)', textDecoration: 'none' }}
                         onClick={onClose}

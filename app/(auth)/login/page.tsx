@@ -12,6 +12,10 @@ import {
   readBulkCheckoutAuthContext,
   type BulkCheckoutAuthContext,
 } from '@/lib/growth/bulkCheckoutAuthContext'
+import {
+  buildCheckoutPasswordRecoveryHref,
+  readCheckoutPasswordRecoveryFromSearch,
+} from '@/lib/growth/checkoutPasswordRecovery'
 import { useFreeTierOffer } from '@/components/FreeTierOfferProvider'
 import { swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
 import AuthReel from '@/components/AuthReel'
@@ -56,6 +60,11 @@ export default function LoginPage() {
   // Query string forwarded to /signup so the pending checkout survives the hop
   // (state, not inline window read, to avoid an SSR hydration mismatch).
   const [authSearch, setAuthSearch] = useState('')
+  const passwordRecoveryContext = readCheckoutPasswordRecoveryFromSearch(authSearch)
+  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
+    '/forgot-password',
+    passwordRecoveryContext,
+  )
   useEffect(() => {
     const resumingCheckout = isCheckoutResume()
     setCheckoutResume(resumingCheckout)
@@ -322,7 +331,7 @@ export default function LoginPage() {
                     Password
                   </label>
                   <Link
-                    href="/forgot-password"
+                    href={forgotPasswordHref}
                     className="text-xs font-semibold"
                     style={{
                       color: '#2997ff',

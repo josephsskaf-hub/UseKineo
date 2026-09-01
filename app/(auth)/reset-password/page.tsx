@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { trackCheckoutPasswordRecoveryStep } from '@/lib/authAnalytics'
+import {
+  buildCheckoutPasswordRecoveryHref,
+  readCheckoutPasswordRecoveryFromSearch,
+  type CheckoutPasswordRecoveryContext,
+} from '@/lib/growth/checkoutPasswordRecovery'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -14,10 +20,12 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [ready, setReady] = useState(false)
+  const [recoveryContext, setRecoveryContext] = useState<CheckoutPasswordRecoveryContext | null>(null)
 
   const [linkError, setLinkError] = useState<string | null>(null)
 
   useEffect(() => {
+    setRecoveryContext(readCheckoutPasswordRecoveryFromSearch(window.location.search))
     // ═══════════════════════════════════════════════════════════════════
     // KINEO-RESET-PKCE-2026-08-03 — TODO RESET DE SENHA ESTAVA QUEBRADO.
     //
@@ -93,10 +101,23 @@ export default function ResetPasswordPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      const context = readCheckoutPasswordRecoveryFromSearch(window.location.search)
+      setRecoveryContext(context)
+      if (context) trackCheckoutPasswordRecoveryStep('completed', context)
       setSuccess(true)
-      setTimeout(() => router.push('/generate'), 2000)
+      setTimeout(() => {
+        if (context) {
+          trackCheckoutPasswordRecoveryStep('resumed', context)
+          window.location.assign(context.destination)
+          return
+        }
+        router.push('/generate')
+      }, 2000)
     }
   }
+
+  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref('/forgot-password', recoveryContext)
+  const loginHref = buildCheckoutPasswordRecoveryHref('/login', recoveryContext)
 
   const inputStyle = {
     background: 'rgba(255,255,255,.03)',
@@ -126,14 +147,23 @@ export default function ResetPasswordPage() {
               <div className="text-4xl mb-4">✅</div>
               <h2 className="text-xl font-black mb-2" style={{ color: 'var(--text)' }}>Password updated!</h2>
               <p className="text-sm" style={{ color: 'var(--muted)' }}>
-                Redirecting you to the dashboard...
+                {recoveryContext
+                  ? 'Password updated. Returning you to secure checkout…'
+                  : 'Redirecting you to the dashboard...'}
               </p>
             </div>
           ) : (
             <>
+              {recoveryContext ? (
+                <div role="status" className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(41,151,255,.08)', border: '1px solid rgba(41,151,255,.3)', color: '#5cb3ff', fontWeight: 700 }}>
+                  🔒 Your purchase is still saved
+                </div>
+              ) : null}
               <h1 className="text-2xl font-black mb-1 tracking-tight" style={{ color: 'var(--text)' }}>Set new password</h1>
               <p className="text-sm mb-7" style={{ color: 'var(--muted)' }}>
-                Choose a strong password for your account.
+                {recoveryContext
+                  ? 'Choose a strong password. We’ll return you to secure checkout after it is saved.'
+                  : 'Choose a strong password for your account.'}
               </p>
 
               {/* KINEO-RESET-PKCE-2026-08-03 — o aviso genérico "looks stuck"
@@ -143,7 +173,7 @@ export default function ResetPasswordPage() {
               {linkError ? (
                 <div className="rounded-xl px-4 py-3 text-sm mb-5" style={{ background: 'rgba(245,158,11,.08)', border: '1px solid rgba(245,158,11,.2)', color: '#f59e0b' }}>
                   {linkError}{' '}
-                  <Link href="/forgot-password" style={{ color: '#2997ff', fontWeight: 700 }}>
+                  <Link href={forgotPasswordHref} style={{ color: '#2997ff', fontWeight: 700 }}>
                     Request a new link →
                   </Link>
                 </div>
@@ -218,7 +248,7 @@ export default function ResetPasswordPage() {
               </form>
 
               <p className="text-center text-sm mt-6" style={{ color: 'var(--muted)' }}>
-                <Link href="/login" className="font-semibold" style={{ color: '#2997ff', textDecoration: 'none' }}>
+                <Link href={loginHref} className="font-semibold" style={{ color: '#2997ff', textDecoration: 'none' }}>
                   ← Back to Sign In
                 </Link>
               </p>

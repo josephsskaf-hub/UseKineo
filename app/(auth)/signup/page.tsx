@@ -23,6 +23,10 @@ import {
   organicSignupHandoffContext,
   type OrganicSignupHandoffContext,
 } from '@/lib/growth/organicSignupTruth'
+import {
+  buildCheckoutPasswordRecoveryHref,
+  readCheckoutPasswordRecoveryContext,
+} from '@/lib/growth/checkoutPasswordRecovery'
 
 type Strength = { level: 0 | 1 | 2 | 3 | 4; label: string; color: string }
 
@@ -241,6 +245,13 @@ export default function SignupPage() {
 
   const strength = scorePassword(password)
   const isCheckoutResume = new URLSearchParams(authSearch).get('reason') === 'checkout'
+  const passwordRecoveryContext = isCheckoutResume
+    ? readCheckoutPasswordRecoveryContext(activationRedirect)
+    : null
+  const forgotPasswordHref = buildCheckoutPasswordRecoveryHref(
+    '/forgot-password',
+    passwordRecoveryContext,
+  )
   const savedCreation = useMemo(() => {
     const params = new URLSearchParams(authSearch)
     // An explicit, validated redirect owns the post-auth journey. Never show a
@@ -803,7 +814,7 @@ export default function SignupPage() {
                             Sign in instead
                           </Link>
                           {' · '}
-                          <Link href="/forgot-password" style={{ color: '#2997ff', fontWeight: 700 }}>
+                          <Link href={forgotPasswordHref} style={{ color: '#2997ff', fontWeight: 700 }}>
                             Forgot your password?
                           </Link>
                         </div>
