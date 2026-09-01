@@ -10338,15 +10338,48 @@ export default function GenerateClient({
     failureCause === 'real_person_guard' ||
     failureCause === 'plan_or_credits'
   const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld
+  // ═══ KINEO-SPRINT-V1V4-40 — O MEDIDOR DA #38 ERA CEGO NA CAUSA Nº 1 ═════
+  // Medido em 01/09: 129 `generation_stage_error` de 33 pessoas externas em
+  // 7 dias e `generation_failed_screen_shown` com ZERO eventos em TODA a
+  // historia — inclusive depois do #38 estar em `origin/main`. A causa nao
+  // era falta de trafego: era a propria linha acima. `showGenericFailure`
+  // exclui `scriptTooShort` e `creditsHeld`, que sao os dois estados com
+  // CARD PROPRIO — e narracao curta e a maior causa deterministica do
+  // produto (as recusas de 18:00 e 20:08 de hoje foram as duas dela). Ou
+  // seja: o instrumento que existia para separar "ninguem retentou" de
+  // "retentou e bateu no mesmo muro" so escutava o card generico, e o ramo
+  // `failureCause === 'narration_short'` era codigo morto por construcao.
+  // Esta rodada da olhos aos tres cards: toda tela de falha — generica,
+  // narracao curta e credito preso — emite `generation_failed_screen_shown`
+  // com a causa certa, e todo botao que tenta sair dali emite
+  // `generation_retry_clicked` com o gesto escolhido. Nada muda de
+  // aparencia, nada e escondido, nenhum caminho novo: so para de mentir por
+  // omissao no dado que decide a proxima rodada.
+  const failureScreenKind: 'generic' | 'narration_short' | 'credits_held' | null =
+    phase !== 'failed' ? null : scriptTooShort ? 'narration_short' : creditsHeld ? 'credits_held' : 'generic'
+  const failureScreenCause =
+    failureScreenKind === 'narration_short'
+      ? 'narration_short'
+      : failureScreenKind === 'credits_held'
+        ? 'credits_held'
+        : failureCause
+  // Credito preso NAO e deterministico: ele se resolve sozinho dentro da hora
+  // (ver #33), entao esperar/retentar ali muda de resultado de verdade.
+  const failureScreenDeterministic =
+    failureScreenKind === 'narration_short'
+      ? true
+      : failureScreenKind === 'credits_held'
+        ? false
+        : failureIsDeterministic
   const sameFailureRef = useRef<{ signature: string; count: number }>({ signature: '', count: 0 })
   const [sameFailureCount, setSameFailureCount] = useState(0)
   const failedScreenLoggedRef = useRef<string>('')
   useEffect(() => {
-    if (!showGenericFailure) {
+    if (!failureScreenKind) {
       failedScreenLoggedRef.current = ''
       return
     }
-    const signature = `${failureCause}::${(error ?? '').slice(0, 120)}`
+    const signature = `${failureScreenCause}::${(error ?? '').slice(0, 120)}`
     // A chave inclui a tentativa: re-render nao conta como nova aparicao, mas
     // uma nova geracao que falha igual conta — e e exatamente o que interessa.
     const logKey = `${signature}::${generationAttemptRef.current ?? ''}`
@@ -10357,15 +10390,33 @@ export default function GenerateClient({
     sameFailureRef.current = { signature, count }
     setSameFailureCount(count)
     void trackEvent('generation_failed_screen_shown', {
-      cause: failureCause,
+      cause: failureScreenCause,
+      screen: failureScreenKind,
       repeat_count: count,
-      deterministic: failureIsDeterministic,
+      deterministic: failureScreenDeterministic,
       cost: selectedCost,
+      // Sem isto nao da para separar "a tela nao apareceu" de "apareceu sem
+      // texto": em 20:08 de hoje o card de narracao curta chegou ao evento
+      // de estagio como `no_detail`, e nao havia como saber o que a pessoa leu.
+      has_message:
+        failureScreenKind === 'narration_short'
+          ? Boolean(scriptTooShort?.message)
+          : Boolean(error),
     })
-  }, [showGenericFailure, failureCause, failureIsDeterministic, error, selectedCost])
+  }, [
+    failureScreenKind,
+    failureScreenCause,
+    failureScreenDeterministic,
+    scriptTooShort,
+    error,
+    selectedCost,
+  ])
   // Verdade honesta: so avisa "isto vai bater de novo" quando as DUAS coisas
   // valem — mesmo erro repetido E causa que nao muda sozinha.
-  const failureWillRepeat = sameFailureCount >= 2 && failureIsDeterministic
+  // O aviso "isto vai bater de novo" continua exclusivo do card generico: os
+  // outros dois ja oferecem a saida certa (completar o texto / esperar o
+  // credito voltar) e nao devem ganhar um recado de repeticao por tabela.
+  const failureWillRepeat = showGenericFailure && sameFailureCount >= 2 && failureIsDeterministic
   const showRender =
     phase === 'generating' ||
     phase === 'fal_polling' ||
@@ -12573,7 +12624,17 @@ export default function GenerateClient({
               ) : (
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={handleExpandScript}
+                    onClick={() => {
+                      void trackEvent('generation_retry_clicked', {
+                        cause: 'narration_short',
+                        screen: 'narration_short',
+                        action: 'expand_script',
+                        repeat_count: sameFailureCount,
+                        deterministic: true,
+                        missing_words: scriptTooShort.missingWords,
+                      })
+                      void handleExpandScript()
+                    }}
                     disabled={expanding}
                     className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
                     style={{ background: '#2997ff', border: 'none', opacity: expanding ? 0.6 : 1, cursor: expanding ? 'wait' : 'pointer' }}
@@ -12588,6 +12649,14 @@ export default function GenerateClient({
                         setError(null)
                         setPhase('idle')
                         void trackEvent('script_short_used_shorter_duration', { seconds: scriptTooShort.suggestedDuration })
+                        void trackEvent('generation_retry_clicked', {
+                          cause: 'narration_short',
+                          screen: 'narration_short',
+                          action: 'shorter_duration',
+                          repeat_count: sameFailureCount,
+                          deterministic: true,
+                          seconds: scriptTooShort.suggestedDuration,
+                        })
                       }}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold"
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
@@ -12596,7 +12665,16 @@ export default function GenerateClient({
                     </button>
                   )}
                   <button
-                    onClick={() => { setScriptTooShort(null); setError(null); setPhase('idle') }}
+                    onClick={() => {
+                      void trackEvent('generation_retry_clicked', {
+                        cause: 'narration_short',
+                        screen: 'narration_short',
+                        action: 'edit_my_text',
+                        repeat_count: sameFailureCount,
+                        deterministic: true,
+                      })
+                      setScriptTooShort(null); setError(null); setPhase('idle')
+                    }}
                     className="rounded-xl px-5 py-2.5 text-sm font-bold"
                     style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                   >
@@ -12644,7 +12722,16 @@ export default function GenerateClient({
                 </button>
               ) : (
                 <button
-                  onClick={() => { void recheckHeldCredits('manual') }}
+                  onClick={() => {
+                    void trackEvent('generation_retry_clicked', {
+                      cause: 'credits_held',
+                      screen: 'credits_held',
+                      action: 'recheck_credits',
+                      repeat_count: sameFailureCount,
+                      deterministic: false,
+                    })
+                    void recheckHeldCredits('manual')
+                  }}
                   disabled={creditsHeld.checking}
                   className="rounded-xl px-5 py-2.5 text-sm font-bold mr-2"
                   style={{
