@@ -34,6 +34,8 @@ import {
   TRIAL_FIRST_DELIVERY_VERSION,
 } from '@/lib/growth/trialBalanceBridge'
 import { decideCheckoutCancelledPrimary } from '@/lib/growth/checkoutCancelledRecovery'
+import CheckoutCancelObjectionTelemetry from './CheckoutCancelObjectionTelemetry'
+import { CHECKOUT_CANCEL_OBJECTION_TARGET_ID } from '@/lib/growth/checkoutCancelObjectionVisibility'
 
 const PLAN_FIT_RETRY_PARAM_KEYS = [
   'checkout_origin',
@@ -201,6 +203,11 @@ function CheckoutCancelledContent() {
   })
   const downshiftAvailable =
     cancelledPrimary === 'checkout' && !isAutopilotReturn && cheaperTier !== null
+  const objectionCheckoutProduct = isAutopilotPilot
+    ? 'autopilot_pilot'
+    : isAutopilotReturn
+      ? 'autopilot_subscription'
+      : 'self_serve'
   const firstDeliveryHref = `/studio/create?engine=seedance&duration=${TRIAL_FIRST_DELIVERY_DURATION}&intent_campaign=${TRIAL_FIRST_DELIVERY_VERSION}`
 
   const startSavedCheckout = () => {
@@ -510,7 +517,18 @@ function CheckoutCancelledContent() {
             O evento continua sendo gravado igual — a diferença é que agora o
             usuário tem motivo próprio para clicar. DELIVER-FIRST vale também
             para a superfície que faz uma pergunta. */}
-        <div style={{ marginTop: 16, display: cancelledPrimary === 'checkout' ? undefined : 'none' }} aria-hidden={cancelledPrimary !== 'checkout'}>
+        <div
+          id={CHECKOUT_CANCEL_OBJECTION_TARGET_ID}
+          style={{ marginTop: 16, display: cancelledPrimary === 'checkout' ? undefined : 'none' }}
+          aria-hidden={cancelledPrimary !== 'checkout'}
+        >
+          <CheckoutCancelObjectionTelemetry
+            active={cancelledPrimary === 'checkout' && reasonSent === null}
+            tier={tier}
+            billing={billing}
+            checkoutProduct={objectionCheckoutProduct}
+            downshiftAvailable={downshiftAvailable}
+          />
           {reasonSent === null ? (
             <div style={{ textAlign: 'center' }}>
               <p style={{ fontSize: '0.82rem', color: 'var(--muted2)', fontWeight: 700, margin: '0 0 10px' }}>
@@ -526,6 +544,7 @@ function CheckoutCancelledContent() {
                   <button
                     key={value}
                     type="button"
+                    data-checkout-cancel-reason={value}
                     onClick={() => {
                       setReasonSent(value)
                       trackEvent('checkout_cancel_reason', { tier, billing, reason: value })
