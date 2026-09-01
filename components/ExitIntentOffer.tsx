@@ -56,6 +56,13 @@ import {
   type CheckoutTier,
   type PriceRegion,
 } from '@/lib/checkoutPricing'
+import {
+  EXIT_INTENT_SESSION_VARIANT_KEY,
+  type ExitIntentVariant,
+  exitIntentVariantMetadata,
+  normalizePriorExitIntentVariant,
+  recordExitIntentSuppressionOnce,
+} from '@/lib/growth/exitIntentVariantProbe'
 
 const SESSION_KEY = 'kineo_exit_offer_shown'
 // KINEO-REBASE-2026-07-10 — read by Offer290Banner (post-exit $2.90 countdown).
@@ -70,9 +77,12 @@ const MOBILE_IDLE_SCROLL_GATE = 0.5 // mobile: idle timer only arms after scroll
 const MOBILE_MIN_DEPTH_PX = 400 // mobile: only consider scroll-up after real scroll depth
 const MOBILE_SCROLLUP_PX = 350 // mobile: accumulated fast upward scroll that counts as exit
 
+const suppressionInFlight = new Set<string>()
+const suppressionRecorded = new Set<string>()
+
 // Same fire-and-forget event beacon pattern the pricing page uses.
-function trackEvent(name: string): void {
-  void trackAnalyticsEvent(name)
+function trackEvent(name: string, variant: ExitIntentVariant): void {
+  void trackAnalyticsEvent(name, exitIntentVariantMetadata(variant))
 }
 
 // PUSH #92 — the modal must never throw itself over an input the visitor is
@@ -131,6 +141,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     shownRef.current = true
     try {
       sessionStorage.setItem(SESSION_KEY, '1')
+      sessionStorage.setItem(EXIT_INTENT_SESSION_VARIANT_KEY, variant)
     } catch {
       // sessionStorage unavailable (private mode) — still show once via ref
     }
@@ -144,9 +155,9 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     } catch {
       // ignore — countdown just won't arm on this device
     }
-    trackEvent('exit_intent_shown')
+    trackEvent('exit_intent_shown', variant)
     setOpen(true)
-  }, [])
+  }, [variant])
 
   // Trigger wiring — armed 5s after mount, desktop vs mobile strategies.
   useEffect(() => {
@@ -154,7 +165,19 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
 
     // Once per session.
     try {
-      if (sessionStorage.getItem(SESSION_KEY) === '1') return
+      if (sessionStorage.getItem(SESSION_KEY) === '1') {
+        void recordExitIntentSuppressionOnce({
+          requestedVariant: variant,
+          priorVariant: normalizePriorExitIntentVariant(
+            sessionStorage.getItem(EXIT_INTENT_SESSION_VARIANT_KEY),
+          ),
+          storage: sessionStorage,
+          inFlight: suppressionInFlight,
+          recorded: suppressionRecorded,
+          track: trackAnalyticsEvent,
+        })
+        return
+      }
     } catch {
       // ignore and fall through — shownRef still guards repeats this mount
     }
@@ -244,7 +267,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
     cleanups.push(() => window.clearTimeout(armTimer))
 
     return () => cleanups.forEach((fn) => fn())
-  }, [show])
+  }, [show, variant])
 
   // Escape closes + move focus into the dialog when it opens.
   useEffect(() => {
@@ -290,8 +313,8 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
       { tier: 'starter', intro: true, pricing_surface: 'exit_intent_offer' },
     )
     if (!started) return
-    trackEvent('starter_checkout_clicked')
-    trackEvent('exit_intent_intro_starter_clicked')
+    trackEvent('starter_checkout_clicked', variant)
+    trackEvent('exit_intent_intro_starter_clicked', variant)
   }
 
   function handleIntroCreator() {
@@ -301,8 +324,8 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
       { tier: 'basic', intro: true, pricing_surface: 'exit_intent_offer' },
     )
     if (!started) return
-    trackEvent('basic_checkout_clicked')
-    trackEvent('exit_intent_intro_creator_clicked')
+    trackEvent('basic_checkout_clicked', variant)
+    trackEvent('exit_intent_intro_creator_clicked', variant)
   }
 
   if (!open) return null
@@ -388,7 +411,7 @@ export default function ExitIntentOffer({ variant = 'deal' }: { variant?: 'deal'
             </div>
             <a
               href="/signup"
-              onClick={() => trackEvent('exit_intent_free_clicked')}
+              onClick={() => trackEvent('exit_intent_free_clicked', variant)}
               style={{ display: 'block', width: '100%', textAlign: 'center', background: '#2997ff', color: '#fff', borderRadius: 8, padding: 15, fontSize: 15, fontWeight: 800, textDecoration: 'none' }}
             >
               Sign up and make my first video
