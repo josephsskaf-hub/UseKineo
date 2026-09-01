@@ -10287,6 +10287,77 @@ export default function GenerateClient({
   // A barra fixa do rodape existe SOMENTE enquanto esta ancora esta fora de
   // vista; ver components/StickyGenerateBar.tsx para o numero que a motivou.
   const optionsGenerateBtnRef = useRef<HTMLButtonElement | null>(null)
+  // ═══ KINEO-SPRINT-V1V4-38 — A TELA DE FALHA ERA CEGA E O RETRY ERA MUDO ══
+  // Medido em 01/09: 33 pessoas EXTERNAS bateram em `generation_stage_error`
+  // em 7 dias e 19 delas (58%) NUNCA fizeram um video depois; 16 nao tem um
+  // unico video na janela — a falha foi a experiencia inteira do produto.
+  // A ultima tela que essas pessoas viram foi este card "Generation failed",
+  // e ele nao emitia UM evento: nem que apareceu, nem que o botao foi clicado.
+  // Por isso, ate hoje, nao da para distinguir "ninguem retentou" de
+  // "retentou e bateu no mesmo muro" — sao consertos opostos.
+  // Pior que a cegueira: o botao oferece exatamente a MESMA tentativa que
+  // acabou de falhar. Para as causas deterministicas (roteiro curto, campo
+  // faltando, limite) tentar igual devolve o mesmo erro, e o produto convida
+  // a pessoa a repetir o fracasso chamando isso de saida.
+  // Esta rodada: (1) toda aparicao vira `generation_failed_screen_shown` com
+  // a causa normalizada e quantas vezes ESTE MESMO erro apareceu seguido;
+  // (2) o clique vira `generation_retry_clicked`; (3) a partir da SEGUNDA vez
+  // do mesmo erro o card para de fingir, diz que retentar igual bate no mesmo
+  // lugar, e oferece voltar ao texto — o formulario guarda o prompt, entao
+  // "Edit my text" nao custa nada e e o unico caminho que muda o resultado.
+  // Nada e escondido: o Retry continua ali, so deixa de ser o unico gesto.
+  const failureCause = (() => {
+    const raw = (error ?? '').toLowerCase()
+    if (!raw) return 'unknown'
+    if (raw.includes('seconds of narration')) return 'narration_short'
+    if (raw.includes('voiceover_script is required')) return 'voiceover_script_missing'
+    if (raw.includes('voiceover generation failed')) return 'voiceover_provider'
+    if (raw.includes('daily_free_limit') || raw.includes('daily free')) return 'daily_free_limit'
+    if (raw.includes('could not be verified')) return 'access_not_verified'
+    if (raw.includes('did not accept the job')) return 'provider_rejected'
+    if (raw.includes('could not submit clips')) return 'submit_failed'
+    if (raw.includes('depict real people') || raw.includes('real person')) return 'real_person_guard'
+    if (raw.includes('credits left') || raw.includes('paid plans')) return 'plan_or_credits'
+    return 'other'
+  })()
+  // Causas em que retentar o MESMO pedido nao tem como mudar de resultado.
+  // Fora desta lista (falha de fornecedor, rede) o Retry continua sendo a
+  // resposta certa e o card nao muda de tom por repeticao.
+  const failureIsDeterministic =
+    failureCause === 'narration_short' ||
+    failureCause === 'voiceover_script_missing' ||
+    failureCause === 'daily_free_limit' ||
+    failureCause === 'real_person_guard' ||
+    failureCause === 'plan_or_credits'
+  const showGenericFailure = phase === 'failed' && !scriptTooShort && !creditsHeld
+  const sameFailureRef = useRef<{ signature: string; count: number }>({ signature: '', count: 0 })
+  const [sameFailureCount, setSameFailureCount] = useState(0)
+  const failedScreenLoggedRef = useRef<string>('')
+  useEffect(() => {
+    if (!showGenericFailure) {
+      failedScreenLoggedRef.current = ''
+      return
+    }
+    const signature = `${failureCause}::${(error ?? '').slice(0, 120)}`
+    // A chave inclui a tentativa: re-render nao conta como nova aparicao, mas
+    // uma nova geracao que falha igual conta — e e exatamente o que interessa.
+    const logKey = `${signature}::${generationAttemptRef.current ?? ''}`
+    if (failedScreenLoggedRef.current === logKey) return
+    failedScreenLoggedRef.current = logKey
+    const prev = sameFailureRef.current
+    const count = prev.signature === signature ? prev.count + 1 : 1
+    sameFailureRef.current = { signature, count }
+    setSameFailureCount(count)
+    void trackEvent('generation_failed_screen_shown', {
+      cause: failureCause,
+      repeat_count: count,
+      deterministic: failureIsDeterministic,
+      cost: selectedCost,
+    })
+  }, [showGenericFailure, failureCause, failureIsDeterministic, error, selectedCost])
+  // Verdade honesta: so avisa "isto vai bater de novo" quando as DUAS coisas
+  // valem — mesmo erro repetido E causa que nao muda sozinha.
+  const failureWillRepeat = sameFailureCount >= 2 && failureIsDeterministic
   const showRender =
     phase === 'generating' ||
     phase === 'fal_polling' ||
@@ -12595,7 +12666,7 @@ export default function GenerateClient({
             </section>
           )}
 
-          {phase === 'failed' && !scriptTooShort && !creditsHeld && (
+          {showGenericFailure && (
             <section
               className="gv-card rounded-2xl p-5 sm:p-6 mb-6"
               style={{ background: 'rgba(239,68,68,.06)', border: '1px solid rgba(239,68,68,.25)' }}
@@ -12642,17 +12713,54 @@ export default function GenerateClient({
                   ✨ Fix it for me &amp; retry
                 </button>
               )}
+              {/* KINEO-SPRINT-V1V4-38 — a partir da 2a vez do MESMO erro
+                  deterministico, dizer a verdade: o botao azul continua ali,
+                  mas deixa de ser o gesto primario e ganha um irmao que muda
+                  alguma coisa. Sem esta linha o produto pede para a pessoa
+                  repetir o que acabou de nao funcionar. */}
+              {failureWillRepeat && (
+                <div className="text-sm mt-1 mb-1" style={{ color: '#fbbf24', lineHeight: 1.55 }}>
+                  This is the second time with the same error — retrying the same
+                  setup will stop at the same place. Change the text or the length first.
+                </div>
+              )}
               <button
-                onClick={handleGenerateGuarded}
-                className="rounded-xl px-5 py-2.5 text-sm font-bold text-white mt-2"
-                style={{
-                  background: '#2997ff',
-                  border: 'none',
-                  cursor: 'pointer',
+                onClick={() => {
+                  void trackEvent('generation_retry_clicked', {
+                    cause: failureCause,
+                    repeat_count: sameFailureCount,
+                    deterministic: failureIsDeterministic,
+                    warned: failureWillRepeat,
+                  })
+                  handleGenerateGuarded()
                 }}
+                className="rounded-xl px-5 py-2.5 text-sm font-bold mt-2 mr-2"
+                style={
+                  failureWillRepeat
+                    ? { background: 'transparent', border: '1px solid rgba(255,255,255,.22)', color: 'var(--muted2)', cursor: 'pointer' }
+                    : { background: '#2997ff', border: 'none', cursor: 'pointer', color: '#fff' }
+                }
               >
                 🔄 Retry
               </button>
+              {/* O formulario guarda o prompt: voltar nao apaga nada e e o
+                  unico caminho que pode mudar o resultado. */}
+              {failureWillRepeat && (
+                <button
+                  onClick={() => {
+                    void trackEvent('failed_edit_text_clicked', {
+                      cause: failureCause,
+                      repeat_count: sameFailureCount,
+                    })
+                    setError(null)
+                    setPhase('idle')
+                  }}
+                  className="rounded-xl px-5 py-2.5 text-sm font-bold mt-2"
+                  style={{ background: '#2997ff', border: 'none', cursor: 'pointer', color: '#fff' }}
+                >
+                  ✏️ Edit my text
+                </button>
+              )}
               {/* Adversarial review 2/2 — the main error card is rendered with
                   `phase !== 'failed'`, so a gate block landing HERE (Retry calls
                   handleGenerate, which can be blocked) showed the dead-end copy
