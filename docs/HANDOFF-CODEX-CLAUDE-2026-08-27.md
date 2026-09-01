@@ -2759,3 +2759,21 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, desconto, cupom, crédito, validade, trial, SKU, promessa, Stripe server/configuração, Supabase schema/dados/configuração, render, motor, cena, voz, legenda, e-mail enviado, outreach ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `eca6224d` ou da ponta posterior. Não reeditar signup resolution, recuperação de senha, limit purchase fit ou Autopilot break-even antes dos gates. Codex alterna a próxima sprint para B2B e mede uma superfície diferente antes de qualquer nova mudança.
+
+## 100. Checkout B2C/B2B — a Stripe passa a separar recusa real de saída silenciosa (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / RECONCILIAÇÃO (Supabase, SELECT somente leitura em 01/09/2026 01:08:26 UTC; contas internas excluídas):** ainda não existia linha em `checkout_payment_failed` nem em `checkout_payment_failure_enriched`. É o baseline anterior à primeira recusa observável; zero evento não significa zero cartões recusados antes desta configuração, porque o endpoint não estava inscrito nesses eventos.
+
+**EVIDÊNCIA DE CONFIGURAÇÃO ANTERIOR (Stripe live, leitura em 01/09/2026 UTC):** o único endpoint ativo `https://www.usekineo.com/api/stripe/webhook` recebia `checkout.session.completed`, `checkout.session.expired`, `customer.subscription.deleted`, `customer.subscription.updated`, `invoice.payment_failed` e `invoice.payment_succeeded`. `payment_intent.payment_failed` e `charge.failed` continuavam ausentes, apesar do suporte já publicado no webhook da aplicação.
+
+**FATO CONFIRMADO / CONTRATO JÁ EM PRODUÇÃO:** `app/api/stripe/webhook/route.ts:1484` usa `payment_intent.payment_failed` como única fonte canônica de `checkout_payment_failed`; `:1536` transforma `charge.failed` em `checkout_payment_failure_enriched`, correlacionado pelo mesmo hash não reversível. Falha de persistência devolve erro retryável à Stripe. `scripts/test-stripe-checkout-failure-truth.mjs` cobre classificação `initial | renewal | unknown`, dedupe, redação e ausência de IDs/mensagens livres. A documentação oficial da Stripe confirma que uma falha de PaymentIntent produz `payment_intent.payment_failed` e que `charge.failed` também é emitido; por isso o segundo evento enriquece, mas não duplica a recusa canônica.
+
+**CONFIGURADO / VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** o endpoint live foi atualizado de seis para oito eventos, preservando os seis anteriores e acrescentando somente `payment_intent.payment_failed` e `charge.failed`. Uma leitura independente imediatamente depois confirmou endpoint `enabled`, mesma URL e os oito eventos exatos. Nenhum preço, produto, Checkout Session, método de pagamento, cliente, cartão ou cobrança foi criado ou alterado.
+
+**MÉTRICA / GATE:** daqui para frente, classificar por pessoa externa: `checkout_started → checkout_payment_failed(stage=initial) → payment_success`. `checkout.session.expired` sem falha inicial observada permanece saída silenciosa; `stage=renewal` é churn involuntário e fica fora da conversão inicial. A primeira recusa real deve provar entrega HTTP 2xx, um único evento canônico e, quando houver Charge, no máximo um enriquecimento com o mesmo `failure_ref`. Não fabricar cartão recusado nem pagamento para criar amostra.
+
+**PARADA / RISCO:** se a Stripe registrar entrega não-2xx, se o mesmo PaymentIntent gerar mais de uma falha canônica na janela de 24 horas, se aparecer ID/mensagem livre ou se evento de renovação entrar como compra inicial, interromper interpretação do funil e tratar como incidente de observabilidade. Até existir evento real, não atribuir abandono a cartão, preço, país ou método.
+
+**NÃO TOCADO:** código, preço, desconto, cupom, crédito, trial, SKU, promessa, métodos dinâmicos, Link, PayPal, checkout visual, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e considerar os dois eventos ativos ao ler o funil. Não criar um segundo evento canônico para `charge.failed` e não chamar Session expirada de recusa. Codex preserva a calculadora Autopilot sem amostra e gira a próxima rodada para B2C em outra superfície.
