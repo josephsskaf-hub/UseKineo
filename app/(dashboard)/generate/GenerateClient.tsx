@@ -6286,6 +6286,11 @@ export default function GenerateClient({
     // primeiro e o evento gravava sempre round 0, escondendo quantas voltas a
     // pessoa realmente deu para conseguir o texto.
     const rodadaDoAceite = expandRoundsRef.current.used
+    // sprint-v1v4 #36 — o texto vive numa const porque as limpezas abaixo
+    // zeram `expandedScript` e ele ainda e necessario depois (evento + a
+    // analise que emenda). Ler o state apos o setter seria ler o valor velho
+    // por sorte, nao por contrato.
+    const aprovado = expandedScript
     expandBaseRef.current = expandedScript
     expandRoundsRef.current = { key: '', used: 0 }
     expandCandidateRef.current = null
@@ -6293,17 +6298,52 @@ export default function GenerateClient({
     setScriptTooShort(null)
     setExpandState(null)
     setError(null)
+    // sprint-v1v4 #36 — o idle CONTINUA aqui de proposito. handleAnalyze
+    // sobrescreve a fase em milissegundos no caminho feliz; mas ela tem
+    // saidas curtas (texto vazio, portao de render ativo) e sem este idle o
+    // pior caso deixaria a tela parada em 'failed' — pior do que era antes.
     setPhase('idle')
     void trackEvent('script_expand_accepted', {
       round: rodadaDoAceite,
       attempt_id: generationAttemptRef.current ?? null,
-      approved_words: expandedScript.split(/\s+/).filter(Boolean).length,
+      approved_words: aprovado.split(/\s+/).filter(Boolean).length,
+      // sprint-v1v4 #36 — true = o aceite emendou na analise sozinho.
+      auto_continued: true,
     })
+    // ═══ sprint-v1v4 #36 — O ACEITE DEIXA DE SER BECO SEM SAIDA ══════════
+    // MEDIDO em producao (01/09, houh70985, cadastro de 30 minutos antes,
+    // vinda do ChatGPT): o guard barrou as 18:00:20, o expansor devolveu o
+    // roteiro cheio as 18:00:26 e ela APROVOU as 18:00:38 — doze segundos.
+    // Ai o produto a devolveu ao formulario em branco (`setPhase('idle')`) e
+    // ela levou mais 89 SEGUNDOS refazendo analisar -> opcoes -> gerar, e
+    // reapareceu em OUTRO motor (saiu em Seedance, voltou em Kineo 1).
+    // Ninguem escolhe trocar de motor no meio de um conserto: ela recomecou
+    // do zero porque a tela pediu isso.
+    //
+    // O irmao desta funcao — acceptAuthoredScript, o aceite de roteiro
+    // ESCRITO — ja terminava em `void handleAnalyze(aceito)` desde o #350.
+    // Duas portas para o mesmo destino, uma delas fechada. Aqui a assimetria
+    // acaba.
+    //
+    // O Contrato C1 continua intacto: analisar NAO renderiza e NAO debita —
+    // para a tela de opcoes, onde a pessoa clica para gerar como sempre. O
+    // que morreu foi o clique de "analisar de novo o texto que voce acabou
+    // de aprovar", que nunca teve resposta possivel alem de sim.
+    void handleAnalyze(aprovado, { afterExpandAccept: true })
   }
 
   async function handleAnalyze(
     overridePrompt?: string,
-    opts?: { fromTopic?: boolean; skipPreview?: boolean; structureFirst?: boolean },
+    opts?: {
+      fromTopic?: boolean
+      skipPreview?: boolean
+      structureFirst?: boolean
+      // sprint-v1v4 #36 — a analise veio do aceite do roteiro completado, nao
+      // de um clique no botao. Existe para SEPARAR no funil quem continuou
+      // sozinho de quem teve de recomecar a mao; sem isto os dois chegam ao
+      // banco como 'manual' e a rodada nao teria juiz.
+      afterExpandAccept?: boolean
+    },
   ) {
     // KINEO-P0A-2026-08-26 — ideia NOVA começa com as rodadas de expansão
     // zeradas. Sem isto, quem esgotou as duas rodadas num roteiro ficaria sem
@@ -6364,7 +6404,11 @@ export default function GenerateClient({
       attempt_id: generationAttemptRef.current,
       mode,
       duration,
-      source: opts?.fromTopic ? 'topic' : 'manual',
+      source: opts?.fromTopic
+        ? 'topic'
+        : opts?.afterExpandAccept
+          ? 'expand_accepted'
+          : 'manual',
       series_continuation: searchParams?.get('series') === '1',
       continuation_source: searchParams?.get('continuation_source') ?? null,
     })
