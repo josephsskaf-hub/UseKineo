@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import { createClient } from '@/lib/supabase/client'
 import PricingCards from '@/components/PricingCards'
+import StickyGenerateBar from '@/components/StickyGenerateBar'
 // KINEO-SPRINT-OFFER-2026-07-14 — PostVideoPaywall import removed. It was the
 // THIRD offer block on the success screen (on top of the Push #099 intro block
 // and UpsellSection), still selling FOUNDING50 + the one-time pack — three
@@ -10023,6 +10024,10 @@ export default function GenerateClient({
   const showBrollPlanning = phase === 'broll_planning'
   const showVisualDirector = phase === 'visual_director'
   const showStep2 = phase === 'options'
+  // KINEO-SPRINT-V1V4-29 — ancora do botao real de gerar da fase `options`.
+  // A barra fixa do rodape existe SOMENTE enquanto esta ancora esta fora de
+  // vista; ver components/StickyGenerateBar.tsx para o numero que a motivou.
+  const optionsGenerateBtnRef = useRef<HTMLButtonElement | null>(null)
   const showRender =
     phase === 'generating' ||
     phase === 'fal_polling' ||
@@ -11672,6 +11677,7 @@ export default function GenerateClient({
                   : `🎬 Cinematic Mode · ${duration}s · ${QUALITY_OPTIONS.find((q) => q.key === quality)?.title} · YouTube Shorts / TikTok (9:16)`}
               </div>
               <button
+                ref={optionsGenerateBtnRef}
                 onClick={handleGenerateGuarded}
                 disabled={isProcessingPhase(phase)}
                 className="rounded-xl px-6 py-3 text-sm font-black flex items-center gap-2"
@@ -11691,6 +11697,37 @@ export default function GenerateClient({
               </button>
             </div>
           </section>
+
+          {/* KINEO-SPRINT-V1V4-29 — o botao acima mora depois do brief inteiro
+              (titulo, resumo, gancho, roteiro completo, ate 9 cenas e o painel
+              de Viral Intelligence). Medido: das 19 pessoas de 1 video que
+              voltaram, clicaram em analisar e nunca geraram, o estado terminal
+              mais comum foi CHEGAR nesta tela — 6 delas. A barra repete o
+              mesmo custo e o MESMO handler enquanto o botao real esta fora de
+              vista, e some sozinha quando ele aparece. */}
+          <StickyGenerateBar
+            anchorRef={optionsGenerateBtnRef}
+            summary={mode === 'fast' ? `Fast \u00b7 ${duration}s` : `Cinematic \u00b7 ${duration}s`}
+            cost={selectedCost}
+            busy={isProcessingPhase(phase)}
+            onGenerate={handleGenerateGuarded}
+            onShown={() => {
+              void trackEvent('options_sticky_generate_shown', {
+                cost: selectedCost,
+                mode,
+                quality,
+                duration,
+              })
+            }}
+            onClick={() => {
+              void trackEvent('options_sticky_generate_clicked', {
+                cost: selectedCost,
+                mode,
+                quality,
+                duration,
+              })
+            }}
+          />
         </>
       )}
 
