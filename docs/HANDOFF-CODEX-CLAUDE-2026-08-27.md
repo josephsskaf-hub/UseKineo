@@ -3534,7 +3534,7 @@ PRÓXIMO DONO:
 
 **COMPARAÇÃO VISUAL:** não aplicável. Nenhuma copy, estilo, layout, ordem, destino ou comportamento de navegação mudou; criar um preview diferente fabricaria uma mudança visual inexistente.
 
-**ESTADO PRÉ-PUSH:** **IMPLEMENTADO / TESTADO LOCALMENTE / AUDITADO COM GO / AINDA NÃO VALIDADO EM PRODUÇÃO.** Depois do deploy, validar SHA, página pública, destino preservado, chunk versionado e runtime; não clicar no CTA nem fabricar evento.
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward até `b672d8fb3cdd57168be982de8bb9ff4ccdea6d59`, contendo o commit funcional `ba3aa9b93ae6dfa60d49e615c8f28ae670c0618c`. O deploy Vercel `dpl_GkxYdpbi7LyNR1sf8sCBpmmnMxr9` chegou a `READY`, target `production`, SHA exato, `aliasError=null` e aliases `www.usekineo.com` e `usekineo.com`. A página pública respondeu HTTP 200 com o deployment correto; o texto `Generate a free Short` e o href canônico com a campanha `earn-angle` permaneceram intactos. O chunk publicado contém `clipping_earn_angle_cta_v1`, `clipping_earn_angle_cta_viewed` e `clipping_earn_angle_cta_clicked`. O scan de runtime desse deployment retornou zero logs `error`/`fatal` na janela de uma hora. Nenhum CTA foi clicado e nenhum evento foi fabricado. **ESTADO ATUAL:** **IMPLEMENTADO / TESTADO LOCALMENTE / AUDITADO COM GO / VALIDADO EM PRODUÇÃO / AGUARDANDO AMOSTRA EXTERNA.**
 
 **PRÓXIMA RODADA DE ASSINATURA, REGISTRADA E NÃO IMPLEMENTADA AQUI:** auditoria independente confirmou uma contradição pública: o checkout é USD-only, enquanto home, JSON-LD e pricing prometem moeda local. A correção de verdade deve atingir as três frases juntas em commit separado, com preview e nova fronteira para coortes expostas a pricing; não misturar com esta instrumentação B2B.
 
