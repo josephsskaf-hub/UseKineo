@@ -10,6 +10,7 @@ import Footer from '@/components/Footer'
 import PhWelcomeBanner from '@/components/PhWelcomeBanner'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
 import LandingViewTracker from '@/components/LandingViewTracker'
+import ResumeStrip from '@/components/ResumeStrip' // KINEO-FAIXA-CONTINUAR-2026-09-01
 import RevealOnScroll from './RevealOnScroll'
 import LiveStatsBand from '@/components/LiveStatsBand'
 import type { WallVideo } from '@/lib/engineWall'
@@ -70,6 +71,8 @@ type Props = {
   initialUser?: { id: string } | null
   initialEmail?: string
   initialIsPro?: boolean
+  // KINEO-FAIXA-CONTINUAR-2026-09-01 — faixa "continue de onde parou".
+  resume?: { title: string; episode: number; videoId: string } | null
   initialAcquisitionSource?: HomeReferralBridgeSource | null
   showWelcomeGoalRouter?: boolean
 }
@@ -807,6 +810,7 @@ export default function KineoLanding({
   showWelcomeGoalRouter = false,
   engineWall = [],
   trending = [],
+  resume = null,
 }: Props & { engineWall?: WallVideo[]; trending?: WallVideo[] }) {
   const isSignedIn = Boolean(initialUser)
   const referralBridge = !isSignedIn && initialAcquisitionSource
@@ -837,6 +841,14 @@ export default function KineoLanding({
       {/* KINEO-PH-WELCOME-2026-08-04 — só renderiza com utm/ref do Product
           Hunt (launch ter 04/08); invisível para o resto do tráfego. */}
       <PhWelcomeBanner />
+
+      {/* KINEO-FAIXA-CONTINUAR-2026-09-01 — so aparece para quem esta LOGADO e ja tem um
+          Short pronto. Visitante anonimo ve a home exatamente como antes.
+          Fica acima de tudo porque a pessoa que volta nao vem comprar:
+          ela vem continuar. */}
+      {resume ? (
+        <ResumeStrip title={resume.title} episode={resume.episode} videoId={resume.videoId} />
+      ) : null}
 
       <div className="progress" aria-hidden="true" />
       <nav aria-label="Main"><div className="wrap nav-in">

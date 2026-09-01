@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import KineoLanding from './KineoLanding'
+import { extractShortTitle } from '@/lib/resumeStrip'
+import type { ResumeStripData } from '@/lib/resumeStrip'
 import { getEngineHero, getTrending } from '@/lib/engineWall'
 import { homeReferralBridgeSource } from '@/lib/growth/homeReferralBridge'
 import { BRAND_ALIASES, BRAND_NAME, BRAND_URL } from '@/lib/brandIdentity'
@@ -90,6 +92,10 @@ export default async function HomePage({
 
   let email = ''
   let isPro = false
+  // KINEO-FAIXA-CONTINUAR-2026-09-01 — quem ja fez um Short e volta ao site cai HOJE nesta
+  // mesma pagina de VENDAS. Medido em 01/09: 29 das 66 pessoas com 1 video
+  // voltaram, 8 acharam o Studio sozinhas, 0 comecaram um segundo video.
+  let resume: ResumeStripData | null = null
   if (user) {
     email = user.email ?? ''
     const { data } = await supabase
@@ -98,6 +104,31 @@ export default async function HomePage({
       .eq('id', user.id)
       .single()
     isPro = data?.is_pro ?? false
+
+    // Duas leituras baratas, SO para logado. Qualquer falha => faixa some
+    // e a home fica exatamente como era (falha invisivel de proposito).
+    try {
+      const { data: ultimos } = await supabase
+        .from('videos')
+        .select('id, topic')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+      const linhas = (ultimos ?? []) as unknown as Array<{ id: string; topic: string | null }>
+      const ultimo = linhas[0]
+      const titulo = extractShortTitle(ultimo?.topic ?? null)
+      if (ultimo && titulo) {
+        const { count } = await supabase
+          .from('videos')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('status', 'completed')
+        resume = { title: titulo, episode: (count ?? 1) + 1, videoId: ultimo.id }
+      }
+    } catch {
+      resume = null
+    }
   }
 
   const [engineWall, trending] = await Promise.all([getEngineHero(), getTrending()])
@@ -124,6 +155,7 @@ export default async function HomePage({
         trending={trending}
         initialEmail={email}
         initialIsPro={isPro}
+        resume={resume}
         initialAcquisitionSource={initialAcquisitionSource}
         showWelcomeGoalRouter={showWelcomeGoalRouter}
       />
