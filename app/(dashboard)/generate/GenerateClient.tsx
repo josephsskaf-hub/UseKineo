@@ -1690,7 +1690,18 @@ export default function GenerateClient({
     | null
     | { kind: 'needs_authoring'; suggestedDuration: number | null; requiredGrowth: number; maxGrowthFactor: number }
     | { kind: 'still_short'; suggestedDuration: number | null; afterSeconds: number }
-    | { kind: 'author_rewrite_rejected'; suggestedDuration: number | null }
+    // sprint-v1v4 #42 — o irmao esquecido do #30. `candidate` e o texto que o
+    // servidor descartou porque o modelo MEXEU em frase da autora. Ele nao e o
+    // roteiro dela terminado: e uma REESCRITA, e chega rotulada com quantas
+    // das frases dela foram mexidas. Vira OFERTA de leitura, nunca render.
+    | {
+        kind: 'author_rewrite_rejected'
+        suggestedDuration: number | null
+        candidate: string | null
+        candidateSeconds: number
+        rewrittenSentences: number
+        authorSentenceCount: number
+      }
     | { kind: 'structure_lost'; suggestedDuration: number | null }
     // sprint-v1v4 #30 — `candidate` e o texto que o servidor descartou por
     // estourar o teto de 2,5x. Ele NAO e o roteiro dela terminado: e um
@@ -6179,6 +6190,17 @@ export default function GenerateClient({
           data?.candidateFits === true
             ? (data.candidate as string)
             : null
+        // sprint-v1v4 #42 — MESMA REGRA, MESMO PORTAO. So se oferece texto que
+        // o guard aceitaria em seguida (`candidateFits`); oferecer um candidato
+        // curto devolveria a pessoa ao mesmo muro, que e o loop das duas
+        // reguas do #349 de volta pela porta dos fundos.
+        const candidatoAR =
+          data.outcome === 'author_rewrite_rejected' &&
+          typeof data?.candidate === 'string' &&
+          data.candidate.trim().length > 0 &&
+          data?.candidateFits === true
+            ? (data.candidate as string)
+            : null
         setExpandState(
           data.outcome === 'growth_limit'
             ? {
@@ -6187,11 +6209,30 @@ export default function GenerateClient({
                 candidate: candidatoGL,
                 candidateSeconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
               }
+            : data.outcome === 'author_rewrite_rejected'
+            ? {
+                kind: 'author_rewrite_rejected' as const,
+                suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+                candidate: candidatoAR,
+                candidateSeconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
+                rewrittenSentences:
+                  typeof data?.rewrittenSentences === 'number' ? data.rewrittenSentences : 0,
+                authorSentenceCount:
+                  typeof data?.authorSentenceCount === 'number' ? data.authorSentenceCount : 0,
+              }
             : {
                 kind: data.outcome,
                 suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
               },
         )
+        if (candidatoAR) {
+          void trackEvent('script_rewrite_candidate_offered', {
+            candidate_seconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
+            target_seconds: scriptTooShort.targetSeconds,
+            rewritten_sentences: typeof data?.rewrittenSentences === 'number' ? data.rewrittenSentences : 0,
+            author_sentences: typeof data?.authorSentenceCount === 'number' ? data.authorSentenceCount : 0,
+          })
+        }
         if (candidatoGL) {
           void trackEvent('script_growth_candidate_offered', {
             candidate_seconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
@@ -6212,6 +6253,16 @@ export default function GenerateClient({
           // de passar de `max_words`, o limite secreto virou limite dito.
           max_words: typeof data?.maxWords === 'number' ? data.maxWords : null,
           candidate_words: typeof data?.candidateWords === 'number' ? data.candidateWords : null,
+          // sprint-v1v4 #42 — sem estes tres campos, `author_rewrite_rejected`
+          // era um veredito sem tamanho: nao dava para saber se o modelo mexeu
+          // em UMA frase de doze ou nas doze. Isso decide se a cura e apertar o
+          // pedido ou afrouxar a comparacao — e nenhuma das duas se escolhe no
+          // escuro.
+          rewritten_sentences:
+            typeof data?.rewrittenSentences === 'number' ? data.rewrittenSentences : null,
+          author_sentences:
+            typeof data?.authorSentenceCount === 'number' ? data.authorSentenceCount : null,
+          candidate_fits: data?.candidateFits === true,
         })
         return
       }
@@ -6222,6 +6273,11 @@ export default function GenerateClient({
         setExpandState({
           kind: 'author_rewrite_rejected',
           suggestedDuration: largestFittingDuration(scriptTooShort.speechSeconds),
+          // 4xx nao classificado nao traz texto nenhum: nao ha o que oferecer.
+          candidate: null,
+          candidateSeconds: 0,
+          rewrittenSentences: 0,
+          authorSentenceCount: 0,
         })
         void trackEvent('script_expand_failed', { http: res.status, reason: 'unclassified', round: rodada })
         return
@@ -12502,7 +12558,24 @@ export default function GenerateClient({
                     ) : expandState.kind === 'still_short' ? (
                       <>We added lines, and it still does not fill the full length.</>
                     ) : expandState.kind === 'author_rewrite_rejected' ? (
-                      <>The writer changed your own sentences instead of adding to them, so we threw its version away and kept yours.</>
+                      expandState.candidate ? (
+                        // sprint-v1v4 #42 — a frase para de terminar em beco, e
+                        // diz o TAMANHO do estrago em vez de so o veredito.
+                        <>
+                          The writer changed{' '}
+                          {expandState.rewrittenSentences > 0 && expandState.authorSentenceCount > 0 ? (
+                            <>
+                              {expandState.rewrittenSentences} of your {expandState.authorSentenceCount} sentences
+                            </>
+                          ) : (
+                            <>some of your own sentences</>
+                          )}{' '}
+                          instead of only adding to them, so we kept yours. Its version does fill the length — about{' '}
+                          {expandState.candidateSeconds}s of narration — but it is a rewrite, not your script finished.
+                        </>
+                      ) : (
+                        <>The writer changed your own sentences instead of adding to them, so we threw its version away and kept yours.</>
+                      )
                     ) : expandState.kind === 'structure_lost' ? (
                       <>The writer dropped part of your script structure (a section header). We kept your original instead of patching it at the bottom.</>
                     ) : expandState.kind === 'growth_limit' ? (
@@ -12579,6 +12652,31 @@ export default function GenerateClient({
                           void trackEvent('script_growth_candidate_opened', {
                             candidate_seconds: segundos,
                             target_seconds: scriptTooShort.targetSeconds,
+                          })
+                          setExpandedIsRewrite(true)
+                          setExpandedScript(texto)
+                          setExpandState(null)
+                        }}
+                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                        style={{ background: '#2997ff', border: 'none' }}
+                      >
+                        Read the writer&apos;s version
+                      </button>
+                    )}
+                    {expandState.kind === 'author_rewrite_rejected' && expandState.candidate && (
+                      // ═══ sprint-v1v4 #42 — A SAIDA QUE FALTAVA DESTE LADO ══
+                      // Mesmo botao, mesmo painel de aprovacao, mesma marca de
+                      // honestidade (`expandedIsRewrite`) do #30. Nada
+                      // renderiza: o texto entra na caixa onde ela LE, edita e
+                      // so entao autoriza. O original dela continua guardado.
+                      <button
+                        onClick={() => {
+                          const texto = expandState.candidate as string
+                          void trackEvent('script_rewrite_candidate_opened', {
+                            candidate_seconds: expandState.candidateSeconds,
+                            target_seconds: scriptTooShort.targetSeconds,
+                            rewritten_sentences: expandState.rewrittenSentences,
+                            author_sentences: expandState.authorSentenceCount,
                           })
                           setExpandedIsRewrite(true)
                           setExpandedScript(texto)

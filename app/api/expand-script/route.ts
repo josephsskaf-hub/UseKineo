@@ -11,6 +11,7 @@ import { parseUserScript } from '@/lib/scriptParser'
 import {
   MAX_GROWTH_FACTOR,
   authorPreserved,
+  authorSentences,
   largestFittingDuration,
   lostDirectives,
   lostMarkers,
@@ -372,7 +373,34 @@ ${original}`
           error: 'The expansion rewrote part of your script instead of adding to it. Your original was left untouched.',
           rewroteAuthor: true,
           before: medida(antes.speech, target),
+          after: medida(depois.speech, target),
           suggestedDuration: largestFittingDuration(antes.speech),
+          // ═══ sprint-v1v4 #42 — O MESMO CONSERTO DO #30, NO IRMAO ESQUECIDO ═
+          //
+          // MEDIDO: suarezgarciakevin6 (vinda do chatgpt.com) bateu AQUI as
+          // 20:12 e as 20:15 de 01/09 — duas recusas em tres minutos, fala de
+          // 20s e depois 23s contra um alvo de 35s. Ela ESTAVA OBEDECENDO:
+          // escreveu mais a cada tentativa. Saiu com ZERO video.
+          //
+          // O que ela via era um beco IDENTICO ao que o #30 fechou do lado do
+          // `growth_limit`: frase vermelha, nenhum botao. Nenhum botao porque
+          // 23s de fala nao enche 35/60/90 — `largestFittingDuration` devolve
+          // null e o unico caminho alternativo da tela nao aparece.
+          //
+          // E ha um agravante que o `growth_limit` nao tem: aqui o texto do
+          // modelo pode ENCHER o alvo e ser jogado fora INTEIRO porque UMA
+          // frase foi mexida. Nunca soubemos se era uma de doze ou doze de
+          // doze — o evento nao carregava o numero. Agora carrega.
+          //
+          // O Contrato C1 NAO afrouxa: este texto continua reprovado como
+          // "o roteiro dela terminado". Ele volta ROTULADO como o que e — uma
+          // REESCRITA, com a contagem de frases mexidas na cara — para ela LER
+          // e decidir. Nada renderiza sozinho, e o original dela fica intacto.
+          candidate: expandido,
+          candidateSeconds: Math.round(depois.speech),
+          candidateFits: depois.ok,
+          rewrittenSentences: preservado.missing.length,
+          authorSentenceCount: authorSentences(falaOriginal).length,
         },
         { status: 422 },
       )
