@@ -1779,6 +1779,10 @@ export default function GenerateClient({
   const [wmUnlocking, setWmUnlocking] = useState(false)
   // KINEO-PAYWALL-VITRINE-2026-08-22 — o paywall pós-vídeo no padrão novo.
   const [showCleanPaywall, setShowCleanPaywall] = useState(false)
+  // KINEO-MEDIR-PAYWALL-2026-09-01 — acao 5 do fundador: o paywall com o filme
+  // da pessoa JA existia; o que faltava era saber quantos o VEEM. Sem este
+  // evento, 'checkout_started' e o unico rastro e nao separa quem nem viu.
+  useEffect(() => { if (showCleanPaywall) void trackEvent('clean_paywall_shown', { placement: 'download' }) }, [showCleanPaywall])
   const [wmUnlockError, setWmUnlockError] = useState<string | null>(null)
   const [watermarkedDownloadConfirmed, setWatermarkedDownloadConfirmed] = useState(false)
   const lastFastRenderRef = useRef<FastRenderInputs | null>(null)
@@ -16122,6 +16126,10 @@ function ShortPackageSection({
   copiedSection: string | null
   onCopy: (key: string, text: string) => void
 }) {
+  // KINEO-MEDIR-REVIEW-2026-09-01 — acao 4: o pedido de review no pico existe
+  // desde 24/08 e teve ZERO cliques em 7 dias. Sem saber se foi VISTO, nao da
+  // para separar 'ninguem chega aqui' de 'ninguem quer'. Uma vez por montagem.
+  useEffect(() => { void trackEvent('review_peak_cta_seen', { placement: 'short_package' }) }, [])
   const hashtagsText = analysis.hashtags.join(' ')
   const scenesText = analysis.scenePlan
     .map((s, i) => `${i + 1}. ${s}`)
