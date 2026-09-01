@@ -297,6 +297,28 @@ ${original}`
           baseSeconds: Math.round(speechBase),
           baseRepaired: baseResolvida.repaired,
           suggestedDuration: largestFittingDuration(antes.speech),
+          // ═══ sprint-v1v4 #30 — O TEXTO DESCARTADO VOLTA COMO OFERTA ═══
+          //
+          // MEDIDO: 13 pessoas bateram na parede de narracao em 14 dias e
+          // TODAS as 13 tinham ZERO video antes dela. 5 nunca fizeram video
+          // nenhum. O caso souzadelima135 (01/09 14:21, vindo do chatgpt.com,
+          // roteiro colado de 21s pedindo 35s) mostra o beco inteiro em 5
+          // segundos de eventos: o expansor disparou sozinho, o modelo
+          // escreveu texto QUE ENCHE o alvo, e nos JOGAMOS FORA por estourar
+          // o teto de 2,5x. Sobrou na tela uma frase ("we kept yours") e
+          // nenhum botao: 21s de fala nao cabe em 35/60/90, entao
+          // largestFittingDuration devolve null e o botao de duracao menor
+          // nem aparece. Ela foi embora com 0 videos.
+          //
+          // O teto de 2,5x NAO muda e o C1 NAO afrouxa: nada disto vira
+          // video sozinho. O que muda e que o candidato para de ser
+          // destruido em silencio e volta ROTULADO como o que ele e — um
+          // roteiro NOVO, nao o dela terminado — para ela LER e decidir.
+          // E exatamente o padrao ja sancionado nesta tela ("Read it before
+          // we render"): olhos humanos antes do render.
+          candidate: expandido,
+          candidateSeconds: Math.round(depois.speech),
+          candidateFits: depois.ok,
         },
         { status: 422 },
       )

@@ -1598,6 +1598,10 @@ export default function GenerateClient({
   } | null>(null)
   /** Texto expandido esperando aprovação. A pessoa LÊ antes de renderizar. */
   const [expandedScript, setExpandedScript] = useState<string | null>(null)
+  // sprint-v1v4 #30 — o painel de aprovacao dizia SEMPRE "suas frases estao
+  // intactas, o resto foi acrescentado". Para o candidato de growth_limit
+  // isso seria mentira: aquele texto e uma REESCRITA. Marca de honestidade.
+  const [expandedIsRewrite, setExpandedIsRewrite] = useState(false)
   const [expanding, setExpanding] = useState(false)
   // ═══ KINEO-350-ESTADOS-DISCRIMINADOS-2026-08-26 (D2) ═══════════════════
   //
@@ -1619,7 +1623,11 @@ export default function GenerateClient({
     | { kind: 'still_short'; suggestedDuration: number | null; afterSeconds: number }
     | { kind: 'author_rewrite_rejected'; suggestedDuration: number | null }
     | { kind: 'structure_lost'; suggestedDuration: number | null }
-    | { kind: 'growth_limit'; suggestedDuration: number | null }
+    // sprint-v1v4 #30 — `candidate` e o texto que o servidor descartou por
+    // estourar o teto de 2,5x. Ele NAO e o roteiro dela terminado: e um
+    // roteiro NOVO. Vem para ca so para virar OFERTA de leitura, nunca
+    // render automatico. null = nao ha o que oferecer (tela de hoje).
+    | { kind: 'growth_limit'; suggestedDuration: number | null; candidate: string | null; candidateSeconds: number }
     // KINEO-351 — `retryOp` diz QUAL operação falhou. O #350 sempre chamava
     // handleExpandScript no "Try again", inclusive quando quem tinha caído era
     // a autoria completa: o botão tentava de novo a coisa errada.
@@ -5904,7 +5912,7 @@ export default function GenerateClient({
       // que o roteiro não enchia bem na hora em que o servidor dizia que enche.
       if (data?.outcome === 'already_fits') {
         setExpandState(null)
-        setExpandedScript(null)
+        setExpandedScript(null); setExpandedIsRewrite(false)
         setScriptTooShort(null)
         setError(null)
         setPhase('idle')
@@ -5921,10 +5929,37 @@ export default function GenerateClient({
         data?.outcome === 'growth_limit' ||
         data?.outcome === 'structure_lost'
       ) {
-        setExpandState({
-          kind: data.outcome,
-          suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
-        })
+        // sprint-v1v4 #30 — so `growth_limit` carrega candidato, e so quando o
+        // servidor confirma que aquele texto ENCHE o alvo (`candidateFits`).
+        // Oferecer texto que o guard recusaria em seguida seria devolver a
+        // pessoa ao mesmo muro — o loop das duas reguas de novo.
+        const candidatoGL =
+          data.outcome === 'growth_limit' &&
+          typeof data?.candidate === 'string' &&
+          data.candidate.trim().length > 0 &&
+          data?.candidateFits === true
+            ? (data.candidate as string)
+            : null
+        setExpandState(
+          data.outcome === 'growth_limit'
+            ? {
+                kind: 'growth_limit',
+                suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+                candidate: candidatoGL,
+                candidateSeconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
+              }
+            : {
+                kind: data.outcome,
+                suggestedDuration: typeof data?.suggestedDuration === 'number' ? data.suggestedDuration : null,
+              },
+        )
+        if (candidatoGL) {
+          void trackEvent('script_growth_candidate_offered', {
+            candidate_seconds: typeof data?.candidateSeconds === 'number' ? data.candidateSeconds : 0,
+            target_seconds: scriptTooShort.targetSeconds,
+            base_seconds: typeof data?.baseSeconds === 'number' ? data.baseSeconds : null,
+          })
+        }
         void trackEvent('script_expand_failed', {
           http: res.status,
           reason: data.outcome,
@@ -6137,7 +6172,7 @@ export default function GenerateClient({
     structuredScriptRef.current = aceito
     setPrompt(aceito)
     setAuthoredScript(null)
-    setExpandedScript(null)
+    setExpandedScript(null); setExpandedIsRewrite(false)
     setExpandState(null)
     setScriptTooShort(null)
     setError(null)
@@ -6200,7 +6235,7 @@ export default function GenerateClient({
     expandBaseRef.current = expandedScript
     expandRoundsRef.current = { key: '', used: 0 }
     expandCandidateRef.current = null
-    setExpandedScript(null)
+    setExpandedScript(null); setExpandedIsRewrite(false)
     setScriptTooShort(null)
     setExpandState(null)
     setError(null)
@@ -12036,7 +12071,16 @@ export default function GenerateClient({
                     ) : expandState.kind === 'structure_lost' ? (
                       <>The writer dropped part of your script structure (a section header). We kept your original instead of patching it at the bottom.</>
                     ) : expandState.kind === 'growth_limit' ? (
-                      <>The writer came back with a whole new script instead of finishing yours. We kept yours.</>
+                      expandState.candidate ? (
+                        // sprint-v1v4 #30 — a frase para de terminar em beco. O
+                        // texto existe, enche a duracao, e ela decide se quer.
+                        <>
+                          The writer came back with a whole new script instead of finishing yours — about{' '}
+                          {expandState.candidateSeconds}s of narration. We kept yours, and we did not render anything.
+                        </>
+                      ) : (
+                        <>The writer came back with a whole new script instead of finishing yours. We kept yours.</>
+                      )
                     ) : expandState.kind === 'auth_required' ? (
                       <>Your session expired. Sign in again and your text is still here.</>
                     ) : (
@@ -12087,6 +12131,30 @@ export default function GenerateClient({
                         {authoring ? 'Writing…' : 'Turn this idea into a full script'}
                       </button>
                     )}
+                    {expandState.kind === 'growth_limit' && expandState.candidate && (
+                      // ═══ sprint-v1v4 #30 — A UNICA SAIDA QUE FALTAVA ═══════
+                      // Nao renderiza nada: carrega o texto no MESMO painel de
+                      // aprovacao que ja existe ("Read it before we render"),
+                      // onde ela le, edita e so entao autoriza. O C1 continua
+                      // inteiro — a IA nunca escreve fala sem ela ver.
+                      <button
+                        onClick={() => {
+                          const texto = expandState.candidate as string
+                          const segundos = expandState.candidateSeconds
+                          void trackEvent('script_growth_candidate_opened', {
+                            candidate_seconds: segundos,
+                            target_seconds: scriptTooShort.targetSeconds,
+                          })
+                          setExpandedIsRewrite(true)
+                          setExpandedScript(texto)
+                          setExpandState(null)
+                        }}
+                        className="rounded-xl px-5 py-2.5 text-sm font-bold text-white"
+                        style={{ background: '#2997ff', border: 'none' }}
+                      >
+                        Read the writer&apos;s version
+                      </button>
+                    )}
                     {expandState.kind !== 'transient_failure' &&
                       expandState.kind !== 'auth_required' &&
                       expandState.suggestedDuration !== null && (
@@ -12107,7 +12175,7 @@ export default function GenerateClient({
                             setDuration(segundos as Duration)
                             setScriptTooShort(null)
                             setExpandState(null)
-                            setExpandedScript(null)
+                            setExpandedScript(null); setExpandedIsRewrite(false)
                             expandCandidateRef.current = null
                             expandRoundsRef.current = { key: '', used: 0 }
                             setError(null)
@@ -12135,7 +12203,7 @@ export default function GenerateClient({
                         }
                         setScriptTooShort(null)
                         setExpandState(null)
-                        setExpandedScript(null)
+                        setExpandedScript(null); setExpandedIsRewrite(false)
                         expandCandidateRef.current = null
                         expandRoundsRef.current = { key: '', used: 0 }
                         setError(null)
@@ -12159,7 +12227,7 @@ export default function GenerateClient({
                       Contrato C1 (ela autoriza) e o que impede um fato
                       inventado de virar vídeo sem ninguém ler. */}
                   <div className="text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'var(--muted2)' }}>
-                    Read it before we render
+                    {expandedIsRewrite ? "The writer's version — read it before we render" : 'Read it before we render'}
                   </div>
                   <textarea
                     value={expandedScript}
@@ -12169,7 +12237,9 @@ export default function GenerateClient({
                     style={{ background: '#0d0d10', border: '1px solid var(--border)', color: 'var(--fg)', lineHeight: 1.6 }}
                   />
                   <div className="text-xs mb-3" style={{ color: 'var(--muted2)', lineHeight: 1.5 }}>
-                    Your original sentences are untouched — everything else was added. Edit anything you disagree with.
+                    {expandedIsRewrite
+                      ? 'This is a new script, not your text finished — the writer rewrote it to fill the length. Yours is still in the box behind this panel. Edit anything you disagree with, or discard it.'
+                      : 'Your original sentences are untouched — everything else was added. Edit anything you disagree with.'}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -12180,7 +12250,7 @@ export default function GenerateClient({
                       Use this script
                     </button>
                     <button
-                      onClick={() => setExpandedScript(null)}
+                      onClick={() => { setExpandedScript(null); setExpandedIsRewrite(false) }}
                       className="rounded-xl px-5 py-2.5 text-sm font-bold"
                       style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted2)' }}
                     >
