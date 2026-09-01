@@ -30,6 +30,7 @@ mkdirSync(sourceDir, { recursive: true })
 const files = [
   ['lib/growth/planFit.ts', 'planFit.ts'],
   ['lib/growth/planFitCheckout.ts', 'planFitCheckout.ts'],
+  ['lib/growth/planFitCtaExposure.ts', 'planFitCtaExposure.ts'],
   ['lib/growth/publicPlanFitHandoff.ts', 'publicPlanFitHandoff.ts'],
   ['lib/checkoutPricing.ts', 'checkoutPricing.ts'],
   ['lib/credits/engineCost.ts', 'engineCost.ts'],
@@ -42,6 +43,7 @@ for (const [source, destination] of files) {
     .replace(/from '@\/lib\/credits\/engineCost'/g, "from './engineCost'")
     .replace(/from '@\/lib\/autopilot\/config'/g, "from './autopilotConfig'")
     .replace(/from '@\/lib\/growth\/planFit'/g, "from './planFit'")
+    .replace(/from '@\/lib\/growth\/planFitCtaExposure'/g, "from './planFitCtaExposure'")
   writeFileSync(join(sourceDir, destination), content)
 }
 
@@ -62,6 +64,7 @@ const planFit = requireFromTemp(join(outDir, 'planFit.js'))
 const pricing = requireFromTemp(join(outDir, 'checkoutPricing.js'))
 const costs = requireFromTemp(join(outDir, 'engineCost.js'))
 const checkout = requireFromTemp(join(outDir, 'planFitCheckout.js'))
+const ctaExposure = requireFromTemp(join(outDir, 'planFitCtaExposure.js'))
 const publicHandoff = requireFromTemp(join(outDir, 'publicPlanFitHandoff.js'))
 
 let total = 0
@@ -80,6 +83,58 @@ check('monthly presets are explicit', JSON.stringify(planFit.MONTHLY_CADENCES) =
 const seedanceFour = planFit.calculatePlanFit({ quality: 'cinematic_ai', seconds: 60, monthlyFilms: 4, currency: 'usd' })
 check('first-delivery default is the smallest honest cadence', planFit.DEFAULT_PLAN_FIT_MONTHLY_FILMS === 1)
 check('direct-win cohort has an explicit version', planFit.PLAN_FIT_OFFER_VERSION === 'plan_fit_direct_win_v3')
+check('CTA denominator has a distinct event', ctaExposure.PLAN_FIT_CTA_VIEW_EVENT === 'plan_fit_checkout_cta_viewed')
+check('CTA requires sixty percent visibility', ctaExposure.PLAN_FIT_CTA_VISIBLE_RATIO === 0.6)
+check('CTA rejects a sliver in view', ctaExposure.isPlanFitCtaVisible({ isIntersecting: true, intersectionRatio: 0.59 }) === false)
+check('CTA rejects a detached target', ctaExposure.isPlanFitCtaVisible({ isIntersecting: false, intersectionRatio: 1 }) === false)
+check('CTA accepts the exact visibility boundary', ctaExposure.isPlanFitCtaVisible({ isIntersecting: true, intersectionRatio: 0.6 }) === true)
+const sharedVerification = ctaExposure.createBooleanSingleFlight()
+let verificationCalls = 0
+let releaseVerification
+const deferredVerification = new Promise((resolve) => { releaseVerification = resolve })
+const firstVerification = sharedVerification.run(() => {
+  verificationCalls += 1
+  return deferredVerification
+})
+const simultaneousVerification = sharedVerification.run(() => {
+  verificationCalls += 1
+  return Promise.resolve(false)
+})
+await Promise.resolve()
+check('simultaneous observers share one verification', verificationCalls === 1 && firstVerification === simultaneousVerification)
+releaseVerification(true)
+check('shared verification resolves identically for both observers', await firstVerification === true && await simultaneousVerification === true)
+check('single-flight releases after completion', await sharedVerification.run(async () => {
+  verificationCalls += 1
+  return true
+}) === true && verificationCalls === 2)
+const failedVerification = ctaExposure.createBooleanSingleFlight()
+let failedVerificationCalls = 0
+check('verification rejection fails closed', await failedVerification.run(async () => {
+  failedVerificationCalls += 1
+  throw new Error('expected test rejection')
+}) === false)
+check('failed verification remains retryable', await failedVerification.run(async () => {
+  failedVerificationCalls += 1
+  return true
+}) === true && failedVerificationCalls === 2)
+const ctaMetadata = ctaExposure.buildPlanFitCtaExposureMetadata({
+  accountCohort: 'trial',
+  sourceEngine: 'cinematic_ai',
+  plannedEngine: 'cinematic_ai',
+  monthlyVideos: 1,
+  monthlyCredits: 25,
+  recommendedTier: 'starter',
+  displayCurrency: 'usd',
+  videoId: 'video-1',
+  offerVersion: planFit.PLAN_FIT_OFFER_VERSION,
+})
+check('CTA metadata states its real measurement unit', ctaMetadata.measurement_unit === 'authenticated_user_first_video_cta')
+check('CTA metadata carries no customer content', JSON.stringify(Object.keys(ctaMetadata).sort()) === JSON.stringify([
+  'account_cohort', 'actor_unit', 'currency_resolved', 'display_currency', 'event_unit',
+  'measurement_unit', 'monthly_credits', 'monthly_videos', 'offer_version', 'planned_engine',
+  'presentation', 'recommended_tier', 'source_engine', 'video_id', 'visible_ratio',
+].sort()))
 
 check('Seedance cost comes from canonical duration cost', seedanceFour.filmCredits === costs.creditCostForDuration('cinematic_ai', true, 60))
 check('monthly credits are exact multiplication', seedanceFour.monthlyCredits === seedanceFour.filmCredits * 4)
@@ -334,9 +389,21 @@ const funnelClient = readFileSync(join(root, 'app/(dashboard)/admin/funnel/Funne
 
 check('viewport uses IntersectionObserver', component.includes('new IntersectionObserver'))
 check('impression threshold is enforced', component.includes('entry.intersectionRatio < IMPRESSION_THRESHOLD'))
+check('checkout CTA has its own observer target', /ref=\{checkoutCtaRef\}[\s\S]{0,180}onClick=\{\(\) => startCheckout\(result\.plan!\.tier\)\}/.test(component))
+check('checkout CTA observer uses the executable visibility rule', component.includes('isPlanFitCtaVisible(entries[0])'))
+check('card and CTA share a single-flight eligibility verifier', (component.match(/await verifyEligibilityShared\(\)/g) ?? []).length === 3 && component.includes('createBooleanSingleFlight()'))
+check('CTA view cannot be recorded after checkout click begins', component.includes('checkoutCtaClickStartedRef.current') && component.indexOf('checkoutCtaClickStartedRef.current = true') < component.indexOf("emit('plan_fit_checkout_clicked'"))
+check('disabled checkout CTA is not counted as an actionable view', component.includes('|| cta.disabled'))
+const ctaObserverStart = component.indexOf('const storageKey = `kineo_plan_fit_checkout_cta_viewed:')
+const ctaEligibilityIndex = component.indexOf('await verifyEligibilityShared()', ctaObserverStart)
+const ctaEventIndex = component.indexOf('PLAN_FIT_CTA_VIEW_EVENT,', ctaEligibilityIndex)
+check('checkout CTA view revalidates first-delivery evidence', ctaObserverStart >= 0 && ctaEligibilityIndex > ctaObserverStart && ctaEventIndex > ctaEligibilityIndex)
+check('checkout CTA rechecks click state after async verification', component.indexOf('checkoutCtaClickStartedRef.current || cta.disabled', ctaEligibilityIndex) > ctaEligibilityIndex && component.indexOf('checkoutCtaClickStartedRef.current || cta.disabled', ctaEligibilityIndex) < ctaEventIndex)
+check('checkout CTA dedupe closes only after accepted analytics', ctaEventIndex >= 0 && component.indexOf("sessionStorage.setItem(storageKey, '1')", ctaEventIndex) > ctaEventIndex)
 check('impression is keyed by current video', component.includes('kineo_plan_fit_impression:${exposureKey}'))
-check('impression revalidates server evidence first', component.indexOf('await verifyEligibility()') < component.indexOf("eventRef.current?.('plan_fit_impression'"))
-check('impression dedupe closes only after accepted event', component.indexOf("eventRef.current?.('plan_fit_impression'") < component.indexOf("sessionStorage.setItem(storageKey, '1')"))
+check('impression revalidates server evidence first', component.indexOf('await verifyEligibilityShared()', ctaEventIndex) < component.indexOf("eventRef.current?.('plan_fit_impression'"))
+const cardImpressionEventIndex = component.indexOf("eventRef.current?.('plan_fit_impression'")
+check('impression dedupe closes only after accepted event', cardImpressionEventIndex >= 0 && component.indexOf("sessionStorage.setItem(storageKey, '1')", cardImpressionEventIndex) > cardImpressionEventIndex)
 check('failed impression remains retryable', component.includes('if (recorded !== true)'))
 check('event actor is authenticated user', component.includes("actor_unit: 'authenticated_user'"))
 check('event unit is first completed video', component.includes("event_unit: 'first_completed_video'"))
@@ -384,7 +451,7 @@ check('lower-cost path changes frequency before checkout', component.includes("'
 check('lower-cost path derives price from canonical formatter', component.includes('priceLabel(result.lowerCostAlternative.plan.tier, currency)'))
 check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
 check('checkout error is visible', component.includes('role="alert"'))
-check('checkout revalidates before protected launch', (component.match(/await verifyEligibility\(\)/g) ?? []).length >= 2)
+check('checkout revalidates before protected launch', component.indexOf('await verifyEligibilityShared()', component.indexOf('async function startCheckout')) < component.indexOf('onCheckout(tier, metadata)'))
 check('analytics reports whether the event was actually stored', analytics.includes('): Promise<boolean>') && analytics.includes('return result?.stored === true'))
 
 check('caller uses dedicated protected launcher', generate.includes("useCheckoutLaunch('generate_plan_fit')"))

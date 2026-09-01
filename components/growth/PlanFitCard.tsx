@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   DEFAULT_PLAN_FIT_MONTHLY_FILMS,
   PLAN_FIT_OFFER_VERSION,
@@ -18,6 +18,13 @@ import {
   type CheckoutTier,
 } from '@/lib/checkoutPricing'
 import { CHECKOUT_PAYMENT_GUIDANCE_COMPACT } from '@/lib/growth/checkoutPaymentGuidance'
+import {
+  PLAN_FIT_CTA_VIEW_EVENT,
+  PLAN_FIT_CTA_VISIBLE_RATIO,
+  buildPlanFitCtaExposureMetadata,
+  createBooleanSingleFlight,
+  isPlanFitCtaVisible,
+} from '@/lib/growth/planFitCtaExposure'
 
 export interface PlanFitCheckoutMetadata {
   account_cohort: Exclude<PlanFitAccountCohort, 'subscriber' | 'unknown'>
@@ -77,15 +84,29 @@ export default function PlanFitCard({
   const [dismissed, setDismissed] = useState(false)
   const [eligibilityPending, setEligibilityPending] = useState(false)
   const cardRef = useRef<HTMLElement | null>(null)
+  const checkoutCtaRef = useRef<HTMLButtonElement | null>(null)
   const impressionSentRef = useRef(false)
   const impressionPendingRef = useRef(false)
+  const checkoutCtaViewSentRef = useRef(false)
+  const checkoutCtaViewPendingRef = useRef(false)
+  const checkoutCtaClickStartedRef = useRef(false)
   const eligibilityPendingRef = useRef(false)
+  const eligibilitySingleFlightRef = useRef<ReturnType<typeof createBooleanSingleFlight> | null>(null)
   const advancedOpenedRef = useRef(false)
   const eventRef = useRef(onEvent)
+
+  if (!eligibilitySingleFlightRef.current) {
+    eligibilitySingleFlightRef.current = createBooleanSingleFlight()
+  }
 
   useEffect(() => {
     eventRef.current = onEvent
   }, [onEvent])
+
+  const verifyEligibilityShared = useCallback(
+    () => eligibilitySingleFlightRef.current!.run(verifyEligibility),
+    [verifyEligibility],
+  )
 
   const probe = useMemo(
     () => calculatePlanFit({ quality, seconds, monthlyFilms: 1, currency }),
@@ -99,6 +120,76 @@ export default function PlanFitCard({
     () => calculatePlanFit({ quality: plannedQuality, seconds, monthlyFilms, currency }),
     [plannedQuality, seconds, monthlyFilms, currency],
   )
+
+  useEffect(() => {
+    const cta = checkoutCtaRef.current
+    const plan = result.plan
+    if (dismissed || !plan || !cta || checkoutCtaViewSentRef.current) return
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const storageKey = `kineo_plan_fit_checkout_cta_viewed:${exposureKey}`
+    const observer = new IntersectionObserver(async (entries) => {
+      if (
+        !isPlanFitCtaVisible(entries[0])
+        || cta.disabled
+        || checkoutCtaClickStartedRef.current
+        || checkoutCtaViewPendingRef.current
+      ) return
+      checkoutCtaViewPendingRef.current = true
+
+      try {
+        if (sessionStorage.getItem(storageKey) === '1') {
+          checkoutCtaViewSentRef.current = true
+          checkoutCtaViewPendingRef.current = false
+          observer.disconnect()
+          return
+        }
+      } catch {
+        // The in-memory latch still protects the uninterrupted browser path.
+      }
+
+      // A second tab may have completed another film after this card mounted.
+      // Re-check the first-delivery contract before creating the CTA denominator.
+      if (!(await verifyEligibilityShared())) {
+        checkoutCtaViewPendingRef.current = false
+        return
+      }
+      // The person may click while the shared verification is in flight. A
+      // click proves exposure by itself; never write a later "view" event that
+      // would invert the causal order in analytics.
+      if (checkoutCtaClickStartedRef.current || cta.disabled) {
+        checkoutCtaViewPendingRef.current = false
+        return
+      }
+
+      const recorded = await eventRef.current?.(
+        PLAN_FIT_CTA_VIEW_EVENT,
+        buildPlanFitCtaExposureMetadata({
+          accountCohort,
+          sourceEngine: quality,
+          plannedEngine: result.quality,
+          monthlyVideos: result.monthlyFilms,
+          monthlyCredits: result.monthlyCredits,
+          recommendedTier: plan.tier,
+          displayCurrency: currency,
+          videoId: exposureKey,
+          offerVersion: PLAN_FIT_OFFER_VERSION,
+        }),
+      )
+      if (recorded !== true) {
+        checkoutCtaViewPendingRef.current = false
+        return
+      }
+
+      checkoutCtaViewSentRef.current = true
+      checkoutCtaViewPendingRef.current = false
+      try { sessionStorage.setItem(storageKey, '1') } catch { /* in-memory latch remains */ }
+      observer.disconnect()
+    }, { threshold: [PLAN_FIT_CTA_VISIBLE_RATIO] })
+
+    observer.observe(cta)
+    return () => observer.disconnect()
+  }, [dismissed, result, accountCohort, quality, currency, exposureKey, verifyEligibilityShared])
 
   useEffect(() => {
     if (dismissed || impressionSentRef.current || !cardRef.current) return
@@ -125,7 +216,7 @@ export default function PlanFitCard({
 
       // Another tab can complete a video without emitting this tab's custom
       // event. Never label an exposure "first delivery" from a stale snapshot.
-      if (!(await verifyEligibility())) {
+      if (!(await verifyEligibilityShared())) {
         impressionPendingRef.current = false
         return
       }
@@ -160,7 +251,7 @@ export default function PlanFitCard({
 
     observer.observe(node)
     return () => observer.disconnect()
-  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, defaultResult.monthlyCredits, defaultResult.plan?.tier, currency, verifyEligibility])
+  }, [dismissed, exposureKey, accountCohort, quality, seconds, probe.filmCredits, defaultResult.monthlyCredits, defaultResult.plan?.tier, currency, verifyEligibilityShared])
 
   if (dismissed) return null
 
@@ -215,6 +306,7 @@ export default function PlanFitCard({
 
   async function startCheckout(tier: CheckoutTier) {
     if (checkoutBusy || eligibilityPendingRef.current) return
+    checkoutCtaClickStartedRef.current = true
     emit('plan_fit_checkout_clicked', {
       source_engine: quality,
       planned_engine: result.quality,
@@ -227,7 +319,7 @@ export default function PlanFitCard({
     })
     eligibilityPendingRef.current = true
     setEligibilityPending(true)
-    const stillEligible = await verifyEligibility()
+    const stillEligible = await verifyEligibilityShared()
     if (!stillEligible) {
       eligibilityPendingRef.current = false
       setEligibilityPending(false)
@@ -325,6 +417,7 @@ export default function PlanFitCard({
                   : 'enough to cover your goal. Secure checkout confirms the price.'}
               </p>
               <button
+                ref={checkoutCtaRef}
                 type="button"
                 onClick={() => startCheckout(result.plan!.tier)}
                 disabled={checkoutBusy}
