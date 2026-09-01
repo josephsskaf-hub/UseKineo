@@ -1601,6 +1601,42 @@ export default function GenerateClient({
   // a pessoa pedia 60, recebia 15, e concluía "produto quebrado" — o corte
   // mudo era indistinguível de defeito.
   const [freeClampNotice, setFreeClampNotice] = useState<{ from: number; to: number } | null>(null)
+
+  // ── sprint-v1v4 #43 — O MURO QUE SE REARMAVA COMO CONVITE ────────────────
+  //
+  // 01/09, `990df449` (externa, veio do chatgpt.com, celular de 551px, JA COM
+  // 2 VIDEOS — exatamente a pessoa que esta sprint existe para levar ao 4o):
+  //   17:40:48  compose 402 `free_fast_limit`  { used: 2, limit: 1 }
+  //   17:43:06  options_sticky_generate_shown  { cost: 0 }   ← "e de graca"
+  //   17:43:12  ela clica Generate de novo
+  //   17:43:23  clips_ready + free_duration_clamped 35s->15s
+  //   17:43:24  compose 402 `free_fast_limit`  IDENTICO
+  // Entre as duas paredes ela ainda abriu /pricing e CANCELOU o checkout duas
+  // vezes. Ou seja: obedeceu o produto em tudo e saiu sem o video 3.
+  //
+  // O defeito nao e a regra (a cota e do Codex e continua intacta no servidor)
+  // — e o fato de o cliente ESQUECER a recusa que acabou de receber. A resposta
+  // 402 traz `outOfCredits: true` e a frase pronta, a tela mostra a frase, e
+  // dois minutos depois o mesmo botao volta a prometer um filme gratis. A
+  // pessoa paga 11 segundos de geracao (roteiro, cenas, clipes) para ouvir o
+  // MESMO nao. Duas vezes.
+  //
+  // Este estado e a memoria curta dessa recusa, e vale so para a aba aberta:
+  // e React state puro, sem localStorage — um F5 apaga. De proposito. Uma
+  // memoria de cliente NUNCA pode ser a autoridade sobre quem pode gerar; ela
+  // so evita a viagem perdida ate um servidor que ja respondeu.
+  //
+  // Tres desarmes, porque prender alguem atras de um palpite do cliente seria
+  // pior que o defeito original:
+  //   (a) credito > 0 (comprou, ganhou, virou o mes) -> some sozinho;
+  //   (b) botao "Try anyway" na propria tarja -> a pessoa manda no produto;
+  //   (c) reload.
+  const [freeLimitWall, setFreeLimitWall] = useState<{
+    message: string
+    resetAt: string | null
+    used: number | null
+    limit: number | null
+  } | null>(null)
   const [finalVideoSeconds, setFinalVideoSeconds] = useState<number | null>(null)
   // KINEO-COMPLETAR-ROTEIRO-2026-08-22 — a recusa por narração curta e a
   // oferta de completar. `null` = não há recusa pendente.
@@ -1817,6 +1853,13 @@ export default function GenerateClient({
   const [fromHome, setFromHome] = useState(false)
   const [showFirstShortNudge, setShowFirstShortNudge] = useState(false) // #379 — new-user onboarding nudge
   const [credits, setCredits] = useState<number | null>(null)
+
+  // sprint-v1v4 #43 — desarme (a). No instante em que existe saldo, a memoria
+  // do muro deixa de ser verdade: quem comprou, ganhou credito do /admin ou
+  // virou a janela tem de poder clicar Generate sem tocar em mais nada.
+  useEffect(() => {
+    if (typeof credits === 'number' && credits > 0) setFreeLimitWall(null)
+  }, [credits])
   const [creditsLoading, setCreditsLoading] = useState(true)
   const [activationAccountStatus, setActivationAccountStatus] = useState<ActivationAccountStatus>('loading')
   const [copiedSection, setCopiedSection] = useState<string | null>(null)
@@ -2530,8 +2573,13 @@ export default function GenerateClient({
               // errada). Mas é um ponto cego real, e ponto cego não se conserta
               // depois: se não medir agora, na próxima investigação ele ainda estará
               // invisível.
+              // sprint-v1v4 #43 — mesmo muro, mesma memoria, mesmo `detail`.
+              armarMuroDoFree(data, 'compose_resume')
               openOutOfCreditsModal('credits')
-              trackGenerationFailure('composing', 'compose_resume_daily_free_limit', { httpStatus: 402 })
+              trackGenerationFailure('composing', 'compose_resume_daily_free_limit', {
+                httpStatus: 402,
+                detail: typeof data?.error === 'string' ? data.error : undefined,
+              })
               setPhase('options')
               return
             }
@@ -5261,8 +5309,21 @@ export default function GenerateClient({
           // the modal leaves the user on their script, not on an error page.
           setError(typeof data?.error === 'string' ? data.error : "You've hit today's free limit.")
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
+          // sprint-v1v4 #43 — lembrar do nao que acabou de chegar.
+          armarMuroDoFree(data, 'compose_dispatch')
           openOutOfCreditsModal('credits')
-          trackGenerationFailure('clips_ready', 'compose_daily_free_limit', { httpStatus: 402 })
+          // sprint-v1v4 #43 — o `detail` que faltava. O irmao logo abaixo
+          // (`compose_not_ok`) passa a mensagem do servidor desde o
+          // KINEO-STAGE-ERROR-DETAIL-2026-08-15; ESTE ramo nunca passou, e por
+          // isso as 36 linhas de `compose_daily_free_limit` chegaram ao banco
+          // com `message: null` / `no_detail:` — o que fez a #17 concluir que a
+          // parede era MUDA. Ela nao era: a frase estava na tela (tarja
+          // vermelha da fase `options`) e era o EVENTO que estava cego. Fica
+          // registrado para ninguem reabrir a investigacao errada.
+          trackGenerationFailure('clips_ready', 'compose_daily_free_limit', {
+            httpStatus: 402,
+            detail: typeof data?.error === 'string' ? data.error : undefined,
+          })
           setPhase('options')
           return
         }
@@ -5286,6 +5347,8 @@ export default function GenerateClient({
           return
         }
 
+        // sprint-v1v4 #43 — o servidor aceitou: a memoria do muro morre aqui.
+        setFreeLimitWall(null)
         const id = typeof data?.render_id === 'string' ? data.render_id : null
         if (!id) {
           try { localStorage.removeItem(activeRenderStorageKey(currentUserIdRef.current)) } catch { /* ignore */ }
@@ -5905,6 +5968,37 @@ export default function GenerateClient({
     httpStatus: number | null,
   ): string {
     return sintetizarCausaCompartilhada(stage, reason, httpStatus)
+  }
+
+  // sprint-v1v4 #43 — arma a memoria do muro a partir da RESPOSTA DO SERVIDOR.
+  // Nunca a partir de contagem local: se o corpo do 402 nao trouxer
+  // `outOfCredits`, nada e armado e o produto se comporta exatamente como
+  // antes. Duvida sempre erra para deixar a pessoa tentar.
+  function armarMuroDoFree(data: Record<string, unknown> | null, origem: string) {
+    if (!data || data.outOfCredits !== true) return
+    const frase = typeof data.error === 'string' && data.error.trim().length > 0
+      ? data.error.trim()
+      : null
+    if (!frase) return
+    const resetAt = typeof data.free_quota_reset_at === 'string' ? data.free_quota_reset_at : null
+    const used = typeof data.used === 'number' ? data.used : null
+    const limit = typeof data.limit === 'number' ? data.limit : null
+    setFreeLimitWall({ message: frase, resetAt, used, limit })
+    try {
+      // A recusa ja e medida no servidor (`compose_refused`). O que faltava era
+      // o lado do CLIENTE: se a frase honesta do servidor chegou mesmo a tela,
+      // e quantos segundos de espera a pessoa pagou para ouvir o nao.
+      void trackEvent('free_limit_wall_shown', {
+        origem,
+        reset_at: resetAt,
+        used,
+        limit,
+        // `true` quando a frase da #17/#35 (a hora da volta) veio junto — o
+        // servidor cala acima de 36h de espera, e entao esta bandeira e false.
+        has_reset_phrase: resetAt !== null,
+        message_length: frase.length,
+      })
+    } catch { /* telemetria nunca derruba a tela */ }
   }
 
   function trackGenerationFailure(
@@ -7590,6 +7684,28 @@ export default function GenerateClient({
     // sprint-v1v4 #33 — toda tentativa nova apaga a sala de espera do credito
     // preso. Sem isto, o painel amarelo sobreviveria a um render bem-sucedido.
     setCreditsHeld(null)
+    // ── sprint-v1v4 #43 — a segunda viagem ate o mesmo nao ─────────────────
+    // O servidor JA respondeu 402 nesta aba. Deixar o clique seguir gasta 11
+    // segundos de roteiro, cenas e clipes para reproduzir uma recusa conhecida
+    // (medido em `990df449`: 17:40:48 e 17:43:24, resposta identica). A regra
+    // continua morando no servidor — isto aqui nao decide quem pode gerar,
+    // apenas evita a espera. Por isso a tela mostra a MESMA frase que o
+    // servidor mandou (nunca uma copy nova minha, nunca preco) e oferece o
+    // escape "Try anyway" logo ao lado.
+    if (freeLimitWall && (credits ?? 0) <= 0) {
+      setError(freeLimitWall.message)
+      try {
+        void trackEvent('free_limit_resubmit_blocked', {
+          reset_at: freeLimitWall.resetAt,
+          used: freeLimitWall.used,
+          limit: freeLimitWall.limit,
+          phase,
+        })
+      } catch { /* telemetria nunca derruba a tela */ }
+      openOutOfCreditsModal('credits')
+      setPhase('options')
+      return
+    }
     if (generationInFlightRef.current || isProcessingPhase(phase)) {
       if (process.env.NODE_ENV === 'development') {
         console.log('[gen] #360 handleGenerate ignored — already in flight', {
@@ -10801,6 +10917,35 @@ export default function GenerateClient({
               screen (setPhase('composing')) without clearing `error`, which
               would have left this button sitting next to a live progress bar
               inviting the user to throw the render away. */}
+          {/* sprint-v1v4 #43 — desarme (b). A memoria do muro e do CLIENTE, e
+              cliente erra: se o saldo mudou noutra aba, se a janela virou, se
+              o servidor mudou de ideia, a pessoa nao pode ficar presa atras de
+              um palpite meu. Este botao apaga a memoria e devolve o proximo
+              clique ao servidor, que continua sendo a unica autoridade. Copy
+              deliberadamente neutra: nada de preco, plano ou oferta. */}
+          {freeLimitWall && (credits ?? 0) <= 0 && !isProcessingPhase(phase) && (
+            <div className="mt-3 flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => {
+                  setFreeLimitWall(null)
+                  setError(null)
+                  try { void trackEvent('free_limit_wall_override', { reset_at: freeLimitWall.resetAt }) } catch { /* ignore */ }
+                }}
+                className="rounded-lg px-3 py-1.5 text-xs font-bold"
+                style={{
+                  background: 'rgba(239,68,68,.15)',
+                  border: '1px solid rgba(239,68,68,.45)',
+                  color: '#fca5a5',
+                }}
+              >
+                Try anyway
+              </button>
+              <span className="text-xs" style={{ color: 'rgba(248,113,113,.75)' }}>
+                Your script stays exactly as it is. Nothing was charged.
+              </span>
+            </div>
+          )}
           {activeRenderGateBlocked && !isProcessingPhase(phase) && (
             <div className="mt-3 flex items-center gap-3 flex-wrap">
               <button
