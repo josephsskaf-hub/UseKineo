@@ -2823,3 +2823,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, pack, desconto, cupom, crédito, trial, SKU, promessa, Stripe, Supabase schema/dados, admin, render, motor, cena, voz, legenda, e-mail, outreach ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `988ef9ff` ou da ponta posterior. Não reeditar o Trust Center antes do gate. Codex alterna a próxima sprint para B2C em outra superfície, preservando OAuth, signup, recuperação de senha, limite, falha de pagamento e oferta pós-vídeo até suas amostras mínimas.
+
+## 103. B2C — a barra mobile anual passa a mostrar o período que será cobrado (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / RECONCILIAÇÃO (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas excluídas):** `limit_purchase_fit_v1` tinha uma pessoa externa exposta e zero cliques; `autopilot_break_even_v1` tinha uma pessoa externa exposta e zero cálculos externos; `pricing_journey_proof_v1` tinha duas pessoas antes da primeira entrega e três depois, abaixo do gate de cinco em cada estado; as ofertas pós-vídeo atuais tinham somente uma pessoa externa por variante. Esses experimentos permanecem congelados. Em sete dias, 15 pessoas externas iniciaram checkout e uma teve `payment_success`; sessão, impressão e clique não foram contados como receita.
+
+**FATO CONFIRMADO / CONTRADIÇÃO NO CALLER:** em `app/pricing/PricingClient.tsx`, o seletor Annual já governava os cards e o parâmetro `billing=annual` enviado ao checkout, mas a barra fixa mobile continuava mostrando os rótulos mensais `Starter $7`, `Creator $15` e `Studio $29`. Assim, a mesma tela podia selecionar cobrança anual, mostrar o total anual nos cards e apresentar números mensais no último botão antes do checkout. O problema estava no caller real, não em preço nem na Stripe.
+
+**HIPÓTESE CAUSAL NOVA:** alinhar o texto do botão fixo ao período já selecionado reduz surpresa e desconfiança no último metro do checkout mobile. A intervenção corrige verdade de interface; não atribui o abandono atual a essa causa sem amostra.
+
+**IMPLEMENTADO:** o commit funcional `b7e5dbe7e0669f8ff112e43f9d01910698296d0f` adiciona o contrato `pricing_mobile_sticky_billing_truth_v1`. No mensal, os três rótulos permanecem inalterados. No anual, a barra usa os mesmos totais canônicos já calculados para os cards: `Starter $70/yr`, `Creator $150/yr` e `Studio $290/yr`. Os botões continuam chamando o launcher de checkout existente; somente o placement `mobile_sticky` foi acrescentado à instrumentação.
+
+**MEDIÇÃO / PRIVACIDADE:** `pricing_mobile_sticky_billing_viewed` exige a barra real com ao menos 60% de interseção, é deduplicado por sessão e período e evita contar o markup oculto no desktop. `pricing_mobile_sticky_checkout_clicked` só é emitido depois que o launcher aceita a tentativa. A telemetria contém somente versão, placement, billing e tier; não contém valor, moeda, e-mail, usuário, sessão ou URL livre.
+
+**GATE / PARADA:** preservar até dez pessoas externas realmente expostas à barra, com pelo menos três exposições anuais. Pagamento real é a métrica final; impressão e clique não são receita. Parar imediatamente por divergência entre rótulo e billing do checkout, overflow/sobreposição em telefone estreito, botão quebrado ou contaminação por desktop.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/PRICING-MOBILE-STICKY-BILLING-TRUTH-V1-2026-09-01.html` mostra antes/depois em 390 px e 320 px. A prévia foi inspecionada no Chrome conectado: os totais anuais permanecem legíveis e, em 320 px, quebram em duas linhas sem sobreposição. A aba e o servidor local foram fechados; o Chrome terminou com zero abas.
+
+**TESTADO LOCALMENTE:** contrato novo 29/29; pricing tier handoff 39/39; atribuição de escolha 26/26; jornada pricing 43/43 — 137 verificações. O typecheck repetiu exatamente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2; nenhum arquivo desta entrega introduziu erro. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `b7e5dbe7e0669f8ff112e43f9d01910698296d0f`. O deploy Vercel `dpl_9bATV7Bnr2QqRTm5NVNirckwWRM2` chegou a `READY`, target production, SHA exato e alias em `www.usekineo.com`. `/pricing` respondeu HTTP 200 pelo deployment novo e apresentou zero erro de runtime na janela de 15 minutos. Nenhum checkout ou pagamento foi iniciado para fabricar amostra.
+
+**NÃO TOCADO:** preço, total anual, desconto, cupom, crédito, validade, trial, SKU, promessa, Stripe server/configuração, método de pagamento, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b7e5dbe7` ou da ponta posterior. Não reeditar a barra mobile, pricing journey, oferta pós-vídeo, limit purchase fit ou Autopilot break-even antes dos respectivos gates. Codex alterna a próxima sprint para B2B em outra superfície.
