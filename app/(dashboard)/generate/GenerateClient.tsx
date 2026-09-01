@@ -1110,7 +1110,7 @@ export default function GenerateClient({
   // #402 — which AI engine the user picked: 'seedance' (AI Generated, 30 cr, all
   // plans) or 'kling' (Cinematic AI, 50 cr — KINEO-PRICING-V3B-2026-07-10).
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' engine added (per-scene routing).
-  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni'>('seedance')
+  const [aiEngine, setAiEngine] = useState<'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'>('seedance')
 
   // KINEO-ENGINE-DEEPLINK-2026-08-15 — o "depois do clique" do padrao
   // Higgsfield: os cards de motor da home aterrissam AQUI com o motor JA
@@ -1123,9 +1123,9 @@ export default function GenerateClient({
       setMode('fast')
       return
     }
-    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni'].includes(engine)) {
+    if (['seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(engine)) {
       setMode('cinematic_ai')
-      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni')
+      setAiEngine(engine as 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -3012,7 +3012,7 @@ export default function GenerateClient({
             // por plano atropelou pra Fast. Default e pra chegada de mao
             // vazia; ?engine= explicito na URL SEMPRE vence.
             const urlEnginePick = (searchParams?.get('engine') ?? '').toLowerCase()
-            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni'].includes(urlEnginePick)
+            const urlPickedEngine = ['fast', 'seedance', 'kling', 'veo', 'sora', 'hollywood', 'h3', 'omni', 's25'].includes(urlEnginePick)
             if (urlPickedEngine) { /* escolha explicita — nao tocar */ }
             else if (fromViralNow) { setMode('fast') }
             else if (trialDefaultsToCreatorEngine) { setMode('cinematic_ai'); setAiEngine('seedance') }
@@ -5040,7 +5040,7 @@ export default function GenerateClient({
             // KINEO-OMNI-2026-08-25 — omni entra na MESMA condição: sem isto o
             // compose não recebe scene_narrations/engines e o filme sai MUDO
             // (o bug exato do #280 no H3, repetido pelo motor novo).
-            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni') && sceneEnginesRef.current.length > 0
+            ...(falUsedRef.current && (falQualityRef.current === 'cinematic_hollywood' || falQualityRef.current === 'cinematic_h3' || falQualityRef.current === 'cinematic_omni' || falQualityRef.current === 'cinematic_s25') && sceneEnginesRef.current.length > 0
               ? {
                   scene_engines: sceneEnginesRef.current,
                   scene_narrations: sceneNarrationsRef.current,
@@ -6543,7 +6543,7 @@ export default function GenerateClient({
     // genérico — o defeito descrito no comentário logo acima, que já custou
     // caro uma vez. O motor novo herda a proteção junto com o resto do
     // Contrato, que é o motivo inteiro de ele entrar por esta estrada.
-    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni')
+    const isHollywoodRaw = mode === 'cinematic_ai' && (aiEngine === 'hollywood' || aiEngine === 'h3' || aiEngine === 'omni' || aiEngine === 's25')
     const needsStructuring = isHollywoodRaw
       ? false
       : scriptMode === 'ai' && (opts?.structureFirst === true || !opts?.skipPreview)
@@ -7228,8 +7228,8 @@ export default function GenerateClient({
     const uEng = (searchParams?.get('engine') ?? '').toLowerCase()
     if (uEng === 'fast' && mode !== 'fast') { setMode('fast'); return }
     if (['seedance', 'kling', 'veo', 'hollywood'].includes(uEng)) {
-      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'); return }
-      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'); return }
+      if (mode !== 'cinematic_ai') { setMode('cinematic_ai'); setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
+      if (aiEngine !== uEng) { setAiEngine(uEng as 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'); return }
     }
     const uDur = Number(searchParams?.get('duration') ?? '')
     if ((uDur === 35 || uDur === 45 || uDur === 60 || uDur === 90) && duration !== uDur) { setDuration(uDur); return }
@@ -7948,7 +7948,7 @@ export default function GenerateClient({
         // buraco do #279 com o h3): a coerção jogava o omni em 'cinematic_ai',
         // o compose cobrava 20 em vez de 150 e — pior — NÃO ligava o
         // muteClipAudio: o áudio nativo do Omni tocaria por cima da narração.
-        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_omni' ? 'cinematic_omni' : 'cinematic_ai'
+        falQualityRef.current = data.quality === 'cinematic_kling' ? 'cinematic_kling' : data.quality === 'cinematic_veo' ? 'cinematic_veo' : data.quality === 'cinematic_sora' ? 'cinematic_sora' : data.quality === 'cinematic_hollywood' ? 'cinematic_hollywood' : data.quality === 'cinematic_h3' ? 'cinematic_h3' : data.quality === 'cinematic_omni' ? 'cinematic_omni' : data.quality === 'cinematic_s25' ? 'cinematic_s25' : 'cinematic_ai'
         // KINEO-HOLLYWOOD-2026-07-09 — per-scene metadata (empty arrays for
         // every non-hollywood engine, which keeps the classic behavior).
         falModelsRef.current = Array.isArray(data.fal_models) ? data.fal_models.filter((m: unknown): m is string => typeof m === 'string') : []
@@ -7987,6 +7987,7 @@ export default function GenerateClient({
           falQualityRef.current !== 'cinematic_hollywood' &&
           falQualityRef.current !== 'cinematic_h3' &&
           falQualityRef.current !== 'cinematic_omni' &&
+          falQualityRef.current !== 'cinematic_s25' && // KINEO-S25: estrada hollywood, cache de trilha unica nao se aplica
           !myVoiceUrl && !useClonedVoice
         if (prewarmUsesSingleTrackCache && typeof data.voiceover_script === 'string' && typeof data.speed === 'number') {
           void fetch('/api/prewarm-voiceover', {
@@ -9683,6 +9684,8 @@ export default function GenerateClient({
                   // credits" num filme de 150 (visto no 1º render, 25/08).
                   : aiEngine === 'omni'
                     ? 'cinematic_omni'
+                  : aiEngine === 's25'
+                    ? 'cinematic_s25'
                     : 'cinematic_ai',
         isPaidAccount,
         duration,
@@ -9719,6 +9722,7 @@ export default function GenerateClient({
         : aiEngine === 'sora' ? 'cinematic_sora'
         : aiEngine === 'hollywood' ? 'cinematic_hollywood'
         : aiEngine === 'h3' ? 'cinematic_h3' : aiEngine === 'omni' ? 'cinematic_omni'
+        : aiEngine === 's25' ? 'cinematic_s25'
         : 'cinematic_ai'
       return creditCostForDuration(q, isPaidAccount, d)
     }
@@ -16441,8 +16445,8 @@ function ModeSelector({
   credits: number | null
   freeAiUsed: boolean | null
   // KINEO-HOLLYWOOD-2026-07-09 — 'hollywood' added.
-  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni'
-  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni') => void
+  aiEngine: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25'
+  setAiEngine: (e: 'seedance' | 'kling' | 'veo' | 'sora' | 'hollywood' | 'h3' | 'omni' | 's25') => void
   isStarter: boolean
   isCreator: boolean
   isStudio: boolean
@@ -16527,6 +16531,7 @@ function ModeSelector({
     hollywood: 'cinematic_hollywood',
     h3: 'cinematic_h3',
     omni: 'cinematic_omni',
+    s25: 'cinematic_s25',
   }
   // A MESMA função que o servidor usa para cobrar — nunca uma tabela local.
   // (a lição do "Generate · 20 credits" que debitava 30).

@@ -41,6 +41,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
   hollywood: 'cinematic_hollywood',
   h3: 'cinematic_h3',
   omni: 'cinematic_omni', // KINEO-OMNI-2026-08-25
+  s25: 'cinematic_s25', // KINEO-S25-2026-09-01
   avatar: 'avatar',
   presenter: 'presenter',
 }
@@ -51,7 +52,7 @@ const ENGINE_QUALITY: Record<string, Quality> = {
 // para a mesma decisão, e é o mesmo defeito estrutural do dia: a mesma verdade
 // morando em dois lugares. Unificar os dois fica no backlog; hoje o conserto é
 // o motor existir nos dois.
-type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni'
+type EngineKey = 'fast' | 'seedance' | 'kling' | 'veo' | 'hollywood' | 'h3' | 'omni' | 's25'
 
 // KINEO-STUDIO-SPECS-2026-08-17 (fundador: 'so 1080p — as pessoas nao
 // precisam saber a quantidade de clips'): a ficha tecnica interna
@@ -89,6 +90,10 @@ const ENGINES: {
   // e sai do card se o ranking mudar. Sem preview ainda — entra depois do
   // render de validação (vitrine com clipe de outro motor quebraria o selo).
   { key: 'omni', icon: 'OF', name: 'Omni Flash', tag: 'New · #1 ranked', desc: 'Google’s Gemini Omni Flash — #1 video model, Aug 2026 arena', res: '720p', credits: `${creditCostFor('cinematic_omni', true)} cr`, supportsRef: true },
+  // KINEO-S25-CARD-2026-09-01 — Seedance 2.5, visivel SO para contas internas
+  // (flag `internal` do /api/me/credits) ate os 4 carimbos do canario. Nunca
+  // mostrar botao que o publico nao pode apertar — a licao do Seedance 2.0.
+  { key: 's25', icon: 'S2', name: 'Seedance 2.5', tag: 'Internal test', desc: 'ByteDance’s newest engine — 480p + HD Enhance master', res: '480p→HD', credits: `${creditCostFor('cinematic_s25', true)} cr`, supportsRef: true },
 ]
 
 // KINEO-CEO-HOUR-2026-08-17 (#3) — 'Surprise me': mata a paralisia da pagina
@@ -146,11 +151,13 @@ export default function StudioClient() {
   // tiers; Presenter até 60s; Veo e Avatar só em 35s; Kling 3 em NENHUM.
   // Saber o saldo aqui permite dizer a verdade ANTES do clique.
   const [balance, setBalance] = useState<number | null>(null)
+  // KINEO-S25-CARD-2026-09-01 — so a casa ve o card do 2.5 durante o canario.
+  const [internal, setInternal] = useState(false)
   useEffect(() => {
     let alive = true
     fetch('/api/me/credits', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits) })
+      .then((d) => { if (alive && typeof d?.credits === 'number') setBalance(d.credits); if (alive && d?.internal === true) setInternal(true) })
       .catch(() => {}) // saldo é enfeite: falhou, a tela segue como antes
     return () => { alive = false }
   }, [])
@@ -217,7 +224,7 @@ export default function StudioClient() {
   useEffect(() => {
     const sp = new URLSearchParams(searchSignature)
     const e = sp.get('engine')
-    if (e && ENGINES.some((x) => x.key === e)) setEngine(e as EngineKey)
+    if (e && ENGINES.some((x) => x.key === e) && (e !== 's25')) setEngine(e as EngineKey)
     const p = sp.get('prompt')
     if (p) setPrompt(p)
     const requestedScriptMode = sp.get('script_mode')
@@ -353,7 +360,7 @@ export default function StudioClient() {
             </button>
             {pickerOpen && (
               <div className="picker">
-                {ENGINES.map((e) => (
+                {ENGINES.filter((e) => e.key !== 's25' || internal).map((e) => (
                   <button key={e.key} type="button" className={`pk${e.key === engine ? ' on' : ''}`}
                     onClick={() => { setEngine(e.key); setPickerOpen(false) }}>
                     <span className="eng-ic" aria-hidden="true">{e.icon}</span>
