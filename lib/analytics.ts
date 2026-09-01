@@ -429,19 +429,19 @@ export function trackSignupSource(): void {
   }
 }
 
-export async function trackEvent(
+export type BrowserEventPersistence = 'stored' | 'not_stored' | 'ambiguous'
+
+async function persistBrowserEvent(
   event_name: string,
-  metadata?: Record<string, unknown>,
+  metadata: Record<string, unknown>,
   path?: string,
-): Promise<boolean> {
+): Promise<BrowserEventPersistence> {
   try {
-    captureUtmsOnce()
-    captureSourceOnce() // KINEO-SOURCE-TRACK-2026-07-06 — first-touch acquisition source
     const body = JSON.stringify({
       event_name,
       // keep `name` for backward compat with Push #060 server logic
       name: event_name,
-      metadata: { ...storedUtms(), ...(metadata ?? {}) },
+      metadata,
       path: path ?? (typeof window !== 'undefined' ? window.location?.pathname : undefined),
       session_id: eventSessionId(),
     })
@@ -451,11 +451,40 @@ export async function trackEvent(
       body,
       keepalive: true,
     })
-    if (!response.ok) return false
+    if (!response.ok) return 'ambiguous'
     const result = await response.json().catch(() => null) as { stored?: unknown } | null
-    return result?.stored === true
+    if (result?.stored === true) return 'stored'
+    if (result?.stored === false) return 'not_stored'
+    return 'ambiguous'
   } catch {
     // silent — analytics must never break the calling page
+    return 'ambiguous'
+  }
+}
+
+export async function trackEvent(
+  event_name: string,
+  metadata?: Record<string, unknown>,
+  path?: string,
+): Promise<boolean> {
+  try {
+    captureUtmsOnce()
+    captureSourceOnce() // KINEO-SOURCE-TRACK-2026-07-06 — first-touch acquisition source
+    return (await persistBrowserEvent(event_name, { ...storedUtms(), ...(metadata ?? {}) }, path)) === 'stored'
+  } catch {
     return false
   }
+}
+
+/**
+ * Persists an event with exactly the metadata supplied by its caller. Use only
+ * for privacy-bounded contracts whose payload must not inherit free-form UTM
+ * values captured from the address bar.
+ */
+export async function trackClosedEvent(
+  event_name: string,
+  metadata: Record<string, unknown>,
+  path?: string,
+): Promise<BrowserEventPersistence> {
+  return persistBrowserEvent(event_name, metadata, path)
 }

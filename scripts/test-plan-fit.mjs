@@ -452,7 +452,10 @@ check('lower-cost path derives price from canonical formatter', component.includ
 check('pending disables checkout', component.includes('disabled={checkoutBusy}'))
 check('checkout error is visible', component.includes('role="alert"'))
 check('checkout revalidates before protected launch', component.indexOf('await verifyEligibilityShared()', component.indexOf('async function startCheckout')) < component.indexOf('onCheckout(tier, metadata)'))
-check('analytics reports whether the event was actually stored', analytics.includes('): Promise<boolean>') && analytics.includes('return result?.stored === true'))
+// B2C #134 split the transport result into stored/not_stored/ambiguous so a
+// lost response cannot be retried into a duplicate event. Public trackEvent
+// still returns boolean; the anchor now verifies that only `stored` maps true.
+check('analytics reports whether the event was actually stored', analytics.includes('): Promise<boolean>') && analytics.includes("=== 'stored'"))
 
 check('caller uses dedicated protected launcher', generate.includes("useCheckoutLaunch('generate_plan_fit')"))
 check('caller launches through protected hook', generate.includes('planFitCheckout.launch('))

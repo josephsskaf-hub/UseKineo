@@ -14,7 +14,13 @@ import StickyGenerateBar from '@/components/StickyGenerateBar'
 // surface now. The component file stays in place, unused (same pattern as
 // AvatarPaywallModal below).
 import { trackCheckoutClick } from '@/lib/trackClick'
-import { trackEvent, trackSignupSource } from '@/lib/analytics'
+import { trackClosedEvent, trackEvent, trackSignupSource } from '@/lib/analytics'
+import {
+  createCrossTabResultVideoEmitter,
+  createResultVideoValueSampler,
+  RESULT_VIDEO_VALUE_SAMPLED_EVENT,
+  type ResultVideoValueContext,
+} from '@/lib/growth/resultVideoValueSample'
 
 // ═══ KINEO-REDE-OSCILA-2026-08-28 — o LÍDER de falhas era o wifi do cliente ═
 //
@@ -4527,6 +4533,96 @@ export default function GenerateClient({
     recentVideos,
     currentVideoId: publicVideoId,
   })
+  // B2C #134 — `video_ready_viewed` proves only that the success screen was
+  // visible. It does not prove the person sampled the delivered result. Count
+  // five cumulative seconds of real, visible playback before judging whether
+  // an offer was shown before value was perceived. No player or offer behavior
+  // changes; this is an invisible measurement gate.
+  const resultVideoValueContextRef = useRef<ResultVideoValueContext>({
+    attemptId: generationAttemptRef.current ?? '',
+    quality: planFitNormalizedQuality,
+    durationSeconds: finalVideoSeconds ?? duration,
+    firstDeliveryStatus: planFitFirstDelivery
+      ? 'confirmed'
+      : historyCheckedForVideoId === publicVideoId && videoHistoryReliable
+        ? 'not_confirmed'
+        : 'unresolved',
+  })
+  resultVideoValueContextRef.current = {
+    attemptId: generationAttemptRef.current ?? '',
+    quality: planFitNormalizedQuality,
+    durationSeconds: finalVideoSeconds ?? duration,
+    firstDeliveryStatus: planFitFirstDelivery
+      ? 'confirmed'
+      : historyCheckedForVideoId === publicVideoId && videoHistoryReliable
+        ? 'not_confirmed'
+        : 'unresolved',
+  }
+  useEffect(() => {
+    if (phase !== 'done' || !finalVideoUrl) return
+    const el = videoRef.current
+    const attemptId = generationAttemptRef.current
+    if (!el || !attemptId) return
+
+    const lockManager = typeof navigator !== 'undefined' ? navigator.locks : undefined
+    const emitValueSample = createCrossTabResultVideoEmitter({
+      attemptId,
+      requestLock: lockManager
+        ? async (name, callback) => {
+            const result = await lockManager.request(name, async () => await callback())
+            return result === true
+          }
+        : undefined,
+      readLatch: (key) => localStorage.getItem(key),
+      writeLatch: (key, value) => localStorage.setItem(key, value),
+      removeLatch: (key) => localStorage.removeItem(key),
+      emit: (metadata) => trackClosedEvent(RESULT_VIDEO_VALUE_SAMPLED_EVENT, metadata),
+    })
+    const sampler = createResultVideoValueSampler({
+      attemptId,
+      initialVisible: document.visibilityState === 'visible',
+      context: () => resultVideoValueContextRef.current,
+      emit: emitValueSample,
+    })
+    const onPlaying = () => sampler.playing(el.currentTime)
+    const onTimeUpdate = () => sampler.progress(el.currentTime)
+    const onPause = () => sampler.pause()
+    const onWaiting = () => sampler.waiting()
+    const onSeeking = () => sampler.waiting()
+    const onSeeked = () => {
+      if (!el.paused && !el.ended && !el.seeking && el.readyState >= 3) {
+        sampler.playing(el.currentTime)
+      }
+    }
+    const onEnded = () => sampler.ended()
+    const onVisibility = () => sampler.visibility(document.visibilityState === 'visible', el.currentTime)
+
+    el.addEventListener('playing', onPlaying)
+    el.addEventListener('timeupdate', onTimeUpdate)
+    el.addEventListener('pause', onPause)
+    el.addEventListener('waiting', onWaiting)
+    el.addEventListener('stalled', onWaiting)
+    el.addEventListener('seeking', onSeeking)
+    el.addEventListener('seeked', onSeeked)
+    el.addEventListener('ended', onEnded)
+    document.addEventListener('visibilitychange', onVisibility)
+    // paused=false can precede the first decoded frame while autoplay is
+    // pending. Bootstrap only with future data; otherwise `playing` starts it.
+    if (!el.paused && !el.ended && !el.seeking && el.readyState >= 3) sampler.playing(el.currentTime)
+
+    return () => {
+      sampler.destroy()
+      el.removeEventListener('playing', onPlaying)
+      el.removeEventListener('timeupdate', onTimeUpdate)
+      el.removeEventListener('pause', onPause)
+      el.removeEventListener('waiting', onWaiting)
+      el.removeEventListener('stalled', onWaiting)
+      el.removeEventListener('seeking', onSeeking)
+      el.removeEventListener('seeked', onSeeked)
+      el.removeEventListener('ended', onEnded)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [phase, finalVideoUrl])
   const planFitOfferCandidate =
     phase === 'done' &&
     Boolean(finalVideoUrl) &&
