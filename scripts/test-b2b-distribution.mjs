@@ -24,10 +24,12 @@ vm.runInNewContext(compiled, {
 }, { filename: 'lib/agencyDistribution.ts' })
 const distribution = moduleBox.exports
 
-// Text-to-video is the eleventh bridge because its current organic surface has
-// measured traffic and completed input actions; the previous ten remain.
-equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 11, 'eleven evidence-backed bridges are enabled')
-for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine', 'text_to_video']) {
+// Round 122 adds one bounded HeyGen comparison entry. This assertion used
+// to lock the historical count at eleven; keeping that number would reject the
+// intentional attribution path without testing its actual
+// contract. The full exact allowlist below remains the stronger invariant.
+equal(distribution.AGENCY_DISTRIBUTION_ENTRIES.length, 12, 'twelve evidence-backed bridges are enabled')
+for (const entry of ['home', 'state_report', 'cost_page', 'pricing', 'comment_tool', 'product_tool', 'content_plan', 'real_estate', 'client_brief', 'kineo1_engine', 'text_to_video', 'heygen_alternative']) {
   const href = distribution.agencyPacksHref(entry)
   equal(href, `/ai-shorts-for-agencies?entry=${entry}#agency-pack-heading`, `${entry} has an exact first-party path`)
   check(!href.includes('utm_'), `${entry} cannot overwrite original acquisition attribution`)

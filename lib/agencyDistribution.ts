@@ -10,6 +10,7 @@ export const AGENCY_DISTRIBUTION_ENTRIES = [
   'client_brief',
   'kineo1_engine',
   'text_to_video',
+  'heygen_alternative',
 ] as const
 
 export type AgencyDistributionEntry = (typeof AGENCY_DISTRIBUTION_ENTRIES)[number]

@@ -24,6 +24,8 @@ import { getFreeTierOffer, swapFreeTierCopy as ft, TRIAL_GRANT_CREDITS_COPY } fr
 // duas mudanças de tabela ($4.90 → $9.90 → $7) e continuou mentindo aqui
 // depois de já estar certo no checkout. Agora é DERIVADO de TIER_PRICES.
 import { STARTER_MO, STARTER_MONTH } from '@/lib/marketingPrice'
+import { isEnterpriseAlternativeCompetitor } from '@/lib/growth/enterpriseAlternativeBusinessPath'
+import EnterpriseAlternativeBusinessPath from './EnterpriseAlternativeBusinessPath'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -1132,6 +1134,10 @@ export default function AlternativePage({ params }: { params: { competitor: stri
           <h2 style={{ fontSize: '1.1rem', fontWeight: 900, margin: '0 0 8px' }}>Which one should you pick?</h2>
           <p style={{ margin: 0, color: '#86868b', lineHeight: 1.6, fontSize: '0.95rem' }}>{currentKineoOffer(c.pickThem)}</p>
         </section>
+
+        {isEnterpriseAlternativeCompetitor(params.competitor) && (
+          <EnterpriseAlternativeBusinessPath competitor={params.competitor} />
+        )}
 
         {/* How it works */}
         <section style={{ marginTop: 40 }}>
