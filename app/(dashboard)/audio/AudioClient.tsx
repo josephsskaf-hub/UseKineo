@@ -12,7 +12,9 @@ import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-PO
 type AudioModelKey = 'eleven' | 'minimax' | 'dia' | 'kokoro'
 
 const AUDIO_ENGINES: { key: AudioModelKey; icon: string; name: string; tag?: string; desc: string; perK: number; voices: { id: string; label: string }[] }[] = [
-  { key: 'minimax', icon: 'M', name: 'MiniMax Speech HD', tag: 'Popular', desc: 'High-fidelity narration voice', perK: 2, voices: [] },
+  // KINEO-MOTORES-D1-2026-09-01 — selo honesto: o motor por trás virou o
+  // Speech-2.8 HD (topo do Speech Arena), então o nome na tela diz 2.8.
+  { key: 'minimax', icon: 'M', name: 'MiniMax 2.8 HD', tag: 'New', desc: 'Top-ranked narration voice (Speech Arena #1 tier)', perK: 2, voices: [] },
   {
     key: 'eleven', icon: '11', name: 'Eleven v3', tag: 'Studio', desc: 'Emotion control — (laughs), (whispers)', perK: 2,
     voices: [
