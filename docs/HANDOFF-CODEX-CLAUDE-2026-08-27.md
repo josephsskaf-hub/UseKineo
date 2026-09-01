@@ -3075,3 +3075,25 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** código de runtime, interface, preço, desconto, cupom, crédito, trial, SKU, promessa, Stripe Session/webhook/configuração, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir do SHA desta documentação ou da ponta posterior. Não reeditar checkout, Plan Fit, pricing journey proof, WelcomeOfferModal, top-up ou resume antes de seus gates. A próxima rodada do Codex alterna para B2B em uma superfície distinta, mantendo assinatura real como placar comum do board.
+
+## 114. B2B — texto enviado vira uma porta secundária para lotes de clientes (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / RECONCILIAÇÃO (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas excluídas):** nos sete dias observados, `/text-to-video-shorts` registrou 22 sessões anônimas distintas iniciadas na página, 14 sessões com clique no CTA orgânico e 13 sessões com texto enviado. Sessão anônima não foi chamada de pessoa. Nenhuma dessas sessões viu ou clicou uma ponte B2B porque a superfície ainda não possuía uma. As variantes B2B `agency_volume_bridge_visibility_v1`, `autopilot_break_even_v1`, `pricing_business_path` e o recrutamento público de afiliados permaneciam abaixo de seus gates e não foram reeditadas.
+
+**HIPÓTESE CAUSAL NOVA / ANTI-DUPLICAÇÃO:** quem já trouxe um roteiro e viu uma saída real pode também produzir para clientes, mas o caminho anterior terminava na educação B2C. Uma ponte secundária depois da prova, sem disputar o formulário principal, pode transformar intenção já ativada em descoberta de lotes para agência, freelancer ou empresa. Não foi criada outra landing page, oferta, preço ou checkout.
+
+**IMPLEMENTADO:** o commit funcional `bf49c9f982869559ad7d23d984da76103b469fbc` adiciona a entrada allow-listed `text_to_video` ao componente B2B já medido. O card aparece uma única vez depois de `#real-output` e antes de `How text becomes a Short`, com destino exato `/ai-shorts-for-agencies?entry=text_to_video#agency-pack-heading`. O formulário, seu CTA, seu fluxo gratuito e a aquisição orgânica existente permanecem intactos. A implementação reaproveita a Server Component da página e a pequena ilha cliente de telemetria já existente; não acrescenta estado, efeito, listener ou request.
+
+**CADEIA OBRIGATÓRIA ATÉ ASSINATURA:** curto prazo = uma sessão qualificada que enviou texto descobre o caminho de lote e chega à página de agência; médio prazo = a mesma pessoa escolhe pack ou plano, inicia checkout e apresenta `payment_success`; longo prazo = a empresa que comprova volume migra para Studio/Autopilot recorrente, renova ou indica outra empresa. Visualização, clique, lote visto e Checkout Session não são receita.
+
+**MEDIÇÃO / GATE:** preservar `entry=text_to_video` até 20 sessões anônimas distintas realmente expostas à ponte. Sinal inicial: pelo menos duas sessões distintas clicam e uma chega à seleção de pack ou pricing; `payment_success` e assinatura vinculada são o resultado final. Parar com 20 exposições e zero clique, com queda material da taxa de envio de texto, com entrada/UTM incorreta, destino quebrado, card acima da prova ou qualquer divergência comercial. Pessoas identificadas e sessões anônimas permanecem contagens separadas.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/TEXT-TO-VIDEO-B2B-BRIDGE-2026-09-01.html` contém antes/depois desktop e mobile, incluindo um modo `#mobile` para inspeção direta. O Chrome conectado confirmou os quatro quadros, o card subordinado à prova real e ausência de overflow em desktop e mobile. A aba e o servidor temporários foram fechados; somente a aba Stripe já pendente permaneceu aberta.
+
+**TESTADO LOCALMENTE:** distribuição B2B 81/81; atribuição da ponte 67/67; roteador de intenção text-to-video 47/47; contrato público de criação 64/64 — 259 verificações. O typecheck repetiu exatamente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2; nenhum erro novo. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `bf49c9f982869559ad7d23d984da76103b469fbc`. O deploy Vercel `dpl_9sUQA4jGz97uhhMXjA7Z474bEtqC` chegou a `READY`, target production, SHA exato e alias em `www.usekineo.com`. No Chrome, a rota canônica confirmou o card entre os nós reais `#real-output` e `How text becomes a Short`, href exato, zero overflow e console vazio. A Vercel encontrou zero erro de runtime da rota em 30 minutos. Nenhum CTA, pack, checkout ou pagamento foi acionado no canário.
+
+**NÃO TOCADO:** preço, plano, desconto, cupom, crédito, trial, SKU, promessa, formulário orgânico, checkout, Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `bf49c9f9` ou da ponta posterior. Não reeditar esta ponte nem as variantes B2B preservadas antes de seus gates. A próxima rodada do Codex volta a B2C em superfície distinta, com assinatura real como placar final.
