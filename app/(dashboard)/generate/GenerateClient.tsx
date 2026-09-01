@@ -9096,7 +9096,15 @@ export default function GenerateClient({
   // O que NAO acontece aqui: nenhum render novo comeca. Com um render em voo o
   // produto recusaria (gate de render ativo) e o botao seria mentira. A espera
   // so ESCREVE; quem DISPARA e a tela de video pronto.
-  function handleSalvarIdeiaDaEspera(texto: string): boolean {
+  // KINEO-SPRINT-V1V4-2026-09-01 (#45) — `origem` separa "ela digitou um tema
+  // novo" de "ela tocou no atalho do proprio tema". Sem essa marca, um total
+  // maior que zero na proxima rodada nao diria QUAL das duas perguntas o
+  // cartao respondeu — que e exatamente o buraco que deixou a prateleira do
+  // #9 vinte rodadas em zero sem veredito.
+  function handleSalvarIdeiaDaEspera(
+    texto: string,
+    origem: 'typed' | 'chip' = 'typed',
+  ): boolean {
     const salva = salvarIdeiaNaFila(texto, phase)
     if (!salva) return false
     setIdeiaNaFila(salva)
@@ -9104,6 +9112,7 @@ export default function GenerateClient({
       stage: phase,
       mode,
       chars: salva.seed.length,
+      source: origem,
     })
     return true
   }
@@ -12627,6 +12636,19 @@ export default function GenerateClient({
                 ideia={ideiaNaFila}
                 onSave={handleSalvarIdeiaDaEspera}
                 onClear={handleLimparIdeiaDaEspera}
+                /* #45 — MESMA semente que o botao de serie da tela de video
+                   pronto usa (linha do `done_screen`): `analysis?.title ??
+                   prompt`. Uma unica definicao de "o tema deste filme" no
+                   arquivo inteiro; se ela mudar la, muda aqui. */
+                sugestao={analysis?.title ?? prompt}
+                onShown={(visivel) =>
+                  void trackEvent('next_idea_wait_shown', {
+                    stage: phase,
+                    mode,
+                    visivel,
+                    com_sugestao: Boolean(normalizarIdeia(analysis?.title ?? prompt)),
+                  })
+                }
               />
 
               {/* The per-clip tile grid was removed in push #031 — the final
@@ -17504,17 +17526,84 @@ function ModeSelector({
 //     guardar a ideia DIFERENTE, que hoje ela esquece no meio de 3 minutos.
 //  3. Some sozinho depois de salvo, virando um resumo de uma linha. Um campo de
 //     texto piscando ao lado de um render em andamento vira ansiedade.
+//
+// ── #45 (01/09) — DUAS CORRECOES, VINDAS DE UM NUMERO SO ────────────────────
+// `next_idea_queued` em 7 dias, so pessoas externas: **ZERO**. No mesmo
+// periodo, `render_wait_backgrounded` marcou **14 pessoas** provadamente nesta
+// tela. Ou seja: pelo menos 14 humanos passaram pela espera e nenhum guardou
+// uma ideia — e eu NAO SEI POR QUE, porque este cartao nasceu sem evento de
+// impressao. E o mesmo buraco que manteve a prateleira do #9 vinte rodadas em
+// zero: sem saber se a pessoa CHEGOU, "ninguem quis" e "ninguem viu" tem o
+// mesmo placar.
+//   1. `next_idea_wait_shown` com visibilidade DE VERDADE (IntersectionObserver,
+//      igual ao `next_shorts_seen` do #9) — dispara uma vez por render, com
+//      `visivel:true` so quando o cartao entrou mesmo no campo de visao.
+//   2. O atalho de um toque. A decisao #2 do #14 ("campo VAZIO, sem sugestao")
+//      era uma aposta; o #44 mediu o contrario, que decidir o tema e a parte
+//      cara — a unica que o produto nao automatiza. O campo continua livre para
+//      qualquer assunto; o atalho so remove o custo de inventar do zero para
+//      quem nao quer inventar. `source` separa os dois no evento.
+// NAO mexe em credito, preco, plano, cupom ou copy de oferta; nao dispara
+// render nenhum; continua so ESCREVENDO no localStorage.
 function NextIdeaDuringWait({
   ideia,
   onSave,
   onClear,
+  sugestao,
+  onShown,
 }: {
   ideia: IdeiaNaFila | null
-  onSave: (texto: string) => boolean
+  onSave: (texto: string, origem?: 'typed' | 'chip') => boolean
   onClear: () => void
+  sugestao?: string | null
+  onShown?: (visivel: boolean) => void
 }) {
   const [texto, setTexto] = useState('')
   const jaTem = Boolean(ideia)
+  // Semente do atalho: mesma regua da fila (colapsa espaco, tira aspas, corta
+  // em 180). Recusa texto de varias linhas — um roteiro inteiro colado no
+  // campo viraria um "atalho" ilegivel de 180 caracteres truncados.
+  const atalho = (() => {
+    const cru = typeof sugestao === 'string' ? sugestao : ''
+    if (!cru || cru.includes('\n')) return ''
+    return normalizarIdeia(cru)
+  })()
+  const cartaoRef = useRef<HTMLDivElement | null>(null)
+  const impressaoRef = useRef(false)
+  const vistoRef = useRef(false)
+  // Montagem = "o cartao existe na arvore". Nao prova que alguem olhou, e por
+  // isso vai marcado com visivel:false; o observer manda a segunda linha, com
+  // visivel:true, so quando metade do cartao entra na tela. As duas juntas
+  // respondem "chegou?" e "olhou?" separadamente na proxima rodada.
+  useEffect(() => {
+    if (jaTem) return
+    if (impressaoRef.current) return
+    impressaoRef.current = true
+    onShown?.(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jaTem])
+  useEffect(() => {
+    if (jaTem) return
+    const alvo = cartaoRef.current
+    if (!alvo) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const obs = new IntersectionObserver(
+      (entradas) => {
+        for (const entrada of entradas) {
+          if (!entrada.isIntersecting) continue
+          if (vistoRef.current) return
+          vistoRef.current = true
+          onShown?.(true)
+          obs.disconnect()
+          return
+        }
+      },
+      { threshold: 0.5 },
+    )
+    obs.observe(alvo)
+    return () => obs.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jaTem])
 
   if (jaTem && ideia) {
     return (
@@ -17559,6 +17648,7 @@ function NextIdeaDuringWait({
 
   return (
     <div
+      ref={cartaoRef}
       className="rounded-xl px-3 py-3 mt-4"
       style={{
         background: 'rgba(255,255,255,.03)',
@@ -17618,6 +17708,30 @@ function NextIdeaDuringWait({
           Line it up
         </button>
       </div>
+      {/* O atalho de um toque. So aparece quando existe um tema legivel deste
+          filme — sem semente, o cartao e byte a byte o de ontem. Salva DIRETO
+          (nao preenche o campo): meio caminho continua sendo trabalho, e o
+          cartao ja tem o × para desfazer no estado seguinte. */}
+      {atalho ? (
+        <button
+          type="button"
+          onClick={() => onSave(atalho, 'chip')}
+          className="mt-2 text-[11px] font-black rounded-full text-left"
+          style={{
+            maxWidth: '100%',
+            minHeight: 36,
+            padding: '7px 12px',
+            background: 'rgba(52,211,153,.10)',
+            border: '1px solid rgba(52,211,153,.34)',
+            color: '#34d399',
+            cursor: 'pointer',
+            lineHeight: 1.3,
+          }}
+        >
+          <span style={{ opacity: 0.85, fontWeight: 700 }}>Or keep the series going: </span>
+          &ldquo;{atalho.length > 64 ? `${atalho.slice(0, 64)}…` : atalho}&rdquo; →
+        </button>
+      ) : null}
     </div>
   )
 }
