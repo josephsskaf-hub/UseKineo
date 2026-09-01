@@ -2684,6 +2684,7 @@ async function buildBulkPackAndRedirect(
     user_id: user.id,
     currency,
     unit_amount: unitAmount,
+    contract_version: BULK_CHECKOUT_TRUTH_VERSION,
     customer: sessionParams.customer ?? null,
   })
 

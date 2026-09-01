@@ -71,6 +71,7 @@ check((bulkBlock.match(/bulk_checkout_truth_version: BULK_CHECKOUT_TRUTH_VERSION
 check(bulkBlock.includes("mode: 'payment'"), 'one-time payment mode is unchanged')
 check(bulkBlock.includes('unit_amount: unitAmount'), 'canonical price is unchanged')
 check(bulkBlock.includes('pack_credits: String(pack.credits)'), 'canonical grant is unchanged')
+check(bulkBlock.includes('contract_version: BULK_CHECKOUT_TRUTH_VERSION'), 'changed Stripe parameters rotate the bounded idempotency signature')
 check(!/ready-to-post vertical Shorts/i.test(bulkBlock), 'contradictory finished-delivery copy is absent from live bulk checkout')
 check(!/payment_method_types\s*:/.test(bulkBlock.replace(/\/\/.*$/gm, '')), 'dynamic payment methods remain untouched')
 
