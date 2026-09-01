@@ -37,14 +37,24 @@
 // Padrão da casa (<ReferralMiniCard/>, <TaaftReviewAsk/>): autocontido, degrada
 // para null em QUALQUER falha — storage bloqueado, fetch morto, valor
 // desconhecido — para nunca quebrar a tela de sucesso.
-import { useEffect, useState } from 'react'
-import { trackEvent } from '@/lib/analytics'
+import { useEffect, useRef, useState } from 'react'
+import { trackClosedEvent, trackEvent } from '@/lib/analytics'
+import {
+  VIDEO_RATING_PROMPT_DWELL_MS,
+  VIDEO_RATING_PROMPT_VISIBLE_RATIO,
+  createVideoRatingPromptDwellController,
+  createVideoRatingPromptLifecycle,
+  createVideoRatingPromptRecorder,
+  shouldDwellOnVideoRatingPrompt,
+  videoRatingPromptRenderBucket,
+} from '@/lib/growth/videoRatingPromptVisibility'
 
 // #rw_cont deixa a pessoa direto no formulário de avaliação da nossa página no
 // TAAFT — sem caçar, o que mantém a promessa de "30 segundos" honesta.
 const TAAFT_REVIEW_URL = 'https://theresanaiforthat.com/ai/kineo/#rw_cont'
 const STORAGE_KEY = 'kineo_video_rated'
 const MAX_SHOWS = 3
+const VISIBILITY_RETRY_DELAY_MS = 1500
 
 // Motivos em toque único. Vocabulário do usuário, não o nosso: cada um mapeia
 // para uma frente de trabalho real (voz→TTS, imagens→b-roll/Pexels, legenda→
@@ -95,6 +105,8 @@ export default function VideoRatingAsk({
   const [rating, setRating] = useState<number | null>(null)
   const [hover, setHover] = useState<number | null>(null)
   const [reasonSent, setReasonSent] = useState(false)
+  const promptRef = useRef<HTMLDivElement | null>(null)
+  const promptAnsweredRef = useRef(false)
 
   useEffect(() => {
     // GATE 1 — a correção que motiva este componente: só depois do download.
@@ -119,9 +131,117 @@ export default function VideoRatingAsk({
     track('video_rating_shown', { render_count: renderCount })
   }, [downloaded, renderCount, visible])
 
+  useEffect(() => {
+    if (!visible || !downloaded || rating !== null) return
+    const target = promptRef.current
+    if (!target || typeof IntersectionObserver === 'undefined') return
+
+    let storage: Storage | null = null
+    try {
+      storage = window.sessionStorage
+    } catch {
+      // This metric requires a session owner, so unavailable storage fails closed.
+    }
+    if (!storage) return
+
+    const lifecycle = createVideoRatingPromptLifecycle()
+    const recorder = createVideoRatingPromptRecorder({
+      storage,
+      transport: (eventName, metadata) => trackClosedEvent(eventName, metadata),
+    })
+    const bucket = videoRatingPromptRenderBucket(renderCount)
+
+    let intersectionRatio = 0
+    let isIntersecting = false
+    let retryTimer: number | null = null
+    let retryUsed = false
+
+    const clearRetry = () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer)
+      retryTimer = null
+    }
+    const qualifies = () => lifecycle.canContinue() && shouldDwellOnVideoRatingPrompt({
+      downloaded,
+      answered: promptAnsweredRef.current,
+      isIntersecting,
+      intersectionRatio,
+      documentVisible: document.visibilityState !== 'hidden',
+    })
+
+    let observer: IntersectionObserver | null = null
+    const dwell = createVideoRatingPromptDwellController({
+      dwellMs: VIDEO_RATING_PROMPT_DWELL_MS,
+      setTimer: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimer: (timerId) => window.clearTimeout(timerId),
+      onDwell: () => {
+        if (!qualifies()) return
+        void recorder.recordOnce(bucket).then((result) => {
+          if (!lifecycle.canContinue() || !dwell.canContinue()) return
+          if (lifecycle.shouldRetry(result, retryUsed) && qualifies()) {
+            retryUsed = true
+            retryTimer = window.setTimeout(() => {
+              retryTimer = null
+              dwell.rearm()
+            }, VISIBILITY_RETRY_DELAY_MS)
+            return
+          }
+          stop()
+        })
+      },
+    })
+
+    const stop = () => {
+      lifecycle.stop()
+      dwell.stop()
+      clearRetry()
+      observer?.disconnect()
+    }
+
+    observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      isIntersecting = Boolean(entry?.isIntersecting)
+      intersectionRatio = entry?.intersectionRatio ?? 0
+      dwell.update({ isIntersecting, intersectionRatio })
+    }, { threshold: [VIDEO_RATING_PROMPT_VISIBLE_RATIO] })
+
+    const handleVisibility = () => {
+      const documentVisible = document.visibilityState !== 'hidden'
+      if (!documentVisible) clearRetry()
+      dwell.update({ documentVisible })
+    }
+
+    const handleAnswer = (event: Event) => {
+      const element = event.target instanceof Element ? event.target : null
+      const button = element?.closest('button[data-video-rating-response]')
+      if (!button || !target.contains(button)) return
+      promptAnsweredRef.current = true
+      dwell.update({ answered: true })
+      stop()
+    }
+
+    dwell.update({
+      downloaded,
+      answered: promptAnsweredRef.current,
+      documentVisible: document.visibilityState !== 'hidden',
+    })
+    if (!recorder.wasSettled()) observer.observe(target)
+    target.addEventListener('click', handleAnswer, true)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      lifecycle.stop()
+      dwell.stop()
+      clearRetry()
+      observer?.disconnect()
+      target.removeEventListener('click', handleAnswer, true)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [downloaded, rating, renderCount, visible])
+
   if (!visible) return null
 
   function choose(value: number) {
+    promptAnsweredRef.current = true
     setRating(value)
     markAnswered()
     track('video_rated', {
@@ -135,6 +255,7 @@ export default function VideoRatingAsk({
 
   return (
     <div
+      ref={promptRef}
       className="relative rounded-2xl px-5 py-4 mt-6 w-full"
       style={{
         maxWidth: 480,
@@ -146,7 +267,9 @@ export default function VideoRatingAsk({
       <button
         type="button"
         aria-label="Dismiss rating"
+        data-video-rating-response="dismiss"
         onClick={() => {
+          promptAnsweredRef.current = true
           markAnswered()
           setVisible(false)
           track('video_rating_dismissed', { rated: rating ?? null })
@@ -183,6 +306,7 @@ export default function VideoRatingAsk({
                   key={n}
                   type="button"
                   aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                  data-video-rating-response="rating"
                   onClick={() => choose(n)}
                   onMouseEnter={() => setHover(n)}
                   onMouseLeave={() => setHover(null)}
