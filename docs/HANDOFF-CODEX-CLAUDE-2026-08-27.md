@@ -3719,3 +3719,21 @@ PRÓXIMO DONO:
 **GATE / PRÓXIMA DECISÃO:** **NO-GO para nova landing, CTA, copy, evento ou oferta B2B.** Preservar cada variante até seu denominador documentado e reabrir somente a etapa que atingir o gate. Se houver visão suficiente sem clique, investigar mensagem/posição; clique sem chegada, navegação/telemetria; chegada sem checkout, oferta; checkout sem pagamento, último metro. Não atribuir automaticamente qualquer desses estados a preço.
 
 **ESTADO ATUAL:** **DIAGNÓSTICO CONCLUÍDO / HIPÓTESE TÉCNICA CONTRADITA / NO-GO PARA RUNTIME / GATES PRESERVADOS / PRÓXIMA RODADA ROTACIONADA PARA B2C.** Nenhum código, UI, copy, preço, oferta, crédito, trial, checkout, banco, render, comunicação externa ou tráfego ativo foi alterado.
+
+## 146. B2C — o segundo vídeo avança parte da coorte; “publicou no YouTube” ainda não tem amostra comercial (01/09/2026)
+
+**DECISÃO APROVADA / REGRA DO BOARD:** curto prazo = uma pessoa conclui o primeiro vídeo, consome valor e escolhe continuar ou comprar; médio prazo = chega a pricing, checkout e pagamento; longo prazo = `payment_success` reconciliado vira assinatura ativa, renovação ou indicação. Vídeo, download, upload, impressão, clique e Checkout Session não são receita.
+
+**EVIDÊNCIA DE PRODUÇÃO / COORTE DO PRIMEIRO VÍDEO (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas conhecidas excluídas):** 13 pessoas externas distintas emitiram `history_first_video_offer_viewed` na versão `growth_first_video_recovery_2026_08_27`. Nenhuma clicou no Starter secundário; cinco clicaram e pousaram na continuação da série, três concluíram outro vídeo depois da exposição, duas chegaram a pricing, uma iniciou checkout e nenhuma pagou. A cadeia confirma avanço parcial em direção ao segundo vídeo; não prova que a hierarquia cause conversão nem que o card de assinatura esteja quebrado.
+
+**EVIDÊNCIA DE PRODUÇÃO / ESTADO PÓS-REPETIÇÃO:** depois de 28/08 UTC, apenas três pessoas externas emitiram `history_repeat_offer_viewed` na versão `push28_repeat_creator`; nenhuma clicou na oferta, continuou série, concluiu outro vídeo, chegou a pricing, checkout ou pagamento depois da primeira exposição reconciliada. Três pessoas são amostra insuficiente para reeditar a hierarquia que torna assinatura primária a partir do segundo vídeo.
+
+**HIPÓTESE CAUSAL NOVA / DIAGNÓSTICO:** concluir upload direto no YouTube pode ser um momento de valor percebido mais forte que apenas assistir ou baixar, pois prova que o resultado é publicável e que a pessoa possui canal/distribuição. O produto já mede `post_invite_viewed(yt_connected=true) → youtube_upload_started → youtube_upload_succeeded|failed`; não é necessário criar evento novo (`app/(dashboard)/generate/GenerateClient.tsx`).
+
+**EVIDÊNCIA DE PRODUÇÃO / GATE DO UPLOAD (janela distinta de 30 dias):** somente duas pessoas externas viram o convite com `yt_connected=true`; uma iniciou e concluiu upload, nenhuma falhou, e nenhuma das duas chegou depois a pricing, checkout ou pagamento. `post_invite_surfaced` não entrou no denominador porque não prova viewport. O histórico de duas pessoas e um sucesso não autoriza CTA comercial nem generalização para todo B2C.
+
+**GATE / PRÓXIMA DECISÃO:** **NO-GO para runtime/UI.** Preservar o card do histórico até pelo menos dez pessoas externas na etapa pós-repetição. Para a hipótese de publicação, exigir dez pessoas externas com `post_invite_viewed(yt_connected=true)` e pelo menos cinco `youtube_upload_succeeded`; só nasce hipótese comercial se ao menos três das cinco pessoas com sucesso não chegarem a pricing, checkout ou pagamento em 24 horas. Se o gargalo for `started → failed`, o achado pertence à confiabilidade do produto e deve ir para Claude.
+
+**ANTI-DUPLICAÇÃO / RISCO:** não reeditar USD, pricing journey proof, trial banner, sampler, avaliação pós-download, oferta pós-vídeo, Plan Fit, checkout salvo ou objeção de cancelamento. Pessoas com YouTube conectado são auto-selecionadas; sua resposta não representa toda a base. Texto livre de erro de upload não entra na análise causal nem no handoff.
+
+**ESTADO ATUAL:** **DIAGNÓSTICO CONCLUÍDO / COORTE DO SEGUNDO VÍDEO RECONCILIADA / HIPÓTESE DE PUBLICAÇÃO ABAIXO DO GATE / NO-GO PARA RUNTIME / CICLO B2C ATIVO.** Nenhum código, UI, copy, preço, oferta, crédito, trial, checkout, banco, render, comunicação externa ou tráfego ativo foi alterado.
