@@ -5,7 +5,8 @@
 // for itself", not "make videos". This page targets "make money clipping",
 // "get paid per view", "clipping with AI" and connects the pay-per-view
 // clipping economy (marketplaces paying $1–5 per 1,000 views — honest,
-// labelled ranges) to Kineo's pipeline. Server component, zero client JS,
+// labelled ranges) to Kineo's pipeline. Server-rendered answer page with one
+// small, invisible client telemetry island for the existing CTA,
 // dark theme matching /how-much-do-youtube-shorts-pay. FAQPage +
 // BreadcrumbList JSON-LD mirror the visible FAQ. No Kineo prices hardcoded
 // (rule: prices live only in lib/checkoutPricing.ts) — CTA sells the free
@@ -13,6 +14,11 @@
 
 import type { Metadata } from 'next'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import ClippingEarnAngleTelemetry from './ClippingEarnAngleTelemetry'
+import {
+  CLIPPING_EARN_ANGLE_DESTINATION,
+  CLIPPING_EARN_ANGLE_TARGET_ID,
+} from '@/lib/growth/clippingEarnAngleCta'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -308,7 +314,10 @@ export default function MakeMoneyClippingWithAiPage() {
           ))}
         </div>
 
-        <section style={{ ...CARD, padding: '20px 20px', margin: '0 0 40px', borderColor: ACCENT }}>
+        <section
+          id={CLIPPING_EARN_ANGLE_TARGET_ID}
+          style={{ ...CARD, padding: '20px 20px', margin: '0 0 40px', borderColor: ACCENT }}
+        >
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, margin: '0 0 8px' }}>
             Build the daily volume — free, no camera
           </h2>
@@ -318,7 +327,7 @@ export default function MakeMoneyClippingWithAiPage() {
             AI voiceover, matched visuals and captions — in about 3–7 minutes. {ft(OFFER, 'Generate up to 3 watermarked videos every 24 hours free, no credit card, and see whether a daily pipeline fits your workflow before spending anything.', OFFER.copy.headline + ' See whether a daily pipeline fits your workflow before spending anything.')}
           </p>
           <a
-            href="/free-ai-shorts-generator?utm_source=clipping-page&utm_medium=seo&utm_campaign=earn-angle"
+            href={CLIPPING_EARN_ANGLE_DESTINATION}
             style={{
               display: 'inline-block',
               background: ACCENT,
@@ -332,6 +341,7 @@ export default function MakeMoneyClippingWithAiPage() {
           >
             Generate a free Short →
           </a>
+          <ClippingEarnAngleTelemetry />
         </section>
 
         <h2 style={{ fontSize: '1.4rem', fontWeight: 700, margin: '0 0 16px' }}>
