@@ -141,14 +141,13 @@ export function creditCostFor(quality: Quality, isPaidUser = false): number {
       // melhora 17pp sem o cliente pagar um centavo a mais.
       return 150
     case 'cinematic_s25':
-      // KINEO-S25-2026-09-01 — Seedance 2.5, 720p, preco POR TOKEN da fal
-      // (~$0.462/s em 720p 9:16 24fps): um filme de 60s custa ~$27.70 de
-      // fornecedor. A 150cr seria PREJUIZO (~$25 de receita) — a mesma
-      // matematica que barrou o Seedance 2.0 em agosto. 250cr = ~$41.70 de
-      // receita → margem ~33%. ⚠ ETIQUETA PROVISORIA: o motor esta TRANCADO
-      // para contas internas (gate s25_internal_only na rota) ate o fundador
-      // bater o martelo do preco publico — decisao que e SEMPRE dele.
-      return 250
+      // KINEO-S25-ESPERTA-2026-09-01 — preco FINAL aprovado pelo fundador
+      // ('vai na opcao esperta'): 150cr a 60s com o motor em 480p + HD
+      // Enhance. Custo fal ~$13.70/60s vs ~$24.20 de receita no Studio =
+      // ~43% de margem; a escala por duracao mantem a margem em 35/90s.
+      // (A 720p o mesmo filme custaria $27.70 = prejuizo — foi por isso que
+      // a resolucao caiu, nao por economia burra: o Enhance recupera.)
+      return 150
     case 'pro':
       // KINEO-REBASE-2026-07-10 — legacy 20 → 10.
       return 10

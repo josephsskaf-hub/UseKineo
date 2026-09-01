@@ -175,9 +175,15 @@ export const OMNI_USD_PER_SECOND = 0.13
 //     narracao e do usuario, palavra por palavra (a licao do H3)
 export const S25_T2V_MODEL = 'fal-ai/seedance-2.5/text-to-video'
 export const S25_I2V_MODEL = 'fal-ai/seedance-2.5/image-to-video'
-// Preco por TOKEN: h*w*fps*dur/1024 * taxa ⇒ 720p 9:16 ≈ $0.462/s.
-export const S25_USD_PER_SECOND = 0.462
-export const S25_RESOLUTION = '720p' as const
+// KINEO-S25-ESPERTA-2026-09-01 — DECISAO DO FUNDADOR ('vai na opcao esperta'):
+// 480p nativo + ✨HD Enhance (Topaz Proteus, ja existente) no lugar de 720p.
+// Preco por TOKEN: 480p 9:16 ≈ $0.208/s vs $0.462/s em 720p — um filme de
+// 60s cai de $27.70 para ~$12.50 (+$1.20 de Topaz) e cabe em 150cr com ~43%
+// de margem, contra PREJUIZO em 720p. E o mesmo truque publicado pelos
+// concorrentes (Higgsfield cobra metade em 480p); a diferenca e que o nosso
+// Enhance devolve a nitidez no master 1080x1920.
+export const S25_USD_PER_SECOND = 0.208
+export const S25_RESOLUTION = '480p' as const
 
 /** Família de motor do caminho cinematográfico. */
 export type CinematicFamily = 'hollywood' | 'h3' | 'omni' | 's25'

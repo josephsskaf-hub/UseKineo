@@ -190,7 +190,7 @@ const HOLLYWOOD_CREDIT_COST = 150
 const H3_CREDIT_COST = 45
 // KINEO-S25-2026-09-01 — espelha creditCostFor('cinematic_s25'); ver o porque
 // dos 250 la (a $0.462/s, 150cr seria prejuizo). TRANCADO a contas internas.
-const S25_CREDIT_COST = 250
+const S25_CREDIT_COST = 150
 
 // fal.ai model — Wan 2.5 text-to-video (commercial, supports 9:16, $0.05/s).
 // #368 — Seedance 1.5 Pro. The earlier 'submit error' (#366) was fal EXHAUSTED
