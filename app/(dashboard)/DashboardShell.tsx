@@ -119,7 +119,7 @@ export default function DashboardShell({
         <Creator30OfferModal />
         {/* KINEO-WELCOME20-2026-08-25 — convite de boas-vindas com nome:
             20% no 1º mês de Creator/Studio, 1×/72h, pagante nunca vê. */}
-        <WelcomeOfferModal />
+        <WelcomeOfferModal surface="dashboard" />
         {/* AI Avatar launch banner — dismissible, links to /generate?avatar=1 */}
         <AvatarLaunchBanner />
         {/* KINEO-PRELAUNCH-PATH-2026-08-08 — pb-16 (64px) era MENOR que a barra

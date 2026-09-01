@@ -722,7 +722,7 @@ export default function PricingClient() {
       <ExitIntentOffer />
       {/* KINEO-WELCOME20-2026-08-25 — quem está OLHANDO O PREÇO recebe o
           convite com nome mais rápido (1.5s): é o momento de maior intenção. */}
-      <WelcomeOfferModal delayMs={1500} />
+      <WelcomeOfferModal delayMs={1500} surface="pricing" />
 
       {/* ───────── Pricing ───────── */}
       <section className="relative z-10 mx-auto max-w-5xl px-4 pt-12 pb-16 sm:px-6 sm:pt-16">

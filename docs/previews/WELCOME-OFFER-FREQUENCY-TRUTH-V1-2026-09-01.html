@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Welcome offer — comparação de frequência</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#070909;color:#f5f7f6;font:15px/1.45 Inter,Arial,sans-serif}.page{max-width:1180px;margin:auto;padding:42px 24px 64px}h1{font-size:28px;margin:0 0 8px}p{color:#aab2af;margin:0 0 28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.panel{border:1px solid #29302d;border-radius:20px;background:#101413;overflow:hidden}.label{padding:12px 16px;background:#171c1a;border-bottom:1px solid #29302d;font-weight:800;letter-spacing:.08em;font-size:12px}.before .label{color:#ff9f91}.after .label{color:#73f2b6}.browser{margin:18px;border-radius:14px;border:1px solid #303835;background:#0b0e0d;min-height:360px;position:relative;overflow:hidden}.bar{height:38px;border-bottom:1px solid #252b29;display:flex;align-items:center;gap:6px;padding:0 12px}.dot{width:8px;height:8px;border-radius:50%;background:#3b4441}.site{padding:24px}.site h2{font-size:22px;margin:0 0 8px}.offer{position:absolute;inset:58px 28px 24px;background:linear-gradient(145deg,#17211d,#101412);border:1px solid #4a6f60;border-radius:18px;padding:22px;box-shadow:0 18px 55px #000b}.offer small{color:#79e7b2;text-transform:uppercase;font-weight:800}.offer h3{font-size:25px;margin:7px 0}.offer p{margin:0 0 14px}.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px}.plan{border:1px solid #33423c;border-radius:12px;padding:12px}.cta{margin-top:10px;border:0;border-radius:9px;background:#eaff66;color:#111;font-weight:900;padding:10px;width:100%}.timeline{padding:0 18px 20px;display:grid;gap:9px}.step{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;color:#bec7c3}.n{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#252d2a;font-weight:800}.bad{color:#ff9f91}.good{color:#73f2b6}.mobile-row{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:22px}.phone{max-width:330px;margin:18px auto;border:1px solid #303835;border-radius:24px;min-height:470px;background:#0b0e0d;position:relative;overflow:hidden}.phone .bar{height:28px}.phone .site{padding:18px}.phone .offer{inset:58px 12px 14px;padding:16px}.phone .offer h3{font-size:21px}.phone .plans{grid-template-columns:1fr}.note{margin-top:22px;border-left:3px solid #73f2b6;padding:12px 16px;background:#0d1210;color:#cbd3d0}.note b{color:#fff}@media(max-width:800px){.grid,.mobile-row{grid-template-columns:1fr}.page{padding:28px 14px}.browser{display:none}.panel.desktop{display:none}}
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>Oferta de boas-vindas: mesma tela, frequência verdadeira</h1>
+    <p>Comparação visual do comportamento. Preço, desconto, planos, cupom e destino do checkout não mudam.</p>
+    <section class="grid">
+      <article class="panel before desktop">
+        <div class="label">ANTES · DESKTOP</div>
+        <div class="browser"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="site"><h2>Make your next video</h2><p>Your project is ready.</p></div><div class="offer"><small>Welcome offer</small><h3>20% off your first month</h3><p>Choose the plan that fits your workflow.</p><div class="plans"><div class="plan"><b>Creator</b><button class="cta">Choose Creator</button></div><div class="plan"><b>Studio</b><button class="cta">Choose Studio</button></div></div></div></div>
+        <div class="timeline"><div class="step"><span class="n">1</span><span>Oferta aparece.</span></div><div class="step"><span class="n">2</span><span>Pessoa clica e visita o Stripe.</span></div><div class="step bad"><span class="n">3</span><span>Volta sem concluir e a mesma oferta pode aparecer novamente.</span></div></div>
+      </article>
+      <article class="panel after desktop">
+        <div class="label">DEPOIS · DESKTOP</div>
+        <div class="browser"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="site"><h2>Resume your checkout</h2><p>Your saved checkout stays available without another modal on top.</p></div><div class="offer"><small>Primeira exposição preservada</small><h3>20% off your first month</h3><p>A tela aprovada continua exatamente igual na primeira visita.</p><div class="plans"><div class="plan"><b>Creator</b><button class="cta">Choose Creator</button></div><div class="plan"><b>Studio</b><button class="cta">Choose Studio</button></div></div></div></div>
+        <div class="timeline"><div class="step"><span class="n">1</span><span>A frequência começa quando a oferta fica visível.</span></div><div class="step"><span class="n">2</span><span>Clique e checkout continuam iguais e são medidos.</span></div><div class="step good"><span class="n">3</span><span>No retorno, resume/pricing ficam livres por 72 horas.</span></div></div>
+      </article>
+    </section>
+    <section class="mobile-row">
+      <article class="panel before"><div class="label">ANTES · MOBILE</div><div class="phone"><div class="bar"></div><div class="site"><h2>Your videos</h2><p>Welcome back.</p></div><div class="offer"><small>Welcome offer</small><h3>20% off your first month</h3><div class="plans"><div class="plan"><b>Creator</b><button class="cta">Choose Creator</button></div><div class="plan"><b>Studio</b><button class="cta">Choose Studio</button></div></div></div></div><div class="timeline"><div class="step bad"><span class="n">!</span><span>Repetição após retorno do checkout cobre novamente a tela.</span></div></div></article>
+      <article class="panel after"><div class="label">DEPOIS · MOBILE</div><div class="phone"><div class="bar"></div><div class="site"><h2>Resume checkout</h2><p>Continue where you left off.</p><button class="cta">Resume secure checkout</button></div></div><div class="timeline"><div class="step good"><span class="n">✓</span><span>Sem segunda interrupção dentro da janela de 72 horas.</span></div></div></article>
+    </section>
+    <div class="note"><b>Caminho para assinatura:</b> curto prazo — retorno limpo ao checkout; médio prazo — mais checkouts concluídos; longo prazo — mais assinaturas ativas e renovações. A métrica final continua sendo pagamento real, nunca impressão ou clique.</div>
+  </main>
+</body>
+</html>

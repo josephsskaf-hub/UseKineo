@@ -830,7 +830,7 @@ export default function KineoLanding({
       {/* KINEO-WELCOME20-2026-08-25 (fundador: "pra todo mundo que entrar no
           site") — convite com nome, 20% no 1º mês de Creator/Studio, 5s após
           o load, 1×/72h por browser, pagante nunca vê. */}
-      <WelcomeOfferModal />
+      <WelcomeOfferModal surface="home" />
       {/* KINEO-POUSO-VITRINE-2026-08-25 — o login pousa AQUI agora; este
           tracker preserva a conversão de cadastro do Ads (?signup=1). */}
       <SignupConversionTracker />

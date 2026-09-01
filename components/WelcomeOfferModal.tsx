@@ -24,24 +24,63 @@
 //     desconto, não uma mentira com relógio.
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import { formatResultCount, videosPerMonth } from '@/lib/marketingPrice'
+import {
+  WELCOME_OFFER_SEEN_KEY,
+  isWelcomeOfferMeasurementHost,
+  parseWelcomeOfferSeenAt,
+  shouldShowWelcomeOffer,
+  welcomeOfferFrequencyMetadata,
+  type WelcomeOfferSurface,
+  type WelcomeOfferTier,
+} from '@/lib/growth/welcomeOfferFrequency'
 
-const SEEN_KEY = 'kineo_welcome20_seen'
-const RESHOW_MS = 72 * 60 * 60 * 1000 // 72h
+let memorySeenAt: number | null = null
+
+function readSeenAt(now: number): number | null {
+  const candidates: Array<number | null> = [memorySeenAt]
+  try {
+    candidates.push(parseWelcomeOfferSeenAt(localStorage.getItem(WELCOME_OFFER_SEEN_KEY), now))
+  } catch {
+    // localStorage may be denied; the session and in-memory latches remain.
+  }
+  try {
+    candidates.push(parseWelcomeOfferSeenAt(sessionStorage.getItem(WELCOME_OFFER_SEEN_KEY), now))
+  } catch {
+    // sessionStorage may be denied; the in-memory latch remains.
+  }
+  const valid = candidates.filter((value): value is number => value !== null)
+  return valid.length > 0 ? Math.max(...valid) : null
+}
 
 function seenRecently(): boolean {
-  try {
-    const raw = localStorage.getItem(SEEN_KEY)
-    if (!raw) return false
-    const ts = Number(raw)
-    return Number.isFinite(ts) && Date.now() - ts < RESHOW_MS
-  } catch {
-    return false
+  const now = Date.now()
+  return !shouldShowWelcomeOffer(readSeenAt(now), now)
+}
+
+function markWelcomeOfferSeen(now: number): void {
+  memorySeenAt = now
+  for (const storage of [
+    () => localStorage,
+    () => sessionStorage,
+  ]) {
+    try {
+      storage().setItem(WELCOME_OFFER_SEEN_KEY, String(now))
+    } catch {
+      // Frequency may fail open after a full reload, never during this page.
+    }
   }
 }
 
-export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number }) {
+export default function WelcomeOfferModal({
+  delayMs = 5000,
+  surface,
+}: {
+  delayMs?: number
+  surface: WelcomeOfferSurface
+}) {
   const [open, setOpen] = useState(false)
   const [firstName, setFirstName] = useState<string | null>(null)
   const [pending, setPending] = useState<'basic' | 'pro' | null>(null)
@@ -49,22 +88,45 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
   useEffect(() => {
     if (seenRecently()) return
     let cancelled = false
-    const timer = window.setTimeout(async () => {
-      try {
-        // Assinante pagante nunca vê oferta de 1º mês — já pagou o 1º mês.
-        const planRes = await fetch('/api/me/plan', { cache: 'no-store' })
-        if (planRes.ok) {
-          const j = (await planRes.json()) as { plan?: string; isPro?: boolean }
-          if (j.isPro || (j.plan && j.plan !== 'free')) return
+    let visibilityHandler: (() => void) | null = null
+
+    const removeVisibilityHandler = () => {
+      if (!visibilityHandler) return
+      document.removeEventListener('visibilitychange', visibilityHandler)
+      visibilityHandler = null
+    }
+
+    const reveal = async () => {
+      if (cancelled || seenRecently()) return
+      if (document.visibilityState !== 'visible') {
+        if (!visibilityHandler) {
+          visibilityHandler = () => {
+            if (document.visibilityState !== 'visible') return
+            removeVisibilityHandler()
+            void reveal()
+          }
+          document.addEventListener('visibilitychange', visibilityHandler)
         }
-      } catch {
-        // rede falhou — segue: o pior caso é um pagante ver um cupom que o
-        // Stripe simplesmente aplica sobre um plano que ele não vai trocar.
+        return
       }
+      // Plano e identidade são independentes. Lê ambos em paralelo para não
+      // acrescentar uma espera de rede antes de revelar a oferta.
+      const planPromise = fetch('/api/me/plan', { cache: 'no-store' })
+        .then(async (planRes) => {
+          if (!planRes.ok) return null
+          return (await planRes.json()) as { plan?: string; isPro?: boolean }
+        })
+        .catch(() => null)
+      const userPromise = createClient().auth.getUser().catch(() => null)
+      const [planInfo, userResult] = await Promise.all([planPromise, userPromise])
+
+      // Assinante pagante nunca vê oferta de 1º mês — já pagou o 1º mês.
+      // Se a rede falhar, mantém o comportamento anterior e segue com a oferta.
+      if (planInfo?.isPro || (planInfo?.plan && planInfo.plan !== 'free')) return
+
       try {
-        const supabase = createClient()
-        const { data } = await supabase.auth.getUser()
-        const meta = (data.user?.user_metadata ?? {}) as { full_name?: string; name?: string }
+        const data = userResult?.data
+        const meta = (data?.user?.user_metadata ?? {}) as { full_name?: string; name?: string }
         const raw = (meta.full_name || meta.name || '').trim()
         if (raw) {
           const first = raw.split(/\s+/)[0]
@@ -73,13 +135,23 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
       } catch {
         // sem nome — headline genérico
       }
-      if (!cancelled) setOpen(true)
-    }, delayMs)
+      // Recheck after the async plan/auth reads: another mounted surface or
+      // tab may have claimed the same 72-hour exposure in the meantime.
+      if (cancelled || seenRecently()) return
+      markWelcomeOfferSeen(Date.now())
+      setOpen(true)
+      if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
+        void trackEvent('welcome_offer_viewed', welcomeOfferFrequencyMetadata(surface))
+      }
+    }
+
+    const timer = window.setTimeout(() => { void reveal() }, delayMs)
     return () => {
       cancelled = true
       window.clearTimeout(timer)
+      removeVisibilityHandler()
     }
-  }, [delayMs])
+  }, [delayMs, surface])
 
   useEffect(() => {
     if (!open) return
@@ -93,10 +165,15 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
 
   function dismiss() {
     setOpen(false)
-    try {
-      localStorage.setItem(SEEN_KEY, String(Date.now()))
-    } catch {
-      // pior caso: reaparece na próxima visita
+    if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
+      void trackEvent('welcome_offer_dismissed', welcomeOfferFrequencyMetadata(surface))
+    }
+  }
+
+  function recordCheckoutClick(tier: WelcomeOfferTier): void {
+    setPending(tier)
+    if (isWelcomeOfferMeasurementHost(window.location.hostname)) {
+      void trackEvent('welcome_offer_checkout_clicked', welcomeOfferFrequencyMetadata(surface, tier))
     }
   }
 
@@ -196,7 +273,7 @@ export default function WelcomeOfferModal({ delayMs = 5000 }: { delayMs?: number
                 <a
                   key={p.tier}
                   href={`/api/stripe/checkout?tier=${p.tier}&billing=monthly&promo=WELCOME20&checkout_origin=welcome20_modal`}
-                  onClick={() => setPending(p.tier)}
+                  onClick={() => recordCheckoutClick(p.tier)}
                   style={{
                     flex: '1 1 230px', minWidth: 0, display: 'block', textDecoration: 'none',
                     borderRadius: 14, padding: '16px 16px 14px', position: 'relative',
