@@ -121,6 +121,12 @@ for (const file of ['app', 'components', 'lib'].flatMap(sourceFiles)) {
 
 ok(source('app/cheapest-ai-shorts-maker/page.tsx').includes('USD prices matched to Checkout'), 'calculator landing names USD before checkout')
 ok(source('app/cheapest-ai-shorts-maker/ShortCostCalculator.tsx').includes('Checking USD price…'), 'calculator loading state names USD')
+
+const factsSource = source('lib/kineoFacts.ts')
+ok(factsSource.includes('currencies: Object.values(CURRENCY_DISPLAY).map(({ label }) => label)'), 'AEO currency list derives from canonical checkout display')
+ok(!factsSource.includes("currencies: ['USD', 'BRL', 'INR']"), 'AEO source does not retain the retired multi-currency list')
+ok(source('app/facts/page.tsx').includes('Checkout currency: ${PRODUCT.currencies.join'), 'human facts page publishes the singular canonical checkout currency')
+ok(source('app/llms.txt/route.ts').includes('Checkout currency: ${PRODUCT.currencies.join'), 'llms.txt publishes the singular canonical checkout currency')
 equal(checkout.checkPricingInvariants(), [], 'canonical pricing invariants remain green')
 
 console.log('\n' + checks + '/' + checks + ' checkout currency-truth checks passed')

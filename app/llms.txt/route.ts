@@ -229,7 +229,7 @@ ${plans}
 
 - Billing: ${PRODUCT.billing}. ${PRODUCT.moneyBackGuaranteeDays}-day money-back guarantee on every paid plan.
 - Credits refresh each billing month and do **not** roll over.
-- Checkout currencies: ${PRODUCT.currencies.join(', ')}.
+- Checkout currency: ${PRODUCT.currencies.join(', ')}.
 
 ## One-time packs for agencies, freelancers and businesses
 

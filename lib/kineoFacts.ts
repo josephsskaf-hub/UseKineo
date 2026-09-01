@@ -31,6 +31,7 @@ import {
   // um plano rende, e essa conta é o grant dividido pelo custo do motor. Escrita
   // à mão ela sobreviveu ao corte 140→90 / 320→160 prometendo o que não cabe.
   TIER_CREDITS,
+  CURRENCY_DISPLAY,
   formatCheckoutMoney,
   type CheckoutTier,
 } from './checkoutPricing'
@@ -561,8 +562,10 @@ export const PRODUCT = {
   // fonte: app/pricing/PricingClient.tsx:59.
   moneyBackGuaranteeDays: 7,
   billing: 'Month-to-month, cancel anytime',
-  // fonte: lib/checkoutPricing.ts:3 e :29-31.
-  currencies: ['USD', 'BRL', 'INR'],
+  // fonte: lib/checkoutPricing.ts (CURRENCY_DISPLAY). Derivado da mesma tabela
+  // que formata a vitrine e governa o resolver do Checkout: o feed AEO não
+  // mantém uma segunda lista de moedas para esquecer depois de uma mudança.
+  currencies: Object.values(CURRENCY_DISPLAY).map(({ label }) => label),
   // fonte: middleware.ts:4-8 e :29-37 — 308 permanente para www.usekineo.com.
   formerName: 'ShortsForgeAI',
 } as const

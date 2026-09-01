@@ -260,7 +260,7 @@ const FACTS: { fact: string }[] = [
     fact:
       `Plan credits refresh each billing month and do not roll over. Billing is ` +
       `${PRODUCT.billing.toLowerCase()}, with a ${PRODUCT.moneyBackGuaranteeDays}-day money-back ` +
-      `guarantee on every paid plan. Checkout currencies: ${PRODUCT.currencies.join(', ')}.`,
+      `guarantee on every paid plan. Checkout currency: ${PRODUCT.currencies.join(', ')}.`,
   },
   {
     // fonte: app/terms/page.tsx:79 — "You retain ownership of the videos you
