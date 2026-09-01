@@ -13,10 +13,12 @@
 
 import Link from 'next/link'
 import CostCalculatorLink from '@/components/CostCalculatorLink'
+import FooterBusinessLink from '@/components/FooterBusinessLink'
 // PROVA-SOCIAL-REAL-2026-07-02 — client badge with real DB counts; self-hides
 // when the numbers are low or the stats API fails, so the footer stays honest.
 import LiveStatsBadge from '@/components/LiveStatsBadge'
 import { getFreeTierOffer, swapFreeTierCopy as ft } from '@/lib/freeTierOffer'
+import { footerBusinessDestinationForHref } from '@/lib/growth/footerBusinessDiscovery'
 
 // [KINEO-TRIAL-SWAP-2026-08-07] — oferta do free tier (flag OFF = copy atual).
 const OFFER = getFreeTierOffer()
@@ -237,19 +239,30 @@ export default function Footer({ showStats = true }: { showStats?: boolean }) {
               {group.title}
             </h2>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {group.links.map((link) => (
-                <li key={link.href} style={{ marginBottom: 7 }}>
-                  {link.costCalculator ? (
-                    <CostCalculatorLink placement="global_footer" style={linkStyle}>
-                      {link.label}
-                    </CostCalculatorLink>
-                  ) : (
-                    <Link href={link.href} style={linkStyle}>
-                      {link.label}
-                    </Link>
-                  )}
-                </li>
-              ))}
+              {group.links.map((link) => {
+                const businessDestination = footerBusinessDestinationForHref(link.href)
+                return (
+                  <li key={link.href} style={{ marginBottom: 7 }}>
+                    {link.costCalculator ? (
+                      <CostCalculatorLink placement="global_footer" style={linkStyle}>
+                        {link.label}
+                      </CostCalculatorLink>
+                    ) : businessDestination ? (
+                      <FooterBusinessLink
+                        destination={businessDestination}
+                        href={link.href}
+                        style={linkStyle}
+                      >
+                        {link.label}
+                      </FooterBusinessLink>
+                    ) : (
+                      <Link href={link.href} style={linkStyle}>
+                        {link.label}
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           </div>
         ))}
