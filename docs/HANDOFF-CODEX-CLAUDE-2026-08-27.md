@@ -3866,3 +3866,15 @@ PRÓXIMO DONO:
 **GATE / PRÓXIMA DECISÃO:** **NO-GO para aumentar tráfego, acrescentar persuasão ou declarar o Autopilot vendável.** Claude deve executar e documentar um piloto controlado completo: conectar canal de teste, criar agenda, obter sete slots, reconciliar `run_started → render concluído → upload → autopilot_run_published`, confirmar débito e recuperação e verificar o 7º slot. O fundador precisa decidir se o saldo automático será realmente separado ou se a promessa pública passa a declarar saldo compartilhado. Antes de qualquer nova venda Pilot, Codex deve bloquear fail-closed quem já possui assinatura recorrente ativa e estender o handoff seguro pós-pagamento ao Pilot — ambas exigem autorização explícita para tocar Checkout. Depois de pelo menos uma publicação observada, Codex alinha página/Stripe ao contrato comprovado; “never missed” não volta sem série histórica suficiente. Até lá, decisão do fundador: pausar CTAs ou manter venda com risco explícito.
 
 **ESTADO ATUAL:** **DIAGNÓSTICO B2B CONCLUÍDO / 11 PESSOAS NO CHECKOUT E ZERO PAGAMENTO / ZERO PUBLICAÇÃO AUTOPILOT OBSERVADA / PROMESSA CONTRADITA / RUNTIME PRESERVADO / HANDOFF AO CLAUDE.**
+
+## 154. B2C — fundador reafirma USD único; fronteira de conversão permanece intacta (01/09/2026)
+
+**DECISÃO APROVADA:** o fundador reafirmou que a UseKineo deve vender somente em USD e que a coincidência entre as informações apresentadas e a cobrança cria credibilidade no último segundo de decisão. A decisão foi promovida para `docs/DECISIONS.md`; não depende mais de memória de chat ou apenas deste handoff.
+
+**FATO CONFIRMADO / ANTI-DUPLICAÇÃO:** o runtime já cumpre a decisão. `CheckoutCurrency` aceita somente `usd`, `resolveCheckoutCurrency()` devolve USD para qualquer país e `CURRENCY_DISPLAY` contém uma moeda (`lib/checkoutPricing.ts`). A divulgação canônica declara USD mundial e o possível câmbio/taxa do banco; home, pricing, pricing embutido, pós-vídeo e JSON-LD reutilizam a mesma constante (`lib/marketingPrice.ts`; `app/KineoLanding.tsx`; `app/pricing/PricingClient.tsx`; `components/PricingCards.tsx`; `components/StructuredData.tsx`; `app/(dashboard)/generate/GenerateClient.tsx`). `/facts`, `/llms.txt` e `/api/facts` também derivam a lista singular da fonte canônica. A rota antiga da campanha Índia responde 410 e não envia e-mail; seu texto residual é histórico/admin, não promessa de compra ativa.
+
+**EVIDÊNCIA DE PRODUÇÃO JÁ VÁLIDA:** a correção pública foi validada nos deployments registrados nas seções 136, 144 e 148. Esta rodada não cria uma nova fronteira artificial e não reinicia a coorte apenas para registrar uma decisão.
+
+**GATE PRESERVADO:** nenhuma nova copy, moeda, preço, desconto, oferta ou alteração de Checkout antes de 20 pessoas externas não americanas com exposição válida de preço ou dez pessoas externas em Checkout após a fronteira USD, o que ocorrer primeiro. Reconciliar por pessoa até `payment_success` e assinatura ativa; sessão, impressão e clique continuam não sendo receita.
+
+**ESTADO ATUAL:** **DECISÃO CANÔNICA REGISTRADA / RUNTIME JÁ ALINHADO / GATE PRESERVADO / ZERO MUDANÇA COMERCIAL OU DE CHECKOUT.**

@@ -6,6 +6,16 @@ Formato: data · decisão · motivo · consequência prática.
 
 ---
 
+## 2026-09-01 — Uma moeda comercial: USD em toda a jornada
+
+**Decisão do fundador.** A UseKineo lista e cobra seus preços em USD para todos os países. A empresa não promete que mostrará ou cobrará em moeda local; eventual conversão e taxas pertencem ao banco do comprador.
+
+**Motivo.** A mesma moeda e as mesmas informações da descoberta ao Checkout criam credibilidade exatamente no último segundo de decisão. Prometer moeda local e apresentar USD no caixa introduz surpresa onde a pessoa decide se confia o cartão à Kineo.
+
+**Consequência prática.** Site, SEO/AEO, ofertas, e-mails, recuperação e Checkout precisam nomear USD de forma consistente e derivar preço da fonte canônica. Moeda local não volta por copy, geolocalização ou experimento silencioso; qualquer futura regionalização exige nova decisão explícita, tabela canônica, cobrança real na mesma moeda e contrato que impeça divergência. O gate de conversão da verdade USD permanece preservado: uma nova otimização de moeda ou caixa só ocorre depois da amostra já registrada no handoff.
+
+---
+
 ## 2026-09-01 — Assinatura real é o placar comum de todo o board
 
 **Decisão do fundador.** Toda tarefa geral da UseKineo deve declarar como contribui para converter mais assinaturas no curto, médio e longo prazo. Aquisição, AEO/SEO, B2C, B2B, afiliados, ativação, oferta e checkout são partes do mesmo sistema e precisam se complementar.
