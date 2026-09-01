@@ -3788,3 +3788,21 @@ PRÓXIMO DONO:
 **GATE / PRÓXIMA DECISÃO:** **NO-GO para runtime, copy, parâmetro de URL ou oferta.** Reabrir no primeiro de: cinco sessões externas com `agency_margin_proposal_copied`, ou três sessões externas chegando ao brief pela campanha `agency_margin_proposal_v1`. Nesse ponto, escolher explicitamente se o produto quer intake, aprovação ou ambos; qualquer modo client-safe exige preview visual desktop/mobile, URL sem conteúdo sensível e medição separada de agência e cliente.
 
 **ESTADO ATUAL:** **DIAGNÓSTICO CONCLUÍDO / CONFLITO DE PAPÉIS CONFIRMADO EM CÓDIGO / ZERO AMOSTRA DA CADEIA / NO-GO PARA RUNTIME / PRÓXIMA RODADA ROTACIONADA PARA B2C.** Nenhum código, UI, copy, preço, oferta, checkout, banco, render, comunicação externa ou tráfego ativo foi alterado.
+
+## 150. B2C — e-mail real de vídeo pronto promete 24 Fast; o plano entrega 8 (01/09/2026)
+
+**DECISÃO APROVADA / REGRA DO BOARD:** a verdade em USD só cria confiança se quantidade, preço e entrega também coincidirem no último segundo. Correção de promessa factual não depende de teste A/B; otimização posterior de copy depende de amostra. Como o caller pertence a `app/api/compose/**`, Claude corrige o pipeline e Codex não invade essa pista.
+
+**FATO CONFIRMADO / CALLER REAL:** no primeiro settle do vídeo, depois de persistir a entrega, `app/api/compose/status/[renderId]/route.ts` monta e envia diretamente pelo Resend o e-mail “Your Short is ready”. A frase comercial atual é “Want a clean export and 24 more Fast Shorts this month? Starter is $7.00/month”. O endpoint separado `app/api/notify-video-ready/route.ts` não é esse caller.
+
+**CONTRADIÇÃO / PROMESSA 3× MAIOR:** US$ 7 está correto em `TIER_PRICES.starter`, mas “24 more Fast Shorts” está falso. `TIER_CREDITS.starter` concede 40 créditos e Fast custa 5 créditos para conta paga; portanto o Starter entrega 8 Fast, não 24 (`lib/checkoutPricing.ts`; `lib/credits/engineCost.ts`). A função canônica `videosForCredits(TIER_CREDITS.starter, 'fast')` já existe em `lib/marketingPrice.ts`; não criar outro literal.
+
+**FATO CONFIRMADO / CONTINUIDADE APAGADA:** o mesmo e-mail aponta para `https://www.usekineo.com/pricing` sem `intent_campaign`. `PricingClient` só grava a origem específica quando o parâmetro existe; checkout e webhook já preservam a campanha recebida. Assim, a rota atual pode levar a pricing, checkout e pagamento, porém essa origem fica indistinguível de navegação comum.
+
+**EVIDÊNCIA DE PRODUÇÃO / ALCANCE POTENCIAL, NÃO ATRIBUIÇÃO (Supabase, SELECT agregado somente leitura em 01/09/2026 UTC; contas internas conhecidas excluídas; primeiras entregas dos últimos 30 dias com 24 horas completas):** 368 pessoas externas tiveram o primeiro `video_ready_viewed`; 52 chegaram a pricing em 24 horas, 50 dessas apresentaram pelo menos uma visão de pricing sem `source`, 44 chegaram a `checkout_started` e duas a `payment_success`. Essa sequência mede ambiguidade e alcance potencial; não prova que o e-mail foi aberto, clicado ou causou qualquer etapa.
+
+**CORREÇÃO MÍNIMA PARA CLAUDE / SEM EVENTO NO SETTLE:** derivar a quantidade com `videosForCredits(TIER_CREDITS.starter, 'fast')` e etiquetar somente o link com campanha fechada, por exemplo `video_ready_email_plan_truth_v1`. Não adicionar escrita em banco ou evento ao polling/settle; não mudar preço, crédito, SKU, oferta, reward, render ou checkout. A URL não recebe identidade, conteúdo, vídeo, Session ou campo livre.
+
+**GATE PÓS-CORREÇÃO:** a falsidade pode ser corrigida imediatamente pelo dono. Depois da fronteira, preservar até 20 pessoas externas com primeiro `video_ready_viewed` ou dez pessoas externas em `pricing_view(source=video_ready_email_plan_truth_v1)`, o que ocorrer primeiro. Reconciliar por pessoa até `checkout_started → payment_success → assinatura ativa`. Nenhuma nova otimização de assunto, CTA ou oferta entra antes desse gate; visão de vídeo não será chamada de abertura de e-mail.
+
+**ESTADO ATUAL:** **CAUSA FACTUAL CONFIRMADA / CORREÇÃO ENCAMINHADA AO DONO CLAUDE / NO-GO PARA CODEX EDITAR O PIPELINE / MEDIÇÃO BASELINE REGISTRADA.** Nenhum runtime, e-mail, preço, oferta, crédito, checkout, banco, render, comunicação externa ou tráfego ativo foi alterado nesta rodada Codex.
