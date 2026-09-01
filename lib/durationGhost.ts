@@ -105,3 +105,89 @@ export function deveResgatar(args: {
 
   return { alvo, fantasma, fala: Math.round(fala) }
 }
+
+// ═══ sprint-v1v4 #39 (2026-09-01) — QUANDO NADA CABE, A RECUSA AINDA MENTIA ═
+//
+// O #20 acima resgata o alvo fantasma trocando-o pela MAIOR duracao real que a
+// fala enche. Mas ele desiste — devolve `null` — quando NENHUMA duracao do
+// seletor cabe. E foi ai que a maior parte das pessoas ficou.
+//
+// MEDIDO em 01/09 (7 dias, so externas, `events`): 12 pessoas barradas por
+// narracao curta. O resgate do #20 funcionou 3 vezes (45s -> 35s, todas com
+// `still_short:false`, ou seja: parede virou video). As outras cairam no ramo
+// em que nada cabe — e continuaram sendo medidas contra 45.
+//
+//   houh70985     01/09 18:00  speech=33s  target=45s  missing_words=23
+//   souzadelima135 01/09 14:21 speech=21s  target=35s  missing_words=28
+//   amamelegy     31/08 13:31  speech=31s  target=45s
+//   ffdilraj730   31/08 09:03  speech=32s  target=45s
+//
+// Olhe a primeira linha com cuidado. O 45 e fantasma: o seletor tem 35/60/90.
+// Contra o menor produto QUE EXISTE, 33s de fala esta a **0,25 segundo** do
+// minimo (35 x 0,95 = 33,25) — UMA palavra. O produto disse a ela que faltavam
+// VINTE E TRES, porque contou contra um numero que nenhum botao da tela
+// seleciona. "Falta 1 palavra" e um ajuste; "faltam 23" e um paragrafo, e a
+// pessoa vai embora. As duas frases descreviam o MESMO roteiro.
+//
+// Pior: esse `missing_words` inflado nao para na tela. Ele viaja para o
+// expansor automatico (`script_expand_autostarted` grava exatamente 23), que
+// entao escreve mirando 45s e estoura o teto de crescimento — e por isso as
+// 14 expansoes de 12 pessoas em 7 dias produziram **zero**
+// `script_growth_candidate_offered`. O alvo fantasma nao envenenava so a
+// recusa: envenenava tambem a unica saida oferecida.
+//
+// A REGRA (aterrissagem): se o alvo e fantasma E nenhuma duracao real cabe,
+// o servidor passa a medir contra o **PISO** do seletor antes de recusar.
+//
+// (!) ISTO NAO LIBERA UM UNICO VIDEO A MAIS. Prova, nao promessa: "nenhuma
+// cabe" significa, em particular, que o piso nao cabe — piso > fala/0,95 —
+// logo fala < piso x 0,95 e o guard REPROVA de novo depois da aterrissagem.
+// O Contrato C2 (piso de 95%, nada de silencio pago) fica intacto byte a byte.
+// O que muda e so o numero dito a pessoa, e o alvo que a expansao persegue.
+//
+// (!) NUNCA SOBE A PAREDE: se o piso for maior ou igual ao fantasma, devolve
+// null. Aterrissar so vale para baixo.
+//
+// (!) NAO TOCA EM PRECO, CREDITO NEM PLANO — `engineCost` e por MOTOR, nao
+// por segundo (mesma verificacao do #20).
+
+/**
+ * Segunda chance do resgate: alvo fantasma + nenhuma duracao real que caiba.
+ *
+ * Devolve `null` — mantendo tudo como esta — em todos os casos honestos:
+ *  . o roteiro encheu o alvo (`fitOk`);
+ *  . o alvo e uma duracao que o produto oferece (a pessoa escolheu de fato);
+ *  . ALGUMA duracao cabe (ai quem resolve e `deveResgatar`, nao esta);
+ *  . o piso do seletor e >= ao fantasma (aterrissar subiria a parede);
+ *  . numeros impossiveis.
+ */
+export function deveAterrissar(args: {
+  fitOk: boolean
+  alvoPedido: unknown
+  falaSegundos: unknown
+  oferecidas: readonly number[]
+  maiorQueCabe: number | null | undefined
+}): Resgate | null {
+  const { fitOk, oferecidas } = args
+  if (fitOk) return null
+  if (!oferecidas || oferecidas.length === 0) return null
+
+  const fantasma = Number(args.alvoPedido)
+  if (!Number.isFinite(fantasma) || fantasma <= 0) return null
+  if (!ehAlvoFantasma(fantasma, oferecidas)) return null
+
+  const fala = Number(args.falaSegundos)
+  if (!Number.isFinite(fala) || fala <= 0) return null
+
+  // Se alguma duracao cabe, o dono do caso e o `deveResgatar` — nao duplicar
+  // decisao: dois donos para a mesma troca e como a parede volta a subir.
+  const maior = Number(args.maiorQueCabe)
+  if (Number.isFinite(maior) && maior > 0) return null
+
+  const validas = oferecidas.filter((d) => Number.isFinite(d) && d > 0)
+  if (validas.length === 0) return null
+  const piso = Math.min(...validas)
+  if (piso >= fantasma) return null
+
+  return { alvo: piso, fantasma, fala: Math.round(fala) }
+}

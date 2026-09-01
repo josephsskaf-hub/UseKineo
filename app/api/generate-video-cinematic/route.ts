@@ -54,7 +54,10 @@ import { narrationFit, narrationTooShortMessage, MIN_COVERAGE } from '@/lib/narr
 // desenha os botoes de duracao do produto. Ver a nota em lib/narrationFit.ts.
 import { SUPPORTED_DURATIONS, largestFittingDuration } from '@/lib/expandPolicy'
 // sprint-v1v4 #20 — o alvo fantasma de 45s. Ver o cabecalho de lib/durationGhost.ts.
-import { deveResgatar } from '@/lib/durationGhost'
+// sprint-v1v4 #39 - quando NENHUMA duracao real cabe, o #20 desistia e a
+// recusa seguia medindo contra o fantasma. `deveAterrissar` traz a regua para
+// o PISO do seletor. Nao libera video nenhum: so faz o numero dito ser verdade.
+import { deveResgatar, deveAterrissar } from '@/lib/durationGhost'
 import { openai } from '@/lib/openai'
 // KINEO-HOLLYWOOD-2026-07-09 — Hollywood Mode 2.0: per-scene engine routing
 // with native audio. KINEO-HOLLYWOOD-22-2026-07-10: Kling3 dialogue+support /
@@ -2207,6 +2210,50 @@ async function manipularPost(req: NextRequest) {
             },
           })
         } catch { /* telemetria nunca derruba a resposta */ }
+      }
+      // ═══ sprint-v1v4 #39 — SE NADA CABE, ATERRISSA NO PISO ANTES DE RECUSAR ═
+      // O resgate acima so age quando ALGUMA duracao do seletor cabe. Quando
+      // nenhuma cabe ele devolve null, e ate hoje a recusa saia medida contra o
+      // fantasma: houh70985 (01/09 18:00 UTC) ouviu que faltavam 23 palavras
+      // para 45s quando, contra os 35s que o produto realmente vende, faltava
+      // UMA. A aterrissagem nao aprova nada — `fit` continua reprovado, por
+      // construcao — mas o numero da mensagem, o `missing_words` que viaja para
+      // o expansor e a duracao do render passam a ser os reais.
+      if (!fit.ok) {
+        const pouso = deveAterrissar({
+          fitOk: fit.ok,
+          alvoPedido: duration,
+          falaSegundos: fit.speech,
+          oferecidas: SUPPORTED_DURATIONS,
+          maiorQueCabe: largestFittingDuration(fit.speech),
+        })
+        if (pouso) {
+          const faltavamAntes = fit.missingWords
+          duration = pouso.alvo
+          fit = narrationFit(parsedScript.narration, duration)
+          console.warn(
+            `[narracao] ATERRISSOU NO PISO: alvo ${pouso.fantasma}s nao existe no seletor e ` +
+            `nenhuma duracao cabe em ${pouso.fala}s de fala; medindo contra o piso ${pouso.alvo}s ` +
+            `(faltavam ${faltavamAntes} palavras, faltam ${fit.missingWords}).`,
+          )
+          try {
+            await cinematicAdmin.from('events').insert({
+              user_id: user.id,
+              name: 'duration_ghost_floored',
+              path: '/api/generate-video-cinematic',
+              metadata: {
+                ghost_seconds: pouso.fantasma,
+                floored_to_seconds: pouso.alvo,
+                speech_seconds: pouso.fala,
+                missing_words_before: faltavamAntes,
+                missing_words_after: fit.missingWords,
+                // Tripwire do contrato: aterrissar NUNCA pode aprovar. Se isto
+                // vier true uma vez, a prova do cabecalho esta errada.
+                unblocked: fit.ok,
+              },
+            })
+          } catch { /* telemetria nunca derruba a resposta */ }
+        }
       }
       if (!fit.ok) {
         // ═══ KINEO-GUARD-DEVOLVE-2026-08-25 — O GUARD COBRAVA E NÃO DEVOLVIA ═══
