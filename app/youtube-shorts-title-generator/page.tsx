@@ -80,14 +80,18 @@ const PAGE_CSS = `
   .publish-next{margin-top:18px;padding:20px;border-radius:15px;border:1px solid rgba(41,151,255,.27);background:rgba(41,151,255,.07)}
   .publish-next h3{margin:6px 0 0;font-size:1.15rem}
   .publish-next p:not(.publish-eyebrow){max-width:600px;margin:7px 0 0;color:#94a3b8;font-size:.82rem;line-height:1.5}
-  .publish-next>a{flex:none;border-radius:11px;background:#2997ff;color:#000;padding:12px 15px;font-size:.82rem;font-weight:900;text-decoration:none;text-align:center}
+  .publish-next-actions{flex:none;display:grid;gap:9px;width:min(270px,100%)}
+  .publish-create-cta{border-radius:11px;background:#2997ff;color:#000;padding:12px 15px;font-size:.82rem;font-weight:900;text-decoration:none;text-align:center}
+  .publish-business-path{display:grid;gap:5px;border:1px solid rgba(52,211,153,.3);border-radius:11px;background:rgba(52,211,153,.06);padding:10px 12px}
+  .publish-business-path span{color:#91a0b2;font-size:.7rem;line-height:1.35}
+  .publish-business-path a{color:#6ee7b7;font-size:.78rem;font-weight:850;line-height:1.35;text-decoration:none}
   .publish-faq{margin-top:38px}
   .publish-faq h2{font-size:1.45rem;margin:0 0 13px}
   .publish-faq article{border-top:1px solid #232934;padding:15px 0}
   .publish-faq h3{margin:0;font-size:.95rem}
   .publish-faq p{margin:6px 0 0;color:#8f9aaa;font-size:.87rem;line-height:1.58}
-  .publish-logo:focus-visible,.publish-all:focus-visible,button:focus-visible,.publish-next>a:focus-visible{outline:3px solid #fff;outline-offset:3px}
-  @media(max-width:700px){.publish-shell{width:min(100% - 28px,920px);padding-bottom:50px}.publish-hero{margin:52px auto 26px;text-align:left}.publish-form,.publish-results{padding:20px}.publish-row,.publish-title-list,.publish-output-grid{grid-template-columns:1fr}.publish-result-head,.publish-next{align-items:flex-start;flex-direction:column}.publish-result-head>button,.publish-next>a{width:100%;box-sizing:border-box}.publish-privacy{text-align:left}}
+  .publish-logo:focus-visible,.publish-all:focus-visible,button:focus-visible,.publish-next a:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  @media(max-width:700px){.publish-shell{width:min(100% - 28px,920px);padding-bottom:50px}.publish-hero{margin:52px auto 26px;text-align:left}.publish-form,.publish-results{padding:20px}.publish-row,.publish-title-list,.publish-output-grid{grid-template-columns:1fr}.publish-result-head,.publish-next{align-items:flex-start;flex-direction:column}.publish-result-head>button,.publish-next-actions{width:100%;box-sizing:border-box}.publish-privacy{text-align:left}}
 `
 
 export default function YouTubeShortsTitleGeneratorPage() {

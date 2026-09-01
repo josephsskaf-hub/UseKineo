@@ -1,13 +1,20 @@
 'use client'
 
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { trackEvent } from '@/lib/analytics'
 import {
   buildShortsPublishKit,
   type PublishKitPlatform,
   type PublishKitTone,
   type ShortsPublishKit,
 } from '@/lib/growth/shortsPublishKit'
+import {
+  PUBLISH_KIT_BUSINESS_PATH_DESTINATION,
+  publishKitBusinessViewSettlement,
+  publishKitBusinessPathMetadata,
+  shouldShowPublishKitBusinessPath,
+} from '@/lib/growth/publishKitBusinessPath'
 
 const CAMPAIGN = 'growth_publish_kit_20260828'
 const EXAMPLES = [
@@ -35,8 +42,12 @@ export default function PublishKitClient() {
   const [platform, setPlatform] = useState<PublishKitPlatform>('youtube')
   const [kit, setKit] = useState<ShortsPublishKit | null>(null)
   const [generatedTopic, setGeneratedTopic] = useState('')
+  const [generatedTone, setGeneratedTone] = useState<PublishKitTone | null>(null)
   const [selectedTitle, setSelectedTitle] = useState('')
   const [copied, setCopied] = useState('')
+  const businessPathRef = useRef<HTMLDivElement | null>(null)
+  const businessPathViewPendingRef = useRef(false)
+  const businessPathViewedRef = useRef(false)
 
   function generate(nextTopic = topic) {
     const cleanTopic = nextTopic.trim()
@@ -44,6 +55,7 @@ export default function PublishKitClient() {
     const result = buildShortsPublishKit({ topic: cleanTopic, takeaway, tone, platform })
     setKit(result)
     setGeneratedTopic(cleanTopic)
+    setGeneratedTone(tone)
     setSelectedTitle(result.titles[0] ?? '')
     setCopied('')
   }
@@ -66,6 +78,40 @@ export default function PublishKitClient() {
   const fullPack = kit
     ? `${selectedTitle || kit.titles[0]}\n\n${kit.description}\n\n${kit.hashtags.join(' ')}`
     : ''
+  const showBusinessPath = shouldShowPublishKitBusinessPath(generatedTone, Boolean(kit))
+
+  useEffect(() => {
+    if (!showBusinessPath || businessPathViewedRef.current) return
+    const node = businessPathRef.current
+    if (!node) return
+
+    const recordView = () => {
+      if (businessPathViewedRef.current || businessPathViewPendingRef.current) return
+      businessPathViewPendingRef.current = true
+      void trackEvent(
+        'publish_kit_business_path_viewed',
+        publishKitBusinessPathMetadata('planner'),
+      ).then((stored) => {
+        businessPathViewPendingRef.current = false
+        if (publishKitBusinessViewSettlement(stored) === 'retryable') return
+        businessPathViewedRef.current = true
+        observer.disconnect()
+      })
+    }
+
+    if (typeof IntersectionObserver === 'undefined') return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) {
+          recordView()
+        }
+      },
+      { threshold: [0.5] },
+    )
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [showBusinessPath])
 
   return (
     <>
@@ -187,7 +233,34 @@ export default function PublishKitClient() {
               <h3>Carry “{generatedTopic}” into Kineo.</h3>
               <p>The topic stays attached through signup so you do not type it twice. The free Fast test does not require a card.</p>
             </div>
-            <Link href={creationHref(generatedTopic)}>Turn this topic into a Short →</Link>
+            <div className="publish-next-actions">
+              <Link
+                className="publish-create-cta"
+                href={creationHref(generatedTopic)}
+                onClick={showBusinessPath
+                  ? () => void trackEvent(
+                    'publish_kit_business_creator_clicked',
+                    publishKitBusinessPathMetadata('creator'),
+                  )
+                  : undefined}
+              >
+                Turn this topic into a Short →
+              </Link>
+              {showBusinessPath ? (
+                <div className="publish-business-path" ref={businessPathRef}>
+                  <span>Planning a business content batch?</span>
+                  <Link
+                    href={PUBLISH_KIT_BUSINESS_PATH_DESTINATION}
+                    onClick={() => void trackEvent(
+                      'publish_kit_business_path_clicked',
+                      publishKitBusinessPathMetadata('planner'),
+                    )}
+                  >
+                    Build the free weekly plan →
+                  </Link>
+                </div>
+              ) : null}
+            </div>
           </div>
         </section>
       )}
