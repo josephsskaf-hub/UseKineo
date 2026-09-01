@@ -26,7 +26,11 @@ import { VIRAL_TOPICS_POOL } from '@/lib/viralTopics'
 // KINEO-SPRINT-V1V4-2026-09-01 (#25) — MESMO motor de continuacao das telas e
 // do momentum nudge (#24). O e-mail nunca monta a frase do episodio 2 a mao:
 // se a frase mudar la, este e-mail acompanha sozinho.
-import { buildSeriesContinuationEmailUrl, normalizeSeriesSeed } from '@/lib/seriesContinuation'
+import {
+  buildSeriesContinuationEmailUrl,
+  normalizeSeriesSeed,
+  type SeriesContinuationSource,
+} from '@/lib/seriesContinuation'
 import { OUR_FAILURE_EVENT_NAME, isOurFailure } from '@/lib/lifecycle/ourFailure'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
@@ -1012,14 +1016,21 @@ function oneClickBlocks(
 // comentario logo abaixo: o slot free e reservado ANTES do render, entao
 // prometer "de graca" aqui pode ser falso. Este bloco promete so o que o link
 // entrega: a caixa ja preenchida com o episodio 2 do tema dela.
+// ⚠️ A FONTE E PARAMETRO, NAO CONSTANTE (#26). A 1a versao deste helper
+// gravava `lifecycle_loss_email` fixo. Ao reusa-lo no `ending_soon` isso
+// jogaria os cliques dos DOIS e-mails no mesmo balde de
+// `series_continuation_landed`, e a unica pergunta que este bloco existe para
+// responder — QUAL carta faz a pessoa voltar — ficaria sem resposta. Campo que
+// aparece em mais de uma superficie nasce de UMA variavel, por superficie.
 function episodeTwoBlock(
   seed: string | null,
   campaign: string,
+  source: SeriesContinuationSource,
   attr: (url: string) => string,
 ): { text: string; html: string } | null {
   const tema = normalizeSeriesSeed(seed ?? '')
   if (!tema) return null
-  const url = buildSeriesContinuationEmailUrl(APP_URL, tema, 'lifecycle_loss_email', {
+  const url = buildSeriesContinuationEmailUrl(APP_URL, tema, source, {
     utm_source: 'lifecycle',
     utm_medium: 'email',
     utm_campaign: campaign,
@@ -1301,6 +1312,33 @@ usekineo.com`
       }
     }
 
+    // ── KINEO-SPRINT-V1V4-2026-09-01 (#26) ────────────────────────────────────
+    // ESTE RAMO E O ULTIMO E-MAIL QUE ALGUEM COM 1 VIDEO RECEBE ANTES DE PERDER
+    // OS CREDITOS, E ELE SO SABE PEDIR DINHEIRO.
+    //
+    // Medido hoje no banco (30d, so externos): das 285 pessoas que fizeram
+    // EXATAMENTE UM video, 184 receberam o `ending_soon` — o segundo maior
+    // alcance da casa nesse grupo, atras so do `downgraded_loss` (200), que a
+    // rodada #25 tratou. Quem cai AQUI ja passou pelos dois desvios acima
+    // (`neverUsed` e `failedOnUs`), ou seja: e gente que USOU credito. Para ela
+    // o e-mail dizia "If Kineo's been working for you, keep everything exactly
+    // as it is" e apontava para /pricing, e mais nada. Pedimos a assinatura a
+    // quem ainda nao pediram para fazer o segundo video.
+    //
+    // O destino importa mais que o pedido (tabela da #24, 30d, externos):
+    //   volta ao Studio em branco ....... 123 pessoas -> 30 fizeram o 2o (24%)
+    //   chegada por continuacao de serie . 59 pessoas -> 31 fizeram o 2o (53%)
+    //
+    // MESMO CONTRATO DA #25, DE PROPOSITO: o CTA `Keep Creator` continua
+    // PRIMEIRO e byte a byte; o assunto NAO muda; o bloco novo nao fala de
+    // preco, plano, credito, cota, cupom nem "free"; e sem tema utilizavel o
+    // e-mail sai exatamente como sai hoje (fail-closed dentro do helper).
+    // `c.lastTopic` ja e colhido no mesmo laco que pagina `videos` desde a #25
+    // — ZERO consulta nova. Quem tem credito usado mas nenhum video CONCLUIDO
+    // tem `lastTopic` nulo e nao recebe bloco nenhum: nunca inventamos o
+    // assunto de um video que a pessoa nao terminou.
+    const ep2 = episodeTwoBlock(c.lastTopic, 'trial_ending_episode2', 'lifecycle_ending_email', attr)
+
     const text = `Hey,
 
 Your Creator trial ends ${when}. After that you're back on the free plan, which means:
@@ -1310,7 +1348,7 @@ Your Creator trial ends ${when}. After that you're back on the free plan, which 
 - You're down to ${freeResidual}
 
 If Kineo's been working for you, keep everything exactly as it is: ${url}
-
+${ep2 ? `\n${ep2.text}\n` : ''}
 Kineo Team
 usekineo.com`
     const html = wrap(`
@@ -1323,7 +1361,7 @@ usekineo.com`
   </ul>
   <p style="margin:0 0 14px;">If Kineo's been working for you, keep everything exactly as it is:</p>
   ${cta(url, 'Keep Creator')}
-  ${sig}`)
+${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     return { subject, text: `${text}${footerText}`, html }
   }
 
@@ -1455,7 +1493,7 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
     // KINEO-SPRINT-V1V4-2026-09-01 (#25) — o segundo caminho, so para quem TEM
     // video (o ramo `neverRan` acima nao passa por aqui: quem nunca terminou um
     // video nao tem episodio 2, e ja recebe os temas de 1 clique do pool).
-    const ep2 = episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', attr)
+    const ep2 = episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', 'lifecycle_loss_email', attr)
 
     const text = `Hey,
 

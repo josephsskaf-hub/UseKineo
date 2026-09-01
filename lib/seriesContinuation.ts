@@ -22,6 +22,11 @@ export type SeriesContinuationSource =
   // ele oferecia era /pricing. Esta fonte identifica o segundo caminho, o de
   // fazer o episodio 2 do tema da propria pessoa.
   | 'lifecycle_loss_email'
+  // KINEO-SPRINT-V1V4-2026-09-01 (#26) — o `ending_soon` e o SEGUNDO e-mail
+  // que mais alcanca quem fez 1 video (184 das 285 em 30d) e, no ramo de quem
+  // JA fez video, tambem oferecia um unico caminho: /pricing. Fonte propria
+  // para nao misturar o CTR dele com o do `downgraded_loss`.
+  | 'lifecycle_ending_email'
   // KINEO-SPRINT-V1V4-2026-08-31 (#3B) — o rodape da tela de video pronto
   // renderizava `null` para o maior grupo ativado (gratuito, nao pagante,
   // render Fast). Este e o unico caminho de criacao que aquele grupo ve ali.
