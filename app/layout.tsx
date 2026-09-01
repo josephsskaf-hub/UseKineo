@@ -4,6 +4,7 @@ import { Inter, Space_Grotesk } from 'next/font/google'
 import StructuredData from '@/components/StructuredData'
 import SourceCapture from '@/components/SourceCapture'
 import CheckoutResumeBanner from '@/components/CheckoutResumeBanner'
+import AutopilotPilotResumeBanner from '@/components/AutopilotPilotResumeBanner'
 // KINEO-CHECKOUT-REDIRECT-2026-08-08 — montado UMA vez, aqui, de propósito:
 // existem 15 superfícies de checkout no repo e o fallback tem que valer para
 // todas. Uma superfície esquecida seria exatamente a que perderia a venda.
@@ -227,7 +228,7 @@ export default function RootLayout({
       {/* [KINEO-TRIAL-SWAP-2026-08-07] — FreeTierOfferProvider envolve TODO o
           conteúdo: é o único caminho pelo qual client components leem a oferta
           do free tier (a env da flag não existe no browser). */}
-      <body><StructuredData /><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><Analytics /></body>
+      <body><StructuredData /><FreeTierOfferProvider offer={OFFER}><SourceCapture /><CheckoutResumeBanner /><AutopilotPilotResumeBanner /><CheckoutStalledCta />{children}</FreeTierOfferProvider><Analytics /></body>
     </html>
   )
 }

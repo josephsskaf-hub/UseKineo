@@ -87,6 +87,12 @@ import {
   readCheckoutSetupFailureContext,
 } from '@/lib/growth/checkoutSetupFailureReturn'
 import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
+import {
+  AUTOPILOT_PILOT_DISMISSED_COOKIE,
+  AUTOPILOT_PILOT_RESUME_HINT_COOKIE,
+  AUTOPILOT_PILOT_RESUME_VERSION,
+  AUTOPILOT_PILOT_SESSION_COOKIE,
+} from '@/lib/growth/autopilotPilotResume'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -119,6 +125,66 @@ function rememberRecurringCheckout(response: NextResponse, sessionId: string): N
     path: '/',
     maxAge: 0,
   })
+  // A newer recurring decision supersedes an older one-time Pilot decision.
+  // Keeping both would render two competing reminders for the same buyer.
+  for (const name of [
+    AUTOPILOT_PILOT_SESSION_COOKIE,
+    AUTOPILOT_PILOT_DISMISSED_COOKIE,
+    AUTOPILOT_PILOT_RESUME_HINT_COOKIE,
+  ]) {
+    response.cookies.set({
+      name,
+      value: '',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    })
+  }
+  return response
+}
+
+function rememberAutopilotPilotCheckout(response: NextResponse, sessionId: string): NextResponse {
+  response.cookies.set({
+    name: AUTOPILOT_PILOT_SESSION_COOKIE,
+    value: sessionId,
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: CHECKOUT_RESUME_MAX_AGE_SECONDS,
+  })
+  response.cookies.set({
+    name: AUTOPILOT_PILOT_DISMISSED_COOKIE,
+    value: '',
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  })
+  response.cookies.set({
+    name: AUTOPILOT_PILOT_RESUME_HINT_COOKIE,
+    value: '1',
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: CHECKOUT_RESUME_MAX_AGE_SECONDS,
+  })
+  // The Pilot is the buyer's newest explicit decision. Remove a stale saved
+  // subscription so only the one-time product can own the global reminder.
+  for (const name of [CHECKOUT_RESUME_SESSION_COOKIE, CHECKOUT_RESUME_DISMISSED_COOKIE]) {
+    response.cookies.set({
+      name,
+      value: '',
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 0,
+    })
+  }
   return response
 }
 
@@ -2524,6 +2590,12 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
       pack_credits: String(AUTOPILOT_PILOT_PACK.credits),
       plan_grant: AUTOPILOT_PILOT_PLAN,
       plan_days: String(AUTOPILOT_PILOT_DAYS),
+      pilot_resume_version: AUTOPILOT_PILOT_RESUME_VERSION,
+    },
+    // Stripe documents abandoned-cart recovery for mode=payment. It reopens
+    // this exact one-time Session; it does not mint a subscription.
+    after_expiration: {
+      recovery: { enabled: true },
     },
   }
   if (profile?.stripe_customer_id) sessionParams.customer = profile.stripe_customer_id
@@ -2535,6 +2607,7 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
     currency,
     unit_amount: unitAmount,
     price_id: pilotPriceId,
+    resume_version: AUTOPILOT_PILOT_RESUME_VERSION,
     customer: sessionParams.customer ?? null,
   })
 
@@ -2568,7 +2641,10 @@ async function buildAutopilotPilotAndRedirect(req: NextRequest, isGet: boolean):
     { ...skuContext, stripe_session_id: session.id },
     browserSessionId,
   )
-  return isGet ? NextResponse.redirect(session.url!) : NextResponse.json({ url: session.url })
+  const response = isGet
+    ? NextResponse.redirect(session.url!)
+    : NextResponse.json({ url: session.url })
+  return rememberAutopilotPilotCheckout(response, session.id)
 }
 
 // ─── KINEO-BULK-2026-07-27 — pacotes de atacado (mode: 'payment') ────────────
