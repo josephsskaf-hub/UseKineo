@@ -41,16 +41,21 @@ const CHANNEL = {
   name: 'Curiosityvaultlab',
   url: 'https://www.youtube.com/channel/UCffjyZHeIPGjbwHTQQIF-dA',
   niche: 'Mysteries & unexplained',
-  handoverDate: 'July 27, 2026',
   baselineSubs: '12,641',
   baselineVideos: 155,
-  cadence: '1 Short per day, published automatically at 6 PM',
-  lastVerified: 'July 30, 2026',
+  publicSubs: '12.5K',
+  publicVideos: 170,
+  scheduledRuns: 4,
+  publishedRuns: 0,
+  failedRuns: 1,
+  skippedRuns: 3,
+  ledgerThrough: 'July 30, 2026',
+  lastVerified: 'September 1, 2026',
 }
 
-const TITLE = 'We Run a Real Faceless Channel With Kineo — In Public'
+const TITLE = 'Our Public YouTube Autopilot Experiment: 4 Runs, 0 Posts'
 const DESCRIPTION =
-  `A real YouTube channel (${CHANNEL.baselineSubs} subscribers) handed over to Kineo's Autopilot on ${CHANNEL.handoverDate}. One Short a day, zero manual editing. Numbers updated weekly — including the bad ones.`
+  `The dated record of Kineo's first public Autopilot experiment: ${CHANNEL.scheduledRuns} scheduled runs, ${CHANNEL.publishedRuns} published posts. What failed, what the public channel shows, and what remains unproven.`
 const URL = 'https://www.usekineo.com/youtube-automation-case-study'
 
 export const metadata: Metadata = {
@@ -73,7 +78,7 @@ export default function CaseStudyPage() {
             headline: TITLE,
             description: DESCRIPTION,
             datePublished: '2026-07-31',
-            dateModified: '2026-07-31',
+            dateModified: '2026-09-01',
             author: { '@type': 'Organization', name: 'Kineo' },
             mainEntityOfPage: URL,
           }),
@@ -98,19 +103,19 @@ export default function CaseStudyPage() {
 
       <article className="mx-auto max-w-3xl px-5 pb-20 pt-14">
         <p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-300">
-          Live experiment · updated weekly
+          Public experiment record · verified September 1, 2026
         </p>
         <h1 className="mt-4 text-balance font-display text-4xl font-black tracking-tight sm:text-5xl">
-          We run a real faceless channel with Kineo. In public.
+          Our first public Autopilot test did not publish a video.
         </h1>
         <p className="mt-5 text-base leading-7 text-white/65 sm:text-lg">
-          Every AI video tool claims it can run a YouTube channel for you. None of them show you a
-          real channel where that is actually happening. So we are doing it with ours — and
-          publishing the numbers every week, <strong className="text-white/90">including the weeks
-          where they are bad</strong>.
+          We originally published this page as a live success experiment. The production ledger
+          does not support that claim. It records four scheduled runs for this channel through
+          July 30: <strong className="text-white/90">zero published, one failed and three skipped</strong>.
+          This page now shows that outcome instead of treating an unfinished test as proof.
         </p>
 
-        {/* The channel card — every figure dated, per AGENTS.md §5 */}
+        {/* Public channel snapshot — every figure dated, per AGENTS.md §5. */}
         <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="font-display text-xl font-black">{CHANNEL.name}</h2>
@@ -121,7 +126,7 @@ export default function CaseStudyPage() {
           <dl className="mt-5 grid gap-4 sm:grid-cols-3">
             <div>
               <dt className="text-[11px] font-bold uppercase tracking-wider text-white/40">
-                Subscribers at handover
+                Subscribers · Jul 27
               </dt>
               <dd className="mt-1 font-display text-2xl font-black text-cyan-300">
                 {CHANNEL.baselineSubs}
@@ -129,21 +134,22 @@ export default function CaseStudyPage() {
             </div>
             <div>
               <dt className="text-[11px] font-bold uppercase tracking-wider text-white/40">
-                Videos before Kineo
+                Public snapshot · Sep 1
               </dt>
-              <dd className="mt-1 font-display text-2xl font-black">{CHANNEL.baselineVideos}</dd>
+              <dd className="mt-1 font-display text-2xl font-black">{CHANNEL.publicSubs} subscribers</dd>
             </div>
             <div>
               <dt className="text-[11px] font-bold uppercase tracking-wider text-white/40">
-                Running on Autopilot since
+                Total public videos
               </dt>
-              <dd className="mt-1 font-display text-2xl font-black">Jul 27, 2026</dd>
+              <dd className="mt-1 font-display text-2xl font-black">{CHANNEL.publicVideos}</dd>
             </div>
           </dl>
           <p className="mt-5 text-sm leading-6 text-white/60">
-            Niche: {CHANNEL.niche}. Cadence: {CHANNEL.cadence}. Kineo picks the topic, writes the
-            script, records the voiceover, matches the footage, burns the captions and publishes —
-            no human edits a single frame.
+            The channel had {CHANNEL.baselineVideos} videos at handover and shows {CHANNEL.publicVideos}{' '}
+            now. That is a public increase of {CHANNEL.publicVideos - CHANNEL.baselineVideos}, but
+            the Autopilot ledger records no published run, so this page does not attribute those
+            uploads to Kineo. Niche: {CHANNEL.niche}.
           </p>
           <a
             href={CHANNEL.url}
@@ -155,41 +161,44 @@ export default function CaseStudyPage() {
           </a>
         </div>
 
-        {/* Radical honesty — this is the differentiator, keep it blunt */}
-        <h2 className="mt-12 font-display text-2xl font-black tracking-tight">The rules we set ourselves</h2>
-        <ul className="mt-4 space-y-3 text-base leading-7 text-white/65">
-          <li>
-            <strong className="text-white/90">Numbers update weekly, no matter what.</strong> If a
-            week is flat, we publish flat. If retention drops, we publish the drop and what we
-            changed in the engine because of it.
-          </li>
-          <li>
-            <strong className="text-white/90">Same product you get.</strong> The channel runs on the
-            same Fast engine and the same Autopilot every customer uses — no internal-only models,
-            no manual retouching.
-          </li>
-          <li>
-            <strong className="text-white/90">Failures are data.</strong> This experiment started on
-            {' '}{CHANNEL.handoverDate}. It is days old. We do not know yet how it ends — that is
-            exactly why it is worth watching.
-          </li>
-        </ul>
+        <h2 className="mt-12 font-display text-2xl font-black tracking-tight">The production ledger</h2>
+        <div className="mt-5 grid gap-3 sm:grid-cols-4">
+          {[
+            ['Scheduled', CHANNEL.scheduledRuns, 'Jul 27–30'],
+            ['Published', CHANNEL.publishedRuns, 'No YouTube ID'],
+            ['Failed', CHANNEL.failedRuns, 'Jul 27'],
+            ['Skipped', CHANNEL.skippedRuns, 'Session unavailable'],
+          ].map(([label, value, note]) => (
+            <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-white/40">{label}</div>
+              <div className="mt-1 font-display text-3xl font-black text-white">{value}</div>
+              <div className="mt-1 text-xs leading-5 text-white/50">{note}</div>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-sm leading-6 text-white/60">
+          “Session unavailable” means the scheduled job could not use an authenticated YouTube
+          session. It was correctly skipped instead of pretending to publish. The ledger is current
+          through {CHANNEL.ledgerThrough}; no later run exists for this channel in the product record.
+        </p>
 
-        <h2 className="mt-12 font-display text-2xl font-black tracking-tight">Why we publish this</h2>
+        <h2 className="mt-12 font-display text-2xl font-black tracking-tight">What this proves — and does not prove</h2>
         <p className="mt-4 text-base leading-7 text-white/65">
-          A tool that claims to grow channels should be able to point at one. Screenshots can be
-          faked and testimonials can be bought; a live channel with dated numbers cannot. If Kineo
-          works, you will see it here first. If it does not, you will see that too — and so will we,
-          which is how the product gets better.
+          It proves that Kineo attempted the schedule and recorded the failure state. It does not
+          prove daily publishing, channel growth or an Autopilot success story. The experiment is
+          paused and remains unvalidated until a new seven-day run publishes at least six of seven
+          scheduled Shorts without manual intervention. We will not turn subscriber counts or
+          unrelated uploads into an Autopilot claim.
         </p>
 
         <div className="mt-12 rounded-3xl border border-cyan-300/25 bg-cyan-300/[0.06] p-6 text-center">
           <h2 className="font-display text-2xl font-black tracking-tight">
-            Run the same experiment on your channel
+            Decide with the failure history visible
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/60">
-            The experiment above uses Kineo Autopilot. Review the pilot and monthly options first,
-            or keep control and try the generator free.
+            Kineo still offers a paid seven-day Autopilot pilot, but this public test is not proof of
+            reliable publishing or results. Review the current pilot and monthly terms before you
+            pay, or keep control and test the self-serve generator first.
           </p>
           <OrganicCtaLink
             href="/pricing?intent_campaign=autopilot_case_study_v1#autopilot"
@@ -197,7 +206,7 @@ export default function CaseStudyPage() {
             placement="autopilot_offer"
             className="mt-5 inline-block rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-cyan-200"
           >
-            See Autopilot pilot and monthly options
+            Review the pilot and monthly terms
           </OrganicCtaLink>
           <Link
             href="/signup?utm_source=case_study&utm_medium=proof&utm_campaign=live_channel"
@@ -211,7 +220,7 @@ export default function CaseStudyPage() {
             {ft(OFFER, 'Start free — 3 videos a day', `Start free — ${TRIAL_GRANT_CREDITS_COPY} credits, every engine`)}
           </Link>
           <p className="mt-4 text-xs text-white/40">
-            Curious about the money side? <Link href="/how-much-do-youtube-shorts-pay" className="underline hover:text-white/70">How much Shorts pay</Link> ·{' '}
+            Need client videos without managed publishing? <Link href="/ai-shorts-for-agencies" className="underline hover:text-white/70">See one-time agency packs</Link> ·{' '}
             <Link href="/youtube-automation" className="underline hover:text-white/70">YouTube automation guide</Link>
           </p>
         </div>
