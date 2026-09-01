@@ -37,6 +37,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { TIER_CREDITS, TIER_PRICES, formatCheckoutMoney } from '@/lib/checkoutPricing'
 import type { MySubscription } from '@/app/api/me/subscription/route'
+import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 
 export interface AccountPanelProps {
   email: string
@@ -118,6 +119,7 @@ export default function AccountPanel({
   const planKey = (plan ?? 'free').toLowerCase()
   const planName = PLAN_LABEL[planKey] ?? 'Free'
   const isPaid = planKey in PLAN_GRANT
+  const topupEligible = canPurchaseCreditTopup(planKey)
   const grant = PLAN_GRANT[planKey] ?? null
   const priceMinor = PLAN_PRICE[planKey] ?? null
   const cr = credits ?? 0
@@ -222,30 +224,34 @@ export default function AccountPanel({
             )}
             <p style={{ fontSize: '0.76rem', color: '#a1a1a6', lineHeight: 1.5, margin: '12px 0 0' }}>
               {lowCredits
-                ? 'Running low. A one-time pack tops you up without touching your plan.'
-                : isPaid
+                ? topupEligible
+                  ? 'Running low. A one-time pack tops you up without touching your plan.'
+                  : 'Running low. Choose a plan to keep creating.'
+                : topupEligible
                   ? 'Need more before your renewal? Top up without changing plans.'
                   : 'Credits are how videos, images and voiceovers are billed.'}
             </p>
             <div style={{ display: 'flex', gap: 9, marginTop: 'auto', paddingTop: 14 }}>
-              <button
-                onClick={() => { onClose(); onBuyCredits() }}
-                style={{
-                  flex: 1, padding: '11px 14px', borderRadius: 11, border: 'none', cursor: 'pointer',
-                  fontSize: '0.83rem', fontWeight: 800, color: '#fff',
-                  background: 'linear-gradient(135deg,#2997ff,#0a6fd8)',
-                  boxShadow: '0 6px 18px rgba(41,151,255,0.3)',
-                }}
-              >
-                Buy more credits
-              </button>
-              {!isPaid && (
-                <Link
-                  href="/pricing" onClick={go}
+              {topupEligible ? (
+                <button
+                  onClick={() => { onClose(); onBuyCredits() }}
                   style={{
-                    padding: '11px 14px', borderRadius: 11, textDecoration: 'none',
-                    fontSize: '0.83rem', fontWeight: 800, color: '#7cc0ff',
-                    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+                    flex: 1, padding: '11px 14px', borderRadius: 11, border: 'none', cursor: 'pointer',
+                    fontSize: '0.83rem', fontWeight: 800, color: '#fff',
+                    background: 'linear-gradient(135deg,#2997ff,#0a6fd8)',
+                    boxShadow: '0 6px 18px rgba(41,151,255,0.3)',
+                  }}
+                >
+                  Buy more credits
+                </button>
+              ) : (
+                <Link
+                  href="/pricing" onClick={go} data-topup-eligibility="ineligible"
+                  style={{
+                    flex: 1, padding: '11px 14px', borderRadius: 11, textDecoration: 'none', textAlign: 'center',
+                    fontSize: '0.83rem', fontWeight: 800, color: '#fff',
+                    background: 'linear-gradient(135deg,#2997ff,#0a6fd8)', border: 'none',
+                    boxShadow: '0 6px 18px rgba(41,151,255,0.3)',
                   }}
                 >
                   See plans

@@ -3,12 +3,20 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import AuthModal from '@/components/AuthModal'
 import { FreeTierCopy } from '@/components/FreeTierOfferProvider'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
 import AccountPanel from '@/components/AccountPanel' // KINEO-ACCOUNT-PANEL-2026-08-19
 import { TRIAL_GRANT_CREDITS_COPY } from '@/lib/freeTierOffer'
+import { trackEvent } from '@/lib/analytics'
+import {
+  TOPUP_ELIGIBILITY_HANDOFF_VERSION,
+  TOPUP_ELIGIBILITY_VISIBLE_RATIO,
+  canPurchaseCreditTopup,
+  isTopupEligibilityMeasurementHost,
+  topupEligibilityMetadata,
+} from '@/lib/growth/topupEligibility'
 
 interface SidebarProps {
   userEmail: string
@@ -17,6 +25,43 @@ interface SidebarProps {
   isLoggedIn: boolean
   isOpen?: boolean
   onClose?: () => void
+}
+
+const topupEventInFlight = new Set<string>()
+const topupEventRecorded = new Set<string>()
+
+function topupEventMarker(eventName: string): string {
+  return `kineo_${TOPUP_ELIGIBILITY_HANDOFF_VERSION}:${eventName}`
+}
+
+function wasTopupEventRecorded(eventName: string): boolean {
+  const marker = topupEventMarker(eventName)
+  if (topupEventRecorded.has(marker)) return true
+  try {
+    if (window.sessionStorage.getItem(marker) === '1') {
+      topupEventRecorded.add(marker)
+      return true
+    }
+  } catch {
+    // Privacy mode may deny storage; the in-memory latch still protects mounts.
+  }
+  return false
+}
+
+async function recordTopupEventOnce(eventName: string): Promise<boolean> {
+  const marker = topupEventMarker(eventName)
+  if (wasTopupEventRecorded(eventName) || topupEventInFlight.has(marker)) return false
+  topupEventInFlight.add(marker)
+  const stored = await trackEvent(eventName, topupEligibilityMetadata('sidebar_chip'))
+  topupEventInFlight.delete(marker)
+  if (!stored) return false
+  topupEventRecorded.add(marker)
+  try {
+    window.sessionStorage.setItem(marker, '1')
+  } catch {
+    // A successful event remains latched in memory for this page lifetime.
+  }
+  return true
 }
 
 // Push #031 removed the TOPICS section from the sidebar — the nav is now
@@ -285,6 +330,8 @@ export default function Sidebar({
   // O dado sempre esteve à mão: /api/me/plan já devolve `plan`, e o fetch
   // abaixo lia a resposta e jogava fora esse campo.
   const [plan, setPlan] = useState<string | null>(initialIsPro ? 'pro' : null)
+  const [planResolved, setPlanResolved] = useState(initialIsPro)
+  const creditChipRef = useRef<HTMLButtonElement | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   // KINEO-STORAGE-METER-2026-08-17 (fundador: "no menu de configurações a
   // pessoa vê tudo que ela tem — vídeos, imagens, áudios — e o storage"):
@@ -343,11 +390,49 @@ export default function Sidebar({
         setPlan(typeof planData.plan === 'string' ? planData.plan : null)
       } else {
         setCinematicTokens(0)
+        setPlan(null)
       }
     } catch {
       setCinematicTokens(0)
+      setPlan(null)
+    } finally {
+      setPlanResolved(true)
     }
   }, [isLoggedIn])
+
+  const topupEligible = canPurchaseCreditTopup(plan)
+
+  useEffect(() => {
+    const chip = creditChipRef.current
+    if (!chip || !planResolved || topupEligible) return
+    if (typeof IntersectionObserver === 'undefined') return
+    if (!isTopupEligibilityMeasurementHost(window.location.hostname)) return
+    if (wasTopupEventRecorded('topup_eligibility_handoff_viewed')) return
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry?.isIntersecting || entry.intersectionRatio < TOPUP_ELIGIBILITY_VISIBLE_RATIO) return
+      void recordTopupEventOnce('topup_eligibility_handoff_viewed').then((stored) => {
+        if (stored || wasTopupEventRecorded('topup_eligibility_handoff_viewed')) observer.disconnect()
+      })
+    }, { threshold: [TOPUP_ELIGIBILITY_VISIBLE_RATIO] })
+
+    observer.observe(chip)
+    return () => observer.disconnect()
+  }, [planResolved, topupEligible])
+
+  const handleCreditChipClick = () => {
+    if (!planResolved) return
+    if (topupEligible) {
+      setShowTopup(true)
+      return
+    }
+    if (isTopupEligibilityMeasurementHost(window.location.hostname)) {
+      void recordTopupEventOnce('topup_eligibility_handoff_clicked')
+    }
+    onClose?.()
+    router.push('/pricing')
+  }
 
   useEffect(() => {
     fetchCredits()
@@ -543,17 +628,15 @@ export default function Sidebar({
         {isLoggedIn && (
           <div className="px-3 pt-3 pb-2 flex-shrink-0">
             <button
+              ref={creditChipRef}
               type="button"
-              // KINEO-TOPUP-POPUP-2026-08-18 (fundador, tarefa do dia): o chip
-              // de creditos abria o /pricing — pagina de PLANO. Quem clica no
-              // "+" quer CREDITO. Agora abre o CreditsTopupModal (packs
-              // one-time na moeda do comprador); o upgrade de plano continua
-              // a um clique como link secundario dentro do proprio modal.
-              onClick={() => setShowTopup(true)}
-              aria-label="Add credits"
+              onClick={handleCreditChipClick}
+              disabled={!planResolved}
+              aria-label={topupEligible ? 'Add credits' : 'See plans'}
+              data-topup-eligibility={planResolved ? (topupEligible ? 'eligible' : 'ineligible') : 'loading'}
               className="flex items-center justify-between rounded-xl px-4 py-3 transition-all"
               style={{
-                width: '100%', textAlign: 'left', cursor: 'pointer',
+                width: '100%', textAlign: 'left', cursor: planResolved ? 'pointer' : 'wait',
                 // KINEO-NAV-REDESIGN-2026-07-10 — landing-card surface (quiet
                 // border, no neon halo) so the column reads clean.
                 background: '#131316',
@@ -601,7 +684,9 @@ export default function Sidebar({
                       )}
                     </div>
                     <div style={{ fontSize: '0.6rem', color: '#86868b', marginTop: 1 }}>
-                      {creditsZero ? 'Buy more with +' : 'available'}
+                      {topupEligible
+                        ? (creditsZero ? 'Buy more with +' : 'Top up anytime')
+                        : 'See plans'}
                     </div>
                   </div>
                 )}
@@ -617,7 +702,7 @@ export default function Sidebar({
                   boxShadow: '0 0 10px rgba(41,151,255,0.2)',
                 }}
               >
-                +
+                {topupEligible ? '+' : '→'}
               </div>
             </button>
           </div>

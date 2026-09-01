@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Top-up eligibility handoff · before and after</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#08090b;color:#f5f5f7;font-family:Arial,sans-serif;padding:28px}.wrap{max-width:1180px;margin:auto}.eyebrow{font-size:12px;letter-spacing:.12em;color:#7cc0ff;font-weight:900}.intro{color:#aaa;line-height:1.55;max-width:820px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}.panel{border:1px solid #272a31;border-radius:18px;padding:18px;background:#111216}.label{font-size:11px;letter-spacing:.1em;color:#8c8d93;font-weight:900;margin-bottom:14px}.shell{display:grid;grid-template-columns:240px 1fr;gap:18px;min-height:290px}.sidebar{background:#0d0e11;border:1px solid #202229;border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:flex-end}.account{background:#17171a;border:1px solid #2c2d34;border-radius:18px;padding:18px;align-self:center}.chip,.cta{border:1px solid rgba(41,151,255,.3);background:#131316;border-radius:12px;padding:13px;display:flex;justify-content:space-between;align-items:center}.balance{font-size:14px;color:#2997ff;font-weight:900}.sub{font-size:10px;color:#8b8b91;margin-top:3px}.icon{width:30px;height:30px;border-radius:9px;background:rgba(41,151,255,.12);display:grid;place-items:center;color:#2997ff;font-weight:900}.account h3{margin:0 0 7px;font-size:13px;color:#999;text-transform:uppercase;letter-spacing:.1em}.account strong{font-size:42px}.account p{font-size:12px;color:#aaa;line-height:1.5}.button{display:block;text-align:center;background:linear-gradient(135deg,#2997ff,#0a6fd8);border-radius:10px;padding:11px;color:white;font-size:13px;font-weight:900}.bad{color:#ffae72}.good{color:#6fe0a9}.note{margin-top:14px;font-size:11px;color:#8d8e94;line-height:1.5}.mobile{display:none}.audience{margin:22px 0 8px;color:#d6d6da;font-weight:900}.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mini{border:1px solid #282a31;border-radius:13px;padding:14px;background:#0e0f12}.mini h4{margin:0 0 8px}.mini p{margin:0;color:#999;font-size:12px;line-height:1.5}@media(max-width:760px){body{padding:14px}.grid{grid-template-columns:1fr}.shell{grid-template-columns:1fr;min-height:0}.account{display:none}.desktop{display:none}.mobile{display:block}.sidebar{min-height:210px}}
+  </style>
+</head>
+<body><main class="wrap">
+  <div class="eyebrow">B2C · VIDEO → OFFER → SUBSCRIPTION</div>
+  <h1>One credit balance, two honest next steps</h1>
+  <p class="intro">Production evidence, 2026-09-01: 3 external people on Free clicked the top-up chip; all 3 were redirected to pricing later, 0 opened a top-up checkout and 0 paid. The correction removes that detour without changing prices, credits, SKUs or subscriber access.</p>
+  <div class="grid desktop">
+    <section class="panel"><div class="label">BEFORE · DESKTOP</div><div class="shell"><div class="sidebar"><div class="chip"><div><div class="balance">0 credits</div><div class="sub">Buy more with +</div></div><div class="icon">+</div></div></div><div class="account"><h3>Credits</h3><strong>0</strong><p class="bad">Free / Starter sees “Buy more credits”, but the server refuses the purchase and sends the person to plans afterward.</p><span class="button">Buy more credits</span></div></div></section>
+    <section class="panel"><div class="label">AFTER · DESKTOP</div><div class="shell"><div class="sidebar"><div class="chip"><div><div class="balance">0 credits</div><div class="sub">See plans</div></div><div class="icon">→</div></div></div><div class="account"><h3>Credits</h3><strong>0</strong><p class="good">Free / Starter gets the real next step before clicking: choose a plan and keep creating.</p><span class="button">See plans</span></div></div></section>
+  </div>
+  <div class="grid mobile">
+    <section class="panel"><div class="label">BEFORE · MOBILE</div><div class="sidebar"><div class="chip"><div><div class="balance">0 credits</div><div class="sub">Buy more with +</div></div><div class="icon">+</div></div><div class="note bad">A tap promises a purchase the account cannot make.</div></div></section>
+    <section class="panel"><div class="label">AFTER · MOBILE</div><div class="sidebar"><div class="chip"><div><div class="balance">0 credits</div><div class="sub">See plans</div></div><div class="icon">→</div></div><div class="note good">A tap goes directly to the subscription decision.</div></div></section>
+  </div>
+  <div class="audience">The subscriber path remains unchanged</div>
+  <div class="two"><div class="mini"><h4>Free / Starter</h4><p>See plans → pricing → checkout → payment. Success is a real subscription, not a click.</p></div><div class="mini"><h4>Creator / Studio</h4><p>“+” still opens the existing one-time top-up modal. No benefit is removed.</p></div></div>
+</main></body>
+</html>

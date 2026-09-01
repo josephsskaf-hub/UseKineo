@@ -86,6 +86,7 @@ import {
   checkoutSetupFailureTelemetry,
   readCheckoutSetupFailureContext,
 } from '@/lib/growth/checkoutSetupFailureReturn'
+import { canPurchaseCreditTopup } from '@/lib/growth/topupEligibility'
 
 // Push #175 — force-dynamic so Next.js never tries to statically cache this
 // route. Without this, the GET handler could be pre-rendered at build time
@@ -2256,20 +2257,24 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
   let failureUserId: string | null = null
   const skuContext: Record<string, unknown> = { sku: topupId, mode: 'payment' }
 
-  async function redirectError(msg: string) {
+  async function redirectError(
+    msg: string,
+    destination: '/generate' | '/pricing' = '/generate',
+    reasonOverride?: string,
+  ) {
     await recordCheckoutEvent(
       'checkout_failed',
       failureUserId,
-      { ...skuContext, stage: 'redirect', reason: checkoutFailureReason(msg) },
+      { ...skuContext, stage: 'redirect', reason: reasonOverride ?? checkoutFailureReason(msg) },
       browserSessionId,
     )
-    return NextResponse.redirect(`${appUrl}/generate?checkout_error=${encodeURIComponent(msg)}`)
+    return NextResponse.redirect(`${appUrl}${destination}?checkout_error=${encodeURIComponent(msg)}`)
   }
-  async function jsonError(msg: string, status: number) {
+  async function jsonError(msg: string, status: number, reasonOverride?: string) {
     await recordCheckoutEvent(
       'checkout_failed',
       failureUserId,
-      { ...skuContext, stage: 'json', status, reason: checkoutFailureReason(msg) },
+      { ...skuContext, stage: 'json', status, reason: reasonOverride ?? checkoutFailureReason(msg) },
       browserSessionId,
     )
     return NextResponse.json({ error: msg }, { status })
@@ -2311,12 +2316,14 @@ async function buildTopupAndRedirect(req: NextRequest, topupId: TopupId, isGet: 
 
   // Gate: AI credit top-ups are a Creator/Studio benefit (the AI engine lives on
   // those plans). Free/Starter users are sent to /pricing to subscribe instead.
-  const planVal = (profile?.plan ?? 'free').toLowerCase()
-  const isCreatorPlus = planVal === 'basic' || planVal === 'basic_trial' || planVal === 'pro' || planVal === 'pro_trial'
-  if (!isCreatorPlus) {
+  if (!canPurchaseCreditTopup(profile?.plan)) {
     return isGet
-      ? NextResponse.redirect(`${appUrl}/pricing?checkout_error=${encodeURIComponent('Credit top-ups are for Creator & Studio plans. Upgrade to unlock the AI engine.')}`)
-      : jsonError('Credit top-ups require a Creator or Studio plan.', 403)
+      ? redirectError(
+          'Credit top-ups are for Creator & Studio plans. Choose a plan to continue.',
+          '/pricing',
+          'topup_requires_creator_plus',
+        )
+      : jsonError('Credit top-ups require a Creator or Studio plan.', 403, 'topup_requires_creator_plus')
   }
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
