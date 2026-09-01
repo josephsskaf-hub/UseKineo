@@ -2847,3 +2847,29 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, total anual, desconto, cupom, crédito, validade, trial, SKU, promessa, Stripe server/configuração, método de pagamento, Supabase schema/dados, render, motor, cena, voz, legenda, e-mail, outreach, anúncio ou contato externo.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `b7e5dbe7` ou da ponta posterior. Não reeditar a barra mobile, pricing journey, oferta pós-vídeo, limit purchase fit ou Autopilot break-even antes dos respectivos gates. Codex alterna a próxima sprint para B2B em outra superfície.
+
+## 104. B2B — o primeiro acesso deixa de presumir que todo cliente quer ser creator (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / RECONCILIAÇÃO (Supabase, SELECT somente leitura em 01/09/2026 UTC; contas internas excluídas):** a versão anterior `home_activation_focus_v2`, na superfície exata `home_first_win`, foi vista por dez pessoas externas. Nenhuma clicou no CTA primário e nenhuma selecionou os objetivos `business` ou `agency`. Um clique de creator encontrado em outra superfície (`activation_handoff_above_fold_v1`) foi separado e não entrou nessa contagem. A amostra atingiu o gate de parada da versão anterior: dez exposições e zero avanço.
+
+**AUDITORIA ANTI-DUPLICAÇÃO:** `/free-ai-shorts-generator` foi preservada porque tem alcance amplo, sinal B2B fraco e experimento de afiliado ativo. `/text-to-video-shorts` tem hipótese B2B melhor, mas seu próprio gate no handoff exige amostra humana antes de nova edição. As páginas de pricing, agência, Trust Center, calculadoras, proposta, brief e afiliados também têm contratos ou gates ativos; nenhuma foi reeditada.
+
+**FATO CONFIRMADO / LACUNA ANTERIOR:** `components/HomeWelcomeGoalRouter.tsx` mostrava uma grande recomendação creator/mystery por padrão e deixava business e agency como alternativas secundárias. A própria exposição era registrada com `selected_goal=creator`, mesmo sem escolha humana. Assim, o primeiro acesso ancorava o produto em creator e ainda fazia a telemetria parecer uma preferência explícita.
+
+**HIPÓTESE CAUSAL NOVA:** perguntar primeiro para quem é o Short — canal próprio, empresa ou cliente — torna o caso B2B visível sem tirar a rota B2C nem criar outra landing page. Revelar somente um brief concreto depois da escolha reduz abstração, preservando um único próximo passo.
+
+**IMPLEMENTADO:** o commit funcional `3c12d59c9eb3881679a2c52e8a268d9e4aeea4f4` publica `home_outcome_selector_v3`. O estado inicial é neutro e apresenta três escolhas equivalentes: `Grow my channel`, `Promote my business` e `Create for clients`. Uma escolha explícita revela um único `Starter brief`, hook e CTA contextual. Business e agency continuam usando o gerador e a fonte de briefs já existentes; não há endpoint, render, débito ou oferta nova. A marcação mantém o papel acessível de botão e expõe `aria-pressed` no item selecionado.
+
+**MEDIÇÃO / PRIVACIDADE:** `viral_onboarding_viewed` grava a versão e a superfície, mas não inventa `selected_goal`. A escolha humana emite `viral_onboarding_goal_selected`; somente o handoff real ao Studio emite `viral_onboarding_primary_clicked`. A telemetria contém apenas versão, superfície, goal e categorias já permitidas; não contém prompt livre, e-mail, URL ou identificador novo.
+
+**GATE / PARADA:** preservar até dez pessoas externas expostas. Sinal mínimo: duas pessoas distintas selecionam um objetivo, uma avança ao Studio e existe ao menos um sinal `business` ou `agency`. Parar ou reformular com dez exposições e zero seleção. `payment_success` do mesmo ator é o resultado final; visualização, seleção e chegada ao Studio não são receita. A superfície não deve ser reeditada antes desse gate.
+
+**COMPARAÇÃO VISUAL / VALIDAÇÃO:** `docs/previews/HOME-WELCOME-OUTCOME-SELECTOR-V3-2026-09-01.html` contém antes/depois desktop e mobile. Em produção, o Chrome conectado confirmou o seletor neutro depois do showcase de quatro motores. Ao escolher `Promote my business`, a tela marcou `Selected ✓`, mostrou o brief `Three signs a customer is ready to buy — and most businesses miss all of them` e preparou `/studio?engine=seedance&...&onboarding_goal=business`. O CTA do Studio não foi acionado; nenhum render ou débito ocorreu. Todas as abas temporárias da validação foram fechadas.
+
+**TESTADO LOCALMENTE:** contrato novo 57/57; contrato do roteador anterior 74/74; ponte de indicação da home 66/66 — 197 verificações. O typecheck repetiu exatamente os quatro erros baseline preexistentes em `mrr.ts`, `me/subscription` e `stripe/checkout` ×2; nenhum arquivo desta entrega introduziu erro. `git -c core.whitespace=cr-at-eol diff --check` ficou limpo após rebase na ponta que o Claude havia publicado.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `3c12d59c9eb3881679a2c52e8a268d9e4aeea4f4`. O deploy Vercel `dpl_8LsaSENmkPUgU32vGMLgrUYSnUxt` chegou a `READY`, target production, framework Next.js, SHA exato e alias em `www.usekineo.com`. A consulta de runtime do deployment encontrou zero `error` ou `fatal` na janela validada.
+
+**NÃO TOCADO:** preço, plano, desconto, cupom, crédito, trial, SKU, promessa, checkout, Stripe, Supabase schema/dados, render, motor, duração, cena, voz, legenda, admin, e-mail, outreach, anúncio ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `3c12d59c` ou da ponta posterior. Não reeditar `HomeWelcomeGoalRouter` nem a home de primeiro acesso antes do gate de dez pessoas externas. Codex alterna a próxima sprint para B2C em uma superfície diferente, preservando todos os experimentos ainda sem amostra.
