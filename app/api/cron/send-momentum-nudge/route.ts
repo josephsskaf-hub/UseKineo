@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { emailFooterHtml, emailFooterText, unsubscribeHeaders } from '@/lib/emailSuppression'
 import { creditCostFor } from '@/lib/credits/engineCost'
+import { buildSeriesContinuationEmailUrl } from '@/lib/seriesContinuation'
 
 // ═══ KINEO-MOMENTUM-2026-08-20 — O E-MAIL QUE MIRA O 4º VÍDEO ═════════════
 //
@@ -33,6 +34,35 @@ import { creditCostFor } from '@/lib/credits/engineCost'
 // só quem tem crédito suficiente para de fato fazer o próximo vídeo (senão o
 // e-mail manda a pessoa bater num 402 — o erro que já cometemos em 5 telas),
 // pula pagante, opt-out, conta interna e descartável.
+
+// ═══ KINEO-SPRINT-V1V4-2026-09-01 (#24) — DUAS COISAS ERRADAS AQUI ════════
+//
+// (A) ESTE E-MAIL NUNCA FOI ENVIADO. `select count(*) from events where
+//     name='momentum_nudge_sent'` = ZERO, desde 20/08. A causa nao esta neste
+//     arquivo: em `vercel.json` o cron chama
+//         "/api/cron/send-momentum-nudge"  (schedule 30 13 * * *)
+//     SEM `?confirm=SEND`. A rota exige esse parametro para sair do DRY_RUN
+//     (linha `const confirm = ...` abaixo). Ou seja: ha 11 dias a plataforma
+//     acorda esta rota todo dia as 13:30 UTC, ela calcula a lista de elegiveis
+//     com capricho, devolve `mode: DRY_RUN` e nao manda um unico e-mail.
+//     A unica campanha da casa escrita para empurrar o video 1 ate o 4 e uma
+//     carta escrita e nunca postada.
+//     ⚠ NAO ARMEI SOZINHO — armar dispara ate 40 e-mails reais por rodada, e
+//     e-mail que sai e decisao do fundador. A resposta DRY_RUN agora explica
+//     isso em `armed` / `why` / `to_arm`, para o defeito parar de ser
+//     invisivel. Para armar: por `?confirm=SEND` no path do vercel.json.
+//
+// (B) O BOTAO JOGAVA FORA O TEMA QUE O PROPRIO TEXTO CITA. A carta diz
+//     "Your film about X is sitting in your library" e o botao levava para um
+//     `/generate` PELADO — Studio em branco, tudo para reescrever.
+//     Medido em 30 dias (externos): 123 pessoas voltaram de verdade numa
+//     sessao posterior ao 1o video e 30 fizeram outro video = 24%. Pelo
+//     caminho de continuacao de serie: 59 chegadas -> 31 videos = 53%.
+//     Mais que o DOBRO, com o MESMO clique — muda so o destino. Agora o botao
+//     carrega o tema (`buildSeriesContinuationEmailUrl`), o mesmo helper que
+//     /history, /studio e a tela de video pronto ja usam. Sem tema utilizavel
+//     (cleanTopic devolve null), a URL volta a ser exatamente a de antes:
+//     nunca inventamos o assunto do video da pessoa.
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -76,7 +106,16 @@ function cleanTopic(raw: string | null | undefined): string | null {
 }
 
 function buildEmail(userId: string, videosMade: number, topic: string | null) {
-  const url = `${APP_URL}/generate?utm_source=lifecycle&utm_medium=email&utm_campaign=momentum`
+  // O tema viaja no botao. Sem tema, cai na MESMA url de antes (so utm).
+  const url = buildSeriesContinuationEmailUrl(APP_URL, topic, 'momentum_email', {
+    utm_source: 'lifecycle',
+    utm_medium: 'email',
+    utm_campaign: 'momentum',
+  })
+  // Rotulo honesto: so promete "episodio 2 pronto" quando o tema REALMENTE
+  // viaja no link. Botao que promete preenchimento e entrega tela em branco e
+  // exatamente o defeito que esta rodada esta consertando.
+  const cta = topic ? 'Open episode 2 →' : 'Make the next one →'
   // A frase que ancora no que ELA fez. Sem tema utilizável, cai numa versão
   // neutra — nunca inventamos o assunto do vídeo dela.
   const anchor = topic
@@ -95,7 +134,7 @@ You're ${videosMade === 1 ? 'three' : videosMade === 2 ? 'two' : 'one'} away.
 
 Pick anything — a mystery, a country, a story you can't stop thinking about — and the AI writes the script, records the voiceover, cuts the captions and scores it.
 
-Make the next one: ${url}
+${topic ? 'Episode 2 is already written for you — one click and the idea is in the box:' : 'Make the next one:'} ${url}
 
 If something got in the way last time, just reply and tell me. It lands with a real person.
 
@@ -108,7 +147,7 @@ usekineo.com`
   <p style="margin:0 0 14px;">Here's something we noticed looking at how people use Kineo: the difference between someone who makes one video and someone who builds a channel is almost never talent — it's <strong>the fourth video</strong>. That's where it stops feeling like a tool you're testing and starts feeling like a workflow you own.</p>
   <p style="margin:0 0 14px;">You're <strong>${videosMade === 1 ? 'three' : videosMade === 2 ? 'two' : 'one'}</strong> away.</p>
   <p style="margin:0 0 14px;">Pick anything — a mystery, a country, a story you can't stop thinking about — and the AI writes the script, records the voiceover, cuts the captions and scores it.</p>
-  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">Make the next one →</a></p>
+  <p style="margin:0 0 24px;"><a href="${url}" style="display:inline-block;background:#2997ff;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;padding:12px 26px;border-radius:10px;">${cta}</a></p>
   <p style="margin:0 0 14px;">If something got in the way last time, just reply and tell me. It lands with a real person.</p>
   <p style="margin:0 0 2px;">Kineo Team</p>
   <p style="margin:0;"><a href="https://www.usekineo.com" style="color:#2997ff;">usekineo.com</a></p>
@@ -200,6 +239,13 @@ export async function GET(req: NextRequest) {
         tres: targets.filter((t) => t.count === 3).length,
       },
       subject: 'The fourth video is the one that changes things',
+      // KINEO-SPRINT-V1V4-2026-09-01 (#24) — o defeito para de ser invisivel.
+      armed: false,
+      why: 'sem ?confirm=SEND na URL esta rota NUNCA envia. Em vercel.json o cron chama /api/cron/send-momentum-nudge sem esse parametro desde 20/08 — momentum_nudge_sent = 0 no banco.',
+      to_arm: 'trocar o path em vercel.json por "/api/cron/send-momentum-nudge?confirm=SEND" (o mesmo formato ja usado pelo send-hotlead-blast).',
+      com_tema: targets.filter((t) => t.topic).length,
+      sem_tema: targets.filter((t) => !t.topic).length,
+      exemplo_link: buildSeriesContinuationEmailUrl(APP_URL, targets.find((t) => t.topic)?.topic ?? null, 'momentum_email', { utm_source: 'lifecycle', utm_medium: 'email', utm_campaign: 'momentum' }),
       sample: targets.slice(0, 12).map((t) => `${t.email} (${t.count}v${t.topic ? ` · ${t.topic.slice(0, 40)}` : ''})`),
       hint: 'Append &confirm=SEND to send.',
     })

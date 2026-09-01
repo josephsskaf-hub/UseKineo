@@ -38,6 +38,15 @@ export type SeriesContinuationSource =
   // acervo carrega o PROPRIO tema para o episodio seguinte — nao so o mais
   // recente, como faz o marco (studio_milestone).
   | 'studio_video_tile'
+  // KINEO-SPRINT-V1V4-2026-09-01 (#24) — o e-mail `send-momentum-nudge`, o
+  // unico da casa escrito para mover o video 1 ate o 4. Ele ja CITA o tema no
+  // texto ("Your film about X is sitting in your library") e depois joga o
+  // tema fora: o botao apontava para um `/generate` PELADO. Medido no banco em
+  // 30 dias: quem volta e cai no Studio em branco vira 2o video em 24% dos
+  // casos (123 voltas reais -> 30 videos); quem chega pela continuacao de
+  // serie vira em 53% (59 chegadas -> 31 videos). O mesmo clique, dois
+  // destinos, mais que o dobro de conversao.
+  | 'momentum_email'
 
 export function normalizeSeriesSeed(value: string | null | undefined): string {
   return (value ?? '')
@@ -66,4 +75,37 @@ export function buildSeriesContinuationHref(
     continuation_source: source,
   })
   return `/generate?${params.toString()}`
+}
+
+/**
+ * KINEO-SPRINT-V1V4-2026-09-01 (#24) — versao ABSOLUTA do href de continuacao,
+ * para uso em e-mail (onde caminho relativo nao existe) preservando os
+ * parametros de campanha que a rota ja mandava.
+ *
+ * Contrato deliberado:
+ *  - SEM tema utilizavel devolve a mesma URL de antes (base + utm). Nunca
+ *    inventamos o assunto do video da pessoa — a regra do selo honesto vale
+ *    para o e-mail tambem.
+ *  - os utm entram DEPOIS do prompt, entao a atribuicao de campanha continua
+ *    igual e some nenhum parametro que ja existia.
+ *  - funcao pura, zero import: da para provar em teste sem subir servidor.
+ */
+export function buildSeriesContinuationEmailUrl(
+  appUrl: string,
+  value: string | null | undefined,
+  source: SeriesContinuationSource,
+  utm: Record<string, string> = {},
+): string {
+  const base = appUrl.replace(/\/+$/, '')
+  const params = new URLSearchParams()
+  const prompt = buildSeriesContinuationPrompt(value)
+  if (prompt) {
+    params.set('prompt', prompt)
+    params.set('autoanalyze', '1')
+    params.set('series', '1')
+    params.set('continuation_source', source)
+  }
+  for (const [k, v] of Object.entries(utm)) if (v) params.set(k, v)
+  const qs = params.toString()
+  return qs ? `${base}/generate?${qs}` : `${base}/generate`
 }
