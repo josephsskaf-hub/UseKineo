@@ -6,6 +6,19 @@ Nada aqui está autorizado a executar. Ver `DECISIONS.md` §pendente.
 
 ---
 
+## REGRA PERMANENTE DO BOARD — toda prioridade termina em assinatura
+
+**DECISÃO APROVADA (01/09/2026).** Toda ação precisa explicitar quatro elementos antes de entrar na fila:
+
+1. **Curto prazo:** qual avanço qualificado aproxima uma pessoa externa do pagamento.
+2. **Médio prazo:** como esse avanço vira `payment_success` e assinatura ativa.
+3. **Longo prazo:** como a assinatura pode renovar, indicar outra pessoa ou gerar receita recorrente.
+4. **Medição e gate:** métrica por pessoa externa, critério de sucesso, critério de parada e experimento ativo que não pode ser duplicado.
+
+Clique, visita, cadastro, vídeo, aplicação de afiliado, impressão de oferta e Checkout Session são etapas — não receita. B2C, B2B, afiliados, AEO/SEO, ativação e checkout compartilham o mesmo placar e devem se complementar. Uma tarefa sem cadeia causal até assinatura não entra no board.
+
+---
+
 ## 0. CONTRADIÇÕES ENTRE ESPECIALISTAS — resolvidas antes de priorizar
 
 | Contradição | Resolução | Base |
