@@ -69,6 +69,12 @@ import {
   sanitizePricingTierHandoff,
   type PricingTierHandoffTier,
 } from '@/lib/growth/pricingTierHandoff'
+import {
+  mobileStickyExposureKey,
+  mobileStickyPlanLabel,
+  mobileStickyTelemetry,
+  type MobileStickyTier,
+} from '@/lib/growth/mobileStickyBillingTruth'
 
 // PAYPAL-DISABLED-2026-07-06 — PayPal checkout is hidden on pricing until it's
 // verified working end-to-end (business account still needs verification). All
@@ -296,6 +302,7 @@ export default function PricingClient() {
   // surpresa boa no checkout, errar para baixo é uma promessa quebrada.
   const [displayRegion, setDisplayRegion] = useState<PriceRegion>('standard')
   const currencyTrackedRef = useRef(false)
+  const mobileStickyRef = useRef<HTMLDivElement | null>(null)
   const [requestedTier, setRequestedTier] = useState<PricingTierHandoffTier | null>(null)
 
   // KINEO-SPRINT-OFFER-2026-07-14 — ROI slider state removed with the widget
@@ -503,7 +510,7 @@ export default function PricingClient() {
   // (user gesture chain is severed after the first await). Fix: navigate
   // directly to the GET checkout endpoint which does a server-side 302
   // redirect to Stripe. No fetch(), no await, no gesture breakage.
-  function handleBuy(tier: BuyableTier) {
+  function handleBuy(tier: BuyableTier, placement: 'card' | 'mobile_sticky' = 'card') {
     // KINEO-AUTOPILOT-299-2026-07-26 — Autopilot has no annual SKU and no
     // intro month; the server enforces both, this just avoids sending params
     // that would be silently dropped.
@@ -529,6 +536,12 @@ export default function PricingClient() {
     // A suppressed duplicate click must not double-count the funnel or fire a
     // second TikTok InitiateCheckout.
     if (!started) return
+    if (placement === 'mobile_sticky' && tier !== 'autopilot') {
+      void trackEvent(
+        'pricing_mobile_sticky_checkout_clicked',
+        mobileStickyTelemetry({ billing: effectiveBilling, tier: tier as MobileStickyTier }),
+      )
+    }
     const eventName = tier === 'pro'
       ? 'pro_checkout_clicked'
       : tier === 'starter'
@@ -580,6 +593,32 @@ export default function PricingClient() {
     if (err) setCheckoutError(decodeURIComponent(err))
     if (params.get('already_subscribed') === '1') setAlreadySubscribed(true)
   }, [])
+
+  useEffect(() => {
+    if (!showStickyCta || typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return
+    const node = mobileStickyRef.current
+    if (!node) return
+
+    const observer = new IntersectionObserver((entries) => {
+      const entry = entries[0]
+      if (!entry?.isIntersecting || entry.intersectionRatio < 0.6) return
+      const storageKey = mobileStickyExposureKey(billing)
+      try {
+        if (sessionStorage.getItem(storageKey)) {
+          observer.disconnect()
+          return
+        }
+        sessionStorage.setItem(storageKey, '1')
+      } catch {
+        // Privacy modes can deny storage; visibility and checkout stay usable.
+      }
+      void trackEvent('pricing_mobile_sticky_billing_viewed', mobileStickyTelemetry({ billing }))
+      observer.disconnect()
+    }, { threshold: 0.6 })
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [billing, showStickyCta])
 
   // Push #117 — show the sticky mobile CTA only after the user scrolls
   // past the hero. We pin the listener to passive so it never blocks
@@ -1663,6 +1702,7 @@ export default function PricingClient() {
           by the cards above. */}
       {showStickyCta && (
         <div
+          ref={mobileStickyRef}
           className="mobile-sticky-cta md:hidden"
           style={{
             position: 'fixed',
@@ -1686,7 +1726,7 @@ export default function PricingClient() {
           <button
             type="button"
             disabled={purchasing === 'starter'}
-            onClick={() => handleBuy('starter')}
+            onClick={() => handleBuy('starter', 'mobile_sticky')}
             style={{
               flex: 1,
               padding: '12px 6px',
@@ -1702,12 +1742,17 @@ export default function PricingClient() {
           >
             {purchasing === 'starter'
               ? 'Opening secure checkout…'
-              : `Starter ${entryPriceLabel('starter')}`}
+              : mobileStickyPlanLabel({
+                  tier: 'starter',
+                  billing,
+                  monthlyLabel: entryPriceLabel('starter'),
+                  annualTotalLabel: annualPrices.starter.total,
+                })}
           </button>
           <button
             type="button"
             disabled={purchasing === 'basic'}
-            onClick={() => handleBuy('basic')}
+            onClick={() => handleBuy('basic', 'mobile_sticky')}
             style={{
               flex: 1,
               padding: '12px 8px',
@@ -1724,12 +1769,17 @@ export default function PricingClient() {
           >
             {purchasing === 'basic'
               ? 'Opening secure checkout…'
-              : `Creator ${entryPriceLabel('basic')} 🔥`}
+              : mobileStickyPlanLabel({
+                  tier: 'basic',
+                  billing,
+                  monthlyLabel: entryPriceLabel('basic'),
+                  annualTotalLabel: annualPrices.basic.total,
+                })}
           </button>
           <button
             type="button"
             disabled={purchasing === 'pro'}
-            onClick={() => handleBuy('pro')}
+            onClick={() => handleBuy('pro', 'mobile_sticky')}
             style={{
               flex: 1,
               padding: '12px 6px',
@@ -1745,7 +1795,12 @@ export default function PricingClient() {
           >
             {purchasing === 'pro'
               ? 'Opening secure checkout…'
-              : `Studio ${formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion))}`}
+              : mobileStickyPlanLabel({
+                  tier: 'pro',
+                  billing,
+                  monthlyLabel: formatCheckoutMoney(resolvedCurrency, getTierPrice('pro', resolvedCurrency, resolvedRegion)),
+                  annualTotalLabel: annualPrices.pro.total,
+                })}
           </button>
         </div>
       )}
