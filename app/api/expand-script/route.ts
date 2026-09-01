@@ -22,6 +22,7 @@ import {
   resolveGrowthBase,
   withinGrowthLimit,
   type ExpandOutcome,
+  maxCandidateWords,
 } from '@/lib/expandPolicy'
 
 // ═══ KINEO-COMPLETAR-ROTEIRO-2026-08-22 ════════════════════════════════════
@@ -75,6 +76,7 @@ ABSOLUTE RULES — breaking any of these makes the output unusable:
 4. Keep the author's voice, register and language. If the script is in English, stay in English.
 5. Preserve the existing section markers (HOOK, MICRO REWARD, ESCALATION, RHYTHM, PAYOFF) and the [Pexels: ...] cues exactly as written. If you add a beat that needs its own footage cue, write a new [Pexels: two to five lowercase words] line for it.
 6. The PAYOFF must remain the last section and must still deliver a concrete answer.
+7. There is a HARD MAXIMUM number of spoken words, given in the request. Going over it makes your output unusable and it is thrown away — the author gets nothing. Land at or under that maximum. If the extra true material you have would push you over, add less of it.
 
 Output ONLY the full expanded script. No preamble, no explanation, no markdown fences.`
 
@@ -203,9 +205,35 @@ export async function POST(req: NextRequest) {
     const palavrasAlvo = Math.ceil(target * WORDS_PER_SECOND)
     const palavrasAtuais = Math.round(antes.speech * WORDS_PER_SECOND)
 
-    const usuario = `The script below is ${palavrasAtuais} spoken words, which is about ${Math.round(antes.speech)} seconds of narration. It needs to fill a ${target}-second video, so it needs roughly ${palavrasAlvo} spoken words in total.
+    // ═══ KINEO-TETO-NO-PROMPT-2026-09-01 (sprint v1-v4 #37) ════════════════
+    //
+    // A base do teto era resolvida DEPOIS da chamada, só para julgar. Agora ela
+    // é resolvida ANTES, para que o pedido possa CARREGAR o teto — é o mesmo
+    // cálculo, com as mesmas entradas, movido de lugar. O veredito lá embaixo
+    // reusa exatamente estas constantes: teto contado duas vezes seria a mesma
+    // doença das duas réguas do #349.
+    const falaBase = parseUserScript(base).narration || base
+    const baseResolvida = resolveGrowthBase(speechSeconds(falaBase), antes.speech)
+    const speechBase = baseResolvida.speech
+    if (baseResolvida.repaired) {
+      console.warn('[expand-script] base de crescimento reparada (nao era ancestral)', {
+        recebida: Math.round(speechSeconds(falaBase)), usada: Math.round(speechBase),
+      })
+    }
+    const palavrasTeto = maxCandidateWords(speechBase)
 
-Add about ${palavrasAlvo - palavrasAtuais} words of NEW, TRUE material that deepens this same story — more of the specific facts, the mechanism, the consequences. Do not pad with generalities, rhetorical questions or filler.
+    // O alvo NUNCA pode ser maior que o teto — pedir 104 palavras e recusar
+    // acima de 100 é mandar a pessoa numa viagem que já está reprovada. O
+    // preflight `needsAuthoring` garante base × 2,5 ≥ alvo × 0,95, então a
+    // faixa de choque é estreita (até 5%), mas existe: aqui ela morre.
+    const palavrasPedido = Math.min(palavrasAlvo, palavrasTeto)
+    const palavrasAdicionar = Math.max(0, palavrasPedido - palavrasAtuais)
+
+    const usuario = `The script below is ${palavrasAtuais} spoken words, which is about ${Math.round(antes.speech)} seconds of narration. It needs to fill a ${target}-second video, so it needs roughly ${palavrasPedido} spoken words in total.
+
+Add about ${palavrasAdicionar} words of NEW, TRUE material that deepens this same story — more of the specific facts, the mechanism, the consequences. Do not pad with generalities, rhetorical questions or filler.
+
+HARD MAXIMUM: ${palavrasTeto} spoken words in the whole script. This is a limit, not a target — aim for ${palavrasPedido}, never go past ${palavrasTeto}. Output longer than ${palavrasTeto} spoken words is discarded and the author is left with nothing.
 
 Every sentence already in this script must survive untouched.
 
@@ -273,17 +301,11 @@ ${original}`
     // (a) Cresceu demais = reescreveu em vez de completar.
     // KINEO-350 — o teto agora é medido contra a BASE IMUTÁVEL do autor, não
     // contra o texto da rodada anterior (que já pode ser obra da IA).
-    const falaBase = parseUserScript(base).narration || base
     // KINEO-BASE-DE-CRESCIMENTO-2026-08-31 (#9) — base que nao e ancestral do
     // roteiro de entrada e base errada: o teto seria menor que o proprio
     // texto que a pessoa mandou completar, e o growth_limit sairia SEMPRE.
-    const baseResolvida = resolveGrowthBase(speechSeconds(falaBase), antes.speech)
-    const speechBase = baseResolvida.speech
-    if (baseResolvida.repaired) {
-      console.warn('[expand-script] base de crescimento reparada (nao era ancestral)', {
-        recebida: Math.round(speechSeconds(falaBase)), usada: Math.round(speechBase),
-      })
-    }
+    // #37: `speechBase`/`palavrasTeto` ja foram resolvidos ANTES da chamada,
+    // para que o pedido carregasse o mesmo teto que esta linha cobra.
     if (!withinGrowthLimit(speechBase, depois.speech)) {
       console.warn('[expand-script] recusado: crescimento excessivo sobre a base', {
         base: Math.round(speechBase), depois: Math.round(depois.speech), teto: MAX_GROWTH_FACTOR,
@@ -296,6 +318,12 @@ ${original}`
           after: medida(depois.speech, target),
           baseSeconds: Math.round(speechBase),
           baseRepaired: baseResolvida.repaired,
+          // #37 — o juiz desta rodada: o teto agora vai NO PEDIDO, entao a
+          // distancia entre `maxWords` e `candidateWords` diz se o modelo
+          // obedeceu. Estouro pequeno = ajustar a frase; estouro grande = o
+          // modelo ignora o limite e a resposta e outra.
+          maxWords: palavrasTeto,
+          candidateWords: Math.round(depois.speech * WORDS_PER_SECOND),
           suggestedDuration: largestFittingDuration(antes.speech),
           // ═══ sprint-v1v4 #30 — O TEXTO DESCARTADO VOLTA COMO OFERTA ═══
           //

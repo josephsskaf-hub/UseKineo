@@ -116,6 +116,25 @@ export function resolveGrowthBase(
   return { speech: baseSpeech, repaired: false }
 }
 
+// ═══ KINEO-TETO-NO-PROMPT-2026-09-01 (sprint v1-v4 #37) ═══════════════════
+//
+// MEDIDO: 5 das 6 expansoes que nao entregaram texto em 29/08-01/09 sairam por
+// `growth_limit`, e uma delas (30/08 21:01) faltavam DOZE palavras para encher
+// 45s. O teto de 2,5x nao era o problema -- o modelo escreveu texto muito alem
+// dele. E escreveu porque NINGUEM CONTOU A ELE QUE O TETO EXISTE: o pedido diz
+// "roughly N words" e "add about M words", linguagem frouxa, e as 6 regras
+// absolutas do system prompt nao mencionam limite superior nenhum. O servidor
+// entao mede um teto secreto e joga fora a resposta inteira.
+//
+// Esta funcao traduz o MESMO teto que o veredito usa (`withinGrowthLimit`)
+// para a unica unidade que um redator entende: palavras. Assim o pedido passa
+// a carregar o limite que a recusa vai cobrar. O teto NAO muda, o Contrato C1
+// NAO afrouxa -- o que muda e que ele para de ser secreto.
+export function maxCandidateWords(baseSpeech: number): number {
+  if (!(baseSpeech > 0)) return 0
+  return Math.floor(baseSpeech * MAX_GROWTH_FACTOR * WORDS_PER_SECOND)
+}
+
 /** A maior duração que esta fala consegue encher pela régua canônica. */
 export function maximumFittingDuration(currentSpeech: number): number {
   return currentSpeech / MIN_COVERAGE

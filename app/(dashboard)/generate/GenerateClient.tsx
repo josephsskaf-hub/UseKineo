@@ -6119,6 +6119,11 @@ export default function GenerateClient({
           // do conserto do cliente. true aqui = o conserto nao pegou.
           base_repaired: data?.baseRepaired === true,
           base_seconds: typeof data?.baseSeconds === 'number' ? data.baseSeconds : null,
+          // sprint-v1v4 #37 — o teto de palavras agora viaja NO PEDIDO ao
+          // modelo. Estes dois campos sao o juiz: se `candidate_words` parar
+          // de passar de `max_words`, o limite secreto virou limite dito.
+          max_words: typeof data?.maxWords === 'number' ? data.maxWords : null,
+          candidate_words: typeof data?.candidateWords === 'number' ? data.candidateWords : null,
         })
         return
       }
