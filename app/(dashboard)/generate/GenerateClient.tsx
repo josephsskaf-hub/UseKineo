@@ -920,6 +920,39 @@ export default function GenerateClient({
   const [nextIdeasCount, setNextIdeasCount] = useState(0)
   const nextShortsAnchorRef = useRef<HTMLDivElement | null>(null)
   const anotherRoutedRef = useRef(false)
+
+  // ═══ KINEO-SPRINT-V1V4-2026-09-01 (#47) — A PORTA DO 2º VÍDEO SOBE ═══
+  // A #46 separou "ninguém quis" de "ninguém viu" e o veredito foi
+  // inequívoco: `next_shorts_shown` 89 disparos / 71 pessoas contra
+  // `next_shorts_seen` = 1 (e esse um levou 202s), e `series_continue_seen`
+  // = 1 contra 12 pessoas que clicaram. Os dois trechos foram lidos e não
+  // têm defeito. O problema é de LUGAR: o player é `min(460px, 90vw)` com
+  // `aspectRatio: 9/16` — num celular de 400px de largura ele sozinho ocupa
+  // ~640px, e com o cabeçalho de sucesso ("Your video is ready" + créditos +
+  // título) a primeira tela acaba antes do fim do vídeo. TUDO o que mora
+  // abaixo do player nunca entra no viewport. A #32 já tinha subido a
+  // prateleira para logo abaixo do vídeo; não bastou, porque "logo abaixo
+  // do vídeo" continua sendo fora da tela.
+  //
+  // MUDANÇA MÍNIMA: uma barra fixa e fina no rodapé da janela, só na tela de
+  // sucesso e SÓ quando a prateleira já carregou episódios de verdade
+  // (`nextIdeasCount > 0` — nunca mandar ninguém para uma prateleira vazia).
+  // Ela não gera nada, não cobra nada, não fala de preço/plano/crédito: leva
+  // a pessoa ATÉ a prateleira, exatamente como o 1º clique do
+  // "Generate Another Short" da #44 já faz.
+  //
+  // TRÊS DESARMES, para nunca virar armadilha: (a) some sozinha assim que a
+  // prateleira entra no viewport (metade dela) — quem já chegou lá não
+  // precisa de barra; (b) tem × de fechar; (c) some quando a fase deixa de
+  // ser 'done'.
+  //
+  // MEDIÇÃO: `next_door_bar_shown` (na montagem) / `_clicked` / `_dismissed`
+  // / `_superseded` (a prateleira apareceu sozinha). O gate da rodada é
+  // `next_shorts_seen` deixar de ser ~1 em 89 — se a barra subir e `seen`
+  // continuar raso, o problema deixa de ser lugar e volta a ser oferta.
+  const [nextDoorDismissed, setNextDoorDismissed] = useState(false)
+  const [nextDoorShelfInView, setNextDoorShelfInView] = useState(false)
+  const nextDoorShownRef = useRef<string | null>(null)
   const onboardingGenerationDispatchedRef = useRef(false)
   const onboardingGoalRef = useRef<OnboardingGoalId | null>(null)
   const inlineFirstVideoViewedRef = useRef(false)
@@ -4371,6 +4404,55 @@ export default function GenerateClient({
   // Sem IntersectionObserver (navegador velho) marca `observed:false` para
   // nao perder a serie — numero generoso e melhor que numero cego.
   // ═══════════════════════════════════════════════════════════════════════
+  // #47 — a barra só existe enquanto a tela de sucesso existe. Fase que sai
+  // de 'done' zera os dois desarmes para o próximo vídeo nascer limpo.
+  useEffect(() => {
+    if (phase === 'done') return
+    setNextDoorDismissed(false)
+    setNextDoorShelfInView(false)
+    nextDoorShownRef.current = null
+  }, [phase])
+
+  // #47 — quando a prateleira entra DE VERDADE no viewport (metade dela), a
+  // barra se aposenta: ela existe para levar até lá, não para competir com o
+  // destino. `superseded` distingue no banco quem chegou sozinho de quem
+  // fechou a barra na mão.
+  useEffect(() => {
+    if (phase !== 'done') return
+    if (nextIdeasCount <= 0) return
+    if (nextDoorShelfInView || nextDoorDismissed) return
+    const el = nextShortsAnchorRef.current
+    if (!el) return
+    if (typeof IntersectionObserver === 'undefined') return
+    let observer: IntersectionObserver | null = null
+    try {
+      observer = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          setNextDoorShelfInView(true)
+          try { void trackEvent('next_door_bar_superseded', { ideas: nextIdeasCount }) } catch { /* ignore */ }
+          observer?.disconnect()
+          break
+        }
+      }, { threshold: 0.5 })
+      observer.observe(el)
+    } catch { /* ignore */ }
+    return () => { try { observer?.disconnect() } catch { /* ignore */ } }
+  }, [phase, nextIdeasCount, nextDoorShelfInView, nextDoorDismissed])
+
+  // #47 — impressão da barra, uma vez por geração. Fire-and-forget.
+  useEffect(() => {
+    if (phase !== 'done') return
+    if (nextIdeasCount <= 0) return
+    if (nextDoorShelfInView || nextDoorDismissed) return
+    const attemptId = generationAttemptRef.current
+    if (!attemptId || nextDoorShownRef.current === attemptId) return
+    nextDoorShownRef.current = attemptId
+    try {
+      void trackEvent('next_door_bar_shown', { attempt_id: attemptId, ideas: nextIdeasCount })
+    } catch { /* ignore */ }
+  }, [phase, nextIdeasCount, nextDoorShelfInView, nextDoorDismissed])
+
   const nextEpisodeBtnRef = useRef<HTMLButtonElement | null>(null)
   const nextEpisodeSeenRef = useRef<string | null>(null)
   useEffect(() => {
@@ -11235,6 +11317,79 @@ export default function GenerateClient({
           checkoutError={urgencyCheckout.error}
           onClose={() => setShowUrgencyModal(false)}
         />
+      )}
+
+      {/* ═══ #47 — A PORTA DO 2º VÍDEO, NO CAMPO DE VISÃO ═══
+          Barra fixa no rodapé da janela, só na tela de sucesso e só com
+          prateleira carregada. Não fala de dinheiro em nenhuma forma — a
+          pista do Codex fica intocada. É só um empurrão até a prateleira
+          que a pessoa nunca vê porque o player 9:16 come a primeira tela. */}
+      {phase === 'done' && Boolean(finalVideoUrl) && Boolean(analysis) && nextIdeasCount > 0
+        && !nextDoorDismissed && !nextDoorShelfInView && (
+        <div
+          role="region"
+          aria-label="Your next episode"
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 850,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            padding: '10px 12px calc(10px + env(safe-area-inset-bottom, 0px))',
+            background: 'rgba(10,10,12,0.92)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderTop: '1px solid rgba(41,151,255,0.35)',
+            boxShadow: '0 -10px 30px rgba(0,0,0,0.45)',
+          }}
+        >
+          <span
+            className="text-xs font-semibold"
+            style={{ color: 'var(--muted2)', lineHeight: 1.3, maxWidth: 260 }}
+          >
+            {nextIdeasCount === 1 ? 'Episode 2 is already written' : `${nextIdeasCount} next episodes are already written`}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                void trackEvent('next_door_bar_clicked', { ideas: nextIdeasCount })
+              } catch { /* ignore */ }
+              setNextDoorShelfInView(true)
+              try {
+                nextShortsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              } catch { /* ignore */ }
+            }}
+            className="rounded-xl px-4 py-2 text-xs font-black"
+            style={{
+              background: '#2997ff',
+              border: '1px solid #2997ff',
+              color: '#0b0b0d',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Show me episode 2 →
+          </button>
+          <button
+            type="button"
+            aria-label="Dismiss next episode bar"
+            onClick={() => {
+              setNextDoorDismissed(true)
+              try {
+                void trackEvent('next_door_bar_dismissed', { ideas: nextIdeasCount })
+              } catch { /* ignore */ }
+            }}
+            className="rounded-lg px-2 py-1 text-xs font-bold"
+            style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--muted)', cursor: 'pointer' }}
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {/* Push #125 — exit-intent upgrade prompt. Shown once per session
