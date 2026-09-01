@@ -39,9 +39,17 @@ const MODELS: Record<AudioModelKey, {
     validVoice: (v) => (ELEVEN_VOICES as readonly string[]).includes(v),
   },
   minimax: {
-    slug: 'fal-ai/minimax/speech-02-hd',
+    // KINEO-MOTORES-D1-2026-09-01 — upgrade Speech-02 HD → Speech-2.8 HD, o
+    // sucessor direto no topo do Speech Arena. Schema CONFERIDO no OpenAPI da
+    // fal em 01/09 (nunca inventar parâmetro): required = ["prompt"] (o 02
+    // aceitava `text`; o 2.8 NÃO), e output_format default é "hex" — a manha
+    // da casa do `output_format:'url'` continua obrigatória, senão a resposta
+    // vem um hexdump gigante em vez de URL. A voz CLONADA (lib/avatar/voice)
+    // segue no 02-hd de propósito: voice_id de clone é atado ao modelo que o
+    // criou, e trocar sem migração mataria as vozes clonadas existentes.
+    slug: 'fal-ai/minimax/speech-2.8-hd',
     perK: 2,
-    input: (text) => ({ text, output_format: 'url', language_boost: 'auto' }),
+    input: (text) => ({ prompt: text, output_format: 'url', language_boost: 'auto' }),
     validVoice: () => false,
   },
   dia: {

@@ -44,6 +44,7 @@ import { ttsModelForTier } from '@/lib/narration/elevenlabs'
 import { salvageScriptNarration, stripScriptMarkers } from '@/lib/scriptParser'
 import { fetchUserPlan } from '@/lib/plan'
 import { getBackgroundMusicUrl, resolveMusicMood } from '@/lib/pixabayMusic'
+import { getLyriaMusicUrl } from '@/lib/lyriaMusic'
 import { selectPersonaForScript, detectNiche } from '@/lib/narration/niche-mapping'
 // KINEO-CREDIT-INTENT-2026-07-11 — record the authoritative engine + intended
 // cost for every render, keyed by render_id, the moment it is created. This is
@@ -2036,7 +2037,13 @@ export async function POST(req: NextRequest) {
       let hollywoodMusicUrl: string | null = null
       try {
         const hollyMood = resolveMusicMood(detectNiche(voiceoverScript, vertical))
-        hollywoodMusicUrl = await getBackgroundMusicUrl(hollywoodClips[0]?.url ?? voiceoverScript, hollyMood)
+        // KINEO-MOTORES-D1-2026-09-01 — trilha GERADA (Lyria 3 Pro) primeiro;
+        // a prateleira Pixabay vira rede de segurança. Mesmo slot, mesmo mix.
+        // getLyriaMusicUrl nunca lança e tem prazo próprio; null = Pixabay.
+        hollywoodMusicUrl = await getLyriaMusicUrl(detectNiche(voiceoverScript, vertical), hollyMood)
+        if (!hollywoodMusicUrl) {
+          hollywoodMusicUrl = await getBackgroundMusicUrl(hollywoodClips[0]?.url ?? voiceoverScript, hollyMood)
+        }
         if (hollywoodMusicUrl) console.log(`[compose] hollywood score: mood via detectNiche → ${hollywoodMusicUrl.slice(-40)}`)
       } catch (e) {
         console.warn('[compose] hollywood music fetch failed (sem trilha):', e instanceof Error ? e.message : String(e))
@@ -2521,7 +2528,11 @@ export async function POST(req: NextRequest) {
     let musicUrl: string | null = null
     try {
       const musicMood = resolveMusicMood(detectNiche(scaledScript, vertical))
-      musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
+      // KINEO-MOTORES-D1-2026-09-01 — Lyria 3 Pro primeiro (trilha feita PARA
+      // o tema, US$0,08/faixa); Pixabay continua como rede de segurança. O
+      // slot e o mix do Creatomate não mudam em nada.
+      musicUrl = await getLyriaMusicUrl(detectNiche(scaledScript, vertical), musicMood)
+      if (!musicUrl) musicUrl = await getBackgroundMusicUrl(voiceoverUrl, musicMood)
     } catch (err) {
       console.warn('[compose] music fetch failed, continuing WITHOUT background music:', err instanceof Error ? err.message : String(err))
     }
