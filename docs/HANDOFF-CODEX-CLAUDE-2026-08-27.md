@@ -2679,3 +2679,27 @@ PRÓXIMO DONO:
 **NÃO TOCADO:** preço, pack, desconto, cupom, grant, validade, trial, assinatura, método de pagamento, configuração Stripe, Supabase schema/dados, render, motor, cena, voz, legenda, proposta, brief, e-mail, outreach ou contatos externos.
 
 **PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `0118d1ec` ou da ponta posterior. Não editar checkout bulk, proposal ou brief até os respectivos gates. Codex alterna a próxima sprint para B2C, medindo a parede de limite antes de qualquer nova edição nela.
+
+## 97. B2C — recuperar a senha deixa de apagar uma compra em andamento (01/09/2026)
+
+**EVIDÊNCIA DE PRODUÇÃO / RECONCILIAÇÃO:** SELECT somente leitura em 01/09/2026 às 00:09:20 UTC, com contas internas excluídas, encontrou zero pessoas externas em `limit_purchase_fit_viewed` versão `limit_purchase_fit_v1`, zero cliques e zero pagamento atribuível. A amostra ainda não existe; o experimento da seção 95 foi preservado sem nova edição. Em janela separada de 45 dias, `checkout_auth_required`, `checkout_auth_page_view` e `checkout_auth_method_selected` somaram respectivamente 58, 27 e 16 **eventos anônimos**, não pessoas. Não havia evento para observar recuperação de senha.
+
+**FATO CONFIRMADO / LACUNA NO CÓDIGO ANTERIOR:** checkout já levava destino exato de plano, cobrança e campanha até login, mas o link `Forgot password?` descartava esse contexto; o e-mail voltava apenas a `/reset-password`; e uma redefinição concluída seguia para `/generate`. O caminho estava fragmentado entre `app/(auth)/login/page.tsx`, `components/AuthModal.tsx`, `app/(auth)/forgot-password/page.tsx` e `app/(auth)/reset-password/page.tsx`. Assim, a pessoa que precisava recuperar acesso no último metro tinha de reconstruir a compra manualmente.
+
+**HIPÓTESE CAUSAL NOVA:** preservar a intenção exata durante uma recuperação legítima reduz abandono por perda de contexto sem desconto, urgência artificial ou alteração da oferta. O sucesso é pagamento real depois de recuperação; página vista, e-mail solicitado e retorno ao checkout não são receita.
+
+**IMPLEMENTADO:** o commit funcional `8d8b568be0dd5fe6124b1a23d368bfcf9cc29453` adiciona o contrato `checkout_password_recovery_handoff_v1`. `lib/growth/checkoutPasswordRecovery.ts:26` aceita somente destinos locais normalizados de checkout Stripe, PayPal ou Mercado Pago; `:60` constrói os links de recuperação e `:72` reduz telemetria a categorias permitidas. Login, signup e AuthModal preservam o mesmo destino; forgot-password usa esse destino no `redirectTo` do Supabase; após redefinição válida, `app/(auth)/reset-password/page.tsx:111` retorna ao checkout exato. A recuperação comum permanece em `/generate` (`:114`).
+
+**PRIVACIDADE / SEGURANÇA:** `checkout_password_recovery_step`, em `lib/authAnalytics.ts:98`, grava versão, etapa, provedor, tier/billing allow-listed e campanha categórica limitada. Não grava e-mail, senha, token, código, URL crua, cupom ou destino livre. Redirect externo, rota local arbitrária e checkout fora da allow-list falham fechado.
+
+**COMPARAÇÃO VISUAL:** `docs/previews/CHECKOUT-PASSWORD-RECOVERY-V1-2026-08-31.html` contém antes/depois desktop e mobile e foi inspecionado no Chrome conectado. Em produção, o cenário versionado mostrou `Your purchase is saved`, `Reset your password to finish checkout` e login com o checkout exato; `/forgot-password` sem contexto continuou mostrando a experiência comum. As abas foram fechadas depois da validação.
+
+**TESTADO LOCALMENTE:** contrato novo 57/57, contexto B2B de autenticação 26/26 e destino de produto no signup 109/109. TypeScript repetiu exatamente os quatro erros baseline preexistentes — `mrr.ts`, `me/subscription` e dois em `stripe/checkout` — e nenhum arquivo desta entrega introduziu erro. Whitespace ficou limpo. A revisão React não encontrou request, listener, pacote ou waterfall novo.
+
+**VALIDADO EM PRODUÇÃO (01/09/2026 UTC):** `origin/main` avançou por fast-forward para `8d8b568be0dd5fe6124b1a23d368bfcf9cc29453`. O deploy Vercel `dpl_2s55gQYuTKW5VyWF1eexbiyjnLPm` chegou a `READY`, target production, aliasado em `www.usekineo.com`, sem erro de alias. A consulta de runtime das rotas `/forgot-password`, `/reset-password`, `/login` e `/signup` encontrou zero erro na janela de 20 minutos. Nenhum e-mail real foi solicitado; portanto a ida e volta completa pelo provedor de e-mail continua **QUESTÃO PENDENTE** até o primeiro uso legítimo.
+
+**MÉTRICA / GATE:** seguir pessoas externas autenticadas por `checkout_password_recovery_step` nas etapas `requested → completed → resumed`, depois `checkout_started → payment_success`. Preservar até cinco pessoas externas concluírem a recuperação. Parar imediatamente por divergência de tier/billing, loop de autenticação, redirect externo, token em analytics ou regressão da recuperação comum.
+
+**NÃO TOCADO:** preço, desconto, cupom, crédito, validade, trial, SKU, promessa, Stripe server/configuração, Supabase schema/dados/configuração, render, motor, cena, voz, legenda, e-mail enviado, outreach ou contato externo.
+
+**PRÓXIMO DONO:** Claude deve executar `git fetch origin` e partir de `8d8b568b` ou da ponta posterior. Não editar este handoff de recuperação antes do gate; qualquer problema de autenticação observado no produto deve ser registrado e repassado, sem reconstruir o funil. Codex alterna a próxima sprint para B2B.
