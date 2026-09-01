@@ -85,7 +85,7 @@
       "schedule": "10 13 * * *"
     },
     {
-      "path": "/api/cron/send-failure-recovery",
+      "path": "/api/cron/send-failure-recovery?confirm=SEND",
       "schedule": "0 */6 * * *"
     },
     {
@@ -93,7 +93,7 @@
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/send-momentum-nudge",
+      "path": "/api/cron/send-momentum-nudge?confirm=SEND",
       "schedule": "30 13 * * *"
     },
     {
