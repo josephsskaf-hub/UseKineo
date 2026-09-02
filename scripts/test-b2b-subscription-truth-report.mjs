@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import {
   B2B_ASSIST_SURFACES,
   B2B_ATTRIBUTABLE_PATHS,
+  B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS,
   B2B_SUBSCRIPTION_EVENT_NAMES,
   B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION,
   buildB2bSubscriptionTruthReport,
@@ -13,6 +14,10 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
+const agencyProposalSource = readFileSync(join(root, 'lib/growth/agencyProposal.ts'), 'utf8')
+const canonicalProposalVersion = agencyProposalSource.match(
+  /AGENCY_MARGIN_PROPOSAL_VARIANT\s*=\s*'([^']+)'/,
+)?.[1]
 let checks = 0
 function equal(actual, expected, message) { checks += 1; assert.deepEqual(actual, expected, message) }
 function check(actual, message) { checks += 1; assert.ok(actual, message) }
@@ -35,6 +40,7 @@ const profiles = [
   profile('other', 'other@example.com'),
   profile('product', 'product@example.com'),
   profile('real_estate', 'agent@example.com'),
+  profile('agency_buyer', 'agency-buyer@example.com'),
   profile('internal', 'josephsskaf@gmail.com'),
   profile('unknown', null),
 ]
@@ -71,8 +77,8 @@ const events = [
   event('20', local.events.viewed, null, 'local_browser', 35, { version: local.eventVersion }),
   event('21', local.events.generated, null, 'local_browser', 36, { version: local.eventVersion, draft_source: 'sample' }),
   event('22', local.events.generated, null, 'local_browser', 37, { version: local.eventVersion, draft_source: 'manual' }),
-  event('23', agency.events.viewed, 'business', 'agency_browser', 38, { version: agency.eventVersion }),
-  event('24', agency.events.proposalCopied, 'business', 'agency_browser', 39, { version: agency.eventVersion }),
+  event('23', agency.events.viewed, 'business', 'agency_browser', 38, { version: agency.eventVersions.viewed }),
+  event('24', agency.events.proposalCopied, 'business', 'agency_browser', 39, { version: canonicalProposalVersion }),
   event('25', autopilot.events.viewed, 'brief', 'auto_browser', 40, { version: autopilot.eventVersion }),
   event('26', 'autopilot_break_even_human_viewed', 'brief', 'auto_browser', 41, { version: 'autopilot_decision_funnel_v1' }),
   event('27', autopilot.events.calculated, 'brief', 'auto_browser', 42, { version: autopilot.eventVersion }),
@@ -86,6 +92,10 @@ const events = [
   start('35', 'real_estate', 'real_estate_browser', 50, realEstatePath.intentCampaign, 'cs_real_estate'),
   event('36', realEstatePath.events.generated, 'real_estate', 'real_estate_browser', 51, { intent_campaign: realEstatePath.intentCampaign }),
   event('37', productPath.events.generated, 'other', 'wrong_campaign_browser', 52, { intent_campaign: 'unrelated_campaign' }),
+  event('38', agency.events.proposalCopied, 'agency_buyer', 'agency_buyer_browser', 53, { version: canonicalProposalVersion }),
+  start('39', 'agency_buyer', 'agency_buyer_browser', 54, 'standard_pricing', 'cs_agency_assist'),
+  paid('40', 'agency_buyer', 55, 'cs_agency_assist', 1500, 'usd'),
+  event('41', agency.events.proposalCopied, 'agency_buyer', 'agency_buyer_browser', 56, { version: agency.eventVersions.viewed }),
 ]
 
 const report = buildB2bSubscriptionTruthReport({ generatedAt: at(60), windowStart: at(0), events, profiles })
@@ -119,7 +129,19 @@ check(!JSON.stringify(report).includes('business@example.com'), 'report never em
 equal(report.assistSurfaces.local_business_brief.manualGenerated.anonymousSessions, 1, 'manual local brief separated')
 equal(report.assistSurfaces.local_business_brief.sampleGenerated.anonymousSessions, 1, 'sample local brief separated')
 equal(report.assistSurfaces.local_business_brief.attributionState, 'exact_intent_campaign_available_after_deploy_boundary', 'local attribution capability is explicit')
-equal(report.assistSurfaces.agency_margin_proposal.proposalCopied.identifiedExternalPeople, 1, 'proposal is an assist')
+equal(canonicalProposalVersion, 'agency_margin_proposal_v1', 'test reads the product emitter contract instead of repeating the report constant')
+equal(agency.eventVersions.proposalCopied, canonicalProposalVersion, 'report proposal version matches the real emitter')
+equal(report.assistSurfaces.agency_margin_proposal.proposalCopied.identifiedExternalPeople, 2, 'canonical proposal copies are counted as assists')
+equal(report.assistSurfaces.agency_margin_proposal.invalidProposalVersion.identifiedExternalPeople, 1, 'wrong proposal version is disclosed and excluded')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.label, 'temporal_assist_not_attribution', 'association is never called attribution')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.lookbackDays, B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS, 'assist lookback is explicit')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.identifiedExternalPeople, 1, 'same-person proposal to later recurring checkout is linked')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.stripeSessions, 1, 'exact recurring Stripe Session is the unit')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.byMatchingBasis, { same_external_person: 1 }, 'matching basis is disclosed')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.exactPaidPeople, 1, 'paid assist counts one external person')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.exactPaidStripeSessions, 1, 'paid assist counts one exact Stripe Session')
+equal(report.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.exactRevenueMinorByCurrency, { usd: 1500 }, 'assist revenue comes from the canonical ledger')
+equal(report.assistSurfaces.agency_margin_proposal.gate.state, 'ready_for_assist_review', 'first exact recurring Session opens review gate')
 equal(report.assistSurfaces.autopilot_break_even.humanViewed.identifiedExternalPeople, 1, 'human view separate from render')
 equal(report.assistSurfaces.autopilot_break_even.monthlyChoice.identifiedExternalPeople, 1, 'monthly choice separated')
 equal(report.assistSurfaces.autopilot_break_even.pilotChoiceExcludedFromSubscriptions.identifiedExternalPeople, 1, 'pilot excluded')
@@ -173,6 +195,69 @@ const internalCollision = buildB2bSubscriptionTruthReport({
 equal(internalCollision.quality.subscriptionStartStripeSessionConflicts, 1, 'mixed internal and external ownership fails closed')
 equal(internalCollision.totals.subscriptionStripeSessions, 0, 'mixed-owner Session never counts as external')
 
+const assistBoundaries = buildB2bSubscriptionTruthReport({
+  generatedAt: at(20),
+  windowStart: at(0),
+  profiles: [
+    ...profiles,
+    profile('session_buyer', 'session-buyer@example.com'),
+    profile('old_buyer', 'old-buyer@example.com'),
+    profile('late_buyer', 'late-buyer@example.com'),
+    profile('shared_buyer_one', 'shared-one@example.com'),
+    profile('shared_buyer_two', 'shared-two@example.com'),
+    profile('conflict_buyer', 'conflict@example.com'),
+    profile('invalid_buyer', 'invalid@example.com'),
+  ],
+  events: [
+    event('a1', agency.events.proposalCopied, null, 'shared_browser', 1, { version: canonicalProposalVersion }),
+    start('a2', 'session_buyer', 'shared_browser', 2, 'ordinary_pricing', 'cs_session_assist'),
+    paid('a3', 'session_buyer', 3, 'cs_session_assist', 700, 'usd'),
+    event('a4', agency.events.proposalCopied, 'old_buyer', 'old_browser', -10082, { version: canonicalProposalVersion }),
+    start('a5', 'old_buyer', 'old_browser', 1, 'ordinary_pricing', 'cs_too_old'),
+    paid('a6', 'old_buyer', 2, 'cs_too_old', 700, 'usd'),
+    start('a7', 'late_buyer', 'late_browser', 5, 'ordinary_pricing', 'cs_copy_late'),
+    event('a8', agency.events.proposalCopied, 'late_buyer', 'late_browser', 6, { version: canonicalProposalVersion }),
+    paid('a9', 'late_buyer', 7, 'cs_copy_late', 700, 'usd'),
+    event('a10', agency.events.proposalCopied, 'internal', 'internal_browser', 1, { version: canonicalProposalVersion }),
+    start('a11', 'internal', 'internal_browser', 2, 'ordinary_pricing', 'cs_internal'),
+    paid('a12', 'internal', 3, 'cs_internal', 700, 'usd'),
+    event('a13', agency.events.proposalCopied, 'business', 'pack_browser', 1, { version: canonicalProposalVersion }),
+    start('a14', 'business', 'pack_browser', 2, 'ordinary_pricing', 'cs_pack_assist', 'basic', 'monthly', { sku: 'bulk10' }),
+    event('a15', 'payment_success', 'business', null, 3, { checkout_mode: 'payment', stripe_session_id: 'cs_pack_assist', amount_total: 9900, currency: 'usd' }),
+    event('a16', agency.events.proposalCopied, null, 'ambiguous_browser', 8, { version: canonicalProposalVersion }),
+    start('a17', 'shared_buyer_one', 'ambiguous_browser', 9, 'ordinary_pricing', 'cs_shared_one'),
+    start('a18', 'shared_buyer_two', 'ambiguous_browser', 10, 'ordinary_pricing', 'cs_shared_two'),
+    paid('a19', 'shared_buyer_one', 11, 'cs_shared_one', 700, 'usd'),
+    paid('a20', 'shared_buyer_two', 12, 'cs_shared_two', 700, 'usd'),
+    event('a21', agency.events.proposalCopied, 'conflict_buyer', 'conflict_browser', 13, { version: canonicalProposalVersion }),
+    start('a22', 'conflict_buyer', 'conflict_browser', 14, 'ordinary_pricing', 'cs_conflict_assist'),
+    paid('a23', 'other', 15, 'cs_conflict_assist', 700, 'usd'),
+    event('a24', agency.events.proposalCopied, 'invalid_buyer', 'invalid_browser', 13, { version: canonicalProposalVersion }),
+    start('a25', 'invalid_buyer', 'invalid_browser', 14, 'ordinary_pricing', 'cs_invalid_assist'),
+    paid('a26', 'invalid_buyer', 15, 'cs_invalid_assist', 0, 'usd'),
+    event('a27', agency.events.viewed, 'shared_buyer_one', 'reused_browser', 16, { version: agency.eventVersions.viewed }),
+    event('a28', agency.events.proposalCopied, null, 'reused_browser', 17, { version: canonicalProposalVersion }),
+    start('a29', 'shared_buyer_two', 'reused_browser', 18, 'ordinary_pricing', 'cs_reused_browser'),
+    paid('a30', 'shared_buyer_two', 19, 'cs_reused_browser', 1500, 'usd'),
+  ],
+})
+equal(assistBoundaries.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.identifiedExternalPeople, 0, 'anonymous proposal copy never becomes an identified buyer')
+equal(assistBoundaries.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.byMatchingBasis, {}, 'browser session alone is never a matching basis')
+equal(assistBoundaries.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.exactRevenueMinorByCurrency, {}, 'anonymous, old, late, internal, pack, conflict and invalid rows add no assist revenue')
+equal(assistBoundaries.assistSurfaces.agency_margin_proposal.assistedRecurringSubscription.exactPaidStripeSessions, 0, 'only the same identified external person may form a paid assist')
+
+const anonymousGate = buildB2bSubscriptionTruthReport({
+  generatedAt: at(20),
+  windowStart: at(0),
+  profiles,
+  events: Array.from({ length: 5 }, (_, index) =>
+    event('g' + index, agency.events.proposalCopied, null, 'anonymous_' + index, index + 1, { version: canonicalProposalVersion }),
+  ),
+})
+equal(anonymousGate.assistSurfaces.agency_margin_proposal.proposalCopied.anonymousSessions, 5, 'anonymous sessions stay visible')
+equal(anonymousGate.assistSurfaces.agency_margin_proposal.gate.state, 'collecting', 'anonymous sessions never masquerade as five people')
+equal(anonymousGate.assistSurfaces.agency_margin_proposal.gate.anonymousSessionsNeverSatisfyPeopleGate, true, 'people gate declares the anonymous boundary')
+
 const future = buildB2bSubscriptionTruthReport({
   generatedAt: at(5), windowStart: at(0), profiles,
   events: [event('f1', brief.events.generated, 'brief', 'b', 10, { version: brief.eventVersion })],
@@ -190,6 +275,7 @@ const localSource = readFileSync(join(root, 'lib/toolActivationHref.ts'), 'utf8'
 const localCallerSource = readFileSync(join(root, 'app/free-ai-shorts/[niche]/LocalBusinessAdBrief.tsx'), 'utf8')
 const signupSource = readFileSync(join(root, 'app/(auth)/signup/page.tsx'), 'utf8')
 const autopilotSource = readFileSync(join(root, 'app/pricing/AutopilotBreakEvenCalculator.tsx'), 'utf8')
+const agencyCalculatorSource = readFileSync(join(root, 'app/ai-shorts-for-agencies/AgencyMarginCalculator.tsx'), 'utf8')
 check(businessSource.includes(`BUSINESS_PLAN_CAMPAIGN = '${business.intentCampaign}'`), 'business campaign matches code')
 check(businessSource.includes(`BUSINESS_PLAN_SHARE_CAMPAIGN = '${business.eventVersion}'`), 'business event version matches code')
 check(briefSource.includes(`CLIENT_SHORT_BRIEF_CAMPAIGN = '${brief.intentCampaign}'`), 'brief campaign matches code')
@@ -203,5 +289,6 @@ check(localSource.slice(localSource.indexOf('export function toolActivationHref'
 check(localCallerSource.includes('intentCampaign: LOCAL_BUSINESS_BRIEF_CAMPAIGN'), 'local caller explicitly opts into exact campaign attribution')
 check(signupSource.includes('if (explicitRedirect) return explicitRedirect'), 'signup returns explicit redirect before outer attribution forwarding')
 check(autopilotSource.includes("choice: 'pilot' | 'monthly'"), 'Autopilot calculator distinguishes pilot and monthly')
+check(agencyCalculatorSource.includes('version: AGENCY_MARGIN_PROPOSAL_VARIANT'), 'real proposal copy emitter uses the canonical proposal constant')
 
 console.log(`b2b subscription truth: ${checks}/${checks}`)

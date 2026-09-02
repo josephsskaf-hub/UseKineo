@@ -1,10 +1,11 @@
 import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v3'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v4'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
+export const B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS = 7
 
 const RECURRING_TIERS = new Set(['starter', 'basic', 'pro', 'autopilot'])
 const RECURRING_BILLING = new Set(['monthly', 'annual'])
@@ -76,13 +77,17 @@ export const B2B_ASSIST_SURFACES = Object.freeze({
     attributionState: 'exact_intent_campaign_available_after_deploy_boundary',
   }),
   agency_margin_proposal: Object.freeze({
-    eventVersion: 'agency_margin_v1_2026_08_27',
+    eventVersions: Object.freeze({
+      viewed: 'agency_margin_v1_2026_08_27',
+      packSelected: 'agency_margin_v1_2026_08_27',
+      proposalCopied: 'agency_margin_proposal_v1',
+    }),
     events: Object.freeze({
       viewed: 'agency_margin_calculator_viewed',
       packSelected: 'agency_margin_pack_selected',
       proposalCopied: 'agency_margin_proposal_copied',
     }),
-    attributionState: 'multi_actor_proposal_assist_only',
+    attributionState: 'temporal_assist_not_attribution',
   }),
   autopilot_break_even: Object.freeze({
     eventVersion: 'autopilot_break_even_v1',
@@ -252,6 +257,67 @@ function countBy(rows, value) {
   return Object.fromEntries([...counts.entries()].sort(([left], [right]) => left.localeCompare(right)))
 }
 
+function buildAgencyProposalAssist({ sourceEvents, windowStartMs, generatedAtMs, identity, ledger }) {
+  const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
+  const lookbackMs = B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS * 24 * 60 * 60 * 1000
+  const proposalCopies = sourceEvents.filter((row) =>
+    row?.name === agency.events.proposalCopied &&
+    metadataString(row, 'version') === agency.eventVersions.proposalCopied &&
+    ['external', 'anonymous'].includes(actorClass(row, identity)),
+  )
+
+  const startsByStripeSession = new Map()
+  for (const row of sourceEvents) {
+    if (!validRecurringStart(row)) continue
+    const stripeSessionId = metadataString(row, 'stripe_session_id')
+    const rows = startsByStripeSession.get(stripeSessionId) ?? []
+    rows.push(row)
+    startsByStripeSession.set(stripeSessionId, rows)
+  }
+
+  const journeys = []
+  for (const record of ledger.records) {
+    const startedAtMs = Date.parse(String(record.startedAt ?? ''))
+    if (!Number.isFinite(startedAtMs) || startedAtMs < windowStartMs || startedAtMs > generatedAtMs) continue
+    if (record.ownerClass !== 'external' || !record.ownerUserId) continue
+    if (!['unpaid', 'paid'].includes(record.status)) continue
+
+    const startRows = startsByStripeSession.get(record.stripeSessionId) ?? []
+    if (startRows.length === 0) continue
+    const eligibleCopies = proposalCopies.filter((copy) => {
+      const copiedAtMs = timestamp(copy)
+      if (copiedAtMs === null || copiedAtMs >= startedAtMs || startedAtMs - copiedAtMs > lookbackMs) return false
+      const ownerClass = actorClass(copy, identity)
+      return ownerClass === 'external' && copy.user_id === record.ownerUserId
+    })
+    if (eligibleCopies.length === 0) continue
+
+    const paid = record.status === 'paid' && record.paidInWindow === true
+    journeys.push({
+      stripeSessionId: record.stripeSessionId,
+      userId: record.ownerUserId,
+      startedAt: record.startedAt,
+      matchingBasis: 'same_external_person',
+      paid,
+      paymentState: record.status,
+      amountMinor: paid ? record.amountMinor : null,
+      currency: paid ? record.currency : null,
+    })
+  }
+
+  const paidJourneys = journeys.filter((journey) => journey.paid)
+  return {
+    label: 'temporal_assist_not_attribution',
+    lookbackDays: B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS,
+    identifiedExternalPeople: new Set(journeys.map((journey) => journey.userId)).size,
+    stripeSessions: journeys.length,
+    byMatchingBasis: countBy(journeys, (journey) => journey.matchingBasis),
+    exactPaidPeople: new Set(paidJourneys.map((journey) => journey.userId)).size,
+    exactPaidStripeSessions: paidJourneys.length,
+    exactRevenueMinorByCurrency: moneyByCurrency(paidJourneys),
+  }
+}
+
 export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, events, profiles }) {
   const generatedAtMs = Date.parse(generatedAt)
   const windowStartMs = Date.parse(windowStart)
@@ -346,6 +412,19 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
   const local = B2B_ASSIST_SURFACES.local_business_brief
   const agency = B2B_ASSIST_SURFACES.agency_margin_proposal
   const autopilot = B2B_ASSIST_SURFACES.autopilot_break_even
+  const agencyProposalCopied = summarizeStage(
+    windowEvents,
+    agency.events.proposalCopied,
+    agency.eventVersions.proposalCopied,
+    identity,
+  )
+  const agencyProposalAssist = buildAgencyProposalAssist({
+    sourceEvents,
+    windowStartMs,
+    generatedAtMs,
+    identity,
+    ledger,
+  })
   const assistSurfaces = {
     local_business_brief: {
       attributionState: local.attributionState,
@@ -356,9 +435,22 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
     },
     agency_margin_proposal: {
       attributionState: agency.attributionState,
-      viewed: summarizeStage(windowEvents, agency.events.viewed, agency.eventVersion, identity),
-      packSelected: summarizeStage(windowEvents, agency.events.packSelected, agency.eventVersion, identity),
-      proposalCopied: summarizeStage(windowEvents, agency.events.proposalCopied, agency.eventVersion, identity),
+      viewed: summarizeStage(windowEvents, agency.events.viewed, agency.eventVersions.viewed, identity),
+      packSelected: summarizeStage(windowEvents, agency.events.packSelected, agency.eventVersions.packSelected, identity),
+      proposalCopied: agencyProposalCopied,
+      invalidProposalVersion: summarizeRows(windowEvents.filter((row) =>
+        row?.name === agency.events.proposalCopied &&
+        metadataString(row, 'version') !== agency.eventVersions.proposalCopied,
+      ), identity),
+      assistedRecurringSubscription: agencyProposalAssist,
+      gate: {
+        state: agencyProposalCopied.identifiedExternalPeople >= 5 || agencyProposalAssist.stripeSessions > 0
+          ? 'ready_for_assist_review'
+          : 'collecting',
+        minimumIdentifiedExternalPeopleWhoCopiedProposal: 5,
+        anonymousSessionsNeverSatisfyPeopleGate: true,
+        firstExactRecurringStripeSessionOverridesSampleGate: true,
+      },
     },
     autopilot_break_even: {
       attributionState: autopilot.attributionState,
@@ -399,6 +491,6 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       state: readyPaths.length ? 'path_specific_diagnosis_available' : 'collecting',
       readyPaths,
     },
-    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. Generated artifacts and copied proposals are assists, never causal sales. One-time packs and the Autopilot pilot never count as subscribers.',
+    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. A copied agency proposal may be reported only as a seven-day temporal assist to a later exact recurring Checkout by the same identified external person; anonymous copies remain session diagnostics and never become people, Checkouts or revenue. The assist is never causal attribution. One-time packs and the Autopilot pilot never count as subscribers.',
   }
 }
