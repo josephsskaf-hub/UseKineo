@@ -32,6 +32,13 @@ import {
   type SeriesContinuationSource,
 } from '@/lib/seriesContinuation'
 import { OUR_FAILURE_EVENT_NAME, isOurFailure } from '@/lib/lifecycle/ourFailure'
+import {
+  EMPTY_OTHER_DELIVERIES,
+  countOtherDeliveries,
+  describeOtherDeliveries,
+  otherDeliveriesTotal,
+  type OtherDeliveries,
+} from '@/lib/lifecycle/otherDeliveries'
 
 // trial-lifecycle-emails — REVERSE TRIAL FASE 2, ITEM 4 (07/08/2026).
 // [KINEO-TRIAL-EMAILS-2026-08-07]
@@ -502,6 +509,18 @@ interface Candidate {
    * um link.
    */
   lastTopic: string | null
+  /**
+   * KINEO-SPRINT-ASSINATURAS-2026-09-02 (#11) — o que a conta RECEBEU fora de
+   * `videos`: clipes do /animate, imagens, audios. Existe porque xzavior000
+   * fez 5 clipes em 24 min, queimou o trial inteiro e recebeu "nothing we
+   * sent you actually put a finished video in your hands". Ver o cabecalho de
+   * `lib/lifecycle/otherDeliveries.ts`.
+   *
+   * So o `downgraded_loss` le, e so para NAO cair no ramo "nunca rodou" e para
+   * dizer o que fica na conta. FALHA ABERTA (zeros): o pior caso e a copy de
+   * hoje. Nunca autoriza extensao, credito ou desconto.
+   */
+  otherMade: OtherDeliveries
 }
 
 interface ProfileRow extends TrialProfileFields {
@@ -540,6 +559,7 @@ function dueKind(
   videoCounts: Map<string, number> | null,
   ourFailureIds: ReadonlySet<string>,
   lastTopics: Map<string, string> | null,
+  otherCounts: Map<string, OtherDeliveries> | null = null,
 ): Candidate | null {
   const id = typeof row.id === 'string' ? row.id : ''
   const email = typeof row.email === 'string' ? row.email.trim() : ''
@@ -608,6 +628,8 @@ function dueKind(
     // Normalizado UMA vez aqui (e nao na hora de montar o e-mail) para que o
     // teste consiga provar o contrato do campo sem montar e-mail nenhum.
     lastTopic: normalizeSeriesSeed(lastTopics?.get(id) ?? '') || null,
+    // #11 — falha aberta: sem leitura, zeros (copy de hoje).
+    otherMade: otherCounts?.get(id) ?? EMPTY_OTHER_DELIVERIES,
   }
 
   if (status === 'active') {
@@ -1418,7 +1440,11 @@ ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
     //     do plano em que a pessoa acabou de cair cobre esse vídeo.
     //   · /pricing CONTINUA no e-mail — só deixa de ser o único caminho.
     // Quem tem 1+ vídeo recebe o e-mail de antes, byte a byte.
-    const neverRan = c.videosMade === 0
+    // #11 — "nunca rodou" so vale se TAMBEM nao ha clipe/imagem/audio entregue.
+    // Quem fez 5 clipes no /animate e queimou o trial NAO pode ler "nothing we
+    // sent you actually put a finished video in your hands".
+    const otherTotal = otherDeliveriesTotal(c.otherMade)
+    const neverRan = c.videosMade === 0 && otherTotal === 0
     if (neverRan) {
       // ⚠️ SEMENTE DIFERENTE, DE PROPÓSITO (2ª passada da revisão). `starterTopics`
       // gira por FNV-1a do id, então `starterTopics(c.id)` devolveria os MESMOS
@@ -1495,13 +1521,25 @@ ${fbuLineHtml}  <p style="margin:0 0 14px;">You can still make one on the <stron
     // video nao tem episodio 2, e ja recebe os temas de 1 clique do pool).
     const ep2 = episodeTwoBlock(c.lastTopic, 'trial_loss_episode2', 'lifecycle_loss_email', attr)
 
+    // #11 — a frase "the videos you already made" e verdadeira para quem tem
+    // linha em `videos`. Para quem so tem clipes/imagens/audios, a frase
+    // nomeia EXATAMENTE o que ficou (numero medido, nao adjetivo). Quem tem os
+    // dois recebe a frase de sempre — "videos" ja cobre.
+    const otherKept = c.videosMade === 0 && otherTotal > 0 ? describeOtherDeliveries(c.otherMade) : ''
+    const keptText = otherKept
+      ? `The ${otherKept} you already made are yours — they stay in your Library.`
+      : `The videos you already made are yours — they stay in your account.`
+    const keptHtml = otherKept
+      ? `The ${otherKept} you already made are yours &mdash; they stay in your Library.`
+      : `The videos you already made are yours &mdash; they stay in your account.`
+
     const text = `Hey,
 
 Your Creator trial ended. Here's what you just lost access to:
 
 ${bullets.map((b) => `- ${b}`).join('\n')}
 
-The videos you already made are yours — they stay in your account.
+${keptText}
 
 If the trial was doing its job, Creator picks up exactly where it left off: ${url}
 ${ep2 ? `\n${ep2.text}\n` : ''}
@@ -1513,7 +1551,7 @@ usekineo.com`
   <ul style="margin:0 0 14px;padding-left:20px;color:#475569;">
     ${bullets.map((b) => `<li>${b}</li>`).join('\n    ')}
   </ul>
-  <p style="margin:0 0 14px;">The videos you already made are yours &mdash; they stay in your account.</p>
+  <p style="margin:0 0 14px;">${keptHtml}</p>
   <p style="margin:0 0 14px;">If the trial was doing its job, Creator picks up exactly where it left off:</p>
   ${cta(url, 'Get Creator back')}
 ${ep2 ? `${ep2.html}\n` : ''}  ${sig}`)
@@ -1830,9 +1868,17 @@ export async function GET(req: NextRequest) {
     console.error('[trial-lifecycle-emails] OUR-FAILURE SIGNAL UNAVAILABLE — copy de desculpa suprimida neste run')
   }
 
+  // ── 1-quater) O que a coorte RECEBEU fora de `videos` ─────────────────────
+  // #11 — ver lib/lifecycle/otherDeliveries.ts. Falha ABERTA: `degraded`
+  // devolve zeros (a copy de hoje) e fica visivel no JSON de resposta.
+  const other = await countOtherDeliveries(admin, cohortIds)
+  if (other.degraded) {
+    console.error('[trial-lifecycle-emails] OTHER-DELIVERIES PARTIAL — animate/images/audio treated as 0 where unread')
+  }
+
   const candidates: Candidate[] = []
   for (const row of (rows ?? []) as ProfileRow[]) {
-    const c = dueKind(row, now, videoCounts, ourFailureIds, lastTopics)
+    const c = dueKind(row, now, videoCounts, ourFailureIds, lastTopics, other.counts)
     if (c) candidates.push(c)
   }
 
@@ -1845,6 +1891,7 @@ export async function GET(req: NextRequest) {
       // Sem este campo, "ninguém devido" e "não consegui olhar para a coorte
       // pós-trial" seriam a MESMA resposta 200 — e a segunda é um incidente.
       video_counts_degraded: videoCounts === null,
+      other_deliveries_degraded: other.degraded,
       // KINEO-FAILED-BY-US-2026-08-12 — degrade observável e SEPARADO do de
       // cima: este não adia ninguém, só apaga o pedido de desculpas. Sem campo
       // próprio, um run que mandou a copy antiga por falha de leitura seria
@@ -1900,6 +1947,7 @@ export async function GET(req: NextRequest) {
       // KINEO-TRIAL-EXTENSION-INVERTED-2026-08-12 — true = a coorte pós-trial
       // INTEIRA foi adiada nesta execução (ver a leitura de vídeos).
       video_counts_degraded: videoCounts === null,
+      other_deliveries_degraded: other.degraded,
       // KINEO-FAILED-BY-US-2026-08-12 — degrade observável e SEPARADO do de
       // cima: este não adia ninguém, só apaga o pedido de desculpas. Sem campo
       // próprio, um run que mandou a copy antiga por falha de leitura seria
@@ -2085,6 +2133,7 @@ export async function GET(req: NextRequest) {
     // `suppression_degraded` estar aqui: um 200 com a coorte pós-trial inteira
     // adiada tem de ser distinguível de um 200 normal.
     video_counts_degraded: videoCounts === null,
+    other_deliveries_degraded: other.degraded,
     // KINEO-FAILED-BY-US-2026-08-12 — a resposta do caminho FELIZ é a que mais
     // precisa deste campo: as outras duas já são caminhos anômalos. Aqui um 200
     // com envios feitos e a atribuição de culpa suprimida por falha de leitura
