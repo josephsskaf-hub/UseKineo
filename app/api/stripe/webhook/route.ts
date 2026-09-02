@@ -45,6 +45,7 @@ import {
   commitAffiliateCommission,
   normalizeAffiliateCurrency,
   type AffiliateCommissionRecord,
+  type AffiliatePaymentKind,
   type ExistingAffiliateCommission,
 } from '@/lib/affiliateLedger'
 
@@ -266,7 +267,16 @@ async function resolveAffiliateByCoupon(
 // approves it (so refunds inside the window simply never get approved/paid).
 async function recordAffiliateCommission(
   supabase: AdminClient,
-  args: { userId: string; externalId: string; amountGross: number; currency: string; type: 'initial' | 'recurring'; attributionSystem?: string | null; session?: Stripe.Checkout.Session }
+  args: {
+    userId: string
+    externalId: string
+    amountGross: number
+    currency: string
+    type: 'initial' | 'recurring'
+    paymentKind: AffiliatePaymentKind
+    attributionSystem?: string | null
+    session?: Stripe.Checkout.Session
+  }
 ): Promise<void> {
   // Rewardful owns this charge. Suppress the custom ledger so the same
   // initial payment or renewal can never create two affiliate liabilities.
@@ -421,7 +431,7 @@ async function recordAffiliateCommission(
           throw new AffiliateLedgerIntegrityError('Could not reconcile paid affiliate referral')
         }
       },
-    }, row, new Date().toISOString())
+    }, row, new Date().toISOString(), { paymentKind: args.paymentKind })
 
     if (outcome === 'inserted') {
       console.log(`[affiliate commission] +${commission} (${args.type}) affiliate ${affiliateId} ← user ${args.userId}`)
@@ -968,6 +978,7 @@ export async function POST(req: NextRequest) {
             amountGross: session.amount_total ?? 0,
             currency: session.currency ?? 'usd',
             type: 'initial',
+            paymentKind: 'one_time',
             attributionSystem: session.metadata?.affiliate_system,
             session,
           })
@@ -1153,7 +1164,7 @@ export async function POST(req: NextRequest) {
         if (fulfilledSession?.id === subscriptionFulfillmentId) {
           entitlementConfirmed = true
           entitlementPending = false
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
           // KINEO-REVERSE-TRIAL-P2-2026-08-07 — cobre a janela de crash entre
           // o publish do fulfillment e o carimbo da primeira execução: o resume
           // idempotente passa por aqui, e a UPDATE guardada faz 0 linhas quando
@@ -1193,7 +1204,7 @@ export async function POST(req: NextRequest) {
           // that Stripe now reports as canceled, unpaid, paused or otherwise
           // non-access. The original payment remains recorded for analytics and
           // affiliate accounting, then this stale event is closed permanently.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -1219,7 +1230,7 @@ export async function POST(req: NextRequest) {
           // its original Checkout. A delayed replay of that old Checkout must
           // not add the old grant or downgrade the account back to its historic
           // tier. The live subscription metadata is authoritative here.
-          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
+          await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
           await publishSubscriptionFulfillment()
           entitlementConfirmed = true
           entitlementPending = false
@@ -1283,7 +1294,7 @@ export async function POST(req: NextRequest) {
         // Commission insert is independently idempotent by external_id. Run it
         // before publishing fulfillment so a crash cannot leave a permanent
         // completed marker with the commission missing.
-        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', attributionSystem: session.metadata?.affiliate_system, session })
+        await recordAffiliateCommission(supabase, { userId, externalId: session.id, amountGross: session.amount_total ?? 0, currency: session.currency ?? 'usd', type: 'initial', paymentKind: 'subscription', attributionSystem: session.metadata?.affiliate_system, session })
 
         // This marker means completed, so publish it only after the idempotent
         // profile update. If publication fails, Stripe retries; the same
@@ -1728,7 +1739,7 @@ export async function POST(req: NextRequest) {
           // the balance/tier belonging to the profile's newer subscription.
           entitlementConfirmed = true
           entitlementPending = false
-          await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', attributionSystem: subscription.metadata?.affiliate_system })
+          await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
           console.warn('[stripe webhook] stale renewal ignored for superseded subscription:', invoice.id, subscriptionId, renewalProfile.stripe_subscription_id)
           break
         }
@@ -1770,7 +1781,7 @@ export async function POST(req: NextRequest) {
         // criada fora do Checkout). Quase sempre 0 linhas (o Checkout já
         // carimbou); idempotente e barato.
         await markTrialConverted(supabase, renewalUserId, { source: 'invoice_payment_succeeded', stripeRef: invoice.id ?? subscriptionId })
-        await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', attributionSystem: subscription.metadata?.affiliate_system })
+        await recordAffiliateCommission(supabase, { userId: renewalUserId, externalId: invoice.id ?? subscriptionId, amountGross: invoice.amount_paid ?? 0, currency: invoice.currency ?? 'usd', type: 'recurring', paymentKind: 'subscription', attributionSystem: subscription.metadata?.affiliate_system })
 
         break
       }

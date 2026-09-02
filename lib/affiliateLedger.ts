@@ -1,4 +1,5 @@
 export type AffiliateCommissionType = 'initial' | 'recurring'
+export type AffiliatePaymentKind = 'one_time' | 'subscription'
 
 export interface AffiliateCommissionRecord {
   affiliate_id: string
@@ -110,7 +111,12 @@ export async function commitAffiliateCommission(
   store: AffiliateCommissionStore,
   row: AffiliateCommissionRecord,
   convertedAt: string,
+  options: { paymentKind: AffiliatePaymentKind },
 ): Promise<'inserted' | 'duplicate'> {
+  if (options?.paymentKind !== 'one_time' && options?.paymentKind !== 'subscription') {
+    throw new AffiliateLedgerIntegrityError('Invalid affiliate payment kind')
+  }
+
   let outcome: 'inserted' | 'duplicate' = 'duplicate'
   const existing = await store.find(row.provider, row.external_id)
   if (existing) {
@@ -126,10 +132,12 @@ export async function commitAffiliateCommission(
     }
   }
 
-  // Only a confirmed, matching commission is allowed to make a referral paid.
-  // If this update fails, the caller retries: the duplicate commission is
-  // reconciled above, then this repair runs again without creating a new debt.
-  if (row.referral_id) {
+  // A commission proves that money moved, but only a subscription payment
+  // proves the dashboard promise "Paid customers". One-time packs still earn
+  // the exact same commission without converting the referral into a subscriber.
+  // If a subscription mark fails, the caller retries: the duplicate commission
+  // is reconciled above, then this repair runs again without creating new debt.
+  if (row.referral_id && options.paymentKind === 'subscription') {
     await store.markReferralPaid(row.referral_id, convertedAt)
   }
   return outcome

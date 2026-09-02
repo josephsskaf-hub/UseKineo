@@ -26,6 +26,8 @@ vm.runInNewContext(compiled, {
 })
 
 const ledger = moduleBox.exports
+const subscriptionPayment = { paymentKind: 'subscription' }
+const oneTimePayment = { paymentKind: 'one_time' }
 const webhookSource = fs.readFileSync('app/api/stripe/webhook/route.ts', 'utf8')
 const adminUpdateSource = fs.readFileSync('app/api/admin/affiliates/[id]/route.ts', 'utf8')
 let checks = 0
@@ -110,14 +112,14 @@ function store(overrides = {}) {
 
 {
   const { state, calls } = store()
-  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z')
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment)
   equal(outcome, 'inserted', 'new commission reports inserted')
   equal(calls.join(','), 'find,insert,mark', 'commission exists before referral becomes paid')
 }
 
 {
   const { state, calls } = store({ current: existing })
-  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z')
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment)
   equal(outcome, 'duplicate', 'retry reconciles existing commission')
   equal(calls.join(','), 'find,mark', 'retry does not insert another debt and repairs referral')
 }
@@ -132,7 +134,7 @@ function store(overrides = {}) {
       return this.reads === 1 ? null : existing
     },
   })
-  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z')
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment)
   equal(outcome, 'duplicate', 'concurrent unique winner reconciles')
   equal(calls.join(','), 'find,insert,find,mark', 'race winner verified before referral paid')
 }
@@ -140,14 +142,14 @@ function store(overrides = {}) {
 {
   const { state, calls } = store({ markFails: true })
   await rejects(
-    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z'),
+    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment),
     /mark unavailable/,
     'referral update failure propagates for retry',
   )
   equal(calls.join(','), 'find,insert,mark', 'commission remains first on repairable mark failure')
   state.markFails = false
   calls.length = 0
-  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:01:00Z')
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:01:00Z', subscriptionPayment)
   equal(outcome, 'duplicate', 'retry after mark failure sees the existing commission')
   equal(calls.join(','), 'find,mark', 'retry repairs only the referral')
 }
@@ -162,7 +164,7 @@ for (const [field, value] of [
 ]) {
   const { state, calls } = store({ current: { ...existing, [field]: value } })
   await rejects(
-    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z'),
+    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment),
     /conflicts with Stripe payment/,
     `idempotency conflict rejects changed ${field}`,
   )
@@ -175,7 +177,7 @@ for (const [field, value] of [
     async find() { calls.push('find'); return null },
   })
   await rejects(
-    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z'),
+    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', subscriptionPayment),
     /could not be reconciled/,
     'unverifiable duplicate fails closed',
   )
@@ -185,8 +187,32 @@ for (const [field, value] of [
 {
   const noReferral = { ...row, referral_id: null, external_id: 'in_1', type: 'recurring' }
   const { state, calls } = store()
-  await ledger.commitAffiliateCommission(state, noReferral, '2026-08-27T20:00:00Z')
+  await ledger.commitAffiliateCommission(state, noReferral, '2026-08-27T20:00:00Z', subscriptionPayment)
   equal(calls.join(','), 'find,insert', 'commission without referral writes debt but invents no paid referral')
+}
+
+{
+  const { state, calls } = store()
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', oneTimePayment)
+  equal(outcome, 'inserted', 'new one-time commission remains payable')
+  equal(calls.join(','), 'find,insert', 'one-time purchase never marks referral as subscriber')
+}
+
+{
+  const { state, calls } = store({ current: existing })
+  const outcome = await ledger.commitAffiliateCommission(state, row, '2026-08-27T20:01:00Z', oneTimePayment)
+  equal(outcome, 'duplicate', 'one-time retry reconciles existing commission')
+  equal(calls.join(','), 'find', 'one-time retry never repairs a subscriber conversion')
+}
+
+for (const options of [undefined, {}, { paymentKind: 'credit_pack' }]) {
+  const { state, calls } = store()
+  await rejects(
+    () => ledger.commitAffiliateCommission(state, row, '2026-08-27T20:00:00Z', options),
+    /Invalid affiliate payment kind/,
+    `invalid payment kind ${String(options?.paymentKind)} fails closed`,
+  )
+  equal(calls.join(','), '', 'invalid payment kind writes no commission or referral state')
 }
 
 const paymentPathStart = webhookSource.indexOf('// ── Path A: Legacy one-time credit-pack purchase')
@@ -202,6 +228,11 @@ ok(commissionIndex > guardIndex, 'payment path records commission only after gua
 ok(balanceReadIndex > commissionIndex, 'commission precedes additive balance read')
 ok(balanceWriteIndex > commissionIndex, 'commission precedes additive balance write')
 equal((paymentPath.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 1, 'payment path has one commission call')
+equal((paymentPath.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'payment path explicitly classifies its one-time commission')
+equal((webhookSource.match(/paymentKind:\s*'subscription'/g) ?? []).length, 6, 'all six subscription commission callers classify payment explicitly')
+equal((webhookSource.match(/paymentKind:\s*'one_time'/g) ?? []).length, 1, 'exactly one one-time commission caller exists')
+equal((webhookSource.match(/await recordAffiliateCommission\(supabase/g) ?? []).length, 7, 'all seven real commission callers remain present')
+ok(/paymentKind:\s*AffiliatePaymentKind/.test(webhookSource), 'recordAffiliateCommission requires explicit payment kind')
 // Retry now also includes the checkout-analytics sink. Assert each cause and
 // the composed guard instead of freezing the former two-term source line.
 ok(webhookSource.includes('const shouldRetryAffiliateLedger = error instanceof RetryableAffiliateLedgerError'), 'affiliate failures are classified for retry')
