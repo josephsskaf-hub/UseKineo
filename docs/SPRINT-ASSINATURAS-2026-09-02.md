@@ -768,3 +768,67 @@ continua válido).
 **Próximo item (#13):** às 03:05 BRT ler `failure_recovery_sent` por `kind`
 (1º disparo real). Se vazio: a dívida acima (images/audio mandando trial ao
 popup de recarga) — 20 min, reaproveita `animatePlanRows`.
+
+### #13 — 02:09→02:30 BRT — o 402 do /images e do /audio mandava trial/free/starter comprar um pack que o checkout recusa
+**Leitura.** origin/main = 293adb7b (Codex subiu 2 commits de afiliados por cima do
+a83e89e7; a fila b8cc1cfb do #12 continua válida — o bat v9 rebasa). Ainda não são
+03:05 (1º disparo real do failure_recovery), então fui na dívida anotada no #12.
+Rodada em clone `/tmp/assin-r13` sobre `entrega-atual`, push final
+`HEAD:refs/heads/entrega-atual` depois de provar ancestral.
+**O que estava errado.** Desde 18/08 o 402 "Not enough credits" do /images e do
+/audio abre o `CreditsTopupModal` (packs one-time) para QUALQUER plano. Recarga só
+existe para Creator/Studio (`lib/growth/topupEligibility`, a mesma regra que
+`/api/stripe/checkout` aplica): trial, free ou Starter que clicava num pack levava
+`topup_requires_creator_plus` (403) e caía no /pricing com um erro vermelho — a
+pior porta de entrada possível para a página de preços. **Medido 30d (externos): 9
+pessoas usaram /images ou /audio; 7 estão hoje sem pagar e com <5cr; 0
+`checkout_started` por `credits_topup_modal_images_402`/`audio_402`.** O beco
+nunca converteu ninguém. Bônus do mesmo defeito: o link "Add credits →" dentro do
+erro abria o mesmo pack recusado, e no /images os 3 pontos de 402 (generate,
+edit, upscale) faziam isso.
+**O que mudou.** `lib/credits/outOfCreditsPlans.ts` (puro; generaliza o
+`animatePlanRows` do #12 para qualquer custo de unidade) + novo
+`components/OutOfCreditsPlansModal.tsx` + os dois clientes. Cada cliente lê
+`plan`/`credits` de `/api/credits` (mesma fonte do /animate) e `openCreditsWall()`
+decide pela MESMA regra do checkout: Creator/Studio → `CreditsTopupModal` como
+antes (surface `images_402`/`audio_402` intacta); trial/free/starter/desconhecido →
+modal com 3 linhas **derivadas** de `TIER_CREDITS`/`TIER_PRICES` e do custo REAL da
+unidade — no /images é o motor selecionado ("Starter 40 cr/mo = **20 images**
+$7.00/mo" com FLUX Dev; 8 com Nano Banana), no /audio é o custo do clipe pedido
+("= 20 audio clips"). Título honesto com o número da visita ("the 3 images you
+just made are yours", nunca "0"), CTA `/pricing?utm_campaign=images|audio_out_of_credits`.
+Plano desconhecido = planos (destino seguro: nunca manda ninguém a um pack
+recusado). Eventos `images_paywall_shown`/`_cta` e `audio_paywall_shown`/`_cta`
+(plan, credits, unit_cost, made_this_session). Nada de crédito, cupom, preço novo
+ou toque no `CreditsTopupModal`. tsc: só os 3 pré-existentes.
+`scripts/test-out-of-credits-plans.mjs`: **65 verificações** (módulo executado
+com as tabelas REAIS; prova que starter/free/trial/null nunca vão ao pack, que o
+modal de planos não importa checkout, que nenhum dígito de preço/crédito foi
+escrito à mão, e que os 3 pontos de 402 do /images passam pela regra).
+**Para o cliente/receita.** Quem zera crédito em imagem/áudio deixa de ver um
+erro 403 e passa a ver "seu plano compra N imagens por mês" com o motor que ela
+acabou de usar — o número que ela entende. É pouca gente (9/mês) mas é gente que
+GASTOU o trial em <30 min, o perfil que mais compra; hoje 0 dessas 9 passou pelo
+checkout a partir desta tela. Sucesso = 1 assinatura com utm `*_out_of_credits`
+em 30d.
+**SHA:** eecb562c (sobre b8cc1cfb). **Risco:** baixo — só UI dos dois clientes +
+1 componente + 1 módulo novo; nenhuma rota tocada. Cuidado real: se `/api/credits`
+falhar, `plan` fica 'free' e um Creator vê a lista de planos em vez da recarga
+por 1 render — o clique é reavaliado depois do `refreshPlan()`.
+**Como medir:** `images_paywall_shown`/`audio_paywall_shown` por plan;
+`*_paywall_cta` → `page_view` /pricing com `utm_campaign=images_out_of_credits`
+ou `audio_out_of_credits` → `has_paid` em 7d. Contraprova: `checkout_started` com
+`pricing_surface=credits_topup_modal_images_402` só de basic/pro daqui pra frente.
+**Placar 02:25 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2, free/churn
+4); cadastros 1h=1, 24h=32 (4 com 0cr — os mesmos do #12, rebaixados por
+teto/relógio); vídeos 1h=0, 24h=18; **falhas 1h=0**; 3h: as mesmas de antes
+(adrianwells prompt_len ×7 pré-#9 + speech=27s; asuquoalbert speech=3s/
+narration_too_short; wummm709 held=19) — nada novo; checkout_started 24h=5; 7d:
+72 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120,
+trial_lifecycle 102, failure_recovery 0, momentum 0, subscriber_idle 0.
+**Próximo item (#14):** às 03:05 BRT ler `failure_recovery_sent` por `kind` (1º
+disparo real do cron acordado em 01/09 — se mandar a versão errada para alguém,
+vira o item). Se vazio/ok: o `UpgradeModal` ainda promete "priority render queue"
+(copy que mente, lista do CLAUDE.md item 4) — é zona compartilhada, entrar com
+aviso no diário; ou o e-mail de uso do Emilio (40cr, 0 vídeos após renovar 01/09)
+via rascunho Gmail, aproveitando as 3 ideias de 1 clique do #10.
