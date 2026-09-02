@@ -81,4 +81,7 @@ Ausência de evento recebe o rótulo `noConfirmedBlobSignal`, nunca “não baix
 
 - Base da worktree: `cfa464a4aed2fbe55a7f5c2d56582426cb5f129f`.
 - Branch: `codex/b2c-first-file-value-v1`.
-- Commit, publicação e deploy: preencher após push e validação.
+- Commit funcional publicado: `4d88ee08b8f974676893c9e18576820a1d295085` (`measure first video file value to subscription`).
+- `origin/main` confirmado nesse SHA imediatamente após o push fast-forward.
+- Deploy de produção: `dpl_3wKg9LsaczvM3L55ZJkaT7G5Sh3M`, estado `READY`, origem Git no mesmo SHA, alias `www.usekineo.com` sem erro de alias.
+- O commit funcional adiciona apenas scripts de medição somente leitura e este handoff; não altera interface, checkout, preço, crédito nem pipeline de render.
