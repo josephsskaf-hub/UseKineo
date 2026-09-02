@@ -136,3 +136,54 @@ segue sangrando 1-3 trials/dia. **Próximo item (#3):** não esperar o log — l
 galho mudo com os claims reais desses 3 (authorized_completed_urls 100%,
 compose_submission_claim 0); se for a autorização recusando URL já ligada,
 tratar como idempotente por request_id e compor.
+
+### #3 — 22:50→23:10 BRT — o cron de resgate declarava "terminou sozinho" para QUALQUER vídeo do dono
+**O que estava errado.** `finish-stranded-renders` (Fase 1) tinha um atalho: se
+o usuário tinha QUALQUER `videos.status=completed` criado depois do claim, o
+cron concluía `user_finished_themselves` e pulava a geração — sem olhar QUAL
+vídeo. Quem tinha um cinematic encalhado (cenas prontas na fal, compose nunca
+chamado) e fazia OUTRO vídeo enquanto esperava fazia o cron abandonar o
+encalhado para sempre; o refund-sweep estornava 2h depois
+(`cinematic_abandoned_no_delivery`). Provado em SQL (14d, externos): dos 21
+estornos, **4 têm exatamente esta assinatura** — `authorized_completed_urls`
+0/N (o cron nunca chegou a conferir a fal) + 1-2 vídeos completed do mesmo
+dono entre o claim e o estorno (ba254eff, rainbowindow1, youcefps442,
+sr591910). Caso ba254eff (01/09 23:11, trial do chatgpt.com, celular):
+Seedance 19cr aceito 6/6 às 23:12:52 → o banner do ChatGPT o levou para
+/studio às 23:13:47 (poll da aba morreu) → voltou às 23:25 e fez um Kineo 1
+de 3cr que saiu às 23:28 → a partir daí o cron pulou o Seedance em 8 rodadas
+seguidas até o estorno de 01:31. Viu um vídeo de 3cr, perdeu o de 19cr; a fal
+foi paga pelos dois. Esse desfecho era silencioso (não estava no SILENT_TERMINAL
+do #1 porque parecia sucesso).
+**O que mudou.** A pergunta passou a ser "ESTA geração foi composta?": existe
+`compose_submission_claim` com `session_id = generation_id` (único caminho de
+compose para um claim cinematográfico sem marcador nosso). Existe → pessoa
+compôs sozinha (mesmo desfecho de antes). Não existe → segue para a Fase 1
+(confere fal, autoriza, compõe). Trava: só decide quando `attempts` = 0 (o
+compose que NÓS invocamos também grava esse claim; depois da 1ª tentativa o
+teto de 2 e o resgate por e-mail cuidam). Erro da consulta → warn e segue.
+Teste: `scripts/test-stranded-own-generation.mjs` (12 verificações). tsc: só
+os 4 pré-existentes.
+**Para o cliente/receita.** ~2 trials/semana que fizeram um 2º vídeo enquanto o
+1º cinematic renderizava (justamente quem tem momentum) passam a receber o
+filme pelo cron + e-mail "Your video is ready" em vez de estorno mudo.
+**SHA:** `sprint-assinaturas #3`. **Risco:** baixo — só REMOVE um pulo falso; a
+Fase 1 tem teto de 3 composes/rodada e 2 tentativas/geração. **Como medir:**
+outcomes no log com `user_finished_themselves` caindo; `stranded_composed` para
+gens cujo dono tem outro vídeo; `cinematic_abandoned_no_delivery` com
+authorized 0/N + outro vídeo → 0.
+**Ainda em aberto (padrão B, 13 dos 21):** `authorized_completed_urls` N/N,
+`stranded_*` 0, `compose_submission_claim` 0 — alguém autorizou todas as URLs
+(client poller ou cron) e o compose nunca foi tentado. Se foi o cron, morreu em
+`reload_failed`/`no_authorized_urls` (agora viram `stranded_outcome` com o #1
+no ar). Se foi a aba, o compose do cliente não disparou/registrou. Próxima
+rodada: ler `stranded_outcome` assim que o #1 subir; se ainda não subiu,
+ler `app/api/cinematic-clip-status/route.ts` e o handler de "todas prontas"
+do GenerateClient para achar o que impede o compose após a última autorização.
+**Placar 23:05 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2, free/
+churn 4); cadastros 1h=2, 24h=24 (trial concedido 23/24); vídeos 1h=1, 24h=17;
+falhas 24h=17 (script ~33s 2, voiceover 2, compose_daily_free 2, speech= 2,
+narration_too_short 1…); checkout_started 24h=1; 7d: 70 com 1, 9 com 2, 2 com
+3, **0 com 4+**; crons 24h: winback25 120, failure_recovery 0, momentum 0.
+DESTAQUE: abandoned_no_delivery 24h = 3 (1 é o padrão A desta rodada, 2 são
+padrão B) — #1+#2+#3 ainda na fila, nada disso está no ar.
