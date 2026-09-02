@@ -430,7 +430,10 @@ export async function GET(req: NextRequest) {
         : {}),
     }
 
-    await admin.from('events').insert({ user_id: userId, name: ATTEMPT_EVENT, session_id: genId, metadata: { attempt: attemptCount + 1 } })
+    // sprint-assinaturas #1 — o insert era cego: se falhasse, o compose rodava
+    // sem marcador e o teto de 2 tentativas nunca contava.
+    const { error: attemptErr } = await admin.from('events').insert({ user_id: userId, name: ATTEMPT_EVENT, session_id: genId, metadata: { attempt: attemptCount + 1 } })
+    if (attemptErr) console.error(`[stranded] attempt marker insert failed gen=${gen8}:`, attemptErr.message)
     try {
       const composeReq = new NextRequest(`${APP_URL}/api/compose`, {
         method: 'POST',
@@ -598,6 +601,38 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) {
     console.error('[relink] pass failed:', e instanceof Error ? e.message : String(e))
+  }
+
+  // ═══ sprint-assinaturas #1 (02/09) — O CRON ERA MUDO NO CAMINHO QUE MAIS
+  // IMPORTA. Medido no banco: 7 pessoas EXTERNAS em 5 dias (28/08→01/09), todas
+  // no PRIMEIRO vídeo do trial, Seedance despachado e aceito, TODAS as cenas
+  // prontas na fal (authorized_completed_urls cheio), compose NUNCA invocado,
+  // zero stranded_* no rastro, estorno 'cinematic_abandoned_no_delivery' 2h
+  // depois. 137 créditos devolvidos, 0 vídeos, 0 dessas 7 voltou. Nos logs da
+  // Vercel o cron rodou 8 vezes na janela e só imprimiu 'checked=13 composed=0'
+  // — cada desfecho ficava no JSON de resposta que ninguém lê. A partir daqui
+  // TODO desfecho vai pro log (uma linha por rodada) e os desfechos terminais
+  // silenciosos viram evento `stranded_outcome` no banco, para a próxima rodada
+  // ler a causa em SQL em vez de adivinhar. Não muda nenhuma decisão do cron.
+  const SILENT_TERMINAL = /^(authorize_failed|reload_failed|no_authorized_urls|compose_error_|compose_threw|compose_gave_up|composed_render_id_unknown|ready_email_failed|rescue_email_failed|too_few)/
+  const outcomeLine = results.map((r) => `${r.generation}:${r.outcome}`).join(' ')
+  console.log(`[stranded] outcomes ${outcomeLine || '(none)'}`)
+  try {
+    const rows = results
+      .filter((r) => SILENT_TERMINAL.test(r.outcome))
+      .map((r) => {
+        const claim = candidates.find((c) => typeof c.session_id === 'string' && c.session_id.startsWith(r.generation))
+        return claim && typeof claim.user_id === 'string' && typeof claim.session_id === 'string'
+          ? { user_id: claim.user_id, name: 'stranded_outcome', session_id: claim.session_id, path: '/api/cron/finish-stranded-renders', metadata: { outcome: r.outcome.slice(0, 120) } }
+          : null
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null)
+    if (rows.length > 0) {
+      const { error: outcomeErr } = await admin.from('events').insert(rows)
+      if (outcomeErr) console.error('[stranded] outcome events insert failed:', outcomeErr.message)
+    }
+  } catch (e) {
+    console.error('[stranded] outcome logging failed:', e instanceof Error ? e.message : String(e))
   }
 
   return NextResponse.json({ checked, composed, ready, rescued: rescuedCount, fastReady, relinked, results })
