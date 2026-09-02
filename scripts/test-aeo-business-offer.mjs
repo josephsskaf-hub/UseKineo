@@ -32,7 +32,10 @@ const checkout = loadTs('lib/checkoutPricing.ts', {
   '@/lib/credits/engineCost': engine,
   '@/lib/autopilot/config': autopilot,
 })
-const b2bLead = loadTs('lib/growth/b2bLead.ts')
+const agencyScope = loadTs('lib/growth/agencyProductionScope.ts')
+const b2bLead = loadTs('lib/growth/b2bLead.ts', {
+  '@/lib/growth/agencyProductionScope': agencyScope,
+})
 const factsContract = loadTs('lib/growth/businessOfferFacts.ts', {
   '@/lib/checkoutPricing': checkout,
   '@/lib/growth/b2bLead': b2bLead,

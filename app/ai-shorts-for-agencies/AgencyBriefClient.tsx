@@ -3,16 +3,14 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { trackEvent } from '@/lib/analytics'
 import {
-  B2B_FIT_REVIEW_CAMPAIGN,
   B2B_BRIEF_EVENT_VERSION,
   B2B_BRIEF_SURFACE,
   B2B_LEAD_INTENT,
   B2B_VOLUME_OPTIONS,
+  b2bFitReviewViewMarker,
   readB2BFitReviewAttribution,
   type B2BVolumeId,
 } from '@/lib/growth/b2bLead'
-
-const VIEW_MARKER = 'kineo:b2b-brief:viewed:v1'
 
 export default function AgencyBriefClient() {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -29,9 +27,7 @@ export default function AgencyBriefClient() {
         if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.5)) return
         observer.disconnect()
         const attribution = readB2BFitReviewAttribution(window.location.search)
-        const marker = attribution
-          ? `${VIEW_MARKER}:${B2B_FIT_REVIEW_CAMPAIGN}`
-          : VIEW_MARKER
+        const marker = b2bFitReviewViewMarker(attribution)
         try {
           if (sessionStorage.getItem(marker) === '1') return
           sessionStorage.setItem(marker, '1')

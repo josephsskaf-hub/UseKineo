@@ -1,7 +1,8 @@
 import { isInternalMeasurementEmail } from './measurement-helpers.mjs'
 import { buildSubscriptionRevenueLedger } from './subscription-revenue-ledger.mjs'
+import { AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT } from './agency-production-scope-contract.mjs'
 
-export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v5'
+export const B2B_SUBSCRIPTION_TRUTH_REPORT_VERSION = 'b2b_subscription_truth_v7'
 export const B2B_SUBSCRIPTION_WINDOW_DAYS = 30
 export const B2B_SUBSCRIPTION_CONTEXT_DAYS = 60
 export const B2B_SUBSCRIPTION_MIN_GENERATED_PEOPLE = 20
@@ -9,6 +10,7 @@ export const B2B_PROPOSAL_ASSIST_LOOKBACK_DAYS = 7
 export const B2B_ANSWER_ROUTER_MIN_VIEWED_PEOPLE = 10
 export const B2B_ANSWER_ROUTER_MIN_OBSERVATION_DAYS = 7
 export const B2B_ANSWER_ROUTER_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
+export const B2B_AGENCY_SCOPE_MEASUREMENT_START = '2026-09-03T00:00:00.000Z'
 
 const RECURRING_TIERS = new Set(['starter', 'basic', 'pro', 'autopilot'])
 const RECURRING_BILLING = new Set(['monthly', 'annual'])
@@ -21,6 +23,32 @@ export const B2B_ATTRIBUTABLE_PATHS = Object.freeze({
     journeyEntryRequirement: 'prior_exact_pricing_view',
     measurementStartsAt: B2B_ANSWER_ROUTER_MEASUREMENT_START,
     gatePolicy: 'viewed_people_and_observation',
+    events: Object.freeze({
+      viewed: 'pricing_view',
+    }),
+  }),
+  agency_scope_recurring: Object.freeze({
+    intentCampaign: AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.recurringCampaign,
+    eventVersion: null,
+    stageAttribution: 'exact_pricing_source',
+    journeyEntryRequirement: 'prior_exact_pricing_view',
+    measurementStartsAt: B2B_AGENCY_SCOPE_MEASUREMENT_START,
+    gatePolicy: 'viewed_people_and_observation',
+    allowedTiers: Object.freeze(['starter', 'basic', 'pro']),
+    allowedBilling: Object.freeze(['monthly', 'annual']),
+    events: Object.freeze({
+      viewed: 'pricing_view',
+    }),
+  }),
+  agency_scope_autopilot: Object.freeze({
+    intentCampaign: AGENCY_PRODUCTION_SCOPE_MEASUREMENT_CONTRACT.autopilotCampaign,
+    eventVersion: null,
+    stageAttribution: 'exact_pricing_source',
+    journeyEntryRequirement: 'prior_exact_pricing_view',
+    measurementStartsAt: B2B_AGENCY_SCOPE_MEASUREMENT_START,
+    gatePolicy: 'viewed_people_and_observation',
+    allowedTiers: Object.freeze(['autopilot']),
+    allowedBilling: Object.freeze(['monthly']),
     events: Object.freeze({
       viewed: 'pricing_view',
     }),
@@ -186,13 +214,16 @@ function pathForCampaign(campaign) {
     .find(([, path]) => path.intentCampaign === campaign) ?? null
 }
 
-function validRecurringStart(row) {
+function validRecurringStart(row, path = null) {
   const tier = metadataString(row, 'tier')
   const billing = metadataString(row, 'billing')
   if (row?.name !== 'checkout_started' || metadataString(row, 'sku')) return false
   if (!metadataString(row, 'stripe_session_id')) return false
   if (!RECURRING_TIERS.has(tier) || !RECURRING_BILLING.has(billing)) return false
-  return tier !== 'autopilot' || billing === 'monthly'
+  if (tier === 'autopilot' && billing !== 'monthly') return false
+  if (path?.allowedTiers && !path.allowedTiers.includes(tier)) return false
+  if (path?.allowedBilling && !path.allowedBilling.includes(billing)) return false
+  return true
 }
 
 function resolveStarts(events, identity) {
@@ -203,7 +234,7 @@ function resolveStarts(events, identity) {
     const path = pathForCampaign(campaign)
     if (!path || row?.name !== 'checkout_started') continue
     const ownerClass = actorClass(row, identity)
-    if (!validRecurringStart(row)) {
+    if (!validRecurringStart(row, path[1])) {
       if (ownerClass === 'external') invalidRecurringRows += 1
       continue
     }
@@ -452,6 +483,7 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
         identifiedExternalPeople: new Set(pathJourneys.map((journey) => journey.userId)).size,
         stripeSessions: pathJourneys.length,
         byBilling: countBy(pathJourneys, (journey) => journey.billing),
+        byTier: countBy(pathJourneys, (journey) => journey.tier),
         withArtifactWitness: pathJourneys.filter((journey) => journey.artifactWitness !== 'campaign_only').length,
         campaignOnlyWithoutArtifactWitness: pathJourneys.filter((journey) => journey.artifactWitness === 'campaign_only').length,
         exactPaidPeople: new Set(paid.map((journey) => journey.userId)).size,
@@ -573,6 +605,6 @@ export function buildB2bSubscriptionTruthReport({ generatedAt, windowStart, even
       state: readyPaths.length ? 'path_specific_diagnosis_available' : 'collecting',
       readyPaths,
     },
-    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. The business answer router additionally requires an earlier pricing_view with its exact source: either the same identified external person or the same browser session while the view was anonymous and the later Checkout has the external owner. A browser-session identity conflict fails closed. An anonymous view remains an anonymous session and is never counted as a person. A later, wrong-source or different-session view never becomes attribution. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; Autopilot is monthly-only. A copied agency proposal may be reported only as a seven-day temporal assist to a later exact recurring Checkout by the same identified external person; anonymous copies remain session diagnostics and never become people, Checkouts or revenue. The assist is never causal attribution. One-time packs and the Autopilot pilot never count as subscribers.',
+    note: 'People, anonymous sessions, Stripe Sessions and event rows are separate units. A B2B path receives subscription credit only when server-side checkout_started carries an exact allowlisted intent_campaign and the immutable subscription ledger resolves the same Stripe Session, owner, recurring product, amount, currency and timeline. Every exact-pricing path additionally requires an earlier pricing_view with its exact source: either the same identified external person or the same browser session while the view was anonymous and the later Checkout has the external owner. A browser-session identity conflict fails closed. An anonymous view remains an anonymous session and is never counted as a person. A later, wrong-source or different-session view never becomes attribution. Product-to-Short and real-estate stages additionally require the exact intent_campaign on generate_completed; a completion after Checkout never becomes a pre-Checkout witness. Post-video and pre-video subscriptions are reported separately. Annual and monthly subscriptions remain separate; scope recurring excludes Autopilot, and scope Autopilot accepts only monthly Autopilot. A copied agency proposal may be reported only as a seven-day temporal assist to a later exact recurring Checkout by the same identified external person; anonymous copies remain session diagnostics and never become people, Checkouts or revenue. The assist is never causal attribution. One-time packs and the Autopilot pilot never count as subscribers.',
   }
 }

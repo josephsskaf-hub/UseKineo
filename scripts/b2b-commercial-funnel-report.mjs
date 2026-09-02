@@ -14,6 +14,7 @@ export const B2B_COMMERCIAL_ENTRY_MINIMUM_ANONYMOUS_SESSIONS = 20
 const AGENCY_DISTRIBUTION_SOURCE = new URL('../lib/agencyDistribution.ts', import.meta.url)
 export const B2B_COMMERCIAL_ALLOWED_ENTRIES = Object.freeze([
   ...readCanonicalStringArray(AGENCY_DISTRIBUTION_SOURCE, 'AGENCY_DISTRIBUTION_ENTRIES'),
+  ...readCanonicalStringArray(AGENCY_DISTRIBUTION_SOURCE, 'AGENCY_PACK_ONLY_ENTRIES'),
   'direct',
 ])
 const B2B_COMMERCIAL_ALLOWED_ENTRY_SET = new Set(B2B_COMMERCIAL_ALLOWED_ENTRIES)
@@ -227,7 +228,28 @@ function classifyArrival(start, arrivals, identity) {
   const entries = new Set(candidates.map(validPackPageEntry).filter(Boolean))
   if (entries.size === 0) return { status: 'missing', entry: null, reason: 'no_prior_pack_page_arrival' }
   if (entries.size > 1) return { status: 'ambiguous', entry: null, reason: 'multiple_pack_page_entries' }
-  return { status: 'exact', entry: [...entries][0], reason: 'same_browser_session_prior_pack_page_arrival' }
+  const entry = [...entries][0]
+  if (entry === 'scope_brief') {
+    const sameExternalPerson = candidates.some((arrival) =>
+      validPackPageEntry(arrival) === entry &&
+      actorClass(arrival, identity) === 'external' &&
+      arrival.user_id === start.user_id,
+    )
+    if (!sameExternalPerson) {
+      return {
+        status: 'missing',
+        entry: null,
+        reason: 'scope_brief_requires_same_external_person',
+      }
+    }
+  }
+  return {
+    status: 'exact',
+    entry,
+    reason: entry === 'scope_brief'
+      ? 'same_external_person_prior_scope_brief_arrival'
+      : 'same_browser_session_prior_pack_page_arrival',
+  }
 }
 
 function purchaseSemantic(row) {

@@ -356,4 +356,28 @@ check(startConflict.checkout.stripeSessions, 1, 'conflicting Stripe Session is e
 check(startConflict.quality.conflictingStartStripeSessions, 1, 'cross-owner/session start conflict is explicit')
 check(startConflict.quality.duplicateStartRows, 1, 'same-owner same-session retry is a deduped row')
 
+const anonymousScopeArrival = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('scope_buyer')],
+  events: [
+    event('scope_anon_arrival', 'agency_bulk_page_viewed', null, 'scope_shared_browser', '2026-08-20T00:00:00.000Z', pageMeta('scope_brief')),
+    event('scope_anon_start', 'bulk_checkout_started', 'scope_buyer', 'scope_shared_browser', '2026-08-20T00:00:01.000Z', { stripe_session_id: 'cs_scope_anon' }),
+  ],
+})
+check(anonymousScopeArrival.checkout.exactArrivalPeople, 0, 'anonymous scope arrival cannot claim another person\'s pack Checkout')
+check(anonymousScopeArrival.checkout.missingArrivalPeople, 1, 'scope attribution without same external owner fails closed')
+
+const ownedScopeArrival = buildB2bCommercialFunnelReport({
+  generatedAt: GENERATED_AT,
+  windowStart: WINDOW_START,
+  profiles: [profile('scope_owner')],
+  events: [
+    event('scope_owned_arrival', 'agency_bulk_page_viewed', 'scope_owner', 'scope_owned_browser', '2026-08-20T00:00:00.000Z', pageMeta('scope_brief')),
+    event('scope_owned_start', 'bulk_checkout_started', 'scope_owner', 'scope_owned_browser', '2026-08-20T00:00:01.000Z', { stripe_session_id: 'cs_scope_owned' }),
+  ],
+})
+check(ownedScopeArrival.checkout.exactArrivalPeople, 1, 'same external person preserves exact scope-to-pack attribution')
+check(ownedScopeArrival.checkout.byExactEntry, [{ entry: 'scope_brief', people: 1, stripeSessions: 1 }], 'owned scope arrival keeps its exact entry')
+
 process.stdout.write(`B2B commercial funnel report: ${checks}/${checks} checks passed\n`)

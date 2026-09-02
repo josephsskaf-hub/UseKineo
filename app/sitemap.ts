@@ -41,7 +41,7 @@ const BASE = 'https://www.usekineo.com'
 // KINEO-SEARCH-INTENT-2026-08-28 — advanced because the comparison cluster
 // gained two real URLs (StoryShort and ShortsPilot) and the 13-tool roundup
 // was materially refreshed from production Search Console demand.
-const LAST_MODIFIED = new Date('2026-08-28T18:30:00.000Z')
+const LAST_MODIFIED = new Date('2026-09-02T21:30:00.000Z')
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes: { path: string; priority: number; freq: 'daily' | 'weekly' | 'monthly' }[] = [
@@ -149,6 +149,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // agency packs existed without a single public caller. This is the first
     // indexable door for freelancers, agencies and businesses buying batches.
     { path: '/ai-shorts-for-agencies', priority: 0.9, freq: 'weekly' },
+    // KINEO-B2B-SCOPE-2026-09-02 — portable, machine-readable product scope
+    // for the buyer or approver. It is a factual brief, not a contract or a
+    // lead event; only an explicit move to an existing human surface is measured.
+    { path: '/agency-production-scope.txt', priority: 0.7, freq: 'monthly' },
     // KINEO-TRUST-CENTER-2026-08-27 — a young domain needs one canonical
     // verification surface for operator, payments, privacy and commercial
     // rights. This is an objection page, not an invented social-proof page.

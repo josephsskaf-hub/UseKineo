@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   businessAnswerRouterCandidateSessions,
+  exactPricingCandidateSessions,
   loadB2bSubscriptionTruthInputs,
 } from './b2b-subscription-truth-loader.mjs'
 import {
@@ -17,6 +18,8 @@ let checks = 0
 const equal = (actual, expected, label) => { assert.deepEqual(actual, expected, label); checks += 1 }
 const check = (value, label) => { assert.ok(value, label); checks += 1 }
 const path = B2B_ATTRIBUTABLE_PATHS.business_answer_router_recurring
+const scopePath = B2B_ATTRIBUTABLE_PATHS.agency_scope_recurring
+const scopeAutopilotPath = B2B_ATTRIBUTABLE_PATHS.agency_scope_autopilot
 const at = (minute) => new Date(Date.parse('2026-09-03T00:00:00.000Z') + minute * 60_000).toISOString()
 const row = (id, name, userId, sessionId, minute, metadata = {}) => ({
   id, name, user_id: userId, session_id: sessionId, created_at: at(minute), metadata,
@@ -59,6 +62,34 @@ const loaded = await loadB2bSubscriptionTruthInputs({
 })
 
 equal(businessAnswerRouterCandidateSessions(primary), ['router_session_01'], 'exact view and Checkout resolve one candidate session')
+const scopePrimary = [
+  row('scope_v1', scopePath.events.viewed, null, 'scope_session_01', 5, { source: scopePath.intentCampaign }),
+  row('scope_c1', 'checkout_started', 'buyer', 'scope_session_01', 6, {
+    intent_campaign: scopePath.intentCampaign,
+    stripe_session_id: 'cs_scope_loader',
+    tier: 'basic',
+    billing: 'monthly',
+  }),
+]
+const scopeAutopilotPrimary = [
+  row('scope_auto_v1', scopeAutopilotPath.events.viewed, null, 'scope_auto_session_01', 7, { source: scopeAutopilotPath.intentCampaign }),
+  row('scope_auto_c1', 'checkout_started', 'buyer', 'scope_auto_session_01', 8, {
+    intent_campaign: scopeAutopilotPath.intentCampaign,
+    stripe_session_id: 'cs_scope_auto_loader',
+    tier: 'autopilot',
+    billing: 'monthly',
+  }),
+]
+equal(
+  exactPricingCandidateSessions([...primary, ...scopePrimary, ...scopeAutopilotPrimary]),
+  ['router_session_01', 'scope_auto_session_01', 'scope_session_01'],
+  'identity audit includes every exact-pricing path instead of only the answer router',
+)
+equal(
+  businessAnswerRouterCandidateSessions([...primary, ...scopePrimary]),
+  ['router_session_01'],
+  'legacy router helper remains narrowly scoped while the production loader audits all exact-pricing paths',
+)
 equal(sessionCalls, [['router_session_01']], 'loader calls the session-identity reader for the candidate')
 equal(loaded.events.length, 4, 'loader merges duplicate primary rows and keeps hidden identity event')
 equal(loaded.identityAudit, { candidateBrowserSessions: 1, fetchedSessionChunks: 1, additionalEventRows: 1 }, 'loader reports its identity audit')

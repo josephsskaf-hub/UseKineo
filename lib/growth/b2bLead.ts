@@ -1,3 +1,9 @@
+import {
+  AGENCY_PRODUCTION_SCOPE_FIT_REVIEW_CAMPAIGN,
+  AGENCY_PRODUCTION_SCOPE_MEDIUM,
+  AGENCY_PRODUCTION_SCOPE_SOURCE,
+} from '@/lib/growth/agencyProductionScope'
+
 export const B2B_LEAD_INTENT = 'agency_brief' as const
 export const B2B_LEAD_SOURCE = 'b2b_agency_intake' as const
 export const B2B_FIT_REVIEW_CAMPAIGN = 'b2b_volume_fit_review_v1' as const
@@ -5,6 +11,10 @@ export const B2B_FIT_REVIEW_UTM_SOURCE = 'kineo_facts' as const
 export const B2B_FIT_REVIEW_UTM_MEDIUM = 'answer_engine' as const
 export const B2B_BRIEF_EVENT_VERSION = 'b2b_brief_v1_2026_08_28' as const
 export const B2B_BRIEF_SURFACE = 'ai_shorts_for_agencies' as const
+export const B2B_BRIEF_VIEW_MARKER = 'kineo:b2b-brief:viewed:v1' as const
+export const B2B_SCOPE_BRIEF_CAMPAIGN = AGENCY_PRODUCTION_SCOPE_FIT_REVIEW_CAMPAIGN
+export const B2B_SCOPE_BRIEF_SOURCE = AGENCY_PRODUCTION_SCOPE_SOURCE
+export const B2B_SCOPE_BRIEF_MEDIUM = AGENCY_PRODUCTION_SCOPE_MEDIUM
 
 export const B2B_VOLUME_OPTIONS = [
   { id: '10_19', label: '10–19 videos / month' },
@@ -24,9 +34,17 @@ export interface B2BLeadInput {
 }
 
 export type B2BFitReviewAttribution = {
-  entry_campaign: typeof B2B_FIT_REVIEW_CAMPAIGN
-  entry_medium: typeof B2B_FIT_REVIEW_UTM_MEDIUM
-  entry_source: typeof B2B_FIT_REVIEW_UTM_SOURCE
+  entry_campaign: typeof B2B_FIT_REVIEW_CAMPAIGN | typeof B2B_SCOPE_BRIEF_CAMPAIGN
+  entry_medium: typeof B2B_FIT_REVIEW_UTM_MEDIUM | typeof B2B_SCOPE_BRIEF_MEDIUM
+  entry_source: typeof B2B_FIT_REVIEW_UTM_SOURCE | typeof B2B_SCOPE_BRIEF_SOURCE
+}
+
+export function b2bFitReviewViewMarker(
+  attribution: B2BFitReviewAttribution | null,
+): string {
+  return attribution
+    ? `${B2B_BRIEF_VIEW_MARKER}:${attribution.entry_campaign}`
+    : B2B_BRIEF_VIEW_MARKER
 }
 
 export function isB2BVolumeId(value: unknown): value is B2BVolumeId {
@@ -65,6 +83,13 @@ export function readB2BVolumeStorageKey(value: unknown): B2BVolumeId | null {
  */
 export function readB2BFitReviewAttribution(search: string): B2BFitReviewAttribution | null {
   const params = new URLSearchParams(search)
+  if (params.get('entry') === 'scope_brief') {
+    return {
+      entry_campaign: B2B_SCOPE_BRIEF_CAMPAIGN,
+      entry_medium: B2B_SCOPE_BRIEF_MEDIUM,
+      entry_source: B2B_SCOPE_BRIEF_SOURCE,
+    }
+  }
   if (
     params.get('utm_source') !== B2B_FIT_REVIEW_UTM_SOURCE ||
     params.get('utm_medium') !== B2B_FIT_REVIEW_UTM_MEDIUM ||

@@ -62,20 +62,20 @@ function identityIndex(profiles) {
   return { classification, profilesWithoutClock: profiles.filter((row) => timestamp(row) === null).length }
 }
 
-function exactAttribution(row) {
-  return metadataString(row, 'version') === CONTRACT.version &&
-    metadataString(row, 'surface') === CONTRACT.surface &&
-    metadataString(row, 'entry_campaign') === CONTRACT.entryCampaign &&
-    metadataString(row, 'entry_source') === CONTRACT.entrySource &&
-    metadataString(row, 'entry_medium') === CONTRACT.entryMedium
+function exactAttribution(row, contract = CONTRACT) {
+  return metadataString(row, 'version') === contract.version &&
+    metadataString(row, 'surface') === contract.surface &&
+    metadataString(row, 'entry_campaign') === contract.entryCampaign &&
+    metadataString(row, 'entry_source') === contract.entrySource &&
+    metadataString(row, 'entry_medium') === contract.entryMedium
 }
 
-function exactView(row) {
-  return row?.name === 'b2b_brief_viewed' && exactAttribution(row)
+function exactView(row, contract) {
+  return row?.name === 'b2b_brief_viewed' && exactAttribution(row, contract)
 }
 
-function exactSubmit(row) {
-  return row?.name === 'b2b_brief_submitted' && exactAttribution(row) &&
+function exactSubmit(row, contract) {
+  return row?.name === 'b2b_brief_submitted' && exactAttribution(row, contract) &&
     VOLUMES.has(metadataString(row, 'monthly_volume'))
 }
 
@@ -141,6 +141,7 @@ export function buildB2bFitReviewSubscriptionReport({
   sessionEvents,
   financialEvents,
   profiles,
+  contract = CONTRACT,
 }) {
   const generatedAtMs = Date.parse(String(generatedAt ?? ''))
   const windowStartMs = Date.parse(String(windowStart ?? ''))
@@ -162,8 +163,8 @@ export function buildB2bFitReviewSubscriptionReport({
     .sort(compareRows)
   const rawViews = boundedEvidence.filter((row) => row?.name === 'b2b_brief_viewed')
   const rawSubmits = boundedEvidence.filter((row) => row?.name === 'b2b_brief_submitted')
-  const exactViews = rawViews.filter(exactView)
-  const exactSubmits = rawSubmits.filter(exactSubmit)
+  const exactViews = rawViews.filter((row) => exactView(row, contract))
+  const exactSubmits = rawSubmits.filter((row) => exactSubmit(row, contract))
   const undatableEvidence = evidenceEvents.filter((row) =>
     B2B_FIT_REVIEW_EVENT_NAMES.includes(row?.name) && timestamp(row) === null,
   )
@@ -237,7 +238,7 @@ export function buildB2bFitReviewSubscriptionReport({
 
   const undatableExternalEvidencePeople = new Set()
   for (const row of undatableEvidence) {
-    if (!exactAttribution(row)) continue
+    if (!exactAttribution(row, contract)) continue
     const owner = resolveSessionOwner(text(row?.session_id), sessionEvents, identity)
     if (owner.state === 'external') undatableExternalEvidencePeople.add(owner.userId)
   }
@@ -368,10 +369,20 @@ export function buildB2bFitReviewSubscriptionReport({
   const oldestResolvedAt = cohort.length > 0 ? Math.min(...cohort.map((row) => row.submitAt)) : null
   const hasCompleteObservation = oldestResolvedAt !== null && oldestResolvedAt <= matureBeforeMs
   const sampleReady = cohort.length >= B2B_FIT_REVIEW_MIN_RESOLVED_PEOPLE && hasCompleteObservation
-  const gateState = qualityBlocked ? 'blocked_data_quality' : sampleReady ? 'ready_for_assist_review' : 'collecting'
+  const firstExactStripeSessionObserved = cohort.some((row) => row.checkout || row.paid)
+  const gateState = qualityBlocked
+    ? 'blocked_data_quality'
+    : sampleReady || firstExactStripeSessionObserved
+      ? 'ready_for_assist_review'
+      : 'collecting'
 
   return {
     schemaVersion: B2B_FIT_REVIEW_SUBSCRIPTION_VERSION,
+    contract: {
+      entryCampaign: contract.entryCampaign,
+      entrySource: contract.entrySource,
+      entryMedium: contract.entryMedium,
+    },
     generatedAt: new Date(generatedAtMs).toISOString(),
     windowStart: new Date(windowStartMs).toISOString(),
     attributionLabel: 'temporal_assist_not_causal_attribution',
@@ -416,6 +427,7 @@ export function buildB2bFitReviewSubscriptionReport({
       resolvedExternalSubmitPeople: firstSubmissions.length,
       eligibleNonSubscriberSubmitPeople: cohort.length,
       hasAtLeastOneCompleteObservationWindow: hasCompleteObservation,
+      firstExactStripeSessionObserved,
       earlyDiagnosisAllowedAfterFirstRecurringStripeSession: true,
       neverAuthorizesProductChange: true,
     },

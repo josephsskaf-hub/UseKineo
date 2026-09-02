@@ -56,7 +56,11 @@ equal(result.funnel.exactPaidPeople, 1, 'same person and Session payment counts 
 equal(result.funnel.exactPaidStripeSessions, 1, 'paid Session count is exact')
 equal(result.funnel.exactRevenueMinorByCurrency, { usd: 700 }, 'revenue stays in minor units by currency')
 equal(result.funnel.byMonthlyVolume['20_49'].paidPeople, 1, 'volume segment preserves the paid person')
-equal(result.gate.state, 'collecting', 'one person stays below sample gate')
+// Contract correction: the report already declared that the first exact Stripe
+// Session opens reconciliation, but the old assertion only tested the sample
+// threshold. The state now follows the declared early-diagnosis rule.
+equal(result.gate.firstExactStripeSessionObserved, true, 'first exact Stripe Session is computed')
+equal(result.gate.state, 'ready_for_assist_review', 'first exact Stripe Session opens early reconciliation')
 equal(result.gate.neverAuthorizesProductChange, true, 'measurement never authorizes product changes')
 
 const anonEvidence = [view('v2', null, 'anon1', 1), submit('q2', null, 'anon1', 2, '10_19')]
@@ -161,7 +165,7 @@ equal(result.funnel.recurringCheckoutStripeSessions, 0, 'conflicting Stripe Sess
 result = report({ evidenceEvents: happyEvidence, financialEvents: [start('later-s', 'u1', 'b2', 3, 'later-cs'), payment('later-p', 'u1', 2 + 8 * 24, 'later-cs')] })
 equal(result.funnel.recurringCheckoutPeople, 1, 'checkout stays in denominator when payment is later')
 equal(result.funnel.exactPaidPeople, 0, 'payment after fixed observation window is not attributed')
-equal(result.gate.state, 'collecting', 'post-cutoff payment does not create a data-quality failure')
+equal(result.gate.state, 'ready_for_assist_review', 'exact Checkout still opens reconciliation when payment is post-cutoff')
 
 const people = Array.from({ length: B2B_FIT_REVIEW_MIN_RESOLVED_PEOPLE }, (_, index) => `g${index}`)
 const gateEvidence = people.flatMap((user, index) => [

@@ -23,7 +23,7 @@ function chunks(values, size) {
   return result
 }
 
-export async function collectB2bFitReviewSubscription({ db, generatedAt = new Date() }) {
+export async function collectB2bFitReviewSubscription({ db, generatedAt = new Date(), contract }) {
   if (!db) throw new Error('db is required')
   const generatedAtDate = generatedAt instanceof Date ? generatedAt : new Date(generatedAt)
   if (!Number.isFinite(generatedAtDate.getTime())) throw new Error('generatedAt must be valid')
@@ -86,6 +86,7 @@ export async function collectB2bFitReviewSubscription({ db, generatedAt = new Da
     sessionEvents,
     financialEvents: [...financialEvents, ...nullFinancialEvents],
     profiles,
+    contract,
   })
 }
 

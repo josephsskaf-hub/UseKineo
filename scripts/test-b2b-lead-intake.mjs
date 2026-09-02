@@ -10,21 +10,27 @@ const requireFromRepo = createRequire(join(root, 'package.json'))
 const ts = requireFromRepo('typescript')
 const source = (rel) => readFileSync(join(root, rel), 'utf8')
 
-function loadTs(rel) {
+function loadTs(rel, mocks = {}) {
   const output = ts.transpileModule(source(rel), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
     fileName: join(root, rel),
   }).outputText
   const module = { exports: {} }
   new Function('require', 'module', 'exports', output)(
-    (id) => { throw new Error(`${rel} imported unexpected module: ${id}`) },
+    (id) => {
+      if (Object.prototype.hasOwnProperty.call(mocks, id)) return mocks[id]
+      throw new Error(`${rel} imported unexpected module: ${id}`)
+    },
     module,
     module.exports,
   )
   return module.exports
 }
 
-const lead = loadTs('lib/growth/b2bLead.ts')
+const agencyScope = loadTs('lib/growth/agencyProductionScope.ts')
+const lead = loadTs('lib/growth/b2bLead.ts', {
+  '@/lib/growth/agencyProductionScope': agencyScope,
+})
 let checks = 0
 const equal = (actual, expected, message) => { assert.deepEqual(actual, expected, message); checks++ }
 const ok = (value, message) => { assert.ok(value, message); checks++ }
@@ -56,6 +62,11 @@ equal(
 )
 equal(lead.readB2BFitReviewAttribution('?utm_source=chatgpt.com&utm_medium=answer_engine&utm_campaign=b2b_volume_fit_review_v1'), null, 'arbitrary source is not copied into telemetry')
 equal(lead.readB2BFitReviewAttribution('?utm_source=kineo_facts&utm_medium=answer_engine&utm_campaign=other'), null, 'unknown campaign fails closed')
+const legacyAttribution = lead.readB2BFitReviewAttribution('?utm_source=kineo_facts&utm_medium=answer_engine&utm_campaign=b2b_volume_fit_review_v1')
+const scopeAttribution = lead.readB2BFitReviewAttribution('?entry=scope_brief')
+equal(lead.b2bFitReviewViewMarker(null), lead.B2B_BRIEF_VIEW_MARKER, 'generic form view keeps the base marker')
+equal(lead.b2bFitReviewViewMarker(legacyAttribution), 'kineo:b2b-brief:viewed:v1:b2b_volume_fit_review_v1', 'legacy campaign marker executes')
+equal(lead.b2bFitReviewViewMarker(scopeAttribution), 'kineo:b2b-brief:viewed:v1:b2b_agency_scope_brief_v1', 'scope campaign gets a distinct marker')
 
 const route = source('app/api/lead-capture/route.ts')
 const component = source('app/ai-shorts-for-agencies/AgencyBriefClient.tsx')
@@ -88,7 +99,7 @@ ok(component.includes('sessionStorage.getItem(marker)'), 'form view dedupes per 
 ok(component.includes("trackEvent('b2b_brief_viewed'"), 'visible form emits a named event')
 ok(component.includes("trackEvent('b2b_brief_submitted'"), 'successful storage emits a named completion event')
 ok(component.includes('readB2BFitReviewAttribution(window.location.search)'), 'form executes the allow-listed attribution policy')
-ok(component.includes('`${VIEW_MARKER}:${B2B_FIT_REVIEW_CAMPAIGN}`'), 'campaign view is not suppressed by an earlier generic view in the same session')
+ok(component.includes('b2bFitReviewViewMarker(attribution)'), 'React caller executes the tested marker policy')
 ok(component.includes('monthly_volume: volume'), 'telemetry stores only the allow-listed band')
 const submittedTelemetry = component.slice(
   component.indexOf("trackEvent('b2b_brief_submitted'"),
