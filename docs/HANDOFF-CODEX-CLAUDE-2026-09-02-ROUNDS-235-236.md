@@ -34,7 +34,7 @@ Packs avulsos, piloto Autopilot, Checkout anterior à proposta, proposta fora de
 
 ## Auditoria e testes
 
-- Auditoria adversarial executada antes da publicação.
+- Auditoria adversarial final: **GO; P0=0, P1=0, P2=0**.
 - Achados corrigidos: ledger em conflito abrindo gate; sessões anônimas somadas como pessoas; sessão compartilhada falsamente considerada unívoca; limitação do runner que tornava qualquer vínculo anônimo não demonstrável.
 - test-b2b-subscription-truth-report.mjs: **78/78**.
 - test-subscription-revenue-ledger.mjs: **31/31**.
@@ -55,4 +55,6 @@ Packs avulsos, piloto Autopilot, Checkout anterior à proposta, proposta fora de
 
 - Base inicial: b41b7673a5229f389655c1dee2fde7069ef7a060.
 - Branch: codex/b2b-proposal-assist-truth-v1.
-- Publicação: pendente dos gates finais desta rodada.
+- Commit funcional e handoff: 08c9464bae27ccf635cd784c928b8e11d27a2aaf.
+- Publicação: origin/main = 08c9464bae27ccf635cd784c928b8e11d27a2aaf.
+- Deploy: dpl_3WRZ5gpeZDPC8awks3w2VKs4WmTR, READY, produção, SHA correto, alias www.usekineo.com e aliasError=null.
