@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { agencyPacksHref } from '@/lib/agencyDistribution'
 import { trackEvent } from '@/lib/analytics'
 import {
@@ -12,8 +12,11 @@ import {
   CLIENT_SHORT_BRIEF_CAMPAIGN,
   CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN,
   CLIENT_SHORT_GOALS,
+  readClientShortBriefEntry,
+  type ClientShortBriefEntry,
   type ClientShortGoal,
 } from '@/lib/growth/clientShortBrief'
+import { createReliableViewRecorder, type ReliableViewStorage } from '@/lib/growth/reliablePageView'
 
 const CARD = { background: 'rgba(14,15,20,.92)', border: '1px solid rgba(255,255,255,.1)' } as const
 const FIELD = { width: '100%', boxSizing: 'border-box', minHeight: 49, borderRadius: 12, border: '1px solid rgba(255,255,255,.14)', background: '#07080b', color: '#f5f5f7', padding: '11px 13px', font: 'inherit', outlineColor: '#a78bfa' } as const
@@ -24,9 +27,17 @@ const EXAMPLE = {
   cta: 'Book a 20-minute fit call',
   goal: 'leads' as ClientShortGoal,
 }
-const VIEW_MARKER = 'kineo:client-short-brief:viewed:v1'
+const VIEW_MARKER = 'kineo:client-short-brief:viewed:v2'
+const clientShortBriefViewRecorder = createReliableViewRecorder()
+
+function currentEntry() {
+  return typeof window === 'undefined'
+    ? 'organic' as const
+    : readClientShortBriefEntry(window.location.search)
+}
 
 export default function ClientVideoBriefGenerator() {
+  const entry = useRef<ClientShortBriefEntry>(currentEntry()).current
   const [offer, setOffer] = useState('')
   const [audience, setAudience] = useState('')
   const [proof, setProof] = useState('')
@@ -41,14 +52,27 @@ export default function ClientVideoBriefGenerator() {
   const activationHref = brief ? buildClientShortActivationHref(brief) : '/signup'
 
   useEffect(() => {
+    const marker = `${VIEW_MARKER}:${entry}`
+    let storage: ReliableViewStorage | null = null
     try {
-      if (sessionStorage.getItem(VIEW_MARKER) === '1') return
-      sessionStorage.setItem(VIEW_MARKER, '1')
+      storage = window.sessionStorage
     } catch {
       // Storage may be unavailable in privacy mode. The tool still works.
     }
-    void trackEvent('client_short_brief_viewed', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator' })
-  }, [])
+
+    const controller = new AbortController()
+    void clientShortBriefViewRecorder.record({
+      marker,
+      storage,
+      signal: controller.signal,
+      send: () => trackEvent('client_short_brief_viewed', {
+        version: CLIENT_SHORT_BRIEF_CAMPAIGN,
+        surface: 'client_video_brief_generator',
+        entry,
+      }),
+    })
+    return () => controller.abort()
+  }, [entry])
 
   function generate() {
     const next = buildClientShortBrief({ offer, audience, proof, cta, goal })
@@ -61,6 +85,7 @@ export default function ClientVideoBriefGenerator() {
     void trackEvent('client_short_brief_generated', {
       version: CLIENT_SHORT_BRIEF_CAMPAIGN,
       surface: 'client_video_brief_generator',
+      entry,
       goal,
       proof_state: proof.trim() ? 'supplied' : 'placeholder',
       cta_state: cta.trim() ? 'supplied' : 'placeholder',
@@ -72,7 +97,7 @@ export default function ClientVideoBriefGenerator() {
     try {
       await navigator.clipboard.writeText(briefText)
       setCopied(true)
-      void trackEvent('client_short_brief_copied', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator' })
+      void trackEvent('client_short_brief_copied', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator', entry })
     } catch {
       setCopied(false)
     }
@@ -86,6 +111,7 @@ export default function ClientVideoBriefGenerator() {
       void trackEvent('client_short_brief_intake_link_copied', {
         version: CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN,
         surface: 'client_video_brief_generator',
+        entry,
       })
     } catch {
       setIntakeLinkCopied(false)
@@ -185,7 +211,7 @@ export default function ClientVideoBriefGenerator() {
               <button type="button" onClick={() => void copyBrief()} style={{ minHeight: 48, borderRadius: 12, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.05)', color: '#f5f5f7', fontWeight: 900, cursor: 'pointer' }}>
                 {copied ? 'Brief copied ✓' : 'Copy brief for the client'}
               </button>
-              <Link href={activationHref} onClick={() => void trackEvent('client_short_brief_activation_clicked', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator' })} style={{ minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#2997ff', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
+              <Link href={activationHref} onClick={() => void trackEvent('client_short_brief_activation_clicked', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator', entry })} style={{ minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 12, background: '#2997ff', color: '#fff', fontWeight: 900, textDecoration: 'none' }}>
                 Create this Short in Kineo →
               </Link>
             </div>
@@ -194,7 +220,7 @@ export default function ClientVideoBriefGenerator() {
 
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 270px), 1fr))', gap: 13, marginTop: 28 }}>
           <article style={{ ...CARD, padding: 19, borderRadius: 17 }}><h2 style={{ margin: 0, fontSize: '1.03rem' }}>Made for approval, not decoration</h2><p style={{ color: '#96969f', fontSize: '.87rem', lineHeight: 1.62, margin: '8px 0 0' }}>The brief exposes missing proof and the exact CTA before a render or revision costs anyone time.</p></article>
-          <article style={{ ...CARD, padding: 19, borderRadius: 17 }}><h2 style={{ margin: 0, fontSize: '1.03rem' }}>Need 10–50 client videos?</h2><p style={{ color: '#96969f', fontSize: '.87rem', lineHeight: 1.62, margin: '8px 0 11px' }}>Kineo also offers one-time Fast Short packs for agencies, freelancers and companies—without a recurring contract.</p><Link href={agencyPacksHref('client_brief')} onClick={() => void trackEvent('client_short_brief_packs_clicked', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator' })} style={{ color: '#34d399', fontSize: '.86rem', fontWeight: 850, textDecoration: 'none' }}>See client-video packs →</Link></article>
+          <article style={{ ...CARD, padding: 19, borderRadius: 17 }}><h2 style={{ margin: 0, fontSize: '1.03rem' }}>Need 10–50 client videos?</h2><p style={{ color: '#96969f', fontSize: '.87rem', lineHeight: 1.62, margin: '8px 0 11px' }}>Kineo also offers one-time Fast Short packs for agencies, freelancers and companies—without a recurring contract.</p><Link href={agencyPacksHref('client_brief')} onClick={() => void trackEvent('client_short_brief_packs_clicked', { version: CLIENT_SHORT_BRIEF_CAMPAIGN, surface: 'client_video_brief_generator', entry })} style={{ color: '#34d399', fontSize: '.86rem', fontWeight: 850, textDecoration: 'none' }}>See client-video packs →</Link></article>
         </section>
       </div>
     </main>

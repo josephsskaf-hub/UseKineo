@@ -1,6 +1,32 @@
 export const CLIENT_SHORT_BRIEF_CAMPAIGN = 'client_short_brief_v1' as const
 export const CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN = 'client_short_brief_share_v1' as const
 
+export type ClientShortBriefEntry =
+  | 'organic'
+  | 'client_intake_share'
+  | 'agency_margin_proposal'
+  | 'agency_page'
+
+/**
+ * Classifies the current door into the brief tool without replacing the
+ * product-wide first-touch UTM contract. Only exact, owned pairs are accepted;
+ * arbitrary query strings fail closed to organic.
+ */
+export function readClientShortBriefEntry(search: string): ClientShortBriefEntry {
+  const params = new URLSearchParams(search)
+  const source = params.get('utm_source')
+  const campaign = params.get('utm_campaign')
+
+  if (source === 'client_brief_share' && campaign === CLIENT_SHORT_BRIEF_SHARE_CAMPAIGN) {
+    return 'client_intake_share'
+  }
+  if (source === 'agency_margin_proposal' && campaign === 'agency_margin_proposal_v1') {
+    return 'agency_margin_proposal'
+  }
+  if (params.get('entry') === 'agency_page') return 'agency_page'
+  return 'organic'
+}
+
 export const CLIENT_SHORT_GOALS = [
   { id: 'leads', label: 'Generate qualified leads' },
   { id: 'explain', label: 'Explain the offer clearly' },

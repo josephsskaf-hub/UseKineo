@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url'
 const root = process.cwd()
 const helperPath = path.join(root, 'lib', 'growth', 'agencyProposal.ts')
 const helper = await import(pathToFileURL(helperPath).href)
+const briefHelper = await import(pathToFileURL(path.join(root, 'lib', 'growth', 'clientShortBrief.ts')).href)
 const calculator = fs.readFileSync(path.join(root, 'app', 'ai-shorts-for-agencies', 'AgencyMarginCalculator.tsx'), 'utf8')
 
 let checks = 0
@@ -26,6 +27,8 @@ equal(parsedHref.pathname, '/client-video-brief-generator', 'proposal leads to t
 equal(parsedHref.searchParams.get('utm_source'), 'agency_margin_proposal', 'proposal source is attributable')
 equal(parsedHref.searchParams.get('utm_medium'), 'referral', 'proposal is a referral loop')
 equal(parsedHref.searchParams.get('utm_campaign'), 'agency_margin_proposal_v1', 'proposal campaign is versioned')
+equal(briefHelper.readClientShortBriefEntry(parsedHref.search), 'agency_margin_proposal', 'proposal destination classifies the current entry')
+equal(briefHelper.readClientShortBriefEntry('?utm_source=agency_margin_proposal&utm_campaign=forged'), 'organic', 'proposal classification fails closed when the campaign drifts')
 
 equal(helper.agencyProposalPriceBand(0), 'under_15', 'zero fails into the lowest non-sensitive band')
 equal(helper.agencyProposalPriceBand(1499), 'under_15', 'under 15 bucket')

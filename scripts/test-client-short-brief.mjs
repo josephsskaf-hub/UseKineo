@@ -18,7 +18,10 @@ const moduleBox = { exports: {} }
 vm.runInNewContext(compiled, {
   module: moduleBox,
   exports: moduleBox.exports,
-  require: (id) => { throw new Error(`unexpected import ${id}`) },
+  require: (id) => {
+    if (id === './agencyProposal') return { AGENCY_MARGIN_PROPOSAL_VARIANT: 'agency_margin_proposal_v1' }
+    throw new Error(`unexpected import ${id}`)
+  },
   URLSearchParams,
   Set,
 }, { filename: 'lib/growth/clientShortBrief.ts' })
@@ -85,6 +88,16 @@ equal(shareUrl.searchParams.get('utm_campaign'), 'client_short_brief_share_v1', 
 equal([...shareUrl.searchParams.keys()].length, 3, 'shared intake URL contains no client input')
 check(!shareHref.includes(raw.offer) && !shareHref.includes(raw.audience) && !shareHref.includes(raw.proof) && !shareHref.includes(raw.cta), 'shared intake leaks no client data')
 
+equal(briefTool.readClientShortBriefEntry(''), 'organic', 'empty query is organic')
+equal(briefTool.readClientShortBriefEntry('?utm_source=client_brief_share&utm_campaign=client_short_brief_share_v1'), 'client_intake_share', 'exact intake pair is classified')
+equal(briefTool.readClientShortBriefEntry('?utm_source=agency_margin_proposal&utm_campaign=agency_margin_proposal_v1'), 'agency_margin_proposal', 'exact proposal pair is classified')
+equal(briefTool.readClientShortBriefEntry('?entry=agency_page'), 'agency_page', 'owned agency-page entry is classified')
+equal(briefTool.readClientShortBriefEntry('?utm_source=client_brief_share&utm_campaign=forged'), 'organic', 'forged intake campaign fails closed')
+equal(briefTool.readClientShortBriefEntry('?utm_source=forged&utm_campaign=agency_margin_proposal_v1'), 'organic', 'forged proposal source fails closed')
+equal(briefTool.readClientShortBriefEntry('?entry=agency_margin_proposal'), 'organic', 'arbitrary entry cannot impersonate a proposal')
+equal(briefTool.readClientShortBriefEntry('?utm_source=client_brief_share&utm_campaign=client_short_brief_share_v1&entry=agency_page'), 'client_intake_share', 'exact intake pair wins over a weaker entry hint')
+equal(briefTool.readClientShortBriefEntry('?utm_source=agency_margin_proposal&utm_campaign=agency_margin_proposal_v1&entry=agency_page'), 'agency_margin_proposal', 'exact proposal pair wins over a weaker entry hint')
+
 const client = read('app/client-video-brief-generator/ClientVideoBriefGenerator.tsx')
 check(client.includes('buildClientShortBrief'), 'real UI executes the brief builder')
 check(client.includes('buildClientShortActivationHref'), 'real CTA carries the approved brief')
@@ -94,7 +107,23 @@ check(client.includes('client_short_brief_activation_clicked'), 'activation hand
 check(client.includes('client_short_brief_intake_link_copied'), 'client intake referral loop is measurable')
 check(client.includes('buildClientShortBriefShareHref'), 'real UI copies the privacy-safe intake URL')
 check(client.includes('Their answers stay in their browser and are never added to the URL.'), 'share UI states the privacy boundary')
-check(client.includes('kineo:client-short-brief:viewed:v1'), 'view dedupe survives React remounts within the session')
+check(client.includes('kineo:client-short-brief:viewed:v2'), 'entry-scoped view dedupe uses a new marker contract')
+check(client.includes('createReliableViewRecorder'), 'view waits for a server acknowledgement')
+check(client.includes('clientShortBriefViewRecorder.record({'), 'real caller executes the reliable recorder')
+check(client.includes('signal: controller.signal'), 'unmount cancels an orphaned view lifecycle')
+check(client.includes('const marker = `${VIEW_MARKER}:${entry}`'), 'one session may record one view per current entry')
+check(client.includes('useRef<ClientShortBriefEntry>(currentEntry()).current'), 'entry is frozen for the whole mounted visit')
+check(client.includes('entry,'), 'view metadata carries the current entry')
+for (const eventName of [
+  'client_short_brief_viewed',
+  'client_short_brief_generated',
+  'client_short_brief_copied',
+  'client_short_brief_intake_link_copied',
+  'client_short_brief_activation_clicked',
+  'client_short_brief_packs_clicked',
+]) {
+  check(new RegExp(`trackEvent\\('${eventName}'[\\s\\S]{0,360}entry\\b`).test(client), `${eventName} carries the frozen current entry`)
+}
 check(!client.toLowerCase().includes('supabase'), 'free tool has no Supabase client')
 check(!client.includes('fetch('), 'free brief generation has no provider call or cost')
 
