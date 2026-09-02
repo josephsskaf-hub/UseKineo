@@ -28,5 +28,16 @@ git rebase --onto "$PONTA" "$BASE" -q 2>/dev/null || {
     GIT_EDITOR=true git rebase --continue -q
   done
 }
+# sprint-assinaturas #1 (02/09): o rebase pode FALHAR sem conflito (na OneDrive o
+# .git recusa apagar .lock/rebase-merge e o git aborta com "could not detach
+# HEAD"); o `|| { }` acima engolia isso e a linha abaixo movia a fila para um
+# HEAD que NAO continha os commits alheios — foi assim que a fila perdeu 2
+# commits às 22:40 de 01/09 (restaurados). Regra: só mover se a ponta atual for
+# ancestral do meu HEAD; senão parar e mandar fazer em clone limpo em /tmp.
+if ! git merge-base --is-ancestor "$PONTA" HEAD; then
+  echo "ABORTADO: o rebase nao aplicou meus commits por cima de $(git rev-parse --short "$PONTA") — a fila NAO foi tocada."
+  echo "Saida: git clone --shared --no-checkout <raiz> /tmp/x && cd /tmp/x && git checkout --detach $(git rev-parse --short "$PONTA") && git cherry-pick <meus shas> && git push <raiz> HEAD:refs/heads/entrega-atual --force"
+  exit 1
+fi
 git -C "$COMUM/.." branch -f entrega-atual "$(git rev-parse HEAD)"
 echo "enfileirado: entrega-atual = $(git rev-parse --short HEAD) — fila: $(git rev-list --count origin/main..HEAD)"
