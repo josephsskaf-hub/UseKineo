@@ -619,3 +619,77 @@ com 3, **0 com 4+**; crons 24h: winback25 120, failure_recovery 0, momentum
 histórico de uso; hoje nenhum win-back fala com eles (winback25 exige
 `video_credits=0` e `has_paid=false`). Coorte pequena, valor alto: já pagaram
 uma vez.
+
+### #11 — 01:29→01:45 BRT — o e-mail de fim de trial dizia "nada que mandamos virou vídeo" para quem tinha 5 clipes na Library
+**Leitura.** origin/main = ee5270d1 (Codex subiu 2 commits de medição:
+66e9fb4b, ee5270d1); fila tinha 2 (#10 + diário). Worktree `.claude/worktrees/
+claude-assinaturas-24h` está presa a outra sessão (`locked`, caminho
+/sessions/cool-bold-euler) — rodada em clone compartilhado `/tmp/assin-r11`
+em cima de `entrega-atual`. ⚠ Lição de processo: `enfileirar.sh` rodado
+DENTRO do clone move a `entrega-atual` do CLONE (o `--git-common-dir` é o
+próprio .git dele), e o `origin/main` do clone é a `main` LOCAL obsoleta
+(727a869) — daí "fila atual: 560". O que vale é o push final
+`git push <raiz> HEAD:refs/heads/entrega-atual` só depois de provar que a
+ponta real é ancestral do meu HEAD (`merge-base --is-ancestor`). Feito assim;
+nada alheio foi tocado (fila = #10 + diário + #11).
+**O que estava errado.** xzavior000 (TAAFT, 25cr, 02/09 00:31 UTC) é o lead
+mais quente da noite: abriu /pricing DUAS vezes antes de gastar, foi ao
+/animate e fez **5 clipes de 10s em 24 minutos**, todos entregues. No 5º bateu
+no teto (`trial_expired reason=credit_cap`), foi rebaixado 30s depois
+(`trial_downgraded`) e às 01:25 UTC recebeu o `downgraded_loss` na versão
+"nunca rodou": assunto **"Your first video is one click away"**, corpo
+**"nothing we sent you actually put a finished video in your hands"** + 3
+temas de 1 clique "no free plan". Ele tinha 5 clipes na Library e 0 créditos.
+É copy que mente para quem acabou de provar que o produto funciona — e o
+e-mail seguinte na fila dele é o pedido de dinheiro (D5). Causa: o ponto cego
+já anotado em 24/08 (`/animate`, `/images`, `/audio` NÃO criam linha em
+`videos`) chegou aos e-mails de ciclo de vida: `neverRan = videosMade === 0`.
+Medido 30d: **13 downgraded_loss, 10 ending_soon, 11 D5, 6 D10** foram para
+gente com 0 `videos` e entrega em outro produto (9 dos 13 via Animate).
+Poucos — mas são os que GASTARAM o trial.
+**O que mudou.** `lib/lifecycle/otherDeliveries.ts`: conta clipes do Animate
+(`animate_job_settled outcome=delivered`, por `billing_reference` DISTINTO),
+`images` e `audios` por conta, paginado com ORDER BY estável, FALHA ABERTA por
+fonte (zeros + `other_deliveries_degraded` nas 3 respostas do cron). No
+`downgraded_loss`: `neverRan` exige 0 vídeos **E** 0 entregas; quem só tem
+clipes/imagens/áudios recebe o e-mail "de quem tem vídeo" com a frase certa:
+"The **5 animated clips** you already made are yours — they stay in your
+Library" (número medido; nunca imprime "0 clips"). `ending_soon`, D5 e D10
+intocados byte a byte. Sem crédito, sem cupom, sem preço. tsc: só os 3
+pré-existentes. `scripts/test-other-deliveries.mjs`: 29 verificações (dedupe
+de 45 linhas → 5 clipes; refunded não conta; fail-open por fonte; ending_soon
+sem toque; ramo não concede nada).
+**Para o cliente/receita.** O e-mail que antecede o pedido de compra deixa de
+chamar de "nunca tentou" quem usou tudo. Para o xzavior da próxima noite: "os
+5 clipes são seus + Creator devolve os motores" em vez de "faça seu primeiro
+vídeo". É o grupo com maior intenção provada (gastou 100% em <30 min).
+**SHA:** 2994355e (sobre 27aecbec). **Risco:** baixo — 3 leituras a mais por
+run do cron (coorte pequena, paginadas); erro de leitura = copy de hoje.
+**Como medir:** `trial_lifecycle_email_sent kind=downgraded_loss` para
+user_id com 0 `videos` e `animate_job_settled delivered` → o assunto deixa de
+ser "Your first video is one click away" (checar `subject` se o cron gravar;
+senão, cruzar com o Resend). `other_deliveries_degraded=false` no JSON.
+**Dívidas achadas (não bloqueiam):**
+1. `sweepPublishedAnimateJobs` NÃO converge: o guarda nº 3
+   (`.contains('metadata', {billing_reference})`) não acha o evento que ele
+   mesmo gravou — um job de 31/08 tem **43** `animate_job_settled`, 2.407 no
+   total desde 16/08, e o cron pergunta ao fal a cada hora por 7 dias por
+   clipe feliz. Custo: chamadas de status (não cobradas) + ruído no `events`.
+   Hipótese: o `contains` sobre jsonb com `->>` alias vs objeto; conferir com
+   `metadata->>billing_reference = eq.` em vez de `cs`.
+2. xzavior nunca viu checkout: ao zerar no /animate, o que a tela mostra?
+   Ele tinha intenção de preço (2 pricing_view) e 5 entregas em 24 min — o
+   momento "acabou o crédito no 5º clipe" é o melhor paywall da casa e hoje
+   não existe medição (`animate_*` não tem evento de paywall). Candidato a
+   #12 se a medição das 03:05 não trouxer nada pior.
+**Placar 01:29 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=3, 24h=32 (4 com 0cr — todos `trial_downgraded`
+por teto ou relógio, nenhum órfão); vídeos 1h=2, 24h=19; falhas 3h: as mesmas
+do #10 (adrianwells prompt_len ×7 — pré-#9; asuquoalbert speech=3s/60s ×2 +
+narration_too_short ×2; wummm709 held=19 ×2), **nada novo na última hora**;
+checkout_started 24h=5; 7d: 72 com 1, 9 com 2, 2 com 3, **0 com 4+**; crons
+24h: winback25 120, failure_recovery 0, momentum 0, subscriber_idle 0 (rota
+do #10 ainda na fila).
+**Próximo item (#12):** às 03:05 BRT ler `failure_recovery_sent` por `kind`
+(1º disparo real). Se vazio de novidade: o paywall do /animate no momento
+"5º clipe zerou o saldo" (dívida 2 acima) — em pista minha (produto pós-login).
