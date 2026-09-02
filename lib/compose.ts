@@ -171,7 +171,23 @@ const CAPTION_HOOK_WINDOW_SECONDS = 2
 // pre-existing pacing, animation and caption behavior. Easy to tune here.
 // (a) RITMO — cut cadence band: each clip slot lasts 2.5–4s (viral edit rhythm).
 const FAST_MIN_CUT_SECONDS = 2.5
-const FAST_MAX_CUT_SECONDS = 4
+// KINEO-1-CINEMA-2026-09-02 — teto 4 → 4.5: um plano que "assenta" por meio
+// segundo a mais, com o push-in desacelerando, le como filme e nao como slide.
+// O piso continua 2.5 (o ritmo viral nao muda; so o corte mais longo ganhou ar).
+const FAST_MAX_CUT_SECONDS = 4.5
+// KINEO-1-CINEMA-2026-09-02 — barras de cinema (letterbox) no Kineo 1. O Kineo 1
+// e o motor de 59% dos primeiros videos (14d) e a comparacao do cliente e com
+// filme gerado por IA. Duas faixas pretas finas (6% cada) em cima e embaixo
+// sao o sinal visual mais barato e mais reconhecido de "cinema" num Short —
+// e PODEM ser shapes: PUSH #95 tirou as barras antigas porque nao tinham
+// `path` (nunca desenharam) e porque eram 20%×2 = 40% do quadro. Aqui: 6%,
+// com `path: RECT_PATH` (o mesmo da base preta da track 1), e a legenda
+// (y 78%, ancora 100%) e a marca d'agua (y 5%) ficam onde estao — a marca
+// passa a sentar na barra de cima, mais legivel. 0 desliga.
+const FAST_LETTERBOX_PCT = 6
+// KINEO-1-CINEMA-2026-09-02 — abertura do filme: fade do preto no 1o corte
+// (mesma propriedade/valor que o builder hollywood usa em compose.ts ~2885).
+const FAST_OPENING_FADE_SECONDS = 0.5
 // (b) MOVIMENTO — Ken Burns pattern cycled per cut: center push-in, pull-back,
 // then off-center push-ins (anchored left/right) that read as subtle lateral
 // pans. Same proven Creatomate 'scale' animation type as #292, only varied.
@@ -2201,6 +2217,12 @@ export function buildCreatomateSource({
       width: '100%',
       height: '100%',
       volume: '0%',
+      // KINEO-1-CINEMA-2026-09-02 — o filme abre do preto (so o 1o corte, so
+      // fast). Cortes seguintes continuam secos: e o padrao de documentario e
+      // o que #202/#234 provaram funcionar sem buraco entre clipes.
+      ...(isFastStock && i === 0 && reuseIndex === 0
+        ? { enter_transition: { type: 'fade', duration: FAST_OPENING_FADE_SECONDS } }
+        : {}),
       animations: [
         kb
           ? {
@@ -2305,13 +2327,20 @@ export function buildCreatomateSource({
   // unchanged (0.05–0.07): they were already a whisper and 'screen' can only
   // lift. HUES ARE UNCHANGED — only alpha moved. Dial the wash back up toward
   // 0.10 once someone has watched a real render.
+  // KINEO-1-CINEMA-2026-09-02 — o passo que PUSH #95 pediu: o fundador
+  // assistiu (dezenas de Fast) e a nota foi "stock cru, sem graca". No FAST o
+  // wash sobe UM degrau (+0.03 → 0.10/0.11/0.09/0.09, os valores originais de
+  // PUSH #94) e o glow +0.02. AI Gen/avatar ficam como estavam: o motor ja
+  // entrega graduado. Tons inalterados, so alpha.
+  const gradeStep = isFastStock ? 0.03 : 0
+  const glowStep = isFastStock ? 0.02 : 0
   const grade = /\b(billionaire|millionaire|wealth|money|invest|luxur|rich|dollar|business)\b/.test(gradeText)
-    ? { wash: 'rgba(35,26,8,0.07)',  glow: 'rgba(255,190,80,0.07)' }   // wealth: warm gold
+    ? { wash: `rgba(35,26,8,${(0.07 + gradeStep).toFixed(2)})`,  glow: `rgba(255,190,80,${(0.07 + glowStep).toFixed(2)})` }   // wealth: warm gold
     : /\b(mystery|mysterious|unexplained|vanish|disappear|haunted|secret|creepy)\b/.test(gradeText)
-    ? { wash: 'rgba(8,14,40,0.08)',  glow: 'rgba(120,150,255,0.05)' }  // mystery: deep blue
+    ? { wash: `rgba(8,14,40,${(0.08 + gradeStep).toFixed(2)})`,  glow: `rgba(120,150,255,${(0.05 + glowStep).toFixed(2)})` }  // mystery: deep blue
     : /\b(volcano|desert|island|mountain|ocean|country|village|glacier|jungle|crater)\b/.test(gradeText)
-    ? { wash: 'rgba(10,32,40,0.06)', glow: 'rgba(255,140,50,0.06)' }   // places: teal/orange doc
-    : { wash: 'rgba(12,34,51,0.06)', glow: 'rgba(255,150,60,0.05)' }   // default (#436 palette)
+    ? { wash: `rgba(10,32,40,${(0.06 + gradeStep).toFixed(2)})`, glow: `rgba(255,140,50,${(0.06 + glowStep).toFixed(2)})` }   // places: teal/orange doc
+    : { wash: `rgba(12,34,51,${(0.06 + gradeStep).toFixed(2)})`, glow: `rgba(255,150,60,${(0.05 + glowStep).toFixed(2)})` }   // default (#436 palette)
   // (a) Niche wash over the whole frame → cohesion + moody cinematic tone.
   elements.push({
     type: 'shape',
@@ -2327,6 +2356,27 @@ export function buildCreatomateSource({
     // PUSH #94 — tint the shadows instead of veiling the whole frame.
     blend_mode: 'multiply',
   })
+  // KINEO-1-CINEMA-2026-09-02 — LETTERBOX (so fast). Ver FAST_LETTERBOX_PCT.
+  // Track 6: acima do scrim/grade (3) e do VO (4), abaixo das legendas (5)?
+  // Nao — legendas ficam na track 5 e terminam em y 78%; as barras ocupam
+  // 0-6% e 94-100%, sem cruzar. Track 6 garante que a barra cobre o clipe e
+  // o grade, e a marca d'agua (track 9, y 5%) desenha POR CIMA da barra.
+  if (isFastStock && !hasAvatar && FAST_LETTERBOX_PCT > 0) {
+    for (const yTop of [0, 100 - FAST_LETTERBOX_PCT]) {
+      elements.push({
+        type: 'shape',
+        track: 6,
+        time: 0,
+        duration: totalDuration,
+        x: '50%',
+        y: `${yTop + FAST_LETTERBOX_PCT / 2}%`,
+        width: '100%',
+        height: `${FAST_LETTERBOX_PCT}%`,
+        path: RECT_PATH,
+        fill_color: '#000000',
+      })
+    }
+  }
   // (b) Complementary highlight lift in the center → reads as "color graded",
   //     not just tinted. Very subtle, center-weighted.
   elements.push({

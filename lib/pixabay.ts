@@ -675,15 +675,24 @@ async function collectCandidates(
     // single extra topic-token match is worth. A clip that matches the query
     // better therefore can NEVER be outranked because a rival looks prettier;
     // aesthetics only separates clips that are already equally on-topic.
+    // KINEO-1-CINEMA-2026-09-02 — NITIDEZ E UM SINAL DURO, nao so peso. O
+    // compose recorta todo clipe em 9:16 com fit 'cover': um master 16:9 de
+    // 1920×1080 vira ~608×1080 utilizaveis e e ESTICADO 1,78× para 1080×1920
+    // — sai borrado ao lado de um Seedance. Um master 16:9 de 3840×2160 recorta
+    // em 1215×2160 e sai nitido; um 9:16 nativo de 1080×1920 tambem. Penaliza
+    // o que vai sair mole: paisagem abaixo de 2560 de largura −2, retrato
+    // abaixo de 1080 de altura −3. Explicito como o tooShort (penalidade, nao
+    // rejeicao): num tema magro, um clipe certo e mole ainda vence o FALLBACK.
+    const lowRes = !rez ? 0 : portrait ? (rez.height < 1080 ? 3 : 0) : (rez.width < 2560 ? 2 : 0)
     const score =
-      matches * 4 + (coversScene ? 3 : 0) + (portrait ? 10 : 0) - (tooShort ? 2 : 0) +
+      matches * 4 + (coversScene ? 3 : 0) + (portrait ? 10 : 0) - (tooShort ? 2 : 0) - lowRes +
       cohere + styleAlign + aesthetic.points
     candidates.push({
       url, score, order, id: video.id, styleTags: sTags,
       tags: video.tags, durationSec: typeof video.duration === 'number' ? video.duration : undefined,
     })
     console.log(
-      `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
+      `[pixabay] ${label} candidate id=${video.id} score=${score.toFixed(2)} (matches=${matches} dur=${video.duration ?? '?'}s/${neededSec}s portrait=${portrait} tooShort=${tooShort} lowRes=${lowRes} cohere=${cohere} styleAlign=${styleAlign} aesthetic=${aesthetic.score.toFixed(2)}→${aesthetic.points.toFixed(2)}pts/${AESTHETIC_MAX_SWING} [${formatAestheticBreakdown(aesthetic)}]) tags="${video.tags.slice(0, 60)}"`,
     )
   }
 
