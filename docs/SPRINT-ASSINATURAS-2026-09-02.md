@@ -1287,3 +1287,70 @@ ignora o filme, corrigir (rota/cron da minha pista); (b) 11:00 BRT: os ~27
 `momentum_nudge_sent`; (c) pós-clique: dry-run do rescue-composed-films;
 (d) `narration_too_short` (25 pessoas/14d, 13 nunca fizeram vídeo) é pista do
 v1v4 — só registrar lá que o alvo 60 com fala 51 (85%) ainda recusa.
+
+### #20 — 05:38→06:05 BRT — o e-mail de perda chegava 10 min DEPOIS do filme para quem gastou o trial inteiro nele; agora a manchete é o filme e o pedido é medido em filmes
+**Leitura.** origin/main = 68a36cb1 (Codex subiu 10 commits de medição:
+local-brief, first-video decision, affiliate funnel, in-flow pricing,
+Autopilot — nada na minha pista); fila = 12 sobre 9395b26b, **ainda não
+clicada**. Worktree `assin-r20` travou no `HEAD.lock` da OneDrive no commit;
+saída prevista no próprio enfileirar.sh: clone `--shared` em /tmp, commit lá e
+push fast-forward para `entrega-atual` (não-force: se alguém tivesse movido a
+fila no meio, o push seria recusado — mesma garantia do script).
+**O que estava errado (item (a) do #19).** zareshahi0 (chatgpt.com, 07:46 UTC):
+1º vídeo Seedance 60s = 25cr = trial inteiro. Filme de **62s** na Library às
+08:15:39 (Fase 3 do cron) e às 08:25:17 o `downgraded_loss`: **"Here's what you
+just lost access to"** — lista de perdas 10 minutos depois de a pessoa ter, pela
+1ª vez, um filme pronto. Pior: o evento gravava só `kind/variant/restored`,
+então NÃO dá para provar se ele leu o corpo "com vídeo" ou o "nothing we sent
+you actually put a finished video in your hands" (se o `videos` veio do Data
+Cache do #17, foi o segundo — mentira verificável).
+**Medido 14d (externos).** 401 `downgraded_loss` enviados (o e-mail mais
+enviado da casa); 188 sem vídeo, 213 com; **36 por teto de crédito, 29 desses
+com filme entregue** (~2/dia); 18 receberam o e-mail <2h depois do último
+filme; **4 checkouts depois do e-mail, 1 pagante** (0,25%).
+**O que mudou.** `lib/lifecycle/trialFilmPlans.ts` (puro): `isBurnedWithFilm`
+(só linha `downgraded` — revogação provada —, concessão > 0, gasto ≥ concessão,
+≥ 1 vídeo), `filmsPerPlan(custo)` = ⌊TIER_CREDITS/custo⌋ por plano (null se
+custo desconhecido ou nenhum plano compra 1 — nunca "0 films"), `filmNoun`
+("62-second film" só com duração real). No cron: `credits_used` e `duration`
+do vídeo mais recente colhidos no MESMO laço que já pagina `videos` (zero
+consulta nova); `burnedWithFilm` decidido em `dueKind` com `videosMade` real;
+corpo novo `burned_with_film` — assunto **"Your trial went into one 62-second
+film — it's in your Library"**, CTA "Open your Library", as perdas continuam
+listadas (deixam de ser manchete), depois "a plan is measured in films like
+that one: Starter — 1 film like that a month · Creator — 3 · Studio — 7" (para
+25cr; Kineo 1 de 5cr daria 8/18/36), CTA /pricing com utm próprio, episódio 2
+(#25) mantido. `never_ran` decide ANTES (quem não tem vídeo nunca lê "film").
+Sem preço literal (regra do arquivo), sem cupom, sem crédito. O evento
+`trial_lifecycle_email_sent` agora grava `videos_made`, `credits_lost` e
+`body` (never_ran | burned_with_film | standard) — o que a pessoa LEU.
+**Testes.** `scripts/test-trial-loss-burned-film.mjs` **40 verificações**
+(TIER_CREDITS lidos da fonte, não digitados). 3 testes antigos ajustados:
+`test-other-deliveries` (assinatura de dueKind), `test-episodio2-ending` (3ª
+chamada do helper) e `test-episodio2-loss` — que **já falhava em 3 itens
+(B09/B20/C02) desde o #24 do ending** e ninguém viu; agora 75/75. tsc: só os
+3 pré-existentes.
+**Para o cliente/receita.** ~2 pessoas/dia (as que gastaram TUDO e receberam)
+passam a ler primeiro "seu filme está na Library" e um pedido em unidade que
+elas acabaram de experimentar (filmes/mês), em vez de uma lista de perdas.
+É o grupo com a maior intenção provada do funil; hoje converte 0,25%.
+**SHA:** 8e8c5525 (sobre 687a322b). **Risco:** baixo — ramo novo só entra com
+4 condições verdadeiras; qualquer dúvida = e-mail de hoje byte a byte.
+**Como medir:** `trial_lifecycle_email_sent` com `body='burned_with_film'` →
+`checkout_started` com utm `trial_loss_burned_film` nas 48h; comparar com a
+taxa de 4/401 do padrão. `body` também revela quantos `never_ran` saem para
+gente com vídeo (prova do Data Cache #17 no passado).
+**Placar 06:03 BRT (externos):** has_paid 11 (starter 3, basic 2, pro 2,
+free/churn 4); cadastros 1h=1, 24h=35 (4 com 0cr — gastaram, nenhum órfão);
+vídeos 1h=3, 24h=21; **falhas 1h=0**; checkout_started 24h=5 pessoas; 7d: 78
+com 1, 9 com 2, 2 com 3, **0 com 4+**; crons 24h: winback25 120,
+failure_recovery 6, stranded_ready 18 + fast_ready 5, momentum 0 (13:30 UTC),
+subscriber_idle 0 (link do #10 não clicado); refunds 24h: 5;
+downgraded_loss 24h: 21.
+**Próximo item (#21):** (a) `expired_offer_d5` / `expired_lastcall_d10`
+(COMEBACK50) para o mesmo grupo "queimou tudo com filme": conferir se o D5
+também ignora o filme; (b) 11:00 BRT: os ~27 `momentum_nudge_sent`;
+(c) pós-clique: dry-run do `/api/admin/rescue-composed-films` e `body` dos
+`downgraded_loss` novos; (d) 0 com 4+ vídeos em 7d continua — a fronteira
+0,9%→11,8% da conversão não está sendo cruzada por ninguém externo esta
+semana; medir o que separa os 9 "com 2" dos 78 "com 1" (motor? custo? falha?).
