@@ -8,6 +8,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { STUDIO_KIT_CSS } from '@/components/studioKit'
 import CreditsTopupModal from '@/components/CreditsTopupModal' // KINEO-TOPUP-POPUP-2026-08-18
+// sprint-assinaturas #13 — o 402 so abre o popup de recarga para quem PODE
+// comprar recarga (Creator/Studio, regra do checkout); trial/free/starter
+// veem os 3 planos com "N audio clips/mo" em vez de um pack que o checkout recusa.
+import OutOfCreditsPlansModal from '@/components/OutOfCreditsPlansModal'
+import { outOfCreditsDestination } from '@/lib/credits/outOfCreditsPlans'
 
 type AudioModelKey = 'eleven' | 'minimax' | 'dia' | 'kokoro'
 
@@ -51,6 +56,12 @@ export default function AudioClient() {
   // KINEO-TOPUP-POPUP-2026-08-18 — 402 'Not enough credits' abre o popup de
   // recarga (packs one-time) em vez de morrer num texto de erro.
   const [showTopup, setShowTopup] = useState(false)
+  // sprint-assinaturas #13 — plano/saldo de /api/credits decidem a parede do
+  // 402 (recarga vs planos); madeThisSession da o numero real ao titulo.
+  const [showPlans, setShowPlans] = useState(false)
+  const [plan, setPlan] = useState<string>('free')
+  const [balance, setBalance] = useState<number | null>(null)
+  const [madeThisSession, setMadeThisSession] = useState(0)
   const [items, setItems] = useState<Item[]>([])
   // KINEO-SPRINT-UI-5-2026-08-29 — falha de leitura NAO vira galeria vazia.
   const [galleryFailed, setGalleryFailed] = useState(false)
@@ -85,6 +96,25 @@ export default function AudioClient() {
   }
   useEffect(() => { loadGallery() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // sprint-assinaturas #13 — best effort; sem resposta a parede assume 'free'
+  // (= planos), que e o destino seguro: nunca manda ninguem a um pack recusado.
+  async function refreshPlan() {
+    try {
+      const r = await fetch('/api/credits', { cache: 'no-store' })
+      if (!r.ok) return
+      const d = await r.json()
+      if (typeof d?.plan === 'string') setPlan(d.plan)
+      if (typeof d?.credits === 'number') setBalance(d.credits)
+    } catch {}
+  }
+  useEffect(() => { void refreshPlan() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function openCreditsWall() {
+    if (outOfCreditsDestination(plan) === 'topup') setShowTopup(true)
+    else setShowPlans(true)
+    void refreshPlan()
+  }
+
   // Troca de motor: reseta a voz pro default do novo motor.
   useEffect(() => { setVoice(eng.voices[0]?.id ?? null) }, [model]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -101,8 +131,10 @@ export default function AudioClient() {
       const data = await res.json()
       if (!res.ok || !data?.url) throw new Error(data?.error ?? 'Generation failed.')
       setItems((xs) => [{ id: (data.id as string | null) ?? null, url: data.url as string, model, voice, text: text.trim() }, ...xs])
+      setMadeThisSession((n) => n + 1)
+      void refreshPlan()
     } catch (e) {
-      { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) setShowTopup(true) }
+      { const m = e instanceof Error ? e.message : 'Generation failed.'; setError(m); if (/not enough credits/i.test(m)) openCreditsWall() }
     } finally {
       setBusy(false)
     }
@@ -201,12 +233,22 @@ export default function AudioClient() {
               </div>
             )}
             {showTopup && <CreditsTopupModal surface="audio_402" onClose={() => setShowTopup(false)} />}
+            {showPlans && (
+              <OutOfCreditsPlansModal
+                product="audio"
+                unitCost={credits}
+                credits={balance}
+                plan={plan}
+                madeThisSession={madeThisSession}
+                onClose={() => setShowPlans(false)}
+              />
+            )}
             {error && (
               <p role="alert" style={{ marginTop: 10, padding: '9px 12px', borderRadius: 10, background: 'rgba(255,107,107,.08)', border: '1px solid rgba(255,107,107,.35)', color: '#ffb4b4', fontSize: 12.5 }}>
                 ⚠️ {error}
                 {/* KINEO-AUDIT-401-2026-08-18: 401 vira porta, nao beco */}
                 {error.toLowerCase().includes('credits') && (
-                  <> <button type="button" onClick={() => setShowTopup(true)} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
+                  <> <button type="button" onClick={openCreditsWall} style={{ color: '#7cc0ff', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Add credits →</button></>
                 )}
                 {error.toLowerCase().includes('signed in') && (
                   <> <a href="/login?redirect=/audio" style={{ color: '#7cc0ff', fontWeight: 700 }}>Sign in →</a></>
