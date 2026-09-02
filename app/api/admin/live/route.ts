@@ -153,8 +153,14 @@ export async function GET() {
     const num = (v: unknown) => (typeof v === 'number' ? v : Number(v ?? 0)) || 0
 
     // ── Quem está online: último evento por usuário logado ─────────────────
-    type OnlineRow = { user_id: string | null; name: string; path: string | null; created_at: string }
-    const onlineRows = ((evOnline.data ?? []) as OnlineRow[]).filter((r) => !!r.user_id)
+    type OnlineRow = { user_id: string | null; session_id: string | null; name: string; path: string | null; created_at: string }
+    // KINEO-ONLINE-FANTASMA-2026-09-01 — 'online' e PRESENCA, nao atividade de
+    // servidor. Em 01/09 o winback-25 gravou 60 eventos (credito concedido +
+    // e-mail enviado) em 1 minuto e o painel mostrou "65 online · navegando"
+    // para gente que nem abriu o e-mail. Evento de pessoa REAL vem do
+    // rastreador do navegador e sempre carrega session_id; evento gravado pelo
+    // servidor (crons, campanhas, grants) nao tem. So o primeiro conta.
+    const onlineRows = ((evOnline.data ?? []) as OnlineRow[]).filter((r) => !!r.user_id && !!r.session_id)
     const byUser = new Map<string, { last: OnlineRow; events: string[] }>()
     for (const row of onlineRows) {
       const uid = row.user_id as string
