@@ -10,6 +10,10 @@
 
 **CONTRADIÇÃO EM PRODUÇÃO:** sessões recentes do Stripe foram criadas com `currency: usd`, mas retornaram `adaptive_pricing.enabled: true`. Assim, o repositório pede USD enquanto uma configuração externa permite que o Stripe apresente e cobre em moeda local.
 
+**EVIDÊNCIA DE PRODUÇÃO — Stripe Live, leitura em 2026-09-02 10:59 BRT, sem identificadores pessoais:** desde 2026-08-19 existem 2 Checkout Sessions concluídas e pagas, ambas de assinatura, ambas com moeda de integração USD e ambas com Adaptive Pricing ativo. Desde 2026-09-01 existem 6 Sessions abertas e não pagas, todas de assinatura, todas com moeda de integração USD e todas com Adaptive Pricing ativo.
+
+**QUESTÃO PENDENTE / DESCONHECIDO:** os objetos listados de Checkout Session, PaymentIntent e Subscription não trouxeram `presentment_details`. Portanto ainda não há prova de qual moeda cada comprador viu. Não usar `currency: usd` como substituto dessa prova: a documentação da Stripe diz que a moeda de integração pode continuar USD mesmo quando a moeda apresentada ao comprador é local.
+
 **FATO CONFIRMADO NO CÓDIGO:** nenhuma criação de Checkout Session em `app/api/stripe/checkout/route.ts` declara `adaptive_pricing`. A busca no runtime encontrou apenas as chamadas `stripe.checkout.sessions.create`; portanto o comportamento observado não é uma moeda local escolhida pelo código da Kineo.
 
 **EVIDÊNCIA EXTERNA — documentação oficial Stripe, consultada em 2026-09-02:** Adaptive Pricing localiza o preço segundo a localização do comprador, permite pagamento na moeda local e pode manter essa moeda em cobranças recorrentes. Os objetos de API continuam expondo a moeda da integração, e a moeda apresentada fica em `presentment_details`; por isso `currency: usd` sozinho não prova que o comprador viu ou pagou USD. Fonte: <https://docs.stripe.com/payments/currencies/localize-prices/adaptive-pricing?platform=web&payment-ui=checkout-form>.
